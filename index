@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Career Apply Board — All Lanes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0e13; --panel:#141a24; --panel2:#1a2231; --ink:#e8edf4; --muted:#8a97a9;
+  --amber:#ffb01f; --amber-dim:#c9851a; --green:#36d399; --cyan:#49c7ff; --violet:#b58cff;
+  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.16);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'IBM Plex Sans',sans-serif;color:var(--ink);background:var(--bg);
+  background-image:
+    radial-gradient(900px 500px at 85% -8%, rgba(255,176,31,.10), transparent 60%),
+    radial-gradient(700px 500px at 0% 100%, rgba(54,211,153,.07), transparent 55%),
+    linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+  background-size:auto,auto,42px 42px,42px 42px;line-height:1.5;padding:0 18px 70px;
+}
+.wrap{max-width:1060px;margin:0 auto}
+header{padding:40px 0 22px;border-bottom:1px solid var(--line)}
+.kicker{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.2em;color:var(--amber);text-transform:uppercase}
+h1{font-family:'Saira Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.01em;
+   font-size:clamp(2.1rem,7vw,3.4rem);line-height:.98;margin:.26em 0 .12em}
+h1 .b{color:var(--amber)}
+.sub{color:var(--muted);max-width:64ch;font-size:.95rem}
+.intro{margin-top:20px;background:linear-gradient(180deg,var(--panel),#10151d);border:1px solid var(--line);
+  border-left:3px solid var(--amber);border-radius:12px;padding:16px 18px}
+.intro p{font-size:.89rem;color:#cfd8e4;margin:.32em 0}
+.intro b{color:var(--ink)}
+.pitchbox{margin-top:12px;background:#0e131b;border:1px dashed rgba(54,211,153,.4);border-radius:10px;padding:12px 13px}
+#pitch{color:var(--green);font-weight:600;font-size:.88rem;display:block}
+#copybtn{margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:.74rem;letter-spacing:.05em;
+  background:rgba(54,211,153,.12);color:var(--green);border:1px solid rgba(54,211,153,.4);
+  border-radius:8px;padding:7px 12px;cursor:pointer;transition:background .15s}
+#copybtn:hover{background:rgba(54,211,153,.22)}
+/* controls */
+.controls{position:sticky;top:0;z-index:20;margin-top:22px;padding:14px 0 12px;
+  background:linear-gradient(180deg,var(--bg) 70%,rgba(11,14,19,.0));backdrop-filter:blur(3px)}
+#search{width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:10px;color:var(--ink);
+  font-family:'IBM Plex Sans',sans-serif;font-size:.92rem;padding:11px 14px;outline:none}
+#search::placeholder{color:var(--muted)}
+#search:focus{border-color:var(--amber)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.chip{font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:6px 12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.chip:hover{border-color:var(--line2);color:var(--ink)}
+.chip.on{background:var(--amber);color:#1a1205;border-color:var(--amber);font-weight:600}
+section.lane{margin-top:34px}
+.shead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:3px}
+.snum{font-family:'IBM Plex Mono',monospace;color:var(--amber-dim);font-size:.8rem}
+.shead h2{font-family:'Saira Condensed',sans-serif;font-weight:600;text-transform:uppercase;
+  letter-spacing:.04em;font-size:1.45rem}
+.snote{color:var(--muted);font-size:.85rem;margin:2px 0 15px;max-width:72ch}
+.grid{display:grid;gap:11px;grid-template-columns:repeat(auto-fill,minmax(238px,1fr))}
+a.card{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+  border-radius:11px;padding:13px 15px;transition:transform .15s,border-color .15s,box-shadow .15s}
+a.card:hover{transform:translateY(-3px);border-color:var(--line2);box-shadow:0 10px 28px -12px rgba(0,0,0,.7)}
+a.card:hover .name{color:var(--amber)}
+a.card:hover .go{color:var(--green)}
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.name{font-weight:600;font-size:.98rem;transition:color .15s}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--amber);border:1px solid rgba(255,176,31,.32);border-radius:999px;padding:3px 7px;white-space:nowrap}
+.tag.v{color:var(--green);border-color:rgba(54,211,153,.32)}
+.tag.c{color:var(--cyan);border-color:rgba(73,199,255,.32)}
+.tag.p{color:var(--violet);border-color:rgba(181,140,255,.32)}
+.meta{font-size:.81rem;color:var(--muted);min-height:1.05em}
+.go{font-family:'IBM Plex Mono',monospace;font-size:.73rem;letter-spacing:.06em;color:var(--amber-dim);margin-top:1px}
+.empty{display:none;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:.85rem;padding:24px 0}
+footer{margin-top:42px;background:linear-gradient(180deg,var(--panel),#10151d);border:1px solid var(--line);
+  border-radius:12px;padding:20px}
+footer h3{font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:1.2rem;color:var(--amber);margin-bottom:10px}
+footer ol{margin-left:18px;color:#cfd8e4;font-size:.89rem}
+footer li{margin:.4em 0}
+.fineprint{margin-top:14px;color:var(--muted);font-size:.77rem;font-family:'IBM Plex Mono',monospace}
+@media(max-width:560px){.grid{grid-template-columns:1fr}header{padding:28px 0 18px}}
+section.tool{margin-top:34px}
+#atsRole{width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:10px;color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:.92rem;padding:11px 14px;outline:none;margin:4px 0 10px}
+#atsRole:focus{border-color:var(--amber)}
+#atsRoles{margin-bottom:14px}
+#shortlist .slAdd{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 14px}
+#shortlist .slAdd input{flex:1 1 200px;background:var(--panel);border:1px solid var(--line2);border-radius:10px;color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:.9rem;padding:10px 13px;outline:none}
+#shortlist .slAdd input:focus{border-color:var(--amber)}
+#shortlist .slAdd button{background:var(--amber);color:#0d0f12;border:none;border-radius:10px;font-family:'Saira Condensed',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.85rem;padding:0 22px;cursor:pointer}
+.slempty{color:var(--dim,#8a93a0);font-size:.86rem;font-style:italic;padding:6px 2px}
+section.lane a.card,#slList a.card{position:relative}
+.star{position:absolute;bottom:9px;right:10px;width:30px;height:30px;line-height:27px;text-align:center;border-radius:8px;border:1px solid var(--line2);background:rgba(0,0,0,.28);color:var(--dim,#8a93a0);font-size:1.05rem;cursor:pointer;padding:0;transition:border-color .12s,color .12s,background .12s;z-index:3}
+.star:hover{border-color:var(--amber);color:var(--amber)}
+.star.on{color:#0d0f12;background:var(--amber);border-color:var(--amber)}
+.slx{position:absolute;bottom:9px;right:10px;width:28px;height:28px;line-height:25px;text-align:center;border-radius:8px;border:1px solid var(--line2);background:rgba(0,0,0,.28);color:var(--dim,#8a93a0);font-size:.9rem;cursor:pointer;padding:0;z-index:3}
+.slx:hover{border-color:#e06b6b;color:#e06b6b}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kicker">// Career Ops · Every Lane · Apply Fast</div>
+  <h1>Apply <span class="b">Board</span></h1>
+  <p class="sub">Every place worth applying, across all the paths you're running — IT support, your GRC target, trades, govcon, veteran channels, Spokane local, plus skill-up and side income. Tiles open live searches &amp; careers pages, so they stay current.</p>
+  <div class="intro">
+    <p><b>Pay map:</b> IT support / help desk ~$19–26/hr (~$43–60K) · entry GRC analyst ~$55–75K (your target) · trades apprenticeships paid-from-day-one, scaling to journey wage.</p>
+    <p><b>Two truths:</b> many "entry" cyber/IT roles still want CompTIA A+ or ~1 yr experience (Skill-Up lane fixes that), and <b>govcon is your edge</b> — federal-contractor work values your clearance + military background and bridges straight to the ISSO/GRC role you want.</p>
+    <div class="pitchbox">
+      <span id="pitch">Air National Guard veteran moving into IT &amp; cybersecurity (federal GRC focus). Confident troubleshooting Windows and Mac, strong customer-service background, completing CompTIA Security+. Held a Secret clearance — reactivation-eligible. Reliable, fast learner, available to start now.</span>
+      <button id="copybtn">⧉ Copy pitch</button>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <input id="search" type="text" placeholder="Search tiles…  (e.g. 'GRC', 'welder', 'remote', 'Spokane')">
+  <div class="chips">
+    <span class="chip on" data-f="all">All</span>
+    <span class="chip" data-f="itsupport">IT Support</span>
+    <span class="chip" data-f="grc">Cyber / GRC</span>
+    <span class="chip" data-f="trades">Trades</span>
+    <span class="chip" data-f="govcon">Govcon</span>
+    <span class="chip" data-f="saas">SaaS</span>
+    <span class="chip" data-f="staffing">Staffing</span>
+    <span class="chip" data-f="veteran">Veteran</span>
+    <span class="chip" data-f="spokane">Spokane</span>
+    <span class="chip" data-f="skillup">Skill-Up</span>
+    <span class="chip" data-f="income">Side Income</span>
+    <span class="chip" data-f="remoteboards">Remote Boards</span>
+    <span class="chip" data-f="remotecos">Remote Cos</span>
+    <span class="chip" data-f="tools">Tools</span>
+  </div>
+</div>
+
+<!-- SHORTLIST -->
+<section class="tool" id="shortlist">
+  <div class="shead"><span class="snum">☆</span><h2>Shortlist <span id="slCount">(0)</span></h2></div>
+  <p class="snote">Star any tile to save it here, or paste a job link you found anywhere. Saved in your browser on your own copy of this app.</p>
+  <div class="slAdd">
+    <input id="slUrl" type="text" placeholder="paste a job URL…">
+    <input id="slLabel" type="text" placeholder="label (optional)">
+    <button id="slAddBtn" type="button">Add</button>
+  </div>
+  <div id="slList" class="grid"></div>
+  <div id="slEmpty" class="slempty">No saved jobs yet — tap ☆ on any tile, or paste a link above.</div>
+</section>
+
+<!-- ATS HIDDEN JOBS -->
+<section class="tool" id="ats">
+  <div class="shead"><span class="snum">★</span><h2>Hidden-Jobs Search (ATS)</h2></div>
+  <p class="snote">Most roles never hit LinkedIn. Search companies' hiring systems straight through Google — far less competition. Type a title, tap a platform. Each search auto-adds AND "remote".</p>
+  <input id="atsRole" type="text" value="GRC analyst" placeholder="role / title…">
+  <div class="chips" id="atsRoles">
+    <span class="chip on" data-r="GRC analyst">GRC analyst</span>
+    <span class="chip" data-r="IT support">IT support</span>
+    <span class="chip" data-r="help desk">help desk</span>
+    <span class="chip" data-r="compliance analyst">compliance analyst</span>
+    <span class="chip" data-r="SOC analyst">SOC analyst</span>
+    <span class="chip" data-r="ISSO">ISSO</span>
+  </div>
+  <div class="grid" id="atsGrid"></div>
+</section>
+
+<!-- 01 IT SUPPORT FEEDS -->
+<section class="lane">
+  <div class="shead"><span class="snum">01</span><h2>IT Support — Remote Feeds</h2></div>
+  <p class="snote">Pre-filtered entry/remote help-desk &amp; support searches. Re-open every few days.</p>
+  <div class="grid">
+    <a class="card" data-tags="itsupport" href="https://www.indeed.com/jobs?q=help+desk+entry+level&l=Remote" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Indeed · Help Desk</span><span class="tag">Remote</span></div><div class="meta">Entry, work-from-home</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="itsupport" href="https://www.indeed.com/jobs?q=IT+support+entry+level&l=Remote" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Indeed · IT Support</span><span class="tag">Remote</span></div><div class="meta">Entry support tech</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="itsupport" href="https://www.linkedin.com/jobs/search/?keywords=IT%20help%20desk&f_E=2&f_WT=2" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">LinkedIn · Help Desk</span><span class="tag">Remote</span></div><div class="meta">Entry + remote filtered</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="itsupport" href="https://www.ziprecruiter.com/Jobs/Entry-Level-Remote-It-Support" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">ZipRecruiter · IT Support</span><span class="tag">Remote</span></div><div class="meta">1-click apply</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="itsupport" href="https://www.dice.com/jobs?q=help%20desk&location=Remote&filters.workplaceTypes=Remote" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Dice · Help Desk</span><span class="tag">Remote</span></div><div class="meta">Tech-focused board</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="itsupport" href="https://www.google.com/search?q=entry+level+remote+IT+help+desk+jobs&ibp=htl;jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Google Jobs</span><span class="tag">Remote</span></div><div class="meta">Aggregates all boards</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 02 CYBER / GRC -->
+<section class="lane">
+  <div class="shead"><span class="snum">02</span><h2>Cyber / GRC — Your Target</h2></div>
+  <p class="snote">The destination: ISSO support, FedRAMP/CMMC compliance, Third-Party Risk. Competitive at zero experience — strongest once Security+ lands. The 3PAOs below are your named launchpads.</p>
+  <div class="grid">
+    <a class="card" data-tags="grc" href="https://www.indeed.com/jobs?q=GRC+analyst+entry+level&l=Remote" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Indeed · GRC Analyst</span><span class="tag c">Remote</span></div><div class="meta">Entry-level GRC</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc" href="https://www.indeed.com/jobs?q=IT+compliance+analyst&l=Remote" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Indeed · IT Compliance</span><span class="tag c">Remote</span></div><div class="meta">Compliance / audit analyst</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc" href="https://www.indeed.com/jobs?q=SOC+analyst+tier+1&l=Remote" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Indeed · SOC Analyst I</span><span class="tag c">Remote</span></div><div class="meta">Tier-1 security ops</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc" href="https://www.linkedin.com/jobs/search/?keywords=GRC%20analyst&f_E=2&f_WT=2" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">LinkedIn · GRC</span><span class="tag c">Remote</span></div><div class="meta">Entry + remote filtered</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc" href="https://www.indeed.com/jobs?q=FedRAMP&l=Remote" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Indeed · FedRAMP</span><span class="tag c">Remote</span></div><div class="meta">FedRAMP support roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc" href="https://www.indeed.com/jobs?q=CMMC&l=Remote" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Indeed · CMMC</span><span class="tag c">Remote</span></div><div class="meta">CMMC compliance roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc" href="https://www.a-lign.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">A-LIGN</span><span class="tag">3PAO</span></div><div class="meta">FedRAMP/SOC 2 — assoc. roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc" href="https://coalfire.com/company/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Coalfire</span><span class="tag">3PAO</span></div><div class="meta">Associate consultant track</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc" href="https://www.schellman.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Schellman</span><span class="tag">3PAO</span></div><div class="meta">Associate IT auditor</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc" href="https://www.clearancejobs.com/jobs?keywords=ISSO" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">ClearanceJobs · ISSO</span><span class="tag v">Cleared</span></div><div class="meta">ISSO / security support</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 03 GOVCON -->
+<section class="lane">
+  <div class="shead"><span class="snum">03</span><h2>Govcon / Federal</h2></div>
+  <p class="snote">Your edge — remote-friendly, veteran-valuing, and the shortest bridge from help desk to GRC. On each page search "help desk / service desk," filter Remote, flag clearance reactivation-eligible.</p>
+  <div class="grid">
+    <a class="card" data-tags="govcon grc itsupport" href="https://www.clearancejobs.com/jobs?keywords=help%20desk" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">ClearanceJobs</span><span class="tag v">Veteran</span></div><div class="meta">Cleared / clearable roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="govcon itsupport" href="https://www.usajobs.gov/Search/Results?k=help+desk" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">USAJOBS · Federal</span><span class="tag v">Veteran</span></div><div class="meta">IT Specialist 2210; vet pref</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="govcon" href="https://gdit.com/careers/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">GDIT</span><span class="tag">Govcon</span></div><div class="meta">Large service-desk hirer</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="govcon" href="https://jobs.saic.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">SAIC</span><span class="tag">Govcon</span></div><div class="meta">Help Desk Agent I &amp; up</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="govcon" href="https://careers.caci.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">CACI</span><span class="tag">Govcon</span></div><div class="meta">Support + RMF-adjacent</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="govcon grc" href="https://careers.leidos.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Leidos</span><span class="tag">Govcon</span></div><div class="meta">Service desk + security</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="govcon" href="https://careers.peraton.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Peraton</span><span class="tag">Govcon</span></div><div class="meta">Federal service desk</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="govcon grc" href="https://careers.boozallen.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Booz Allen</span><span class="tag">Govcon</span></div><div class="meta">Support → security tracks</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 04 SaaS -->
+<section class="lane">
+  <div class="shead"><span class="snum">04</span><h2>SaaS / Product Support — Remote</h2></div>
+  <p class="snote">Low-barrier foot in the door at a tech company; pivot internally toward security later.</p>
+  <div class="grid">
+    <a class="card" data-tags="saas itsupport" href="https://www.linkedin.com/jobs/search/?keywords=associate%20technical%20support&f_E=2&f_WT=2" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">LinkedIn · Support Assoc.</span><span class="tag">Remote</span></div><div class="meta">SaaS support, entry</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="saas itsupport" href="https://careers.veeva.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Veeva Systems</span><span class="tag">Remote</span></div><div class="meta">Tech Customer Service Assoc.</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="saas itsupport" href="https://www.panopto.com/about/careers/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Panopto</span><span class="tag">Remote</span></div><div class="meta">Support Analyst I</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="saas itsupport" href="https://www.indeed.com/jobs?q=customer+support+associate+SaaS&l=Remote" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Indeed · SaaS Support</span><span class="tag">Remote</span></div><div class="meta">Support / customer success</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 05 STAFFING -->
+<section class="lane">
+  <div class="shead"><span class="snum">05</span><h2>Staffing Agencies — Fast Placement</h2></div>
+  <p class="snote">Recruiters place entry IT support fast. Make a profile, say "remote help desk, available now."</p>
+  <div class="grid">
+    <a class="card" data-tags="staffing itsupport" href="https://www.teksystems.com/en/search-jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">TEKsystems</span><span class="tag">Staffing</span></div><div class="meta">Largest IT staffing firm</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="staffing itsupport" href="https://www.roberthalf.com/us/en/jobs?keywords=help%20desk" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Robert Half</span><span class="tag">Staffing</span></div><div class="meta">Help desk / desktop</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="staffing itsupport" href="https://jobs.insightglobal.com/find_a_job/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Insight Global</span><span class="tag">Staffing</span></div><div class="meta">High-volume contracts</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="staffing itsupport" href="https://www.akkodis.com/en-us/jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Akkodis (Modis)</span><span class="tag">Staffing</span></div><div class="meta">Tech contract + perm</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="staffing" href="https://www.kforce.com/find-work/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Kforce</span><span class="tag">Staffing</span></div><div class="meta">Tech + finance placement</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 06 TRADES -->
+<section class="lane">
+  <div class="shead"><span class="snum">06</span><h2>Trades &amp; Apprenticeships — Spokane</h2></div>
+  <p class="snote">On-site, paid from day one. Welding-adjacent metal trades (no ironworking) + the registries that list every paid Washington apprenticeship.</p>
+  <div class="grid">
+    <a class="card" data-tags="trades spokane" href="https://secure.lni.wa.gov/arts-public/#/program-search" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">WA L&amp;I ARTS</span><span class="tag p">Registry</span></div><div class="meta">Every WA apprenticeship — by county</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="trades" href="https://www.apprenticeship.gov/apprenticeship-job-finder" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Apprenticeship.gov</span><span class="tag p">Finder</span></div><div class="meta">Live apprenticeship postings</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="trades spokane" href="https://sewneo.org/spokane/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">SEWNEO JATC</span><span class="tag v">Veteran</span></div><div class="meta">Sheet Metal / HVAC, no tuition</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="trades spokane" href="https://www.ajactraining.org/enrollment/adult/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">AJAC</span><span class="tag p">Mfg</span></div><div class="meta">Manufacturing — apply via employer</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="trades spokane" href="https://www.indeed.com/jobs?q=welder+apprentice&l=Spokane%2C+WA" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Indeed · Welder Apprentice</span><span class="tag">Spokane</span></div><div class="meta">Fab-shop helper roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="trades spokane" href="https://www.ziprecruiter.com/Jobs/Entry-Level-Welder/-in-Spokane,WA" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">ZipRecruiter · Welder</span><span class="tag">Spokane</span></div><div class="meta">Entry welder, 1-click apply</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="trades" href="https://www.careeronestop.org/FindTraining/Types/apprenticeships.aspx" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">CareerOneStop</span><span class="tag p">Finder</span></div><div class="meta">DOL apprenticeship finder</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 07 VETERAN BOARDS -->
+<section class="lane">
+  <div class="shead"><span class="snum">07</span><h2>Veteran Job Boards</h2></div>
+  <p class="snote">Military-friendly employers post here first. Your DD-214 is an asset on all of them.</p>
+  <div class="grid">
+    <a class="card" data-tags="veteran" href="https://recruitmilitary.com/jobs?keywords=help%20desk" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">RecruitMilitary</span><span class="tag v">Veteran</span></div><div class="meta">Vet-focused IT roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="veteran" href="https://www.hiringourheroes.org/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Hiring Our Heroes</span><span class="tag v">Veteran</span></div><div class="meta">Fellowships + jobs</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="veteran" href="https://www.military.com/veteran-jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Military.com Jobs</span><span class="tag v">Veteran</span></div><div class="meta">Broad vet board</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="veteran" href="https://vetjobs.org/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">VetJobs</span><span class="tag v">Veteran</span></div><div class="meta">Placement + coaching</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 08 SPOKANE ON-SITE IT -->
+<section class="lane">
+  <div class="shead"><span class="snum">08</span><h2>Spokane On-Site IT — Fastest Odds</h2></div>
+  <p class="snote">On-site help desk is easier to land than fully remote and pays day one (~$19–26/hr). Local MSPs, healthcare, schools, tribes, F5 train juniors.</p>
+  <div class="grid">
+    <a class="card" data-tags="spokane itsupport" href="https://www.indeed.com/jobs?q=help+desk&l=Spokane%2C+WA" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Indeed · Spokane Help Desk</span><span class="tag">On-site</span></div><div class="meta">~50+ local listings</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="spokane itsupport" href="https://www.ziprecruiter.com/Jobs/Help-Desk-Technician/-in-Spokane,WA" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">ZipRecruiter · Spokane</span><span class="tag">On-site</span></div><div class="meta">1-click apply, local</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="spokane itsupport" href="https://www.linkedin.com/jobs/search/?keywords=IT%20support&location=Spokane%2C%20Washington&f_E=2" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">LinkedIn · Spokane</span><span class="tag">On-site</span></div><div class="meta">Entry-level, local</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="spokane itsupport" href="https://careers.f5.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">F5 (Spokane office)</span><span class="tag">Employer</span></div><div class="meta">Desktop Support roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="spokane itsupport" href="https://www.google.com/search?q=Goodwill+Industries+Inland+Northwest+IT+support+careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Goodwill IINW</span><span class="tag">Employer</span></div><div class="meta">IT Support Technician</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="spokane itsupport" href="https://www.google.com/search?q=CHAS+Health+Spokane+service+desk+IT+careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">CHAS Health</span><span class="tag">Employer</span></div><div class="meta">Service Desk Technician</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="spokane itsupport" href="https://www.google.com/search?q=Kalispel+Tribe+Airway+Heights+IT+client+support+careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Kalispel Tribe</span><span class="tag">Employer</span></div><div class="meta">IT Client Support</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="spokane itsupport" href="https://www.google.com/search?q=Executech+ISOutsource+K2+Spokane+help+desk+technician+careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Local MSPs</span><span class="tag">Employer</span></div><div class="meta">Executech · ISOutsource · K2</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 09 SKILL-UP -->
+<section class="lane">
+  <div class="shead"><span class="snum">09</span><h2>Skill-Up &amp; Certs — Clear the Filters</h2></div>
+  <p class="snote">The fastest way to stop getting screened out. Free veteran training + the certs employers ask for. (You're already on Security+ — A+ unlocks help desk fast; finishing Security+ over-qualifies you for it and points at GRC.)</p>
+  <div class="grid">
+    <a class="card" data-tags="skillup grc veteran" href="https://ivmf.syracuse.edu/programs/career-training/o2o-admission/onward-to-opportunity-application/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Onward to Opportunity</span><span class="tag v">Veteran</span></div><div class="meta">Free online IT/cyber + cert. ~2-3 mo wait</div><div class="go">ENROLL →</div></a>
+    <a class="card" data-tags="skillup grc veteran" href="https://www.sans.org/cyber-academy/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">SANS VetSuccess</span><span class="tag v">Veteran</span></div><div class="meta">Free GIAC certs (competitive)</div><div class="go">ENROLL →</div></a>
+    <a class="card" data-tags="skillup grc" href="https://apprenticareers.org/career-seeker/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Apprenti · Assessment</span><span class="tag c">Tech RA</span></div><div class="meta">Take the test to join the pool</div><div class="go">START →</div></a>
+    <a class="card" data-tags="skillup itsupport" href="https://www.comptia.org/certifications/a" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">CompTIA A+</span><span class="tag p">Cert</span></div><div class="meta">Unlocks help-desk filters</div><div class="go">INFO →</div></a>
+    <a class="card" data-tags="skillup grc" href="https://www.comptia.org/certifications/security" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">CompTIA Security+</span><span class="tag p">Cert</span></div><div class="meta">Your in-progress cert → GRC</div><div class="go">INFO →</div></a>
+    <a class="card" data-tags="skillup itsupport grc" href="https://www.professormesser.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Professor Messer</span><span class="tag p">Free study</span></div><div class="meta">Free A+/Network+/Security+ training</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="skillup itsupport" href="https://www.coursera.org/professional-certificates/google-it-support" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Google IT Support Cert</span><span class="tag p">Cert</span></div><div class="meta">Job-ready help-desk foundation (Coursera)</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="skillup grc" href="https://www.coursera.org/professional-certificates/google-cybersecurity" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Google Cybersecurity Cert</span><span class="tag p">Cert</span></div><div class="meta">Entry cyber foundation (Coursera)</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="skillup grc" href="https://www.youtube.com/playlist?list=PLG49S3nxzAnl4QDVqK-hOnoqcSKEIDDuv" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Messer SY0-701 (YouTube)</span><span class="tag p">Free study</span></div><div class="meta">Full Security+ video course playlist</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="skillup grc" href="https://professormesser.link/701notes" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Messer Course Notes</span><span class="tag p">Notes</span></div><div class="meta">96-page SY0-701 summary (PDF)</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="skillup grc" href="https://www.isc2.org/certifications/cc" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">ISC2 CC</span><span class="tag p">Cert</span></div><div class="meta">Entry cyber cert · free program ended May '26 (now ~$199)</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 10 SIDE INCOME -->
+<section class="lane">
+  <div class="shead"><span class="snum">10</span><h2>Side Income — Home Shop</h2></div>
+  <p class="snote">Not job applications — income streams to bridge the 60–90 day gap using your shop (woodworking, resin, crafts) and local resale. List once, sell on repeat.</p>
+  <div class="grid">
+    <a class="card" data-tags="income" href="https://www.etsy.com/sell" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Etsy</span><span class="tag p">Sell</span></div><div class="meta">Handmade / resin goods</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="income" href="https://www.facebook.com/marketplace/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Facebook Marketplace</span><span class="tag p">Sell</span></div><div class="meta">Local handmade + resale</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="income" href="https://spokane.craigslist.org/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Craigslist Spokane</span><span class="tag p">Sell</span></div><div class="meta">Local flips + goods</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="income" href="https://www.ebay.com/sl/sell" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">eBay</span><span class="tag p">Sell</span></div><div class="meta">Resale / flipping, ships anywhere</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="income" href="https://www.mercari.com/sell/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Mercari / OfferUp</span><span class="tag p">Sell</span></div><div class="meta">Fast mobile resale</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="income" href="https://www.google.com/search?q=Spokane+craft+fairs+markets+vendor+application+2026" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Spokane Craft Fairs</span><span class="tag p">Vendor</span></div><div class="meta">Local vendor booths</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="income" href="https://www.upwork.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Upwork</span><span class="tag p">Gigs</span></div><div class="meta">Freelance tech / VA / admin gigs</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 11 REMOTE JOB BOARDS -->
+<section class="lane">
+  <div class="shead"><span class="snum">11</span><h2>Remote Job Boards</h2></div>
+  <p class="snote">The curated remote-only boards (exactly the kind those LinkedIn posts collect). Pick 2–3, set daily alerts, filter to Support / IT / Customer Service. Top remote roles draw 200+ applicants in a week — be early.</p>
+  <div class="grid">
+    <a class="card" data-tags="remoteboards itsupport grc" href="https://weworkremotely.com/categories/remote-customer-support-jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">We Work Remotely</span><span class="tag c">Board</span></div><div class="meta">Largest remote board · Support category</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport" href="https://remoteok.com/remote-customer-support-jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Remote OK</span><span class="tag c">Board</span></div><div class="meta">Tech + support tags</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport grc" href="https://remotive.com/remote-jobs/customer-support" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Remotive</span><span class="tag c">Board</span></div><div class="meta">Hand-curated tech/support</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport grc" href="https://himalayas.app/jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Himalayas</span><span class="tag c">Board</span></div><div class="meta">Great filters · salary transparency · 80k+ jobs</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport" href="https://remote.co/remote-jobs/customer-service/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Remote.co</span><span class="tag c">Board</span></div><div class="meta">Strong for support + non-tech entry</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards" href="https://www.workingnomads.com/jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Working Nomads</span><span class="tag c">Board</span></div><div class="meta">Curated daily digests</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport" href="https://dailyremote.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">DailyRemote</span><span class="tag c">Board</span></div><div class="meta">Support + entry-level focus</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards" href="https://dynamitejobs.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Dynamite Jobs</span><span class="tag c">Board</span></div><div class="meta">Verified 100% remote, full-time</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards" href="https://wellfound.com/jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Wellfound</span><span class="tag c">Board</span></div><div class="meta">Startup roles (ex-AngelList)</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards" href="https://www.flexjobs.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">FlexJobs</span><span class="tag c">Board</span></div><div class="meta">Vetted, scam-free · paid subscription</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport grc" href="https://pangian.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Pangian</span><span class="tag c">Board</span></div><div class="meta">Remote community + job board</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport" href="https://justremote.co/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">JustRemote</span><span class="tag c">Board</span></div><div class="meta">Remote roles incl. support / admin</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards" href="https://jobspresso.co/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Jobspresso</span><span class="tag c">Board</span></div><div class="meta">Curated, hand-screened remote</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport" href="https://www.skipthedrive.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">SkipTheDrive</span><span class="tag c">Board</span></div><div class="meta">Remote + hybrid, all fields</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport" href="https://nodesk.co/remote-jobs/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">NoDesk</span><span class="tag c">Board</span></div><div class="meta">Remote jobs + resources</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport" href="https://www.virtualvocations.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Virtual Vocations</span><span class="tag c">Board</span></div><div class="meta">Hand-screened; strong for non-tech</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport" href="https://www.simplyhired.com/search?q=help+desk&l=remote" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">SimplyHired</span><span class="tag c">Board</span></div><div class="meta">Large general aggregator</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport grc" href="https://jobgether.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Jobgether</span><span class="tag c">Board</span></div><div class="meta">100k+ remote jobs, matched</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards itsupport grc" href="https://builtin.com/jobs/remote" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Built In</span><span class="tag c">Board</span></div><div class="meta">Tech incl. security/IT; city hubs</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remoteboards" href="https://www.stillhiring.today/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">StillHiring.Today</span><span class="tag c">Board</span></div><div class="meta">Companies actually hiring, no pay-to-play</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 12 REMOTE-FIRST COMPANIES -->
+<section class="lane">
+  <div class="shead"><span class="snum">12</span><h2>Remote-First Companies</h2></div>
+  <p class="snote">Companies built fully remote from day one that hire entry support / customer service — your foot in the door at a distributed employer. Paste the company list from your LinkedIn posts and I'll swap these to match exactly.</p>
+  <div class="grid">
+    <a class="card" data-tags="remotecos itsupport" href="https://automattic.com/work-with-us/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Automattic</span><span class="tag p">Remote-first</span></div><div class="meta">"Happiness Engineer" — hires non-traditional backgrounds</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos itsupport" href="https://zapier.com/jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Zapier</span><span class="tag p">Remote-first</span></div><div class="meta">Support Specialist roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos itsupport" href="https://www.helpscout.com/careers/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Help Scout</span><span class="tag p">Remote-first</span></div><div class="meta">Customer support</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos" href="https://about.gitlab.com/jobs/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">GitLab</span><span class="tag p">All-remote</span></div><div class="meta">Support + ops roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos itsupport" href="https://hubstaff.com/jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Hubstaff</span><span class="tag p">Remote-first</span></div><div class="meta">Support / operations</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos itsupport" href="https://www.stickermule.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Sticker Mule</span><span class="tag p">Remote-first</span></div><div class="meta">Customer service</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos" href="https://doist.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Doist</span><span class="tag p">Async remote</span></div><div class="meta">Support / ops, async culture</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos" href="https://www.aha.io/company/careers/current-openings" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Aha!</span><span class="tag p">All-remote</span></div><div class="meta">Distributed SaaS</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos" href="https://www.close.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Close</span><span class="tag p">Remote-first</span></div><div class="meta">SaaS support / success</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos" href="https://www.toptal.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Toptal</span><span class="tag p">Fully distributed</span></div><div class="meta">Core team roles (not just freelance)</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos itsupport" href="https://www.deel.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Deel</span><span class="tag p">Remote-first</span></div><div class="meta">Global; heavy support / ops hiring</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos itsupport" href="https://gusto.com/about/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Gusto</span><span class="tag p">Remote-first</span></div><div class="meta">Payroll SaaS; customer support</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos itsupport" href="https://discord.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Discord</span><span class="tag p">Remote-friendly</span></div><div class="meta">Support &amp; Trust/Safety roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos itsupport" href="https://mercury.com/jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Mercury</span><span class="tag p">Remote-first</span></div><div class="meta">Fintech; customer support roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos itsupport" href="https://www.canva.com/careers/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Canva</span><span class="tag p">Remote-friendly</span></div><div class="meta">Support / customer success</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos" href="https://lattice.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Lattice</span><span class="tag p">Remote-first</span></div><div class="meta">HR SaaS; support / ops</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="remotecos" href="https://www.mozilla.org/en-US/careers/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Mozilla</span><span class="tag p">Remote-first</span></div><div class="meta">Support / ops; mission-driven</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 13 SECURITY & GRC COMPANIES -->
+<section class="lane">
+  <div class="shead"><span class="snum">13</span><h2>Security &amp; GRC Companies — Your Field</h2></div>
+  <p class="snote">Pulled from your lists: security and compliance-automation companies that live and breathe GRC / SOC 2 / FedRAMP. Many are remote-first and hire associate/entry GRC, compliance, and customer-facing roles. The most on-target set for your actual goal.</p>
+  <div class="grid">
+    <a class="card" data-tags="grc remotecos" href="https://www.vanta.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Vanta</span><span class="tag c">GRC</span></div><div class="meta">SOC 2/ISO compliance automation</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc remotecos" href="https://drata.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Drata</span><span class="tag c">GRC</span></div><div class="meta">Compliance automation; GRC/CS roles</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc remotecos" href="https://secureframe.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Secureframe</span><span class="tag c">GRC</span></div><div class="meta">Compliance automation platform</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc remotecos" href="https://www.wiz.io/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Wiz</span><span class="tag c">Security</span></div><div class="meta">Cloud security</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc remotecos" href="https://www.crowdstrike.com/careers/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">CrowdStrike</span><span class="tag c">Security</span></div><div class="meta">Endpoint security; remote-friendly</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc remotecos" href="https://www.sailpoint.com/company/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">SailPoint</span><span class="tag c">Security</span></div><div class="meta">Identity security / IGA</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc remotecos" href="https://bigid.com/careers/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">BigID</span><span class="tag c">Security</span></div><div class="meta">Data security &amp; governance</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc remotecos" href="https://www.trmlabs.com/careers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">TRM Labs</span><span class="tag c">Security</span></div><div class="meta">Blockchain risk / compliance</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="grc remotecos" href="https://www.norm.ai/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Norm Ai</span><span class="tag c">GRC</span></div><div class="meta">AI for regulatory compliance (early-stage)</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<!-- 14 SALARY & TOOLS -->
+<section class="lane">
+  <div class="shead"><span class="snum">14</span><h2>Salary &amp; Job-Hunt Tools</h2></div>
+  <p class="snote">Research pay before you negotiate (your targets: ~$70–85K now, $90–110K once cleared) and speed up the application grind.</p>
+  <div class="grid">
+    <a class="card" data-tags="tools" href="https://www.levels.fyi/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Levels.fyi</span><span class="tag p">Salary</span></div><div class="meta">Tech compensation data</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="tools" href="https://www.glassdoor.com/Salaries/index.htm" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Glassdoor Salaries</span><span class="tag p">Salary</span></div><div class="meta">Role + company pay ranges</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="tools" href="https://www.payscale.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Payscale</span><span class="tag p">Salary</span></div><div class="meta">Personalized salary report</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="tools" href="https://www.comparably.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Comparably</span><span class="tag p">Salary</span></div><div class="meta">Pay + company culture</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="tools" href="https://www.careerflow.ai/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Careerflow.ai</span><span class="tag p">Assistant</span></div><div class="meta">Application tracker + LinkedIn optimizer</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="tools" href="https://www.jobscan.co/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Jobscan</span><span class="tag p">ATS</span></div><div class="meta">Match your resume to a job's keywords — beat filters</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="tools" href="https://novoresume.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Novoresume</span><span class="tag p">Resume</span></div><div class="meta">Clean, ATS-friendly resume builder</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="tools" href="https://biginterview.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Big Interview</span><span class="tag p">Interview</span></div><div class="meta">Practice + answer frameworks</div><div class="go">OPEN →</div></a>
+  </div>
+</section>
+
+<div class="empty" id="empty">No tiles match — clear the search or pick a different filter.</div>
+
+<footer>
+  <h3>Application Playbook</h3>
+  <ol>
+    <li><b>Run lanes in parallel.</b> Spokane trades + on-site IT = fastest paycheck; remote IT support = your remote income bridge; GRC = the 6–12 month destination; Skill-Up runs alongside all of them.</li>
+    <li><b>Volume + speed.</b> 5–10 applications a day. Hit "Copy pitch" above and paste it into every one.</li>
+    <li><b>Clear the filters.</b> If A+ keeps blocking you, knock it out — or finish Security+, which over-qualifies you for help desk and aims at GRC.</li>
+    <li><b>Lean govcon for the bridge to GRC.</b> It weights your clearance + military background heaviest.</li>
+    <li><b>Re-open the feeds.</b> Lanes 01, 02, 06, 08 refresh constantly — revisit every few days.</li>
+  </ol>
+  <div class="fineprint">Filter by lane, search any keyword. Links open live searches &amp; careers pages, not fixed postings. Fishing left out per your call. Verified ~Jun 2026.</div>
+</footer>
+</div>
+
+<script>
+(function(){
+  var chips=document.querySelectorAll('.controls .chip');
+  var search=document.getElementById('search');
+  var cards=document.querySelectorAll('section.lane a.card');
+  var empty=document.getElementById('empty');
+  var active='all';
+  function apply(){
+    var q=search.value.trim().toLowerCase();
+    var anyVisible=false;
+    cards.forEach(function(c){
+      var tags=(c.getAttribute('data-tags')||'').split(' ');
+      var text=c.textContent.toLowerCase();
+      var okChip=(active==='all')||tags.indexOf(active)>-1;
+      var okText=!q||text.indexOf(q)>-1;
+      var show=okChip&&okText;
+      c.style.display=show?'':'none';
+      if(show)anyVisible=true;
+    });
+    document.querySelectorAll('section.lane').forEach(function(s){
+      var vis=Array.prototype.some.call(s.querySelectorAll('a.card'),function(c){return c.style.display!=='none';});
+      s.style.display=vis?'':'none';
+    });
+    empty.style.display=anyVisible?'none':'block';
+  }
+  chips.forEach(function(ch){ch.addEventListener('click',function(){
+    chips.forEach(function(x){x.classList.remove('on');});
+    ch.classList.add('on'); active=ch.getAttribute('data-f'); apply();
+  });});
+  search.addEventListener('input',apply);
+  var btn=document.getElementById('copybtn');
+  btn.addEventListener('click',function(){
+    var txt=document.getElementById('pitch').innerText;
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){
+        btn.textContent='✓ Copied'; setTimeout(function(){btn.textContent='⧉ Copy pitch';},1600);
+      }).catch(function(){btn.textContent='Select the text above to copy';});
+    } else {btn.textContent='Select the text above to copy';}
+  });
+})();
+</script>
+<script>
+(function(){
+  var ATS=[["Greenhouse","boards.greenhouse.io"],["Ashby","jobs.ashbyhq.com"],["Lever","jobs.lever.co"],["SmartRecruiters","jobs.smartrecruiters.com"],["Workday","myworkdayjobs.com"],["BambooHR","jobs.bamboohr.com"],["Jobvite","jobs.jobvite.com"],["iCIMS","careers.icims.com"],["JazzHR","app.jazz.co"],["Workable","apply.workable.com"]];
+  var grid=document.getElementById('atsGrid'); var role=document.getElementById('atsRole');
+  if(!grid||!role) return;
+  ATS.forEach(function(a){
+    var el=document.createElement('a'); el.className='card'; el.target='_blank'; el.rel='noopener noreferrer';
+    el.setAttribute('data-domain',a[1]);
+    el.innerHTML='<div class="toprow"><span class="name">'+a[0]+'</span><span class="tag p">ATS</span></div><div class="meta">'+a[1]+'</div><div class="go">SEARCH →</div>';
+    grid.appendChild(el);
+  });
+  function refresh(){
+    var r=(role.value||'').trim()||'help desk';
+    Array.prototype.forEach.call(grid.children,function(el){
+      var d=el.getAttribute('data-domain');
+      el.href='https://www.google.com/search?q='+encodeURIComponent('site:'+d+' ("'+r+'" AND "remote")');
+    });
+  }
+  role.addEventListener('input',refresh);
+  document.querySelectorAll('#atsRoles .chip').forEach(function(ch){
+    ch.addEventListener('click',function(){
+      document.querySelectorAll('#atsRoles .chip').forEach(function(x){x.classList.remove('on');});
+      ch.classList.add('on'); role.value=ch.getAttribute('data-r'); refresh();
+    });
+  });
+  refresh();
+})();
+</script>
+<script>
+(function(){
+  var KEY='rjb_shortlist';
+  var listEl=document.getElementById('slList');
+  var countEl=document.getElementById('slCount');
+  var emptyEl=document.getElementById('slEmpty');
+  var urlIn=document.getElementById('slUrl');
+  var labelIn=document.getElementById('slLabel');
+  var addBtn=document.getElementById('slAddBtn');
+  if(!listEl||!addBtn) return;
+  var mem=null;
+  function read(){ try{ var raw=localStorage.getItem(KEY); if(raw===null) return null; return JSON.parse(raw)||[]; }catch(e){ return mem; } }
+  function write(arr){ mem=arr; try{ localStorage.setItem(KEY, JSON.stringify(arr)); }catch(e){} }
+  function getList(){
+    var l=read();
+    if(l===null){ l=[{label:'Entrata (Lever) \u2014 your found job', url:'https://jobs.lever.co/entrata/aa9f605b-8360-416d-94fc-ed5d5a68602c'}]; write(l); }
+    return l||[];
+  }
+  function host(u){ try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return ''; } }
+  function idx(arr,u){ for(var i=0;i<arr.length;i++){ if(arr[i].url===u) return i; } return -1; }
+  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function flash(el){ if(!el) return; el.style.borderColor='#e06b6b'; setTimeout(function(){ el.style.borderColor=''; },600); }
+  function add(url,label){
+    url=(url||'').trim(); if(!url) return;
+    if(!/^https?:\/\//i.test(url)) url='https://'+url;
+    var arr=getList();
+    if(idx(arr,url)>-1){ flash(urlIn); return; }
+    arr.push({label:(label||'').trim()||host(url)||'Saved job', url:url});
+    write(arr); render();
+  }
+  function remove(url){ var arr=getList(), i=idx(arr,url); if(i>-1){ arr.splice(i,1); write(arr); render(); } }
+  function render(){
+    var arr=getList();
+    listEl.innerHTML='';
+    countEl.textContent='('+arr.length+')';
+    emptyEl.style.display=arr.length?'none':'block';
+    arr.forEach(function(item){
+      var a=document.createElement('a');
+      a.className='card'; a.href=item.url; a.target='_blank'; a.rel='noopener noreferrer';
+      a.innerHTML='<div class="toprow"><span class="name">'+esc(item.label||host(item.url)||'Saved job')+'</span><span class="tag v">Saved</span></div><div class="meta">'+esc(host(item.url))+'</div><div class="go">OPEN \u2192</div>';
+      var x=document.createElement('button');
+      x.className='slx'; x.type='button'; x.textContent='\u2715'; x.title='Remove';
+      x.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); remove(item.url); });
+      a.appendChild(x);
+      listEl.appendChild(a);
+    });
+    syncStars();
+  }
+  var stars=[];
+  function buildStars(){
+    document.querySelectorAll('section.lane a.card').forEach(function(card){
+      var b=document.createElement('button');
+      b.className='star'; b.type='button'; b.textContent='\u2606'; b.setAttribute('aria-label','Save to shortlist');
+      var nameEl=card.querySelector('.name');
+      b.dataset.url=card.getAttribute('href');
+      b.dataset.label=nameEl?nameEl.textContent.trim():'';
+      b.addEventListener('click',function(e){
+        e.preventDefault(); e.stopPropagation();
+        var arr=getList();
+        if(idx(arr,b.dataset.url)>-1){ remove(b.dataset.url); } else { add(b.dataset.url,b.dataset.label); }
+      });
+      card.appendChild(b); stars.push(b);
+    });
+  }
+  function syncStars(){ var arr=getList(); stars.forEach(function(b){ var on=idx(arr,b.dataset.url)>-1; b.classList.toggle('on',on); b.textContent=on?'\u2605':'\u2606'; }); }
+  addBtn.addEventListener('click',function(){ add(urlIn.value,labelIn.value); urlIn.value=''; labelIn.value=''; urlIn.focus(); });
+  function onEnter(e){ if(e.key==='Enter'){ add(urlIn.value,labelIn.value); urlIn.value=''; labelIn.value=''; } }
+  urlIn.addEventListener('keydown',onEnter); labelIn.addEventListener('keydown',onEnter);
+  buildStars(); render();
+})();
+</script>
+</body>
+</html>
