@@ -61,12 +61,15 @@ section.lane{margin-top:34px}
   letter-spacing:.04em;font-size:1.45rem}
 .snote{color:var(--muted);font-size:.85rem;margin:2px 0 15px;max-width:72ch}
 .grid{display:grid;gap:11px;grid-template-columns:repeat(auto-fill,minmax(238px,1fr))}
-a.card{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;
+.card{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;position:relative;
   background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
   border-radius:11px;padding:13px 15px;transition:transform .15s,border-color .15s,box-shadow .15s}
-a.card:hover{transform:translateY(-3px);border-color:var(--line2);box-shadow:0 10px 28px -12px rgba(0,0,0,.7)}
-a.card:hover .name{color:var(--amber)}
-a.card:hover .go{color:var(--green)}
+.cardlink{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit}
+/* stretched link: makes the whole card clickable without nesting buttons inside the <a> */
+.cardlink::after{content:"";position:absolute;inset:0;border-radius:11px;z-index:1}
+.card:hover{transform:translateY(-3px);border-color:var(--line2);box-shadow:0 10px 28px -12px rgba(0,0,0,.7)}
+.card:hover .name{color:var(--amber)}
+.card:hover .go{color:var(--green)}
 .toprow{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .name{font-weight:600;font-size:.98rem;transition:color .15s}
 .tag{font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;
@@ -93,12 +96,35 @@ section.tool{margin-top:34px}
 #shortlist .slAdd input:focus{border-color:var(--amber)}
 #shortlist .slAdd button{background:var(--amber);color:#0d0f12;border:none;border-radius:10px;font-family:'Saira Condensed',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.85rem;padding:0 22px;cursor:pointer}
 .slempty{color:var(--dim,#8a93a0);font-size:.86rem;font-style:italic;padding:6px 2px}
-section.lane a.card,#slList a.card{position:relative}
 .star{position:absolute;bottom:9px;right:10px;width:30px;height:30px;line-height:27px;text-align:center;border-radius:8px;border:1px solid var(--line2);background:rgba(0,0,0,.28);color:var(--dim,#8a93a0);font-size:1.05rem;cursor:pointer;padding:0;transition:border-color .12s,color .12s,background .12s;z-index:3}
 .star:hover{border-color:var(--amber);color:var(--amber)}
 .star.on{color:#0d0f12;background:var(--amber);border-color:var(--amber)}
 .slx{position:absolute;bottom:9px;right:10px;width:28px;height:28px;line-height:25px;text-align:center;border-radius:8px;border:1px solid var(--line2);background:rgba(0,0,0,.28);color:var(--dim,#8a93a0);font-size:.9rem;cursor:pointer;padding:0;z-index:3}
 .slx:hover{border-color:#e06b6b;color:#e06b6b}
+/* shortlist tracker: status pills, counts, export */
+.slbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 12px}
+.slcounts{display:flex;gap:7px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.05em}
+.slcounts .sc{color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.slcounts .sc b{color:var(--ink);font-weight:600;margin-left:2px}
+.slcounts .sc-saved b{color:var(--amber)} .slcounts .sc-applied b{color:var(--cyan)}
+.slcounts .sc-interviewing b{color:var(--violet)} .slcounts .sc-offer b{color:var(--green)}
+.slcounts .sc-rejected b{color:#e06b6b}
+.slexport{font-family:'IBM Plex Mono',monospace;font-size:.73rem;letter-spacing:.05em;
+  background:rgba(73,199,255,.12);color:var(--cyan);border:1px solid rgba(73,199,255,.4);
+  border-radius:8px;padding:7px 13px;cursor:pointer;transition:background .15s;white-space:nowrap}
+.slexport:hover{background:rgba(73,199,255,.22)}
+.slexport:disabled{opacity:.4;cursor:default;background:rgba(73,199,255,.06)}
+#slList .cardlink .toprow{padding-right:96px}
+.slstatus{position:absolute;top:11px;right:12px;z-index:3;
+  font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;
+  border-radius:999px;padding:3px 8px;white-space:nowrap;cursor:pointer;background:rgba(0,0,0,.22);
+  color:var(--muted);border:1px solid var(--line2);transition:filter .12s,border-color .12s,color .12s}
+.slstatus:hover{filter:brightness(1.18)}
+.slstatus.st-saved{color:var(--amber);border-color:rgba(255,176,31,.4)}
+.slstatus.st-applied{color:var(--cyan);border-color:rgba(73,199,255,.4)}
+.slstatus.st-interviewing{color:var(--violet);border-color:rgba(181,140,255,.4)}
+.slstatus.st-offer{color:#0d0f12;background:var(--green);border-color:var(--green);font-weight:600}
+.slstatus.st-rejected{color:#e06b6b;border-color:rgba(224,107,107,.4)}
 </style>
 </head>
 <body>
@@ -140,7 +166,11 @@ section.lane a.card,#slList a.card{position:relative}
 <!-- SHORTLIST -->
 <section class="tool" id="shortlist">
   <div class="shead"><span class="snum">☆</span><h2>Shortlist <span id="slCount">(0)</span></h2></div>
-  <p class="snote">Star any tile to save it here, or paste a job link you found anywhere. Saved in your browser on your own copy of this app.</p>
+  <p class="snote">Star any tile to save it here, or paste a job link you found anywhere. Click a status pill to cycle Saved → Applied → Interviewing → Offer → Rejected. Saved in your browser on your own copy of this app.</p>
+  <div class="slbar">
+    <div id="slCounts" class="slcounts"></div>
+    <button id="slExport" type="button" class="slexport">⭳ Export CSV</button>
+  </div>
   <div class="slAdd">
     <input id="slUrl" type="text" placeholder="paste a job URL…">
     <input id="slLabel" type="text" placeholder="label (optional)">
@@ -418,10 +448,31 @@ section.lane a.card,#slList a.card{position:relative}
 </div>
 
 <script>
+/* Card setup: convert each static lane <a.card> into <div.card> + a stretched
+   <a.cardlink>, so action buttons (★ / status / ✕) are valid siblings layered
+   above the link instead of interactive content nested inside an <a>. */
+(function(){
+  document.querySelectorAll('section.lane a.card').forEach(function(an){
+    var div=document.createElement('div');
+    div.className=an.className;
+    var tags=an.getAttribute('data-tags'); if(tags!=null) div.setAttribute('data-tags',tags);
+    var link=document.createElement('a');
+    link.className='cardlink';
+    link.href=an.getAttribute('href')||'#';
+    link.target='_blank'; link.rel='noopener noreferrer';
+    var nameEl=an.querySelector('.name');
+    link.setAttribute('aria-label',(nameEl?nameEl.textContent.trim():'')||'Open job link');
+    link.innerHTML=an.innerHTML;
+    div.appendChild(link);
+    an.parentNode.replaceChild(div,an);
+  });
+})();
+</script>
+<script>
 (function(){
   var chips=document.querySelectorAll('.controls .chip');
   var search=document.getElementById('search');
-  var cards=document.querySelectorAll('section.lane a.card');
+  var cards=document.querySelectorAll('section.lane .card');
   var empty=document.getElementById('empty');
   var active='all';
   function apply(){
@@ -437,7 +488,7 @@ section.lane a.card,#slList a.card{position:relative}
       if(show)anyVisible=true;
     });
     document.querySelectorAll('section.lane').forEach(function(s){
-      var vis=Array.prototype.some.call(s.querySelectorAll('a.card'),function(c){return c.style.display!=='none';});
+      var vis=Array.prototype.some.call(s.querySelectorAll('.card'),function(c){return c.style.display!=='none';});
       s.style.display=vis?'':'none';
     });
     empty.style.display=anyVisible?'none':'block';
@@ -489,20 +540,28 @@ section.lane a.card,#slList a.card{position:relative}
 <script>
 (function(){
   var KEY='rjb_shortlist';
+  var STATUSES=['Saved','Applied','Interviewing','Offer','Rejected'];
   var listEl=document.getElementById('slList');
   var countEl=document.getElementById('slCount');
+  var countsEl=document.getElementById('slCounts');
   var emptyEl=document.getElementById('slEmpty');
+  var exportBtn=document.getElementById('slExport');
   var urlIn=document.getElementById('slUrl');
   var labelIn=document.getElementById('slLabel');
   var addBtn=document.getElementById('slAddBtn');
   if(!listEl||!addBtn) return;
+  function normStatus(s){ return STATUSES.indexOf(s)>-1?s:'Saved'; }
   var mem=null;
   function read(){ try{ var raw=localStorage.getItem(KEY); if(raw===null) return null; return JSON.parse(raw)||[]; }catch(e){ return mem; } }
   function write(arr){ mem=arr; try{ localStorage.setItem(KEY, JSON.stringify(arr)); }catch(e){} }
   function getList(){
     var l=read();
-    if(l===null){ l=[{label:'Entrata (Lever) \u2014 your found job', url:'https://jobs.lever.co/entrata/aa9f605b-8360-416d-94fc-ed5d5a68602c'}]; write(l); }
-    return l||[];
+    if(l===null){ l=[{label:'Entrata (Lever) \u2014 your found job', url:'https://jobs.lever.co/entrata/aa9f605b-8360-416d-94fc-ed5d5a68602c', status:'Saved'}]; write(l); return l; }
+    if(!Array.isArray(l)) return [];
+    var dirty=false;
+    for(var i=0;i<l.length;i++){ if(l[i]&&l[i].status!==normStatus(l[i].status)){ l[i].status=normStatus(l[i].status); dirty=true; } }
+    if(dirty) write(l);
+    return l;
   }
   function host(u){ try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return ''; } }
   function idx(arr,u){ for(var i=0;i<arr.length;i++){ if(arr[i].url===u) return i; } return -1; }
@@ -513,34 +572,63 @@ section.lane a.card,#slList a.card{position:relative}
     if(!/^https?:\/\//i.test(url)) url='https://'+url;
     var arr=getList();
     if(idx(arr,url)>-1){ flash(urlIn); return; }
-    arr.push({label:(label||'').trim()||host(url)||'Saved job', url:url});
+    arr.push({label:(label||'').trim()||host(url)||'Saved job', url:url, status:'Saved'});
     write(arr); render();
   }
+  function cycleStatus(url){
+    var arr=getList(), i=idx(arr,url); if(i<0) return;
+    var ni=(STATUSES.indexOf(normStatus(arr[i].status))+1)%STATUSES.length;
+    arr[i].status=STATUSES[ni]; write(arr); render();
+  }
   function remove(url){ var arr=getList(), i=idx(arr,url); if(i>-1){ arr.splice(i,1); write(arr); render(); } }
+  function renderCounts(arr){
+    if(!countsEl) return;
+    var counts={}; STATUSES.forEach(function(s){ counts[s]=0; });
+    arr.forEach(function(it){ counts[normStatus(it.status)]++; });
+    countsEl.innerHTML=STATUSES.map(function(s){
+      return '<span class="sc sc-'+s.toLowerCase()+'">'+s+' <b>'+counts[s]+'</b></span>';
+    }).join('');
+  }
   function render(){
     var arr=getList();
     listEl.innerHTML='';
     countEl.textContent='('+arr.length+')';
     emptyEl.style.display=arr.length?'none':'block';
+    renderCounts(arr);
+    if(exportBtn) exportBtn.disabled=!arr.length;
     arr.forEach(function(item){
-      var a=document.createElement('a');
-      a.className='card'; a.href=item.url; a.target='_blank'; a.rel='noopener noreferrer';
-      a.innerHTML='<div class="toprow"><span class="name">'+esc(item.label||host(item.url)||'Saved job')+'</span><span class="tag v">Saved</span></div><div class="meta">'+esc(host(item.url))+'</div><div class="go">OPEN \u2192</div>';
+      var status=normStatus(item.status);
+      var label=item.label||host(item.url)||'Saved job';
+      var card=document.createElement('div');
+      card.className='card';
+      var link=document.createElement('a');
+      link.className='cardlink'; link.href=item.url; link.target='_blank'; link.rel='noopener noreferrer';
+      link.setAttribute('aria-label','Open '+label);
+      link.innerHTML='<div class="toprow"><span class="name">'+esc(label)+'</span></div>'
+        +'<div class="meta">'+esc(host(item.url))+'</div><div class="go">OPEN \u2192</div>';
+      card.appendChild(link);
+      var st=document.createElement('button');
+      st.type='button'; st.className='slstatus st-'+status.toLowerCase();
+      st.title='Click to change status'; st.setAttribute('aria-label','Status: '+status+'. Click to change.');
+      st.textContent=status;
+      st.addEventListener('click',function(){ cycleStatus(item.url); });
+      card.appendChild(st);
       var x=document.createElement('button');
-      x.className='slx'; x.type='button'; x.textContent='\u2715'; x.title='Remove';
-      x.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); remove(item.url); });
-      a.appendChild(x);
-      listEl.appendChild(a);
+      x.className='slx'; x.type='button'; x.textContent='\u2715'; x.title='Remove'; x.setAttribute('aria-label','Remove '+label);
+      x.addEventListener('click',function(){ remove(item.url); });
+      card.appendChild(x);
+      listEl.appendChild(card);
     });
     syncStars();
   }
   var stars=[];
   function buildStars(){
-    document.querySelectorAll('section.lane a.card').forEach(function(card){
+    document.querySelectorAll('section.lane .card').forEach(function(card){
       var b=document.createElement('button');
       b.className='star'; b.type='button'; b.textContent='\u2606'; b.setAttribute('aria-label','Save to shortlist');
       var nameEl=card.querySelector('.name');
-      b.dataset.url=card.getAttribute('href');
+      var link=card.querySelector('.cardlink');
+      b.dataset.url=link?link.getAttribute('href'):card.getAttribute('href');
       b.dataset.label=nameEl?nameEl.textContent.trim():'';
       b.addEventListener('click',function(e){
         e.preventDefault(); e.stopPropagation();
@@ -551,6 +639,21 @@ section.lane a.card,#slList a.card{position:relative}
     });
   }
   function syncStars(){ var arr=getList(); stars.forEach(function(b){ var on=idx(arr,b.dataset.url)>-1; b.classList.toggle('on',on); b.textContent=on?'\u2605':'\u2606'; }); }
+  function csvCell(v){ return '"'+(v==null?'':String(v)).replace(/"/g,'""')+'"'; }
+  function exportCsv(){
+    var arr=getList();
+    var rows=[['label','url','status']];
+    arr.forEach(function(it){ rows.push([it.label||host(it.url)||'Saved job', it.url||'', normStatus(it.status)]); });
+    var csv=rows.map(function(r){ return r.map(csvCell).join(','); }).join('\r\n');
+    try{
+      var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a'); a.href=url; a.download='shortlist.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+    }catch(e){}
+  }
+  if(exportBtn) exportBtn.addEventListener('click',exportCsv);
   addBtn.addEventListener('click',function(){ add(urlIn.value,labelIn.value); urlIn.value=''; labelIn.value=''; urlIn.focus(); });
   function onEnter(e){ if(e.key==='Enter'){ add(urlIn.value,labelIn.value); urlIn.value=''; labelIn.value=''; } }
   urlIn.addEventListener('keydown',onEnter); labelIn.addEventListener('keydown',onEnter);
