@@ -99,6 +99,28 @@ section.lane a.card,#slList a.card{position:relative}
 .star.on{color:#0d0f12;background:var(--amber);border-color:var(--amber)}
 .slx{position:absolute;bottom:9px;right:10px;width:28px;height:28px;line-height:25px;text-align:center;border-radius:8px;border:1px solid var(--line2);background:rgba(0,0,0,.28);color:var(--dim,#8a93a0);font-size:.9rem;cursor:pointer;padding:0;z-index:3}
 .slx:hover{border-color:#e06b6b;color:#e06b6b}
+/* shortlist tracker: status pills, counts, export */
+.slbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 12px}
+.slcounts{display:flex;gap:7px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.05em}
+.slcounts .sc{color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.slcounts .sc b{color:var(--ink);font-weight:600;margin-left:2px}
+.slcounts .sc-saved b{color:var(--amber)} .slcounts .sc-applied b{color:var(--cyan)}
+.slcounts .sc-interviewing b{color:var(--violet)} .slcounts .sc-offer b{color:var(--green)}
+.slcounts .sc-rejected b{color:#e06b6b}
+.slexport{font-family:'IBM Plex Mono',monospace;font-size:.73rem;letter-spacing:.05em;
+  background:rgba(73,199,255,.12);color:var(--cyan);border:1px solid rgba(73,199,255,.4);
+  border-radius:8px;padding:7px 13px;cursor:pointer;transition:background .15s;white-space:nowrap}
+.slexport:hover{background:rgba(73,199,255,.22)}
+.slexport:disabled{opacity:.4;cursor:default;background:rgba(73,199,255,.06)}
+.slstatus{font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;
+  border-radius:999px;padding:3px 8px;white-space:nowrap;cursor:pointer;background:rgba(0,0,0,.22);
+  color:var(--muted);border:1px solid var(--line2);transition:filter .12s,border-color .12s,color .12s}
+.slstatus:hover{filter:brightness(1.18)}
+.slstatus.st-saved{color:var(--amber);border-color:rgba(255,176,31,.4)}
+.slstatus.st-applied{color:var(--cyan);border-color:rgba(73,199,255,.4)}
+.slstatus.st-interviewing{color:var(--violet);border-color:rgba(181,140,255,.4)}
+.slstatus.st-offer{color:#0d0f12;background:var(--green);border-color:var(--green);font-weight:600}
+.slstatus.st-rejected{color:#e06b6b;border-color:rgba(224,107,107,.4)}
 </style>
 </head>
 <body>
@@ -140,7 +162,11 @@ section.lane a.card,#slList a.card{position:relative}
 <!-- SHORTLIST -->
 <section class="tool" id="shortlist">
   <div class="shead"><span class="snum">☆</span><h2>Shortlist <span id="slCount">(0)</span></h2></div>
-  <p class="snote">Star any tile to save it here, or paste a job link you found anywhere. Saved in your browser on your own copy of this app.</p>
+  <p class="snote">Star any tile to save it here, or paste a job link you found anywhere. Click a status pill to cycle Saved → Applied → Interviewing → Offer → Rejected. Saved in your browser on your own copy of this app.</p>
+  <div class="slbar">
+    <div id="slCounts" class="slcounts"></div>
+    <button id="slExport" type="button" class="slexport">⭳ Export CSV</button>
+  </div>
   <div class="slAdd">
     <input id="slUrl" type="text" placeholder="paste a job URL…">
     <input id="slLabel" type="text" placeholder="label (optional)">
@@ -489,20 +515,28 @@ section.lane a.card,#slList a.card{position:relative}
 <script>
 (function(){
   var KEY='rjb_shortlist';
+  var STATUSES=['Saved','Applied','Interviewing','Offer','Rejected'];
   var listEl=document.getElementById('slList');
   var countEl=document.getElementById('slCount');
+  var countsEl=document.getElementById('slCounts');
   var emptyEl=document.getElementById('slEmpty');
+  var exportBtn=document.getElementById('slExport');
   var urlIn=document.getElementById('slUrl');
   var labelIn=document.getElementById('slLabel');
   var addBtn=document.getElementById('slAddBtn');
   if(!listEl||!addBtn) return;
+  function normStatus(s){ return STATUSES.indexOf(s)>-1?s:'Saved'; }
   var mem=null;
   function read(){ try{ var raw=localStorage.getItem(KEY); if(raw===null) return null; return JSON.parse(raw)||[]; }catch(e){ return mem; } }
   function write(arr){ mem=arr; try{ localStorage.setItem(KEY, JSON.stringify(arr)); }catch(e){} }
   function getList(){
     var l=read();
-    if(l===null){ l=[{label:'Entrata (Lever) \u2014 your found job', url:'https://jobs.lever.co/entrata/aa9f605b-8360-416d-94fc-ed5d5a68602c'}]; write(l); }
-    return l||[];
+    if(l===null){ l=[{label:'Entrata (Lever) \u2014 your found job', url:'https://jobs.lever.co/entrata/aa9f605b-8360-416d-94fc-ed5d5a68602c', status:'Saved'}]; write(l); return l; }
+    if(!Array.isArray(l)) return [];
+    var dirty=false;
+    for(var i=0;i<l.length;i++){ if(l[i]&&l[i].status!==normStatus(l[i].status)){ l[i].status=normStatus(l[i].status); dirty=true; } }
+    if(dirty) write(l);
+    return l;
   }
   function host(u){ try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return ''; } }
   function idx(arr,u){ for(var i=0;i<arr.length;i++){ if(arr[i].url===u) return i; } return -1; }
@@ -513,19 +547,39 @@ section.lane a.card,#slList a.card{position:relative}
     if(!/^https?:\/\//i.test(url)) url='https://'+url;
     var arr=getList();
     if(idx(arr,url)>-1){ flash(urlIn); return; }
-    arr.push({label:(label||'').trim()||host(url)||'Saved job', url:url});
+    arr.push({label:(label||'').trim()||host(url)||'Saved job', url:url, status:'Saved'});
     write(arr); render();
   }
+  function cycleStatus(url){
+    var arr=getList(), i=idx(arr,url); if(i<0) return;
+    var ni=(STATUSES.indexOf(normStatus(arr[i].status))+1)%STATUSES.length;
+    arr[i].status=STATUSES[ni]; write(arr); render();
+  }
   function remove(url){ var arr=getList(), i=idx(arr,url); if(i>-1){ arr.splice(i,1); write(arr); render(); } }
+  function renderCounts(arr){
+    if(!countsEl) return;
+    var counts={}; STATUSES.forEach(function(s){ counts[s]=0; });
+    arr.forEach(function(it){ counts[normStatus(it.status)]++; });
+    countsEl.innerHTML=STATUSES.map(function(s){
+      return '<span class="sc sc-'+s.toLowerCase()+'">'+s+' <b>'+counts[s]+'</b></span>';
+    }).join('');
+  }
   function render(){
     var arr=getList();
     listEl.innerHTML='';
     countEl.textContent='('+arr.length+')';
     emptyEl.style.display=arr.length?'none':'block';
+    renderCounts(arr);
+    if(exportBtn) exportBtn.disabled=!arr.length;
     arr.forEach(function(item){
+      var status=normStatus(item.status);
       var a=document.createElement('a');
       a.className='card'; a.href=item.url; a.target='_blank'; a.rel='noopener noreferrer';
-      a.innerHTML='<div class="toprow"><span class="name">'+esc(item.label||host(item.url)||'Saved job')+'</span><span class="tag v">Saved</span></div><div class="meta">'+esc(host(item.url))+'</div><div class="go">OPEN \u2192</div>';
+      a.innerHTML='<div class="toprow"><span class="name">'+esc(item.label||host(item.url)||'Saved job')+'</span>'
+        +'<button type="button" class="slstatus st-'+status.toLowerCase()+'" title="Click to change status">'+esc(status)+'</button></div>'
+        +'<div class="meta">'+esc(host(item.url))+'</div><div class="go">OPEN \u2192</div>';
+      var st=a.querySelector('.slstatus');
+      st.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); cycleStatus(item.url); });
       var x=document.createElement('button');
       x.className='slx'; x.type='button'; x.textContent='\u2715'; x.title='Remove';
       x.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); remove(item.url); });
@@ -551,6 +605,21 @@ section.lane a.card,#slList a.card{position:relative}
     });
   }
   function syncStars(){ var arr=getList(); stars.forEach(function(b){ var on=idx(arr,b.dataset.url)>-1; b.classList.toggle('on',on); b.textContent=on?'\u2605':'\u2606'; }); }
+  function csvCell(v){ return '"'+(v==null?'':String(v)).replace(/"/g,'""')+'"'; }
+  function exportCsv(){
+    var arr=getList();
+    var rows=[['label','url','status']];
+    arr.forEach(function(it){ rows.push([it.label||host(it.url)||'Saved job', it.url||'', normStatus(it.status)]); });
+    var csv=rows.map(function(r){ return r.map(csvCell).join(','); }).join('\r\n');
+    try{
+      var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a'); a.href=url; a.download='shortlist.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+    }catch(e){}
+  }
+  if(exportBtn) exportBtn.addEventListener('click',exportCsv);
   addBtn.addEventListener('click',function(){ add(urlIn.value,labelIn.value); urlIn.value=''; labelIn.value=''; urlIn.focus(); });
   function onEnter(e){ if(e.key==='Enter'){ add(urlIn.value,labelIn.value); urlIn.value=''; labelIn.value=''; } }
   urlIn.addEventListener('keydown',onEnter); labelIn.addEventListener('keydown',onEnter);
