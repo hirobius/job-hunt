@@ -162,6 +162,63 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .slbatch button{margin-top:9px;background:var(--amber);color:#0d0f12;border:none;border-radius:10px;
   font-family:'Saira Condensed',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
   font-size:.85rem;padding:9px 22px;cursor:pointer}
+/* === apply engine: stats, up-next, card details (Phases 1–3) === */
+.slstats{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.slstats .stat{flex:1 1 120px;min-width:108px;background:#0e131b;border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.slstats .stat .n{font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:1.5rem;line-height:1;color:var(--ink)}
+.slstats .stat .l{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.slstats .stat.good .n{color:var(--green)} .slstats .stat.warn .n{color:var(--amber)}
+.slupnext{margin:0 0 16px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:11px;padding:12px 14px}
+.slupnext[hidden]{display:none}
+.slupnext h3{font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:1rem;color:var(--cyan);margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.slupnext h3 .c{font-family:'IBM Plex Mono',monospace;font-size:.64rem;color:var(--muted);font-weight:400}
+.unrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.unrow:first-of-type{border-top:none}
+.unrow .ustar{flex:none;color:var(--amber)}
+.unrow a.uname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem;color:var(--ink);text-decoration:none}
+.unrow a.uname:hover{color:var(--amber)}
+.unrow .udone{flex:none;font-family:'IBM Plex Mono',monospace;font-size:.64rem;letter-spacing:.04em;cursor:pointer;color:var(--cyan);background:rgba(73,199,255,.12);border:1px solid rgba(73,199,255,.4);border-radius:8px;padding:5px 10px;white-space:nowrap}
+.unrow .udone:hover{background:rgba(73,199,255,.22)}
+.slmeta2{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.03em;color:var(--muted);margin-top:1px}
+.slnudge{color:#0d0f12;background:var(--amber);border-radius:999px;padding:1px 7px;font-weight:600;margin-left:6px}
+.slactions{display:flex;align-items:center;gap:6px;margin-top:9px;position:relative;z-index:3}
+.slactions button{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.03em;cursor:pointer;background:rgba(0,0,0,.28);border:1px solid var(--line2);color:var(--muted);border-radius:8px;padding:5px 9px;transition:color .12s,border-color .12s,background .12s}
+.slactions .slprio.on{color:#0d0f12;background:var(--amber);border-color:var(--amber)}
+.slactions .slprio:hover{border-color:var(--amber);color:var(--amber)}
+.slactions .sldet:hover{border-color:var(--cyan);color:var(--cyan)}
+.slactions .slrm{margin-left:auto}
+.slactions .slrm:hover{border-color:#e06b6b;color:#e06b6b}
+.sldetails{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;position:relative;z-index:3;display:grid;gap:8px}
+.sldetails[hidden]{display:none}
+.sldetails label{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:3px}
+.sldetails input,.sldetails textarea{width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:8px;color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:.82rem;padding:7px 10px;outline:none}
+.sldetails textarea{min-height:54px;resize:vertical;font-family:'IBM Plex Mono',monospace;font-size:.78rem;line-height:1.4}
+.sldetails input:focus,.sldetails textarea:focus{border-color:var(--amber)}
+.slrow2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.slresearch{display:flex;gap:6px;flex-wrap:wrap}
+.slresearch a{font-family:'IBM Plex Mono',monospace;font-size:.63rem;letter-spacing:.02em;color:var(--cyan);text-decoration:none;border:1px solid rgba(73,199,255,.35);border-radius:8px;padding:4px 8px}
+.slresearch a:hover{background:rgba(73,199,255,.14)}
+/* apply kit: cover letters + JD matcher */
+.kitwrap{display:grid;gap:11px}
+.cltpl{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+.cltpl .clhead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.cltpl .clname{font-family:'Saira Condensed',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:1rem}
+.cltpl .clcopy{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.04em;cursor:pointer;color:var(--green);background:rgba(54,211,153,.12);border:1px solid rgba(54,211,153,.4);border-radius:8px;padding:6px 11px}
+.cltpl .clcopy:hover{background:rgba(54,211,153,.22)}
+.cltpl textarea{width:100%;min-height:118px;resize:vertical;background:var(--panel);border:1px solid var(--line2);border-radius:9px;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:.8rem;line-height:1.5;padding:10px 12px;outline:none}
+.cltpl textarea:focus{border-color:var(--amber)}
+#jdMatch .jdlbl{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin:6px 0 5px}
+#jdMatch textarea{width:100%;min-height:84px;resize:vertical;background:var(--panel);border:1px solid var(--line2);border-radius:10px;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:.8rem;line-height:1.45;padding:10px 12px;outline:none}
+#jdMatch textarea:focus{border-color:var(--amber)}
+#jdMatch #jdBtn{background:var(--amber);color:#0d0f12;border:none;border-radius:10px;font-family:'Saira Condensed',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.85rem;padding:9px 22px;cursor:pointer;margin-top:9px}
+.jdout{margin-top:14px;display:none}
+.jdout.show{display:block}
+.jdscore{font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:1.6rem;margin-bottom:8px}
+.kwgroup{margin:10px 0}
+.kwgroup .kl{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.kw{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:999px;padding:3px 9px;margin:0 5px 5px 0}
+.kw.hit{color:var(--green);border:1px solid rgba(54,211,153,.4)}
+.kw.miss{color:var(--amber);border:1px solid rgba(255,176,31,.45);background:rgba(255,176,31,.06)}
 </style>
 </head>
 <body>
@@ -217,6 +274,8 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
     <div id="slCounts" class="slcounts"></div>
     <button id="slExport" type="button" class="slexport">⭳ Export CSV</button>
   </div>
+  <div id="slStats" class="slstats"></div>
+  <div id="slUpNext" class="slupnext" hidden></div>
   <div class="slAdd">
     <input id="slUrl" type="text" placeholder="paste a job URL…">
     <input id="slLabel" type="text" placeholder="label (optional)">
@@ -229,6 +288,25 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
   </details>
   <div id="slList" class="grid"></div>
   <div id="slEmpty" class="slempty">No saved jobs yet — tap ☆ on any tile, or paste a link above.</div>
+</section>
+
+<!-- APPLY KIT: COVER LETTERS -->
+<section class="tool" id="coverletters">
+  <div class="shead"><span class="snum">✍</span><h2>Cover-Letter Copy Board</h2></div>
+  <p class="snote">Three reusable templates. Fill the [Company] / [Role] blanks, hit Copy, paste. Your edits save in this browser.</p>
+  <div id="clBoard" class="kitwrap"></div>
+</section>
+
+<!-- APPLY KIT: JD KEYWORD MATCH -->
+<section class="tool" id="jdMatch">
+  <div class="shead"><span class="snum">⌗</span><h2>JD ↔ Résumé Keyword Match</h2></div>
+  <p class="snote">Paste a job description and I'll flag the ATS keywords your résumé is missing. Your skills list saves in this browser. For deep tailoring (rewritten bullets + a cover letter), paste the JD to me in chat.</p>
+  <label class="jdlbl">Your skills / résumé keywords</label>
+  <textarea id="jdSkills" placeholder="comma or space separated — e.g. Security+, Windows, Active Directory, ticketing, troubleshooting, NIST, ISO 27001, Splunk, Linux, networking, customer service"></textarea>
+  <label class="jdlbl">Job description</label>
+  <textarea id="jdText" placeholder="Paste the full job description here…"></textarea>
+  <button id="jdBtn" type="button">Match keywords</button>
+  <div id="jdOut" class="jdout"></div>
 </section>
 
 <!-- ATS HIDDEN JOBS -->
@@ -657,8 +735,16 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
   var urlIn=document.getElementById('slUrl');
   var labelIn=document.getElementById('slLabel');
   var addBtn=document.getElementById('slAddBtn');
+  var statsEl=document.getElementById('slStats');
+  var upNextEl=document.getElementById('slUpNext');
+  var NUDGE_DAYS=7;
+  var PLACEH={note:'Why you want it · JD notes · prep…',contact:'recruiter / referral',resume:'e.g. IT-Support v2',salary:'target / offered'};
   if(!listEl||!addBtn) return;
   function normStatus(s){ return STATUSES.indexOf(s)>-1?s:'Saved'; }
+  function pad(n){ return (n<10?'0':'')+n; }
+  function today(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function daysSince(s){ if(!s) return null; var t=Date.parse(s); if(isNaN(t)) return null; return Math.floor((Date.now()-t)/86400000); }
+  function sortedForDisplay(arr){ return arr.map(function(it,i){ return {it:it,i:i}; }).sort(function(a,b){ var pa=a.it.priority?0:1, pb=b.it.priority?0:1; return pa!==pb?pa-pb:a.i-b.i; }).map(function(x){ return x.it; }); }
   var mem=null;
   function read(){ try{ var raw=localStorage.getItem(KEY); if(raw===null) return null; return JSON.parse(raw)||[]; }catch(e){ return mem; } }
   function write(arr){ mem=arr; try{ localStorage.setItem(KEY, JSON.stringify(arr)); }catch(e){}
@@ -684,10 +770,23 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
     arr.push({label:(label||'').trim()||host(url)||'Saved job', url:url, status:'Saved'});
     write(arr); render();
   }
+  function applyStamp(it){ if(it.status==='Applied'&&!it.applied) it.applied=today(); }
   function cycleStatus(url){
     var arr=getList(), i=idx(arr,url); if(i<0) return;
     var ni=(STATUSES.indexOf(normStatus(arr[i].status))+1)%STATUSES.length;
-    arr[i].status=STATUSES[ni]; write(arr); render();
+    arr[i].status=STATUSES[ni]; applyStamp(arr[i]); write(arr); render();
+  }
+  function setStatus(url,s){
+    var arr=getList(), i=idx(arr,url); if(i<0) return;
+    arr[i].status=normStatus(s); applyStamp(arr[i]); write(arr); render();
+  }
+  function togglePriority(url){
+    var arr=getList(), i=idx(arr,url); if(i<0) return;
+    arr[i].priority=!arr[i].priority; write(arr); render();
+  }
+  function setField(url,key,val){
+    var arr=getList(), i=idx(arr,url); if(i<0) return;
+    if(val==='') delete arr[i][key]; else arr[i][key]=val; write(arr);
   }
   function remove(url){ var arr=getList(), i=idx(arr,url); if(i>-1){ arr.splice(i,1); write(arr); render(); } }
   function renderCounts(arr){
@@ -698,36 +797,108 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
       return '<span class="sc sc-'+s.toLowerCase()+'">'+s+' <b>'+counts[s]+'</b></span>';
     }).join('');
   }
+  function field(labelText,kind,key,item){
+    var box=document.createElement('div');
+    var l=document.createElement('label'); l.textContent=labelText; box.appendChild(l);
+    var el=document.createElement(kind);
+    if(kind==='input') el.type='text';
+    el.value=item[key]||''; el.placeholder=PLACEH[key]||'';
+    el.addEventListener('input',function(){ setField(item.url,key,el.value.trim()); });
+    box.appendChild(el); return box;
+  }
+  function buildDetails(item){
+    var wrap=document.createElement('div'); wrap.className='sldetails'; wrap.hidden=true;
+    wrap.appendChild(field('Notes','textarea','note',item));
+    var row=document.createElement('div'); row.className='slrow2';
+    row.appendChild(field('Contact / referral','input','contact',item));
+    row.appendChild(field('R\u00e9sum\u00e9 version','input','resume',item));
+    wrap.appendChild(row);
+    wrap.appendChild(field('Salary','input','salary',item));
+    var rlabel=document.createElement('label'); rlabel.textContent='Research'; wrap.appendChild(rlabel);
+    var rl=document.createElement('div'); rl.className='slresearch';
+    var co=encodeURIComponent(item.label||host(item.url)||'');
+    [['Glassdoor','https://www.glassdoor.com/Search/results.htm?keyword='+co],
+     ['LinkedIn','https://www.linkedin.com/search/results/companies/?keywords='+co],
+     ['levels.fyi','https://www.levels.fyi/?search='+co],
+     ['Google','https://www.google.com/search?q='+co+'+careers+reviews']].forEach(function(p){
+       var a=document.createElement('a'); a.href=p[1]; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent=p[0]; rl.appendChild(a);
+    });
+    wrap.appendChild(rl); return wrap;
+  }
+  function buildCard(item){
+    var status=normStatus(item.status);
+    var label=item.label||host(item.url)||'Saved job';
+    var card=document.createElement('div'); card.className='card';
+    var link=document.createElement('a');
+    link.className='cardlink'; link.href=item.url; link.target='_blank'; link.rel='noopener noreferrer';
+    link.setAttribute('aria-label','Open '+label);
+    var d=daysSince(item.applied);
+    var appliedStr=(status!=='Saved'&&item.applied)?('applied '+(d===0?'today':d+'d ago')):'';
+    var nudge=(status==='Applied'&&d!=null&&d>=NUDGE_DAYS)?'<span class="slnudge">\u23f0 follow up</span>':'';
+    var line2=(appliedStr||nudge)?'<div class="slmeta2">'+esc(appliedStr)+nudge+'</div>':'';
+    link.innerHTML='<div class="toprow"><span class="name">'+esc(label)+'</span></div>'
+      +'<div class="meta">'+esc(host(item.url))+'</div>'+line2+'<div class="go">OPEN \u2192</div>';
+    card.appendChild(link);
+    var st=document.createElement('button');
+    st.type='button'; st.className='slstatus st-'+status.toLowerCase();
+    st.title='Click to change status'; st.setAttribute('aria-label','Status: '+status+'. Click to change.');
+    st.textContent=status;
+    st.addEventListener('click',function(){ cycleStatus(item.url); });
+    card.appendChild(st);
+    var actions=document.createElement('div'); actions.className='slactions';
+    var prio=document.createElement('button'); prio.type='button'; prio.className='slprio'+(item.priority?' on':'');
+    prio.textContent=item.priority?'\u2605 Priority':'\u2606 Priority'; prio.title='Toggle priority';
+    prio.addEventListener('click',function(){ togglePriority(item.url); });
+    var det=document.createElement('button'); det.type='button'; det.className='sldet'; det.textContent='\u25be Details'; det.setAttribute('aria-expanded','false');
+    var rm=document.createElement('button'); rm.type='button'; rm.className='slrm'; rm.textContent='\u2715 Remove'; rm.setAttribute('aria-label','Remove '+label);
+    rm.addEventListener('click',function(){ remove(item.url); });
+    actions.appendChild(prio); actions.appendChild(det); actions.appendChild(rm);
+    card.appendChild(actions);
+    var details=buildDetails(item);
+    det.addEventListener('click',function(){ var show=details.hidden; details.hidden=!show; det.setAttribute('aria-expanded',String(show)); det.textContent=show?'\u25b4 Details':'\u25be Details'; });
+    card.appendChild(details);
+    return card;
+  }
+  function renderStats(arr){
+    if(!statsEl) return;
+    var appliedTotal=0, week=0, replies=0, interviews=0;
+    arr.forEach(function(it){
+      var s=normStatus(it.status);
+      if(s!=='Saved'){ appliedTotal++; var d=daysSince(it.applied); if(d!=null&&d<7) week++; }
+      if(s==='Interviewing'||s==='Offer'||s==='Rejected') replies++;
+      if(s==='Interviewing'||s==='Offer') interviews++;
+    });
+    var rr=appliedTotal?Math.round(replies/appliedTotal*100):0;
+    function stat(n,l,cls){ return '<div class="stat'+(cls?' '+cls:'')+'"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'; }
+    statsEl.innerHTML=stat(week,'Applied this week')+stat(appliedTotal,'Total applied')
+      +stat(rr+'%','Reply rate',rr>=15?'good':(appliedTotal&&rr<10?'warn':''))
+      +stat(interviews,'Interviews',interviews>0?'good':'');
+    statsEl.style.display=arr.length?'flex':'none';
+  }
+  function renderUpNext(arr){
+    if(!upNextEl) return;
+    var saved=sortedForDisplay(arr).filter(function(it){ return normStatus(it.status)==='Saved'; });
+    if(!saved.length){ upNextEl.hidden=true; upNextEl.innerHTML=''; return; }
+    upNextEl.hidden=false;
+    upNextEl.innerHTML='<h3>\u25b6 Up Next <span class="c">'+saved.length+' to apply</span></h3>';
+    saved.slice(0,5).forEach(function(it){
+      var row=document.createElement('div'); row.className='unrow';
+      if(it.priority){ var s=document.createElement('span'); s.className='ustar'; s.textContent='\u2605'; row.appendChild(s); }
+      var a=document.createElement('a'); a.className='uname'; a.href=it.url; a.target='_blank'; a.rel='noopener noreferrer';
+      a.textContent=it.label||host(it.url)||'Saved job'; row.appendChild(a);
+      var b=document.createElement('button'); b.className='udone'; b.type='button'; b.textContent='Mark applied';
+      b.addEventListener('click',function(){ setStatus(it.url,'Applied'); });
+      row.appendChild(b); upNextEl.appendChild(row);
+    });
+  }
   function render(){
     var arr=getList();
     listEl.innerHTML='';
     countEl.textContent='('+arr.length+')';
     emptyEl.style.display=arr.length?'none':'block';
-    renderCounts(arr);
+    renderCounts(arr); renderStats(arr); renderUpNext(arr);
     if(exportBtn) exportBtn.disabled=!arr.length;
-    arr.forEach(function(item){
-      var status=normStatus(item.status);
-      var label=item.label||host(item.url)||'Saved job';
-      var card=document.createElement('div');
-      card.className='card';
-      var link=document.createElement('a');
-      link.className='cardlink'; link.href=item.url; link.target='_blank'; link.rel='noopener noreferrer';
-      link.setAttribute('aria-label','Open '+label);
-      link.innerHTML='<div class="toprow"><span class="name">'+esc(label)+'</span></div>'
-        +'<div class="meta">'+esc(host(item.url))+'</div><div class="go">OPEN \u2192</div>';
-      card.appendChild(link);
-      var st=document.createElement('button');
-      st.type='button'; st.className='slstatus st-'+status.toLowerCase();
-      st.title='Click to change status'; st.setAttribute('aria-label','Status: '+status+'. Click to change.');
-      st.textContent=status;
-      st.addEventListener('click',function(){ cycleStatus(item.url); });
-      card.appendChild(st);
-      var x=document.createElement('button');
-      x.className='slx'; x.type='button'; x.textContent='\u2715'; x.title='Remove'; x.setAttribute('aria-label','Remove '+label);
-      x.addEventListener('click',function(){ remove(item.url); });
-      card.appendChild(x);
-      listEl.appendChild(card);
-    });
+    sortedForDisplay(arr).forEach(function(item){ listEl.appendChild(buildCard(item)); });
     syncStars();
   }
   var stars=[];
@@ -751,8 +922,8 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
   function csvCell(v){ return '"'+(v==null?'':String(v)).replace(/"/g,'""')+'"'; }
   function exportCsv(){
     var arr=getList();
-    var rows=[['label','url','status']];
-    arr.forEach(function(it){ rows.push([it.label||host(it.url)||'Saved job', it.url||'', normStatus(it.status)]); });
+    var rows=[['label','url','status','applied','resume','contact','salary','priority','note']];
+    arr.forEach(function(it){ rows.push([it.label||host(it.url)||'Saved job', it.url||'', normStatus(it.status), it.applied||'', it.resume||'', it.contact||'', it.salary||'', it.priority?'yes':'', it.note||'']); });
     var csv=rows.map(function(r){ return r.map(csvCell).join(','); }).join('\r\n');
     try{
       var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
@@ -885,6 +1056,78 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
                          else setState('','✓ Check '+email+' for your sign-in link'); });
   });
   if(signOut) signOut.addEventListener('click',function(){ sb.auth.signOut(); });
+})();
+</script>
+<script>
+/* Cover-letter copy board — 3 editable templates, persisted locally. */
+(function(){
+  var board=document.getElementById('clBoard'); if(!board) return;
+  var KEY='rjb_coverletters';
+  var DEF=[
+    {name:'IT Support / Help Desk', body:"Dear [Company] Hiring Team,\n\nI'm applying for the [Role] position. As a U.S. Air National Guard member moving into IT, I bring hands-on Windows and Mac troubleshooting, strong customer-service instincts, and a CompTIA Security+ certification. I'm reliable under pressure, quick to pick up new systems, and ready to contribute from day one.\n\nI'd welcome the chance to discuss how I can support your team.\n\nThank you,\nAdrian"},
+    {name:'SOC / Security Analyst', body:"Dear [Company] Security Team,\n\nI'm excited to apply for the [Role] role. With a CompTIA Security+ certification, a Secret clearance (reactivation-eligible), and a military background built on discipline and attention to detail, I'm prepared to monitor alerts, triage incidents, and escalate threats as a Tier 1 analyst. I learn tooling fast and I'm eager to grow inside your SOC.\n\nThank you for your consideration,\nAdrian"},
+    {name:'GRC / Compliance / Audit', body:"Dear [Company] Team,\n\nI'm applying for the [Role] position with a focus on governance, risk, and compliance. I hold CompTIA Security+, understand control frameworks (NIST, ISO 27001, SOC 2) at a foundational level, and bring military-grade rigor to documentation and process. I'm motivated to build deep GRC expertise and add value quickly.\n\nThank you,\nAdrian"}
+  ];
+  function load(){ try{ var r=JSON.parse(localStorage.getItem(KEY)); if(r&&r.length) return r; }catch(e){} return DEF; }
+  function save(arr){ try{ localStorage.setItem(KEY,JSON.stringify(arr)); }catch(e){} }
+  var data=load();
+  data.forEach(function(tpl,i){
+    var card=document.createElement('div'); card.className='cltpl';
+    var head=document.createElement('div'); head.className='clhead';
+    var name=document.createElement('span'); name.className='clname'; name.textContent=tpl.name; head.appendChild(name);
+    var copy=document.createElement('button'); copy.type='button'; copy.className='clcopy'; copy.textContent='⧉ Copy'; head.appendChild(copy);
+    card.appendChild(head);
+    var ta=document.createElement('textarea'); ta.value=tpl.body; card.appendChild(ta);
+    ta.addEventListener('input',function(){ data[i].body=ta.value; save(data); });
+    copy.addEventListener('click',function(){
+      function ok(){ copy.textContent='✓ Copied'; setTimeout(function(){ copy.textContent='⧉ Copy'; },1500); }
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(ta.value).then(ok,function(){ ta.focus(); ta.select(); }); }
+      else { ta.focus(); ta.select(); }
+    });
+    board.appendChild(card);
+  });
+})();
+</script>
+<script>
+/* JD ↔ résumé keyword match — rough ATS gap check, fully client-side. */
+(function(){
+  var btn=document.getElementById('jdBtn'); if(!btn) return;
+  var jd=document.getElementById('jdText'), sk=document.getElementById('jdSkills'), out=document.getElementById('jdOut');
+  var SKEY='rjb_skills';
+  try{ var saved=localStorage.getItem(SKEY); if(saved!=null) sk.value=saved; }catch(e){}
+  sk.addEventListener('input',function(){ try{ localStorage.setItem(SKEY,sk.value); }catch(e){} });
+  var PHRASES=['active directory','help desk','service desk','customer service','incident response','access control','risk assessment','vulnerability management','identity and access management','security operations','ticketing system','remote desktop','group policy','office 365','microsoft 365','technical support','endpoint security','disaster recovery','business continuity','penetration testing','threat intelligence','data loss prevention'];
+  var STOP={}; ('a an the and or for to of in on with at by from as is are be been will you your we our they their this that these those it its role position team work works working experience years year ability able strong excellent good must should preferred plus etc job jobs candidate candidates company companies including include across using use used within into per via help support provide ensure manage managing knowledge skill skills required require requirements responsibilities duties new other more all any may can will not have has had who what when where which while also such than then them but if so up out who').split(/\s+/).forEach(function(w){ STOP[w]=1; });
+  function norm(s){ return (s||'').toLowerCase(); }
+  function tokens(s){ return norm(s).replace(/[^a-z0-9+.#/-]+/g,' ').split(/\s+/).filter(Boolean); }
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function build(){
+    var jdRaw=jd.value||''; if(!jdRaw.trim()){ out.className='jdout'; out.innerHTML=''; return; }
+    var jdLow=norm(jdRaw);
+    var skillLow=' '+norm(sk.value).replace(/[,;]+/g,' ')+' ';
+    var seen={}, cand=[], freq={};
+    PHRASES.forEach(function(p){ if(jdLow.indexOf(p)>-1){ seen[p]=1; cand.push(p); freq[p]=(jdLow.split(p).length-1)+1; } });
+    tokens(jdRaw).forEach(function(w){
+      if(STOP[w]) return;
+      if(/^\d+$/.test(w)) return;
+      if(w.length<3 && w.indexOf('+')<0 && w.indexOf('#')<0) return;
+      freq[w]=(freq[w]||0)+1;
+      if(!seen[w]){ seen[w]=1; cand.push(w); }
+    });
+    cand.sort(function(a,b){ return (freq[b]||1)-(freq[a]||1); });
+    cand=cand.slice(0,40);
+    var hits=[], miss=[];
+    cand.forEach(function(w){ (skillLow.indexOf(' '+w+' ')>-1||skillLow.indexOf(w)>-1?hits:miss).push(w); });
+    var total=hits.length+miss.length, score=total?Math.round(hits.length/total*100):0;
+    var col=score>=60?'var(--green)':score>=35?'var(--amber)':'#e06b6b';
+    var html='<div class="jdscore" style="color:'+col+'">'+score+'% keyword coverage</div>';
+    html+='<div class="kwgroup"><div class="kl">✗ Missing — add where genuinely true ('+miss.length+')</div>'
+      +(miss.length?miss.map(function(w){ return '<span class="kw miss">'+esc(w)+'</span>'; }).join(''):'<span class="kl">none — great match</span>')+'</div>';
+    html+='<div class="kwgroup"><div class="kl">✓ Covered ('+hits.length+')</div>'
+      +(hits.length?hits.map(function(w){ return '<span class="kw hit">'+esc(w)+'</span>'; }).join(''):'<span class="kl">none yet</span>')+'</div>';
+    out.className='jdout show'; out.innerHTML=html;
+  }
+  btn.addEventListener('click',build);
 })();
 </script>
 <script>
