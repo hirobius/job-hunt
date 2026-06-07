@@ -96,6 +96,18 @@ section.tool{margin-top:34px}
 #shortlist .slAdd input:focus{border-color:var(--amber)}
 #shortlist .slAdd button{background:var(--amber);color:#0d0f12;border:none;border-radius:10px;font-family:'Saira Condensed',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.85rem;padding:0 22px;cursor:pointer}
 .slempty{color:var(--dim,#8a93a0);font-size:.86rem;font-style:italic;padding:6px 2px}
+.slsync{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:2px 0 12px;background:#0e131b;border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.slsync .sdot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+.slsync.on .sdot{background:var(--green)} .slsync.warn .sdot{background:var(--amber)}
+.slsyncmsg{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.04em;color:var(--muted)}
+.slsync.on .slsyncmsg{color:var(--ink)}
+.slsyncform{display:flex;gap:7px;flex-wrap:wrap;margin-left:auto}
+.slsyncform input{background:var(--panel);border:1px solid var(--line2);border-radius:9px;color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:.84rem;padding:7px 11px;outline:none;min-width:210px}
+.slsyncform input:focus{border-color:var(--amber)}
+.slsyncform button{background:rgba(73,199,255,.14);color:var(--cyan);border:1px solid rgba(73,199,255,.4);font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.04em;cursor:pointer;border-radius:9px;padding:7px 12px;white-space:nowrap}
+.slsyncform button:hover{background:rgba(73,199,255,.22)}
+.slsignout{margin-left:auto;background:transparent;color:var(--muted);border:1px solid var(--line2);font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.04em;cursor:pointer;border-radius:9px;padding:7px 12px}
+.slsignout:hover{color:var(--ink)}
 .star{position:absolute;bottom:9px;right:10px;width:30px;height:30px;line-height:27px;text-align:center;border-radius:8px;border:1px solid var(--line2);background:rgba(0,0,0,.28);color:var(--dim,#8a93a0);font-size:1.05rem;cursor:pointer;padding:0;transition:border-color .12s,color .12s,background .12s;z-index:3}
 .star:hover{border-color:var(--amber);color:var(--amber)}
 .star.on{color:#0d0f12;background:var(--amber);border-color:var(--amber)}
@@ -191,7 +203,16 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 <!-- SHORTLIST -->
 <section class="tool" id="shortlist">
   <div class="shead"><span class="snum">☆</span><h2>Shortlist &amp; Tracker <span id="slCount">(0)</span></h2></div>
-  <p class="snote">Star any tile to save it here, or paste a job link you found anywhere. Click a status pill to cycle Saved → Applied → Interviewing → Offer → Rejected. Use “Add many links” to drop in a whole batch at once. Saved in your browser on your own copy of this app.</p>
+  <p class="snote">Star any tile to save it here, or paste a job link you found anywhere. Click a status pill to cycle Saved → Applied → Interviewing → Offer → Rejected. Use “Add many links” to drop in a whole batch at once. Saved in your browser — sign in below to sync the list across your phone and laptop.</p>
+  <div id="slSync" class="slsync" hidden>
+    <span class="sdot"></span>
+    <span id="slSyncMsg" class="slsyncmsg">Cloud sync</span>
+    <form id="slSyncForm" class="slsyncform">
+      <input id="slSyncEmail" type="email" autocomplete="email" placeholder="you@email.com — sync across devices">
+      <button id="slSyncBtn" type="submit">Email me a sign-in link</button>
+    </form>
+    <button id="slSignOut" type="button" class="slsignout" hidden>Sign out</button>
+  </div>
   <div class="slbar">
     <div id="slCounts" class="slcounts"></div>
     <button id="slExport" type="button" class="slexport">⭳ Export CSV</button>
@@ -640,7 +661,8 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
   function normStatus(s){ return STATUSES.indexOf(s)>-1?s:'Saved'; }
   var mem=null;
   function read(){ try{ var raw=localStorage.getItem(KEY); if(raw===null) return null; return JSON.parse(raw)||[]; }catch(e){ return mem; } }
-  function write(arr){ mem=arr; try{ localStorage.setItem(KEY, JSON.stringify(arr)); }catch(e){} }
+  function write(arr){ mem=arr; try{ localStorage.setItem(KEY, JSON.stringify(arr)); }catch(e){}
+    if(window.RJBTracker&&typeof window.RJBTracker.onLocalChange==='function'){ try{ window.RJBTracker.onLocalChange(arr); }catch(e){} } }
   function getList(){
     var l=read();
     if(l===null){ l=[{label:'Entrata (Lever) \u2014 your found job', url:'https://jobs.lever.co/entrata/aa9f605b-8360-416d-94fc-ed5d5a68602c', status:'Saved'}]; write(l); return l; }
@@ -760,6 +782,109 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
     });
   }
   buildStars(); render();
+  // Minimal API so the cloud-sync layer can read/replace the list without owning storage.
+  window.RJBTracker={
+    getAll:function(){ return getList(); },
+    replaceAll:function(a){ write(Array.isArray(a)?a:[]); render(); },
+    onLocalChange:null
+  };
+})();
+</script>
+
+<!-- ============================================================
+     CLOUD SYNC CONFIG  ▸ paste your Supabase project values below
+     so your tracker follows you across phone + laptop.
+     Leave both blank to keep the app browser-only (no sign-in shown).
+     The anon key is PUBLIC by design — your data is protected by
+     row-level security + email login, not by hiding this key.
+     Step-by-step setup lives in SUPABASE_SETUP.md.
+     ============================================================ -->
+<script>
+  window.RJB_SUPABASE = {
+    url:     '',   // e.g. https://abcd1234.supabase.co
+    anonKey: ''    // the public "anon" / publishable key
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* Cloud sync — Supabase + passwordless email magic-link.
+   - Invisible & inert until RJB_SUPABASE.url/anonKey are filled in.
+   - localStorage stays the live store + offline fallback; cloud is a mirror.
+   - Sign-in unions local + cloud (no device wipes the other), then mirrors up.
+   - Tab focus re-pulls cloud so the other device's edits show up. */
+(function(){
+  var bar=document.getElementById('slSync'); var T=window.RJBTracker;
+  if(!bar||!T) return;
+  var msg=document.getElementById('slSyncMsg');
+  var form=document.getElementById('slSyncForm');
+  var emailIn=document.getElementById('slSyncEmail');
+  var signOut=document.getElementById('slSignOut');
+  function setState(cls,text){ bar.className='slsync'+(cls?' '+cls:''); if(msg) msg.textContent=text; }
+  function showForm(show){ if(form) form.style.display=show?'':'none'; if(signOut) signOut.hidden=show; }
+
+  var cfg=window.RJB_SUPABASE||{};
+  var configured = cfg.url && cfg.anonKey && /^https?:\/\//.test(cfg.url) && cfg.anonKey.length>20;
+  if(!configured){
+    bar.hidden=false; showForm(false);
+    setState('','Cloud sync off — add Supabase keys in index.html to sync across devices');
+    return;
+  }
+  if(!window.supabase || !window.supabase.createClient){
+    bar.hidden=false; showForm(false);
+    setState('warn','Cloud sync unavailable right now — list is saved locally');
+    return;
+  }
+  bar.hidden=false;
+  var sb=window.supabase.createClient(cfg.url, cfg.anonKey);
+  var user=null, applying=false, pushTimer=null;
+
+  function mergeLists(cloud, local){
+    var by={}, order=[];
+    function add(it){ if(!it||!it.url) return; if(!(it.url in by)) order.push(it.url); by[it.url]=it; }
+    (local||[]).forEach(add); (cloud||[]).forEach(add);   // cloud wins on status for shared URLs
+    return order.map(function(u){ return by[u]; });
+  }
+  function pull(){
+    return sb.from('tracker').select('data').eq('user_id',user.id).maybeSingle()
+      .then(function(r){ return (r&&r.data&&r.data.data)||null; });
+  }
+  function pushNow(arr){
+    if(!user) return Promise.resolve();
+    return sb.from('tracker').upsert({user_id:user.id,data:arr,updated_at:new Date().toISOString()})
+      .then(function(r){ if(r&&r.error){ setState('warn','Saved locally — cloud error'); }
+                         else { setState('on','Synced · '+user.email); } });
+  }
+  T.onLocalChange=function(arr){
+    if(!user||applying) return;
+    setState('on','Saving…'); clearTimeout(pushTimer);
+    pushTimer=setTimeout(function(){ pushNow(arr); },450);
+  };
+  function adopt(seed){
+    setState('on', seed?'Syncing…':'Refreshing…');
+    return pull().then(function(cloud){
+      var next = seed ? mergeLists(cloud, T.getAll()) : (cloud!=null ? cloud : T.getAll());
+      applying=true; T.replaceAll(next); applying=false;
+      if(seed) return pushNow(next);            // mirror the union back up
+      setState('on','Synced · '+user.email);
+    }).catch(function(){ setState('warn','Saved locally — cloud error'); });
+  }
+  function signedIn(u){ user=u; showForm(false); setState('on','Synced · '+u.email); adopt(true); }
+  function signedOut(){ user=null; showForm(true); setState('','Sign in to sync this list across your devices'); }
+
+  sb.auth.onAuthStateChange(function(_e,session){
+    var u=session&&session.user; if(u) signedIn(u); else signedOut();
+  });
+  window.addEventListener('focus',function(){ if(user&&!applying) adopt(false); });
+
+  if(form) form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var email=(emailIn.value||'').trim(); if(!email) return;
+    setState('','Sending link…');
+    sb.auth.signInWithOtp({email:email,options:{emailRedirectTo:location.origin+location.pathname}})
+      .then(function(r){ if(r&&r.error) setState('warn','Could not send link: '+r.error.message);
+                         else setState('','✓ Check '+email+' for your sign-in link'); });
+  });
+  if(signOut) signOut.addEventListener('click',function(){ sb.auth.signOut(); });
 })();
 </script>
 <script>
