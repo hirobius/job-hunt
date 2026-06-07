@@ -741,6 +741,12 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
   var PLACEH={note:'Why you want it · JD notes · prep…',contact:'recruiter / referral',resume:'e.g. IT-Support v2',salary:'target / offered'};
   if(!listEl||!addBtn) return;
   function normStatus(s){ return STATUSES.indexOf(s)>-1?s:'Saved'; }
+  function cleanUrl(u){
+    u=(u||'').trim().replace(/[<>]/g,'').replace(/^["'(\s]+/,'').replace(/["')\s]+$/,'');
+    var k=Math.max(u.toLowerCase().lastIndexOf('http://'), u.toLowerCase().lastIndexOf('https://'));
+    if(k>0) u=u.slice(k);   // recover a mangled double-protocol like https://<https://x>
+    return u;
+  }
   function pad(n){ return (n<10?'0':'')+n; }
   function today(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
   function daysSince(s){ if(!s) return null; var t=Date.parse(s); if(isNaN(t)) return null; return Math.floor((Date.now()-t)/86400000); }
@@ -754,7 +760,12 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
     if(l===null){ l=[{label:'Entrata (Lever) \u2014 your found job', url:'https://jobs.lever.co/entrata/aa9f605b-8360-416d-94fc-ed5d5a68602c', status:'Saved'}]; write(l); return l; }
     if(!Array.isArray(l)) return [];
     var dirty=false;
-    for(var i=0;i<l.length;i++){ if(l[i]&&l[i].status!==normStatus(l[i].status)){ l[i].status=normStatus(l[i].status); dirty=true; } }
+    for(var i=0;i<l.length;i++){
+      if(!l[i]) continue;
+      var cu=cleanUrl(l[i].url);
+      if(cu!==l[i].url){ l[i].url=cu; dirty=true; }                 // self-heal previously mangled links
+      if(l[i].status!==normStatus(l[i].status)){ l[i].status=normStatus(l[i].status); dirty=true; }
+    }
     if(dirty) write(l);
     return l;
   }
@@ -763,7 +774,8 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
   function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function flash(el){ if(!el) return; el.style.borderColor='#e06b6b'; setTimeout(function(){ el.style.borderColor=''; },600); }
   function add(url,label){
-    url=(url||'').trim(); if(!url) return;
+    url=cleanUrl(url);
+    if(!url) return;
     if(!/^https?:\/\//i.test(url)) url='https://'+url;
     var arr=getList();
     if(idx(arr,url)>-1){ flash(urlIn); return; }
