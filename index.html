@@ -231,7 +231,7 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
     <p><b>Pay map:</b> IT support / help desk ~$19–26/hr (~$43–60K) · entry GRC analyst ~$55–75K (your target) · trades apprenticeships paid-from-day-one, scaling to journey wage.</p>
     <p><b>Two truths:</b> many "entry" cyber/IT roles still want CompTIA A+ or ~1 yr experience (Skill-Up lane fixes that), and <b>govcon is your edge</b> — federal-contractor work values your clearance + military background and bridges straight to the ISSO/GRC role you want.</p>
     <div class="pitchbox">
-      <span id="pitch">Air National Guard veteran moving into IT &amp; cybersecurity (federal GRC focus). Confident troubleshooting Windows and Mac, strong customer-service background, completing CompTIA Security+. Held a Secret clearance — reactivation-eligible. Reliable, fast learner, available to start now.</span>
+      <span id="pitch">U.S. Air Force veteran in Spokane, WA, available immediately. Current Reserve member holding a DoD Secret clearance (Tier 3, in-scope through 2029, inactive but reactivation-eligible). Six years Air National Guard plus ten-plus years of enterprise experience at Microsoft and T-Mobile. Pursuing CompTIA Security+ and ISC2 Certified in Cybersecurity. Resume attached, happy to talk.</span>
       <button id="copybtn">⧉ Copy pitch</button>
     </div>
   </div>
@@ -293,7 +293,7 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 <!-- APPLY KIT: COVER LETTERS -->
 <section class="tool" id="coverletters">
   <div class="shead"><span class="snum">✍</span><h2>Cover-Letter Copy Board</h2></div>
-  <p class="snote">Three reusable templates. Fill the [Company] / [Role] blanks, hit Copy, paste. Your edits save in this browser.</p>
+  <p class="snote">Ready-to-copy notes built from your background — no fill-in blanks. Tap Copy, paste, tweak per role if you like. Edits save in this browser.</p>
   <div id="clBoard" class="kitwrap"></div>
 </section>
 
@@ -1062,11 +1062,10 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 /* Cover-letter copy board — 3 editable templates, persisted locally. */
 (function(){
   var board=document.getElementById('clBoard'); if(!board) return;
-  var KEY='rjb_coverletters';
+  var KEY='rjb_coverletters_v2';
   var DEF=[
-    {name:'IT Support / Help Desk', body:"Dear [Company] Hiring Team,\n\nI'm applying for the [Role] position. As a U.S. Air National Guard member moving into IT, I bring hands-on Windows and Mac troubleshooting, strong customer-service instincts, and a CompTIA Security+ certification. I'm reliable under pressure, quick to pick up new systems, and ready to contribute from day one.\n\nI'd welcome the chance to discuss how I can support your team.\n\nThank you,\nAdrian"},
-    {name:'SOC / Security Analyst', body:"Dear [Company] Security Team,\n\nI'm excited to apply for the [Role] role. With a CompTIA Security+ certification, a Secret clearance (reactivation-eligible), and a military background built on discipline and attention to detail, I'm prepared to monitor alerts, triage incidents, and escalate threats as a Tier 1 analyst. I learn tooling fast and I'm eager to grow inside your SOC.\n\nThank you for your consideration,\nAdrian"},
-    {name:'GRC / Compliance / Audit', body:"Dear [Company] Team,\n\nI'm applying for the [Role] position with a focus on governance, risk, and compliance. I hold CompTIA Security+, understand control frameworks (NIST, ISO 27001, SOC 2) at a foundational level, and bring military-grade rigor to documentation and process. I'm motivated to build deep GRC expertise and add value quickly.\n\nThank you,\nAdrian"}
+    {name:'Quick outreach note', body:"U.S. Air Force veteran in Spokane, WA, available immediately. Current Reserve member holding a DoD Secret clearance (Tier 3, in-scope through 2029, inactive but reactivation-eligible). Six years Air National Guard plus ten-plus years of enterprise experience at Microsoft and T-Mobile. Pursuing CompTIA Security+ and ISC2 Certified in Cybersecurity. Resume attached, happy to talk.\n\n— add your name + phone + email here —"},
+    {name:'Formal cover letter', body:"Dear Hiring Team,\n\nI'm writing to express my interest in your open position. I'm a U.S. Air Force veteran based in Spokane, WA and available immediately. I currently serve as a Reserve member and hold a DoD Secret clearance (Tier 3, in-scope through 2029 — inactive but reactivation-eligible). My background includes six years in the Air National Guard and more than ten years of enterprise experience at Microsoft and T-Mobile, and I'm currently pursuing CompTIA Security+ and the ISC2 Certified in Cybersecurity credential.\n\nI'd welcome the chance to discuss how my experience and clearance can contribute to your team. My resume is attached, and I'm happy to talk.\n\nThank you,\n\n— add your name + phone + email here —"}
   ];
   function load(){ try{ var r=JSON.parse(localStorage.getItem(KEY)); if(r&&r.length) return r; }catch(e){} return DEF; }
   function save(arr){ try{ localStorage.setItem(KEY,JSON.stringify(arr)); }catch(e){} }
