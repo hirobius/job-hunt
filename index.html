@@ -137,6 +137,19 @@ section.tool{margin-top:34px}
 footer h3{display:flex;align-items:center}
 footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .intro .infotoggle{margin-bottom:8px}
+/* batch link paste */
+.slbatch{margin:0 0 14px}
+.slbatch summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;
+  font-family:'IBM Plex Mono',monospace;font-size:.74rem;letter-spacing:.04em;color:var(--cyan)}
+.slbatch summary::-webkit-details-marker{display:none}
+.slbatch summary:hover{color:var(--ink)}
+.slbatch textarea{width:100%;margin-top:9px;min-height:88px;resize:vertical;background:var(--panel);
+  border:1px solid var(--line2);border-radius:10px;color:var(--ink);font-family:'IBM Plex Mono',monospace;
+  font-size:.82rem;line-height:1.45;padding:10px 13px;outline:none}
+.slbatch textarea:focus{border-color:var(--amber)}
+.slbatch button{margin-top:9px;background:var(--amber);color:#0d0f12;border:none;border-radius:10px;
+  font-family:'Saira Condensed',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  font-size:.85rem;padding:9px 22px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -177,8 +190,8 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 
 <!-- SHORTLIST -->
 <section class="tool" id="shortlist">
-  <div class="shead"><span class="snum">☆</span><h2>Shortlist <span id="slCount">(0)</span></h2></div>
-  <p class="snote">Star any tile to save it here, or paste a job link you found anywhere. Click a status pill to cycle Saved → Applied → Interviewing → Offer → Rejected. Saved in your browser on your own copy of this app.</p>
+  <div class="shead"><span class="snum">☆</span><h2>Shortlist &amp; Tracker <span id="slCount">(0)</span></h2></div>
+  <p class="snote">Star any tile to save it here, or paste a job link you found anywhere. Click a status pill to cycle Saved → Applied → Interviewing → Offer → Rejected. Use “Add many links” to drop in a whole batch at once. Saved in your browser on your own copy of this app.</p>
   <div class="slbar">
     <div id="slCounts" class="slcounts"></div>
     <button id="slExport" type="button" class="slexport">⭳ Export CSV</button>
@@ -188,6 +201,11 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
     <input id="slLabel" type="text" placeholder="label (optional)">
     <button id="slAddBtn" type="button">Add</button>
   </div>
+  <details class="slbatch">
+    <summary>＋ Add many links at once</summary>
+    <textarea id="slBatch" placeholder="Paste job URLs — one per line (or space/comma separated). I can hand you a batch to drop in here."></textarea>
+    <button id="slBatchBtn" type="button">Add all</button>
+  </details>
   <div id="slList" class="grid"></div>
   <div id="slEmpty" class="slempty">No saved jobs yet — tap ☆ on any tile, or paste a link above.</div>
 </section>
@@ -206,6 +224,14 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
     <span class="chip" data-r="ISSO">ISSO</span>
   </div>
   <div class="grid" id="atsGrid"></div>
+</section>
+
+<!-- TIER 1 ENTRY TITLES -->
+<section class="tool" id="tier1">
+  <div class="shead"><span class="snum">⚡</span><h2>Tier 1 — Entry Titles (apply now, no certs)</h2></div>
+  <p class="snote">The exact job titles worth digging for right now. Tap one to fire live searches across the big boards for that exact title (it also drives the Hidden-Jobs ATS search above). Remote-first, plus a Spokane local option.</p>
+  <div class="chips" id="tier1Roles"></div>
+  <div class="grid" id="tier1Grid"></div>
 </section>
 
 <!-- 01 IT SUPPORT FEEDS -->
@@ -550,6 +576,55 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 })();
 </script>
 <script>
+/* Tier 1 entry-title quick search: tap an exact title -> live searches across
+   the major boards, and feed the ATS hidden-jobs generator above. */
+(function(){
+  var TITLES=['Help Desk Technician','Help Desk Analyst','Help Desk Support Specialist',
+    'Service Desk Technician','Service Desk Analyst','IT Support Specialist','IT Support Technician',
+    'Technical Support Specialist','Technical Support Representative','Desktop Support Technician',
+    'Desktop Support Analyst','IT Service Desk Agent','End User Support Technician','Computer Operator',
+    'IT Operations Technician','Tier 1 Support','Tier 1 Technician','Customer Support Engineer (IT)',
+    'Field Service Technician (IT/hardware)','Associate IT Technician'];
+  var BOARDS=[
+    {name:'Indeed',tag:'Remote',meta:'Remote, work-from-home',url:function(t){return 'https://www.indeed.com/jobs?q='+encodeURIComponent(t)+'&l=Remote';}},
+    {name:'LinkedIn',tag:'Entry·Remote',meta:'Entry + remote filtered',url:function(t){return 'https://www.linkedin.com/jobs/search/?keywords='+encodeURIComponent(t)+'&f_E=2&f_WT=2';}},
+    {name:'Google Jobs',tag:'Remote',meta:'Aggregates all boards',url:function(t){return 'https://www.google.com/search?q='+encodeURIComponent(t+' remote')+'&ibp=htl;jobs';}},
+    {name:'ZipRecruiter',tag:'Remote',meta:'1-click apply',url:function(t){return 'https://www.ziprecruiter.com/jobs-search?search='+encodeURIComponent(t)+'&location=Remote';}},
+    {name:'Dice',tag:'Remote',meta:'Tech-focused board',url:function(t){return 'https://www.dice.com/jobs?q='+encodeURIComponent(t)+'&filters.workplaceTypes=Remote';}},
+    {name:'Indeed · Spokane',tag:'On-site',meta:'Local Spokane listings',url:function(t){return 'https://www.indeed.com/jobs?q='+encodeURIComponent(t)+'&l=Spokane%2C+WA';}}
+  ];
+  var rolesEl=document.getElementById('tier1Roles');
+  var gridEl=document.getElementById('tier1Grid');
+  var atsRole=document.getElementById('atsRole');
+  if(!rolesEl||!gridEl) return;
+  function terms(title){
+    var m=title.match(/^(.*?)\s*\(([^)]*)\)\s*$/);   // pull a "(IT)" / "(IT/hardware)" qualifier out of the quotes
+    return m ? '"'+m[1].trim()+'" '+m[2].replace(/[\/]/g,' ') : '"'+title+'"';
+  }
+  var tiles=BOARDS.map(function(b){
+    var a=document.createElement('a'); a.className='card'; a.target='_blank'; a.rel='noopener noreferrer';
+    a.innerHTML='<div class="toprow"><span class="name">'+b.name+'</span><span class="tag">'+b.tag+'</span></div><div class="meta">'+b.meta+'</div><div class="go">SEARCH →</div>';
+    gridEl.appendChild(a); return {a:a,b:b};
+  });
+  var active=TITLES[0];
+  function refresh(){
+    var t=terms(active);
+    tiles.forEach(function(x){ x.a.href=x.b.url(t); });
+    if(atsRole){ atsRole.value=active.replace(/\s*\(.*\)\s*$/,''); atsRole.dispatchEvent(new Event('input',{bubbles:true})); }
+  }
+  TITLES.forEach(function(title,i){
+    var c=document.createElement('span'); c.className='chip'+(i===0?' on':'');
+    c.textContent=title; c.setAttribute('data-r',title);
+    c.addEventListener('click',function(){
+      rolesEl.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('on'); });
+      c.classList.add('on'); active=title; refresh();
+    });
+    rolesEl.appendChild(c);
+  });
+  refresh();
+})();
+</script>
+<script>
 (function(){
   var KEY='rjb_shortlist';
   var STATUSES=['Saved','Applied','Interviewing','Offer','Rejected'];
@@ -669,6 +744,21 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
   addBtn.addEventListener('click',function(){ add(urlIn.value,labelIn.value); urlIn.value=''; labelIn.value=''; urlIn.focus(); });
   function onEnter(e){ if(e.key==='Enter'){ add(urlIn.value,labelIn.value); urlIn.value=''; labelIn.value=''; } }
   urlIn.addEventListener('keydown',onEnter); labelIn.addEventListener('keydown',onEnter);
+  // Batch add: paste many URLs (newline / space / comma separated)
+  var batchBtn=document.getElementById('slBatchBtn');
+  var batchIn=document.getElementById('slBatch');
+  if(batchBtn&&batchIn){
+    batchBtn.addEventListener('click',function(){
+      var tokens=(batchIn.value||'').split(/[\s,]+/).filter(function(s){ return s && /\./.test(s); });
+      var before=getList().length;
+      tokens.forEach(function(u){ add(u,''); });
+      var added=getList().length-before;
+      batchIn.value='';
+      var orig=batchBtn.textContent;
+      batchBtn.textContent=added?('Added '+added):'No new links';
+      setTimeout(function(){ batchBtn.textContent=orig; },1600);
+    });
+  }
   buildStars(); render();
 })();
 </script>
