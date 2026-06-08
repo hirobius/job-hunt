@@ -190,6 +190,17 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .rjbtoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);background:var(--panel);color:var(--ink);border:1px solid var(--line2);border-radius:999px;padding:10px 18px;font-family:'IBM Plex Mono',monospace;font-size:.8rem;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;box-shadow:0 10px 30px -10px rgba(0,0,0,.7)}
 .rjbtoast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .rjbtoast .rjbundo{margin-left:4px;background:none;border:none;color:var(--cyan);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:600;cursor:pointer;text-decoration:underline;padding:0}
+/* Copy Deck */
+.cdadd{margin-left:auto;align-self:center;background:rgba(73,199,255,.12);color:var(--cyan);border:1px solid rgba(73,199,255,.4);border-radius:999px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.04em;cursor:pointer;padding:6px 12px;white-space:nowrap}
+.cdadd:hover{background:rgba(73,199,255,.22)}
+.cltpl .clhead{display:flex;align-items:center;gap:8px}
+.cltpl .clname{flex:1;min-width:0;background:transparent;border:none;border-bottom:1px solid transparent;color:var(--ink);font-family:'Saira Condensed',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:1rem;padding:2px 0;outline:none}
+.cltpl .clname:focus{border-bottom-color:var(--line2)}
+.cltpl .clcopy{margin-left:0}
+.cltpl .cltoggle,.cltpl .cldel{background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:8px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.78rem;line-height:1;padding:6px 9px}
+.cltpl .cltoggle:hover{color:var(--ink);border-color:var(--line2)}
+.cltpl .cldel:hover{color:#e06b6b;border-color:#e06b6b}
+.cltpl textarea[hidden]{display:none}
 .slmeta2{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.03em;color:var(--muted);margin-top:1px}
 .slnudge{color:#0d0f12;background:var(--amber);border-radius:999px;padding:1px 7px;font-weight:600;margin-left:6px}
 .slactions{display:flex;align-items:center;gap:6px;margin-top:9px;position:relative;z-index:3}
@@ -262,6 +273,12 @@ footer h3,footer ol{display:none}
   </div>
 </header>
 
+<!-- COPY DECK: letters + snippet scratchpad (all your copy-paste text, up top) -->
+<section class="tool" id="copydeck">
+  <div class="shead"><span class="snum">⧉</span><h2>Copy Deck</h2><button id="cdAdd" type="button" class="cdadd">＋ New snippet</button></div>
+  <div id="cdBoard" class="kitwrap"></div>
+</section>
+
 <div class="controls">
   <input id="search" type="text" placeholder="Search tiles…  (e.g. 'GRC', 'welder', 'remote', 'Spokane')">
   <button id="filterToggle" type="button" class="filtertoggle" aria-expanded="false">⚙ Filters ▾</button>
@@ -324,13 +341,6 @@ footer h3,footer ol{display:none}
   </details>
   <div id="slList" class="grid"></div>
   <div id="slEmpty" class="slempty">No saved jobs yet — tap ☆ on any tile, or paste a link above.</div>
-</section>
-
-<!-- APPLY KIT: COVER LETTERS -->
-<section class="tool" id="coverletters">
-  <div class="shead"><span class="snum">✍</span><h2>Cover-Letter Copy Board</h2></div>
-  <p class="snote">Ready-to-copy notes built from your background — no fill-in blanks. Tap Copy, paste, tweak per role if you like. Edits save in this browser.</p>
-  <div id="clBoard" class="kitwrap"></div>
 </section>
 
 <!-- ATS HIDDEN JOBS -->
@@ -1267,32 +1277,61 @@ footer h3,footer ol{display:none}
 })();
 </script>
 <script>
-/* Cover-letter copy board — 3 editable templates, persisted locally. */
+/* Copy Deck — editable letters + a snippet scratchpad. Add / label / collapse /
+   copy / delete-with-confirm, all persisted locally. */
 (function(){
-  var board=document.getElementById('clBoard'); if(!board) return;
-  var KEY='rjb_coverletters_v2';
-  var DEF=[
-    {name:'Quick outreach note', body:"U.S. Air Force veteran in Spokane, WA, available immediately. Current Reserve member holding a DoD Secret clearance (Tier 3, in-scope through 2029, inactive but reactivation-eligible). Six years Air National Guard plus ten-plus years of enterprise experience at Microsoft and T-Mobile. Pursuing CompTIA Security+ and ISC2 Certified in Cybersecurity. Resume attached, happy to talk.\n\n— add your name + phone + email here —"},
-    {name:'Formal cover letter', body:"Dear Hiring Team,\n\nI'm writing to express my interest in your open position. I'm a U.S. Air Force veteran based in Spokane, WA and available immediately. I currently serve as a Reserve member and hold a DoD Secret clearance (Tier 3, in-scope through 2029 — inactive but reactivation-eligible). My background includes six years in the Air National Guard and more than ten years of enterprise experience at Microsoft and T-Mobile, and I'm currently pursuing CompTIA Security+ and the ISC2 Certified in Cybersecurity credential.\n\nI'd welcome the chance to discuss how my experience and clearance can contribute to your team. My resume is attached, and I'm happy to talk.\n\nThank you,\n\n— add your name + phone + email here —"}
+  var board=document.getElementById('cdBoard'), addBtn=document.getElementById('cdAdd');
+  if(!board) return;
+  var KEY='rjb_copydeck_v1', OLD='rjb_coverletters_v2';
+  var CULTURE={label:'Culture / company fit', body:"I'll be honest about what pulls me toward this role: I really like helping and being the person who gets someone unstuck. After ten-plus years as a designer and documentation specialist, the work I enjoyed most was never the polished final file, it was the teaching and leading and watching something click for a person who'd been frustrated five minutes earlier. That's the part I'd choose every time.\n\nHere's why I think my skillset carries over, beyond the obvious. Spending years explaining design to people who don't think visually builds patience and a kind of translation instinct. You learn to meet someone in their confusion instead of talking past it. A non-designer staring at a blank canvas isn't a problem to me; it's a familiar moment, and I know how to walk them out of it without making them feel behind.\n\nI also just like this kind of work. I'm happiest when heads-down, working through a stream of small puzzles while figuring out what a problem or person actually needs. I strive to find the cleanest path, and explain things so they stick."};
+  var LETTERS=[
+    {label:'Quick outreach note', body:"U.S. Air Force veteran in Spokane, WA, available immediately. Current Reserve member holding a DoD Secret clearance (Tier 3, in-scope through 2029, inactive but reactivation-eligible). Six years Air National Guard plus ten-plus years of enterprise experience at Microsoft and T-Mobile. Pursuing CompTIA Security+ and ISC2 Certified in Cybersecurity. Resume attached, happy to talk.\n\n— add your name + phone + email here —"},
+    {label:'Formal cover letter', body:"Dear Hiring Team,\n\nI'm writing to express my interest in your open position. I'm a U.S. Air Force veteran based in Spokane, WA and available immediately. I currently serve as a Reserve member and hold a DoD Secret clearance (Tier 3, in-scope through 2029 — inactive but reactivation-eligible). My background includes six years in the Air National Guard and more than ten years of enterprise experience at Microsoft and T-Mobile, and I'm currently pursuing CompTIA Security+ and the ISC2 Certified in Cybersecurity credential.\n\nI'd welcome the chance to discuss how my experience and clearance can contribute to your team. My resume is attached, and I'm happy to talk.\n\nThank you,\n\n— add your name + phone + email here —"}
   ];
-  function load(){ try{ var r=JSON.parse(localStorage.getItem(KEY)); if(r&&r.length) return r; }catch(e){} return DEF; }
-  function save(arr){ try{ localStorage.setItem(KEY,JSON.stringify(arr)); }catch(e){} }
+  function seed(){
+    var base=null;
+    try{ var o=JSON.parse(localStorage.getItem(OLD)); if(o&&o.length) base=o.map(function(t){ return {label:t.name||'Letter', body:t.body||''}; }); }catch(e){}
+    var arr=base||LETTERS.map(function(x){ return {label:x.label, body:x.body}; });
+    if(!arr.some(function(x){ return /culture|company fit/i.test(x.label||''); })) arr.push({label:CULTURE.label, body:CULTURE.body});
+    return arr;
+  }
+  function load(){ try{ var r=JSON.parse(localStorage.getItem(KEY)); if(r&&r.length) return r; }catch(e){} var s=seed(); save(s); return s; }
+  function save(a){ try{ localStorage.setItem(KEY,JSON.stringify(a)); }catch(e){} }
   var data=load();
-  data.forEach(function(tpl,i){
-    var card=document.createElement('div'); card.className='cltpl';
-    var head=document.createElement('div'); head.className='clhead';
-    var name=document.createElement('span'); name.className='clname'; name.textContent=tpl.name; head.appendChild(name);
-    var copy=document.createElement('button'); copy.type='button'; copy.className='clcopy'; copy.textContent='⧉ Copy'; head.appendChild(copy);
-    card.appendChild(head);
-    var ta=document.createElement('textarea'); ta.value=tpl.body; card.appendChild(ta);
-    ta.addEventListener('input',function(){ data[i].body=ta.value; save(data); });
-    copy.addEventListener('click',function(){
-      function ok(){ copy.textContent='✓ Copied'; setTimeout(function(){ copy.textContent='⧉ Copy'; },1500); }
-      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(ta.value).then(ok,function(){ ta.focus(); ta.select(); }); }
-      else { ta.focus(); ta.select(); }
+  function render(){
+    board.innerHTML='';
+    data.forEach(function(item,i){
+      if(item.open===undefined) item.open=false;
+      var card=document.createElement('div'); card.className='cltpl';
+      var head=document.createElement('div'); head.className='clhead';
+      var label=document.createElement('input'); label.className='clname'; label.value=item.label||''; label.placeholder='Label'; label.setAttribute('aria-label','Snippet label');
+      var toggle=document.createElement('button'); toggle.type='button'; toggle.className='cltoggle'; toggle.textContent=item.open?'▴':'▾'; toggle.title=item.open?'Collapse':'Expand';
+      var copy=document.createElement('button'); copy.type='button'; copy.className='clcopy'; copy.textContent='⧉ Copy';
+      var del=document.createElement('button'); del.type='button'; del.className='cldel'; del.textContent='✕'; del.title='Delete snippet';
+      head.appendChild(label); head.appendChild(toggle); head.appendChild(copy); head.appendChild(del);
+      card.appendChild(head);
+      var ta=document.createElement('textarea'); ta.value=item.body||''; ta.placeholder='Paste or write your snippet…'; ta.hidden=!item.open;
+      card.appendChild(ta);
+      label.addEventListener('input',function(){ data[i].label=label.value; save(data); });
+      ta.addEventListener('input',function(){ data[i].body=ta.value; save(data); });
+      toggle.addEventListener('click',function(){ item.open=!item.open; ta.hidden=!item.open; toggle.textContent=item.open?'▴':'▾'; save(data); });
+      copy.addEventListener('click',function(){
+        function ok(){ copy.textContent='✓ Copied'; setTimeout(function(){ copy.textContent='⧉ Copy'; },1500); }
+        function fallback(){ item.open=true; ta.hidden=false; toggle.textContent='▴'; ta.focus(); ta.select(); }
+        if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(ta.value).then(ok,fallback); }
+        else fallback();
+      });
+      del.addEventListener('click',function(){
+        if(window.confirm('Delete "'+(item.label||'this snippet')+'"? This can’t be undone.')){ data.splice(i,1); save(data); render(); }
+      });
+      board.appendChild(card);
     });
-    board.appendChild(card);
+  }
+  if(addBtn) addBtn.addEventListener('click',function(){
+    data.push({label:'New snippet', body:'', open:true}); save(data); render();
+    var inputs=board.querySelectorAll('.clname'); var last=inputs[inputs.length-1]; if(last){ last.focus(); last.select(); }
   });
+  render();
 })();
 </script>
 </body>
