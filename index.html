@@ -186,6 +186,8 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 #slList .card{touch-action:pan-y}
 #slList .card.sw-applied{border-color:var(--cyan);box-shadow:inset 5px 0 0 var(--cyan)}
 #slList .card.sw-remove{border-color:#e06b6b;box-shadow:inset -5px 0 0 #e06b6b}
+.rjbtoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);background:var(--panel);color:var(--ink);border:1px solid var(--line2);border-radius:999px;padding:10px 18px;font-family:'IBM Plex Mono',monospace;font-size:.8rem;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;box-shadow:0 10px 30px -10px rgba(0,0,0,.7)}
+.rjbtoast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .slmeta2{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.03em;color:var(--muted);margin-top:1px}
 .slnudge{color:#0d0f12;background:var(--amber);border-radius:999px;padding:1px 7px;font-weight:600;margin-left:6px}
 .slactions{display:flex;align-items:center;gap:6px;margin-top:9px;position:relative;z-index:3}
@@ -1094,6 +1096,24 @@ footer h3,footer ol{display:none}
     });
   }
   buildStars(); render();
+  // Quick-add via ?add=<url>&t=<label> — powers the iOS Share shortcut, bookmarklet, and share links.
+  function toast(msg){
+    var el=document.createElement('div'); el.className='rjbtoast'; el.textContent=msg; document.body.appendChild(el);
+    setTimeout(function(){ el.classList.add('show'); },10);
+    setTimeout(function(){ el.classList.remove('show'); setTimeout(function(){ el.remove(); },300); },2400);
+  }
+  try{
+    var qp=new URLSearchParams(location.search);
+    if(qp.get('add')){
+      var before=getList().length;
+      add(qp.get('add'), qp.get('t')||qp.get('title')||'');
+      var added=getList().length>before;
+      qp.delete('add'); qp.delete('t'); qp.delete('title');
+      history.replaceState(null,'',location.pathname+(qp.toString()?'?'+qp.toString():'')+location.hash);
+      toast(added?'✓ Added to your tracker':'Already in your tracker');
+      var sl=document.getElementById('shortlist'); if(sl&&sl.scrollIntoView) sl.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  }catch(e){}
   // Minimal API so the cloud-sync layer can read/replace the list without owning storage.
   window.RJBTracker={
     getAll:function(){ return getList(); },
