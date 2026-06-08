@@ -183,6 +183,9 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .card.slarch{opacity:.5}
 .card.slarch:hover{opacity:.85}
 .slactions .slarchbtn:hover{border-color:var(--violet);color:var(--violet)}
+#slList .card{touch-action:pan-y}
+#slList .card.sw-applied{border-color:var(--cyan);box-shadow:inset 5px 0 0 var(--cyan)}
+#slList .card.sw-remove{border-color:#e06b6b;box-shadow:inset -5px 0 0 #e06b6b}
 .slmeta2{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.03em;color:var(--muted);margin-top:1px}
 .slnudge{color:#0d0f12;background:var(--amber);border-radius:999px;padding:1px 7px;font-weight:600;margin-left:6px}
 .slactions{display:flex;align-items:center;gap:6px;margin-top:9px;position:relative;z-index:3}
@@ -944,6 +947,36 @@ footer h3,footer ol{display:none}
     });
     wrap.appendChild(rl); return wrap;
   }
+  function attachSwipe(card, link, item){
+    var x0=0,y0=0,dx=0,dragging=false,decided=false,horizontal=false,TH=70;
+    function start(e){
+      if(e.target.closest && e.target.closest('.slactions, .sldetails, .slstatus')){ dragging=false; return; }
+      var t=e.touches?e.touches[0]:e; x0=t.clientX; y0=t.clientY; dx=0; dragging=true; decided=false; horizontal=false; card.style.transition='';
+    }
+    function move(e){
+      if(!dragging) return;
+      var t=e.touches?e.touches[0]:e, mx=t.clientX-x0, my=t.clientY-y0;
+      if(!decided){ decided=true; horizontal=Math.abs(mx)>Math.abs(my)+4; }
+      if(!horizontal) return;
+      if(e.cancelable) e.preventDefault();          // we own the horizontal gesture
+      dx=mx; card.style.transform='translateX('+dx+'px)';
+      card.classList.toggle('sw-applied', dx>20);
+      card.classList.toggle('sw-remove', dx<-20);
+    }
+    function end(){
+      if(!dragging) return; dragging=false;
+      card.style.transition='transform .2s ease, opacity .2s ease';
+      card.classList.remove('sw-applied','sw-remove');
+      if(horizontal && dx<=-TH){ card.style.transform='translateX(-110%)'; card.style.opacity='0'; setTimeout(function(){ remove(item.url); },170); }
+      else if(horizontal && dx>=TH){ card.style.transform='translateX(110%)'; card.style.opacity='0'; setTimeout(function(){ setStatus(item.url,'Applied'); },170); }
+      else { card.style.transform=''; }
+    }
+    card.addEventListener('touchstart',start,{passive:true});
+    card.addEventListener('touchmove',move,{passive:false});
+    card.addEventListener('touchend',end);
+    card.addEventListener('touchcancel',function(){ dragging=false; card.style.transition='transform .2s ease'; card.style.transform=''; card.classList.remove('sw-applied','sw-remove'); });
+    link.addEventListener('click',function(e){ if(Math.abs(dx)>10){ e.preventDefault(); e.stopPropagation(); } });  // a swipe shouldn't open the link
+  }
   function buildCard(item){
     var status=normStatus(item.status);
     var label=item.label||host(item.url)||'Saved job';
@@ -979,6 +1012,7 @@ footer h3,footer ol{display:none}
     var details=buildDetails(item);
     det.addEventListener('click',function(){ var show=details.hidden; details.hidden=!show; det.setAttribute('aria-expanded',String(show)); det.textContent=show?'\u25b4 Details':'\u25be Details'; });
     card.appendChild(details);
+    attachSwipe(card,link,item);
     return card;
   }
   function renderStats(arr){
