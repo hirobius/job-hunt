@@ -240,6 +240,13 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .snote{display:none}
 .intro>p{display:none}
 footer h3,footer ol{display:none}
+/* ATS search options */
+.atsopts{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;margin:0 0 14px}
+.atsopts .optgroup{display:flex;flex-direction:column;gap:6px}
+.atsopts .optlbl{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.atsopts .chips{margin-top:0}
+.atsall{margin-left:auto;align-self:center;background:var(--amber);color:hsl(var(--primary-foreground));border:none;border-radius:var(--radius);font-family:'Saira Condensed',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.85rem;padding:10px 18px;cursor:pointer;white-space:nowrap}
+.atsall:hover{filter:brightness(1.08)}
 </style>
 </head>
 <body>
@@ -331,7 +338,7 @@ footer h3,footer ol{display:none}
 <!-- ATS HIDDEN JOBS -->
 <section class="tool" id="ats">
   <div class="shead"><span class="snum">★</span><h2>Hidden-Jobs Search (ATS)</h2></div>
-  <p class="snote">Most roles never hit LinkedIn. Search companies' hiring systems straight through Google — far less competition. Type a title, tap a platform. Each search auto-adds AND "remote".</p>
+  <p class="snote">Most roles never hit LinkedIn. Search companies' hiring systems (Greenhouse, Lever, Workday…) straight through Google — far less competition. Pick a title, set location + recency, then search one platform or all at once. Entry-level terms are added automatically.</p>
   <input id="atsRole" type="text" value="GRC analyst" placeholder="role / title…">
   <div class="chips" id="atsRoles">
     <span class="chip on" data-r="GRC analyst">GRC analyst</span>
@@ -340,6 +347,23 @@ footer h3,footer ol{display:none}
     <span class="chip" data-r="compliance analyst">compliance analyst</span>
     <span class="chip" data-r="SOC analyst">SOC analyst</span>
     <span class="chip" data-r="ISSO">ISSO</span>
+  </div>
+  <div class="atsopts">
+    <div class="optgroup"><span class="optlbl">Location</span>
+      <div class="chips" id="atsLoc">
+        <span class="chip on" data-v="remote">Remote</span>
+        <span class="chip" data-v="spokane">Spokane</span>
+        <span class="chip" data-v="both">Both</span>
+      </div>
+    </div>
+    <div class="optgroup"><span class="optlbl">Posted</span>
+      <div class="chips" id="atsRecency">
+        <span class="chip on" data-v="">Any time</span>
+        <span class="chip" data-v="w">Past week</span>
+        <span class="chip" data-v="m">Past month</span>
+      </div>
+    </div>
+    <button id="atsAll" type="button" class="atsall">🔎 Search all platforms</button>
   </div>
   <div class="grid" id="atsGrid"></div>
 </section>
@@ -667,20 +691,44 @@ footer h3,footer ol{display:none}
 </script>
 <script>
 (function(){
-  var ATS=[["Greenhouse","boards.greenhouse.io"],["Ashby","jobs.ashbyhq.com"],["Lever","jobs.lever.co"],["SmartRecruiters","jobs.smartrecruiters.com"],["Workday","myworkdayjobs.com"],["BambooHR","jobs.bamboohr.com"],["Jobvite","jobs.jobvite.com"],["iCIMS","careers.icims.com"],["JazzHR","app.jazz.co"],["Workable","apply.workable.com"]];
+  // [name, display domain, site: expression used in the Google dork]
+  var ATS=[
+    ["Greenhouse","boards.greenhouse.io","(site:boards.greenhouse.io OR site:job-boards.greenhouse.io)"],
+    ["Ashby","jobs.ashbyhq.com","site:jobs.ashbyhq.com"],
+    ["Lever","jobs.lever.co","site:jobs.lever.co"],
+    ["SmartRecruiters","jobs.smartrecruiters.com","site:jobs.smartrecruiters.com"],
+    ["Workday","myworkdayjobs.com","site:myworkdayjobs.com"],
+    ["BambooHR","bamboohr.com","site:bamboohr.com"],
+    ["Jobvite","jobs.jobvite.com","site:jobs.jobvite.com"],
+    ["iCIMS","careers.icims.com","site:careers.icims.com"],
+    ["JazzHR","applytojob.com","site:applytojob.com"],
+    ["Workable","apply.workable.com","site:apply.workable.com"]
+  ];
   var grid=document.getElementById('atsGrid'); var role=document.getElementById('atsRole');
   if(!grid||!role) return;
+  var loc='remote', recency='';
+  function locClause(){ return loc==='spokane' ? '("Spokane" OR Washington)' : loc==='both' ? '(remote OR "Spokane")' : 'remote'; }
+  function gURL(siteExpr){
+    var r=(role.value||'').trim()||'help desk';
+    return 'https://www.google.com/search?q='+encodeURIComponent(siteExpr+' "'+r+'" (entry OR junior OR associate) '+locClause())+(recency?'&tbs=qdr:'+recency:'');
+  }
   ATS.forEach(function(a){
     var el=document.createElement('a'); el.className='card'; el.target='_blank'; el.rel='noopener noreferrer';
-    el.setAttribute('data-domain',a[1]);
+    el.setAttribute('data-site',a[2]);
     el.innerHTML='<div class="toprow"><span class="name">'+a[0]+'</span><span class="tag p">ATS</span></div><div class="meta">'+a[1]+'</div><div class="go">SEARCH →</div>';
     grid.appendChild(el);
   });
   function refresh(){
-    var r=(role.value||'').trim()||'help desk';
     Array.prototype.forEach.call(grid.children,function(el){
-      var d=el.getAttribute('data-domain');
-      el.href='https://www.google.com/search?q='+encodeURIComponent('site:'+d+' "'+r+'" (entry OR junior OR associate) remote');
+      var s=el.getAttribute('data-site'); if(s) el.href=gURL(s);
+    });
+  }
+  function wireToggle(sel,setter){
+    document.querySelectorAll(sel+' .chip').forEach(function(ch){
+      ch.addEventListener('click',function(){
+        document.querySelectorAll(sel+' .chip').forEach(function(x){x.classList.remove('on');});
+        ch.classList.add('on'); setter(ch.getAttribute('data-v')); refresh();
+      });
     });
   }
   role.addEventListener('input',refresh);
@@ -689,6 +737,13 @@ footer h3,footer ol{display:none}
       document.querySelectorAll('#atsRoles .chip').forEach(function(x){x.classList.remove('on');});
       ch.classList.add('on'); role.value=ch.getAttribute('data-r'); refresh();
     });
+  });
+  wireToggle('#atsLoc',function(v){ loc=v; });
+  wireToggle('#atsRecency',function(v){ recency=v; });
+  var allBtn=document.getElementById('atsAll');
+  if(allBtn) allBtn.addEventListener('click',function(){
+    var sites='('+ATS.map(function(a){ return a[2]; }).join(' OR ')+')';
+    window.open(gURL(sites),'_blank','noopener');
   });
   refresh();
 })();
