@@ -128,11 +128,13 @@ section.tool{margin-top:34px}
 /* shortlist tracker: status pills, counts, export */
 .slbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 12px}
 .slcounts{display:flex;gap:7px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.05em}
-.slcounts .sc{color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.slcounts .sc{color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 10px;white-space:nowrap;cursor:pointer;background:transparent;font-family:inherit;font-size:inherit;letter-spacing:inherit;transition:color .12s,border-color .12s,background .12s}
+.slcounts .sc:hover{color:var(--ink);border-color:var(--line2)}
+.slcounts .sc.on{color:var(--ink);border-color:var(--line2);background:rgba(255,255,255,.06)}
 .slcounts .sc b{color:var(--ink);font-weight:600;margin-left:2px}
 .slcounts .sc-saved b{color:var(--amber)} .slcounts .sc-applied b{color:var(--cyan)}
 .slcounts .sc-interviewing b{color:var(--violet)} .slcounts .sc-offer b{color:var(--green)}
-.slcounts .sc-rejected b{color:#e06b6b}
+.slcounts .sc-rejected b{color:#e06b6b} .slcounts .sc-retired b{color:var(--muted)}
 .slexport{font-family:'IBM Plex Mono',monospace;font-size:.73rem;letter-spacing:.05em;
   background:rgba(73,199,255,.12);color:var(--cyan);border:1px solid rgba(73,199,255,.4);
   border-radius:8px;padding:7px 13px;cursor:pointer;transition:background .15s;white-space:nowrap}
@@ -841,6 +843,7 @@ footer h3,footer ol{display:none}
   var addBtn=document.getElementById('slAddBtn');
   var statsEl=document.getElementById('slStats');
   var NUDGE_DAYS=7;
+  var statusFilter='all';
   var PLACEH={note:'Why you want it · JD notes · prep…',contact:'recruiter / referral',resume:'e.g. IT-Support v2',salary:'target / offered'};
   if(!listEl||!addBtn) return;
   function normStatus(s){ return STATUSES.indexOf(s)>-1?s:'Saved'; }
@@ -945,11 +948,14 @@ footer h3,footer ol{display:none}
   }
   function renderCounts(arr){
     if(!countsEl) return;
-    var counts={}; STATUSES.forEach(function(s){ counts[s]=0; });
-    arr.forEach(function(it){ if(it.archived) return; counts[normStatus(it.status)]++; });
-    countsEl.innerHTML=STATUSES.map(function(s){
-      return '<span class="sc sc-'+s.toLowerCase()+'">'+s+' <b>'+counts[s]+'</b></span>';
-    }).join('');
+    var counts={}, arch=0; STATUSES.forEach(function(s){ counts[s]=0; });
+    arr.forEach(function(it){ if(it.archived){ arch++; } else { counts[normStatus(it.status)]++; } });
+    var chips=['<button type="button" class="sc sc-all'+(statusFilter==='all'?' on':'')+'" data-flt="all">All <b>'+arr.length+'</b></button>'];
+    STATUSES.forEach(function(s){
+      chips.push('<button type="button" class="sc sc-'+s.toLowerCase()+(statusFilter===s?' on':'')+'" data-flt="'+s+'">'+s+' <b>'+counts[s]+'</b></button>');
+    });
+    if(arch>0) chips.push('<button type="button" class="sc sc-retired'+(statusFilter==='retired'?' on':'')+'" data-flt="retired">Retired <b>'+arch+'</b></button>');
+    countsEl.innerHTML=chips.join('');
   }
   function field(labelText,kind,key,item){
     var box=document.createElement('div');
@@ -1064,16 +1070,27 @@ footer h3,footer ol{display:none}
       +stat(interviews,'Interviews',interviews>0?'good':'');
     statsEl.style.display=arr.length?'flex':'none';
   }
+  function matchesFilter(it){
+    if(statusFilter==='all') return true;
+    if(statusFilter==='retired') return !!it.archived;
+    return !it.archived && normStatus(it.status)===statusFilter;
+  }
   function render(){
     var arr=getList();
     listEl.innerHTML='';
     countEl.textContent='('+arr.length+')';
-    emptyEl.style.display=arr.length?'none':'block';
     renderCounts(arr); renderStats(arr);
     if(exportBtn) exportBtn.disabled=!arr.length;
-    sortedForDisplay(arr).forEach(function(item){ listEl.appendChild(buildCard(item)); });
+    var shown=sortedForDisplay(arr).filter(matchesFilter);
+    emptyEl.style.display=shown.length?'none':'block';
+    emptyEl.textContent = arr.length ? ('Nothing under "'+(statusFilter==='all'?'All':statusFilter==='retired'?'Retired':statusFilter)+'".') : 'No saved jobs yet — tap ☆ on any tile, or paste a link above.';
+    shown.forEach(function(item){ listEl.appendChild(buildCard(item)); });
     syncStars();
   }
+  if(countsEl) countsEl.addEventListener('click',function(e){
+    var b=e.target.closest('[data-flt]'); if(!b) return;
+    statusFilter=b.getAttribute('data-flt'); render();
+  });
   var stars=[];
   function buildStars(){
     document.querySelectorAll('section.lane .card').forEach(function(card){
