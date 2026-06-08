@@ -180,17 +180,9 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .slstats .stat .n{font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:1.5rem;line-height:1;color:var(--ink)}
 .slstats .stat .l{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .slstats .stat.good .n{color:var(--green)} .slstats .stat.warn .n{color:var(--amber)}
-.slupnext{margin:0 0 16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
-.slupnext[hidden]{display:none}
-.slupnext h3{font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:1rem;color:var(--cyan);margin-bottom:9px;display:flex;align-items:center;gap:8px}
-.slupnext h3 .c{font-family:'IBM Plex Mono',monospace;font-size:.64rem;color:var(--muted);font-weight:400}
-.unrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
-.unrow:first-of-type{border-top:none}
-.unrow .ustar{flex:none;color:var(--amber)}
-.unrow a.uname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem;color:var(--ink);text-decoration:none}
-.unrow a.uname:hover{color:var(--amber)}
-.unrow .udone{flex:none;font-family:'IBM Plex Mono',monospace;font-size:.64rem;letter-spacing:.04em;cursor:pointer;color:var(--cyan);background:rgba(73,199,255,.12);border:1px solid rgba(73,199,255,.4);border-radius:8px;padding:5px 10px;white-space:nowrap}
-.unrow .udone:hover{background:rgba(73,199,255,.22)}
+.card.slarch{opacity:.5}
+.card.slarch:hover{opacity:.85}
+.slactions .slarchbtn:hover{border-color:var(--violet);color:var(--violet)}
 .slmeta2{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.03em;color:var(--muted);margin-top:1px}
 .slnudge{color:#0d0f12;background:var(--amber);border-radius:999px;padding:1px 7px;font-weight:600;margin-left:6px}
 .slactions{display:flex;align-items:center;gap:6px;margin-top:9px;position:relative;z-index:3}
@@ -313,7 +305,6 @@ footer h3,footer ol{display:none}
     <button id="slExport" type="button" class="slexport">⭳ Export CSV</button>
   </div>
   <div id="slStats" class="slstats"></div>
-  <div id="slUpNext" class="slupnext" hidden></div>
   <div class="slAdd">
     <input id="slUrl" type="text" placeholder="paste a job URL…">
     <input id="slLabel" type="text" placeholder="label (optional)">
@@ -439,13 +430,19 @@ footer h3,footer ol{display:none}
 <!-- 05 STAFFING -->
 <section class="lane">
   <div class="shead"><span class="snum">05</span><h2>Staffing Agencies — Fast Placement</h2></div>
-  <p class="snote">Recruiters place entry IT support fast. Make a profile, say "remote help desk, available now."</p>
+  <p class="snote">Recruiters place entry IT support fast. Make a profile / reach out, then ★-save the firm to track it like any application — mark Applied when you've reached out, get follow-up nudges, Retire when done.</p>
   <div class="grid">
     <a class="card" data-tags="staffing itsupport" href="https://www.teksystems.com/en/search-jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">TEKsystems</span><span class="tag">Staffing</span></div><div class="meta">Largest IT staffing firm</div><div class="go">OPEN →</div></a>
     <a class="card" data-tags="staffing itsupport" href="https://www.roberthalf.com/us/en/jobs?keywords=help%20desk" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Robert Half</span><span class="tag">Staffing</span></div><div class="meta">Help desk / desktop</div><div class="go">OPEN →</div></a>
     <a class="card" data-tags="staffing itsupport" href="https://jobs.insightglobal.com/find_a_job/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Insight Global</span><span class="tag">Staffing</span></div><div class="meta">High-volume contracts</div><div class="go">OPEN →</div></a>
     <a class="card" data-tags="staffing itsupport" href="https://www.akkodis.com/en-us/jobs" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Akkodis (Modis)</span><span class="tag">Staffing</span></div><div class="meta">Tech contract + perm</div><div class="go">OPEN →</div></a>
     <a class="card" data-tags="staffing" href="https://www.kforce.com/find-work/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Kforce</span><span class="tag">Staffing</span></div><div class="meta">Tech + finance placement</div><div class="go">OPEN →</div></a>
+    <a class="card" data-tags="staffing itsupport" href="https://www.apexsystems.com/job-seekers" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Apex Systems</span><span class="tag">Staffing</span></div><div class="meta">Big IT contract shop</div><div class="go">REACH OUT →</div></a>
+    <a class="card" data-tags="staffing spokane" href="https://www.humanix.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Humanix</span><span class="tag">Spokane</span></div><div class="meta">Spokane-based staffing firm</div><div class="go">REACH OUT →</div></a>
+    <a class="card" data-tags="staffing spokane" href="https://www.expresspros.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Express Employment</span><span class="tag">Spokane</span></div><div class="meta">Local branch placement</div><div class="go">REACH OUT →</div></a>
+    <a class="card" data-tags="staffing veteran" href="https://www.oriontalent.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Orion Talent</span><span class="tag v">Veteran</span></div><div class="meta">Military-to-civilian recruiters</div><div class="go">REACH OUT →</div></a>
+    <a class="card" data-tags="staffing veteran" href="https://www.hireheroesusa.org/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">Hire Heroes USA</span><span class="tag v">Veteran</span></div><div class="meta">Free vet career coaching + intros</div><div class="go">REACH OUT →</div></a>
+    <a class="card" data-tags="staffing govcon grc" href="https://www.clearancejobs.com/" target="_blank" rel="noopener noreferrer"><div class="toprow"><span class="name">ClearanceJobs Profile</span><span class="tag v">Cleared</span></div><div class="meta">Build a profile — cleared recruiters find you</div><div class="go">REACH OUT →</div></a>
   </div>
 </section>
 
@@ -838,7 +835,6 @@ footer h3,footer ol{display:none}
   var labelIn=document.getElementById('slLabel');
   var addBtn=document.getElementById('slAddBtn');
   var statsEl=document.getElementById('slStats');
-  var upNextEl=document.getElementById('slUpNext');
   var NUDGE_DAYS=7;
   var PLACEH={note:'Why you want it · JD notes · prep…',contact:'recruiter / referral',resume:'e.g. IT-Support v2',salary:'target / offered'};
   if(!listEl||!addBtn) return;
@@ -852,7 +848,10 @@ footer h3,footer ol{display:none}
   function pad(n){ return (n<10?'0':'')+n; }
   function today(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
   function daysSince(s){ if(!s) return null; var t=Date.parse(s); if(isNaN(t)) return null; return Math.floor((Date.now()-t)/86400000); }
-  function sortedForDisplay(arr){ return arr.map(function(it,i){ return {it:it,i:i}; }).sort(function(a,b){ var pa=a.it.priority?0:1, pb=b.it.priority?0:1; return pa!==pb?pa-pb:a.i-b.i; }).map(function(x){ return x.it; }); }
+  function sortedForDisplay(arr){ return arr.map(function(it,i){ return {it:it,i:i}; }).sort(function(a,b){
+    var aa=a.it.archived?1:0, ba=b.it.archived?1:0; if(aa!==ba) return aa-ba;   // retired sink to bottom
+    var pa=a.it.priority?0:1, pb=b.it.priority?0:1; return pa!==pb?pa-pb:a.i-b.i;
+  }).map(function(x){ return x.it; }); }
   var mem=null;
   function read(){ try{ var raw=localStorage.getItem(KEY); if(raw===null) return null; return JSON.parse(raw)||[]; }catch(e){ return mem; } }
   function write(arr){ mem=arr; try{ localStorage.setItem(KEY, JSON.stringify(arr)); }catch(e){}
@@ -900,6 +899,10 @@ footer h3,footer ol{display:none}
     var arr=getList(), i=idx(arr,url); if(i<0) return;
     arr[i].priority=!arr[i].priority; write(arr); render();
   }
+  function toggleArchived(url){
+    var arr=getList(), i=idx(arr,url); if(i<0) return;
+    arr[i].archived=!arr[i].archived; if(arr[i].archived) arr[i].priority=false; write(arr); render();
+  }
   function setField(url,key,val){
     var arr=getList(), i=idx(arr,url); if(i<0) return;
     if(val==='') delete arr[i][key]; else arr[i][key]=val; write(arr);
@@ -944,13 +947,13 @@ footer h3,footer ol{display:none}
   function buildCard(item){
     var status=normStatus(item.status);
     var label=item.label||host(item.url)||'Saved job';
-    var card=document.createElement('div'); card.className='card';
+    var card=document.createElement('div'); card.className='card'+(item.archived?' slarch':'');
     var link=document.createElement('a');
     link.className='cardlink'; link.href=item.url; link.target='_blank'; link.rel='noopener noreferrer';
     link.setAttribute('aria-label','Open '+label);
     var d=daysSince(item.applied);
     var appliedStr=(status!=='Saved'&&item.applied)?('applied '+(d===0?'today':d+'d ago')):'';
-    var nudge=(status==='Applied'&&d!=null&&d>=NUDGE_DAYS)?'<span class="slnudge">\u23f0 follow up</span>':'';
+    var nudge=(!item.archived&&status==='Applied'&&d!=null&&d>=NUDGE_DAYS)?'<span class="slnudge">\u23f0 follow up</span>':'';
     var line2=(appliedStr||nudge)?'<div class="slmeta2">'+esc(appliedStr)+nudge+'</div>':'';
     link.innerHTML='<div class="toprow"><span class="name">'+esc(label)+'</span></div>'
       +'<div class="meta">'+esc(host(item.url))+'</div>'+line2+'<div class="go">OPEN \u2192</div>';
@@ -966,9 +969,12 @@ footer h3,footer ol{display:none}
     prio.textContent=item.priority?'\u2605 Priority':'\u2606 Priority'; prio.title='Toggle priority';
     prio.addEventListener('click',function(){ togglePriority(item.url); });
     var det=document.createElement('button'); det.type='button'; det.className='sldet'; det.textContent='\u25be Details'; det.setAttribute('aria-expanded','false');
+    var arch=document.createElement('button'); arch.type='button'; arch.className='slarchbtn';
+    arch.textContent=item.archived?'\u267b Unretire':'\ud83d\uddc4 Retire'; arch.title=item.archived?'Bring back to active':'Retire this lead \u2014 keep the record, stop follow-ups';
+    arch.addEventListener('click',function(){ toggleArchived(item.url); });
     var rm=document.createElement('button'); rm.type='button'; rm.className='slrm'; rm.textContent='\u2715 Remove'; rm.setAttribute('aria-label','Remove '+label);
     rm.addEventListener('click',function(){ remove(item.url); });
-    actions.appendChild(prio); actions.appendChild(det); actions.appendChild(rm);
+    actions.appendChild(prio); actions.appendChild(det); actions.appendChild(arch); actions.appendChild(rm);
     card.appendChild(actions);
     var details=buildDetails(item);
     det.addEventListener('click',function(){ var show=details.hidden; details.hidden=!show; det.setAttribute('aria-expanded',String(show)); det.textContent=show?'\u25b4 Details':'\u25be Details'; });
@@ -979,6 +985,7 @@ footer h3,footer ol{display:none}
     if(!statsEl) return;
     var appliedTotal=0, week=0, replies=0, interviews=0;
     arr.forEach(function(it){
+      if(it.archived) return;
       var s=normStatus(it.status);
       if(s!=='Saved'){ appliedTotal++; var d=daysSince(it.applied); if(d!=null&&d<7) week++; }
       if(s==='Interviewing'||s==='Offer'||s==='Rejected') replies++;
@@ -991,28 +998,12 @@ footer h3,footer ol{display:none}
       +stat(interviews,'Interviews',interviews>0?'good':'');
     statsEl.style.display=arr.length?'flex':'none';
   }
-  function renderUpNext(arr){
-    if(!upNextEl) return;
-    var saved=sortedForDisplay(arr).filter(function(it){ return normStatus(it.status)==='Saved'; });
-    if(!saved.length){ upNextEl.hidden=true; upNextEl.innerHTML=''; return; }
-    upNextEl.hidden=false;
-    upNextEl.innerHTML='<h3>\u25b6 Up Next <span class="c">'+saved.length+' to apply</span></h3>';
-    saved.slice(0,5).forEach(function(it){
-      var row=document.createElement('div'); row.className='unrow';
-      if(it.priority){ var s=document.createElement('span'); s.className='ustar'; s.textContent='\u2605'; row.appendChild(s); }
-      var a=document.createElement('a'); a.className='uname'; a.href=it.url; a.target='_blank'; a.rel='noopener noreferrer';
-      a.textContent=it.label||host(it.url)||'Saved job'; row.appendChild(a);
-      var b=document.createElement('button'); b.className='udone'; b.type='button'; b.textContent='Mark applied';
-      b.addEventListener('click',function(){ setStatus(it.url,'Applied'); });
-      row.appendChild(b); upNextEl.appendChild(row);
-    });
-  }
   function render(){
     var arr=getList();
     listEl.innerHTML='';
     countEl.textContent='('+arr.length+')';
     emptyEl.style.display=arr.length?'none':'block';
-    renderCounts(arr); renderStats(arr); renderUpNext(arr);
+    renderCounts(arr); renderStats(arr);
     if(exportBtn) exportBtn.disabled=!arr.length;
     sortedForDisplay(arr).forEach(function(item){ listEl.appendChild(buildCard(item)); });
     syncStars();
@@ -1038,8 +1029,8 @@ footer h3,footer ol{display:none}
   function csvCell(v){ return '"'+(v==null?'':String(v)).replace(/"/g,'""')+'"'; }
   function exportCsv(){
     var arr=getList();
-    var rows=[['label','url','status','applied','resume','contact','salary','priority','note']];
-    arr.forEach(function(it){ rows.push([it.label||host(it.url)||'Saved job', it.url||'', normStatus(it.status), it.applied||'', it.resume||'', it.contact||'', it.salary||'', it.priority?'yes':'', it.note||'']); });
+    var rows=[['label','url','status','applied','resume','contact','salary','priority','retired','note']];
+    arr.forEach(function(it){ rows.push([it.label||host(it.url)||'Saved job', it.url||'', normStatus(it.status), it.applied||'', it.resume||'', it.contact||'', it.salary||'', it.priority?'yes':'', it.archived?'yes':'', it.note||'']); });
     var csv=rows.map(function(r){ return r.map(csvCell).join(','); }).join('\r\n');
     try{
       var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
