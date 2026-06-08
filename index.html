@@ -680,7 +680,7 @@ footer h3,footer ol{display:none}
     var r=(role.value||'').trim()||'help desk';
     Array.prototype.forEach.call(grid.children,function(el){
       var d=el.getAttribute('data-domain');
-      el.href='https://www.google.com/search?q='+encodeURIComponent('site:'+d+' ("'+r+'" AND "remote")');
+      el.href='https://www.google.com/search?q='+encodeURIComponent('site:'+d+' "'+r+'" (entry OR junior OR associate) remote');
     });
   }
   role.addEventListener('input',refresh);
@@ -705,7 +705,7 @@ footer h3,footer ol{display:none}
     'Field Service Technician (IT/hardware)','Associate IT Technician'];
   var BOARDS=[
     {name:'Indeed',tag:'Remote',meta:'Remote, work-from-home',url:function(t){return 'https://www.indeed.com/jobs?q='+encodeURIComponent(t)+'&l=Remote';}},
-    {name:'LinkedIn',tag:'Entry·Remote',meta:'Entry + remote filtered',url:function(t){return 'https://www.linkedin.com/jobs/search/?keywords='+encodeURIComponent(t)+'&f_E=2&f_WT=2';}},
+    {name:'LinkedIn',tag:'Entry·Remote',meta:'Entry + remote filtered',url:function(t){return 'https://www.linkedin.com/jobs/search/?keywords='+encodeURIComponent(t)+'&f_E=2%2C3&f_WT=2';}},
     {name:'Google Jobs',tag:'Remote',meta:'Aggregates all boards',url:function(t){return 'https://www.google.com/search?q='+encodeURIComponent(t+' remote')+'&ibp=htl;jobs';}},
     {name:'ZipRecruiter',tag:'Remote',meta:'1-click apply',url:function(t){return 'https://www.ziprecruiter.com/jobs-search?search='+encodeURIComponent(t)+'&location=Remote';}},
     {name:'Dice',tag:'Remote',meta:'Tech-focused board',url:function(t){return 'https://www.dice.com/jobs?q='+encodeURIComponent(t)+'&filters.workplaceTypes=Remote';}},
@@ -715,6 +715,30 @@ footer h3,footer ol{display:none}
   var gridEl=document.getElementById('tier1Grid');
   var atsRole=document.getElementById('atsRole');
   if(!rolesEl||!gridEl) return;
+  // Auto-apply an entry-level / early-career filter to every board search URL,
+  // so tiles never need a manual filter change. Idempotent + per-board.
+  function appendTerm(u,param,term){
+    var re=new RegExp('([?&]'+param+'=)([^&]*)','i'), add=encodeURIComponent(' '+term);
+    if(re.test(u)) return u.replace(re,function(m,p,v){ return /entry/i.test(v)?m:p+v+add; });
+    return u+(u.indexOf('?')>-1?'&':'?')+param+'='+encodeURIComponent(term);
+  }
+  function entryLevelize(u){
+    if(!u) return u;
+    try{
+      if(/indeed\.com\/jobs/i.test(u)){
+        if(/[?&]q=/.test(u) && !/[?&]sc=/.test(u)) u+='&sc=0kf%3Aexplvl(ENTRY_LEVEL)%3B';
+      } else if(/linkedin\.com\/jobs/i.test(u)){
+        if(!/[?&]f_E=/.test(u)) u+=(u.indexOf('?')>-1?'&':'?')+'f_E=2%2C3';
+      } else if(/ziprecruiter\.com/i.test(u)){
+        u=appendTerm(u,'search','entry level');
+      } else if(/dice\.com/i.test(u)){
+        u=appendTerm(u,'q','entry level');
+      } else if(/google\.[a-z.]+\/search/i.test(u) && /ibp=htl/i.test(u)){
+        u=appendTerm(u,'q','entry level');
+      }
+    }catch(e){}
+    return u;
+  }
   function terms(title){
     var m=title.match(/^(.*?)\s*\(([^)]*)\)\s*$/);   // pull a "(IT)" / "(IT/hardware)" qualifier out of the quotes
     return m ? '"'+m[1].trim()+'" '+m[2].replace(/[\/]/g,' ') : '"'+title+'"';
@@ -727,7 +751,7 @@ footer h3,footer ol{display:none}
   var active=TITLES[0];
   function refresh(){
     var t=terms(active);
-    tiles.forEach(function(x){ x.a.href=x.b.url(t); });
+    tiles.forEach(function(x){ x.a.href=entryLevelize(x.b.url(t)); });
     if(atsRole){ atsRole.value=active.replace(/\s*\(.*\)\s*$/,''); atsRole.dispatchEvent(new Event('input',{bubbles:true})); }
   }
   TITLES.forEach(function(title,i){
@@ -738,6 +762,10 @@ footer h3,footer ol{display:none}
       c.classList.add('on'); active=title; refresh();
     });
     rolesEl.appendChild(c);
+  });
+  // Also rewrite the static lane feed tiles so their board searches are entry-level too.
+  document.querySelectorAll('section.lane a.cardlink').forEach(function(a){
+    var h=a.getAttribute('href'); if(h){ var n=entryLevelize(h); if(n!==h) a.setAttribute('href',n); }
   });
   refresh();
 })();
