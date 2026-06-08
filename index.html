@@ -219,6 +219,10 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .kw{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.72rem;border-radius:999px;padding:3px 9px;margin:0 5px 5px 0}
 .kw.hit{color:var(--green);border:1px solid rgba(54,211,153,.4)}
 .kw.miss{color:var(--amber);border:1px solid rgba(255,176,31,.45);background:rgba(255,176,31,.06)}
+.chips[hidden]{display:none}
+.filtertoggle{margin-top:11px;display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;transition:color .15s,border-color .15s}
+.filtertoggle:hover{color:var(--ink);border-color:var(--line2)}
+.filtertoggle.on{color:var(--amber);border-color:var(--amber)}
 </style>
 </head>
 <body>
@@ -226,7 +230,6 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 <header>
   <div class="kicker">// Career Ops · Every Lane · Apply Fast</div>
   <h1>Apply <span class="b">Board</span></h1>
-  <p class="sub">Every place worth applying, across all the paths you're running — IT support, your GRC target, trades, govcon, veteran channels, Spokane local, plus skill-up and side income. Tiles open live searches &amp; careers pages, so they stay current.</p>
   <div class="intro">
     <p><b>Pay map:</b> IT support / help desk ~$19–26/hr (~$43–60K) · entry GRC analyst ~$55–75K (your target) · trades apprenticeships paid-from-day-one, scaling to journey wage.</p>
     <p><b>Two truths:</b> many "entry" cyber/IT roles still want CompTIA A+ or ~1 yr experience (Skill-Up lane fixes that), and <b>govcon is your edge</b> — federal-contractor work values your clearance + military background and bridges straight to the ISSO/GRC role you want.</p>
@@ -239,7 +242,8 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 
 <div class="controls">
   <input id="search" type="text" placeholder="Search tiles…  (e.g. 'GRC', 'welder', 'remote', 'Spokane')">
-  <div class="chips">
+  <button id="filterToggle" type="button" class="filtertoggle" aria-expanded="false">⚙ Filters ▾</button>
+  <div class="chips" id="filterChips" hidden>
     <span class="chip on" data-f="all">All</span>
     <span class="chip" data-f="itsupport">IT Support</span>
     <span class="chip" data-f="grc">Cyber / GRC</span>
@@ -256,6 +260,17 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
     <span class="chip" data-f="tools">Tools</span>
   </div>
 </div>
+<script>
+(function(){
+  var t=document.getElementById('filterToggle'), c=document.getElementById('filterChips');
+  if(!t||!c) return;
+  var KEY='rjb_filtersOpen';
+  function set(open){ c.hidden=!open; t.setAttribute('aria-expanded',String(open)); t.classList.toggle('on',open); t.textContent=open?'⚙ Filters ▴':'⚙ Filters ▾'; try{ localStorage.setItem(KEY,open?'1':'0'); }catch(e){} }
+  var saved; try{ saved=localStorage.getItem(KEY); }catch(e){}
+  set(saved==='1');                         // default collapsed
+  t.addEventListener('click',function(){ set(c.hidden); });
+})();
+</script>
 
 <!-- SHORTLIST -->
 <section class="tool" id="shortlist">
