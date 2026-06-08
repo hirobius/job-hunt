@@ -185,9 +185,9 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .slactions .slarchbtn:hover{border-color:var(--violet);color:var(--violet)}
 #slList .card{touch-action:pan-y}
 #slList .card.sw-applied{border-color:var(--cyan);box-shadow:inset 5px 0 0 var(--cyan)}
-#slList .card.sw-remove{border-color:#e06b6b;box-shadow:inset -5px 0 0 #e06b6b}
 .rjbtoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);background:var(--panel);color:var(--ink);border:1px solid var(--line2);border-radius:999px;padding:10px 18px;font-family:'IBM Plex Mono',monospace;font-size:.8rem;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;box-shadow:0 10px 30px -10px rgba(0,0,0,.7)}
 .rjbtoast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.rjbtoast .rjbundo{margin-left:4px;background:none;border:none;color:var(--cyan);font-family:'IBM Plex Mono',monospace;font-size:.8rem;font-weight:600;cursor:pointer;text-decoration:underline;padding:0}
 .slmeta2{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.03em;color:var(--muted);margin-top:1px}
 .slnudge{color:#0d0f12;background:var(--amber);border-radius:999px;padding:1px 7px;font-weight:600;margin-left:6px}
 .slactions{display:flex;align-items:center;gap:6px;margin-top:9px;position:relative;z-index:3}
@@ -846,10 +846,22 @@ footer h3,footer ol{display:none}
   function normStatus(s){ return STATUSES.indexOf(s)>-1?s:'Saved'; }
   function cleanUrl(u){
     u=(u||'').trim().replace(/[<>]/g,'').replace(/^["'(\s]+/,'').replace(/["')\s]+$/,'');
-    var k=Math.max(u.toLowerCase().lastIndexOf('http://'), u.toLowerCase().lastIndexOf('https://'));
-    if(k>0) u=u.slice(k);   // recover a mangled double-protocol like https://<https://x>
+    while(/^https?:\/\/https?:\/\//i.test(u)) u=u.replace(/^https?:\/\//i,'');  // collapse mangled double protocol (https://https://x); leave nested URLs in query alone
     return u;
   }
+  // Normalized key for duplicate detection: ignore protocol, www, trailing slash, and tracking params.
+  function dedupKey(u){
+    try{
+      var x=new URL(u);
+      var h=x.hostname.replace(/^www\./,'').toLowerCase();
+      var path=x.pathname.replace(/\/+$/,'').toLowerCase();
+      var drop=/^(utm_|fbclid$|gclid$|mc_|ref$|src$|source$|trk$|gh_src$)/i;
+      var ps=[]; x.searchParams.forEach(function(v,k){ if(!drop.test(k)) ps.push(k.toLowerCase()+'='+v); });
+      ps.sort();
+      return h+path+(ps.length?'?'+ps.join('&'):'');
+    }catch(e){ return (u||'').toLowerCase().replace(/\/+$/,''); }
+  }
+  function findDupIndex(arr,url){ var key=dedupKey(url); for(var i=0;i<arr.length;i++){ if(arr[i]&&dedupKey(arr[i].url)===key) return i; } return -1; }
   function pad(n){ return (n<10?'0':'')+n; }
   function today(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
   function daysSince(s){ if(!s) return null; var t=Date.parse(s); if(isNaN(t)) return null; return Math.floor((Date.now()-t)/86400000); }
@@ -885,8 +897,13 @@ footer h3,footer ol{display:none}
     url=cleanUrl(url);
     if(!url) return;
     if(!/^https?:\/\//i.test(url)) url='https://'+url;
-    var arr=getList();
-    if(idx(arr,url)>-1){ flash(urlIn); return; }
+    if(!/\./.test(url)){ flash(urlIn); return; }   // ignore obvious non-URLs (typos in the add box)
+    var arr=getList(), dup=findDupIndex(arr,url);
+    if(dup>-1){
+      if(arr[dup].archived){ arr[dup].archived=false; write(arr); render(); }  // re-adding a retired job brings it back
+      else flash(urlIn);
+      return;
+    }
     arr.push({label:(label||'').trim()||host(url)||'Saved job', url:url, status:'Saved'});
     write(arr); render();
   }
@@ -912,11 +929,24 @@ footer h3,footer ol{display:none}
     var arr=getList(), i=idx(arr,url); if(i<0) return;
     if(val==='') delete arr[i][key]; else arr[i][key]=val; write(arr);
   }
-  function remove(url){ var arr=getList(), i=idx(arr,url); if(i>-1){ arr.splice(i,1); write(arr); render(); } }
+  var lastRemoved=null;
+  function remove(url){ var arr=getList(), i=idx(arr,url); if(i>-1){ lastRemoved={item:arr[i],index:i}; arr.splice(i,1); write(arr); render(); removedToast(); } }
+  function removedToast(){
+    var el=document.createElement('div'); el.className='rjbtoast show';
+    el.appendChild(document.createTextNode('Removed · '));
+    var b=document.createElement('button'); b.type='button'; b.className='rjbundo'; b.textContent='Undo'; el.appendChild(b);
+    document.body.appendChild(el);
+    var t=setTimeout(function(){ el.classList.remove('show'); setTimeout(function(){ el.remove(); },300); lastRemoved=null; },6000);
+    b.addEventListener('click',function(){
+      clearTimeout(t);
+      if(lastRemoved){ var a=getList(); a.splice(Math.min(lastRemoved.index,a.length),0,lastRemoved.item); write(a); render(); lastRemoved=null; }
+      el.classList.remove('show'); setTimeout(function(){ el.remove(); },300);
+    });
+  }
   function renderCounts(arr){
     if(!countsEl) return;
     var counts={}; STATUSES.forEach(function(s){ counts[s]=0; });
-    arr.forEach(function(it){ counts[normStatus(it.status)]++; });
+    arr.forEach(function(it){ if(it.archived) return; counts[normStatus(it.status)]++; });
     countsEl.innerHTML=STATUSES.map(function(s){
       return '<span class="sc sc-'+s.toLowerCase()+'">'+s+' <b>'+counts[s]+'</b></span>';
     }).join('');
@@ -961,16 +991,16 @@ footer h3,footer ol{display:none}
       if(!decided){ decided=true; horizontal=Math.abs(mx)>Math.abs(my)+4; }
       if(!horizontal) return;
       if(e.cancelable) e.preventDefault();          // we own the horizontal gesture
-      dx=mx; card.style.transform='translateX('+dx+'px)';
+      dx=mx;
+      if(dx<0){ card.style.transform='translateX('+(dx*0.22)+'px)'; card.classList.remove('sw-applied'); return; }  // left swipe does nothing (rubber-band)
+      card.style.transform='translateX('+dx+'px)';
       card.classList.toggle('sw-applied', dx>20);
-      card.classList.toggle('sw-remove', dx<-20);
     }
     function end(){
       if(!dragging) return; dragging=false;
       card.style.transition='transform .2s ease, opacity .2s ease';
-      card.classList.remove('sw-applied','sw-remove');
-      if(horizontal && dx<=-TH){ card.style.transform='translateX(-110%)'; card.style.opacity='0'; setTimeout(function(){ remove(item.url); },170); }
-      else if(horizontal && dx>=TH){ card.style.transform='translateX(110%)'; card.style.opacity='0'; setTimeout(function(){ setStatus(item.url,'Applied'); },170); }
+      card.classList.remove('sw-applied');
+      if(horizontal && dx>=TH){ card.style.transform='translateX(110%)'; card.style.opacity='0'; setTimeout(function(){ setStatus(item.url,'Applied'); },170); }
       else { card.style.transform=''; }
     }
     card.addEventListener('touchstart',start,{passive:true});
