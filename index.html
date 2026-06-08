@@ -9,20 +9,35 @@
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0b0e13; --panel:#141a24; --panel2:#1a2231; --ink:#e8edf4; --muted:#8a97a9;
-  --amber:#ffb01f; --amber-dim:#c9851a; --green:#36d399; --cyan:#49c7ff; --violet:#b58cff;
-  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.16);
+  /* shadcn design tokens (zinc dark) — HSL channels */
+  --radius:0.625rem;
+  --background:240 10% 4%;
+  --foreground:0 0% 98%;
+  --card:240 6% 8%;
+  --card-foreground:0 0% 98%;
+  --primary:38 100% 55%;            /* brand amber kept as primary */
+  --primary-foreground:240 8% 6%;
+  --secondary:240 4% 13%;
+  --secondary-foreground:0 0% 98%;
+  --muted-foreground:240 5% 65%;
+  --accent:240 4% 16%;
+  --border:240 4% 17%;
+  --ring:38 100% 55%;
+  /* legacy aliases mapped onto the tokens so existing rules restyle */
+  --bg:hsl(var(--background));
+  --panel:hsl(var(--card));
+  --panel2:hsl(240 5% 11%);
+  --ink:hsl(var(--foreground));
+  --muted:hsl(var(--muted-foreground));
+  --amber:hsl(var(--primary)); --amber-dim:hsl(38 65% 48%);
+  --green:#36d399; --cyan:#49c7ff; --violet:#b58cff;
+  --line:hsl(var(--border)); --line2:hsl(240 4% 24%);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{
   font-family:'IBM Plex Sans',sans-serif;color:var(--ink);background:var(--bg);
-  background-image:
-    radial-gradient(900px 500px at 85% -8%, rgba(255,176,31,.10), transparent 60%),
-    radial-gradient(700px 500px at 0% 100%, rgba(54,211,153,.07), transparent 55%),
-    linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
-  background-size:auto,auto,42px 42px,42px 42px;line-height:1.5;padding:0 18px 70px;
+  line-height:1.5;padding:0 18px 70px;
 }
 .wrap{max-width:1060px;margin:0 auto}
 header{padding:40px 0 22px;border-bottom:1px solid var(--line)}
@@ -31,19 +46,17 @@ h1{font-family:'Saira Condensed',sans-serif;font-weight:700;text-transform:upper
    font-size:clamp(2.1rem,7vw,3.4rem);line-height:.98;margin:.26em 0 .12em}
 h1 .b{color:var(--amber)}
 .sub{color:var(--muted);max-width:64ch;font-size:.95rem}
-.intro{margin-top:20px;background:linear-gradient(180deg,var(--panel),#10151d);border:1px solid var(--line);
-  border-left:3px solid var(--amber);border-radius:12px;padding:16px 18px}
+.intro{margin-top:20px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
 .intro p{font-size:.89rem;color:#cfd8e4;margin:.32em 0}
 .intro b{color:var(--ink)}
-.pitchbox{margin-top:12px;background:#0e131b;border:1px dashed rgba(54,211,153,.4);border-radius:10px;padding:12px 13px}
+.pitchbox{margin-top:12px;background:hsl(var(--secondary));border:1px solid var(--line);border-radius:var(--radius);padding:12px 13px}
 #pitch{color:var(--green);font-weight:600;font-size:.88rem;display:block}
 #copybtn{margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:.74rem;letter-spacing:.05em;
   background:rgba(54,211,153,.12);color:var(--green);border:1px solid rgba(54,211,153,.4);
   border-radius:8px;padding:7px 12px;cursor:pointer;transition:background .15s}
 #copybtn:hover{background:rgba(54,211,153,.22)}
 /* controls */
-.controls{position:sticky;top:0;z-index:20;margin-top:22px;padding:14px 0 12px;
-  background:linear-gradient(180deg,var(--bg) 70%,rgba(11,14,19,.0));backdrop-filter:blur(3px)}
+.controls{position:sticky;top:0;z-index:20;margin-top:22px;padding:14px 0 12px;background:var(--bg)}
 #search{width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:10px;color:var(--ink);
   font-family:'IBM Plex Sans',sans-serif;font-size:.92rem;padding:11px 14px;outline:none}
 #search::placeholder{color:var(--muted)}
@@ -62,8 +75,8 @@ section.lane{margin-top:34px}
 .snote{color:var(--muted);font-size:.85rem;margin:2px 0 15px;max-width:72ch}
 .grid{display:grid;gap:11px;grid-template-columns:repeat(auto-fill,minmax(238px,1fr))}
 .card{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;position:relative;
-  background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
-  border-radius:11px;padding:13px 15px;transition:transform .15s,border-color .15s,box-shadow .15s}
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:13px 15px;transition:transform .15s,border-color .15s,box-shadow .15s}
 .cardlink{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit}
 /* stretched link: makes the whole card clickable without nesting buttons inside the <a> */
 .cardlink::after{content:"";position:absolute;inset:0;border-radius:11px;z-index:1}
@@ -80,8 +93,7 @@ section.lane{margin-top:34px}
 .meta{font-size:.81rem;color:var(--muted);min-height:1.05em}
 .go{font-family:'IBM Plex Mono',monospace;font-size:.73rem;letter-spacing:.06em;color:var(--amber-dim);margin-top:1px}
 .empty{display:none;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:.85rem;padding:24px 0}
-footer{margin-top:42px;background:linear-gradient(180deg,var(--panel),#10151d);border:1px solid var(--line);
-  border-radius:12px;padding:20px}
+footer{margin-top:42px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
 footer h3{font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:1.2rem;color:var(--amber);margin-bottom:10px}
 footer ol{margin-left:18px;color:#cfd8e4;font-size:.89rem}
 footer li{margin:.4em 0}
@@ -168,7 +180,7 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .slstats .stat .n{font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:1.5rem;line-height:1;color:var(--ink)}
 .slstats .stat .l{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .slstats .stat.good .n{color:var(--green)} .slstats .stat.warn .n{color:var(--amber)}
-.slupnext{margin:0 0 16px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:11px;padding:12px 14px}
+.slupnext{margin:0 0 16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
 .slupnext[hidden]{display:none}
 .slupnext h3{font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:1rem;color:var(--cyan);margin-bottom:9px;display:flex;align-items:center;gap:8px}
 .slupnext h3 .c{font-family:'IBM Plex Mono',monospace;font-size:.64rem;color:var(--muted);font-weight:400}
@@ -223,12 +235,16 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .filtertoggle{margin-top:11px;display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;transition:color .15s,border-color .15s}
 .filtertoggle:hover{color:var(--ink);border-color:var(--line2)}
 .filtertoggle.on{color:var(--amber);border-color:var(--amber)}
+/* decluttered: hide section glyphs, descriptor notes, intro prose, footer playbook */
+.snum{display:none}
+.snote{display:none}
+.intro>p{display:none}
+footer h3,footer ol{display:none}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
-  <div class="kicker">// Career Ops · Every Lane · Apply Fast</div>
   <h1>Apply <span class="b">Board</span></h1>
   <div class="intro">
     <p><b>Pay map:</b> IT support / help desk ~$19–26/hr (~$43–60K) · entry GRC analyst ~$55–75K (your target) · trades apprenticeships paid-from-day-one, scaling to journey wage.</p>
@@ -310,18 +326,6 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
   <div class="shead"><span class="snum">✍</span><h2>Cover-Letter Copy Board</h2></div>
   <p class="snote">Ready-to-copy notes built from your background — no fill-in blanks. Tap Copy, paste, tweak per role if you like. Edits save in this browser.</p>
   <div id="clBoard" class="kitwrap"></div>
-</section>
-
-<!-- APPLY KIT: JD KEYWORD MATCH -->
-<section class="tool" id="jdMatch">
-  <div class="shead"><span class="snum">⌗</span><h2>JD ↔ Résumé Keyword Match</h2></div>
-  <p class="snote">Paste a job description and I'll flag the ATS keywords your résumé is missing. Your skills list saves in this browser. For deep tailoring (rewritten bullets + a cover letter), paste the JD to me in chat.</p>
-  <label class="jdlbl">Your skills / résumé keywords</label>
-  <textarea id="jdSkills" placeholder="comma or space separated — e.g. Security+, Windows, Active Directory, ticketing, troubleshooting, NIST, ISO 27001, Splunk, Linux, networking, customer service"></textarea>
-  <label class="jdlbl">Job description</label>
-  <textarea id="jdText" placeholder="Paste the full job description here…"></textarea>
-  <button id="jdBtn" type="button">Match keywords</button>
-  <div id="jdOut" class="jdout"></div>
 </section>
 
 <!-- ATS HIDDEN JOBS -->
@@ -1112,93 +1116,6 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
     });
     board.appendChild(card);
   });
-})();
-</script>
-<script>
-/* JD ↔ résumé keyword match — rough ATS gap check, fully client-side. */
-(function(){
-  var btn=document.getElementById('jdBtn'); if(!btn) return;
-  var jd=document.getElementById('jdText'), sk=document.getElementById('jdSkills'), out=document.getElementById('jdOut');
-  var SKEY='rjb_skills';
-  try{ var saved=localStorage.getItem(SKEY); if(saved!=null) sk.value=saved; }catch(e){}
-  sk.addEventListener('input',function(){ try{ localStorage.setItem(SKEY,sk.value); }catch(e){} });
-  var PHRASES=['active directory','help desk','service desk','customer service','incident response','access control','risk assessment','vulnerability management','identity and access management','security operations','ticketing system','remote desktop','group policy','office 365','microsoft 365','technical support','endpoint security','disaster recovery','business continuity','penetration testing','threat intelligence','data loss prevention'];
-  var STOP={}; ('a an the and or for to of in on with at by from as is are be been will you your we our they their this that these those it its role position team work works working experience years year ability able strong excellent good must should preferred plus etc job jobs candidate candidates company companies including include across using use used within into per via help support provide ensure manage managing knowledge skill skills required require requirements responsibilities duties new other more all any may can will not have has had who what when where which while also such than then them but if so up out who').split(/\s+/).forEach(function(w){ STOP[w]=1; });
-  function norm(s){ return (s||'').toLowerCase(); }
-  function tokens(s){ return norm(s).replace(/[^a-z0-9+.#/-]+/g,' ').split(/\s+/).filter(Boolean); }
-  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  function build(){
-    var jdRaw=jd.value||''; if(!jdRaw.trim()){ out.className='jdout'; out.innerHTML=''; return; }
-    var jdLow=norm(jdRaw);
-    var skillLow=' '+norm(sk.value).replace(/[,;]+/g,' ')+' ';
-    var seen={}, cand=[], freq={};
-    PHRASES.forEach(function(p){ if(jdLow.indexOf(p)>-1){ seen[p]=1; cand.push(p); freq[p]=(jdLow.split(p).length-1)+1; } });
-    tokens(jdRaw).forEach(function(w){
-      if(STOP[w]) return;
-      if(/^\d+$/.test(w)) return;
-      if(w.length<3 && w.indexOf('+')<0 && w.indexOf('#')<0) return;
-      freq[w]=(freq[w]||0)+1;
-      if(!seen[w]){ seen[w]=1; cand.push(w); }
-    });
-    cand.sort(function(a,b){ return (freq[b]||1)-(freq[a]||1); });
-    cand=cand.slice(0,40);
-    var hits=[], miss=[];
-    cand.forEach(function(w){ (skillLow.indexOf(' '+w+' ')>-1||skillLow.indexOf(w)>-1?hits:miss).push(w); });
-    var total=hits.length+miss.length, score=total?Math.round(hits.length/total*100):0;
-    var col=score>=60?'var(--green)':score>=35?'var(--amber)':'#e06b6b';
-    var html='<div class="jdscore" style="color:'+col+'">'+score+'% keyword coverage</div>';
-    html+='<div class="kwgroup"><div class="kl">✗ Missing — add where genuinely true ('+miss.length+')</div>'
-      +(miss.length?miss.map(function(w){ return '<span class="kw miss">'+esc(w)+'</span>'; }).join(''):'<span class="kl">none — great match</span>')+'</div>';
-    html+='<div class="kwgroup"><div class="kl">✓ Covered ('+hits.length+')</div>'
-      +(hits.length?hits.map(function(w){ return '<span class="kw hit">'+esc(w)+'</span>'; }).join(''):'<span class="kl">none yet</span>')+'</div>';
-    out.className='jdout show'; out.innerHTML=html;
-  }
-  btn.addEventListener('click',build);
-})();
-</script>
-<script>
-/* Collapse the aside prose behind ⓘ toggles so the board stays scannable.
-   Section notes, the header strategy blurb, and the footer playbook all
-   start hidden and reveal on tap. */
-(function(){
-  function toggleBtn(label){
-    var b=document.createElement('button');
-    b.type='button'; b.className='infotoggle';
-    b.innerHTML='<span class="ii">ⓘ</span>'+(label?'<span>'+label+'</span>':'');
-    b.setAttribute('aria-expanded','false');
-    b.setAttribute('aria-label',label||'Show details');
-    return b;
-  }
-  function wire(btn,els){
-    btn.addEventListener('click',function(){
-      var show=els[0].hidden;            // hidden now -> reveal
-      els.forEach(function(e){ e.hidden=!show; });
-      btn.setAttribute('aria-expanded',String(show));
-      btn.classList.toggle('on',show);
-    });
-  }
-  // 1) Per-section notes -> ⓘ in the heading
-  document.querySelectorAll('section .shead').forEach(function(head){
-    var note=head.nextElementSibling;
-    if(!note||!note.classList||!note.classList.contains('snote')) return;
-    note.hidden=true;
-    var b=toggleBtn(''); wire(b,[note]); head.appendChild(b);
-  });
-  // 2) Header strategy paragraphs (keep the Copy-pitch box visible)
-  var intro=document.querySelector('.intro');
-  if(intro){
-    var ps=Array.prototype.filter.call(intro.children,function(c){return c.tagName==='P';});
-    if(ps.length){
-      ps.forEach(function(p){ p.hidden=true; });
-      var b=toggleBtn('Pay map & strategy'); wire(b,ps); intro.insertBefore(b,intro.firstChild);
-    }
-  }
-  // 3) Footer playbook list
-  var fh=document.querySelector('footer h3');
-  if(fh){
-    var ol=fh.nextElementSibling;
-    if(ol&&ol.tagName==='OL'){ ol.hidden=true; var b=toggleBtn(''); wire(b,[ol]); fh.appendChild(b); }
-  }
 })();
 </script>
 </body>
