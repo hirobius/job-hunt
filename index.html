@@ -857,15 +857,17 @@ footer h3,footer ol{display:none}
   function read(){ try{ var raw=localStorage.getItem(KEY); if(raw===null) return null; return JSON.parse(raw)||[]; }catch(e){ return mem; } }
   function write(arr){ mem=arr; try{ localStorage.setItem(KEY, JSON.stringify(arr)); }catch(e){}
     if(window.RJBTracker&&typeof window.RJBTracker.onLocalChange==='function'){ try{ window.RJBTracker.onLocalChange(arr); }catch(e){} } }
+  var RETIRED={'https://jobs.lever.co/entrata/aa9f605b-8360-416d-94fc-ed5d5a68602c':1};  // Entrata: doesn't hire in WA
   function getList(){
     var l=read();
-    if(l===null){ l=[{label:'Entrata (Lever) \u2014 your found job', url:'https://jobs.lever.co/entrata/aa9f605b-8360-416d-94fc-ed5d5a68602c', status:'Saved'}]; write(l); return l; }
+    if(l===null){ l=[]; write(l); return l; }
     if(!Array.isArray(l)) return [];
     var dirty=false;
-    for(var i=0;i<l.length;i++){
-      if(!l[i]) continue;
+    for(var i=l.length-1;i>=0;i--){
+      if(!l[i]){ l.splice(i,1); dirty=true; continue; }
       var cu=cleanUrl(l[i].url);
       if(cu!==l[i].url){ l[i].url=cu; dirty=true; }                 // self-heal previously mangled links
+      if(RETIRED[l[i].url]){ l.splice(i,1); dirty=true; continue; } // drop retired leads everywhere (incl. cloud)
       if(l[i].status!==normStatus(l[i].status)){ l[i].status=normStatus(l[i].status); dirty=true; }
     }
     if(dirty) write(l);
