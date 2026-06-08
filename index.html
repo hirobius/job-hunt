@@ -1170,15 +1170,28 @@ footer h3,footer ol{display:none}
     setTimeout(function(){ el.classList.add('show'); },10);
     setTimeout(function(){ el.classList.remove('show'); setTimeout(function(){ el.remove(); },300); },2400);
   }
+  function setApplied(url,label){          // add if missing, then flip to Applied (used by ?applied= status links)
+    add(url,label);
+    var arr=getList(), i=findDupIndex(arr,cleanUrl(url));
+    if(i<0) return false;
+    arr[i].status='Applied'; if(!arr[i].applied) arr[i].applied=today(); arr[i].archived=false;
+    write(arr); render(); return true;
+  }
   try{
-    var qp=new URLSearchParams(location.search);
+    var qp=new URLSearchParams(location.search), msg='';
     if(qp.get('add')){
       var before=getList().length;
       add(qp.get('add'), qp.get('t')||qp.get('title')||'');
-      var added=getList().length>before;
-      qp.delete('add'); qp.delete('t'); qp.delete('title');
+      msg=getList().length>before?'Added to your tracker':'Already in your tracker';
+    }
+    if(qp.get('applied')){
+      setApplied(qp.get('applied'), qp.get('t')||qp.get('title')||'');
+      msg='Marked applied';
+    }
+    if(msg){
+      qp.delete('add'); qp.delete('applied'); qp.delete('t'); qp.delete('title');
       history.replaceState(null,'',location.pathname+(qp.toString()?'?'+qp.toString():'')+location.hash);
-      toast(added?'✓ Added to your tracker':'Already in your tracker');
+      toast(msg);
       var sl=document.getElementById('shortlist'); if(sl&&sl.scrollIntoView) sl.scrollIntoView({behavior:'smooth',block:'start'});
     }
   }catch(e){}
