@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  Box, Button, Card, CardContent, Chip, IconButton, Link, Menu, MenuItem,
+  Box, Button, Card, CardContent, Chip, Collapse, IconButton, Link, Menu, MenuItem,
   Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -20,11 +20,33 @@ function matches(j: Job, f: Filter): boolean {
   return !j.archived && normStatus(j.status) === f;
 }
 
+function exportCsv(jobs: Job[]) {
+  const rows = [['label', 'url', 'status', 'applied', 'resume', 'contact', 'salary', 'priority', 'retired', 'note']];
+  jobs.forEach((j) => rows.push([j.label, j.url, normStatus(j.status), j.applied || '', j.resume || '', j.contact || '', j.salary || '', j.priority ? 'yes' : '', j.archived ? 'yes' : '', j.note || '']));
+  const csv = rows.map((r) => r.map((c) => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'apply-board.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function research(label: string) {
+  const q = encodeURIComponent(label || '');
+  return [
+    ['Glassdoor', `https://www.glassdoor.com/Search/results.htm?keyword=${q}`],
+    ['LinkedIn', `https://www.linkedin.com/search/results/companies/?keywords=${q}`],
+    ['levels.fyi', `https://www.levels.fyi/?search=${q}`],
+    ['Google', `https://www.google.com/search?q=${q}+careers+reviews`],
+  ];
+}
+
 export default function TrackerView() {
   const jobs = useJobs();
   const [filter, setFilter] = useState<Filter>('active');
   const [url, setUrl] = useState('');
   const [menu, setMenu] = useState<{ el: HTMLElement; job: Job } | null>(null);
+  const [open, setOpen] = useState<Record<string, boolean>>({});
 
   const shown = useMemo(() => (
     jobs
@@ -41,6 +63,10 @@ export default function TrackerView() {
   ), [jobs, filter]);
 
   const submit = () => { addJob(url); setUrl(''); };
+  const fld = (j: Job, key: keyof Job, label: string, multiline = false) => (
+    <TextField size="small" fullWidth label={label} multiline={multiline} minRows={multiline ? 2 : undefined}
+      value={(j[key] as string) || ''} onChange={(e) => updateJob(j.url, { [key]: e.target.value })} />
+  );
 
   return (
     <Box>
@@ -50,16 +76,19 @@ export default function TrackerView() {
         <Button variant="contained" onClick={submit}>Add</Button>
       </Stack>
 
-      <ToggleButtonGroup value={filter} exclusive size="small" onChange={(_, v) => v && setFilter(v)}
-        sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButton-root': { border: 1, borderColor: 'divider', borderRadius: '999px !important', px: 1.5, py: 0.5, textTransform: 'none' } }}>
-        <ToggleButton value="active">Active</ToggleButton>
-        <ToggleButton value="all">All</ToggleButton>
-        <ToggleButton value="Applied">Applied</ToggleButton>
-        <ToggleButton value="Interviewing">Interviewing</ToggleButton>
-        <ToggleButton value="Offer">Offer</ToggleButton>
-        <ToggleButton value="Rejected">Rejected</ToggleButton>
-        <ToggleButton value="retired">Retired</ToggleButton>
-      </ToggleButtonGroup>
+      <Stack direction="row" alignItems="center" sx={{ mb: 2, gap: 1, flexWrap: 'wrap' }}>
+        <ToggleButtonGroup value={filter} exclusive size="small" onChange={(_, v) => v && setFilter(v)}
+          sx={{ flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButton-root': { border: 1, borderColor: 'divider', borderRadius: '999px !important', px: 1.5, py: 0.5, textTransform: 'none' } }}>
+          <ToggleButton value="active">Active</ToggleButton>
+          <ToggleButton value="all">All</ToggleButton>
+          <ToggleButton value="Applied">Applied</ToggleButton>
+          <ToggleButton value="Interviewing">Interviewing</ToggleButton>
+          <ToggleButton value="Offer">Offer</ToggleButton>
+          <ToggleButton value="Rejected">Rejected</ToggleButton>
+          <ToggleButton value="retired">Retired</ToggleButton>
+        </ToggleButtonGroup>
+        <Button size="small" sx={{ ml: 'auto' }} disabled={!jobs.length} onClick={() => exportCsv(jobs)}>Export CSV</Button>
+      </Stack>
 
       {shown.length === 0 ? (
         <Typography color="text.secondary" sx={{ py: 4 }}>
@@ -75,6 +104,7 @@ export default function TrackerView() {
             const status = normStatus(j.status);
             const d = daysSince(j.applied);
             const nudge = !j.archived && status === 'Applied' && d != null && d >= 7;
+            const isOpen = !!open[j.url];
             return (
               <Card key={j.url} variant="outlined" sx={{ opacity: j.archived ? 0.55 : 1 }}>
                 <CardContent sx={{ pb: '12px !important' }}>
@@ -93,13 +123,33 @@ export default function TrackerView() {
                       <MoreVertIcon fontSize="small" />
                     </IconButton>
                   </Stack>
+
                   <Stack direction="row" spacing={1} sx={{ mt: 1.25 }} alignItems="center">
                     {status === 'Saved' && (
                       <Button size="small" variant="contained" color="info" onClick={() => setStatus(j.url, 'Applied')}>Mark applied</Button>
                     )}
+                    <Button size="small" variant="text" onClick={() => setOpen((p) => ({ ...p, [j.url]: !p[j.url] }))}>
+                      {isOpen ? 'Hide' : 'Details'}
+                    </Button>
                     {nudge && <Chip size="small" color="warning" label="Follow up" />}
                     {j.priority && <Chip size="small" color="primary" variant="outlined" label="Priority" />}
                   </Stack>
+
+                  <Collapse in={isOpen}>
+                    <Stack spacing={1.25} sx={{ mt: 1.5 }}>
+                      {fld(j, 'note', 'Notes', true)}
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+                        {fld(j, 'contact', 'Contact / referral')}
+                        {fld(j, 'resume', 'Résumé version')}
+                      </Stack>
+                      {fld(j, 'salary', 'Salary')}
+                      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                        {research(j.label).map(([name, href]) => (
+                          <Button key={name} size="small" variant="outlined" component={Link} href={href} target="_blank" rel="noopener noreferrer">{name}</Button>
+                        ))}
+                      </Box>
+                    </Stack>
+                  </Collapse>
                 </CardContent>
               </Card>
             );

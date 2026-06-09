@@ -102,3 +102,12 @@ export function isSaved(url: string): boolean {
 // Used by the cloud-sync layer to read/replace the whole list.
 export function getAllJobs(): Job[] { return jobs; }
 export function replaceAll(next: Job[]) { set(Array.isArray(next) ? next : []); }
+
+/** Quick-link helper: add the job (if new) then mark it Applied. */
+export function markAppliedByUrl(rawUrl: string, label?: string) {
+  addJob(rawUrl, label);
+  let u = cleanUrl(rawUrl);
+  if (!u) return;
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  setStatus(u, 'Applied');
+}
