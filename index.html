@@ -107,7 +107,26 @@ footer h3{font-family:var(--font-head);font-size:1.25rem;color:var(--amber);marg
 footer ol{margin-left:18px;color:#cfd8e4;font-size:.89rem}
 footer li{margin:.4em 0}
 .fineprint{margin-top:14px;color:var(--muted);font-size:.77rem;font-family:var(--font-body)}
-@media(max-width:560px){.grid{grid-template-columns:1fr}header{padding:28px 0 18px}}
+.name,.meta,.cltpl .clname,.go{overflow-wrap:anywhere}
+.card,.cardlink{min-width:0}
+@media(max-width:560px){
+  body{padding:0 12px 70px}
+  header{padding:24px 0 16px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}     /* job tiles 2-across */
+  #slList{grid-template-columns:1fr}                              /* tracker stays full width */
+  .card{padding:11px 12px}
+  .name{font-size:.9rem;line-height:1.2}
+  .meta{font-size:.74rem}
+  .go{font-size:.66rem}
+  #slList .cardlink .toprow{padding-right:80px}
+  .slsyncform{width:100%;margin-left:0}
+  .slsyncform input{min-width:0;width:100%;flex:1 1 100%}
+  .slsyncform button{flex:1 1 auto}
+  .atsall{margin-left:0;width:100%}
+  .slstats .stat{flex:1 1 calc(50% - 8px);min-width:0}
+  .cltpl .clhead{flex-wrap:wrap}
+  .discoverhead h2{font-size:1.35rem}
+}
 section.tool{margin-top:34px}
 #atsRole{width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:10px;color:var(--ink);font-family:var(--font-body);font-size:.92rem;padding:11px 14px;outline:none;margin:4px 0 10px}
 #atsRole:focus{border-color:var(--amber)}
@@ -223,11 +242,14 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .slnudge{color:#0d0f12;background:var(--amber);border-radius:999px;padding:1px 7px;font-weight:600;margin-left:6px}
 .slactions{display:flex;align-items:center;gap:6px;margin-top:9px;position:relative;z-index:3}
 .slactions button{font-family:var(--font-body);font-size:.65rem;letter-spacing:.03em;cursor:pointer;background:rgba(0,0,0,.28);border:1px solid var(--line2);color:var(--muted);border-radius:8px;padding:5px 9px;transition:color .12s,border-color .12s,background .12s}
-.slactions .slprio.on{color:#0d0f12;background:var(--amber);border-color:var(--amber)}
-.slactions .slprio:hover{border-color:var(--amber);color:var(--amber)}
-.slactions .sldet:hover{border-color:var(--cyan);color:var(--cyan)}
-.slactions .slrm{margin-left:auto}
-.slactions .slrm:hover{border-color:#e06b6b;color:#e06b6b}
+.slactions .sldet:hover,.slactions .sldet.on{border-color:var(--cyan);color:var(--cyan)}
+.sldetactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.sldetactions button{font-family:var(--font-body);font-size:.74rem;cursor:pointer;background:rgba(0,0,0,.28);border:1px solid var(--line2);color:var(--muted);border-radius:8px;padding:9px 13px;min-height:40px;transition:color .12s,border-color .12s,background .12s}
+.sldetactions .slprio.on{color:#0d0f12;background:var(--amber);border-color:var(--amber)}
+.sldetactions .slprio:hover{border-color:var(--amber);color:var(--amber)}
+.sldetactions .slarchbtn:hover{border-color:var(--violet);color:var(--violet)}
+.sldetactions .slrm{margin-left:auto}
+.sldetactions .slrm:hover{border-color:#e06b6b;color:#e06b6b}
 .sldetails{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;position:relative;z-index:3;display:grid;gap:8px}
 .sldetails[hidden]{display:none}
 .sldetails label{font-family:var(--font-body);font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:3px}
@@ -1021,7 +1043,16 @@ footer h3,footer ol{display:none}
      ['Google','https://www.google.com/search?q='+co+'+careers+reviews']].forEach(function(p){
        var a=document.createElement('a'); a.href=p[1]; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent=p[0]; rl.appendChild(a);
     });
-    wrap.appendChild(rl); return wrap;
+    wrap.appendChild(rl);
+    var act=document.createElement('div'); act.className='sldetactions';
+    var prio=document.createElement('button'); prio.type='button'; prio.className='slprio'+(item.priority?' on':''); prio.textContent='Priority';
+    prio.addEventListener('click',function(){ togglePriority(item.url); });
+    var arch=document.createElement('button'); arch.type='button'; arch.className='slarchbtn'; arch.textContent=item.archived?'Unretire':'Retire';
+    arch.addEventListener('click',function(){ toggleArchived(item.url); });
+    var rm=document.createElement('button'); rm.type='button'; rm.className='slrm'; rm.textContent='Remove'; rm.setAttribute('aria-label','Remove '+(item.label||host(item.url)||''));
+    rm.addEventListener('click',function(){ remove(item.url); });
+    act.appendChild(prio); act.appendChild(arch); act.appendChild(rm);
+    wrap.appendChild(act); return wrap;
   }
   function attachSwipe(card, link, item){
     var x0=0,y0=0,dx=0,dragging=false,decided=false,horizontal=false,TH=70;
@@ -1074,19 +1105,11 @@ footer h3,footer ol{display:none}
     st.addEventListener('click',function(){ cycleStatus(item.url); });
     card.appendChild(st);
     var actions=document.createElement('div'); actions.className='slactions';
-    var prio=document.createElement('button'); prio.type='button'; prio.className='slprio'+(item.priority?' on':'');
-    prio.textContent='Priority'; prio.title='Toggle priority';
-    prio.addEventListener('click',function(){ togglePriority(item.url); });
     var det=document.createElement('button'); det.type='button'; det.className='sldet'; det.textContent='Details'; det.setAttribute('aria-expanded','false');
-    var arch=document.createElement('button'); arch.type='button'; arch.className='slarchbtn';
-    arch.textContent=item.archived?'Unretire':'Retire'; arch.title=item.archived?'Bring back to active':'Retire this lead \u2014 keep the record, stop follow-ups';
-    arch.addEventListener('click',function(){ toggleArchived(item.url); });
-    var rm=document.createElement('button'); rm.type='button'; rm.className='slrm'; rm.textContent='Remove'; rm.setAttribute('aria-label','Remove '+label);
-    rm.addEventListener('click',function(){ remove(item.url); });
-    actions.appendChild(prio); actions.appendChild(det); actions.appendChild(arch); actions.appendChild(rm);
+    actions.appendChild(det);
     card.appendChild(actions);
     var details=buildDetails(item);
-    det.addEventListener('click',function(){ var show=details.hidden; details.hidden=!show; det.setAttribute('aria-expanded',String(show)); det.classList.toggle('on',show); });
+    det.addEventListener('click',function(){ var show=details.hidden; details.hidden=!show; det.setAttribute('aria-expanded',String(show)); det.classList.toggle('on',show); det.textContent=show?'Hide':'Details'; });
     card.appendChild(details);
     attachSwipe(card,link,item);
     return card;
