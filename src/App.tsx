@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Box, Container, Tab, Tabs, Typography } from '@mui/material';
 import TrackerView from './TrackerView';
+import DiscoverView from './DiscoverView';
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -35,7 +36,7 @@ export default function App() {
 
       {tab === 0 && <TrackerView />}
       {tab === 1 && <Placeholder name="Copy Deck" />}
-      {tab === 2 && <Placeholder name="Discover" />}
+      {tab === 2 && <DiscoverView />}
     </Container>
   );
 }

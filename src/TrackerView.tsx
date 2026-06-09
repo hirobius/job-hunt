@@ -4,7 +4,7 @@ import {
   Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { useTracker, hostOf, normStatus, daysSince } from './store';
+import { useJobs, addJob, updateJob, setStatus, removeJob, hostOf, normStatus, daysSince } from './store';
 import type { Job, Status } from './types';
 
 type Filter = 'active' | 'all' | Status | 'retired';
@@ -21,13 +21,13 @@ function matches(j: Job, f: Filter): boolean {
 }
 
 export default function TrackerView() {
-  const { jobs, add, update, setStatus, remove } = useTracker();
+  const jobs = useJobs();
   const [filter, setFilter] = useState<Filter>('active');
   const [url, setUrl] = useState('');
   const [menu, setMenu] = useState<{ el: HTMLElement; job: Job } | null>(null);
 
-  const shown = useMemo(() => {
-    return jobs
+  const shown = useMemo(() => (
+    jobs
       .map((j, i) => ({ j, i }))
       .sort((a, b) => {
         const aa = a.j.archived ? 1 : 0, ba = b.j.archived ? 1 : 0;
@@ -37,27 +37,21 @@ export default function TrackerView() {
         return a.i - b.i;
       })
       .map((x) => x.j)
-      .filter((j) => matches(j, filter));
-  }, [jobs, filter]);
+      .filter((j) => matches(j, filter))
+  ), [jobs, filter]);
 
-  const submit = () => { add(url); setUrl(''); };
+  const submit = () => { addJob(url); setUrl(''); };
 
   return (
     <Box>
       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-        <TextField
-          fullWidth size="small" placeholder="Paste a job URL…"
-          value={url} onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-        />
+        <TextField fullWidth size="small" placeholder="Paste a job URL…" value={url}
+          onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} />
         <Button variant="contained" onClick={submit}>Add</Button>
       </Stack>
 
-      <ToggleButtonGroup
-        value={filter} exclusive size="small"
-        onChange={(_, v) => v && setFilter(v)}
-        sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButton-root': { border: 1, borderColor: 'divider', borderRadius: '999px !important', px: 1.5, py: 0.5, textTransform: 'none' } }}
-      >
+      <ToggleButtonGroup value={filter} exclusive size="small" onChange={(_, v) => v && setFilter(v)}
+        sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButton-root': { border: 1, borderColor: 'divider', borderRadius: '999px !important', px: 1.5, py: 0.5, textTransform: 'none' } }}>
         <ToggleButton value="active">Active</ToggleButton>
         <ToggleButton value="all">All</ToggleButton>
         <ToggleButton value="Applied">Applied</ToggleButton>
@@ -70,7 +64,7 @@ export default function TrackerView() {
       {shown.length === 0 ? (
         <Typography color="text.secondary" sx={{ py: 4 }}>
           {jobs.length === 0
-            ? 'No saved jobs yet — paste a link above.'
+            ? 'No saved jobs yet — paste a link above, or save some from Discover.'
             : filter === 'active'
               ? 'Nothing left to apply to right now — nice. Check Applied or add more jobs.'
               : `Nothing under “${filter}”.`}
@@ -91,8 +85,7 @@ export default function TrackerView() {
                         {j.label || hostOf(j.url) || 'Saved job'}
                       </Link>
                       <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
-                        {hostOf(j.url)}
-                        {status !== 'Saved' && j.applied ? ` · applied ${d === 0 ? 'today' : d + 'd ago'}` : ''}
+                        {hostOf(j.url)}{status !== 'Saved' && j.applied ? ` · applied ${d === 0 ? 'today' : d + 'd ago'}` : ''}
                       </Typography>
                     </Box>
                     <Chip label={status} size="small" color={STATUS_COLOR[status]} variant="outlined" />
@@ -100,12 +93,9 @@ export default function TrackerView() {
                       <MoreVertIcon fontSize="small" />
                     </IconButton>
                   </Stack>
-
-                  <Stack direction="row" spacing={1} sx={{ mt: 1.25 }}>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.25 }} alignItems="center">
                     {status === 'Saved' && (
-                      <Button size="small" variant="contained" color="info" onClick={() => setStatus(j.url, 'Applied')}>
-                        Mark applied
-                      </Button>
+                      <Button size="small" variant="contained" color="info" onClick={() => setStatus(j.url, 'Applied')}>Mark applied</Button>
                     )}
                     {nudge && <Chip size="small" color="warning" label="Follow up" />}
                     {j.priority && <Chip size="small" color="primary" variant="outlined" label="Priority" />}
@@ -121,21 +111,9 @@ export default function TrackerView() {
         {menu && normStatus(menu.job.status) === 'Saved' && (
           <MenuItem onClick={() => { setStatus(menu.job.url, 'Applied'); setMenu(null); }}>Mark applied</MenuItem>
         )}
-        {menu && (
-          <MenuItem onClick={() => { update(menu.job.url, { priority: !menu.job.priority }); setMenu(null); }}>
-            {menu.job.priority ? 'Unpin priority' : 'Pin as priority'}
-          </MenuItem>
-        )}
-        {menu && (
-          <MenuItem onClick={() => { update(menu.job.url, { archived: !menu.job.archived }); setMenu(null); }}>
-            {menu.job.archived ? 'Unretire' : 'Retire'}
-          </MenuItem>
-        )}
-        {menu && (
-          <MenuItem onClick={() => { remove(menu.job.url); setMenu(null); }} sx={{ color: 'error.main' }}>
-            Remove
-          </MenuItem>
-        )}
+        {menu && <MenuItem onClick={() => { updateJob(menu.job.url, { priority: !menu.job.priority }); setMenu(null); }}>{menu.job.priority ? 'Unpin priority' : 'Pin as priority'}</MenuItem>}
+        {menu && <MenuItem onClick={() => { updateJob(menu.job.url, { archived: !menu.job.archived }); setMenu(null); }}>{menu.job.archived ? 'Unretire' : 'Retire'}</MenuItem>}
+        {menu && <MenuItem onClick={() => { removeJob(menu.job.url); setMenu(null); }} sx={{ color: 'error.main' }}>Remove</MenuItem>}
       </Menu>
     </Box>
   );

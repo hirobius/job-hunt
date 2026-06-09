@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { STATUSES, type Job, type Status } from './types';
 
-const KEY = 'rjb_shortlist'; // same key as the legacy app, so existing data carries over
+const KEY = 'rjb_shortlist'; // same key as the legacy app
 const RETIRED: Record<string, 1> = {
-  'https://jobs.lever.co/entrata/aa9f605b-8360-416d-94fc-ed5d5a68602c': 1, // Entrata: no WA hiring
+  'https://jobs.lever.co/entrata/aa9f605b-8360-416d-94fc-ed5d5a68602c': 1,
 };
 
 export function hostOf(u: string): string {
@@ -17,7 +17,7 @@ export function cleanUrl(u: string): string {
   while (/^https?:\/\/https?:\/\//i.test(u)) u = u.replace(/^https?:\/\//i, '');
   return u;
 }
-export function dedupKey(u: string): string {
+function dedupKey(u: string): string {
   try {
     const x = new URL(u);
     const h = x.hostname.replace(/^www\./, '').toLowerCase();
@@ -27,13 +27,16 @@ export function dedupKey(u: string): string {
     x.searchParams.forEach((v, k) => { if (!drop.test(k)) ps.push(k.toLowerCase() + '=' + v); });
     ps.sort();
     return h + path + (ps.length ? '?' + ps.join('&') : '');
-  } catch {
-    return (u || '').toLowerCase().replace(/\/+$/, '');
-  }
+  } catch { return (u || '').toLowerCase().replace(/\/+$/, ''); }
 }
 function today(): string {
   const d = new Date(); const p = (n: number) => (n < 10 ? '0' : '') + n;
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+export function daysSince(s?: string): number | null {
+  if (!s) return null;
+  const t = Date.parse(s);
+  return isNaN(t) ? null : Math.floor((Date.now() - t) / 86400000);
 }
 function load(): Job[] {
   try {
@@ -47,52 +50,51 @@ function load(): Job[] {
   } catch { return []; }
 }
 
-export function useTracker() {
-  const [jobs, setJobs] = useState<Job[]>(load);
+// ---- external store (shared across views) ----
+let jobs: Job[] = load();
+const listeners = new Set<() => void>();
+function set(next: Job[]) {
+  jobs = next;
+  try { localStorage.setItem(KEY, JSON.stringify(jobs)); } catch { /* ignore */ }
+  listeners.forEach((l) => l());
+}
+function subscribe(cb: () => void) { listeners.add(cb); return () => { listeners.delete(cb); }; }
+function snapshot() { return jobs; }
 
-  useEffect(() => {
-    try { localStorage.setItem(KEY, JSON.stringify(jobs)); } catch { /* ignore */ }
-  }, [jobs]);
-
-  const add = useCallback((rawUrl: string, label?: string) => {
-    let u = cleanUrl(rawUrl);
-    if (!u) return;
-    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-    if (!/\./.test(u)) return;
-    setJobs((prev) => {
-      const key = dedupKey(u);
-      const i = prev.findIndex((j) => dedupKey(j.url) === key);
-      if (i > -1) {
-        if (prev[i].archived) { const c = [...prev]; c[i] = { ...c[i], archived: false }; return c; }
-        return prev;
-      }
-      return [...prev, { url: u, label: (label || '').trim() || hostOf(u) || 'Saved job', status: 'Saved' }];
-    });
-  }, []);
-
-  const update = useCallback((url: string, patch: Partial<Job>) => {
-    setJobs((prev) => prev.map((j) => (j.url === url ? { ...j, ...patch } : j)));
-  }, []);
-
-  const setStatus = useCallback((url: string, status: Status) => {
-    setJobs((prev) => prev.map((j) => {
-      if (j.url !== url) return j;
-      const n: Job = { ...j, status };
-      if (status === 'Applied' && !n.applied) n.applied = today();
-      return n;
-    }));
-  }, []);
-
-  const remove = useCallback((url: string) => {
-    setJobs((prev) => prev.filter((j) => j.url !== url));
-  }, []);
-
-  return { jobs, add, update, setStatus, remove };
+export function useJobs(): Job[] {
+  return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
-export function daysSince(s?: string): number | null {
-  if (!s) return null;
-  const t = Date.parse(s);
-  if (isNaN(t)) return null;
-  return Math.floor((Date.now() - t) / 86400000);
+/** Add a job; returns true if newly added, false if it already existed. */
+export function addJob(rawUrl: string, label?: string): boolean {
+  let u = cleanUrl(rawUrl);
+  if (!u) return false;
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  if (!/\./.test(u)) return false;
+  const key = dedupKey(u);
+  const i = jobs.findIndex((j) => dedupKey(j.url) === key);
+  if (i > -1) {
+    if (jobs[i].archived) { const c = [...jobs]; c[i] = { ...c[i], archived: false }; set(c); }
+    return false;
+  }
+  set([...jobs, { url: u, label: (label || '').trim() || hostOf(u) || 'Saved job', status: 'Saved' }]);
+  return true;
+}
+export function updateJob(url: string, patch: Partial<Job>) {
+  set(jobs.map((j) => (j.url === url ? { ...j, ...patch } : j)));
+}
+export function setStatus(url: string, status: Status) {
+  set(jobs.map((j) => {
+    if (j.url !== url) return j;
+    const n: Job = { ...j, status };
+    if (status === 'Applied' && !n.applied) n.applied = today();
+    return n;
+  }));
+}
+export function removeJob(url: string) {
+  set(jobs.filter((j) => j.url !== url));
+}
+export function isSaved(url: string): boolean {
+  const key = dedupKey(cleanUrl(url));
+  return jobs.some((j) => dedupKey(j.url) === key);
 }

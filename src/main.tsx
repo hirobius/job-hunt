@@ -2,8 +2,6 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from '@mui/material/styles';
-import '@fontsource-variable/fraunces';
-import '@fontsource-variable/hanken-grotesk';
 import { theme } from './theme';
 import App from './App';
 
