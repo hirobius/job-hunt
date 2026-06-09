@@ -4,7 +4,7 @@ import {
   Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { useJobs, addJob, updateJob, setStatus, removeJob, logFollowUp, hostOf, shortUrl, normStatus, daysSince } from './store';
+import { useJobs, addJob, updateJob, setStatus, removeJob, logFollowUp, prettyTitle, shortUrl, normStatus, daysSince } from './store';
 import type { Job, Status } from './types';
 
 type Filter = 'active' | 'all' | Status | 'retired';
@@ -115,7 +115,7 @@ export default function TrackerView() {
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Link href={j.url} target="_blank" rel="noopener noreferrer" underline="hover" color="text.primary"
                         sx={{ fontWeight: 600, display: 'block', overflowWrap: 'anywhere' }}>
-                        {j.label || 'Saved job'}
+                        {j.label || prettyTitle(j.url)}
                       </Link>
                       <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
                         {shortUrl(j.url)}
@@ -150,6 +150,7 @@ export default function TrackerView() {
 
                   <Collapse in={isOpen}>
                     <Stack spacing={1.25} sx={{ mt: 1.5 }}>
+                      {fld(j, 'label', 'Title')}
                       {fld(j, 'note', 'Notes', true)}
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
                         {fld(j, 'contact', 'Contact / referral')}

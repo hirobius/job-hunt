@@ -4,20 +4,23 @@ import TrackerView from './TrackerView';
 import DiscoverView from './DiscoverView';
 import CopyDeckView from './CopyDeckView';
 import CloudSync from './CloudSync';
-import { addJob, markAppliedByUrl } from './store';
+import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
+import { STATUSES } from './types';
 
 export default function App() {
   const [tab, setTab] = useState(0);
 
-  // Quick-add via ?add=<url> / ?applied=<url> (iOS shortcut, bookmarklet, one-tap links)
+  // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links)
   useEffect(() => {
     const qp = new URLSearchParams(window.location.search);
     const label = qp.get('t') || qp.get('title') || '';
     let acted = false;
     if (qp.get('add')) { addJob(qp.get('add')!, label); acted = true; }
     if (qp.get('applied')) { markAppliedByUrl(qp.get('applied')!, label); acted = true; }
+    const st = qp.get('status'), su = qp.get('u');
+    if (st && su && (STATUSES as string[]).includes(st)) { setStatusByUrl(su, st as never, label); acted = true; }
     if (acted) {
-      ['add', 'applied', 't', 'title'].forEach((k) => qp.delete(k));
+      ['add', 'applied', 'status', 'u', 't', 'title'].forEach((k) => qp.delete(k));
       const s = qp.toString();
       window.history.replaceState(null, '', window.location.pathname + (s ? '?' + s : '') + window.location.hash);
       setTab(0);

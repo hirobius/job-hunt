@@ -136,11 +136,14 @@ export function isSaved(url: string): boolean {
 export function getAllJobs(): Job[] { return jobs; }
 export function replaceAll(next: Job[]) { set(Array.isArray(next) ? next : []); }
 
-/** Quick-link helper: add the job (if new) then mark it Applied. */
-export function markAppliedByUrl(rawUrl: string, label?: string) {
+/** Quick-link helper: add the job (if new) then set a status. */
+export function setStatusByUrl(rawUrl: string, status: Status, label?: string) {
   addJob(rawUrl, label);
   let u = cleanUrl(rawUrl);
   if (!u) return;
   if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-  setStatus(u, 'Applied');
+  setStatus(u, status);
+}
+export function markAppliedByUrl(rawUrl: string, label?: string) {
+  setStatusByUrl(rawUrl, 'Applied', label);
 }
