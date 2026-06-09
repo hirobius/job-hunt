@@ -98,3 +98,7 @@ export function isSaved(url: string): boolean {
   const key = dedupKey(cleanUrl(url));
   return jobs.some((j) => dedupKey(j.url) === key);
 }
+
+// Used by the cloud-sync layer to read/replace the whole list.
+export function getAllJobs(): Job[] { return jobs; }
+export function replaceAll(next: Job[]) { set(Array.isArray(next) ? next : []); }
