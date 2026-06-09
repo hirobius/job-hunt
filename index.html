@@ -242,6 +242,8 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 .slnudge{color:#0d0f12;background:var(--amber);border-radius:999px;padding:1px 7px;font-weight:600;margin-left:6px}
 .slactions{display:flex;align-items:center;gap:6px;margin-top:9px;position:relative;z-index:3}
 .slactions button{font-family:var(--font-body);font-size:.65rem;letter-spacing:.03em;cursor:pointer;background:rgba(0,0,0,.28);border:1px solid var(--line2);color:var(--muted);border-radius:8px;padding:5px 9px;transition:color .12s,border-color .12s,background .12s}
+.slactions .slapplied{color:var(--cyan);border-color:rgba(73,199,255,.45);background:rgba(73,199,255,.12);font-weight:600}
+.slactions .slapplied:hover{background:rgba(73,199,255,.22)}
 .slactions .sldet:hover,.slactions .sldet.on{border-color:var(--cyan);color:var(--cyan)}
 .sldetactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .sldetactions button{font-family:var(--font-body);font-size:.74rem;cursor:pointer;background:rgba(0,0,0,.28);border:1px solid var(--line2);color:var(--muted);border-radius:8px;padding:9px 13px;min-height:40px;transition:color .12s,border-color .12s,background .12s}
@@ -1105,6 +1107,11 @@ footer h3,footer ol{display:none}
     st.addEventListener('click',function(){ cycleStatus(item.url); });
     card.appendChild(st);
     var actions=document.createElement('div'); actions.className='slactions';
+    if(status==='Saved'){
+      var ap=document.createElement('button'); ap.type='button'; ap.className='slapplied'; ap.textContent='Mark applied';
+      ap.addEventListener('click',function(){ setStatus(item.url,'Applied'); });
+      actions.appendChild(ap);
+    }
     var det=document.createElement('button'); det.type='button'; det.className='sldet'; det.textContent='Details'; det.setAttribute('aria-expanded','false');
     actions.appendChild(det);
     card.appendChild(actions);
