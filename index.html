@@ -13,27 +13,27 @@
   --font-body:'Hanken Grotesk',system-ui,-apple-system,sans-serif;
   /* shadcn design tokens (zinc dark) — HSL channels */
   --radius:0.625rem;
-  --background:240 10% 4%;
+  --background:180 18% 5%;
   --foreground:0 0% 98%;
-  --card:240 6% 8%;
+  --card:180 12% 8%;
   --card-foreground:0 0% 98%;
-  --primary:38 100% 55%;            /* brand amber kept as primary */
-  --primary-foreground:240 8% 6%;
-  --secondary:240 4% 13%;
+  --primary:160 66% 47%;            /* jade */
+  --primary-foreground:180 35% 6%;
+  --secondary:180 9% 13%;
   --secondary-foreground:0 0% 98%;
-  --muted-foreground:240 5% 65%;
-  --accent:240 4% 16%;
-  --border:240 4% 17%;
-  --ring:38 100% 55%;
+  --muted-foreground:180 7% 62%;
+  --accent:180 9% 16%;
+  --border:180 9% 17%;
+  --ring:160 66% 47%;
   /* legacy aliases mapped onto the tokens so existing rules restyle */
   --bg:hsl(var(--background));
   --panel:hsl(var(--card));
-  --panel2:hsl(240 5% 11%);
+  --panel2:hsl(180 9% 11%);
   --ink:hsl(var(--foreground));
   --muted:hsl(var(--muted-foreground));
-  --amber:hsl(var(--primary)); --amber-dim:hsl(38 65% 48%);
-  --green:#36d399; --cyan:#49c7ff; --violet:#b58cff;
-  --line:hsl(var(--border)); --line2:hsl(240 4% 24%);
+  --amber:hsl(var(--primary)); --amber-dim:hsl(160 45% 40%);
+  --green:#34d39e; --cyan:#49c7ff; --violet:#b58cff;
+  --line:hsl(var(--border)); --line2:hsl(180 8% 24%);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -162,7 +162,7 @@ section.tool{margin-top:34px}
 .slcounts .sc b{color:var(--ink);font-weight:600;margin-left:2px}
 .slcounts .sc-saved b{color:var(--amber)} .slcounts .sc-applied b{color:var(--cyan)}
 .slcounts .sc-interviewing b{color:var(--violet)} .slcounts .sc-offer b{color:var(--green)}
-.slcounts .sc-rejected b{color:#e06b6b} .slcounts .sc-retired b{color:var(--muted)}
+.slcounts .sc-rejected b{color:#e06b6b} .slcounts .sc-retired b{color:var(--muted)} .slcounts .sc-active b{color:var(--green)}
 .slexport{font-family:var(--font-body);font-size:.73rem;letter-spacing:.05em;
   background:rgba(73,199,255,.12);color:var(--cyan);border:1px solid rgba(73,199,255,.4);
   border-radius:8px;padding:7px 13px;cursor:pointer;transition:background .15s;white-space:nowrap}
@@ -221,8 +221,8 @@ footer h3 .infotoggle{margin-left:10px;text-transform:none}
 /* Copy Deck */
 .cdadd{margin-left:auto;align-self:center;background:rgba(73,199,255,.12);color:var(--cyan);border:1px solid rgba(73,199,255,.4);border-radius:999px;font-family:var(--font-body);font-size:.72rem;letter-spacing:.04em;cursor:pointer;padding:6px 12px;white-space:nowrap}
 .cdadd:hover{background:rgba(73,199,255,.22)}
-.cltpl .clhead{display:flex;align-items:center;gap:8px}
-.cltpl .clname{flex:1;min-width:0;background:transparent;border:none;border-bottom:1px solid transparent;color:var(--ink);font-family:var(--font-head);font-weight:600;letter-spacing:-.005em;font-size:1.15rem;padding:4px 0;outline:none}
+.cltpl .clhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cltpl .clname{flex:1 1 100%;min-width:0;background:transparent;border:none;border-bottom:1px solid transparent;color:var(--ink);font-family:var(--font-head);font-weight:600;letter-spacing:-.005em;font-size:1.15rem;padding:4px 0 6px;outline:none}
 .cltpl .clname:focus{border-bottom-color:var(--line2)}
 .cltpl .clcopy{margin-left:0}
 .cltpl .cltoggle,.cltpl .cldel{background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:8px;cursor:pointer;font-family:var(--font-body);font-size:.78rem;line-height:1;padding:6px 9px}
@@ -366,7 +366,6 @@ footer h3,footer ol{display:none}
     <div id="slCounts" class="slcounts"></div>
     <button id="slExport" type="button" class="slexport">Export CSV</button>
   </div>
-  <div id="slStats" class="slstats"></div>
   <div class="slAdd">
     <input id="slUrl" type="text" placeholder="paste a job URL…">
     <input id="slLabel" type="text" placeholder="label (optional)">
@@ -905,7 +904,7 @@ footer h3,footer ol{display:none}
   var addBtn=document.getElementById('slAddBtn');
   var statsEl=document.getElementById('slStats');
   var NUDGE_DAYS=7;
-  var statusFilter='all';
+  var statusFilter='active';
   var PLACEH={note:'Why you want it · JD notes · prep…',contact:'recruiter / referral',resume:'e.g. IT-Support v2',salary:'target / offered'};
   if(!listEl||!addBtn) return;
   function normStatus(s){ return STATUSES.indexOf(s)>-1?s:'Saved'; }
@@ -1010,9 +1009,14 @@ footer h3,footer ol{display:none}
   }
   function renderCounts(arr){
     if(!countsEl) return;
-    var counts={}, arch=0; STATUSES.forEach(function(s){ counts[s]=0; });
-    arr.forEach(function(it){ if(it.archived){ arch++; } else { counts[normStatus(it.status)]++; } });
-    var chips=['<button type="button" class="sc sc-all'+(statusFilter==='all'?' on':'')+'" data-flt="all">All <b>'+arr.length+'</b></button>'];
+    var counts={}, arch=0, active=0; STATUSES.forEach(function(s){ counts[s]=0; });
+    arr.forEach(function(it){
+      if(it.archived){ arch++; return; }
+      counts[normStatus(it.status)]++;
+      if(normStatus(it.status)==='Saved' || it.priority) active++;
+    });
+    var chips=['<button type="button" class="sc sc-active'+(statusFilter==='active'?' on':'')+'" data-flt="active">Active <b>'+active+'</b></button>'];
+    chips.push('<button type="button" class="sc sc-all'+(statusFilter==='all'?' on':'')+'" data-flt="all">All <b>'+arr.length+'</b></button>');
     STATUSES.forEach(function(s){
       chips.push('<button type="button" class="sc sc-'+s.toLowerCase()+(statusFilter===s?' on':'')+'" data-flt="'+s+'">'+s+' <b>'+counts[s]+'</b></button>');
     });
@@ -1139,6 +1143,7 @@ footer h3,footer ol{display:none}
     statsEl.style.display=arr.length?'flex':'none';
   }
   function matchesFilter(it){
+    if(statusFilter==='active') return !it.archived && (normStatus(it.status)==='Saved' || it.priority);  // not-yet-applied + pinned
     if(statusFilter==='all') return true;
     if(statusFilter==='retired') return !!it.archived;
     return !it.archived && normStatus(it.status)===statusFilter;
@@ -1147,11 +1152,13 @@ footer h3,footer ol{display:none}
     var arr=getList();
     listEl.innerHTML='';
     countEl.textContent='('+arr.length+')';
-    renderCounts(arr); renderStats(arr);
+    renderCounts(arr);
     if(exportBtn) exportBtn.disabled=!arr.length;
     var shown=sortedForDisplay(arr).filter(matchesFilter);
     emptyEl.style.display=shown.length?'none':'block';
-    emptyEl.textContent = arr.length ? ('Nothing under "'+(statusFilter==='all'?'All':statusFilter==='retired'?'Retired':statusFilter)+'".') : 'No saved jobs yet — tap ☆ on any tile, or paste a link above.';
+    if(!arr.length) emptyEl.textContent='No saved jobs yet — tap ☆ on any tile, or paste a link above.';
+    else if(statusFilter==='active') emptyEl.textContent='Nothing left to apply to right now — nice work. Tap Applied to review what you’ve sent, or add more jobs.';
+    else emptyEl.textContent='Nothing under "'+(statusFilter==='all'?'All':statusFilter==='retired'?'Retired':statusFilter)+'".';
     shown.forEach(function(item){ listEl.appendChild(buildCard(item)); });
     syncStars();
   }
