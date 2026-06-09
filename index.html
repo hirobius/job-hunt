@@ -274,14 +274,6 @@ footer h3,footer ol{display:none}
 <div class="wrap">
 <header>
   <h1>Apply <span class="b">Board</span></h1>
-  <div class="intro">
-    <p><b>Pay map:</b> IT support / help desk ~$19–26/hr (~$43–60K) · entry GRC analyst ~$55–75K (your target) · trades apprenticeships paid-from-day-one, scaling to journey wage.</p>
-    <p><b>Two truths:</b> many "entry" cyber/IT roles still want CompTIA A+ or ~1 yr experience (Skill-Up lane fixes that), and <b>govcon is your edge</b> — federal-contractor work values your clearance + military background and bridges straight to the ISSO/GRC role you want.</p>
-    <div class="pitchbox">
-      <span id="pitch">U.S. Air Force veteran in Spokane, WA, available immediately. Current Reserve member holding a DoD Secret clearance (Tier 3, in-scope through 2029, inactive but reactivation-eligible). Six years Air National Guard plus ten-plus years of enterprise experience at Microsoft and T-Mobile. Pursuing CompTIA Security+ and ISC2 Certified in Cybersecurity. Resume attached, happy to talk.</span>
-      <button id="copybtn">Copy pitch</button>
-    </div>
-  </div>
 </header>
 
 <!-- COPY DECK: letters + snippet scratchpad (all your copy-paste text, up top) -->
@@ -727,15 +719,6 @@ footer h3,footer ol{display:none}
     ch.classList.add('on'); active=ch.getAttribute('data-f'); apply();
   });});
   search.addEventListener('input',apply);
-  var btn=document.getElementById('copybtn');
-  btn.addEventListener('click',function(){
-    var txt=document.getElementById('pitch').innerText;
-    if(navigator.clipboard&&navigator.clipboard.writeText){
-      navigator.clipboard.writeText(txt).then(function(){
-        btn.textContent='Copied'; setTimeout(function(){btn.textContent='Copy pitch';},1600);
-      }).catch(function(){btn.textContent='Select the text above to copy';});
-    } else {btn.textContent='Select the text above to copy';}
-  });
 })();
 </script>
 <script>
