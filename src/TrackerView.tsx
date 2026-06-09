@@ -4,10 +4,11 @@ import {
   Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { useJobs, addJob, updateJob, setStatus, removeJob, hostOf, normStatus, daysSince } from './store';
+import { useJobs, addJob, updateJob, setStatus, removeJob, logFollowUp, hostOf, shortUrl, normStatus, daysSince } from './store';
 import type { Job, Status } from './types';
 
 type Filter = 'active' | 'all' | Status | 'retired';
+const FOLLOWUP_DAYS = 7;
 
 const STATUS_COLOR: Record<Status, 'warning' | 'info' | 'secondary' | 'success' | 'error'> = {
   Saved: 'warning', Applied: 'info', Interviewing: 'secondary', Offer: 'success', Rejected: 'error',
@@ -102,8 +103,10 @@ export default function TrackerView() {
         <Stack spacing={1.25}>
           {shown.map((j) => {
             const status = normStatus(j.status);
-            const d = daysSince(j.applied);
-            const nudge = !j.archived && status === 'Applied' && d != null && d >= 7;
+            const dApplied = daysSince(j.applied);
+            const tracksFollowup = status === 'Applied' || status === 'Interviewing';
+            const refAge = daysSince(j.followUp || j.applied);
+            const due = !j.archived && tracksFollowup && refAge != null && refAge >= FOLLOWUP_DAYS;
             const isOpen = !!open[j.url];
             return (
               <Card key={j.url} variant="outlined" sx={{ opacity: j.archived ? 0.55 : 1 }}>
@@ -112,26 +115,36 @@ export default function TrackerView() {
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Link href={j.url} target="_blank" rel="noopener noreferrer" underline="hover" color="text.primary"
                         sx={{ fontWeight: 600, display: 'block', overflowWrap: 'anywhere' }}>
-                        {j.label || hostOf(j.url) || 'Saved job'}
+                        {j.label || 'Saved job'}
                       </Link>
                       <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
-                        {hostOf(j.url)}{status !== 'Saved' && j.applied ? ` · applied ${d === 0 ? 'today' : d + 'd ago'}` : ''}
+                        {shortUrl(j.url)}
+                        {status !== 'Saved' && j.applied ? ` · applied ${dApplied === 0 ? 'today' : dApplied + 'd ago'}` : ''}
+                        {j.followUp ? ` · followed up ${daysSince(j.followUp) === 0 ? 'today' : daysSince(j.followUp) + 'd ago'}` : ''}
                       </Typography>
                     </Box>
-                    <Chip label={status} size="small" color={STATUS_COLOR[status]} variant="outlined" />
+                    {status !== 'Saved' && <Chip label={status} size="small" color={STATUS_COLOR[status]} variant="outlined" />}
                     <IconButton size="small" onClick={(e) => setMenu({ el: e.currentTarget, job: j })} aria-label="More actions">
                       <MoreVertIcon fontSize="small" />
                     </IconButton>
                   </Stack>
 
-                  <Stack direction="row" spacing={1} sx={{ mt: 1.25 }} alignItems="center">
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.25 }} alignItems="center" flexWrap="wrap" useFlexGap>
                     {status === 'Saved' && (
                       <Button size="small" variant="contained" color="info" onClick={() => setStatus(j.url, 'Applied')}>Mark applied</Button>
                     )}
                     <Button size="small" variant="text" onClick={() => setOpen((p) => ({ ...p, [j.url]: !p[j.url] }))}>
                       {isOpen ? 'Hide' : 'Details'}
                     </Button>
-                    {nudge && <Chip size="small" color="warning" label="Follow up" />}
+                    {tracksFollowup && due && (
+                      <>
+                        <Chip size="small" color="warning" label="Follow up now" />
+                        <Button size="small" variant="outlined" color="warning" onClick={() => logFollowUp(j.url)}>Log follow-up</Button>
+                      </>
+                    )}
+                    {tracksFollowup && !due && refAge != null && (
+                      <Typography variant="caption" color="text.secondary">Follow up in {FOLLOWUP_DAYS - refAge}d</Typography>
+                    )}
                     {j.priority && <Chip size="small" color="primary" variant="outlined" label="Priority" />}
                   </Stack>
 

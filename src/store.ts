@@ -9,6 +9,31 @@ const RETIRED: Record<string, 1> = {
 export function hostOf(u: string): string {
   try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; }
 }
+/** A readable title derived from a URL when no label is set. */
+export function prettyTitle(u: string): string {
+  try {
+    const url = new URL(/^https?:\/\//i.test(u) ? u : 'https://' + u);
+    const host = url.hostname.replace(/^www\./, '');
+    const brand = host.split('.')[0];
+    let title = brand.charAt(0).toUpperCase() + brand.slice(1);
+    let words = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() || '')
+      .replace(/\.(html?|php|aspx)$/i, '').replace(/[-_]+/g, ' ').trim();
+    if (/^[0-9a-f-]{16,}$/i.test(words) || /^\d+$/.test(words)) words = ''; // skip ids/uuids
+    if (words && words.length <= 42 && /[a-z]/i.test(words)) {
+      words = words.replace(/\b\w/g, (c) => c.toUpperCase());
+      title += ' — ' + words;
+    }
+    return title;
+  } catch { return 'Saved job'; }
+}
+/** Compact host+path for the secondary line. */
+export function shortUrl(u: string): string {
+  try {
+    const url = new URL(u);
+    const s = url.hostname.replace(/^www\./, '') + (url.pathname && url.pathname !== '/' ? url.pathname : '');
+    return s.length > 52 ? s.slice(0, 51) + '…' : s;
+  } catch { return u; }
+}
 export function normStatus(s?: string): Status {
   return (STATUSES as string[]).indexOf(s || '') > -1 ? (s as Status) : 'Saved';
 }
@@ -46,7 +71,13 @@ function load(): Job[] {
     if (!Array.isArray(arr)) return [];
     return arr
       .filter((it: Job) => it && it.url && !RETIRED[cleanUrl(it.url)])
-      .map((it: Job) => ({ ...it, url: cleanUrl(it.url), status: normStatus(it.status) }));
+      .map((it: Job) => {
+        const url = cleanUrl(it.url);
+        return {
+          ...it, url, status: normStatus(it.status),
+          label: it.label && it.label !== 'Saved job' ? it.label : prettyTitle(url), // backfill weak titles
+        };
+      });
   } catch { return []; }
 }
 
@@ -77,9 +108,11 @@ export function addJob(rawUrl: string, label?: string): boolean {
     if (jobs[i].archived) { const c = [...jobs]; c[i] = { ...c[i], archived: false }; set(c); }
     return false;
   }
-  set([...jobs, { url: u, label: (label || '').trim() || hostOf(u) || 'Saved job', status: 'Saved' }]);
+  set([...jobs, { url: u, label: (label || '').trim() || prettyTitle(u), status: 'Saved' }]);
   return true;
 }
+/** Log a follow-up today (restarts the follow-up countdown). */
+export function logFollowUp(url: string) { updateJob(url, { followUp: today() }); }
 export function updateJob(url: string, patch: Partial<Job>) {
   set(jobs.map((j) => (j.url === url ? { ...j, ...patch } : j)));
 }

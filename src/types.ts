@@ -7,6 +7,7 @@ export interface Job {
   label: string;
   status: Status;
   applied?: string;
+  followUp?: string;
   note?: string;
   contact?: string;
   resume?: string;
