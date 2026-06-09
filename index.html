@@ -41,7 +41,14 @@ body{
   font-family:var(--font-body);color:var(--ink);background:var(--bg);
   line-height:1.5;padding:0 18px 70px;
 }
-.wrap{max-width:1060px;margin:0 auto}
+.wrap{max-width:1060px;margin:0 auto;display:flex;flex-direction:column}
+header{order:-10}
+#copydeck{order:-3}
+#shortlist{order:-2}
+#briefpicks{order:-1}
+.discoverhead{margin-top:48px;padding-top:24px;border-top:2px solid var(--line2)}
+.discoverhead h2{font-family:var(--font-head);font-weight:600;font-size:1.55rem;letter-spacing:-.01em}
+.discoverhead .dsub{color:var(--muted);font-size:.9rem;margin-top:4px;max-width:62ch}
 header{padding:40px 0 22px;border-bottom:1px solid var(--line)}
 .kicker{font-family:var(--font-body);font-size:.72rem;letter-spacing:.2em;color:var(--amber);text-transform:uppercase}
 h1{font-family:var(--font-head);font-weight:600;letter-spacing:-.015em;
@@ -282,12 +289,15 @@ footer h3,footer ol{display:none}
   <div id="cdBoard" class="kitwrap"></div>
 </section>
 
+<div class="discoverhead">
+  <h2>Search &amp; Discover Jobs</h2>
+  <p class="dsub">Find more openings beyond your queue — filter the full board, run the hidden-jobs ATS search, and fire entry-title searches across every board.</p>
+</div>
 <div class="controls">
   <input id="search" type="text" placeholder="Search tiles…  (e.g. 'GRC', 'welder', 'remote', 'Spokane')">
   <button id="filterToggle" type="button" class="filtertoggle" aria-expanded="false">Filters</button>
   <div class="chips" id="filterChips" hidden>
     <span class="chip on" data-f="all">All</span>
-    <span class="chip" data-f="brief">Apply Now</span>
     <span class="chip" data-f="itsupport">IT Support</span>
     <span class="chip" data-f="grc">Cyber / GRC</span>
     <span class="chip" data-f="trades">Trades</span>
@@ -389,7 +399,7 @@ footer h3,footer ol{display:none}
 </section>
 
 <!-- 00 BRIEF PICKS — APPLY THIS WEEK -->
-<section class="lane">
+<section class="lane pinned" id="briefpicks">
   <div class="shead"><span class="snum">★</span><h2>Apply This Week — Brief Picks</h2></div>
   <p class="snote">Vetted from your IT Job Search Brief, ordered by fit. "Qualify now" = you meet the minimums today. Cleared/federal desks only need "able to obtain" Public Trust. Re-confirm each link is live, then ★-save to track. Lead with the local + veteran/clearance angle.</p>
   <div class="grid">
@@ -693,7 +703,7 @@ footer h3,footer ol{display:none}
 (function(){
   var chips=document.querySelectorAll('.controls .chip');
   var search=document.getElementById('search');
-  var cards=document.querySelectorAll('section.lane .card');
+  var cards=document.querySelectorAll('section.lane:not(.pinned) .card');
   var empty=document.getElementById('empty');
   var active='all';
   function apply(){
@@ -708,7 +718,7 @@ footer h3,footer ol{display:none}
       c.style.display=show?'':'none';
       if(show)anyVisible=true;
     });
-    document.querySelectorAll('section.lane').forEach(function(s){
+    document.querySelectorAll('section.lane:not(.pinned)').forEach(function(s){
       var vis=Array.prototype.some.call(s.querySelectorAll('.card'),function(c){return c.style.display!=='none';});
       s.style.display=vis?'':'none';
     });
