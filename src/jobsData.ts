@@ -201,7 +201,7 @@ export const GROUPS: Group[] = [
   { id: 'remotecos', label: 'Remote-First Cos', tiles: [
     t('Automattic', '"Happiness Engineer" — non-traditional backgrounds', 'https://automattic.com/work-with-us/'),
     t('Zapier', 'Support Specialist roles', 'https://zapier.com/jobs'),
-    t('Help Scout', 'Customer support', 'https://www.helpscout.com/careers/'),
+    t('Help Scout', 'Customer support', 'https://www.helpscout.com/company/careers/'),
     t('GitLab', 'Support + ops roles', 'https://about.gitlab.com/jobs/'),
     t('Deel', 'Heavy support / ops hiring', 'https://www.deel.com/careers'),
     t('Gusto', 'Payroll SaaS; customer support', 'https://gusto.com/about/careers'),
@@ -210,13 +210,13 @@ export const GROUPS: Group[] = [
     t('Canva', 'Support / customer success', 'https://www.canva.com/careers/'),
   ]},
   { id: 'seccos', label: 'Security / GRC Cos', tiles: [
-    t('Vanta', 'SOC 2/ISO compliance automation', 'https://www.vanta.com/careers'),
-    t('Drata', 'Compliance automation; GRC/CS', 'https://drata.com/careers'),
+    t('Vanta', 'SOC 2/ISO compliance automation', 'https://www.vanta.com/company/careers'),
+    t('Drata', 'Compliance automation; GRC/CS', 'https://drata.com/about/careers'),
     t('Secureframe', 'Compliance automation', 'https://secureframe.com/careers'),
     t('Wiz', 'Cloud security', 'https://www.wiz.io/careers'),
-    t('CrowdStrike', 'Endpoint security; remote-friendly', 'https://www.crowdstrike.com/careers/'),
+    t('CrowdStrike', 'Endpoint security; remote-friendly', 'https://www.crowdstrike.com/en-us/careers/'),
     t('SailPoint', 'Identity security / IGA', 'https://www.sailpoint.com/company/careers'),
-    t('BigID', 'Data security & governance', 'https://bigid.com/careers/'),
+    t('BigID', 'Data security & governance', 'https://bigid.com/company/careers/'),
   ]},
   { id: 'staffing', label: 'Staffing', tiles: [
     t('TEKsystems', 'Largest IT staffing firm', 'https://www.teksystems.com/en/search-jobs'),
