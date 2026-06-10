@@ -54,20 +54,22 @@ export const ATS: { name: string; domain: string; site: string }[] = [
 // ---- Curated groups ----
 export const GROUPS: Group[] = [
   { id: 'brief', label: 'Apply Now', tiles: [
-    t('Numerica Credit Union', 'IT Specialist 1 · $28–43/hr · qualify now', 'https://www.numericacu.com/careers'),
-    t('Maximus', 'Help Desk (CMS) · ~$18–20/hr · Public Trust', 'https://maximus.avature.net/careers/Job-Search'),
-    t('Ellumen', 'JOMIS Service Desk · no IT exp required', 'https://www.ellumen.com/careers'),
-    t('SAIC', 'IT Service Desk Analyst · up to $40k · Public Trust', 'https://jobs.saic.com/jobs/17740015-it-service-desk-analyst'),
-    t('SAIC · FAA', 'Service Desk Agent · able to obtain Public Trust', 'https://jobs.saic.com/jobs/17637953-service-desk-agent'),
-    t('Koniag (KTIS)', 'Tier 1 · 3rd shift · able to obtain Public Trust', 'https://www.clearancejobs.com/jobs/8766398'),
-    t('Computer Performance Unltd', 'Help Desk Tier 1 (MSP) · ~$19–26/hr', 'https://www.google.com/search?q=Computer+Performance+Unlimited+Spokane+Help+Desk+Tier+1+careers'),
+    // Fresh batch (refreshed Jun 2026) — durable employer pages + 1-click "now hiring" boards
+    t('STCU (Spokane)', 'IT / tech roles · local credit union', 'https://stcu.org/here-for-good/about-stcu/careers'),
+    t('Numerica Credit Union', 'IT Support / Systems · ~$28–43/hr · local', 'https://www.numericacu.com/careers'),
+    t('Leidos · Public Trust', 'Help Desk / Service Desk Tier 1 · clearable', 'https://careers.leidos.com/search/clearance/public-trust/jobs/in'),
+    t('Maximus', 'CSR / Help Desk · paid training · WFH after · $14–20/hr', 'https://maximus.avature.net/careers/USHome'),
     t('Amazon OTS', 'IT Support · $23–37/hr · Spokane onsite', 'https://www.amazon.jobs/en/search?base_query=IT+Support&loc_query=Spokane%2C+WA'),
-    t('Amazon Apprenticeship', 'Technical Apprenticeship · ≥$51k · veterans', 'https://www.amazon.jobs/en/search?base_query=military+technical+apprenticeship'),
-    t('Concentrix', 'Tech Support Rep · ~$18–20/hr · trains from scratch', 'https://jobs.concentrix.com'),
     t('City of Spokane', 'IT classifications · onsite · veteran preference', 'https://www.governmentjobs.com/careers/spokanecity'),
-    t('Spokane County', 'IT Support / Specialist · onsite', 'https://www.spokanecounty.gov/Jobs.aspx'),
-    t('Goodwill INW', 'IT Support Technician · verify still open', 'https://discovergoodwill.applicantpro.com/jobs/'),
-    t('Conduent', 'Technical Helpdesk Analyst I · confirm WA', 'https://careers.conduent.com/us/en'),
+    t('ZipRecruiter · Help Desk (Spokane)', '$19–41/hr · 1-click apply · now hiring', 'https://www.ziprecruiter.com/Jobs/Help-Desk-Technician/-in-Spokane,WA'),
+    t('ZipRecruiter · Entry IT Help Desk (Spokane)', 'Entry-level · 1-click apply', 'https://www.ziprecruiter.com/Jobs/Entry-Level-It-Help-Desk/-in-Spokane,WA'),
+    t('LinkedIn · Help Desk (Spokane)', '~58 local listings · Easy Apply', 'https://www.linkedin.com/jobs/help-desk-jobs-spokane-wa'),
+    t('Indeed · Help Desk Tech (Spokane)', '20+ local openings', 'https://www.indeed.com/q-help-desk-technician-l-spokane,-wa-jobs.html'),
+    t('ClearanceJobs · Help Desk (Remote)', 'Cleared / clearable desks', 'https://www.clearancejobs.com/q-help-desk-remote'),
+    t('ZipRecruiter · Public Trust Help Desk', 'Clearable govcon · $19–38/hr', 'https://www.ziprecruiter.com/Jobs/Help-Desk-Technician-Public-Trust-Clearance'),
+    t('Indeed · Remote Tech Support (Veterans)', 'Vet-friendly · work-from-home', 'https://www.indeed.com/q-remote-tech-support-veterans-jobs.html'),
+    t('ZipRecruiter · Entry Remote GRC Analyst', '$26–48/hr · entry-level · now hiring', 'https://www.ziprecruiter.com/Jobs/Entry-Level-Remote-Grc-Analyst'),
+    t('Glassdoor · Remote GRC Analyst', '~77 openings (Jun 2026)', 'https://www.glassdoor.com/Job/remote-grc-analyst-jobs-SRCH_IL.0,6_IS11047_KO7,18.htm'),
   ]},
   { id: 'income', label: 'Quick Income', tiles: [
     // Gig apps — start this week, own hours, no interview

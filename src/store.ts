@@ -63,21 +63,32 @@ export function daysSince(s?: string): number | null {
   const t = Date.parse(s);
   return isNaN(t) ? null : Math.floor((Date.now() - t) / 86400000);
 }
+/** Normalize any incoming list (localStorage OR cloud): clean URLs/labels,
+ *  drop retired/blank, backfill weak titles, de-dupe by URL. Idempotent. */
+export function sanitizeJobs(arr: unknown): Job[] {
+  if (!Array.isArray(arr)) return [];
+  const out: Job[] = [];
+  const seen = new Set<string>();
+  for (const it of arr as Job[]) {
+    if (!it || !it.url) continue;
+    const url = cleanUrl(it.url);
+    if (!url || RETIRED[url]) continue;
+    const key = dedupKey(url);
+    if (seen.has(key)) continue; // first occurrence wins
+    seen.add(key);
+    const label = (it.label || '').replace(/[<>]/g, '').trim();
+    out.push({
+      ...it, url, status: normStatus(it.status),
+      label: label && label !== 'Saved job' ? label : prettyTitle(url), // backfill weak titles
+    });
+  }
+  return out;
+}
 function load(): Job[] {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw == null) return [];
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) return [];
-    return arr
-      .filter((it: Job) => it && it.url && !RETIRED[cleanUrl(it.url)])
-      .map((it: Job) => {
-        const url = cleanUrl(it.url);
-        return {
-          ...it, url, status: normStatus(it.status),
-          label: it.label && it.label !== 'Saved job' ? it.label : prettyTitle(url), // backfill weak titles
-        };
-      });
+    return sanitizeJobs(JSON.parse(raw));
   } catch { return []; }
 }
 
@@ -134,7 +145,7 @@ export function isSaved(url: string): boolean {
 
 // Used by the cloud-sync layer to read/replace the whole list.
 export function getAllJobs(): Job[] { return jobs; }
-export function replaceAll(next: Job[]) { set(Array.isArray(next) ? next : []); }
+export function replaceAll(next: Job[]) { set(sanitizeJobs(next)); }
 
 /** Quick-link helper: add the job (if new) then set a status. */
 export function setStatusByUrl(rawUrl: string, status: Status, label?: string) {

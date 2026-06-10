@@ -39,7 +39,8 @@ export default function CloudSync() {
       const next = seed ? mergeLists(cloud, getAllJobs()) : (cloud != null ? cloud : getAllJobs());
       applying.current = true;
       replaceAll(next);
-      if (seed) await pushNow(next, u);
+      // push the sanitized stored list back (cleans any <> / dupes in the cloud blob)
+      if (seed) await pushNow(getAllJobs(), u);
       else setMsg(`Synced · ${u.email}`);
     } catch {
       setMsg('Saved locally — cloud error');
