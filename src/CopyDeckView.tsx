@@ -24,6 +24,11 @@ const DESIGN_AI: Snippet = {
   body: "I'm a design technologist who ships. 10+ years across product and visual design, design systems, and front-end (React) — and the last couple of years building AI-assisted workflows end to end. Where I'm most useful is the seam between design and engineering: turning rough ideas into working, well-documented prototypes, building and maintaining design systems in code, and wiring LLM features (prompting, tool-use, retrieval) into real product interfaces.\n\nRecent work: rebuilt a React/Vite design system, and designed + shipped an AI-driven application-tracking app (React, MUI, Supabase). I move fast, document clearly, and like owning the messy middle between design and code.\n\nPortfolio + resume attached — happy to talk.\n\n— add your name + portfolio links here —",
 };
 
+const STUDY_8020: Snippet = {
+  label: 'Study plan — 80/20',
+  body: "North star: the portfolio is the hiring currency. If I do only three things:\n\n1) Write up Apply Board this week (portfolio Piece 1).\n2) Ship one applied-AI product (Piece 3) — LLM + RAG + tool-use + evals; then harden it toward FastAPI + a task queue + AWS + observability.\n3) Pass Azure AI-102 (or AWS AI Practitioner if targeting AWS shops like Klaviyo).\n\nNear-term roles to search now: Design Engineer, Front-End Engineer (React/TS), Applied AI Engineer, AI Product Engineer, Forward-Deployed Engineer.\n\nFull plan (Design Technologist competency map + Klaviyo AI-eng track): see the “Portfolio + Learning Plan” Google Doc in Drive.",
+};
+
 function load(): Snippet[] {
   let arr: Snippet[] = DEFAULTS;
   try { const r = JSON.parse(localStorage.getItem(KEY) || 'null'); if (Array.isArray(r) && r.length) arr = r; } catch { /* ignore */ }
@@ -32,6 +37,13 @@ function load(): Snippet[] {
     if (!localStorage.getItem('rjb_deck_designai')) {
       if (!arr.some((s) => /design tech|ai engineer|design \/ ai/i.test(s.label || ''))) arr = [...arr, DESIGN_AI];
       localStorage.setItem('rjb_deck_designai', '1');
+    }
+  } catch { /* ignore */ }
+  // One-time: seed the study-plan 80/20 quick reference.
+  try {
+    if (!localStorage.getItem('rjb_deck_study8020')) {
+      if (!arr.some((s) => /80\/20|study plan/i.test(s.label || ''))) arr = [...arr, STUDY_8020];
+      localStorage.setItem('rjb_deck_study8020', '1');
     }
   } catch { /* ignore */ }
   return arr;
