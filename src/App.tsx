@@ -4,14 +4,19 @@ import TrackerView from './TrackerView';
 import DiscoverView from './DiscoverView';
 import CopyDeckView from './CopyDeckView';
 import CloudSync from './CloudSync';
+import CaseStudyView from './CaseStudyView';
 import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
 import { STATUSES } from './types';
 
 export default function App() {
   const [tab, setTab] = useState(0);
 
+  // Shareable portfolio case-study page: ?case=<slug> renders full-screen (no tab shell).
+  const caseSlug = new URLSearchParams(window.location.search).get('case');
+
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links)
   useEffect(() => {
+    if (caseSlug) return; // skip ingestion on the case-study page
     const qp = new URLSearchParams(window.location.search);
     const label = qp.get('t') || qp.get('title') || '';
     let acted = false;
@@ -25,7 +30,9 @@ export default function App() {
       window.history.replaceState(null, '', window.location.pathname + (s ? '?' + s : '') + window.location.hash);
       setTab(0);
     }
-  }, []);
+  }, [caseSlug]);
+
+  if (caseSlug) return <CaseStudyView slug={caseSlug} />;
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 2.5, sm: 4 } }}>
