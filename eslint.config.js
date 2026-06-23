@@ -30,7 +30,7 @@ export default tseslint.config(
   },
   // Node-context files (build scripts + config)
   {
-    files: ['scripts/**/*.mjs', 'vite.config.ts', 'eslint.config.js'],
+    files: ['scripts/**/*.mjs', 'vite.config.ts', 'eslint.config.js', 'playwright.config.ts'],
     languageOptions: { globals: globals.node },
   },
   // Disable stylistic rules that conflict with Prettier

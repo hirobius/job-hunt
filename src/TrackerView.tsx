@@ -150,6 +150,7 @@ export default function TrackerView() {
           fullWidth
           size="small"
           placeholder="Paste a job URL…"
+          slotProps={{ htmlInput: { 'aria-label': 'Job URL' } }}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => {
