@@ -6,8 +6,10 @@ const body = '"Satoshi", system-ui, -apple-system, sans-serif';
 
 // Palette is GENERATED from @hirobius/design-system tokens (light + dark) with the jade
 // brand applied — see scripts/build-hds-tokens.mjs and docs/adr/0001. No hardcoded brand
-// colors here. success/info stay app-defined (HDS feedback hues not yet mapped);
-// secondary/warning use MUI defaults (HDS has no second accent — its `secondary` is neutral).
+// colors here. success/warning/info stay app-defined (HDS feedback hues not yet mapped).
+// success/warning are mode-aware: the bright dark-mode values fail WCAG AA for small text
+// on light surfaces (chip labels, the "gaps"/"Not claimed" overlines, success/error text
+// buttons), so light mode uses darker variants ≥4.5:1 — see src/theme.contrast.test.ts.
 export function makeTheme(mode: 'light' | 'dark'): Theme {
   const p = hdsPalette[mode];
   return createTheme({
@@ -15,7 +17,8 @@ export function makeTheme(mode: 'light' | 'dark'): Theme {
       mode,
       primary: { main: p.primaryMain, contrastText: p.primaryContrast },
       error: { main: p.errorMain, contrastText: p.errorContrast },
-      success: { main: '#34d39e' },
+      success: { main: mode === 'dark' ? '#34d39e' : '#047857' },
+      warning: { main: mode === 'dark' ? '#ffa726' : '#b45309' },
       info: { main: '#49c7ff' },
       background: { default: p.backgroundDefault, paper: p.backgroundPaper },
       divider: p.divider,
