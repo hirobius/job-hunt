@@ -31,14 +31,28 @@ export default function App() {
     const qp = new URLSearchParams(window.location.search);
     const label = qp.get('t') || qp.get('title') || '';
     let acted = false;
-    if (qp.get('add')) { addJob(qp.get('add')!, label); acted = true; }
-    if (qp.get('applied')) { markAppliedByUrl(qp.get('applied')!, label); acted = true; }
-    const st = qp.get('status'), su = qp.get('u');
-    if (st && su && (STATUSES as string[]).includes(st)) { setStatusByUrl(su, st as never, label); acted = true; }
+    if (qp.get('add')) {
+      addJob(qp.get('add')!, label);
+      acted = true;
+    }
+    if (qp.get('applied')) {
+      markAppliedByUrl(qp.get('applied')!, label);
+      acted = true;
+    }
+    const st = qp.get('status'),
+      su = qp.get('u');
+    if (st && su && (STATUSES as string[]).includes(st)) {
+      setStatusByUrl(su, st as never, label);
+      acted = true;
+    }
     if (acted) {
       ['add', 'applied', 'status', 'u', 't', 'title'].forEach((k) => qp.delete(k));
       const s = qp.toString();
-      window.history.replaceState(null, '', window.location.pathname + (s ? '?' + s : '') + window.location.hash);
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + (s ? '?' + s : '') + window.location.hash,
+      );
       // Queue (tab 0) is already the default on mount, so no tab change is needed here.
     }
   }, [caseSlug]);
@@ -53,7 +67,10 @@ export default function App() {
   return (
     <Container maxWidth="md" sx={{ py: { xs: 2.5, sm: 4 } }}>
       <Typography variant="h1" sx={{ mb: 2 }}>
-        Apply <Box component="span" sx={{ color: 'primary.main' }}>Board</Box>
+        Apply{' '}
+        <Box component="span" sx={{ color: 'primary.main' }}>
+          Board
+        </Box>
       </Typography>
 
       <CloudSync />

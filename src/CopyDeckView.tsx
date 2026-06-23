@@ -1,13 +1,26 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, CardContent, Collapse, InputBase, Stack, TextField } from '@mui/material';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Collapse,
+  InputBase,
+  Stack,
+  TextField,
+} from '@mui/material';
 
-interface Snippet { label: string; body: string; open?: boolean; }
+interface Snippet {
+  label: string;
+  body: string;
+  open?: boolean;
+}
 const KEY = 'rjb_copydeck_v1';
 
 const DEFAULTS: Snippet[] = [
   {
     label: 'Quick outreach note',
-    body: "U.S. Air Force veteran in Spokane, WA, available immediately. Current Reserve member holding a DoD Secret clearance (Tier 3, in-scope through 2029, inactive but reactivation-eligible). Six years Air National Guard plus ten-plus years of enterprise experience at Microsoft and T-Mobile. Pursuing CompTIA Security+ and ISC2 Certified in Cybersecurity. Resume attached, happy to talk.\n\n— add your name + phone + email here —",
+    body: 'U.S. Air Force veteran in Spokane, WA, available immediately. Current Reserve member holding a DoD Secret clearance (Tier 3, in-scope through 2029, inactive but reactivation-eligible). Six years Air National Guard plus ten-plus years of enterprise experience at Microsoft and T-Mobile. Pursuing CompTIA Security+ and ISC2 Certified in Cybersecurity. Resume attached, happy to talk.\n\n— add your name + phone + email here —',
   },
   {
     label: 'Formal cover letter',
@@ -26,26 +39,36 @@ const DESIGN_AI: Snippet = {
 
 const STUDY_8020: Snippet = {
   label: 'Study plan — 80/20',
-  body: "North star: the portfolio is the hiring currency. If I do only three things:\n\n1) Write up Apply Board this week (portfolio Piece 1).\n2) Ship one applied-AI product (Piece 3) — LLM + RAG + tool-use + evals; then harden it toward FastAPI + a task queue + AWS + observability.\n3) Pass Azure AI-102 (or AWS AI Practitioner if targeting AWS shops like Klaviyo).\n\nNear-term roles to search now: Design Engineer, Front-End Engineer (React/TS), Applied AI Engineer, AI Product Engineer, Forward-Deployed Engineer.\n\nFull plan (Design Technologist competency map + Klaviyo AI-eng track): see the “Portfolio + Learning Plan” Google Doc in Drive.",
+  body: 'North star: the portfolio is the hiring currency. If I do only three things:\n\n1) Write up Apply Board this week (portfolio Piece 1).\n2) Ship one applied-AI product (Piece 3) — LLM + RAG + tool-use + evals; then harden it toward FastAPI + a task queue + AWS + observability.\n3) Pass Azure AI-102 (or AWS AI Practitioner if targeting AWS shops like Klaviyo).\n\nNear-term roles to search now: Design Engineer, Front-End Engineer (React/TS), Applied AI Engineer, AI Product Engineer, Forward-Deployed Engineer.\n\nFull plan (Design Technologist competency map + Klaviyo AI-eng track): see the “Portfolio + Learning Plan” Google Doc in Drive.',
 };
 
 function load(): Snippet[] {
   let arr: Snippet[] = DEFAULTS;
-  try { const r = JSON.parse(localStorage.getItem(KEY) || 'null'); if (Array.isArray(r) && r.length) arr = r; } catch { /* ignore */ }
+  try {
+    const r = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (Array.isArray(r) && r.length) arr = r;
+  } catch {
+    /* ignore */
+  }
   // One-time: seed the Design/AI outreach snippet for existing decks (respects later deletion).
   try {
     if (!localStorage.getItem('rjb_deck_designai')) {
-      if (!arr.some((s) => /design tech|ai engineer|design \/ ai/i.test(s.label || ''))) arr = [...arr, DESIGN_AI];
+      if (!arr.some((s) => /design tech|ai engineer|design \/ ai/i.test(s.label || '')))
+        arr = [...arr, DESIGN_AI];
       localStorage.setItem('rjb_deck_designai', '1');
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   // One-time: seed the study-plan 80/20 quick reference.
   try {
     if (!localStorage.getItem('rjb_deck_study8020')) {
       if (!arr.some((s) => /80\/20|study plan/i.test(s.label || ''))) arr = [...arr, STUDY_8020];
       localStorage.setItem('rjb_deck_study8020', '1');
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return arr;
 }
 
@@ -53,35 +76,75 @@ export default function CopyDeckView() {
   const [items, setItems] = useState<Snippet[]>(load);
   const [copied, setCopied] = useState<number | null>(null);
 
-  useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch { /* ignore */ } }, [items]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(items));
+    } catch {
+      /* ignore */
+    }
+  }, [items]);
 
-  const patch = (i: number, p: Partial<Snippet>) => setItems((prev) => prev.map((s, k) => (k === i ? { ...s, ...p } : s)));
-  const addSnippet = () => setItems((prev) => [...prev, { label: 'New snippet', body: '', open: true }]);
-  const del = (i: number) => { if (window.confirm(`Delete “${items[i].label || 'this snippet'}”? This can't be undone.`)) setItems((prev) => prev.filter((_, k) => k !== i)); };
+  const patch = (i: number, p: Partial<Snippet>) =>
+    setItems((prev) => prev.map((s, k) => (k === i ? { ...s, ...p } : s)));
+  const addSnippet = () =>
+    setItems((prev) => [...prev, { label: 'New snippet', body: '', open: true }]);
+  const del = (i: number) => {
+    if (window.confirm(`Delete “${items[i].label || 'this snippet'}”? This can't be undone.`))
+      setItems((prev) => prev.filter((_, k) => k !== i));
+  };
   const copy = (i: number) => {
     const txt = items[i].body;
-    const done = () => { setCopied(i); setTimeout(() => setCopied(null), 1500); };
-    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(done, () => patch(i, { open: true }));
+    const done = () => {
+      setCopied(i);
+      setTimeout(() => setCopied(null), 1500);
+    };
+    if (navigator.clipboard?.writeText)
+      navigator.clipboard.writeText(txt).then(done, () => patch(i, { open: true }));
     else patch(i, { open: true });
   };
 
   return (
     <Box>
-      <Button variant="outlined" onClick={addSnippet} sx={{ mb: 2 }}>New snippet</Button>
+      <Button variant="outlined" onClick={addSnippet} sx={{ mb: 2 }}>
+        New snippet
+      </Button>
       <Stack spacing={1.5}>
         {items.map((s, i) => (
           <Card key={i} variant="outlined">
             <CardContent>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
-                <InputBase value={s.label} placeholder="Label" onChange={(e) => patch(i, { label: e.target.value })}
-                  sx={{ flex: '1 1 100%', fontFamily: '"Clash Display", sans-serif', fontWeight: 600, fontSize: '1.1rem', mb: 0.5 }} />
-                <Button size="small" onClick={() => patch(i, { open: !s.open })}>{s.open ? 'Hide' : 'Show'}</Button>
-                <Button size="small" color="success" onClick={() => copy(i)}>{copied === i ? 'Copied' : 'Copy'}</Button>
-                <Button size="small" color="error" onClick={() => del(i)}>Delete</Button>
+                <InputBase
+                  value={s.label}
+                  placeholder="Label"
+                  onChange={(e) => patch(i, { label: e.target.value })}
+                  sx={{
+                    flex: '1 1 100%',
+                    fontFamily: '"Clash Display", sans-serif',
+                    fontWeight: 600,
+                    fontSize: '1.1rem',
+                    mb: 0.5,
+                  }}
+                />
+                <Button size="small" onClick={() => patch(i, { open: !s.open })}>
+                  {s.open ? 'Hide' : 'Show'}
+                </Button>
+                <Button size="small" color="success" onClick={() => copy(i)}>
+                  {copied === i ? 'Copied' : 'Copy'}
+                </Button>
+                <Button size="small" color="error" onClick={() => del(i)}>
+                  Delete
+                </Button>
               </Stack>
               <Collapse in={!!s.open}>
-                <TextField fullWidth multiline minRows={4} value={s.body} placeholder="Paste or write your snippet…"
-                  onChange={(e) => patch(i, { body: e.target.value })} sx={{ mt: 1 }} />
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={4}
+                  value={s.body}
+                  placeholder="Paste or write your snippet…"
+                  onChange={(e) => patch(i, { body: e.target.value })}
+                  sx={{ mt: 1 }}
+                />
               </Collapse>
             </CardContent>
           </Card>

@@ -1,17 +1,45 @@
 import { useMemo, useState } from 'react';
 import {
-  Box, Button, Card, CardContent, Chip, Collapse, IconButton, Link, Menu, MenuItem,
-  Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Collapse,
+  IconButton,
+  Link,
+  Menu,
+  MenuItem,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { useJobs, addJob, updateJob, setStatus, removeJob, logFollowUp, prettyTitle, shortUrl, normStatus, daysSince } from './store';
+import {
+  useJobs,
+  addJob,
+  updateJob,
+  setStatus,
+  removeJob,
+  logFollowUp,
+  prettyTitle,
+  shortUrl,
+  normStatus,
+  daysSince,
+} from './store';
 import type { Job, Status } from './types';
 
 type Filter = 'active' | 'all' | Status | 'retired';
 const FOLLOWUP_DAYS = 7;
 
 const STATUS_COLOR: Record<Status, 'warning' | 'info' | 'secondary' | 'success' | 'error'> = {
-  Saved: 'warning', Applied: 'info', Interviewing: 'secondary', Offer: 'success', Rejected: 'error',
+  Saved: 'warning',
+  Applied: 'info',
+  Interviewing: 'secondary',
+  Offer: 'success',
+  Rejected: 'error',
 };
 
 function matches(j: Job, f: Filter): boolean {
@@ -22,13 +50,45 @@ function matches(j: Job, f: Filter): boolean {
 }
 
 function exportCsv(jobs: Job[]) {
-  const rows = [['label', 'url', 'status', 'applied', 'resume', 'contact', 'salary', 'priority', 'retired', 'note']];
-  jobs.forEach((j) => rows.push([j.label, j.url, normStatus(j.status), j.applied || '', j.resume || '', j.contact || '', j.salary || '', j.priority ? 'yes' : '', j.archived ? 'yes' : '', j.note || '']));
-  const csv = rows.map((r) => r.map((c) => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  const rows = [
+    [
+      'label',
+      'url',
+      'status',
+      'applied',
+      'resume',
+      'contact',
+      'salary',
+      'priority',
+      'retired',
+      'note',
+    ],
+  ];
+  jobs.forEach((j) =>
+    rows.push([
+      j.label,
+      j.url,
+      normStatus(j.status),
+      j.applied || '',
+      j.resume || '',
+      j.contact || '',
+      j.salary || '',
+      j.priority ? 'yes' : '',
+      j.archived ? 'yes' : '',
+      j.note || '',
+    ]),
+  );
+  const csv = rows
+    .map((r) => r.map((c) => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(','))
+    .join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'apply-board.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'apply-board.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
@@ -49,37 +109,77 @@ export default function TrackerView() {
   const [menu, setMenu] = useState<{ el: HTMLElement; job: Job } | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
-  const shown = useMemo(() => (
-    jobs
-      .map((j, i) => ({ j, i }))
-      .sort((a, b) => {
-        const aa = a.j.archived ? 1 : 0, ba = b.j.archived ? 1 : 0;
-        if (aa !== ba) return aa - ba;
-        const pa = a.j.priority ? 0 : 1, pb = b.j.priority ? 0 : 1;
-        if (pa !== pb) return pa - pb;
-        return a.i - b.i;
-      })
-      .map((x) => x.j)
-      .filter((j) => matches(j, filter))
-  ), [jobs, filter]);
+  const shown = useMemo(
+    () =>
+      jobs
+        .map((j, i) => ({ j, i }))
+        .sort((a, b) => {
+          const aa = a.j.archived ? 1 : 0,
+            ba = b.j.archived ? 1 : 0;
+          if (aa !== ba) return aa - ba;
+          const pa = a.j.priority ? 0 : 1,
+            pb = b.j.priority ? 0 : 1;
+          if (pa !== pb) return pa - pb;
+          return a.i - b.i;
+        })
+        .map((x) => x.j)
+        .filter((j) => matches(j, filter)),
+    [jobs, filter],
+  );
 
-  const submit = () => { addJob(url); setUrl(''); };
+  const submit = () => {
+    addJob(url);
+    setUrl('');
+  };
   const fld = (j: Job, key: keyof Job, label: string, multiline = false) => (
-    <TextField size="small" fullWidth label={label} multiline={multiline} minRows={multiline ? 2 : undefined}
-      value={(j[key] as string) || ''} onChange={(e) => updateJob(j.url, { [key]: e.target.value })} />
+    <TextField
+      size="small"
+      fullWidth
+      label={label}
+      multiline={multiline}
+      minRows={multiline ? 2 : undefined}
+      value={(j[key] as string) || ''}
+      onChange={(e) => updateJob(j.url, { [key]: e.target.value })}
+    />
   );
 
   return (
     <Box>
       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-        <TextField fullWidth size="small" placeholder="Paste a job URL…" value={url}
-          onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} />
-        <Button variant="contained" onClick={submit}>Add</Button>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Paste a job URL…"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') submit();
+          }}
+        />
+        <Button variant="contained" onClick={submit}>
+          Add
+        </Button>
       </Stack>
 
       <Stack direction="row" alignItems="center" sx={{ mb: 2, gap: 1, flexWrap: 'wrap' }}>
-        <ToggleButtonGroup value={filter} exclusive size="small" onChange={(_, v) => v && setFilter(v)}
-          sx={{ flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButton-root': { border: 1, borderColor: 'divider', borderRadius: '999px !important', px: 1.5, py: 0.5, textTransform: 'none' } }}>
+        <ToggleButtonGroup
+          value={filter}
+          exclusive
+          size="small"
+          onChange={(_, v) => v && setFilter(v)}
+          sx={{
+            flexWrap: 'wrap',
+            gap: 0.5,
+            '& .MuiToggleButton-root': {
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: '999px !important',
+              px: 1.5,
+              py: 0.5,
+              textTransform: 'none',
+            },
+          }}
+        >
           <ToggleButton value="active">Active</ToggleButton>
           <ToggleButton value="all">All</ToggleButton>
           <ToggleButton value="Applied">Applied</ToggleButton>
@@ -88,7 +188,14 @@ export default function TrackerView() {
           <ToggleButton value="Rejected">Rejected</ToggleButton>
           <ToggleButton value="retired">Retired</ToggleButton>
         </ToggleButtonGroup>
-        <Button size="small" sx={{ ml: 'auto' }} disabled={!jobs.length} onClick={() => exportCsv(jobs)}>Export CSV</Button>
+        <Button
+          size="small"
+          sx={{ ml: 'auto' }}
+          disabled={!jobs.length}
+          onClick={() => exportCsv(jobs)}
+        >
+          Export CSV
+        </Button>
       </Stack>
 
       {shown.length === 0 ? (
@@ -113,39 +220,93 @@ export default function TrackerView() {
                 <CardContent sx={{ pb: '12px !important' }}>
                   <Stack direction="row" alignItems="flex-start" spacing={1}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Link href={j.url} target="_blank" rel="noopener noreferrer" underline="hover" color="text.primary"
-                        sx={{ fontWeight: 600, display: 'block', overflowWrap: 'anywhere' }}>
+                      <Link
+                        href={j.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        underline="hover"
+                        color="text.primary"
+                        sx={{ fontWeight: 600, display: 'block', overflowWrap: 'anywhere' }}
+                      >
                         {j.label || prettyTitle(j.url)}
                       </Link>
-                      <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ overflowWrap: 'anywhere' }}
+                      >
                         {shortUrl(j.url)}
-                        {status !== 'Saved' && j.applied ? ` · applied ${dApplied === 0 ? 'today' : dApplied + 'd ago'}` : ''}
-                        {j.followUp ? ` · followed up ${daysSince(j.followUp) === 0 ? 'today' : daysSince(j.followUp) + 'd ago'}` : ''}
+                        {status !== 'Saved' && j.applied
+                          ? ` · applied ${dApplied === 0 ? 'today' : dApplied + 'd ago'}`
+                          : ''}
+                        {j.followUp
+                          ? ` · followed up ${daysSince(j.followUp) === 0 ? 'today' : daysSince(j.followUp) + 'd ago'}`
+                          : ''}
                       </Typography>
                     </Box>
-                    {status !== 'Saved' && <Chip label={status} size="small" color={STATUS_COLOR[status]} variant="outlined" />}
-                    <IconButton size="small" onClick={(e) => setMenu({ el: e.currentTarget, job: j })} aria-label="More actions">
+                    {status !== 'Saved' && (
+                      <Chip
+                        label={status}
+                        size="small"
+                        color={STATUS_COLOR[status]}
+                        variant="outlined"
+                      />
+                    )}
+                    <IconButton
+                      size="small"
+                      onClick={(e) => setMenu({ el: e.currentTarget, job: j })}
+                      aria-label="More actions"
+                    >
                       <MoreVertIcon fontSize="small" />
                     </IconButton>
                   </Stack>
 
-                  <Stack direction="row" spacing={1} sx={{ mt: 1.25 }} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ mt: 1.25 }}
+                    alignItems="center"
+                    flexWrap="wrap"
+                    useFlexGap
+                  >
                     {status === 'Saved' && (
-                      <Button size="small" variant="contained" color="info" onClick={() => setStatus(j.url, 'Applied')}>Mark applied</Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="info"
+                        onClick={() => setStatus(j.url, 'Applied')}
+                      >
+                        Mark applied
+                      </Button>
                     )}
-                    <Button size="small" variant="text" onClick={() => setOpen((p) => ({ ...p, [j.url]: !p[j.url] }))}>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => setOpen((p) => ({ ...p, [j.url]: !p[j.url] }))}
+                    >
                       {isOpen ? 'Hide' : 'Details'}
                     </Button>
                     {tracksFollowup && due && (
                       <>
                         <Chip size="small" color="warning" label="Follow up now" />
-                        <Button size="small" variant="outlined" color="warning" onClick={() => logFollowUp(j.url)}>Log follow-up</Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="warning"
+                          onClick={() => logFollowUp(j.url)}
+                        >
+                          Log follow-up
+                        </Button>
                       </>
                     )}
                     {tracksFollowup && !due && refAge != null && (
-                      <Typography variant="caption" color="text.secondary">Follow up in {FOLLOWUP_DAYS - refAge}d</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Follow up in {FOLLOWUP_DAYS - refAge}d
+                      </Typography>
                     )}
-                    {j.priority && <Chip size="small" color="primary" variant="outlined" label="Priority" />}
+                    {j.priority && (
+                      <Chip size="small" color="primary" variant="outlined" label="Priority" />
+                    )}
                   </Stack>
 
                   <Collapse in={isOpen}>
@@ -159,7 +320,17 @@ export default function TrackerView() {
                       {fld(j, 'salary', 'Salary')}
                       <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
                         {research(j.label).map(([name, href]) => (
-                          <Button key={name} size="small" variant="outlined" component={Link} href={href} target="_blank" rel="noopener noreferrer">{name}</Button>
+                          <Button
+                            key={name}
+                            size="small"
+                            variant="outlined"
+                            component={Link}
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {name}
+                          </Button>
                         ))}
                       </Box>
                     </Stack>
@@ -173,11 +344,46 @@ export default function TrackerView() {
 
       <Menu anchorEl={menu?.el} open={!!menu} onClose={() => setMenu(null)}>
         {menu && normStatus(menu.job.status) === 'Saved' && (
-          <MenuItem onClick={() => { setStatus(menu.job.url, 'Applied'); setMenu(null); }}>Mark applied</MenuItem>
+          <MenuItem
+            onClick={() => {
+              setStatus(menu.job.url, 'Applied');
+              setMenu(null);
+            }}
+          >
+            Mark applied
+          </MenuItem>
         )}
-        {menu && <MenuItem onClick={() => { updateJob(menu.job.url, { priority: !menu.job.priority }); setMenu(null); }}>{menu.job.priority ? 'Unpin priority' : 'Pin as priority'}</MenuItem>}
-        {menu && <MenuItem onClick={() => { updateJob(menu.job.url, { archived: !menu.job.archived }); setMenu(null); }}>{menu.job.archived ? 'Unretire' : 'Retire'}</MenuItem>}
-        {menu && <MenuItem onClick={() => { removeJob(menu.job.url); setMenu(null); }} sx={{ color: 'error.main' }}>Remove</MenuItem>}
+        {menu && (
+          <MenuItem
+            onClick={() => {
+              updateJob(menu.job.url, { priority: !menu.job.priority });
+              setMenu(null);
+            }}
+          >
+            {menu.job.priority ? 'Unpin priority' : 'Pin as priority'}
+          </MenuItem>
+        )}
+        {menu && (
+          <MenuItem
+            onClick={() => {
+              updateJob(menu.job.url, { archived: !menu.job.archived });
+              setMenu(null);
+            }}
+          >
+            {menu.job.archived ? 'Unretire' : 'Retire'}
+          </MenuItem>
+        )}
+        {menu && (
+          <MenuItem
+            onClick={() => {
+              removeJob(menu.job.url);
+              setMenu(null);
+            }}
+            sx={{ color: 'error.main' }}
+          >
+            Remove
+          </MenuItem>
+        )}
       </Menu>
     </Box>
   );

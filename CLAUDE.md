@@ -3,12 +3,14 @@
 Project memory for future Claude Code sessions in this repo.
 
 ## What this is
+
 **Apply Board** — a job-application tracker + discovery board, live at
 **https://job-hunt-jade.vercel.app** (repo `hirobius/job-hunt`). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
 commit `f15fd52`).
 
 ## Stack & conventions
+
 - **Vite + React 18 + TypeScript + MUI v6.**
 - **Design language:** jade dark theme; headlines **Clash Display**, body **Satoshi**
   (loaded via Fontshare CDN in `index.html`). Theme in `src/theme.ts`. Uppercase is
@@ -29,6 +31,7 @@ commit `f15fd52`).
   the URL.
 
 ## Build / deploy / verify
+
 - `npm install`, `npm run dev`, `npm run build`, `npm run typecheck`.
 - `vercel.json` builds this as Vite. **`main` is the live production site** — always
   `npm run build` (and ideally `tsc --noEmit`) before pushing to `main`.
@@ -38,6 +41,7 @@ commit `f15fd52`).
   check** — confirm a deploy reaches `READY` before claiming it's live.
 
 ## Notes
+
 - Supabase redirect URLs must include any new origin for magic-link sign-in
   (production `job-hunt-jade.vercel.app` is already allowed).
 - Keep personal contact info OUT of this public repo (letters/snippets ship with a

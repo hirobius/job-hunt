@@ -1,7 +1,10 @@
 // Portfolio case studies, rendered full-screen via ?case=<slug> (see CaseStudyView).
 // Every piece follows the same template: Problem → Approach → Decisions → Outcome → Next.
 
-export interface Decision { title: string; body: string; }
+export interface Decision {
+  title: string;
+  body: string;
+}
 export interface CaseStudy {
   slug: string;
   eyebrow: string;
