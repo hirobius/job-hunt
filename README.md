@@ -21,7 +21,7 @@ outreach snippets, and cross-device cloud sync round it out.
   tool call** (structured JSON, not prose), and _Tailor résumé_ returns grounded **structure**
   that the app renders to clean Markdown — layout owned by code, facts owned by your résumé.
   No fabrication: requirements your résumé can't support are surfaced, not invented. SSRF-guarded
-  link fetch; degrades gracefully with no API key.
+  link fetch; degrades gracefully with no API key. (`docs/adr/0002`)
 - **Accessibility as a gate.** Component tests run **axe-core** WCAG A/AA assertions; controls
   and the theme toggle are keyboard- and screen-reader-friendly.
 - **Tests + CI.** Vitest + Testing Library unit/component tests and a **Playwright** happy-path
