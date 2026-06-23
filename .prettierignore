@@ -1,3 +1,7 @@
 dist
 node_modules
 package-lock.json
+
+# generated token artifacts (regenerate via `npm run tokens:build`)
+src/tokens/hds-tokens.css
+src/theme/hds-dark-palette.generated.ts

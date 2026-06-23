@@ -1,0 +1,39 @@
+/* brand-jade.css — Apply Board brand seed for @hirobius/design-system.
+ *
+ * Principle (see docs/adr/0001): supply ONE seed (jade hue + chroma); the accent
+ * LIGHTNESS comes from the system's contrast logic, not hardcoded brand hex. No
+ * inverted overrides — on-accent text stays HDS's default white because the accent
+ * resolves dark by design. HDS info/feedback stays blue (this only remaps accent).
+ * Load AFTER the generated hds-tokens.css. */
+:root {
+  /* —— the only brand-specific inputs —— */
+  --brand-h: 165.2;
+  --brand-c: 0.14;
+
+  /* accent ramp: hue/chroma from the seed, lightness = system contrast targets */
+  --brand-accent-rest: oklch(0.548 var(--brand-c) var(--brand-h));
+  --brand-accent-hover: oklch(0.498 var(--brand-c) var(--brand-h));
+  --brand-accent-pressed: oklch(0.448 var(--brand-c) var(--brand-h));
+  --brand-accent-subtle: oklch(0.965 0.03 var(--brand-h));
+  --brand-accent-inactive: oklch(0.88 0.075 var(--brand-h));
+  --brand-accent-disabled: oklch(0.93 0.05 var(--brand-h));
+
+  /* map HDS semantic accent -> jade (surgical; info/feedback stays blue) */
+  --semantic-accent-rest: var(--brand-accent-rest);
+  --semantic-accent-hover: var(--brand-accent-hover);
+  --semantic-accent-pressed: var(--brand-accent-pressed);
+  --semantic-accent-subtle: var(--brand-accent-subtle);
+  --semantic-accent-inactive: var(--brand-accent-inactive);
+  --semantic-accent-disabled: var(--brand-accent-disabled);
+  --semantic-accent-content: var(--brand-accent-rest);
+  --semantic-color-surface-accent: var(--brand-accent-rest);
+  --semantic-color-surface-accentSubtle: var(--brand-accent-subtle);
+  --semantic-color-border-accent: var(--brand-accent-rest);
+  --semantic-color-content-accent: var(--brand-accent-rest);
+  /* --semantic-color-content-onAccent: left as HDS default (white). NO inversion. */
+}
+.dark {
+  /* on dark surfaces, accent-as-text lightens for AA (system logic, same seed) */
+  --semantic-accent-content: oklch(0.8 var(--brand-c) var(--brand-h));
+  --semantic-color-content-accent: oklch(0.8 var(--brand-c) var(--brand-h));
+}

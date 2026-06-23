@@ -13,8 +13,15 @@ commit `f15fd52`).
 
 - **Vite + React 18 + TypeScript + MUI v6.**
 - **Design language:** jade dark theme; headlines **Clash Display**, body **Satoshi**
-  (loaded via Fontshare CDN in `index.html`). Theme in `src/theme.ts`. Uppercase is
-  reserved for eyebrows/buttons/labels only.
+  (loaded via Fontshare CDN in `index.html`). Uppercase is reserved for
+  eyebrows/buttons/labels only.
+- **Design tokens:** the MUI palette in `src/theme.ts` is **generated from
+  `@hirobius/design-system` tokens** (dark scheme) with a single jade brand seed.
+  `npm run tokens:build` (`scripts/build-hds-tokens.mjs`) emits `src/tokens/hds-tokens.css`
+  (framework-neutral CSS vars, light+dark) and `src/theme/hds-dark-palette.generated.ts`;
+  brand override in `src/theme/brand-jade.css`. Rationale + tradeoffs in
+  `docs/adr/0001-consume-hds-via-tokens-on-mui.md`. Regen needs `NODE_AUTH_TOKEN`
+  (read:packages); the deployed build does **not** (generated files are committed).
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,

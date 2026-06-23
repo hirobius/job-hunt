@@ -6,7 +6,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules'] },
+  { ignores: ['dist', 'node_modules', 'src/theme/hds-dark-palette.generated.ts'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -28,9 +28,9 @@ export default tseslint.config(
       ],
     },
   },
-  // Node-context config files
+  // Node-context files (build scripts + config)
   {
-    files: ['vite.config.ts', 'eslint.config.js'],
+    files: ['scripts/**/*.mjs', 'vite.config.ts', 'eslint.config.js'],
     languageOptions: { globals: globals.node },
   },
   // Disable stylistic rules that conflict with Prettier

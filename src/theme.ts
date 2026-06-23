@@ -1,20 +1,24 @@
 import { createTheme } from '@mui/material/styles';
+import { hdsDarkPalette as hds } from './theme/hds-dark-palette.generated';
 
 const head = '"Clash Display", system-ui, sans-serif';
 const body = '"Satoshi", system-ui, -apple-system, sans-serif';
 
-// Jade dark. Headlines = Clash Display, everything else = Satoshi.
-// Deliberately restrained type ramp: one display size, one heading size,
-// body, and small — minimal variance.
+// Palette is GENERATED from @hirobius/design-system tokens (dark scheme) with the jade
+// brand applied — see scripts/build-hds-tokens.mjs and docs/adr/0001. No hardcoded brand
+// colors here. Headlines = Clash Display, body = Satoshi; restrained type ramp retained.
+// success/info stay app-defined (HDS feedback hues not yet mapped); secondary/warning use
+// MUI's dark defaults (HDS has no second accent — its `secondary` role is a neutral).
 export const theme = createTheme({
   palette: {
     mode: 'dark',
-    primary: { main: '#1fc28f', contrastText: '#06140f' }, // jade
+    primary: { main: hds.primaryMain, contrastText: hds.primaryContrast },
+    error: { main: hds.errorMain, contrastText: hds.errorContrast },
     success: { main: '#34d39e' },
     info: { main: '#49c7ff' },
-    background: { default: '#0a1413', paper: '#101b19' },
-    divider: 'rgba(255,255,255,0.10)',
-    text: { primary: '#eef4f1', secondary: '#8aa39b' },
+    background: { default: hds.backgroundDefault, paper: hds.backgroundPaper },
+    divider: hds.divider,
+    text: { primary: hds.textPrimary, secondary: hds.textSecondary },
   },
   shape: { borderRadius: 12 },
   typography: {
