@@ -1,5 +1,11 @@
-// Vercel Edge function: turn a job link (or pasted text) into a structured job
-// entry using Claude Haiku, forcing a single structured tool call.
+// Vercel serverless function (Node.js runtime): turn a job link (or pasted text)
+// into a structured job entry using Claude Haiku, forcing a single structured
+// tool call.
+//
+// Runtime note: this runs on the Node.js runtime (NOT Edge). The Anthropic SDK
+// transitively references node:fs / node:path (credential + agent-toolset
+// helpers we never call), which the Edge bundler rejects. Node also lets us set
+// a longer maxDuration (see vercel.json) to cover the fetch + model round-trip.
 //
 // Env: ANTHROPIC_API_KEY (server-side only — never shipped to the client).
 // Without it the function returns `not_configured` and the app stays usable.
@@ -14,15 +20,13 @@ import {
   type ExtractedJob,
 } from '../src/ai/extract-core';
 
-export const config = { runtime: 'edge' };
-
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json' },
   });
 
-export default async function handler(req: Request): Promise<Response> {
+async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -99,3 +103,6 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: 'ai_error', fallback: 'paste' }, 502);
   }
 }
+
+// Vercel Node.js runtime: web-standard handler exposed via the `fetch` export.
+export default { fetch: handler };
