@@ -3,6 +3,10 @@ dist/
 *.local
 .DS_Store
 
+# Local env (never commit real keys; .env.example is tracked)
+.env
+.env*.local
+
 # Playwright
 /test-results/
 /playwright-report/

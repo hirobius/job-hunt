@@ -33,6 +33,11 @@ export default tseslint.config(
     files: ['scripts/**/*.mjs', 'vite.config.ts', 'eslint.config.js', 'playwright.config.ts'],
     languageOptions: { globals: globals.node },
   },
+  // Serverless functions run on the Edge runtime (web globals + process.env)
+  {
+    files: ['api/**/*.ts'],
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+  },
   // Disable stylistic rules that conflict with Prettier
   prettier,
 );
