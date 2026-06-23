@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { tailorResume } from './tailorResume';
+import AiNotConfigured from './AiNotConfigured';
 import { renderResumeMarkdown, type TailoredResume } from './tailor-core';
 import { loadResume, saveResume } from './profile';
 import type { Job } from '../types';
@@ -54,6 +55,7 @@ export default function TailorDialog({
   const [role, setRole] = useState(initialRole);
   const [result, setResult] = useState<TailoredResume | null>(null);
   const [msg, setMsg] = useState<Msg | null>(null);
+  const [notConfigured, setNotConfigured] = useState(false);
   const [copied, setCopied] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -64,6 +66,7 @@ export default function TailorDialog({
 
   const run = async () => {
     setMsg(null);
+    setNotConfigured(false);
     saveResume(resume);
     setPhase('loading');
     const ctrl = new AbortController();
@@ -77,10 +80,7 @@ export default function TailorDialog({
     }
     setPhase('input');
     if (res.error === 'not_configured') {
-      setMsg({
-        severity: 'info',
-        text: res.message ?? 'AI isn’t configured yet — set ANTHROPIC_API_KEY in Vercel.',
-      });
+      setNotConfigured(true);
     } else {
       setMsg({ severity: 'error', text: res.message ?? 'Something went wrong — try again.' });
     }
@@ -109,7 +109,9 @@ export default function TailorDialog({
           </Alert>
         )}
 
-        {phase === 'loading' ? (
+        {notConfigured ? (
+          <AiNotConfigured feature="Résumé tailoring" />
+        ) : phase === 'loading' ? (
           <Stack alignItems="center" spacing={1.5} sx={{ py: 5 }}>
             <CircularProgress size={28} />
             <Typography color="text.secondary">Tailoring your résumé… (~20–40s)</Typography>
@@ -244,7 +246,11 @@ export default function TailorDialog({
       </DialogContent>
 
       <DialogActions>
-        {phase === 'result' && result ? (
+        {notConfigured ? (
+          <Button variant="contained" onClick={close}>
+            Close
+          </Button>
+        ) : phase === 'result' && result ? (
           <>
             <Button onClick={() => setPhase('input')}>Back</Button>
             <Button onClick={() => download('resume-tailored.md', renderResumeMarkdown(result))}>

@@ -17,6 +17,7 @@ import {
   Typography,
 } from '@mui/material';
 import { extractJob } from './extractJob';
+import AiNotConfigured from './AiNotConfigured';
 import type { ExtractedJob } from './extract-core';
 import { jobTitle, composeNote } from './intake';
 import { loadSkills, saveSkills } from './profile';
@@ -41,6 +42,7 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
   const [showSkills, setShowSkills] = useState(false);
   const [job, setJob] = useState<ExtractedJob | null>(null);
   const [msg, setMsg] = useState<Msg | null>(null);
+  const [notConfigured, setNotConfigured] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   // Abort any in-flight request if the dialog unmounts.
@@ -54,6 +56,7 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
     setText('');
     setJob(null);
     setMsg(null);
+    setNotConfigured(false);
     setShowSkills(false);
   };
   const close = () => {
@@ -81,10 +84,7 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
     }
     setPhase('input');
     if (res.error === 'not_configured') {
-      setMsg({
-        severity: 'info',
-        text: res.message ?? 'AI isn’t configured yet — set ANTHROPIC_API_KEY in Vercel.',
-      });
+      setNotConfigured(true);
     } else if (res.fallback === 'paste') {
       setMode('text');
       setMsg({
@@ -123,7 +123,9 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
           </Alert>
         )}
 
-        {phase === 'loading' ? (
+        {notConfigured ? (
+          <AiNotConfigured feature="“Add with AI”" />
+        ) : phase === 'loading' ? (
           <Stack alignItems="center" spacing={1.5} sx={{ py: 5 }}>
             <CircularProgress size={28} />
             <Typography color="text.secondary">
@@ -281,7 +283,11 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
       </DialogContent>
 
       <DialogActions>
-        {phase === 'review' ? (
+        {notConfigured ? (
+          <Button variant="contained" onClick={close}>
+            Close
+          </Button>
+        ) : phase === 'review' ? (
           <>
             <Button
               onClick={() => {
