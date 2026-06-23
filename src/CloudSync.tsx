@@ -66,7 +66,7 @@ export default function CloudSync() {
     setMsg('Saving…');
     clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(() => pushNow(getAllJobs(), user), 500);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [jobs, user]);
 
   // re-pull on focus

@@ -1,12 +1,23 @@
-import { useEffect, useState } from 'react';
-import { Box, Container, Tab, Tabs, Typography } from '@mui/material';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { Box, CircularProgress, Container, Tab, Tabs, Typography } from '@mui/material';
 import TrackerView from './TrackerView';
-import DiscoverView from './DiscoverView';
-import CopyDeckView from './CopyDeckView';
 import CloudSync from './CloudSync';
-import CaseStudyView from './CaseStudyView';
 import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
 import { STATUSES } from './types';
+
+// Code-split the non-default views so the initial bundle only carries the Queue
+// tab; the rest load on demand (tab switch / case-study route).
+const DiscoverView = lazy(() => import('./DiscoverView'));
+const CopyDeckView = lazy(() => import('./CopyDeckView'));
+const CaseStudyView = lazy(() => import('./CaseStudyView'));
+
+function ViewFallback() {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+      <CircularProgress size={28} />
+    </Box>
+  );
+}
 
 export default function App() {
   const [tab, setTab] = useState(0);
@@ -28,11 +39,16 @@ export default function App() {
       ['add', 'applied', 'status', 'u', 't', 'title'].forEach((k) => qp.delete(k));
       const s = qp.toString();
       window.history.replaceState(null, '', window.location.pathname + (s ? '?' + s : '') + window.location.hash);
-      setTab(0);
+      // Queue (tab 0) is already the default on mount, so no tab change is needed here.
     }
   }, [caseSlug]);
 
-  if (caseSlug) return <CaseStudyView slug={caseSlug} />;
+  if (caseSlug)
+    return (
+      <Suspense fallback={<ViewFallback />}>
+        <CaseStudyView slug={caseSlug} />
+      </Suspense>
+    );
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 2.5, sm: 4 } }}>
@@ -56,8 +72,16 @@ export default function App() {
       </Tabs>
 
       {tab === 0 && <TrackerView />}
-      {tab === 1 && <CopyDeckView />}
-      {tab === 2 && <DiscoverView />}
+      {tab === 1 && (
+        <Suspense fallback={<ViewFallback />}>
+          <CopyDeckView />
+        </Suspense>
+      )}
+      {tab === 2 && (
+        <Suspense fallback={<ViewFallback />}>
+          <DiscoverView />
+        </Suspense>
+      )}
     </Container>
   );
 }
