@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -17,6 +17,7 @@ import {
   Typography,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import {
   useJobs,
   addJob,
@@ -30,6 +31,10 @@ import {
   daysSince,
 } from './store';
 import type { Job, Status } from './types';
+
+// Lazy so the AI intake code (and its chunk) only loads when the user opens it —
+// keeps the initial Queue bundle lean.
+const AiIntakeDialog = lazy(() => import('./ai/AiIntakeDialog'));
 
 type Filter = 'active' | 'all' | Status | 'retired';
 const FOLLOWUP_DAYS = 7;
@@ -108,6 +113,12 @@ export default function TrackerView() {
   const [url, setUrl] = useState('');
   const [menu, setMenu] = useState<{ el: HTMLElement; job: Job } | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiMounted, setAiMounted] = useState(false); // mount once, then animate open/close
+  const openAi = () => {
+    setAiMounted(true);
+    setAiOpen(true);
+  };
 
   const shown = useMemo(
     () =>
@@ -145,7 +156,7 @@ export default function TrackerView() {
 
   return (
     <Box>
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 2 }}>
         <TextField
           fullWidth
           size="small"
@@ -157,9 +168,19 @@ export default function TrackerView() {
             if (e.key === 'Enter') submit();
           }}
         />
-        <Button variant="contained" onClick={submit}>
-          Add
-        </Button>
+        <Stack direction="row" spacing={1} sx={{ flex: 'none' }}>
+          <Button variant="contained" onClick={submit} sx={{ flex: { xs: 1, sm: 'none' } }}>
+            Add
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<AutoAwesomeOutlinedIcon />}
+            onClick={openAi}
+            sx={{ flex: { xs: 1, sm: 'none' }, whiteSpace: 'nowrap' }}
+          >
+            Add with AI
+          </Button>
+        </Stack>
       </Stack>
 
       <Stack direction="row" alignItems="center" sx={{ mb: 2, gap: 1, flexWrap: 'wrap' }}>
@@ -386,6 +407,12 @@ export default function TrackerView() {
           </MenuItem>
         )}
       </Menu>
+
+      {aiMounted && (
+        <Suspense fallback={null}>
+          <AiIntakeDialog open={aiOpen} onClose={() => setAiOpen(false)} />
+        </Suspense>
+      )}
     </Box>
   );
 }

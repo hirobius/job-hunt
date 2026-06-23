@@ -6,6 +6,7 @@ import {
   daysSince,
   hostOf,
   addJob,
+  addJobDetailed,
   isSaved,
   removeJob,
   getAllJobs,
@@ -56,5 +57,29 @@ describe('add / dedupe', () => {
     expect(isSaved(url)).toBe(true);
     // utm_* is stripped from the dedupe key → treated as the same job
     expect(addJob(url + '?utm_source=newsletter')).toBe(false);
+  });
+});
+
+describe('addJobDetailed', () => {
+  it('stores label, salary and note, and normalizes the URL', () => {
+    const stored = addJobDetailed('greenhouse.io/acme/jobs/7', {
+      label: 'Staff Engineer — Acme',
+      salary: '$200k',
+      note: 'Requirements:\n• Go',
+    });
+    expect(stored).toBe('https://greenhouse.io/acme/jobs/7');
+    const j = getAllJobs().find((x) => x.url === stored)!;
+    expect(j.label).toBe('Staff Engineer — Acme');
+    expect(j.salary).toBe('$200k');
+    expect(j.note).toContain('• Go');
+  });
+
+  it('returns null and leaves the existing entry untouched when already saved', () => {
+    const url = 'https://jobs.lever.co/acme/abc';
+    expect(addJob(url, 'Original')).toBe(true);
+    expect(addJobDetailed(url, { label: 'Clobbered', note: 'x' })).toBeNull();
+    const j = getAllJobs().find((x) => x.url === url)!;
+    expect(j.label).toBe('Original'); // not overwritten
+    expect(j.note).toBeUndefined();
   });
 });

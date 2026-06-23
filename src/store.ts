@@ -162,6 +162,29 @@ export function addJob(rawUrl: string, label?: string): boolean {
   set([...jobs, { url: u, label: (label || '').trim() || prettyTitle(u), status: 'Saved' }]);
   return true;
 }
+/** Add a job with extra fields in one shot (used by AI intake). Returns the stored
+ *  (normalized) URL when newly added, or null if it already existed — in which case
+ *  the existing entry is left untouched so we never clobber the user's own notes. */
+export function addJobDetailed(
+  rawUrl: string,
+  fields: { label?: string; salary?: string; note?: string },
+): string | null {
+  let u = cleanUrl(rawUrl);
+  if (!u) return null;
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  if (!/\./.test(u)) return null;
+  const key = dedupKey(u);
+  if (jobs.some((j) => dedupKey(j.url) === key)) return null; // already saved
+  const job: Job = {
+    url: u,
+    label: (fields.label || '').trim() || prettyTitle(u),
+    status: 'Saved',
+  };
+  if (fields.salary?.trim()) job.salary = fields.salary.trim();
+  if (fields.note?.trim()) job.note = fields.note.trim();
+  set([...jobs, job]);
+  return u;
+}
 /** Log a follow-up today (restarts the follow-up countdown). */
 export function logFollowUp(url: string) {
   updateJob(url, { followUp: today() });
