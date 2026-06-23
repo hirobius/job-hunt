@@ -6,6 +6,9 @@
   "functions": {
     "api/extract.ts": {
       "maxDuration": 60
+    },
+    "api/tailor.ts": {
+      "maxDuration": 60
     }
   }
 }

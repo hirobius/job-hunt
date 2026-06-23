@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "typecheck:api": "tsc --noEmit --module esnext --moduleResolution bundler --target ES2020 --lib ES2020,DOM,DOM.Iterable --types node --skipLibCheck --strict api/extract.ts",
+    "typecheck:api": "tsc --noEmit --module esnext --moduleResolution bundler --target ES2020 --lib ES2020,DOM,DOM.Iterable --types node --skipLibCheck --strict api/extract.ts api/tailor.ts",
     "preview": "vite preview",
     "tokens:build": "node scripts/build-hds-tokens.mjs",
     "lint": "eslint .",

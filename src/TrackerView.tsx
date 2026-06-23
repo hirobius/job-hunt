@@ -32,9 +32,10 @@ import {
 } from './store';
 import type { Job, Status } from './types';
 
-// Lazy so the AI intake code (and its chunk) only loads when the user opens it —
+// Lazy so the AI code (and its chunks) only load when the user opens them —
 // keeps the initial Queue bundle lean.
 const AiIntakeDialog = lazy(() => import('./ai/AiIntakeDialog'));
+const TailorDialog = lazy(() => import('./ai/TailorDialog'));
 
 type Filter = 'active' | 'all' | Status | 'retired';
 const FOLLOWUP_DAYS = 7;
@@ -119,6 +120,7 @@ export default function TrackerView() {
     setAiMounted(true);
     setAiOpen(true);
   };
+  const [tailorJob, setTailorJob] = useState<Job | null>(null);
 
   const shown = useMemo(
     () =>
@@ -388,6 +390,16 @@ export default function TrackerView() {
         {menu && (
           <MenuItem
             onClick={() => {
+              setTailorJob(menu.job);
+              setMenu(null);
+            }}
+          >
+            Tailor résumé with AI
+          </MenuItem>
+        )}
+        {menu && (
+          <MenuItem
+            onClick={() => {
               updateJob(menu.job.url, { archived: !menu.job.archived });
               setMenu(null);
             }}
@@ -411,6 +423,11 @@ export default function TrackerView() {
       {aiMounted && (
         <Suspense fallback={null}>
           <AiIntakeDialog open={aiOpen} onClose={() => setAiOpen(false)} />
+        </Suspense>
+      )}
+      {tailorJob && (
+        <Suspense fallback={null}>
+          <TailorDialog open job={tailorJob} onClose={() => setTailorJob(null)} />
         </Suspense>
       )}
     </Box>

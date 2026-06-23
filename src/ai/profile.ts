@@ -19,3 +19,22 @@ export function saveSkills(value: string): void {
     /* ignore quota / unavailable storage */
   }
 }
+
+// Full résumé text, used by the tailorer. Same localStorage-only contract.
+const RESUME_KEY = 'rjb_resume';
+
+export function loadResume(): string {
+  try {
+    return localStorage.getItem(RESUME_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function saveResume(value: string): void {
+  try {
+    localStorage.setItem(RESUME_KEY, value);
+  } catch {
+    /* ignore quota / unavailable storage */
+  }
+}
