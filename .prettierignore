@@ -4,4 +4,4 @@ package-lock.json
 
 # generated token artifacts (regenerate via `npm run tokens:build`)
 src/tokens/hds-tokens.css
-src/theme/hds-dark-palette.generated.ts
+src/theme/hds-palette.generated.ts

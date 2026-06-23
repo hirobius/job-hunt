@@ -1,7 +1,20 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { Box, CircularProgress, Container, Tab, Tabs, Typography } from '@mui/material';
+import {
+  Box,
+  CircularProgress,
+  Container,
+  IconButton,
+  Stack,
+  Tab,
+  Tabs,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import TrackerView from './TrackerView';
 import CloudSync from './CloudSync';
+import { useColorMode } from './ColorMode';
 import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
 import { STATUSES } from './types';
 
@@ -16,6 +29,22 @@ function ViewFallback() {
     <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
       <CircularProgress size={28} />
     </Box>
+  );
+}
+
+function ColorModeToggle() {
+  const { mode, toggle } = useColorMode();
+  const label = mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+  return (
+    <Tooltip title={label}>
+      <IconButton onClick={toggle} aria-label={label} sx={{ flex: 'none' }}>
+        {mode === 'dark' ? (
+          <LightModeOutlinedIcon fontSize="small" />
+        ) : (
+          <DarkModeOutlinedIcon fontSize="small" />
+        )}
+      </IconButton>
+    </Tooltip>
   );
 }
 
@@ -66,12 +95,15 @@ export default function App() {
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 2.5, sm: 4 } }}>
-      <Typography variant="h1" sx={{ mb: 2 }}>
-        Apply{' '}
-        <Box component="span" sx={{ color: 'primary.main' }}>
-          Board
-        </Box>
-      </Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+        <Typography variant="h1">
+          Apply{' '}
+          <Box component="span" sx={{ color: 'primary.main' }}>
+            Board
+          </Box>
+        </Typography>
+        <ColorModeToggle />
+      </Stack>
 
       <CloudSync />
 
