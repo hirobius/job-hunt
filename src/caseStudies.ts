@@ -33,7 +33,7 @@ export const CASES: Record<string, CaseStudy> = {
       ['Workflow', 'Directed an AI agentic coding workflow end to end'],
     ],
     proves:
-      'Design-engineering depth (a shipped React/TS app with a real design system) and applied-AI literacy (I directed an AI-built product and owned the architecture calls).',
+      'Design-engineering depth (a shipped React/TS app with a real design system) and applied-AI literacy — not just an AI-assisted build, but two production LLM features I designed for grounding and clean output, owning the architecture calls.',
     problem: [
       'Job hunting is fragmented. Openings live across a dozen boards — Indeed, LinkedIn, ZipRecruiter, ClearanceJobs, company career pages — and the actual tracking (what did I save, what did I apply to, when do I follow up, which résumé did I send) scatters across a spreadsheet, browser tabs, and memory.',
       'I wanted one tool that did three jobs well, on mobile, with as little friction as possible: discover good places to look, track saved roles with status and a follow-up loop, and reuse outreach copy in one tap.',
@@ -69,19 +69,24 @@ export const CASES: Record<string, CaseStudy> = {
         title: 'Resilient data handling',
         body: 'URLs are sanitized on every path — cleaned, de-duped, weak titles auto-derived from the URL — including data arriving from the cloud, so a malformed save can never produce a broken, unclickable link.',
       },
+      {
+        title: 'Applied AI, engineered against the failure modes',
+        body: 'Two Claude-backed features — turn a job link into a structured entry, and tailor a résumé to a role — run on serverless functions so the SDK never ships to the browser. The design fights the usual LLM-feature failure modes: I force a single structured tool call (JSON, never prose) and let code own the layout, so the output is always clean; and I constrain every fact to the source (the posting, or your own résumé), surfacing unsupported requirements honestly rather than fabricating them. The link fetch is SSRF-guarded, and with no API key the features degrade to a friendly notice instead of breaking the app. Tradeoff: forcing the tool call rules out streaming the reasoning, but guarantees a structured, render-safe result.',
+      },
     ],
     outcome: [
       'Shipped to production on Vercel; it is my daily-driver job-search tool.',
       'A discovery board spanning 15+ curated categories (entry IT/help desk, GRC, govcon, Spokane-local, remote-first companies, gig/quick-income, design-tech, AI-engineer, and more) plus the two search generators.',
       'A tracker with status, priority pinning, a follow-up loop, per-role notes / contact / résumé-version fields, and CSV export.',
+      'Two production AI features: "Add with AI" (a link or pasted text becomes a structured, editable job with skill match/gap chips) and "Tailor résumé" (your résumé becomes a role-tailored draft you can copy or download as Markdown) — both grounded to avoid fabrication.',
       'Cross-device cloud sync via passwordless sign-in.',
       'Built and iterated rapidly with an AI agentic coding workflow — my role was directing architecture, making the design-system and data-model calls, and reviewing and curating the output.',
     ],
     next: [
       'Smarter sync: move from last-write-wins blob to per-record merge (or CRDT) for safe concurrent multi-device edits.',
-      'Performance: code-split the bundle (currently one ~640 kB chunk) by route/tab.',
-      'Add the AI layer (the natural seed for portfolio Piece 3): summarize a pasted job description, tailor a résumé to a JD, de-dupe and rank saved roles, detect status updates from email — LLM + retrieval + a couple of tools + an eval to measure quality.',
-      'Tests: component coverage plus a small end-to-end pass on the capture → track → follow-up flow.',
+      'Evals for the AI features: a small graded set to measure extraction accuracy and catch résumé-tailoring regressions (fabrication, dropped facts) as the prompts evolve.',
+      'More AI surface: de-dupe and rank saved roles, and detect status updates from an email scan to auto-advance the tracker.',
+      'Broaden the accessibility gate from one component to the Discover and Copy Deck views.',
     ],
   },
 };
