@@ -1,0 +1,6 @@
+# Revisions to skip in `git blame` (mechanical, no behavior change).
+# GitHub uses this automatically. Locally, run once:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style: format codebase with Prettier
+13ce227625e07b753fe791d7651f2885087b7a1e
