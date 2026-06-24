@@ -18,7 +18,7 @@ commit `f15fd52`).
 - **Design tokens:** the MUI palette in `src/theme.ts` is **generated from
   `@hirobius/design-system` tokens** (dark scheme) with a single jade brand seed.
   `npm run tokens:build` (`scripts/build-hds-tokens.mjs`) emits `src/tokens/hds-tokens.css`
-  (framework-neutral CSS vars, light+dark) and `src/theme/hds-dark-palette.generated.ts`;
+  (framework-neutral CSS vars, light+dark) and `src/theme/hds-palette.generated.ts`;
   brand override in `src/theme/brand-jade.css`. Rationale + tradeoffs in
   `docs/adr/0001-consume-hds-via-tokens-on-mui.md`. Regen needs `NODE_AUTH_TOKEN`
   (read:packages); the deployed build does **not** (generated files are committed).
