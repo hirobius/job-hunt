@@ -2,8 +2,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   prettyTitle,
   cleanUrl,
-  normStatus,
-  daysSince,
   hostOf,
   addJob,
   addJobDetailed,
@@ -37,17 +35,6 @@ describe('url helpers', () => {
     expect(hostOf('not a url')).toBe('');
   });
 
-  it('normalizes unknown statuses to Saved', () => {
-    expect(normStatus('Applied')).toBe('Applied');
-    expect(normStatus('bogus')).toBe('Saved');
-    expect(normStatus(undefined)).toBe('Saved');
-  });
-
-  it('computes whole-day diffs and null for invalid input', () => {
-    expect(daysSince(undefined)).toBeNull();
-    expect(daysSince('not-a-date')).toBeNull();
-    expect(daysSince(new Date(Date.now() - 3 * 86400000).toISOString())).toBe(3);
-  });
 });
 
 describe('add / dedupe', () => {

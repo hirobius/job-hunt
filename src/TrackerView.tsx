@@ -27,9 +27,8 @@ import {
   logFollowUp,
   prettyTitle,
   shortUrl,
-  normStatus,
-  daysSince,
 } from './store';
+import { deriveJobState } from './jobState';
 import type { Job, Status } from './types';
 
 // Lazy so the AI code (and its chunks) only load when the user opens them —
@@ -38,7 +37,6 @@ const AiIntakeDialog = lazy(() => import('./ai/AiIntakeDialog'));
 const TailorDialog = lazy(() => import('./ai/TailorDialog'));
 
 type Filter = 'active' | 'all' | Status | 'retired';
-const FOLLOWUP_DAYS = 7;
 
 const STATUS_COLOR: Record<Status, 'warning' | 'info' | 'secondary' | 'success' | 'error'> = {
   Saved: 'warning',
@@ -49,10 +47,11 @@ const STATUS_COLOR: Record<Status, 'warning' | 'info' | 'secondary' | 'success' 
 };
 
 function matches(j: Job, f: Filter): boolean {
-  if (f === 'active') return !j.archived && (normStatus(j.status) === 'Saved' || !!j.priority);
+  const s = deriveJobState(j);
+  if (f === 'active') return s.isActive;
   if (f === 'all') return true;
   if (f === 'retired') return !!j.archived;
-  return !j.archived && normStatus(j.status) === f;
+  return !j.archived && s.status === f;
 }
 
 function exportCsv(jobs: Job[]) {
@@ -74,7 +73,7 @@ function exportCsv(jobs: Job[]) {
     rows.push([
       j.label,
       j.url,
-      normStatus(j.status),
+      deriveJobState(j).status,
       j.applied || '',
       j.resume || '',
       j.contact || '',
@@ -233,11 +232,7 @@ export default function TrackerView() {
       ) : (
         <Stack spacing={1.25}>
           {shown.map((j) => {
-            const status = normStatus(j.status);
-            const dApplied = daysSince(j.applied);
-            const tracksFollowup = status === 'Applied' || status === 'Interviewing';
-            const refAge = daysSince(j.followUp || j.applied);
-            const due = !j.archived && tracksFollowup && refAge != null && refAge >= FOLLOWUP_DAYS;
+            const s = deriveJobState(j);
             const isOpen = !!open[j.url];
             return (
               <Card key={j.url} variant="outlined" sx={{ opacity: j.archived ? 0.55 : 1 }}>
@@ -260,19 +255,19 @@ export default function TrackerView() {
                         sx={{ overflowWrap: 'anywhere' }}
                       >
                         {shortUrl(j.url)}
-                        {status !== 'Saved' && j.applied
-                          ? ` · applied ${dApplied === 0 ? 'today' : dApplied + 'd ago'}`
+                        {s.status !== 'Saved' && s.appliedDaysAgo != null
+                          ? ` · applied ${s.appliedDaysAgo === 0 ? 'today' : s.appliedDaysAgo + 'd ago'}`
                           : ''}
-                        {j.followUp
-                          ? ` · followed up ${daysSince(j.followUp) === 0 ? 'today' : daysSince(j.followUp) + 'd ago'}`
+                        {s.followUp.loggedDaysAgo != null
+                          ? ` · followed up ${s.followUp.loggedDaysAgo === 0 ? 'today' : s.followUp.loggedDaysAgo + 'd ago'}`
                           : ''}
                       </Typography>
                     </Box>
-                    {status !== 'Saved' && (
+                    {s.status !== 'Saved' && (
                       <Chip
-                        label={status}
+                        label={s.status}
                         size="small"
-                        color={STATUS_COLOR[status]}
+                        color={STATUS_COLOR[s.status]}
                         variant="outlined"
                       />
                     )}
@@ -293,7 +288,7 @@ export default function TrackerView() {
                     flexWrap="wrap"
                     useFlexGap
                   >
-                    {status === 'Saved' && (
+                    {s.isApplyable && (
                       <Button
                         size="small"
                         variant="contained"
@@ -310,7 +305,7 @@ export default function TrackerView() {
                     >
                       {isOpen ? 'Hide' : 'Details'}
                     </Button>
-                    {tracksFollowup && due && (
+                    {s.followUp.due && (
                       <>
                         <Chip size="small" color="warning" label="Follow up now" />
                         <Button
@@ -323,9 +318,9 @@ export default function TrackerView() {
                         </Button>
                       </>
                     )}
-                    {tracksFollowup && !due && refAge != null && (
+                    {s.followUp.daysUntil != null && (
                       <Typography variant="caption" color="text.secondary">
-                        Follow up in {FOLLOWUP_DAYS - refAge}d
+                        Follow up in {s.followUp.daysUntil}d
                       </Typography>
                     )}
                     {j.priority && (
@@ -367,7 +362,7 @@ export default function TrackerView() {
       )}
 
       <Menu anchorEl={menu?.el} open={!!menu} onClose={() => setMenu(null)}>
-        {menu && normStatus(menu.job.status) === 'Saved' && (
+        {menu && deriveJobState(menu.job).isApplyable && (
           <MenuItem
             onClick={() => {
               setStatus(menu.job.url, 'Applied');

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { STATUSES, type Job, type Status } from './types';
+import { type Job, type Status } from './types';
+import { applyStatus, logFollowUp as applyFollowUp, normStatus } from './jobState';
 
 const KEY = 'rjb_shortlist'; // same key as the legacy app
 const RETIRED: Record<string, 1> = {
@@ -46,9 +47,6 @@ export function shortUrl(u: string): string {
     return u;
   }
 }
-export function normStatus(s?: string): Status {
-  return (STATUSES as string[]).indexOf(s || '') > -1 ? (s as Status) : 'Saved';
-}
 export function cleanUrl(u: string): string {
   u = (u || '')
     .trim()
@@ -73,16 +71,6 @@ function dedupKey(u: string): string {
   } catch {
     return (u || '').toLowerCase().replace(/\/+$/, '');
   }
-}
-function today(): string {
-  const d = new Date();
-  const p = (n: number) => (n < 10 ? '0' : '') + n;
-  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
-}
-export function daysSince(s?: string): number | null {
-  if (!s) return null;
-  const t = Date.parse(s);
-  return isNaN(t) ? null : Math.floor((Date.now() - t) / 86400000);
 }
 /** Normalize any incoming list (localStorage OR cloud): clean URLs/labels,
  *  drop retired/blank, backfill weak titles, de-dupe by URL. Idempotent. */
@@ -187,20 +175,13 @@ export function addJobDetailed(
 }
 /** Log a follow-up today (restarts the follow-up countdown). */
 export function logFollowUp(url: string) {
-  updateJob(url, { followUp: today() });
+  set(jobs.map((j) => (j.url === url ? applyFollowUp(j) : j)));
 }
 export function updateJob(url: string, patch: Partial<Job>) {
   set(jobs.map((j) => (j.url === url ? { ...j, ...patch } : j)));
 }
 export function setStatus(url: string, status: Status) {
-  set(
-    jobs.map((j) => {
-      if (j.url !== url) return j;
-      const n: Job = { ...j, status };
-      if (status === 'Applied' && !n.applied) n.applied = today();
-      return n;
-    }),
-  );
+  set(jobs.map((j) => (j.url === url ? applyStatus(j, status) : j)));
 }
 export function removeJob(url: string) {
   set(jobs.filter((j) => j.url !== url));
