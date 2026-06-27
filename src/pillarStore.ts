@@ -115,6 +115,25 @@ export function removePillar(id: string) {
   setState({ pillars, activeId });
 }
 
+/** All user-created pillars (excludes built-ins). Used by cloud sync. */
+export function getUserPillars(): Pillar[] {
+  return state.pillars.filter((p) => !p.builtIn);
+}
+
+/** Replace the whole set of user pillars (cloud sync). Active falls back if it vanished. */
+export function replaceUserPillars(list: Pillar[]) {
+  const user = list
+    .filter((p) => p && p.id && !p.builtIn)
+    .map((p) => ({ ...p, builtIn: false }));
+  const pillars = [...BUILTIN_PILLARS, ...user];
+  const activeId = pillars.some((p) => p.id === state.activeId)
+    ? state.activeId
+    : BUILTIN_PILLARS[0].id;
+  persistUser(pillars);
+  if (activeId !== state.activeId) persistActive(activeId);
+  setState({ pillars, activeId });
+}
+
 // ---- reads ----
 function subscribe(cb: () => void) {
   listeners.add(cb);

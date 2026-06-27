@@ -3,11 +3,25 @@ import { Box, Button, Stack, TextField, Typography } from '@mui/material';
 import { createClient, type User } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 import { useJobs, getAllJobs, replaceAll } from './store';
+import { usePillars, getUserPillars, replaceUserPillars } from './pillarStore';
 import type { Job } from './types';
+import type { Pillar } from './pillars';
 
 const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function mergeLists(cloud: Job[] | null, local: Job[]): Job[] {
+type SyncData = { jobs: Job[]; pillars: Pillar[] };
+
+// The cloud blob was historically a bare Job[]; it's now { v, jobs, pillars }. Read both.
+function readBlob(data: unknown): SyncData {
+  if (Array.isArray(data)) return { jobs: data as Job[], pillars: [] };
+  const o = (data ?? {}) as { jobs?: unknown; pillars?: unknown };
+  return {
+    jobs: Array.isArray(o.jobs) ? (o.jobs as Job[]) : [],
+    pillars: Array.isArray(o.pillars) ? (o.pillars as Pillar[]) : [],
+  };
+}
+
+function mergeJobs(cloud: Job[] | null, local: Job[]): Job[] {
   const by: Record<string, Job> = {};
   const order: string[] = [];
   const add = (it: Job) => {
@@ -20,33 +34,61 @@ function mergeLists(cloud: Job[] | null, local: Job[]): Job[] {
   return order.map((u) => by[u]);
 }
 
+function mergePillars(cloud: Pillar[] | null, local: Pillar[]): Pillar[] {
+  const by: Record<string, Pillar> = {};
+  const order: string[] = [];
+  const add = (p: Pillar) => {
+    if (!p || !p.id) return;
+    if (!(p.id in by)) order.push(p.id);
+    by[p.id] = p;
+  };
+  (local || []).forEach(add);
+  (cloud || []).forEach(add); // cloud wins on shared ids
+  return order.map((id) => by[id]);
+}
+
 export default function CloudSync() {
   const jobs = useJobs();
+  const pillars = usePillars();
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('Sign in to sync across your devices');
-  const applying = useRef(false);
+  const lastSynced = useRef('');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  async function pull(uid: string): Promise<Job[] | null> {
+  const localJson = () => JSON.stringify({ jobs: getAllJobs(), pillars: getUserPillars() });
+
+  async function pull(uid: string): Promise<SyncData | null> {
     const r = await supa.from('tracker').select('data').eq('user_id', uid).maybeSingle();
-    return (r.data?.data as Job[]) ?? null;
+    return r.data ? readBlob(r.data.data) : null;
   }
-  async function pushNow(arr: Job[], u: User) {
+  async function pushNow(u: User) {
+    const data = { v: 2, jobs: getAllJobs(), pillars: getUserPillars() };
     const r = await supa
       .from('tracker')
-      .upsert({ user_id: u.id, data: arr, updated_at: new Date().toISOString() });
+      .upsert({ user_id: u.id, data, updated_at: new Date().toISOString() });
+    lastSynced.current = JSON.stringify({ jobs: data.jobs, pillars: data.pillars });
     setMsg(r.error ? 'Saved locally — cloud error' : `Synced · ${u.email}`);
   }
   async function adopt(seed: boolean, u: User) {
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     try {
       const cloud = await pull(u.id);
-      const next = seed ? mergeLists(cloud, getAllJobs()) : cloud != null ? cloud : getAllJobs();
-      applying.current = true;
-      replaceAll(next);
-      // push the sanitized stored list back (cleans any <> / dupes in the cloud blob)
-      if (seed) await pushNow(getAllJobs(), u);
+      const nextJobs = seed
+        ? mergeJobs(cloud?.jobs ?? null, getAllJobs())
+        : cloud
+          ? cloud.jobs
+          : getAllJobs();
+      const nextPillars = seed
+        ? mergePillars(cloud?.pillars ?? null, getUserPillars())
+        : cloud
+          ? cloud.pillars
+          : getUserPillars();
+      replaceAll(nextJobs);
+      replaceUserPillars(nextPillars);
+      // Record what we just adopted so the resulting store changes don't echo a push.
+      lastSynced.current = localJson();
+      if (seed) await pushNow(u);
       else setMsg(`Synced · ${u.email}`);
     } catch {
       setMsg('Saved locally — cloud error');
@@ -65,22 +107,19 @@ export default function CloudSync() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // push local changes (debounced); skip the change we just applied from cloud
+  // push local changes (debounced); skip when nothing changed since the last sync
   useEffect(() => {
     if (!user) return;
-    if (applying.current) {
-      applying.current = false;
-      return;
-    }
+    if (localJson() === lastSynced.current) return;
     setMsg('Saving…');
     clearTimeout(pushTimer.current);
-    pushTimer.current = setTimeout(() => pushNow(getAllJobs(), user), 500);
-  }, [jobs, user]);
+    pushTimer.current = setTimeout(() => pushNow(user), 500);
+  }, [jobs, pillars, user]);
 
   // re-pull on focus
   useEffect(() => {
     const onFocus = () => {
-      if (user && !applying.current) adopt(false, user);
+      if (user) adopt(false, user);
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
