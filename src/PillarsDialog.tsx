@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Chip,
+  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
@@ -22,6 +23,7 @@ import {
   setActivePillar,
 } from './pillarStore';
 import type { Pillar, Seniority } from './pillars';
+import type { Group, Tile } from './jobsData';
 
 function ChipListEditor({
   label,
@@ -75,10 +77,101 @@ function ChipListEditor({
   );
 }
 
+function GroupsEditor({ groups, onChange }: { groups: Group[]; onChange: (g: Group[]) => void }) {
+  const setGroup = (gi: number, patch: Partial<Group>) =>
+    onChange(groups.map((g, i) => (i === gi ? { ...g, ...patch } : g)));
+  const setTile = (gi: number, ti: number, patch: Partial<Tile>) =>
+    setGroup(gi, { tiles: groups[gi].tiles.map((t, i) => (i === ti ? { ...t, ...patch } : t)) });
+  const addGroup = () =>
+    onChange([
+      ...groups,
+      {
+        id: 'g-' + (crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)),
+        label: 'New group',
+        tiles: [],
+      },
+    ]);
+  return (
+    <Stack spacing={1.5}>
+      {groups.map((g, gi) => (
+        <Box key={g.id} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.25 }}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+            <TextField
+              size="small"
+              fullWidth
+              label="Group label"
+              value={g.label}
+              onChange={(e) => setGroup(gi, { label: e.target.value })}
+            />
+            <Button
+              size="small"
+              color="error"
+              onClick={() => onChange(groups.filter((_, i) => i !== gi))}
+            >
+              Remove
+            </Button>
+          </Stack>
+          <Stack spacing={1}>
+            {g.tiles.map((t, ti) => (
+              <Stack
+                key={ti}
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                alignItems="center"
+              >
+                <TextField
+                  size="small"
+                  label="Name"
+                  value={t.name}
+                  onChange={(e) => setTile(gi, ti, { name: e.target.value })}
+                  sx={{ flex: 1, minWidth: 0 }}
+                />
+                <TextField
+                  size="small"
+                  label="URL"
+                  value={t.url}
+                  onChange={(e) => setTile(gi, ti, { url: e.target.value })}
+                  sx={{ flex: 1.3, minWidth: 0 }}
+                />
+                <TextField
+                  size="small"
+                  label="Note"
+                  value={t.meta}
+                  onChange={(e) => setTile(gi, ti, { meta: e.target.value })}
+                  sx={{ flex: 1, minWidth: 0 }}
+                />
+                <Button
+                  size="small"
+                  color="error"
+                  onClick={() => setGroup(gi, { tiles: g.tiles.filter((_, i) => i !== ti) })}
+                >
+                  ✕
+                </Button>
+              </Stack>
+            ))}
+            <Button
+              size="small"
+              onClick={() =>
+                setGroup(gi, { tiles: [...g.tiles, { name: 'New tile', meta: '', url: '' }] })
+              }
+            >
+              + Add tile
+            </Button>
+          </Stack>
+        </Box>
+      ))}
+      <Button variant="outlined" size="small" onClick={addGroup}>
+        + Add group
+      </Button>
+    </Stack>
+  );
+}
+
 export default function PillarsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pillars = usePillars();
   const activeId = useActivePillarId();
   const [sel, setSel] = useState(activeId);
+  const [showGroups, setShowGroups] = useState(false);
   const pillar = pillars.find((p) => p.id === sel) ?? pillars[0];
   const set = (patch: Partial<Pillar>) => updatePillar(pillar.id, patch);
 
@@ -172,10 +265,16 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
                 values={pillar.atsRoles}
                 onChange={(v) => set({ atsRoles: v })}
               />
-              <Typography variant="caption" color="text.secondary">
-                Discover groups are inherited from the pillar you duplicated. Editing groups and
-                tiles is coming next.
-              </Typography>
+              <Box>
+                <Button size="small" onClick={() => setShowGroups((v) => !v)}>
+                  {showGroups ? 'Hide' : 'Edit'} Discover groups ({pillar.groups.length})
+                </Button>
+                <Collapse in={showGroups}>
+                  <Box sx={{ mt: 1 }}>
+                    <GroupsEditor groups={pillar.groups} onChange={(g) => set({ groups: g })} />
+                  </Box>
+                </Collapse>
+              </Box>
               <Button color="error" onClick={remove} sx={{ alignSelf: 'flex-start' }}>
                 Delete pillar
               </Button>
