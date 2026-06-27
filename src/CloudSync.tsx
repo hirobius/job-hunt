@@ -4,6 +4,7 @@ import { createClient, type User } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 import { useJobs, getAllJobs, replaceAll } from './store';
 import { usePillars, getUserPillars, replaceUserPillars } from './pillarStore';
+import { useSnippets, getSnippets, replaceSnippets, type Snippet } from './copyDeckStore';
 import type { Job } from './types';
 import type { Pillar } from './pillars';
 
@@ -21,15 +22,16 @@ function clearLocalData() {
   }
 }
 
-type SyncData = { jobs: Job[]; pillars: Pillar[] };
+type SyncData = { jobs: Job[]; pillars: Pillar[]; copydeck: Snippet[] };
 
-// The cloud blob was historically a bare Job[]; it's now { v, jobs, pillars }. Read both.
+// The cloud blob was historically a bare Job[]; it's now { v, jobs, pillars, copydeck }.
 function readBlob(data: unknown): SyncData {
-  if (Array.isArray(data)) return { jobs: data as Job[], pillars: [] };
-  const o = (data ?? {}) as { jobs?: unknown; pillars?: unknown };
+  if (Array.isArray(data)) return { jobs: data as Job[], pillars: [], copydeck: [] };
+  const o = (data ?? {}) as { jobs?: unknown; pillars?: unknown; copydeck?: unknown };
   return {
     jobs: Array.isArray(o.jobs) ? (o.jobs as Job[]) : [],
     pillars: Array.isArray(o.pillars) ? (o.pillars as Pillar[]) : [],
+    copydeck: Array.isArray(o.copydeck) ? (o.copydeck as Snippet[]) : [],
   };
 }
 
@@ -59,27 +61,46 @@ function mergePillars(cloud: Pillar[] | null, local: Pillar[]): Pillar[] {
   return order.map((id) => by[id]);
 }
 
+function mergeSnippets(cloud: Snippet[] | null, local: Snippet[]): Snippet[] {
+  const by: Record<string, Snippet> = {};
+  const order: string[] = [];
+  const add = (s: Snippet) => {
+    if (!s || !s.id) return;
+    if (!(s.id in by)) order.push(s.id);
+    by[s.id] = s;
+  };
+  (local || []).forEach(add);
+  (cloud || []).forEach(add); // cloud wins on shared ids
+  return order.map((id) => by[id]);
+}
+
 export default function CloudSync() {
   const jobs = useJobs();
   const pillars = usePillars();
+  const snippets = useSnippets();
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const lastSynced = useRef('');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const localJson = () => JSON.stringify({ jobs: getAllJobs(), pillars: getUserPillars() });
+  const localJson = () =>
+    JSON.stringify({ jobs: getAllJobs(), pillars: getUserPillars(), copydeck: getSnippets() });
 
   async function pull(uid: string): Promise<SyncData | null> {
     const r = await supa.from('tracker').select('data').eq('user_id', uid).maybeSingle();
     return r.data ? readBlob(r.data.data) : null;
   }
   async function pushNow(u: User) {
-    const data = { v: 2, jobs: getAllJobs(), pillars: getUserPillars() };
+    const data = { v: 2, jobs: getAllJobs(), pillars: getUserPillars(), copydeck: getSnippets() };
     const r = await supa
       .from('tracker')
       .upsert({ user_id: u.id, data, updated_at: new Date().toISOString() });
-    lastSynced.current = JSON.stringify({ jobs: data.jobs, pillars: data.pillars });
+    lastSynced.current = JSON.stringify({
+      jobs: data.jobs,
+      pillars: data.pillars,
+      copydeck: data.copydeck,
+    });
     setMsg(r.error ? 'Saved locally — cloud error' : `Synced · ${u.email}`);
   }
   async function adopt(seed: boolean, u: User) {
@@ -96,8 +117,14 @@ export default function CloudSync() {
         : cloud
           ? cloud.pillars
           : getUserPillars();
+      const nextCopydeck = seed
+        ? mergeSnippets(cloud?.copydeck ?? null, getSnippets())
+        : cloud
+          ? cloud.copydeck
+          : getSnippets();
       replaceAll(nextJobs);
       replaceUserPillars(nextPillars);
+      replaceSnippets(nextCopydeck);
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
       if (seed) await pushNow(u);
@@ -126,7 +153,7 @@ export default function CloudSync() {
     setMsg('Saving…');
     clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(() => pushNow(user), 500);
-  }, [jobs, pillars, user]);
+  }, [jobs, pillars, snippets, user]);
 
   // re-pull on focus
   useEffect(() => {
