@@ -18,6 +18,7 @@ import { tailorResume } from './tailorResume';
 import AiNotConfigured from './AiNotConfigured';
 import { renderResumeMarkdown, type TailoredResume } from './tailor-core';
 import { loadResume, saveResume } from './profile';
+import { useActivePillar } from '../pillarStore';
 import type { Job } from '../types';
 
 type Phase = 'input' | 'loading' | 'result';
@@ -58,6 +59,7 @@ export default function TailorDialog({
   const [notConfigured, setNotConfigured] = useState(false);
   const [copied, setCopied] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const pillar = useActivePillar();
 
   const close = () => {
     abortRef.current?.abort();
@@ -241,6 +243,20 @@ export default function TailorDialog({
               onChange={(e) => setRole(e.target.value)}
               helperText="Prefilled from this job. Paste the full description for a sharper tailor."
             />
+            {pillar.tailorRole && (
+              <Box>
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={`+ ${pillar.label} target: ${pillar.tailorRole}`}
+                  onClick={() =>
+                    setRole((r) =>
+                      r.startsWith('Target role:') ? r : `Target role: ${pillar.tailorRole}\n\n${r}`,
+                    )
+                  }
+                />
+              </Box>
+            )}
           </Stack>
         )}
       </DialogContent>
