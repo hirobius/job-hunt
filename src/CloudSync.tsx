@@ -9,6 +9,18 @@ import type { Pillar } from './pillars';
 
 const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
+// delete so a shared browser can't carry one person's jobs/pillars/résumé to the next.
+function clearLocalData() {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith('rjb_') && k !== 'rjb_color_mode')
+      .forEach((k) => localStorage.removeItem(k));
+  } catch {
+    /* ignore */
+  }
+}
+
 type SyncData = { jobs: Job[]; pillars: Pillar[] };
 
 // The cloud blob was historically a bare Job[]; it's now { v, jobs, pillars }. Read both.
@@ -126,6 +138,34 @@ export default function CloudSync() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Sign out clears local data (then reloads to a clean slate). Cloud data is untouched
+  // and restored on next sign-in; this only protects shared devices.
+  const signOut = async () => {
+    await supa.auth.signOut();
+    clearLocalData();
+    location.reload();
+  };
+
+  // Delete removes the cloud row (RLS-scoped to this user) AND local data, then signs out.
+  const deleteMyData = async () => {
+    if (!user) return;
+    if (
+      !window.confirm(
+        'Delete all your synced data (jobs and pillars) from the cloud and this device? This cannot be undone.',
+      )
+    )
+      return;
+    setMsg('Deleting…');
+    try {
+      await supa.from('tracker').delete().eq('user_id', user.id);
+    } catch {
+      /* ignore */
+    }
+    clearLocalData();
+    await supa.auth.signOut();
+    location.reload();
+  };
+
   const sendLink = () => {
     const e = email.trim();
     if (!e) return;
@@ -176,9 +216,14 @@ export default function CloudSync() {
         {msg}
       </Typography>
       {user ? (
-        <Button size="small" variant="outlined" onClick={() => supa.auth.signOut()}>
-          Sign out
-        </Button>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+          <Button size="small" variant="outlined" onClick={signOut}>
+            Sign out
+          </Button>
+          <Button size="small" variant="text" color="error" onClick={deleteMyData}>
+            Delete my data
+          </Button>
+        </Stack>
       ) : (
         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
           <TextField
