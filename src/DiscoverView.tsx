@@ -85,7 +85,13 @@ function TileGrid({ tiles, cta = 'Open' }: { tiles: Tile[]; cta?: string }) {
 }
 
 function TitlesPanel({ titles, applyEntry }: { titles: string[]; applyEntry: boolean }) {
-  const [title, setTitle] = useState(titles[0]);
+  const [title, setTitle] = useState(titles[0] ?? '');
+  if (titles.length === 0)
+    return (
+      <Typography color="text.secondary" sx={{ py: 2 }}>
+        No titles in this pillar yet — add some in Manage pillars.
+      </Typography>
+    );
   const term = `"${title}"`;
   const tiles: Tile[] = BOARDS.map((b) => ({
     name: b.name,
@@ -123,9 +129,15 @@ function AtsPanel({
   seniority: Seniority;
   defaultLoc: 'remote' | 'spokane' | 'both';
 }) {
-  const [role, setRole] = useState(roles[0]);
+  const [role, setRole] = useState(roles[0] ?? '');
   const [loc, setLoc] = useState<'remote' | 'spokane' | 'both'>(defaultLoc);
   const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
+  if (roles.length === 0)
+    return (
+      <Typography color="text.secondary" sx={{ py: 2 }}>
+        No ATS roles in this pillar yet — add some in Manage pillars.
+      </Typography>
+    );
   const locClause =
     loc === 'spokane'
       ? '("Spokane" OR Washington)'
@@ -199,7 +211,9 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
   const featured = pillar.groups[0];
   const fieldRest = pillar.groups.slice(1);
   const tabs: TabDesc[] = [
-    { key: featured.id, label: 'Apply Now', kind: 'group', tiles: featured.tiles },
+    ...(featured
+      ? [{ key: featured.id, label: 'Apply Now', kind: 'group' as const, tiles: featured.tiles }]
+      : []),
     { key: 'titles', label: 'Title search', kind: 'titles' },
     { key: 'ats', label: 'ATS search', kind: 'ats' },
     ...fieldRest.map((g) => ({ key: g.id, label: g.label, kind: 'group' as const, tiles: g.tiles })),

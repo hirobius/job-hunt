@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
+import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
 import TrackerView from './TrackerView';
 import CloudSync from './CloudSync';
 import { useColorMode } from './ColorMode';
@@ -26,6 +27,7 @@ import { STATUSES } from './types';
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 const CaseStudyView = lazy(() => import('./CaseStudyView'));
+const PillarsDialog = lazy(() => import('./PillarsDialog'));
 
 function ViewFallback() {
   return (
@@ -73,6 +75,7 @@ function PillarSwitcher() {
 
 export default function App() {
   const [tab, setTab] = useState(0);
+  const [pillarsOpen, setPillarsOpen] = useState(false);
 
   // Shareable portfolio case-study page: ?case=<slug> renders full-screen (no tab shell).
   const caseSlug = new URLSearchParams(window.location.search).get('case');
@@ -127,6 +130,15 @@ export default function App() {
         </Typography>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ flex: 'none' }}>
           <PillarSwitcher />
+          <Tooltip title="Manage pillars">
+            <IconButton
+              onClick={() => setPillarsOpen(true)}
+              aria-label="Manage pillars"
+              sx={{ flex: 'none' }}
+            >
+              <TuneOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <ColorModeToggle />
         </Stack>
       </Stack>
@@ -155,6 +167,12 @@ export default function App() {
       {tab === 2 && (
         <Suspense fallback={<ViewFallback />}>
           <DiscoverView />
+        </Suspense>
+      )}
+
+      {pillarsOpen && (
+        <Suspense fallback={null}>
+          <PillarsDialog open onClose={() => setPillarsOpen(false)} />
         </Suspense>
       )}
     </Container>
