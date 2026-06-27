@@ -15,7 +15,9 @@ import {
   Typography,
 } from '@mui/material';
 import { addJob, isSaved, useJobs } from './store';
-import { GROUPS, TITLES, BOARDS, ATS, ATS_ROLES, entryLevelize, type Tile } from './jobsData';
+import { BOARDS, ATS, entryLevelize, type Tile } from './jobsData';
+import { useActivePillar } from './pillarStore';
+import { CROSS_CUTTING_GROUPS, type Pillar, type Seniority } from './pillars';
 
 const grid = {
   display: 'grid',
@@ -82,21 +84,21 @@ function TileGrid({ tiles, cta = 'Open' }: { tiles: Tile[]; cta?: string }) {
   );
 }
 
-function TitlesPanel() {
-  const [title, setTitle] = useState(TITLES[0]);
+function TitlesPanel({ titles, applyEntry }: { titles: string[]; applyEntry: boolean }) {
+  const [title, setTitle] = useState(titles[0]);
   const term = `"${title}"`;
   const tiles: Tile[] = BOARDS.map((b) => ({
     name: b.name,
     meta: b.tag,
-    url: entryLevelize(b.build(term)),
+    url: applyEntry ? entryLevelize(b.build(term)) : b.build(term),
   }));
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Pick a title — searches fire entry-level filtered across every board.
+        Pick a title — searches fire {applyEntry ? 'entry-level filtered ' : ''}across every board.
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
-        {TITLES.map((tt) => (
+        {titles.map((tt) => (
           <Chip
             key={tt}
             label={tt}
@@ -112,9 +114,17 @@ function TitlesPanel() {
   );
 }
 
-function AtsPanel() {
-  const [role, setRole] = useState(ATS_ROLES[0]);
-  const [loc, setLoc] = useState<'remote' | 'spokane' | 'both'>('remote');
+function AtsPanel({
+  roles,
+  seniority,
+  defaultLoc,
+}: {
+  roles: string[];
+  seniority: Seniority;
+  defaultLoc: 'remote' | 'spokane' | 'both';
+}) {
+  const [role, setRole] = useState(roles[0]);
+  const [loc, setLoc] = useState<'remote' | 'spokane' | 'both'>(defaultLoc);
   const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
   const locClause =
     loc === 'spokane'
@@ -122,8 +132,9 @@ function AtsPanel() {
       : loc === 'both'
         ? '(remote OR "Spokane")'
         : 'remote';
+  const levelClause = seniority === 'entry' ? ' (entry OR junior OR associate)' : '';
   const gUrl = (site: string) =>
-    `https://www.google.com/search?q=${encodeURIComponent(`${site} "${role}" (entry OR junior OR associate) ${locClause}`)}${recency ? '&tbs=qdr:' + recency : ''}`;
+    `https://www.google.com/search?q=${encodeURIComponent(`${site} "${role}"${levelClause} ${locClause}`)}${recency ? '&tbs=qdr:' + recency : ''}`;
   const tiles: Tile[] = ATS.map((a) => ({ name: a.name, meta: a.domain, url: gUrl(a.site) }));
   const allUrl = gUrl('(' + ATS.map((a) => a.site).join(' OR ') + ')');
   return (
@@ -156,7 +167,7 @@ function AtsPanel() {
         </ToggleButtonGroup>
       </Stack>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 0.5 }}>
-        {ATS_ROLES.map((r) => (
+        {roles.map((r) => (
           <Chip key={r} label={r} size="small" onClick={() => setRole(r)} variant="outlined" />
         ))}
       </Box>
@@ -178,16 +189,31 @@ function AtsPanel() {
 type TabDesc = { key: string; label: string; kind: 'group' | 'titles' | 'ats'; tiles?: Tile[] };
 
 export default function DiscoverView() {
-  const brief = GROUPS.find((g) => g.id === 'brief')!;
-  const rest = GROUPS.filter((g) => g.id !== 'brief');
+  const pillar = useActivePillar();
+  // Key by pillar id: switching pillars remounts the body, resetting the active tab
+  // (tab counts differ per pillar) without a setState-in-effect.
+  return <DiscoverBody key={pillar.id} pillar={pillar} />;
+}
+
+function DiscoverBody({ pillar }: { pillar: Pillar }) {
+  const featured = pillar.groups[0];
+  const fieldRest = pillar.groups.slice(1);
   const tabs: TabDesc[] = [
-    { key: 'brief', label: 'Apply Now', kind: 'group', tiles: brief.tiles },
+    { key: featured.id, label: 'Apply Now', kind: 'group', tiles: featured.tiles },
     { key: 'titles', label: 'Title search', kind: 'titles' },
     { key: 'ats', label: 'ATS search', kind: 'ats' },
-    ...rest.map((g) => ({ key: g.id, label: g.label, kind: 'group' as const, tiles: g.tiles })),
+    ...fieldRest.map((g) => ({ key: g.id, label: g.label, kind: 'group' as const, tiles: g.tiles })),
+    ...CROSS_CUTTING_GROUPS.map((g) => ({
+      key: g.id,
+      label: g.label,
+      kind: 'group' as const,
+      tiles: g.tiles,
+    })),
   ];
   const [tab, setTab] = useState(0);
-  const cur = tabs[tab];
+  const cur = tabs[tab] ?? tabs[0];
+  const defaultLoc = pillar.location.toLowerCase().includes('spokane') ? 'spokane' : 'remote';
+
   return (
     <Box>
       <Tabs
@@ -203,8 +229,12 @@ export default function DiscoverView() {
         ))}
       </Tabs>
       {cur.kind === 'group' && <TileGrid tiles={cur.tiles!} />}
-      {cur.kind === 'titles' && <TitlesPanel />}
-      {cur.kind === 'ats' && <AtsPanel />}
+      {cur.kind === 'titles' && (
+        <TitlesPanel titles={pillar.titles} applyEntry={pillar.seniority === 'entry'} />
+      )}
+      {cur.kind === 'ats' && (
+        <AtsPanel roles={pillar.atsRoles} seniority={pillar.seniority} defaultLoc={defaultLoc} />
+      )}
     </Box>
   );
 }

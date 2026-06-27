@@ -4,6 +4,8 @@ import {
   CircularProgress,
   Container,
   IconButton,
+  MenuItem,
+  Select,
   Stack,
   Tab,
   Tabs,
@@ -16,6 +18,7 @@ import TrackerView from './TrackerView';
 import CloudSync from './CloudSync';
 import { useColorMode } from './ColorMode';
 import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
+import { usePillars, useActivePillarId, setActivePillar } from './pillarStore';
 import { STATUSES } from './types';
 
 // Code-split the non-default views so the initial bundle only carries the Queue
@@ -45,6 +48,26 @@ function ColorModeToggle() {
         )}
       </IconButton>
     </Tooltip>
+  );
+}
+
+function PillarSwitcher() {
+  const pillars = usePillars();
+  const activeId = useActivePillarId();
+  return (
+    <Select
+      size="small"
+      value={activeId}
+      onChange={(e) => setActivePillar(e.target.value)}
+      aria-label="Career pillar"
+      sx={{ '& .MuiSelect-select': { py: 0.5, fontSize: '0.85rem' } }}
+    >
+      {pillars.map((p) => (
+        <MenuItem key={p.id} value={p.id}>
+          {p.label}
+        </MenuItem>
+      ))}
+    </Select>
   );
 }
 
@@ -102,7 +125,10 @@ export default function App() {
             Board
           </Box>
         </Typography>
-        <ColorModeToggle />
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ flex: 'none' }}>
+          <PillarSwitcher />
+          <ColorModeToggle />
+        </Stack>
       </Stack>
 
       <CloudSync />
