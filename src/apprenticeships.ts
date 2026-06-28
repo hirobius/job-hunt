@@ -11,6 +11,42 @@ const t = (name: string, meta: string, url: string): Tile => ({ name, meta, url 
 
 export const APPRENTICESHIP_GROUPS: Group[] = [
   {
+    id: 'spk-medical',
+    label: 'Spokane — medical assistant apprenticeships (verified Jun 2026)',
+    tiles: [
+      t(
+        'Providence — MA Apprentice (Spokane)',
+        'Currently hiring · $6k forgivable loan · 2,000 paid hrs',
+        'https://providence.jobs/locations/spokane-wa/job-titles/medical-assistant-apprentice/jobs/',
+      ),
+      t(
+        'CHAS Health — MA Apprenticeship',
+        'Accredited · 1-yr CMA · apply in the 2-week cohort window',
+        'https://chas.org/about-chas/careers/educational-programs/medical-assistant-apprenticeship-program/',
+      ),
+      t(
+        'Greater Spokane Apprenticeship — Medical',
+        'WSATC-approved MA apprenticeship (new, 2026)',
+        'https://spokaneapprenticeship.org/medical/',
+      ),
+      t(
+        'NEW Health — MA Apprenticeship',
+        'NE Washington (Colville / Chewelah) · paid',
+        'https://newhealth.org/medical-assistant-apprenticeship-program/',
+      ),
+      t(
+        'MultiCare — Medical Assistant (Spokane)',
+        'MA roles + advancement · Spokane clinics',
+        'https://jobs.multicare.org/medical-assistant-jobs-in-spokane/',
+      ),
+      t(
+        'Indeed · MA apprentice (Spokane)',
+        'All live Spokane MA-apprentice postings',
+        'https://www.indeed.com/jobs?q=medical+assistant+apprentice&l=Spokane%2C+WA',
+      ),
+    ],
+  },
+  {
     id: 'spk-search',
     label: 'Spokane — open now (live searches)',
     tiles: [
@@ -28,11 +64,6 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Indeed · will-train / no experience',
         'Entry roles, no experience needed',
         'https://www.indeed.com/jobs?q=%22will+train%22+OR+%22no+experience%22&l=Spokane%2C+WA',
-      ),
-      t(
-        'Indeed · medical assistant apprentice',
-        'Spokane clinical earn-while-you-learn',
-        'https://www.indeed.com/jobs?q=medical+assistant+apprentice&l=Spokane%2C+WA',
       ),
       t(
         'LinkedIn · apprentice',
@@ -99,11 +130,6 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Western States Cat — Diesel Academy',
         '10-mo diesel tech · Spokane / Liberty Lake · tools + laptop provided',
         'https://www.westernstatescat.com/tech-academy/',
-      ),
-      t(
-        'CHAS Health — Medical Assistant',
-        '$20.99/hr · 1-year clinical apprenticeship',
-        'https://chas.org/about-chas/careers/educational-programs/medical-assistant-apprenticeship-program/',
       ),
       t(
         'Apprenti (WA)',
