@@ -21,8 +21,8 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
     tiles: [
       t(
         'Providence — MA Apprentice (Spokane)',
-        'Hiring now · 13-mo · $6k forgivable loan · CCMA · 2,000 paid hrs',
-        'https://providence.jobs/locations/spokane-wa/job-titles/medical-assistant-apprentice/jobs/',
+        'Cohort-based (opens a few ×/yr) · 13-mo paid · $6k forgivable loan · CCMA',
+        'https://providence.jobs/ma-apprentice/',
       ),
       t(
         'CHAS Health — MA Apprenticeship',
@@ -40,9 +40,9 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'https://newhealth.org/medical-assistant-apprenticeship-program/',
       ),
       t(
-        'MultiCare — Medical Assistant (Spokane)',
-        'MA roles + advancement · Spokane clinics',
-        'https://jobs.multicare.org/medical-assistant-jobs-in-spokane/',
+        'MultiCare — MA Training Programs',
+        'Paid MA / CNA / phlebotomy training · no cert required · 18+',
+        'https://jobs.multicare.org/students-grads/training-programs/',
       ),
       t(
         'Indeed · MA apprentice (Spokane)',
