@@ -5,6 +5,11 @@
 //   2. APPLICATION / PROGRAM PORTALS — accept applications on a rolling basis.
 // Deliberately NO static one-off job postings: liveness can't be verified ahead of time
 // (and would go stale immediately), so they'd violate "only what's open right now".
+//
+// Named programs/JATCs below were web-checked in Jun 2026 for "open + Spokane-or-remote
+// eligible." Each tile's meta carries its status (rolling, annual window, or closed-until).
+// Dropped as ineligible: Year Up (hub-based, in-person, no Spokane site), Multiverse
+// (employer-sponsored only — no individual intake). Cycle-gated kept with a window note.
 import { type Group, type Tile } from './jobsData';
 
 const t = (name: string, meta: string, url: string): Tile => ({ name, meta, url });
@@ -16,12 +21,12 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
     tiles: [
       t(
         'Providence — MA Apprentice (Spokane)',
-        'Currently hiring · $6k forgivable loan · 2,000 paid hrs',
+        'Hiring now · 13-mo · $6k forgivable loan · CCMA · 2,000 paid hrs',
         'https://providence.jobs/locations/spokane-wa/job-titles/medical-assistant-apprentice/jobs/',
       ),
       t(
         'CHAS Health — MA Apprenticeship',
-        'Accredited · 1-yr CMA · apply in the 2-week cohort window',
+        'DOL-registered · 1-yr CMA · 2-wk cohort window (watch chas.org)',
         'https://chas.org/about-chas/careers/educational-programs/medical-assistant-apprenticeship-program/',
       ),
       t(
@@ -43,6 +48,52 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Indeed · MA apprentice (Spokane)',
         'All live Spokane MA-apprentice postings',
         'https://www.indeed.com/jobs?q=medical+assistant+apprentice&l=Spokane%2C+WA',
+      ),
+    ],
+  },
+  {
+    id: 'spk-trades',
+    label: 'Spokane — union trades JATCs (web-checked Jun 2026)',
+    tiles: [
+      t(
+        'Ironworkers Local 14',
+        'Open year-round · structural / reinforcing iron',
+        'https://iw14appr.org/',
+      ),
+      t(
+        'UA Local 44 — Plumbers & Pipefitters',
+        'Apply online · plumbing / HVAC-R / welding',
+        'https://ua44.org/',
+      ),
+      t(
+        'SMART Local 55 — Sheet Metal',
+        'Sheet metal / HVAC apprenticeship',
+        'https://www.smw55.org/apprenticeship',
+      ),
+      t(
+        'Cement Masons Local 72 (OPCMIA)',
+        'Cement masonry / plastering apprenticeship',
+        'https://www.opcmia72.org/apprenticeship',
+      ),
+      t(
+        'Heat & Frost Insulators Local 82',
+        'Mechanical (pipe & equipment) insulator JATC',
+        'https://www.local82jatc.com/',
+      ),
+      t(
+        'Boilermakers Local 242',
+        'Construction boilermaker apprenticeship',
+        'https://www.google.com/search?q=Boilermakers+Local+242+Spokane+apprenticeship',
+      ),
+      t(
+        'IUPAT Painters Local 10',
+        'Painters / glaziers / drywall finishers',
+        'https://www.google.com/search?q=IUPAT+Painters+Local+10+Spokane+apprenticeship',
+      ),
+      t(
+        'IBEW Local 73 — Electrical',
+        '2026 intake CLOSED (slots filled) · reopens ~Jan 2027',
+        'https://www.google.com/search?q=IBEW+Local+73+Spokane+electrical+apprenticeship',
       ),
     ],
   },
@@ -96,11 +147,6 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'https://www.google.com/search?q=Avista+careers+apprentice+lineman',
       ),
       t(
-        'IBEW Local 73',
-        'Inland NW electrical apprenticeship (union)',
-        'https://www.google.com/search?q=IBEW+Local+73+Spokane+electrical+apprenticeship',
-      ),
-      t(
         'Kaiser Aluminum (Trentwood)',
         'Industrial trades & maintenance openings',
         'https://www.google.com/search?q=Kaiser+Aluminum+Trentwood+Spokane+careers',
@@ -130,6 +176,11 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Western States Cat — Diesel Academy',
         '10-mo diesel tech · Spokane / Liberty Lake · tools + laptop provided',
         'https://www.westernstatescat.com/tech-academy/',
+      ),
+      t(
+        'Apollo Mechanical — HVAC Apprentice',
+        'Spokane Valley contractor · $25–40/hr · hires apprentices on a rolling basis',
+        'https://careers.apollomech.com/',
       ),
       t(
         'Apprenti (WA)',
@@ -181,41 +232,53 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
   },
   {
     id: 'remote-programs',
-    label: 'Remote — programs (apply anytime)',
+    label: 'Remote — programs (web-checked Jun 2026)',
     tiles: [
       t(
+        'AWS Technical Apprenticeship',
+        '12-wk course + up to 12-mo paid OJT · now open to all (was vets-only)',
+        'https://www.amazon.jobs/content/en/teams/amazon-web-services/technical-apprenticeships',
+      ),
+      t(
         'Per Scholas — AWS re/Start',
-        '15-wk free virtual · AWS cert covered',
+        '15-wk free · live-remote (US) · AWS cert covered',
         'https://perscholas.org/courses/aws-restart/',
       ),
       t(
-        'Google Apprenticeships',
-        '18–24 mo · paid · DOL-certified',
-        'https://www.google.com/about/careers/applications/buildyourfuture/apprenticeships/',
+        'IBM Apprenticeship',
+        '12-mo paid · DOL-registered · no degree',
+        'https://www.ibm.com/careers/blog/the-ibm-apprenticeship-program-no-degree-no-problem',
       ),
-      t('Microsoft Leap', '16-wk paid · SWE / PM / UX / Data', 'https://leap.microsoft.com/'),
       t(
-        'Microsoft MSSA',
-        'Software & Systems Academy · service members',
-        'https://military.microsoft.com/programs/microsoft-software-systems-academy/',
+        'Accenture Apprenticeship',
+        '~12-mo paid · no degree · salaried + benefits',
+        'https://www.accenture.com/us-en/careers/life-at-accenture/apprenticeships',
       ),
-      t('IBM New Collar', '12-mo paid apprenticeships · no degree', 'https://www.ibm.com/careers'),
       t(
         'ServiceNow RiseUp',
-        'Free certification + mentoring + placement',
+        'Free virtual · CSA cert + mentoring + hiring network',
         'https://learning.servicenow.com/apply',
       ),
       t(
-        'Multiverse',
-        'Apprenticeships in software, data & AI',
-        'https://www.multiverse.io/en-US/apprenticeships',
+        'Boeing BTAP',
+        'Up to 12-mo paid · DOL-registered · no degree',
+        'https://jobs.boeing.com/BTAP',
+      ),
+      t(
+        'Google Apprenticeships',
+        '18-mo paid · DOL · apps open ~Sept yearly (next cohort Mar)',
+        'https://www.google.com/about/careers/applications/buildyourfuture/apprenticeships/',
+      ),
+      t(
+        'Microsoft Leap',
+        '16-wk paid · for returners (1+ yr out of work) · apps Sept–Nov',
+        'https://leap.microsoft.com/',
       ),
       t(
         'LearnSFDC',
-        'Salesforce · 1099 project-based',
+        'Salesforce 1099 project work · waitlist — apply to be notified',
         'https://learnsfdc.com/salesforce-apprenticeship-program/',
       ),
-      t('Boeing BTAP', 'Cybersecurity / assembly · vets welcome', 'https://jobs.boeing.com/BTAP'),
     ],
   },
   {
@@ -226,6 +289,11 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'DoD SkillBridge',
         'Industry training in your last 180 days of service',
         'https://skillbridge.osd.mil/locations.htm',
+      ),
+      t(
+        'Microsoft MSSA',
+        'Free · service members/vets within 6 mo of separation · cohorts open now',
+        'https://military.microsoft.com/mssa/',
       ),
       t(
         'VA VET TEC',
