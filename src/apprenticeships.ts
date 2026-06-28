@@ -1,130 +1,22 @@
-// Curated apprenticeship / earn-while-you-learn programs for the Apprenticeships tab.
-// Spokane-first: local trades, healthcare, and employer postings; statewide search
-// tools; plus remote/national tech and veteran pathways open to WA residents.
-//
-// NOTE on freshness: durable application/program pages accept applications year-round.
-// Specific job postings expire — those are marked "verify" in the meta; click to confirm
-// they're still hiring. (Links curated from research; not auto-verified.)
+// Apprenticeships / earn-while-you-learn board — Spokane-eligible + remote, kept current
+// by design. Two reliable kinds of tile only:
+//   1. LIVE SEARCHES — return whatever is actually posted *right now* when clicked
+//      (open by definition; no staleness).
+//   2. APPLICATION / PROGRAM PORTALS — accept applications on a rolling basis.
+// Deliberately NO static one-off job postings: liveness can't be verified ahead of time
+// (and would go stale immediately), so they'd violate "only what's open right now".
 import { type Group, type Tile } from './jobsData';
 
 const t = (name: string, meta: string, url: string): Tile => ({ name, meta, url });
 
 export const APPRENTICESHIP_GROUPS: Group[] = [
   {
-    id: 'appr-spokane-trades',
-    label: 'Spokane & Eastern WA — trades',
-    tiles: [
-      t(
-        'Inland NW AGC JATC',
-        'Carpenter · Laborer · Heavy Equipment Operator · Spokane Valley',
-        'https://nwagcapprenticeship.org/apply-today/',
-      ),
-      t(
-        'CITC Eastern WA',
-        'Electrical · HVAC · Plumbing · Carpentry · Sheet Metal · Glazier · non-union',
-        'https://citcwa.org/apprenticeship/online-apprenticeship-application/',
-      ),
-      t(
-        'Western States Cat — Diesel Academy',
-        '10-mo diesel tech · Spokane / Liberty Lake · tools + laptop provided',
-        'https://www.westernstatescat.com/tech-academy/',
-      ),
-      t(
-        'Apprenti (WA)',
-        'Registered tech apprenticeships · take the assessment',
-        'https://apprenticareers.org/career-seeker/',
-      ),
-      t(
-        'SCC Skilled Trades Prep',
-        'Free 11-wk trades prep · OSHA-10, math, rigging',
-        'https://scc.spokane.edu/Become-a-Student/I-Need-Basic-Education/Short-Term-Training/Skilled-Trades-Preparation',
-      ),
-      t(
-        'Avista — utility & trades',
-        'Spokane-HQ utility · lineman / trades apprenticeships',
-        'https://www.google.com/search?q=Avista+careers+apprentice+lineman',
-      ),
-      t(
-        'IBEW Local 73',
-        'Inland NW electrical apprenticeship (union)',
-        'https://www.google.com/search?q=IBEW+Local+73+Spokane+electrical+apprenticeship',
-      ),
-      t(
-        'Kaiser Aluminum (Trentwood)',
-        'Industrial trades & maintenance · Spokane Valley',
-        'https://www.google.com/search?q=Kaiser+Aluminum+Trentwood+Spokane+careers',
-      ),
-      t(
-        'Spokane Transit (STA)',
-        'Transit coach mechanic / maintenance',
-        'https://www.google.com/search?q=Spokane+Transit+Authority+careers',
-      ),
-    ],
-  },
-  {
-    id: 'appr-spokane-health',
-    label: 'Spokane — healthcare & pharmacy',
-    tiles: [
-      t(
-        'CHAS Health — Medical Assistant',
-        '$20.99/hr · 1-year clinical apprenticeship',
-        'https://chas.org/about-chas/careers/educational-programs/medical-assistant-apprenticeship-program/',
-      ),
-      t(
-        'Providence — Medical Assistant',
-        '$20.91+/hr · $2,500 sign-on · posting, verify',
-        'https://providence.jobs/spokane-wa/medical-assistant-primary-care-multiple-clinics/2AA4177C2C0447068C75CBC0686AA149/job/',
-      ),
-      t(
-        'MultiCare Rockwood — Medical Assistant',
-        'Float-pool MA · Spokane Valley',
-        'https://www.multicare.org/',
-      ),
-      t(
-        'Walgreens — Pharmacy Tech',
-        '$19.50–23/hr · PTCB cert · posting, verify',
-        'https://jobs.walgreens.com/en/job/spokane/pharmacy-technician-pharm-tech-apprenticeship/1242/96851549680',
-      ),
-    ],
-  },
-  {
-    id: 'appr-spokane-postings',
-    label: 'Spokane employer postings — verify still open',
-    tiles: [
-      t(
-        'JLL — Mechatronics & Robotics',
-        '$17–22/hr + 12 wks paid training · Spokane',
-        'https://jll.wd1.myworkdayjobs.com/en-US/jllcareers/job/Mechatronics---Robotics-Apprenticeship_REQ495795-1',
-      ),
-      t(
-        'Lennox — HVAC Service Apprentice',
-        '$33–41k/yr + company vehicle · Spokane',
-        'https://hrlydistribution-lennox.icims.com/jobs/53670/hvac-service-apprentice/job',
-      ),
-      t(
-        'McCallum — Drill / Blast Apprentice',
-        '$21–25/hr · Cheney · 100% paid medical',
-        'https://www.mccallumrockdrilling.com/',
-      ),
-      t(
-        'Raptor Rooter — Plumbing Apprentice',
-        '$17–32/hr · Spokane Valley · 401(k) match',
-        'https://raptorrooter.com/',
-      ),
-      t(
-        'River City Glass — Glazier',
-        '$20–35/hr · Spokane Valley · Indeed posting',
-        'https://www.indeed.com/viewjob?jk=776ceabcc5259e65',
-      ),
-    ],
-  },
-  {
-    id: 'appr-spokane-search',
-    label: 'Widen the net — Spokane searches',
+    id: 'spk-search',
+    label: 'Spokane — open now (live searches)',
     tiles: [
       t(
         'Indeed · apprentice',
-        'Every Spokane apprentice posting',
+        'Every Spokane apprentice posting, live',
         'https://www.indeed.com/jobs?q=apprentice&l=Spokane%2C+WA',
       ),
       t(
@@ -138,14 +30,14 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'https://www.indeed.com/jobs?q=%22will+train%22+OR+%22no+experience%22&l=Spokane%2C+WA',
       ),
       t(
-        'LinkedIn · apprentice',
-        'Spokane apprentice roles',
-        'https://www.linkedin.com/jobs/search/?keywords=apprentice&location=Spokane%2C%20Washington',
+        'Indeed · medical assistant apprentice',
+        'Spokane clinical earn-while-you-learn',
+        'https://www.indeed.com/jobs?q=medical+assistant+apprentice&l=Spokane%2C+WA',
       ),
       t(
-        'Google Jobs · apprentice',
-        'Aggregates every board',
-        'https://www.google.com/search?q=apprentice+spokane+wa&ibp=htl;jobs',
+        'LinkedIn · apprentice',
+        'Spokane apprentice roles, live',
+        'https://www.linkedin.com/jobs/search/?keywords=apprentice&location=Spokane%2C%20Washington',
       ),
       t(
         'ZipRecruiter · apprentice',
@@ -167,42 +59,103 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'State job center · apprenticeship listings',
         'https://www.worksourcewa.com/',
       ),
+      t(
+        'Avista — careers',
+        'Spokane-HQ utility · lineman / trades openings',
+        'https://www.google.com/search?q=Avista+careers+apprentice+lineman',
+      ),
+      t(
+        'IBEW Local 73',
+        'Inland NW electrical apprenticeship (union)',
+        'https://www.google.com/search?q=IBEW+Local+73+Spokane+electrical+apprenticeship',
+      ),
+      t(
+        'Kaiser Aluminum (Trentwood)',
+        'Industrial trades & maintenance openings',
+        'https://www.google.com/search?q=Kaiser+Aluminum+Trentwood+Spokane+careers',
+      ),
+      t(
+        'Spokane Transit (STA)',
+        'Transit coach mechanic / maintenance',
+        'https://www.google.com/search?q=Spokane+Transit+Authority+careers',
+      ),
     ],
   },
   {
-    id: 'appr-search',
-    label: 'Search every WA program',
+    id: 'spk-programs',
+    label: 'Spokane — application portals (rolling intake)',
     tiles: [
       t(
-        'WA L&I — Become an Apprentice',
-        'All registered WA programs + employers',
-        'https://www.lni.wa.gov/licensing-permits/apprenticeship/become-apprentice/',
+        'Inland NW AGC JATC',
+        'Carpenter · Laborer · Heavy Equipment Operator · Spokane Valley',
+        'https://nwagcapprenticeship.org/apply-today/',
       ),
       t(
-        'Apprenticeship.gov',
-        'Official U.S. registered-apprenticeship finder',
-        'https://www.apprenticeship.gov/apprenticeship-job-finder',
+        'CITC Eastern WA',
+        'Electrical · HVAC · Plumbing · Carpentry · Sheet Metal · Glazier · non-union',
+        'https://citcwa.org/apprenticeship/online-apprenticeship-application/',
       ),
       t(
-        'CareerOneStop Finder',
-        'Search by trade + state (DoL)',
-        'https://www.careeronestop.org/Toolkit/Training/find-apprenticeships.aspx',
+        'Western States Cat — Diesel Academy',
+        '10-mo diesel tech · Spokane / Liberty Lake · tools + laptop provided',
+        'https://www.westernstatescat.com/tech-academy/',
       ),
       t(
-        'SBCTC Apprenticeships',
-        'WA community / technical college programs',
-        'https://www.sbctc.edu/becoming-a-student/train-for-job/apprenticeships-student.aspx',
+        'CHAS Health — Medical Assistant',
+        '$20.99/hr · 1-year clinical apprenticeship',
+        'https://chas.org/about-chas/careers/educational-programs/medical-assistant-apprenticeship-program/',
       ),
       t(
-        'Indeed — Spokane apprenticeships',
-        'Live local apprenticeship postings',
-        'https://www.indeed.com/q-apprenticeship-program-l-spokane,-wa-jobs.html',
+        'Apprenti (WA)',
+        'Registered tech apprenticeships · take the assessment',
+        'https://apprenticareers.org/career-seeker/',
+      ),
+      t(
+        'SCC Skilled Trades Prep',
+        'Free 11-wk trades prep · OSHA-10, math, rigging',
+        'https://scc.spokane.edu/Become-a-Student/I-Need-Basic-Education/Short-Term-Training/Skilled-Trades-Preparation',
       ),
     ],
   },
   {
-    id: 'appr-remote-tech',
-    label: 'Remote & national tech (open to WA)',
+    id: 'remote-search',
+    label: 'Remote — open now (live searches)',
+    tiles: [
+      t(
+        'Indeed · apprentice (remote)',
+        'Remote apprentice postings, live',
+        'https://www.indeed.com/jobs?q=apprentice&l=Remote',
+      ),
+      t(
+        'Indeed · trainee / paid training (remote)',
+        'Remote earn-while-you-learn',
+        'https://www.indeed.com/jobs?q=%22paid+training%22+OR+trainee&l=Remote',
+      ),
+      t(
+        'Indeed · entry / no experience (remote)',
+        'Remote entry roles',
+        'https://www.indeed.com/jobs?q=%22no+experience%22+OR+%22entry+level%22&l=Remote',
+      ),
+      t(
+        'LinkedIn · apprentice (remote)',
+        'Remote-filtered apprentice roles',
+        'https://www.linkedin.com/jobs/search/?keywords=apprentice&f_WT=2',
+      ),
+      t(
+        'Google Jobs · remote apprentice',
+        'Aggregates every board',
+        'https://www.google.com/search?q=remote+apprentice&ibp=htl;jobs',
+      ),
+      t(
+        'ZipRecruiter · apprentice (remote)',
+        '1-click apply · remote',
+        'https://www.ziprecruiter.com/jobs-search?search=apprentice&location=Remote',
+      ),
+    ],
+  },
+  {
+    id: 'remote-programs',
+    label: 'Remote — programs (apply anytime)',
     tiles: [
       t(
         'Per Scholas — AWS re/Start',
@@ -240,8 +193,8 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
     ],
   },
   {
-    id: 'appr-veteran',
-    label: 'Veteran pathways',
+    id: 'veteran',
+    label: 'Veteran pathways (Spokane + remote)',
     tiles: [
       t(
         'DoD SkillBridge',
@@ -262,6 +215,32 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Onward to Opportunity',
         'Free IVMF training + certification',
         'https://ivmf.syracuse.edu/programs/career-training/',
+      ),
+    ],
+  },
+  {
+    id: 'finders',
+    label: 'Program finders',
+    tiles: [
+      t(
+        'WA L&I — Become an Apprentice',
+        'All registered WA programs + employers',
+        'https://www.lni.wa.gov/licensing-permits/apprenticeship/become-apprentice/',
+      ),
+      t(
+        'Apprenticeship.gov',
+        'Official U.S. registered-apprenticeship finder',
+        'https://www.apprenticeship.gov/apprenticeship-job-finder',
+      ),
+      t(
+        'CareerOneStop Finder',
+        'Search by trade + state (DoL)',
+        'https://www.careeronestop.org/Toolkit/Training/find-apprenticeships.aspx',
+      ),
+      t(
+        'SBCTC Apprenticeships',
+        'WA community / technical college programs',
+        'https://www.sbctc.edu/becoming-a-student/train-for-job/apprenticeships-student.aspx',
       ),
     ],
   },

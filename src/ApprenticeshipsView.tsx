@@ -6,10 +6,11 @@ export default function ApprenticeshipsView() {
   return (
     <Stack spacing={3}>
       <Typography variant="body2" color="text.secondary">
-        Earn-while-you-learn pathways for Washington — Spokane-local trades, healthcare &amp;
-        employer postings, statewide search tools, and remote tech open to WA residents. Open one,
-        or Save it to your queue. Dated postings are marked “verify” — click to confirm
-        they&rsquo;re still hiring.
+        Spokane-eligible and remote opportunities, current by design. The <strong>search</strong>{' '}
+        tiles return only what&rsquo;s actually posted right now; the{' '}
+        <strong>program portals</strong> take applications on a rolling basis. Static one-off
+        postings are deliberately left off (they can&rsquo;t be pre-verified and go stale) — click a
+        search to see today&rsquo;s openings, and Save any to your queue.
       </Typography>
       {APPRENTICESHIP_GROUPS.map((g) => (
         <Box key={g.id}>
