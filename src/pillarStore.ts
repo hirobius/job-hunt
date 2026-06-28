@@ -122,9 +122,7 @@ export function getUserPillars(): Pillar[] {
 
 /** Replace the whole set of user pillars (cloud sync). Active falls back if it vanished. */
 export function replaceUserPillars(list: Pillar[]) {
-  const user = list
-    .filter((p) => p && p.id && !p.builtIn)
-    .map((p) => ({ ...p, builtIn: false }));
+  const user = list.filter((p) => p && p.id && !p.builtIn).map((p) => ({ ...p, builtIn: false }));
   const pillars = [...BUILTIN_PILLARS, ...user];
   const activeId = pillars.some((p) => p.id === state.activeId)
     ? state.activeId

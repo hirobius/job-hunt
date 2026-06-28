@@ -72,7 +72,11 @@ const DESIGN_BRIEF: Group = {
     t('Linear', 'Design-engineering culture', 'https://linear.app/careers'),
     t('Figma', 'Design tooling · design-eng roles', 'https://www.figma.com/careers/'),
     t('Framer', 'Design + code product team', 'https://www.framer.com/careers/'),
-    t('Stripe · Design Eng', 'Design systems / front-end', 'https://stripe.com/jobs/search?q=design%20engineer'),
+    t(
+      'Stripe · Design Eng',
+      'Design systems / front-end',
+      'https://stripe.com/jobs/search?q=design%20engineer',
+    ),
     t('Notion', 'Product + design engineering', 'https://www.notion.so/careers'),
     t('Retool', 'Internal-tools; design eng', 'https://retool.com/careers'),
     t('Raycast', 'Design-led product team', 'https://www.raycast.com/careers'),

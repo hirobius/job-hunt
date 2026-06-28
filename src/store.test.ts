@@ -34,7 +34,6 @@ describe('url helpers', () => {
     expect(hostOf('https://www.example.com/careers/123')).toBe('example.com');
     expect(hostOf('not a url')).toBe('');
   });
-
 });
 
 describe('add / dedupe', () => {

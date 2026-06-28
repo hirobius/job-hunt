@@ -251,7 +251,9 @@ export default function TailorDialog({
                   label={`+ ${pillar.label} target: ${pillar.tailorRole}`}
                   onClick={() =>
                     setRole((r) =>
-                      r.startsWith('Target role:') ? r : `Target role: ${pillar.tailorRole}\n\n${r}`,
+                      r.startsWith('Target role:')
+                        ? r
+                        : `Target role: ${pillar.tailorRole}\n\n${r}`,
                     )
                   }
                 />

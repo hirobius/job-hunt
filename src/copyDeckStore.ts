@@ -100,7 +100,13 @@ function set(next: Snippet[]) {
 export function addSnippet(tagPillar?: string) {
   set([
     ...snippets,
-    { id: newId(), label: 'New snippet', body: '', open: true, pillars: tagPillar ? [tagPillar] : [] },
+    {
+      id: newId(),
+      label: 'New snippet',
+      body: '',
+      open: true,
+      pillars: tagPillar ? [tagPillar] : [],
+    },
   ]);
 }
 export function updateSnippet(id: string, patch: Partial<Snippet>) {

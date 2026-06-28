@@ -47,7 +47,12 @@ function ChipListEditor({
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
         {values.map((v) => (
-          <Chip key={v} label={v} size="small" onDelete={() => onChange(values.filter((x) => x !== v))} />
+          <Chip
+            key={v}
+            label={v}
+            size="small"
+            onDelete={() => onChange(values.filter((x) => x !== v))}
+          />
         ))}
         {values.length === 0 && (
           <Typography variant="caption" color="text.secondary">
