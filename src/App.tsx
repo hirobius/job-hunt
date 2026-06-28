@@ -28,6 +28,7 @@ const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 const CaseStudyView = lazy(() => import('./CaseStudyView'));
 const PillarsDialog = lazy(() => import('./PillarsDialog'));
+const ApprenticeshipsView = lazy(() => import('./ApprenticeshipsView'));
 
 function ViewFallback() {
   return (
@@ -156,6 +157,7 @@ export default function App() {
         <Tab label="Queue" />
         <Tab label="Copy Deck" />
         <Tab label="Discover" />
+        <Tab label="Apprenticeships" />
       </Tabs>
 
       {tab === 0 && <TrackerView />}
@@ -167,6 +169,11 @@ export default function App() {
       {tab === 2 && (
         <Suspense fallback={<ViewFallback />}>
           <DiscoverView />
+        </Suspense>
+      )}
+      {tab === 3 && (
+        <Suspense fallback={<ViewFallback />}>
+          <ApprenticeshipsView />
         </Suspense>
       )}
 
