@@ -39,6 +39,26 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Free 11-wk trades prep · OSHA-10, math, rigging',
         'https://scc.spokane.edu/Become-a-Student/I-Need-Basic-Education/Short-Term-Training/Skilled-Trades-Preparation',
       ),
+      t(
+        'Avista — utility & trades',
+        'Spokane-HQ utility · lineman / trades apprenticeships',
+        'https://www.google.com/search?q=Avista+careers+apprentice+lineman',
+      ),
+      t(
+        'IBEW Local 73',
+        'Inland NW electrical apprenticeship (union)',
+        'https://www.google.com/search?q=IBEW+Local+73+Spokane+electrical+apprenticeship',
+      ),
+      t(
+        'Kaiser Aluminum (Trentwood)',
+        'Industrial trades & maintenance · Spokane Valley',
+        'https://www.google.com/search?q=Kaiser+Aluminum+Trentwood+Spokane+careers',
+      ),
+      t(
+        'Spokane Transit (STA)',
+        'Transit coach mechanic / maintenance',
+        'https://www.google.com/search?q=Spokane+Transit+Authority+careers',
+      ),
     ],
   },
   {
@@ -95,6 +115,57 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'River City Glass — Glazier',
         '$20–35/hr · Spokane Valley · Indeed posting',
         'https://www.indeed.com/viewjob?jk=776ceabcc5259e65',
+      ),
+    ],
+  },
+  {
+    id: 'appr-spokane-search',
+    label: 'Widen the net — Spokane searches',
+    tiles: [
+      t(
+        'Indeed · apprentice',
+        'Every Spokane apprentice posting',
+        'https://www.indeed.com/jobs?q=apprentice&l=Spokane%2C+WA',
+      ),
+      t(
+        'Indeed · trainee / paid training',
+        'Earn-while-you-learn roles',
+        'https://www.indeed.com/jobs?q=%22paid+training%22+OR+trainee&l=Spokane%2C+WA',
+      ),
+      t(
+        'Indeed · will-train / no experience',
+        'Entry roles, no experience needed',
+        'https://www.indeed.com/jobs?q=%22will+train%22+OR+%22no+experience%22&l=Spokane%2C+WA',
+      ),
+      t(
+        'LinkedIn · apprentice',
+        'Spokane apprentice roles',
+        'https://www.linkedin.com/jobs/search/?keywords=apprentice&location=Spokane%2C%20Washington',
+      ),
+      t(
+        'Google Jobs · apprentice',
+        'Aggregates every board',
+        'https://www.google.com/search?q=apprentice+spokane+wa&ibp=htl;jobs',
+      ),
+      t(
+        'ZipRecruiter · apprentice',
+        '1-click apply · Spokane',
+        'https://www.ziprecruiter.com/jobs-search?search=apprentice&location=Spokane%2C+WA',
+      ),
+      t(
+        'Snagajob · Spokane',
+        'Hourly / entry · fast apply',
+        'https://www.snagajob.com/search?q=&w=Spokane%2C+WA',
+      ),
+      t(
+        'USAJOBS · Spokane',
+        'Federal roles · veteran preference',
+        'https://www.usajobs.gov/Search/Results?l=Spokane%2C%20Washington',
+      ),
+      t(
+        'WorkSource WA',
+        'State job center · apprenticeship listings',
+        'https://www.worksourcewa.com/',
       ),
     ],
   },

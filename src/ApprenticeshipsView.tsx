@@ -14,7 +14,7 @@ export default function ApprenticeshipsView() {
       {APPRENTICESHIP_GROUPS.map((g) => (
         <Box key={g.id}>
           <Typography sx={{ fontWeight: 600, fontSize: '1.05rem', mb: 1 }}>{g.label}</Typography>
-          <TileGrid tiles={g.tiles} />
+          <TileGrid tiles={g.tiles} cta={g.id.includes('search') ? 'Search' : 'Open'} />
         </Box>
       ))}
     </Stack>
