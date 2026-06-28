@@ -25,11 +25,6 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'https://providence.jobs/locations/spokane-wa/job-titles/medical-assistant-apprentice/jobs/',
       ),
       t(
-        'CHAS Health — MA Apprenticeship',
-        'DOL-registered · 1-yr CMA · 2-wk cohort window (watch chas.org)',
-        'https://chas.org/about-chas/careers/educational-programs/medical-assistant-apprenticeship-program/',
-      ),
-      t(
         'Greater Spokane Apprenticeship — Medical',
         'WSATC-approved MA apprenticeship (new, 2026)',
         'https://spokaneapprenticeship.org/medical/',
