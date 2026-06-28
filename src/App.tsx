@@ -16,19 +16,19 @@ import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
 import TrackerView from './TrackerView';
+import ApprenticeshipsView from './ApprenticeshipsView';
 import CloudSync from './CloudSync';
 import { useColorMode } from './ColorMode';
 import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
 import { usePillars, useActivePillarId, setActivePillar } from './pillarStore';
 import { STATUSES } from './types';
 
-// Code-split the non-default views so the initial bundle only carries the Queue
-// tab; the rest load on demand (tab switch / case-study route).
+// Code-split the non-default views so the initial bundle only carries the default
+// Apprenticeships + Queue tabs; the rest load on demand (tab switch / case-study route).
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 const CaseStudyView = lazy(() => import('./CaseStudyView'));
 const PillarsDialog = lazy(() => import('./PillarsDialog'));
-const ApprenticeshipsView = lazy(() => import('./ApprenticeshipsView'));
 
 function ViewFallback() {
   return (
@@ -75,7 +75,12 @@ function PillarSwitcher() {
 }
 
 export default function App() {
-  const [tab, setTab] = useState(0);
+  // Default to the Apprenticeships tab (0), but land on the Queue (1) when arriving via a
+  // quick-add link so the just-added job is visible. Computed once at mount.
+  const [tab, setTab] = useState(() => {
+    const qp = new URLSearchParams(window.location.search);
+    return qp.get('add') || qp.get('applied') || (qp.get('status') && qp.get('u')) ? 1 : 0;
+  });
   const [pillarsOpen, setPillarsOpen] = useState(false);
 
   // Shareable portfolio case-study page: ?case=<slug> renders full-screen (no tab shell).
@@ -109,7 +114,8 @@ export default function App() {
         '',
         window.location.pathname + (s ? '?' + s : '') + window.location.hash,
       );
-      // Queue (tab 0) is already the default on mount, so no tab change is needed here.
+      // The initial tab was already set to the Queue in useState when a quick-add param was
+      // present, so no setState is needed here (avoids set-state-in-effect).
     }
   }, [caseSlug]);
 
@@ -154,26 +160,22 @@ export default function App() {
         allowScrollButtonsMobile
         sx={{ mb: 2.5, borderBottom: 1, borderColor: 'divider' }}
       >
+        <Tab label="Apprenticeships" />
         <Tab label="Queue" />
         <Tab label="Copy Deck" />
         <Tab label="Discover" />
-        <Tab label="Apprenticeships" />
       </Tabs>
 
-      {tab === 0 && <TrackerView />}
-      {tab === 1 && (
+      {tab === 0 && <ApprenticeshipsView />}
+      {tab === 1 && <TrackerView />}
+      {tab === 2 && (
         <Suspense fallback={<ViewFallback />}>
           <CopyDeckView />
         </Suspense>
       )}
-      {tab === 2 && (
-        <Suspense fallback={<ViewFallback />}>
-          <DiscoverView />
-        </Suspense>
-      )}
       {tab === 3 && (
         <Suspense fallback={<ViewFallback />}>
-          <ApprenticeshipsView />
+          <DiscoverView />
         </Suspense>
       )}
 
