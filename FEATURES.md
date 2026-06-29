@@ -26,6 +26,10 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
 - ✅ **Per-job notes** — JD snapshot, why you want it, prep notes.
 - ✅ **Recruiter / contact field** — name, referral source.
 - ✅ **Priority / star + sort** — keep your 3 dream jobs above the 40 maybes.
+  Priority pinning shipped early; the **Sort menu shipped later** (it was marked done
+  before it existed). Now real: Recently added (default, newest first, with due
+  follow-ups floated to the top), Follow-up due first, Applied date, Status, Salary,
+  A–Z — retired always last, priority floats within its group (`src/jobSort.ts`).
 - ✅ **Resume-version tag** — record which resume variant you sent per app.
 - ✅ **Salary field** — target vs offered.
 
@@ -39,6 +43,21 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
   tailoring done by the assistant (see Phase 4).
 - ✅ **Company research quick-links** — per saved job, auto-build Glassdoor /
   LinkedIn / levels.fyi / careers-page links (same trick the board already uses).
+
+## Navigation & UX
+
+- ✅ **URL-synced navigation** — hash routing (no react-router): the top-level tab,
+  Discover's sub-tab, and the active career pillar all live in the hash
+  (`#/queue`, `#/discover/titles`, `?pillar=<id>`) and restore on refresh /
+  back-forward. Queue is the default landing view; quick-add deep links still work
+  (`src/route.ts`).
+- ✅ **Sort, Saved filter, skeletons, empty states, autosave feedback** — see Phase 2
+  for sort; the Tracker also has a Saved filter and a scrollable filter row on mobile,
+  lazy views show layout-matched skeletons, empties use a shared `EmptyState`, and
+  detail-field autosave shows a "Saved ✓" flash.
+- ✅ **Accessibility** — tab/tabpanel ARIA associations, a named filter group, and one
+  shared visible focus-visible ring; colour contrast (incl. the Interviewing chip) is
+  AA-audited in `src/theme.contrast.test.ts`.
 
 ## Phase 4 — The unfair advantage (assistant-driven, not in-app code)
 
