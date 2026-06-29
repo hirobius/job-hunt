@@ -180,23 +180,39 @@ export default function App() {
         allowScrollButtonsMobile
         sx={{ mb: 2.5, borderBottom: 1, borderColor: 'divider' }}
       >
-        <Tab label="Apprenticeships" />
-        <Tab label="Queue" />
-        <Tab label="Copy Deck" />
-        <Tab label="Discover" />
+        <Tab
+          label="Apprenticeships"
+          id="tab-apprenticeships"
+          aria-controls="tabpanel-apprenticeships"
+        />
+        <Tab label="Queue" id="tab-queue" aria-controls="tabpanel-queue" />
+        <Tab label="Copy Deck" id="tab-copy-deck" aria-controls="tabpanel-copy-deck" />
+        <Tab label="Discover" id="tab-discover" aria-controls="tabpanel-discover" />
       </Tabs>
 
-      {tab === 0 && <ApprenticeshipsView />}
-      {tab === 1 && <TrackerView />}
+      {tab === 0 && (
+        <Box role="tabpanel" id="tabpanel-apprenticeships" aria-labelledby="tab-apprenticeships">
+          <ApprenticeshipsView />
+        </Box>
+      )}
+      {tab === 1 && (
+        <Box role="tabpanel" id="tabpanel-queue" aria-labelledby="tab-queue">
+          <TrackerView />
+        </Box>
+      )}
       {tab === 2 && (
-        <Suspense fallback={<CopyDeckSkeleton />}>
-          <CopyDeckView />
-        </Suspense>
+        <Box role="tabpanel" id="tabpanel-copy-deck" aria-labelledby="tab-copy-deck">
+          <Suspense fallback={<CopyDeckSkeleton />}>
+            <CopyDeckView />
+          </Suspense>
+        </Box>
       )}
       {tab === 3 && (
-        <Suspense fallback={<DiscoverSkeleton />}>
-          <DiscoverView />
-        </Suspense>
+        <Box role="tabpanel" id="tabpanel-discover" aria-labelledby="tab-discover">
+          <Suspense fallback={<DiscoverSkeleton />}>
+            <DiscoverView />
+          </Suspense>
+        </Box>
       )}
 
       {pillarsOpen && (

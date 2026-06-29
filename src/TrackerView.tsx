@@ -197,6 +197,7 @@ export default function TrackerView() {
             value={filter}
             exclusive
             size="small"
+            aria-label="Filter jobs by status"
             onChange={(_, v) => v && setFilter(v)}
             sx={{
               flexWrap: 'nowrap',

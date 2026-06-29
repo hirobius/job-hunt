@@ -183,16 +183,27 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
         sx={{ mb: 2, minHeight: 40, '& .MuiTab-root': { minHeight: 40, py: 0.5 } }}
       >
         {tabs.map((tb) => (
-          <Tab key={tb.key} label={tb.label} />
+          <Tab
+            key={tb.key}
+            label={tb.label}
+            id={`disc-tab-${tb.key}`}
+            aria-controls={`disc-tabpanel-${tb.key}`}
+          />
         ))}
       </Tabs>
-      {cur.kind === 'group' && <TileGrid tiles={cur.tiles!} />}
-      {cur.kind === 'titles' && (
-        <TitlesPanel titles={pillar.titles} applyEntry={pillar.seniority === 'entry'} />
-      )}
-      {cur.kind === 'ats' && (
-        <AtsPanel roles={pillar.atsRoles} seniority={pillar.seniority} defaultLoc={defaultLoc} />
-      )}
+      <Box
+        role="tabpanel"
+        id={`disc-tabpanel-${cur.key}`}
+        aria-labelledby={`disc-tab-${cur.key}`}
+      >
+        {cur.kind === 'group' && <TileGrid tiles={cur.tiles!} />}
+        {cur.kind === 'titles' && (
+          <TitlesPanel titles={pillar.titles} applyEntry={pillar.seniority === 'entry'} />
+        )}
+        {cur.kind === 'ats' && (
+          <AtsPanel roles={pillar.atsRoles} seniority={pillar.seniority} defaultLoc={defaultLoc} />
+        )}
+      </Box>
     </Box>
   );
 }

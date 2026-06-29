@@ -58,6 +58,27 @@ export function makeTheme(mode: 'light' | 'dark'): Theme {
       },
     },
     components: {
+      // One shared, visible keyboard focus ring across all interactive elements. primaryMain
+      // clears 3:1 (WCAG non-text) on both the light and dark backgrounds; the offset keeps it
+      // legible even when the focused control is itself jade.
+      MuiButtonBase: {
+        styleOverrides: {
+          root: {
+            '&:focus-visible': {
+              outline: `2px solid ${p.primaryMain}`,
+              outlineOffset: 2,
+              borderRadius: 6,
+            },
+          },
+        },
+      },
+      MuiLink: {
+        styleOverrides: {
+          root: {
+            '&:focus-visible': { outline: `2px solid ${p.primaryMain}`, outlineOffset: 2 },
+          },
+        },
+      },
       MuiButton: { defaultProps: { disableElevation: true } },
       MuiCard: { styleOverrides: { root: { backgroundImage: 'none' } } },
       MuiTab: {
