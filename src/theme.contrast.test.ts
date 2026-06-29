@@ -64,6 +64,18 @@ function pairs(mode: 'light' | 'dark'): Pair[] {
     },
     { name: 'error chip/text on paper', fg: p.error.main, bg: p.background.paper, min: 4.5 },
     {
+      name: 'secondary chip/text on paper',
+      fg: p.secondary.main,
+      bg: p.background.paper,
+      min: 4.5,
+    },
+    {
+      name: 'secondary chip/text on background',
+      fg: p.secondary.main,
+      bg: p.background.default,
+      min: 4.5,
+    },
+    {
       name: 'primary as UI/link on background',
       fg: p.primary.main,
       bg: p.background.default,

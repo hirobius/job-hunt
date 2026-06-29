@@ -20,6 +20,10 @@ export function makeTheme(mode: 'light' | 'dark'): Theme {
       success: { main: mode === 'dark' ? '#34d39e' : '#047857' },
       warning: { main: mode === 'dark' ? '#ffa726' : '#b45309' },
       info: { main: '#49c7ff' },
+      // secondary = the Interviewing status hue (a distinct violet, not info/success/warning/
+      // error/primary). Mode-aware like success/warning so the outlined chip's text+border
+      // clear WCAG AA (≥4.5:1) on both surfaces — see src/theme.contrast.test.ts.
+      secondary: { main: mode === 'dark' ? '#a78bfa' : '#6d28d9' },
       background: { default: p.backgroundDefault, paper: p.backgroundPaper },
       divider: p.divider,
       text: { primary: p.textPrimary, secondary: p.textSecondary },
