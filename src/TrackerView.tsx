@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -6,6 +6,7 @@ import {
   CardContent,
   Chip,
   Collapse,
+  Fade,
   IconButton,
   Link,
   Menu,
@@ -125,6 +126,14 @@ export default function TrackerView() {
     setAiOpen(true);
   };
   const [tailorJob, setTailorJob] = useState<Job | null>(null);
+  // Transient "Saved ✓" flash after a detail field autosaves (per job url).
+  const [savedUrl, setSavedUrl] = useState<string | null>(null);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const flashSaved = (u: string) => {
+    setSavedUrl(u);
+    clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSavedUrl(null), 1200);
+  };
 
   const shown = useMemo(
     () => sortJobs(jobs, sort).filter((j) => matches(j, filter)),
@@ -144,7 +153,10 @@ export default function TrackerView() {
       multiline={multiline}
       minRows={multiline ? 2 : undefined}
       value={(j[key] as string) || ''}
-      onChange={(e) => updateJob(j.url, { [key]: e.target.value })}
+      onChange={(e) => {
+        updateJob(j.url, { [key]: e.target.value });
+        flashSaved(j.url);
+      }}
     />
   );
 
@@ -353,6 +365,13 @@ export default function TrackerView() {
 
                   <Collapse in={isOpen}>
                     <Stack spacing={1.25} sx={{ mt: 1.5 }}>
+                      <Box sx={{ height: 18, textAlign: 'right' }}>
+                        <Fade in={savedUrl === j.url}>
+                          <Typography variant="caption" color="success.main">
+                            Saved ✓
+                          </Typography>
+                        </Fade>
+                      </Box>
                       {fld(j, 'label', 'Title')}
                       {fld(j, 'note', 'Notes', true)}
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
