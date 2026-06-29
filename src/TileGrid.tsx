@@ -13,6 +13,7 @@ import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { addJob, isSaved, useJobs } from './store';
 import { useTileTriage, togglePin, toggleDismiss } from './tileTriage';
 import type { Tile } from './jobsData';
@@ -30,10 +31,12 @@ export default function TileGrid({
   tiles,
   cta = 'Open',
   triage = false,
+  onRemove,
 }: {
   tiles: Tile[];
   cta?: string;
   triage?: boolean;
+  onRemove?: (url: string) => void;
 }) {
   useJobs(); // re-render on save
   const { pinned, dismissed } = useTileTriage();
@@ -101,35 +104,51 @@ export default function TileGrid({
                 >
                   {saved ? 'Saved' : 'Save'}
                 </Button>
-                {triage && (
+                {(triage || onRemove) && (
                   <Stack direction="row" spacing={0} sx={{ ml: 'auto' }}>
-                    <Tooltip title={isPinned ? 'Unpin' : 'Pin to top'}>
-                      <IconButton
-                        size="small"
-                        color={isPinned ? 'primary' : 'default'}
-                        onClick={() => togglePin(t.url)}
-                        aria-label={isPinned ? 'Unpin tile' : 'Pin tile to top'}
-                      >
-                        {isPinned ? (
-                          <PushPinIcon fontSize="small" />
-                        ) : (
-                          <PushPinOutlinedIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={isAside ? 'Restore' : 'Set aside'}>
-                      <IconButton
-                        size="small"
-                        onClick={() => toggleDismiss(t.url)}
-                        aria-label={isAside ? 'Restore tile' : 'Set tile aside'}
-                      >
-                        {isAside ? (
-                          <UnarchiveOutlinedIcon fontSize="small" />
-                        ) : (
-                          <ArchiveOutlinedIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </Tooltip>
+                    {triage && (
+                      <Tooltip title={isPinned ? 'Unpin' : 'Pin to top'}>
+                        <IconButton
+                          size="small"
+                          color={isPinned ? 'primary' : 'default'}
+                          onClick={() => togglePin(t.url)}
+                          aria-label={isPinned ? 'Unpin tile' : 'Pin tile to top'}
+                        >
+                          {isPinned ? (
+                            <PushPinIcon fontSize="small" />
+                          ) : (
+                            <PushPinOutlinedIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {triage && (
+                      <Tooltip title={isAside ? 'Restore' : 'Set aside'}>
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleDismiss(t.url)}
+                          aria-label={isAside ? 'Restore tile' : 'Set tile aside'}
+                        >
+                          {isAside ? (
+                            <UnarchiveOutlinedIcon fontSize="small" />
+                          ) : (
+                            <ArchiveOutlinedIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {onRemove && (
+                      <Tooltip title="Remove">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => onRemove(t.url)}
+                          aria-label="Remove tile"
+                        >
+                          <DeleteOutlineIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                   </Stack>
                 )}
               </Stack>

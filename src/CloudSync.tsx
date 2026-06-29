@@ -5,8 +5,11 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 import { useJobs, getAllJobs, replaceAll } from './store';
 import { usePillars, getUserPillars, replaceUserPillars } from './pillarStore';
 import { useSnippets, getSnippets, replaceSnippets, type Snippet } from './copyDeckStore';
+import { useTileTriage, getTileTriage, replaceTriage } from './tileTriage';
+import { useUserTiles, getUserTiles, replaceUserTiles } from './userTiles';
 import type { Job } from './types';
 import type { Pillar } from './pillars';
+import type { Tile } from './jobsData';
 
 const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -22,16 +25,43 @@ function clearLocalData() {
   }
 }
 
-type SyncData = { jobs: Job[]; pillars: Pillar[]; copydeck: Snippet[] };
+type Triage = { pinned: string[]; dismissed: string[] };
+type SyncData = {
+  jobs: Job[];
+  pillars: Pillar[];
+  copydeck: Snippet[];
+  triage: Triage;
+  userTiles: Tile[];
+};
 
-// The cloud blob was historically a bare Job[]; it's now { v, jobs, pillars, copydeck }.
+// The cloud blob was historically a bare Job[]; it's now
+// { v, jobs, pillars, copydeck, triage, userTiles }. Missing fields default to empty.
 function readBlob(data: unknown): SyncData {
-  if (Array.isArray(data)) return { jobs: data as Job[], pillars: [], copydeck: [] };
-  const o = (data ?? {}) as { jobs?: unknown; pillars?: unknown; copydeck?: unknown };
+  const empty: SyncData = {
+    jobs: [],
+    pillars: [],
+    copydeck: [],
+    triage: { pinned: [], dismissed: [] },
+    userTiles: [],
+  };
+  if (Array.isArray(data)) return { ...empty, jobs: data as Job[] };
+  const o = (data ?? {}) as {
+    jobs?: unknown;
+    pillars?: unknown;
+    copydeck?: unknown;
+    triage?: unknown;
+    userTiles?: unknown;
+  };
+  const tr = (o.triage ?? {}) as { pinned?: unknown; dismissed?: unknown };
   return {
     jobs: Array.isArray(o.jobs) ? (o.jobs as Job[]) : [],
     pillars: Array.isArray(o.pillars) ? (o.pillars as Pillar[]) : [],
     copydeck: Array.isArray(o.copydeck) ? (o.copydeck as Snippet[]) : [],
+    triage: {
+      pinned: Array.isArray(tr.pinned) ? (tr.pinned as string[]) : [],
+      dismissed: Array.isArray(tr.dismissed) ? (tr.dismissed as string[]) : [],
+    },
+    userTiles: Array.isArray(o.userTiles) ? (o.userTiles as Tile[]) : [],
   };
 }
 
@@ -74,10 +104,33 @@ function mergeSnippets(cloud: Snippet[] | null, local: Snippet[]): Snippet[] {
   return order.map((id) => by[id]);
 }
 
+function mergeTriage(cloud: Triage | null, local: Triage): Triage {
+  const union = (a: string[] = [], b: string[] = []) => Array.from(new Set([...a, ...b]));
+  const dismissed = new Set(union(local.dismissed, cloud?.dismissed));
+  // pin and set-aside are mutually exclusive; set-aside wins a conflict.
+  const pinned = union(local.pinned, cloud?.pinned).filter((u) => !dismissed.has(u));
+  return { pinned, dismissed: [...dismissed] };
+}
+
+function mergeUserTiles(cloud: Tile[] | null, local: Tile[]): Tile[] {
+  const by: Record<string, Tile> = {};
+  const order: string[] = [];
+  const add = (t: Tile) => {
+    if (!t || !t.url) return;
+    if (!(t.url in by)) order.push(t.url);
+    by[t.url] = t;
+  };
+  (local || []).forEach(add);
+  (cloud || []).forEach(add); // cloud wins on shared urls
+  return order.map((u) => by[u]);
+}
+
 export default function CloudSync() {
   const jobs = useJobs();
   const pillars = usePillars();
   const snippets = useSnippets();
+  const triage = useTileTriage();
+  const userTiles = useUserTiles();
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('Sign in to sync across your devices');
@@ -85,22 +138,31 @@ export default function CloudSync() {
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const localJson = () =>
-    JSON.stringify({ jobs: getAllJobs(), pillars: getUserPillars(), copydeck: getSnippets() });
+    JSON.stringify({
+      jobs: getAllJobs(),
+      pillars: getUserPillars(),
+      copydeck: getSnippets(),
+      triage: getTileTriage(),
+      userTiles: getUserTiles(),
+    });
 
   async function pull(uid: string): Promise<SyncData | null> {
     const r = await supa.from('tracker').select('data').eq('user_id', uid).maybeSingle();
     return r.data ? readBlob(r.data.data) : null;
   }
   async function pushNow(u: User) {
-    const data = { v: 2, jobs: getAllJobs(), pillars: getUserPillars(), copydeck: getSnippets() };
+    const data = {
+      v: 3,
+      jobs: getAllJobs(),
+      pillars: getUserPillars(),
+      copydeck: getSnippets(),
+      triage: getTileTriage(),
+      userTiles: getUserTiles(),
+    };
     const r = await supa
       .from('tracker')
       .upsert({ user_id: u.id, data, updated_at: new Date().toISOString() });
-    lastSynced.current = JSON.stringify({
-      jobs: data.jobs,
-      pillars: data.pillars,
-      copydeck: data.copydeck,
-    });
+    lastSynced.current = localJson();
     setMsg(r.error ? 'Saved locally — cloud error' : `Synced · ${u.email}`);
   }
   async function adopt(seed: boolean, u: User) {
@@ -122,9 +184,21 @@ export default function CloudSync() {
         : cloud
           ? cloud.copydeck
           : getSnippets();
+      const nextTriage = seed
+        ? mergeTriage(cloud?.triage ?? null, getTileTriage())
+        : cloud
+          ? cloud.triage
+          : getTileTriage();
+      const nextUserTiles = seed
+        ? mergeUserTiles(cloud?.userTiles ?? null, getUserTiles())
+        : cloud
+          ? cloud.userTiles
+          : getUserTiles();
       replaceAll(nextJobs);
       replaceUserPillars(nextPillars);
       replaceSnippets(nextCopydeck);
+      replaceTriage(nextTriage);
+      replaceUserTiles(nextUserTiles);
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
       if (seed) await pushNow(u);
@@ -153,7 +227,9 @@ export default function CloudSync() {
     setMsg('Saving…');
     clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(() => pushNow(user), 500);
-  }, [jobs, pillars, snippets, user]);
+    // pushNow/localJson are stable enough; we intentionally fire only on data + user changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobs, pillars, snippets, triage, userTiles, user]);
 
   // re-pull on focus
   useEffect(() => {

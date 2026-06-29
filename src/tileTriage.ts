@@ -43,6 +43,14 @@ export function toggleDismiss(url: string) {
   });
 }
 
+/** Replace the whole triage state (cloud sync). Missing arrays default to empty. */
+export function replaceTriage(next: { pinned?: string[]; dismissed?: string[] }) {
+  setState({
+    pinned: Array.isArray(next.pinned) ? next.pinned : [],
+    dismissed: Array.isArray(next.dismissed) ? next.dismissed : [],
+  });
+}
+
 function subscribe(cb: () => void) {
   listeners.add(cb);
   return () => {
