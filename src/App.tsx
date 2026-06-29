@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
+import { useRoute, navigate, getRoute } from './route';
 import {
   Box,
   CircularProgress,
@@ -74,19 +75,24 @@ function PillarSwitcher() {
   );
 }
 
+// Top-level tabs, in render order. The URL hash carries the slug (#/queue …); the index
+// is derived from it. Queue is the default landing view when the hash has no route.
+const TAB_SLUGS = ['apprenticeships', 'queue', 'copy-deck', 'discover'] as const;
+const DEFAULT_TAB = 'queue';
+const defaultTabIndex = TAB_SLUGS.indexOf(DEFAULT_TAB);
+
 export default function App() {
-  // Default to the Apprenticeships tab (0), but land on the Queue (1) when arriving via a
-  // quick-add link so the just-added job is visible. Computed once at mount.
-  const [tab, setTab] = useState(() => {
-    const qp = new URLSearchParams(window.location.search);
-    return qp.get('add') || qp.get('applied') || (qp.get('status') && qp.get('u')) ? 1 : 0;
-  });
+  const route = useRoute();
+  const slugIndex = TAB_SLUGS.indexOf(route.tab as (typeof TAB_SLUGS)[number]);
+  const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
   const [pillarsOpen, setPillarsOpen] = useState(false);
 
   // Shareable portfolio case-study page: ?case=<slug> renders full-screen (no tab shell).
   const caseSlug = new URLSearchParams(window.location.search).get('case');
 
-  // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links)
+  // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
+  // After ingesting, land on the Queue so the just-added job is visible; with no route at all,
+  // normalize the hash to the default landing tab so back/forward and refresh are consistent.
   useEffect(() => {
     if (caseSlug) return; // skip ingestion on the case-study page
     const qp = new URLSearchParams(window.location.search);
@@ -112,10 +118,10 @@ export default function App() {
       window.history.replaceState(
         null,
         '',
-        window.location.pathname + (s ? '?' + s : '') + window.location.hash,
+        window.location.pathname + (s ? '?' + s : '') + '#/' + DEFAULT_TAB,
       );
-      // The initial tab was already set to the Queue in useState when a quick-add param was
-      // present, so no setState is needed here (avoids set-state-in-effect).
+    } else if (!getRoute().tab) {
+      navigate({ tab: DEFAULT_TAB }, true);
     }
   }, [caseSlug]);
 
@@ -154,7 +160,7 @@ export default function App() {
 
       <Tabs
         value={tab}
-        onChange={(_, v) => setTab(v)}
+        onChange={(_, v) => navigate({ tab: TAB_SLUGS[v], sub: null })}
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
