@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { useRoute, navigate, getRoute } from './route';
 import {
   Box,
-  CircularProgress,
   Container,
   IconButton,
   MenuItem,
@@ -28,6 +27,7 @@ import {
   getActivePillarId,
 } from './pillarStore';
 import { STATUSES } from './types';
+import { DiscoverSkeleton, CopyDeckSkeleton, CaseStudySkeleton } from './Skeletons';
 
 // Code-split the non-default views so the initial bundle only carries the default
 // Apprenticeships + Queue tabs; the rest load on demand (tab switch / case-study route).
@@ -35,14 +35,6 @@ const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 const CaseStudyView = lazy(() => import('./CaseStudyView'));
 const PillarsDialog = lazy(() => import('./PillarsDialog'));
-
-function ViewFallback() {
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-      <CircularProgress size={28} />
-    </Box>
-  );
-}
 
 function ColorModeToggle() {
   const { mode, toggle } = useColorMode();
@@ -149,7 +141,7 @@ export default function App() {
 
   if (caseSlug)
     return (
-      <Suspense fallback={<ViewFallback />}>
+      <Suspense fallback={<CaseStudySkeleton />}>
         <CaseStudyView slug={caseSlug} />
       </Suspense>
     );
@@ -197,12 +189,12 @@ export default function App() {
       {tab === 0 && <ApprenticeshipsView />}
       {tab === 1 && <TrackerView />}
       {tab === 2 && (
-        <Suspense fallback={<ViewFallback />}>
+        <Suspense fallback={<CopyDeckSkeleton />}>
           <CopyDeckView />
         </Suspense>
       )}
       {tab === 3 && (
-        <Suspense fallback={<ViewFallback />}>
+        <Suspense fallback={<DiscoverSkeleton />}>
           <DiscoverView />
         </Suspense>
       )}
