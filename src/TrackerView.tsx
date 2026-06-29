@@ -176,34 +176,41 @@ export default function TrackerView() {
         </Stack>
       </Stack>
 
-      <Stack direction="row" alignItems="center" sx={{ mb: 2, gap: 1, flexWrap: 'wrap' }}>
-        <ToggleButtonGroup
-          value={filter}
-          exclusive
-          size="small"
-          onChange={(_, v) => v && setFilter(v)}
-          sx={{
-            flexWrap: 'wrap',
-            gap: 0.5,
-            '& .MuiToggleButton-root': {
-              border: 1,
-              borderColor: 'divider',
-              borderRadius: '999px !important',
-              px: 1.5,
-              py: 0.5,
-              textTransform: 'none',
-            },
-          }}
-        >
-          <ToggleButton value="active">Active</ToggleButton>
-          <ToggleButton value="all">All</ToggleButton>
-          <ToggleButton value="Applied">Applied</ToggleButton>
-          <ToggleButton value="Interviewing">Interviewing</ToggleButton>
-          <ToggleButton value="Offer">Offer</ToggleButton>
-          <ToggleButton value="Rejected">Rejected</ToggleButton>
-          <ToggleButton value="retired">Retired</ToggleButton>
-        </ToggleButtonGroup>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+      <Stack direction="row" alignItems="center" sx={{ mb: 2, gap: 1, flexWrap: 'nowrap' }}>
+        {/* Single horizontally-scrollable row so the pills never wrap into a ragged block on
+            narrow screens. */}
+        <Box sx={{ flex: 1, minWidth: 0, overflowX: 'auto', pb: 0.5 }}>
+          <ToggleButtonGroup
+            value={filter}
+            exclusive
+            size="small"
+            onChange={(_, v) => v && setFilter(v)}
+            sx={{
+              flexWrap: 'nowrap',
+              gap: 0.5,
+              '& .MuiToggleButton-root': {
+                flex: 'none',
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: '999px !important',
+                px: 1.5,
+                py: 0.5,
+                textTransform: 'none',
+                whiteSpace: 'nowrap',
+              },
+            }}
+          >
+            <ToggleButton value="active">Active</ToggleButton>
+            <ToggleButton value="all">All</ToggleButton>
+            <ToggleButton value="Saved">Saved</ToggleButton>
+            <ToggleButton value="Applied">Applied</ToggleButton>
+            <ToggleButton value="Interviewing">Interviewing</ToggleButton>
+            <ToggleButton value="Offer">Offer</ToggleButton>
+            <ToggleButton value="Rejected">Rejected</ToggleButton>
+            <ToggleButton value="retired">Retired</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 'none' }}>
           <Button
             size="small"
             startIcon={<SwapVertIcon />}
