@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import SwapVertIcon from '@mui/icons-material/SwapVert';
 import {
   useJobs,
   addJob,
@@ -29,6 +30,7 @@ import {
   shortUrl,
 } from './store';
 import { deriveJobState } from './jobState';
+import { sortJobs, SORTS, type SortKey } from './jobSort';
 import type { Job, Status } from './types';
 
 // Lazy so the AI code (and its chunks) only load when the user opens them —
@@ -110,6 +112,8 @@ function research(label: string) {
 export default function TrackerView() {
   const jobs = useJobs();
   const [filter, setFilter] = useState<Filter>('active');
+  const [sort, setSort] = useState<SortKey>('recent');
+  const [sortAnchor, setSortAnchor] = useState<HTMLElement | null>(null);
   const [url, setUrl] = useState('');
   const [menu, setMenu] = useState<{ el: HTMLElement; job: Job } | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -122,22 +126,10 @@ export default function TrackerView() {
   const [tailorJob, setTailorJob] = useState<Job | null>(null);
 
   const shown = useMemo(
-    () =>
-      jobs
-        .map((j, i) => ({ j, i }))
-        .sort((a, b) => {
-          const aa = a.j.archived ? 1 : 0,
-            ba = b.j.archived ? 1 : 0;
-          if (aa !== ba) return aa - ba;
-          const pa = a.j.priority ? 0 : 1,
-            pb = b.j.priority ? 0 : 1;
-          if (pa !== pb) return pa - pb;
-          return a.i - b.i;
-        })
-        .map((x) => x.j)
-        .filter((j) => matches(j, filter)),
-    [jobs, filter],
+    () => sortJobs(jobs, sort).filter((j) => matches(j, filter)),
+    [jobs, filter, sort],
   );
+  const sortLabel = SORTS.find((s) => s.key === sort)?.label ?? '';
 
   const submit = () => {
     addJob(url);
@@ -211,15 +203,36 @@ export default function TrackerView() {
           <ToggleButton value="Rejected">Rejected</ToggleButton>
           <ToggleButton value="retired">Retired</ToggleButton>
         </ToggleButtonGroup>
-        <Button
-          size="small"
-          sx={{ ml: 'auto' }}
-          disabled={!jobs.length}
-          onClick={() => exportCsv(jobs)}
-        >
-          Export CSV
-        </Button>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+          <Button
+            size="small"
+            startIcon={<SwapVertIcon />}
+            onClick={(e) => setSortAnchor(e.currentTarget)}
+            aria-haspopup="true"
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            {sortLabel}
+          </Button>
+          <Button size="small" disabled={!jobs.length} onClick={() => exportCsv(jobs)}>
+            Export CSV
+          </Button>
+        </Stack>
       </Stack>
+
+      <Menu anchorEl={sortAnchor} open={!!sortAnchor} onClose={() => setSortAnchor(null)}>
+        {SORTS.map((s) => (
+          <MenuItem
+            key={s.key}
+            selected={s.key === sort}
+            onClick={() => {
+              setSort(s.key);
+              setSortAnchor(null);
+            }}
+          >
+            {s.label}
+          </MenuItem>
+        ))}
+      </Menu>
 
       {shown.length === 0 ? (
         <Typography color="text.secondary" sx={{ py: 4 }}>
