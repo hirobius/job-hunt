@@ -11,8 +11,8 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
-  Typography,
 } from '@mui/material';
+import EmptyState from './EmptyState';
 import { useActivePillar, usePillars } from './pillarStore';
 import {
   useSnippets,
@@ -77,9 +77,14 @@ export default function CopyDeckView() {
         </ToggleButtonGroup>
       </Stack>
       {visible.length === 0 ? (
-        <Typography color="text.secondary" sx={{ py: 4 }}>
-          No snippets tagged for “{pillar.label}”. Add one, or switch to All.
-        </Typography>
+        <EmptyState
+          message={`No snippets tagged for “${pillar.label}”. Add one, or switch to All.`}
+          action={
+            <Button variant="outlined" onClick={() => addSnippet(pillar.id)}>
+              New snippet
+            </Button>
+          }
+        />
       ) : (
         <Stack spacing={1.5}>
           {visible.map((s) => (

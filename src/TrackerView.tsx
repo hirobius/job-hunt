@@ -31,6 +31,7 @@ import {
 } from './store';
 import { deriveJobState } from './jobState';
 import { sortJobs, SORTS, type SortKey } from './jobSort';
+import EmptyState from './EmptyState';
 import type { Job, Status } from './types';
 
 // Lazy so the AI code (and its chunks) only load when the user opens them —
@@ -242,13 +243,15 @@ export default function TrackerView() {
       </Menu>
 
       {shown.length === 0 ? (
-        <Typography color="text.secondary" sx={{ py: 4 }}>
-          {jobs.length === 0
-            ? 'No saved jobs yet — paste a link above, or save some from Discover.'
-            : filter === 'active'
-              ? 'Nothing left to apply to right now — nice. Check Applied or add more jobs.'
-              : `Nothing under “${filter}”.`}
-        </Typography>
+        <EmptyState
+          message={
+            jobs.length === 0
+              ? 'No saved jobs yet — paste a link above, or save some from Discover.'
+              : filter === 'active'
+                ? 'Nothing left to apply to right now — nice. Check Applied or add more jobs.'
+                : `Nothing under “${filter}”.`
+          }
+        />
       ) : (
         <Stack spacing={1.25}>
           {shown.map((j) => {

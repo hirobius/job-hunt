@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Box, Button, Collapse, Stack, TextField, Typography } from '@mui/material';
 import TileGrid from './TileGrid';
+import EmptyState from './EmptyState';
 import { APPRENTICESHIP_GROUPS } from './apprenticeships';
 import { useTileTriage } from './tileTriage';
 import { useUserTiles, addUserTilesFromText, removeUserTile } from './userTiles';
@@ -96,10 +97,10 @@ export default function ApprenticeshipsView() {
               />
             )}
             {isMy && !g.tiles.length && (
-              <Typography variant="caption" color="text.secondary">
-                Nothing here yet — paste any apprenticeship or job link above and it&rsquo;ll show
-                up here to pin, set aside, or save.
-              </Typography>
+              <EmptyState
+                dense
+                message="Nothing here yet — paste any apprenticeship or job link above and it’ll show up here to pin, set aside, or save."
+              />
             )}
           </Box>
         );
