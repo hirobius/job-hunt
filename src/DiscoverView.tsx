@@ -13,6 +13,7 @@ import {
   Typography,
 } from '@mui/material';
 import TileGrid from './TileGrid';
+import { useRoute, navigate } from './route';
 import { BOARDS, ATS, entryLevelize, type Tile } from './jobsData';
 import { useActivePillar } from './pillarStore';
 import { CROSS_CUTTING_GROUPS, type Pillar, type Seniority } from './pillars';
@@ -162,7 +163,12 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
       tiles: g.tiles,
     })),
   ];
-  const [tab, setTab] = useState(0);
+  // The active sub-tab lives in the URL hash (#/discover/<key>) so it survives refresh and
+  // back/forward. Match by stable key, not index — tab counts differ per pillar. Index 0
+  // (the featured/first tab) maps to a bare #/discover for clean URLs.
+  const route = useRoute();
+  const subIndex = route.sub ? tabs.findIndex((tb) => tb.key === route.sub) : -1;
+  const tab = subIndex >= 0 ? subIndex : 0;
   const cur = tabs[tab] ?? tabs[0];
   const defaultLoc = pillar.location.toLowerCase().includes('spokane') ? 'spokane' : 'remote';
 
@@ -170,7 +176,7 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
     <Box>
       <Tabs
         value={tab}
-        onChange={(_, v) => setTab(v)}
+        onChange={(_, v) => navigate({ sub: v === 0 ? null : tabs[v].key })}
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
