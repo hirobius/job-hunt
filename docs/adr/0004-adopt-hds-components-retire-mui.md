@@ -29,10 +29,14 @@ We choose to retire MUI and adopt HDS as the component layer.
 **Adopt `@hirobius/design-system` as the component layer and retire MUI — via an incremental
 (strangler) migration, not a big-bang.**
 
-1. **Global wiring (once).** Import `@hirobius/design-system/variables.css` in `main.tsx` (after
-   the generated `hds-tokens.css`, before `brand-jade.css` so the jade accent override still
-   wins). `ColorModeProvider` sets `data-theme="dark|light"` on `<html>` (HDS's dark selector)
-   alongside the existing `.dark` class, so HDS dark mode tracks the app toggle.
+1. **Global wiring (once).** Import `@hirobius/design-system/tokens.css` in `main.tsx` (before
+   `brand-jade.css` so the jade accent override still wins). **Use `tokens.css`, not the
+   vars-only `variables.css`** — `variables.css` ships only CSS custom properties, so HDS
+   components render **unstyled** (verified on a local preview); `tokens.css` carries the
+   component/utility CSS. Its base reset lives in `@layer base`, and **MUI/emotion are unlayered,
+   so they win over it** — the two coexist with no MUI regression (also verified visually).
+   `ColorModeProvider` sets `data-theme="dark|light"` on `<html>` (HDS's dark selector) alongside
+   the existing `.dark` class, so HDS dark mode tracks the app toggle.
 2. **A thin wrapper at the seam.** `src/ui/Button.tsx` re-exports HDS `Button` with the app's
    conventions and a MUI→HDS prop map (`contained→primary`, `outlined→secondary`,
    `text→tertiary`; `startIcon→iconLeft`; `href`/`component={Link}`→`asChild`). Surfaces import

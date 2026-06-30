@@ -1,8 +1,7 @@
 // Real @hirobius/design-system (v0.8.0) — validation showcase at ?spike=hds.
-// Uses the vars-only `variables.css` (no reset, "cannot restyle host elements") so it can't
-// collide with MUI. Renders the real HDS Button next to MUI for a side-by-side.
+// HDS's full stylesheet (tokens.css) is loaded globally in main.tsx so its components are styled;
+// its base reset is in @layer base, which MUI/emotion (unlayered) win over — so they coexist.
 import { Box, Button as MuiButton, Container, Stack, Typography } from '@mui/material';
-import '@hirobius/design-system/variables.css';
 import { Button as HdsButton } from '@hirobius/design-system';
 
 export default function HdsReal() {
@@ -12,8 +11,9 @@ export default function HdsReal() {
         Real HDS · v0.8.0
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-        The real <code>@hirobius/design-system</code> Button beside MUI. Loaded via vars-only{' '}
-        <code>variables.css</code> (no reset) — MUI should be visually unchanged.
+        The real <code>@hirobius/design-system</code> Button beside MUI. HDS styles come from{' '}
+        <code>tokens.css</code> (its reset is in <code>@layer base</code>, which unlayered MUI wins
+        over) — MUI is visually unchanged.
       </Typography>
 
       <Stack spacing={4}>

@@ -12,23 +12,10 @@ export default defineConfig({
           if (!id.includes('node_modules')) return undefined;
           if (id.includes('@mui') || id.includes('@emotion')) return 'mui';
           if (id.includes('@supabase')) return 'supabase';
-          // HDS + its deps (radix, motion, lucide, router/form/zod, cva, clsx, tw-merge) get
-          // their own chunk so they stay off the main path (only the lazy HDS routes load them)
-          // — and so react-router doesn't fall into the react chunk (which caused a circular chunk).
-          if (
-            id.includes('@hirobius') ||
-            id.includes('react-router') ||
-            id.includes('react-hook-form') ||
-            id.includes('@hookform') ||
-            id.includes('lucide-react') ||
-            id.includes('/motion/') ||
-            id.includes('@radix-ui') ||
-            id.includes('class-variance-authority') ||
-            id.includes('tailwind-merge') ||
-            id.includes('clsx') ||
-            id.includes('zod')
-          )
-            return 'hds';
+          // PRECISE react match: only react/react-dom/scheduler. Matching bare "react" would pull
+          // react-router (an HDS dep) into this chunk, which creates a cross-chunk init cycle and
+          // a runtime "Cannot access X before initialization" crash. Everything else (incl. HDS +
+          // radix/motion/router) goes to vendor — one bucket, no cycles.
           if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react';
           return 'vendor';
         },
