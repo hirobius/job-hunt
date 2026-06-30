@@ -47,6 +47,16 @@ commit `f15fd52`).
 - I can't render visually here, so the **Vercel preview/READY state is the visual
   check** — confirm a deploy reaches `READY` before claiming it's live.
 
+## Skills
+
+- **"the architecture skill" / "architecture review"** → the **`improve-codebase-architecture`**
+  skill at `.claude/skills/improve-codebase-architecture/SKILL.md` (vendored from
+  github.com/mattpocock/skills). Invoke it with `/improve-codebase-architecture` when asked to
+  review/improve architecture. It scans for shallow modules / deepening opportunities, writes a
+  visual HTML report to the temp dir, then grills the chosen candidate. Note: it cross-references
+  sibling skills not installed here (`/codebase-design`, `/grilling`, `/domain-modeling`) — follow
+  those steps in spirit (use CONTEXT.md domain vocab + docs/adr) until they're added.
+
 ## Notes
 
 - Supabase redirect URLs must include any new origin for magic-link sign-in
