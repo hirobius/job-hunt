@@ -2,6 +2,7 @@
 // and treat them like the curated tiles (open / save / pin / set aside). Built on the shared
 // createStore factory; persisted to localStorage and cloud-synced via CloudSync.
 import { createStore } from './createStore';
+import { mergeByKey } from './mergeByKey';
 import { loadPersisted, savePersisted } from './persisted';
 import { cleanUrl, prettyTitle } from './store';
 import type { Tile } from './jobsData';
@@ -47,6 +48,10 @@ export function replaceUserTiles(list: Tile[]) {
 export function getUserTiles(): Tile[] {
   return store.get();
 }
+
+/** Merge cloud + local user tiles by URL (local order kept, cloud wins). For the sync layer. */
+export const mergeUserTiles = (cloud: Tile[] | null, local: Tile[]): Tile[] =>
+  mergeByKey((t) => t.url, cloud, local);
 
 export function useUserTiles(): Tile[] {
   return store.use();

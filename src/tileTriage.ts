@@ -9,7 +9,8 @@ import { loadPersisted, savePersisted } from './persisted';
 const PINNED_KEY = 'rjb_tile_pinned';
 const DISMISSED_KEY = 'rjb_tile_dismissed';
 
-type State = { pinned: string[]; dismissed: string[] };
+export type Triage = { pinned: string[]; dismissed: string[] };
+type State = Triage;
 
 const store = createStore<State>(
   {
@@ -60,4 +61,13 @@ export function useTileTriage(): State {
 // Non-hook getter for tests / non-component callers.
 export function getTileTriage(): State {
   return store.get();
+}
+
+/** Merge cloud + local triage. pin and set-aside are mutually exclusive; set-aside wins a
+ *  conflict. This rule lives here, with the concept it governs. For the sync layer. */
+export function mergeTriage(cloud: Triage | null, local: Triage): Triage {
+  const union = (a: string[] = [], b: string[] = []) => Array.from(new Set([...a, ...b]));
+  const dismissed = new Set(union(local.dismissed, cloud?.dismissed));
+  const pinned = union(local.pinned, cloud?.pinned).filter((u) => !dismissed.has(u));
+  return { pinned, dismissed: [...dismissed] };
 }

@@ -5,6 +5,7 @@
 // the mutators rather than going through the factory's onSet. Cloud sync of user pillars is a
 // later chunk.
 import { createStore } from './createStore';
+import { mergeByKey } from './mergeByKey';
 import { BUILTIN_PILLARS, type Pillar } from './pillars';
 import { loadPersisted, savePersisted } from './persisted';
 
@@ -136,6 +137,10 @@ export function replaceUserPillars(list: Pillar[]) {
   if (activeId !== state.activeId) persistActive(activeId);
   setState({ pillars, activeId });
 }
+
+/** Merge cloud + local user pillars by id (local order kept, cloud wins). For the sync layer. */
+export const mergePillars = (cloud: Pillar[] | null, local: Pillar[]): Pillar[] =>
+  mergeByKey((p) => p.id, cloud, local);
 
 // ---- reads ----
 function useStore(): State {

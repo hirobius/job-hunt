@@ -1,4 +1,5 @@
 import { createStore } from './createStore';
+import { mergeByKey } from './mergeByKey';
 import { type Job, type Status } from './types';
 import { applyStatus, logFollowUp as applyFollowUp, normStatus } from './jobState';
 
@@ -194,6 +195,9 @@ export function getAllJobs(): Job[] {
 export function replaceAll(next: Job[]) {
   set(sanitizeJobs(next));
 }
+/** Merge cloud + local jobs by URL (local order kept, cloud wins). Used by the sync layer. */
+export const mergeJobs = (cloud: Job[] | null, local: Job[]): Job[] =>
+  mergeByKey((j) => j.url, cloud, local);
 
 /** Quick-link helper: add the job (if new) then set a status. */
 export function setStatusByUrl(rawUrl: string, status: Status, label?: string) {

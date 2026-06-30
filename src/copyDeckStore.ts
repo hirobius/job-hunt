@@ -3,6 +3,7 @@
 // even when the Copy Deck tab has never been opened. Self-initializes from localStorage
 // with the seeded defaults.
 import { createStore } from './createStore';
+import { mergeByKey } from './mergeByKey';
 
 export interface Snippet {
   id: string;
@@ -154,3 +155,6 @@ export function getSnippets(): Snippet[] {
 export function replaceSnippets(list: Snippet[]) {
   set((Array.isArray(list) ? list : []).map((s) => ({ ...s, id: s.id || newId() })));
 }
+/** Merge cloud + local snippets by id (local order kept, cloud wins). For the sync layer. */
+export const mergeSnippets = (cloud: Snippet[] | null, local: Snippet[]): Snippet[] =>
+  mergeByKey((s) => s.id, cloud, local);
