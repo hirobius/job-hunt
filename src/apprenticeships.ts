@@ -308,17 +308,17 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
       ),
       t(
         'Accenture Apprenticeship',
-        '~12-mo paid · no degree · salaried + benefits · cohort-based (verify live intake)',
+        '1-yr paid salaried · 18+, HS diploma, no degree · US work auth · apply via careers (FY26 open)',
         'https://www.accenture.com/us-en/careers/life-at-accenture/apprenticeships',
       ),
       t(
         'AWS Technical Apprenticeship',
-        '12-wk course + up to 12-mo paid OJT · cohort-based · verify current intake',
+        'Veterans & mil-spouses · 12–18 wk paid course + up to 12-mo paid OJT · cloud roles',
         'https://www.amazon.jobs/content/en/teams/amazon-web-services/technical-apprenticeships',
       ),
       t(
         'ServiceNow RiseUp',
-        'Free virtual · CSA cert + mentoring + hiring network',
+        'Free · CSA + CAD certs covered · 10–14 wk virtual · apply anytime',
         'https://learning.servicenow.com/apply',
       ),
       t(
