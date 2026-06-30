@@ -31,6 +31,7 @@ const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 const CaseStudyView = lazy(() => import('./CaseStudyView'));
 const PillarsDialog = lazy(() => import('./PillarsDialog'));
+const HdsReal = lazy(() => import('./hds/HdsReal')); // ?spike=hds — real @hirobius/design-system
 
 function ColorModeToggle() {
   const { mode, toggle } = useColorMode();
@@ -125,6 +126,14 @@ export default function App() {
     return (
       <Suspense fallback={<CaseStudySkeleton />}>
         <CaseStudyView slug={caseSlug} />
+      </Suspense>
+    );
+
+  // Real HDS validation showcase (preview-only): ?spike=hds
+  if (new URLSearchParams(window.location.search).get('spike') === 'hds')
+    return (
+      <Suspense fallback={null}>
+        <HdsReal />
       </Suspense>
     );
 
