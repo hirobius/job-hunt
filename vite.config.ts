@@ -1,8 +1,12 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  plugins: [react()],
+  // HDS spike: Tailwind v4 alongside MUI. The spike's CSS entry (src/hds-spike/tailwind.css)
+  // imports ONLY the theme + utilities layers — NOT preflight — so Tailwind's base reset can't
+  // collide with MUI/emotion (the hazard flagged in docs/adr/0001).
+  plugins: [react(), tailwindcss()],
   build: {
     rollupOptions: {
       output: {

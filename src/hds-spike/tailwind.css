@@ -1,0 +1,11 @@
+/* HDS spike — Tailwind v4 WITHOUT preflight.
+ *
+ * The whole risk in adopting HDS (Tailwind+Radix) onto a live MUI app is Tailwind's preflight:
+ * a global base reset (box-sizing, button/heading resets, etc.) that fights MUI/emotion. v4's
+ * default `@import "tailwindcss"` pulls preflight in. We import ONLY the theme + utilities
+ * layers, so we get utility classes with ZERO base reset — MUI renders exactly as before.
+ *
+ * Imported from the spike showcase only (lazy), so it never touches the main bundle. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);

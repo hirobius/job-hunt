@@ -31,6 +31,7 @@ const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 const CaseStudyView = lazy(() => import('./CaseStudyView'));
 const PillarsDialog = lazy(() => import('./PillarsDialog'));
+const HdsSpike = lazy(() => import('./hds-spike/HdsSpike')); // ?spike=hds — HDS adoption spike
 
 function ColorModeToggle() {
   const { mode, toggle } = useColorMode();
@@ -125,6 +126,14 @@ export default function App() {
     return (
       <Suspense fallback={<CaseStudySkeleton />}>
         <CaseStudyView slug={caseSlug} />
+      </Suspense>
+    );
+
+  // HDS adoption spike (preview-only; not linked anywhere): ?spike=hds
+  if (new URLSearchParams(window.location.search).get('spike') === 'hds')
+    return (
+      <Suspense fallback={null}>
+        <HdsSpike />
       </Suspense>
     );
 
