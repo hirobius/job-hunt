@@ -47,15 +47,27 @@ commit `f15fd52`).
 - I can't render visually here, so the **Vercel preview/READY state is the visual
   check** — confirm a deploy reaches `READY` before claiming it's live.
 
-## Skills
+## Skills — the architecture skill set
 
-- **"the architecture skill" / "architecture review"** → the **`improve-codebase-architecture`**
-  skill at `.claude/skills/improve-codebase-architecture/SKILL.md` (vendored from
-  github.com/mattpocock/skills). Invoke it with `/improve-codebase-architecture` when asked to
-  review/improve architecture. It scans for shallow modules / deepening opportunities, writes a
-  visual HTML report to the temp dir, then grills the chosen candidate. Note: it cross-references
-  sibling skills not installed here (`/codebase-design`, `/grilling`, `/domain-modeling`) — follow
-  those steps in spirit (use CONTEXT.md domain vocab + docs/adr) until they're added.
+Vendored from github.com/mattpocock/skills into `.claude/skills/` (the container is ephemeral;
+committed files are what survive). When asked for **"the architecture skill"**, an **"architecture
+review"**, or to **improve/design the architecture**, invoke the **whole set as one workflow** —
+not just the entry skill:
+
+- **`/improve-codebase-architecture`** — the entry point. Scans for shallow modules / deepening
+  opportunities, writes a visual HTML report to the OS temp dir (never the repo), then drives the
+  grilling loop on the chosen candidate.
+- **`/codebase-design`** — the shared architecture vocabulary (**module, interface, depth, seam,
+  adapter, leverage, locality**) + principles (deletion test; "the interface is the test surface";
+  "one adapter = hypothetical seam, two = real"; depth-as-leverage). Use these terms exactly.
+  Companions: `DEEPENING.md`, `DESIGN-IT-TWICE.md` (parallel design-it-twice sub-agents).
+- **`/grilling`** — interview the user one question at a time to stress-test the chosen design.
+- **`/domain-modeling`** — keep `CONTEXT.md` (glossary only, no impl) + `docs/adr/` current as
+  decisions crystallize. Companions: `CONTEXT-FORMAT.md`, `ADR-FORMAT.md`. Offer an ADR only when
+  it's hard to reverse + surprising + a real trade-off.
+
+Use `CONTEXT.md` for domain vocabulary and `/codebase-design` for architecture vocabulary; don't
+re-litigate decisions already in `docs/adr/`.
 
 ## Notes
 
