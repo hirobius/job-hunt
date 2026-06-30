@@ -1,9 +1,10 @@
-// Active-pillar state + the user-pillar registry. A small external store (mirrors
-// src/store.ts). Built-in pillars are read-only; user pillars are created/edited here,
-// persisted to localStorage via persisted<T>. The whole list (built-ins + user) and the
-// active selection live in one immutable State object so useSyncExternalStore re-renders
-// on any change. Cloud sync of user pillars is a later chunk.
-import { useSyncExternalStore } from 'react';
+// Active-pillar state + the user-pillar registry. Built on the shared createStore factory
+// (src/createStore.ts). Built-in pillars are read-only; user pillars are created/edited here,
+// persisted to localStorage via persisted<T>. Persistence here is bespoke (a projection — only
+// user pillars under PILLARS_KEY — plus a separate ACTIVE_KEY scalar), so it stays explicit in
+// the mutators rather than going through the factory's onSet. Cloud sync of user pillars is a
+// later chunk.
+import { createStore } from './createStore';
 import { BUILTIN_PILLARS, type Pillar } from './pillars';
 import { loadPersisted, savePersisted } from './persisted';
 
@@ -33,12 +34,10 @@ function initialState(): State {
   return { activeId: loadActiveId(pillars), pillars };
 }
 
-let state: State = initialState();
-const listeners = new Set<() => void>();
+const store = createStore<State>(initialState());
 
 function setState(next: State) {
-  state = next;
-  listeners.forEach((l) => l());
+  store.set(next);
 }
 function persistUser(pillars: Pillar[]) {
   savePersisted(
@@ -55,6 +54,7 @@ function persistActive(id: string) {
 }
 
 export function setActivePillar(id: string) {
+  const state = store.get();
   if (id === state.activeId || !state.pillars.some((p) => p.id === id)) return;
   persistActive(id);
   setState({ ...state, activeId: id });
@@ -62,6 +62,7 @@ export function setActivePillar(id: string) {
 
 /** Create a user pillar (blank or seeded); makes it active. Returns its id. */
 export function createPillar(partial?: Partial<Pillar>): string {
+  const state = store.get();
   const p: Pillar = {
     id: newPillarId(),
     label: 'New pillar',
@@ -82,6 +83,7 @@ export function createPillar(partial?: Partial<Pillar>): string {
 
 /** Duplicate any pillar (built-in or user) into an editable user pillar. Returns its id. */
 export function duplicatePillar(id: string): string {
+  const state = store.get();
   const src = state.pillars.find((p) => p.id === id);
   if (!src) return state.activeId;
   return createPillar({
@@ -97,6 +99,7 @@ export function duplicatePillar(id: string): string {
 
 /** Patch a user pillar. Built-ins are read-only and ignored. id/builtIn are protected. */
 export function updatePillar(id: string, patch: Partial<Pillar>) {
+  const state = store.get();
   const pillars = state.pillars.map((p) =>
     p.id === id && !p.builtIn ? { ...p, ...patch, id: p.id, builtIn: false } : p,
   );
@@ -106,6 +109,7 @@ export function updatePillar(id: string, patch: Partial<Pillar>) {
 
 /** Remove a user pillar (built-ins ignored). Falls back to a built-in if it was active. */
 export function removePillar(id: string) {
+  const state = store.get();
   const target = state.pillars.find((p) => p.id === id);
   if (!target || target.builtIn) return;
   const pillars = state.pillars.filter((p) => p.id !== id);
@@ -117,11 +121,12 @@ export function removePillar(id: string) {
 
 /** All user-created pillars (excludes built-ins). Used by cloud sync. */
 export function getUserPillars(): Pillar[] {
-  return state.pillars.filter((p) => !p.builtIn);
+  return store.get().pillars.filter((p) => !p.builtIn);
 }
 
 /** Replace the whole set of user pillars (cloud sync). Active falls back if it vanished. */
 export function replaceUserPillars(list: Pillar[]) {
+  const state = store.get();
   const user = list.filter((p) => p && p.id && !p.builtIn).map((p) => ({ ...p, builtIn: false }));
   const pillars = [...BUILTIN_PILLARS, ...user];
   const activeId = pillars.some((p) => p.id === state.activeId)
@@ -133,17 +138,8 @@ export function replaceUserPillars(list: Pillar[]) {
 }
 
 // ---- reads ----
-function subscribe(cb: () => void) {
-  listeners.add(cb);
-  return () => {
-    listeners.delete(cb);
-  };
-}
-function getSnapshot() {
-  return state;
-}
 function useStore(): State {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return store.use();
 }
 
 export function usePillars(): Pillar[] {
@@ -159,8 +155,8 @@ export function useActivePillar(): Pillar {
 
 // Non-hook getters for tests and non-component callers.
 export function getPillars(): Pillar[] {
-  return state.pillars;
+  return store.get().pillars;
 }
 export function getActivePillarId(): string {
-  return state.activeId;
+  return store.get().activeId;
 }

@@ -1,27 +1,23 @@
 // User-added apprenticeship tiles. Lets you paste any link(s) into the Apprenticeships board
-// and treat them like the curated tiles (open / save / pin / set aside). A small external
-// store mirroring src/store.ts; persisted to localStorage and cloud-synced via CloudSync.
-import { useSyncExternalStore } from 'react';
+// and treat them like the curated tiles (open / save / pin / set aside). Built on the shared
+// createStore factory; persisted to localStorage and cloud-synced via CloudSync.
+import { createStore } from './createStore';
 import { loadPersisted, savePersisted } from './persisted';
 import { cleanUrl, prettyTitle } from './store';
 import type { Tile } from './jobsData';
 
 const KEY = 'rjb_user_tiles';
 
-let tiles: Tile[] = loadPersisted<Tile[]>(KEY, []);
-const listeners = new Set<() => void>();
-
-function set(next: Tile[]) {
-  tiles = next;
-  savePersisted(KEY, next);
-  listeners.forEach((l) => l());
-}
+const store = createStore<Tile[]>(loadPersisted<Tile[]>(KEY, []), {
+  onSet: (next) => savePersisted(KEY, next),
+});
 
 const URL_RE = /https?:\/\/[^\s<>"')]+/gi;
 
 /** Parse pasted text into tiles — one per URL found, named from the URL, newest first.
  *  Skips URLs already added. Returns how many were added. */
 export function addUserTilesFromText(text: string): number {
+  const tiles = store.get();
   const found = text.match(URL_RE) || [];
   const have = new Set(tiles.map((t) => t.url));
   const additions: Tile[] = [];
@@ -31,17 +27,17 @@ export function addUserTilesFromText(text: string): number {
     have.add(url);
     additions.push({ name: prettyTitle(url), meta: 'Added by you', url });
   }
-  if (additions.length) set([...additions, ...tiles]);
+  if (additions.length) store.set([...additions, ...tiles]);
   return additions.length;
 }
 
 export function removeUserTile(url: string) {
-  set(tiles.filter((t) => t.url !== url));
+  store.set(store.get().filter((t) => t.url !== url));
 }
 
 /** Replace the whole list (cloud sync). Drops malformed entries, fills missing names. */
 export function replaceUserTiles(list: Tile[]) {
-  set(
+  store.set(
     (list || [])
       .filter((t) => t && t.url)
       .map((t) => ({ name: t.name || prettyTitle(t.url), meta: t.meta || '', url: t.url })),
@@ -49,19 +45,9 @@ export function replaceUserTiles(list: Tile[]) {
 }
 
 export function getUserTiles(): Tile[] {
-  return tiles;
-}
-
-function subscribe(cb: () => void) {
-  listeners.add(cb);
-  return () => {
-    listeners.delete(cb);
-  };
-}
-function getSnapshot() {
-  return tiles;
+  return store.get();
 }
 
 export function useUserTiles(): Tile[] {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return store.use();
 }

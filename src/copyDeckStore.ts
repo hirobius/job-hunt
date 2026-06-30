@@ -2,7 +2,7 @@
 // external store (mirrors store.ts / pillarStore.ts) so the deck can sync to the cloud
 // even when the Copy Deck tab has never been opened. Self-initializes from localStorage
 // with the seeded defaults.
-import { useSyncExternalStore } from 'react';
+import { createStore } from './createStore';
 
 export interface Snippet {
   id: string;
@@ -83,23 +83,21 @@ function load(): Snippet[] {
   return arr;
 }
 
-let snippets: Snippet[] = load();
-const listeners = new Set<() => void>();
-
-function set(next: Snippet[]) {
-  snippets = next;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(snippets));
-  } catch {
-    /* ignore */
-  }
-  listeners.forEach((l) => l());
-}
+const store = createStore<Snippet[]>(load(), {
+  onSet: (next) => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  },
+});
+const set = store.set;
 
 // ---- mutators ----
 export function addSnippet(tagPillar?: string) {
   set([
-    ...snippets,
+    ...store.get(),
     {
       id: newId(),
       label: 'New snippet',
@@ -110,12 +108,13 @@ export function addSnippet(tagPillar?: string) {
   ]);
 }
 export function updateSnippet(id: string, patch: Partial<Snippet>) {
-  set(snippets.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  set(store.get().map((s) => (s.id === id ? { ...s, ...patch } : s)));
 }
 export function removeSnippet(id: string) {
-  set(snippets.filter((s) => s.id !== id));
+  set(store.get().filter((s) => s.id !== id));
 }
 export function duplicateSnippet(id: string) {
+  const snippets = store.get();
   const i = snippets.findIndex((s) => s.id === id);
   if (i < 0) return;
   const clone: Snippet = {
@@ -130,11 +129,11 @@ export function duplicateSnippet(id: string) {
   set(next);
 }
 export function toggleSnippetPin(id: string) {
-  set(snippets.map((s) => (s.id === id ? { ...s, pinned: !s.pinned } : s)));
+  set(store.get().map((s) => (s.id === id ? { ...s, pinned: !s.pinned } : s)));
 }
 export function toggleSnippetTag(id: string, pid: string) {
   set(
-    snippets.map((s) => {
+    store.get().map((s) => {
       if (s.id !== id) return s;
       const tags = new Set(s.pillars ?? []);
       if (tags.has(pid)) tags.delete(pid);
@@ -145,20 +144,11 @@ export function toggleSnippetTag(id: string, pid: string) {
 }
 
 // ---- reads + sync ----
-function subscribe(cb: () => void) {
-  listeners.add(cb);
-  return () => {
-    listeners.delete(cb);
-  };
-}
-function getSnapshot() {
-  return snippets;
-}
 export function useSnippets(): Snippet[] {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return store.use();
 }
 export function getSnippets(): Snippet[] {
-  return snippets;
+  return store.get();
 }
 /** Replace the whole deck (cloud sync). Backfills ids defensively. */
 export function replaceSnippets(list: Snippet[]) {
