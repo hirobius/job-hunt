@@ -20,6 +20,10 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+        env:
+          # @hirobius/* is on private GitHub Packages; the committed .npmrc reads this token.
+          # Safe when absent (public deps still install); required once an @hirobius dep is added.
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run typecheck:api
@@ -36,5 +40,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }} # @hirobius (private GH Packages)
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
