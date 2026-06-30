@@ -5,10 +5,16 @@
 A job-application tracker + discovery board. **Live → https://job-hunt-jade.vercel.app**
 
 Paste a job link and it lands in your queue; mark it applied and it drops out of the active
-list with a follow-up countdown. **Add with AI** turns a link (or pasted text) into a
+list with a follow-up countdown. Sort the queue (recently added, follow-up due, applied date,
+status, salary, A–Z) and filter by status. **Add with AI** turns a link (or pasted text) into a
 structured, editable entry with match/gap chips, and **Tailor résumé** rewrites your résumé to
-a role — grounded strictly in what you actually wrote. A discovery board, a copy deck for
-outreach snippets, and cross-device cloud sync round it out.
+a role — grounded strictly in what you actually wrote.
+
+An **Apprenticeships** board (Spokane-eligible + remote, current by design — with pin / set-aside
+triage and paste-your-own links), a pillar-aware **Discover** board, a **Copy Deck** for outreach
+snippets, and cross-device cloud sync round it out. Switch **career pillars** to retarget Discover
+and the Copy Deck. Every view is URL-addressable — shareable `#/queue` · `#/discover/titles`
+deep links that survive refresh and back/forward.
 
 ## Notable (design-engineering)
 
@@ -22,12 +28,16 @@ outreach snippets, and cross-device cloud sync round it out.
   that the app renders to clean Markdown — layout owned by code, facts owned by your résumé.
   No fabrication: requirements your résumé can't support are surfaced, not invented. SSRF-guarded
   link fetch; degrades gracefully with no API key. (`docs/adr/0002`)
-- **Accessibility as a gate.** Component tests run **axe-core** WCAG A/AA assertions; controls
-  and the theme toggle are keyboard- and screen-reader-friendly.
+- **URL state without a router.** Top-level tab, Discover's sub-tab, and the active pillar all
+  live in the hash via a tiny `useSyncExternalStore` route store — shareable, refresh-safe,
+  back/forward-aware — no `react-router`.
+- **Accessibility as a gate.** Component tests run **axe-core** WCAG A/AA assertions; tabs expose
+  proper `tabpanel`/`aria-controls` wiring, the filter group is labeled, there's one shared
+  focus-visible ring, and the theme toggle is keyboard- and screen-reader-friendly.
 - **Tests + CI.** Vitest + Testing Library unit/component tests and a **Playwright** happy-path
   E2E, run on every push via GitHub Actions (lint · typecheck · test · build).
-- **Lean bundle.** Vendor-split + lazy-loaded views (AI dialogs load on demand); no chunk over
-  ~260 kB.
+- **Lean bundle.** Vendor-split + lazy-loaded views (AI dialogs, Discover, Copy Deck, case study
+  load on demand) with layout-matched skeletons; no chunk over ~265 kB.
 
 ## Stack
 
@@ -65,3 +75,8 @@ HDS is a Tailwind/Radix system; Apply Board is MUI. Rather than re-platform, we 
 the **token layer** and kept MUI — getting HDS's design language and brand theming without a
 rewrite, at the cost of not (yet) using HDS's actual components. Full rationale + the
 alternatives we weighed: [`docs/adr/0001`](docs/adr/0001-consume-hds-via-tokens-on-mui.md).
+
+We later assessed going further — Astro and/or real HDS components — and decided to **stay on
+Vite, adopt HDS incrementally, and reserve Astro for static content only**; see
+[`docs/adr/0003`](docs/adr/0003-stay-on-vite-adopt-hds-incrementally.md) and the MUI→HDS map in
+[`docs/hds-adoption.md`](docs/hds-adoption.md).
