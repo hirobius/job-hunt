@@ -1,4 +1,5 @@
-import { useSyncExternalStore } from 'react';
+import { createStore } from './createStore';
+import { mergeByKey } from './mergeByKey';
 import { type Job, type Status } from './types';
 import { applyStatus, logFollowUp as applyFollowUp, normStatus } from './jobState';
 
@@ -106,33 +107,24 @@ function load(): Job[] {
 }
 
 // ---- external store (shared across views) ----
-let jobs: Job[] = load();
-const listeners = new Set<() => void>();
-function set(next: Job[]) {
-  jobs = next;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(jobs));
-  } catch {
-    /* ignore */
-  }
-  listeners.forEach((l) => l());
-}
-function subscribe(cb: () => void) {
-  listeners.add(cb);
-  return () => {
-    listeners.delete(cb);
-  };
-}
-function snapshot() {
-  return jobs;
-}
+const store = createStore<Job[]>(load(), {
+  onSet: (next) => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  },
+});
+const set = store.set;
 
 export function useJobs(): Job[] {
-  return useSyncExternalStore(subscribe, snapshot, snapshot);
+  return store.use();
 }
 
 /** Add a job; returns true if newly added, false if it already existed. */
 export function addJob(rawUrl: string, label?: string): boolean {
+  const jobs = store.get();
   let u = cleanUrl(rawUrl);
   if (!u) return false;
   if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
@@ -157,6 +149,7 @@ export function addJobDetailed(
   rawUrl: string,
   fields: { label?: string; salary?: string; note?: string },
 ): string | null {
+  const jobs = store.get();
   let u = cleanUrl(rawUrl);
   if (!u) return null;
   if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
@@ -175,29 +168,36 @@ export function addJobDetailed(
 }
 /** Log a follow-up today (restarts the follow-up countdown). */
 export function logFollowUp(url: string) {
+  const jobs = store.get();
   set(jobs.map((j) => (j.url === url ? applyFollowUp(j) : j)));
 }
 export function updateJob(url: string, patch: Partial<Job>) {
+  const jobs = store.get();
   set(jobs.map((j) => (j.url === url ? { ...j, ...patch } : j)));
 }
 export function setStatus(url: string, status: Status) {
+  const jobs = store.get();
   set(jobs.map((j) => (j.url === url ? applyStatus(j, status) : j)));
 }
 export function removeJob(url: string) {
+  const jobs = store.get();
   set(jobs.filter((j) => j.url !== url));
 }
 export function isSaved(url: string): boolean {
   const key = dedupKey(cleanUrl(url));
-  return jobs.some((j) => dedupKey(j.url) === key);
+  return store.get().some((j) => dedupKey(j.url) === key);
 }
 
 // Used by the cloud-sync layer to read/replace the whole list.
 export function getAllJobs(): Job[] {
-  return jobs;
+  return store.get();
 }
 export function replaceAll(next: Job[]) {
   set(sanitizeJobs(next));
 }
+/** Merge cloud + local jobs by URL (local order kept, cloud wins). Used by the sync layer. */
+export const mergeJobs = (cloud: Job[] | null, local: Job[]): Job[] =>
+  mergeByKey((j) => j.url, cloud, local);
 
 /** Quick-link helper: add the job (if new) then set a status. */
 export function setStatusByUrl(rawUrl: string, status: Status, label?: string) {

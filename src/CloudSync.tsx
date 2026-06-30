@@ -4,12 +4,10 @@ import { createClient, type User } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 import { useJobs, getAllJobs, replaceAll } from './store';
 import { usePillars, getUserPillars, replaceUserPillars } from './pillarStore';
-import { useSnippets, getSnippets, replaceSnippets, type Snippet } from './copyDeckStore';
+import { useSnippets, getSnippets, replaceSnippets } from './copyDeckStore';
 import { useTileTriage, getTileTriage, replaceTriage } from './tileTriage';
 import { useUserTiles, getUserTiles, replaceUserTiles } from './userTiles';
-import type { Job } from './types';
-import type { Pillar } from './pillars';
-import type { Tile } from './jobsData';
+import { readBlob, mergeBlob, BLOB_VERSION, type SyncData } from './syncBlob';
 
 const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -25,106 +23,6 @@ function clearLocalData() {
   }
 }
 
-type Triage = { pinned: string[]; dismissed: string[] };
-type SyncData = {
-  jobs: Job[];
-  pillars: Pillar[];
-  copydeck: Snippet[];
-  triage: Triage;
-  userTiles: Tile[];
-};
-
-// The cloud blob was historically a bare Job[]; it's now
-// { v, jobs, pillars, copydeck, triage, userTiles }. Missing fields default to empty.
-function readBlob(data: unknown): SyncData {
-  const empty: SyncData = {
-    jobs: [],
-    pillars: [],
-    copydeck: [],
-    triage: { pinned: [], dismissed: [] },
-    userTiles: [],
-  };
-  if (Array.isArray(data)) return { ...empty, jobs: data as Job[] };
-  const o = (data ?? {}) as {
-    jobs?: unknown;
-    pillars?: unknown;
-    copydeck?: unknown;
-    triage?: unknown;
-    userTiles?: unknown;
-  };
-  const tr = (o.triage ?? {}) as { pinned?: unknown; dismissed?: unknown };
-  return {
-    jobs: Array.isArray(o.jobs) ? (o.jobs as Job[]) : [],
-    pillars: Array.isArray(o.pillars) ? (o.pillars as Pillar[]) : [],
-    copydeck: Array.isArray(o.copydeck) ? (o.copydeck as Snippet[]) : [],
-    triage: {
-      pinned: Array.isArray(tr.pinned) ? (tr.pinned as string[]) : [],
-      dismissed: Array.isArray(tr.dismissed) ? (tr.dismissed as string[]) : [],
-    },
-    userTiles: Array.isArray(o.userTiles) ? (o.userTiles as Tile[]) : [],
-  };
-}
-
-function mergeJobs(cloud: Job[] | null, local: Job[]): Job[] {
-  const by: Record<string, Job> = {};
-  const order: string[] = [];
-  const add = (it: Job) => {
-    if (!it || !it.url) return;
-    if (!(it.url in by)) order.push(it.url);
-    by[it.url] = it;
-  };
-  (local || []).forEach(add);
-  (cloud || []).forEach(add); // cloud wins on shared URLs
-  return order.map((u) => by[u]);
-}
-
-function mergePillars(cloud: Pillar[] | null, local: Pillar[]): Pillar[] {
-  const by: Record<string, Pillar> = {};
-  const order: string[] = [];
-  const add = (p: Pillar) => {
-    if (!p || !p.id) return;
-    if (!(p.id in by)) order.push(p.id);
-    by[p.id] = p;
-  };
-  (local || []).forEach(add);
-  (cloud || []).forEach(add); // cloud wins on shared ids
-  return order.map((id) => by[id]);
-}
-
-function mergeSnippets(cloud: Snippet[] | null, local: Snippet[]): Snippet[] {
-  const by: Record<string, Snippet> = {};
-  const order: string[] = [];
-  const add = (s: Snippet) => {
-    if (!s || !s.id) return;
-    if (!(s.id in by)) order.push(s.id);
-    by[s.id] = s;
-  };
-  (local || []).forEach(add);
-  (cloud || []).forEach(add); // cloud wins on shared ids
-  return order.map((id) => by[id]);
-}
-
-function mergeTriage(cloud: Triage | null, local: Triage): Triage {
-  const union = (a: string[] = [], b: string[] = []) => Array.from(new Set([...a, ...b]));
-  const dismissed = new Set(union(local.dismissed, cloud?.dismissed));
-  // pin and set-aside are mutually exclusive; set-aside wins a conflict.
-  const pinned = union(local.pinned, cloud?.pinned).filter((u) => !dismissed.has(u));
-  return { pinned, dismissed: [...dismissed] };
-}
-
-function mergeUserTiles(cloud: Tile[] | null, local: Tile[]): Tile[] {
-  const by: Record<string, Tile> = {};
-  const order: string[] = [];
-  const add = (t: Tile) => {
-    if (!t || !t.url) return;
-    if (!(t.url in by)) order.push(t.url);
-    by[t.url] = t;
-  };
-  (local || []).forEach(add);
-  (cloud || []).forEach(add); // cloud wins on shared urls
-  return order.map((u) => by[u]);
-}
-
 export default function CloudSync() {
   const jobs = useJobs();
   const pillars = usePillars();
@@ -137,68 +35,35 @@ export default function CloudSync() {
   const lastSynced = useRef('');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const localJson = () =>
-    JSON.stringify({
-      jobs: getAllJobs(),
-      pillars: getUserPillars(),
-      copydeck: getSnippets(),
-      triage: getTileTriage(),
-      userTiles: getUserTiles(),
-    });
+  const localBlob = (): SyncData => ({
+    jobs: getAllJobs(),
+    pillars: getUserPillars(),
+    copydeck: getSnippets(),
+    triage: getTileTriage(),
+    userTiles: getUserTiles(),
+  });
+  const localJson = () => JSON.stringify(localBlob());
 
   async function pull(uid: string): Promise<SyncData | null> {
     const r = await supa.from('tracker').select('data').eq('user_id', uid).maybeSingle();
     return r.data ? readBlob(r.data.data) : null;
   }
   async function pushNow(u: User) {
-    const data = {
-      v: 3,
-      jobs: getAllJobs(),
-      pillars: getUserPillars(),
-      copydeck: getSnippets(),
-      triage: getTileTriage(),
-      userTiles: getUserTiles(),
-    };
     const r = await supa
       .from('tracker')
-      .upsert({ user_id: u.id, data, updated_at: new Date().toISOString() });
+      .upsert({ user_id: u.id, data: { v: BLOB_VERSION, ...localBlob() }, updated_at: new Date().toISOString() });
     lastSynced.current = localJson();
     setMsg(r.error ? 'Saved locally — cloud error' : `Synced · ${u.email}`);
   }
   async function adopt(seed: boolean, u: User) {
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     try {
-      const cloud = await pull(u.id);
-      const nextJobs = seed
-        ? mergeJobs(cloud?.jobs ?? null, getAllJobs())
-        : cloud
-          ? cloud.jobs
-          : getAllJobs();
-      const nextPillars = seed
-        ? mergePillars(cloud?.pillars ?? null, getUserPillars())
-        : cloud
-          ? cloud.pillars
-          : getUserPillars();
-      const nextCopydeck = seed
-        ? mergeSnippets(cloud?.copydeck ?? null, getSnippets())
-        : cloud
-          ? cloud.copydeck
-          : getSnippets();
-      const nextTriage = seed
-        ? mergeTriage(cloud?.triage ?? null, getTileTriage())
-        : cloud
-          ? cloud.triage
-          : getTileTriage();
-      const nextUserTiles = seed
-        ? mergeUserTiles(cloud?.userTiles ?? null, getUserTiles())
-        : cloud
-          ? cloud.userTiles
-          : getUserTiles();
-      replaceAll(nextJobs);
-      replaceUserPillars(nextPillars);
-      replaceSnippets(nextCopydeck);
-      replaceTriage(nextTriage);
-      replaceUserTiles(nextUserTiles);
+      const next = mergeBlob(await pull(u.id), localBlob(), seed);
+      replaceAll(next.jobs);
+      replaceUserPillars(next.pillars);
+      replaceSnippets(next.copydeck);
+      replaceTriage(next.triage);
+      replaceUserTiles(next.userTiles);
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
       if (seed) await pushNow(u);

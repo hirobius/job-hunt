@@ -4,11 +4,12 @@ import TileGrid from './TileGrid';
 import EmptyState from './EmptyState';
 import { APPRENTICESHIP_GROUPS } from './apprenticeships';
 import { useTileTriage } from './tileTriage';
+import { partitionTiles } from './tileState';
 import { useUserTiles, addUserTilesFromText, removeUserTile } from './userTiles';
 import type { Group, Tile } from './jobsData';
 
 export default function ApprenticeshipsView() {
-  const { pinned, dismissed } = useTileTriage();
+  const triage = useTileTriage();
   const userTiles = useUserTiles();
   const [showAside, setShowAside] = useState(false);
   const [draft, setDraft] = useState('');
@@ -26,23 +27,17 @@ export default function ApprenticeshipsView() {
   );
 
   // Pinned tiles float to the top of their group; set-aside tiles drop out into the collapsible
-  // section below, so what's left is what you still have to comb through.
-  const groups = useMemo(() => {
-    const pset = new Set(pinned);
-    const dset = new Set(dismissed);
-    return allGroups.map((g) => ({
-      ...g,
-      tiles: g.tiles
-        .filter((t) => !dset.has(t.url))
-        .slice()
-        .sort((a, b) => (pset.has(a.url) ? 0 : 1) - (pset.has(b.url) ? 0 : 1)),
-    }));
-  }, [allGroups, pinned, dismissed]);
+  // section below, so what's left is what you still have to comb through. (partitionTiles owns
+  // the rule; see src/tileState.ts.)
+  const groups = useMemo(
+    () => allGroups.map((g) => ({ ...g, tiles: partitionTiles(g.tiles, triage).visible })),
+    [allGroups, triage],
+  );
 
-  const asideTiles: Tile[] = useMemo(() => {
-    const dset = new Set(dismissed);
-    return allGroups.flatMap((g) => g.tiles).filter((t) => dset.has(t.url));
-  }, [allGroups, dismissed]);
+  const asideTiles: Tile[] = useMemo(
+    () => partitionTiles(allGroups.flatMap((g) => g.tiles), triage).aside,
+    [allGroups, triage],
+  );
 
   return (
     <Stack spacing={3}>
