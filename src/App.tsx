@@ -20,12 +20,8 @@ import ApprenticeshipsView from './ApprenticeshipsView';
 import CloudSync from './CloudSync';
 import { useColorMode } from './ColorMode';
 import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
-import {
-  usePillars,
-  useActivePillarId,
-  setActivePillar,
-  getActivePillarId,
-} from './pillarStore';
+import { usePillars, useActivePillarId, setActivePillar } from './pillarStore';
+import { useSyncPillarRoute } from './pillarRoute';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton, CaseStudySkeleton } from './Skeletons';
 
@@ -82,24 +78,10 @@ export default function App() {
   const route = useRoute();
   const slugIndex = TAB_SLUGS.indexOf(route.tab as (typeof TAB_SLUGS)[number]);
   const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
-  const activePillarId = useActivePillarId();
-  const pillars = usePillars();
-  const defaultPillarId = pillars[0]?.id;
   const [pillarsOpen, setPillarsOpen] = useState(false);
 
-  // Keep the active career pillar in sync with the URL both ways. URL → store: restore a
-  // pillar named in the hash (invalid ids are ignored by setActivePillar and self-heal below).
-  useEffect(() => {
-    if (route.pillar && route.pillar !== getActivePillarId()) setActivePillar(route.pillar);
-  }, [route.pillar]);
-
-  // Store → URL: reflect the active pillar in the hash, but only when it isn't the default,
-  // so common URLs stay clean (#/discover, not #/discover?pillar=<default>). Replace, since a
-  // pillar switch is a filter, not a new navigation step.
-  useEffect(() => {
-    const wanted = defaultPillarId && activePillarId !== defaultPillarId ? activePillarId : null;
-    if ((getRoute().pillar ?? null) !== wanted) navigate({ pillar: wanted }, true);
-  }, [activePillarId, defaultPillarId]);
+  // The URL ↔ active-pillar binding lives behind one seam (src/pillarRoute.ts).
+  useSyncPillarRoute();
 
   // Shareable portfolio case-study page: ?case=<slug> renders full-screen (no tab shell).
   const caseSlug = new URLSearchParams(window.location.search).get('case');
