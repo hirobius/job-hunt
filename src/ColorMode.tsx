@@ -31,6 +31,7 @@ export function ColorModeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', mode === 'dark');
+    document.documentElement.setAttribute('data-theme', mode); // HDS dark selector (adr/0004)
     try {
       localStorage.setItem(STORAGE_KEY, mode);
     } catch {

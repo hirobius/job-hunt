@@ -1,14 +1,5 @@
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  IconButton,
-  Link,
-  Stack,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Box, Card, CardContent, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { Button } from './ui/Button'; // HDS Button (adr/0004) — first migrated surface
 import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
@@ -86,15 +77,10 @@ export default function TileGrid({
                 useFlexGap
                 flexWrap="wrap"
               >
-                <Button
-                  size="small"
-                  variant="text"
-                  component={Link}
-                  href={t.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {cta}
+                <Button asChild size="small" variant="text">
+                  <a href={t.url} target="_blank" rel="noopener noreferrer">
+                    {cta}
+                  </a>
                 </Button>
                 <Button
                   size="small"
