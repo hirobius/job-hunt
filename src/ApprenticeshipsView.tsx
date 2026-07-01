@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   Box,
-  Button,
   Chip,
   Collapse,
   IconButton,
@@ -10,6 +9,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { Button } from './ui/Button';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -169,7 +169,7 @@ export default function ApprenticeshipsView() {
         <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 0.5, alignItems: 'center' }}>
           <Button
             size="small"
-            sx={{ flex: 'none', whiteSpace: 'nowrap' }}
+            style={{ flex: 'none', whiteSpace: 'nowrap' }}
             onClick={() => setAllCollapsed(allAreCollapsed ? [] : collapsibleIds)}
           >
             {allAreCollapsed ? 'Expand all' : 'Collapse all'}
@@ -286,7 +286,7 @@ export default function ApprenticeshipsView() {
 
       {asideTiles.length > 0 && !searching && (
         <Box>
-          <Button size="small" onClick={() => setShowAside((v) => !v)} sx={{ mb: 1 }}>
+          <Button size="small" onClick={() => setShowAside((v) => !v)} style={{ marginBottom: 8 }}>
             {showAside ? 'Hide' : 'Show'} set aside ({asideTiles.length})
           </Button>
           <Collapse in={showAside}>

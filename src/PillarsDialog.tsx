@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Box,
-  Button,
   Chip,
   Collapse,
   Dialog,
@@ -13,6 +12,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { Button } from './ui/Button';
 import {
   usePillars,
   useActivePillarId,
@@ -203,7 +203,7 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
                 onClick={() => setSel(p.id)}
               />
             ))}
-            <Button size="small" sx={{ ml: 'auto' }} onClick={() => setSel(createPillar())}>
+            <Button size="small" style={{ marginLeft: 'auto' }} onClick={() => setSel(createPillar())}>
               New
             </Button>
           </Box>
@@ -216,7 +216,7 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
               </Typography>
               <Button
                 variant="outlined"
-                sx={{ mt: 1.5 }}
+                style={{ marginTop: 12 }}
                 onClick={() => setSel(duplicatePillar(pillar.id))}
               >
                 Duplicate to customize
@@ -280,7 +280,7 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
                   </Box>
                 </Collapse>
               </Box>
-              <Button color="error" onClick={remove} sx={{ alignSelf: 'flex-start' }}>
+              <Button color="error" onClick={remove} style={{ alignSelf: 'flex-start' }}>
                 Delete pillar
               </Button>
             </>

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
-  Button,
   Chip,
   CircularProgress,
   Collapse,
@@ -16,6 +15,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
+import { Button } from '../ui/Button';
 import { extractJob } from './extractJob';
 import AiNotConfigured from './AiNotConfigured';
 import type { ExtractedJob } from './extract-core';

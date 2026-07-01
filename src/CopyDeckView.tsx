@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Box,
-  Button,
   Card,
   CardContent,
   Chip,
@@ -12,7 +11,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
-import { Button as HdsButton } from '@hirobius/design-system';
+import { Button } from './ui/Button';
 import EmptyState from './EmptyState';
 import { useActivePillar, usePillars } from './pillarStore';
 import {
@@ -123,18 +122,18 @@ export default function CopyDeckView() {
                   <Button size="small" onClick={() => updateSnippet(s.id, { open: !s.open })}>
                     {s.open ? 'Hide' : 'Show'}
                   </Button>
-                  <HdsButton size="sm" variant="tertiary" tone="success" onClick={() => copy(s.id)}>
+                  <Button size="small" variant="text" tone="success" onClick={() => copy(s.id)}>
                     {copied === s.id ? 'Copied' : 'Copy'}
-                  </HdsButton>
+                  </Button>
                   <Button size="small" onClick={() => toggleSnippetPin(s.id)}>
                     {s.pinned ? 'Pinned ★' : 'Pin'}
                   </Button>
                   <Button size="small" onClick={() => duplicateSnippet(s.id)}>
                     Duplicate
                   </Button>
-                  <HdsButton size="sm" variant="tertiary" tone="danger" onClick={() => del(s.id)}>
+                  <Button size="small" variant="text" tone="danger" onClick={() => del(s.id)}>
                     Delete
-                  </HdsButton>
+                  </Button>
                 </Stack>
                 <Collapse in={!!s.open}>
                   <TextField

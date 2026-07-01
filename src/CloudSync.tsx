@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Button, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Box, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Button } from './ui/Button';
 import CloseIcon from '@mui/icons-material/Close';
 import { createClient, type User } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';

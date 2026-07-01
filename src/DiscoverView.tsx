@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Box,
-  Button,
   Chip,
   Link,
   Stack,
@@ -12,6 +11,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
+import { Button } from './ui/Button';
 import TileGrid from './TileGrid';
 import { useRoute, navigate } from './route';
 import { BOARDS, ATS, entryLevelize, type Tile } from './jobsData';
@@ -119,8 +119,7 @@ function AtsPanel({
       </Box>
       <Button
         variant="contained"
-        sx={{ my: 1.5 }}
-        component={Link}
+        style={{ marginTop: 12, marginBottom: 12 }}
         href={allUrl}
         target="_blank"
         rel="noopener noreferrer"

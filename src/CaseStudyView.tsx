@@ -1,6 +1,5 @@
 import {
   Box,
-  Button,
   Card,
   CardContent,
   Container,
@@ -9,6 +8,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { Button } from './ui/Button';
 import { CASES } from './caseStudies';
 
 const eyebrowSx = {
@@ -54,7 +54,7 @@ export default function CaseStudyView({ slug }: { slug: string }) {
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 3, sm: 6 } }}>
-      <Button variant="text" onClick={back} sx={{ mb: 3, px: 0, minWidth: 0 }}>
+      <Button variant="text" onClick={back} style={{ marginBottom: 24, paddingLeft: 0 }}>
         ← Apply Board
       </Button>
 
@@ -75,7 +75,6 @@ export default function CaseStudyView({ slug }: { slug: string }) {
         {c.liveUrl && (
           <Button
             variant="contained"
-            component={Link}
             href={c.liveUrl}
             target="_blank"
             rel="noopener noreferrer"

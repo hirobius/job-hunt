@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import {
   Alert,
   Box,
-  Button,
   Chip,
   CircularProgress,
   Dialog,
@@ -14,6 +13,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { Button } from '../ui/Button';
 import { tailorResume } from './tailorResume';
 import AiNotConfigured from './AiNotConfigured';
 import { renderResumeMarkdown, type TailoredResume } from './tailor-core';

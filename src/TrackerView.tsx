@@ -1,7 +1,6 @@
-import { lazy, Suspense, useMemo, useRef, useState } from 'react';
+import React, { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import {
   Box,
-  Button,
   Card,
   CardContent,
   Chip,
@@ -20,7 +19,8 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
-import { Badge, Button as HdsButton } from '@hirobius/design-system';
+import { Badge } from '@hirobius/design-system';
+import { Button as UiButton } from './ui/Button';
 import {
   useJobs,
   addJob,
@@ -177,17 +177,22 @@ export default function TrackerView() {
           }}
         />
         <Stack direction="row" spacing={1} sx={{ flex: 'none' }}>
-          <Button variant="contained" onClick={submit} sx={{ flex: { xs: 1, sm: 'none' } }}>
-            Add
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<AutoAwesomeOutlinedIcon />}
-            onClick={openAi}
-            sx={{ flex: { xs: 1, sm: 'none' }, whiteSpace: 'nowrap' }}
-          >
-            Add with AI
-          </Button>
+          {/* Box wrappers carry the responsive flex the seam Button can't express via sx. */}
+          <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
+            <UiButton variant="contained" onClick={submit} style={{ flex: 1 }}>
+              Add
+            </UiButton>
+          </Box>
+          <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
+            <UiButton
+              variant="outlined"
+              startIcon={<AutoAwesomeOutlinedIcon />}
+              onClick={openAi}
+              style={{ flex: 1, whiteSpace: 'nowrap' }}
+            >
+              Add with AI
+            </UiButton>
+          </Box>
         </Stack>
       </Stack>
 
@@ -233,18 +238,18 @@ export default function TrackerView() {
         justifyContent="flex-end"
         sx={{ mb: 2 }}
       >
-        <Button
+        <UiButton
           size="small"
           startIcon={<SwapVertIcon />}
-          onClick={(e) => setSortAnchor(e.currentTarget)}
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => setSortAnchor(e.currentTarget)}
           aria-haspopup="true"
-          sx={{ whiteSpace: 'nowrap' }}
+          style={{ whiteSpace: 'nowrap' }}
         >
           {sortLabel}
-        </Button>
-        <Button size="small" disabled={!jobs.length} onClick={() => exportCsv(jobs)}>
+        </UiButton>
+        <UiButton size="small" disabled={!jobs.length} onClick={() => exportCsv(jobs)}>
           Export CSV
-        </Button>
+        </UiButton>
       </Stack>
 
       <Menu anchorEl={sortAnchor} open={!!sortAnchor} onClose={() => setSortAnchor(null)}>
@@ -325,28 +330,28 @@ export default function TrackerView() {
                     useFlexGap
                   >
                     {s.isApplyable && (
-                      <HdsButton size="sm" tone="info" onClick={() => setStatus(j.url, 'Applied')}>
+                      <UiButton size="sm" variant="primary" tone="info" onClick={() => setStatus(j.url, 'Applied')}>
                         Mark applied
-                      </HdsButton>
+                      </UiButton>
                     )}
-                    <Button
+                    <UiButton
                       size="small"
                       variant="text"
                       onClick={() => setOpen((p) => ({ ...p, [j.url]: !p[j.url] }))}
                     >
                       {isOpen ? 'Hide' : 'Details'}
-                    </Button>
+                    </UiButton>
                     {s.followUp.due && (
                       <>
                         <Badge tone="warning">Follow up now</Badge>
-                        <HdsButton
+                        <UiButton
                           size="sm"
                           variant="secondary"
                           tone="warning"
                           onClick={() => logFollowUp(j.url)}
                         >
                           Log follow-up
-                        </HdsButton>
+                        </UiButton>
                       </>
                     )}
                     {s.followUp.daysUntil != null && (
@@ -377,17 +382,16 @@ export default function TrackerView() {
                       {fld(j, 'salary', 'Salary')}
                       <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
                         {research(j.label).map(([name, href]) => (
-                          <Button
+                          <UiButton
                             key={name}
                             size="small"
                             variant="outlined"
-                            component={Link}
                             href={href}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
                             {name}
-                          </Button>
+                          </UiButton>
                         ))}
                       </Box>
                     </Stack>
