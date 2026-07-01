@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Button, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { createClient, type User } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 import { useJobs, getAllJobs, replaceAll } from './store';
@@ -23,6 +24,11 @@ function clearLocalData() {
   }
 }
 
+// Once dismissed, the signed-out banner stays collapsed to a one-line link until the
+// user re-opens it (or signs in). Cleared by clearLocalData on sign-out, which is right:
+// a fresh person on this browser should see the full banner again.
+const HIDE_KEY = 'rjb_sync_banner_hidden';
+
 export default function CloudSync() {
   const jobs = useJobs();
   const pillars = usePillars();
@@ -32,6 +38,22 @@ export default function CloudSync() {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('Sign in to sync across your devices');
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem(HIDE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const hide = (v: boolean) => {
+    setHidden(v);
+    try {
+      if (v) localStorage.setItem(HIDE_KEY, '1');
+      else localStorage.removeItem(HIDE_KEY);
+    } catch {
+      /* ignore */
+    }
+  };
   const lastSynced = useRef('');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -152,6 +174,16 @@ export default function CloudSync() {
       );
   };
 
+  // Collapsed, signed-out state: a single quiet line instead of the full banner.
+  if (!user && hidden)
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+        <Button size="small" variant="text" onClick={() => hide(false)}>
+          Sign in to sync
+        </Button>
+      </Box>
+    );
+
   return (
     <Box
       sx={{
@@ -193,7 +225,7 @@ export default function CloudSync() {
           </Button>
         </Stack>
       ) : (
-        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
           <TextField
             size="small"
             type="email"
@@ -208,6 +240,11 @@ export default function CloudSync() {
           <Button size="small" variant="contained" onClick={sendLink}>
             Email me a link
           </Button>
+          <Tooltip title="Hide — you can sign in anytime">
+            <IconButton size="small" onClick={() => hide(true)} aria-label="Hide sign-in banner">
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Stack>
       )}
     </Box>
