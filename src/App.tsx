@@ -15,6 +15,7 @@ import {
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
+import FeedbackOutlinedIcon from '@mui/icons-material/FeedbackOutlined';
 import TrackerView from './TrackerView';
 import ApprenticeshipsView from './ApprenticeshipsView';
 import CloudSync from './CloudSync';
@@ -146,6 +147,18 @@ export default function App() {
               sx={{ flex: 'none' }}
             >
               <TuneOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Send feedback / report a bug">
+            <IconButton
+              component="a"
+              href="https://github.com/hirobius/job-hunt/issues/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Send feedback (opens GitHub)"
+              sx={{ flex: 'none' }}
+            >
+              <FeedbackOutlinedIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <ColorModeToggle />
