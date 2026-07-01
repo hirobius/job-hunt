@@ -343,6 +343,11 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'https://www.americanmfw.com/',
       ),
       t(
+        'American Alloy',
+        'MIG/TIG welders · Spokane Valley · currently hiring (via Perry Tech board)',
+        'https://www.google.com/search?q=American+Alloy+Spokane+Valley+welder+jobs',
+      ),
+      t(
         'Ground Force Worldwide (Federal Signal)',
         'Heavy mining-equipment fab · $24–29/hr · multi-position wire-feed (not for day-one beginners) · Post Falls ID',
         'https://www.gfworldwide.com/',
@@ -439,7 +444,7 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
     tiles: [
       t(
         'Travis Pattern & Foundry',
-        'Al / bronze / iron casting + pattern shop · entry labor / molder / grinder, will train · ~$20–26/hr · USW union · 509-466-3545',
+        'Al / bronze / iron casting + pattern shop · entry labor / molder / grinder, will train · ~$20–26/hr · USW union · HR Todd Gee · hr@travispattern.com · 509-466-3545',
         'https://www.travispattern.com/careers',
       ),
       t(
@@ -707,6 +712,16 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'SBCTC Apprenticeships',
         'WA community / technical college programs',
         'https://www.sbctc.edu/becoming-a-student/train-for-job/apprenticeships-student',
+      ),
+      t(
+        'Perry Tech — trades job board',
+        'Free welding / fab / machinist openings (Aerotek, American Alloy, CONTECH, Travis Pattern, Kaiser)',
+        'https://www.perrytech.edu/alumni/jobs/',
+      ),
+      t(
+        'FuturesNW — apprenticeship pathways',
+        'Pacific NW hub · Ironworkers 86, sheet metal, pre-apprenticeship links',
+        'https://www.futuresnw.org/apprenticeships',
       ),
     ],
   },
