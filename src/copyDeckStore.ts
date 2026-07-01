@@ -48,6 +48,19 @@ const DESIGN_AI: Snippet = {
   body: "I'm a design technologist who ships. 10+ years across product and visual design, design systems, and front-end (React) — and the last couple of years building AI-assisted workflows end to end. Where I'm most useful is the seam between design and engineering: turning rough ideas into working, well-documented prototypes, building and maintaining design systems in code, and wiring LLM features (prompting, tool-use, retrieval) into real product interfaces.\n\nRecent work: rebuilt a React/Vite design system, and designed + shipped an AI-driven application-tracking app (React, MUI, Supabase). I move fast, document clearly, and like owning the messy middle between design and code.\n\nPortfolio + resume attached — happy to talk.\n\n— add your name + portfolio links here —",
 };
 
+const CALL_SHEET: Snippet = {
+  id: 'seed-callsheet',
+  pinned: true,
+  label: 'Call sheet — casting, precast & fab shops',
+  body: 'HOW TO WORK THIS: call Tue–Thu, 8–10am. Small shops: showing up in person beats calling. Mark each line: [x] reached · [f] follow-up · [n] no. Every call: veteran, reliable, hands-on, will start in entry labor, looking for a shop that trains.\n\nTIER 1 — CALL FIRST (best casting / mold-making fit)\n[ ] Travis Pattern & Foundry — Todd Gee (HR) · 509-466-3545 · hr@travispattern.com\n    Union foundry (USW) · entry labor / molder ~$20–26/hr · they train. Also has a machinist opening (~$29–33/hr).\n[ ] Concrete Works Statuary — ask for Curtiss Grenz · 509-922-6111\n    Hand-cast decorative concrete, ~1,000 molds · THE decorative-casting shop. Ok with seasonal/entry.\n[ ] Hern Iron Works — number via hernironworks.com\n    Cast-iron foundry (gears / grates) · ask about entry casting or labor.\n\nTIER 2 — PRECAST PRODUCTION (they train · ~$18–25/hr)\n[ ] INW Precast — Brock Materne · 509-226-5050 (Newman Lake)\n[ ] CDA Precast — ask for Todd or Craig · 208-762-0235 (CDA / Post Falls)\n[ ] White Block — Bruce Corigliano · 509-534-0651 (Spokane Valley)\n[ ] Spilker Precast — Kevin or Tim Spilker · 509-487-2261\n[ ] voestalpine Nortrak — apply online · Machine Operator I $22.50–24.70/hr + tuition assistance\n[ ] Knife River Prestress · Wilbert Precast · Central Pre-Mix — apply via careers pages\n[ ] Spokane Precast — seasonal (Apr–Oct) · visit in person\n\nTIER 3 — FAB SHOP BLANKET (entry welders in demand)\n[ ] Northwest Steel Fab — 509-276-1592 (Deer Park · known-great for brand-new welders)\n[ ] Hydrafab NW — 509-535-0075 · [ ] SteelFab — 509-747-4139 · [ ] Spokane Metals — 509-244-9476\n[ ] American Metal Fab & Welding — Aaron Meldrum · 509-362-3908\n[ ] Lake City Fence & Fab — Dominic Pesaturo · 208-771-5873 · [ ] Ground Force — 208-664-9291\n[ ] Buck Knives · Hewescraft (careers@hewescraft.com) · Colmac Coil · Rocky Mountain Construction · MetalQuest — apply online\n\nSKILL BUILDER — DO THIS WEEK, mention it on every call\n[ ] Lost & Foundry sand-casting class — $45 · Tue/Sat 10–noon · Donna · 509-487-6832\n    ("I\'m taking a sand-casting class right now" = instant credibility with foundries.)\n\nREMOTE — NO CALLS, apply online (~30 min each, paid programs)\n[ ] Creating Coding Careers (veteran/SkillBridge track) · [ ] OpenClassrooms US · [ ] Flatiron Work-Study · [ ] SkillStorm (vet track) · [ ] Apprenti WA',
+};
+
+const CALL_SCRIPT: Snippet = {
+  id: 'seed-callscript',
+  label: 'Cold-call + voicemail script — shops',
+  body: 'LIVE CALL\n"Hi, my name\'s ___. I\'m a U.S. Air Force veteran here in Spokane. I\'m looking for entry-level work in [casting / welding / production] — I\'m new to the trade, but I\'m reliable, I show up, and I\'m looking for a shop that trains. Do you have anything open now, or could I drop off a resume for when something opens up?"\n\nIF NO OPENINGS\n"Understood — if you were me, who else in town would you call?" (Shops know shops. Write down every name they give you and add it to the board.)\n\nVOICEMAIL (keep under 20 seconds)\n"Hi, this is ___, an Air Force veteran here in Spokane looking for entry [foundry / fab / production] work — happy to start in general labor and learn the trade. You can reach me at ___. Thanks."\n\nRULES\n- Call Tue–Thu, 8–10am (owners answer early; Mondays are chaos).\n- For the micro-shops, drive out in person with a one-page resume.\n- Ask for the owner/contact BY NAME where the call sheet lists one.\n- After every call, mark the call-sheet line and set a follow-up date (+5 business days).\n\n— add your name + phone before using —',
+};
+
 const STUDY_8020: Snippet = {
   id: 'seed-study8020',
   label: 'Study plan — 80/20',
@@ -77,6 +90,16 @@ function load(): Snippet[] {
     if (!localStorage.getItem('rjb_deck_study8020')) {
       if (!arr.some((s) => /80\/20|study plan/i.test(s.label || ''))) arr = [...arr, STUDY_8020];
       localStorage.setItem('rjb_deck_study8020', '1');
+    }
+  } catch {
+    /* ignore */
+  }
+  // One-time: seed the trades call sheet + cold-call script (respects later deletion).
+  try {
+    if (!localStorage.getItem('rjb_deck_callsheet')) {
+      if (!arr.some((s) => /call sheet/i.test(s.label || ''))) arr = [...arr, CALL_SHEET];
+      if (!arr.some((s) => /cold-call|voicemail/i.test(s.label || ''))) arr = [...arr, CALL_SCRIPT];
+      localStorage.setItem('rjb_deck_callsheet', '1');
     }
   } catch {
     /* ignore */
