@@ -24,13 +24,13 @@ function initialMode(): ColorMode {
   return 'dark';
 }
 
-/** Owns the color mode: persists it, toggles the `.dark` class (for the CSS-var layer),
- *  and provides the matching MUI theme. */
+/** Owns the color mode: persists it, sets `data-theme` on <html> (HDS 0.9.0 flips its
+ *  token variables on [data-theme="dark"]), and provides the matching MUI theme. */
 export function ColorModeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ColorMode>(initialMode);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', mode === 'dark');
+    document.documentElement.setAttribute('data-theme', mode);
     try {
       localStorage.setItem(STORAGE_KEY, mode);
     } catch {

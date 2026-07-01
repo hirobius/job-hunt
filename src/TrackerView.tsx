@@ -20,6 +20,7 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
+import { Badge, Button as HdsButton } from '@hirobius/design-system';
 import {
   useJobs,
   addJob,
@@ -42,12 +43,13 @@ const TailorDialog = lazy(() => import('./ai/TailorDialog'));
 
 type Filter = 'active' | 'all' | Status | 'retired';
 
-const STATUS_COLOR: Record<Status, 'warning' | 'info' | 'secondary' | 'success' | 'error'> = {
+// Status → HDS Badge tone (the semantic feedback tokens; Interviewing = inProgress).
+const STATUS_TONE: Record<Status, 'warning' | 'info' | 'inProgress' | 'success' | 'danger'> = {
   Saved: 'warning',
   Applied: 'info',
-  Interviewing: 'secondary',
+  Interviewing: 'inProgress',
   Offer: 'success',
-  Rejected: 'error',
+  Rejected: 'danger',
 };
 
 function matches(j: Job, f: Filter): boolean {
@@ -304,14 +306,7 @@ export default function TrackerView() {
                           : ''}
                       </Typography>
                     </Box>
-                    {s.status !== 'Saved' && (
-                      <Chip
-                        label={s.status}
-                        size="small"
-                        color={STATUS_COLOR[s.status]}
-                        variant="outlined"
-                      />
-                    )}
+                    {s.status !== 'Saved' && <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>}
                     <IconButton
                       size="small"
                       onClick={(e) => setMenu({ el: e.currentTarget, job: j })}
@@ -330,14 +325,9 @@ export default function TrackerView() {
                     useFlexGap
                   >
                     {s.isApplyable && (
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="info"
-                        onClick={() => setStatus(j.url, 'Applied')}
-                      >
+                      <HdsButton size="sm" tone="info" onClick={() => setStatus(j.url, 'Applied')}>
                         Mark applied
-                      </Button>
+                      </HdsButton>
                     )}
                     <Button
                       size="small"
@@ -348,15 +338,15 @@ export default function TrackerView() {
                     </Button>
                     {s.followUp.due && (
                       <>
-                        <Chip size="small" color="warning" label="Follow up now" />
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="warning"
+                        <Badge tone="warning">Follow up now</Badge>
+                        <HdsButton
+                          size="sm"
+                          variant="secondary"
+                          tone="warning"
                           onClick={() => logFollowUp(j.url)}
                         >
                           Log follow-up
-                        </Button>
+                        </HdsButton>
                       </>
                     )}
                     {s.followUp.daysUntil != null && (

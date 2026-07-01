@@ -12,7 +12,10 @@ export default defineConfig({
           if (!id.includes('node_modules')) return undefined;
           if (id.includes('@mui') || id.includes('@emotion')) return 'mui';
           if (id.includes('@supabase')) return 'supabase';
-          if (id.includes('react') || id.includes('scheduler')) return 'react';
+          // Exact react/react-dom/scheduler only. A loose includes('react') also caught
+          // @radix-ui/react-* and lucide-react (HDS deps), splitting HDS across chunks
+          // and creating a circular-init crash ("createContext of undefined").
+          if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react';
           return 'vendor';
         },
       },
