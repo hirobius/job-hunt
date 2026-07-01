@@ -103,6 +103,11 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'https://www.opcmia72.org/apprenticeship-forms/',
       ),
       t(
+        'Cement Masons & Plasterers — training',
+        'Registered plasterer / cement-mason apprenticeship · 6400 OJT hrs · physical assessment · admin@trowelout.org',
+        'https://www.cmpltraining.org/',
+      ),
+      t(
         'Heat & Frost Insulators Local 82',
         'Mechanical insulator JATC · rolling · interviews held once a year in July',
         'https://www.local82jatc.com/',
@@ -239,6 +244,16 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Free 11-wk trades prep · OSHA-10, math, rigging · feeds 18 apprenticeships',
         'https://scc.spokane.edu/Become-a-Student/I-Need-Basic-Education/Short-Term-Training/Skilled-Trades-Preparation',
       ),
+      t(
+        'Head Start to the Construction Trades',
+        'Pre-apprenticeship bridge to union JATCs · Spokane Valley · FuturesNW partner · 509-319-4141',
+        'https://www.google.com/search?q=Head+Start+to+the+Construction+Trades+Spokane+FuturesNW',
+      ),
+      t(
+        'North Idaho College — Welding & Fab',
+        'Certificate + 2-yr welding tech · job-placement help · Coeur d’Alene ID · 208-769-3300',
+        'https://www.google.com/search?q=North+Idaho+College+welding+technology+program',
+      ),
     ],
   },
   {
@@ -346,6 +361,21 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'American Alloy',
         'MIG/TIG welders · Spokane Valley · currently hiring (via Perry Tech board)',
         'https://www.google.com/search?q=American+Alloy+Spokane+Valley+welder+jobs',
+      ),
+      t(
+        'ASC Machine Tools',
+        'Coil-processing equipment mfg · welders / fabricators · Spokane Valley (via Perry Tech board)',
+        'https://www.ascmt.com/',
+      ),
+      t(
+        'Crux Subsurface',
+        'Welder / fabricator roles · entry considered · Spokane Valley',
+        'https://www.cruxsub.com/careers',
+      ),
+      t(
+        'Welding Spokane (mobile shop)',
+        'Independent MIG / TIG / stick shop · ask direct about helper / apprentice work',
+        'https://www.google.com/search?q=Welding+Spokane+mobile+welding+jobs',
       ),
       t(
         'Ground Force Worldwide (Federal Signal)',
@@ -456,6 +486,16 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Vinnetti’s Bronze Casting Foundry',
         'Lost-wax bronze art foundry — mold-making, casting, patina · confirm local Spokane address first · 800-882-5901',
         'https://www.google.com/search?q=Vinnetti%27s+Bronze+Casting+Foundry+Spokane',
+      ),
+      t(
+        'Hern Iron Works',
+        'Cast-iron foundry — gears, sprockets, grates · long-running Spokane foundry · ask re: entry casting/labor',
+        'https://www.hernironworks.com/',
+      ),
+      t(
+        'Precision Propeller (Spokane)',
+        'Precision casting + machining (est. 1962) · small established shop · confirm current address',
+        'https://www.google.com/search?q=Precision+Propeller+Spokane+WA+casting+machining+jobs',
       ),
       t(
         'NW Artisan Concrete',
@@ -697,6 +737,11 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'WA L&I — Become an Apprentice',
         'All registered WA programs + employers (ARTS)',
         'https://www.lni.wa.gov/licensing-permits/apprenticeship/become-apprentice/',
+      ),
+      t(
+        'WA L&I — ARTS search (by county)',
+        'Official database · search every registered WA program by occupation / Spokane County',
+        'https://secure.lni.wa.gov/arts-public/',
       ),
       t(
         'Apprenticeship.gov',
