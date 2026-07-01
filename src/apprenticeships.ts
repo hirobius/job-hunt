@@ -248,6 +248,10 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
     id: 'spk-shops',
     label: 'Spokane — welding, metal fab & concrete shops (entry-level · will-train)',
     tiles: [
+      // Live searches (never go stale) first, then direct company careers pages where a
+      // real one exists — Google-search fallback only for shops with no stable careers URL.
+      // OPCMIA Local 72 (concrete) lives in the union-trades JATC group above; Inland NW AGC
+      // lives in spk-programs — not duplicated here.
       t(
         'Indeed · welder / fabricator (Spokane)',
         'All live Spokane welding + fab postings',
@@ -266,32 +270,47 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
       t(
         'SteelFab Inc',
         'MIG/TIG welders & fitters · entry OK, they train · 509-747-4139',
-        'https://www.google.com/search?q=SteelFab+Inc+Spokane+welding+jobs',
+        'https://www.steelfab-inc.com/careers/',
       ),
       t(
         'Still Waters Metal Fab',
         'Welders & fitters · entry openings · Spokane Valley',
-        'https://www.google.com/search?q=Still+Waters+Metal+Fab+Spokane+Valley+jobs',
+        'https://www.stillwatersmf.com/',
+      ),
+      t(
+        'Fabtech Inc',
+        'Structural steel fab · welders & fitters · will train · Spokane Valley',
+        'https://www.fabtech1.us/',
       ),
       t(
         'Spokane Stainless Technologies (SST)',
         'Metal fab · forming / shearing · $18–22/hr · training',
-        'https://www.google.com/search?q=Spokane+Stainless+Technologies+careers',
+        'https://www.spokanestainless.com/',
       ),
       t(
         'Sytech Inc',
         'Precision stainless fab · gas / electric welding · training',
-        'https://www.google.com/search?q=Sytech+Inc+Spokane+welding+jobs',
+        'https://sytechprecision.com/',
       ),
       t(
         'Wagstaff Inc',
         'TIG fabrication · swing shift · entry training · Spokane Valley',
-        'https://www.google.com/search?q=Wagstaff+Inc+Spokane+careers+welding',
+        'https://www.wagstaff.com/careers/',
       ),
       t(
         'Finnoe Design LLC',
         'Fitter / welder · TIG preferred · they train',
-        'https://www.google.com/search?q=Finnoe+Design+Spokane+welder+jobs',
+        'https://finnoedesign.com/',
+      ),
+      t(
+        'CONTECH (Spokane)',
+        'Engineered site-solutions fab · production & welding roles',
+        'https://www.conteches.com/about/careers',
+      ),
+      t(
+        'Phillips Tank & Structure',
+        'Steel tank / structural fab · welders & fitters · will train',
+        'https://phillipstankandstructure.applytojob.com/',
       ),
       t(
         'NIC Global',
@@ -304,9 +323,24 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'https://www.google.com/search?q=Blue+Compass+RV+Spokane+technician+apprentice',
       ),
       t(
-        'All Phase Concrete',
-        'Concrete finishing (driveways / patios / steps) · hire & train',
-        'https://www.google.com/search?q=All+Phase+Concrete+Spokane+jobs',
+        'Towtem Attachments',
+        'Excavator-attachment fab · MIG welders / fitters · will train',
+        'https://www.towtem.com/',
+      ),
+      t(
+        'Indeed · concrete finisher (Spokane)',
+        'Live concrete finishing / laborer roles',
+        'https://www.indeed.com/jobs?q=concrete+finisher&l=Spokane%2C+WA',
+      ),
+      t(
+        'ACME Concrete Paving',
+        'Concrete paving crews · laborer → finisher · union scale · they train',
+        'https://acmecpi.com/careers/',
+      ),
+      t(
+        'Knife River Prestress',
+        'Precast / prestress production & finishing · Spokane · will train',
+        'https://www.kniferiverprestress.com/careers',
       ),
       t(
         'Spokane Concrete Co',
@@ -316,12 +350,17 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
       t(
         'Wilbert Precast Inc',
         'Precast production & finishing · production roles',
-        'https://www.google.com/search?q=Wilbert+Precast+Spokane+production+jobs',
+        'https://www.wilbertprecast.com/careers',
       ),
       t(
-        'Indeed · concrete finisher (Spokane)',
-        'Live concrete finishing / laborer roles',
-        'https://www.indeed.com/jobs?q=concrete+finisher&l=Spokane%2C+WA',
+        'All Phase Concrete',
+        'Concrete finishing (driveways / patios / steps) · hire & train',
+        'https://www.google.com/search?q=All+Phase+Concrete+Spokane+jobs',
+      ),
+      t(
+        'Ferraro Concrete',
+        'Flatwork & finishing crews · Spokane · hire & train',
+        'https://www.google.com/search?q=Ferraro+Concrete+Spokane+jobs',
       ),
     ],
   },
