@@ -714,6 +714,46 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Salesforce 1099 milestone-paid · waitlist — apply to be notified (slots intermittent)',
         'https://learnsfdc.com/salesforce-apprenticeship-program/',
       ),
+      t(
+        'Creating Coding Careers',
+        'Remote pre-apprenticeship → PAID DOL apprenticeship ~$20–21.50/hr · no degree · veteran / SkillBridge track · rolling 2026',
+        'https://cccareers.org/earn-and-learn-to-code/',
+      ),
+      t(
+        'OpenClassrooms — US apprenticeships',
+        'DOL-registered · Data Analyst / Help Desk / Software Dev / Digital Marketer · remote or hybrid · paid $18.54–30/hr · 12–15 mo · no cost',
+        'https://openclassrooms.com/us/apprenticeship',
+      ),
+      t(
+        'Flatiron School — Work-Study Apprenticeship',
+        'Fully online · 14-mo PAID ($20/hr, ~20 hr/wk) · AI / Data / Software Eng · cohort-based (check next start)',
+        'https://work-study.flatironschool.com/',
+      ),
+      t(
+        'SkillStorm — IT Apprenticeship',
+        'Zero-cost training → year-long PAID DOL apprenticeship · no degree · strong veteran / mil-spouse track · remote-capable · ~2-yr commitment',
+        'https://skillstorm.com/it-apprenticeship-program/',
+      ),
+      t(
+        'Adobe Digital Academy',
+        'Remote bootcamp + living stipend → paid Adobe internship · UX / data / SWE / marketing · no degree · 2026 open (some placements onsite)',
+        'https://www.adobe.com/corporate-responsibility/creativity/digital-academy.html',
+      ),
+      t(
+        'Multiverse (US)',
+        'AI / data / software apprenticeships · hired + paid by a partner employer · any age · remote / hybrid (some state limits)',
+        'https://www.multiverse.io/',
+      ),
+      t(
+        'Cognizant Apprenticeship',
+        'Paid earn-while-learn · virtual pre-apprenticeship track · CLOSED now — join waitlist, reopens ~Mar / May / Aug',
+        'https://careers.cognizant.com/us-en/apprenticeship-program/',
+      ),
+      t(
+        'Salesforce Talent Alliance',
+        'Free cert voucher + auto-interviews with partners · separate 12-wk PAID, largely-remote Fellowship — verify next cohort',
+        'https://1.salesforce-partners.com/talent-alliance-job-seeker',
+      ),
     ],
   },
   {
@@ -857,6 +897,16 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'WOIS — WA occupations & wages',
         'State career-info tool · wage data + apprenticeship directory searchable by occupation / county',
         'https://www.wois.wa.gov/',
+      ),
+      t(
+        'Apprenticeships for Tech (Source & Grow Talent)',
+        'DOL registered-apprenticeship network · request the state sponsor list → matched to a PAID employer apprenticeship (some remote)',
+        'https://apprenticeshipsfortech.org/our-services/be-apprentice',
+      ),
+      t(
+        'apprenticeship.io',
+        'Community directory of US software-engineering apprenticeships · aggregates paid, sometimes-remote programs',
+        'https://apprenticeship.io/',
       ),
     ],
   },
