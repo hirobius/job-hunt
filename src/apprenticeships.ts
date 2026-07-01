@@ -428,6 +428,16 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'https://www.google.com/search?q=Casey%27s+Metal+Fab+Spokane+WA+welder+jobs',
       ),
       t(
+        'Altek',
+        'Precision metal fab / CNC machining · aerospace / medical / defense · entry tech roles · Spokane',
+        'https://www.google.com/search?q=Altek+Spokane+machining+fabrication+jobs',
+      ),
+      t(
+        'Keytronic',
+        'Precision electronics mfg + assembly · machinist / production apprentice paths · Spokane Valley · 509-928-8000',
+        'https://www.keytronic.com/company/careers/',
+      ),
+      t(
         'Indeed · concrete finisher (Spokane)',
         'Live concrete finishing / laborer roles',
         'https://www.indeed.com/jobs?q=concrete+finisher&l=Spokane%2C+WA',
@@ -526,6 +536,11 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'CDA Precast',
         'Certified precast + Verti-Block · production roles, expanding · Coeur d’Alene / Post Falls ID · 208-762-0235',
         'https://www.cdaprecast.com/',
+      ),
+      t(
+        'Central Pre-Mix (Oldcastle APG)',
+        'Pavers / retaining walls / bagged concrete · production & finishing · entry hiring · Spokane Valley',
+        'https://www.oldcastleapg.com/careers',
       ),
       t(
         'Lost & Foundry — sand-casting class',
