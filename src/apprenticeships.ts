@@ -768,6 +768,11 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Pacific NW hub · Ironworkers 86, sheet metal, pre-apprenticeship links',
         'https://www.futuresnw.org/apprenticeships',
       ),
+      t(
+        'WOIS — WA occupations & wages',
+        'State career-info tool · wage data + apprenticeship directory searchable by occupation / county',
+        'https://www.wois.wa.gov/',
+      ),
     ],
   },
 ];
