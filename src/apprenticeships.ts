@@ -328,6 +328,71 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'https://www.towtem.com/',
       ),
       t(
+        'Hydrafab Northwest',
+        'Custom fab / prototyping · Welder-Fabricator, Machine Operator, General Laborer · Spokane Valley · 509-535-0075',
+        'https://www.hydrafabnw.com/',
+      ),
+      t(
+        'Spokane Metals',
+        'Structural & misc. steel fab / welders · small shop, ask direct · Spokane Valley · 509-244-9476',
+        'https://www.spokanemetals.com/',
+      ),
+      t(
+        'American Metal Fab & Welding',
+        'MIG/TIG + CNC plasma (artistic / signage) · will train · Spokane Valley · 509-362-3908',
+        'https://www.americanmfw.com/',
+      ),
+      t(
+        'Ground Force Worldwide (Federal Signal)',
+        'Heavy mining-equipment fab · $24–29/hr · multi-position wire-feed (not for day-one beginners) · Post Falls ID',
+        'https://www.gfworldwide.com/',
+      ),
+      t(
+        'Lake City Fence & Fabrication',
+        'Ornamental iron — railings / gates / stairs · welder-fab ~$25–26/hr · Dalton Gardens ID · 208-771-5873',
+        'https://www.lakecityfencecda.com/',
+      ),
+      t(
+        'MetalQuest Unlimited (Post Falls)',
+        'Precision CNC shop (AS9100D) · entry CNC operator, they train · Post Falls ID',
+        'https://www.metalquest.net/careers',
+      ),
+      t(
+        'Harris & Bruno International',
+        'In-house fab / assembly of printing equipment · CNC lathe machinist / fab · Post Falls ID',
+        'https://www.harris-bruno.com/',
+      ),
+      t(
+        'Real Alloy (Post Falls)',
+        'Aluminum recycling / alloy production · entry Production Assistant · molten-metal-adjacent · Post Falls ID',
+        'https://www.realalloy.com/careers/',
+      ),
+      t(
+        'Pelco Products (Post Falls)',
+        'Electronics mfg · soldering / assembly / production · ~$17–19/hr · entry · Post Falls ID',
+        'https://www.pelcoinc.com/',
+      ),
+      t(
+        'Albers Aerospace / Impact Case (ICC)',
+        'Entry MIG/TIG Welder I · $20–30/hr · training provided · US citizenship req · Coeur d’Alene / Hayden ID',
+        'https://www.google.com/search?q=Albers+Aerospace+Impact+Case+welder+Coeur+d+Alene+jobs',
+      ),
+      t(
+        'Whipple Motorsports Speed & Custom',
+        'Custom auto / classic-car fab · sheet metal, welding, assembly · Spokane Valley',
+        'https://www.google.com/search?q=Whipple+Motorsports+Speed+and+Custom+Spokane+fabricator+jobs',
+      ),
+      t(
+        'Recycling Equipment Mfg (REM)',
+        'Steel fab — Fitter/Welder & parts fabricator · in-house machine shop · HS/GED OK · Priest River ID',
+        'https://www.google.com/search?q=Recycling+Equipment+Manufacturing+Priest+River+welder+jobs',
+      ),
+      t(
+        'Casey’s Metal Fab',
+        'Small WA-licensed metal fab · owner-operator · verify contact via WA L&I lic. CASEYMF761OZ',
+        'https://www.google.com/search?q=Casey%27s+Metal+Fab+Spokane+WA+welder+jobs',
+      ),
+      t(
         'Indeed · concrete finisher (Spokane)',
         'Live concrete finishing / laborer roles',
         'https://www.indeed.com/jobs?q=concrete+finisher&l=Spokane%2C+WA',
@@ -361,6 +426,66 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Ferraro Concrete',
         'Flatwork & finishing crews · Spokane · hire & train',
         'https://www.google.com/search?q=Ferraro+Concrete+Spokane+jobs',
+      ),
+    ],
+  },
+  {
+    // Foundries + decorative / precast concrete — the closest match to hands-on metal & concrete
+    // CASTING and mold-making. Direct company sites (durable) or a Google-search lead where the
+    // site/address is unconfirmed. Several N. Idaho shops (Post Falls / CDA) are a normal Spokane
+    // commute. Lost & Foundry is a cheap class (not an employer) to build casting skill first.
+    id: 'spk-foundry',
+    label: 'Spokane + N. Idaho — foundries, casting & decorative concrete (mold-making · will-train)',
+    tiles: [
+      t(
+        'Travis Pattern & Foundry',
+        'Al / bronze / iron casting + pattern shop · entry labor / molder / grinder, will train · ~$20–26/hr · USW union · 509-466-3545',
+        'https://www.travispattern.com/careers',
+      ),
+      t(
+        'Concrete Works Statuary',
+        'Hand-cast decorative concrete (fountains / statues / planters) · ~1,000 molds · ask for Curtiss Grenz · Spokane Valley · 509-922-6111',
+        'https://www.concreteworksstatuary.com/',
+      ),
+      t(
+        'Vinnetti’s Bronze Casting Foundry',
+        'Lost-wax bronze art foundry — mold-making, casting, patina · confirm local Spokane address first · 800-882-5901',
+        'https://www.google.com/search?q=Vinnetti%27s+Bronze+Casting+Foundry+Spokane',
+      ),
+      t(
+        'NW Artisan Concrete',
+        'Cast / artistic concrete countertops · stamping, staining, finishing · Spokane & CDA · 509-590-9425',
+        'https://www.nwartisanconcrete.com/',
+      ),
+      t(
+        'Spilker Precast',
+        'Architectural precast / cast-stone · column caps, treads, custom molds · Spokane · 509-487-2261',
+        'https://www.spilkerprecast.com/',
+      ),
+      t(
+        'Spokane Precast',
+        'Seasonal (Apr–Oct) ornamental cast concrete — birdbaths, planters, statuary · Spokane Valley · visit in season',
+        'https://www.spokaneprecast.com/',
+      ),
+      t(
+        'White Block Company',
+        'Concrete masonry units — architectural / split-face block + precast · mixing / molding / finishing · Spokane Valley · 509-534-0651',
+        'https://www.whiteblockcompany.com/',
+      ),
+      t(
+        'INW Precast (Inland NW Precast)',
+        'NPCA-certified precast — vaults / manholes / custom · production & millwright · ~$20–25/hr · Newman Lake · 509-226-5050',
+        'https://www.inwprecast.com/',
+      ),
+      t(
+        'CDA Precast',
+        'Certified precast + Verti-Block · production roles, expanding · Coeur d’Alene / Post Falls ID · 208-762-0235',
+        'https://www.cdaprecast.com/',
+      ),
+      t(
+        'Lost & Foundry — sand-casting class',
+        'NOT an employer · $45 greensand aluminum-casting class (Tue/Sat 10–noon) to build hands-on skill · Spokane · 509-487-6832',
+        'https://www.foundry101.com/',
       ),
     ],
   },
