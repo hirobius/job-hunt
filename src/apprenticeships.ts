@@ -137,6 +137,11 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         '2026 intake CLOSED (slots filled) · reopens ~Jan–Mar 2027 · join wait-list now',
         'https://www.inlandelectrical.org/how-to-apply/',
       ),
+      t(
+        'Machinists Institute / NWMAC',
+        'WSATC-registered Machinist apprenticeship · 2000 OJT hrs/yr + evening RSI · Spokane training site · also MICA welding courses',
+        'https://www.machinistsinstitute.org/apprenticeship-programs',
+      ),
     ],
   },
   {
@@ -253,6 +258,11 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'North Idaho College — Welding & Fab',
         'Certificate + 2-yr welding tech · job-placement help · Coeur d’Alene ID · 208-769-3300',
         'https://www.google.com/search?q=North+Idaho+College+welding+technology+program',
+      ),
+      t(
+        'ABC Inland Pacific — Pre-Apprenticeship',
+        'WSATC-recognized construction pre-apprenticeship → feeds registered programs · Spokane Valley · 509-534-0826',
+        'https://www.abcipc.org/',
       ),
     ],
   },
@@ -438,6 +448,56 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'https://www.keytronic.com/company/careers/',
       ),
       t(
+        'Rocky Mountain Construction',
+        'Roller-coaster steel-track mfg · fabricator / welder · ~1 yr or trade-school OK, certs a plus · Hayden ID',
+        'https://rockymtnconstruction.com/',
+      ),
+      t(
+        'Northwest Steel Fab',
+        'AISC structural-steel fab · great for new welders, will train · day + swing · Deer Park WA · 509-276-1592',
+        'https://nwsfab.com/',
+      ),
+      t(
+        'Haakon Industries',
+        'Custom air-handling (HVAC) mfg · robotic sheet metal / weld / fab · entry base-frame builder · 4-day week · Cheney WA',
+        'https://haakon.com/about-us/careers/',
+      ),
+      t(
+        'Hewescraft',
+        'Welded-aluminum boat maker · entry Fabricator Helper ~$17/hr, will train (MIG/TIG Al) · full benefits · Colville WA · careers@hewescraft.com',
+        'https://hewescraft.com/careers/',
+      ),
+      t(
+        'Colmac Coil Manufacturing',
+        'Heat-exchanger mfg · sheet-metal assembly + TIG, trains beginners · assembler ~$17.66–22/hr · Colville WA',
+        'https://www.colmaccoil.com/joinourteam.aspx',
+      ),
+      t(
+        'Buck Knives',
+        'Entry Prep I Fabricator ~$17/hr · sheet-metal / blade prep, they train · day + swing · full benefits · Post Falls ID',
+        'https://www.buckknives.com/',
+      ),
+      t(
+        'KC Architectural Metal',
+        'Custom / ornamental metal — railings, mobile weld, laser / press brake · tiny shop, cold-call · Post Falls ID',
+        'https://www.kcarchitecturalmetal.com/',
+      ),
+      t(
+        'Big Iron Fabrication',
+        'Heavy-equipment repair, mobile welding, custom fab · small family shop, ask direct · Hayden ID · 208-661-8588',
+        'https://bigironfab.us/',
+      ),
+      t(
+        '7B Fabrication',
+        'Custom steel / aluminum fab · CNC plasma, ornamental steel, powder coat · small shop · Sandpoint ID',
+        'https://7bfabrication.com/',
+      ),
+      t(
+        'Elite Entrance Gates & Fabrication',
+        'Ornamental gate / custom fab · father-son shop, cold-call · Post Falls ID',
+        'https://www.eefabandwelding.com/',
+      ),
+      t(
         'Indeed · concrete finisher (Spokane)',
         'Live concrete finishing / laborer roles',
         'https://www.indeed.com/jobs?q=concrete+finisher&l=Spokane%2C+WA',
@@ -541,6 +601,16 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'Central Pre-Mix (Oldcastle APG)',
         'Pavers / retaining walls / bagged concrete · production & finishing · entry hiring · Spokane Valley',
         'https://www.oldcastleapg.com/careers',
+      ),
+      t(
+        'voestalpine Nortrak',
+        'Prestressed concrete rail ties + steel trackwork (former CXT) · entry Machine Operator I $22.50–24.70/hr · tuition assist · Spokane Valley',
+        'https://www.voestalpine.com/nortrak/en/careers/Jobs',
+      ),
+      t(
+        'Kaminski Brass & Aluminum Foundry',
+        'Non-ferrous sand casting (brass / bronze / aluminum) · ~2-person shop, cold-call owner · Rathdrum ID · UNVERIFIED active status — call first · 208-687-0750',
+        'https://www.google.com/search?q=Kaminski+Brass+Aluminum+Foundry+Rathdrum+ID',
       ),
       t(
         'Lost & Foundry — sand-casting class',
