@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
-  Chip,
   Collapse,
   InputBase,
   Stack,
@@ -11,6 +8,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
+import { Badge, Card as HdsCard, Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import EmptyState from './EmptyState';
 import { useActivePillar, usePillars } from './pillarStore';
@@ -88,8 +86,8 @@ export default function CopyDeckView() {
       ) : (
         <Stack spacing={1.5}>
           {visible.map((s) => (
-            <Card key={s.id} variant="outlined">
-              <CardContent>
+            <HdsCard key={s.id} bordered padding="none">
+              <Box sx={{ p: 2 }}>
                 <InputBase
                   value={s.label}
                   placeholder="Label"
@@ -106,17 +104,12 @@ export default function CopyDeckView() {
                   {pillars.map((p) => {
                     const on = (s.pillars ?? []).includes(p.id);
                     return (
-                      <Chip
-                        key={p.id}
-                        label={p.label}
-                        size="small"
-                        color={on ? 'primary' : 'default'}
-                        variant={on ? 'filled' : 'outlined'}
-                        onClick={() => toggleSnippetTag(s.id, p.id)}
-                      />
+                      <Tag key={p.id} active={on} onClick={() => toggleSnippetTag(s.id, p.id)}>
+                        {p.label}
+                      </Tag>
                     );
                   })}
-                  {isGlobal(s) && <Chip label="Global" size="small" variant="outlined" />}
+                  {isGlobal(s) && <Badge tone="neutral">Global</Badge>}
                 </Box>
                 <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
                   <Button size="small" onClick={() => updateSnippet(s.id, { open: !s.open })}>
@@ -146,8 +139,8 @@ export default function CopyDeckView() {
                     sx={{ mt: 1 }}
                   />
                 </Collapse>
-              </CardContent>
-            </Card>
+              </Box>
+            </HdsCard>
           ))}
         </Stack>
       )}

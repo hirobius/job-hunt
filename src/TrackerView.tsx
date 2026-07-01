@@ -1,9 +1,6 @@
 import React, { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
-  Chip,
   Collapse,
   Fade,
   IconButton,
@@ -19,7 +16,7 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
-import { Badge } from '@hirobius/design-system';
+import { Badge, Card as HdsCard } from '@hirobius/design-system';
 import { Button as UiButton } from './ui/Button';
 import {
   useJobs,
@@ -283,8 +280,8 @@ export default function TrackerView() {
             const s = deriveJobState(j);
             const isOpen = !!open[j.url];
             return (
-              <Card key={j.url} variant="outlined" sx={{ opacity: j.archived ? 0.55 : 1 }}>
-                <CardContent sx={{ pb: '12px !important' }}>
+              <HdsCard key={j.url} bordered padding="none" style={{ opacity: j.archived ? 0.55 : 1 }}>
+                <Box sx={{ p: 2, pb: 1.5 }}>
                   <Stack direction="row" alignItems="flex-start" spacing={1}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Link
@@ -360,7 +357,7 @@ export default function TrackerView() {
                       </Typography>
                     )}
                     {j.priority && (
-                      <Chip size="small" color="primary" variant="outlined" label="Priority" />
+                      <Badge tone="neutral">Priority</Badge>
                     )}
                   </Stack>
 
@@ -396,8 +393,8 @@ export default function TrackerView() {
                       </Box>
                     </Stack>
                   </Collapse>
-                </CardContent>
-              </Card>
+                </Box>
+              </HdsCard>
             );
           })}
         </Stack>

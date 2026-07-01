@@ -11,6 +11,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
+import { Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import TileGrid from './TileGrid';
 import { useRoute, navigate } from './route';
@@ -39,14 +40,9 @@ function TitlesPanel({ titles, applyEntry }: { titles: string[]; applyEntry: boo
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
         {titles.map((tt) => (
-          <Chip
-            key={tt}
-            label={tt}
-            onClick={() => setTitle(tt)}
-            color={tt === title ? 'primary' : 'default'}
-            variant={tt === title ? 'filled' : 'outlined'}
-            size="small"
-          />
+          <Tag key={tt} active={tt === title} onClick={() => setTitle(tt)}>
+            {tt}
+          </Tag>
         ))}
       </Box>
       <TileGrid tiles={tiles} cta="Search" />
@@ -114,7 +110,9 @@ function AtsPanel({
       </Stack>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 0.5 }}>
         {roles.map((r) => (
-          <Chip key={r} label={r} size="small" onClick={() => setRole(r)} variant="outlined" />
+          <Tag key={r} onClick={() => setRole(r)}>
+            {r}
+          </Tag>
         ))}
       </Box>
       <Button

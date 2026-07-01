@@ -1,4 +1,5 @@
-import { Box, Card, CardContent, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { Card as HdsCard } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
@@ -40,20 +41,20 @@ export default function TileGrid({
         const isPinned = pinnedSet.has(t.url);
         const isAside = dismissedSet.has(t.url);
         return (
-          <Card
+          <HdsCard
             key={t.url + t.name}
-            variant="outlined"
-            sx={{
+            bordered
+            padding="none"
+            style={{
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
               opacity: isAside ? 0.6 : 1,
             }}
           >
-            <CardContent
+            <Box
               sx={{
                 p: 1.5,
-                pb: '12px !important',
                 display: 'flex',
                 flexDirection: 'column',
                 flex: 1,
@@ -142,8 +143,8 @@ export default function TileGrid({
                   </Stack>
                 )}
               </Stack>
-            </CardContent>
-          </Card>
+            </Box>
+          </HdsCard>
         );
       })}
     </Box>

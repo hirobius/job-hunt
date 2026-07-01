@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   Box,
-  Chip,
   Collapse,
   IconButton,
   InputAdornment,
@@ -9,6 +8,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
@@ -166,7 +166,16 @@ export default function ApprenticeshipsView() {
 
       {/* Jump chips + collapse-all — orientation for a long board. Hidden while searching. */}
       {!searching && (
-        <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 0.5, alignItems: 'center' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 0.75,
+            overflowX: 'auto',
+            pb: 0.5,
+            alignItems: 'center',
+            '& > *': { flex: 'none' },
+          }}
+        >
           <Button
             size="small"
             style={{ flex: 'none', whiteSpace: 'nowrap' }}
@@ -177,14 +186,9 @@ export default function ApprenticeshipsView() {
           {allGroups.map(
             (g) =>
               g.id !== 'my' && (
-                <Chip
-                  key={g.id}
-                  label={jumpLabel(g.label)}
-                  size="small"
-                  variant="outlined"
-                  onClick={() => jumpTo(g.id)}
-                  sx={{ flex: 'none' }}
-                />
+                <Tag key={g.id} onClick={() => jumpTo(g.id)}>
+                  {jumpLabel(g.label)}
+                </Tag>
               ),
           )}
         </Box>
