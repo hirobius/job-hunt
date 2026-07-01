@@ -242,6 +242,90 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
     ],
   },
   {
+    // Specific shops (no stable careers URL) are live Google-search leads — same pattern as the
+    // Avista/Kaiser/STA tiles — so they never go stale. Phone numbers in the meta where given.
+    // OPCMIA Local 72 (concrete) already lives in the union-trades JATC group above.
+    id: 'spk-shops',
+    label: 'Spokane — welding, metal fab & concrete shops (entry-level · will-train)',
+    tiles: [
+      t(
+        'Indeed · welder / fabricator (Spokane)',
+        'All live Spokane welding + fab postings',
+        'https://www.indeed.com/jobs?q=welder+OR+fabricator&l=Spokane%2C+WA',
+      ),
+      t(
+        'Indeed · will-train welder (Spokane)',
+        'Entry / no-experience welding roles',
+        'https://www.indeed.com/jobs?q=welder+%22no+experience%22&l=Spokane%2C+WA',
+      ),
+      t(
+        'ZipRecruiter · welder, no experience (Spokane)',
+        '1-click apply · entry welding',
+        'https://www.ziprecruiter.com/jobs-search?search=welder+no+experience&location=Spokane%2C+WA',
+      ),
+      t(
+        'SteelFab Inc',
+        'MIG/TIG welders & fitters · entry OK, they train · 509-747-4139',
+        'https://www.google.com/search?q=SteelFab+Inc+Spokane+welding+jobs',
+      ),
+      t(
+        'Still Waters Metal Fab',
+        'Welders & fitters · entry openings · Spokane Valley',
+        'https://www.google.com/search?q=Still+Waters+Metal+Fab+Spokane+Valley+jobs',
+      ),
+      t(
+        'Spokane Stainless Technologies (SST)',
+        'Metal fab · forming / shearing · $18–22/hr · training',
+        'https://www.google.com/search?q=Spokane+Stainless+Technologies+careers',
+      ),
+      t(
+        'Sytech Inc',
+        'Precision stainless fab · gas / electric welding · training',
+        'https://www.google.com/search?q=Sytech+Inc+Spokane+welding+jobs',
+      ),
+      t(
+        'Wagstaff Inc',
+        'TIG fabrication · swing shift · entry training · Spokane Valley',
+        'https://www.google.com/search?q=Wagstaff+Inc+Spokane+careers+welding',
+      ),
+      t(
+        'Finnoe Design LLC',
+        'Fitter / welder · TIG preferred · they train',
+        'https://www.google.com/search?q=Finnoe+Design+Spokane+welder+jobs',
+      ),
+      t(
+        'NIC Global',
+        'Sheet metal fab & mechanical assembly · entry $18/hr · training',
+        'https://www.google.com/search?q=NIC+Global+Spokane+production+jobs',
+      ),
+      t(
+        'Blue Compass RV',
+        'Technician apprentice · welding / fab hybrid · Spokane Valley',
+        'https://www.google.com/search?q=Blue+Compass+RV+Spokane+technician+apprentice',
+      ),
+      t(
+        'All Phase Concrete',
+        'Concrete finishing (driveways / patios / steps) · hire & train',
+        'https://www.google.com/search?q=All+Phase+Concrete+Spokane+jobs',
+      ),
+      t(
+        'Spokane Concrete Co',
+        'Stamped concrete & finishing · actively hiring',
+        'https://concrete-spokane.com/',
+      ),
+      t(
+        'Wilbert Precast Inc',
+        'Precast production & finishing · production roles',
+        'https://www.google.com/search?q=Wilbert+Precast+Spokane+production+jobs',
+      ),
+      t(
+        'Indeed · concrete finisher (Spokane)',
+        'Live concrete finishing / laborer roles',
+        'https://www.indeed.com/jobs?q=concrete+finisher&l=Spokane%2C+WA',
+      ),
+    ],
+  },
+  {
     id: 'remote-search',
     label: 'Remote — open now (live searches)',
     tiles: [
