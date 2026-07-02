@@ -2,17 +2,14 @@ import { useMemo, useState } from 'react';
 import {
   Box,
   Collapse,
-  IconButton,
   InputAdornment,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import { Tag } from '@hirobius/design-system';
+import { IconButton as HdsIconButton, Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
-import SearchIcon from '@mui/icons-material/Search';
-import CloseIcon from '@mui/icons-material/Close';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { Search, X, ChevronDown } from 'lucide-react';
 import TileGrid from './TileGrid';
 import EmptyState from './EmptyState';
 import { APPRENTICESHIP_GROUPS } from './apprenticeships';
@@ -144,14 +141,18 @@ export default function ApprenticeshipsView() {
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
+                  <Search size={16} />
                 </InputAdornment>
               ),
               endAdornment: query ? (
                 <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setQuery('')} aria-label="Clear search">
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
+                  <HdsIconButton
+                    size="sm"
+                    variant="tertiary"
+                    icon={X}
+                    onClick={() => setQuery('')}
+                    label="Clear search"
+                  />
                 </InputAdornment>
               ) : undefined,
             },
@@ -202,18 +203,19 @@ export default function ApprenticeshipsView() {
           <Box key={g.id} id={`grp-${g.id}`} sx={{ scrollMarginTop: 64 }}>
             <Stack direction="row" alignItems="center" spacing={0.25} sx={{ mb: 1 }}>
               {!isMy && (
-                <IconButton
-                  size="small"
+                <HdsIconButton
+                  size="sm"
+                  variant="tertiary"
+                  icon={ChevronDown}
                   onClick={() => toggleGroup(g.id)}
                   aria-expanded={isOpen}
-                  aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${g.label}`}
-                  sx={{ ml: -0.75 }}
-                >
-                  <ExpandMoreIcon
-                    fontSize="small"
-                    sx={{ transform: isOpen ? 'none' : 'rotate(-90deg)', transition: '0.15s' }}
-                  />
-                </IconButton>
+                  label={`${isOpen ? 'Collapse' : 'Expand'} ${g.label}`}
+                  style={{
+                    marginLeft: -6,
+                    transform: isOpen ? 'none' : 'rotate(-90deg)',
+                    transition: 'transform 0.15s',
+                  }}
+                />
               )}
               <Typography
                 onClick={isMy ? undefined : () => toggleGroup(g.id)}

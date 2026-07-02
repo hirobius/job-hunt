@@ -3,7 +3,6 @@ import {
   Box,
   Collapse,
   Fade,
-  IconButton,
   Link,
   Menu,
   MenuItem,
@@ -11,10 +10,8 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
-import SwapVertIcon from '@mui/icons-material/SwapVert';
-import { Badge, Card as HdsCard, SegmentedControl } from '@hirobius/design-system';
+import { EllipsisVertical, Sparkles, ArrowUpDown } from 'lucide-react';
+import { Badge, Card as HdsCard, IconButton as HdsIconButton, SegmentedControl } from '@hirobius/design-system';
 import { Button as UiButton } from './ui/Button';
 import {
   useJobs,
@@ -181,7 +178,7 @@ export default function TrackerView() {
           <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
             <UiButton
               variant="outlined"
-              startIcon={<AutoAwesomeOutlinedIcon />}
+              startIcon={<Sparkles size={16} />}
               onClick={openAi}
               style={{ flex: 1, whiteSpace: 'nowrap' }}
             >
@@ -221,7 +218,7 @@ export default function TrackerView() {
       >
         <UiButton
           size="small"
-          startIcon={<SwapVertIcon />}
+          startIcon={<ArrowUpDown size={16} />}
           onClick={(e: React.MouseEvent<HTMLButtonElement>) => setSortAnchor(e.currentTarget)}
           aria-haspopup="true"
           style={{ whiteSpace: 'nowrap' }}
@@ -293,13 +290,15 @@ export default function TrackerView() {
                       </Typography>
                     </Box>
                     {s.status !== 'Saved' && <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>}
-                    <IconButton
-                      size="small"
-                      onClick={(e) => setMenu({ el: e.currentTarget, job: j })}
-                      aria-label="More actions"
-                    >
-                      <MoreVertIcon fontSize="small" />
-                    </IconButton>
+                    <HdsIconButton
+                      size="sm"
+                      variant="tertiary"
+                      icon={EllipsisVertical}
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) =>
+                        setMenu({ el: e.currentTarget, job: j })
+                      }
+                      label="More actions"
+                    />
                   </Stack>
 
                   <Stack

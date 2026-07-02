@@ -1,11 +1,7 @@
-import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material';
-import { Card as HdsCard } from '@hirobius/design-system';
+import { Box, Stack, Tooltip, Typography } from '@mui/material';
+import { Card as HdsCard, IconButton } from '@hirobius/design-system';
 import { Button } from './ui/Button';
-import PushPinIcon from '@mui/icons-material/PushPin';
-import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
-import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
-import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { Pin, PinOff, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import { addJob, isSaved, useJobs } from './store';
 import { useTileTriage, togglePin, toggleDismiss } from './tileTriage';
 import type { Tile } from './jobsData';
@@ -100,44 +96,36 @@ export default function TileGrid({
                     {triage && (
                       <Tooltip title={isPinned ? 'Unpin' : 'Pin to top'}>
                         <IconButton
-                          size="small"
-                          color={isPinned ? 'primary' : 'default'}
+                          size="sm"
+                          variant="tertiary"
+                          icon={isPinned ? PinOff : Pin}
+                          iconColor={isPinned ? 'var(--semantic-color-content-accent)' : undefined}
                           onClick={() => togglePin(t.url)}
-                          aria-label={isPinned ? 'Unpin tile' : 'Pin tile to top'}
-                        >
-                          {isPinned ? (
-                            <PushPinIcon fontSize="small" />
-                          ) : (
-                            <PushPinOutlinedIcon fontSize="small" />
-                          )}
-                        </IconButton>
+                          label={isPinned ? 'Unpin tile' : 'Pin tile to top'}
+                        />
                       </Tooltip>
                     )}
                     {triage && (
                       <Tooltip title={isAside ? 'Restore' : 'Set aside'}>
                         <IconButton
-                          size="small"
+                          size="sm"
+                          variant="tertiary"
+                          icon={isAside ? ArchiveRestore : Archive}
                           onClick={() => toggleDismiss(t.url)}
-                          aria-label={isAside ? 'Restore tile' : 'Set tile aside'}
-                        >
-                          {isAside ? (
-                            <UnarchiveOutlinedIcon fontSize="small" />
-                          ) : (
-                            <ArchiveOutlinedIcon fontSize="small" />
-                          )}
-                        </IconButton>
+                          label={isAside ? 'Restore tile' : 'Set tile aside'}
+                        />
                       </Tooltip>
                     )}
                     {onRemove && (
                       <Tooltip title="Remove">
                         <IconButton
-                          size="small"
-                          color="error"
+                          size="sm"
+                          variant="tertiary"
+                          tone="danger"
+                          icon={Trash2}
                           onClick={() => onRemove(t.url)}
-                          aria-label="Remove tile"
-                        >
-                          <DeleteOutlineIcon fontSize="small" />
-                        </IconButton>
+                          label="Remove tile"
+                        />
                       </Tooltip>
                     )}
                   </Stack>
