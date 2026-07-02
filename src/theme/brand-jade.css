@@ -4,7 +4,8 @@
  * LIGHTNESS comes from the system's contrast logic, not hardcoded brand hex. No
  * inverted overrides — on-accent text stays HDS's default white because the accent
  * resolves dark by design. HDS info/feedback stays blue (this only remaps accent).
- * Load AFTER the generated hds-tokens.css. */
+ * Load AFTER @hirobius/design-system/styles.css (ADR-0005). Dark overrides target
+ * [data-theme="dark"], matching HDS 0.9.0's own theme switch. */
 :root {
   /* —— the only brand-specific inputs —— */
   --brand-h: 165.2;
@@ -32,7 +33,7 @@
   --semantic-color-content-accent: var(--brand-accent-rest);
   /* --semantic-color-content-onAccent: left as HDS default (white). NO inversion. */
 }
-.dark {
+[data-theme='dark'] {
   /* on dark surfaces, accent-as-text lightens for AA (system logic, same seed) */
   --semantic-accent-content: oklch(0.8 var(--brand-c) var(--brand-h));
   --semantic-color-content-accent: oklch(0.8 var(--brand-c) var(--brand-h));

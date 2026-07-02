@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Button, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { Box, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { IconButton as HdsIconButton } from '@hirobius/design-system';
+import { Button } from './ui/Button';
+import { X } from 'lucide-react';
 import { createClient, type User } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 import { useJobs, getAllJobs, replaceAll } from './store';
@@ -241,9 +243,13 @@ export default function CloudSync() {
             Email me a link
           </Button>
           <Tooltip title="Hide — you can sign in anytime">
-            <IconButton size="small" onClick={() => hide(true)} aria-label="Hide sign-in banner">
-              <CloseIcon fontSize="small" />
-            </IconButton>
+            <HdsIconButton
+              size="sm"
+              variant="tertiary"
+              icon={X}
+              onClick={() => hide(true)}
+              label="Hide sign-in banner"
+            />
           </Tooltip>
         </Stack>
       )}

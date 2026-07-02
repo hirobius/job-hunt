@@ -15,13 +15,17 @@ commit `f15fd52`).
 - **Design language:** jade dark theme; headlines **Clash Display**, body **Satoshi**
   (loaded via Fontshare CDN in `index.html`). Uppercase is reserved for
   eyebrows/buttons/labels only.
-- **Design tokens:** the MUI palette in `src/theme.ts` is **generated from
-  `@hirobius/design-system` tokens** (dark scheme) with a single jade brand seed.
-  `npm run tokens:build` (`scripts/build-hds-tokens.mjs`) emits `src/tokens/hds-tokens.css`
-  (framework-neutral CSS vars, light+dark) and `src/theme/hds-palette.generated.ts`;
-  brand override in `src/theme/brand-jade.css`. Rationale + tradeoffs in
-  `docs/adr/0001-consume-hds-via-tokens-on-mui.md`. Regen needs `NODE_AUTH_TOKEN`
-  (read:packages); the deployed build does **not** (generated files are committed).
+- **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
+  npm** (`^0.9.0`, no auth) — see `docs/adr/0005`. `main.tsx` imports
+  `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` — set on
+  `<body>` in `index.html`) then `src/theme/brand-jade.css` (jade accent override). MUI
+  themes from the `/mui` preset (`hdsMuiThemeOptions()`, token CSS vars; light/dark flips
+  via `data-theme` on `<html>`, set by `ColorMode`). Status colors are HDS feedback
+  tokens; status/destructive actions use HDS `Button tone` / `Badge tone`; remaining MUI
+  migrates surface-by-surface (ADR-0004). AA contrast is enforced by
+  `src/theme.contrast.test.ts` against the shipped `variables.css`.
+  ⚠️ `vite.config.ts` manualChunks must match react EXACTLY — a loose
+  `includes('react')` catches HDS's radix/lucide deps → circular-chunk startup crash.
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,

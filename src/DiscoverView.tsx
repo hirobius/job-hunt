@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import {
   Box,
-  Button,
   Chip,
   Link,
   Stack,
   Tab,
   Tabs,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
+import { SegmentedControl, Tag } from '@hirobius/design-system';
+import { Button } from './ui/Button';
 import TileGrid from './TileGrid';
 import { useRoute, navigate } from './route';
 import { BOARDS, ATS, entryLevelize, type Tile } from './jobsData';
@@ -39,14 +38,9 @@ function TitlesPanel({ titles, applyEntry }: { titles: string[]; applyEntry: boo
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
         {titles.map((tt) => (
-          <Chip
-            key={tt}
-            label={tt}
-            onClick={() => setTitle(tt)}
-            color={tt === title ? 'primary' : 'default'}
-            variant={tt === title ? 'filled' : 'outlined'}
-            size="small"
-          />
+          <Tag key={tt} active={tt === title} onClick={() => setTitle(tt)}>
+            {tt}
+          </Tag>
         ))}
       </Box>
       <TileGrid tiles={tiles} cta="Search" />
@@ -96,31 +90,39 @@ function AtsPanel({
           onChange={(e) => setRole(e.target.value)}
           sx={{ minWidth: 180 }}
         />
-        <ToggleButtonGroup size="small" exclusive value={loc} onChange={(_, v) => v && setLoc(v)}>
-          <ToggleButton value="remote">Remote</ToggleButton>
-          <ToggleButton value="spokane">Spokane</ToggleButton>
-          <ToggleButton value="both">Both</ToggleButton>
-        </ToggleButtonGroup>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
+        <SegmentedControl
+          aria-label="Location"
+          size="sm"
+          value={loc}
+          onChange={(v) => setLoc(v as typeof loc)}
+          options={[
+            { value: 'remote', label: 'Remote' },
+            { value: 'spokane', label: 'Spokane' },
+            { value: 'both', label: 'Both' },
+          ]}
+        />
+        <SegmentedControl
+          aria-label="Recency"
+          size="sm"
           value={recency}
-          onChange={(_, v) => setRecency(v ?? '')}
-        >
-          <ToggleButton value="">Any time</ToggleButton>
-          <ToggleButton value="w">Past week</ToggleButton>
-          <ToggleButton value="m">Past month</ToggleButton>
-        </ToggleButtonGroup>
+          onChange={(v) => setRecency(v as typeof recency)}
+          options={[
+            { value: '', label: 'Any time' },
+            { value: 'w', label: 'Past week' },
+            { value: 'm', label: 'Past month' },
+          ]}
+        />
       </Stack>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 0.5 }}>
         {roles.map((r) => (
-          <Chip key={r} label={r} size="small" onClick={() => setRole(r)} variant="outlined" />
+          <Tag key={r} onClick={() => setRole(r)}>
+            {r}
+          </Tag>
         ))}
       </Box>
       <Button
         variant="contained"
-        sx={{ my: 1.5 }}
-        component={Link}
+        style={{ marginTop: 12, marginBottom: 12 }}
         href={allUrl}
         target="_blank"
         rel="noopener noreferrer"

@@ -1,18 +1,15 @@
 import { useMemo, useState } from 'react';
 import {
   Box,
-  Button,
-  Chip,
   Collapse,
-  IconButton,
   InputAdornment,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import CloseIcon from '@mui/icons-material/Close';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { IconButton as HdsIconButton, Tag } from '@hirobius/design-system';
+import { Button } from './ui/Button';
+import { Search, X, ChevronDown } from 'lucide-react';
 import TileGrid from './TileGrid';
 import EmptyState from './EmptyState';
 import { APPRENTICESHIP_GROUPS } from './apprenticeships';
@@ -144,14 +141,18 @@ export default function ApprenticeshipsView() {
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
+                  <Search size={16} />
                 </InputAdornment>
               ),
               endAdornment: query ? (
                 <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setQuery('')} aria-label="Clear search">
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
+                  <HdsIconButton
+                    size="sm"
+                    variant="tertiary"
+                    icon={X}
+                    onClick={() => setQuery('')}
+                    label="Clear search"
+                  />
                 </InputAdornment>
               ) : undefined,
             },
@@ -166,10 +167,19 @@ export default function ApprenticeshipsView() {
 
       {/* Jump chips + collapse-all — orientation for a long board. Hidden while searching. */}
       {!searching && (
-        <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 0.5, alignItems: 'center' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 0.75,
+            overflowX: 'auto',
+            pb: 0.5,
+            alignItems: 'center',
+            '& > *': { flex: 'none' },
+          }}
+        >
           <Button
             size="small"
-            sx={{ flex: 'none', whiteSpace: 'nowrap' }}
+            style={{ flex: 'none', whiteSpace: 'nowrap' }}
             onClick={() => setAllCollapsed(allAreCollapsed ? [] : collapsibleIds)}
           >
             {allAreCollapsed ? 'Expand all' : 'Collapse all'}
@@ -177,14 +187,9 @@ export default function ApprenticeshipsView() {
           {allGroups.map(
             (g) =>
               g.id !== 'my' && (
-                <Chip
-                  key={g.id}
-                  label={jumpLabel(g.label)}
-                  size="small"
-                  variant="outlined"
-                  onClick={() => jumpTo(g.id)}
-                  sx={{ flex: 'none' }}
-                />
+                <Tag key={g.id} onClick={() => jumpTo(g.id)}>
+                  {jumpLabel(g.label)}
+                </Tag>
               ),
           )}
         </Box>
@@ -198,18 +203,19 @@ export default function ApprenticeshipsView() {
           <Box key={g.id} id={`grp-${g.id}`} sx={{ scrollMarginTop: 64 }}>
             <Stack direction="row" alignItems="center" spacing={0.25} sx={{ mb: 1 }}>
               {!isMy && (
-                <IconButton
-                  size="small"
+                <HdsIconButton
+                  size="sm"
+                  variant="tertiary"
+                  icon={ChevronDown}
                   onClick={() => toggleGroup(g.id)}
                   aria-expanded={isOpen}
-                  aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${g.label}`}
-                  sx={{ ml: -0.75 }}
-                >
-                  <ExpandMoreIcon
-                    fontSize="small"
-                    sx={{ transform: isOpen ? 'none' : 'rotate(-90deg)', transition: '0.15s' }}
-                  />
-                </IconButton>
+                  label={`${isOpen ? 'Collapse' : 'Expand'} ${g.label}`}
+                  style={{
+                    marginLeft: -6,
+                    transform: isOpen ? 'none' : 'rotate(-90deg)',
+                    transition: 'transform 0.15s',
+                  }}
+                />
               )}
               <Typography
                 onClick={isMy ? undefined : () => toggleGroup(g.id)}
@@ -286,7 +292,7 @@ export default function ApprenticeshipsView() {
 
       {asideTiles.length > 0 && !searching && (
         <Box>
-          <Button size="small" onClick={() => setShowAside((v) => !v)} sx={{ mb: 1 }}>
+          <Button size="small" onClick={() => setShowAside((v) => !v)} style={{ marginBottom: 8 }}>
             {showAside ? 'Hide' : 'Show'} set aside ({asideTiles.length})
           </Button>
           <Collapse in={showAside}>

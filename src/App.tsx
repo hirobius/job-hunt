@@ -3,7 +3,6 @@ import { useRoute, navigate, getRoute } from './route';
 import {
   Box,
   Container,
-  IconButton,
   MenuItem,
   Select,
   Stack,
@@ -12,10 +11,8 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
-import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
-import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
-import FeedbackOutlinedIcon from '@mui/icons-material/FeedbackOutlined';
+import { Sun, Moon, SlidersHorizontal, MessageSquareText } from 'lucide-react';
+import { IconButton as HdsIconButton } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import ApprenticeshipsView from './ApprenticeshipsView';
 import CloudSync from './CloudSync';
@@ -38,13 +35,12 @@ function ColorModeToggle() {
   const label = mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
   return (
     <Tooltip title={label}>
-      <IconButton onClick={toggle} aria-label={label} sx={{ flex: 'none' }}>
-        {mode === 'dark' ? (
-          <LightModeOutlinedIcon fontSize="small" />
-        ) : (
-          <DarkModeOutlinedIcon fontSize="small" />
-        )}
-      </IconButton>
+      <HdsIconButton
+        variant="tertiary"
+        icon={mode === 'dark' ? Sun : Moon}
+        onClick={toggle}
+        label={label}
+      />
     </Tooltip>
   );
 }
@@ -141,25 +137,22 @@ export default function App() {
         <Stack direction="row" alignItems="center" spacing={1} sx={{ flex: 'none' }}>
           <PillarSwitcher />
           <Tooltip title="Manage pillars">
-            <IconButton
+            <HdsIconButton
+              variant="tertiary"
+              icon={SlidersHorizontal}
               onClick={() => setPillarsOpen(true)}
-              aria-label="Manage pillars"
-              sx={{ flex: 'none' }}
-            >
-              <TuneOutlinedIcon fontSize="small" />
-            </IconButton>
+              label="Manage pillars"
+            />
           </Tooltip>
           <Tooltip title="Send feedback / report a bug">
-            <IconButton
-              component="a"
-              href="https://github.com/hirobius/job-hunt/issues/new"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Send feedback (opens GitHub)"
-              sx={{ flex: 'none' }}
-            >
-              <FeedbackOutlinedIcon fontSize="small" />
-            </IconButton>
+            <HdsIconButton
+              variant="tertiary"
+              icon={MessageSquareText}
+              onClick={() =>
+                window.open('https://github.com/hirobius/job-hunt/issues/new', '_blank', 'noopener')
+              }
+              label="Send feedback (opens GitHub)"
+            />
           </Tooltip>
           <ColorModeToggle />
         </Stack>

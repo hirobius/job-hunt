@@ -1,25 +1,18 @@
-import { lazy, Suspense, useMemo, useRef, useState } from 'react';
+import React, { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import {
   Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
   Collapse,
   Fade,
-  IconButton,
   Link,
   Menu,
   MenuItem,
   Stack,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
-import SwapVertIcon from '@mui/icons-material/SwapVert';
+import { EllipsisVertical, Sparkles, ArrowUpDown } from 'lucide-react';
+import { Badge, Card as HdsCard, IconButton as HdsIconButton, SegmentedControl } from '@hirobius/design-system';
+import { Button as UiButton } from './ui/Button';
 import {
   useJobs,
   addJob,
@@ -42,12 +35,13 @@ const TailorDialog = lazy(() => import('./ai/TailorDialog'));
 
 type Filter = 'active' | 'all' | Status | 'retired';
 
-const STATUS_COLOR: Record<Status, 'warning' | 'info' | 'secondary' | 'success' | 'error'> = {
+// Status → HDS Badge tone (the semantic feedback tokens; Interviewing = inProgress).
+const STATUS_TONE: Record<Status, 'warning' | 'info' | 'inProgress' | 'success' | 'danger'> = {
   Saved: 'warning',
   Applied: 'info',
-  Interviewing: 'secondary',
+  Interviewing: 'inProgress',
   Offer: 'success',
-  Rejected: 'error',
+  Rejected: 'danger',
 };
 
 function matches(j: Job, f: Filter): boolean {
@@ -175,54 +169,45 @@ export default function TrackerView() {
           }}
         />
         <Stack direction="row" spacing={1} sx={{ flex: 'none' }}>
-          <Button variant="contained" onClick={submit} sx={{ flex: { xs: 1, sm: 'none' } }}>
-            Add
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<AutoAwesomeOutlinedIcon />}
-            onClick={openAi}
-            sx={{ flex: { xs: 1, sm: 'none' }, whiteSpace: 'nowrap' }}
-          >
-            Add with AI
-          </Button>
+          {/* Box wrappers carry the responsive flex the seam Button can't express via sx. */}
+          <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
+            <UiButton variant="contained" onClick={submit} style={{ flex: 1 }}>
+              Add
+            </UiButton>
+          </Box>
+          <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
+            <UiButton
+              variant="outlined"
+              startIcon={<Sparkles size={16} />}
+              onClick={openAi}
+              style={{ flex: 1, whiteSpace: 'nowrap' }}
+            >
+              Add with AI
+            </UiButton>
+          </Box>
         </Stack>
       </Stack>
 
       {/* Filters get the full row to themselves (horizontally scrollable — a partially
           visible pill is the scroll affordance); sort/export live on their own line below.
           Sharing one row squeezed the filters to a single pill on phones. */}
-      <Box sx={{ mb: 0.5, overflowX: 'auto', pb: 0.5 }}>
-        <ToggleButtonGroup
-          value={filter}
-          exclusive
-          size="small"
+      <Box sx={{ mb: 0.5, overflowX: 'auto', pb: 0.5, '& > *': { minWidth: 'max-content' } }}>
+        <SegmentedControl
           aria-label="Filter jobs by status"
-          onChange={(_, v) => v && setFilter(v)}
-          sx={{
-            flexWrap: 'nowrap',
-            gap: 0.5,
-            '& .MuiToggleButton-root': {
-              flex: 'none',
-              border: 1,
-              borderColor: 'divider',
-              borderRadius: '999px !important',
-              px: 1.5,
-              py: 0.5,
-              textTransform: 'none',
-              whiteSpace: 'nowrap',
-            },
-          }}
-        >
-          <ToggleButton value="active">Active</ToggleButton>
-          <ToggleButton value="all">All</ToggleButton>
-          <ToggleButton value="Saved">Saved</ToggleButton>
-          <ToggleButton value="Applied">Applied</ToggleButton>
-          <ToggleButton value="Interviewing">Interviewing</ToggleButton>
-          <ToggleButton value="Offer">Offer</ToggleButton>
-          <ToggleButton value="Rejected">Rejected</ToggleButton>
-          <ToggleButton value="retired">Retired</ToggleButton>
-        </ToggleButtonGroup>
+          size="sm"
+          value={filter}
+          onChange={(v) => setFilter(v as Filter)}
+          options={[
+            { value: 'active', label: 'Active' },
+            { value: 'all', label: 'All' },
+            { value: 'Saved', label: 'Saved' },
+            { value: 'Applied', label: 'Applied' },
+            { value: 'Interviewing', label: 'Interviewing' },
+            { value: 'Offer', label: 'Offer' },
+            { value: 'Rejected', label: 'Rejected' },
+            { value: 'retired', label: 'Retired' },
+          ]}
+        />
       </Box>
       <Stack
         direction="row"
@@ -231,18 +216,18 @@ export default function TrackerView() {
         justifyContent="flex-end"
         sx={{ mb: 2 }}
       >
-        <Button
+        <UiButton
           size="small"
-          startIcon={<SwapVertIcon />}
-          onClick={(e) => setSortAnchor(e.currentTarget)}
+          startIcon={<ArrowUpDown size={16} />}
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => setSortAnchor(e.currentTarget)}
           aria-haspopup="true"
-          sx={{ whiteSpace: 'nowrap' }}
+          style={{ whiteSpace: 'nowrap' }}
         >
           {sortLabel}
-        </Button>
-        <Button size="small" disabled={!jobs.length} onClick={() => exportCsv(jobs)}>
+        </UiButton>
+        <UiButton size="small" disabled={!jobs.length} onClick={() => exportCsv(jobs)}>
           Export CSV
-        </Button>
+        </UiButton>
       </Stack>
 
       <Menu anchorEl={sortAnchor} open={!!sortAnchor} onClose={() => setSortAnchor(null)}>
@@ -276,8 +261,8 @@ export default function TrackerView() {
             const s = deriveJobState(j);
             const isOpen = !!open[j.url];
             return (
-              <Card key={j.url} variant="outlined" sx={{ opacity: j.archived ? 0.55 : 1 }}>
-                <CardContent sx={{ pb: '12px !important' }}>
+              <HdsCard key={j.url} bordered padding="none" style={{ opacity: j.archived ? 0.55 : 1 }}>
+                <Box sx={{ p: 2, pb: 1.5 }}>
                   <Stack direction="row" alignItems="flex-start" spacing={1}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Link
@@ -304,21 +289,16 @@ export default function TrackerView() {
                           : ''}
                       </Typography>
                     </Box>
-                    {s.status !== 'Saved' && (
-                      <Chip
-                        label={s.status}
-                        size="small"
-                        color={STATUS_COLOR[s.status]}
-                        variant="outlined"
-                      />
-                    )}
-                    <IconButton
-                      size="small"
-                      onClick={(e) => setMenu({ el: e.currentTarget, job: j })}
-                      aria-label="More actions"
-                    >
-                      <MoreVertIcon fontSize="small" />
-                    </IconButton>
+                    {s.status !== 'Saved' && <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>}
+                    <HdsIconButton
+                      size="sm"
+                      variant="tertiary"
+                      icon={EllipsisVertical}
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) =>
+                        setMenu({ el: e.currentTarget, job: j })
+                      }
+                      label="More actions"
+                    />
                   </Stack>
 
                   <Stack
@@ -330,33 +310,28 @@ export default function TrackerView() {
                     useFlexGap
                   >
                     {s.isApplyable && (
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="info"
-                        onClick={() => setStatus(j.url, 'Applied')}
-                      >
+                      <UiButton size="sm" variant="primary" tone="info" onClick={() => setStatus(j.url, 'Applied')}>
                         Mark applied
-                      </Button>
+                      </UiButton>
                     )}
-                    <Button
+                    <UiButton
                       size="small"
                       variant="text"
                       onClick={() => setOpen((p) => ({ ...p, [j.url]: !p[j.url] }))}
                     >
                       {isOpen ? 'Hide' : 'Details'}
-                    </Button>
+                    </UiButton>
                     {s.followUp.due && (
                       <>
-                        <Chip size="small" color="warning" label="Follow up now" />
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="warning"
+                        <Badge tone="warning">Follow up now</Badge>
+                        <UiButton
+                          size="sm"
+                          variant="secondary"
+                          tone="warning"
                           onClick={() => logFollowUp(j.url)}
                         >
                           Log follow-up
-                        </Button>
+                        </UiButton>
                       </>
                     )}
                     {s.followUp.daysUntil != null && (
@@ -365,7 +340,7 @@ export default function TrackerView() {
                       </Typography>
                     )}
                     {j.priority && (
-                      <Chip size="small" color="primary" variant="outlined" label="Priority" />
+                      <Badge tone="neutral">Priority</Badge>
                     )}
                   </Stack>
 
@@ -387,23 +362,22 @@ export default function TrackerView() {
                       {fld(j, 'salary', 'Salary')}
                       <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
                         {research(j.label).map(([name, href]) => (
-                          <Button
+                          <UiButton
                             key={name}
                             size="small"
                             variant="outlined"
-                            component={Link}
                             href={href}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
                             {name}
-                          </Button>
+                          </UiButton>
                         ))}
                       </Box>
                     </Stack>
                   </Collapse>
-                </CardContent>
-              </Card>
+                </Box>
+              </HdsCard>
             );
           })}
         </Stack>

@@ -1,17 +1,13 @@
 import { useState } from 'react';
 import {
   Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
   Collapse,
   InputBase,
   Stack,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
 } from '@mui/material';
+import { Badge, Card as HdsCard, SegmentedControl, Tag } from '@hirobius/design-system';
+import { Button } from './ui/Button';
 import EmptyState from './EmptyState';
 import { useActivePillar, usePillars } from './pillarStore';
 import {
@@ -65,16 +61,18 @@ export default function CopyDeckView() {
         <Button variant="outlined" onClick={() => addSnippet(pillar.id)}>
           New snippet
         </Button>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={scope}
-          onChange={(_, v) => v && setScope(v)}
-          sx={{ ml: 'auto' }}
-        >
-          <ToggleButton value="pillar">{pillar.label}</ToggleButton>
-          <ToggleButton value="all">All</ToggleButton>
-        </ToggleButtonGroup>
+        <Box sx={{ ml: 'auto' }}>
+          <SegmentedControl
+            aria-label="Snippet scope"
+            size="sm"
+            value={scope}
+            onChange={(v) => setScope(v as 'pillar' | 'all')}
+            options={[
+              { value: 'pillar', label: pillar.label },
+              { value: 'all', label: 'All' },
+            ]}
+          />
+        </Box>
       </Stack>
       {visible.length === 0 ? (
         <EmptyState
@@ -88,8 +86,8 @@ export default function CopyDeckView() {
       ) : (
         <Stack spacing={1.5}>
           {visible.map((s) => (
-            <Card key={s.id} variant="outlined">
-              <CardContent>
+            <HdsCard key={s.id} bordered padding="none">
+              <Box sx={{ p: 2 }}>
                 <InputBase
                   value={s.label}
                   placeholder="Label"
@@ -106,23 +104,18 @@ export default function CopyDeckView() {
                   {pillars.map((p) => {
                     const on = (s.pillars ?? []).includes(p.id);
                     return (
-                      <Chip
-                        key={p.id}
-                        label={p.label}
-                        size="small"
-                        color={on ? 'primary' : 'default'}
-                        variant={on ? 'filled' : 'outlined'}
-                        onClick={() => toggleSnippetTag(s.id, p.id)}
-                      />
+                      <Tag key={p.id} active={on} onClick={() => toggleSnippetTag(s.id, p.id)}>
+                        {p.label}
+                      </Tag>
                     );
                   })}
-                  {isGlobal(s) && <Chip label="Global" size="small" variant="outlined" />}
+                  {isGlobal(s) && <Badge tone="neutral">Global</Badge>}
                 </Box>
                 <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
                   <Button size="small" onClick={() => updateSnippet(s.id, { open: !s.open })}>
                     {s.open ? 'Hide' : 'Show'}
                   </Button>
-                  <Button size="small" color="success" onClick={() => copy(s.id)}>
+                  <Button size="small" variant="text" tone="success" onClick={() => copy(s.id)}>
                     {copied === s.id ? 'Copied' : 'Copy'}
                   </Button>
                   <Button size="small" onClick={() => toggleSnippetPin(s.id)}>
@@ -131,7 +124,7 @@ export default function CopyDeckView() {
                   <Button size="small" onClick={() => duplicateSnippet(s.id)}>
                     Duplicate
                   </Button>
-                  <Button size="small" color="error" onClick={() => del(s.id)}>
+                  <Button size="small" variant="text" tone="danger" onClick={() => del(s.id)}>
                     Delete
                   </Button>
                 </Stack>
@@ -146,8 +139,8 @@ export default function CopyDeckView() {
                     sx={{ mt: 1 }}
                   />
                 </Collapse>
-              </CardContent>
-            </Card>
+              </Box>
+            </HdsCard>
           ))}
         </Stack>
       )}
