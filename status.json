@@ -1,11 +1,11 @@
 {
-  "updatedAt": "2026-07-02T05:14:04Z",
+  "updatedAt": "2026-07-02T05:53:33Z",
   "phase": "live",
-  "headline": "Live on Vercel; HDS 0.9.0 cutover shipped to production (buttons/cards/tags/inputs/tabs/menus); apprenticeship board + call sheet in daily use",
+  "headline": "Live on Vercel; HDS cutover incl. Skeletons+Combobox (wave 7); 'apply first' spotlight + analytics wired; awaiting dashboard toggle (#16)",
   "next": [
-    "Migrate dialogs, Skeletons, Select, Collapse to HDS (#7, #8)",
-    "Tile redesign (structured meta, kind badges) + save-floats consolidation (#12, #13)",
-    "De-personalize seeds + privacy note, then share with first test users (#14)"
+    "Finish #8 (Collapse/Fade→Disclosure), then dialogs wave (#7)",
+    "Save-floats consolidation (#13), then tile redesign (#12)",
+    "De-personalize seeds + privacy note → first test users (#14); enable analytics toggle (#16)"
   ],
   "blocked": [
     "Final MUI/Emotion deletion (#11) blocked on upstream HDS Textarea + general Tooltip (#9, #10 — asks routed in docs/hds-upstream-asks-0.9.md)"
