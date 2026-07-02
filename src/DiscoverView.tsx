@@ -4,12 +4,18 @@ import {
   Chip,
   Link,
   Stack,
-  Tab,
-  Tabs,
   TextField,
   Typography,
 } from '@mui/material';
-import { Input as HdsInput, SegmentedControl, Tag } from '@hirobius/design-system';
+import {
+  Input as HdsInput,
+  SegmentedControl,
+  Tabs as HdsTabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  Tag,
+} from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import TileGrid from './TileGrid';
 import { useRoute, navigate } from './route';
@@ -176,36 +182,29 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
 
   return (
     <Box>
-      <Tabs
-        value={tab}
-        onChange={(_, v) => navigate({ sub: v === 0 ? null : tabs[v].key })}
-        variant="scrollable"
-        scrollButtons="auto"
-        allowScrollButtonsMobile
-        sx={{ mb: 2, minHeight: 40, '& .MuiTab-root': { minHeight: 40, py: 0.5 } }}
+      {/* HDS underline tabs; the sub-tab key IS the Radix value (index 0 → bare #/discover).
+          Only the active panel exists, so one TabsContent keyed to the active value suffices. */}
+      <HdsTabs
+        value={cur.key}
+        onValueChange={(v) => navigate({ sub: v === tabs[0].key ? null : v })}
       >
-        {tabs.map((tb) => (
-          <Tab
-            key={tb.key}
-            label={tb.label}
-            id={`disc-tab-${tb.key}`}
-            aria-controls={`disc-tabpanel-${tb.key}`}
-          />
-        ))}
-      </Tabs>
-      <Box
-        role="tabpanel"
-        id={`disc-tabpanel-${cur.key}`}
-        aria-labelledby={`disc-tab-${cur.key}`}
-      >
-        {cur.kind === 'group' && <TileGrid tiles={cur.tiles!} />}
-        {cur.kind === 'titles' && (
-          <TitlesPanel titles={pillar.titles} applyEntry={pillar.seniority === 'entry'} />
-        )}
-        {cur.kind === 'ats' && (
-          <AtsPanel roles={pillar.atsRoles} seniority={pillar.seniority} defaultLoc={defaultLoc} />
-        )}
-      </Box>
+        <TabsList style={{ marginBottom: 16, width: '100%' }}>
+          {tabs.map((tb) => (
+            <TabsTrigger key={tb.key} value={tb.key}>
+              {tb.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        <TabsContent value={cur.key}>
+          {cur.kind === 'group' && <TileGrid tiles={cur.tiles!} />}
+          {cur.kind === 'titles' && (
+            <TitlesPanel titles={pillar.titles} applyEntry={pillar.seniority === 'entry'} />
+          )}
+          {cur.kind === 'ats' && (
+            <AtsPanel roles={pillar.atsRoles} seniority={pillar.seniority} defaultLoc={defaultLoc} />
+          )}
+        </TabsContent>
+      </HdsTabs>
     </Box>
   );
 }

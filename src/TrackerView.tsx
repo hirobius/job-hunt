@@ -4,8 +4,6 @@ import {
   Collapse,
   Fade,
   Link,
-  Menu,
-  MenuItem,
   Stack,
   TextField,
   Typography,
@@ -16,6 +14,7 @@ import {
   Card as HdsCard,
   IconButton as HdsIconButton,
   Input as HdsInput,
+  Menu as HdsMenu,
   SegmentedControl,
 } from '@hirobius/design-system';
 import { Button as UiButton } from './ui/Button';
@@ -115,9 +114,7 @@ export default function TrackerView() {
   const jobs = useJobs();
   const [filter, setFilter] = useState<Filter>('active');
   const [sort, setSort] = useState<SortKey>('recent');
-  const [sortAnchor, setSortAnchor] = useState<HTMLElement | null>(null);
   const [url, setUrl] = useState('');
-  const [menu, setMenu] = useState<{ el: HTMLElement; job: Job } | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [aiOpen, setAiOpen] = useState(false);
   const [aiMounted, setAiMounted] = useState(false); // mount once, then animate open/close
@@ -240,34 +237,30 @@ export default function TrackerView() {
         justifyContent="flex-end"
         sx={{ mb: 2 }}
       >
-        <UiButton
-          size="small"
-          startIcon={<ArrowUpDown size={16} />}
-          onClick={(e: React.MouseEvent<HTMLButtonElement>) => setSortAnchor(e.currentTarget)}
-          aria-haspopup="true"
-          style={{ whiteSpace: 'nowrap' }}
-        >
-          {sortLabel}
-        </UiButton>
+        <HdsMenu>
+          <HdsMenu.Trigger asChild>
+            <UiButton
+              size="small"
+              startIcon={<ArrowUpDown size={16} />}
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              {sortLabel}
+            </UiButton>
+          </HdsMenu.Trigger>
+          <HdsMenu.Content align="end">
+            <HdsMenu.RadioGroup value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+              {SORTS.map((s) => (
+                <HdsMenu.RadioItem key={s.key} value={s.key}>
+                  {s.label}
+                </HdsMenu.RadioItem>
+              ))}
+            </HdsMenu.RadioGroup>
+          </HdsMenu.Content>
+        </HdsMenu>
         <UiButton size="small" disabled={!jobs.length} onClick={() => exportCsv(jobs)}>
           Export CSV
         </UiButton>
       </Stack>
-
-      <Menu anchorEl={sortAnchor} open={!!sortAnchor} onClose={() => setSortAnchor(null)}>
-        {SORTS.map((s) => (
-          <MenuItem
-            key={s.key}
-            selected={s.key === sort}
-            onClick={() => {
-              setSort(s.key);
-              setSortAnchor(null);
-            }}
-          >
-            {s.label}
-          </MenuItem>
-        ))}
-      </Menu>
 
       {shown.length === 0 ? (
         <EmptyState
@@ -314,15 +307,43 @@ export default function TrackerView() {
                       </Typography>
                     </Box>
                     {s.status !== 'Saved' && <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>}
-                    <HdsIconButton
-                      size="sm"
-                      variant="tertiary"
-                      icon={EllipsisVertical}
-                      onClick={(e: React.MouseEvent<HTMLButtonElement>) =>
-                        setMenu({ el: e.currentTarget, job: j })
-                      }
-                      label="More actions"
-                    />
+                    <HdsMenu>
+                      <HdsMenu.Trigger asChild>
+                        <HdsIconButton
+                          size="sm"
+                          variant="tertiary"
+                          icon={EllipsisVertical}
+                          label="More actions"
+                        />
+                      </HdsMenu.Trigger>
+                      <HdsMenu.Content align="end">
+                        {s.isApplyable && (
+                          <HdsMenu.Item onSelect={() => setStatus(j.url, 'Applied')}>
+                            Mark applied
+                          </HdsMenu.Item>
+                        )}
+                        <HdsMenu.Item
+                          onSelect={() => updateJob(j.url, { priority: !j.priority })}
+                        >
+                          {j.priority ? 'Unpin priority' : 'Pin as priority'}
+                        </HdsMenu.Item>
+                        <HdsMenu.Item onSelect={() => setTailorJob(j)}>
+                          Tailor résumé with AI
+                        </HdsMenu.Item>
+                        <HdsMenu.Item
+                          onSelect={() => updateJob(j.url, { archived: !j.archived })}
+                        >
+                          {j.archived ? 'Unretire' : 'Retire'}
+                        </HdsMenu.Item>
+                        <HdsMenu.Separator />
+                        <HdsMenu.Item
+                          onSelect={() => removeJob(j.url)}
+                          style={{ color: 'var(--semantic-color-feedback-error)' }}
+                        >
+                          Remove
+                        </HdsMenu.Item>
+                      </HdsMenu.Content>
+                    </HdsMenu>
                   </Stack>
 
                   <Stack
@@ -406,60 +427,6 @@ export default function TrackerView() {
           })}
         </Stack>
       )}
-
-      <Menu anchorEl={menu?.el} open={!!menu} onClose={() => setMenu(null)}>
-        {menu && deriveJobState(menu.job).isApplyable && (
-          <MenuItem
-            onClick={() => {
-              setStatus(menu.job.url, 'Applied');
-              setMenu(null);
-            }}
-          >
-            Mark applied
-          </MenuItem>
-        )}
-        {menu && (
-          <MenuItem
-            onClick={() => {
-              updateJob(menu.job.url, { priority: !menu.job.priority });
-              setMenu(null);
-            }}
-          >
-            {menu.job.priority ? 'Unpin priority' : 'Pin as priority'}
-          </MenuItem>
-        )}
-        {menu && (
-          <MenuItem
-            onClick={() => {
-              setTailorJob(menu.job);
-              setMenu(null);
-            }}
-          >
-            Tailor résumé with AI
-          </MenuItem>
-        )}
-        {menu && (
-          <MenuItem
-            onClick={() => {
-              updateJob(menu.job.url, { archived: !menu.job.archived });
-              setMenu(null);
-            }}
-          >
-            {menu.job.archived ? 'Unretire' : 'Retire'}
-          </MenuItem>
-        )}
-        {menu && (
-          <MenuItem
-            onClick={() => {
-              removeJob(menu.job.url);
-              setMenu(null);
-            }}
-            sx={{ color: 'error.main' }}
-          >
-            Remove
-          </MenuItem>
-        )}
-      </Menu>
 
       {aiMounted && (
         <Suspense fallback={null}>
