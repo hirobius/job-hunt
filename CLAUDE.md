@@ -11,7 +11,13 @@ commit `f15fd52`).
 
 ## Stack & conventions
 
-- **Vite + React 18 + TypeScript + MUI v6.**
+- **Vite + React 18 + TypeScript + HDS (`@hirobius/design-system`), with residual MUI v6.**
+  The component layer is mid-strangler (ADR-0004/0005): Buttons, Cards, Tag/Badge,
+  SegmentedControl, IconButton (lucide icons), Input, Tabs, and Menu are **real HDS
+  components**; MUI remains only for Tooltip + multiline TextField (both blocked on
+  upstream — issues #9/#10), the dialogs (#7), Skeleton/Select/Collapse (#8), and layout
+  primitives (Box/Stack/Container/Typography). `src/ui/Button.tsx` is the migration seam
+  (accepts both MUI and HDS prop dialects). Final MUI deletion is issue #11.
 - **Design language:** jade dark theme; headlines **Clash Display**, body **Satoshi**
   (loaded via Fontshare CDN in `index.html`). Uppercase is reserved for
   eyebrows/buttons/labels only.
@@ -30,16 +36,22 @@ commit `f15fd52`).
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
   publishable + RLS-protected). Cloud sync UI in `src/CloudSync.tsx`.
-- **Structure:** `src/App.tsx` (tabbed shell: Queue / Copy Deck / Discover),
-  `TrackerView.tsx`, `CopyDeckView.tsx`, `DiscoverView.tsx`, `jobsData.ts`
-  (curated discover groups + Title/ATS generators), `types.ts`.
+- **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Apprenticeships**
+  (`ApprenticeshipsView.tsx` + `apprenticeships.ts`, the curated Spokane/remote board:
+  ~13 groups, board-wide search, collapsible groups, jump chips, paste-in "My
+  apprenticeships"), **Queue** (`TrackerView.tsx`), **Copy Deck** (`CopyDeckView.tsx`,
+  incl. seeded call sheet + cold-call script), **Discover** (`DiscoverView.tsx` +
+  `jobsData.ts` groups and Title/ATS generators). `types.ts` for the Job model. Board
+  rule: **NO static one-off job postings** — live searches or durable portals/company
+  pages only, so tiles never go stale.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
 - **Tracker model:** default "Active" filter = not-yet-applied (Saved) + pinned;
   applying drops a job out of the active queue. Follow-up loop: "Follow up in Nd" →
   "Follow up now" → "Log follow-up" resets the clock. Weak titles auto-derive from
-  the URL.
+  the URL. Board triage (pin / set-aside) lives in `tileTriage.ts` + `tileState.ts`;
+  planned consolidation: saving also floats the tile (issue #13).
 
 ## Build / deploy / verify
 
@@ -48,8 +60,12 @@ commit `f15fd52`).
   `npm run build` (and ideally `tsc --noEmit`) before pushing to `main`.
 - Branch pushes get Vercel **preview deploys** (use a branch for risky work; the
   live app stays on `main`).
-- I can't render visually here, so the **Vercel preview/READY state is the visual
-  check** — confirm a deploy reaches `READY` before claiming it's live.
+- The build/typecheck/test gate does **not** catch visual or runtime-CSS issues. Verify
+  renders with headless Chromium (`/opt/pw-browsers/...` + vite preview, screenshots at
+  desktop + 390px, and CLICK things — decorative slots can swallow interactions), and
+  confirm the Vercel deploy reaches `READY` before claiming it's live.
+- Backlog lives in **GitHub Issues** (see Fleet hub below), not local TODO files.
+  Upstream HDS gaps + accept criteria: `docs/hds-upstream-asks-0.9.md`.
 
 ## Skills — the architecture skill set
 
