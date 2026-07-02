@@ -9,7 +9,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { SegmentedControl, Tag } from '@hirobius/design-system';
+import { Input as HdsInput, SegmentedControl, Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import TileGrid from './TileGrid';
 import { useRoute, navigate } from './route';
@@ -83,12 +83,12 @@ function AtsPanel({
         Search companies' hiring systems straight through Google — far less competition.
       </Typography>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 1.5 }}>
-        <TextField
-          size="small"
+        <HdsInput
+          size="sm"
           label="Role / title"
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          sx={{ minWidth: 180 }}
+          style={{ minWidth: 180 }}
         />
         <SegmentedControl
           aria-label="Location"

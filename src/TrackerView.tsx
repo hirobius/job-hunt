@@ -11,7 +11,13 @@ import {
   Typography,
 } from '@mui/material';
 import { EllipsisVertical, Sparkles, ArrowUpDown } from 'lucide-react';
-import { Badge, Card as HdsCard, IconButton as HdsIconButton, SegmentedControl } from '@hirobius/design-system';
+import {
+  Badge,
+  Card as HdsCard,
+  IconButton as HdsIconButton,
+  Input as HdsInput,
+  SegmentedControl,
+} from '@hirobius/design-system';
 import { Button as UiButton } from './ui/Button';
 import {
   useJobs,
@@ -139,35 +145,53 @@ export default function TrackerView() {
     addJob(url);
     setUrl('');
   };
-  const fld = (j: Job, key: keyof Job, label: string, multiline = false) => (
-    <TextField
-      size="small"
-      fullWidth
-      label={label}
-      multiline={multiline}
-      minRows={multiline ? 2 : undefined}
-      value={(j[key] as string) || ''}
-      onChange={(e) => {
-        updateJob(j.url, { [key]: e.target.value });
-        flashSaved(j.url);
-      }}
-    />
-  );
+  // Single-line fields are HDS Input (label slot built in); multiline (Notes) stays
+  // MUI TextField until HDS ships a Textarea.
+  const fld = (j: Job, key: keyof Job, label: string, multiline = false) =>
+    multiline ? (
+      <TextField
+        size="small"
+        fullWidth
+        label={label}
+        multiline
+        minRows={2}
+        value={(j[key] as string) || ''}
+        onChange={(e) => {
+          updateJob(j.url, { [key]: e.target.value });
+          flashSaved(j.url);
+        }}
+      />
+    ) : (
+      <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+        <HdsInput
+          size="sm"
+          label={label}
+          value={(j[key] as string) || ''}
+          onChange={(e) => {
+            updateJob(j.url, { [key]: e.target.value });
+            flashSaved(j.url);
+          }}
+          style={{ width: '100%' }}
+        />
+      </Box>
+    );
 
   return (
     <Box>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 2 }}>
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Paste a job URL…"
-          slotProps={{ htmlInput: { 'aria-label': 'Job URL' } }}
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') submit();
-          }}
-        />
+        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+          <HdsInput
+            size="sm"
+            aria-label="Job URL"
+            placeholder="Paste a job URL…"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submit();
+            }}
+            style={{ width: '100%' }}
+          />
+        </Box>
         <Stack direction="row" spacing={1} sx={{ flex: 'none' }}>
           {/* Box wrappers carry the responsive flex the seam Button can't express via sx. */}
           <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>

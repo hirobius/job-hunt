@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Stack, TextField, Tooltip, Typography } from '@mui/material';
-import { IconButton as HdsIconButton } from '@hirobius/design-system';
+import { Box, Stack, Tooltip, Typography } from '@mui/material';
+import { IconButton as HdsIconButton, Input as HdsInput } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import { X } from 'lucide-react';
 import { createClient, type User } from '@supabase/supabase-js';
@@ -228,16 +228,17 @@ export default function CloudSync() {
         </Stack>
       ) : (
         <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
-          <TextField
-            size="small"
+          <HdsInput
+            size="sm"
             type="email"
+            aria-label="Email for sign-in link"
             placeholder="you@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') sendLink();
             }}
-            sx={{ minWidth: 200 }}
+            style={{ minWidth: 200 }}
           />
           <Button size="small" variant="contained" onClick={sendLink}>
             Email me a link

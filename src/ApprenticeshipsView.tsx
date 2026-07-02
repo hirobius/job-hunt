@@ -2,14 +2,12 @@ import { useMemo, useState } from 'react';
 import {
   Box,
   Collapse,
-  InputAdornment,
   Stack,
-  TextField,
   Typography,
 } from '@mui/material';
-import { IconButton as HdsIconButton, Tag } from '@hirobius/design-system';
+import { IconButton as HdsIconButton, Input as HdsInput, Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
-import { Search, X, ChevronDown } from 'lucide-react';
+import { Search, ChevronDown } from 'lucide-react';
 import TileGrid from './TileGrid';
 import EmptyState from './EmptyState';
 import { APPRENTICESHIP_GROUPS } from './apprenticeships';
@@ -130,33 +128,16 @@ export default function ApprenticeshipsView() {
           py: 1,
         }}
       >
-        <TextField
-          size="small"
-          fullWidth
+        {/* HDS Input ships a built-in clear affordance for non-empty values — no custom X. */}
+        <HdsInput
+          size="sm"
+          aria-label="Search apprenticeships board"
           placeholder="Search the board — name, trade, pay, city, phone…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          slotProps={{
-            htmlInput: { 'aria-label': 'Search apprenticeships board' },
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={16} />
-                </InputAdornment>
-              ),
-              endAdornment: query ? (
-                <InputAdornment position="end">
-                  <HdsIconButton
-                    size="sm"
-                    variant="tertiary"
-                    icon={X}
-                    onClick={() => setQuery('')}
-                    label="Clear search"
-                  />
-                </InputAdornment>
-              ) : undefined,
-            },
-          }}
+          leadingVisual={<Search size={16} />}
+          className="w-full"
+          style={{ width: '100%' }}
         />
         {searching && (
           <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
@@ -240,19 +221,22 @@ export default function ApprenticeshipsView() {
                 spacing={1}
                 sx={{ mb: g.tiles.length ? 1.5 : 1 }}
               >
-                <TextField
-                  size="small"
-                  fullWidth
-                  placeholder="Paste an apprenticeship link (or several)…"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addTiles();
-                    }
-                  }}
-                />
+                <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+                  <HdsInput
+                    size="sm"
+                    aria-label="Paste apprenticeship links"
+                    placeholder="Paste an apprenticeship link (or several)…"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addTiles();
+                      }
+                    }}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
                 <Button
                   variant="contained"
                   onClick={addTiles}
