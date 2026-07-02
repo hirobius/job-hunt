@@ -23,6 +23,24 @@ const t = (name: string, meta: string, url: string): Tile => ({ name, meta, url 
 
 export const APPRENTICESHIP_GROUPS: Group[] = [
   {
+    // The do-these-first spotlight: the two highest-confidence paid entries on the trades
+    // and remote tracks. Durable careers pages (board rule holds); rotate as priorities shift.
+    id: 'apply-first',
+    label: 'This week — apply first',
+    tiles: [
+      t(
+        'voestalpine Nortrak — apply now',
+        'Machine Operator I $22.50–24.70/hr + tuition assistance · precast concrete + steel · Spokane Valley · HIGH confidence',
+        'https://www.voestalpine.com/nortrak/en/careers/Jobs',
+      ),
+      t(
+        'Creating Coding Careers — apply now',
+        'Remote pre-apprenticeship → PAID DOL apprenticeship ~$20–21.50/hr · no degree · veteran/SkillBridge track · HIGH confidence',
+        'https://cccareers.org/earn-and-learn-to-code/',
+      ),
+    ],
+  },
+  {
     id: 'spk-medical',
     label: 'Spokane — healthcare apprenticeships (verified Jun 2026)',
     tiles: [

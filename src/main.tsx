@@ -5,8 +5,12 @@ import { createRoot } from 'react-dom/client';
 // portals stay inside the scope). brand-jade.css remaps the accent to jade after it.
 import '@hirobius/design-system/styles.css';
 import './theme/brand-jade.css';
+import { inject } from '@vercel/analytics';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+
+// Vercel Web Analytics (page counts only; needs the dashboard toggle — see issue #16).
+inject();
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
