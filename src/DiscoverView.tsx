@@ -7,11 +7,9 @@ import {
   Tab,
   Tabs,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import { Tag } from '@hirobius/design-system';
+import { SegmentedControl, Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import TileGrid from './TileGrid';
 import { useRoute, navigate } from './route';
@@ -92,21 +90,28 @@ function AtsPanel({
           onChange={(e) => setRole(e.target.value)}
           sx={{ minWidth: 180 }}
         />
-        <ToggleButtonGroup size="small" exclusive value={loc} onChange={(_, v) => v && setLoc(v)}>
-          <ToggleButton value="remote">Remote</ToggleButton>
-          <ToggleButton value="spokane">Spokane</ToggleButton>
-          <ToggleButton value="both">Both</ToggleButton>
-        </ToggleButtonGroup>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
+        <SegmentedControl
+          aria-label="Location"
+          size="sm"
+          value={loc}
+          onChange={(v) => setLoc(v as typeof loc)}
+          options={[
+            { value: 'remote', label: 'Remote' },
+            { value: 'spokane', label: 'Spokane' },
+            { value: 'both', label: 'Both' },
+          ]}
+        />
+        <SegmentedControl
+          aria-label="Recency"
+          size="sm"
           value={recency}
-          onChange={(_, v) => setRecency(v ?? '')}
-        >
-          <ToggleButton value="">Any time</ToggleButton>
-          <ToggleButton value="w">Past week</ToggleButton>
-          <ToggleButton value="m">Past month</ToggleButton>
-        </ToggleButtonGroup>
+          onChange={(v) => setRecency(v as typeof recency)}
+          options={[
+            { value: '', label: 'Any time' },
+            { value: 'w', label: 'Past week' },
+            { value: 'm', label: 'Past month' },
+          ]}
+        />
       </Stack>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 0.5 }}>
         {roles.map((r) => (

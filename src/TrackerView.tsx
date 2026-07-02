@@ -9,14 +9,12 @@ import {
   MenuItem,
   Stack,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
-import { Badge, Card as HdsCard } from '@hirobius/design-system';
+import { Badge, Card as HdsCard, SegmentedControl } from '@hirobius/design-system';
 import { Button as UiButton } from './ui/Button';
 import {
   useJobs,
@@ -196,37 +194,23 @@ export default function TrackerView() {
       {/* Filters get the full row to themselves (horizontally scrollable — a partially
           visible pill is the scroll affordance); sort/export live on their own line below.
           Sharing one row squeezed the filters to a single pill on phones. */}
-      <Box sx={{ mb: 0.5, overflowX: 'auto', pb: 0.5 }}>
-        <ToggleButtonGroup
-          value={filter}
-          exclusive
-          size="small"
+      <Box sx={{ mb: 0.5, overflowX: 'auto', pb: 0.5, '& > *': { minWidth: 'max-content' } }}>
+        <SegmentedControl
           aria-label="Filter jobs by status"
-          onChange={(_, v) => v && setFilter(v)}
-          sx={{
-            flexWrap: 'nowrap',
-            gap: 0.5,
-            '& .MuiToggleButton-root': {
-              flex: 'none',
-              border: 1,
-              borderColor: 'divider',
-              borderRadius: '999px !important',
-              px: 1.5,
-              py: 0.5,
-              textTransform: 'none',
-              whiteSpace: 'nowrap',
-            },
-          }}
-        >
-          <ToggleButton value="active">Active</ToggleButton>
-          <ToggleButton value="all">All</ToggleButton>
-          <ToggleButton value="Saved">Saved</ToggleButton>
-          <ToggleButton value="Applied">Applied</ToggleButton>
-          <ToggleButton value="Interviewing">Interviewing</ToggleButton>
-          <ToggleButton value="Offer">Offer</ToggleButton>
-          <ToggleButton value="Rejected">Rejected</ToggleButton>
-          <ToggleButton value="retired">Retired</ToggleButton>
-        </ToggleButtonGroup>
+          size="sm"
+          value={filter}
+          onChange={(v) => setFilter(v as Filter)}
+          options={[
+            { value: 'active', label: 'Active' },
+            { value: 'all', label: 'All' },
+            { value: 'Saved', label: 'Saved' },
+            { value: 'Applied', label: 'Applied' },
+            { value: 'Interviewing', label: 'Interviewing' },
+            { value: 'Offer', label: 'Offer' },
+            { value: 'Rejected', label: 'Rejected' },
+            { value: 'retired', label: 'Retired' },
+          ]}
+        />
       </Box>
       <Stack
         direction="row"

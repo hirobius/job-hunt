@@ -5,10 +5,8 @@ import {
   InputBase,
   Stack,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
 } from '@mui/material';
-import { Badge, Card as HdsCard, Tag } from '@hirobius/design-system';
+import { Badge, Card as HdsCard, SegmentedControl, Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import EmptyState from './EmptyState';
 import { useActivePillar, usePillars } from './pillarStore';
@@ -63,16 +61,18 @@ export default function CopyDeckView() {
         <Button variant="outlined" onClick={() => addSnippet(pillar.id)}>
           New snippet
         </Button>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={scope}
-          onChange={(_, v) => v && setScope(v)}
-          sx={{ ml: 'auto' }}
-        >
-          <ToggleButton value="pillar">{pillar.label}</ToggleButton>
-          <ToggleButton value="all">All</ToggleButton>
-        </ToggleButtonGroup>
+        <Box sx={{ ml: 'auto' }}>
+          <SegmentedControl
+            aria-label="Snippet scope"
+            size="sm"
+            value={scope}
+            onChange={(v) => setScope(v as 'pillar' | 'all')}
+            options={[
+              { value: 'pillar', label: pillar.label },
+              { value: 'all', label: 'All' },
+            ]}
+          />
+        </Box>
       </Stack>
       {visible.length === 0 ? (
         <EmptyState

@@ -19,7 +19,8 @@ const withTheme = (ui: React.ReactNode) =>
 describe('aria wiring', () => {
   it('Tracker filter group exposes an accessible name', () => {
     withTheme(<TrackerView />);
-    expect(screen.getByRole('group', { name: /filter jobs by status/i })).toBeInTheDocument();
+    // HDS SegmentedControl renders a radiogroup (one-of-many semantics), not MUI's group.
+    expect(screen.getByRole('radiogroup', { name: /filter jobs by status/i })).toBeInTheDocument();
   });
 
   it('Discover tab is associated with its tabpanel both ways', () => {
