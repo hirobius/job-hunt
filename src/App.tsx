@@ -6,13 +6,17 @@ import {
   MenuItem,
   Select,
   Stack,
-  Tab,
-  Tabs,
   Tooltip,
   Typography,
 } from '@mui/material';
 import { Sun, Moon, SlidersHorizontal, MessageSquareText } from 'lucide-react';
-import { IconButton as HdsIconButton } from '@hirobius/design-system';
+import {
+  IconButton as HdsIconButton,
+  Tabs as HdsTabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import ApprenticeshipsView from './ApprenticeshipsView';
 import CloudSync from './CloudSync';
@@ -160,48 +164,35 @@ export default function App() {
 
       <CloudSync />
 
-      <Tabs
-        value={tab}
-        onChange={(_, v) => navigate({ tab: TAB_SLUGS[v], sub: null })}
-        variant="scrollable"
-        scrollButtons="auto"
-        allowScrollButtonsMobile
-        sx={{ mb: 2.5, borderBottom: 1, borderColor: 'divider' }}
+      {/* HDS underline tabs (Radix): value = route slug, aria wiring comes from Radix.
+          forceMount is NOT used — inactive panels unmount, matching the old behavior. */}
+      <HdsTabs
+        value={TAB_SLUGS[tab]}
+        onValueChange={(v) => navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null })}
       >
-        <Tab
-          label="Apprenticeships"
-          id="tab-apprenticeships"
-          aria-controls="tabpanel-apprenticeships"
-        />
-        <Tab label="Queue" id="tab-queue" aria-controls="tabpanel-queue" />
-        <Tab label="Copy Deck" id="tab-copy-deck" aria-controls="tabpanel-copy-deck" />
-        <Tab label="Discover" id="tab-discover" aria-controls="tabpanel-discover" />
-      </Tabs>
-
-      {tab === 0 && (
-        <Box role="tabpanel" id="tabpanel-apprenticeships" aria-labelledby="tab-apprenticeships">
+        <TabsList style={{ marginBottom: 20, width: '100%' }}>
+          <TabsTrigger value="apprenticeships">Apprenticeships</TabsTrigger>
+          <TabsTrigger value="queue">Queue</TabsTrigger>
+          <TabsTrigger value="copy-deck">Copy Deck</TabsTrigger>
+          <TabsTrigger value="discover">Discover</TabsTrigger>
+        </TabsList>
+        <TabsContent value="apprenticeships">
           <ApprenticeshipsView />
-        </Box>
-      )}
-      {tab === 1 && (
-        <Box role="tabpanel" id="tabpanel-queue" aria-labelledby="tab-queue">
+        </TabsContent>
+        <TabsContent value="queue">
           <TrackerView />
-        </Box>
-      )}
-      {tab === 2 && (
-        <Box role="tabpanel" id="tabpanel-copy-deck" aria-labelledby="tab-copy-deck">
+        </TabsContent>
+        <TabsContent value="copy-deck">
           <Suspense fallback={<CopyDeckSkeleton />}>
             <CopyDeckView />
           </Suspense>
-        </Box>
-      )}
-      {tab === 3 && (
-        <Box role="tabpanel" id="tabpanel-discover" aria-labelledby="tab-discover">
+        </TabsContent>
+        <TabsContent value="discover">
           <Suspense fallback={<DiscoverSkeleton />}>
             <DiscoverView />
           </Suspense>
-        </Box>
-      )}
+        </TabsContent>
+      </HdsTabs>
 
       {pillarsOpen && (
         <Suspense fallback={null}>
