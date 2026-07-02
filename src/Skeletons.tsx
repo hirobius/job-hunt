@@ -1,6 +1,8 @@
 // Suspense fallbacks shaped like the view they stand in for, so the layout doesn't jump
-// when the real chunk loads (replaces a centered spinner). Pure presentational MUI.
-import { Box, Card, CardContent, Skeleton, Stack } from '@mui/material';
+// when the real chunk loads (replaces a centered spinner). HDS Skeleton/Card; MUI only
+// for the Box/Stack layout primitives (last sweep, issue #11).
+import { Box, Stack } from '@mui/material';
+import { Card, Skeleton } from '@hirobius/design-system';
 
 const gridSx = {
   display: 'grid',
@@ -13,12 +15,12 @@ export function TileGridSkeleton({ count = 8 }: { count?: number }) {
   return (
     <Box sx={gridSx} aria-hidden>
       {Array.from({ length: count }).map((_, i) => (
-        <Card key={i} variant="outlined" sx={{ height: '100%' }}>
-          <CardContent sx={{ p: 1.5 }}>
+        <Card key={i} bordered padding="none" style={{ height: '100%' }}>
+          <Box sx={{ p: 1.5 }}>
             <Skeleton variant="text" width="80%" />
             <Skeleton variant="text" width="55%" />
-            <Skeleton variant="rounded" height={28} sx={{ mt: 1.25 }} />
-          </CardContent>
+            <Skeleton variant="rectangular" height={28} style={{ marginTop: 10 }} />
+          </Box>
         </Card>
       ))}
     </Box>
@@ -31,7 +33,7 @@ export function DiscoverSkeleton() {
     <Box aria-busy aria-label="Loading">
       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} variant="rounded" width={88} height={32} />
+          <Skeleton key={i} variant="rectangular" width={88} height={32} />
         ))}
       </Stack>
       <TileGridSkeleton />
@@ -44,17 +46,17 @@ export function CopyDeckSkeleton({ count = 3 }: { count?: number }) {
   return (
     <Box aria-busy aria-label="Loading">
       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-        <Skeleton variant="rounded" width={120} height={32} />
-        <Skeleton variant="rounded" width={120} height={32} sx={{ ml: 'auto' }} />
+        <Skeleton variant="rectangular" width={120} height={32} />
+        <Skeleton variant="rectangular" width={120} height={32} style={{ marginLeft: 'auto' }} />
       </Stack>
       <Stack spacing={1.5}>
         {Array.from({ length: count }).map((_, i) => (
-          <Card key={i} variant="outlined">
-            <CardContent>
+          <Card key={i} bordered padding="none">
+            <Box sx={{ p: 2 }}>
               <Skeleton variant="text" width="40%" height={28} />
               <Skeleton variant="text" width="90%" />
               <Skeleton variant="text" width="75%" />
-            </CardContent>
+            </Box>
           </Card>
         ))}
       </Stack>
@@ -66,9 +68,9 @@ export function CopyDeckSkeleton({ count = 3 }: { count?: number }) {
 export function CaseStudySkeleton() {
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', py: { xs: 3, sm: 6 }, px: 2 }} aria-busy aria-label="Loading">
-      <Skeleton variant="text" width={120} sx={{ mb: 3 }} />
+      <Skeleton variant="text" width={120} style={{ marginBottom: 24 }} />
       <Skeleton variant="text" width="70%" height={48} />
-      <Skeleton variant="text" width="50%" height={48} sx={{ mb: 3 }} />
+      <Skeleton variant="text" width="50%" height={48} style={{ marginBottom: 24 }} />
       {Array.from({ length: 6 }).map((_, i) => (
         <Skeleton key={i} variant="text" width={i % 3 === 2 ? '60%' : '100%'} />
       ))}

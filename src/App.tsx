@@ -1,16 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useRoute, navigate, getRoute } from './route';
-import {
-  Box,
-  Container,
-  MenuItem,
-  Select,
-  Stack,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Box, Container, Stack, Tooltip, Typography } from '@mui/material';
 import { Sun, Moon, SlidersHorizontal, MessageSquareText } from 'lucide-react';
 import {
+  Combobox,
   IconButton as HdsIconButton,
   Tabs as HdsTabs,
   TabsList,
@@ -53,19 +46,13 @@ function PillarSwitcher() {
   const pillars = usePillars();
   const activeId = useActivePillarId();
   return (
-    <Select
-      size="small"
-      value={activeId}
-      onChange={(e) => setActivePillar(e.target.value)}
+    <Combobox
       aria-label="Career pillar"
-      sx={{ '& .MuiSelect-select': { py: 0.5, fontSize: '0.85rem' } }}
-    >
-      {pillars.map((p) => (
-        <MenuItem key={p.id} value={p.id}>
-          {p.label}
-        </MenuItem>
-      ))}
-    </Select>
+      options={pillars.map((p) => ({ value: p.id, label: p.label }))}
+      value={activeId}
+      onChange={setActivePillar}
+      placeholder="Pillar"
+    />
   );
 }
 
