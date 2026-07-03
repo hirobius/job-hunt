@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import {
   Box,
-  Collapse,
   InputBase,
   Stack,
   TextField,
 } from '@mui/material';
 import { Badge, Card as HdsCard, SegmentedControl, Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
+import { Reveal } from './ui/Reveal';
 import EmptyState from './EmptyState';
 import { useActivePillar, usePillars } from './pillarStore';
 import {
@@ -128,7 +128,7 @@ export default function CopyDeckView() {
                     Delete
                   </Button>
                 </Stack>
-                <Collapse in={!!s.open}>
+                <Reveal open={!!s.open}>
                   <TextField
                     fullWidth
                     multiline
@@ -138,7 +138,7 @@ export default function CopyDeckView() {
                     onChange={(e) => updateSnippet(s.id, { body: e.target.value })}
                     sx={{ mt: 1 }}
                   />
-                </Collapse>
+                </Reveal>
               </Box>
             </HdsCard>
           ))}

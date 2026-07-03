@@ -217,6 +217,12 @@ export default function CloudSync() {
       >
         {msg}
       </Typography>
+      {!user && (
+        <Typography variant="caption" color="text.secondary" sx={{ width: '100%', order: 9 }}>
+          Your data stays in your browser and (if you sign in) your own account — nothing is
+          shared with anyone else.
+        </Typography>
+      )}
       {user ? (
         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
           <Button size="small" variant="outlined" onClick={signOut}>

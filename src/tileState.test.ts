@@ -25,6 +25,11 @@ describe('partitionTiles', () => {
     expect(urls(visible)).toEqual(['c', 'a', 'b', 'd']);
   });
 
+  it('saved tiles float like pins (issue #13 — save is the one "I care" gesture)', () => {
+    const { visible } = partitionTiles(tiles, { pinned: [], dismissed: [] }, new Set(['d']));
+    expect(urls(visible)).toEqual(['d', 'a', 'b', 'c']);
+  });
+
   it('a pinned + set-aside tile is set aside (not visible)', () => {
     const { visible, aside } = partitionTiles(tiles, { pinned: ['b'], dismissed: ['b'] });
     expect(urls(visible)).not.toContain('b');

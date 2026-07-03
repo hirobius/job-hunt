@@ -1,8 +1,6 @@
 import React, { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import {
   Box,
-  Collapse,
-  Fade,
   Link,
   Stack,
   TextField,
@@ -18,6 +16,7 @@ import {
   SegmentedControl,
 } from '@hirobius/design-system';
 import { Button as UiButton } from './ui/Button';
+import { Reveal } from './ui/Reveal';
 import {
   useJobs,
   addJob,
@@ -389,14 +388,16 @@ export default function TrackerView() {
                     )}
                   </Stack>
 
-                  <Collapse in={isOpen}>
+                  <Reveal open={isOpen}>
                     <Stack spacing={1.25} sx={{ mt: 1.5 }}>
                       <Box sx={{ height: 18, textAlign: 'right' }}>
-                        <Fade in={savedUrl === j.url}>
-                          <Typography variant="caption" color="success.main">
-                            Saved ✓
-                          </Typography>
-                        </Fade>
+                        <Typography
+                          variant="caption"
+                          color="success.main"
+                          style={{ opacity: savedUrl === j.url ? 1 : 0, transition: 'opacity 0.2s' }}
+                        >
+                          Saved ✓
+                        </Typography>
                       </Box>
                       {fld(j, 'label', 'Title')}
                       {fld(j, 'note', 'Notes', true)}
@@ -420,7 +421,7 @@ export default function TrackerView() {
                         ))}
                       </Box>
                     </Stack>
-                  </Collapse>
+                  </Reveal>
                 </Box>
               </HdsCard>
             );

@@ -1,17 +1,18 @@
 import { useMemo, useState } from 'react';
 import {
   Box,
-  Collapse,
   Stack,
   Typography,
 } from '@mui/material';
 import { IconButton as HdsIconButton, Input as HdsInput, Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
+import { Reveal } from './ui/Reveal';
 import { Search, ChevronDown } from 'lucide-react';
 import TileGrid from './TileGrid';
 import EmptyState from './EmptyState';
 import { APPRENTICESHIP_GROUPS } from './apprenticeships';
 import { useTileTriage } from './tileTriage';
+import { useJobs } from './store';
 import { partitionTiles } from './tileState';
 import { useUserTiles, addUserTilesFromText, removeUserTile } from './userTiles';
 import type { Group, Tile } from './jobsData';
@@ -40,6 +41,8 @@ const jumpLabel = (label: string) => label.replace(/\s*\(.*\)\s*$/, '');
 export default function ApprenticeshipsView() {
   const triage = useTileTriage();
   const userTiles = useUserTiles();
+  const jobs = useJobs();
+  const savedSet = useMemo(() => new Set(jobs.map((j) => j.url)), [jobs]);
   const [showAside, setShowAside] = useState(false);
   const [draft, setDraft] = useState('');
   const [query, setQuery] = useState('');
@@ -79,9 +82,9 @@ export default function ApprenticeshipsView() {
       !q || t.name.toLowerCase().includes(q) || t.meta.toLowerCase().includes(q);
     return allGroups.map((g) => ({
       ...g,
-      tiles: partitionTiles(g.tiles, triage).visible.filter(match),
+      tiles: partitionTiles(g.tiles, triage, savedSet).visible.filter(match),
     }));
-  }, [allGroups, triage, q]);
+  }, [allGroups, triage, savedSet, q]);
 
   const matchCount = useMemo(
     () => (searching ? groups.reduce((n, g) => n + g.tiles.length, 0) : 0),
@@ -113,9 +116,10 @@ export default function ApprenticeshipsView() {
       <Typography variant="body2" color="text.secondary">
         Spokane-eligible and remote opportunities, current by design. The <strong>search</strong>{' '}
         tiles return only what&rsquo;s posted right now; the <strong>program portals</strong> take
-        applications on a rolling basis. Use the <strong>pin</strong> and <strong>set-aside</strong>{' '}
-        buttons to comb through the board, or paste your own links into{' '}
-        <strong>My apprenticeships</strong> to track them alongside the curated ones.
+        applications on a rolling basis. <strong>Saving</strong> a tile adds it to your Queue and
+        floats it to the top of its group; <strong>set aside</strong> hides what you&rsquo;ve ruled
+        out. Paste your own links into <strong>My apprenticeships</strong> to track them alongside
+        the curated ones.
       </Typography>
 
       {/* Sticky board search — filters every group by tile name + details. */}
@@ -248,14 +252,14 @@ export default function ApprenticeshipsView() {
               </Stack>
             )}
             {g.tiles.length > 0 && (
-              <Collapse in={isOpen}>
+              <Reveal open={isOpen}>
                 <TileGrid
                   tiles={g.tiles}
                   cta={g.id.includes('search') ? 'Search' : 'Open'}
                   triage
                   onRemove={isMy ? removeUserTile : undefined}
                 />
-              </Collapse>
+              </Reveal>
             )}
             {isMy && !g.tiles.length && !searching && (
               <EmptyState
@@ -279,9 +283,9 @@ export default function ApprenticeshipsView() {
           <Button size="small" onClick={() => setShowAside((v) => !v)} style={{ marginBottom: 8 }}>
             {showAside ? 'Hide' : 'Show'} set aside ({asideTiles.length})
           </Button>
-          <Collapse in={showAside}>
+          <Reveal open={showAside}>
             <TileGrid tiles={asideTiles} cta="Open" triage />
-          </Collapse>
+          </Reveal>
         </Box>
       )}
     </Stack>
