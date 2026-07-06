@@ -189,7 +189,7 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Career pillars</DialogTitle>
+      <DialogTitle>Trades</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
@@ -211,7 +211,7 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
           {pillar.builtIn ? (
             <Box>
               <Typography variant="body2" color="text.secondary">
-                “{pillar.label}” is a built-in pillar (read-only). Duplicate it to customize the
+                “{pillar.label}” is a built-in trade (read-only). Duplicate it to customize the
                 titles, roles, seniority, and AI-tailor target.
               </Typography>
               <Button

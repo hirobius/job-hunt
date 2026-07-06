@@ -1,11 +1,11 @@
 {
-  "updatedAt": "2026-07-03T09:11:32Z",
+  "updatedAt": "2026-07-06T07:15:00Z",
   "phase": "live",
-  "headline": "Live on Vercel; save-floats + tile kind badges + tap-to-call shipped; seeds de-personalized — test-user ready pending analytics toggle (#16)",
+  "headline": "Trades pivot: board leads with sheet-metal/hands-on (rest archived), Discover repurposed to trades pillars (Sheet Metal & Fab / Welding & Machining / Construction), mobile-first nav rework (de-crammed header, readable tabs, 'Trades' tab, pillar switcher moved into Discover)",
   "next": [
+    "Verify trades pivot on live Vercel deploy + gather feedback",
     "Dialogs wave (#7) — last big HDS migration that's unblocked",
-    "Tile redesign completion (#12): structured meta fields + detail view",
-    "Enable analytics (#16), delete stale branches (#17), then recruit first test users"
+    "Tile redesign completion (#12): structured meta fields + detail view"
   ],
   "blocked": [
     "Final MUI/Emotion deletion (#11) blocked on upstream HDS Textarea + general Tooltip (#9, #10 — asks routed in docs/hds-upstream-asks-0.9.md)"
