@@ -1,13 +1,7 @@
 import { useState } from 'react';
+import { Box, Stack, Typography } from '@mui/material';
 import {
-  Box,
-  Chip,
-  Link,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
-import {
+  Combobox,
   Input as HdsInput,
   SegmentedControl,
   Tabs as HdsTabs,
@@ -20,8 +14,29 @@ import { Button } from './ui/Button';
 import TileGrid from './TileGrid';
 import { useRoute, navigate } from './route';
 import { BOARDS, ATS, entryLevelize, type Tile } from './jobsData';
-import { useActivePillar } from './pillarStore';
+import { useActivePillar, usePillars, useActivePillarId, setActivePillar } from './pillarStore';
 import { CROSS_CUTTING_GROUPS, type Pillar, type Seniority } from './pillars';
+
+// Trade switcher — moved out of the global header (it only drives this tab) into a labeled
+// control here, so it reads as "which trade am I searching?" instead of a mystery dropdown.
+function TradeSwitcher() {
+  const pillars = usePillars();
+  const activeId = useActivePillarId();
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+        Trade
+      </Typography>
+      <Combobox
+        aria-label="Trade to search"
+        options={pillars.map((p) => ({ value: p.id, label: p.label }))}
+        value={activeId}
+        onChange={setActivePillar}
+        placeholder="Pick a trade"
+      />
+    </Box>
+  );
+}
 
 function TitlesPanel({ titles, applyEntry }: { titles: string[]; applyEntry: boolean }) {
   const [title, setTitle] = useState(titles[0] ?? '');
@@ -182,6 +197,7 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
 
   return (
     <Box>
+      <TradeSwitcher />
       {/* HDS underline tabs; the sub-tab key IS the Radix value (index 0 → bare #/discover).
           Only the active panel exists, so one TabsContent keyed to the active value suffices. */}
       <HdsTabs

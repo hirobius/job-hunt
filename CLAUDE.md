@@ -36,14 +36,26 @@ commit `f15fd52`).
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
   publishable + RLS-protected). Cloud sync UI in `src/CloudSync.tsx`.
-- **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Apprenticeships**
-  (`ApprenticeshipsView.tsx` + `apprenticeships.ts`, the curated Spokane/remote board:
-  ~13 groups, board-wide search, collapsible groups, jump chips, paste-in "My
-  apprenticeships"), **Queue** (`TrackerView.tsx`), **Copy Deck** (`CopyDeckView.tsx`,
-  incl. seeded call sheet + cold-call script), **Discover** (`DiscoverView.tsx` +
-  `jobsData.ts` groups and Title/ATS generators). `types.ts` for the Job model. Board
-  rule: **NO static one-off job postings** — live searches or durable portals/company
-  pages only, so tiles never go stale.
+- **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Trades** (tab label; slug
+  is still `apprenticeships` for URL back-compat) → `ApprenticeshipsView.tsx` +
+  `apprenticeships.ts`, the curated Spokane board. **Trades pivot (2026-07):** hands-on
+  metal leads — the live order is set by `VISIBLE_GROUP_ORDER` (apply-first → welding/fab
+  shops → foundry/casting → union JATCs → programs → live searches → veteran → finders);
+  groups flagged `archived: true` on the `Group` type (healthcare, remote programs, AI/expert,
+  SaaS) stash under a collapsed "Archived tracks" disclosure at the bottom (board-wide search
+  still spans them). Then **Queue** (`TrackerView.tsx`), **Copy Deck** (`CopyDeckView.tsx`,
+  incl. seeded call sheet + cold-call script; pillar-scoping removed — flat pinned-first list),
+  **Discover** (`DiscoverView.tsx` + `jobsData.ts` groups and Title/ATS generators, now
+  Spokane-trades tuned; the trade/pillar switcher lives at the top of this view, not the
+  header). `types.ts` for the Job model. Board rule: **NO static one-off job postings** —
+  live searches or durable portals/company pages only, so tiles never go stale.
+- **Pillars = trades** (`pillars.ts`): built-ins are **Sheet Metal & Fab** (default),
+  **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
+  terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
+  pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
+  Header cleanup: the global pillar combobox + separate manage/feedback icon buttons were
+  replaced by a single overflow menu (theme toggle stays inline); the tab bar is sized for
+  readability and horizontal-scrolls on narrow screens.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.

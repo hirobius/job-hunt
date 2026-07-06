@@ -5,11 +5,10 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { Badge, Card as HdsCard, SegmentedControl, Tag } from '@hirobius/design-system';
+import { Card as HdsCard } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import { Reveal } from './ui/Reveal';
 import EmptyState from './EmptyState';
-import { useActivePillar, usePillars } from './pillarStore';
 import {
   useSnippets,
   addSnippet,
@@ -17,16 +16,11 @@ import {
   removeSnippet,
   duplicateSnippet,
   toggleSnippetPin,
-  toggleSnippetTag,
-  type Snippet,
 } from './copyDeckStore';
 
 export default function CopyDeckView() {
   const items = useSnippets();
   const [copied, setCopied] = useState<string | null>(null);
-  const [scope, setScope] = useState<'pillar' | 'all'>('pillar');
-  const pillar = useActivePillar();
-  const pillars = usePillars();
 
   const del = (id: string) => {
     const s = items.find((x) => x.id === id);
@@ -45,10 +39,7 @@ export default function CopyDeckView() {
     else updateSnippet(id, { open: true });
   };
 
-  const isGlobal = (s: Snippet) => !s.pillars || s.pillars.length === 0;
-  const visible = items
-    .filter((s) => scope === 'all' || isGlobal(s) || s.pillars!.includes(pillar.id))
-    .sort((a, b) => (a.pinned ? 0 : 1) - (b.pinned ? 0 : 1));
+  const visible = [...items].sort((a, b) => (a.pinned ? 0 : 1) - (b.pinned ? 0 : 1));
 
   return (
     <Box>
@@ -58,27 +49,15 @@ export default function CopyDeckView() {
         alignItems="center"
         sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}
       >
-        <Button variant="outlined" onClick={() => addSnippet(pillar.id)}>
+        <Button variant="outlined" onClick={() => addSnippet()}>
           New snippet
         </Button>
-        <Box sx={{ ml: 'auto' }}>
-          <SegmentedControl
-            aria-label="Snippet scope"
-            size="sm"
-            value={scope}
-            onChange={(v) => setScope(v as 'pillar' | 'all')}
-            options={[
-              { value: 'pillar', label: pillar.label },
-              { value: 'all', label: 'All' },
-            ]}
-          />
-        </Box>
       </Stack>
       {visible.length === 0 ? (
         <EmptyState
-          message={`No snippets tagged for “${pillar.label}”. Add one, or switch to All.`}
+          message="No snippets yet — cover letters, outreach notes and call scripts live here."
           action={
-            <Button variant="outlined" onClick={() => addSnippet(pillar.id)}>
+            <Button variant="outlined" onClick={() => addSnippet()}>
               New snippet
             </Button>
           }
@@ -100,18 +79,7 @@ export default function CopyDeckView() {
                     mb: 0.5,
                   }}
                 />
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                  {pillars.map((p) => {
-                    const on = (s.pillars ?? []).includes(p.id);
-                    return (
-                      <Tag key={p.id} active={on} onClick={() => toggleSnippetTag(s.id, p.id)}>
-                        {p.label}
-                      </Tag>
-                    );
-                  })}
-                  {isGlobal(s) && <Badge tone="neutral">Global</Badge>}
-                </Box>
-                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
                   <Button size="small" onClick={() => updateSnippet(s.id, { open: !s.open })}>
                     {s.open ? 'Hide' : 'Show'}
                   </Button>

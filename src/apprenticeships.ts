@@ -21,10 +21,23 @@ import { type Group, type Tile } from './jobsData';
 
 const t = (name: string, meta: string, url: string): Tile => ({ name, meta, url });
 
+// Render order for the live (non-archived) board: hands-on metal leads. Groups not listed
+// here fall to the end (in source order); archived groups stash under their own disclosure.
+export const VISIBLE_GROUP_ORDER = [
+  'apply-first',
+  'spk-shops', // welding, sheet metal & metal fab shops — front and center
+  'spk-foundry', // foundries, casting & decorative concrete
+  'spk-trades', // union trades JATCs (sheet metal, ironworkers, …)
+  'spk-programs', // application portals (HVAC, diesel, machinist, carpenter)
+  'spk-search', // Spokane live searches
+  'veteran',
+  'finders',
+] as const;
+
 export const APPRENTICESHIP_GROUPS: Group[] = [
   {
-    // The do-these-first spotlight: the two highest-confidence paid entries on the trades
-    // and remote tracks. Durable careers pages (board rule holds); rotate as priorities shift.
+    // The do-these-first spotlight: the highest-confidence paid, hands-on metal entries.
+    // Sheet-metal / fab / structural steel lead — durable careers pages (board rule holds).
     id: 'apply-first',
     label: 'This week — apply first',
     tiles: [
@@ -34,15 +47,21 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'https://www.voestalpine.com/nortrak/en/careers/Jobs',
       ),
       t(
-        'Creating Coding Careers — apply now',
-        'Remote pre-apprenticeship → PAID DOL apprenticeship ~$20–21.50/hr · no degree · veteran/SkillBridge track · HIGH confidence',
-        'https://cccareers.org/earn-and-learn-to-code/',
+        'Ironworkers Local 14 — apply now',
+        'Structural / reinforcing iron · applications OPEN year-round online · low-to-mid $20s/hr + full benefits · DD-214 = experience credit · HIGH confidence',
+        'https://iw14appr.org/',
+      ),
+      t(
+        'SMART Local 55 — Sheet Metal',
+        'Sheet metal / HVAC fabrication apprenticeship · paid day one · Spokane · call 509-928-5009 to start · HIGH confidence',
+        'https://smw55.org/apprenticeship/',
       ),
     ],
   },
   {
     id: 'spk-medical',
     label: 'Spokane — healthcare apprenticeships (verified Jun 2026)',
+    archived: true,
     tiles: [
       t(
         'Providence — MA Apprentice (Spokane)',
@@ -640,6 +659,7 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
   {
     id: 'remote-search',
     label: 'Remote — open now (live searches)',
+    archived: true,
     tiles: [
       t(
         'Indeed · apprentice (remote)',
@@ -676,6 +696,7 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
   {
     id: 'remote-programs',
     label: 'Remote — programs (web-checked Jun 2026)',
+    archived: true,
     tiles: [
       t(
         'Code the Dream — CTD Labs',
@@ -777,6 +798,7 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
   {
     id: 'remote-ai',
     label: 'Remote — paid AI / expert work (1099, rolling)',
+    archived: true,
     tiles: [
       t(
         'DataAnnotation (coding)',
@@ -813,6 +835,7 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
   {
     id: 'remote-saas',
     label: 'Remote — paid SaaS partner pipelines',
+    archived: true,
     tiles: [
       t(
         'Webflow Certified Partners',

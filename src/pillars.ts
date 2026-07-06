@@ -1,8 +1,8 @@
-// Career pillars — a pillar is a named field the user is job-hunting in, with its
-// own search terms, seniority stance, curated Discover groups, and (reserved for a
-// later chunk) default AI-tailor role. The app ships built-in pillars; Chunk 2 lets
-// users curate their own. Discover reads the active pillar (see pillarStore.ts).
-import { GROUPS, TITLES, ATS_ROLES, type Group, type Tile } from './jobsData';
+// Career pillars — a pillar is a named trade the user is job-hunting in, with its own
+// search terms, seniority stance, and curated Discover groups. The app ships built-in
+// trades pillars (sheet metal leads); users can curate their own. Discover reads the
+// active pillar (see pillarStore.ts).
+import { GROUPS, TITLES, ATS_ROLES, type Group } from './jobsData';
 
 export type Seniority = 'entry' | 'experienced' | 'any';
 
@@ -15,7 +15,7 @@ export interface Pillar {
   atsRoles: string[];
   /** Drives entry-level filtering and the ATS junior/associate clause. */
   seniority: Seniority;
-  /** Default search location label (e.g. "Remote", "Spokane, WA"). */
+  /** Default search location label (e.g. "Spokane, WA", "Remote"). */
   location: string;
   /** Reserved: default target role for AI tailoring (wired in a later chunk). */
   tailorRole?: string;
@@ -25,107 +25,81 @@ export interface Pillar {
   builtIn?: boolean;
 }
 
-const t = (name: string, meta: string, url: string): Tile => ({ name, meta, url });
 const byId: Record<string, Group> = Object.fromEntries(GROUPS.map((g) => [g.id, g]));
 const pick = (...ids: string[]): Group[] => ids.map((id) => byId[id]).filter(Boolean);
 
 // Cross-cutting groups shown in EVERY pillar: survival income + universal job tools.
-export const CROSS_CUTTING_GROUPS: Group[] = pick(
-  'income',
-  'hirenow',
-  'remoteboards',
-  'tools',
-  'veteran',
-);
+export const CROSS_CUTTING_GROUPS: Group[] = pick('income', 'hirenow', 'veteran', 'tools');
 
-const DESIGN_TITLES = [
-  'Design Engineer',
-  'Design Systems Engineer',
-  'Design Technologist',
-  'UX Engineer',
-  'UI Engineer',
-  'Front-End Engineer',
-  'Front-End Engineer (React)',
-  'Product Engineer',
-  'Creative Technologist',
-  'Prototyper',
-  'Design Systems Lead',
-  'Software Engineer, Front-End',
-];
-
-const DESIGN_ATS_ROLES = [
-  'design engineer',
-  'design systems',
-  'design technologist',
-  'UX engineer',
-  'front-end engineer',
-  'product engineer',
-];
-
-// Featured "Apply Now" set for the Design Engineering pillar — companies known for
-// design-engineering culture plus two 1-click aggregator searches.
-const DESIGN_BRIEF: Group = {
-  id: 'design-brief',
-  label: 'Apply Now',
-  tiles: [
-    t('Vercel', 'Hires design engineers · ships the web', 'https://vercel.com/careers'),
-    t('Linear', 'Design-engineering culture', 'https://linear.app/careers'),
-    t('Figma', 'Design tooling · design-eng roles', 'https://www.figma.com/careers/'),
-    t('Framer', 'Design + code product team', 'https://www.framer.com/careers/'),
-    t(
-      'Stripe · Design Eng',
-      'Design systems / front-end',
-      'https://stripe.com/jobs/search?q=design%20engineer',
-    ),
-    t('Notion', 'Product + design engineering', 'https://www.notion.so/careers'),
-    t('Retool', 'Internal-tools; design eng', 'https://retool.com/careers'),
-    t('Raycast', 'Design-led product team', 'https://www.raycast.com/careers'),
-    t(
-      'LinkedIn · Design Engineer (Remote)',
-      'All levels · remote',
-      'https://www.linkedin.com/jobs/search/?keywords=Design%20Engineer&f_WT=2',
-    ),
-    t(
-      'Google Jobs · Design Engineer',
-      'Aggregates all boards',
-      'https://www.google.com/search?q=design+engineer+remote&ibp=htl;jobs',
-    ),
-  ],
-};
-
-export const IT_PILLAR: Pillar = {
-  id: 'it',
-  label: 'IT Support',
-  titles: TITLES,
+// ---- Sheet Metal & Fab (the front-and-center default) ----
+export const SHEET_METAL_PILLAR: Pillar = {
+  id: 'sheetmetal',
+  label: 'Sheet Metal & Fab',
+  titles: TITLES, // sheet-metal / fab / welder titles live in jobsData
   atsRoles: ATS_ROLES,
   seniority: 'entry',
-  location: 'Remote',
-  tailorRole: 'IT Support Specialist',
-  groups: pick(
-    'brief',
-    'itsupport',
-    'grc',
-    'govcon',
-    'spokane',
-    'saas',
-    'seccos',
-    'remotecos',
-    'staffing',
-    'skillup',
-  ),
+  location: 'Spokane, WA',
+  tailorRole: 'Sheet Metal Fabricator',
+  groups: pick('sm-brief', 'smshops', 'machineshops'),
   builtIn: true,
 };
 
-export const DESIGN_PILLAR: Pillar = {
-  id: 'design',
-  label: 'Design Engineering',
-  titles: DESIGN_TITLES,
-  atsRoles: DESIGN_ATS_ROLES,
-  seniority: 'experienced',
-  location: 'Remote',
-  tailorRole: 'Design Engineer',
-  groups: [DESIGN_BRIEF, ...pick('designtech', 'aieng')],
+const WELDING_TITLES = [
+  'Welder',
+  'MIG Welder',
+  'TIG Welder',
+  'Combo Welder',
+  'Welder-Fabricator',
+  'CNC Machinist',
+  'CNC Operator',
+  'Machinist',
+  'Machine Operator',
+  'Maintenance Technician',
+];
+const WELDING_ATS_ROLES = ['welder', 'CNC machinist', 'machinist', 'machine operator', 'fabricator'];
+
+// ---- Welding & Machining ----
+export const WELDING_PILLAR: Pillar = {
+  id: 'welding',
+  label: 'Welding & Machining',
+  titles: WELDING_TITLES,
+  atsRoles: WELDING_ATS_ROLES,
+  seniority: 'entry',
+  location: 'Spokane, WA',
+  tailorRole: 'Welder-Fabricator',
+  groups: pick('weld-brief', 'machineshops', 'concrete'),
   builtIn: true,
 };
 
-export const BUILTIN_PILLARS: Pillar[] = [IT_PILLAR, DESIGN_PILLAR];
+const CONSTRUCTION_TITLES = [
+  'Apprentice',
+  'Ironworker',
+  'Carpenter Apprentice',
+  'Cement Mason',
+  'Concrete Finisher',
+  'HVAC Installer',
+  'Heavy Equipment Operator',
+  'Construction Laborer',
+  'Boilermaker',
+  'Plumber Apprentice',
+];
+const CONSTRUCTION_ATS_ROLES = ['apprentice', 'laborer', 'HVAC installer', 'concrete finisher', 'ironworker'];
+
+// ---- Construction Trades (union JATCs + non-union portals) ----
+export const CONSTRUCTION_PILLAR: Pillar = {
+  id: 'construction',
+  label: 'Construction Trades',
+  titles: CONSTRUCTION_TITLES,
+  atsRoles: CONSTRUCTION_ATS_ROLES,
+  seniority: 'entry',
+  location: 'Spokane, WA',
+  tailorRole: 'Construction Apprentice',
+  groups: pick('const-brief', 'unions', 'concrete'),
+  builtIn: true,
+};
+
+export const BUILTIN_PILLARS: Pillar[] = [
+  SHEET_METAL_PILLAR,
+  WELDING_PILLAR,
+  CONSTRUCTION_PILLAR,
+];

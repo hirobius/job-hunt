@@ -1,16 +1,12 @@
 import { useMemo, useState } from 'react';
-import {
-  Box,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 import { IconButton as HdsIconButton, Input as HdsInput, Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import { Reveal } from './ui/Reveal';
-import { Search, ChevronDown } from 'lucide-react';
+import { Search, ChevronDown, Archive } from 'lucide-react';
 import TileGrid from './TileGrid';
 import EmptyState from './EmptyState';
-import { APPRENTICESHIP_GROUPS } from './apprenticeships';
+import { APPRENTICESHIP_GROUPS, VISIBLE_GROUP_ORDER } from './apprenticeships';
 import { useTileTriage } from './tileTriage';
 import { useJobs } from './store';
 import { partitionTiles } from './tileState';
@@ -38,12 +34,19 @@ const saveCollapsed = (ids: string[]) => {
 // Jump-chip label: the group label minus its parenthetical qualifier.
 const jumpLabel = (label: string) => label.replace(/\s*\(.*\)\s*$/, '');
 
+// Sort the live groups so hands-on metal leads; anything unlisted falls to the end.
+const orderRank = (id: string) => {
+  const i = (VISIBLE_GROUP_ORDER as readonly string[]).indexOf(id);
+  return i === -1 ? VISIBLE_GROUP_ORDER.length : i;
+};
+
 export default function ApprenticeshipsView() {
   const triage = useTileTriage();
   const userTiles = useUserTiles();
   const jobs = useJobs();
   const savedSet = useMemo(() => new Set(jobs.map((j) => j.url)), [jobs]);
   const [showAside, setShowAside] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [draft, setDraft] = useState('');
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState<string[]>(loadCollapsed);
@@ -69,10 +72,20 @@ export default function ApprenticeshipsView() {
     saveCollapsed(ids);
   };
 
-  // Your pasted tiles come first, then the curated groups.
-  const allGroups: Group[] = useMemo(
-    () => [{ id: 'my', label: 'My apprenticeships', tiles: userTiles }, ...APPRENTICESHIP_GROUPS],
-    [userTiles],
+  // My pasted tiles first, then the curated live groups (hands-on order); archived groups
+  // are kept separate and stashed under their own disclosure below.
+  const liveCurated = useMemo(
+    () =>
+      APPRENTICESHIP_GROUPS.filter((g) => !g.archived).sort(
+        (a, b) => orderRank(a.id) - orderRank(b.id),
+      ),
+    [],
+  );
+  const archivedCurated = useMemo(() => APPRENTICESHIP_GROUPS.filter((g) => g.archived), []);
+
+  const liveGroups: Group[] = useMemo(
+    () => [{ id: 'my', label: 'My apprenticeships', tiles: userTiles }, ...liveCurated],
+    [userTiles, liveCurated],
   );
 
   // Pinned tiles float to the top of their group; set-aside tiles drop out into the collapsible
@@ -80,27 +93,43 @@ export default function ApprenticeshipsView() {
   const groups = useMemo(() => {
     const match = (t: Tile) =>
       !q || t.name.toLowerCase().includes(q) || t.meta.toLowerCase().includes(q);
-    return allGroups.map((g) => ({
+    return liveGroups.map((g) => ({
       ...g,
       tiles: partitionTiles(g.tiles, triage, savedSet).visible.filter(match),
     }));
-  }, [allGroups, triage, savedSet, q]);
+  }, [liveGroups, triage, savedSet, q]);
+  const archivedGroups = useMemo(() => {
+    const match = (t: Tile) =>
+      !q || t.name.toLowerCase().includes(q) || t.meta.toLowerCase().includes(q);
+    return archivedCurated.map((g) => ({
+      ...g,
+      tiles: partitionTiles(g.tiles, triage, savedSet).visible.filter(match),
+    }));
+  }, [archivedCurated, triage, savedSet, q]);
 
+  // Search spans the whole board — live + archived — so nothing hides behind the disclosure.
   const matchCount = useMemo(
-    () => (searching ? groups.reduce((n, g) => n + g.tiles.length, 0) : 0),
-    [groups, searching],
+    () =>
+      searching
+        ? [...groups, ...archivedGroups].reduce((n, g) => n + g.tiles.length, 0)
+        : 0,
+    [groups, archivedGroups, searching],
+  );
+  const archivedMatchCount = useMemo(
+    () => (searching ? archivedGroups.reduce((n, g) => n + g.tiles.length, 0) : 0),
+    [archivedGroups, searching],
   );
 
   const asideTiles: Tile[] = useMemo(
-    () => partitionTiles(allGroups.flatMap((g) => g.tiles), triage).aside,
-    [allGroups, triage],
+    () =>
+      partitionTiles([...liveGroups, ...archivedCurated].flatMap((g) => g.tiles), triage).aside,
+    [liveGroups, archivedCurated, triage],
   );
 
-  const collapsibleIds = allGroups.filter((g) => g.id !== 'my').map((g) => g.id);
+  const collapsibleIds = liveCurated.map((g) => g.id);
   const allAreCollapsed = collapsibleIds.every((id) => collapsed.includes(id));
 
   const jumpTo = (id: string) => {
-    // Expand first so there's something to land on, then scroll on the next frame.
     setCollapsed((prev) => {
       const next = prev.filter((x) => x !== id);
       saveCollapsed(next);
@@ -111,28 +140,116 @@ export default function ApprenticeshipsView() {
     );
   };
 
+  // One group block, shared by the live board and the archived disclosure.
+  const renderGroup = (g: Group) => {
+    const isMy = g.id === 'my';
+    if (!isMy && !g.tiles.length && !searching) return null;
+    if (!isMy && !g.tiles.length && searching) return null;
+    const isOpen = isMy || searching || !collapsed.includes(g.id);
+    return (
+      <Box key={g.id} id={`grp-${g.id}`} sx={{ scrollMarginTop: 72 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={0.5}
+          sx={{ mb: 1, cursor: isMy ? 'default' : 'pointer' }}
+          onClick={isMy ? undefined : () => toggleGroup(g.id)}
+        >
+          {!isMy && (
+            <HdsIconButton
+              size="sm"
+              variant="tertiary"
+              icon={ChevronDown}
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                toggleGroup(g.id);
+              }}
+              aria-expanded={isOpen}
+              label={`${isOpen ? 'Collapse' : 'Expand'} ${g.label}`}
+              style={{
+                marginLeft: -6,
+                flex: 'none',
+                transform: isOpen ? 'none' : 'rotate(-90deg)',
+                transition: 'transform 0.15s',
+              }}
+            />
+          )}
+          <Typography
+            sx={{
+              fontWeight: 600,
+              fontSize: { xs: '1rem', sm: '1.05rem' },
+              lineHeight: 1.3,
+              userSelect: 'none',
+              minWidth: 0,
+            }}
+          >
+            {g.label}
+          </Typography>
+          {!isMy && (
+            <Typography variant="caption" color="text.secondary" sx={{ pl: 0.25, flex: 'none' }}>
+              ({g.tiles.length})
+            </Typography>
+          )}
+        </Stack>
+        {isMy && (
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            sx={{ mb: g.tiles.length ? 1.5 : 1 }}
+          >
+            <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+              <HdsInput
+                size="sm"
+                aria-label="Paste apprenticeship links"
+                placeholder="Paste an apprenticeship link (or several)…"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTiles();
+                  }
+                }}
+                style={{ width: '100%' }}
+              />
+            </Box>
+            <Button variant="contained" onClick={addTiles} disabled={!draft.trim()} sx={{ flex: 'none' }}>
+              Add
+            </Button>
+          </Stack>
+        )}
+        {g.tiles.length > 0 && (
+          <Reveal open={isOpen}>
+            <TileGrid
+              tiles={g.tiles}
+              cta={g.id.includes('search') ? 'Search' : 'Open'}
+              triage
+              onRemove={isMy ? removeUserTile : undefined}
+            />
+          </Reveal>
+        )}
+        {isMy && !g.tiles.length && !searching && (
+          <EmptyState
+            dense
+            message="Nothing here yet — paste any apprenticeship or job link above and it’ll show up here to pin, set aside, or save."
+          />
+        )}
+      </Box>
+    );
+  };
+
   return (
     <Stack spacing={3}>
       <Typography variant="body2" color="text.secondary">
-        Spokane-eligible and remote opportunities, current by design. The <strong>search</strong>{' '}
-        tiles return only what&rsquo;s posted right now; the <strong>program portals</strong> take
-        applications on a rolling basis. <strong>Saving</strong> a tile adds it to your Queue and
-        floats it to the top of its group; <strong>set aside</strong> hides what you&rsquo;ve ruled
-        out. Paste your own links into <strong>My apprenticeships</strong> to track them alongside
-        the curated ones.
+        Spokane-eligible, hands-on trades — sheet metal, welding, fabrication, foundry and
+        concrete lead. <strong>Search</strong> tiles return only what&rsquo;s posted right now;{' '}
+        <strong>program portals</strong> take applications on a rolling basis.{' '}
+        <strong>Saving</strong> a tile adds it to your Queue. Healthcare, remote and other tracks
+        are stashed under <strong>Archived</strong> at the bottom.
       </Typography>
 
-      {/* Sticky board search — filters every group by tile name + details. */}
-      <Box
-        sx={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 2,
-          bgcolor: 'background.default',
-          py: 1,
-        }}
-      >
-        {/* HDS Input ships a built-in clear affordance for non-empty values — no custom X. */}
+      {/* Sticky board search — filters every group (live + archived) by name + details. */}
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 2, bgcolor: 'background.default', py: 1 }}>
         <HdsInput
           size="sm"
           aria-label="Search apprenticeships board"
@@ -169,113 +286,41 @@ export default function ApprenticeshipsView() {
           >
             {allAreCollapsed ? 'Expand all' : 'Collapse all'}
           </Button>
-          {allGroups.map(
-            (g) =>
-              g.id !== 'my' && (
-                <Tag key={g.id} onClick={() => jumpTo(g.id)}>
-                  {jumpLabel(g.label)}
-                </Tag>
-              ),
-          )}
+          {liveCurated.map((g) => (
+            <Tag key={g.id} onClick={() => jumpTo(g.id)}>
+              {jumpLabel(g.label)}
+            </Tag>
+          ))}
         </Box>
       )}
 
-      {groups.map((g) => {
-        const isMy = g.id === 'my';
-        if (!isMy && !g.tiles.length) return null;
-        const isOpen = isMy || searching || !collapsed.includes(g.id);
-        return (
-          <Box key={g.id} id={`grp-${g.id}`} sx={{ scrollMarginTop: 64 }}>
-            <Stack direction="row" alignItems="center" spacing={0.25} sx={{ mb: 1 }}>
-              {!isMy && (
-                <HdsIconButton
-                  size="sm"
-                  variant="tertiary"
-                  icon={ChevronDown}
-                  onClick={() => toggleGroup(g.id)}
-                  aria-expanded={isOpen}
-                  label={`${isOpen ? 'Collapse' : 'Expand'} ${g.label}`}
-                  style={{
-                    marginLeft: -6,
-                    transform: isOpen ? 'none' : 'rotate(-90deg)',
-                    transition: 'transform 0.15s',
-                  }}
-                />
-              )}
-              <Typography
-                onClick={isMy ? undefined : () => toggleGroup(g.id)}
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '1.05rem',
-                  cursor: isMy ? 'default' : 'pointer',
-                  userSelect: 'none',
-                }}
-              >
-                {g.label}
-              </Typography>
-              {!isMy && (
-                <Typography variant="caption" color="text.secondary" sx={{ pl: 0.5 }}>
-                  ({g.tiles.length})
-                </Typography>
-              )}
-            </Stack>
-            {isMy && (
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={1}
-                sx={{ mb: g.tiles.length ? 1.5 : 1 }}
-              >
-                <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-                  <HdsInput
-                    size="sm"
-                    aria-label="Paste apprenticeship links"
-                    placeholder="Paste an apprenticeship link (or several)…"
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addTiles();
-                      }
-                    }}
-                    style={{ width: '100%' }}
-                  />
-                </Box>
-                <Button
-                  variant="contained"
-                  onClick={addTiles}
-                  disabled={!draft.trim()}
-                  sx={{ flex: 'none' }}
-                >
-                  Add
-                </Button>
-              </Stack>
-            )}
-            {g.tiles.length > 0 && (
-              <Reveal open={isOpen}>
-                <TileGrid
-                  tiles={g.tiles}
-                  cta={g.id.includes('search') ? 'Search' : 'Open'}
-                  triage
-                  onRemove={isMy ? removeUserTile : undefined}
-                />
-              </Reveal>
-            )}
-            {isMy && !g.tiles.length && !searching && (
-              <EmptyState
-                dense
-                message="Nothing here yet — paste any apprenticeship or job link above and it’ll show up here to pin, set aside, or save."
-              />
-            )}
-          </Box>
-        );
-      })}
+      {groups.map(renderGroup)}
 
       {searching && matchCount === 0 && (
         <EmptyState
           dense
           message={`No tiles match “${query.trim()}”. Try a shorter word — shop name, trade, or city.`}
         />
+      )}
+
+      {/* Archived — healthcare, remote programs, AI/expert work, SaaS pipelines. Kept for
+          reference, out of the hands-on flow. Auto-revealed while searching if it has hits. */}
+      {archivedGroups.length > 0 && (!searching || archivedMatchCount > 0) && (
+        <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2.5 }}>
+          <Button
+            startIcon={<Archive size={16} />}
+            onClick={() => setShowArchived((v) => !v)}
+            style={{ marginBottom: showArchived || searching ? 12 : 0 }}
+          >
+            {showArchived || searching ? 'Hide' : 'Show'} archived tracks
+            {searching ? ` (${archivedMatchCount})` : ' — healthcare, remote & AI'}
+          </Button>
+          <Reveal open={showArchived || searching}>
+            <Stack spacing={3} sx={{ mt: 1 }}>
+              {archivedGroups.map(renderGroup)}
+            </Stack>
+          </Reveal>
+        </Box>
       )}
 
       {asideTiles.length > 0 && !searching && (

@@ -19,8 +19,8 @@ afterEach(() => {
 });
 
 describe('pillar registry', () => {
-  it('starts with the two built-ins', () => {
-    expect(getPillars().filter((p) => p.builtIn)).toHaveLength(2);
+  it('starts with the three trades built-ins', () => {
+    expect(getPillars().filter((p) => p.builtIn)).toHaveLength(3);
   });
 
   it('creates a user pillar and makes it active', () => {
@@ -32,7 +32,7 @@ describe('pillar registry', () => {
   });
 
   it('duplicates a built-in into an editable copy', () => {
-    const id = duplicatePillar(BUILTIN_PILLARS[1].id); // Design Engineering
+    const id = duplicatePillar(BUILTIN_PILLARS[1].id); // Welding & Machining
     const p = getPillars().find((x) => x.id === id)!;
     expect(p.builtIn).toBe(false);
     expect(p.titles).toEqual(BUILTIN_PILLARS[1].titles);

@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useRoute, navigate, getRoute } from './route';
 import { Box, Container, Stack, Tooltip, Typography } from '@mui/material';
-import { Sun, Moon, SlidersHorizontal, MessageSquareText } from 'lucide-react';
+import { Sun, Moon, MoreVertical, SlidersHorizontal, MessageSquareText } from 'lucide-react';
 import {
-  Combobox,
   IconButton as HdsIconButton,
+  Menu as HdsMenu,
   Tabs as HdsTabs,
   TabsList,
   TabsTrigger,
@@ -15,7 +15,6 @@ import ApprenticeshipsView from './ApprenticeshipsView';
 import CloudSync from './CloudSync';
 import { useColorMode } from './ColorMode';
 import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
-import { usePillars, useActivePillarId, setActivePillar } from './pillarStore';
 import { useSyncPillarRoute } from './pillarRoute';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton, CaseStudySkeleton } from './Skeletons';
@@ -42,17 +41,30 @@ function ColorModeToggle() {
   );
 }
 
-function PillarSwitcher() {
-  const pillars = usePillars();
-  const activeId = useActivePillarId();
+// Secondary actions (manage trades + feedback) collapse into one overflow menu so the
+// header stays a title + two controls at any width — the old row crammed a wide combobox
+// plus four icon buttons onto one line and broke on phones.
+function OverflowMenu({ onManage }: { onManage: () => void }) {
   return (
-    <Combobox
-      aria-label="Career pillar"
-      options={pillars.map((p) => ({ value: p.id, label: p.label }))}
-      value={activeId}
-      onChange={setActivePillar}
-      placeholder="Pillar"
-    />
+    <HdsMenu>
+      <HdsMenu.Trigger asChild>
+        <HdsIconButton variant="tertiary" icon={MoreVertical} label="More options" />
+      </HdsMenu.Trigger>
+      <HdsMenu.Content align="end">
+        <HdsMenu.Item onSelect={onManage}>
+          <SlidersHorizontal size={15} style={{ marginRight: 8 }} />
+          Manage trades…
+        </HdsMenu.Item>
+        <HdsMenu.Item
+          onSelect={() =>
+            window.open('https://github.com/hirobius/job-hunt/issues/new', '_blank', 'noopener')
+          }
+        >
+          <MessageSquareText size={15} style={{ marginRight: 8 }} />
+          Send feedback
+        </HdsMenu.Item>
+      </HdsMenu.Content>
+    </HdsMenu>
   );
 }
 
@@ -117,69 +129,72 @@ export default function App() {
     );
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 2.5, sm: 4 } }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Typography variant="h1">
+    <Container maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.75, sm: 3 } }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        spacing={1}
+        sx={{ mb: { xs: 1.5, sm: 2 } }}
+      >
+        <Typography variant="h1" sx={{ fontSize: { xs: '1.6rem', sm: '2.125rem' }, minWidth: 0 }}>
           Apply{' '}
           <Box component="span" sx={{ color: 'primary.main' }}>
             Board
           </Box>
         </Typography>
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ flex: 'none' }}>
-          <PillarSwitcher />
-          <Tooltip title="Manage pillars">
-            <HdsIconButton
-              variant="tertiary"
-              icon={SlidersHorizontal}
-              onClick={() => setPillarsOpen(true)}
-              label="Manage pillars"
-            />
-          </Tooltip>
-          <Tooltip title="Send feedback / report a bug">
-            <HdsIconButton
-              variant="tertiary"
-              icon={MessageSquareText}
-              onClick={() =>
-                window.open('https://github.com/hirobius/job-hunt/issues/new', '_blank', 'noopener')
-              }
-              label="Send feedback (opens GitHub)"
-            />
-          </Tooltip>
+        <Stack direction="row" alignItems="center" spacing={0.25} sx={{ flex: 'none' }}>
           <ColorModeToggle />
+          <OverflowMenu onManage={() => setPillarsOpen(true)} />
         </Stack>
       </Stack>
 
       <CloudSync />
 
-      {/* HDS underline tabs (Radix): value = route slug, aria wiring comes from Radix.
-          forceMount is NOT used — inactive panels unmount, matching the old behavior. */}
-      <HdsTabs
-        value={TAB_SLUGS[tab]}
-        onValueChange={(v) => navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null })}
+      {/* HDS underline tabs (Radix): value = route slug, aria wiring comes from Radix. The list
+          scrolls horizontally on narrow screens; the sx bump gives each tab a readable, tappable
+          target (the default underline tabs read too faint/small on phones). */}
+      <Box
+        sx={{
+          mb: { xs: 2, sm: 2.5 },
+          '& [role="tab"]': {
+            fontSize: { xs: '0.875rem', sm: '0.95rem' },
+            fontWeight: 600,
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            paddingLeft: { xs: '7px', sm: '14px' },
+            paddingRight: { xs: '7px', sm: '14px' },
+          },
+        }}
       >
-        <TabsList style={{ marginBottom: 20, width: '100%' }}>
-          <TabsTrigger value="apprenticeships">Apprenticeships</TabsTrigger>
-          <TabsTrigger value="queue">Queue</TabsTrigger>
-          <TabsTrigger value="copy-deck">Copy Deck</TabsTrigger>
-          <TabsTrigger value="discover">Discover</TabsTrigger>
-        </TabsList>
-        <TabsContent value="apprenticeships">
-          <ApprenticeshipsView />
-        </TabsContent>
-        <TabsContent value="queue">
-          <TrackerView />
-        </TabsContent>
-        <TabsContent value="copy-deck">
-          <Suspense fallback={<CopyDeckSkeleton />}>
-            <CopyDeckView />
-          </Suspense>
-        </TabsContent>
-        <TabsContent value="discover">
-          <Suspense fallback={<DiscoverSkeleton />}>
-            <DiscoverView />
-          </Suspense>
-        </TabsContent>
-      </HdsTabs>
+        <HdsTabs
+          value={TAB_SLUGS[tab]}
+          onValueChange={(v) => navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null })}
+        >
+          <TabsList style={{ width: '100%' }}>
+            <TabsTrigger value="apprenticeships">Trades</TabsTrigger>
+            <TabsTrigger value="queue">Queue</TabsTrigger>
+            <TabsTrigger value="copy-deck">Copy Deck</TabsTrigger>
+            <TabsTrigger value="discover">Discover</TabsTrigger>
+          </TabsList>
+          <TabsContent value="apprenticeships">
+            <ApprenticeshipsView />
+          </TabsContent>
+          <TabsContent value="queue">
+            <TrackerView />
+          </TabsContent>
+          <TabsContent value="copy-deck">
+            <Suspense fallback={<CopyDeckSkeleton />}>
+              <CopyDeckView />
+            </Suspense>
+          </TabsContent>
+          <TabsContent value="discover">
+            <Suspense fallback={<DiscoverSkeleton />}>
+              <DiscoverView />
+            </Suspense>
+          </TabsContent>
+        </HdsTabs>
+      </Box>
 
       {pillarsOpen && (
         <Suspense fallback={null}>
