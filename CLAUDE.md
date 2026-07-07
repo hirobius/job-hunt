@@ -14,15 +14,16 @@ commit `f15fd52`).
 - **Vite + React 18 + TypeScript + HDS (`@hirobius/design-system`), with residual MUI v6.**
   The component layer is mid-strangler (ADR-0004/0005): Buttons, Cards, Tag/Badge,
   SegmentedControl, IconButton (lucide icons), Input, Tabs, and Menu are **real HDS
-  components**; MUI remains only for Tooltip + multiline TextField (both blocked on
-  upstream — issues #9/#10), the dialogs (#7), Skeleton/Select/Collapse (#8), and layout
-  primitives (Box/Stack/Container/Typography). `src/ui/Button.tsx` is the migration seam
-  (accepts both MUI and HDS prop dialects). Final MUI deletion is issue #11.
+  components**; MUI still renders Tooltip + multiline TextField, the dialogs (#7), and layout
+  primitives (Box/Stack/Container/Typography). **As of HDS 0.11, the upstream gaps are shipping:**
+  HDS now exports `Tooltip`, `Textarea`, `Skeleton`, and `Combobox` — so issues #8/#9/#10 are now
+  unblocked and those MUI usages can migrate (not yet done). `src/ui/Button.tsx` is the migration
+  seam (accepts both MUI and HDS prop dialects). Final MUI deletion is issue #11.
 - **Design language:** jade dark theme; headlines **Clash Display**, body **Satoshi**
   (loaded via Fontshare CDN in `index.html`). Uppercase is reserved for
   eyebrows/buttons/labels only.
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (`^0.9.0`, no auth) — see `docs/adr/0005`. `main.tsx` imports
+  npm** (`^0.11.0`, no auth) — see `docs/adr/0005`. `main.tsx` imports
   `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` — set on
   `<body>` in `index.html`) then `src/theme/brand-jade.css` (jade accent override). MUI
   themes from the `/mui` preset (`hdsMuiThemeOptions()`, token CSS vars; light/dark flips

@@ -20,7 +20,7 @@
     "@anthropic-ai/sdk": "^0.105.0",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
-    "@hirobius/design-system": "^0.9.0",
+    "@hirobius/design-system": "^0.11.0",
     "@mui/icons-material": "^6.1.6",
     "@mui/material": "^6.1.6",
     "@supabase/supabase-js": "^2.45.4",
