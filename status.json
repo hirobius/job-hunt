@@ -1,13 +1,11 @@
 {
-  "updatedAt": "2026-07-06T07:15:00Z",
+  "updatedAt": "2026-07-06T09:30:00Z",
   "phase": "live",
-  "headline": "Trades pivot: board leads with sheet-metal/hands-on (rest archived), Discover repurposed to trades pillars (Sheet Metal & Fab / Welding & Machining / Construction), mobile-first nav rework (de-crammed header, readable tabs, 'Trades' tab, pillar switcher moved into Discover)",
+  "headline": "MUI fully removed (#11 done): 100% HDS + a small MUI-free src/ui primitive set (token-aware sx engine in ui/box.tsx + Dialog/Tooltip/Alert/TextField adapters). Earlier this session: HDS bumped to 0.11, trades pivot, mobile-first nav rework. Verified in light/dark + mobile/desktop, all dialogs/menus/tooltips driven.",
   "next": [
-    "Verify trades pivot on live Vercel deploy + gather feedback",
-    "Dialogs wave (#7) — last big HDS migration that's unblocked",
+    "Verify on live Vercel deploy + gather feedback",
+    "Consider routing src/ui/box.tsx (Box + sx engine) upstream to HDS",
     "Tile redesign completion (#12): structured meta fields + detail view"
   ],
-  "blocked": [
-    "Final MUI/Emotion deletion (#11) blocked on upstream HDS Textarea + general Tooltip (#9, #10 — asks routed in docs/hds-upstream-asks-0.9.md)"
-  ]
+  "blocked": []
 }

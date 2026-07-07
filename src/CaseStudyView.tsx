@@ -1,13 +1,5 @@
-import {
-  Box,
-  Card,
-  CardContent,
-  Container,
-  Divider,
-  Link,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, Container, Divider, Stack, Typography } from './ui/box';
+import { Card } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import { CASES } from './caseStudies';
 
@@ -144,18 +136,16 @@ export default function CaseStudyView({ slug }: { slug: string }) {
       <Section title="Key decisions & tradeoffs">
         <Stack spacing={1.5}>
           {c.decisions.map((d, i) => (
-            <Card key={i} variant="outlined">
-              <CardContent>
-                <Typography variant="h3" sx={{ mb: 0.75 }}>
-                  <Box component="span" sx={{ color: 'primary.main', mr: 1 }}>
-                    {String(i + 1).padStart(2, '0')}
-                  </Box>
-                  {d.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {d.body}
-                </Typography>
-              </CardContent>
+            <Card key={i} bordered>
+              <Typography variant="h3" sx={{ mb: 0.75 }}>
+                <Box component="span" sx={{ color: 'primary.main', mr: 1 }}>
+                  {String(i + 1).padStart(2, '0')}
+                </Box>
+                {d.title}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {d.body}
+              </Typography>
             </Card>
           ))}
         </Stack>
@@ -183,7 +173,7 @@ export default function CaseStudyView({ slug }: { slug: string }) {
 
       <Divider sx={{ mt: 5, mb: 2 }} />
       <Typography variant="caption" color="text.secondary">
-        Case study rendered inside the product it describes — same React + MUI design system, themed
+        Case study rendered inside the product it describes — same React + HDS design system, themed
         from one token file.
       </Typography>
     </Container>

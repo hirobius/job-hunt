@@ -1,4 +1,5 @@
-import { Box, Link, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Link, Stack, Typography } from './ui/box';
+import { Tooltip } from './ui/Tooltip';
 import { Badge, Card as HdsCard, IconButton } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
@@ -30,7 +31,10 @@ function metaWithTel(meta: string) {
   return (
     <>
       {meta.slice(0, m.index)}
-      <Link href={`tel:${m[1].replace(/-/g, '')}`} onClick={(e) => e.stopPropagation()}>
+      <Link
+        href={`tel:${m[1].replace(/-/g, '')}`}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      >
         {m[1]}
       </Link>
       {meta.slice(m.index + m[1].length)}

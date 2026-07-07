@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Box, Stack, Typography } from '@mui/material';
+import { Box, Stack, Typography } from './ui/box';
 import { IconButton as HdsIconButton, Input as HdsInput, Tag } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import { Reveal } from './ui/Reveal';

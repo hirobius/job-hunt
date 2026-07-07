@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useRoute, navigate, getRoute } from './route';
-import { Box, Container, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Container, Stack, Typography } from './ui/box';
+import { Tooltip } from './ui/Tooltip';
 import { Sun, Moon, MoreVertical, SlidersHorizontal, MessageSquareText } from 'lucide-react';
 import {
   IconButton as HdsIconButton,

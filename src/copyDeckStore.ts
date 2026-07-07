@@ -45,7 +45,7 @@ const DESIGN_AI: Snippet = {
   id: 'seed-designai',
   pillars: ['design'],
   label: 'Example — design tech / AI outreach',
-  body: "I'm a design technologist who ships. 10+ years across product and visual design, design systems, and front-end (React) — and the last couple of years building AI-assisted workflows end to end. Where I'm most useful is the seam between design and engineering: turning rough ideas into working, well-documented prototypes, building and maintaining design systems in code, and wiring LLM features (prompting, tool-use, retrieval) into real product interfaces.\n\nRecent work: rebuilt a React/Vite design system, and designed + shipped an AI-driven application-tracking app (React, MUI, Supabase). I move fast, document clearly, and like owning the messy middle between design and code.\n\nPortfolio + resume attached — happy to talk.\n\n— add your name + portfolio links here —",
+  body: "I'm a design technologist who ships. 10+ years across product and visual design, design systems, and front-end (React) — and the last couple of years building AI-assisted workflows end to end. Where I'm most useful is the seam between design and engineering: turning rough ideas into working, well-documented prototypes, building and maintaining design systems in code, and wiring LLM features (prompting, tool-use, retrieval) into real product interfaces.\n\nRecent work: rebuilt a React/Vite design system, and designed + shipped an AI-driven application-tracking app (React, HDS, Supabase). I move fast, document clearly, and like owning the messy middle between design and code.\n\nPortfolio + resume attached — happy to talk.\n\n— add your name + portfolio links here —",
 };
 
 const CALL_SHEET: Snippet = {

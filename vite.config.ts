@@ -10,7 +10,6 @@ export default defineConfig({
         // cacheable and smaller (the app was shipping as one ~657 kB bundle).
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
-          if (id.includes('@mui') || id.includes('@emotion')) return 'mui';
           if (id.includes('@supabase')) return 'supabase';
           // Exact react/react-dom/scheduler only. A loose includes('react') also caught
           // @radix-ui/react-* and lucide-react (HDS deps), splitting HDS across chunks

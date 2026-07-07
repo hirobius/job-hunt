@@ -1,6 +1,6 @@
 // Shared empty-state block: a muted message with an optional action, centered. Replaces the
 // ad-hoc plain-text "nothing here" lines so empties read consistently across views.
-import { Box, Typography } from '@mui/material';
+import { Box, Typography } from './ui/box';
 import type { ReactNode } from 'react';
 
 export default function EmptyState({

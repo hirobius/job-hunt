@@ -1,20 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Chip,
-  CircularProgress,
-  Collapse,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Stack,
-  TextField,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
-} from '@mui/material';
+import { Box, Stack, Typography } from '../ui/box';
+import { Badge, SegmentedControl, Spinner } from '@hirobius/design-system';
+import { Alert } from '../ui/Alert';
+import { Dialog, DialogActions, DialogContent, DialogTitle } from '../ui/Dialog';
+import { TextField } from '../ui/TextField';
+import { Reveal } from '../ui/Reveal';
 import { Button } from '../ui/Button';
 import { extractJob } from './extractJob';
 import AiNotConfigured from './AiNotConfigured';
@@ -127,7 +117,7 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
           <AiNotConfigured feature="“Add with AI”" />
         ) : phase === 'loading' ? (
           <Stack alignItems="center" spacing={1.5} sx={{ py: 5 }}>
-            <CircularProgress size={28} />
+            <Spinner size="lg" />
             <Typography color="text.secondary">
               {mode === 'link' ? 'Reading the posting…' : 'Extracting details…'}
             </Typography>
@@ -181,7 +171,9 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
                   {job.requirements.map((r, i) => (
-                    <Chip key={i} label={r} size="small" variant="outlined" />
+                    <Badge key={i} tone="neutral">
+                      {r}
+                    </Badge>
                   ))}
                 </Box>
               </Box>
@@ -194,16 +186,14 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
                   {job.matched.map((m, i) => (
-                    <Chip key={`m${i}`} label={m} size="small" color="success" variant="outlined" />
+                    <Badge key={`m${i}`} tone="success">
+                      {m}
+                    </Badge>
                   ))}
                   {job.gaps.map((g, i) => (
-                    <Chip
-                      key={`g${i}`}
-                      label={`Gap: ${g}`}
-                      size="small"
-                      color="warning"
-                      variant="outlined"
-                    />
+                    <Badge key={`g${i}`} tone="warning">
+                      Gap: {g}
+                    </Badge>
                   ))}
                 </Box>
               </Box>
@@ -217,22 +207,18 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
           </Stack>
         ) : (
           <Stack spacing={1.5}>
-            <ToggleButtonGroup
-              value={mode}
-              exclusive
-              size="small"
-              onChange={(_, v) => v && setMode(v)}
-              sx={{
-                '& .MuiToggleButton-root': {
-                  textTransform: 'none',
-                  px: 1.5,
-                  py: 0.5,
-                },
-              }}
-            >
-              <ToggleButton value="link">From a link</ToggleButton>
-              <ToggleButton value="text">Paste description</ToggleButton>
-            </ToggleButtonGroup>
+            <Box sx={{ alignSelf: 'flex-start' }}>
+              <SegmentedControl
+                aria-label="Intake mode"
+                size="sm"
+                value={mode}
+                onChange={(v) => setMode(v as typeof mode)}
+                options={[
+                  { value: 'link', label: 'From a link' },
+                  { value: 'text', label: 'Paste description' },
+                ]}
+              />
+            </Box>
 
             <TextField
               label="Job link"
@@ -265,7 +251,7 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
               <Button size="small" variant="text" onClick={() => setShowSkills((s) => !s)}>
                 {showSkills ? 'Hide your skills' : 'Add your skills (improves match/gap)'}
               </Button>
-              <Collapse in={showSkills}>
+              <Reveal open={showSkills}>
                 <TextField
                   label="Your skills / profile"
                   placeholder="e.g. React, TypeScript, design systems, accessibility, Figma…"
@@ -276,7 +262,7 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
                   onChange={(e) => setSkills(e.target.value)}
                   sx={{ mt: 1 }}
                 />
-              </Collapse>
+              </Reveal>
             </Box>
           </Stack>
         )}
