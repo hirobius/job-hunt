@@ -28,7 +28,7 @@ export const CASES: Record<string, CaseStudy> = {
     tagline: 'A job-application tracker + discovery board — designed and shipped to production.',
     liveUrl: 'https://job-hunt-jade.vercel.app',
     meta: [
-      ['Stack', 'Vite · React 18 · TypeScript · MUI v6 · Supabase · Vercel'],
+      ['Stack', 'Vite · React 18 · TypeScript · HDS (design system) · Supabase · Vercel'],
       ['Role', 'Sole designer + engineer — design system, architecture, build'],
       ['Workflow', 'Directed an AI agentic coding workflow end to end'],
     ],

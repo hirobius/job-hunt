@@ -1,8 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- provider + hook co-located by design */
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import { makeTheme } from './theme';
 
 export type ColorMode = 'light' | 'dark';
 const STORAGE_KEY = 'rjb_color_mode';
@@ -24,8 +21,8 @@ function initialMode(): ColorMode {
   return 'dark';
 }
 
-/** Owns the color mode: persists it, sets `data-theme` on <html> (HDS 0.9.0 flips its
- *  token variables on [data-theme="dark"]), and provides the matching MUI theme. */
+/** Owns the color mode: persists it and sets `data-theme` on <html> — HDS flips its token
+ *  CSS variables on [data-theme="dark"], so no theme object is needed (MUI is gone, #11). */
 export function ColorModeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ColorMode>(initialMode);
 
@@ -38,18 +35,10 @@ export function ColorModeProvider({ children }: { children: ReactNode }) {
     }
   }, [mode]);
 
-  const theme = useMemo(() => makeTheme(mode), [mode]);
   const value = useMemo(
     () => ({ mode, toggle: () => setMode((m) => (m === 'dark' ? 'light' : 'dark')) }),
     [mode],
   );
 
-  return (
-    <ColorModeContext.Provider value={value}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        {children}
-      </ThemeProvider>
-    </ColorModeContext.Provider>
-  );
+  return <ColorModeContext.Provider value={value}>{children}</ColorModeContext.Provider>;
 }

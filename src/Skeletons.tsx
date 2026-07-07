@@ -1,7 +1,7 @@
 // Suspense fallbacks shaped like the view they stand in for, so the layout doesn't jump
 // when the real chunk loads (replaces a centered spinner). HDS Skeleton/Card; MUI only
 // for the Box/Stack layout primitives (last sweep, issue #11).
-import { Box, Stack } from '@mui/material';
+import { Box, Stack } from './ui/box';
 import { Card, Skeleton } from '@hirobius/design-system';
 
 const gridSx = {

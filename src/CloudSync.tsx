@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Stack, Typography } from './ui/box';
+import { Tooltip } from './ui/Tooltip';
 import { IconButton as HdsIconButton, Input as HdsInput } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import { X } from 'lucide-react';

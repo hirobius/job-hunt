@@ -1,17 +1,12 @@
 import { useState } from 'react';
+import { Box, Stack, Typography } from './ui/box';
+import { Dialog, DialogActions, DialogContent, DialogTitle } from './ui/Dialog';
 import {
-  Box,
-  Chip,
-  Collapse,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  MenuItem,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
+  Input as HdsInput,
+  SegmentedControl,
+  Tag,
+} from '@hirobius/design-system';
+import { Reveal } from './ui/Reveal';
 import { Button } from './ui/Button';
 import {
   usePillars,
@@ -47,12 +42,9 @@ function ChipListEditor({
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
         {values.map((v) => (
-          <Chip
-            key={v}
-            label={v}
-            size="small"
-            onDelete={() => onChange(values.filter((x) => x !== v))}
-          />
+          <Tag key={v} onClick={() => onChange(values.filter((x) => x !== v))}>
+            {v} ✕
+          </Tag>
         ))}
         {values.length === 0 && (
           <Typography variant="caption" color="text.secondary">
@@ -61,20 +53,22 @@ function ChipListEditor({
         )}
       </Box>
       <Stack direction="row" spacing={1}>
-        <TextField
-          size="small"
-          fullWidth
-          placeholder={`Add ${label.toLowerCase()}…`}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              add();
-            }
-          }}
-        />
-        <Button onClick={add} disabled={!draft.trim()}>
+        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+          <HdsInput
+            size="sm"
+            placeholder={`Add ${label.toLowerCase()}…`}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                add();
+              }
+            }}
+            style={{ width: '100%' }}
+          />
+        </Box>
+        <Button onClick={add} disabled={!draft.trim()} sx={{ flex: 'none' }}>
           Add
         </Button>
       </Stack>
@@ -101,17 +95,20 @@ function GroupsEditor({ groups, onChange }: { groups: Group[]; onChange: (g: Gro
       {groups.map((g, gi) => (
         <Box key={g.id} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.25 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-            <TextField
-              size="small"
-              fullWidth
-              label="Group label"
-              value={g.label}
-              onChange={(e) => setGroup(gi, { label: e.target.value })}
-            />
+            <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+              <HdsInput
+                size="sm"
+                label="Group label"
+                value={g.label}
+                onChange={(e) => setGroup(gi, { label: e.target.value })}
+                style={{ width: '100%' }}
+              />
+            </Box>
             <Button
               size="small"
               color="error"
               onClick={() => onChange(groups.filter((_, i) => i !== gi))}
+              sx={{ flex: 'none' }}
             >
               Remove
             </Button>
@@ -124,31 +121,38 @@ function GroupsEditor({ groups, onChange }: { groups: Group[]; onChange: (g: Gro
                 spacing={1}
                 alignItems="center"
               >
-                <TextField
-                  size="small"
-                  label="Name"
-                  value={t.name}
-                  onChange={(e) => setTile(gi, ti, { name: e.target.value })}
-                  sx={{ flex: 1, minWidth: 0 }}
-                />
-                <TextField
-                  size="small"
-                  label="URL"
-                  value={t.url}
-                  onChange={(e) => setTile(gi, ti, { url: e.target.value })}
-                  sx={{ flex: 1.3, minWidth: 0 }}
-                />
-                <TextField
-                  size="small"
-                  label="Note"
-                  value={t.meta}
-                  onChange={(e) => setTile(gi, ti, { meta: e.target.value })}
-                  sx={{ flex: 1, minWidth: 0 }}
-                />
+                <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+                  <HdsInput
+                    size="sm"
+                    label="Name"
+                    value={t.name}
+                    onChange={(e) => setTile(gi, ti, { name: e.target.value })}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
+                <Box sx={{ flex: 1.3, minWidth: 0, '& > *': { width: '100%' } }}>
+                  <HdsInput
+                    size="sm"
+                    label="URL"
+                    value={t.url}
+                    onChange={(e) => setTile(gi, ti, { url: e.target.value })}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+                  <HdsInput
+                    size="sm"
+                    label="Note"
+                    value={t.meta}
+                    onChange={(e) => setTile(gi, ti, { meta: e.target.value })}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
                 <Button
                   size="small"
                   color="error"
                   onClick={() => setGroup(gi, { tiles: g.tiles.filter((_, i) => i !== ti) })}
+                  sx={{ flex: 'none' }}
                 >
                   ✕
                 </Button>
@@ -194,14 +198,9 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
         <Stack spacing={2}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
             {pillars.map((p) => (
-              <Chip
-                key={p.id}
-                label={p.builtIn ? `${p.label} · built-in` : p.label}
-                size="small"
-                color={p.id === sel ? 'primary' : 'default'}
-                variant={p.id === sel ? 'filled' : 'outlined'}
-                onClick={() => setSel(p.id)}
-              />
+              <Tag key={p.id} active={p.id === sel} onClick={() => setSel(p.id)}>
+                {p.builtIn ? `${p.label} · built-in` : p.label}
+              </Tag>
             ))}
             <Button size="small" style={{ marginLeft: 'auto' }} onClick={() => setSel(createPillar())}>
               New
@@ -224,41 +223,49 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
             </Box>
           ) : (
             <>
-              <TextField
+              <HdsInput
                 label="Label"
-                size="small"
-                fullWidth
+                size="sm"
                 value={pillar.label}
                 onChange={(e) => set({ label: e.target.value })}
+                style={{ width: '100%' }}
               />
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <TextField
-                  select
-                  size="small"
-                  label="Seniority"
-                  value={pillar.seniority}
-                  onChange={(e) => set({ seniority: e.target.value as Seniority })}
-                  sx={{ minWidth: 160 }}
-                  helperText="Entry-level adds entry filters to searches"
-                >
-                  <MenuItem value="entry">Entry-level</MenuItem>
-                  <MenuItem value="experienced">Experienced</MenuItem>
-                  <MenuItem value="any">Any</MenuItem>
-                </TextField>
-                <TextField
-                  size="small"
-                  label="Default location"
-                  fullWidth
-                  value={pillar.location}
-                  onChange={(e) => set({ location: e.target.value })}
-                />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="flex-start">
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                    Seniority
+                  </Typography>
+                  <SegmentedControl
+                    aria-label="Seniority"
+                    size="sm"
+                    value={pillar.seniority}
+                    onChange={(v) => set({ seniority: v as Seniority })}
+                    options={[
+                      { value: 'entry', label: 'Entry-level' },
+                      { value: 'experienced', label: 'Experienced' },
+                      { value: 'any', label: 'Any' },
+                    ]}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    Entry-level adds entry filters to searches
+                  </Typography>
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+                  <HdsInput
+                    size="sm"
+                    label="Default location"
+                    value={pillar.location}
+                    onChange={(e) => set({ location: e.target.value })}
+                    style={{ width: '100%' }}
+                  />
+                </Box>
               </Stack>
-              <TextField
-                size="small"
+              <HdsInput
+                size="sm"
                 label="AI-tailor target role"
-                fullWidth
                 value={pillar.tailorRole ?? ''}
                 onChange={(e) => set({ tailorRole: e.target.value })}
+                style={{ width: '100%' }}
               />
               <ChipListEditor
                 label="Titles"
@@ -274,11 +281,11 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
                 <Button size="small" onClick={() => setShowGroups((v) => !v)}>
                   {showGroups ? 'Hide' : 'Edit'} Discover groups ({pillar.groups.length})
                 </Button>
-                <Collapse in={showGroups}>
+                <Reveal open={showGroups}>
                   <Box sx={{ mt: 1 }}>
                     <GroupsEditor groups={pillar.groups} onChange={(g) => set({ groups: g })} />
                   </Box>
-                </Collapse>
+                </Reveal>
               </Box>
               <Button color="error" onClick={remove} style={{ alignSelf: 'flex-start' }}>
                 Delete pillar

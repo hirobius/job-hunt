@@ -1,18 +1,9 @@
 import { useRef, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Box, Divider, Stack, Typography } from '../ui/box';
+import { Badge, Spinner, Tag } from '@hirobius/design-system';
+import { Alert } from '../ui/Alert';
+import { Dialog, DialogActions, DialogContent, DialogTitle } from '../ui/Dialog';
+import { TextField } from '../ui/TextField';
 import { Button } from '../ui/Button';
 import { tailorResume } from './tailorResume';
 import AiNotConfigured from './AiNotConfigured';
@@ -115,7 +106,7 @@ export default function TailorDialog({
           <AiNotConfigured feature="Résumé tailoring" />
         ) : phase === 'loading' ? (
           <Stack alignItems="center" spacing={1.5} sx={{ py: 5 }}>
-            <CircularProgress size={28} />
+            <Spinner size="lg" />
             <Typography color="text.secondary">Tailoring your résumé… (~20–40s)</Typography>
           </Stack>
         ) : phase === 'result' && result ? (
@@ -148,7 +139,9 @@ export default function TailorDialog({
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
                   {result.skills.map((s, i) => (
-                    <Chip key={i} label={s} size="small" variant="outlined" />
+                    <Badge key={i} tone="neutral">
+                      {s}
+                    </Badge>
                   ))}
                 </Box>
               </Box>
@@ -212,7 +205,9 @@ export default function TailorDialog({
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
                   {result.unsupported.map((u, i) => (
-                    <Chip key={i} label={u} size="small" color="warning" variant="outlined" />
+                    <Badge key={i} tone="warning">
+                      {u}
+                    </Badge>
                   ))}
                 </Box>
                 <Typography variant="caption" color="text.secondary">
@@ -245,10 +240,7 @@ export default function TailorDialog({
             />
             {pillar.tailorRole && (
               <Box>
-                <Chip
-                  size="small"
-                  variant="outlined"
-                  label={`+ ${pillar.label} target: ${pillar.tailorRole}`}
+                <Tag
                   onClick={() =>
                     setRole((r) =>
                       r.startsWith('Target role:')
@@ -256,7 +248,9 @@ export default function TailorDialog({
                         : `Target role: ${pillar.tailorRole}\n\n${r}`,
                     )
                   }
-                />
+                >
+                  + {pillar.label} target: {pillar.tailorRole}
+                </Tag>
               </Box>
             )}
           </Stack>

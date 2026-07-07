@@ -1,9 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider } from '@mui/material/styles';
 import TrackerView from './TrackerView';
-import { makeTheme } from './theme';
 import { getAllJobs, removeJob } from './store';
 
 afterEach(() => {
@@ -14,11 +12,7 @@ afterEach(() => {
 });
 
 const renderTracker = () =>
-  render(
-    <ThemeProvider theme={makeTheme('dark')}>
-      <TrackerView />
-    </ThemeProvider>,
-  );
+  render(<TrackerView />);
 
 describe('TrackerView', () => {
   it('adds a pasted job URL to the queue', async () => {

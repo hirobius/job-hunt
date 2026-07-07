@@ -1,11 +1,6 @@
 import { useState } from 'react';
-import {
-  Box,
-  InputBase,
-  Stack,
-  TextField,
-} from '@mui/material';
-import { Card as HdsCard } from '@hirobius/design-system';
+import { Box, Stack } from './ui/box';
+import { Card as HdsCard, Textarea } from '@hirobius/design-system';
 import { Button } from './ui/Button';
 import { Reveal } from './ui/Reveal';
 import EmptyState from './EmptyState';
@@ -67,12 +62,19 @@ export default function CopyDeckView() {
           {visible.map((s) => (
             <HdsCard key={s.id} bordered padding="none">
               <Box sx={{ p: 2 }}>
-                <InputBase
+                <Box
+                  as="input"
                   value={s.label}
                   placeholder="Label"
-                  onChange={(e) => updateSnippet(s.id, { label: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    updateSnippet(s.id, { label: e.target.value })
+                  }
                   sx={{
                     width: '100%',
+                    border: 0,
+                    background: 'transparent',
+                    color: 'text.primary',
+                    outline: 'none',
                     fontFamily: '"Clash Display", sans-serif',
                     fontWeight: 600,
                     fontSize: '1.1rem',
@@ -97,14 +99,12 @@ export default function CopyDeckView() {
                   </Button>
                 </Stack>
                 <Reveal open={!!s.open}>
-                  <TextField
-                    fullWidth
-                    multiline
-                    minRows={4}
+                  <Textarea
+                    rows={4}
                     value={s.body}
                     placeholder="Paste or write your snippet…"
                     onChange={(e) => updateSnippet(s.id, { body: e.target.value })}
-                    sx={{ mt: 1 }}
+                    style={{ width: '100%', marginTop: 8 }}
                   />
                 </Reveal>
               </Box>

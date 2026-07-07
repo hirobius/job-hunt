@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
-import { ThemeProvider } from '@mui/material/styles';
 import { axe } from 'vitest-axe';
 import TrackerView from './TrackerView';
 import CopyDeckView from './CopyDeckView';
@@ -9,7 +8,6 @@ import CaseStudyView from './CaseStudyView';
 import AiIntakeDialog from './ai/AiIntakeDialog';
 import TailorDialog from './ai/TailorDialog';
 import AiNotConfigured from './ai/AiNotConfigured';
-import { makeTheme } from './theme';
 import { getAllJobs, removeJob } from './store';
 import type { Job } from './types';
 
@@ -20,9 +18,7 @@ import type { Job } from './types';
  * single-h1) that only apply to a full document.
  */
 
-const theme = makeTheme('dark');
-const withTheme = (ui: React.ReactNode) =>
-  render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
+const withTheme = (ui: React.ReactNode) => render(<>{ui}</>);
 
 async function auditA11y(el: Element) {
   const results = await axe(el, {

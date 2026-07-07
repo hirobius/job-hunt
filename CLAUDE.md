@@ -11,26 +11,33 @@ commit `f15fd52`).
 
 ## Stack & conventions
 
-- **Vite + React 18 + TypeScript + HDS (`@hirobius/design-system`), with residual MUI v6.**
-  The component layer is mid-strangler (ADR-0004/0005): Buttons, Cards, Tag/Badge,
-  SegmentedControl, IconButton (lucide icons), Input, Tabs, and Menu are **real HDS
-  components**; MUI still renders Tooltip + multiline TextField, the dialogs (#7), and layout
-  primitives (Box/Stack/Container/Typography). **As of HDS 0.11, the upstream gaps are shipping:**
-  HDS now exports `Tooltip`, `Textarea`, `Skeleton`, and `Combobox` — so issues #8/#9/#10 are now
-  unblocked and those MUI usages can migrate (not yet done). `src/ui/Button.tsx` is the migration
-  seam (accepts both MUI and HDS prop dialects). Final MUI deletion is issue #11.
+- **Vite + React 18 + TypeScript + HDS (`@hirobius/design-system`). MUI is fully removed
+  (issue #11 done).** Every component is **real HDS** (Buttons, Cards, Tag/Badge,
+  SegmentedControl, IconButton/lucide, Input, Textarea, Tabs, Menu, Dialog, Tooltip, Alert,
+  Spinner, Skeleton, Combobox). The gap HDS leaves — a generic `Box` and an `sx` escape hatch
+  for one-off layout — is filled by a small, MUI/emotion-free primitive set in **`src/ui/`**,
+  written to be routable upstream to HDS:
+  - **`src/ui/box.tsx`** — a token-aware `sx` engine (spacing shorthands, HDS token color map,
+    responsive `{xs,sm,md}` objects, nested `&` selectors → cached injected CSS classes) plus
+    the `Box`/`Stack`/`Typography`/`Container`/`Link`/`Divider` primitives on top.
+  - Thin adapters preserving the MUI call shape on HDS components: **`ui/Dialog.tsx`**
+    (Dialog/DialogTitle/DialogContent/DialogActions → HDS compound Dialog), **`ui/Tooltip.tsx`**
+    (`<Tooltip title>` → HdsTooltip), **`ui/Alert.tsx`** (`severity`+`onClose` → HDS Alert),
+    **`ui/TextField.tsx`** (→ HDS Input/Textarea). `ui/Button.tsx` is the Button seam.
+  - ⚠️ **No MUI `sx` on HDS components** — HDS takes semantic token props, not `sx`. Use the
+    `src/ui` primitives (which DO take `sx`) for ad-hoc layout, HDS components for everything else.
 - **Design language:** jade dark theme; headlines **Clash Display**, body **Satoshi**
   (loaded via Fontshare CDN in `index.html`). Uppercase is reserved for
   eyebrows/buttons/labels only.
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
   npm** (`^0.11.0`, no auth) — see `docs/adr/0005`. `main.tsx` imports
   `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` — set on
-  `<body>` in `index.html`) then `src/theme/brand-jade.css` (jade accent override). MUI
-  themes from the `/mui` preset (`hdsMuiThemeOptions()`, token CSS vars; light/dark flips
-  via `data-theme` on `<html>`, set by `ColorMode`). Status colors are HDS feedback
-  tokens; status/destructive actions use HDS `Button tone` / `Badge tone`; remaining MUI
-  migrates surface-by-surface (ADR-0004). AA contrast is enforced by
-  `src/theme.contrast.test.ts` against the shipped `variables.css`.
+  `<body>` in `index.html`), then `src/theme/brand-jade.css` (jade accent override), then
+  `src/theme/base.css` (the border-box + body reset/chrome MUI's `CssBaseline` used to give,
+  now that MUI is gone). Theming is pure HDS token CSS vars — **no MUI theme object**; `ColorMode`
+  just flips `data-theme` on `<html>` (light/dark) and HDS's variables cascade. Status colors are
+  HDS feedback tokens; status/destructive actions use HDS `Button tone` / `Badge tone`. AA contrast
+  is enforced by `src/theme.contrast.test.ts` against the shipped `variables.css`.
   ⚠️ `vite.config.ts` manualChunks must match react EXACTLY — a loose
   `includes('react')` catches HDS's radix/lucide deps → circular-chunk startup crash.
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`

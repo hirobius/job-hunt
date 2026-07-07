@@ -1,11 +1,5 @@
 import React, { lazy, Suspense, useMemo, useRef, useState } from 'react';
-import {
-  Box,
-  Link,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Box, Link, Stack, Typography } from './ui/box';
 import { EllipsisVertical, Sparkles, ArrowUpDown } from 'lucide-react';
 import {
   Badge,
@@ -14,6 +8,7 @@ import {
   Input as HdsInput,
   Menu as HdsMenu,
   SegmentedControl,
+  Textarea,
 } from '@hirobius/design-system';
 import { Button as UiButton } from './ui/Button';
 import { Reveal } from './ui/Reveal';
@@ -141,21 +136,18 @@ export default function TrackerView() {
     addJob(url);
     setUrl('');
   };
-  // Single-line fields are HDS Input (label slot built in); multiline (Notes) stays
-  // MUI TextField until HDS ships a Textarea.
+  // Single-line fields are HDS Input; multiline (Notes) is HDS Textarea (both HDS since #11).
   const fld = (j: Job, key: keyof Job, label: string, multiline = false) =>
     multiline ? (
-      <TextField
-        size="small"
-        fullWidth
+      <Textarea
         label={label}
-        multiline
-        minRows={2}
+        rows={2}
         value={(j[key] as string) || ''}
         onChange={(e) => {
           updateJob(j.url, { [key]: e.target.value });
           flashSaved(j.url);
         }}
+        style={{ width: '100%' }}
       />
     ) : (
       <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>

@@ -1,9 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { ThemeProvider } from '@mui/material/styles';
 import TrackerView from './TrackerView';
 import DiscoverView from './DiscoverView';
-import { makeTheme } from './theme';
 import { getAllJobs, removeJob } from './store';
 
 afterEach(() => {
@@ -13,8 +11,7 @@ afterEach(() => {
     .forEach((j) => removeJob(j.url));
 });
 
-const withTheme = (ui: React.ReactNode) =>
-  render(<ThemeProvider theme={makeTheme('dark')}>{ui}</ThemeProvider>);
+const withTheme = (ui: React.ReactNode) => render(<>{ui}</>);
 
 describe('aria wiring', () => {
   it('Tracker filter group exposes an accessible name', () => {

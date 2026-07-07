@@ -1,5 +1,5 @@
-import { Box, Link, Stack, Typography } from '@mui/material';
-import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import { Box, Link, Stack, Typography } from '../ui/box';
+import { Sparkles } from 'lucide-react';
 
 const REPO_URL = 'https://github.com/hirobius/job-hunt';
 
@@ -24,7 +24,7 @@ export default function AiNotConfigured({ feature = 'The AI features' }: { featu
     >
       <Stack spacing={1.25}>
         <Stack direction="row" spacing={1} alignItems="center">
-          <AutoAwesomeOutlinedIcon fontSize="small" color="primary" />
+          <Sparkles size={18} style={{ color: 'var(--semantic-accent-rest)', flex: 'none' }} />
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             Live demo — AI runs on your own key
           </Typography>

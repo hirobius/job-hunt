@@ -1,10 +1,12 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 // HDS consumed directly from public npm (ADR-0005): styles.css = tokens + component
-// styles + utilities with NO global reset (scoped to [data-hds], set on <body> so MUI
-// portals stay inside the scope). brand-jade.css remaps the accent to jade after it.
+// styles + utilities with NO global reset (scoped to [data-hds], set on <body>).
+// brand-jade.css remaps the accent to jade; base.css supplies the reset/body chrome MUI's
+// CssBaseline used to (MUI is gone — issue #11).
 import '@hirobius/design-system/styles.css';
 import './theme/brand-jade.css';
+import './theme/base.css';
 import { inject } from '@vercel/analytics';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
