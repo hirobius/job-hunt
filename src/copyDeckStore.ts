@@ -56,8 +56,11 @@ const CALL_SCRIPT: Snippet = {
 
 function load(): Snippet[] {
   let arr: Snippet[] = DEFAULTS;
+  let hadKey = false;
   try {
-    const r = JSON.parse(localStorage.getItem(KEY) || 'null');
+    const raw = localStorage.getItem(KEY);
+    hadKey = !!raw;
+    const r = JSON.parse(raw || 'null');
     if (Array.isArray(r) && r.length) arr = r.map((s: Snippet) => ({ ...s, id: s.id || newId() }));
   } catch {
     /* ignore */
@@ -71,6 +74,18 @@ function load(): Snippet[] {
     }
   } catch {
     /* ignore */
+  }
+  // Persist the seeded set on the very first load (KEY absent). createStore doesn't persist
+  // its initial value, and the one-time flag above would block re-seeding on the next load —
+  // so without this, a brand-new user who refreshes before touching the deck loses the pinned
+  // call sheet + script, left with only DEFAULTS. Writing KEY once makes the seed durable;
+  // later loads read KEY directly and deletions still stick (KEY re-persisted without them).
+  if (!hadKey) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(arr));
+    } catch {
+      /* ignore */
+    }
   }
   return arr;
 }
