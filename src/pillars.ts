@@ -56,7 +56,13 @@ const WELDING_TITLES = [
   'Machine Operator',
   'Maintenance Technician',
 ];
-const WELDING_ATS_ROLES = ['welder', 'CNC machinist', 'machinist', 'machine operator', 'fabricator'];
+const WELDING_ATS_ROLES = [
+  'welder',
+  'CNC machinist',
+  'machinist',
+  'machine operator',
+  'fabricator',
+];
 
 // ---- Welding & Machining ----
 export const WELDING_PILLAR: Pillar = {
@@ -83,7 +89,13 @@ const CONSTRUCTION_TITLES = [
   'Boilermaker',
   'Plumber Apprentice',
 ];
-const CONSTRUCTION_ATS_ROLES = ['apprentice', 'laborer', 'HVAC installer', 'concrete finisher', 'ironworker'];
+const CONSTRUCTION_ATS_ROLES = [
+  'apprentice',
+  'laborer',
+  'HVAC installer',
+  'concrete finisher',
+  'ironworker',
+];
 
 // ---- Construction Trades (union JATCs + non-union portals) ----
 export const CONSTRUCTION_PILLAR: Pillar = {
@@ -98,8 +110,44 @@ export const CONSTRUCTION_PILLAR: Pillar = {
   builtIn: true,
 };
 
+const DESIGN_SYSTEMS_TITLES = [
+  'Design Systems Engineer',
+  'Design Engineer',
+  'Frontend Engineer',
+  'Design Technologist',
+  'UI Engineer',
+  'Component Library Engineer',
+  'Staff Frontend Engineer',
+  'Product Designer',
+];
+const DESIGN_SYSTEMS_ATS_ROLES = [
+  'design systems',
+  'design engineer',
+  'frontend engineer',
+  'design technologist',
+  'UI engineer',
+];
+
+// ---- Design Systems (the parallel non-trades track: remote, experienced) ----
+// NOTE: the Title-search BOARDS hard-code Spokane (a shared limitation of every pillar —
+// the Discover location control is deferred), so this pillar's remote value comes from the
+// ATS tab (defaults to Remote via `location`, drops the entry clause via `seniority`) and
+// the curated `ds-brief` "Apply Now" group (hand-authored remote URLs).
+export const DESIGN_SYSTEMS_PILLAR: Pillar = {
+  id: 'designsystems',
+  label: 'Design Systems',
+  titles: DESIGN_SYSTEMS_TITLES,
+  atsRoles: DESIGN_SYSTEMS_ATS_ROLES,
+  seniority: 'experienced',
+  location: 'Remote',
+  tailorRole: 'Design Systems Engineer',
+  groups: pick('ds-brief'),
+  builtIn: true,
+};
+
 export const BUILTIN_PILLARS: Pillar[] = [
   SHEET_METAL_PILLAR,
   WELDING_PILLAR,
   CONSTRUCTION_PILLAR,
+  DESIGN_SYSTEMS_PILLAR,
 ];

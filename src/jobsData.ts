@@ -120,6 +120,46 @@ export const ATS: { name: string; domain: string; site: string }[] = [
 // ---- Curated groups ----
 export const GROUPS: Group[] = [
   {
+    // Design Systems "Apply Now" — the parallel (non-trades) track: remote design-systems /
+    // design-engineering roles. Board rule holds: live remote searches + ATS Google-dorks
+    // (the low-competition hidden-jobs angle), no one-off postings. Remote by construction,
+    // so it sidesteps the Spokane-locked Title-search BOARDS.
+    id: 'ds-brief',
+    label: 'Apply Now',
+    tiles: [
+      t(
+        'LinkedIn · Design Systems (Remote)',
+        'Live remote design-systems / design-engineer roles',
+        'https://www.linkedin.com/jobs/search/?keywords=design%20systems%20engineer&location=United%20States&f_WT=2',
+      ),
+      t(
+        'Indeed · Design Systems (Remote)',
+        'All live remote design-systems postings',
+        'https://www.indeed.com/jobs?q=design+systems+engineer&l=Remote',
+      ),
+      t(
+        'Google Jobs · Design Engineer (Remote)',
+        'Aggregated remote design-engineer roles',
+        'https://www.google.com/search?q=design+systems+engineer+remote&ibp=htl;jobs',
+      ),
+      t(
+        'Greenhouse · Design Systems (hidden jobs)',
+        'Google-dork into Greenhouse boards · less competition',
+        'https://www.google.com/search?q=%28site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io%29+%22design+systems%22+remote',
+      ),
+      t(
+        'Lever · Design Engineer (hidden jobs)',
+        'Google-dork into Lever boards · less competition',
+        'https://www.google.com/search?q=site%3Ajobs.lever.co+%22design+engineer%22+remote',
+      ),
+      t(
+        'Ashby · Design Systems (hidden jobs)',
+        'Google-dork into Ashby boards · less competition',
+        'https://www.google.com/search?q=site%3Ajobs.ashbyhq.com+%22design+systems%22+remote',
+      ),
+    ],
+  },
+  {
     // Sheet-metal & fab "Apply Now" — durable Spokane-area employer pages that hire and
     // train on the bench. Board rule holds: careers pages + 1-click local searches, no
     // one-off postings.

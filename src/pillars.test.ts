@@ -4,12 +4,13 @@ import {
   SHEET_METAL_PILLAR,
   WELDING_PILLAR,
   CONSTRUCTION_PILLAR,
+  DESIGN_SYSTEMS_PILLAR,
   CROSS_CUTTING_GROUPS,
 } from './pillars';
 
 describe('built-in pillars', () => {
-  it('exposes three well-formed trades pillars', () => {
-    expect(BUILTIN_PILLARS).toHaveLength(3);
+  it('exposes four well-formed pillars', () => {
+    expect(BUILTIN_PILLARS).toHaveLength(4);
     for (const p of BUILTIN_PILLARS) {
       expect(p.titles.length).toBeGreaterThan(0);
       expect(p.atsRoles.length).toBeGreaterThan(0);
@@ -19,12 +20,19 @@ describe('built-in pillars', () => {
     }
   });
 
-  it('leads with Sheet Metal & Fab and every trade defaults to entry-level, Spokane', () => {
+  it('leads with Sheet Metal & Fab; the three trades default to entry-level Spokane', () => {
     expect(BUILTIN_PILLARS[0]).toBe(SHEET_METAL_PILLAR);
-    for (const p of BUILTIN_PILLARS) {
+    for (const p of [SHEET_METAL_PILLAR, WELDING_PILLAR, CONSTRUCTION_PILLAR]) {
       expect(p.seniority).toBe('entry');
       expect(p.location).toContain('Spokane');
     }
+  });
+
+  it('adds a Design Systems track that is remote + experienced (the parallel non-trades pillar)', () => {
+    expect(BUILTIN_PILLARS).toContain(DESIGN_SYSTEMS_PILLAR);
+    expect(DESIGN_SYSTEMS_PILLAR.seniority).toBe('experienced');
+    expect(DESIGN_SYSTEMS_PILLAR.location).toBe('Remote');
+    expect(DESIGN_SYSTEMS_PILLAR.groups[0].id).toBe('ds-brief');
   });
 
   it('resolves every referenced group id — pick() drops unknowns silently', () => {
