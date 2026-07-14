@@ -9,10 +9,11 @@
 //      remote; grouped separately so the board's apprenticeship core stays honest.
 // Deliberately NO static one-off job postings: liveness can't be verified ahead of time.
 //
-// Re-verified Jun 2026 for "open + Spokane-or-remote eligible." NOTE: most program hosts
+// Re-verified Jul 2026 for "open + Spokane-or-remote eligible." NOTE: most program hosts
 // bot-block / proxy-block automated fetches, so statuses below were confirmed via live web
 // search (indexed, current 2026 pages) rather than direct page loads — re-confirm any hard
-// date by phone / on the live page before relying on it.
+// date by phone / on the live page before relying on it. Cycle-gated union JATCs whose exact
+// window couldn't be re-confirmed carry a "confirm on the live page" note instead of a stale date.
 // Dropped as out-of-parameters: Year Up (age cap 29), Boeing BTAP (on-site, non-Spokane),
 // Northwest HVAC/R (9-mo UNPAID), Kaiser MA (Spokane cohort unconfirmed). Cycle-gated kept
 // with a window note; window-only-when-open programs (Elevator/NEIEP) left off until a
@@ -60,7 +61,7 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
   },
   {
     id: 'spk-medical',
-    label: 'Spokane — healthcare apprenticeships (verified Jun 2026)',
+    label: 'Spokane — healthcare apprenticeships (verified Jul 2026)',
     archived: true,
     tiles: [
       t(
@@ -107,11 +108,11 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
   },
   {
     id: 'spk-trades',
-    label: 'Spokane — union trades JATCs (web-checked Jun 2026)',
+    label: 'Spokane — union trades JATCs (web-checked Jul 2026)',
     tiles: [
       t(
         'Operating Engineers IUOE 302',
-        'OPEN now · heavy-equipment operator · apply by Nov 6 2026 · training Spring 2027',
+        'Heavy-equipment operator · online application window — confirm the current deadline on the live page · training follows in spring',
         'https://oetraining.unionimpact.com/',
       ),
       t(
@@ -126,7 +127,7 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
       ),
       t(
         'UA Local 44 — Plumbers & Steamfitters',
-        'Window-based (May & Nov) · next deadline ~Oct 9 2026 · in-person pickup',
+        'Window-based (typically May & Nov) · confirm the next application date on the live page · in-person pickup',
         'https://ua44.org/',
       ),
       t(
@@ -171,7 +172,7 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
       ),
       t(
         'IBEW Local 73 — Electrical',
-        '2026 intake CLOSED (slots filled) · reopens ~Jan–Mar 2027 · join wait-list now',
+        '2026 intake CLOSED (slots filled) · reopens ~Jan–Mar 2027 · apply via Inland Empire Electrical · 509-534-0922',
         'https://www.inlandelectrical.org/how-to-apply/',
       ),
       t(
@@ -328,6 +329,21 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
         'ZipRecruiter · welder, no experience (Spokane)',
         '1-click apply · entry welding',
         'https://www.ziprecruiter.com/jobs-search?search=welder+no+experience&location=Spokane%2C+WA',
+      ),
+      t(
+        'Glassdoor · welding (Spokane Valley)',
+        'All live Spokane Valley welding + fab postings',
+        'https://www.glassdoor.com/Job/spokane-valley-welding-jobs-SRCH_IL.0,14_IC1164793_KO15,22.htm',
+      ),
+      t(
+        'Indeed · welder / fabricator (Post Falls / CDA, ID)',
+        'Cross-border N. Idaho welding + fab roles',
+        'https://www.indeed.com/jobs?q=welder+OR+fabricator&l=Post+Falls%2C+ID',
+      ),
+      t(
+        'RWFAB',
+        'Family-owned fab shop · North Spokane · fabricator / welder openings',
+        'https://www.google.com/search?q=RWFAB+Spokane+careers+welder+fabricator',
       ),
       t(
         'SteelFab Inc',
@@ -577,7 +593,8 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
     // site/address is unconfirmed. Several N. Idaho shops (Post Falls / CDA) are a normal Spokane
     // commute. Lost & Foundry is a cheap class (not an employer) to build casting skill first.
     id: 'spk-foundry',
-    label: 'Spokane + N. Idaho — foundries, casting & decorative concrete (mold-making · will-train)',
+    label:
+      'Spokane + N. Idaho — foundries, casting & decorative concrete (mold-making · will-train)',
     tiles: [
       t(
         'Travis Pattern & Foundry',
@@ -695,7 +712,7 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
   },
   {
     id: 'remote-programs',
-    label: 'Remote — programs (web-checked Jun 2026)',
+    label: 'Remote — programs (web-checked Jul 2026)',
     archived: true,
     tiles: [
       t(
@@ -870,7 +887,7 @@ export const APPRENTICESHIP_GROUPS: Group[] = [
       ),
       t(
         'Microsoft MSSA',
-        'Free · service members/vets within 180 days of separation · next deadline Jul 6 2026',
+        'Free · service members/vets within 180 days of separation · rolling cohorts — check the site for the next start date',
         'https://military.microsoft.com/mssa/',
       ),
       t(
