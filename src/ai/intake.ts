@@ -10,19 +10,17 @@ export function jobTitle(job: Pick<ExtractedJob, 'title' | 'company'>): string {
   return title || company || '';
 }
 
-/** Compose a readable Notes block from the structured extraction. Empty sections
- *  are dropped so a sparse posting doesn't leave dangling headers. */
+/** Compose a readable Notes block from the structured extraction. Company, location
+ *  and seniority are now first-class Job fields (surfaced on the card), so they're
+ *  intentionally left out here — the note carries only the free-form detail
+ *  (requirements/fit) that has no dedicated field. Empty sections are dropped so a
+ *  sparse posting doesn't leave dangling headers. */
 export function composeNote(job: ExtractedJob): string {
   const out: string[] = [];
 
-  const meta = [job.company, job.location, job.seniority]
-    .map((s) => (s ?? '').trim())
-    .filter(Boolean);
-  if (meta.length) out.push(meta.join(' · '));
-
   const reqs = (job.requirements ?? []).map((s) => s.trim()).filter(Boolean);
   if (reqs.length) {
-    out.push('', 'Requirements:');
+    out.push('Requirements:');
     reqs.forEach((r) => out.push(`• ${r}`));
   }
 

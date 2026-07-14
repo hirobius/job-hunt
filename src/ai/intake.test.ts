@@ -25,13 +25,17 @@ describe('jobTitle', () => {
 });
 
 describe('composeNote', () => {
-  it('includes meta, requirements, matches and gaps', () => {
+  it('includes requirements, matches and gaps', () => {
     const note = composeNote(base);
-    expect(note).toContain('Acme · Remote · Senior');
     expect(note).toContain('Requirements:');
     expect(note).toContain('• React');
     expect(note).toContain('✓ Matches: React');
     expect(note).toContain('⚠ Gaps: Rust');
+  });
+  it('omits company/location/seniority (now first-class Job fields, not note prose)', () => {
+    const note = composeNote(base);
+    expect(note).not.toContain('Acme · Remote · Senior');
+    expect(note.startsWith('Requirements:')).toBe(true);
   });
   it('omits empty sections entirely', () => {
     const note = composeNote({

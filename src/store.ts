@@ -147,7 +147,14 @@ export function addJob(rawUrl: string, label?: string): boolean {
  *  the existing entry is left untouched so we never clobber the user's own notes. */
 export function addJobDetailed(
   rawUrl: string,
-  fields: { label?: string; salary?: string; note?: string },
+  fields: {
+    label?: string;
+    salary?: string;
+    note?: string;
+    company?: string;
+    location?: string;
+    seniority?: string;
+  },
 ): string | null {
   const jobs = store.get();
   let u = cleanUrl(rawUrl);
@@ -163,6 +170,9 @@ export function addJobDetailed(
   };
   if (fields.salary?.trim()) job.salary = fields.salary.trim();
   if (fields.note?.trim()) job.note = fields.note.trim();
+  if (fields.company?.trim()) job.company = fields.company.trim();
+  if (fields.location?.trim()) job.location = fields.location.trim();
+  if (fields.seniority?.trim()) job.seniority = fields.seniority.trim();
   set([...jobs, job]);
   return u;
 }

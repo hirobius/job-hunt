@@ -95,6 +95,9 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
       label: jobTitle(job),
       salary: job.salary,
       note: composeNote(job),
+      company: job.company,
+      location: job.location,
+      seniority: job.seniority,
     });
     if (stored) {
       close();
