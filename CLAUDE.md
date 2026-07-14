@@ -30,7 +30,7 @@ commit `f15fd52`).
   (loaded via Fontshare CDN in `index.html`). Uppercase is reserved for
   eyebrows/buttons/labels only.
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (`^0.11.0`, no auth) — see `docs/adr/0005`. `main.tsx` imports
+  npm** (`^0.13.0` — HDS's final, frozen release; no auth) — see `docs/adr/0005`. `main.tsx` imports
   `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` — set on
   `<body>` in `index.html`), then `src/theme/brand-jade.css` (jade accent override), then
   `src/theme/base.css` (the border-box + body reset/chrome MUI's `CssBaseline` used to give,
