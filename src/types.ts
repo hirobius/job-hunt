@@ -12,6 +12,9 @@ export interface Job {
   contact?: string;
   resume?: string;
   salary?: string;
+  company?: string;
+  location?: string;
+  seniority?: string;
   priority?: boolean;
   archived?: boolean;
 }

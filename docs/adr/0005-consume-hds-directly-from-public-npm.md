@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-07-02
 - **Context owner:** Apply Board (consumer of `@hirobius/design-system`)
-- **Supersedes:** the *mechanism* of ADR-0001 (its principles — one jade seed, no
+- **Supersedes:** the _mechanism_ of ADR-0001 (its principles — one jade seed, no
   foreground inversion, AA enforced by test — all carry forward). Advances ADR-0003/0004's
   incremental adoption with a real consumption path.
 
@@ -63,6 +63,26 @@ regression fails our CI before it ships.
   at init (hit twice now; there's a comment at the site).
 - Mixed-system seams during the strangler: HDS buttons are sentence-case vs MUI's
   uppercase; acceptable while surfaces migrate.
+
+## Addendum — pinned to HDS 0.13.0, the final release (2026-07-14)
+
+Two things changed since this ADR was accepted, both reinforcing the decision:
+
+1. **MUI is fully removed (#11).** The `/mui` preset path (decision points 3–4 above) is
+   moot — theming is now pure HDS token CSS vars flipped by `data-theme` on `<html>`, with
+   `brand-jade.css` remapping the accent. Points 1–2 and 5 still hold.
+2. **HDS is now frozen at `0.13.0` (its final release, published 2026-07-09).** We bumped
+   `^0.11.0 → ^0.13.0`; the change is additive (new `./brand`, `./scroll`, `./static.css`
+   exports + an _optional_ `lenis` peer we don't use, plus an icon fix and a static-primitive
+   CSS layer). No token renames or component-shape changes broke us — the contrast test +
+   `tsc` stayed green, so the upgrade touched only `package.json` / `package-lock.json`.
+
+**Decision — do not adopt `HdsThemeProvider`** (new in 0.13's docs). Our theming is a pure
+token-CSS-var cascade (`brand-jade.css` override + `ColorMode` flipping `data-theme`,
+`data-hds` on `<body>`), which is deliberate and works with zero JS. Adopting the provider
+would be a re-architecture with no functional gain and real risk to the `[data-hds]`-on-body
+scoping. Since HDS is frozen, `0.13.0` is the durable pin — no further upstream token/shape
+drift is expected. Keep the exact-match `manualChunks` react regex regardless.
 
 ## References
 

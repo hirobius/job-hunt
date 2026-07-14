@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
-    "@hirobius/design-system": "^0.11.0",
+    "@hirobius/design-system": "^0.13.0",
     "@supabase/supabase-js": "^2.45.4",
     "@vercel/analytics": "^2.0.1",
     "react": "^18.3.1",

@@ -27,26 +27,19 @@ const DEFAULTS: Snippet[] = [
   {
     id: 'seed-outreach',
     label: 'Example — quick outreach note',
-    body: 'U.S. Air Force veteran in Spokane, WA, available immediately. Current Reserve member holding a DoD Secret clearance (Tier 3, in-scope through 2029, inactive but reactivation-eligible). Six years Air National Guard plus ten-plus years of enterprise experience at Microsoft and T-Mobile. Pursuing CompTIA Security+ and ISC2 Certified in Cybersecurity. Resume attached, happy to talk.\n\n— add your name + phone + email here —',
+    body: "U.S. Air Force veteran in Spokane, WA, available immediately. Looking for entry-level work in welding, metal fab, foundry/casting, or production. I'm new to the trade, but I'm reliable, I show up on time, and I'm looking for a shop that trains. Happy to start in general labor and learn the trade. Resume attached, and I can come by in person.\n\n— add your name + phone + email here —",
   },
   {
     id: 'seed-cover',
     label: 'Example — formal cover letter',
-    body: "Dear Hiring Team,\n\nI'm writing to express my interest in your open position. I'm a U.S. Air Force veteran based in Spokane, WA and available immediately. I currently serve as a Reserve member and hold a DoD Secret clearance (Tier 3, in-scope through 2029 — inactive but reactivation-eligible). My background includes six years in the Air National Guard and more than ten years of enterprise experience at Microsoft and T-Mobile, and I'm currently pursuing CompTIA Security+ and the ISC2 Certified in Cybersecurity credential.\n\nI'd welcome the chance to discuss how my experience and clearance can contribute to your team. My resume is attached, and I'm happy to talk.\n\nThank you,\n\n— add your name + phone + email here —",
+    body: "Dear Hiring Team,\n\nI'm writing to express my interest in your open position. I'm a U.S. Air Force veteran based in Spokane, WA and available to start immediately. I'm looking to build a hands-on trade — welding, fabrication, casting, or production — and while I'm early in the trade, I bring a strong work ethic, reliability, and a real willingness to start in entry labor and learn from the crew.\n\nMy military background gave me discipline, safety awareness, and the habit of showing up and getting the job done. I'd welcome the chance to talk about how I can contribute to your shop. My resume is attached, and I'm happy to come by in person.\n\nThank you,\n\n— add your name + phone + email here —",
   },
   {
     id: 'seed-culture',
     label: 'Example — culture / company fit',
-    body: "I'll be honest about what pulls me toward this role: I really like helping and being the person who gets someone unstuck. After ten-plus years as a designer and documentation specialist, the work I enjoyed most was never the polished final file, it was the teaching and leading and watching something click for a person who'd been frustrated five minutes earlier. That's the part I'd choose every time.\n\nHere's why I think my skillset carries over, beyond the obvious. Spending years explaining design to people who don't think visually builds patience and a kind of translation instinct. You learn to meet someone in their confusion instead of talking past it. A non-designer staring at a blank canvas isn't a problem to me; it's a familiar moment, and I know how to walk them out of it without making them feel behind.\n\nI also just like this kind of work. I'm happiest when heads-down, working through a stream of small puzzles while figuring out what a problem or person actually needs. I strive to find the cleanest path, and explain things so they stick.",
+    body: "I'll be honest about what pulls me toward this work: I like making something real with my hands and being the person a crew can count on. I'd rather learn a trade the right way — start at the bottom, ask good questions, and earn trust — than chase a title. The part I enjoy most is the kind of day where you can point at what you built when it's over.\n\nHere's why I think I'll fit, beyond the obvious. I show up early, I don't cut corners on safety, and I take feedback without ego. Coming out of the military, I'm used to hard, physical days and to being part of a team where everyone pulls their weight. Give me a task and a chance to learn it and I'll get faster and more useful every week.\n\nI'm looking for a shop that trains and a trade I can grow in for the long haul — somewhere I can put in the reps and become the reliable hand the crew leans on.",
   },
 ];
-
-const DESIGN_AI: Snippet = {
-  id: 'seed-designai',
-  pillars: ['design'],
-  label: 'Example — design tech / AI outreach',
-  body: "I'm a design technologist who ships. 10+ years across product and visual design, design systems, and front-end (React) — and the last couple of years building AI-assisted workflows end to end. Where I'm most useful is the seam between design and engineering: turning rough ideas into working, well-documented prototypes, building and maintaining design systems in code, and wiring LLM features (prompting, tool-use, retrieval) into real product interfaces.\n\nRecent work: rebuilt a React/Vite design system, and designed + shipped an AI-driven application-tracking app (React, HDS, Supabase). I move fast, document clearly, and like owning the messy middle between design and code.\n\nPortfolio + resume attached — happy to talk.\n\n— add your name + portfolio links here —",
-};
 
 const CALL_SHEET: Snippet = {
   id: 'seed-callsheet',
@@ -61,36 +54,11 @@ const CALL_SCRIPT: Snippet = {
   body: 'LIVE CALL\n"Hi, my name\'s ___. I\'m a U.S. Air Force veteran here in Spokane. I\'m looking for entry-level work in [casting / welding / production] — I\'m new to the trade, but I\'m reliable, I show up, and I\'m looking for a shop that trains. Do you have anything open now, or could I drop off a resume for when something opens up?"\n\nIF NO OPENINGS\n"Understood — if you were me, who else in town would you call?" (Shops know shops. Write down every name they give you and add it to the board.)\n\nVOICEMAIL (keep under 20 seconds)\n"Hi, this is ___, an Air Force veteran here in Spokane looking for entry [foundry / fab / production] work — happy to start in general labor and learn the trade. You can reach me at ___. Thanks."\n\nRULES\n- Call Tue–Thu, 8–10am (owners answer early; Mondays are chaos).\n- For the micro-shops, drive out in person with a one-page resume.\n- Ask for the owner/contact BY NAME where the call sheet lists one.\n- After every call, mark the call-sheet line and set a follow-up date (+5 business days).\n\n— add your name + phone before using —',
 };
 
-const STUDY_8020: Snippet = {
-  id: 'seed-study8020',
-  label: 'Example — study plan (80/20)',
-  body: 'North star: the portfolio is the hiring currency. If I do only three things:\n\n1) Write up Apply Board this week (portfolio Piece 1).\n2) Ship one applied-AI product (Piece 3) — LLM + RAG + tool-use + evals; then harden it toward FastAPI + a task queue + AWS + observability.\n3) Pass Azure AI-102 (or AWS AI Practitioner if targeting AWS shops like Klaviyo).\n\nNear-term roles to search now: Design Engineer, Front-End Engineer (React/TS), Applied AI Engineer, AI Product Engineer, Forward-Deployed Engineer.\n\nFull plan (Design Technologist competency map + Klaviyo AI-eng track): see the “Portfolio + Learning Plan” Google Doc in Drive.',
-};
-
 function load(): Snippet[] {
   let arr: Snippet[] = DEFAULTS;
   try {
     const r = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (Array.isArray(r) && r.length) arr = r.map((s: Snippet) => ({ ...s, id: s.id || newId() }));
-  } catch {
-    /* ignore */
-  }
-  // One-time: seed the Design/AI outreach snippet for existing decks (respects later deletion).
-  try {
-    if (!localStorage.getItem('rjb_deck_designai')) {
-      if (!arr.some((s) => /design tech|ai engineer|design \/ ai/i.test(s.label || '')))
-        arr = [...arr, DESIGN_AI];
-      localStorage.setItem('rjb_deck_designai', '1');
-    }
-  } catch {
-    /* ignore */
-  }
-  // One-time: seed the study-plan 80/20 quick reference.
-  try {
-    if (!localStorage.getItem('rjb_deck_study8020')) {
-      if (!arr.some((s) => /80\/20|study plan/i.test(s.label || ''))) arr = [...arr, STUDY_8020];
-      localStorage.setItem('rjb_deck_study8020', '1');
-    }
   } catch {
     /* ignore */
   }
