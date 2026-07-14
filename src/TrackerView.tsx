@@ -37,6 +37,7 @@ import {
 import { deriveJobState } from './jobState';
 import { sortJobs, SORTS, type SortKey } from './jobSort';
 import EmptyState from './EmptyState';
+import { TodosNotes } from './TodosNotes';
 import type { Job, Status } from './types';
 
 // Lazy so the AI code (and its chunks) only load when the user opens them —
@@ -534,6 +535,11 @@ export default function TrackerView() {
                       </Typography>
                     )}
                   </Stack>
+
+                  {/* Per-role to-dos + notes (self-contained expander) */}
+                  <Box sx={{ mt: 1 }}>
+                    <TodosNotes job={j} />
+                  </Box>
 
                   <Reveal open={isOpen}>
                     <Stack spacing={1.25} sx={{ mt: 1.5 }}>

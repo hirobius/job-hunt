@@ -1,11 +1,11 @@
 {
-  "updatedAt": "2026-07-14T00:00:00Z",
+  "updatedAt": "2026-07-14T12:00:00Z",
   "phase": "live",
-  "headline": "HDS bumped 0.11 → 0.13 (HDS's final frozen release; additive, contrast test + typecheck green). Added structured company/location/seniority Job fields wired through AI intake; new Queue text search; redesigned the per-job card into an Upwork-style hierarchy (eyebrow · bold title · icon-led facts line · source/notes chips · priority accent). Content refresh: Copy Deck + case study realigned from the old IT/cyber persona to trades; expired/unverifiable program dates fixed; new Spokane fab targets (RWFAB + live searches). Verified renders desktop + 390px, search filtering, all 138 tests + build green.",
+  "headline": "Per-role to-dos + notes on Queue cards: each job now has an optional todos[] checklist and a notes string (additive Job fields — no Supabase migration, old records read as [] / ''). New compact summary chip (✓ done/total + note icon) toggles a Reveal panel with an HDS checklist (add/toggle/delete, strikethrough when done, one-click starter tasks) and an on-blur Notes textarea; all mutations flow through the existing updateJob → localStorage + Supabase sync path. Pure helpers in src/todos.ts with table-driven Vitest coverage. Built with HDS + src/ui primitives (MUI is gone — the task's 'MUI v6' framing predated issue #11). Typecheck + lint + all 160 tests + build green; verified renders desktop + 390px and round-trips through localStorage.",
   "next": [
     "Verify on live Vercel deploy + gather feedback",
-    "Consider routing src/ui/box.tsx (Box + sx engine) upstream to HDS",
-    "Follow-ups: free-form job tags, a source field, createdAt timestamp, and a Discover location/radius control (deferred this pass)"
+    "Consider consolidating the legacy singular `note` (Details panel) with the new `notes` field",
+    "Consider routing src/ui/box.tsx (Box + sx engine) upstream to HDS"
   ],
   "blocked": []
 }
