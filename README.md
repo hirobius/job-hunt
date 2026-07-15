@@ -7,8 +7,7 @@ A job-application tracker + discovery board. **Live → https://job-hunt-jade.ve
 Paste a job link and it lands in your queue; mark it applied and it drops out of the active
 list with a follow-up countdown. Sort the queue (recently added, follow-up due, applied date,
 status, salary, A–Z) and filter by status. **Add with AI** turns a link (or pasted text) into a
-structured, editable entry with match/gap chips, and **Tailor résumé** rewrites your résumé to
-a role — grounded strictly in what you actually wrote.
+structured, editable entry with match/gap chips.
 
 An **Apprenticeships** board (Spokane-eligible + remote, current by design — with pin / set-aside
 triage and paste-your-own links), a pillar-aware **Discover** board, a **Copy Deck** for outreach
@@ -22,12 +21,10 @@ deep links that survive refresh and back/forward.
   [`@hirobius/design-system`](https://github.com/hirobius/hirobius-design-system) DTCG tokens
   via **Style Dictionary** — one source of truth, a single jade brand _seed_, **light + dark**.
   No hardcoded brand colors. (`docs/adr/0001`)
-- **Applied AI, done carefully.** Two Claude-backed features run on serverless functions (the
+- **Applied AI, done carefully.** A Claude-backed feature runs on a serverless function (the
   SDK never enters the client bundle): _Add with AI_ extracts a job from a link via a **forced
-  tool call** (structured JSON, not prose), and _Tailor résumé_ returns grounded **structure**
-  that the app renders to clean Markdown — layout owned by code, facts owned by your résumé.
-  No fabrication: requirements your résumé can't support are surfaced, not invented. SSRF-guarded
-  link fetch; degrades gracefully with no API key. (`docs/adr/0002`)
+  tool call** (structured JSON, not prose). SSRF-guarded link fetch; degrades gracefully with
+  no API key. (`docs/adr/0002`)
 - **URL state without a router.** Top-level tab, Discover's sub-tab, and the active pillar all
   live in the hash via a tiny `useSyncExternalStore` route store — shareable, refresh-safe,
   back/forward-aware — no `react-router`.
@@ -36,8 +33,8 @@ deep links that survive refresh and back/forward.
   focus-visible ring, and the theme toggle is keyboard- and screen-reader-friendly.
 - **Tests + CI.** Vitest + Testing Library unit/component tests and a **Playwright** happy-path
   E2E, run on every push via GitHub Actions (lint · typecheck · test · build).
-- **Lean bundle.** Vendor-split + lazy-loaded views (AI dialogs, Discover, Copy Deck, case study
-  load on demand) with layout-matched skeletons; no chunk over ~265 kB.
+- **Lean bundle.** Vendor-split + lazy-loaded views (AI dialogs, Discover, Copy Deck load on
+  demand) with layout-matched skeletons; no chunk over ~265 kB.
 
 ## Stack
 
@@ -62,12 +59,12 @@ npm i --no-save @hirobius/design-system@latest   # needs NODE_AUTH_TOKEN (read:p
 npm run tokens:build
 ```
 
-The two AI features call Claude from Vercel serverless functions (`api/extract.ts`,
-`api/tailor.ts`). They need one secret — **`ANTHROPIC_API_KEY`** (Vercel → Project → Settings →
-Environment Variables, Production + Preview; locally via `vercel dev`). Without it the app stays
-fully usable and the AI entry points show a "not configured" notice. The functions run on the
-**Node.js** runtime, not Edge — the Anthropic SDK pulls in `node:` built-ins the Edge bundler
-rejects. Type-check them with `npm run typecheck:api`.
+The AI feature calls Claude from a Vercel serverless function (`api/extract.ts`). It needs one
+secret — **`ANTHROPIC_API_KEY`** (Vercel → Project → Settings → Environment Variables, Production
++ Preview; locally via `vercel dev`). Without it the app stays fully usable and the AI entry point
+shows a "not configured" notice. The function runs on the **Node.js** runtime, not Edge — the
+Anthropic SDK pulls in `node:` built-ins the Edge bundler rejects. Type-check it with
+`npm run typecheck:api`.
 
 ## A hard tradeoff
 

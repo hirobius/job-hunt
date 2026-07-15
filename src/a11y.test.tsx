@@ -4,7 +4,6 @@ import { axe } from 'vitest-axe';
 import TrackerView from './TrackerView';
 import CopyDeckView from './CopyDeckView';
 import DiscoverView from './DiscoverView';
-import CaseStudyView from './CaseStudyView';
 import AiIntakeDialog from './ai/AiIntakeDialog';
 import AiNotConfigured from './ai/AiNotConfigured';
 import { getAllJobs, removeJob } from './store';
@@ -39,7 +38,6 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
     ['TrackerView', <TrackerView />],
     ['CopyDeckView', <CopyDeckView />],
     ['DiscoverView', <DiscoverView />],
-    ['CaseStudyView', <CaseStudyView slug="apply-board" />],
   ];
 
   it.each(views)('%s', async (_name, ui) => {

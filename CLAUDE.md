@@ -50,7 +50,9 @@ commit `f15fd52`).
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
-  publishable + RLS-protected). Cloud sync UI in `src/CloudSync.tsx`.
+  publishable + RLS-protected). Cloud sync UI in `src/CloudSync.tsx`. Per-account curated
+  content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
+  `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`.
 - **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Trades** (tab label; slug
   is still `apprenticeships` for URL back-compat) → `ApprenticeshipsView.tsx` +
   `apprenticeships.ts`, the curated Spokane board. **Trades pivot (2026-07):** hands-on

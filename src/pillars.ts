@@ -17,8 +17,6 @@ export interface Pillar {
   seniority: Seniority;
   /** Default search location label (e.g. "Spokane, WA", "Remote"). */
   location: string;
-  /** Reserved: default target role for AI tailoring (wired in a later chunk). */
-  tailorRole?: string;
   /** Curated Discover groups; groups[0] is the pillar's "Apply Now" featured tab. */
   groups: Group[];
   /** Shipped with the app (vs a user-created pillar). */
@@ -39,7 +37,6 @@ export const SHEET_METAL_PILLAR: Pillar = {
   atsRoles: ATS_ROLES,
   seniority: 'entry',
   location: 'Spokane, WA',
-  tailorRole: 'Sheet Metal Fabricator',
   groups: pick('sm-brief', 'smshops', 'machineshops'),
   builtIn: true,
 };
@@ -72,7 +69,6 @@ export const WELDING_PILLAR: Pillar = {
   atsRoles: WELDING_ATS_ROLES,
   seniority: 'entry',
   location: 'Spokane, WA',
-  tailorRole: 'Welder-Fabricator',
   groups: pick('weld-brief', 'machineshops', 'concrete'),
   builtIn: true,
 };
@@ -105,7 +101,6 @@ export const CONSTRUCTION_PILLAR: Pillar = {
   atsRoles: CONSTRUCTION_ATS_ROLES,
   seniority: 'entry',
   location: 'Spokane, WA',
-  tailorRole: 'Construction Apprentice',
   groups: pick('const-brief', 'unions', 'concrete'),
   builtIn: true,
 };
@@ -140,7 +135,6 @@ export const DESIGN_SYSTEMS_PILLAR: Pillar = {
   atsRoles: DESIGN_SYSTEMS_ATS_ROLES,
   seniority: 'experienced',
   location: 'Remote',
-  tailorRole: 'Design Systems Engineer',
   groups: pick('ds-brief'),
   builtIn: true,
 };

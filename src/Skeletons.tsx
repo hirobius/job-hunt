@@ -63,21 +63,3 @@ export function CopyDeckSkeleton({ count = 3 }: { count?: number }) {
     </Box>
   );
 }
-
-/** Case study: a long-form article placeholder. */
-export function CaseStudySkeleton() {
-  return (
-    <Box
-      sx={{ maxWidth: 900, mx: 'auto', py: { xs: 3, sm: 6 }, px: 2 }}
-      aria-busy
-      aria-label="Loading"
-    >
-      <Skeleton variant="text" width={120} style={{ marginBottom: 24 }} />
-      <Skeleton variant="text" width="70%" height={48} />
-      <Skeleton variant="text" width="50%" height={48} style={{ marginBottom: 24 }} />
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Skeleton key={i} variant="text" width={i % 3 === 2 ? '60%' : '100%'} />
-      ))}
-    </Box>
-  );
-}
