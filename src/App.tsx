@@ -19,6 +19,8 @@ import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
 import { useSyncPillarRoute } from './pillarRoute';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
+import { curationClient } from './curation/curationStore';
+import { importStarterContent } from './curation/importStarter';
 
 // Code-split the non-default views so the initial bundle only carries the default
 // Apprenticeships + Queue tabs; the rest load on demand (tab switch).
@@ -69,6 +71,36 @@ function OverflowMenu({ onManage }: { onManage: () => void }) {
       </HdsMenu.Content>
     </HdsMenu>
   );
+}
+
+// ---- TEMPORARY: one-time "Import starter content" tool (epic #30, issue #33) -----------------
+// Visiting <app>/?import=starter while signed in seeds the current hardcoded curated content
+// (BUILTIN_PILLARS + the Apprenticeships board, see src/curation/importStarter.ts) into that
+// account's curation store/DB rows. Guarded on the query param so it never fires for a normal
+// visit, and importStarterContent() itself is idempotent (no-ops once any category exists).
+// Delete this component + src/curation/importStarter.ts together in the PR that strips the
+// pillars.ts / apprenticeships.ts constants — this tool only exists until then.
+function StarterImportTrigger() {
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('import') !== 'starter') return;
+    (async () => {
+      const { data } = await curationClient.auth.getSession();
+      if (!data.session?.user) {
+        window.alert(
+          'Sign in first (top of the page), then reload this page with ?import=starter still in the URL.',
+        );
+        return;
+      }
+      const result = importStarterContent();
+      window.alert(
+        result.status === 'already-imported'
+          ? 'Already imported — the curation store already has categories, so nothing changed.'
+          : `Imported ${result.categories} categories, ${result.groups} groups, ${result.tiles} tiles.`,
+      );
+    })();
+    // Runs once per page load, gated on the query param above.
+  }, []);
+  return null;
 }
 
 // Top-level tabs, in render order. The URL hash carries the slug (#/queue …); the index
@@ -142,6 +174,7 @@ export default function App() {
       </Stack>
 
       <CloudSync />
+      <StarterImportTrigger />
 
       {/* HDS underline tabs (Radix): value = route slug, aria wiring comes from Radix. The list
           scrolls horizontally on narrow screens; the sx bump gives each tab a readable, tappable
