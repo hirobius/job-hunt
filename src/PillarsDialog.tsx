@@ -232,7 +232,7 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
                 <Box>
                   <Typography variant="body2" color="text.secondary">
                     “{pillar.label}” is a built-in trade (read-only). Duplicate it to customize the
-                    titles, roles, seniority, and AI-tailor target.
+                    titles, roles, and seniority.
                   </Typography>
                   <Button
                     variant="secondary"
@@ -293,13 +293,6 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
                       />
                     </Box>
                   </Stack>
-                  <HdsInput
-                    size="sm"
-                    label="AI-tailor target role"
-                    value={pillar.tailorRole ?? ''}
-                    onChange={(e) => set({ tailorRole: e.target.value })}
-                    style={{ width: '100%' }}
-                  />
                   <ChipListEditor
                     label="Titles"
                     values={pillar.titles}

@@ -18,13 +18,12 @@ import { useColorMode } from './ColorMode';
 import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
 import { useSyncPillarRoute } from './pillarRoute';
 import { STATUSES } from './types';
-import { DiscoverSkeleton, CopyDeckSkeleton, CaseStudySkeleton } from './Skeletons';
+import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
 
 // Code-split the non-default views so the initial bundle only carries the default
-// Apprenticeships + Queue tabs; the rest load on demand (tab switch / case-study route).
+// Apprenticeships + Queue tabs; the rest load on demand (tab switch).
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
-const CaseStudyView = lazy(() => import('./CaseStudyView'));
 const PillarsDialog = lazy(() => import('./PillarsDialog'));
 
 function ColorModeToggle() {
@@ -87,14 +86,10 @@ export default function App() {
   // The URL ↔ active-pillar binding lives behind one seam (src/pillarRoute.ts).
   useSyncPillarRoute();
 
-  // Shareable portfolio case-study page: ?case=<slug> renders full-screen (no tab shell).
-  const caseSlug = new URLSearchParams(window.location.search).get('case');
-
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
   // After ingesting, land on the Queue so the just-added job is visible; with no route at all,
   // normalize the hash to the default landing tab so back/forward and refresh are consistent.
   useEffect(() => {
-    if (caseSlug) return; // skip ingestion on the case-study page
     const qp = new URLSearchParams(window.location.search);
     const label = qp.get('t') || qp.get('title') || '';
     let acted = false;
@@ -123,14 +118,7 @@ export default function App() {
     } else if (!getRoute().tab) {
       navigate({ tab: DEFAULT_TAB }, true);
     }
-  }, [caseSlug]);
-
-  if (caseSlug)
-    return (
-      <Suspense fallback={<CaseStudySkeleton />}>
-        <CaseStudyView slug={caseSlug} />
-      </Suspense>
-    );
+  }, []);
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.75, sm: 3 } }}>

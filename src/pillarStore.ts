@@ -93,7 +93,6 @@ export function duplicatePillar(id: string): string {
     atsRoles: [...src.atsRoles],
     seniority: src.seniority,
     location: src.location,
-    tailorRole: src.tailorRole,
     groups: src.groups,
   });
 }
