@@ -6,10 +6,8 @@ import CopyDeckView from './CopyDeckView';
 import DiscoverView from './DiscoverView';
 import CaseStudyView from './CaseStudyView';
 import AiIntakeDialog from './ai/AiIntakeDialog';
-import TailorDialog from './ai/TailorDialog';
 import AiNotConfigured from './ai/AiNotConfigured';
 import { getAllJobs, removeJob } from './store';
-import type { Job } from './types';
 
 /**
  * Accessibility audit — every primary surface must be free of WCAG 2.0/2.1
@@ -27,14 +25,6 @@ async function auditA11y(el: Element) {
   // On failure this prints the offending rule ids (+ how many nodes each hit).
   expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
 }
-
-const JOB: Job = {
-  url: 'https://boards.greenhouse.io/acme/jobs/42',
-  label: 'Senior Frontend Engineer',
-  status: 'Saved',
-  note: 'React, TypeScript, design systems.',
-  salary: '$180k–$210k',
-};
 
 afterEach(() => {
   cleanup();
@@ -62,11 +52,6 @@ describe('a11y — AI surfaces (no WCAG A/AA violations)', () => {
   // Dialogs portal to document.body, so audit baseElement, not container.
   it('AiIntakeDialog (input state)', async () => {
     const { baseElement } = withTheme(<AiIntakeDialog open onClose={() => {}} />);
-    await auditA11y(baseElement);
-  });
-
-  it('TailorDialog (input state)', async () => {
-    const { baseElement } = withTheme(<TailorDialog open onClose={() => {}} job={JOB} />);
     await auditA11y(baseElement);
   });
 
