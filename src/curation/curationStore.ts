@@ -1,0 +1,226 @@
+// Per-account curated content store — the shared external store for categories/groups/tiles.
+// Built on the same createStore factory + local-first localStorage persistence as pillarStore.
+// Signed out: purely local. Signed in: every mutator ALSO mirrors the change to Supabase
+// (upsert on add/update, delete on remove) as thin fire-and-forget I/O through the anon client
+// under RLS — errors are swallowed exactly like CloudSync, so the local store is always the
+// source of truth and the cloud is best-effort. Dormant until a later phase wires the UI.
+import { createClient } from '@supabase/supabase-js';
+import { createStore } from '../createStore';
+import { loadPersisted, savePersisted } from '../persisted';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
+import {
+  EMPTY_CURATION,
+  type Category,
+  type Group,
+  type Tile,
+  type CurationState,
+} from './types';
+import {
+  categoryToRow,
+  groupToRow,
+  tileToRow,
+  type CategoryRow,
+  type GroupRow,
+  type TileRow,
+} from './map';
+
+const KEY = 'rjb_curation';
+
+/** Shared anon client (RLS-scoped). Also used by sync.ts — its own instance would be fine too. */
+export const curationClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const newId = () =>
+  typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'c-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+const store = createStore<CurationState>(loadPersisted<CurationState>(KEY, EMPTY_CURATION), {
+  onSet: (next) => savePersisted(KEY, next),
+});
+
+// ---- thin cloud I/O (fire-and-forget; local stays the source of truth) ----
+// getSession reads local storage only (no network), so signed-out callers — and tests —
+// short-circuit before any request and never throw.
+async function currentUserId(): Promise<string | null> {
+  try {
+    const { data } = await curationClient.auth.getSession();
+    return data.session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+function upsert(table: string, buildRow: (uid: string) => CategoryRow | GroupRow | TileRow) {
+  void (async () => {
+    try {
+      const uid = await currentUserId();
+      if (!uid) return;
+      // Dynamic table name → the client can't infer a concrete row type; the mapper already
+      // guarantees the shape, so cast past the (untyped-schema) upsert signature.
+      await curationClient.from(table).upsert(buildRow(uid) as never);
+    } catch {
+      /* swallow — cloud is best-effort */
+    }
+  })();
+}
+function remove(table: string, rowId: string) {
+  void (async () => {
+    try {
+      const uid = await currentUserId();
+      if (!uid) return;
+      await curationClient.from(table).delete().eq('id', rowId);
+    } catch {
+      /* swallow — cloud is best-effort */
+    }
+  })();
+}
+
+// ---- sortOrder helpers (append to the end of the relevant scope) ----
+const nextSort = (items: { sortOrder: number }[]) =>
+  items.reduce((m, x) => Math.max(m, x.sortOrder), -1) + 1;
+
+// ---- categories ----
+export function addCategory(partial: Partial<Category> = {}): string {
+  const s = store.get();
+  const now = new Date().toISOString();
+  const c: Category = {
+    id: newId(),
+    label: 'New category',
+    titles: [],
+    atsRoles: [],
+    seniority: 'any',
+    location: 'Remote',
+    tailorRole: null,
+    sortOrder: nextSort(s.categories),
+    archived: false,
+    createdAt: now,
+    updatedAt: now,
+    ...partial,
+  };
+  store.set({ ...s, categories: [...s.categories, c] });
+  upsert('categories', (uid) => categoryToRow(c, uid));
+  return c.id;
+}
+
+export function updateCategory(id: string, patch: Partial<Category>) {
+  const s = store.get();
+  let updated: Category | undefined;
+  const categories = s.categories.map((c) => {
+    if (c.id !== id) return c;
+    updated = { ...c, ...patch, id: c.id, updatedAt: new Date().toISOString() };
+    return updated;
+  });
+  if (!updated) return;
+  store.set({ ...s, categories });
+  const row = updated;
+  upsert('categories', (uid) => categoryToRow(row, uid));
+}
+
+export function removeCategory(id: string) {
+  const s = store.get();
+  if (!s.categories.some((c) => c.id === id)) return;
+  store.set({ ...s, categories: s.categories.filter((c) => c.id !== id) });
+  remove('categories', id);
+}
+
+// ---- groups ----
+export function addGroup(categoryId: string, partial: Partial<Group> = {}): string {
+  const s = store.get();
+  const g: Group = {
+    id: newId(),
+    categoryId,
+    label: 'New group',
+    sortOrder: nextSort(s.groups.filter((x) => x.categoryId === categoryId)),
+    archived: false,
+    createdAt: new Date().toISOString(),
+    ...partial,
+  };
+  // categoryId is intrinsic to the group — a patch must never reroute it.
+  g.categoryId = categoryId;
+  store.set({ ...s, groups: [...s.groups, g] });
+  upsert('groups', (uid) => groupToRow(g, uid));
+  return g.id;
+}
+
+export function updateGroup(id: string, patch: Partial<Group>) {
+  const s = store.get();
+  let updated: Group | undefined;
+  const groups = s.groups.map((g) => {
+    if (g.id !== id) return g;
+    updated = { ...g, ...patch, id: g.id };
+    return updated;
+  });
+  if (!updated) return;
+  store.set({ ...s, groups });
+  const row = updated;
+  upsert('groups', (uid) => groupToRow(row, uid));
+}
+
+export function removeGroup(id: string) {
+  const s = store.get();
+  if (!s.groups.some((g) => g.id === id)) return;
+  store.set({ ...s, groups: s.groups.filter((g) => g.id !== id) });
+  remove('groups', id);
+}
+
+// ---- tiles ----
+export function addTile(groupId: string, partial: Partial<Tile> = {}): string {
+  const s = store.get();
+  const t: Tile = {
+    id: newId(),
+    groupId,
+    name: '',
+    url: '',
+    meta: '',
+    sortOrder: nextSort(s.tiles.filter((x) => x.groupId === groupId)),
+    createdAt: new Date().toISOString(),
+    ...partial,
+  };
+  t.groupId = groupId;
+  store.set({ ...s, tiles: [...s.tiles, t] });
+  upsert('tiles', (uid) => tileToRow(t, uid));
+  return t.id;
+}
+
+export function updateTile(id: string, patch: Partial<Tile>) {
+  const s = store.get();
+  let updated: Tile | undefined;
+  const tiles = s.tiles.map((t) => {
+    if (t.id !== id) return t;
+    updated = { ...t, ...patch, id: t.id };
+    return updated;
+  });
+  if (!updated) return;
+  store.set({ ...s, tiles });
+  const row = updated;
+  upsert('tiles', (uid) => tileToRow(row, uid));
+}
+
+export function removeTile(id: string) {
+  const s = store.get();
+  if (!s.tiles.some((t) => t.id === id)) return;
+  store.set({ ...s, tiles: s.tiles.filter((t) => t.id !== id) });
+  remove('tiles', id);
+}
+
+// ---- whole-state access (used by the sync layer) ----
+export function getCurationState(): CurationState {
+  return store.get();
+}
+export function replaceCurationState(next: CurationState) {
+  store.set({
+    categories: next.categories ?? [],
+    groups: next.groups ?? [],
+    tiles: next.tiles ?? [],
+  });
+}
+
+// ---- reads ----
+export function useCategories(): Category[] {
+  return store.use().categories;
+}
+export function useGroups(): Group[] {
+  return store.use().groups;
+}
+export function useTiles(): Tile[] {
+  return store.use().tiles;
+}
