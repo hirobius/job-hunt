@@ -1,4 +1,26 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+// The store module constructs a live Supabase client at import time; stub it so these tests
+// never depend on ambient (jsdom-absent) session state and never touch the real project — the
+// seam is explicit here rather than accidental. `vi.hoisted` lets the spies + mutable session
+// exist before `vi.mock`'s factory (itself hoisted above all imports) closes over them.
+const cloud = vi.hoisted(() => ({
+  upsertSpy: vi.fn(async (_row: unknown) => ({ data: null, error: null })),
+  deleteEqSpy: vi.fn(async () => ({ data: null, error: null })),
+  session: null as { user: { id: string } } | null,
+}));
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: () => ({
+    auth: {
+      getSession: async () => ({ data: { session: cloud.session } }),
+    },
+    from: () => ({
+      upsert: cloud.upsertSpy,
+      delete: () => ({ eq: cloud.deleteEqSpy }),
+    }),
+  }),
+}));
+
 import {
   addCategory,
   updateCategory,
@@ -14,9 +36,14 @@ import {
 } from './curationStore';
 import { EMPTY_CURATION } from './types';
 
-// Signed out in tests (no Supabase session) — every mutator stays purely local, so we only
-// assert on the store. Reset to empty after each test since the store is a module singleton.
-afterEach(() => replaceCurationState(EMPTY_CURATION));
+// Reset to empty + signed-out after each test since the store and mock client are module
+// singletons shared across tests.
+afterEach(() => {
+  replaceCurationState(EMPTY_CURATION);
+  cloud.session = null;
+  cloud.upsertSpy.mockClear();
+  cloud.deleteEqSpy.mockClear();
+});
 
 describe('categories', () => {
   it('adds with a real id, defaults, and an incrementing sortOrder', () => {
@@ -111,5 +138,34 @@ describe('replaceCurationState', () => {
     addCategory();
     replaceCurationState({ categories: [], groups: [], tiles: [] });
     expect(getCurationState()).toEqual(EMPTY_CURATION);
+  });
+});
+
+describe('cloud sync seam', () => {
+  it('never calls the cloud when signed out', async () => {
+    cloud.session = null;
+    const id = addCategory({ label: 'X' });
+    updateCategory(id, { label: 'Y' });
+    removeCategory(id);
+    // Give the fire-and-forget async IIFEs a chance to run; there is nothing to wait *for*
+    // (no call should ever land), so a short flush is the correct shape here.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(cloud.upsertSpy).not.toHaveBeenCalled();
+    expect(cloud.deleteEqSpy).not.toHaveBeenCalled();
+  });
+
+  it('calls upsert and delete once a stubbed session is signed in', async () => {
+    cloud.session = { user: { id: 'user-1' } };
+    const id = addCategory({ label: 'Welding' });
+    await vi.waitFor(() => expect(cloud.upsertSpy).toHaveBeenCalledTimes(1));
+    expect(cloud.upsertSpy.mock.calls[0][0]).toMatchObject({
+      id,
+      user_id: 'user-1',
+      label: 'Welding',
+    });
+
+    removeCategory(id);
+    await vi.waitFor(() => expect(cloud.deleteEqSpy).toHaveBeenCalledTimes(1));
+    expect(cloud.deleteEqSpy).toHaveBeenCalledWith('id', id);
   });
 });

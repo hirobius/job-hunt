@@ -49,20 +49,27 @@ async function currentUserId(): Promise<string | null> {
     return null;
   }
 }
-function upsert(table: string, buildRow: (uid: string) => CategoryRow | GroupRow | TileRow) {
+/** The three curation tables — a closed union so `upsert`/`remove` can't be called with a typo'd
+ *  or arbitrary table name, and so the row type pins itself to the table (no cast needed). */
+type CurationTable = 'categories' | 'groups' | 'tiles';
+type RowForTable<T extends CurationTable> = T extends 'categories'
+  ? CategoryRow
+  : T extends 'groups'
+    ? GroupRow
+    : TileRow;
+
+function upsert<T extends CurationTable>(table: T, buildRow: (uid: string) => RowForTable<T>) {
   void (async () => {
     try {
       const uid = await currentUserId();
       if (!uid) return;
-      // Dynamic table name → the client can't infer a concrete row type; the mapper already
-      // guarantees the shape, so cast past the (untyped-schema) upsert signature.
-      await curationClient.from(table).upsert(buildRow(uid) as never);
+      await curationClient.from(table).upsert(buildRow(uid));
     } catch {
       /* swallow — cloud is best-effort */
     }
   })();
 }
-function remove(table: string, rowId: string) {
+function remove(table: CurationTable, rowId: string) {
   void (async () => {
     try {
       const uid = await currentUserId();
