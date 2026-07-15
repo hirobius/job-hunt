@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, Stack, Typography } from './ui/box';
-import { Tooltip } from './ui/Tooltip';
-import { IconButton as HdsIconButton, Input as HdsInput } from '@hirobius/design-system';
-import { Button } from './ui/Button';
+import {
+  Button,
+  HdsTooltip,
+  IconButton as HdsIconButton,
+  Input as HdsInput,
+} from '@hirobius/design-system';
 import { X } from 'lucide-react';
 import { createClient, type User } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
@@ -76,7 +79,11 @@ export default function CloudSync() {
   async function pushNow(u: User) {
     const r = await supa
       .from('tracker')
-      .upsert({ user_id: u.id, data: { v: BLOB_VERSION, ...localBlob() }, updated_at: new Date().toISOString() });
+      .upsert({
+        user_id: u.id,
+        data: { v: BLOB_VERSION, ...localBlob() },
+        updated_at: new Date().toISOString(),
+      });
     lastSynced.current = localJson();
     setMsg(r.error ? 'Saved locally — cloud error' : `Synced · ${u.email}`);
   }
@@ -181,7 +188,7 @@ export default function CloudSync() {
   if (!user && hidden)
     return (
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-        <Button size="small" variant="text" onClick={() => hide(false)}>
+        <Button size="sm" variant="tertiary" onClick={() => hide(false)}>
           Sign in to sync
         </Button>
       </Box>
@@ -220,16 +227,16 @@ export default function CloudSync() {
       </Typography>
       {!user && (
         <Typography variant="caption" color="text.secondary" sx={{ width: '100%', order: 9 }}>
-          Your data stays in your browser and (if you sign in) your own account — nothing is
-          shared with anyone else.
+          Your data stays in your browser and (if you sign in) your own account — nothing is shared
+          with anyone else.
         </Typography>
       )}
       {user ? (
         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
-          <Button size="small" variant="outlined" onClick={signOut}>
+          <Button size="sm" variant="secondary" onClick={signOut}>
             Sign out
           </Button>
-          <Button size="small" variant="text" color="error" onClick={deleteMyData}>
+          <Button size="sm" variant="tertiary" tone="danger" onClick={deleteMyData}>
             Delete my data
           </Button>
         </Stack>
@@ -247,18 +254,21 @@ export default function CloudSync() {
             }}
             style={{ minWidth: 200 }}
           />
-          <Button size="small" variant="contained" onClick={sendLink}>
+          <Button size="sm" variant="primary" onClick={sendLink}>
             Email me a link
           </Button>
-          <Tooltip title="Hide — you can sign in anytime">
-            <HdsIconButton
-              size="sm"
-              variant="tertiary"
-              icon={X}
-              onClick={() => hide(true)}
-              label="Hide sign-in banner"
-            />
-          </Tooltip>
+          <HdsTooltip>
+            <HdsTooltip.Trigger asChild>
+              <HdsIconButton
+                size="sm"
+                variant="tertiary"
+                icon={X}
+                onClick={() => hide(true)}
+                label="Hide sign-in banner"
+              />
+            </HdsTooltip.Trigger>
+            <HdsTooltip.Content>Hide — you can sign in anytime</HdsTooltip.Content>
+          </HdsTooltip>
         </Stack>
       )}
     </Box>

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Box, Stack } from './ui/box';
-import { Card as HdsCard, Textarea } from '@hirobius/design-system';
-import { Button } from './ui/Button';
+import { Button, Card as HdsCard, Textarea } from '@hirobius/design-system';
 import { Reveal } from './ui/Reveal';
 import EmptyState from './EmptyState';
 import {
@@ -44,7 +43,7 @@ export default function CopyDeckView() {
         alignItems="center"
         sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}
       >
-        <Button variant="outlined" onClick={() => addSnippet()}>
+        <Button variant="secondary" onClick={() => addSnippet()}>
           New snippet
         </Button>
       </Stack>
@@ -52,7 +51,7 @@ export default function CopyDeckView() {
         <EmptyState
           message="No snippets yet — cover letters, outreach notes and call scripts live here."
           action={
-            <Button variant="outlined" onClick={() => addSnippet()}>
+            <Button variant="secondary" onClick={() => addSnippet()}>
               New snippet
             </Button>
           }
@@ -82,19 +81,23 @@ export default function CopyDeckView() {
                   }}
                 />
                 <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
-                  <Button size="small" onClick={() => updateSnippet(s.id, { open: !s.open })}>
+                  <Button
+                    variant="tertiary"
+                    size="sm"
+                    onClick={() => updateSnippet(s.id, { open: !s.open })}
+                  >
                     {s.open ? 'Hide' : 'Show'}
                   </Button>
-                  <Button size="small" variant="text" tone="success" onClick={() => copy(s.id)}>
+                  <Button variant="tertiary" size="sm" tone="success" onClick={() => copy(s.id)}>
                     {copied === s.id ? 'Copied' : 'Copy'}
                   </Button>
-                  <Button size="small" onClick={() => toggleSnippetPin(s.id)}>
+                  <Button variant="tertiary" size="sm" onClick={() => toggleSnippetPin(s.id)}>
                     {s.pinned ? 'Pinned ★' : 'Pin'}
                   </Button>
-                  <Button size="small" onClick={() => duplicateSnippet(s.id)}>
+                  <Button variant="tertiary" size="sm" onClick={() => duplicateSnippet(s.id)}>
                     Duplicate
                   </Button>
-                  <Button size="small" variant="text" tone="danger" onClick={() => del(s.id)}>
+                  <Button variant="tertiary" size="sm" tone="danger" onClick={() => del(s.id)}>
                     Delete
                   </Button>
                 </Stack>

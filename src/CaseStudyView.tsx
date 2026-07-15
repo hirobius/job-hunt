@@ -1,6 +1,5 @@
 import { Box, Container, Divider, Stack, Typography } from './ui/box';
-import { Card } from '@hirobius/design-system';
-import { Button } from './ui/Button';
+import { Button, Card } from '@hirobius/design-system';
 import { CASES } from './caseStudies';
 
 const eyebrowSx = {
@@ -37,7 +36,7 @@ export default function CaseStudyView({ slug }: { slug: string }) {
         <Typography variant="h2" sx={{ mb: 2 }}>
           Case study not found
         </Typography>
-        <Button variant="outlined" onClick={back}>
+        <Button variant="secondary" onClick={back}>
           Back to Apply Board
         </Button>
       </Container>
@@ -46,7 +45,7 @@ export default function CaseStudyView({ slug }: { slug: string }) {
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 3, sm: 6 } }}>
-      <Button variant="text" onClick={back} style={{ marginBottom: 24, paddingLeft: 0 }}>
+      <Button variant="tertiary" onClick={back} style={{ marginBottom: 24, paddingLeft: 0 }}>
         ← Apply Board
       </Button>
 
@@ -65,13 +64,10 @@ export default function CaseStudyView({ slug }: { slug: string }) {
 
       <Stack direction="row" spacing={1.5} sx={{ mt: 2.5, flexWrap: 'wrap', gap: 1 }}>
         {c.liveUrl && (
-          <Button
-            variant="contained"
-            href={c.liveUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            View live
+          <Button variant="primary" asChild>
+            <a href={c.liveUrl} target="_blank" rel="noopener noreferrer">
+              View live
+            </a>
           </Button>
         )}
       </Stack>

@@ -1,7 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Box, Stack, Typography } from './ui/box';
-import { IconButton as HdsIconButton, Input as HdsInput, Tag } from '@hirobius/design-system';
-import { Button } from './ui/Button';
+import {
+  Button,
+  IconButton as HdsIconButton,
+  Input as HdsInput,
+  Tag,
+} from '@hirobius/design-system';
 import { Reveal } from './ui/Reveal';
 import { Search, ChevronDown, Archive } from 'lucide-react';
 import TileGrid from './TileGrid';
@@ -109,10 +113,7 @@ export default function ApprenticeshipsView() {
 
   // Search spans the whole board — live + archived — so nothing hides behind the disclosure.
   const matchCount = useMemo(
-    () =>
-      searching
-        ? [...groups, ...archivedGroups].reduce((n, g) => n + g.tiles.length, 0)
-        : 0,
+    () => (searching ? [...groups, ...archivedGroups].reduce((n, g) => n + g.tiles.length, 0) : 0),
     [groups, archivedGroups, searching],
   );
   const archivedMatchCount = useMemo(
@@ -122,7 +123,10 @@ export default function ApprenticeshipsView() {
 
   const asideTiles: Tile[] = useMemo(
     () =>
-      partitionTiles([...liveGroups, ...archivedCurated].flatMap((g) => g.tiles), triage).aside,
+      partitionTiles(
+        [...liveGroups, ...archivedCurated].flatMap((g) => g.tiles),
+        triage,
+      ).aside,
     [liveGroups, archivedCurated, triage],
   );
 
@@ -213,7 +217,12 @@ export default function ApprenticeshipsView() {
                 style={{ width: '100%' }}
               />
             </Box>
-            <Button variant="contained" onClick={addTiles} disabled={!draft.trim()} sx={{ flex: 'none' }}>
+            <Button
+              variant="primary"
+              onClick={addTiles}
+              disabled={!draft.trim()}
+              sx={{ flex: 'none' }}
+            >
               Add
             </Button>
           </Stack>
@@ -241,8 +250,8 @@ export default function ApprenticeshipsView() {
   return (
     <Stack spacing={3}>
       <Typography variant="body2" color="text.secondary">
-        Spokane-eligible, hands-on trades — sheet metal, welding, fabrication, foundry and
-        concrete lead. <strong>Search</strong> tiles return only what&rsquo;s posted right now;{' '}
+        Spokane-eligible, hands-on trades — sheet metal, welding, fabrication, foundry and concrete
+        lead. <strong>Search</strong> tiles return only what&rsquo;s posted right now;{' '}
         <strong>program portals</strong> take applications on a rolling basis.{' '}
         <strong>Saving</strong> a tile adds it to your Queue. Healthcare, remote and other tracks
         are stashed under <strong>Archived</strong> at the bottom.
@@ -280,7 +289,8 @@ export default function ApprenticeshipsView() {
           }}
         >
           <Button
-            size="small"
+            variant="tertiary"
+            size="sm"
             style={{ flex: 'none', whiteSpace: 'nowrap' }}
             onClick={() => setAllCollapsed(allAreCollapsed ? [] : collapsibleIds)}
           >
@@ -308,7 +318,8 @@ export default function ApprenticeshipsView() {
       {archivedGroups.length > 0 && (!searching || archivedMatchCount > 0) && (
         <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2.5 }}>
           <Button
-            startIcon={<Archive size={16} />}
+            variant="tertiary"
+            iconLeft={<Archive size={16} />}
             onClick={() => setShowArchived((v) => !v)}
             style={{ marginBottom: showArchived || searching ? 12 : 0 }}
           >
@@ -325,7 +336,12 @@ export default function ApprenticeshipsView() {
 
       {asideTiles.length > 0 && !searching && (
         <Box>
-          <Button size="small" onClick={() => setShowAside((v) => !v)} style={{ marginBottom: 8 }}>
+          <Button
+            variant="tertiary"
+            size="sm"
+            onClick={() => setShowAside((v) => !v)}
+            style={{ marginBottom: 8 }}
+          >
             {showAside ? 'Hide' : 'Show'} set aside ({asideTiles.length})
           </Button>
           <Reveal open={showAside}>

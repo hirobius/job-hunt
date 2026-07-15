@@ -84,13 +84,7 @@ const scale = (v: unknown) => (typeof v === 'number' ? `${v * 8}px` : (v as stri
 
 const RENAME: Record<string, string> = { bgcolor: 'backgroundColor' };
 const COLOR_PROPS = new Set(['color', 'backgroundColor', 'borderColor']);
-const BORDER_PROPS = new Set([
-  'border',
-  'borderTop',
-  'borderRight',
-  'borderBottom',
-  'borderLeft',
-]);
+const BORDER_PROPS = new Set(['border', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft']);
 
 const camelToKebab = (p: string) => p.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase());
 const cssValue = (prop: string, val: unknown): string => {

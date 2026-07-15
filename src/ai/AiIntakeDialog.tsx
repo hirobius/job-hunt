@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, Stack, Typography } from '../ui/box';
-import { Badge, SegmentedControl, Spinner } from '@hirobius/design-system';
-import { Alert } from '../ui/Alert';
-import { Dialog, DialogActions, DialogContent, DialogTitle } from '../ui/Dialog';
-import { TextField } from '../ui/TextField';
+import {
+  Alert,
+  Badge,
+  Button,
+  Dialog,
+  IconButton,
+  Input,
+  SegmentedControl,
+  Spinner,
+  Textarea,
+} from '@hirobius/design-system';
+import { X } from 'lucide-react';
 import { Reveal } from '../ui/Reveal';
-import { Button } from '../ui/Button';
 import { extractJob } from './extractJob';
 import AiNotConfigured from './AiNotConfigured';
 import type { ExtractedJob } from './extract-core';
@@ -16,6 +23,13 @@ import { addJobDetailed } from '../store';
 type Phase = 'input' | 'loading' | 'review';
 type Mode = 'link' | 'text';
 type Msg = { severity: 'error' | 'info' | 'warning'; text: string };
+
+// MUI severity → HDS Alert tone (inlined from the retired ui/Alert seam).
+const ALERT_TONE = { error: 'danger', warning: 'warning', info: 'info' } as const;
+
+// Full-width field wrapper (inlined from the retired ui/TextField seam) — HDS
+// Input/Textarea need an outer box to stretch, matching TrackerView's fields.
+const fieldSx = { minWidth: 0, width: '100%', '& > *': { width: '100%' } } as const;
 
 const MIN_PASTE = 80; // server rejects job text shorter than this
 const looksLikeUrl = (s: string) => {
@@ -107,198 +121,246 @@ export default function AiIntakeDialog({ open, onClose }: { open: boolean; onClo
   };
 
   return (
-    <Dialog open={open} onClose={close} fullWidth maxWidth="sm">
-      <DialogTitle>Add with AI</DialogTitle>
-      <DialogContent dividers>
-        {msg && (
-          <Alert severity={msg.severity} sx={{ mb: 1.5 }} onClose={() => setMsg(null)}>
-            {msg.text}
-          </Alert>
-        )}
-
-        {notConfigured ? (
-          <AiNotConfigured feature="“Add with AI”" />
-        ) : phase === 'loading' ? (
-          <Stack alignItems="center" spacing={1.5} sx={{ py: 5 }}>
-            <Spinner size="lg" />
-            <Typography color="text.secondary">
-              {mode === 'link' ? 'Reading the posting…' : 'Extracting details…'}
-            </Typography>
-          </Stack>
-        ) : phase === 'review' && job ? (
-          <Stack spacing={1.5}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-              <TextField
-                label="Title"
-                size="small"
-                fullWidth
-                value={job.title}
-                onChange={(e) => edit({ title: e.target.value })}
-              />
-              <TextField
-                label="Company"
-                size="small"
-                fullWidth
-                value={job.company}
-                onChange={(e) => edit({ company: e.target.value })}
-              />
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-              <TextField
-                label="Location"
-                size="small"
-                fullWidth
-                value={job.location}
-                onChange={(e) => edit({ location: e.target.value })}
-              />
-              <TextField
-                label="Seniority"
-                size="small"
-                fullWidth
-                value={job.seniority}
-                onChange={(e) => edit({ seniority: e.target.value })}
-              />
-            </Stack>
-            <TextField
-              label="Salary"
-              size="small"
-              fullWidth
-              value={job.salary}
-              onChange={(e) => edit({ salary: e.target.value })}
-            />
-
-            {job.requirements.length > 0 && (
-              <Box>
-                <Typography variant="overline" color="text.secondary">
-                  Key requirements
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                  {job.requirements.map((r, i) => (
-                    <Badge key={i} tone="neutral">
-                      {r}
-                    </Badge>
-                  ))}
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) close();
+      }}
+    >
+      <Dialog.Content
+        style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
+          <Dialog.Header>
+            <Dialog.Title>Add with AI</Dialog.Title>
+          </Dialog.Header>
+          <div
+            style={{
+              overflowY: 'auto',
+              padding: '16px 4px',
+              borderTop: '1px solid var(--semantic-color-border-default)',
+              borderBottom: '1px solid var(--semantic-color-border-default)',
+              margin: '8px 0',
+            }}
+          >
+            {msg && (
+              <Box sx={{ position: 'relative', mb: 1.5 }}>
+                <Alert tone={ALERT_TONE[msg.severity]}>{msg.text}</Alert>
+                <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
+                  <IconButton
+                    size="sm"
+                    variant="tertiary"
+                    icon={X}
+                    label="Dismiss"
+                    onClick={() => setMsg(null)}
+                  />
                 </Box>
               </Box>
             )}
 
-            {(job.matched.length > 0 || job.gaps.length > 0) && (
-              <Box>
-                <Typography variant="overline" color="text.secondary">
-                  Fit vs your skills
+            {notConfigured ? (
+              <AiNotConfigured feature="“Add with AI”" />
+            ) : phase === 'loading' ? (
+              <Stack alignItems="center" spacing={1.5} sx={{ py: 5 }}>
+                <Spinner size="lg" />
+                <Typography color="text.secondary">
+                  {mode === 'link' ? 'Reading the posting…' : 'Extracting details…'}
                 </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                  {job.matched.map((m, i) => (
-                    <Badge key={`m${i}`} tone="success">
-                      {m}
-                    </Badge>
-                  ))}
-                  {job.gaps.map((g, i) => (
-                    <Badge key={`g${i}`} tone="warning">
-                      Gap: {g}
-                    </Badge>
-                  ))}
+              </Stack>
+            ) : phase === 'review' && job ? (
+              <Stack spacing={1.5}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                  <Box sx={fieldSx}>
+                    <Input
+                      size="sm"
+                      label="Title"
+                      value={job.title}
+                      onChange={(e) => edit({ title: e.target.value })}
+                      style={{ width: '100%' }}
+                    />
+                  </Box>
+                  <Box sx={fieldSx}>
+                    <Input
+                      size="sm"
+                      label="Company"
+                      value={job.company}
+                      onChange={(e) => edit({ company: e.target.value })}
+                      style={{ width: '100%' }}
+                    />
+                  </Box>
+                </Stack>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                  <Box sx={fieldSx}>
+                    <Input
+                      size="sm"
+                      label="Location"
+                      value={job.location}
+                      onChange={(e) => edit({ location: e.target.value })}
+                      style={{ width: '100%' }}
+                    />
+                  </Box>
+                  <Box sx={fieldSx}>
+                    <Input
+                      size="sm"
+                      label="Seniority"
+                      value={job.seniority}
+                      onChange={(e) => edit({ seniority: e.target.value })}
+                      style={{ width: '100%' }}
+                    />
+                  </Box>
+                </Stack>
+                <Box sx={fieldSx}>
+                  <Input
+                    size="sm"
+                    label="Salary"
+                    value={job.salary}
+                    onChange={(e) => edit({ salary: e.target.value })}
+                    style={{ width: '100%' }}
+                  />
                 </Box>
-              </Box>
+
+                {job.requirements.length > 0 && (
+                  <Box>
+                    <Typography variant="overline" color="text.secondary">
+                      Key requirements
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                      {job.requirements.map((r, i) => (
+                        <Badge key={i} tone="neutral">
+                          {r}
+                        </Badge>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+
+                {(job.matched.length > 0 || job.gaps.length > 0) && (
+                  <Box>
+                    <Typography variant="overline" color="text.secondary">
+                      Fit vs your skills
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                      {job.matched.map((m, i) => (
+                        <Badge key={`m${i}`} tone="success">
+                          {m}
+                        </Badge>
+                      ))}
+                      {job.gaps.map((g, i) => (
+                        <Badge key={`g${i}`} tone="warning">
+                          Gap: {g}
+                        </Badge>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+
+                {skills.trim() === '' && (
+                  <Typography variant="caption" color="text.secondary">
+                    Tip: add your skills (Back → “Add your skills”) to get match/gap analysis.
+                  </Typography>
+                )}
+              </Stack>
+            ) : (
+              <Stack spacing={1.5}>
+                <Box sx={{ alignSelf: 'flex-start' }}>
+                  <SegmentedControl
+                    aria-label="Intake mode"
+                    size="sm"
+                    value={mode}
+                    onChange={(v) => setMode(v as typeof mode)}
+                    options={[
+                      { value: 'link', label: 'From a link' },
+                      { value: 'text', label: 'Paste description' },
+                    ]}
+                  />
+                </Box>
+
+                <Box sx={fieldSx}>
+                  <Input
+                    size="sm"
+                    label="Job link"
+                    placeholder="https://…"
+                    autoFocus
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    helperText={
+                      mode === 'text'
+                        ? 'Saved as the job’s link so you can reopen it.'
+                        : 'We’ll fetch the posting and structure it.'
+                    }
+                    style={{ width: '100%' }}
+                  />
+                </Box>
+
+                {mode === 'text' && (
+                  <Box sx={fieldSx}>
+                    <Textarea
+                      label="Job description"
+                      placeholder="Paste the full job description…"
+                      rows={6}
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                      style={{ width: '100%' }}
+                    />
+                  </Box>
+                )}
+
+                <Box>
+                  <Button size="sm" variant="tertiary" onClick={() => setShowSkills((s) => !s)}>
+                    {showSkills ? 'Hide your skills' : 'Add your skills (improves match/gap)'}
+                  </Button>
+                  <Reveal open={showSkills}>
+                    <Box sx={{ ...fieldSx, mt: 1 }}>
+                      <Textarea
+                        label="Your skills / profile"
+                        placeholder="e.g. React, TypeScript, design systems, accessibility, Figma…"
+                        rows={3}
+                        value={skills}
+                        onChange={(e) => setSkills(e.target.value)}
+                        style={{ width: '100%' }}
+                      />
+                    </Box>
+                  </Reveal>
+                </Box>
+              </Stack>
             )}
+          </div>
 
-            {skills.trim() === '' && (
-              <Typography variant="caption" color="text.secondary">
-                Tip: add your skills (Back → “Add your skills”) to get match/gap analysis.
-              </Typography>
-            )}
-          </Stack>
-        ) : (
-          <Stack spacing={1.5}>
-            <Box sx={{ alignSelf: 'flex-start' }}>
-              <SegmentedControl
-                aria-label="Intake mode"
-                size="sm"
-                value={mode}
-                onChange={(v) => setMode(v as typeof mode)}
-                options={[
-                  { value: 'link', label: 'From a link' },
-                  { value: 'text', label: 'Paste description' },
-                ]}
-              />
-            </Box>
-
-            <TextField
-              label="Job link"
-              placeholder="https://…"
-              size="small"
-              fullWidth
-              autoFocus
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              helperText={
-                mode === 'text'
-                  ? 'Saved as the job’s link so you can reopen it.'
-                  : 'We’ll fetch the posting and structure it.'
-              }
-            />
-
-            {mode === 'text' && (
-              <TextField
-                label="Job description"
-                placeholder="Paste the full job description…"
-                fullWidth
-                multiline
-                minRows={6}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-              />
-            )}
-
-            <Box>
-              <Button size="small" variant="text" onClick={() => setShowSkills((s) => !s)}>
-                {showSkills ? 'Hide your skills' : 'Add your skills (improves match/gap)'}
-              </Button>
-              <Reveal open={showSkills}>
-                <TextField
-                  label="Your skills / profile"
-                  placeholder="e.g. React, TypeScript, design systems, accessibility, Figma…"
-                  fullWidth
-                  multiline
-                  minRows={3}
-                  value={skills}
-                  onChange={(e) => setSkills(e.target.value)}
-                  sx={{ mt: 1 }}
-                />
-              </Reveal>
-            </Box>
-          </Stack>
-        )}
-      </DialogContent>
-
-      <DialogActions>
-        {notConfigured ? (
-          <Button variant="contained" onClick={close}>
-            Close
-          </Button>
-        ) : phase === 'review' ? (
-          <>
-            <Button
-              onClick={() => {
-                setPhase('input');
-                setJob(null);
-              }}
-            >
-              Back
-            </Button>
-            <Button variant="contained" onClick={save}>
-              Save to queue
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button onClick={close}>Cancel</Button>
-            <Button variant="contained" onClick={run} disabled={!canRun || phase === 'loading'}>
-              {phase === 'loading' ? 'Working…' : 'Extract'}
-            </Button>
-          </>
-        )}
-      </DialogActions>
+          <Dialog.Footer>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              {notConfigured ? (
+                <Button variant="primary" onClick={close}>
+                  Close
+                </Button>
+              ) : phase === 'review' ? (
+                <>
+                  <Button
+                    variant="tertiary"
+                    onClick={() => {
+                      setPhase('input');
+                      setJob(null);
+                    }}
+                  >
+                    Back
+                  </Button>
+                  <Button variant="primary" onClick={save}>
+                    Save to queue
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="tertiary" onClick={close}>
+                    Cancel
+                  </Button>
+                  <Button variant="primary" onClick={run} disabled={!canRun || phase === 'loading'}>
+                    {phase === 'loading' ? 'Working…' : 'Extract'}
+                  </Button>
+                </>
+              )}
+            </div>
+          </Dialog.Footer>
+        </div>
+      </Dialog.Content>
     </Dialog>
   );
 }
