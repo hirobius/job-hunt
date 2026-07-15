@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import {
   Badge,
+  Button as UiButton,
   Card as HdsCard,
   IconButton as HdsIconButton,
   Input as HdsInput,
@@ -22,7 +23,6 @@ import {
   SegmentedControl,
   Textarea,
 } from '@hirobius/design-system';
-import { Button as UiButton } from './ui/Button';
 import { Reveal } from './ui/Reveal';
 import {
   useJobs,
@@ -208,14 +208,14 @@ export default function TrackerView() {
         <Stack direction="row" spacing={1} sx={{ flex: 'none' }}>
           {/* Box wrappers carry the responsive flex the seam Button can't express via sx. */}
           <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
-            <UiButton variant="contained" onClick={submit} style={{ flex: 1 }}>
+            <UiButton variant="primary" onClick={submit} style={{ flex: 1 }}>
               Add
             </UiButton>
           </Box>
           <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
             <UiButton
-              variant="outlined"
-              startIcon={<Sparkles size={16} />}
+              variant="secondary"
+              iconLeft={<Sparkles size={16} />}
               onClick={openAi}
               style={{ flex: 1, whiteSpace: 'nowrap' }}
             >
@@ -267,8 +267,9 @@ export default function TrackerView() {
           <HdsMenu>
             <HdsMenu.Trigger asChild>
               <UiButton
-                size="small"
-                startIcon={<ArrowUpDown size={16} />}
+                variant="tertiary"
+                size="sm"
+                iconLeft={<ArrowUpDown size={16} />}
                 style={{ whiteSpace: 'nowrap' }}
               >
                 {sortLabel}
@@ -284,7 +285,12 @@ export default function TrackerView() {
               </HdsMenu.RadioGroup>
             </HdsMenu.Content>
           </HdsMenu>
-          <UiButton size="small" disabled={!jobs.length} onClick={() => exportCsv(jobs)}>
+          <UiButton
+            variant="tertiary"
+            size="sm"
+            disabled={!jobs.length}
+            onClick={() => exportCsv(jobs)}
+          >
             Export CSV
           </UiButton>
         </Stack>
@@ -510,8 +516,8 @@ export default function TrackerView() {
                       </UiButton>
                     )}
                     <UiButton
-                      size="small"
-                      variant="text"
+                      size="sm"
+                      variant="tertiary"
                       onClick={() => setOpen((p) => ({ ...p, [j.url]: !p[j.url] }))}
                     >
                       {isOpen ? 'Hide' : 'Details'}
@@ -571,15 +577,10 @@ export default function TrackerView() {
                       </Stack>
                       <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
                         {research(j.label).map(([name, href]) => (
-                          <UiButton
-                            key={name}
-                            size="small"
-                            variant="outlined"
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {name}
+                          <UiButton key={name} size="sm" variant="secondary" asChild>
+                            <a href={href} target="_blank" rel="noopener noreferrer">
+                              {name}
+                            </a>
                           </UiButton>
                         ))}
                       </Box>

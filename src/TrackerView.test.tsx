@@ -11,8 +11,7 @@ afterEach(() => {
     .forEach((j) => removeJob(j.url));
 });
 
-const renderTracker = () =>
-  render(<TrackerView />);
+const renderTracker = () => render(<TrackerView />);
 
 describe('TrackerView', () => {
   it('adds a pasted job URL to the queue', async () => {

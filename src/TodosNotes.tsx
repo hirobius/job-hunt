@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Button as UiButton,
   HdsCheckbox,
   IconButton as HdsIconButton,
   Input as HdsInput,
@@ -7,7 +8,6 @@ import {
 } from '@hirobius/design-system';
 import { ListChecks, StickyNote, X, Plus } from 'lucide-react';
 import { Box, Stack, Typography } from './ui/box';
-import { Button as UiButton } from './ui/Button';
 import { Reveal } from './ui/Reveal';
 import { updateJob } from './store';
 import { addTodo, toggleTodo, deleteTodo, todoProgress, seedStarterTodos } from './todos';
@@ -60,9 +60,9 @@ export function TodosNotes({ job }: { job: Job }) {
   return (
     <Box>
       <UiButton
-        size="small"
-        variant="text"
-        startIcon={<ListChecks size={16} />}
+        size="sm"
+        variant="tertiary"
+        iconLeft={<ListChecks size={16} />}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         style={{ whiteSpace: 'nowrap' }}
@@ -121,8 +121,8 @@ export function TodosNotes({ job }: { job: Job }) {
               {todos.length === 0 && (
                 <Box>
                   <UiButton
-                    size="small"
-                    variant="outlined"
+                    size="sm"
+                    variant="secondary"
                     onClick={() => updateJob(job.url, { todos: seedStarterTodos() })}
                   >
                     Add starter tasks

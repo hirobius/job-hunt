@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Box, Stack, Typography } from './ui/box';
 import {
+  Button,
   Combobox,
   Input as HdsInput,
   SegmentedControl,
@@ -10,7 +11,6 @@ import {
   TabsContent,
   Tag,
 } from '@hirobius/design-system';
-import { Button } from './ui/Button';
 import TileGrid from './TileGrid';
 import { useRoute, navigate } from './route';
 import { BOARDS, ATS, entryLevelize, type Tile } from './jobsData';
@@ -141,14 +141,10 @@ function AtsPanel({
           </Tag>
         ))}
       </Box>
-      <Button
-        variant="contained"
-        style={{ marginTop: 12, marginBottom: 12 }}
-        href={allUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Search all platforms
+      <Button variant="primary" style={{ marginTop: 12, marginBottom: 12 }} asChild>
+        <a href={allUrl} target="_blank" rel="noopener noreferrer">
+          Search all platforms
+        </a>
       </Button>
       <TileGrid tiles={tiles} cta="Search" />
     </Box>
@@ -217,7 +213,11 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
             <TitlesPanel titles={pillar.titles} applyEntry={pillar.seniority === 'entry'} />
           )}
           {cur.kind === 'ats' && (
-            <AtsPanel roles={pillar.atsRoles} seniority={pillar.seniority} defaultLoc={defaultLoc} />
+            <AtsPanel
+              roles={pillar.atsRoles}
+              seniority={pillar.seniority}
+              defaultLoc={defaultLoc}
+            />
           )}
         </TabsContent>
       </HdsTabs>

@@ -1,7 +1,5 @@
 import { Box, Link, Stack, Typography } from './ui/box';
-import { Tooltip } from './ui/Tooltip';
-import { Badge, Card as HdsCard, IconButton } from '@hirobius/design-system';
-import { Button } from './ui/Button';
+import { Badge, Button, Card as HdsCard, HdsTooltip, IconButton } from '@hirobius/design-system';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import { addJob, isSaved, useJobs } from './store';
 import { useTileTriage, toggleDismiss } from './tileTriage';
@@ -107,18 +105,14 @@ export default function TileGrid({
                 useFlexGap
                 flexWrap="wrap"
               >
-                <Button
-                  size="small"
-                  variant="text"
-                  href={t.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {cta}
+                <Button size="sm" variant="tertiary" asChild>
+                  <a href={t.url} target="_blank" rel="noopener noreferrer">
+                    {cta}
+                  </a>
                 </Button>
                 <Button
-                  size="small"
-                  variant={saved ? 'text' : 'outlined'}
+                  size="sm"
+                  variant={saved ? 'tertiary' : 'secondary'}
                   disabled={saved}
                   onClick={() => addJob(t.url, t.name)}
                 >
@@ -127,27 +121,33 @@ export default function TileGrid({
                 {(triage || onRemove) && (
                   <Stack direction="row" spacing={0} sx={{ ml: 'auto' }}>
                     {triage && (
-                      <Tooltip title={isAside ? 'Restore' : 'Set aside'}>
-                        <IconButton
-                          size="sm"
-                          variant="tertiary"
-                          icon={isAside ? ArchiveRestore : Archive}
-                          onClick={() => toggleDismiss(t.url)}
-                          label={isAside ? 'Restore tile' : 'Set tile aside'}
-                        />
-                      </Tooltip>
+                      <HdsTooltip>
+                        <HdsTooltip.Trigger asChild>
+                          <IconButton
+                            size="sm"
+                            variant="tertiary"
+                            icon={isAside ? ArchiveRestore : Archive}
+                            onClick={() => toggleDismiss(t.url)}
+                            label={isAside ? 'Restore tile' : 'Set tile aside'}
+                          />
+                        </HdsTooltip.Trigger>
+                        <HdsTooltip.Content>{isAside ? 'Restore' : 'Set aside'}</HdsTooltip.Content>
+                      </HdsTooltip>
                     )}
                     {onRemove && (
-                      <Tooltip title="Remove">
-                        <IconButton
-                          size="sm"
-                          variant="tertiary"
-                          tone="danger"
-                          icon={Trash2}
-                          onClick={() => onRemove(t.url)}
-                          label="Remove tile"
-                        />
-                      </Tooltip>
+                      <HdsTooltip>
+                        <HdsTooltip.Trigger asChild>
+                          <IconButton
+                            size="sm"
+                            variant="tertiary"
+                            tone="danger"
+                            icon={Trash2}
+                            onClick={() => onRemove(t.url)}
+                            label="Remove tile"
+                          />
+                        </HdsTooltip.Trigger>
+                        <HdsTooltip.Content>Remove</HdsTooltip.Content>
+                      </HdsTooltip>
                     )}
                   </Stack>
                 )}

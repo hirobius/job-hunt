@@ -1,13 +1,7 @@
 import { useState } from 'react';
 import { Box, Stack, Typography } from './ui/box';
-import { Dialog, DialogActions, DialogContent, DialogTitle } from './ui/Dialog';
-import {
-  Input as HdsInput,
-  SegmentedControl,
-  Tag,
-} from '@hirobius/design-system';
+import { Button, Dialog, Input as HdsInput, SegmentedControl, Tag } from '@hirobius/design-system';
 import { Reveal } from './ui/Reveal';
-import { Button } from './ui/Button';
 import {
   usePillars,
   useActivePillarId,
@@ -68,7 +62,7 @@ function ChipListEditor({
             style={{ width: '100%' }}
           />
         </Box>
-        <Button onClick={add} disabled={!draft.trim()} sx={{ flex: 'none' }}>
+        <Button variant="tertiary" onClick={add} disabled={!draft.trim()} style={{ flex: 'none' }}>
           Add
         </Button>
       </Stack>
@@ -105,10 +99,11 @@ function GroupsEditor({ groups, onChange }: { groups: Group[]; onChange: (g: Gro
               />
             </Box>
             <Button
-              size="small"
-              color="error"
+              variant="tertiary"
+              size="sm"
+              tone="danger"
               onClick={() => onChange(groups.filter((_, i) => i !== gi))}
-              sx={{ flex: 'none' }}
+              style={{ flex: 'none' }}
             >
               Remove
             </Button>
@@ -149,17 +144,19 @@ function GroupsEditor({ groups, onChange }: { groups: Group[]; onChange: (g: Gro
                   />
                 </Box>
                 <Button
-                  size="small"
-                  color="error"
+                  variant="tertiary"
+                  size="sm"
+                  tone="danger"
                   onClick={() => setGroup(gi, { tiles: g.tiles.filter((_, i) => i !== ti) })}
-                  sx={{ flex: 'none' }}
+                  style={{ flex: 'none' }}
                 >
                   ✕
                 </Button>
               </Stack>
             ))}
             <Button
-              size="small"
+              variant="tertiary"
+              size="sm"
               onClick={() =>
                 setGroup(gi, { tiles: [...g.tiles, { name: 'New tile', meta: '', url: '' }] })
               }
@@ -169,7 +166,7 @@ function GroupsEditor({ groups, onChange }: { groups: Group[]; onChange: (g: Gro
           </Stack>
         </Box>
       ))}
-      <Button variant="outlined" size="small" onClick={addGroup}>
+      <Button variant="secondary" size="sm" onClick={addGroup}>
         + Add group
       </Button>
     </Stack>
@@ -192,121 +189,167 @@ export default function PillarsDialog({ open, onClose }: { open: boolean; onClos
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Trades</DialogTitle>
-      <DialogContent dividers>
-        <Stack spacing={2}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
-            {pillars.map((p) => (
-              <Tag key={p.id} active={p.id === sel} onClick={() => setSel(p.id)}>
-                {p.builtIn ? `${p.label} · built-in` : p.label}
-              </Tag>
-            ))}
-            <Button size="small" style={{ marginLeft: 'auto' }} onClick={() => setSel(createPillar())}>
-              New
-            </Button>
-          </Box>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
+      <Dialog.Content
+        style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
+          <Dialog.Header>
+            <Dialog.Title>Trades</Dialog.Title>
+          </Dialog.Header>
+          <div
+            style={{
+              overflowY: 'auto',
+              padding: '16px 4px',
+              borderTop: '1px solid var(--semantic-color-border-default)',
+              borderBottom: '1px solid var(--semantic-color-border-default)',
+              margin: '8px 0',
+            }}
+          >
+            <Stack spacing={2}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
+                {pillars.map((p) => (
+                  <Tag key={p.id} active={p.id === sel} onClick={() => setSel(p.id)}>
+                    {p.builtIn ? `${p.label} · built-in` : p.label}
+                  </Tag>
+                ))}
+                <Button
+                  variant="tertiary"
+                  size="sm"
+                  style={{ marginLeft: 'auto' }}
+                  onClick={() => setSel(createPillar())}
+                >
+                  New
+                </Button>
+              </Box>
 
-          {pillar.builtIn ? (
-            <Box>
-              <Typography variant="body2" color="text.secondary">
-                “{pillar.label}” is a built-in trade (read-only). Duplicate it to customize the
-                titles, roles, seniority, and AI-tailor target.
-              </Typography>
-              <Button
-                variant="outlined"
-                style={{ marginTop: 12 }}
-                onClick={() => setSel(duplicatePillar(pillar.id))}
-              >
-                Duplicate to customize
-              </Button>
-            </Box>
-          ) : (
-            <>
-              <HdsInput
-                label="Label"
-                size="sm"
-                value={pillar.label}
-                onChange={(e) => set({ label: e.target.value })}
-                style={{ width: '100%' }}
-              />
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="flex-start">
+              {pillar.builtIn ? (
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                    Seniority
+                  <Typography variant="body2" color="text.secondary">
+                    “{pillar.label}” is a built-in trade (read-only). Duplicate it to customize the
+                    titles, roles, seniority, and AI-tailor target.
                   </Typography>
-                  <SegmentedControl
-                    aria-label="Seniority"
-                    size="sm"
-                    value={pillar.seniority}
-                    onChange={(v) => set({ seniority: v as Seniority })}
-                    options={[
-                      { value: 'entry', label: 'Entry-level' },
-                      { value: 'experienced', label: 'Experienced' },
-                      { value: 'any', label: 'Any' },
-                    ]}
-                  />
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                    Entry-level adds entry filters to searches
-                  </Typography>
+                  <Button
+                    variant="secondary"
+                    style={{ marginTop: 12 }}
+                    onClick={() => setSel(duplicatePillar(pillar.id))}
+                  >
+                    Duplicate to customize
+                  </Button>
                 </Box>
-                <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+              ) : (
+                <>
                   <HdsInput
+                    label="Label"
                     size="sm"
-                    label="Default location"
-                    value={pillar.location}
-                    onChange={(e) => set({ location: e.target.value })}
+                    value={pillar.label}
+                    onChange={(e) => set({ label: e.target.value })}
                     style={{ width: '100%' }}
                   />
-                </Box>
-              </Stack>
-              <HdsInput
-                size="sm"
-                label="AI-tailor target role"
-                value={pillar.tailorRole ?? ''}
-                onChange={(e) => set({ tailorRole: e.target.value })}
-                style={{ width: '100%' }}
-              />
-              <ChipListEditor
-                label="Titles"
-                values={pillar.titles}
-                onChange={(v) => set({ titles: v })}
-              />
-              <ChipListEditor
-                label="ATS roles"
-                values={pillar.atsRoles}
-                onChange={(v) => set({ atsRoles: v })}
-              />
-              <Box>
-                <Button size="small" onClick={() => setShowGroups((v) => !v)}>
-                  {showGroups ? 'Hide' : 'Edit'} Discover groups ({pillar.groups.length})
-                </Button>
-                <Reveal open={showGroups}>
-                  <Box sx={{ mt: 1 }}>
-                    <GroupsEditor groups={pillar.groups} onChange={(g) => set({ groups: g })} />
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={1.5}
+                    alignItems="flex-start"
+                  >
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: 'block', mb: 0.5 }}
+                      >
+                        Seniority
+                      </Typography>
+                      <SegmentedControl
+                        aria-label="Seniority"
+                        size="sm"
+                        value={pillar.seniority}
+                        onChange={(v) => set({ seniority: v as Seniority })}
+                        options={[
+                          { value: 'entry', label: 'Entry-level' },
+                          { value: 'experienced', label: 'Experienced' },
+                          { value: 'any', label: 'Any' },
+                        ]}
+                      />
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: 'block', mt: 0.5 }}
+                      >
+                        Entry-level adds entry filters to searches
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+                      <HdsInput
+                        size="sm"
+                        label="Default location"
+                        value={pillar.location}
+                        onChange={(e) => set({ location: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </Box>
+                  </Stack>
+                  <HdsInput
+                    size="sm"
+                    label="AI-tailor target role"
+                    value={pillar.tailorRole ?? ''}
+                    onChange={(e) => set({ tailorRole: e.target.value })}
+                    style={{ width: '100%' }}
+                  />
+                  <ChipListEditor
+                    label="Titles"
+                    values={pillar.titles}
+                    onChange={(v) => set({ titles: v })}
+                  />
+                  <ChipListEditor
+                    label="ATS roles"
+                    values={pillar.atsRoles}
+                    onChange={(v) => set({ atsRoles: v })}
+                  />
+                  <Box>
+                    <Button variant="tertiary" size="sm" onClick={() => setShowGroups((v) => !v)}>
+                      {showGroups ? 'Hide' : 'Edit'} Discover groups ({pillar.groups.length})
+                    </Button>
+                    <Reveal open={showGroups}>
+                      <Box sx={{ mt: 1 }}>
+                        <GroupsEditor groups={pillar.groups} onChange={(g) => set({ groups: g })} />
+                      </Box>
+                    </Reveal>
                   </Box>
-                </Reveal>
-              </Box>
-              <Button color="error" onClick={remove} style={{ alignSelf: 'flex-start' }}>
-                Delete pillar
+                  <Button
+                    variant="tertiary"
+                    tone="danger"
+                    onClick={remove}
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    Delete pillar
+                  </Button>
+                </>
+              )}
+            </Stack>
+          </div>
+          <Dialog.Footer>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <Button
+                variant="tertiary"
+                onClick={() => {
+                  setActivePillar(pillar.id);
+                  onClose();
+                }}
+              >
+                Use “{pillar.label}”
               </Button>
-            </>
-          )}
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button
-          onClick={() => {
-            setActivePillar(pillar.id);
-            onClose();
-          }}
-        >
-          Use “{pillar.label}”
-        </Button>
-        <Button variant="contained" onClick={onClose}>
-          Done
-        </Button>
-      </DialogActions>
+              <Button variant="primary" onClick={onClose}>
+                Done
+              </Button>
+            </div>
+          </Dialog.Footer>
+        </div>
+      </Dialog.Content>
     </Dialog>
   );
 }

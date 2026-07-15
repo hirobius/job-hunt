@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useRoute, navigate, getRoute } from './route';
 import { Box, Container, Stack, Typography } from './ui/box';
-import { Tooltip } from './ui/Tooltip';
 import { Sun, Moon, MoreVertical, SlidersHorizontal, MessageSquareText } from 'lucide-react';
 import {
   IconButton as HdsIconButton,
@@ -10,6 +9,7 @@ import {
   TabsList,
   TabsTrigger,
   TabsContent,
+  HdsTooltip,
 } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import ApprenticeshipsView from './ApprenticeshipsView';
@@ -31,14 +31,17 @@ function ColorModeToggle() {
   const { mode, toggle } = useColorMode();
   const label = mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
   return (
-    <Tooltip title={label}>
-      <HdsIconButton
-        variant="tertiary"
-        icon={mode === 'dark' ? Sun : Moon}
-        onClick={toggle}
-        label={label}
-      />
-    </Tooltip>
+    <HdsTooltip>
+      <HdsTooltip.Trigger asChild>
+        <HdsIconButton
+          variant="tertiary"
+          icon={mode === 'dark' ? Sun : Moon}
+          onClick={toggle}
+          label={label}
+        />
+      </HdsTooltip.Trigger>
+      <HdsTooltip.Content>{label}</HdsTooltip.Content>
+    </HdsTooltip>
   );
 }
 

@@ -20,10 +20,17 @@ commit `f15fd52`).
   - **`src/ui/box.tsx`** — a token-aware `sx` engine (spacing shorthands, HDS token color map,
     responsive `{xs,sm,md}` objects, nested `&` selectors → cached injected CSS classes) plus
     the `Box`/`Stack`/`Typography`/`Container`/`Link`/`Divider` primitives on top.
-  - Thin adapters preserving the MUI call shape on HDS components: **`ui/Dialog.tsx`**
-    (Dialog/DialogTitle/DialogContent/DialogActions → HDS compound Dialog), **`ui/Tooltip.tsx`**
-    (`<Tooltip title>` → HdsTooltip), **`ui/Alert.tsx`** (`severity`+`onClose` → HDS Alert),
-    **`ui/TextField.tsx`** (→ HDS Input/Textarea). `ui/Button.tsx` is the Button seam.
+  - **`src/ui/Reveal.tsx`** — the MUI-free `<Collapse>` (CSS grid-rows 0fr↔1fr animation).
+  - **The MUI-shaped adapters are retired (2026-07).** `ui/Button`, `ui/Dialog`, `ui/Tooltip`,
+    `ui/Alert`, `ui/TextField` — thin shims that once let the MUI→HDS cutover proceed by
+    import-swap — were **deleted** once MUI was gone; every call site now uses the real HDS
+    component directly (Button `variant`/`tone`, HDS compound `Dialog`, `HdsTooltip`, `Alert tone`
+    + a dismiss `IconButton`, `Input`/`Textarea`). **`src/ui` is now purely the layout gap:**
+    `box.tsx` (Box/Stack/Typography/Container/Link/Divider + the `sx` engine) and `Reveal`.
+  - **These layout primitives are the ONLY remaining non-HDS UI** — the last candidates to route
+    upstream into HDS (see `docs/hds-upstream-asks-0.9.md` §"Layout primitives"). HDS 0.13 is its
+    final frozen release and ships no `Box`/`sx`/layout equivalent, so until HDS grows one this
+    layer stays local; it is deliberately kept small and dependency-free for exactly that handoff.
   - ⚠️ **No MUI `sx` on HDS components** — HDS takes semantic token props, not `sx`. Use the
     `src/ui` primitives (which DO take `sx`) for ad-hoc layout, HDS components for everything else.
 - **Design language:** jade dark theme; headlines **Clash Display**, body **Satoshi**

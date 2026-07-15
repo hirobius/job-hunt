@@ -87,7 +87,29 @@ uses MUI Chip `onDelete`) have no HDS equivalent.
 **Accept:** `<Tag onRemove={…}>` (or a `RemovableTag`) with a keyboard-accessible
 remove control.
 
-## Downstream state (context for prioritizing)
+## Addendum (2026-07): adapters retired — layout primitives are the last ask
+
+The MUI-shaped compatibility shims (`ui/Button`, `ui/Dialog`, `ui/Tooltip`, `ui/Alert`,
+`ui/TextField`) that this report tracked have all been **deleted**. Every call site now
+consumes the real HDS component directly — Button `variant`/`tone`, the compound `Dialog`
+(`Dialog.Content`/`Header`/`Title`/`Footer`), `HdsTooltip`, `Alert tone` with a dismiss
+`IconButton`, and `Input`/`Textarea`. `@mui/*` and `@emotion/*` are already gone from the
+tree; nothing MUI-shaped remains in the component layer.
+
+### 9. Layout primitives — `Box` / `Stack` / `Typography` + an `sx` engine (the ONLY remaining non-HDS UI)
+
+After the adapter retirement, the entire local UI layer is `src/ui/box.tsx`
+(`Box`/`Stack`/`Typography`/`Container`/`Link`/`Divider` on a token-aware `sx` engine —
+spacing shorthands, the HDS token color map, responsive `{xs,sm,md}` objects, nested `&`
+selectors → cached injected CSS classes) plus `Reveal` (a CSS-grid `<Collapse>`). ~150
+`sx=` sites and ~200 primitive elements depend on it. HDS has no layout/`sx` primitive, so
+this cannot be deleted — only *adopted upstream*. It is kept MUI/emotion-free and
+dependency-light specifically so it can be lifted into HDS wholesale.
+**Accept:** HDS ships a layout primitive set (`Box`/`Stack` + a token-scoped style prop)
+that covers ad-hoc spacing/flex/grid and the responsive-object + nested-selector cases,
+so consumers stop hand-rolling one. Until then this layer stays local by design, not debt.
+
+## Downstream state (historical — see addendum above for current state)
 
 Still MUI in Apply Board, by cause: Tooltip (ask 3), multiline fields (ask 2),
 PillarsDialog/AI dialogs (migratable now via HDS Dialog/Combobox/Callout — next wave,
