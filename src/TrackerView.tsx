@@ -43,7 +43,6 @@ import type { Job, Status } from './types';
 // Lazy so the AI code (and its chunks) only load when the user opens them —
 // keeps the initial Queue bundle lean.
 const AiIntakeDialog = lazy(() => import('./ai/AiIntakeDialog'));
-const TailorDialog = lazy(() => import('./ai/TailorDialog'));
 
 type Filter = 'active' | 'all' | Status | 'retired';
 
@@ -136,7 +135,6 @@ export default function TrackerView() {
     setAiMounted(true);
     setAiOpen(true);
   };
-  const [tailorJob, setTailorJob] = useState<Job | null>(null);
   // Transient "Saved ✓" flash after a detail field autosaves (per job url).
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -410,9 +408,6 @@ export default function TrackerView() {
                         <HdsMenu.Item onSelect={() => updateJob(j.url, { priority: !j.priority })}>
                           {j.priority ? 'Unpin priority' : 'Pin as priority'}
                         </HdsMenu.Item>
-                        <HdsMenu.Item onSelect={() => setTailorJob(j)}>
-                          Tailor résumé with AI
-                        </HdsMenu.Item>
                         <HdsMenu.Item onSelect={() => updateJob(j.url, { archived: !j.archived })}>
                           {j.archived ? 'Unretire' : 'Retire'}
                         </HdsMenu.Item>
@@ -596,11 +591,6 @@ export default function TrackerView() {
       {aiMounted && (
         <Suspense fallback={null}>
           <AiIntakeDialog open={aiOpen} onClose={() => setAiOpen(false)} />
-        </Suspense>
-      )}
-      {tailorJob && (
-        <Suspense fallback={null}>
-          <TailorDialog open job={tailorJob} onClose={() => setTailorJob(null)} />
         </Suspense>
       )}
     </Box>

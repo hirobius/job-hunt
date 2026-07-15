@@ -122,6 +122,10 @@ re-litigate decisions already in `docs/adr/`.
   (production `job-hunt-jade.vercel.app` is already allowed).
 - Keep personal contact info OUT of this public repo (letters/snippets ship with a
   "add your name + contact" placeholder).
+- **AI résumé-tailor removed (2026-07, v1 scope cut).** `TailorDialog`, `tailor-core.ts`,
+  `tailorResume.ts`, and `api/tailor.ts` are gone; "Add with AI" extraction (`AiIntakeDialog`
+  + `api/extract`) is unaffected. `docs/adr/0002` and `README.md`/`FEATURES.md` still describe
+  the old two-feature design as historical context and were left as-is.
 
 ## Fleet hub
 
