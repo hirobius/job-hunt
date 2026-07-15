@@ -151,12 +151,18 @@ export default function CloudSync() {
     if (!user) return;
     if (
       !window.confirm(
-        'Delete all your synced data (jobs and pillars) from the cloud and this device? This cannot be undone.',
+        'Delete all your synced data (jobs, categories, and boards) from the cloud and this device? This cannot be undone.',
       )
     )
       return;
     setMsg('Deleting…');
     try {
+      // Erase curated content (child → parent) plus the sync blob. RLS scopes each
+      // delete to this user; the FK cascade would cover the children, but we delete
+      // them explicitly so erasure never silently depends on it.
+      await supa.from('tiles').delete().eq('user_id', user.id);
+      await supa.from('groups').delete().eq('user_id', user.id);
+      await supa.from('categories').delete().eq('user_id', user.id);
       await supa.from('tracker').delete().eq('user_id', user.id);
     } catch {
       /* ignore */
