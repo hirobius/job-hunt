@@ -160,6 +160,62 @@ export const GROUPS: Group[] = [
     ],
   },
   {
+    // Implementation Consulting "Apply Now" — the other parallel (non-trades) track: software
+    // implementation / onboarding / professional-services roles, generalist across ecosystems.
+    // Curates BOTH remote and Spokane-area live searches (the pillar is remote+Spokane), plus
+    // ATS Google-dorks for the low-competition hidden-jobs angle. Board rule holds: live
+    // searches + durable dorks only, no one-off postings.
+    id: 'ic-brief',
+    label: 'Apply Now',
+    tiles: [
+      t(
+        'LinkedIn · Implementation Consultant (Remote)',
+        'Live remote implementation / onboarding roles',
+        'https://www.linkedin.com/jobs/search/?keywords=implementation%20consultant&location=United%20States&f_WT=2',
+      ),
+      t(
+        'Indeed · Implementation Consultant (Remote)',
+        'All live remote implementation postings',
+        'https://www.indeed.com/jobs?q=implementation+consultant&l=Remote',
+      ),
+      t(
+        'Google Jobs · Implementation Specialist (Remote)',
+        'Aggregated remote implementation / onboarding roles',
+        'https://www.google.com/search?q=implementation+specialist+remote&ibp=htl;jobs',
+      ),
+      t(
+        'LinkedIn · Implementation (Spokane)',
+        'Local / hybrid implementation & solutions-consultant roles',
+        'https://www.linkedin.com/jobs/search/?keywords=implementation%20consultant&location=Spokane%2C%20Washington',
+      ),
+      t(
+        'Indeed · Implementation / Onboarding (Spokane)',
+        'Live Spokane-area implementation & onboarding postings',
+        'https://www.indeed.com/jobs?q=implementation+OR+%22onboarding+specialist%22&l=Spokane%2C+WA',
+      ),
+      t(
+        'Greenhouse · Implementation Consultant (hidden jobs)',
+        'Google-dork into Greenhouse boards · less competition',
+        'https://www.google.com/search?q=%28site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io%29+%22implementation+consultant%22+remote',
+      ),
+      t(
+        'Lever · Implementation / Solutions (hidden jobs)',
+        'Google-dork into Lever boards · less competition',
+        'https://www.google.com/search?q=site%3Ajobs.lever.co+%22implementation+consultant%22+remote',
+      ),
+      t(
+        'Ashby · Implementation (hidden jobs)',
+        'Google-dork into Ashby boards · less competition',
+        'https://www.google.com/search?q=site%3Ajobs.ashbyhq.com+%22implementation%22+remote',
+      ),
+      t(
+        'Workday · Professional Services (hidden jobs)',
+        'Google-dork into Workday boards · less competition',
+        'https://www.google.com/search?q=site%3Amyworkdayjobs.com+%22professional+services+consultant%22+remote',
+      ),
+    ],
+  },
+  {
     // Sheet-metal & fab "Apply Now" — durable Spokane-area employer pages that hire and
     // train on the bench. Board rule holds: careers pages + 1-click local searches, no
     // one-off postings.

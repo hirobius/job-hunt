@@ -189,7 +189,11 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
   const subIndex = route.sub ? tabs.findIndex((tb) => tb.key === route.sub) : -1;
   const tab = subIndex >= 0 ? subIndex : 0;
   const cur = tabs[tab] ?? tabs[0];
-  const defaultLoc = pillar.location.toLowerCase().includes('spokane') ? 'spokane' : 'remote';
+  const locLower = pillar.location.toLowerCase();
+  const hasSpokane = locLower.includes('spokane');
+  const hasRemote = locLower.includes('remote');
+  const defaultLoc: 'remote' | 'spokane' | 'both' =
+    hasSpokane && hasRemote ? 'both' : hasSpokane ? 'spokane' : 'remote';
 
   return (
     <Box>

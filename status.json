@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-07-15T00:00:00Z",
+  "updatedAt": "2026-07-27T00:00:00Z",
   "phase": "live",
-  "headline": "Two changes this session. (1) Per-role to-dos + notes on Queue cards: each job gains an optional todos[] checklist and a notes string (additive Job fields — no Supabase migration, old records read as [] / ''); a compact summary chip (✓ done/total + note icon) toggles a Reveal panel with an HDS checklist (add/toggle/delete, strikethrough when done, one-click starter tasks) + on-blur Notes textarea, all through the existing updateJob → localStorage + Supabase path; pure helpers in src/todos.ts with table-driven tests. (2) Retired the MUI-shaped adapters: ui/Button, ui/Dialog, ui/Tooltip, ui/Alert, ui/TextField deleted and all ~34 call sites across 12 files migrated to real HDS directly (Button variant/tone, compound Dialog, HdsTooltip, Alert+dismiss, Input/Textarea). src/ui is now purely the layout gap (box.tsx + Reveal) — the only remaining non-HDS UI, earmarked to route upstream (docs/hds-upstream-asks-0.9.md §9). Typecheck + lint + all 153 tests + build green; verified all three dialogs + Queue render desktop + 390px.",
+  "headline": "Added an Implementation Consulting built-in pillar — the second parallel non-trades track alongside Design Systems. Generalist software-implementation / onboarding / professional-services roles (10 title-search terms, 6 ATS role terms), remote+Spokane, experienced (drops the entry-level clause). New curated `ic-brief` \"Apply Now\" group in jobsData.ts (9 tiles: remote + Spokane live searches on LinkedIn/Indeed/Google Jobs + Greenhouse/Lever/Ashby/Workday hidden-jobs dorks). DiscoverView now derives the ATS Location default 'both' when a pillar's location names both Remote and Spokane (AtsPanel already supported 'both'). BUILTIN_PILLARS is now 5; pillars.test.ts + pillarStore.test.ts updated (importStarter/appNav counts are dynamic/unrelated). Typecheck + build + affected tests green; verified the pillar, Apply Now tiles, and the Both ATS default render at desktop + 390px.",
   "next": [
     "Verify on live Vercel deploy + gather feedback",
-    "Consider consolidating the legacy singular `note` (Details panel) with the new `notes` field",
+    "Consider narrowing the consulting track to a specific ecosystem (CRM/ERP/Healthcare IT) if the generalist net is too noisy",
     "Route the src/ui layout primitives (Box/Stack/Typography + sx engine) upstream into HDS if HDS ever unfreezes"
   ],
   "blocked": []
