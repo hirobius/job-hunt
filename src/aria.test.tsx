@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
+import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import DiscoverView from './DiscoverView';
 import { getAllJobs, removeJob } from './store';
@@ -11,7 +12,7 @@ afterEach(() => {
     .forEach((j) => removeJob(j.url));
 });
 
-const withTheme = (ui: React.ReactNode) => render(<>{ui}</>);
+const withTheme = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
 
 describe('aria wiring', () => {
   it('Tracker filter group exposes an accessible name', () => {

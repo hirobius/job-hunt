@@ -92,18 +92,18 @@ export default function ApprenticeshipsView() {
   const groups = useMemo(() => {
     const match = (t: Tile) =>
       !q || t.name.toLowerCase().includes(q) || t.meta.toLowerCase().includes(q);
-    return liveGroups.map((g) => ({
-      ...g,
-      tiles: partitionTiles(g.tiles, triage, savedSet).visible.filter(match),
-    }));
+    return liveGroups.map((g) => {
+      const part = partitionTiles(g.tiles, triage, savedSet);
+      return { ...g, tiles: part.visible.filter(match), savedCount: part.saved.length };
+    });
   }, [liveGroups, triage, savedSet, q]);
   const archivedGroups = useMemo(() => {
     const match = (t: Tile) =>
       !q || t.name.toLowerCase().includes(q) || t.meta.toLowerCase().includes(q);
-    return archivedCurated.map((g) => ({
-      ...g,
-      tiles: partitionTiles(g.tiles, triage, savedSet).visible.filter(match),
-    }));
+    return archivedCurated.map((g) => {
+      const part = partitionTiles(g.tiles, triage, savedSet);
+      return { ...g, tiles: part.visible.filter(match), savedCount: part.saved.length };
+    });
   }, [archivedCurated, triage, savedSet, q]);
 
   // Search spans the whole board — live + archived — so nothing hides behind the disclosure.
@@ -130,7 +130,7 @@ export default function ApprenticeshipsView() {
     collapsibleIds.length > 0 && collapsibleIds.every((id) => expanded.includes(id));
 
   // One group block, shared by the live board and the archived disclosure.
-  const renderGroup = (g: Group) => {
+  const renderGroup = (g: Group & { savedCount?: number }) => {
     const isMy = g.id === 'my';
     if (!isMy && !g.tiles.length && !searching) return null;
     if (!isMy && !g.tiles.length && searching) return null;
@@ -179,6 +179,11 @@ export default function ApprenticeshipsView() {
               ({g.tiles.length})
             </Typography>
           )}
+          {!isMy && g.savedCount ? (
+            <Typography variant="caption" color="text.secondary" sx={{ pl: 0.5, flex: 'none' }}>
+              · {g.savedCount} in Queue
+            </Typography>
+          ) : null}
         </Stack>
         {isMy && (
           <Stack

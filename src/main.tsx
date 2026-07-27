@@ -8,6 +8,7 @@ import '@hirobius/design-system/styles.css';
 import './theme/brand-jade.css';
 import './theme/base.css';
 import { inject } from '@vercel/analytics';
+import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 
@@ -17,7 +18,9 @@ inject();
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ColorModeProvider>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </ColorModeProvider>
   </React.StrictMode>,
 );

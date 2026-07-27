@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Box, Stack, Typography } from './ui/box';
 import {
   Button,
@@ -16,6 +16,36 @@ import { useRoute, navigate } from './route';
 import { BOARDS, ATS, entryLevelize, type Tile } from './jobsData';
 import { useActivePillar, usePillars, useActivePillarId, setActivePillar } from './pillarStore';
 import { CROSS_CUTTING_GROUPS, type Pillar, type Seniority } from './pillars';
+import { useJobs } from './store';
+import { partitionTiles } from './tileState';
+import { consumeDiscoverSeed } from './discoverSeed';
+
+// No board triage on Discover (that lives on the Trades board) — we only want the saved→remove
+// rule here, so partition against an empty triage.
+const NO_TRIAGE = { pinned: [] as string[], dismissed: [] as string[] };
+
+// Curated group tiles, with saved ones removed (issue #57) and a "N saved → Queue" note. The
+// generated Title/ATS search tiles are searches, not postings, so they aren't saveable — this
+// only wraps the curated `group` tabs.
+function GroupPanel({ tiles, savedSet }: { tiles: Tile[]; savedSet: ReadonlySet<string> }) {
+  const { visible, saved } = partitionTiles(tiles, NO_TRIAGE, savedSet);
+  return (
+    <Box>
+      {saved.length > 0 && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          {saved.length} saved — in your Queue
+        </Typography>
+      )}
+      {visible.length > 0 ? (
+        <TileGrid tiles={visible} />
+      ) : (
+        <Typography color="text.secondary" sx={{ py: 2 }}>
+          {saved.length > 0 ? 'All saved — check your Queue.' : 'Nothing here yet.'}
+        </Typography>
+      )}
+    </Box>
+  );
+}
 
 // Trade switcher — moved out of the global header (it only drives this tab) into a labeled
 // control here, so it reads as "which trade am I searching?" instead of a mystery dropdown.
@@ -38,8 +68,16 @@ function TradeSwitcher() {
   );
 }
 
-function TitlesPanel({ titles, applyEntry }: { titles: string[]; applyEntry: boolean }) {
-  const [title, setTitle] = useState(titles[0] ?? '');
+function TitlesPanel({
+  titles,
+  applyEntry,
+  initialTitle,
+}: {
+  titles: string[];
+  applyEntry: boolean;
+  initialTitle?: string | null;
+}) {
+  const [title, setTitle] = useState(initialTitle || titles[0] || '');
   if (titles.length === 0)
     return (
       <Typography color="text.secondary" sx={{ py: 2 }}>
@@ -186,6 +224,10 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
   // back/forward. Match by stable key, not index — tab counts differ per pillar. Index 0
   // (the featured/first tab) maps to a bare #/discover for clean URLs.
   const route = useRoute();
+  const jobs = useJobs();
+  const savedSet = useMemo(() => new Set(jobs.map((j) => j.url)), [jobs]);
+  // "Find more like this" (issue #57) stashes a title before navigating here; consume it once.
+  const [seed] = useState(() => consumeDiscoverSeed());
   const subIndex = route.sub ? tabs.findIndex((tb) => tb.key === route.sub) : -1;
   const tab = subIndex >= 0 ? subIndex : 0;
   const cur = tabs[tab] ?? tabs[0];
@@ -212,9 +254,13 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
           ))}
         </TabsList>
         <TabsContent value={cur.key}>
-          {cur.kind === 'group' && <TileGrid tiles={cur.tiles!} />}
+          {cur.kind === 'group' && <GroupPanel tiles={cur.tiles!} savedSet={savedSet} />}
           {cur.kind === 'titles' && (
-            <TitlesPanel titles={pillar.titles} applyEntry={pillar.seniority === 'entry'} />
+            <TitlesPanel
+              titles={pillar.titles}
+              applyEntry={pillar.seniority === 'entry'}
+              initialTitle={seed}
+            />
           )}
           {cur.kind === 'ats' && (
             <AtsPanel

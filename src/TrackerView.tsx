@@ -35,6 +35,8 @@ import {
   hostOf,
 } from './store';
 import { deriveJobState } from './jobState';
+import { navigate } from './route';
+import { setDiscoverSeed } from './discoverSeed';
 import { sortJobs, SORTS, type SortKey } from './jobSort';
 import EmptyState from './EmptyState';
 import { TodosNotes } from './TodosNotes';
@@ -410,6 +412,17 @@ export default function TrackerView() {
                         </HdsMenu.Item>
                         <HdsMenu.Item onSelect={() => updateJob(j.url, { archived: !j.archived })}>
                           {j.archived ? 'Unretire' : 'Retire'}
+                        </HdsMenu.Item>
+                        <HdsMenu.Separator />
+                        {/* Reverse interop (issue #57): seed Discover's Title search with this
+                            job's title and jump there — pipeline feeds discovery. */}
+                        <HdsMenu.Item
+                          onSelect={() => {
+                            setDiscoverSeed(j.label || prettyTitle(j.url));
+                            navigate({ tab: 'discover', sub: 'titles' });
+                          }}
+                        >
+                          Find more like this
                         </HdsMenu.Item>
                         <HdsMenu.Separator />
                         <HdsMenu.Item

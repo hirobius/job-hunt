@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { axe } from 'vitest-axe';
+import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import CopyDeckView from './CopyDeckView';
 import DiscoverView from './DiscoverView';
@@ -15,7 +16,7 @@ import { getAllJobs, removeJob } from './store';
  * single-h1) that only apply to a full document.
  */
 
-const withTheme = (ui: React.ReactNode) => render(<>{ui}</>);
+const withTheme = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
 
 async function auditA11y(el: Element) {
   const results = await axe(el, {
