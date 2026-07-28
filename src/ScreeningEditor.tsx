@@ -1,0 +1,166 @@
+import { useState } from 'react';
+import { Box, Stack, Typography } from './ui/box';
+import { Input as HdsInput, Tag } from '@hirobius/design-system';
+import { updateJob } from './store';
+import { DEFAULT_BLOCKERS, MODES, VERDICTS, blockerLabel } from './screening';
+import type { Job } from './types';
+
+// Detail-panel editor for a job's screening fields (issue #60): fit (verdict), work mode, and
+// dealbreakers are toggle chips (all optional → chips, not a required SegmentedControl); travel /
+// applicants are numbers; angle is a note. Every change writes straight through updateJob.
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      sx={{
+        display: 'block',
+        mb: 0.5,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        fontSize: 11,
+      }}
+    >
+      {children}
+    </Typography>
+  );
+}
+
+function Chips({ children }: { children: React.ReactNode }) {
+  return <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>{children}</Box>;
+}
+
+function NumField({
+  label,
+  value,
+  suffix,
+  onChange,
+}: {
+  label: string;
+  value?: number;
+  suffix?: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+      <HdsInput
+        size="sm"
+        label={suffix ? `${label} (${suffix})` : label}
+        inputMode="numeric"
+        value={value == null ? '' : String(value)}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ width: '100%' }}
+      />
+    </Box>
+  );
+}
+
+export function ScreeningEditor({ job }: { job: Job }) {
+  const [custom, setCustom] = useState('');
+  const blockers = job.blockers ?? [];
+  const defaultIds = new Set(DEFAULT_BLOCKERS.map((b) => b.id));
+  const customTags = blockers.filter((b) => !defaultIds.has(b));
+
+  const toggleBlocker = (id: string) =>
+    updateJob(job.url, {
+      blockers: blockers.includes(id) ? blockers.filter((b) => b !== id) : [...blockers, id],
+    });
+  const addCustom = () => {
+    const t = custom.trim().toLowerCase().replace(/\s+/g, '_');
+    if (t && !blockers.includes(t)) updateJob(job.url, { blockers: [...blockers, t] });
+    setCustom('');
+  };
+  const setNum = (key: 'travelPct' | 'applicants', v: string) => {
+    const n = v.trim() === '' ? undefined : Number(v);
+    updateJob(job.url, { [key]: n != null && isFinite(n) && n >= 0 ? n : undefined });
+  };
+
+  return (
+    <Stack spacing={1.5}>
+      <Box>
+        <FieldLabel>Fit</FieldLabel>
+        <Chips>
+          {VERDICTS.map((v) => (
+            <Tag
+              key={v.value}
+              active={job.verdict === v.value}
+              onClick={() =>
+                updateJob(job.url, { verdict: job.verdict === v.value ? undefined : v.value })
+              }
+            >
+              {v.label}
+            </Tag>
+          ))}
+        </Chips>
+      </Box>
+
+      <Box>
+        <FieldLabel>Work mode</FieldLabel>
+        <Chips>
+          {MODES.map((m) => (
+            <Tag
+              key={m.value}
+              active={job.mode === m.value}
+              onClick={() =>
+                updateJob(job.url, { mode: job.mode === m.value ? undefined : m.value })
+              }
+            >
+              {m.label}
+            </Tag>
+          ))}
+        </Chips>
+      </Box>
+
+      <Box>
+        <FieldLabel>Dealbreakers</FieldLabel>
+        <Chips>
+          {DEFAULT_BLOCKERS.map((b) => (
+            <Tag key={b.id} active={blockers.includes(b.id)} onClick={() => toggleBlocker(b.id)}>
+              {b.label}
+            </Tag>
+          ))}
+          {customTags.map((b) => (
+            <Tag key={b} active onClick={() => toggleBlocker(b)}>
+              {blockerLabel(b)} ✕
+            </Tag>
+          ))}
+        </Chips>
+        <HdsInput
+          size="sm"
+          aria-label="Add a custom dealbreaker"
+          placeholder="Add a dealbreaker…"
+          value={custom}
+          onChange={(e) => setCustom(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              addCustom();
+            }
+          }}
+          style={{ marginTop: 8, maxWidth: 240 }}
+        />
+      </Box>
+
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+        <NumField
+          label="Travel"
+          suffix="%"
+          value={job.travelPct}
+          onChange={(v) => setNum('travelPct', v)}
+        />
+        <NumField label="Applicants" value={job.applicants} onChange={(v) => setNum('applicants', v)} />
+      </Stack>
+
+      <Box sx={{ '& > *': { width: '100%' } }}>
+        <HdsInput
+          size="sm"
+          label="Angle (positioning for this role)"
+          value={job.angle ?? ''}
+          onChange={(e) => updateJob(job.url, { angle: e.target.value })}
+          style={{ width: '100%' }}
+        />
+      </Box>
+    </Stack>
+  );
+}

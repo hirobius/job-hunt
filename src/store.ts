@@ -2,6 +2,7 @@ import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
 import { type Job, type Status } from './types';
 import { applyStatus, logFollowUp as applyFollowUp, normStatus } from './jobState';
+import { normalizeScreening } from './screening';
 
 const KEY = 'rjb_shortlist'; // same key as the legacy app
 const RETIRED: Record<string, 1> = {
@@ -87,12 +88,14 @@ export function sanitizeJobs(arr: unknown): Job[] {
     if (seen.has(key)) continue; // first occurrence wins
     seen.add(key);
     const label = (it.label || '').replace(/[<>]/g, '').trim();
-    out.push({
-      ...it,
-      url,
-      status: normStatus(it.status),
-      label: label && label !== 'Saved job' ? label : prettyTitle(url), // backfill weak titles
-    });
+    out.push(
+      normalizeScreening({
+        ...it,
+        url,
+        status: normStatus(it.status),
+        label: label && label !== 'Saved job' ? label : prettyTitle(url), // backfill weak titles
+      }),
+    );
   }
   return out;
 }

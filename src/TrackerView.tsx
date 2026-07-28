@@ -38,6 +38,8 @@ import { deriveJobState } from './jobState';
 import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
 import { sortJobs, SORTS, type SortKey } from './jobSort';
+import { verdictTone, modeLabel, blockerLabel } from './screening';
+import { ScreeningEditor } from './ScreeningEditor';
 import EmptyState from './EmptyState';
 import { TodosNotes } from './TodosNotes';
 import type { Job, Status } from './types';
@@ -78,6 +80,12 @@ function exportCsv(jobs: Job[]) {
       'resume',
       'contact',
       'salary',
+      'verdict',
+      'mode',
+      'travel_pct',
+      'applicants',
+      'blockers',
+      'angle',
       'priority',
       'retired',
       'note',
@@ -95,6 +103,12 @@ function exportCsv(jobs: Job[]) {
       j.resume || '',
       j.contact || '',
       j.salary || '',
+      j.verdict || '',
+      j.mode || '',
+      j.travelPct != null ? String(j.travelPct) : '',
+      j.applicants != null ? String(j.applicants) : '',
+      (j.blockers || []).join('|'),
+      j.angle || '',
       j.priority ? 'yes' : '',
       j.archived ? 'yes' : '',
       j.note || '',
@@ -478,6 +492,44 @@ export default function TrackerView() {
                     </Box>
                   )}
 
+                  {/* Screening chips — verdict / mode / dealbreakers / applicant count (issue #60) */}
+                  {(j.verdict ||
+                    j.mode ||
+                    (j.blockers && j.blockers.length > 0) ||
+                    j.applicants != null) && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 0.5,
+                        mt: 1,
+                        alignItems: 'center',
+                      }}
+                    >
+                      {j.verdict && (
+                        <Badge tone={verdictTone(j.verdict)}>
+                          {j.verdict.charAt(0).toUpperCase() + j.verdict.slice(1)}
+                        </Badge>
+                      )}
+                      {j.mode && (
+                        <Badge tone="neutral">
+                          {modeLabel(j.mode)}
+                          {j.travelPct != null ? ` · ${j.travelPct}% travel` : ''}
+                        </Badge>
+                      )}
+                      {j.blockers?.map((b) => (
+                        <Badge key={b} tone="danger">
+                          {blockerLabel(b)}
+                        </Badge>
+                      ))}
+                      {j.applicants != null && (
+                        <Typography variant="caption" color="text.secondary">
+                          {j.applicants} applied
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+
                   {/* Meta chips — source host + notes indicator */}
                   {(host || j.note) && (
                     <Box
@@ -578,6 +630,7 @@ export default function TrackerView() {
                         {fld(j, 'seniority', 'Seniority')}
                         {fld(j, 'salary', 'Salary')}
                       </Stack>
+                      <ScreeningEditor job={j} />
                       {fld(j, 'note', 'Notes', true)}
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
                         {fld(j, 'contact', 'Contact / referral')}
