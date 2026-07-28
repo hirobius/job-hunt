@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Box, Stack, Typography } from './ui/box';
-import { Input as HdsInput, Tag } from '@hirobius/design-system';
+import { Button, Input as HdsInput, Tag } from '@hirobius/design-system';
+import { ScanText } from 'lucide-react';
 import { updateJob } from './store';
 import { DEFAULT_BLOCKERS, MODES, VERDICTS, blockerLabel } from './screening';
 import type { Job } from './types';
+
+const ScreenJdDialog = lazy(() => import('./ScreenJdDialog'));
 
 // Detail-panel editor for a job's screening fields (issue #60): fit (verdict), work mode, and
 // dealbreakers are toggle chips (all optional → chips, not a required SegmentedControl); travel /
@@ -58,6 +61,7 @@ function NumField({
 
 export function ScreeningEditor({ job }: { job: Job }) {
   const [custom, setCustom] = useState('');
+  const [screenOpen, setScreenOpen] = useState(false);
   const blockers = job.blockers ?? [];
   const defaultIds = new Set(DEFAULT_BLOCKERS.map((b) => b.id));
   const customTags = blockers.filter((b) => !defaultIds.has(b));
@@ -78,6 +82,27 @@ export function ScreeningEditor({ job }: { job: Job }) {
 
   return (
     <Stack spacing={1.5}>
+      <Box>
+        <Button
+          variant="secondary"
+          size="sm"
+          iconLeft={<ScanText size={15} />}
+          onClick={() => setScreenOpen(true)}
+        >
+          Screen a job description
+        </Button>
+        {job.screenedAt && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+            Screened {new Date(job.screenedAt).toLocaleDateString()}
+          </Typography>
+        )}
+      </Box>
+      {screenOpen && (
+        <Suspense fallback={null}>
+          <ScreenJdDialog job={job} open onClose={() => setScreenOpen(false)} />
+        </Suspense>
+      )}
+
       <Box>
         <FieldLabel>Fit</FieldLabel>
         <Chips>
