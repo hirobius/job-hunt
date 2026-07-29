@@ -136,12 +136,13 @@ A compact read on pipeline shape so you can see what's winnable.
 - DoD: YAML parses (the loop can `node -e` a YAML parse or eyeball); 1–5 unaffected. (Actions run
       only on GitHub — don't block on it.)
 
-### R5 — Docs refresh: CLAUDE.md + README _(housekeeping)_
-- [ ] CLAUDE.md: BOARDS are no longer Spokane-locked (location is a user field — #58); add the
-      screening fields (#60), JD screener (#61), and Board↔Queue interop (#57); point at
-      `docs/agnostic-product-redesign.md` + ADR-0006 for the product pivot.
-- [ ] README: refresh stale stack/status lines.
-- DoD: docs only; run 1–5.
+### R5 — Docs refresh: CLAUDE.md + README _(housekeeping)_ — ✅ DONE
+- [x] CLAUDE.md: Discover generators are location/mode-driven (not Spokane); AI fully removed (#54);
+      new "2026-07 agnostic-product pivot + screening pipeline" section (#57/#58/#60/#61/#46/#31);
+      points at `docs/agnostic-product-redesign.md` + ADR-0006.
+- [x] README: fixed the false stack line (HDS not MUI; no Anthropic) + a note that the fuller
+      refresh is tracked in #20.
+- DoD met: typecheck + lint + build green (docs/markdown only).
 
 ### R6 — Complete data deletion across curation tables _(#42)_ — ALREADY DONE
 `CloudSync.deleteMyData()` already deletes `tiles`/`groups`/`categories`/`tracker` by `user_id`

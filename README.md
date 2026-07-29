@@ -38,8 +38,12 @@ deep links that survive refresh and back/forward.
 
 ## Stack
 
-Vite · React 18 · TypeScript · MUI v6 · Supabase (cloud sync) · Anthropic Claude (serverless
-functions) · deployed on Vercel.
+Vite · React 18 · TypeScript · `@hirobius/design-system` (HDS; MUI fully removed — #11) ·
+Supabase (cloud sync) · deployed on Vercel. _(No AI: the résumé-tailor and "Add with AI" were
+removed — #54; the JD screener is rules-based and client-side.)_
+
+> ℹ️ The rest of this README predates the HDS cutover and the AI removal and is being refreshed
+> in #20 — treat the stack line above as current.
 
 ## Develop
 
