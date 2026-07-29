@@ -7,8 +7,8 @@ iteration. Stop conditions below.
 
 ## Loop protocol (guardrails — apply to every iteration)
 
-- **Branch:** work only on `claude/apply-board-consulting-roles-xpl2a9` (the pinned branch). Never
-  push to `main`. _(If the PR strategy is changed to per-area PRs, this line gets updated.)_
+- **Branch/PR:** **per-area PRs** (locked 2026-07). Each queue item (or small group) gets its own
+  branch + PR off the agreed base, so review stays sane. Never push to `main` directly.
 - **One item per iteration.** Smallest shippable slice. Don't batch unrelated items.
 - **The verify gate is mandatory before ANY commit.** If it can't go green, **stop and flag** —
   never commit broken or unverified code.
@@ -33,9 +33,17 @@ Docs-only items skip 6; run 1–5 to be safe.
 
 ---
 
-## ⛔ Gates — clear these before the Blocked queue can run
+## ✅ Gates — ALL CLEARED (2026-07-27)
 
-These are **not** loop-able (human / decision). The loop must stop if it reaches one.
+- **G1 — Supabase migration: DONE.** The DB was empty (paused; no `tracker` table — cloud sync had
+  never worked). Restored the project and provisioned all four tables (`tracker` + `categories`/
+  `groups`/`tiles`) with RLS. Security advisor clean (only the known #44 leaked-password toggle).
+  Cloud sync now has its backing table for the first time.
+- **G2 — Tab naming: LOCKED → `Discover / Tracker / Templates`** (per #36; NOT Board/Queue/Copy Deck).
+- **G3 — AI direction: LOCKED → REMOVE Add-with-AI (#54).** `#40` and `#45` are now moot (dropped).
+  #54 becomes Ready-queue item **R7**.
+
+Historical detail for G1 kept below for reference.
 
 ### G1 — Apply the Supabase migration (human, ~2 min) → unblocks the entire #30 chain
 
@@ -135,18 +143,28 @@ A render crash must not blank the app.
 - [ ] README: refresh stale stack/status lines.
 - DoD: docs only; run 1–5.
 
-### R6 — Complete data deletion across curation tables _(#42, forward-safe)_
-- [ ] `CloudSync.tsx` `deleteMyData()` also deletes the user's `categories`/`groups`/`tiles` rows.
-- [ ] **Forward-safe:** must not throw if the tables don't exist yet (per-table try/catch) — they
-      arrive with G1.
-- [ ] Update the confirm copy to say all data is removed.
-- DoD: typecheck/lint/build; guard the logic with a unit test where practical (mock the client).
+### R6 — Complete data deletion across curation tables _(#42)_ — ALREADY DONE
+`CloudSync.deleteMyData()` already deletes `tiles`/`groups`/`categories`/`tracker` by `user_id`
+(CloudSync.tsx:163–166). Loop task reduces to: [ ] confirm the confirm-dialog copy says "all data"
+and close #42. No code change expected.
+
+### R7 — Remove "Add with AI" _(#54; G3 locked → remove)_
+- [ ] Delete `src/ai/AiIntakeDialog.tsx`, `api/extract.ts`, `src/ai/extract-core.ts` (+ test),
+      `src/ai/extractJob.ts`, `src/ai/intake.ts`, `src/ai/profile.ts`, `src/ai/AiNotConfigured.tsx`
+      (verify each exists first; delete what's there).
+- [ ] Remove the "Add with AI" button + lazy import + `aiOpen`/`aiMounted` state in `TrackerView`.
+- [ ] Drop `@anthropic-ai/sdk` dep; remove `api/extract` from `vercel.json` + `typecheck:api` from
+      `package.json` / CI if they become empty; drop the `e2e`/CI steps that reference it.
+- [ ] Update README / CLAUDE.md (fold into R5).
+- DoD: full gate; confirm the Queue still renders and Add (non-AI) works. Closes #54; #40/#45 → wontfix.
 
 ---
 
-## 🔵 Blocked queue — runs after G1 (+ G2 for the IA items), in this order
+## 🔵 Unblocked queue — G1/G2/G3 cleared; needs a per-item acceptance-criteria pass before looping
 
-Dependency chain from epic #30. Do **not** start until the gate(s) are cleared.
+Dependency chain from epic #30. Gates are cleared, so these are eligible — but each still needs its
+own acceptance-criteria + DoD written (like the Ready queue) **before** it loops, now that the real
+curation-store schema exists. Tab names are locked to **Discover / Tracker / Templates**.
 
 1. **#32** — Supabase-backed curation data layer (replace `pillarStore` localStorage projection;
    local cache + sync-on-login). _(needs G1)_
