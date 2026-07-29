@@ -53,41 +53,62 @@ export const TITLES = [
   'CNC Machinist',
   'Machine Operator',
 ];
-export const BOARDS: { name: string; tag: string; build: (term: string) => string }[] = [
-  {
-    name: 'Indeed · Spokane',
-    tag: 'Local',
-    build: (t) => `https://www.indeed.com/jobs?q=${encodeURIComponent(t)}&l=Spokane%2C+WA`,
-  },
-  {
-    name: 'LinkedIn · Spokane',
-    tag: 'Local',
-    build: (t) =>
-      `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(t)}&location=Spokane%2C%20Washington`,
-  },
-  {
-    name: 'ZipRecruiter · Spokane',
-    tag: '1-click',
-    build: (t) =>
-      `https://www.ziprecruiter.com/jobs-search?search=${encodeURIComponent(t)}&location=Spokane%2C+WA`,
-  },
-  {
-    name: 'Google Jobs',
-    tag: 'Aggregator',
-    build: (t) =>
-      `https://www.google.com/search?q=${encodeURIComponent(t + ' Spokane')}&ibp=htl;jobs`,
-  },
-  {
-    name: 'Snagajob · Spokane',
-    tag: 'Hourly',
-    build: (t) => `https://www.snagajob.com/search?q=${encodeURIComponent(t)}&w=Spokane%2C+WA`,
-  },
-  {
-    name: 'Indeed · Post Falls / CDA',
-    tag: 'N. Idaho',
-    build: (t) => `https://www.indeed.com/jobs?q=${encodeURIComponent(t)}&l=Post+Falls%2C+ID`,
-  },
-];
+// Work mode + location drive every generated search (issue #58). Location is user-set — no more
+// hard-coded Spokane — and work-mode is a deliberate choice (there is NO remote default: remote
+// roles draw far more applicants, so local/hybrid is often the better-odds filter).
+export type WorkMode = 'any' | 'remote' | 'hybrid' | 'onsite';
+export interface SearchLoc {
+  /** City / state / region, e.g. "Spokane, WA" or "United States". Blank = anywhere. */
+  where: string;
+  mode: WorkMode;
+}
+const encc = encodeURIComponent;
+export const BOARDS: { name: string; tag: string; build: (term: string, loc: SearchLoc) => string }[] =
+  [
+    {
+      name: 'Indeed',
+      tag: 'Aggregator',
+      build: (term, { where, mode }) => {
+        const l = mode === 'remote' ? 'Remote' : where.trim();
+        return `https://www.indeed.com/jobs?q=${encc(term)}${l ? `&l=${encc(l)}` : ''}`;
+      },
+    },
+    {
+      name: 'LinkedIn',
+      tag: 'Aggregator',
+      build: (term, { where, mode }) => {
+        // f_WT: 1 = on-site, 2 = remote, 3 = hybrid; omit for "any".
+        const wt =
+          mode === 'remote' ? '&f_WT=2' : mode === 'hybrid' ? '&f_WT=3' : mode === 'onsite' ? '&f_WT=1' : '';
+        const loc = mode === 'remote' ? where.trim() || 'United States' : where.trim();
+        return `https://www.linkedin.com/jobs/search/?keywords=${encc(term)}${loc ? `&location=${encc(loc)}` : ''}${wt}`;
+      },
+    },
+    {
+      name: 'ZipRecruiter',
+      tag: '1-click',
+      build: (term, { where, mode }) => {
+        const l = mode === 'remote' ? 'Remote' : where.trim();
+        return `https://www.ziprecruiter.com/jobs-search?search=${encc(term)}${l ? `&location=${encc(l)}` : ''}`;
+      },
+    },
+    {
+      name: 'Google Jobs',
+      tag: 'Aggregator',
+      build: (term, { where, mode }) => {
+        const q = term + (mode === 'remote' ? ' remote' : where.trim() ? ` ${where.trim()}` : '');
+        return `https://www.google.com/search?q=${encc(q)}&ibp=htl;jobs`;
+      },
+    },
+    {
+      name: 'Snagajob',
+      tag: 'Hourly',
+      build: (term, { where, mode }) => {
+        const w = mode === 'remote' ? 'Remote' : where.trim();
+        return `https://www.snagajob.com/search?q=${encc(term)}${w ? `&w=${encc(w)}` : ''}`;
+      },
+    },
+  ];
 
 // ---- ATS hidden-jobs generator ----
 export const ATS_ROLES = [

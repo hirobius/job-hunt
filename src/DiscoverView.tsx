@@ -13,7 +13,7 @@ import {
 } from '@hirobius/design-system';
 import TileGrid from './TileGrid';
 import { useRoute, navigate } from './route';
-import { BOARDS, ATS, entryLevelize, type Tile } from './jobsData';
+import { BOARDS, ATS, entryLevelize, type Tile, type WorkMode } from './jobsData';
 import { useActivePillar, usePillars, useActivePillarId, setActivePillar } from './pillarStore';
 import { CROSS_CUTTING_GROUPS, type Pillar, type Seniority } from './pillars';
 import { useJobs } from './store';
@@ -47,6 +47,60 @@ function GroupPanel({ tiles, savedSet }: { tiles: Tile[]; savedSet: ReadonlySet<
   );
 }
 
+// Sourced, dated (issue #58): remote postings are ~10% of listings but draw ~46% of applications
+// (aggregate job-market data, 2024) — roughly 5× the competition. Surfaced so "remote" is a
+// deliberate choice, not the default.
+const REMOTE_COMPETITION_HINT =
+  'Remote roles draw ~5× the applicants (2024) — local & hybrid compete less.';
+
+// Shared work-mode + location control for the generated searches (Title + ATS). No remote default;
+// the location is free text (blank = anywhere). Backed by state lifted to DiscoverBody so the
+// choice persists across the two search tabs.
+function LocationControl({
+  where,
+  mode,
+  onWhere,
+  onMode,
+}: {
+  where: string;
+  mode: WorkMode;
+  onWhere: (v: string) => void;
+  onMode: (v: WorkMode) => void;
+}) {
+  return (
+    <Stack spacing={1} sx={{ mb: 1.5 }}>
+      <SegmentedControl
+        aria-label="Work mode"
+        size="sm"
+        value={mode}
+        onChange={(v) => onMode(v as WorkMode)}
+        options={[
+          { value: 'any', label: 'Any' },
+          { value: 'remote', label: 'Remote' },
+          { value: 'hybrid', label: 'Hybrid' },
+          { value: 'onsite', label: 'On-site' },
+        ]}
+      />
+      <Box sx={{ maxWidth: 280, '& > *': { width: '100%' } }}>
+        <HdsInput
+          size="sm"
+          aria-label="Location"
+          placeholder="City, State — blank = anywhere"
+          value={mode === 'remote' ? '' : where}
+          disabled={mode === 'remote'}
+          onChange={(e) => onWhere(e.target.value)}
+          style={{ width: '100%' }}
+        />
+      </Box>
+      {mode === 'remote' && (
+        <Typography variant="caption" color="text.secondary">
+          {REMOTE_COMPETITION_HINT}
+        </Typography>
+      )}
+    </Stack>
+  );
+}
+
 // Trade switcher — moved out of the global header (it only drives this tab) into a labeled
 // control here, so it reads as "which trade am I searching?" instead of a mystery dropdown.
 function TradeSwitcher() {
@@ -72,10 +126,18 @@ function TitlesPanel({
   titles,
   applyEntry,
   initialTitle,
+  where,
+  mode,
+  onWhere,
+  onMode,
 }: {
   titles: string[];
   applyEntry: boolean;
   initialTitle?: string | null;
+  where: string;
+  mode: WorkMode;
+  onWhere: (v: string) => void;
+  onMode: (v: WorkMode) => void;
 }) {
   const [title, setTitle] = useState(initialTitle || titles[0] || '');
   if (titles.length === 0)
@@ -85,16 +147,18 @@ function TitlesPanel({
       </Typography>
     );
   const term = `"${title}"`;
+  const loc = { where, mode };
   const tiles: Tile[] = BOARDS.map((b) => ({
     name: b.name,
     meta: b.tag,
-    url: applyEntry ? entryLevelize(b.build(term)) : b.build(term),
+    url: applyEntry ? entryLevelize(b.build(term, loc)) : b.build(term, loc),
   }));
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
         Pick a title — searches fire {applyEntry ? 'entry-level filtered ' : ''}across every board.
       </Typography>
+      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
         {titles.map((tt) => (
           <Tag key={tt} active={tt === title} onClick={() => setTitle(tt)}>
@@ -110,14 +174,19 @@ function TitlesPanel({
 function AtsPanel({
   roles,
   seniority,
-  defaultLoc,
+  where,
+  mode,
+  onWhere,
+  onMode,
 }: {
   roles: string[];
   seniority: Seniority;
-  defaultLoc: 'remote' | 'spokane' | 'both';
+  where: string;
+  mode: WorkMode;
+  onWhere: (v: string) => void;
+  onMode: (v: WorkMode) => void;
 }) {
   const [role, setRole] = useState(roles[0] ?? '');
-  const [loc, setLoc] = useState<'remote' | 'spokane' | 'both'>(defaultLoc);
   const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
   if (roles.length === 0)
     return (
@@ -125,15 +194,13 @@ function AtsPanel({
         No ATS roles in this pillar yet — add some in Manage pillars.
       </Typography>
     );
-  const locClause =
-    loc === 'spokane'
-      ? '("Spokane" OR Washington)'
-      : loc === 'both'
-        ? '(remote OR "Spokane")'
-        : 'remote';
+  // Location clause for the Google dork: remote → the word "remote"; a city → a quoted phrase;
+  // blank/any → no clause (nationwide).
+  const w = where.trim();
+  const locClause = mode === 'remote' ? 'remote' : w ? `"${w}"` : '';
   const levelClause = seniority === 'entry' ? ' (entry OR junior OR associate)' : '';
   const gUrl = (site: string) =>
-    `https://www.google.com/search?q=${encodeURIComponent(`${site} "${role}"${levelClause} ${locClause}`)}${recency ? '&tbs=qdr:' + recency : ''}`;
+    `https://www.google.com/search?q=${encodeURIComponent(`${site} "${role}"${levelClause}${locClause ? ' ' + locClause : ''}`)}${recency ? '&tbs=qdr:' + recency : ''}`;
   const tiles: Tile[] = ATS.map((a) => ({ name: a.name, meta: a.domain, url: gUrl(a.site) }));
   const allUrl = gUrl('(' + ATS.map((a) => a.site).join(' OR ') + ')');
   return (
@@ -141,6 +208,7 @@ function AtsPanel({
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25 }}>
         Search companies' hiring systems straight through Google — far less competition.
       </Typography>
+      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 1.5 }}>
         <HdsInput
           size="sm"
@@ -148,17 +216,6 @@ function AtsPanel({
           value={role}
           onChange={(e) => setRole(e.target.value)}
           style={{ minWidth: 180 }}
-        />
-        <SegmentedControl
-          aria-label="Location"
-          size="sm"
-          value={loc}
-          onChange={(v) => setLoc(v as typeof loc)}
-          options={[
-            { value: 'remote', label: 'Remote' },
-            { value: 'spokane', label: 'Spokane' },
-            { value: 'both', label: 'Both' },
-          ]}
         />
         <SegmentedControl
           aria-label="Recency"
@@ -231,11 +288,10 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
   const subIndex = route.sub ? tabs.findIndex((tb) => tb.key === route.sub) : -1;
   const tab = subIndex >= 0 ? subIndex : 0;
   const cur = tabs[tab] ?? tabs[0];
-  const locLower = pillar.location.toLowerCase();
-  const hasSpokane = locLower.includes('spokane');
-  const hasRemote = locLower.includes('remote');
-  const defaultLoc: 'remote' | 'spokane' | 'both' =
-    hasSpokane && hasRemote ? 'both' : hasSpokane ? 'spokane' : 'remote';
+  // Shared location + work-mode for both generated-search tabs. Default: anywhere / any mode —
+  // deliberately NOT remote (issue #58). Lifted here so the choice survives switching Title↔ATS.
+  const [where, setWhere] = useState('');
+  const [mode, setMode] = useState<WorkMode>('any');
 
   return (
     <Box>
@@ -260,13 +316,20 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
               titles={pillar.titles}
               applyEntry={pillar.seniority === 'entry'}
               initialTitle={seed}
+              where={where}
+              mode={mode}
+              onWhere={setWhere}
+              onMode={setMode}
             />
           )}
           {cur.kind === 'ats' && (
             <AtsPanel
               roles={pillar.atsRoles}
               seniority={pillar.seniority}
-              defaultLoc={defaultLoc}
+              where={where}
+              mode={mode}
+              onWhere={setWhere}
+              onMode={setMode}
             />
           )}
         </TabsContent>
