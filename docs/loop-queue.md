@@ -105,14 +105,13 @@ queue below assumes this is undecided and excludes those three.
 
 ## 🟢 Ready queue — loop these now (in order, no gates)
 
-### R1 — Applicant funnel view _(net-new; from #60 §"funnel")_
-A compact read on pipeline shape so you can see what's winnable.
-- [ ] `src/funnel.ts` (pure): aggregate a `Job[]` → `{ total, byVerdict, byMode, medianApplicants }`.
-- [ ] Table-driven tests for the aggregation (empty, mixed, medians with/without applicant counts).
-- [ ] A collapsible **Funnel** summary above the Queue list; hidden when there are 0 jobs.
-- [ ] Shows: verdict counts (Match/Stretch/Reach as tone-colored stat tiles), mode counts, and
-      median applicants. Simple stat tiles — no chart lib in v1. Reads live from the store.
-- DoD: full gate + screenshots (desktop + 390px), with a couple of seeded jobs.
+### R1 — Applicant funnel view _(net-new; from #60 §"funnel")_ — ✅ DONE
+- [x] `src/funnel.ts` (pure): `Job[]` → `{ total, byVerdict, byMode, medianApplicants }`.
+- [x] Table-driven tests (empty, mixed, odd/even median, ignores jobs without a count).
+- [x] `src/FunnelSummary.tsx`: collapsible summary above the Queue list, hidden at 0 jobs, over
+      the currently-shown list. Fit/mode tone-badges + median applicants. No chart lib.
+- DoD met: typecheck + lint + 205 tests + build green; verified headless (MATCH 2 / STRETCH 1 /
+  REACH 1, mode counts, median 200).
 
 ### R2 — Top-level error boundary _(#46)_ — ✅ DONE
 - [x] `src/ErrorBoundary.tsx` (class component) catches render errors.

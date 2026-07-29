@@ -39,6 +39,7 @@ import { setDiscoverSeed } from './discoverSeed';
 import { sortJobs, SORTS, type SortKey } from './jobSort';
 import { verdictTone, modeLabel, blockerLabel } from './screening';
 import { ScreeningEditor } from './ScreeningEditor';
+import { FunnelSummary } from './FunnelSummary';
 import EmptyState from './EmptyState';
 import { TodosNotes } from './TodosNotes';
 import type { Job, Status } from './types';
@@ -288,6 +289,8 @@ export default function TrackerView() {
           </UiButton>
         </Stack>
       </Stack>
+
+      <FunnelSummary jobs={shown} />
 
       {shown.length === 0 ? (
         <EmptyState
