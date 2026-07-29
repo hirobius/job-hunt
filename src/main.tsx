@@ -10,6 +10,7 @@ import './theme/base.css';
 import { inject } from '@vercel/analytics';
 import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
+import { ErrorBoundary } from './ErrorBoundary';
 import App from './App';
 
 // Vercel Web Analytics (page counts only; needs the dashboard toggle — see issue #16).
@@ -17,10 +18,12 @@ inject();
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ColorModeProvider>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
-    </ColorModeProvider>
+    <ErrorBoundary>
+      <ColorModeProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </ColorModeProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 );

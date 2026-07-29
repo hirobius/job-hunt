@@ -114,14 +114,14 @@ A compact read on pipeline shape so you can see what's winnable.
       median applicants. Simple stat tiles — no chart lib in v1. Reads live from the store.
 - DoD: full gate + screenshots (desktop + 390px), with a couple of seeded jobs.
 
-### R2 — Top-level error boundary _(#46)_
-A render crash must not blank the app.
-- [ ] `src/ErrorBoundary.tsx` (class component) catches render errors.
-- [ ] Fallback UI: "Something broke" + **Reload** + **Reset local data** (confirm → clear `rjb_*`
-      localStorage keys → reload).
-- [ ] Wrap `<App/>` under the existing providers in `main.tsx`.
-- [ ] Test: a throwing child renders the fallback.
-- DoD: full gate + a screenshot of the fallback (via a scratch throwing component).
+### R2 — Top-level error boundary _(#46)_ — ✅ DONE
+- [x] `src/ErrorBoundary.tsx` (class component) catches render errors.
+- [x] Fallback UI: "Something broke" + **Reload** + **Reset local data** (confirm → clear `rjb_*`
+      keys → reload).
+- [x] Wraps everything (outermost, inside StrictMode) in `main.tsx`.
+- [x] Test: throwing child → fallback (text + both buttons); pass-through when no error.
+- DoD met: typecheck + lint + 201 tests + build green; the fallback is unit-tested and the app
+  renders normally under the boundary (headless, no console errors).
 
 ### R3 — Web metadata: favicon / OG / meta / robots _(#47)_
 - [ ] `public/favicon.svg` (jade mark; self-contained, no external refs) + `public/robots.txt`.

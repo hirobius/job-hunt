@@ -12,3 +12,7 @@ dist/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Local scratch verification scripts (never committed)
+/verify-*.mjs
+/vrfy*.mjs
