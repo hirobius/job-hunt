@@ -2,6 +2,7 @@ import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
 import { type Job, type Status } from './types';
 import { applyStatus, logFollowUp as applyFollowUp, normStatus } from './jobState';
+import { normalizeScreening } from './screening';
 
 const KEY = 'rjb_shortlist'; // same key as the legacy app
 const RETIRED: Record<string, 1> = {
@@ -87,12 +88,14 @@ export function sanitizeJobs(arr: unknown): Job[] {
     if (seen.has(key)) continue; // first occurrence wins
     seen.add(key);
     const label = (it.label || '').replace(/[<>]/g, '').trim();
-    out.push({
-      ...it,
-      url,
-      status: normStatus(it.status),
-      label: label && label !== 'Saved job' ? label : prettyTitle(url), // backfill weak titles
-    });
+    out.push(
+      normalizeScreening({
+        ...it,
+        url,
+        status: normStatus(it.status),
+        label: label && label !== 'Saved job' ? label : prettyTitle(url), // backfill weak titles
+      }),
+    );
   }
   return out;
 }
@@ -122,8 +125,11 @@ export function useJobs(): Job[] {
   return store.use();
 }
 
-/** Add a job; returns true if newly added, false if it already existed. */
-export function addJob(rawUrl: string, label?: string): boolean {
+/** Add a job; returns true if newly added, false if it already existed. An optional
+ *  `note` seeds the new Job's note (used by tile saves to carry the tile's description
+ *  into the queue card — issue #57 "enriched save"). Ignored when the job already exists,
+ *  so a re-save never clobbers the user's own notes. */
+export function addJob(rawUrl: string, label?: string, note?: string): boolean {
   const jobs = store.get();
   let u = cleanUrl(rawUrl);
   if (!u) return false;
@@ -139,7 +145,9 @@ export function addJob(rawUrl: string, label?: string): boolean {
     }
     return false;
   }
-  set([...jobs, { url: u, label: (label || '').trim() || prettyTitle(u), status: 'Saved' }]);
+  const job: Job = { url: u, label: (label || '').trim() || prettyTitle(u), status: 'Saved' };
+  if (note?.trim()) job.note = note.trim();
+  set([...jobs, job]);
   return true;
 }
 /** Add a job with extra fields in one shot (used by AI intake). Returns the stored

@@ -139,9 +139,47 @@ export const DESIGN_SYSTEMS_PILLAR: Pillar = {
   builtIn: true,
 };
 
+const CONSULTING_TITLES = [
+  'Implementation Consultant',
+  'Implementation Specialist',
+  'Implementation Manager',
+  'Onboarding Specialist',
+  'Solutions Consultant',
+  'Professional Services Consultant',
+  'Technical Consultant',
+  'Deployment Engineer',
+  'Application Consultant',
+  'Customer Onboarding Manager',
+];
+const CONSULTING_ATS_ROLES = [
+  'implementation consultant',
+  'implementation specialist',
+  'onboarding specialist',
+  'solutions consultant',
+  'professional services',
+  'technical consultant',
+];
+
+// ---- Implementation Consulting (the second parallel non-trades track: remote+Spokane, experienced) ----
+// Generalist software-implementation / onboarding / professional-services roles across ecosystems.
+// Like Design Systems, the Title-search BOARDS hard-code Spokane, so this pillar's remote reach comes
+// from the ATS tab (defaults to Both via `location` containing "Remote"+"Spokane", drops the entry
+// clause via `seniority`) and the curated `ic-brief` "Apply Now" group (hand-authored remote + local URLs).
+export const CONSULTING_PILLAR: Pillar = {
+  id: 'consulting',
+  label: 'Implementation Consulting',
+  titles: CONSULTING_TITLES,
+  atsRoles: CONSULTING_ATS_ROLES,
+  seniority: 'experienced',
+  location: 'Remote + Spokane',
+  groups: pick('ic-brief'),
+  builtIn: true,
+};
+
 export const BUILTIN_PILLARS: Pillar[] = [
   SHEET_METAL_PILLAR,
   WELDING_PILLAR,
   CONSTRUCTION_PILLAR,
   DESIGN_SYSTEMS_PILLAR,
+  CONSULTING_PILLAR,
 ];

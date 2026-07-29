@@ -19,8 +19,8 @@ afterEach(() => {
 });
 
 describe('pillar registry', () => {
-  it('starts with the four built-ins (three trades + Design Systems)', () => {
-    expect(getPillars().filter((p) => p.builtIn)).toHaveLength(4);
+  it('starts with the five built-ins (three trades + Design Systems + Implementation Consulting)', () => {
+    expect(getPillars().filter((p) => p.builtIn)).toHaveLength(5);
   });
 
   it('creates a user pillar and makes it active', () => {

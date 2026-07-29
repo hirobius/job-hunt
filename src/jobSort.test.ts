@@ -41,7 +41,7 @@ describe('sortJobs invariants', () => {
 
   it('keeps retired jobs last in every sort', () => {
     const list = [job({ url: 'a', archived: true }), job({ url: 'b' }), job({ url: 'c' })];
-    (['recent', 'followup', 'applied', 'status', 'salary', 'az'] as SortKey[]).forEach((k) => {
+    (['recent', 'followup', 'applied', 'status', 'salary', 'fit', 'az'] as SortKey[]).forEach((k) => {
       const out = urls(sortJobs(list, k, NOW));
       expect(out[out.length - 1]).toBe('a');
     });
@@ -81,6 +81,19 @@ describe('sortJobs metrics', () => {
     const lo = job({ url: 'lo', salary: '$90k' });
     const none = job({ url: 'none' });
     expect(urls(sortJobs([lo, none, hi], 'salary', NOW))).toEqual(['hi', 'lo', 'none']);
+  });
+
+  it('best fit: match < stretch < reach, unscreened last', () => {
+    const reach = job({ url: 'reach', verdict: 'reach' });
+    const match = job({ url: 'match', verdict: 'match' });
+    const none = job({ url: 'none' });
+    const stretch = job({ url: 'stretch', verdict: 'stretch' });
+    expect(urls(sortJobs([reach, none, match, stretch], 'fit', NOW))).toEqual([
+      'match',
+      'stretch',
+      'reach',
+      'none',
+    ]);
   });
 
   it('status follows the lifecycle order', () => {

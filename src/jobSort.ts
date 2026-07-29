@@ -5,13 +5,15 @@
 // And only in the default 'recent' sort: any Job with a DUE follow-up floats to the very
 // top of the non-retired set — the "act on these now" view.
 import { deriveJobState } from './jobState';
+import { VERDICT_RANK } from './screening';
 import { STATUSES, type Job } from './types';
 
-export type SortKey = 'recent' | 'followup' | 'applied' | 'status' | 'salary' | 'az';
+export type SortKey = 'recent' | 'followup' | 'applied' | 'status' | 'salary' | 'fit' | 'az';
 
 export const SORTS: { key: SortKey; label: string }[] = [
   { key: 'recent', label: 'Recently added' },
   { key: 'followup', label: 'Follow-up due first' },
+  { key: 'fit', label: 'Best fit' },
   { key: 'applied', label: 'Applied date' },
   { key: 'status', label: 'Status' },
   { key: 'salary', label: 'Salary' },
@@ -49,6 +51,9 @@ function metric(job: Job, key: SortKey, now: Date): number {
       const v = parseSalary(job.salary);
       return isNaN(v) ? Infinity : -v;
     }
+    case 'fit':
+      // match < stretch < reach; unscreened jobs sink last.
+      return job.verdict ? VERDICT_RANK[job.verdict] : 3;
     default:
       return 0;
   }

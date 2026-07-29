@@ -25,9 +25,21 @@ describe('partitionTiles', () => {
     expect(urls(visible)).toEqual(['c', 'a', 'b', 'd']);
   });
 
-  it('saved tiles float like pins (issue #13 — save is the one "I care" gesture)', () => {
-    const { visible } = partitionTiles(tiles, { pinned: [], dismissed: [] }, new Set(['d']));
-    expect(urls(visible)).toEqual(['d', 'a', 'b', 'c']);
+  it('removes saved tiles from the board and returns them as `saved` (issue #57)', () => {
+    const { visible, saved } = partitionTiles(tiles, { pinned: [], dismissed: [] }, new Set(['d']));
+    expect(urls(visible)).toEqual(['a', 'b', 'c']); // 'd' is gone from the board
+    expect(urls(saved)).toEqual(['d']);
+  });
+
+  it('saved wins over set-aside — a saved+dismissed tile counts as saved, not aside', () => {
+    const { visible, aside, saved } = partitionTiles(
+      tiles,
+      { pinned: [], dismissed: ['d'] },
+      new Set(['d']),
+    );
+    expect(urls(visible)).toEqual(['a', 'b', 'c']);
+    expect(urls(saved)).toEqual(['d']);
+    expect(aside).toEqual([]);
   });
 
   it('a pinned + set-aside tile is set aside (not visible)', () => {

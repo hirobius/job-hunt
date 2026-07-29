@@ -1,8 +1,7 @@
-import React, { lazy, Suspense, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Box, Link, Stack, Typography } from './ui/box';
 import {
   EllipsisVertical,
-  Sparkles,
   ArrowUpDown,
   Search,
   Building2,
@@ -35,14 +34,14 @@ import {
   hostOf,
 } from './store';
 import { deriveJobState } from './jobState';
+import { navigate } from './route';
+import { setDiscoverSeed } from './discoverSeed';
 import { sortJobs, SORTS, type SortKey } from './jobSort';
+import { verdictTone, modeLabel, blockerLabel } from './screening';
+import { ScreeningEditor } from './ScreeningEditor';
 import EmptyState from './EmptyState';
 import { TodosNotes } from './TodosNotes';
 import type { Job, Status } from './types';
-
-// Lazy so the AI code (and its chunks) only load when the user opens them —
-// keeps the initial Queue bundle lean.
-const AiIntakeDialog = lazy(() => import('./ai/AiIntakeDialog'));
 
 type Filter = 'active' | 'all' | Status | 'retired';
 
@@ -76,6 +75,12 @@ function exportCsv(jobs: Job[]) {
       'resume',
       'contact',
       'salary',
+      'verdict',
+      'mode',
+      'travel_pct',
+      'applicants',
+      'blockers',
+      'angle',
       'priority',
       'retired',
       'note',
@@ -93,6 +98,12 @@ function exportCsv(jobs: Job[]) {
       j.resume || '',
       j.contact || '',
       j.salary || '',
+      j.verdict || '',
+      j.mode || '',
+      j.travelPct != null ? String(j.travelPct) : '',
+      j.applicants != null ? String(j.applicants) : '',
+      (j.blockers || []).join('|'),
+      j.angle || '',
       j.priority ? 'yes' : '',
       j.archived ? 'yes' : '',
       j.note || '',
@@ -129,12 +140,6 @@ export default function TrackerView() {
   const [q, setQ] = useState('');
   const [url, setUrl] = useState('');
   const [open, setOpen] = useState<Record<string, boolean>>({});
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiMounted, setAiMounted] = useState(false); // mount once, then animate open/close
-  const openAi = () => {
-    setAiMounted(true);
-    setAiOpen(true);
-  };
   // Transient "Saved ✓" flash after a detail field autosaves (per job url).
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -208,16 +213,6 @@ export default function TrackerView() {
           <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
             <UiButton variant="primary" onClick={submit} style={{ flex: 1 }}>
               Add
-            </UiButton>
-          </Box>
-          <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
-            <UiButton
-              variant="secondary"
-              iconLeft={<Sparkles size={16} />}
-              onClick={openAi}
-              style={{ flex: 1, whiteSpace: 'nowrap' }}
-            >
-              Add with AI
             </UiButton>
           </Box>
         </Stack>
@@ -412,6 +407,17 @@ export default function TrackerView() {
                           {j.archived ? 'Unretire' : 'Retire'}
                         </HdsMenu.Item>
                         <HdsMenu.Separator />
+                        {/* Reverse interop (issue #57): seed Discover's Title search with this
+                            job's title and jump there — pipeline feeds discovery. */}
+                        <HdsMenu.Item
+                          onSelect={() => {
+                            setDiscoverSeed(j.label || prettyTitle(j.url));
+                            navigate({ tab: 'discover', sub: 'titles' });
+                          }}
+                        >
+                          Find more like this
+                        </HdsMenu.Item>
+                        <HdsMenu.Separator />
                         <HdsMenu.Item
                           onSelect={() => removeJob(j.url)}
                           style={{ color: 'var(--semantic-color-feedback-error)' }}
@@ -462,6 +468,44 @@ export default function TrackerView() {
                           </Box>
                         );
                       })}
+                    </Box>
+                  )}
+
+                  {/* Screening chips — verdict / mode / dealbreakers / applicant count (issue #60) */}
+                  {(j.verdict ||
+                    j.mode ||
+                    (j.blockers && j.blockers.length > 0) ||
+                    j.applicants != null) && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 0.5,
+                        mt: 1,
+                        alignItems: 'center',
+                      }}
+                    >
+                      {j.verdict && (
+                        <Badge tone={verdictTone(j.verdict)}>
+                          {j.verdict.charAt(0).toUpperCase() + j.verdict.slice(1)}
+                        </Badge>
+                      )}
+                      {j.mode && (
+                        <Badge tone="neutral">
+                          {modeLabel(j.mode)}
+                          {j.travelPct != null ? ` · ${j.travelPct}% travel` : ''}
+                        </Badge>
+                      )}
+                      {j.blockers?.map((b) => (
+                        <Badge key={b} tone="danger">
+                          {blockerLabel(b)}
+                        </Badge>
+                      ))}
+                      {j.applicants != null && (
+                        <Typography variant="caption" color="text.secondary">
+                          {j.applicants} applied
+                        </Typography>
+                      )}
                     </Box>
                   )}
 
@@ -565,6 +609,7 @@ export default function TrackerView() {
                         {fld(j, 'seniority', 'Seniority')}
                         {fld(j, 'salary', 'Salary')}
                       </Stack>
+                      <ScreeningEditor job={j} />
                       {fld(j, 'note', 'Notes', true)}
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
                         {fld(j, 'contact', 'Contact / referral')}
@@ -586,12 +631,6 @@ export default function TrackerView() {
             );
           })}
         </Stack>
-      )}
-
-      {aiMounted && (
-        <Suspense fallback={null}>
-          <AiIntakeDialog open={aiOpen} onClose={() => setAiOpen(false)} />
-        </Suspense>
       )}
     </Box>
   );

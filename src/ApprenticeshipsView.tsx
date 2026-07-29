@@ -1,11 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Box, Stack, Typography } from './ui/box';
-import {
-  Button,
-  IconButton as HdsIconButton,
-  Input as HdsInput,
-  Tag,
-} from '@hirobius/design-system';
+import { Button, IconButton as HdsIconButton, Input as HdsInput } from '@hirobius/design-system';
 import { Reveal } from './ui/Reveal';
 import { Search, ChevronDown, Archive } from 'lucide-react';
 import TileGrid from './TileGrid';
@@ -17,26 +12,26 @@ import { partitionTiles } from './tileState';
 import { useUserTiles, addUserTilesFromText, removeUserTile } from './userTiles';
 import type { Group, Tile } from './jobsData';
 
-// Collapsed group ids persist so the board opens the way you left it.
-const COLLAPSE_KEY = 'rjb_appr_collapsed';
-const loadCollapsed = (): string[] => {
+// Expanded group ids persist so the board opens the way you left it. The board defaults to
+// COLLAPSED (no ids stored → every section closed): it opens as a short, scannable list of
+// section headers with counts, and you tap the ones you want. This keeps the long board from
+// feeling endless — the headers ARE the navigation, so the old jump-chip row is gone.
+const EXPAND_KEY = 'rjb_appr_expanded';
+const loadExpanded = (): string[] => {
   try {
-    const v = JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]');
+    const v = JSON.parse(localStorage.getItem(EXPAND_KEY) || '[]');
     return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
   } catch {
     return [];
   }
 };
-const saveCollapsed = (ids: string[]) => {
+const saveExpanded = (ids: string[]) => {
   try {
-    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(ids));
+    localStorage.setItem(EXPAND_KEY, JSON.stringify(ids));
   } catch {
     /* ignore */
   }
 };
-
-// Jump-chip label: the group label minus its parenthetical qualifier.
-const jumpLabel = (label: string) => label.replace(/\s*\(.*\)\s*$/, '');
 
 // Sort the live groups so hands-on metal leads; anything unlisted falls to the end.
 const orderRank = (id: string) => {
@@ -53,7 +48,7 @@ export default function ApprenticeshipsView() {
   const [showArchived, setShowArchived] = useState(false);
   const [draft, setDraft] = useState('');
   const [query, setQuery] = useState('');
-  const [collapsed, setCollapsed] = useState<string[]>(loadCollapsed);
+  const [expanded, setExpanded] = useState<string[]>(loadExpanded);
 
   const q = query.trim().toLowerCase();
   const searching = q.length > 0;
@@ -65,15 +60,15 @@ export default function ApprenticeshipsView() {
   };
 
   const toggleGroup = (id: string) => {
-    setCollapsed((prev) => {
+    setExpanded((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      saveCollapsed(next);
+      saveExpanded(next);
       return next;
     });
   };
-  const setAllCollapsed = (ids: string[]) => {
-    setCollapsed(ids);
-    saveCollapsed(ids);
+  const setAllExpanded = (ids: string[]) => {
+    setExpanded(ids);
+    saveExpanded(ids);
   };
 
   // My pasted tiles first, then the curated live groups (hands-on order); archived groups
@@ -97,18 +92,18 @@ export default function ApprenticeshipsView() {
   const groups = useMemo(() => {
     const match = (t: Tile) =>
       !q || t.name.toLowerCase().includes(q) || t.meta.toLowerCase().includes(q);
-    return liveGroups.map((g) => ({
-      ...g,
-      tiles: partitionTiles(g.tiles, triage, savedSet).visible.filter(match),
-    }));
+    return liveGroups.map((g) => {
+      const part = partitionTiles(g.tiles, triage, savedSet);
+      return { ...g, tiles: part.visible.filter(match), savedCount: part.saved.length };
+    });
   }, [liveGroups, triage, savedSet, q]);
   const archivedGroups = useMemo(() => {
     const match = (t: Tile) =>
       !q || t.name.toLowerCase().includes(q) || t.meta.toLowerCase().includes(q);
-    return archivedCurated.map((g) => ({
-      ...g,
-      tiles: partitionTiles(g.tiles, triage, savedSet).visible.filter(match),
-    }));
+    return archivedCurated.map((g) => {
+      const part = partitionTiles(g.tiles, triage, savedSet);
+      return { ...g, tiles: part.visible.filter(match), savedCount: part.saved.length };
+    });
   }, [archivedCurated, triage, savedSet, q]);
 
   // Search spans the whole board — live + archived — so nothing hides behind the disclosure.
@@ -131,25 +126,15 @@ export default function ApprenticeshipsView() {
   );
 
   const collapsibleIds = liveCurated.map((g) => g.id);
-  const allAreCollapsed = collapsibleIds.every((id) => collapsed.includes(id));
-
-  const jumpTo = (id: string) => {
-    setCollapsed((prev) => {
-      const next = prev.filter((x) => x !== id);
-      saveCollapsed(next);
-      return next;
-    });
-    requestAnimationFrame(() =>
-      document.getElementById(`grp-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-    );
-  };
+  const allAreExpanded =
+    collapsibleIds.length > 0 && collapsibleIds.every((id) => expanded.includes(id));
 
   // One group block, shared by the live board and the archived disclosure.
-  const renderGroup = (g: Group) => {
+  const renderGroup = (g: Group & { savedCount?: number }) => {
     const isMy = g.id === 'my';
     if (!isMy && !g.tiles.length && !searching) return null;
     if (!isMy && !g.tiles.length && searching) return null;
-    const isOpen = isMy || searching || !collapsed.includes(g.id);
+    const isOpen = isMy || searching || expanded.includes(g.id);
     return (
       <Box key={g.id} id={`grp-${g.id}`} sx={{ scrollMarginTop: 72 }}>
         <Stack
@@ -194,6 +179,11 @@ export default function ApprenticeshipsView() {
               ({g.tiles.length})
             </Typography>
           )}
+          {!isMy && g.savedCount ? (
+            <Typography variant="caption" color="text.secondary" sx={{ pl: 0.5, flex: 'none' }}>
+              · {g.savedCount} in Queue
+            </Typography>
+          ) : null}
         </Stack>
         {isMy && (
           <Stack
@@ -276,31 +266,19 @@ export default function ApprenticeshipsView() {
         )}
       </Box>
 
-      {/* Jump chips + collapse-all — orientation for a long board. Hidden while searching. */}
-      {!searching && (
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 0.75,
-            overflowX: 'auto',
-            pb: 0.5,
-            alignItems: 'center',
-            '& > *': { flex: 'none' },
-          }}
-        >
+      {/* One expand/collapse-all control. The board opens collapsed — a short list of section
+          headers with counts — so the old horizontally-scrolling jump-chip row (which just
+          duplicated those headers) is gone. Hidden while searching (everything auto-expands). */}
+      {!searching && collapsibleIds.length > 0 && (
+        <Box>
           <Button
             variant="tertiary"
             size="sm"
-            style={{ flex: 'none', whiteSpace: 'nowrap' }}
-            onClick={() => setAllCollapsed(allAreCollapsed ? [] : collapsibleIds)}
+            style={{ whiteSpace: 'nowrap' }}
+            onClick={() => setAllExpanded(allAreExpanded ? [] : collapsibleIds)}
           >
-            {allAreCollapsed ? 'Expand all' : 'Collapse all'}
+            {allAreExpanded ? 'Collapse all' : 'Expand all'}
           </Button>
-          {liveCurated.map((g) => (
-            <Tag key={g.id} onClick={() => jumpTo(g.id)}>
-              {jumpLabel(g.label)}
-            </Tag>
-          ))}
         </Box>
       )}
 

@@ -5,12 +5,13 @@ import {
   WELDING_PILLAR,
   CONSTRUCTION_PILLAR,
   DESIGN_SYSTEMS_PILLAR,
+  CONSULTING_PILLAR,
   CROSS_CUTTING_GROUPS,
 } from './pillars';
 
 describe('built-in pillars', () => {
-  it('exposes four well-formed pillars', () => {
-    expect(BUILTIN_PILLARS).toHaveLength(4);
+  it('exposes five well-formed pillars', () => {
+    expect(BUILTIN_PILLARS).toHaveLength(5);
     for (const p of BUILTIN_PILLARS) {
       expect(p.titles.length).toBeGreaterThan(0);
       expect(p.atsRoles.length).toBeGreaterThan(0);
@@ -33,6 +34,14 @@ describe('built-in pillars', () => {
     expect(DESIGN_SYSTEMS_PILLAR.seniority).toBe('experienced');
     expect(DESIGN_SYSTEMS_PILLAR.location).toBe('Remote');
     expect(DESIGN_SYSTEMS_PILLAR.groups[0].id).toBe('ds-brief');
+  });
+
+  it('adds an Implementation Consulting track that is remote+Spokane + experienced', () => {
+    expect(BUILTIN_PILLARS).toContain(CONSULTING_PILLAR);
+    expect(CONSULTING_PILLAR.seniority).toBe('experienced');
+    expect(CONSULTING_PILLAR.location).toContain('Remote');
+    expect(CONSULTING_PILLAR.location).toContain('Spokane');
+    expect(CONSULTING_PILLAR.groups[0].id).toBe('ic-brief');
   });
 
   it('resolves every referenced group id — pick() drops unknowns silently', () => {

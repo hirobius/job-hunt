@@ -1,10 +1,12 @@
 {
-  "updatedAt": "2026-07-15T00:00:00Z",
+  "updatedAt": "2026-07-27T06:00:00Z",
   "phase": "live",
-  "headline": "Two changes this session. (1) Per-role to-dos + notes on Queue cards: each job gains an optional todos[] checklist and a notes string (additive Job fields — no Supabase migration, old records read as [] / ''); a compact summary chip (✓ done/total + note icon) toggles a Reveal panel with an HDS checklist (add/toggle/delete, strikethrough when done, one-click starter tasks) + on-blur Notes textarea, all through the existing updateJob → localStorage + Supabase path; pure helpers in src/todos.ts with table-driven tests. (2) Retired the MUI-shaped adapters: ui/Button, ui/Dialog, ui/Tooltip, ui/Alert, ui/TextField deleted and all ~34 call sites across 12 files migrated to real HDS directly (Button variant/tone, compound Dialog, HdsTooltip, Alert+dismiss, Input/Textarea). src/ui is now purely the layout gap (box.tsx + Reveal) — the only remaining non-HDS UI, earmarked to route upstream (docs/hds-upstream-asks-0.9.md §9). Typecheck + lint + all 153 tests + build green; verified all three dialogs + Queue render desktop + 390px.",
+  "headline": "Built issue #58 (location + work-mode as user-set fields) — de-Spokane'd the search generators. jobsData BOARDS now take (term, {where, mode}); dropped the hardcoded Spokane/Post-Falls locations (Indeed/LinkedIn/ZipRecruiter/Google Jobs/Snagajob are now generic aggregators). New shared LocationControl in DiscoverView (work-mode SegmentedControl Any/Remote/Hybrid/On-site + free-text location; state lifted to DiscoverBody so it persists across Title↔ATS). NO remote default (default any/anywhere) — the deck's key correction; a dated competition hint ('remote draws ~5x applicants, 2024') shows when Remote is picked. AtsPanel's old remote/spokane/both toggle replaced by the shared control; LinkedIn f_WT maps mode (1 onsite/2 remote/3 hybrid). Typecheck+lint+213 tests+build green; verified headless (default Spokane-free & location-less; Remote→l=Remote+f_WT=2+hint; On-site+Denver→l=Denver+f_WT=1; ATS shares the control). PRIOR this session: #61 JD screener, #60 screening fields, #57 interop, consulting pillar, nav, redesign docs. All on branch claude/apply-board-consulting-roles-xpl2a9 / PR #56.",
   "next": [
+    "#57+#60+#61+#58 done — remaining net-new: #59 (starter-pack catalog + white-collar defaults). Note: CLAUDE.md still says BOARDS are Spokane-locked (now false) — refresh when convenient.",
+    "RESOLVE tab-naming conflict: #36 (Discover/Tracker/Templates) vs this session (Board/Queue/Copy Deck) before build",
     "Verify on live Vercel deploy + gather feedback",
-    "Consider consolidating the legacy singular `note` (Details panel) with the new `notes` field",
+    "Consider narrowing the consulting track to a specific ecosystem (CRM/ERP/Healthcare IT) if the generalist net is too noisy",
     "Route the src/ui layout primitives (Box/Stack/Typography + sx engine) upstream into HDS if HDS ever unfreezes"
   ],
   "blocked": []

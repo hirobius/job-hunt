@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "typecheck:api": "tsc --noEmit --module esnext --moduleResolution bundler --target ES2020 --lib ES2020,DOM,DOM.Iterable --types node --skipLibCheck --strict api/extract.ts",
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -17,7 +16,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.105.0",
     "@hirobius/design-system": "^0.13.0",
     "@supabase/supabase-js": "^2.45.4",
     "@vercel/analytics": "^2.0.1",

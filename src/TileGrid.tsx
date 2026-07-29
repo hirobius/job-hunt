@@ -1,5 +1,12 @@
 import { Box, Link, Stack, Typography } from './ui/box';
-import { Badge, Button, Card as HdsCard, HdsTooltip, IconButton } from '@hirobius/design-system';
+import {
+  Badge,
+  Button,
+  Card as HdsCard,
+  HdsTooltip,
+  IconButton,
+  useToast,
+} from '@hirobius/design-system';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import { addJob, isSaved, useJobs } from './store';
 import { useTileTriage, toggleDismiss } from './tileTriage';
@@ -57,6 +64,14 @@ export default function TileGrid({
   useJobs(); // re-render on save
   const { dismissed } = useTileTriage();
   const dismissedSet = new Set(dismissed);
+  const { toast } = useToast();
+  // Enriched save (issue #57): carry the tile name → label and its meta → note so the queue
+  // card isn't a bare URL; confirm with a toast pointing at the Queue.
+  const save = (t: Tile) => {
+    if (addJob(t.url, t.name, t.meta)) {
+      toast({ title: 'Added to Queue', description: t.name, tone: 'success' });
+    }
+  };
   return (
     <Box sx={grid}>
       {tiles.map((t) => {
@@ -114,7 +129,7 @@ export default function TileGrid({
                   size="sm"
                   variant={saved ? 'tertiary' : 'secondary'}
                   disabled={saved}
-                  onClick={() => addJob(t.url, t.name)}
+                  onClick={() => save(t)}
                 >
                   {saved ? 'Saved' : 'Save'}
                 </Button>

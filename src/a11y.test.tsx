@@ -1,11 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { axe } from 'vitest-axe';
+import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import CopyDeckView from './CopyDeckView';
 import DiscoverView from './DiscoverView';
-import AiIntakeDialog from './ai/AiIntakeDialog';
-import AiNotConfigured from './ai/AiNotConfigured';
 import { getAllJobs, removeJob } from './store';
 
 /**
@@ -15,7 +14,7 @@ import { getAllJobs, removeJob } from './store';
  * single-h1) that only apply to a full document.
  */
 
-const withTheme = (ui: React.ReactNode) => render(<>{ui}</>);
+const withTheme = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
 
 async function auditA11y(el: Element) {
   const results = await axe(el, {
@@ -42,19 +41,6 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
 
   it.each(views)('%s', async (_name, ui) => {
     const { container } = withTheme(ui);
-    await auditA11y(container);
-  });
-});
-
-describe('a11y — AI surfaces (no WCAG A/AA violations)', () => {
-  // Dialogs portal to document.body, so audit baseElement, not container.
-  it('AiIntakeDialog (input state)', async () => {
-    const { baseElement } = withTheme(<AiIntakeDialog open onClose={() => {}} />);
-    await auditA11y(baseElement);
-  });
-
-  it('AiNotConfigured (no-key panel)', async () => {
-    const { container } = withTheme(<AiNotConfigured feature="“Add with AI”" />);
     await auditA11y(container);
   });
 });
