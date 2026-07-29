@@ -123,18 +123,15 @@ A compact read on pipeline shape so you can see what's winnable.
 - DoD met: typecheck + lint + 201 tests + build green; the fallback is unit-tested and the app
   renders normally under the boundary (headless, no console errors).
 
-### R3 — Web metadata: favicon / OG / meta / robots _(#47)_
-- [ ] `public/favicon.svg` (jade mark; self-contained, no external refs) + `public/robots.txt`.
-- [ ] `index.html`: `<title>`, description, `og:*` (title/description/type/url), `theme-color`,
-      favicon + apple-touch-icon links.
-- [ ] Build copies `public/*` into `dist`.
-- DoD: build; headless check that `<head>` has the favicon + og tags.
+### R3 — Web metadata: favicon / OG / meta / robots _(#47)_ — ✅ DONE
+- [x] `public/favicon.svg` (jade rounded-square + checkmark; self-contained) + `public/robots.txt`.
+- [x] `index.html`: description, `og:*` (title/description/type/url), `theme-color`, favicon +
+      apple-touch-icon.
+- [x] Build copies `public/*` into `dist` (confirmed favicon.svg + robots.txt + head tags in dist).
 
-### R4 — Dependabot + npm-audit CI step _(#47)_
-- [ ] `.github/dependabot.yml` — npm ecosystem, weekly, grouped minor/patch.
-- [ ] Add `npm audit --audit-level=high` as a step in `.github/workflows/ci.yml` `verify` job.
-- DoD: YAML parses (the loop can `node -e` a YAML parse or eyeball); 1–5 unaffected. (Actions run
-      only on GitHub — don't block on it.)
+### R4 — Dependabot + npm-audit CI step _(#47)_ — ✅ DONE
+- [x] `.github/dependabot.yml` — npm + github-actions ecosystems, weekly, grouped minor/patch.
+- [x] `npm audit --audit-level=high` step in the `verify` job (currently exits 0 locally).
 
 ### R5 — Docs refresh: CLAUDE.md + README _(housekeeping)_
 - [ ] CLAUDE.md: BOARDS are no longer Spokane-locked (location is a user field — #58); add the
