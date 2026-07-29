@@ -148,15 +148,16 @@ A render crash must not blank the app.
 (CloudSync.tsx:163–166). Loop task reduces to: [ ] confirm the confirm-dialog copy says "all data"
 and close #42. No code change expected.
 
-### R7 — Remove "Add with AI" _(#54; G3 locked → remove)_
-- [ ] Delete `src/ai/AiIntakeDialog.tsx`, `api/extract.ts`, `src/ai/extract-core.ts` (+ test),
-      `src/ai/extractJob.ts`, `src/ai/intake.ts`, `src/ai/profile.ts`, `src/ai/AiNotConfigured.tsx`
-      (verify each exists first; delete what's there).
-- [ ] Remove the "Add with AI" button + lazy import + `aiOpen`/`aiMounted` state in `TrackerView`.
-- [ ] Drop `@anthropic-ai/sdk` dep; remove `api/extract` from `vercel.json` + `typecheck:api` from
-      `package.json` / CI if they become empty; drop the `e2e`/CI steps that reference it.
-- [ ] Update README / CLAUDE.md (fold into R5).
-- DoD: full gate; confirm the Queue still renders and Add (non-AI) works. Closes #54; #40/#45 → wontfix.
+### R7 — Remove "Add with AI" _(#54; G3 locked → remove)_ — ✅ DONE
+- [x] Deleted the whole `src/ai/` (8 files) + `api/extract.ts`.
+- [x] Removed the "Add with AI" button + lazy import + `aiOpen`/`aiMounted` state in `TrackerView`
+      (dropped now-unused `React`/`lazy`/`Suspense`/`Sparkles` imports).
+- [x] Dropped `@anthropic-ai/sdk` (lockfile updated); removed the `functions` block from
+      `vercel.json`, the `typecheck:api` script from `package.json`, and its CI step.
+- [x] Removed the two AI a11y test cases.
+- [ ] README / CLAUDE.md doc sweep → folded into **R5**.
+- DoD met: typecheck + lint + 199 tests + build green; verified headless (AI button gone, non-AI
+  Add works, no console errors). Closes #54; #40/#45 → wontfix.
 
 ---
 

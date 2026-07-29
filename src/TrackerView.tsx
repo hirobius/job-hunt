@@ -1,8 +1,7 @@
-import React, { lazy, Suspense, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Box, Link, Stack, Typography } from './ui/box';
 import {
   EllipsisVertical,
-  Sparkles,
   ArrowUpDown,
   Search,
   Building2,
@@ -43,10 +42,6 @@ import { ScreeningEditor } from './ScreeningEditor';
 import EmptyState from './EmptyState';
 import { TodosNotes } from './TodosNotes';
 import type { Job, Status } from './types';
-
-// Lazy so the AI code (and its chunks) only load when the user opens them —
-// keeps the initial Queue bundle lean.
-const AiIntakeDialog = lazy(() => import('./ai/AiIntakeDialog'));
 
 type Filter = 'active' | 'all' | Status | 'retired';
 
@@ -145,12 +140,6 @@ export default function TrackerView() {
   const [q, setQ] = useState('');
   const [url, setUrl] = useState('');
   const [open, setOpen] = useState<Record<string, boolean>>({});
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiMounted, setAiMounted] = useState(false); // mount once, then animate open/close
-  const openAi = () => {
-    setAiMounted(true);
-    setAiOpen(true);
-  };
   // Transient "Saved ✓" flash after a detail field autosaves (per job url).
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -224,16 +213,6 @@ export default function TrackerView() {
           <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
             <UiButton variant="primary" onClick={submit} style={{ flex: 1 }}>
               Add
-            </UiButton>
-          </Box>
-          <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
-            <UiButton
-              variant="secondary"
-              iconLeft={<Sparkles size={16} />}
-              onClick={openAi}
-              style={{ flex: 1, whiteSpace: 'nowrap' }}
-            >
-              Add with AI
             </UiButton>
           </Box>
         </Stack>
@@ -652,12 +631,6 @@ export default function TrackerView() {
             );
           })}
         </Stack>
-      )}
-
-      {aiMounted && (
-        <Suspense fallback={null}>
-          <AiIntakeDialog open={aiOpen} onClose={() => setAiOpen(false)} />
-        </Suspense>
       )}
     </Box>
   );

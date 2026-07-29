@@ -1,0 +1,18 @@
+import { chromium } from 'playwright';
+const dir = '/tmp/claude-0/-home-user-job-hunt/1b8ef437-3319-5a08-9388-ece51f4104b9/scratchpad';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const page = await b.newPage({ viewport: { width: 1280, height: 800 } });
+const errors = [];
+page.on('pageerror', (e) => errors.push(String(e)));
+await page.goto('http://localhost:4173/#/queue', { waitUntil: 'networkidle' });
+await page.evaluate(() => localStorage.clear());
+await page.reload({ waitUntil: 'networkidle' });
+await page.waitForTimeout(500);
+console.log('"Add with AI" button gone:', (await page.getByRole('button', { name: /Add with AI/ }).count()) === 0);
+await page.getByLabel('Job URL').fill('https://boards.greenhouse.io/acme/jobs/77');
+await page.getByRole('button', { name: 'Add', exact: true }).click();
+await page.waitForTimeout(400);
+console.log('non-AI Add works:', (await page.getByRole('link', { name: /boards|Acme/i }).count()) > 0);
+await page.screenshot({ path: `${dir}/noai-queue.png` });
+console.log('PAGE ERRORS:', errors);
+await b.close();
