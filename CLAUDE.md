@@ -62,9 +62,10 @@ commit `f15fd52`).
   SaaS) stash under a collapsed "Archived tracks" disclosure at the bottom (board-wide search
   still spans them). Then **Queue** (`TrackerView.tsx`), **Copy Deck** (`CopyDeckView.tsx`,
   incl. seeded call sheet + cold-call script; pillar-scoping removed — flat pinned-first list),
-  **Discover** (`DiscoverView.tsx` + `jobsData.ts` groups and Title/ATS generators, now
-  Spokane-trades tuned; the trade/pillar switcher lives at the top of this view, not the
-  header). `types.ts` for the Job model. Board rule: **NO static one-off job postings** —
+  **Discover** (`DiscoverView.tsx` + `jobsData.ts` groups and Title/ATS generators; the generators
+  take a **user-set location + work-mode** (#58, no baked-in Spokane), and the trade/pillar switcher
+  lives at the top of this view, not the header). `types.ts` for the Job model. Board rule: **NO
+  static one-off job postings** —
   live searches or durable portals/company pages only, so tiles never go stale.
 - **Pillars = trades** (`pillars.ts`): built-ins are **Sheet Metal & Fab** (default),
   **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
@@ -124,10 +125,38 @@ re-litigate decisions already in `docs/adr/`.
   (production `job-hunt-jade.vercel.app` is already allowed).
 - Keep personal contact info OUT of this public repo (letters/snippets ship with a
   "add your name + contact" placeholder).
-- **AI résumé-tailor removed (2026-07, v1 scope cut).** `TailorDialog`, `tailor-core.ts`,
-  `tailorResume.ts`, and `api/tailor.ts` are gone; "Add with AI" extraction (`AiIntakeDialog`
-  + `api/extract`) is unaffected. `docs/adr/0002` and `README.md`/`FEATURES.md` still describe
-  the old two-feature design as historical context and were left as-is.
+- **AI is fully removed (2026-07).** The résumé-tailor went first (`TailorDialog`/`tailor-core.ts`/
+  `api/tailor.ts`); then **"Add with AI" too (#54)** — `src/ai/` and `api/extract.ts` are gone,
+  `@anthropic-ai/sdk` is dropped, and there is no Anthropic key / server AI endpoint anymore. The
+  JD screener (#61) is **rules-based, client-side** — no AI. `docs/adr/0002` + `README`/`FEATURES`
+  still describe the old AI design as historical context.
+
+## 2026-07 — agnostic-product pivot + screening pipeline
+
+The app is pivoting from a personal Spokane-trades board to an **agnostic, pillar-driven job-hunt
+product** (design: `docs/agnostic-product-redesign.md`, decision: `docs/adr/0006`). Execution is
+tracked under epic #30; the self-driving build backlog lives in `docs/loop-queue.md`. Shipped so
+far this cycle:
+
+- **Search is location-agnostic (#58).** `BOARDS` in `jobsData.ts` no longer hard-code Spokane —
+  `build(term, { where, mode })` takes a user-set location + work-mode (Any/Remote/Hybrid/On-site).
+  There is **no remote default** (remote roles draw ~5× the applicants); a shared `LocationControl`
+  in `DiscoverView` drives both the Title and ATS panels.
+- **Screening pipeline on jobs (#60).** Additive `Job` fields — `verdict` (match/stretch/reach),
+  `mode`, `travelPct`, `applicants`, `blockers[]`, `angle`, `screenedAt` — normalized on read in
+  `src/screening.ts`. Edited via `ScreeningEditor`; shown as card badges; new "Best fit" sort; a
+  collapsible **Funnel** summary (`FunnelSummary` + `funnel.ts`).
+- **Rules-based JD screener (#61).** `src/jdScreener.ts` + `ScreenJdDialog` — paste a JD → suggested
+  mode/blockers/verdict from deterministic keyword rules, one-click apply.
+- **Board↔Queue interop (#57).** Saved tiles leave the board (`partitionTiles`); enriched save
+  carries a tile's meta into the job; a save toast; "Find more like this" seeds Discover.
+- **Implementation Consulting** built-in pillar; simplified Trades board nav; top-level
+  **error boundary** (#46).
+- **Supabase provisioned (#31).** `tracker` + `categories`/`groups`/`tiles` tables now exist with
+  RLS (the DB had been empty — cloud sync never had a backing table until now).
+- **Open:** the #30 curation-store migration + IA consolidation (tabs → **Discover / Tracker /
+  Templates**, #36) and onboarding are still ahead. ⚠️ GitHub Actions CI is non-functional
+  org-wide (no runner assigned); merges currently rely on local verify + Vercel.
 
 ## Fleet hub
 
