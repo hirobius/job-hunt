@@ -186,16 +186,18 @@ consolidate the IA + onboarding.** Order matters — B1 is the linchpin.
   mapping. ⚠️ Owner is unsure what's ideal for the v1 refresh, so **keep the pack list trivially
   editable** and don't over-curate; revisit after first use.
 
-### B1 — Wire Discover onto the curation store (retire the hardcoded pillar read) — LINCHPIN
-- [ ] `DiscoverView`/`TradeSwitcher` read **categories** from `curationStore` (`useCategories`)
-      instead of `usePillars()`/`useActivePillar()` from `pillarStore`. A Category maps to the
-      pillar shape the panels already expect (`titles`, `atsRoles`, `seniority`, `location`,
-      `groups`→tiles).
-- [ ] Active-category selection replaces active-pillar (persist the id; keep `?pillar=`/hash route).
-- [ ] Resolve **D1** first (empty-store behavior) — do not ship a blank Discover.
-- [ ] `pillarStore` + `pillars.ts` become unused by Discover; leave deletion to **B2**.
-- DoD: full gate incl. headless — pick a category, Title/ATS/Apply-Now tabs render from store data;
-      signed-out path works from the local cache.
+### B1 — Wire Discover onto the curation store (retire the hardcoded pillar read) — ✅ DONE
+- [x] `DiscoverView` reads **categories/groups/tiles** from `curationStore` (`useCategories`/
+      `useGroups`/`useTiles`), not `pillarStore`. A Category drives the Title/ATS panels; its
+      groups→tiles are the Apply-Now/section tabs (assembled to the jobsData Tile shape).
+- [x] `CategorySwitcher` (Combobox over categories); active id persisted (`rjb_active_category`).
+- [x] **D1 — onboarding first:** empty store → new `src/Onboarding.tsx` (pick pack(s) + location →
+      `seedPack` from `src/curation/starterPacks.ts` → Discover renders). 4 provisional packs (D3).
+- [x] Cross-cutting Spokane groups dropped from Discover. `pillarStore`/`pillars.ts` now unused by
+      Discover (deletion → B2). Old Trades tab still coexists until B3.
+- DoD met: typecheck + lint + 208 tests + build green; verified headless (empty→onboarding→pick 2
+  packs→Discover renders seeded tiles; track switcher; categories persisted; no console errors).
+  Tests: `starterPacks.test.ts` + aria/a11y seed a track before rendering Discover.
 
 ### B2 — Strip hardcoded built-in content (#34)
 - [ ] Delete/neutralize `BUILTIN_PILLARS` (`pillars.ts`), the `GROUPS` + Spokane search terms in
