@@ -158,24 +158,78 @@ and close #42. No code change expected.
 
 ---
 
-## 🔵 Unblocked queue — G1/G2/G3 cleared; needs a per-item acceptance-criteria pass before looping
+## 🔵 Blocked queue — #30 IA/curation chain (re-triaged 2026-07-27; Ralph-ready specs)
 
-Dependency chain from epic #30. Gates are cleared, so these are eligible — but each still needs its
-own acceptance-criteria + DoD written (like the Ready queue) **before** it loops, now that the real
-curation-store schema exists. Tab names are locked to **Discover / Tracker / Templates**.
+**Already done on `main`** (via merged PRs #50/#53) — do NOT rebuild:
+- **#31 schema** ✅ (tables provisioned at G1) · **#32 curation data layer** ✅ — `src/curation/`
+  is complete: `curationStore.ts` (CRUD + `useCategories/useGroups/useTiles`, local-first + Supabase),
+  `map.ts` (row↔model, tested), `merge.ts`, `sync.ts` · **#33 importer** ✅ — `importStarter.ts` +
+  a `?import=starter` trigger in `App.tsx` · **#35 case-study removal** ✅ — `caseStudies.ts` gone.
 
-1. **#32** — Supabase-backed curation data layer (replace `pillarStore` localStorage projection;
-   local cache + sync-on-login). _(needs G1)_
-2. **#33** — one-time importer: seed current pillars + Trades board into the signed-in account.
-3. **#34** — strip built-in personal content → neutral starter _(coordinate with #59)_.
-4. **#35** — remove the case-study page + `caseStudies.ts`.
-5. **#36** — merge Trades + Discover → one browse tab; rename tabs _(needs G2)_.
-6. **#37** — in-app category curation controls (add/remove/edit).
-7. **#59** — starter-pack catalog + white-collar-first defaults (fork-on-pick) _(extends #33/#34/#38)_.
-8. **#38** — onboarding empty states + v1 layout cleanup.
+**The actual gap:** the curation store is **built but dormant.** `DiscoverView` still reads the
+hardcoded `BUILTIN_PILLARS` from `pillarStore` (localStorage). A `Category` already *is* a pillar
+(`{ label, titles[], atsRoles[], seniority, location }`) with `groups`→`tiles` as its curated
+content. So the remaining work is **wire the UI onto the store, strip the hardcoded content, then
+consolidate the IA + onboarding.** Order matters — B1 is the linchpin.
 
-Each Blocked item needs its own acceptance-criteria pass (like the Ready queue) **before** it loops
-— that pass happens once G1/G2 are cleared and we can see the real curation-store shape.
+### ⚠️ Decisions Ralph must SURFACE, not guess (stop and ask)
+- **D1 — Empty / signed-out state.** When the curation store is empty (new or signed-out user),
+  what does Discover show? Options: (a) auto-seed the local cache from a default starter pack on
+  first run; (b) force onboarding first; (c) empty state with a "pick a starter" CTA. _(Leaning (a)
+  for signed-out + (c)/onboarding for signed-in — but confirm.)_
+- **D2 — Fate of the Trades board's extras.** The curated board (`ApprenticeshipsView`) has
+  pin/set-aside (`tileTriage`), paste-your-own-links (`userTiles`), and one board-wide search. When
+  it folds into Discover (B3), which survive and at what scope (per-category vs global)?
+- **D3 — Starter-pack catalog content (#59).** Which packs ship (Implementation Consulting default,
+  Design Systems, Skilled Trades, …) and the fork-on-pick copy-into-store UX. Mostly grilled
+  2026-07-27; confirm the pack list before building B5.
+
+### B1 — Wire Discover onto the curation store (retire the hardcoded pillar read) — LINCHPIN
+- [ ] `DiscoverView`/`TradeSwitcher` read **categories** from `curationStore` (`useCategories`)
+      instead of `usePillars()`/`useActivePillar()` from `pillarStore`. A Category maps to the
+      pillar shape the panels already expect (`titles`, `atsRoles`, `seniority`, `location`,
+      `groups`→tiles).
+- [ ] Active-category selection replaces active-pillar (persist the id; keep `?pillar=`/hash route).
+- [ ] Resolve **D1** first (empty-store behavior) — do not ship a blank Discover.
+- [ ] `pillarStore` + `pillars.ts` become unused by Discover; leave deletion to **B2**.
+- DoD: full gate incl. headless — pick a category, Title/ATS/Apply-Now tabs render from store data;
+      signed-out path works from the local cache.
+
+### B2 — Strip hardcoded built-in content (#34)
+- [ ] Delete/neutralize `BUILTIN_PILLARS` (`pillars.ts`), the `GROUPS` + Spokane search terms in
+      `jobsData.ts`, and `apprenticeships.ts`; remove the `?import=starter` `StarterImportTrigger`
+      once B5's onboarding supersedes it.
+- [ ] Nothing personal ships in the repo; the content survives only as **starter packs** (B5).
+- [ ] Update every import site + tests that referenced the deleted constants.
+- DoD: full gate; app builds with no hardcoded pillar/board content; a fresh store still lands the
+      user somewhere useful (via D1/B5).
+
+### B3 — IA consolidation + tab rename (#36) — tab names LOCKED: Discover / Tracker / Templates
+- [ ] Merge **Trades + Discover → one Discover** surface (fold `ApprenticeshipsView` in per D2);
+      delete the separate Trades tab.
+- [ ] Rename **Queue → Tracker**, **Copy Deck → Templates** (labels only; **keep URL slugs**
+      `apprenticeships`/`queue`/`copy-deck` for back-compat, or add redirects).
+- [ ] Update the tab bar, hash routes, and any deep links / `App.tsx` `TAB_SLUGS`.
+- DoD: full gate + headless at desktop + 390px; every tab + sub-route resolves; old bookmarked
+      slugs still work.
+
+### B4 — In-app curation controls (#37)
+- [ ] Category switcher + "＋ New category" at the top of Discover; extend the pillar editor
+      (relabel "Categories") to add/remove/edit categories; inline add/remove for groups + tiles.
+- [ ] All writes go through the existing `curationStore` API (`addCategory`/`addGroup`/`addTile`/
+      `update*`/`remove*`).
+- DoD: full gate + headless — create a category, add a group + tile, edit, delete; persists + syncs.
+
+### B5 — Starter-pack catalog + first-run onboarding (#59 + #38)
+- [ ] First-run: **set location** + **pick starter pack(s)** from a catalog (D3), or create a
+      custom track. Fork-on-pick copies the pack into the user's curation rows.
+- [ ] Teaching empty-states on each surface; fold in the #38 v1 layout cleanup (divider sweep).
+- [ ] Consulting is the lead default pack; trades preserved as one optional pack.
+- DoD: full gate + headless — brand-new store → onboarding → picked pack populates Discover; custom
+      track gets the generated "floor".
+
+**Suggested order:** B1 → B2 → B4 → B3 → B5. (B1 unblocks all; B2 after wiring; B4 needs the wired
+UI; B3 is the visible IA change; B5 styles the final surfaces.) Each is its own per-area PR.
 
 ---
 

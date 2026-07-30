@@ -1,13 +1,12 @@
 {
-  "updatedAt": "2026-07-27T06:00:00Z",
+  "updatedAt": "2026-07-27T08:00:00Z",
   "phase": "live",
-  "headline": "Built issue #58 (location + work-mode as user-set fields) — de-Spokane'd the search generators. jobsData BOARDS now take (term, {where, mode}); dropped the hardcoded Spokane/Post-Falls locations (Indeed/LinkedIn/ZipRecruiter/Google Jobs/Snagajob are now generic aggregators). New shared LocationControl in DiscoverView (work-mode SegmentedControl Any/Remote/Hybrid/On-site + free-text location; state lifted to DiscoverBody so it persists across Title↔ATS). NO remote default (default any/anywhere) — the deck's key correction; a dated competition hint ('remote draws ~5x applicants, 2024') shows when Remote is picked. AtsPanel's old remote/spokane/both toggle replaced by the shared control; LinkedIn f_WT maps mode (1 onsite/2 remote/3 hybrid). Typecheck+lint+213 tests+build green; verified headless (default Spokane-free & location-less; Remote→l=Remote+f_WT=2+hint; On-site+Denver→l=Denver+f_WT=1; ATS shares the control). PRIOR this session: #61 JD screener, #60 screening fields, #57 interop, consulting pillar, nav, redesign docs. All on branch claude/apply-board-consulting-roles-xpl2a9 / PR #56.",
+  "headline": "Big session: shipped the consulting pivot + screening pipeline to production (live at job-hunt-jade.vercel.app, deploy READY from main). Merged #56 (consulting pillar, nav, Board↔Queue interop #57, screening fields #60, rules-based JD screener #61, location+work-mode search #58, AI fully removed #54, error boundary #46, redesign docs + ADR-0006) plus per-area PRs #62 (applicant funnel view), #63 (favicon/OG/robots + Dependabot/audit), #64 (docs refresh). Provisioned Supabase (project was PAUSED + DB EMPTY — no tracker table; cloud sync had never worked): restored + created tracker/categories/groups/tiles with RLS. Re-triaged epic #30: #31/#32/#33/#35 already done on main (curation store src/curation/ is complete but DORMANT — DiscoverView still reads hardcoded BUILTIN_PILLARS from pillarStore). Wrote Ralph-ready acceptance-criteria specs for the real remaining work in docs/loop-queue.md (B1 wire Discover→curation store [linchpin] → B2 strip hardcoded content #34 → B4 curation controls #37 → B3 IA merge+rename tabs #36 → B5 starter-pack catalog+onboarding #59/#38), with 3 flagged design decisions Ralph must surface. Decisions locked: tab names Discover/Tracker/Templates; AI removed; per-area PRs. NOTE: GitHub Actions CI non-functional org-wide (no runner — likely Actions spending cap); merges rely on local verify + Vercel.",
   "next": [
-    "#57+#60+#61+#58 done — remaining net-new: #59 (starter-pack catalog + white-collar defaults). Note: CLAUDE.md still says BOARDS are Spokane-locked (now false) — refresh when convenient.",
-    "RESOLVE tab-naming conflict: #36 (Discover/Tracker/Templates) vs this session (Board/Queue/Copy Deck) before build",
-    "Verify on live Vercel deploy + gather feedback",
-    "Consider narrowing the consulting track to a specific ecosystem (CRM/ERP/Healthcare IT) if the generalist net is too noisy",
-    "Route the src/ui layout primitives (Box/Stack/Typography + sx engine) upstream into HDS if HDS ever unfreezes"
+    "Run the LOCAL Ralph against docs/loop-queue.md Blocked queue (B1→B2→B4→B3→B5); resolve the 3 flagged decisions (D1 empty-state, D2 board extras, D3 pack list) first",
+    "B1 is the linchpin: wire DiscoverView onto curationStore (useCategories) instead of hardcoded pillarStore",
+    "Optional: file an issue to restore GitHub Actions CI (org spending cap) so server-side gating returns",
+    "#44 Supabase leaked-password protection + #16 Vercel analytics are dashboard toggles (human)"
   ],
   "blocked": []
 }
