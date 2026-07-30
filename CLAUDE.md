@@ -85,6 +85,10 @@ commit `f15fd52`).
 
 ## Build / deploy / verify
 
+- **Do NOT use GitHub Actions (owner preference, 2026-07).** There is no Actions CI — the
+  `.github/workflows/ci.yml` workflow was removed. **Verification is local** (`npm run typecheck`
+  / `lint` / `test` / `build` + headless Chromium) **plus the Vercel deploy**. Never add or rely on
+  an Actions workflow; don't treat Actions checks as a merge gate.
 - `npm install`, `npm run dev`, `npm run build`, `npm run typecheck`.
 - `vercel.json` builds this as Vite. **`main` is the live production site** — always
   `npm run build` (and ideally `tsc --noEmit`) before pushing to `main`.
