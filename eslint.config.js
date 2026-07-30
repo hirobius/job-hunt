@@ -6,7 +6,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src/theme/hds-palette.generated.ts'] },
+  { ignores: ['dist', 'node_modules', 'src/theme/hds-palette.generated.ts', 'verify-*.mjs', 'vrfy*.mjs'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

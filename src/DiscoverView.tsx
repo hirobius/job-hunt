@@ -14,48 +14,27 @@ import {
 import TileGrid from './TileGrid';
 import { useRoute, navigate } from './route';
 import { BOARDS, ATS, entryLevelize, type Tile, type WorkMode } from './jobsData';
-import { useActivePillar, usePillars, useActivePillarId, setActivePillar } from './pillarStore';
-import { CROSS_CUTTING_GROUPS, type Pillar, type Seniority } from './pillars';
 import { useJobs } from './store';
 import { partitionTiles } from './tileState';
 import { consumeDiscoverSeed } from './discoverSeed';
+import { useCategories, useGroups, useTiles } from './curation/curationStore';
+import type { Category, Seniority } from './curation/types';
+import { Onboarding } from './Onboarding';
 
-// No board triage on Discover (that lives on the Trades board) — we only want the saved→remove
-// rule here, so partition against an empty triage.
+// Discover reads the per-account CURATION STORE (categories→groups→tiles), not the old hardcoded
+// pillars (B1 / #30). A Category IS a track: its titles/atsRoles/seniority/location drive the
+// generated Title & ATS searches; its groups→tiles are the curated "Apply Now"/section content.
+// An empty store routes to first-run Onboarding (decision D1).
+
+const ACTIVE_CATEGORY_KEY = 'rjb_active_category';
+
+// No board triage on Discover's generated tiles — we only want the saved→remove rule here, so
+// partition against an empty triage.
 const NO_TRIAGE = { pinned: [] as string[], dismissed: [] as string[] };
 
-// Curated group tiles, with saved ones removed (issue #57) and a "N saved → Queue" note. The
-// generated Title/ATS search tiles are searches, not postings, so they aren't saveable — this
-// only wraps the curated `group` tabs.
-function GroupPanel({ tiles, savedSet }: { tiles: Tile[]; savedSet: ReadonlySet<string> }) {
-  const { visible, saved } = partitionTiles(tiles, NO_TRIAGE, savedSet);
-  return (
-    <Box>
-      {saved.length > 0 && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-          {saved.length} saved — in your Queue
-        </Typography>
-      )}
-      {visible.length > 0 ? (
-        <TileGrid tiles={visible} />
-      ) : (
-        <Typography color="text.secondary" sx={{ py: 2 }}>
-          {saved.length > 0 ? 'All saved — check your Queue.' : 'Nothing here yet.'}
-        </Typography>
-      )}
-    </Box>
-  );
-}
-
-// Sourced, dated (issue #58): remote postings are ~10% of listings but draw ~46% of applications
-// (aggregate job-market data, 2024) — roughly 5× the competition. Surfaced so "remote" is a
-// deliberate choice, not the default.
 const REMOTE_COMPETITION_HINT =
   'Remote roles draw ~5× the applicants (2024) — local & hybrid compete less.';
 
-// Shared work-mode + location control for the generated searches (Title + ATS). No remote default;
-// the location is free text (blank = anywhere). Backed by state lifted to DiscoverBody so the
-// choice persists across the two search tabs.
 function LocationControl({
   where,
   mode,
@@ -101,22 +80,47 @@ function LocationControl({
   );
 }
 
-// Trade switcher — moved out of the global header (it only drives this tab) into a labeled
-// control here, so it reads as "which trade am I searching?" instead of a mystery dropdown.
-function TradeSwitcher() {
-  const pillars = usePillars();
-  const activeId = useActivePillarId();
+// Curated group tiles, with saved ones removed (issue #57) and a "N saved → Queue" note.
+function GroupPanel({ tiles, savedSet }: { tiles: Tile[]; savedSet: ReadonlySet<string> }) {
+  const { visible, saved } = partitionTiles(tiles, NO_TRIAGE, savedSet);
+  return (
+    <Box>
+      {saved.length > 0 && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          {saved.length} saved — in your Queue
+        </Typography>
+      )}
+      {visible.length > 0 ? (
+        <TileGrid tiles={visible} />
+      ) : (
+        <Typography color="text.secondary" sx={{ py: 2 }}>
+          {saved.length > 0 ? 'All saved — check your Queue.' : 'Nothing here yet.'}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+function CategorySwitcher({
+  categories,
+  activeId,
+  onChange,
+}: {
+  categories: Category[];
+  activeId: string;
+  onChange: (id: string) => void;
+}) {
   return (
     <Box sx={{ mb: 2 }}>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        Trade
+        Track
       </Typography>
       <Combobox
-        aria-label="Trade to search"
-        options={pillars.map((p) => ({ value: p.id, label: p.label }))}
+        aria-label="Track to search"
+        options={categories.map((c) => ({ value: c.id, label: c.label }))}
         value={activeId}
-        onChange={setActivePillar}
-        placeholder="Pick a trade"
+        onChange={onChange}
+        placeholder="Pick a track"
       />
     </Box>
   );
@@ -143,7 +147,7 @@ function TitlesPanel({
   if (titles.length === 0)
     return (
       <Typography color="text.secondary" sx={{ py: 2 }}>
-        No titles in this pillar yet — add some in Manage pillars.
+        No titles in this track yet — add some with the track controls.
       </Typography>
     );
   const term = `"${title}"`;
@@ -191,11 +195,9 @@ function AtsPanel({
   if (roles.length === 0)
     return (
       <Typography color="text.secondary" sx={{ py: 2 }}>
-        No ATS roles in this pillar yet — add some in Manage pillars.
+        No ATS roles in this track yet — add some with the track controls.
       </Typography>
     );
-  // Location clause for the Google dork: remote → the word "remote"; a city → a quoted phrase;
-  // blank/any → no clause (nationwide).
   const w = where.trim();
   const locClause = mode === 'remote' ? 'remote' : w ? `"${w}"` : '';
   const levelClause = seniority === 'entry' ? ' (entry OR junior OR associate)' : '';
@@ -249,56 +251,79 @@ function AtsPanel({
 type TabDesc = { key: string; label: string; kind: 'group' | 'titles' | 'ats'; tiles?: Tile[] };
 
 export default function DiscoverView() {
-  const pillar = useActivePillar();
-  // Key by pillar id: switching pillars remounts the body, resetting the active tab
-  // (tab counts differ per pillar) without a setState-in-effect.
-  return <DiscoverBody key={pillar.id} pillar={pillar} />;
+  const categories = useCategories();
+  // Empty store → first-run onboarding (decision D1). Once a pack is seeded, categories is
+  // non-empty and this re-renders straight into Discover.
+  if (categories.length === 0) return <Onboarding />;
+  return <DiscoverInner categories={categories} />;
 }
 
-function DiscoverBody({ pillar }: { pillar: Pillar }) {
-  const featured = pillar.groups[0];
-  const fieldRest = pillar.groups.slice(1);
-  const tabs: TabDesc[] = [
-    ...(featured
-      ? [{ key: featured.id, label: 'Apply Now', kind: 'group' as const, tiles: featured.tiles }]
-      : []),
-    { key: 'titles', label: 'Title search', kind: 'titles' },
-    { key: 'ats', label: 'ATS search', kind: 'ats' },
-    ...fieldRest.map((g) => ({
-      key: g.id,
-      label: g.label,
-      kind: 'group' as const,
-      tiles: g.tiles,
-    })),
-    ...CROSS_CUTTING_GROUPS.map((g) => ({
-      key: g.id,
-      label: g.label,
-      kind: 'group' as const,
-      tiles: g.tiles,
-    })),
-  ];
-  // The active sub-tab lives in the URL hash (#/discover/<key>) so it survives refresh and
-  // back/forward. Match by stable key, not index — tab counts differ per pillar. Index 0
-  // (the featured/first tab) maps to a bare #/discover for clean URLs.
-  const route = useRoute();
+function loadActiveCategory(categories: Category[]): string {
+  try {
+    const stored = localStorage.getItem(ACTIVE_CATEGORY_KEY);
+    if (stored && categories.some((c) => c.id === stored)) return stored;
+  } catch {
+    /* ignore */
+  }
+  return categories[0].id;
+}
+
+function DiscoverInner({ categories }: { categories: Category[] }) {
+  const allGroups = useGroups();
+  const allTiles = useTiles();
   const jobs = useJobs();
   const savedSet = useMemo(() => new Set(jobs.map((j) => j.url)), [jobs]);
-  // "Find more like this" (issue #57) stashes a title before navigating here; consume it once.
   const [seed] = useState(() => consumeDiscoverSeed());
-  const subIndex = route.sub ? tabs.findIndex((tb) => tb.key === route.sub) : -1;
-  const tab = subIndex >= 0 ? subIndex : 0;
-  const cur = tabs[tab] ?? tabs[0];
-  // Shared location + work-mode for both generated-search tabs. Default: anywhere / any mode —
-  // deliberately NOT remote (issue #58). Lifted here so the choice survives switching Title↔ATS.
+  const [activeId, setActiveId] = useState(() => loadActiveCategory(categories));
   const [where, setWhere] = useState('');
   const [mode, setMode] = useState<WorkMode>('any');
 
+  const cat = categories.find((c) => c.id === activeId) ?? categories[0];
+  const setActive = (id: string) => {
+    setActiveId(id);
+    try {
+      localStorage.setItem(ACTIVE_CATEGORY_KEY, id);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // Assemble the active category's normalized groups → tiles (jobsData Tile shape for TileGrid).
+  const catGroups = useMemo(
+    () =>
+      allGroups
+        .filter((g) => g.categoryId === cat.id && !g.archived)
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    [allGroups, cat.id],
+  );
+  const tilesFor = (groupId: string): Tile[] =>
+    allTiles
+      .filter((t) => t.groupId === groupId)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((t) => ({ name: t.name, meta: t.meta, url: t.url }));
+
+  const featured = catGroups[0];
+  const rest = catGroups.slice(1);
+  const tabs: TabDesc[] = [
+    ...(featured
+      ? [{ key: featured.id, label: 'Apply Now', kind: 'group' as const, tiles: tilesFor(featured.id) }]
+      : []),
+    { key: 'titles', label: 'Title search', kind: 'titles' },
+    { key: 'ats', label: 'ATS search', kind: 'ats' },
+    ...rest.map((g) => ({ key: g.id, label: g.label, kind: 'group' as const, tiles: tilesFor(g.id) })),
+  ];
+
+  const route = useRoute();
+  const subIndex = route.sub ? tabs.findIndex((tb) => tb.key === route.sub) : -1;
+  const tab = subIndex >= 0 ? subIndex : 0;
+  const cur = tabs[tab] ?? tabs[0];
+
   return (
     <Box>
-      <TradeSwitcher />
-      {/* HDS underline tabs; the sub-tab key IS the Radix value (index 0 → bare #/discover).
-          Only the active panel exists, so one TabsContent keyed to the active value suffices. */}
+      <CategorySwitcher categories={categories} activeId={cat.id} onChange={setActive} />
+      {/* Key the tabs by category so switching tracks resets to the first sub-tab. */}
       <HdsTabs
+        key={cat.id}
         value={cur.key}
         onValueChange={(v) => navigate({ sub: v === tabs[0].key ? null : v })}
       >
@@ -313,8 +338,8 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
           {cur.kind === 'group' && <GroupPanel tiles={cur.tiles!} savedSet={savedSet} />}
           {cur.kind === 'titles' && (
             <TitlesPanel
-              titles={pillar.titles}
-              applyEntry={pillar.seniority === 'entry'}
+              titles={cat.titles}
+              applyEntry={cat.seniority === 'entry'}
               initialTitle={seed}
               where={where}
               mode={mode}
@@ -324,8 +349,8 @@ function DiscoverBody({ pillar }: { pillar: Pillar }) {
           )}
           {cur.kind === 'ats' && (
             <AtsPanel
-              roles={pillar.atsRoles}
-              seniority={pillar.seniority}
+              roles={cat.atsRoles}
+              seniority={cat.seniority}
               where={where}
               mode={mode}
               onWhere={setWhere}

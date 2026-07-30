@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -6,6 +6,8 @@ import TrackerView from './TrackerView';
 import CopyDeckView from './CopyDeckView';
 import DiscoverView from './DiscoverView';
 import { getAllJobs, removeJob } from './store';
+import { replaceCurationState } from './curation/curationStore';
+import { seedPack } from './curation/starterPacks';
 
 /**
  * Accessibility audit — every primary surface must be free of WCAG 2.0/2.1
@@ -24,8 +26,16 @@ async function auditA11y(el: Element) {
   expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
 }
 
+// Discover renders first-run Onboarding on an empty curation store; seed a track so we audit the
+// actual Discover surface (Onboarding is covered separately by its own render below).
+beforeEach(() => {
+  replaceCurationState({ categories: [], groups: [], tiles: [] });
+  seedPack('consulting');
+});
+
 afterEach(() => {
   cleanup();
+  replaceCurationState({ categories: [], groups: [], tiles: [] });
   // Some views read the shared store; keep tests isolated.
   getAllJobs()
     .slice()
