@@ -172,17 +172,19 @@ hardcoded `BUILTIN_PILLARS` from `pillarStore` (localStorage). A `Category` alre
 content. So the remaining work is **wire the UI onto the store, strip the hardcoded content, then
 consolidate the IA + onboarding.** Order matters — B1 is the linchpin.
 
-### ⚠️ Decisions Ralph must SURFACE, not guess (stop and ask)
-- **D1 — Empty / signed-out state.** When the curation store is empty (new or signed-out user),
-  what does Discover show? Options: (a) auto-seed the local cache from a default starter pack on
-  first run; (b) force onboarding first; (c) empty state with a "pick a starter" CTA. _(Leaning (a)
-  for signed-out + (c)/onboarding for signed-in — but confirm.)_
-- **D2 — Fate of the Trades board's extras.** The curated board (`ApprenticeshipsView`) has
-  pin/set-aside (`tileTriage`), paste-your-own-links (`userTiles`), and one board-wide search. When
-  it folds into Discover (B3), which survive and at what scope (per-category vs global)?
-- **D3 — Starter-pack catalog content (#59).** Which packs ship (Implementation Consulting default,
-  Design Systems, Skilled Trades, …) and the fork-on-pick copy-into-store UX. Mostly grilled
-  2026-07-27; confirm the pack list before building B5.
+### ✅ Decisions — RESOLVED (owner, 2026-07-27)
+- **D1 → Onboarding first.** An empty store (new or signed-out user) routes to a **first-run
+  onboarding** (pick starter pack(s) + set location) *before* Discover renders — not a silent
+  auto-seed. This couples onboarding into **B1** (the empty path needs at least a minimal
+  onboarding gate); full polish is B5.
+- **D2 → Keep pin/set-aside only.** The merged Discover keeps tile triage (pin / set-aside,
+  `tileTriage`). **Drop** paste-your-own-links (`userTiles`) and the board-wide search from the
+  Discover surface.
+- **D3 → Ship 4 packs, provisional for v1.** Implementation Consulting (lead default), Design
+  Systems / Design Eng, Skilled Trades (Spokane), and a neutral "build your own" blank track —
+  wired from the existing `pillars.ts` / `apprenticeships.ts` content via the `importStarter`
+  mapping. ⚠️ Owner is unsure what's ideal for the v1 refresh, so **keep the pack list trivially
+  editable** and don't over-curate; revisit after first use.
 
 ### B1 — Wire Discover onto the curation store (retire the hardcoded pillar read) — LINCHPIN
 - [ ] `DiscoverView`/`TradeSwitcher` read **categories** from `curationStore` (`useCategories`)
