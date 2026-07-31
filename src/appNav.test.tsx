@@ -32,10 +32,10 @@ afterEach(() => {
 const renderApp = () => render(<ColorModeProvider>{<App />}</ColorModeProvider>);
 
 describe('App top-level tab wiring', () => {
-  it('renders four tabs, each associated with a tabpanel', () => {
+  it('renders three tabs (Discover · Tracker · Templates), each associated with a tabpanel', () => {
     renderApp();
     const tabs = screen.getAllByRole('tab');
-    expect(tabs).toHaveLength(4);
+    expect(tabs).toHaveLength(3);
     for (const tab of tabs) {
       expect(tab.getAttribute('id')).toBeTruthy();
       expect(tab.getAttribute('aria-controls')).toBeTruthy();
@@ -50,8 +50,8 @@ describe('App top-level tab wiring', () => {
     expect(panel.getAttribute('aria-labelledby')).toBe(selected.getAttribute('id'));
   });
 
-  it('defaults to the Queue tab when the hash carries no route', () => {
+  it('defaults to the Tracker tab when the hash carries no route', () => {
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/queue/i);
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/tracker/i);
   });
 });
