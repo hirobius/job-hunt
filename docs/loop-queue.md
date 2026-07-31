@@ -199,23 +199,29 @@ consolidate the IA + onboarding.** Order matters — B1 is the linchpin.
   packs→Discover renders seeded tiles; track switcher; categories persisted; no console errors).
   Tests: `starterPacks.test.ts` + aria/a11y seed a track before rendering Discover.
 
-### B2 — Strip hardcoded built-in content (#34)
-- [ ] Delete/neutralize `BUILTIN_PILLARS` (`pillars.ts`), the `GROUPS` + Spokane search terms in
-      `jobsData.ts`, and `apprenticeships.ts`; remove the `?import=starter` `StarterImportTrigger`
-      once B5's onboarding supersedes it.
-- [ ] Nothing personal ships in the repo; the content survives only as **starter packs** (B5).
-- [ ] Update every import site + tests that referenced the deleted constants.
-- DoD: full gate; app builds with no hardcoded pillar/board content; a fresh store still lands the
-      user somewhere useful (via D1/B5).
+### B2 — Strip hardcoded built-in content (#34) — ⚠️ PARTIAL (done what's safe)
+- [x] Deleted the orphaned UI + importer: `ApprenticeshipsView`, `PillarsDialog`, `pillarRoute`,
+      `apprenticeships.ts`, `curation/importStarter.ts` (+ test), and the `?import=starter` trigger.
+- [x] The hardcoded pillar/board content is **no longer in the live app** — it survives only as
+      seed data behind `starterPacks.ts` (via `pillars.ts` + `jobsData` GROUPS).
+- [ ] **DEFERRED (own PR): retire `pillarStore` + `pillars.ts` fully.** They are **load-bearing for
+      cloud sync** — `CloudSync`/`syncBlob`/`curationStore`/`copyDeckStore` all import `pillarStore`
+      (user-pillars ride in the sync blob). Deleting them needs the sync layer untangled first;
+      not safe to do here.
+- DoD met: typecheck + lint + 205 tests + build green.
 
-### B3 — IA consolidation + tab rename (#36) — tab names LOCKED: Discover / Tracker / Templates
-- [ ] Merge **Trades + Discover → one Discover** surface (fold `ApprenticeshipsView` in per D2);
-      delete the separate Trades tab.
-- [ ] Rename **Queue → Tracker**, **Copy Deck → Templates** (labels only; **keep URL slugs**
-      `apprenticeships`/`queue`/`copy-deck` for back-compat, or add redirects).
-- [ ] Update the tab bar, hash routes, and any deep links / `App.tsx` `TAB_SLUGS`.
-- DoD: full gate + headless at desktop + 390px; every tab + sub-route resolves; old bookmarked
-      slugs still work.
+### B3 — IA consolidation + tab rename (#36) — ✅ DONE (tab names Discover / Tracker / Templates)
+- [x] Deleted the separate **Trades** tab (its content is now the "Skilled Trades" starter pack in
+      Discover). Discover is the single browse surface.
+- [x] Renamed **Queue → Tracker**, **Copy Deck → Templates** (labels only); URL slugs
+      `queue`/`copy-deck` kept for back-compat; the old `apprenticeships` slug falls back to the
+      default tab (no crash).
+- [x] `App.tsx` `TAB_SLUGS` → `['discover','queue','copy-deck']`, 3 tabs; removed `useSyncPillarRoute`
+      + the "Manage trades" overflow item (track management returns curation-backed in B4).
+- DoD met: headless at desktop + 390px — 3 tabs, no Trades, onboarding intact on Discover, old slug
+      safe, no console errors.
+- ⚠️ **D2 gap:** pin/set-aside on the merged Discover tiles isn't wired yet (Discover's `GroupPanel`
+      currently only does saved-removal). Fold the tile triage in with **B4**.
 
 ### B4 — In-app curation controls (#37)
 - [ ] Category switcher + "＋ New category" at the top of Discover; extend the pillar editor

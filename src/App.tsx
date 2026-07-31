@@ -1,7 +1,7 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useRoute, navigate, getRoute } from './route';
 import { Box, Container, Stack, Typography } from './ui/box';
-import { Sun, Moon, MoreVertical, SlidersHorizontal, MessageSquareText } from 'lucide-react';
+import { Sun, Moon, MoreVertical, MessageSquareText } from 'lucide-react';
 import {
   IconButton as HdsIconButton,
   Menu as HdsMenu,
@@ -12,21 +12,16 @@ import {
   HdsTooltip,
 } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
-import ApprenticeshipsView from './ApprenticeshipsView';
 import CloudSync from './CloudSync';
 import { useColorMode } from './ColorMode';
 import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
-import { useSyncPillarRoute } from './pillarRoute';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
-import { curationClient } from './curation/curationStore';
-import { importStarterContent } from './curation/importStarter';
 
-// Code-split the non-default views so the initial bundle only carries the default
-// Apprenticeships + Queue tabs; the rest load on demand (tab switch).
+// Code-split the non-default views so the initial bundle only carries the default Tracker tab;
+// the rest load on demand (tab switch).
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
-const PillarsDialog = lazy(() => import('./PillarsDialog'));
 
 function ColorModeToggle() {
   const { mode, toggle } = useColorMode();
@@ -46,20 +41,16 @@ function ColorModeToggle() {
   );
 }
 
-// Secondary actions (manage trades + feedback) collapse into one overflow menu so the
-// header stays a title + two controls at any width — the old row crammed a wide combobox
-// plus four icon buttons onto one line and broke on phones.
-function OverflowMenu({ onManage }: { onManage: () => void }) {
+// Secondary actions collapse into one overflow menu so the header stays a title + two controls at
+// any width. (Track management now lives in Discover — see the curation controls — so the old
+// "Manage trades" item is gone.)
+function OverflowMenu() {
   return (
     <HdsMenu>
       <HdsMenu.Trigger asChild>
         <HdsIconButton variant="tertiary" icon={MoreVertical} label="More options" />
       </HdsMenu.Trigger>
       <HdsMenu.Content align="end">
-        <HdsMenu.Item onSelect={onManage}>
-          <SlidersHorizontal size={15} style={{ marginRight: 8 }} />
-          Manage trades…
-        </HdsMenu.Item>
         <HdsMenu.Item
           onSelect={() =>
             window.open('https://github.com/hirobius/job-hunt/issues/new', '_blank', 'noopener')
@@ -73,39 +64,10 @@ function OverflowMenu({ onManage }: { onManage: () => void }) {
   );
 }
 
-// ---- TEMPORARY: one-time "Import starter content" tool (epic #30, issue #33) -----------------
-// Visiting <app>/?import=starter while signed in seeds the current hardcoded curated content
-// (BUILTIN_PILLARS + the Apprenticeships board, see src/curation/importStarter.ts) into that
-// account's curation store/DB rows. Guarded on the query param so it never fires for a normal
-// visit, and importStarterContent() itself is idempotent (no-ops once any category exists).
-// Delete this component + src/curation/importStarter.ts together in the PR that strips the
-// pillars.ts / apprenticeships.ts constants — this tool only exists until then.
-function StarterImportTrigger() {
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('import') !== 'starter') return;
-    (async () => {
-      const { data } = await curationClient.auth.getSession();
-      if (!data.session?.user) {
-        window.alert(
-          'Sign in first (top of the page), then reload this page with ?import=starter still in the URL.',
-        );
-        return;
-      }
-      const result = importStarterContent();
-      window.alert(
-        result.status === 'already-imported'
-          ? 'Already imported — the curation store already has categories, so nothing changed.'
-          : `Imported ${result.categories} categories, ${result.groups} groups, ${result.tiles} tiles.`,
-      );
-    })();
-    // Runs once per page load, gated on the query param above.
-  }, []);
-  return null;
-}
-
-// Top-level tabs, in render order. The URL hash carries the slug (#/queue …); the index
-// is derived from it. Queue is the default landing view when the hash has no route.
-const TAB_SLUGS = ['apprenticeships', 'queue', 'copy-deck', 'discover'] as const;
+// Top-level tabs, in render order. The URL hash carries the slug (#/queue …); the index is
+// derived from it. Slugs stay back-compatible (`queue`/`copy-deck`) even though the labels are now
+// Tracker/Templates, so old bookmarks keep working. Tracker is the default landing view.
+const TAB_SLUGS = ['discover', 'queue', 'copy-deck'] as const;
 const DEFAULT_TAB = 'queue';
 const defaultTabIndex = TAB_SLUGS.indexOf(DEFAULT_TAB);
 
@@ -113,13 +75,9 @@ export default function App() {
   const route = useRoute();
   const slugIndex = TAB_SLUGS.indexOf(route.tab as (typeof TAB_SLUGS)[number]);
   const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
-  const [pillarsOpen, setPillarsOpen] = useState(false);
-
-  // The URL ↔ active-pillar binding lives behind one seam (src/pillarRoute.ts).
-  useSyncPillarRoute();
 
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
-  // After ingesting, land on the Queue so the just-added job is visible; with no route at all,
+  // After ingesting, land on the Tracker so the just-added job is visible; with no route at all,
   // normalize the hash to the default landing tab so back/forward and refresh are consistent.
   useEffect(() => {
     const qp = new URLSearchParams(window.location.search);
@@ -169,12 +127,11 @@ export default function App() {
         </Typography>
         <Stack direction="row" alignItems="center" spacing={0.25} sx={{ flex: 'none' }}>
           <ColorModeToggle />
-          <OverflowMenu onManage={() => setPillarsOpen(true)} />
+          <OverflowMenu />
         </Stack>
       </Stack>
 
       <CloudSync />
-      <StarterImportTrigger />
 
       {/* HDS underline tabs (Radix): value = route slug, aria wiring comes from Radix. The list
           scrolls horizontally on narrow screens; the sx bump gives each tab a readable, tappable
@@ -197,13 +154,14 @@ export default function App() {
           onValueChange={(v) => navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null })}
         >
           <TabsList style={{ width: '100%' }}>
-            <TabsTrigger value="apprenticeships">Trades</TabsTrigger>
-            <TabsTrigger value="queue">Queue</TabsTrigger>
-            <TabsTrigger value="copy-deck">Copy Deck</TabsTrigger>
             <TabsTrigger value="discover">Discover</TabsTrigger>
+            <TabsTrigger value="queue">Tracker</TabsTrigger>
+            <TabsTrigger value="copy-deck">Templates</TabsTrigger>
           </TabsList>
-          <TabsContent value="apprenticeships">
-            <ApprenticeshipsView />
+          <TabsContent value="discover">
+            <Suspense fallback={<DiscoverSkeleton />}>
+              <DiscoverView />
+            </Suspense>
           </TabsContent>
           <TabsContent value="queue">
             <TrackerView />
@@ -213,19 +171,8 @@ export default function App() {
               <CopyDeckView />
             </Suspense>
           </TabsContent>
-          <TabsContent value="discover">
-            <Suspense fallback={<DiscoverSkeleton />}>
-              <DiscoverView />
-            </Suspense>
-          </TabsContent>
         </HdsTabs>
       </Box>
-
-      {pillarsOpen && (
-        <Suspense fallback={null}>
-          <PillarsDialog open onClose={() => setPillarsOpen(false)} />
-        </Suspense>
-      )}
     </Container>
   );
 }
