@@ -1,7 +1,8 @@
 /* eslint-disable react-refresh/only-export-components -- primitives + the shared sx engine/type co-located by design */
 /*
  * Layout primitives — the MUI-free replacement for the `Box` / `Stack` / `Typography` /
- * `Container` / `Link` / `Divider` set (ADR-0004/0005, issue #11: final MUI deletion).
+ * `Container` / `Link` set (ADR-0004/0005, issue #11: final MUI deletion). The `Divider`
+ * primitive was retired (#38) once the v1 divider sweep left it with no consumers.
  *
  * HDS ships semantic primitives (Stack, Grid, Container, Text, Surface…) whose props are
  * design tokens (`gap="normal"`), not arbitrary CSS — so there is no `Box`, and no `sx`
@@ -373,20 +374,4 @@ export const Link = forwardRef<HTMLElement, LinkProps>(function Link(
     ...sx,
   };
   return <Box ref={ref} as="a" href={href} sx={merged} {...rest} />;
-});
-
-// ---- Divider ----
-export interface DividerProps extends Omit<BoxProps, 'sx'> {
-  orientation?: 'horizontal' | 'vertical';
-  sx?: Sx;
-}
-export const Divider = forwardRef<HTMLElement, DividerProps>(function Divider(
-  { orientation = 'horizontal', sx, ...rest },
-  ref,
-) {
-  const merged: Sx =
-    orientation === 'vertical'
-      ? { borderLeft: 1, borderColor: 'divider', alignSelf: 'stretch', ...sx }
-      : { borderTop: 1, borderColor: 'divider', ...sx };
-  return <Box ref={ref} as="hr" sx={{ margin: 0, border: 0, ...merged }} {...rest} />;
 });
