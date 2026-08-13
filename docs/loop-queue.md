@@ -241,13 +241,22 @@ consolidate the IA + onboarding.** Order matters — B1 is the linchpin.
       with all fields; Manage dialog shows name/location/seniority/chips/Sections & links; tile
       triage present) at desktop; no app console errors (only external Fontshare CDN font 404s).
 
-### B5 — Starter-pack catalog + first-run onboarding (#59 + #38)
-- [ ] First-run: **set location** + **pick starter pack(s)** from a catalog (D3), or create a
-      custom track. Fork-on-pick copies the pack into the user's curation rows.
-- [ ] Teaching empty-states on each surface; fold in the #38 v1 layout cleanup (divider sweep).
-- [ ] Consulting is the lead default pack; trades preserved as one optional pack.
-- DoD: full gate + headless — brand-new store → onboarding → picked pack populates Discover; custom
-      track gets the generated "floor".
+### B5 — Starter-pack catalog + first-run onboarding (#59 + #38) — ✅ DONE
+- [x] First-run onboarding (**set location** + **pick starter pack(s)** from the D3 catalog, or the
+      "Build your own" blank track) shipped in B1 (`src/Onboarding.tsx` + `starterPacks.ts`).
+      Fork-on-pick copies the pack into the user's curation rows. Consulting is the lead pack;
+      Skilled Trades preserved as one optional pack.
+- [x] **Teaching empty-states everywhere.** Tracker + Templates already used the shared
+      `EmptyState`; extended it to Discover's three panels — `GroupPanel` ("No links here yet" →
+      Manage), `TitlesPanel` ("No title-search terms yet" → Add titles), `AtsPanel` ("No ATS role
+      terms yet" → Add roles). Each action opens the Manage dialog, so an empty track teaches the
+      next step instead of dead-ending.
+- [x] **#38 v1 layout cleanup.** The 9 hairline dividers were already removed across the B1–B3
+      rewrites; retired the now-consumerless **`Divider` primitive** from `src/ui/box.tsx`. The
+      cloud-sync banner already collapses to a one-line link (dismissible), and the Templates
+      action row is already a single button — both satisfy the audit as-is.
+- DoD met: typecheck + lint + 205 tests + build green; headless — blank "Build your own" pack →
+      Title/ATS panels show the teaching empties; each action opens Manage; no app console errors.
 
 **Suggested order:** B1 → B2 → B4 → B3 → B5. (B1 unblocks all; B2 after wiring; B4 needs the wired
 UI; B3 is the visible IA change; B5 styles the final surfaces.) Each is its own per-area PR.

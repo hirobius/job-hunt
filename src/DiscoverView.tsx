@@ -14,6 +14,7 @@ import {
 } from '@hirobius/design-system';
 import { Plus, SlidersHorizontal } from 'lucide-react';
 import TileGrid from './TileGrid';
+import EmptyState from './EmptyState';
 import { Reveal } from './ui/Reveal';
 import { useRoute, navigate } from './route';
 import { BOARDS, ATS, entryLevelize, type Tile, type WorkMode } from './jobsData';
@@ -83,7 +84,15 @@ function LocationControl({
 }
 
 // Curated group tiles: saved ones removed (issue #57), pin/set-aside triage kept (decision D2).
-function GroupPanel({ tiles, savedSet }: { tiles: Tile[]; savedSet: ReadonlySet<string> }) {
+function GroupPanel({
+  tiles,
+  savedSet,
+  onManage,
+}: {
+  tiles: Tile[];
+  savedSet: ReadonlySet<string>;
+  onManage: () => void;
+}) {
   const triage = useTileTriage();
   const [showAside, setShowAside] = useState(false);
   const { visible, saved, aside } = partitionTiles(tiles, triage, savedSet);
@@ -96,10 +105,22 @@ function GroupPanel({ tiles, savedSet }: { tiles: Tile[]; savedSet: ReadonlySet<
       )}
       {visible.length > 0 ? (
         <TileGrid tiles={visible} triage />
+      ) : saved.length > 0 ? (
+        <EmptyState
+          dense
+          message="All saved — check your Tracker for these."
+        />
       ) : (
-        <Typography color="text.secondary" sx={{ py: 2 }}>
-          {saved.length > 0 ? 'All saved — check your Queue.' : 'Nothing here yet.'}
-        </Typography>
+        <EmptyState
+          dense
+          title="No links here yet"
+          message="Add curated links to this section, or switch to Title / ATS search to generate live ones."
+          action={
+            <Button variant="secondary" size="sm" onClick={onManage}>
+              Manage this track
+            </Button>
+          }
+        />
       )}
       {aside.length > 0 && (
         <Box sx={{ mt: 1 }}>
@@ -172,6 +193,7 @@ function TitlesPanel({
   mode,
   onWhere,
   onMode,
+  onManage,
 }: {
   titles: string[];
   applyEntry: boolean;
@@ -180,13 +202,20 @@ function TitlesPanel({
   mode: WorkMode;
   onWhere: (v: string) => void;
   onMode: (v: WorkMode) => void;
+  onManage: () => void;
 }) {
   const [title, setTitle] = useState(initialTitle || titles[0] || '');
   if (titles.length === 0)
     return (
-      <Typography color="text.secondary" sx={{ py: 2 }}>
-        No titles in this track yet — add some with the track controls.
-      </Typography>
+      <EmptyState
+        title="No title-search terms yet"
+        message="Add a few job titles to this track and we'll fan them out across every job board."
+        action={
+          <Button variant="secondary" size="sm" onClick={onManage}>
+            Add titles
+          </Button>
+        }
+      />
     );
   const term = `"${title}"`;
   const loc = { where, mode };
@@ -220,6 +249,7 @@ function AtsPanel({
   mode,
   onWhere,
   onMode,
+  onManage,
 }: {
   roles: string[];
   seniority: Seniority;
@@ -227,14 +257,21 @@ function AtsPanel({
   mode: WorkMode;
   onWhere: (v: string) => void;
   onMode: (v: WorkMode) => void;
+  onManage: () => void;
 }) {
   const [role, setRole] = useState(roles[0] ?? '');
   const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
   if (roles.length === 0)
     return (
-      <Typography color="text.secondary" sx={{ py: 2 }}>
-        No ATS roles in this track yet — add some with the track controls.
-      </Typography>
+      <EmptyState
+        title="No ATS role terms yet"
+        message="Add role keywords and we'll search companies' hiring systems (Greenhouse, Lever, Ashby…) straight through Google — far less competition."
+        action={
+          <Button variant="secondary" size="sm" onClick={onManage}>
+            Add roles
+          </Button>
+        }
+      />
     );
   const w = where.trim();
   const locClause = mode === 'remote' ? 'remote' : w ? `"${w}"` : '';
@@ -397,7 +434,9 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
           ))}
         </TabsList>
         <TabsContent value={cur.key}>
-          {cur.kind === 'group' && <GroupPanel tiles={cur.tiles!} savedSet={savedSet} />}
+          {cur.kind === 'group' && (
+            <GroupPanel tiles={cur.tiles!} savedSet={savedSet} onManage={() => setManageOpen(true)} />
+          )}
           {cur.kind === 'titles' && (
             <TitlesPanel
               titles={cat.titles}
@@ -407,6 +446,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               mode={mode}
               onWhere={setWhere}
               onMode={setMode}
+              onManage={() => setManageOpen(true)}
             />
           )}
           {cur.kind === 'ats' && (
@@ -417,6 +457,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               mode={mode}
               onWhere={setWhere}
               onMode={setMode}
+              onManage={() => setManageOpen(true)}
             />
           )}
         </TabsContent>
