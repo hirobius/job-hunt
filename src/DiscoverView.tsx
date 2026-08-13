@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { Box, Stack, Typography } from './ui/box';
 import {
   Button,
   Combobox,
+  IconButton as HdsIconButton,
   Input as HdsInput,
   SegmentedControl,
   Tabs as HdsTabs,
@@ -11,15 +12,20 @@ import {
   TabsContent,
   Tag,
 } from '@hirobius/design-system';
+import { Plus, SlidersHorizontal } from 'lucide-react';
 import TileGrid from './TileGrid';
+import { Reveal } from './ui/Reveal';
 import { useRoute, navigate } from './route';
 import { BOARDS, ATS, entryLevelize, type Tile, type WorkMode } from './jobsData';
 import { useJobs } from './store';
 import { partitionTiles } from './tileState';
+import { useTileTriage } from './tileTriage';
 import { consumeDiscoverSeed } from './discoverSeed';
-import { useCategories, useGroups, useTiles } from './curation/curationStore';
+import { useCategories, useGroups, useTiles, addCategory } from './curation/curationStore';
 import type { Category, Seniority } from './curation/types';
 import { Onboarding } from './Onboarding';
+
+const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
 
 // Discover reads the per-account CURATION STORE (categories→groups→tiles), not the old hardcoded
 // pillars (B1 / #30). A Category IS a track: its titles/atsRoles/seniority/location drive the
@@ -27,10 +33,6 @@ import { Onboarding } from './Onboarding';
 // An empty store routes to first-run Onboarding (decision D1).
 
 const ACTIVE_CATEGORY_KEY = 'rjb_active_category';
-
-// No board triage on Discover's generated tiles — we only want the saved→remove rule here, so
-// partition against an empty triage.
-const NO_TRIAGE = { pinned: [] as string[], dismissed: [] as string[] };
 
 const REMOTE_COMPETITION_HINT =
   'Remote roles draw ~5× the applicants (2024) — local & hybrid compete less.';
@@ -80,9 +82,11 @@ function LocationControl({
   );
 }
 
-// Curated group tiles, with saved ones removed (issue #57) and a "N saved → Queue" note.
+// Curated group tiles: saved ones removed (issue #57), pin/set-aside triage kept (decision D2).
 function GroupPanel({ tiles, savedSet }: { tiles: Tile[]; savedSet: ReadonlySet<string> }) {
-  const { visible, saved } = partitionTiles(tiles, NO_TRIAGE, savedSet);
+  const triage = useTileTriage();
+  const [showAside, setShowAside] = useState(false);
+  const { visible, saved, aside } = partitionTiles(tiles, triage, savedSet);
   return (
     <Box>
       {saved.length > 0 && (
@@ -91,11 +95,23 @@ function GroupPanel({ tiles, savedSet }: { tiles: Tile[]; savedSet: ReadonlySet<
         </Typography>
       )}
       {visible.length > 0 ? (
-        <TileGrid tiles={visible} />
+        <TileGrid tiles={visible} triage />
       ) : (
         <Typography color="text.secondary" sx={{ py: 2 }}>
           {saved.length > 0 ? 'All saved — check your Queue.' : 'Nothing here yet.'}
         </Typography>
+      )}
+      {aside.length > 0 && (
+        <Box sx={{ mt: 1 }}>
+          <Button variant="tertiary" size="sm" onClick={() => setShowAside((v) => !v)}>
+            {showAside ? 'Hide' : 'Show'} set aside ({aside.length})
+          </Button>
+          <Reveal open={showAside}>
+            <Box sx={{ mt: 1 }}>
+              <TileGrid tiles={aside} triage />
+            </Box>
+          </Reveal>
+        </Box>
       )}
     </Box>
   );
@@ -105,23 +121,45 @@ function CategorySwitcher({
   categories,
   activeId,
   onChange,
+  onNew,
+  onManage,
 }: {
   categories: Category[];
   activeId: string;
   onChange: (id: string) => void;
+  onNew: () => void;
+  onManage: () => void;
 }) {
   return (
     <Box sx={{ mb: 2 }}>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
         Track
       </Typography>
-      <Combobox
-        aria-label="Track to search"
-        options={categories.map((c) => ({ value: c.id, label: c.label }))}
-        value={activeId}
-        onChange={onChange}
-        placeholder="Pick a track"
-      />
+      <Stack direction="row" spacing={0.75} alignItems="center">
+        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+          <Combobox
+            aria-label="Track to search"
+            options={categories.map((c) => ({ value: c.id, label: c.label }))}
+            value={activeId}
+            onChange={onChange}
+            placeholder="Pick a track"
+          />
+        </Box>
+        <HdsIconButton
+          size="sm"
+          variant="tertiary"
+          icon={SlidersHorizontal}
+          label="Manage this track"
+          onClick={onManage}
+        />
+        <HdsIconButton
+          size="sm"
+          variant="secondary"
+          icon={Plus}
+          label="New track"
+          onClick={onNew}
+        />
+      </Stack>
     </Box>
   );
 }
@@ -277,6 +315,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const [activeId, setActiveId] = useState(() => loadActiveCategory(categories));
   const [where, setWhere] = useState('');
   const [mode, setMode] = useState<WorkMode>('any');
+  const [manageOpen, setManageOpen] = useState(false);
 
   const cat = categories.find((c) => c.id === activeId) ?? categories[0];
   const setActive = (id: string) => {
@@ -286,6 +325,13 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
     } catch {
       /* ignore */
     }
+  };
+
+  // New track: create an empty category, switch to it, and open the editor so the user fills it in.
+  const handleNew = () => {
+    const id = addCategory({ label: 'New track' });
+    setActive(id);
+    setManageOpen(true);
   };
 
   // Assemble the active category's normalized groups → tiles (jobsData Tile shape for TileGrid).
@@ -320,7 +366,23 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
 
   return (
     <Box>
-      <CategorySwitcher categories={categories} activeId={cat.id} onChange={setActive} />
+      <CategorySwitcher
+        categories={categories}
+        activeId={cat.id}
+        onChange={setActive}
+        onNew={handleNew}
+        onManage={() => setManageOpen(true)}
+      />
+      {manageOpen && (
+        <Suspense fallback={null}>
+          <ManageTrackDialog
+            categoryId={cat.id}
+            open
+            onClose={() => setManageOpen(false)}
+            onDeleted={() => setManageOpen(false)}
+          />
+        </Suspense>
+      )}
       {/* Key the tabs by category so switching tracks resets to the first sub-tab. */}
       <HdsTabs
         key={cat.id}

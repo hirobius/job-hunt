@@ -223,12 +223,23 @@ consolidate the IA + onboarding.** Order matters — B1 is the linchpin.
 - ⚠️ **D2 gap:** pin/set-aside on the merged Discover tiles isn't wired yet (Discover's `GroupPanel`
       currently only does saved-removal). Fold the tile triage in with **B4**.
 
-### B4 — In-app curation controls (#37)
-- [ ] Category switcher + "＋ New category" at the top of Discover; extend the pillar editor
-      (relabel "Categories") to add/remove/edit categories; inline add/remove for groups + tiles.
-- [ ] All writes go through the existing `curationStore` API (`addCategory`/`addGroup`/`addTile`/
-      `update*`/`remove*`).
-- DoD: full gate + headless — create a category, add a group + tile, edit, delete; persists + syncs.
+### B4 — In-app curation controls (#37) — ✅ DONE
+- [x] `CategorySwitcher` now carries a **Manage** (sliders) + **＋ New track** (plus) IconButton
+      beside the track Combobox. "New track" creates an empty category, switches to it, and opens
+      the editor pre-focused.
+- [x] New `src/ManageTrackDialog.tsx` (curation-backed, lazy-loaded): edit track **name / location /
+      seniority**, chip-edit **title-search terms** + **ATS role terms**, add/remove **sections
+      (groups)** and **links (tiles)** inline, and **delete track** (confirm-guarded).
+- [x] All writes go through the existing `curationStore` API (`addCategory`/`updateCategory`/
+      `removeCategory`/`addGroup`/`updateGroup`/`removeGroup`/`addTile`/`removeTile`) — persists
+      locally + syncs.
+- [x] **D2 folded in:** Discover's `GroupPanel` now does real **pin / set-aside** triage
+      (`useTileTriage` + `partitionTiles`) with a "Show/Hide set aside (N)" `Reveal` disclosure,
+      not just saved-removal — closes the B3 D2 gap.
+- DoD met: typecheck + lint + 205 tests + build green; `ManageTrackDialog` code-splits to its own
+      chunk. Verified headless (empty→onboarding→seed pack→Discover; **New track** opens the editor
+      with all fields; Manage dialog shows name/location/seniority/chips/Sections & links; tile
+      triage present) at desktop; no app console errors (only external Fontshare CDN font 404s).
 
 ### B5 — Starter-pack catalog + first-run onboarding (#59 + #38)
 - [ ] First-run: **set location** + **pick starter pack(s)** from a catalog (D3), or create a
