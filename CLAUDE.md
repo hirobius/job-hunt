@@ -158,9 +158,20 @@ far this cycle:
   **error boundary** (#46).
 - **Supabase provisioned (#31).** `tracker` + `categories`/`groups`/`tiles` tables now exist with
   RLS (the DB had been empty — cloud sync never had a backing table until now).
-- **Open:** the #30 curation-store migration + IA consolidation (tabs → **Discover / Tracker /
-  Templates**, #36) and onboarding are still ahead. ⚠️ GitHub Actions CI is non-functional
-  org-wide (no runner assigned); merges currently rely on local verify + Vercel.
+- **#30 IA/curation chain COMPLETE (B1→B5), live on `main`.** Discover now reads the per-account
+  **curation store** (`useCategories`/`useGroups`/`useTiles`), not hardcoded pillars — a `Category`
+  *is* a track. Shipped via per-area PRs: **#75 B1** (wire Discover→curationStore + first-run
+  `Onboarding` picking starter packs, D1) · **#76 B2/B3** (strip hardcoded content, retire the Trades
+  tab, tabs → Discover/Tracker/Templates, slugs kept for back-compat) · **#78 B4** (in-app curation
+  controls — `ManageTrackDialog` creates/edits/deletes tracks + sections + links; D2 pin/set-aside
+  triage on Discover tiles) · **#79 B5** (teaching `EmptyState`s across Discover; retired the
+  now-consumerless `Divider` primitive; #38 layout cleanup). The starter-pack list
+  (`src/curation/starterPacks.ts`) is deliberately trivial to edit (v1 provisional).
+- **Open:** one deferred, non-user-facing piece of B2/#34 — **fully retiring `pillarStore` +
+  `pillars.ts`.** They're load-bearing for cloud sync (`CloudSync`/`syncBlob`/`curationStore`/
+  `copyDeckStore` import them; user-pillars ride in the sync blob), so deletion needs the sync layer
+  untangled first — its own PR. ⚠️ GitHub Actions CI is non-functional org-wide AND disabled by owner
+  preference (`.github/workflows/ci.yml` removed); merges rely on local verify + Vercel.
 
 ## Fleet hub
 
