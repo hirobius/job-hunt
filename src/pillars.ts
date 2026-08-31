@@ -176,10 +176,48 @@ export const CONSULTING_PILLAR: Pillar = {
   builtIn: true,
 };
 
+const SERVICENOW_TITLES = [
+  'ServiceNow Developer',
+  'ServiceNow Administrator',
+  'ServiceNow Implementation Consultant',
+  'ServiceNow Technical Consultant',
+  'ServiceNow Business Analyst',
+  'ServiceNow Architect',
+  'ServiceNow Consultant',
+  'ServiceNow Engineer',
+  'ITSM Consultant',
+  'ServiceNow Platform Owner',
+];
+const SERVICENOW_ATS_ROLES = [
+  'servicenow developer',
+  'servicenow administrator',
+  'servicenow consultant',
+  'servicenow implementation',
+  'servicenow architect',
+  'ITSM',
+];
+
+// ---- ServiceNow (a platform-specific implementation track: remote, any-seniority) ----
+// Strictly ServiceNow-ecosystem roles across the ladder — developer / admin / consultant /
+// architect. Remote-forward like Design Systems & Implementation Consulting; the remote reach
+// comes from the ATS tab (`location: 'Remote'`) and the curated `sn-brief` "Apply Now" group
+// (vendor + partner + ATS-dork URLs). `seniority: 'any'` so it doesn't over-filter the ladder.
+export const SERVICENOW_PILLAR: Pillar = {
+  id: 'servicenow',
+  label: 'ServiceNow',
+  titles: SERVICENOW_TITLES,
+  atsRoles: SERVICENOW_ATS_ROLES,
+  seniority: 'any',
+  location: 'Remote',
+  groups: pick('sn-brief'),
+  builtIn: true,
+};
+
 export const BUILTIN_PILLARS: Pillar[] = [
   SHEET_METAL_PILLAR,
   WELDING_PILLAR,
   CONSTRUCTION_PILLAR,
   DESIGN_SYSTEMS_PILLAR,
   CONSULTING_PILLAR,
+  SERVICENOW_PILLAR,
 ];

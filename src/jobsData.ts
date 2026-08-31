@@ -237,6 +237,61 @@ export const GROUPS: Group[] = [
     ],
   },
   {
+    // ServiceNow "Apply Now" — a platform-specific implementation track (developer / admin /
+    // consultant / architect across the ServiceNow ecosystem). Remote-forward. Board rule holds:
+    // live remote searches + the ServiceNow vendor careers page + a durable pure-play partner +
+    // ATS Google-dorks (the low-competition hidden-jobs angle), no one-off postings.
+    id: 'sn-brief',
+    label: 'Apply Now',
+    tiles: [
+      t(
+        'LinkedIn · ServiceNow (Remote)',
+        'Live remote ServiceNow developer / admin / consultant roles',
+        'https://www.linkedin.com/jobs/search/?keywords=servicenow&location=United%20States&f_WT=2',
+      ),
+      t(
+        'Indeed · ServiceNow (Remote)',
+        'All live remote ServiceNow postings',
+        'https://www.indeed.com/jobs?q=servicenow&l=Remote',
+      ),
+      t(
+        'Google Jobs · ServiceNow Developer (Remote)',
+        'Aggregated remote ServiceNow developer / consultant roles',
+        'https://www.google.com/search?q=servicenow+developer+remote&ibp=htl;jobs',
+      ),
+      t(
+        'ServiceNow · Careers (the platform vendor)',
+        'ServiceNow itself hires remote — implementation, PS & platform roles',
+        'https://careers.servicenow.com/en/jobs/',
+      ),
+      t(
+        'GlideFast · ServiceNow Partner (careers)',
+        'Pure-play ServiceNow Elite partner · remote implementation consultants',
+        'https://www.glidefast.com/careers/',
+      ),
+      t(
+        'Greenhouse · ServiceNow (hidden jobs)',
+        'Google-dork into Greenhouse boards · less competition',
+        'https://www.google.com/search?q=%28site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io%29+%22servicenow%22+remote',
+      ),
+      t(
+        'Lever · ServiceNow (hidden jobs)',
+        'Google-dork into Lever boards · less competition',
+        'https://www.google.com/search?q=site%3Ajobs.lever.co+%22servicenow%22+remote',
+      ),
+      t(
+        'Ashby · ServiceNow (hidden jobs)',
+        'Google-dork into Ashby boards · less competition',
+        'https://www.google.com/search?q=site%3Ajobs.ashbyhq.com+%22servicenow%22+remote',
+      ),
+      t(
+        'Workday · ServiceNow at SIs (hidden jobs)',
+        'Google-dork into Workday boards (big system integrators) · less competition',
+        'https://www.google.com/search?q=site%3Amyworkdayjobs.com+%22servicenow%22+remote',
+      ),
+    ],
+  },
+  {
     // Sheet-metal & fab "Apply Now" — durable Spokane-area employer pages that hire and
     // train on the bench. Board rule holds: careers pages + 1-click local searches, no
     // one-off postings.
