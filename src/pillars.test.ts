@@ -6,12 +6,13 @@ import {
   CONSTRUCTION_PILLAR,
   DESIGN_SYSTEMS_PILLAR,
   CONSULTING_PILLAR,
+  SERVICENOW_PILLAR,
   CROSS_CUTTING_GROUPS,
 } from './pillars';
 
 describe('built-in pillars', () => {
-  it('exposes five well-formed pillars', () => {
-    expect(BUILTIN_PILLARS).toHaveLength(5);
+  it('exposes six well-formed pillars', () => {
+    expect(BUILTIN_PILLARS).toHaveLength(6);
     for (const p of BUILTIN_PILLARS) {
       expect(p.titles.length).toBeGreaterThan(0);
       expect(p.atsRoles.length).toBeGreaterThan(0);
@@ -42,6 +43,14 @@ describe('built-in pillars', () => {
     expect(CONSULTING_PILLAR.location).toContain('Remote');
     expect(CONSULTING_PILLAR.location).toContain('Spokane');
     expect(CONSULTING_PILLAR.groups[0].id).toBe('ic-brief');
+  });
+
+  it('adds a ServiceNow track that is remote + any-seniority (platform-specific)', () => {
+    expect(BUILTIN_PILLARS).toContain(SERVICENOW_PILLAR);
+    expect(SERVICENOW_PILLAR.seniority).toBe('any');
+    expect(SERVICENOW_PILLAR.location).toBe('Remote');
+    expect(SERVICENOW_PILLAR.groups[0].id).toBe('sn-brief');
+    expect(SERVICENOW_PILLAR.titles.every((tt) => /servicenow|ITSM/i.test(tt))).toBe(true);
   });
 
   it('resolves every referenced group id — pick() drops unknowns silently', () => {

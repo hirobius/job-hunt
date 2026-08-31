@@ -8,6 +8,7 @@ import { addCategory, addGroup, addTile } from './curationStore';
 import {
   CONSULTING_PILLAR,
   DESIGN_SYSTEMS_PILLAR,
+  SERVICENOW_PILLAR,
   SHEET_METAL_PILLAR,
   type Pillar,
 } from '../pillars';
@@ -23,6 +24,11 @@ export const STARTER_PACKS: StarterPack[] = [
     id: 'consulting',
     label: 'Implementation Consulting',
     blurb: 'Software implementation, onboarding & professional-services roles',
+  },
+  {
+    id: 'servicenow',
+    label: 'ServiceNow',
+    blurb: 'Strictly ServiceNow — developer, admin, consultant & architect roles',
   },
   {
     id: 'designsystems',
@@ -43,6 +49,7 @@ export const STARTER_PACKS: StarterPack[] = [
 
 const PILLAR_FOR: Record<string, Pillar | undefined> = {
   consulting: CONSULTING_PILLAR,
+  servicenow: SERVICENOW_PILLAR,
   designsystems: DESIGN_SYSTEMS_PILLAR,
   trades: SHEET_METAL_PILLAR,
   // 'blank' → no pillar (empty category).

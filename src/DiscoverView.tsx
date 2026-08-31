@@ -5,6 +5,7 @@ import {
   Combobox,
   IconButton as HdsIconButton,
   Input as HdsInput,
+  Menu as HdsMenu,
   SegmentedControl,
   Tabs as HdsTabs,
   TabsList,
@@ -23,6 +24,7 @@ import { partitionTiles } from './tileState';
 import { useTileTriage } from './tileTriage';
 import { consumeDiscoverSeed } from './discoverSeed';
 import { useCategories, useGroups, useTiles, addCategory } from './curation/curationStore';
+import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import type { Category, Seniority } from './curation/types';
 import { Onboarding } from './Onboarding';
 
@@ -142,15 +144,21 @@ function CategorySwitcher({
   categories,
   activeId,
   onChange,
-  onNew,
+  onSeedPack,
+  onBlank,
   onManage,
 }: {
   categories: Category[];
   activeId: string;
   onChange: (id: string) => void;
-  onNew: () => void;
+  onSeedPack: (packId: string) => void;
+  onBlank: () => void;
   onManage: () => void;
 }) {
+  // Packs the user can pull in as a ready-made track (skip "blank" — that's the explicit
+  // "Blank track" item below). Lets an existing user add e.g. the ServiceNow track any time,
+  // not only at first-run onboarding.
+  const packs = STARTER_PACKS.filter((p) => p.id !== 'blank');
   return (
     <Box sx={{ mb: 2 }}>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
@@ -173,13 +181,21 @@ function CategorySwitcher({
           label="Manage this track"
           onClick={onManage}
         />
-        <HdsIconButton
-          size="sm"
-          variant="secondary"
-          icon={Plus}
-          label="New track"
-          onClick={onNew}
-        />
+        <HdsMenu>
+          <HdsMenu.Trigger asChild>
+            <HdsIconButton size="sm" variant="secondary" icon={Plus} label="New track" />
+          </HdsMenu.Trigger>
+          <HdsMenu.Content align="end">
+            <HdsMenu.Label>Start from a pack</HdsMenu.Label>
+            {packs.map((p) => (
+              <HdsMenu.Item key={p.id} onSelect={() => onSeedPack(p.id)}>
+                {p.label}
+              </HdsMenu.Item>
+            ))}
+            <HdsMenu.Separator />
+            <HdsMenu.Item onSelect={onBlank}>Blank track</HdsMenu.Item>
+          </HdsMenu.Content>
+        </HdsMenu>
       </Stack>
     </Box>
   );
@@ -364,11 +380,17 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
     }
   };
 
-  // New track: create an empty category, switch to it, and open the editor so the user fills it in.
-  const handleNew = () => {
+  // Blank track: create an empty category, switch to it, and open the editor to fill it in.
+  const handleBlank = () => {
     const id = addCategory({ label: 'New track' });
     setActive(id);
     setManageOpen(true);
+  };
+  // Pack track: seed a ready-made starter pack (e.g. ServiceNow) as a new track and switch to it.
+  // No auto-open of the editor — the pack arrives pre-filled and immediately usable.
+  const handleSeedPack = (packId: string) => {
+    const id = seedPack(packId);
+    setActive(id);
   };
 
   // Assemble the active category's normalized groups → tiles (jobsData Tile shape for TileGrid).
@@ -407,7 +429,8 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         categories={categories}
         activeId={cat.id}
         onChange={setActive}
-        onNew={handleNew}
+        onSeedPack={handleSeedPack}
+        onBlank={handleBlank}
         onManage={() => setManageOpen(true)}
       />
       {manageOpen && (
