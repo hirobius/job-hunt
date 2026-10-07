@@ -1,11 +1,12 @@
 {
-  "updatedAt": "2026-08-13T00:00:00Z",
+  "updatedAt": "2026-10-07T00:00:00Z",
   "phase": "live",
-  "headline": "#30 IA/curation chain COMPLETE (B1→B5) and live on production (job-hunt-jade.vercel.app, deploys READY from main). The app is now the agnostic, pillar-driven product: Discover reads the per-account curation store (categories→groups→tiles), not hardcoded pillars. Shipped this cycle via per-area PRs: #75 B1 (wire Discover→curationStore + first-run Onboarding, D1), #76 B2/B3 (strip hardcoded content, retire Trades tab, tabs → Discover/Tracker/Templates), #78 B4 (in-app curation controls — ManageTrackDialog create/edit/delete tracks + sections + links; D2 pin/set-aside triage on Discover tiles), #79 B5 (teaching empty-states across Discover; retire the consumerless Divider primitive; #38 layout cleanup). Verification per owner: local typecheck/lint/205 tests/build + headless Chromium + Vercel — NO GitHub Actions.",
+  "headline": "Live and stable on production (job-hunt-jade.vercel.app). The agnostic multi-tenant product is complete — #30 curation chain (B1-B5) and the agnostic pivot (#58 location+work-mode, #60 screening fields, #61 rules-based JD screener) all shipped; AI fully removed (#54). 2026-10-07: backlog triage — closed ~16 shipped/obsolete issues (incl. AI-security #40/#45, now moot) and stale PR #28. Remaining work is a short hardening/legal list plus one deferred refactor.",
   "next": [
-    "DEFERRED (own PR, non-user-facing): fully retire pillarStore + pillars.ts. They are load-bearing for cloud sync (CloudSync/syncBlob/curationStore/copyDeckStore import pillarStore; user-pillars ride in the sync blob) — needs the sync layer untangled first. This is the last piece of B2/#34.",
-    "Close epic #30 sub-issues on GitHub: #37 (B4) and #38 (B5) done; #34 (B2) partial pending the pillarStore retirement above.",
-    "#44 Supabase leaked-password protection + #16 Vercel analytics are dashboard toggles (human)"
+    "DEFERRED (own PR, non-user-facing): fully retire pillarStore + pillars.ts — still load-bearing for cloud sync (CloudSync/syncBlob/curationStore/copyDeckStore import them; user-pillars ride in the sync blob). Untangle the sync layer first. Last piece of #34.",
+    "Human / dashboard: #44 Supabase auth hardening, #16 Vercel analytics, #17 delete stale remote branches, #55 name/trademark clearance (ApplyBoard conflict).",
+    "Legal (before public launch): #43 Privacy Policy + Terms + subprocessor disclosure.",
+    "Hygiene: triage dependabot PRs (#84 minor/patch group; #68-#71 stale major bumps incl. React 19) with local + Vercel verify (no CI); refresh stale README (#20, still references removed AI)."
   ],
   "blocked": []
 }
