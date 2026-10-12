@@ -1,9 +1,8 @@
 // Copy Deck store — outreach/cover snippets, tagged to pillars, pinnable. Seeds are
-// TEMPLATES (labeled "Example —", contact details as placeholders) so a new user's deck
-// starts useful but impersonal — issue #14. A small
-// external store (mirrors store.ts / pillarStore.ts) so the deck can sync to the cloud
-// even when the Copy Deck tab has never been opened. Self-initializes from localStorage
-// with the seeded defaults.
+// neutral templates using [Company]/[Role]/[Contact]/[Angle] tokens (see templateFill.ts),
+// with no personal details (#14, #103). A small external store (mirrors store.ts /
+// pillarStore.ts) so the deck can sync to the cloud even when the Copy Deck tab has never
+// been opened. Self-initializes from localStorage, falling back to the defaults.
 import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
 
@@ -25,50 +24,32 @@ const newId = () =>
 
 const DEFAULTS: Snippet[] = [
   {
-    id: 'seed-outreach',
-    label: 'Example — quick outreach note',
-    body: "U.S. Air Force veteran in Spokane, WA, available immediately. Looking for entry-level work in welding, metal fab, foundry/casting, or production. I'm new to the trade, but I'm reliable, I show up on time, and I'm looking for a shop that trains. Happy to start in general labor and learn the trade. Resume attached, and I can come by in person.\n\n— add your name + phone + email here —",
+    id: 'tpl-outreach',
+    label: 'Outreach note',
+    body: "Hi [Contact],\n\nI came across the [Role] opening at [Company] and wanted to reach out directly. [Angle]\n\nI'd love to learn more about the team and how I could help. Would you be open to a quick conversation? I've attached my resume for context.\n\nThank you for your time,\n[Your name]",
   },
   {
-    id: 'seed-cover',
-    label: 'Example — formal cover letter',
-    body: "Dear Hiring Team,\n\nI'm writing to express my interest in your open position. I'm a U.S. Air Force veteran based in Spokane, WA and available to start immediately. I'm looking to build a hands-on trade — welding, fabrication, casting, or production — and while I'm early in the trade, I bring a strong work ethic, reliability, and a real willingness to start in entry labor and learn from the crew.\n\nMy military background gave me discipline, safety awareness, and the habit of showing up and getting the job done. I'd welcome the chance to talk about how I can contribute to your shop. My resume is attached, and I'm happy to come by in person.\n\nThank you,\n\n— add your name + phone + email here —",
+    id: 'tpl-cover',
+    label: 'Cover letter',
+    body: "Dear [Contact],\n\nI'm writing to apply for the [Role] position at [Company]. [Angle]\n\nI'm drawn to this role because it matches the work I do best, and I'd welcome the chance to show how I can contribute to your team. My resume is attached, and I'm glad to share more detail on anything that would be helpful.\n\nThank you for considering my application. I look forward to hearing from you.\n\nSincerely,\n[Your name]",
   },
   {
-    id: 'seed-culture',
-    label: 'Example — culture / company fit',
-    body: "I'll be honest about what pulls me toward this work: I like making something real with my hands and being the person a crew can count on. I'd rather learn a trade the right way — start at the bottom, ask good questions, and earn trust — than chase a title. The part I enjoy most is the kind of day where you can point at what you built when it's over.\n\nHere's why I think I'll fit, beyond the obvious. I show up early, I don't cut corners on safety, and I take feedback without ego. Coming out of the military, I'm used to hard, physical days and to being part of a team where everyone pulls their weight. Give me a task and a chance to learn it and I'll get faster and more useful every week.\n\nI'm looking for a shop that trains and a trade I can grow in for the long haul — somewhere I can put in the reps and become the reliable hand the crew leans on.",
+    id: 'tpl-followup',
+    label: 'Follow-up after applying',
+    body: "Hi [Contact],\n\nI applied for the [Role] role at [Company] about a week ago and wanted to follow up. I'm still very interested in the position. [Angle]\n\nIf there's anything else I can send to help with your review, just let me know. Thanks again for your time.\n\nBest,\n[Your name]",
+  },
+  {
+    id: 'tpl-thanks',
+    label: 'Thank-you after interview',
+    body: "Hi [Contact],\n\nThank you for taking the time to talk with me about the [Role] role at [Company]. I enjoyed learning more about the team and what you're looking for. [Angle]\n\nI'm excited about the opportunity and happy to answer any follow-up questions.\n\nWarm regards,\n[Your name]",
   },
 ];
-
-const CALL_SHEET: Snippet = {
-  id: 'seed-callsheet',
-  pinned: true,
-  label: 'Call sheet — casting, precast & fab shops',
-  body: 'HOW TO WORK THIS: call Tue–Thu, 8–10am. Small shops: showing up in person beats calling. Mark each line: [x] reached · [f] follow-up · [n] no. Every call: veteran, reliable, hands-on, will start in entry labor, looking for a shop that trains.\n\nTIER 1 — CALL FIRST (best casting / mold-making fit)\n[ ] Travis Pattern & Foundry — Todd Gee (HR) · 509-466-3545 · hr@travispattern.com\n    Union foundry (USW) · entry labor / molder ~$20–26/hr · they train. Also has a machinist opening (~$29–33/hr).\n[ ] Concrete Works Statuary — ask for Curtiss Grenz · 509-922-6111\n    Hand-cast decorative concrete, ~1,000 molds · THE decorative-casting shop. Ok with seasonal/entry.\n[ ] Hern Iron Works — number via hernironworks.com\n    Cast-iron foundry (gears / grates) · ask about entry casting or labor.\n\nTIER 2 — PRECAST PRODUCTION (they train · ~$18–25/hr)\n[ ] INW Precast — Brock Materne · 509-226-5050 (Newman Lake)\n[ ] CDA Precast — ask for Todd or Craig · 208-762-0235 (CDA / Post Falls)\n[ ] White Block — Bruce Corigliano · 509-534-0651 (Spokane Valley)\n[ ] Spilker Precast — Kevin or Tim Spilker · 509-487-2261\n[ ] voestalpine Nortrak — apply online · Machine Operator I $22.50–24.70/hr + tuition assistance\n[ ] Knife River Prestress · Wilbert Precast · Central Pre-Mix — apply via careers pages\n[ ] Spokane Precast — seasonal (Apr–Oct) · visit in person\n\nTIER 3 — FAB SHOP BLANKET (entry welders in demand)\n[ ] Northwest Steel Fab — 509-276-1592 (Deer Park · known-great for brand-new welders)\n[ ] Hydrafab NW — 509-535-0075 · [ ] SteelFab — 509-747-4139 · [ ] Spokane Metals — 509-244-9476\n[ ] American Metal Fab & Welding — Aaron Meldrum · 509-362-3908\n[ ] Lake City Fence & Fab — Dominic Pesaturo · 208-771-5873 · [ ] Ground Force — 208-664-9291\n[ ] Buck Knives · Hewescraft (careers@hewescraft.com) · Colmac Coil · Rocky Mountain Construction · MetalQuest — apply online\n\nSKILL BUILDER — DO THIS WEEK, mention it on every call\n[ ] Lost & Foundry sand-casting class — $45 · Tue/Sat 10–noon · Donna · 509-487-6832\n    ("I\'m taking a sand-casting class right now" = instant credibility with foundries.)\n\nREMOTE — NO CALLS, apply online (~30 min each, paid programs)\n[ ] Creating Coding Careers (veteran/SkillBridge track) · [ ] OpenClassrooms US · [ ] Flatiron Work-Study · [ ] SkillStorm (vet track) · [ ] Apprenti WA',
-};
-
-const CALL_SCRIPT: Snippet = {
-  id: 'seed-callscript',
-  label: 'Cold-call + voicemail script — shops',
-  body: 'LIVE CALL\n"Hi, my name\'s ___. I\'m a U.S. Air Force veteran here in Spokane. I\'m looking for entry-level work in [casting / welding / production] — I\'m new to the trade, but I\'m reliable, I show up, and I\'m looking for a shop that trains. Do you have anything open now, or could I drop off a resume for when something opens up?"\n\nIF NO OPENINGS\n"Understood — if you were me, who else in town would you call?" (Shops know shops. Write down every name they give you and add it to the board.)\n\nVOICEMAIL (keep under 20 seconds)\n"Hi, this is ___, an Air Force veteran here in Spokane looking for entry [foundry / fab / production] work — happy to start in general labor and learn the trade. You can reach me at ___. Thanks."\n\nRULES\n- Call Tue–Thu, 8–10am (owners answer early; Mondays are chaos).\n- For the micro-shops, drive out in person with a one-page resume.\n- Ask for the owner/contact BY NAME where the call sheet lists one.\n- After every call, mark the call-sheet line and set a follow-up date (+5 business days).\n\n— add your name + phone before using —',
-};
 
 function load(): Snippet[] {
   let arr: Snippet[] = DEFAULTS;
   try {
     const r = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (Array.isArray(r) && r.length) arr = r.map((s: Snippet) => ({ ...s, id: s.id || newId() }));
-  } catch {
-    /* ignore */
-  }
-  // One-time: seed the trades call sheet + cold-call script (respects later deletion).
-  try {
-    if (!localStorage.getItem('rjb_deck_callsheet')) {
-      if (!arr.some((s) => /call sheet/i.test(s.label || ''))) arr = [...arr, CALL_SHEET];
-      if (!arr.some((s) => /cold-call|voicemail/i.test(s.label || ''))) arr = [...arr, CALL_SCRIPT];
-      localStorage.setItem('rjb_deck_callsheet', '1');
-    }
   } catch {
     /* ignore */
   }
