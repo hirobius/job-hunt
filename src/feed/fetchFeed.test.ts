@@ -1,6 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
-import { createFetchJson, describeError, fetchFeed } from './fetchFeed';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  createFetchJson,
+  describeError,
+  fetchFeed,
+  memoryKv,
+  REMOTIVE_DAILY_MAX,
+} from './fetchFeed';
 import { FetchError } from './sources/http';
+
+// fetchFeed's default Remotive budget lives in localStorage — never let it leak between tests.
+beforeEach(() => localStorage.clear());
 
 const res = (status: number, body: unknown = {}) =>
   ({ ok: status >= 200 && status < 300, status, json: async () => body }) as Response;
@@ -130,5 +139,56 @@ describe('fetchFeed', () => {
     const out = await fetchFeed({ term: '  ', boardUrls: [] }, fetchJson);
     expect(fetchJson).not.toHaveBeenCalled();
     expect(out).toEqual({ postings: [], sources: [], boardsSkipped: 0 });
+  });
+});
+
+describe('Remotive request budget (its API terms: at most ~4 requests a day)', () => {
+  const remotiveOnly = (calls: string[]) => async (url: string) => {
+    if (url.includes('search_by_date')) return { hits: [] };
+    calls.push(url);
+    return {
+      jobs: [
+        { id: calls.length, url: `https://remotive.com/remote-jobs/${calls.length}`, title: 'x' },
+      ],
+    };
+  };
+
+  it('serves a term from its 6-hour cache instead of calling again', async () => {
+    const calls: string[] = [];
+    const kv = memoryKv();
+    let t = 0;
+    const opts = { kv, now: () => t };
+    await fetchFeed({ term: 'design systems', boardUrls: [] }, remotiveOnly(calls), opts);
+    t = 5 * 3600e3;
+    const again = await fetchFeed(
+      { term: 'design systems', boardUrls: [] },
+      remotiveOnly(calls),
+      opts,
+    );
+    expect(calls).toHaveLength(1);
+    expect(again.postings.map((p) => p.id)).toEqual(['remotive:1']);
+  });
+
+  it('stops calling Remotive after the daily budget and says so', async () => {
+    const calls: string[] = [];
+    const kv = memoryKv();
+    const opts = { kv, now: () => 0 };
+    for (let i = 0; i < REMOTIVE_DAILY_MAX; i++)
+      await fetchFeed({ term: `term ${i}`, boardUrls: [] }, remotiveOnly(calls), opts);
+    const over = await fetchFeed({ term: 'one more', boardUrls: [] }, remotiveOnly(calls), opts);
+    expect(calls).toHaveLength(REMOTIVE_DAILY_MAX);
+    expect(over.sources.find((s) => s.key === 'remotive')?.error).toMatch(/daily limit/i);
+  });
+
+  it('frees the budget again 24 hours after a call', async () => {
+    const calls: string[] = [];
+    const kv = memoryKv();
+    let t = 0;
+    const opts = { kv, now: () => t };
+    for (let i = 0; i < REMOTIVE_DAILY_MAX; i++)
+      await fetchFeed({ term: `term ${i}`, boardUrls: [] }, remotiveOnly(calls), opts);
+    t = 24 * 3600e3 + 1;
+    await fetchFeed({ term: 'next day', boardUrls: [] }, remotiveOnly(calls), opts);
+    expect(calls).toHaveLength(REMOTIVE_DAILY_MAX + 1);
   });
 });

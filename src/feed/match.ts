@@ -7,19 +7,27 @@ import type { WorkMode } from '../jobsData';
 import { dedupKey } from '../store';
 import type { Posting, RankedPosting, Signal, SignalId } from './types';
 
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** Phrase regex for a search term: words in order, whitespace/hyphen between them, whole words
- *  only, and the last word singular/plural-tolerant ("design systems" ↔ "design system"). */
+/** One word of a term, singular/plural-tolerant: library ↔ libraries, system ↔ systems,
+ *  process ↔ processes. Short or non-alphabetic words ("UI", "front-end") match exactly, and
+ *  words that only look plural ("status", "analysis") never lose their final s. */
+function inflect(word: string): string {
+  if (word.length < 3 || /[^a-z]/i.test(word)) return escapeRe(word);
+  if (/[^aeiou]y$/i.test(word)) return escapeRe(word.slice(0, -1)) + '(?:y|ies)';
+  if (/[^aeiou]ies$/i.test(word)) return escapeRe(word.slice(0, -3)) + '(?:y|ies)';
+  if (/(?:ss|x|z|ch|sh)es$/i.test(word)) return escapeRe(word.slice(0, -2)) + '(?:es)?';
+  if (/(?:ss|us|is|x|z|ch|sh)$/i.test(word)) return escapeRe(word) + '(?:es)?';
+  if (/s$/i.test(word)) return escapeRe(word.slice(0, -1)) + 's?';
+  return escapeRe(word) + 's?';
+}
+
+/** Phrase regex for a search term: its words in order, whitespace or a hyphen between them,
+ *  whole words only, each word singular/plural-tolerant. "system design" is NOT "design system". */
 export function termRegex(term: string): RegExp | null {
   const words = term.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return null;
-  const parts = words.map(escape);
-  const last = words[words.length - 1];
-  if (/[^s]s$/i.test(last) && last.length > 3)
-    parts[parts.length - 1] = escape(last.slice(0, -1)) + 's?';
-  else if (/[a-z]$/i.test(last) && last.length > 2) parts[parts.length - 1] += 's?';
-  return new RegExp(`\\b${parts.join('[\\s-]+')}\\b`, 'i');
+  return new RegExp(`\\b${words.map(inflect).join('[\\s-]+')}\\b`, 'i');
 }
 
 /** Where (if anywhere) a posting mentions the term. Title wins over body. */
@@ -33,27 +41,57 @@ export function matchTerm(p: Posting, term: string): 'title' | 'text' | null {
 
 // ---- signals: why an opening is worth a closer look (beyond matching the term) ----
 
-const SIGNALS: { id: SignalId; label: string; re: RegExp }[] = [
+const CONTRACT_RE = /\b(contract|1099|freelance(?:rs?)?|fractional|part[- ]time)\b/gi;
+/** A negation earlier in the same clause: "no contract", "W2 only, not part-time". */
+const NEGATED_RE = /\b(?:no|not|non|never|without|nor)\b|\bw-?2\s+only\b/i;
+/** "contract" naming a document or a job function, not an engagement. */
+const CONTRACT_NOUN_BEFORE_RE =
+  /\b(?:employment|vendor|government|federal|customer|client|sales|service|enterprise|signed)\s+$/i;
+const CONTRACT_NOUN_AFTER_RE =
+  /^\s*(?:manager|management|administrator|administration|negotiations?|terms|law|lawyer|specialist|analyst|review|renewals?|value|lifecycle)\b/i;
+
+/** Open to non-full-time engagement — the consulting / fractional opening. */
+function contractEvidence(text: string): string | null {
+  for (const m of text.matchAll(CONTRACT_RE)) {
+    const at = m.index ?? 0;
+    const before = text.slice(Math.max(0, at - 40), at);
+    const clause = before.split(/[.,;:!?\n]/).pop() ?? '';
+    if (NEGATED_RE.test(clause)) continue;
+    if (/^contract$/i.test(m[1])) {
+      if (CONTRACT_NOUN_BEFORE_RE.test(before)) continue;
+      if (CONTRACT_NOUN_AFTER_RE.test(text.slice(at + m[0].length, at + m[0].length + 30)))
+        continue;
+    }
+    return m[0];
+  }
+  return null;
+}
+
+/** Building it from zero — the team needs the thing made, not a maintainer of one. Role words, not
+ *  a company's age: "founding engineer" counts, "since our founding in 2015" does not. */
+const FOUNDING_RE = new RegExp(
+  [
+    String.raw`\bfounding\s+(?:[a-z-]+\s+){0,2}?(?:engineer|designer|developer|hire|member|team|role|lead)s?\b`,
+    String.raw`\bfirst(?:-ever)?\s+(?:dedicated\s+|full[- ]time\s+|in[- ]house\s+)?(?:[a-z-]+\s+){0,2}?(?:engineer|designer|developer|hire|owner|lead|person|role)\b`,
+    String.raw`\bbuild\s+(?:our|the|a)\s+(?:[a-z-]+\s+){0,2}?(?:design[- ]system|component[- ]library)\s+from\s+scratch\b`,
+  ].join('|'),
+  'i',
+);
+
+const SIGNALS: { id: SignalId; label: string; evidence: (text: string) => string | null }[] = [
+  { id: 'contract', label: 'Contract-friendly', evidence: contractEvidence },
   {
-    // Open to non-full-time engagement — the consulting/fractional opening. `\bcontract\b` does not
-    // match "contractor", which is usually a domain word ("contractor portal"), not an engagement.
-    id: 'contract',
-    label: 'Contract-friendly',
-    re: /\b(contract|1099|freelance(?:rs?)?|fractional|part[- ]time)\b/i,
-  },
-  {
-    // Building it from zero — the team needs the system, not a maintainer of one.
     id: 'founding',
     label: 'Founding / first hire',
-    re: /\bfounding\b|\bfirst\s+(?:dedicated\s+)?(?:design(?:\s+systems?)?|front[- ]?end|ui|design[- ]engineering)\s+(?:hire|engineer|designer|person|role)\b/i,
+    evidence: (t) => FOUNDING_RE.exec(t)?.[0] ?? null,
   },
 ];
 
 export function detectSignals(text: string): Signal[] {
   const out: Signal[] = [];
   for (const s of SIGNALS) {
-    const m = s.re.exec(text);
-    if (m) out.push({ id: s.id, label: s.label, evidence: m[0].replace(/\s+/g, ' ') });
+    const hit = s.evidence(text);
+    if (hit) out.push({ id: s.id, label: s.label, evidence: hit.replace(/\s+/g, ' ') });
   }
   return out;
 }
@@ -92,13 +130,18 @@ export interface RankOptions {
   now: number;
 }
 
-const SCORE = { title: 10, text: 4, contract: 6, founding: 3, fresh: 3, recent: 1 };
+// The two lead signals weigh the same: a first hire and a contract opening are both the pitch.
+const SCORE = { title: 10, text: 4, contract: 6, founding: 6, fresh: 3, recent: 1 };
 const DAY = 864e5;
 
 function passesFilters(p: Posting, where: string, mode: WorkMode): boolean {
   if (mode !== 'any' && p.mode && p.mode !== mode) return false;
-  const w = where.trim().toLowerCase();
-  if (w && p.location && p.mode !== 'remote' && !p.location.toLowerCase().includes(w)) return false;
+  // Remote mode disables the location input, so a location typed earlier must not still filter.
+  if (mode === 'remote') return true;
+  // "Austin, TX" vs a source's "Austin, Texas, United States": match on the city.
+  const city = where.split(',')[0].trim().toLowerCase();
+  if (city && p.location && p.mode !== 'remote' && !p.location.toLowerCase().includes(city))
+    return false;
   return true;
 }
 

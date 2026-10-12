@@ -37,3 +37,11 @@ _Avoid_: starred, favourite, flagged
 **Retired**:
 A Job set aside and hidden from the Active queue but kept in the list (stored as `archived`).
 _Avoid_: deleted, removed, closed
+
+**Posting**:
+An opening pulled live from a job source (Hacker News, Remotive, a company board) into Discover's Live postings. Never stored — saving one creates a Job.
+_Avoid_: listing, opening (in code), result
+
+**Watched company**:
+A company whose Greenhouse, Lever or Ashby job board is on a track (as a tile), so its openings are pulled into Live postings.
+_Avoid_: followed company, subscription

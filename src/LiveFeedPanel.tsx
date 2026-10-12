@@ -24,12 +24,13 @@ import { rankPostings } from './feed/match';
 import { postedAgo } from './feed/format';
 import { boardsFromUrls } from './feed/sources/ats';
 import { watchBoard } from './feed/watchlist';
+import { jobFieldsFor } from './feed/toJob';
+import { modeLabel } from './screening';
 import { SOURCE_LABEL, type RankedPosting, type SignalId } from './feed/types';
 
 type Focus = 'all' | SignalId;
 /** Rows rendered per page — the rest sit behind "Show more". */
 const PAGE = 40;
-const MODE_LABEL = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'On-site' } as const;
 
 interface Loaded {
   term: string;
@@ -140,14 +141,9 @@ export default function LiveFeedPanel({
   };
 
   const save = (p: RankedPosting) => {
-    const url = addJobDetailed(p.url, {
-      label: p.title,
-      company: p.company,
-      location: p.location,
-      mode: p.mode,
-      note: `Found in Live postings · ${SOURCE_LABEL[p.source]} · “${term}”`,
-    });
-    if (url) toast({ title: 'Added to Queue', description: p.title, tone: 'success' });
+    const fields = jobFieldsFor(p, term);
+    if (addJobDetailed(p.url, fields))
+      toast({ title: 'Added to Queue', description: fields.label, tone: 'success' });
   };
 
   const errors = current?.result?.sources.filter((s) => s.error) ?? [];
@@ -318,7 +314,7 @@ function PostingRow({
   const meta = [
     p.company,
     p.location,
-    p.mode && MODE_LABEL[p.mode],
+    p.mode && modeLabel(p.mode),
     postedAgo(p.postedAt, now),
     SOURCE_LABEL[p.source],
   ].filter(Boolean);

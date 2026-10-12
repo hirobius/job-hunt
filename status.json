@@ -1,10 +1,10 @@
 {
   "updatedAt": "2026-10-12T00:00:00Z",
   "phase": "live",
-  "headline": "Live on production. 2026-10-12: Live postings feed built on branch claude/run-the-fetch-45j8i3 (not yet merged) \u2014 Discover pulls real openings from HN Who-is-hiring, Remotive and watched Greenhouse/Lever/Ashby boards, ranks them by fit (contract-friendly / first-hire signals) and saves to the Queue; keyless + browser-side. 334 tests green.",
+  "headline": "Live on production. 2026-10-12: Live postings feed built on branch claude/run-the-fetch-45j8i3 (not yet merged) — Discover pulls real openings from HN Who-is-hiring, Remotive and watched Greenhouse/Lever/Ashby boards, ranks them by fit (contract-friendly / first-hire signals) and saves to the Queue; keyless + browser-side; Remotive held to its 4-requests-a-day terms. 361 tests green.",
   "next": [
     "Review + merge the Live postings branch (claude/run-the-fetch-45j8i3); verify on its Vercel preview first.",
-    "DEFERRED (own PR, non-user-facing): fully retire pillarStore + pillars.ts \u2014 still load-bearing for cloud sync (CloudSync/syncBlob/curationStore/copyDeckStore import them; user-pillars ride in the sync blob). Untangle the sync layer first. Last piece of #34.",
+    "DEFERRED (own PR, non-user-facing): fully retire pillarStore + pillars.ts — still load-bearing for cloud sync (CloudSync/syncBlob/curationStore/copyDeckStore import them; user-pillars ride in the sync blob). Untangle the sync layer first. Last piece of #34.",
     "Human / dashboard: #44 Supabase auth hardening, #16 Vercel analytics, #17 delete stale remote branches, #55 name/trademark clearance (ApplyBoard conflict).",
     "Legal (before public launch): #43 Privacy Policy + Terms + subprocessor disclosure.",
     "Hygiene: triage dependabot PRs (#84 minor/patch group; #68-#71 stale major bumps incl. React 19) with local + Vercel verify (no CI); refresh stale README (#20, still references removed AI)."

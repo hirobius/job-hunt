@@ -145,7 +145,7 @@ far this cycle:
 - **Search is location-agnostic (#58).** `BOARDS` in `jobsData.ts` no longer hard-code Spokane —
   `build(term, { where, mode })` takes a user-set location + work-mode (Any/Remote/Hybrid/On-site).
   There is **no remote default** (remote roles draw ~5× the applicants); a shared `LocationControl`
-  in `DiscoverView` drives both the Title and ATS panels.
+  (`src/LocationControl.tsx`) drives the Title, ATS and Live postings panels.
 - **Screening pipeline on jobs (#60).** Additive `Job` fields — `verdict` (match/stretch/reach),
   `mode`, `travelPct`, `applicants`, `blockers[]`, `angle`, `screenedAt` — normalized on read in
   `src/screening.ts`. Edited via `ScreeningEditor`; shown as card badges; new "Best fit" sort; a
@@ -185,16 +185,18 @@ track-agnostic like everything else in Discover.
   `match.ts` (phrase matching — "system design" is NOT "design system" — filters, signals
   `contract` + `founding`, scoring, dedupe), `fetchFeed.ts` (parallel sources, per-source failure
   isolation with actionable messages, 1h **in-memory** cache — board payloads are 2–3 MB, far too big
-  for sessionStorage), `watchlist.ts`, `html.ts`, `format.ts`.
+  for browser storage), `toJob.ts` (Posting → saved Job fields), `watchlist.ts`, `html.ts`, `format.ts`.
+  Domain words: a **Posting** is the live, unsaved opening; saving one makes a **Job** (CONTEXT.md).
 - **Sources** (`src/feed/sources/`): HN "Who is hiring?" via Algolia (latest 2 monthly threads),
-  Remotive (its terms: link to the Remotive URL + credit it — the row's source label does), and
+  Remotive (its terms: link to the Remotive URL + credit it — the row's source label does — and
+  **at most ~4 requests a day**: enforced per browser in localStorage, `rjb_feed_remotive`, 6h per-term
+  cache, 4 calls per rolling 24h; over budget it says so), and
   **Greenhouse / Lever / Ashby company boards**. All take an injected `FetchJson` (tests never hit
   the network).
 - **Watched companies = curated tiles.** Any tile on the track whose URL is a Greenhouse/Lever/Ashby
   board is pulled live (cap 25 per search). "Watch a company" files a tile into a `Watched companies`
   group (synced like all curation; removable in Manage track); that group is never the featured
   "Apply Now" tab. This keeps the board rule: durable portals in, fresh openings out.
-- `LocationControl` moved to `src/LocationControl.tsx` (shared by Title / ATS / Live).
 - Key-backed aggregators (Adzuna, TheirStack) would need a serverless function for the secret —
   deliberately not built yet.
 - ⚠️ **CSP (#41):** when a Content-Security-Policy lands, `connect-src` must allow `hn.algolia.com`,

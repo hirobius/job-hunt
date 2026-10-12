@@ -27,6 +27,10 @@ describe('matchTerm', () => {
     ['UI engineer', 'Senior UI Engineer', '', 'title'],
     ['UI engineer', 'GUI Engineer', '', null],
     ['component library', 'Engineer', 'own the component-library roadmap', 'text'],
+    ['component library', 'Engineer', 'Own our component libraries', 'text'],
+    ['component libraries', 'Engineer', 'Own the component library', 'text'],
+    ['first design systems engineer', 'Engineer', 'our first design system engineer', 'text'],
+    ['status page', 'Engineer', 'the statu page', null],
     ['', 'Anything', 'anything', null],
   ] as const)('%s in (%s | %s) → %s', (term, title, text, expected) => {
     expect(matchTerm(post({ title, text }), term)).toBe(expected);
@@ -44,6 +48,18 @@ describe('detectSignals', () => {
     ['our first design systems hire', ['founding']],
     ['first frontend engineer on the team', ['founding']],
     ['Founding engineer, contract-to-hire', ['contract', 'founding']],
+    ['first-ever design systems engineer', ['founding']],
+    ['our first design-systems engineer', ['founding']],
+    ['be our first design system owner', ['founding']],
+    ['build our component library from scratch', ['founding']],
+    ['join as a founding member of the team', ['founding']],
+    ['W2 only, no contract or C2C', []],
+    ['No recruiters, contract or full-time welcome', ['contract']],
+    ['This is not a part-time role', []],
+    ['Review the employment contract before day one', []],
+    ['vendor contract terms', []],
+    ['Contract Manager, Legal', []],
+    ['since our founding in 2015', []],
     ['Full-time, benefits, 401k', []],
     ['first-class developer experience', []],
     ['the contractor portal team (full-time)', []],
@@ -116,6 +132,22 @@ describe('rankPostings', () => {
     );
     expect(out[0].id).toBe('contract');
     expect(out[0].signals.map((s) => s.id)).toEqual(['contract']);
+  });
+
+  it('weighs first-hire and contract-friendly the same — both are the lead signals', () => {
+    const out = rankPostings(
+      [
+        post({ id: 'c', url: 'https://x/c', company: 'C', text: 'design system, contract ok' }),
+        post({
+          id: 'f',
+          url: 'https://x/f',
+          company: 'F',
+          text: 'design system, our first frontend engineer',
+        }),
+      ],
+      opts,
+    );
+    expect(out[0].score).toBe(out[1].score);
   });
 
   it('prefers recent postings when otherwise equal', () => {
@@ -220,6 +252,29 @@ describe('rankPostings', () => {
       { ...opts, mode: 'remote' },
     );
     expect(out.map((p) => p.id).sort()).toEqual(['r', 'u']);
+  });
+
+  it('remote mode ignores a location typed before switching (the input is disabled then)', () => {
+    const out = rankPostings(
+      [post({ id: 'u', url: 'https://x/1', text: 'design system', location: 'New York, NY' })],
+      { ...opts, mode: 'remote', where: 'Seattle' },
+    );
+    expect(out.map((p) => p.id)).toEqual(['u']);
+  });
+
+  it('matches a "City, ST" location on the city, so "Austin, TX" finds "Austin, Texas"', () => {
+    const out = rankPostings(
+      [
+        post({
+          id: 'a',
+          url: 'https://x/1',
+          text: 'design system',
+          location: 'Austin, Texas, United States',
+        }),
+      ],
+      { ...opts, where: 'Austin, TX' },
+    );
+    expect(out.map((p) => p.id)).toEqual(['a']);
   });
 
   it('a location filter keeps matching, unknown, and remote postings', () => {

@@ -30,6 +30,9 @@ const ROLE_RE =
   /\b(engineer|engineering|designer|developer|technologist|architect|lead|manager|head of|director|founding|staff|principal|frontend|front-end|design|ux|ui|cto)\b/i;
 const PLACE_RE =
   /\b(remote|on-?site|hybrid|usa?|uk|eu|europe|canada|worldwide|global|anywhere|nyc|new york|sf|san francisco|bay area|london|berlin|toronto|seattle|austin|boston)\b|,\s*[A-Z]{2}\b/i;
+/** Title used when a pipe-format post names no role (one company, several roles in the body). */
+export const HN_NO_ROLE = 'Roles listed in post';
+
 const NOISE_RE = /^(full[- ]?time|part[- ]?time|contract|visa|\$|€|£|https?:|www\.|\S+@\S+)/i;
 const KV_RE = /^\s*(company|role|roles|position|positions|title|location|locations)\s*:\s*(\S.*)$/i;
 const PROSE_RE = /^([A-Z0-9][\w.&' -]{1,58}?)\s+(?:is|are)\s+hiring\b/;
@@ -79,7 +82,7 @@ export function parseHnComment(hit: unknown): Posting | null {
 
   // 3. Prose opener ("Acme is hiring engineers to …") — only a named subject counts as a company.
   if (!company && segs.length < 2) company = PROSE_RE.exec(firstLine)?.[1]?.trim() ?? '';
-  if (!title) title = segs.length >= 2 ? 'Roles listed in post' : firstLine;
+  if (!title) title = segs.length >= 2 ? HN_NO_ROLE : firstLine;
   const location = where.join(' · ');
 
   return {

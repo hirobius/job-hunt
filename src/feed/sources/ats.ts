@@ -109,7 +109,8 @@ export function parseGreenhouseJob(j: unknown, slug: string): Posting | null {
   };
 }
 
-const LEVER_MODE: Record<string, JobMode> = {
+/** Lever's and Ashby's `workplaceType`, lower-cased (Ashby says "OnSite"). */
+const WORKPLACE_MODE: Record<string, JobMode> = {
   remote: 'remote',
   hybrid: 'hybrid',
   onsite: 'onsite',
@@ -134,7 +135,7 @@ export function parseLeverJob(j: unknown, slug: string): Posting | null {
     company: prettySlug(slug),
     url,
     location,
-    mode: LEVER_MODE[str(o.workplaceType).toLowerCase()] ?? inferMode(location),
+    mode: WORKPLACE_MODE[str(o.workplaceType).toLowerCase()] ?? inferMode(location),
     postedAt: created,
     text: joinText(
       commitment && `Commitment: ${commitment}`,
@@ -145,12 +146,6 @@ export function parseLeverJob(j: unknown, slug: string): Posting | null {
   };
 }
 
-const ASHBY_MODE: Record<string, JobMode> = {
-  remote: 'remote',
-  hybrid: 'hybrid',
-  onsite: 'onsite',
-};
-
 export function parseAshbyJob(j: unknown, slug: string): Posting | null {
   const o = obj(j);
   const id = str(o.id);
@@ -159,7 +154,7 @@ export function parseAshbyJob(j: unknown, slug: string): Posting | null {
   const location = str(o.location);
   const employment = str(o.employmentType);
   const mode =
-    ASHBY_MODE[str(o.workplaceType).toLowerCase()] ??
+    WORKPLACE_MODE[str(o.workplaceType).toLowerCase()] ??
     (o.isRemote === true ? 'remote' : inferMode(location));
   return {
     id: `ashby:${slug}:${id}`,
