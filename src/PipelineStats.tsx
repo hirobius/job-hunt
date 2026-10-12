@@ -44,10 +44,18 @@ export function PipelineStats({ jobs }: { jobs: Job[] }) {
         />
       </Cluster>
       <Stack gap="tight">
-        <Text variant="caption" as="h3" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+        <Text
+          variant="caption"
+          as="h3"
+          style={{ color: 'var(--semantic-color-content-secondary)' }}
+        >
           Applied per week
         </Text>
-        <div role="img" aria-label={summary} style={{ display: 'flex', gap: 'var(--primitive-space-2)' }}>
+        <div
+          role="img"
+          aria-label={summary}
+          style={{ display: 'flex', gap: 'var(--primitive-space-2)' }}
+        >
           {weeks.map((w, i) => (
             <div
               key={w.weekStart}

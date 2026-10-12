@@ -45,7 +45,9 @@ export default function UseTemplate({ job }: { job: Job }) {
       <Button size="sm" variant="tertiary" onClick={() => setOpen(true)}>
         Use template
       </Button>
-      <Dialog.Content style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflowY: 'auto' }}>
+      <Dialog.Content
+        style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflowY: 'auto' }}
+      >
         <Dialog.Header>
           <Dialog.Title>Use a template</Dialog.Title>
           <Dialog.Description>
@@ -53,12 +55,16 @@ export default function UseTemplate({ job }: { job: Job }) {
           </Dialog.Description>
         </Dialog.Header>
         {ordered.length === 0 ? (
-          <p style={{ color: 'var(--semantic-color-text-secondary)' }}>
+          <p style={{ color: 'var(--semantic-color-content-secondary)' }}>
             Your Copy Deck is empty. Add a snippet there first.
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div role="group" aria-label="Templates" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <div
+              role="group"
+              aria-label="Templates"
+              style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}
+            >
               {ordered.map((s) => (
                 <Button
                   key={s.id}
@@ -74,10 +80,17 @@ export default function UseTemplate({ job }: { job: Job }) {
                 </Button>
               ))}
             </div>
-            <Textarea readOnly rows={12} aria-label="Preview" value={filled} style={{ width: '100%' }} />
+            <Textarea
+              readOnly
+              rows={12}
+              aria-label="Preview"
+              value={filled}
+              style={{ width: '100%' }}
+            />
             {missing.length > 0 && (
-              <p style={{ margin: 0, color: 'var(--semantic-color-text-secondary)' }}>
-                Still unfilled: {missing.map((t) => `[${t}]`).join(', ')}. Add them on the job, or edit after pasting.
+              <p style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}>
+                Still unfilled: {missing.map((t) => `[${t}]`).join(', ')}. Add them on the job, or
+                edit after pasting.
               </p>
             )}
           </div>
