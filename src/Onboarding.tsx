@@ -68,35 +68,43 @@ export function Onboarding() {
         </Box>
         <div role="group" aria-label="Starter tracks">
           <HdsStack gap="tight">
-            {STARTER_PACKS.map((p) => (
-              // HDS SelectableCard = a real button with checkbox semantics (aria-checked), named
-              // by its pack and described by its blurb — keyboard + screen-reader operable (#104).
-              <SelectableCard
-                key={p.id}
-                selected={picked.includes(p.id)}
-                onSelectedChange={() => toggle(p.id)}
-                aria-labelledby={`pack-${p.id}`}
-                aria-describedby={`pack-${p.id}-blurb`}
-                style={{ textAlign: 'left' }}
-              >
-                <Text
-                  variant="ui"
-                  as="span"
-                  id={`pack-${p.id}`}
-                  style={{ display: 'block', fontWeight: 600 }}
+            {STARTER_PACKS.map((p) => {
+              const on = picked.includes(p.id);
+              return (
+                // HDS SelectableCard = a real button with checkbox semantics (aria-checked), named
+                // by its pack and described by its blurb — keyboard + screen-reader operable (#104).
+                <SelectableCard
+                  key={p.id}
+                  selected={on}
+                  onSelectedChange={() => toggle(p.id)}
+                  aria-labelledby={`pack-${p.id}`}
+                  aria-describedby={`pack-${p.id}-blurb`}
+                  // The jade brand maps the selected fill to a light accent tint in BOTH themes, so
+                  // pin dark text on it (HDS's text-foreground stays light in dark mode).
+                  style={{
+                    textAlign: 'left',
+                    color: on ? 'var(--primitive-color-neutral-900)' : undefined,
+                  }}
                 >
-                  {p.label}
-                </Text>
-                <Text
-                  variant="caption"
-                  as="span"
-                  id={`pack-${p.id}-blurb`}
-                  style={{ display: 'block', color: 'var(--semantic-color-content-secondary)' }}
-                >
-                  {p.blurb}
-                </Text>
-              </SelectableCard>
-            ))}
+                  <Text
+                    variant="ui"
+                    as="span"
+                    id={`pack-${p.id}`}
+                    style={{ display: 'block', fontWeight: 600, color: 'inherit' }}
+                  >
+                    {p.label}
+                  </Text>
+                  <Text
+                    variant="caption"
+                    as="span"
+                    id={`pack-${p.id}-blurb`}
+                    style={{ display: 'block', color: 'inherit', opacity: 0.8 }}
+                  >
+                    {p.blurb}
+                  </Text>
+                </SelectableCard>
+              );
+            })}
           </HdsStack>
         </div>
         {needsTitle && (
