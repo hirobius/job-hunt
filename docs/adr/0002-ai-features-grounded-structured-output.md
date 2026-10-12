@@ -1,6 +1,9 @@
 # ADR 0002 — AI features: grounded, structured output on Node serverless functions
 
-- **Status:** Accepted
+- **Status:** Superseded — historical. Both AI features were removed: the résumé tailor first,
+  then "Add with AI" (#54). There is no AI in the app, no `api/` serverless code and no Anthropic
+  key. The JD screener that replaced the fit analysis is rule-based and runs in the browser
+  (#61). The text below is kept as the record of the original decision.
 - **Date:** 2026-06-23
 - **Context owner:** Apply Board
 

@@ -1,83 +1,97 @@
 # Apply Board
 
-[![CI](https://github.com/hirobius/job-hunt/actions/workflows/ci.yml/badge.svg)](https://github.com/hirobius/job-hunt/actions/workflows/ci.yml)
+A job-hunt tracker with a curated discovery board. **Live → https://job-hunt-jade.vercel.app**
 
-A job-application tracker + discovery board. **Live → https://job-hunt-jade.vercel.app**
+Paste a job link and it lands in your **Tracker**. Screen it (fit, work mode, travel, blockers,
+your angle), mark it applied, and it leaves the active queue with a follow-up countdown.
+**Discover** holds your own tracks of saved searches, company pages and job boards, and
+**Templates** keeps reusable outreach copy one click from the clipboard. Everything works
+signed-out in the browser; an optional email sign-in syncs it across devices.
 
-Paste a job link and it lands in your queue; mark it applied and it drops out of the active
-list with a follow-up countdown. Sort the queue (recently added, follow-up due, applied date,
-status, salary, A–Z) and filter by status. **Add with AI** turns a link (or pasted text) into a
-structured, editable entry with match/gap chips.
+## What's in it
 
-An **Apprenticeships** board (Spokane-eligible + remote, current by design — with pin / set-aside
-triage and paste-your-own links), a pillar-aware **Discover** board, a **Copy Deck** for outreach
-snippets, and cross-device cloud sync round it out. Switch **career pillars** to retarget Discover
-and the Copy Deck. Every view is URL-addressable — shareable `#/queue` · `#/discover/titles`
-deep links that survive refresh and back/forward.
+- **Tracker** (`#/queue`, the default tab) — statuses Saved → Applied → Interviewing → Offer →
+  Rejected, filters (Active, All, per-status, Retired), search, and seven sorts (recently added,
+  follow-up due first, best fit, applied date, status, salary, A–Z). The follow-up loop:
+  "Follow up in Nd" → "Follow up now" → "Log follow-up" resets the clock. Per-job details,
+  to-dos and notes; CSV export; a collapsible **funnel** summary of the current view.
+- **Screening** — per-job fit verdict (match / stretch / reach), work mode, travel %, applicant
+  count, dealbreaker tags and a positioning angle, shown as card badges. **Screen a JD** pastes a
+  job description and suggests mode / blockers / verdict from deterministic keyword rules — no
+  AI, nothing leaves the browser.
+- **Discover** (`#/discover`) — per-account **tracks** (categories) of sections and links, picked
+  from starter packs on first run and edited in place (create / rename / delete tracks, sections
+  and links). Tiles can be pinned or set aside; saving one sends it to the Tracker with its
+  details. **Title search** and **ATS search** build live job-board queries from your terms plus a
+  location and work mode (Any / Remote / Hybrid / On-site). Board rule: no one-off postings — only
+  live searches and durable company or board pages, so tiles don't go stale.
+- **Templates** (`#/copy-deck`) — pinned-first outreach snippets with copy buttons.
+- **Quick-add links** — `?add=<url>`, `?applied=<url>`, `?status=<Status>&u=<url>` (optional
+  `&t=` / `&title=` label) power a bookmarklet or phone shortcut.
+- **Cloud sync** — Supabase magic-link sign-in; jobs sync as one row per user and tracks live in
+  normalized tables, all behind row-level security. One-time setup of the `tracker` table:
+  [`SUPABASE_SETUP.md`](SUPABASE_SETUP.md).
 
-## Notable (design-engineering)
+## How it's built
 
-- **Token-driven theming.** The MUI palette is _generated_ from the
-  [`@hirobius/design-system`](https://github.com/hirobius/hirobius-design-system) DTCG tokens
-  via **Style Dictionary** — one source of truth, a single jade brand _seed_, **light + dark**.
-  No hardcoded brand colors. (`docs/adr/0001`)
-- **Applied AI, done carefully.** A Claude-backed feature runs on a serverless function (the
-  SDK never enters the client bundle): _Add with AI_ extracts a job from a link via a **forced
-  tool call** (structured JSON, not prose). SSRF-guarded link fetch; degrades gracefully with
-  no API key. (`docs/adr/0002`)
-- **URL state without a router.** Top-level tab, Discover's sub-tab, and the active pillar all
-  live in the hash via a tiny `useSyncExternalStore` route store — shareable, refresh-safe,
-  back/forward-aware — no `react-router`.
-- **Accessibility as a gate.** Component tests run **axe-core** WCAG A/AA assertions; tabs expose
-  proper `tabpanel`/`aria-controls` wiring, the filter group is labeled, there's one shared
-  focus-visible ring, and the theme toggle is keyboard- and screen-reader-friendly.
-- **Tests + CI.** Vitest + Testing Library unit/component tests and a **Playwright** happy-path
-  E2E, run on every push via GitHub Actions (lint · typecheck · test · build).
-- **Lean bundle.** Vendor-split + lazy-loaded views (AI dialogs, Discover, Copy Deck load on
-  demand) with layout-matched skeletons; no chunk over ~265 kB.
-
-## Stack
-
-Vite · React 18 · TypeScript · `@hirobius/design-system` (HDS; MUI fully removed — #11) ·
-Supabase (cloud sync) · deployed on Vercel. _(No AI: the résumé-tailor and "Add with AI" were
-removed — #54; the JD screener is rules-based and client-side.)_
-
-> ℹ️ The rest of this README predates the HDS cutover and the AI removal and is being refreshed
-> in #20 — treat the stack line above as current.
+- **Vite · React 18 · TypeScript**, deployed on **Vercel** (`main` is production; every branch
+  gets a preview deploy).
+- **UI is `@hirobius/design-system` (HDS)**, installed from public npm. Theming is HDS token CSS
+  variables: `src/theme/brand-jade.css` remaps the accent to jade, and light/dark is a
+  `data-theme` flip on `<html>`. A small local layout layer (`src/ui/`) fills the gap HDS 0.13
+  leaves; retiring it onto HDS's newer layout primitives is epic #89.
+- **Accessibility and contrast are tested, not asserted.** Component tests run axe-core WCAG A/AA
+  checks, and `src/theme.contrast.test.ts` computes AA contrast for both themes from the shipped
+  HDS token file plus the jade override.
+- **State without a framework.** A shared external store (`useSyncExternalStore`) persisted to
+  `localStorage`; URL state (tab, Discover sub-tab, track) lives in the hash via a tiny route
+  store, with no router dependency.
+- **Bundle.** Discover, Templates and the dialogs load on demand. Production build as of 2026-10: app
+  75 kB (27 kB gzip), react 142 kB (46 kB), supabase 205 kB (53 kB), vendor 901 kB (221 kB gzip).
+  Most of the vendor chunk is HDS's single entry point; per-component imports are an open
+  upstream ask.
+- **Security headers** (HSTS, nosniff, frame-deny, referrer and permissions policies) ship from
+  `vercel.json`. A report-only Content-Security-Policy lands with `claude/jh-platform` (#97).
 
 ## Develop
 
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test             # unit/component (Vitest + axe-core)
-npm run lint && npm run typecheck && npm run build
-npx playwright install chromium   # once
-npx playwright test               # e2e happy-path
+npm test             # Vitest + Testing Library + axe-core
+npm run typecheck
+npm run lint
+npm run build
+npx playwright test  # e2e happy path (first time: npx playwright install chromium)
 ```
 
-Design tokens are committed (generated). To refresh them after an HDS update:
+**Verify before you push.** Nothing runs on GitHub Actions, by choice. Verification is local plus
+the Vercel preview. With `claude/jh-platform` (#95), one command runs the whole gate, and Vercel's
+build runs the same command, so a red check blocks the deploy:
 
 ```bash
-npm i --no-save @hirobius/design-system@latest   # needs NODE_AUTH_TOKEN (read:packages)
-npm run tokens:build
+npm run verify       # typecheck → lint → tests → build, stops at the first failure
 ```
 
-The AI feature calls Claude from a Vercel serverless function (`api/extract.ts`). It needs one
-secret — **`ANTHROPIC_API_KEY`** (Vercel → Project → Settings → Environment Variables, Production
-+ Preview; locally via `vercel dev`). Without it the app stays fully usable and the AI entry point
-shows a "not configured" notice. The function runs on the **Node.js** runtime, not Edge — the
-Anthropic SDK pulls in `node:` built-ins the Edge bundler rejects. Type-check it with
-`npm run typecheck:api`.
+Visual changes also get a headless-Chromium look at desktop and 390px wide; the gate can't see
+layout.
 
-## A hard tradeoff
+No secrets are needed to develop. The Supabase URL and publishable key in `src/config.ts` are
+public by design, with access controlled by row-level security.
 
-HDS is a Tailwind/Radix system; Apply Board is MUI. Rather than re-platform, we adopted HDS at
-the **token layer** and kept MUI — getting HDS's design language and brand theming without a
-rewrite, at the cost of not (yet) using HDS's actual components. Full rationale + the
-alternatives we weighed: [`docs/adr/0001`](docs/adr/0001-consume-hds-via-tokens-on-mui.md).
+## Decisions
 
-We later assessed going further — Astro and/or real HDS components — and decided to **stay on
-Vite, adopt HDS incrementally, and reserve Astro for static content only**; see
-[`docs/adr/0003`](docs/adr/0003-stay-on-vite-adopt-hds-incrementally.md) and the MUI→HDS map in
-[`docs/hds-adoption.md`](docs/hds-adoption.md).
+The architecture decision records explain how the app got here:
+
+- [`docs/adr/0001`](docs/adr/0001-consume-hds-via-tokens-on-mui.md) — first HDS adoption, at the
+  token layer (superseded by 0005).
+- [`docs/adr/0002`](docs/adr/0002-ai-features-grounded-structured-output.md) — the AI features
+  (historical: removed in #54).
+- [`docs/adr/0003`](docs/adr/0003-stay-on-vite-adopt-hds-incrementally.md) — stay on Vite, adopt
+  HDS incrementally.
+- [`docs/adr/0005`](docs/adr/0005-consume-hds-directly-from-public-npm.md) — consume HDS directly
+  from public npm (see its addenda for the current upgrade path).
+- [`docs/adr/0006`](docs/adr/0006-pivot-to-agnostic-pillar-driven-product.md) — pivot from a
+  personal board to an agnostic, track-driven product.
+
+Domain vocabulary is in [`CONTEXT.md`](CONTEXT.md). The backlog lives in GitHub Issues.
