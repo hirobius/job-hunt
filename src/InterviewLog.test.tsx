@@ -38,11 +38,11 @@ describe('InterviewLog', () => {
   it('adds an interview, persists it, and removes it', async () => {
     const user = userEvent.setup();
     const { rerender } = render(<Harness />);
-    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add event' })).toBeDisabled();
 
     await user.type(screen.getByLabelText('Event date'), '2026-10-20');
     await user.type(screen.getByLabelText('Event note'), 'Panel round');
-    await user.click(screen.getByRole('button', { name: 'Add' }));
+    await user.click(screen.getByRole('button', { name: 'Add event' }));
 
     expect(current().events).toEqual([
       expect.objectContaining({ kind: 'interview', date: '2026-10-20', note: 'Panel round' }),

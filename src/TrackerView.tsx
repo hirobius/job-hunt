@@ -43,6 +43,8 @@ import { FunnelSummary } from './FunnelSummary';
 import { PipelineStats } from './PipelineStats';
 import DataTools from './DataTools';
 import ThisWeek from './ThisWeek';
+import UseTemplate from './UseTemplate';
+import InterviewLog from './InterviewLog';
 import EmptyState from './EmptyState';
 import { TodosNotes } from './TodosNotes';
 import type { Job, Status } from './types';
@@ -501,6 +503,7 @@ export default function TrackerView() {
                     >
                       {isOpen ? 'Hide' : 'Details'}
                     </UiButton>
+                    <UseTemplate job={j} />
                     {s.followUp.due && (
                       <>
                         <Badge tone="warning">Follow up now</Badge>
@@ -550,6 +553,7 @@ export default function TrackerView() {
                         {fld(j, 'salary', 'Salary')}
                       </Stack>
                       <ScreeningEditor job={j} />
+                      <InterviewLog job={j} />
                       {fld(j, 'note', 'Notes', true)}
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
                         {fld(j, 'contact', 'Contact / referral')}

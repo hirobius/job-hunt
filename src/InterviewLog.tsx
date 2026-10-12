@@ -58,8 +58,28 @@ export default function InterviewLog({ job }: { job: Job }) {
     download(`${slug(job.label)}.ics`, ics, 'text/calendar');
   };
 
+  const caption = (text: string) => (
+    <Text variant="caption" as="span" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+      {text}
+    </Text>
+  );
+
   return (
     <Stack gap="normal">
+      <Cluster gap="tight" align="center" justify="space-between">
+        <Text variant="ui" as="h4" style={{ margin: 0, fontWeight: 600 }}>
+          Interviews & calls
+        </Text>
+        <Button
+          size="sm"
+          variant="tertiary"
+          iconLeft={<CalendarPlus size={16} />}
+          disabled={upcoming.length === 0}
+          onClick={exportIcs}
+        >
+          Add to calendar
+        </Button>
+      </Cluster>
       {events.length > 0 && (
         <Stack gap="tight" as="ul" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {events.map((e) => (
@@ -90,28 +110,44 @@ export default function InterviewLog({ job }: { job: Job }) {
         </Stack>
       )}
 
-      <Cluster gap="tight" align="end">
-        <DateInput
-          aria-label="Event date"
-          displayFormat="yyyy-MM-dd"
-          value={date}
-          onChange={setDate}
-        />
-        <TimeInput
-          aria-label="Event time (optional)"
-          size="md"
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
-        />
-        <SegmentedControl
-          aria-label="Event kind"
-          size="sm"
-          options={KINDS}
-          value={kind}
-          onChange={(v) => setKind(v as JobEventKind)}
-        />
-      </Cluster>
-      <Cluster gap="tight" align="end">
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: 'var(--primitive-space-3)',
+          alignItems: 'end',
+        }}
+      >
+        <Stack gap="tight">
+          {caption('Date')}
+          <DateInput
+            aria-label="Event date"
+            displayFormat="yyyy-MM-dd"
+            value={date}
+            onChange={setDate}
+          />
+        </Stack>
+        <Stack gap="tight">
+          {caption('Time (optional)')}
+          <TimeInput
+            aria-label="Event time (optional)"
+            size="md"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+          />
+        </Stack>
+        <Stack gap="tight">
+          {caption('Kind')}
+          <SegmentedControl
+            aria-label="Event kind"
+            size="sm"
+            options={KINDS}
+            value={kind}
+            onChange={(v) => setKind(v as JobEventKind)}
+          />
+        </Stack>
+      </div>
+      <Cluster gap="tight" align="center">
         <div style={{ flex: 1, minWidth: 160 }}>
           <Input
             aria-label="Event note"
@@ -121,16 +157,7 @@ export default function InterviewLog({ job }: { job: Job }) {
           />
         </div>
         <Button size="sm" variant="secondary" disabled={!date} onClick={add}>
-          Add
-        </Button>
-        <Button
-          size="sm"
-          variant="tertiary"
-          iconLeft={<CalendarPlus size={16} />}
-          disabled={upcoming.length === 0}
-          onClick={exportIcs}
-        >
-          Add to calendar
+          Add event
         </Button>
       </Cluster>
     </Stack>
