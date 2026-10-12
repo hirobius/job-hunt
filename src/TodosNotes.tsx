@@ -5,20 +5,14 @@ import {
   Input as HdsInput,
   Textarea,
   Icon,
+  Box,
+  Text,
+  Disclosure,
 } from '@hirobius/design-system';
-import { ListChecks, StickyNote, X, Plus } from 'lucide-react';
-import { Box, Stack, Typography } from './ui/box';
-import { Reveal } from './ui/Reveal';
+import { X, Plus } from 'lucide-react';
 import { updateJob } from './store';
 import { addTodo, toggleTodo, deleteTodo, todoProgress, seedStarterTodos } from './todos';
 import type { Job } from './types';
-
-const eyebrowSx = {
-  display: 'block',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  fontSize: 11,
-} as const;
 
 /** Notes field — kept in local state and committed on blur so every keystroke
  *  doesn't thrash the store/Supabase sync. Keyed by job url upstream so it
@@ -39,11 +33,10 @@ function NotesField({ job }: { job: Job }) {
   );
 }
 
-/** Per-role to-dos + notes: a compact summary chip that toggles a Reveal panel
+/** Per-role to-dos + notes: a compact summary label that opens a Disclosure
  *  with a checklist and a notes field. All mutations flow through updateJob so
  *  they persist via the existing localStorage + Supabase sync path. */
 export function TodosNotes({ job }: { job: Job }) {
-  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const todos = job.todos ?? [];
   const notes = job.notes ?? '';
@@ -59,41 +52,29 @@ export function TodosNotes({ job }: { job: Job }) {
 
   return (
     <Box>
-      <UiButton
-        size="sm"
-        variant="tertiary"
-        iconLeft={<ListChecks size={16} />}
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        style={{ whiteSpace: 'nowrap' }}
+      <Disclosure
+        label={`${total > 0 ? `To-dos ${done}/${total}` : 'To-dos & notes'}${notes.trim() ? ' · has notes' : ''}`}
       >
-        {total > 0 ? `✓ ${done}/${total}` : 'To-dos & notes'}
-        {notes.trim() && (
-          <StickyNote
-            size={13}
-            aria-label="Has notes"
-            style={{ marginLeft: 6, color: 'var(--semantic-color-content-secondary)' }}
-          />
-        )}
-      </UiButton>
-
-      <Reveal open={open}>
-        <Stack spacing={1.5} sx={{ mt: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 'xs' }}>
           {/* TO-DOS */}
           <Box>
-            <Typography variant="caption" color="text.secondary" sx={eyebrowSx}>
+            <Text
+              variant="caption"
+              as="span"
+              style={{ color: 'var(--semantic-color-content-secondary)' }}
+            >
               To-dos
-            </Typography>
-            <Stack spacing={0.5} sx={{ mt: 0.75 }}>
+            </Text>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1.5 }}>
               {todos.map((todo) => (
-                <Stack key={todo.id} direction="row" alignItems="center" spacing={0.5}>
+                <Box
+                  sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center' }}
+                  key={todo.id}
+                >
                   <Box
                     sx={{
                       flex: 1,
                       minWidth: 0,
-                      // HDS renders the label text as the last <span> in the <label>
-                      // (its color is set inline, so decoration is applied there, not on
-                      // the hidden <input> the `style` prop would target).
                       ...(todo.done && {
                         '& label > span:last-of-type': {
                           textDecoration: 'line-through',
@@ -116,7 +97,7 @@ export function TodosNotes({ job }: { job: Job }) {
                     label={`Delete “${todo.text}”`}
                     onClick={() => updateJob(job.url, { todos: deleteTodo(todos, todo.id) })}
                   />
-                </Stack>
+                </Box>
               ))}
 
               {todos.length === 0 && (
@@ -130,10 +111,18 @@ export function TodosNotes({ job }: { job: Job }) {
                   </UiButton>
                 </Box>
               )}
-            </Stack>
+            </Box>
 
             {/* add-todo row */}
-            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.75 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'row',
+                gap: 1.5,
+                alignItems: 'center',
+                mt: 1.5,
+              }}
+            >
               <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
                 <HdsInput
                   size="sm"
@@ -156,20 +145,24 @@ export function TodosNotes({ job }: { job: Job }) {
               >
                 Add
               </UiButton>
-            </Stack>
+            </Box>
           </Box>
 
           {/* NOTES */}
           <Box>
-            <Typography variant="caption" color="text.secondary" sx={eyebrowSx}>
+            <Text
+              variant="caption"
+              as="span"
+              style={{ color: 'var(--semantic-color-content-secondary)' }}
+            >
               Notes
-            </Typography>
-            <Box sx={{ mt: 0.75 }}>
+            </Text>
+            <Box sx={{ mt: 1.5 }}>
               <NotesField key={job.url} job={job} />
             </Box>
           </Box>
-        </Stack>
-      </Reveal>
+        </Box>
+      </Disclosure>
     </Box>
   );
 }

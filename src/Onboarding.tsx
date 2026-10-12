@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Box, Stack, Typography } from './ui/box';
-import { Button, Input as HdsInput, Tag } from '@hirobius/design-system';
+import { Button, Input as HdsInput, Tag, Box, Stack, Text, Card } from '@hirobius/design-system';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 
 // First-run onboarding (issue #59 / B1, decision D1): an empty curation store routes here before
@@ -14,17 +13,27 @@ export function Onboarding() {
   const start = () => picked.forEach((id) => seedPack(id, location));
 
   return (
-    <Box sx={{ maxWidth: 560, mx: 'auto', py: 4 }}>
-      <Stack spacing={2}>
-        <Typography sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Set up your board</Typography>
-        <Typography color="text.secondary">
+    <Box sx={{ maxWidth: 560, mx: 'auto', py: 'lg' }}>
+      <Stack gap="tight">
+        <Text variant="title" as="h2">
+          Set up your board
+        </Text>
+        <Text variant="body" style={{ color: 'var(--semantic-color-content-secondary)' }}>
           Pick one or more tracks to start with — each pre-fills search terms and a few links. You
           can edit or add more later.
-        </Typography>
+        </Text>
         <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+          <Text
+            variant="caption"
+            as="span"
+            style={{
+              color: 'var(--semantic-color-content-secondary)',
+              display: 'block',
+              marginBottom: 'var(--primitive-space-1)',
+            }}
+          >
             Location (optional — blank = anywhere)
-          </Typography>
+          </Text>
           <HdsInput
             size="sm"
             aria-label="Location"
@@ -34,32 +43,36 @@ export function Onboarding() {
             style={{ maxWidth: 280 }}
           />
         </Box>
-        <Stack spacing={1}>
+        <Stack gap="gap">
           {STARTER_PACKS.map((p) => {
             const on = picked.includes(p.id);
             return (
-              <Box
+              <Card
                 key={p.id}
+                as="button"
+                bordered
+                selected={on}
+                aria-pressed={on}
+                padding="none"
                 onClick={() => toggle(p.id)}
-                sx={{
-                  cursor: 'pointer',
-                  border: 1,
-                  borderColor: on ? 'primary.main' : 'divider',
-                  borderRadius: 2,
-                  p: 1.5,
-                  display: 'flex',
-                  gap: 1.25,
-                  alignItems: 'center',
-                }}
+                style={{ textAlign: 'left', cursor: 'pointer' }}
               >
-                <Tag active={on}>{on ? '✓' : '+'}</Tag>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontWeight: 600 }}>{p.label}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {p.blurb}
-                  </Typography>
+                <Box sx={{ display: 'flex', gap: 2.5, alignItems: 'center', p: 3 }}>
+                  <Tag active={on}>{on ? '✓' : '+'}</Tag>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Text variant="ui" as="span" style={{ display: 'block' }}>
+                      {p.label}
+                    </Text>
+                    <Text
+                      variant="caption"
+                      as="span"
+                      style={{ color: 'var(--semantic-color-content-secondary)' }}
+                    >
+                      {p.blurb}
+                    </Text>
+                  </Box>
                 </Box>
-              </Box>
+              </Card>
             );
           })}
         </Stack>

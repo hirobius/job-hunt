@@ -30,4 +30,4 @@ machine-readable ledger per release.
 
 - An HDS minor is routine maintenance, not a migration project, as long as it happens release by
   release.
-- `src/ui` has no reason to exist any more; retiring it is #92.
+- `src/ui` had no reason to exist any more and is deleted (#92); `src/hdsOnly.test.ts` keeps it gone.

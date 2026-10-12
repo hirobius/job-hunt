@@ -1,6 +1,5 @@
 import { Component, type ReactNode } from 'react';
-import { Box, Stack, Typography } from './ui/box';
-import { Button } from '@hirobius/design-system';
+import { Button, Box, Stack, Text } from '@hirobius/design-system';
 
 // Top-level safety net (issue #46): a render-time crash shows a recovery UI instead of a blank
 // white screen. Offers a plain reload and a "reset local data" escape hatch for when a single bad
@@ -43,14 +42,16 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <Box sx={{ maxWidth: 480, mx: 'auto', mt: 8, px: 3, textAlign: 'center' }}>
-        <Stack spacing={2} alignItems="center">
-          <Typography sx={{ fontSize: '1.5rem', fontWeight: 600 }}>Something broke</Typography>
-          <Typography color="text.secondary">
-            The app hit an unexpected error. Reloading usually fixes it. If it keeps happening, a bad
-            saved record may be the cause — resetting local data clears it.
-          </Typography>
-          <Stack direction="row" spacing={1}>
+      <Box sx={{ maxWidth: 480, mx: 'auto', mt: 16, px: 'md', textAlign: 'center' }}>
+        <Stack gap="tight" align="center">
+          <Text variant="body" style={{ fontSize: '1.5rem', fontWeight: 600 }}>
+            Something broke
+          </Text>
+          <Text variant="body" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+            The app hit an unexpected error. Reloading usually fixes it. If it keeps happening, a
+            bad saved record may be the cause — resetting local data clears it.
+          </Text>
+          <Stack direction="row" gap="gap">
             <Button variant="primary" onClick={() => window.location.reload()}>
               Reload
             </Button>

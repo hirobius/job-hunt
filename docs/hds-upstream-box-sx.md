@@ -1,5 +1,10 @@
 # Upstream ask: ship a `Box` + `sx` layout primitive
 
+> **Superseded (2026-10-12, epic #89).** HDS shipped these asks — `Box` with a token-only `sx`,
+> `Stack`, `Text`, `Switcher`, `Disclosure`, `EmptyState` — and the app now uses them; the local
+> `src/ui` layer this document argued for is deleted. Kept as history. Open HDS gaps found during the
+> move are filed in hirobius/hds (hds#652 and the follow-ups linked from #89).
+
 **For the HDS repo/thread.** Copy-paste-ready as a GitHub issue on
 `hirobius/hirobius-design-system`. Successor to `docs/hds-upstream-asks-0.9.md` — the 0.9
 asks (Textarea, general Tooltip, Skeleton, Combobox) all shipped in **0.11**; this is the
