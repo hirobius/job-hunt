@@ -13,7 +13,7 @@ commit `f15fd52`).
 
 - **Vite + React 18 + TypeScript + HDS (`@hirobius/design-system`). MUI is fully removed
   (issue #11 done).** Every component is **real HDS** (Buttons, Cards, Tag/Badge,
-  SegmentedControl, IconButton/lucide, Input, Textarea, Tabs, Menu, Dialog, Tooltip, Alert,
+  SegmentedControl, icon-only `Button` + `Icon`/lucide, Input, Textarea, Tabs, Menu, Dialog, Tooltip, Alert,
   Spinner, Skeleton, Combobox). The gap HDS leaves — a generic `Box` and an `sx` escape hatch
   for one-off layout — is filled by a small, MUI/emotion-free primitive set in **`src/ui/`**,
   written to be routable upstream to HDS:
@@ -24,22 +24,25 @@ commit `f15fd52`).
   - **The MUI-shaped adapters are retired (2026-07).** `ui/Button`, `ui/Dialog`, `ui/Tooltip`,
     `ui/Alert`, `ui/TextField` — thin shims that once let the MUI→HDS cutover proceed by
     import-swap — were **deleted** once MUI was gone; every call site now uses the real HDS
-    component directly (Button `variant`/`tone`, HDS compound `Dialog`, `HdsTooltip`, `Alert tone`
-    + a dismiss `IconButton`, `Input`/`Textarea`). **`src/ui` is now purely the layout gap:**
+    component directly (Button `variant`/`tone`, HDS compound `Dialog`, `Tooltip` (imported as
+    `HdsTooltip`), `Alert tone` + a dismiss icon-only `Button`, `Input`/`Textarea`). **`src/ui` is now purely the layout gap:**
     `box.tsx` (Box/Stack/Typography/Container/Link/Divider + the `sx` engine) and `Reveal`.
-  - **These layout primitives are the ONLY remaining non-HDS UI** — the last candidates to route
-    upstream into HDS (see `docs/hds-upstream-asks-0.9.md` §"Layout primitives"). HDS 0.13 is its
-    final frozen release and ships no `Box`/`sx`/layout equivalent, so until HDS grows one this
-    layer stays local; it is deliberately kept small and dependency-free for exactly that handoff.
+  - **These layout primitives are the ONLY remaining non-HDS UI.** HDS now ships its own `Box`
+    (a token-only `sx` subset), `Stack`, `Text`, `Reveal`, `Container` and `InlineLink`, so this
+    layer is being retired — epic #89, step #92. ⚠️ The dialects differ: local `sx` spacing is
+    MUI-style 8px units, HDS `sx` numbers are 4px units (prefer its t-shirt keys), and colour keys
+    differ (`text.secondary` → `content.secondary`). Translate deliberately, never by import swap.
   - ⚠️ **No MUI `sx` on HDS components** — HDS takes semantic token props, not `sx`. Use the
     `src/ui` primitives (which DO take `sx`) for ad-hoc layout, HDS components for everything else.
 - **Design language:** jade dark theme; headlines **Clash Display**, body **Satoshi**
   (loaded via Fontshare CDN in `index.html`). Uppercase is reserved for
   eyebrows/buttons/labels only.
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (`^0.13.0` — HDS's final, frozen release; no auth) — see `docs/adr/0005`. `main.tsx` imports
-  `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` — set on
-  `<body>` in `index.html`), then `src/theme/brand-jade.css` (jade accent override), then
+  npm** (`^0.24.1`, no auth) — see `docs/adr/0005` and `docs/adr/0007`. Upgrade with
+  `npx @hirobius/design-system@latest upgrade` (codemods + a to-do list; `--check` to verify).
+  `main.tsx` imports `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` —
+  set on `<body>` in `index.html`) and `fonts.css`, then `src/theme/brand-jade.css` (jade accent
+  override, incl. white on-accent text), then
   `src/theme/base.css` (the border-box + body reset/chrome MUI's `CssBaseline` used to give,
   now that MUI is gone). Theming is pure HDS token CSS vars — **no MUI theme object**; `ColorMode`
   just flips `data-theme` on `<html>` (light/dark) and HDS's variables cascade. Status colors are

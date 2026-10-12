@@ -16,11 +16,11 @@ import {
   Badge,
   Button as UiButton,
   Card as HdsCard,
-  IconButton as HdsIconButton,
   Input as HdsInput,
   Menu as HdsMenu,
   SegmentedControl,
   Textarea,
+  Icon,
 } from '@hirobius/design-system';
 import { Reveal } from './ui/Reveal';
 import {
@@ -379,10 +379,11 @@ export default function TrackerView() {
                       </Link>
                     </Box>
                     {s.status !== 'Saved' && <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>}
-                    <HdsIconButton
+                    <UiButton
                       size="sm"
                       variant="tertiary"
-                      icon={Star}
+                      iconOnly
+                      iconLeft={<Icon icon={Star} />}
                       label={j.priority ? 'Unpin priority' : 'Pin as priority'}
                       aria-pressed={!!j.priority}
                       onClick={() => updateJob(j.url, { priority: !j.priority })}
@@ -390,10 +391,11 @@ export default function TrackerView() {
                     />
                     <HdsMenu>
                       <HdsMenu.Trigger asChild>
-                        <HdsIconButton
+                        <UiButton
                           size="sm"
                           variant="tertiary"
-                          icon={EllipsisVertical}
+                          iconOnly
+                          iconLeft={<Icon icon={EllipsisVertical} />}
                           label="More actions"
                         />
                       </HdsMenu.Trigger>

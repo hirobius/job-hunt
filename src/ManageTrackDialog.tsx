@@ -3,10 +3,10 @@ import { Box, Stack, Typography } from './ui/box';
 import {
   Button,
   Dialog,
-  IconButton as HdsIconButton,
   Input as HdsInput,
   SegmentedControl,
   Tag,
+  Icon,
 } from '@hirobius/design-system';
 import { Trash2, X } from 'lucide-react';
 import {
@@ -95,11 +95,12 @@ function GroupEditor({ groupId }: { groupId: string }) {
           <Typography variant="caption" sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
             {t.name}
           </Typography>
-          <HdsIconButton
+          <Button
             size="sm"
             variant="tertiary"
             tone="danger"
-            icon={X}
+            iconOnly
+            iconLeft={<Icon icon={X} />}
             label={`Remove ${t.name}`}
             onClick={() => removeTile(t.id)}
           />
@@ -239,11 +240,12 @@ export default function ManageTrackDialog({
                             style={{ width: '100%' }}
                           />
                         </Box>
-                        <HdsIconButton
+                        <Button
                           size="sm"
                           variant="tertiary"
                           tone="danger"
-                          icon={Trash2}
+                          iconOnly
+                          iconLeft={<Icon icon={Trash2} />}
                           label={`Delete ${g.label} section`}
                           onClick={() => removeGroup(g.id)}
                         />

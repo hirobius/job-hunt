@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import {
   Button as UiButton,
-  HdsCheckbox,
-  IconButton as HdsIconButton,
+  Checkbox as HdsCheckbox,
   Input as HdsInput,
   Textarea,
+  Icon,
 } from '@hirobius/design-system';
 import { ListChecks, StickyNote, X, Plus } from 'lucide-react';
 import { Box, Stack, Typography } from './ui/box';
@@ -108,10 +108,11 @@ export function TodosNotes({ job }: { job: Job }) {
                       onChange={() => updateJob(job.url, { todos: toggleTodo(todos, todo.id) })}
                     />
                   </Box>
-                  <HdsIconButton
+                  <UiButton
                     size="sm"
                     variant="tertiary"
-                    icon={X}
+                    iconOnly
+                    iconLeft={<Icon icon={X} />}
                     label={`Delete “${todo.text}”`}
                     onClick={() => updateJob(job.url, { todos: deleteTodo(todos, todo.id) })}
                   />

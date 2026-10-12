@@ -3,13 +3,14 @@ import { useRoute, navigate, getRoute } from './route';
 import { Box, Container, Stack, Typography } from './ui/box';
 import { Sun, Moon, MoreVertical, MessageSquareText } from 'lucide-react';
 import {
-  IconButton as HdsIconButton,
   Menu as HdsMenu,
   Tabs as HdsTabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-  HdsTooltip,
+  Tooltip as HdsTooltip,
+  Button,
+  Icon,
 } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import CloudSync from './CloudSync';
@@ -29,9 +30,10 @@ function ColorModeToggle() {
   return (
     <HdsTooltip>
       <HdsTooltip.Trigger asChild>
-        <HdsIconButton
+        <Button
           variant="tertiary"
-          icon={mode === 'dark' ? Sun : Moon}
+          iconOnly
+          iconLeft={<Icon icon={mode === 'dark' ? Sun : Moon} />}
           onClick={toggle}
           label={label}
         />
@@ -48,7 +50,12 @@ function OverflowMenu() {
   return (
     <HdsMenu>
       <HdsMenu.Trigger asChild>
-        <HdsIconButton variant="tertiary" icon={MoreVertical} label="More options" />
+        <Button
+          variant="tertiary"
+          iconOnly
+          iconLeft={<Icon icon={MoreVertical} />}
+          label="More options"
+        />
       </HdsMenu.Trigger>
       <HdsMenu.Content align="end">
         <HdsMenu.Item

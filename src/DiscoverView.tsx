@@ -3,7 +3,6 @@ import { Box, Stack, Typography } from './ui/box';
 import {
   Button,
   Combobox,
-  IconButton as HdsIconButton,
   Input as HdsInput,
   Menu as HdsMenu,
   SegmentedControl,
@@ -12,6 +11,7 @@ import {
   TabsTrigger,
   TabsContent,
   Tag,
+  Icon,
 } from '@hirobius/design-system';
 import { Plus, SlidersHorizontal } from 'lucide-react';
 import TileGrid from './TileGrid';
@@ -129,16 +129,17 @@ function CategorySwitcher({
             placeholder="Pick a track"
           />
         </Box>
-        <HdsIconButton
+        <Button
           size="sm"
           variant="tertiary"
-          icon={SlidersHorizontal}
+          iconOnly
+          iconLeft={<Icon icon={SlidersHorizontal} />}
           label="Manage this track"
           onClick={onManage}
         />
         <HdsMenu>
           <HdsMenu.Trigger asChild>
-            <HdsIconButton size="sm" variant="secondary" icon={Plus} label="New track" />
+            <Button size="sm" variant="secondary" iconOnly iconLeft={<Icon icon={Plus} />} label="New track" />
           </HdsMenu.Trigger>
           <HdsMenu.Content align="end">
             <HdsMenu.Label>Start from a pack</HdsMenu.Label>

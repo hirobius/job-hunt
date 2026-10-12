@@ -3,9 +3,9 @@ import {
   Badge,
   Button,
   Card as HdsCard,
-  HdsTooltip,
-  IconButton,
+  Tooltip as HdsTooltip,
   useToast,
+  Icon,
 } from '@hirobius/design-system';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import { addJob, isSaved, useJobs } from './store';
@@ -138,10 +138,11 @@ export default function TileGrid({
                     {triage && (
                       <HdsTooltip>
                         <HdsTooltip.Trigger asChild>
-                          <IconButton
+                          <Button
                             size="sm"
                             variant="tertiary"
-                            icon={isAside ? ArchiveRestore : Archive}
+                            iconOnly
+                            iconLeft={<Icon icon={isAside ? ArchiveRestore : Archive} />}
                             onClick={() => toggleDismiss(t.url)}
                             label={isAside ? 'Restore tile' : 'Set tile aside'}
                           />
@@ -152,11 +153,12 @@ export default function TileGrid({
                     {onRemove && (
                       <HdsTooltip>
                         <HdsTooltip.Trigger asChild>
-                          <IconButton
+                          <Button
                             size="sm"
                             variant="tertiary"
                             tone="danger"
-                            icon={Trash2}
+                            iconOnly
+                            iconLeft={<Icon icon={Trash2} />}
                             onClick={() => onRemove(t.url)}
                             label="Remove tile"
                           />

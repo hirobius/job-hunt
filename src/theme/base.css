@@ -35,3 +35,9 @@ a:focus-visible,
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* HDS 0.24 caps Input/Textarea/Select/Combobox at 40rem via this variable. The app's forms were laid
+ * out to fill their row (0.13 behaviour) — keep that until the pure-HDS brand pass (#91) decides. */
+[data-hds] {
+  --hds-form-control-max-width: none;
+}

@@ -16,7 +16,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@hirobius/design-system": "^0.13.0",
+    "@hirobius/design-system": "^0.24.1",
     "@supabase/supabase-js": "^2.45.4",
     "@vercel/analytics": "^2.0.1",
     "react": "^18.3.1",

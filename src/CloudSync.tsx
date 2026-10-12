@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Box, Stack, Typography } from './ui/box';
 import {
   Button,
-  HdsTooltip,
-  IconButton as HdsIconButton,
+  Tooltip as HdsTooltip,
   Input as HdsInput,
+  Icon,
 } from '@hirobius/design-system';
 import { X } from 'lucide-react';
 import { createClient, type User } from '@supabase/supabase-js';
@@ -248,27 +248,31 @@ export default function CloudSync() {
         </Stack>
       ) : (
         <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
-          <HdsInput
-            size="sm"
-            type="email"
-            aria-label="Email for sign-in link"
-            placeholder="you@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') sendLink();
-            }}
-            style={{ minWidth: 200 }}
-          />
+          {/* HDS 0.24's Input fills its parent; a fixed-width wrapper keeps the 0.13 row (field + button). */}
+          <Box sx={{ width: 220, maxWidth: '100%', '& > *': { width: '100%' } }}>
+            <HdsInput
+              size="sm"
+              type="email"
+              aria-label="Email for sign-in link"
+              placeholder="you@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') sendLink();
+              }}
+              style={{ minWidth: 200 }}
+            />
+          </Box>
           <Button size="sm" variant="primary" onClick={sendLink}>
             Email me a link
           </Button>
           <HdsTooltip>
             <HdsTooltip.Trigger asChild>
-              <HdsIconButton
+              <Button
                 size="sm"
                 variant="tertiary"
-                icon={X}
+                iconOnly
+                iconLeft={<Icon icon={X} />}
                 onClick={() => hide(true)}
                 label="Hide sign-in banner"
               />

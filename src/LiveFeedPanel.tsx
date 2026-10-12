@@ -7,7 +7,7 @@ import {
   Alert,
   Badge,
   Button,
-  HdsTooltip,
+  Tooltip as HdsTooltip,
   Input as HdsInput,
   SegmentedControl,
   Spinner,
