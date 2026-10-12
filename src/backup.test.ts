@@ -107,6 +107,8 @@ describe('buildBackup / parseBackup', () => {
           { url: 'https://ok.example/j', label: 'ok' },
         ],
         curation: {
+          categories: [{ id: 'c', label: 'C' }],
+          groups: [{ id: 'g', categoryId: 'c' }],
           tiles: [
             { id: 't1', groupId: 'g', url: 'javascript:alert(1)' },
             { id: 't2', groupId: 'g', url: 'https://ok.example/' },
@@ -213,5 +215,68 @@ describe('summarizeRestore', () => {
       current: { jobs: 1, snippets: 1, tracks: 1, links: 1 },
       next: { jobs: 0, snippets: 1, tracks: 1, links: 1 },
     });
+  });
+});
+
+describe('parseBackup — nested job fields + orphans (review)', () => {
+  const env = (over: Record<string, unknown>) =>
+    JSON.stringify({
+      app: 'apply-board',
+      kind: 'backup',
+      v: 1,
+      exportedAt: '',
+      jobs: [],
+      copydeck: [],
+      curation: {},
+      triage: {},
+      ...over,
+    });
+
+  it('drops malformed events/history/todos and non-string scalar fields', () => {
+    const r = parseBackup(
+      env({
+        jobs: [
+          {
+            url: 'https://a.example/1',
+            label: 'A',
+            status: 'Applied',
+            company: 42,
+            events: [
+              { id: 'x', kind: 'interview' },
+              { id: 'ok', kind: 'call', date: '2026-10-14', time: 'nope' },
+            ],
+            history: [{ status: 5 }, { status: 'Applied', at: '2026-10-01' }],
+            todos: [{ id: 't', text: 'Do it', done: 'yes' }, { text: 7 }],
+          },
+        ],
+      }),
+    );
+    if (!r.ok) throw new Error(r.reason);
+    const j = r.backup.jobs[0];
+    expect(j.company).toBeUndefined();
+    expect(j.events).toEqual([{ id: 'ok', kind: 'call', date: '2026-10-14' }]);
+    expect(j.history).toEqual([{ status: 'Applied', at: '2026-10-01' }]);
+    expect(j.todos).toEqual([{ id: 't', text: 'Do it', done: false }]);
+  });
+
+  it('drops groups/tiles whose parent is missing (they would fail the cloud FK)', () => {
+    const r = parseBackup(
+      env({
+        curation: {
+          categories: [{ id: 'c1', label: 'C' }],
+          groups: [
+            { id: 'g1', categoryId: 'c1' },
+            { id: 'g2', categoryId: 'nope' },
+          ],
+          tiles: [
+            { id: 't1', groupId: 'g1', url: 'https://x.example' },
+            { id: 't2', groupId: 'g2', url: 'https://y.example' },
+          ],
+        },
+      }),
+    );
+    if (!r.ok) throw new Error(r.reason);
+    expect(r.backup.curation.groups.map((g) => g.id)).toEqual(['g1']);
+    expect(r.backup.curation.tiles.map((t) => t.id)).toEqual(['t1']);
   });
 });

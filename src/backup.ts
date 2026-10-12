@@ -8,7 +8,7 @@ import { mergeSnippets, type Snippet } from './copyDeckStore';
 import { mergeCuration } from './curation/merge';
 import type { CurationState } from './curation/types';
 import { mergeTriage, type Triage } from './tileTriage';
-import type { Job } from './types';
+import { STATUSES, type Job } from './types';
 
 export interface AccountState {
   jobs: Job[];
@@ -65,11 +65,74 @@ function scrub<T extends object>(o: T): T {
   return o;
 }
 
+const STATUS_SET = new Set<string>(STATUSES);
+const EVENT_KINDS = new Set(['interview', 'call', 'other']);
+const YMD = /^\d{4}-\d{2}-\d{2}$/;
+const HM = /^\d{2}:\d{2}$/;
+const JOB_STRING_KEYS = [
+  'applied',
+  'followUp',
+  'note',
+  'contact',
+  'resume',
+  'salary',
+  'company',
+  'location',
+  'seniority',
+  'notes',
+  'angle',
+  'screenedAt',
+  'mode',
+  'verdict',
+] as const;
+
+/** Nested job fields are rendered and computed on (agenda, .ics, metrics): keep only
+ *  well-formed entries so a hand-edited backup can't crash a view after restore. */
+function cleanJobFields(j: Job): Job {
+  const o = j as unknown as Rec;
+  for (const k of JOB_STRING_KEYS) if (k in o && !isStr(o[k])) delete o[k];
+  if ('todos' in o)
+    j.todos = arr(o.todos)
+      .filter(isRec)
+      .filter((t) => isStr(t.id) && isStr(t.text))
+      .map((t) => ({ id: t.id as string, text: t.text as string, done: t.done === true }));
+  if ('history' in o)
+    j.history = arr(o.history)
+      .filter(isRec)
+      .filter((h) => isStr(h.status) && STATUS_SET.has(h.status) && isStr(h.at))
+      .map((h) => ({ status: h.status as Job['status'], at: h.at as string }));
+  if ('events' in o)
+    j.events = arr(o.events)
+      .filter(isRec)
+      .filter(
+        (e) =>
+          safeId(e.id) &&
+          isStr(e.kind) &&
+          EVENT_KINDS.has(e.kind) &&
+          isStr(e.date) &&
+          YMD.test(e.date),
+      )
+      .map((e) => {
+        const ev: NonNullable<Job['events']>[number] = {
+          id: e.id as string,
+          kind: e.kind as 'interview' | 'call' | 'other',
+          date: e.date as string,
+        };
+        if (isStr(e.time) && HM.test(e.time)) ev.time = e.time;
+        if (typeof e.durationMin === 'number' && e.durationMin > 0) ev.durationMin = e.durationMin;
+        if (isStr(e.note)) ev.note = e.note;
+        return ev;
+      });
+  if ('blockers' in o) j.blockers = arr(o.blockers).filter(isStr);
+  return j;
+}
+
 function cleanJobs(raw: unknown): Job[] {
   const input = arr(raw).filter(isRec);
   return sanitizeJobs(input)
     .filter((j) => isHttp(j.url))
-    .map(scrub);
+    .map(scrub)
+    .map(cleanJobFields);
 }
 
 function cleanSnippets(raw: unknown): Snippet[] {
@@ -133,7 +196,11 @@ function cleanCuration(raw: unknown): CurationState {
       createdAt: str(r.createdAt),
     });
   }
-  return { categories, groups, tiles };
+  // Drop orphans: the cloud tables enforce these FKs, so an orphan would fail every upload.
+  const catIds = new Set(categories.map((x) => x.id));
+  const keptGroups = groups.filter((g) => catIds.has(g.categoryId));
+  const groupIds = new Set(keptGroups.map((x) => x.id));
+  return { categories, groups: keptGroups, tiles: tiles.filter((t) => groupIds.has(t.groupId)) };
 }
 
 function cleanTriage(raw: unknown): Triage {

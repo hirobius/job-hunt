@@ -15,6 +15,7 @@ import { download } from './download';
 import { getAllJobs, replaceAll, useJobs } from './store';
 import { getSnippets, replaceSnippets } from './copyDeckStore';
 import { getCurationState, replaceCurationState } from './curation/curationStore';
+import { pushRestoredCuration } from './curation/sync';
 import { getTileTriage, replaceTriage } from './tileTriage';
 
 const JSON_MIME = 'application/json';
@@ -66,6 +67,14 @@ export default function DataTools() {
     if (mode === 'replace') downloadBackup('apply-board-before-restore');
     applyState(applyBackup(currentState(), pending, mode));
     setPending(null);
+    // Tracks live in their own cloud tables: mirror the restore there too, or the next sync
+    // would merge the old cloud rows back in (a "replace" silently becoming a merge).
+    void pushRestoredCuration(mode).then((ok) => {
+      if (!ok)
+        setError(
+          'Restored on this device, but the cloud copy of your tracks could not be updated. Try again when you are back online.',
+        );
+    });
   };
 
   const summary = pending ? summarizeRestore(currentState(), pending) : null;
