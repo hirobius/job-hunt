@@ -14,8 +14,8 @@ const README = fs.readFileSync('README.md', 'utf8');
 const RETIRED: [RegExp, string][] = [
   [/ANTHROPIC_API_KEY/i, 'AI was removed (#54); there is no Anthropic key or server endpoint'],
   [/add with ai/i, '"Add with AI" was removed (#54)'],
-  // Case-sensitive on purpose: ADR-0001's filename ends in `-on-mui.md` and is linked.
-  [/\bMUI\b|Material[- ]UI/, 'MUI was fully removed (#11); the UI is HDS'],
+  // The lookbehind spares ADR-0001's filename (`…-on-mui.md`), which the README must link.
+  [/(?<!-on-)\bmui\b|material[- ]?ui/i, 'MUI was fully removed (#11); the UI is HDS'],
   [/actions\/workflows|ci\.yml/i, 'there is no GitHub Actions workflow (owner preference)'],
   [/via github actions|github actions ci/i, 'CI does not run on GitHub Actions'],
   [/tokens:build|style dictionary/i, 'the token generator was retired by ADR-0005'],
@@ -31,7 +31,7 @@ describe('README makes no retired claims', () => {
 
   it('links every ADR in docs/adr', () => {
     for (const f of fs.readdirSync('docs/adr').filter((n) => n.endsWith('.md')))
-      expect(README, `README should link docs/adr/${f}`).toContain(`docs/adr/${f}`);
+      expect(README, `README should link docs/adr/${f}`).toContain(`](docs/adr/${f})`);
   });
 
   it('only documents npm scripts that exist', () => {
@@ -39,8 +39,7 @@ describe('README makes no retired claims', () => {
       (JSON.parse(fs.readFileSync('package.json', 'utf8')) as { scripts: Record<string, string> })
         .scripts,
     );
-    const pending = new Set(['verify', 'test:e2e']); // land with claude/jh-platform (#95)
     for (const [, name] of README.matchAll(/npm run ([\w:-]+)/g))
-      expect(scripts.includes(name) || pending.has(name), `npm run ${name}`).toBe(true);
+      expect(scripts, `npm run ${name}`).toContain(name);
   });
 });

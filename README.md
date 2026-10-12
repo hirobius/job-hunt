@@ -30,7 +30,7 @@ signed-out in the browser; an optional email sign-in syncs it across devices.
   `&t=` / `&title=` label) power a bookmarklet or phone shortcut.
 - **Cloud sync** — Supabase magic-link sign-in; jobs sync as one row per user and tracks live in
   normalized tables, all behind row-level security. One-time setup of the `tracker` table:
-  [`SUPABASE_SETUP.md`](SUPABASE_SETUP.md).
+  [`SUPABASE_SETUP.md`](SUPABASE_SETUP.md) (the curation tables have no setup doc yet).
 
 ## How it's built
 
@@ -51,7 +51,7 @@ signed-out in the browser; an optional email sign-in syncs it across devices.
   Most of the vendor chunk is HDS's single entry point; per-component imports are an open
   upstream ask.
 - **Security headers** (HSTS, nosniff, frame-deny, referrer and permissions policies) ship from
-  `vercel.json`. A report-only Content-Security-Policy lands with `claude/jh-platform` (#97).
+  `vercel.json`.
 
 ## Develop
 
@@ -66,15 +66,10 @@ npx playwright test  # e2e happy path (first time: npx playwright install chromi
 ```
 
 **Verify before you push.** Nothing runs on GitHub Actions, by choice. Verification is local plus
-the Vercel preview. With `claude/jh-platform` (#95), one command runs the whole gate, and Vercel's
-build runs the same command, so a red check blocks the deploy:
+the Vercel preview: typecheck, lint, tests and build must all pass before anything reaches `main`.
 
-```bash
-npm run verify       # typecheck → lint → tests → build, stops at the first failure
-```
-
-Visual changes also get a headless-Chromium look at desktop and 390px wide; the gate can't see
-layout.
+Visual changes also get a headless-Chromium look at desktop and 390px wide; the checks can't
+see layout.
 
 No secrets are needed to develop. The Supabase URL and publishable key in `src/config.ts` are
 public by design, with access controlled by row-level security.
