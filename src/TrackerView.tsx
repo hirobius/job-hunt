@@ -40,6 +40,7 @@ import { sortJobs, SORTS, type SortKey } from './jobSort';
 import { verdictTone, modeLabel, blockerLabel } from './screening';
 import { ScreeningEditor } from './ScreeningEditor';
 import { FunnelSummary } from './FunnelSummary';
+import { PipelineStats } from './PipelineStats';
 import EmptyState from './EmptyState';
 import { TodosNotes } from './TodosNotes';
 import type { Job, Status } from './types';
@@ -290,6 +291,7 @@ export default function TrackerView() {
         </Stack>
       </Stack>
 
+      <PipelineStats jobs={jobs} />
       <FunnelSummary jobs={shown} />
 
       {shown.length === 0 ? (

@@ -1,13 +1,16 @@
-import { Cluster, Stack, Stat, Text, VisuallyHidden } from '@hirobius/design-system';
+import { Stack, Stat, Text, VisuallyHidden } from '@hirobius/design-system';
 import { pipelineMetrics, weeklyApplied } from './metrics';
 import type { Job } from './types';
 
 // Pipeline stat band + 8-week "applied per week" bars (spec #98). Pure HDS + token CSS vars; the
 // numbers come from metrics.ts. Hidden until at least one job has ever been applied to.
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const CHART_H = 88;
+const CHART_H = 56;
 
 const weekLabel = (ymd: string) => `${MONTHS[+ymd.slice(5, 7) - 1]} ${+ymd.slice(8, 10)}`;
+// Axis label: month only where it changes ("Aug 24, 31, Sep 7 …") so 8 weeks fit at 390px.
+const axisLabel = (ymd: string, prev?: string) =>
+  prev && prev.slice(5, 7) === ymd.slice(5, 7) ? String(+ymd.slice(8, 10)) : weekLabel(ymd);
 const pct = (r: number | null) => (r == null ? '—' : `${Math.round(r * 100)}%`);
 
 export function PipelineStats({ jobs }: { jobs: Job[] }) {
@@ -19,13 +22,19 @@ export function PipelineStats({ jobs }: { jobs: Job[] }) {
   const summary = `Applications per week, last ${weeks.length} weeks: ${weeks
     .map((w) => `week of ${weekLabel(w.weekStart)}, ${w.count}`)
     .join('; ')}.`;
-  const tile = { flex: '1 1 130px', minWidth: 0 } as const;
+  const tile = { minWidth: 0 } as const;
   const median =
     m.medianDaysToResponse == null ? '—' : Math.round(m.medianDaysToResponse * 10) / 10;
 
   return (
-    <Stack gap="normal">
-      <Cluster gap="tight" align="stretch">
+    <Stack gap="normal" style={{ marginBottom: 'var(--primitive-space-4)' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+          gap: 'var(--primitive-space-3)',
+        }}
+      >
         <Stat style={tile} label="Applied 7d" value={m.appliedLast7} />
         <Stat style={tile} label="Applied 30d" value={m.appliedLast30} />
         <Stat style={tile} label="Response rate" value={pct(m.responseRate)} />
@@ -42,7 +51,7 @@ export function PipelineStats({ jobs }: { jobs: Job[] }) {
           value={m.followUpsDue}
           tone={m.followUpsDue > 0 ? 'warning' : 'neutral'}
         />
-      </Cluster>
+      </div>
       <Stack gap="tight">
         <Text
           variant="caption"
@@ -95,7 +104,7 @@ export function PipelineStats({ jobs }: { jobs: Job[] }) {
                 variant="caption"
                 style={{ color: 'var(--semantic-color-content-secondary)', whiteSpace: 'nowrap' }}
               >
-                {weekLabel(w.weekStart)}
+                {axisLabel(w.weekStart, weeks[i - 1]?.weekStart)}
               </Text>
             </div>
           ))}
