@@ -76,14 +76,14 @@ describe('content security policy', () => {
   it('allows every external stylesheet index.html loads', () => {
     const sheets = [...indexHtml.matchAll(/<link\b[^>]*>/g)]
       .map((m) => m[0])
-      .filter((tag) => /rel="stylesheet"/.test(tag))
-      .map((tag) => /href="(https:\/\/[^"]+)"/.exec(tag)?.[1])
+      .filter((tag) => /rel=["']?stylesheet/.test(tag))
+      .map((tag) => /href=["']?((?:https?:)?\/\/[^"'\s>]+)/.exec(tag)?.[1])
       .filter((href): href is string => !!href)
-      .map((href) => new URL(href).origin);
+      .map((href) => new URL(href, 'https://x').origin);
     for (const origin of sheets) expect(src('style-src')).toContain(origin);
   });
 
   it('loads no external scripts from index.html (script-src is self only)', () => {
-    expect(indexHtml).not.toMatch(/<script\b[^>]*src="https?:/);
+    expect(indexHtml).not.toMatch(/<script\b[^>]*src=["']?(?:https?:)?\/\//);
   });
 });

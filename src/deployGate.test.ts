@@ -23,6 +23,12 @@ describe('deploy gate', () => {
     expect(steps).toEqual(['npm run typecheck', 'npm run lint', 'npm run test', 'npm run build']);
   });
 
+  it('each gate step runs the real tool, not a stub', () => {
+    expect(pkg.scripts.typecheck).toBe('tsc --noEmit');
+    expect(pkg.scripts.lint).toBe('eslint .');
+    expect(pkg.scripts.test).toBe('vitest run');
+  });
+
   it('the local build stays a plain vite build (the gate is opt-in locally)', () => {
     expect(pkg.scripts.build).toBe('vite build');
   });

@@ -135,6 +135,8 @@ queue below assumes this is undecided and excludes those three.
       _(2026-10: github-actions block dropped — no workflows; HDS minors/majors ignored —
       they upgrade via the HDS CLI, #89. See #96.)_
 - [x] `npm audit --audit-level=high` step in the `verify` job (currently exits 0 locally).
+      _(That CI job is gone with Actions. Audit is deliberately NOT in `npm run verify`: it needs
+      the registry and would block deploys on advisories outside our control. Run it by hand.)_
 
 ### R5 — Docs refresh: CLAUDE.md + README _(housekeeping)_ — ✅ DONE
 - [x] CLAUDE.md: Discover generators are location/mode-driven (not Spokane); AI fully removed (#54);
