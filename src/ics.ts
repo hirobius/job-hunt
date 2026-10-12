@@ -29,7 +29,7 @@ export interface IcsOptions {
 export function escapeText(s: string): string {
   return s
     .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\;')
+    .replace(/;/g, '\\;')
     .replace(/,/g, '\\,')
     .replace(/\r\n|\r|\n/g, '\\n');
 }
@@ -60,7 +60,8 @@ export function foldLine(line: string): string {
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const ymd = (d: Date) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}`;
-const hms = (d: Date) => `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}`;
+const hms = (d: Date) =>
+  `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}`;
 
 /** Parse a local date (+ optional time) into a Date whose UTC fields hold the local wall time —
  *  a timezone-free way to do calendar arithmetic. */

@@ -9,7 +9,7 @@ describe('escapeText (RFC 5545 §3.3.11)', () => {
   it.each([
     ['plain', 'plain'],
     ['a,b', 'a\\,b'],
-    ['a;b', 'a\;b'],
+    ['a;b', 'a\\;b'],
     ['back\\slash', 'back\\\\slash'],
     ['line1\nline2', 'line1\\nline2'],
     ['crlf\r\nx', 'crlf\\nx'],
@@ -76,7 +76,7 @@ describe('buildIcs', () => {
   });
 
   it('escapes TEXT values and keeps URL raw', () => {
-    expect(lines).toContain('SUMMARY:Interview: Acme\\, Inc\; Design Engineer');
+    expect(lines).toContain('SUMMARY:Interview: Acme\\, Inc\\; Design Engineer');
     expect(lines).toContain('DESCRIPTION:Bring portfolio\\nAsk about team');
     expect(lines).toContain('URL:https://acme.example/jobs/1');
   });
