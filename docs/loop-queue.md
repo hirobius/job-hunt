@@ -132,6 +132,8 @@ queue below assumes this is undecided and excludes those three.
 
 ### R4 — Dependabot + npm-audit CI step _(#47)_ — ✅ DONE
 - [x] `.github/dependabot.yml` — npm + github-actions ecosystems, weekly, grouped minor/patch.
+      _(2026-10: github-actions block dropped — no workflows; HDS minors/majors ignored —
+      they upgrade via the HDS CLI, #89. See #96.)_
 - [x] `npm audit --audit-level=high` step in the `verify` job (currently exits 0 locally).
 
 ### R5 — Docs refresh: CLAUDE.md + README _(housekeeping)_ — ✅ DONE
