@@ -4,7 +4,7 @@
 // the rules and keeps persistence; the view reads `deriveJobState` instead of
 // recomputing the rules per render. `now` is injected (defaulted) so the whole
 // module is a deterministic test surface with no clock mocking.
-import { STATUSES, type Job, type Status } from './types';
+import { STATUSES, type Job, type Status, type StatusChange } from './types';
 
 /** Days after the last contact (apply, or last follow-up) before a follow-up falls due. */
 const FOLLOWUP_DAYS = 7;
@@ -68,9 +68,30 @@ export function deriveJobState(job: Job, now: Date = new Date()): JobState {
   };
 }
 
-/** Apply a status transition. Stamps `applied` on first entry to Applied; otherwise unchanged. */
+/** Statuses past Applied — a backfilled history ends in one of these when the job got that far. */
+const BEYOND_APPLIED: Status[] = ['Interviewing', 'Offer', 'Rejected'];
+
+/**
+ * The job's dated status history. Stored history wins; for legacy jobs without any it is
+ * derived (never persisted) from `applied` and the current status.
+ */
+export function effectiveHistory(job: Job): StatusChange[] {
+  if (job.history && job.history.length) return job.history;
+  if (!job.applied) return [];
+  const out: StatusChange[] = [{ status: 'Applied', at: job.applied }];
+  const cur = normStatus(job.status);
+  if (BEYOND_APPLIED.includes(cur)) out.push({ status: cur, at: job.applied });
+  return out;
+}
+
+/**
+ * Apply a status transition. Stamps `applied` on first entry to Applied, and appends a dated
+ * entry to `history` only when the status actually changes.
+ */
 export function applyStatus(job: Job, next: Status, now: Date = new Date()): Job {
+  const changed = normStatus(job.status) !== next;
   const n: Job = { ...job, status: next };
+  if (changed) n.history = [...effectiveHistory(job), { status: next, at: today(now) }];
   if (next === 'Applied' && !n.applied) n.applied = today(now);
   return n;
 }
