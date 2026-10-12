@@ -32,46 +32,47 @@ export default function ThisWeek() {
   }
 
   return (
-    <Disclosure label={`This week · ${items.length}`} defaultOpen>
-      <Stack gap="normal">
-        {days.map((day) => (
-          <Stack key={day.date} gap="tight">
-            <Text variant="ui" as="h3" style={{ margin: 0 }}>
-              {dayLabel(day.date)}
-            </Text>
-            <Stack gap="tight" as="ul" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {day.items.map((it, i) => (
-                <li key={`${it.jobUrl}-${it.kind}-${it.time ?? ''}-${i}`}>
-                  <Cluster gap="tight" align="center">
-                    <Text
-                      variant="ui"
-                      as="span"
-                      style={{ color: 'var(--semantic-color-content-secondary)' }}
-                    >
-                      {it.time ?? 'All day'}
-                    </Text>
-                    <Text variant="ui" as="span">
-                      {KIND_WORD[it.kind]}
-                      {it.overdue ? ' (overdue)' : ''}
-                    </Text>
-                    {it.overdue && <Badge tone="warning">Overdue</Badge>}
-                    <InlineLink href={it.jobUrl}>{it.label}</InlineLink>
-                    {it.company && (
+    <div style={{ marginBottom: 'var(--primitive-space-4)' }}>
+      <Disclosure label={`This week · ${items.length}`} defaultOpen>
+        <Stack gap="normal">
+          {days.map((day) => (
+            <Stack key={day.date} gap="tight">
+              <Text variant="ui" as="h3" style={{ margin: 0 }}>
+                {dayLabel(day.date)}
+              </Text>
+              <Stack gap="tight" as="ul" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {day.items.map((it, i) => (
+                  <li key={`${it.jobUrl}-${it.kind}-${it.time ?? ''}-${i}`}>
+                    <Cluster gap="tight" align="center">
                       <Text
                         variant="ui"
                         as="span"
                         style={{ color: 'var(--semantic-color-content-secondary)' }}
                       >
-                        {it.company}
+                        {it.time ?? 'All day'}
                       </Text>
-                    )}
-                  </Cluster>
-                </li>
-              ))}
+                      <Text variant="ui" as="span">
+                        {KIND_WORD[it.kind]}
+                      </Text>
+                      {it.overdue && <Badge tone="warning">Overdue</Badge>}
+                      <InlineLink href={it.jobUrl}>{it.label}</InlineLink>
+                      {it.company && (
+                        <Text
+                          variant="ui"
+                          as="span"
+                          style={{ color: 'var(--semantic-color-content-secondary)' }}
+                        >
+                          {it.company}
+                        </Text>
+                      )}
+                    </Cluster>
+                  </li>
+                ))}
+              </Stack>
             </Stack>
-          </Stack>
-        ))}
-      </Stack>
-    </Disclosure>
+          ))}
+        </Stack>
+      </Disclosure>
+    </div>
   );
 }

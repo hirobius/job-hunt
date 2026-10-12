@@ -53,7 +53,7 @@ describe('ThisWeek', () => {
     addJob(A, 'Welder');
     updateJob(A, { status: 'Applied', applied: '2026-09-20' });
     render(view());
-    expect(screen.getByText('Follow up (overdue)')).toBeInTheDocument();
+    expect(screen.getByText('Follow up')).toBeInTheDocument();
     expect(screen.getByText('Overdue')).toBeInTheDocument();
     expect(screen.getByText('All day')).toBeInTheDocument();
   });
