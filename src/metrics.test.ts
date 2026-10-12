@@ -104,7 +104,10 @@ describe('pipelineMetrics', () => {
   });
 
   it('accepts ISO datetimes in history', () => {
-    const j = job({ status: 'Applied', history: h(['Applied', new Date(2026, 9, 13, 9).toISOString()]) });
+    const j = job({
+      status: 'Applied',
+      history: h(['Applied', new Date(2026, 9, 13, 9).toISOString()]),
+    });
     expect(pipelineMetrics([j], NOW).appliedLast7).toBe(1);
   });
 

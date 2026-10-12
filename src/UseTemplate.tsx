@@ -16,8 +16,9 @@ export default function UseTemplate({ job }: { job: Job }) {
     [snippets],
   );
   const picked = ordered.find((s) => s.id === pickedId) ?? ordered[0];
-  const filled = picked ? fillTemplate(picked.body, valuesFromJob(job)) : '';
-  const missing = unfilledTokens(filled);
+  // Every job card mounts one of these — only fill while the dialog is actually open.
+  const filled = open && picked ? fillTemplate(picked.body, valuesFromJob(job)) : '';
+  const missing = open ? unfilledTokens(filled) : [];
 
   useEffect(() => {
     if (!copied) return;
