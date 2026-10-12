@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Job } from '../types';
 import { addJob, getAllJobs, removeJob, replaceAll, updateJob } from '../store';
-import { clearSample, hasSample, loadSample, seedIfEmpty, withoutSample } from './loadSample';
+import { clearSample, hasCloudSession, loadSample, seedIfEmpty, withoutSample } from './loadSample';
+import { isSample } from './sampleData';
 import { sampleJobs } from './sampleData';
 
 const NOW = new Date(2026, 9, 12, 10);
@@ -61,7 +62,7 @@ describe('loadSample / clearSample (store adapters)', () => {
   it('loads into an empty store, then clears back to empty', () => {
     expect(loadSample(NOW)).toBe(true);
     expect(getAllJobs()).toHaveLength(sample.length);
-    expect(hasSample(getAllJobs())).toBe(true);
+    expect(getAllJobs().every(isSample)).toBe(true);
     expect(clearSample()).toBe(sample.length);
     expect(getAllJobs()).toEqual([]);
   });
@@ -87,5 +88,18 @@ describe('loadSample / clearSample (store adapters)', () => {
     const before = getAllJobs();
     expect(clearSample()).toBe(0);
     expect(getAllJobs()).toEqual(before);
+  });
+});
+
+describe('hasCloudSession', () => {
+  const fake = (keys: string[]) => ({ length: keys.length, key: (i: number) => keys[i] ?? null });
+  it.each<[string[], boolean]>([
+    [[], false],
+    [['rjb_shortlist', 'hds-theme'], false],
+    [['sb-nelrcmbkimjjmfmgnixj-auth-token'], true],
+    [['rjb_shortlist', 'sb-abc-auth-token'], true],
+    [['sb-abc-auth-token-code-verifier'], false],
+  ])('%j → %s', (keys, expected) => {
+    expect(hasCloudSession(fake(keys))).toBe(expected);
   });
 });

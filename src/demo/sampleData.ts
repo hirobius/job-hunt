@@ -69,7 +69,7 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       status: 'Saved',
       verdict: 'stretch',
       mode: 'hybrid',
-      blockers: ['travel'],
+      blockers: ['cert'],
       travelPct: 40,
       history: [{ status: 'Saved', at: d(-2) }],
     }),
@@ -141,7 +141,7 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       status: 'Interviewing',
       priority: true,
       applied: d(-18),
-      followUp: d(-2),
+      followUp: d(-4),
       verdict: 'match',
       mode: 'remote',
       history: [
@@ -176,7 +176,7 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       status: 'Interviewing',
       priority: true,
       applied: d(-21),
-      followUp: d(-1),
+      followUp: d(-5),
       verdict: 'stretch',
       mode: 'hybrid',
       history: [
@@ -209,6 +209,7 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       company: 'Ashgrove Logistics',
       location: 'Remote',
       status: 'Offer',
+      priority: true, // pinned so the Offer stage shows in the default Active view
       applied: d(-30),
       verdict: 'match',
       mode: 'remote',

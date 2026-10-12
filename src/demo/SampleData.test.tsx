@@ -42,6 +42,12 @@ describe('Try with sample data (Tracker)', () => {
     expect(banner()).toBeNull();
   });
 
+  it('is not offered while a cloud session is stored (sync could merge the sample in)', () => {
+    localStorage.setItem('sb-nelrcmbkimjjmfmgnixj-auth-token', '{}');
+    render(<TrackerView />);
+    expect(tryButton()).toBeNull();
+  });
+
   it('keeps the banner (and Clear) up when a search hides every sample row', async () => {
     const user = userEvent.setup();
     render(<TrackerView />);

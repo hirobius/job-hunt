@@ -15,8 +15,19 @@ export function withoutSample(jobs: Job[]): Job[] {
   return jobs.filter((j) => !isSample(j));
 }
 
-export function hasSample(jobs: Job[]): boolean {
-  return jobs.some(isSample);
+/** Whether a Supabase session is stored in this browser. The sample is never offered then: a
+ *  signed-in tracker syncs, and its cloud pull may not have landed yet, so an "empty" tracker
+ *  isn't really empty and seeded records would merge into the account. Reads the persisted
+ *  auth key (`sb-<ref>-auth-token`) directly so the demo needs no hook into CloudSync. */
+export function hasCloudSession(storage: Pick<Storage, 'length' | 'key'> = localStorage): boolean {
+  try {
+    for (let i = 0; i < storage.length; i++) {
+      if (/^sb-.+-auth-token$/.test(storage.key(i) ?? '')) return true;
+    }
+  } catch {
+    /* storage unavailable → treat as signed out */
+  }
+  return false;
 }
 
 /** Seed the sample into an empty tracker. Returns false (and changes nothing) otherwise. */
