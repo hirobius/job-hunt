@@ -1,6 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // E2E config. Spins up the Vite dev server, runs specs in e2e/ against Chromium.
+// PW_CHROMIUM_PATH (optional) points at a pre-installed Chromium when Playwright's own
+// pinned build isn't downloaded, e.g. cloud sessions:
+//   PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e
+const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -10,6 +15,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
+    launchOptions: { executablePath },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
