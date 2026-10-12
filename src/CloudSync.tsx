@@ -7,16 +7,15 @@ import {
   Input as HdsInput,
 } from '@hirobius/design-system';
 import { X } from 'lucide-react';
-import { createClient, type User } from '@supabase/supabase-js';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
+import type { User } from '@supabase/supabase-js';
+import { supabase as supa } from './supabase';
 import { useJobs, getAllJobs, replaceAll } from './store';
-import { usePillars, getUserPillars, replaceUserPillars } from './pillarStore';
 import { useSnippets, getSnippets, replaceSnippets } from './copyDeckStore';
 import { useTileTriage, getTileTriage, replaceTriage } from './tileTriage';
-import { useUserTiles, getUserTiles, replaceUserTiles } from './userTiles';
-import { readBlob, mergeBlob, BLOB_VERSION, type SyncData } from './syncBlob';
-
-const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { readBlob, writeBlob, mergeBlob, type SyncData } from './syncBlob';
+import { syncOnLogin, foldIntoStore, migrateLocalLegacyTiles } from './curation/sync';
+import { getCurationSyncStatus, setCurationSyncStatus } from './curation/syncStatus';
+import { OFFLINE_MSG, DELETE_ORDER, deleteFailedMsg } from './cloudMessages';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
 // delete so a shared browser can't carry one person's jobs/pillars/résumé to the next.
@@ -37,10 +36,8 @@ const HIDE_KEY = 'rjb_sync_banner_hidden';
 
 export default function CloudSync() {
   const jobs = useJobs();
-  const pillars = usePillars();
   const snippets = useSnippets();
   const triage = useTileTriage();
-  const userTiles = useUserTiles();
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('Sign in to sync across your devices');
@@ -65,53 +62,58 @@ export default function CloudSync() {
 
   const localBlob = (): SyncData => ({
     jobs: getAllJobs(),
-    pillars: getUserPillars(),
     copydeck: getSnippets(),
     triage: getTileTriage(),
-    userTiles: getUserTiles(),
+    legacyUserTiles: [],
   });
-  const localJson = () => JSON.stringify(localBlob());
+  const localJson = () => JSON.stringify(writeBlob(localBlob()));
 
   async function pull(uid: string): Promise<SyncData | null> {
     const r = await supa.from('tracker').select('data').eq('user_id', uid).maybeSingle();
+    if (r.error) throw new Error(r.error.message);
     return r.data ? readBlob(r.data.data) : null;
   }
   async function pushNow(u: User) {
-    const r = await supa
-      .from('tracker')
-      .upsert({
-        user_id: u.id,
-        data: { v: BLOB_VERSION, ...localBlob() },
-        updated_at: new Date().toISOString(),
-      });
+    const r = await supa.from('tracker').upsert({
+      user_id: u.id,
+      data: writeBlob(localBlob()),
+      updated_at: new Date().toISOString(),
+    });
     lastSynced.current = localJson();
-    setMsg(r.error ? 'Saved locally — cloud error' : `Synced · ${u.email}`);
+    setMsg(r.error ? OFFLINE_MSG : `Synced · ${u.email}`);
   }
   async function adopt(seed: boolean, u: User) {
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     try {
       const next = mergeBlob(await pull(u.id), localBlob(), seed);
       replaceAll(next.jobs);
-      replaceUserPillars(next.pillars);
       replaceSnippets(next.copydeck);
       replaceTriage(next.triage);
-      replaceUserTiles(next.userTiles);
+      foldIntoStore(next.legacyUserTiles); // v3 cloud blob → "My links" (no-op once folded)
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
-      if (seed) await pushNow(u);
-      else setMsg(`Synced · ${u.email}`);
+      // Tracks live in their own tables: pull + merge + upload local-only (#99).
+      const curationOk = await syncOnLogin(u.id);
+      if (seed || next.legacyUserTiles.length) await pushNow(u);
+      if (!curationOk) setMsg(OFFLINE_MSG);
+      else if (!seed) setMsg(`Synced · ${u.email}`);
     } catch {
-      setMsg('Saved locally — cloud error');
+      setCurationSyncStatus('error');
+      setMsg(OFFLINE_MSG);
     }
   }
 
-  // auth state
+  // auth state (+ the one-time local fold of retired user tiles)
   useEffect(() => {
+    migrateLocalLegacyTiles();
     const { data } = supa.auth.onAuthStateChange((_e, session) => {
       const u = session?.user ?? null;
       setUser(u);
       if (u) adopt(true, u);
-      else setMsg('Sign in to sync across your devices');
+      else {
+        if (getCurationSyncStatus() === 'syncing') setCurationSyncStatus('idle');
+        setMsg('Sign in to sync across your devices');
+      }
     });
     return () => data.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -126,7 +128,7 @@ export default function CloudSync() {
     pushTimer.current = setTimeout(() => pushNow(user), 500);
     // pushNow/localJson are stable enough; we intentionally fire only on data + user changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobs, pillars, snippets, triage, userTiles, user]);
+  }, [jobs, snippets, triage, user]);
 
   // re-pull on focus
   useEffect(() => {
@@ -156,16 +158,22 @@ export default function CloudSync() {
     )
       return;
     setMsg('Deleting…');
-    try {
-      // Erase curated content (child → parent) plus the sync blob. RLS scopes each
-      // delete to this user; the FK cascade would cover the children, but we delete
-      // them explicitly so erasure never silently depends on it.
-      await supa.from('tiles').delete().eq('user_id', user.id);
-      await supa.from('groups').delete().eq('user_id', user.id);
-      await supa.from('categories').delete().eq('user_id', user.id);
-      await supa.from('tracker').delete().eq('user_id', user.id);
-    } catch {
-      /* ignore */
+    // Erase curated content (child → parent) plus the sync blob. RLS scopes each delete to this
+    // user; the FK cascade would cover the children, but we delete them explicitly so erasure
+    // never silently depends on it. supabase-js reports failure as `{ error }`, not a throw.
+    const failed: string[] = [];
+    for (const table of DELETE_ORDER) {
+      try {
+        const r = await supa.from(table).delete().eq('user_id', user.id);
+        if (r.error) failed.push(table);
+      } catch {
+        failed.push(table);
+      }
+    }
+    if (failed.length) {
+      // Keep this device's copy so nothing is lost while the cloud copy is only partly gone.
+      setMsg(deleteFailedMsg(failed));
+      return;
     }
     clearLocalData();
     await supa.auth.signOut();
@@ -239,6 +247,11 @@ export default function CloudSync() {
       )}
       {user ? (
         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+          {msg === OFFLINE_MSG && (
+            <Button size="sm" variant="secondary" onClick={() => adopt(false, user)}>
+              Retry
+            </Button>
+          )}
           <Button size="sm" variant="secondary" onClick={signOut}>
             Sign out
           </Button>

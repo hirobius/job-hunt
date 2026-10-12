@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { Box, Stack, Typography } from './ui/box';
-import { Button, Input as HdsInput, Tag } from '@hirobius/design-system';
+import {
+  Button,
+  Input as HdsInput,
+  Spinner,
+  Stack as HdsStack,
+  Tag,
+  Text,
+} from '@hirobius/design-system';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
+import { useCurationSyncStatus } from './curation/syncStatus';
 
 // First-run onboarding (issue #59 / B1, decision D1): an empty curation store routes here before
 // Discover renders. Pick one or more starter packs + an optional location → seed them into the
@@ -9,9 +17,26 @@ import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 export function Onboarding() {
   const [picked, setPicked] = useState<string[]>([]);
   const [location, setLocation] = useState('');
+  const syncStatus = useCurationSyncStatus();
   const toggle = (id: string) =>
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const start = () => picked.forEach((id) => seedPack(id, location));
+
+  // A signed-in pull may be about to restore this user's tracks — don't offer to re-onboard
+  // over it (that wrote duplicate tracks). The status always settles within a few seconds.
+  if (syncStatus === 'syncing')
+    return (
+      <HdsStack
+        direction="row"
+        gap="normal"
+        align="center"
+        justify="center"
+        style={{ padding: 48 }}
+      >
+        <Spinner size="sm" />
+        <Text variant="body">Restoring your tracks…</Text>
+      </HdsStack>
+    );
 
   return (
     <Box sx={{ maxWidth: 560, mx: 'auto', py: 4 }}>
