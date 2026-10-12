@@ -4,8 +4,8 @@ import {
   Button,
   Input as HdsInput,
   Spinner,
+  SelectableCard,
   Stack as HdsStack,
-  Tag,
   Text,
 } from '@hirobius/design-system';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
@@ -20,7 +20,14 @@ export function Onboarding() {
   const syncStatus = useCurationSyncStatus();
   const toggle = (id: string) =>
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
-  const start = () => picked.forEach((id) => seedPack(id, location));
+  const [firstTitle, setFirstTitle] = useState('');
+  // "Build your own" starts empty, so it needs one title to search for anything (#59).
+  const needsTitle = picked.includes('blank');
+  const ready = picked.length > 0 && (!needsTitle || firstTitle.trim() !== '');
+  const start = () =>
+    picked.forEach((id) =>
+      seedPack(id, location, id === 'blank' ? { titles: [firstTitle.trim()] } : undefined),
+    );
 
   // A signed-in pull may be about to restore this user's tracks — don't offer to re-onboard
   // over it (that wrote duplicate tracks). The status always settles within a few seconds.
@@ -59,39 +66,56 @@ export function Onboarding() {
             style={{ maxWidth: 280 }}
           />
         </Box>
-        <Stack spacing={1}>
-          {STARTER_PACKS.map((p) => {
-            const on = picked.includes(p.id);
-            return (
-              <Box
+        <div role="group" aria-label="Starter tracks">
+          <HdsStack gap="tight">
+            {STARTER_PACKS.map((p) => (
+              // HDS SelectableCard = a real button with checkbox semantics (aria-checked), named
+              // by its pack and described by its blurb — keyboard + screen-reader operable (#104).
+              <SelectableCard
                 key={p.id}
-                onClick={() => toggle(p.id)}
-                sx={{
-                  cursor: 'pointer',
-                  border: 1,
-                  borderColor: on ? 'primary.main' : 'divider',
-                  borderRadius: 2,
-                  p: 1.5,
-                  display: 'flex',
-                  gap: 1.25,
-                  alignItems: 'center',
-                }}
+                selected={picked.includes(p.id)}
+                onSelectedChange={() => toggle(p.id)}
+                aria-labelledby={`pack-${p.id}`}
+                aria-describedby={`pack-${p.id}-blurb`}
+                style={{ textAlign: 'left' }}
               >
-                <Tag active={on}>{on ? '✓' : '+'}</Tag>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontWeight: 600 }}>{p.label}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {p.blurb}
-                  </Typography>
-                </Box>
-              </Box>
-            );
-          })}
-        </Stack>
-        <Button variant="primary" disabled={picked.length === 0} onClick={start}>
-          {picked.length
-            ? `Start with ${picked.length} track${picked.length > 1 ? 's' : ''}`
-            : 'Pick a track'}
+                <Text
+                  variant="ui"
+                  as="span"
+                  id={`pack-${p.id}`}
+                  style={{ display: 'block', fontWeight: 600 }}
+                >
+                  {p.label}
+                </Text>
+                <Text
+                  variant="caption"
+                  as="span"
+                  id={`pack-${p.id}-blurb`}
+                  style={{ display: 'block', color: 'var(--semantic-color-content-secondary)' }}
+                >
+                  {p.blurb}
+                </Text>
+              </SelectableCard>
+            ))}
+          </HdsStack>
+        </div>
+        {needsTitle && (
+          <HdsInput
+            size="sm"
+            label="First job title for your own track"
+            required
+            placeholder="e.g. Design Engineer"
+            value={firstTitle}
+            onChange={(e) => setFirstTitle(e.target.value)}
+            style={{ maxWidth: 320 }}
+          />
+        )}
+        <Button variant="primary" disabled={!ready} onClick={start}>
+          {!picked.length
+            ? 'Pick a track'
+            : !ready
+              ? 'Add a first job title'
+              : `Start with ${picked.length} track${picked.length > 1 ? 's' : ''}`}
         </Button>
       </Stack>
     </Box>

@@ -56,14 +56,19 @@ const CONTENT_FOR: Record<string, PackContent | undefined> = {
 };
 
 /** Seed one starter pack into the curation store as a Category (+ its groups/tiles). Returns the
- *  new category id. `location`, when non-blank, overrides the pack's default (onboarding sets it). */
-export function seedPack(packId: string, location?: string): string {
+ *  new category id. `location`, when non-blank, overrides the pack's default (onboarding sets it);
+ *  `opts.titles`, when non-empty, replaces the pack's title chips ("Build your own" needs one). */
+export function seedPack(
+  packId: string,
+  location?: string,
+  opts: { titles?: string[] } = {},
+): string {
   const content = CONTENT_FOR[packId];
   const label = STARTER_PACKS.find((p) => p.id === packId)?.label ?? 'My Track';
   const loc = (location ?? '').trim() || content?.location || '';
   const categoryId = addCategory({
     label,
-    titles: content ? [...content.titles] : [],
+    titles: opts.titles?.length ? [...opts.titles] : content ? [...content.titles] : [],
     atsRoles: content ? [...content.atsRoles] : [],
     seniority: content?.seniority ?? 'any',
     location: loc,

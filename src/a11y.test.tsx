@@ -5,6 +5,7 @@ import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import CopyDeckView from './CopyDeckView';
 import DiscoverView from './DiscoverView';
+import { Onboarding } from './Onboarding';
 import { getAllJobs, removeJob } from './store';
 import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
@@ -51,6 +52,15 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
 
   it.each(views)('%s', async (_name, ui) => {
     const { container } = withTheme(ui);
+    await auditA11y(container);
+  });
+});
+
+describe('a11y — first-run Onboarding (#104)', () => {
+  it('pack picker with a pack and "Build your own" selected', async () => {
+    const { container, getByRole } = withTheme(<Onboarding />);
+    getByRole('checkbox', { name: 'ServiceNow' }).click();
+    getByRole('checkbox', { name: 'Build your own' }).click();
     await auditA11y(container);
   });
 });
