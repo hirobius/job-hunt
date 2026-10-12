@@ -27,8 +27,11 @@ import { useCategories, useGroups, useTiles, addCategory } from './curation/cura
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import type { Category, Seniority } from './curation/types';
 import { Onboarding } from './Onboarding';
+import LocationControl from './LocationControl';
+import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 
 const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
+const LiveFeedPanel = lazy(() => import('./LiveFeedPanel'));
 
 // Discover reads the per-account CURATION STORE (categories→groups→tiles), not the old hardcoded
 // pillars (B1 / #30). A Category IS a track: its titles/atsRoles/seniority/location drive the
@@ -36,54 +39,6 @@ const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
 // An empty store routes to first-run Onboarding (decision D1).
 
 const ACTIVE_CATEGORY_KEY = 'rjb_active_category';
-
-const REMOTE_COMPETITION_HINT =
-  'Remote roles draw ~5× the applicants (2024) — local & hybrid compete less.';
-
-function LocationControl({
-  where,
-  mode,
-  onWhere,
-  onMode,
-}: {
-  where: string;
-  mode: WorkMode;
-  onWhere: (v: string) => void;
-  onMode: (v: WorkMode) => void;
-}) {
-  return (
-    <Stack spacing={1} sx={{ mb: 1.5 }}>
-      <SegmentedControl
-        aria-label="Work mode"
-        size="sm"
-        value={mode}
-        onChange={(v) => onMode(v as WorkMode)}
-        options={[
-          { value: 'any', label: 'Any' },
-          { value: 'remote', label: 'Remote' },
-          { value: 'hybrid', label: 'Hybrid' },
-          { value: 'onsite', label: 'On-site' },
-        ]}
-      />
-      <Box sx={{ maxWidth: 280, '& > *': { width: '100%' } }}>
-        <HdsInput
-          size="sm"
-          aria-label="Location"
-          placeholder="City, State — blank = anywhere"
-          value={mode === 'remote' ? '' : where}
-          disabled={mode === 'remote'}
-          onChange={(e) => onWhere(e.target.value)}
-          style={{ width: '100%' }}
-        />
-      </Box>
-      {mode === 'remote' && (
-        <Typography variant="caption" color="text.secondary">
-          {REMOTE_COMPETITION_HINT}
-        </Typography>
-      )}
-    </Stack>
-  );
-}
 
 // Curated group tiles: saved ones removed (issue #57), pin/set-aside triage kept (decision D2).
 function GroupPanel({
@@ -339,7 +294,12 @@ function AtsPanel({
   );
 }
 
-type TabDesc = { key: string; label: string; kind: 'group' | 'titles' | 'ats'; tiles?: Tile[] };
+type TabDesc = {
+  key: string;
+  label: string;
+  kind: 'group' | 'titles' | 'ats' | 'live';
+  tiles?: Tile[];
+};
 
 export default function DiscoverView() {
   const categories = useCategories();
@@ -407,14 +367,21 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((t) => ({ name: t.name, meta: t.meta, url: t.url }));
 
-  const featured = catGroups[0];
-  const rest = catGroups.slice(1);
+  // The first curated group is the featured "Apply Now" tab — never the feed's watch list.
+  const featured = catGroups.find((g) => g.label !== WATCH_GROUP_LABEL);
+  const rest = catGroups.filter((g) => g !== featured);
+  // Board tiles anywhere on the track feed Live postings (see src/feed/watchlist.ts).
+  const boardUrls = useMemo(
+    () => boardUrlsFor(cat.id, { categories, groups: allGroups, tiles: allTiles }),
+    [cat.id, categories, allGroups, allTiles],
+  );
   const tabs: TabDesc[] = [
     ...(featured
       ? [{ key: featured.id, label: 'Apply Now', kind: 'group' as const, tiles: tilesFor(featured.id) }]
       : []),
     { key: 'titles', label: 'Title search', kind: 'titles' },
     { key: 'ats', label: 'ATS search', kind: 'ats' },
+    { key: 'live', label: 'Live postings', kind: 'live' },
     ...rest.map((g) => ({ key: g.id, label: g.label, kind: 'group' as const, tiles: tilesFor(g.id) })),
   ];
 
@@ -482,6 +449,20 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               onMode={setMode}
               onManage={() => setManageOpen(true)}
             />
+          )}
+          {cur.kind === 'live' && (
+            <Suspense fallback={null}>
+              <LiveFeedPanel
+                key={cat.id}
+                categoryId={cat.id}
+                terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
+                boardUrls={boardUrls}
+                where={where}
+                mode={mode}
+                onWhere={setWhere}
+                onMode={setMode}
+              />
+            </Suspense>
           )}
         </TabsContent>
       </HdsTabs>

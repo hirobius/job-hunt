@@ -1,0 +1,49 @@
+// Live postings feed (Discover → "Live postings") — the shared model every source adapter
+// normalizes into. A Posting is a raw opening pulled from a public, keyless, CORS-open API at view
+// time; it is never stored. Saving one turns it into a tracked Job (src/types.ts) by URL.
+import type { JobMode } from '../types';
+
+export type FeedSourceId = 'hn' | 'remotive' | 'greenhouse' | 'lever' | 'ashby';
+
+export const SOURCE_LABEL: Record<FeedSourceId, string> = {
+  hn: 'Hacker News',
+  remotive: 'Remotive',
+  greenhouse: 'Greenhouse',
+  lever: 'Lever',
+  ashby: 'Ashby',
+};
+
+export interface Posting {
+  /** `${source}:${nativeId}` — stable across refetches. */
+  id: string;
+  source: FeedSourceId;
+  title: string;
+  company: string;
+  /** Where the user goes to read/apply. Also the Job key once saved. */
+  url: string;
+  /** Free-text location as the source gave it; '' when unknown. */
+  location: string;
+  mode?: JobMode;
+  /** ISO timestamp; undefined when the source doesn't say. */
+  postedAt?: string;
+  /** Plain-text body (HTML stripped) — what the matcher searches. */
+  text: string;
+}
+
+export type SignalId = 'contract' | 'founding';
+
+export interface Signal {
+  id: SignalId;
+  label: string;
+  /** The matched words, shown as the tag's tooltip so a signal is never unexplained. */
+  evidence: string;
+}
+
+export interface RankedPosting extends Posting {
+  score: number;
+  /** Where the search term was found. */
+  hit: 'title' | 'text';
+  signals: Signal[];
+  /** ~200 chars of body around the first term hit. */
+  snippet: string;
+}

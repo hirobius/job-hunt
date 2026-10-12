@@ -1,6 +1,6 @@
 import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
-import { type Job, type Status } from './types';
+import { type Job, type JobMode, type Status } from './types';
 import { applyStatus, logFollowUp as applyFollowUp, normStatus } from './jobState';
 import { normalizeScreening } from './screening';
 
@@ -58,7 +58,7 @@ export function cleanUrl(u: string): string {
   while (/^https?:\/\/https?:\/\//i.test(u)) u = u.replace(/^https?:\/\//i, '');
   return u;
 }
-function dedupKey(u: string): string {
+export function dedupKey(u: string): string {
   try {
     const x = new URL(u);
     const h = x.hostname.replace(/^www\./, '').toLowerCase();
@@ -150,7 +150,7 @@ export function addJob(rawUrl: string, label?: string, note?: string): boolean {
   set([...jobs, job]);
   return true;
 }
-/** Add a job with extra fields in one shot (used by AI intake). Returns the stored
+/** Add a job with extra fields in one shot (used by Live postings save). Returns the stored
  *  (normalized) URL when newly added, or null if it already existed — in which case
  *  the existing entry is left untouched so we never clobber the user's own notes. */
 export function addJobDetailed(
@@ -162,6 +162,7 @@ export function addJobDetailed(
     company?: string;
     location?: string;
     seniority?: string;
+    mode?: JobMode;
   },
 ): string | null {
   const jobs = store.get();
@@ -181,6 +182,7 @@ export function addJobDetailed(
   if (fields.company?.trim()) job.company = fields.company.trim();
   if (fields.location?.trim()) job.location = fields.location.trim();
   if (fields.seniority?.trim()) job.seniority = fields.seniority.trim();
+  if (fields.mode) job.mode = fields.mode;
   set([...jobs, job]);
   return u;
 }

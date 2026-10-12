@@ -1,9 +1,10 @@
 {
-  "updatedAt": "2026-10-07T00:00:00Z",
+  "updatedAt": "2026-10-12T00:00:00Z",
   "phase": "live",
-  "headline": "Live and stable on production (job-hunt-jade.vercel.app). The agnostic multi-tenant product is complete — #30 curation chain (B1-B5) and the agnostic pivot (#58 location+work-mode, #60 screening fields, #61 rules-based JD screener) all shipped; AI fully removed (#54). 2026-10-07: backlog triage — closed ~16 shipped/obsolete issues (incl. AI-security #40/#45, now moot) and stale PR #28. Remaining work is a short hardening/legal list plus one deferred refactor.",
+  "headline": "Live on production. 2026-10-12: Live postings feed built on branch claude/run-the-fetch-45j8i3 (not yet merged) \u2014 Discover pulls real openings from HN Who-is-hiring, Remotive and watched Greenhouse/Lever/Ashby boards, ranks them by fit (contract-friendly / first-hire signals) and saves to the Queue; keyless + browser-side. 334 tests green.",
   "next": [
-    "DEFERRED (own PR, non-user-facing): fully retire pillarStore + pillars.ts — still load-bearing for cloud sync (CloudSync/syncBlob/curationStore/copyDeckStore import them; user-pillars ride in the sync blob). Untangle the sync layer first. Last piece of #34.",
+    "Review + merge the Live postings branch (claude/run-the-fetch-45j8i3); verify on its Vercel preview first.",
+    "DEFERRED (own PR, non-user-facing): fully retire pillarStore + pillars.ts \u2014 still load-bearing for cloud sync (CloudSync/syncBlob/curationStore/copyDeckStore import them; user-pillars ride in the sync blob). Untangle the sync layer first. Last piece of #34.",
     "Human / dashboard: #44 Supabase auth hardening, #16 Vercel analytics, #17 delete stale remote branches, #55 name/trademark clearance (ApplyBoard conflict).",
     "Legal (before public launch): #43 Privacy Policy + Terms + subprocessor disclosure.",
     "Hygiene: triage dependabot PRs (#84 minor/patch group; #68-#71 stale major bumps incl. React 19) with local + Vercel verify (no CI); refresh stale README (#20, still references removed AI)."
