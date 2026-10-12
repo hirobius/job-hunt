@@ -1,11 +1,9 @@
 // Interview / call log on a Job, plus the calendar views derived from it: .ics export events and
 // the This-week agenda. Pure and DOM-free; `now` is always injected (local time).
 import type { IcsEvent } from './ics';
-import { deriveJobState } from './jobState';
+import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
 import type { Job, JobEvent, JobEventKind } from './types';
 
-/** Days after the last contact before a follow-up is due (mirrors jobState's rule). */
-const FOLLOWUP_DAYS = 7;
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -53,7 +51,7 @@ export function removeEvent(events: readonly JobEvent[] | undefined, id: string)
 export function followUpDate(job: Job, now: Date): string | null {
   if (job.archived || !deriveJobState(job, now).followUp.tracked) return null;
   const ref = job.followUp || job.applied;
-  const m = ref ? DATE_RE.exec(ref) : null;
+  const m = ref ? DATE_RE.exec(ref.slice(0, 10)) : null;
   if (!m) return null;
   return ymd(new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + FOLLOWUP_DAYS));
 }

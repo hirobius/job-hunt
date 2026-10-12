@@ -13,6 +13,9 @@ export type JobMode = 'remote' | 'hybrid' | 'onsite';
 export interface StatusChange {
   status: Status;
   at: string;
+  /** Backfilled for a legacy job (date unknown, `at` borrowed from `applied`) — never persisted;
+   *  counts toward rates but not toward time-to-reply. */
+  derived?: boolean;
 }
 
 /** Kinds of dated event logged against a job (spec: interviews + calendar). */

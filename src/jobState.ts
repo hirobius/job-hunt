@@ -7,7 +7,7 @@
 import { STATUSES, type Job, type Status, type StatusChange } from './types';
 
 /** Days after the last contact (apply, or last follow-up) before a follow-up falls due. */
-const FOLLOWUP_DAYS = 7;
+export const FOLLOWUP_DAYS = 7;
 
 /** Normalize any string to a known Status, defaulting to 'Saved'. */
 export function normStatus(s?: string): Status {
@@ -23,7 +23,10 @@ function today(now: Date): string {
 /** Whole days between an ISO-ish date string and `now`; null for missing/invalid input. */
 export function daysSince(s: string | undefined, now: Date = new Date()): number | null {
   if (!s) return null;
-  const t = Date.parse(s);
+  // A bare YYYY-MM-DD is a LOCAL calendar day (Date.parse would read it as UTC midnight, which
+  // shifts day boundaries by the UTC offset and disagrees with the calendar/This-week views).
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  const t = m ? new Date(+m[1], +m[2] - 1, +m[3]).getTime() : Date.parse(s);
   return isNaN(t) ? null : Math.floor((now.getTime() - t) / 86400000);
 }
 
@@ -80,7 +83,7 @@ export function effectiveHistory(job: Job): StatusChange[] {
   if (!job.applied) return [];
   const out: StatusChange[] = [{ status: 'Applied', at: job.applied }];
   const cur = normStatus(job.status);
-  if (BEYOND_APPLIED.includes(cur)) out.push({ status: cur, at: job.applied });
+  if (BEYOND_APPLIED.includes(cur)) out.push({ status: cur, at: job.applied, derived: true });
   return out;
 }
 
@@ -91,7 +94,11 @@ export function effectiveHistory(job: Job): StatusChange[] {
 export function applyStatus(job: Job, next: Status, now: Date = new Date()): Job {
   const changed = normStatus(job.status) !== next;
   const n: Job = { ...job, status: next };
-  if (changed) n.history = [...effectiveHistory(job), { status: next, at: today(now) }];
+  if (changed)
+    n.history = [
+      ...effectiveHistory(job).map(({ status, at }) => ({ status, at })),
+      { status: next, at: today(now) },
+    ];
   if (next === 'Applied' && !n.applied) n.applied = today(now);
   return n;
 }

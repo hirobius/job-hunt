@@ -87,7 +87,7 @@ describe('pipelineMetrics', () => {
     expect(pipelineMetrics(jobs, NOW).medianDaysToResponse).toBe(4);
   });
 
-  it('legacy jobs without history are backfilled (reply counts as 0 days)', () => {
+  it('legacy jobs without history are backfilled (rates count; reply time unknown)', () => {
     const m = pipelineMetrics(
       [job({ status: 'Applied', applied: ago(2) }), job({ status: 'Offer', applied: ago(4) })],
       NOW,
@@ -95,7 +95,7 @@ describe('pipelineMetrics', () => {
     expect(m.appliedTotal).toBe(2);
     expect(m.responseRate).toBe(0.5);
     expect(m.interviewRate).toBe(0.5);
-    expect(m.medianDaysToResponse).toBe(0);
+    expect(m.medianDaysToResponse).toBeNull();
   });
 
   it('applied date prefers the history entry over the legacy field', () => {

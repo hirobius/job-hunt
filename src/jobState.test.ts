@@ -151,7 +151,7 @@ describe('effectiveHistory', () => {
       { status: 'Offer', applied: '2026-05-01' },
       [
         { status: 'Applied', at: '2026-05-01' },
-        { status: 'Offer', at: '2026-05-01' },
+        { status: 'Offer', at: '2026-05-01', derived: true },
       ],
     ],
     [
@@ -170,5 +170,12 @@ describe('logFollowUp', () => {
     const next = logFollowUp(j, NOW);
     expect(next.followUp).toBe(TODAY);
     expect(next).not.toBe(j);
+  });
+});
+
+describe('daysSince — a bare date is a local calendar day', () => {
+  it('counts whole local days, not UTC-midnight offsets', () => {
+    expect(daysSince('2026-10-05', new Date(2026, 9, 11, 23, 59))).toBe(6);
+    expect(daysSince('2026-10-05', new Date(2026, 9, 12, 0, 0))).toBe(7);
   });
 });

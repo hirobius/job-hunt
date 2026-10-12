@@ -75,7 +75,7 @@ export function pipelineMetrics(jobs: Job[], now: Date = new Date()): PipelineMe
     const first = hist.find((h) => RESPONSE.includes(h.status));
     if (first) {
       responded++;
-      const at = localDay(first.at);
+      const at = first.derived ? null : localDay(first.at); // legacy backfill: date unknown
       if (at) replyDays.push(Math.max(0, dayDiff(applied, at)));
     }
     if (hist.some((h) => INTERVIEW.includes(h.status))) interviewed++;
