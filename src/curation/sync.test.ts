@@ -8,7 +8,8 @@ vi.mock('../supabase', async () => {
   return { supabase: fake.current.client, hasPersistedSession: () => false };
 });
 
-import { syncOnLogin, migrateLocalLegacyTiles } from './sync';
+import { syncOnLogin, takeLocalLegacyTiles, foldIntoStore, pushRestoredCuration } from './sync';
+import { setCurationSyncedAt } from './syncStatus';
 import { addCategory, getCurationState, replaceCurationState } from './curationStore';
 import { getCurationSyncStatus } from './syncStatus';
 import { categoryToRow } from './map';
@@ -81,18 +82,50 @@ describe('syncOnLogin against a fake Supabase', () => {
   });
 });
 
-describe('migrateLocalLegacyTiles', () => {
-  it('folds rjb_user_tiles into "My links" once and clears the key', () => {
+describe('deletions made elsewhere stay deleted (#99 review)', () => {
+  it('a stale local track missing from the cloud is dropped, not re-uploaded', async () => {
+    addCategory({ label: 'Deleted on another device', createdAt: '2026-01-01T00:00:00.000Z' });
+    setCurationSyncedAt('2026-06-01T00:00:00.000Z');
+    expect(await syncOnLogin('u1')).toBe(true);
+    expect(getCurationState().categories).toEqual([]);
+    expect(f().tables.categories ?? []).toEqual([]);
+  });
+
+  it('a populated board re-syncs without flipping the onboarding gate to syncing', async () => {
+    addCategory({ label: 'Mine' });
+    const p = syncOnLogin('u1');
+    expect(getCurationSyncStatus()).not.toBe('syncing');
+    await p;
+  });
+});
+
+describe('legacy user tiles', () => {
+  it('takeLocalLegacyTiles reads + clears rjb_user_tiles once; the fold lands in "My links"', () => {
     localStorage.setItem(
       'rjb_user_tiles',
-      JSON.stringify([{ name: 'Acme', meta: 'Added by you', url: 'https://acme.example/jobs' }]),
+      JSON.stringify([{ name: 'Acme', meta: 'Added by you', url: 'https://acme.example/jobs' }, 7]),
     );
-    migrateLocalLegacyTiles();
-    const s = getCurationState();
-    expect(s.groups.map((g) => g.label)).toEqual([MY_LINKS]);
-    expect(s.tiles.map((t) => t.url)).toEqual(['https://acme.example/jobs']);
+    const tiles = takeLocalLegacyTiles();
+    expect(tiles.map((t) => t.url)).toEqual(['https://acme.example/jobs']);
     expect(localStorage.getItem('rjb_user_tiles')).toBeNull();
-    migrateLocalLegacyTiles(); // second run: nothing to do
-    expect(getCurationState().tiles).toHaveLength(1);
+    expect(takeLocalLegacyTiles()).toEqual([]);
+    foldIntoStore(tiles);
+    expect(getCurationState().groups.map((g) => g.label)).toEqual([MY_LINKS]);
+  });
+});
+
+describe('pushRestoredCuration', () => {
+  it('replace makes the cloud match the restored board exactly', async () => {
+    f().tables.categories = [cloudCategory('old', 'Old cloud track')];
+    f().signIn('u1');
+    addCategory({ label: 'Restored' });
+    expect(await pushRestoredCuration('replace')).toBe(true);
+    expect(f().tables.categories.map((r) => r.label)).toEqual(['Restored']);
+  });
+
+  it('signed out → nothing to mirror', async () => {
+    addCategory({ label: 'Restored' });
+    expect(await pushRestoredCuration('merge')).toBe(true);
+    expect(f().tables.categories ?? []).toEqual([]);
   });
 });

@@ -13,7 +13,7 @@ import { useJobs, getAllJobs, replaceAll } from './store';
 import { useSnippets, getSnippets, replaceSnippets } from './copyDeckStore';
 import { useTileTriage, getTileTriage, replaceTriage } from './tileTriage';
 import { readBlob, writeBlob, mergeBlob, type SyncData } from './syncBlob';
-import { syncOnLogin, foldIntoStore, migrateLocalLegacyTiles } from './curation/sync';
+import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from './curation/sync';
 import { getCurationSyncStatus, setCurationSyncStatus } from './curation/syncStatus';
 import { OFFLINE_MSG, DELETE_ORDER, deleteFailedMsg } from './cloudMessages';
 
@@ -89,11 +89,17 @@ export default function CloudSync() {
       replaceAll(next.jobs);
       replaceSnippets(next.copydeck);
       replaceTriage(next.triage);
-      foldIntoStore(next.legacyUserTiles); // v3 cloud blob → "My links" (no-op once folded)
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
-      // Tracks live in their own tables: pull + merge + upload local-only (#99).
-      const curationOk = await syncOnLogin(u.id);
+      // Tracks live in their own tables: pull + reconcile + upload what's new here (#99).
+      let curationOk = await syncOnLogin(u.id);
+      // Retired user tiles (v3 cloud blob / this device's old store) fold into "My links" AFTER
+      // the pull, so the fold sees the cloud's tracks + URLs; a second pass uploads the new rows.
+      const legacy = [...next.legacyUserTiles, ...takeLocalLegacyTiles()];
+      if (curationOk && legacy.length) {
+        foldIntoStore(legacy);
+        curationOk = await syncOnLogin(u.id);
+      }
       if (seed || next.legacyUserTiles.length) await pushNow(u);
       if (!curationOk) setMsg(OFFLINE_MSG);
       else if (!seed) setMsg(`Synced · ${u.email}`);
@@ -103,14 +109,16 @@ export default function CloudSync() {
     }
   }
 
-  // auth state (+ the one-time local fold of retired user tiles)
+  // auth state. Token refreshes / profile updates aren't a new sign-in — don't re-run the
+  // seed merge (it would also flip the sync gate mid-onboarding).
   useEffect(() => {
-    migrateLocalLegacyTiles();
-    const { data } = supa.auth.onAuthStateChange((_e, session) => {
+    const { data } = supa.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null;
       setUser(u);
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
       if (u) adopt(true, u);
       else {
+        foldIntoStore(takeLocalLegacyTiles()); // signed out: fold this device's old links now
         if (getCurationSyncStatus() === 'syncing') setCurationSyncStatus('idle');
         setMsg('Sign in to sync across your devices');
       }

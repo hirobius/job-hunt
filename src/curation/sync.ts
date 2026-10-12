@@ -1,12 +1,12 @@
 // Sign-in sync for the curation tables (categories/groups/tiles) — the network half, called by
-// CloudSync on sign-in and on focus (#99). Order: pull cloud → local-first merge (merge.ts) →
-// replace the store → upload the rows that existed only locally. Unlike the per-mutator mirror
+// CloudSync on sign-in and on focus (#99). Order: pull cloud → reconcile with local (merge.ts) →
+// replace the store → upload the rows that are new on this device. Unlike the per-mutator mirror
 // in curationStore, this reports failure: every Supabase `{ error }` is checked, the outcome
 // lands in syncStatus (which Onboarding reads), and the caller gets a boolean.
 import { curationClient, getCurationState, replaceCurationState } from './curationStore';
-import { mergeCuration, localOnlyCuration } from './merge';
+import { reconcileCuration } from './merge';
 import { foldLegacyTiles, type LegacyTile } from './legacyTiles';
-import { setCurationSyncStatus } from './syncStatus';
+import { getCurationSyncedAt, setCurationSyncStatus, setCurationSyncedAt } from './syncStatus';
 import {
   categoryFromRow,
   groupFromRow,
@@ -74,31 +74,61 @@ export function foldIntoStore(legacy: readonly LegacyTile[]) {
 
 const LEGACY_KEY = 'rjb_user_tiles';
 
-/** One-time, per device: move the retired userTiles store's links into "My links". */
-export function migrateLocalLegacyTiles() {
+/** Read-and-clear the retired userTiles store's links (once per device). The caller folds them —
+ *  after the sign-in pull when signed in, so the fold sees the cloud's tracks and URLs. */
+export function takeLocalLegacyTiles(): LegacyTile[] {
   try {
     const raw = localStorage.getItem(LEGACY_KEY);
-    if (raw == null) return;
-    const list = JSON.parse(raw);
-    if (Array.isArray(list)) foldIntoStore(list.filter((t) => t && typeof t.url === 'string'));
+    if (raw == null) return [];
     localStorage.removeItem(LEGACY_KEY);
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list.filter((t) => t && typeof t.url === 'string') : [];
   } catch {
-    /* unreadable legacy data — leave it */
+    return [];
   }
 }
 
-/** Pull → merge with local → replace store → upload local-only rows. Returns success. */
+/**
+ * Pull → reconcile with local (merge.ts: cloud wins; local-only rows kept + uploaded only if new
+ * since this device's last sync, so deletions made elsewhere stay deleted) → upload. Returns
+ * success. Only an EMPTY local board shows 'syncing' (that's when Onboarding must wait); a
+ * background re-sync of a populated board never swaps the UI out.
+ */
 export async function syncOnLogin(userId: string): Promise<boolean> {
-  setCurationSyncStatus('syncing');
+  const startedAt = new Date().toISOString();
+  if (getCurationState().categories.length === 0) setCurationSyncStatus('syncing');
   try {
     const cloud = await pullAll(userId);
-    const local = getCurationState();
-    replaceCurationState(mergeCuration(cloud, local));
-    await uploadLocalOnly(userId, localOnlyCuration(cloud, local));
+    const { next, upload } = reconcileCuration(cloud, getCurationState(), getCurationSyncedAt());
+    replaceCurationState(next);
+    await uploadLocalOnly(userId, upload);
+    setCurationSyncedAt(startedAt);
     setCurationSyncStatus('done');
     return true;
   } catch {
     setCurationSyncStatus('error');
+    return false;
+  }
+}
+
+/**
+ * Mirror a restored board to the cloud (backup restore). 'replace' first deletes this user's rows
+ * (child → parent) so the cloud matches the restore exactly; 'merge' upserts every local row.
+ * Signed out → nothing to do. Returns success.
+ */
+export async function pushRestoredCuration(mode: 'merge' | 'replace'): Promise<boolean> {
+  try {
+    const { data } = await curationClient.auth.getSession();
+    const uid = data.session?.user?.id;
+    if (!uid) return true;
+    const startedAt = new Date().toISOString();
+    if (mode === 'replace')
+      for (const table of ['tiles', 'groups', 'categories'] as const)
+        check(await curationClient.from(table).delete().eq('user_id', uid));
+    await uploadLocalOnly(uid, getCurationState());
+    setCurationSyncedAt(startedAt);
+    return true;
+  } catch {
     return false;
   }
 }

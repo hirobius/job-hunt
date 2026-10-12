@@ -27,5 +27,24 @@ export function useCurationSyncStatus(): CurationSyncStatus {
   return store.use();
 }
 
+// When this device last completed a curation sync (ISO). Per device and wiped with the rest of the
+// rjb_* data on sign-out — the reconcile uses it to tell "new here" from "deleted elsewhere".
+const SYNCED_KEY = 'rjb_curation_synced_at';
+export function getCurationSyncedAt(): string | null {
+  try {
+    return localStorage.getItem(SYNCED_KEY);
+  } catch {
+    return null;
+  }
+}
+export function setCurationSyncedAt(iso: string | null) {
+  try {
+    if (iso) localStorage.setItem(SYNCED_KEY, iso);
+    else localStorage.removeItem(SYNCED_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 // Boot: a persisted session means the auth listener is about to fire a sign-in pull.
 if (hasPersistedSession()) setCurationSyncStatus('syncing');
