@@ -1,9 +1,10 @@
 {
-  "updatedAt": "2026-10-13T07:10:00Z",
+  "updatedAt": "2026-10-13T18:00:00Z",
   "phase": "live",
-  "headline": "Live on production. 2026-10-13: Vercel builds are gated by `npm run verify`; the CSP is now ENFORCING (#122, verified headless on production incl. the live feed); tracker features, 'Try with sample data' and a truthful README are live. Next up: the redesign (#115); first 21st.dev-pattern pass (empty states, status chips with counts, monogram job rows) is on claude/job-hunt-ui-redesign-eltszi.",
+  "headline": "Redesign branch claude/job-hunt-ui-redesign-eltszi: HDS 0.24.1, phone-first single column, quiet job rows + a page per job, header sync button, Templates/Discover first-run redesigned, design-system search terms. Not yet merged to main.",
   "next": [
-    "Redesign epic #115 (decided: top tabs, Today home, job detail view, HDS fonts). Waiting on the 21st.dev reference pass + Adrian committing to the spec; then Phase 0–1 on a branch with a [preview] build + live artifact. Phase 0 = land claude/run-the-fetch-45j8i3 (#90–#92) after merging main into it.",
+    "Adrian: Figma agent + Muse passes on the 104 captures; then ingest their output.",
+    "Open a PR from the redesign branch to main once the design passes land.",
     "After HDS lands: vite 8 + plugin-react 6, npm audit, React 19, jest-dom 7 (#105).",
     "Human / dashboard: #16 confirm Vercel Analytics, #22 .env.example + revoke the old Anthropic key, #44 Supabase auth hardening, #17 stale branches, #55 name clearance.",
     "Legal (before public launch): #43 Privacy Policy + Terms."
