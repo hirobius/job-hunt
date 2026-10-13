@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import JobRow from './JobRow';
 import JobDetailPage from './JobDetailPage';
 import { jobHref } from './jobRoute';
@@ -29,7 +30,7 @@ describe('JobRow (rest state)', () => {
       'href',
       jobHref('https://boards.greenhouse.io/acme/jobs/42'),
     );
-    expect(screen.getByText('Acme · Portland, OR')).toBeInTheDocument();
+    expect(screen.getByText('Acme — Portland, OR')).toBeInTheDocument();
     expect(screen.getByText('Saved')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mark applied' })).toBeInTheDocument();
   });
@@ -40,9 +41,37 @@ describe('JobRow (rest state)', () => {
     expect(screen.queryByText('$150k')).toBeNull();
     expect(screen.queryByRole('button', { name: /details|use template/i })).toBeNull();
   });
-  it('offers no next action once applied with no follow-up due', () => {
-    render(<JobRow job={job({ status: 'Applied', appliedAt: Date.now() } as Partial<Job>)} />);
-    expect(screen.queryByRole('button', { name: /mark applied|log follow-up/i })).toBeNull();
+  const today = new Date().toISOString().slice(0, 10);
+  it.each([
+    ['Saved', {}, 'Mark applied'],
+    ['Applied', { applied: '2020-01-01' }, 'Log follow-up'],
+    ['Applied', { applied: today }, 'Log follow-up'],
+    ['Interviewing', { applied: today }, 'Add interview'],
+    ['Rejected', {}, 'Reopen'],
+  ] as const)('%s card primary button reads %s', (status, extra, label) => {
+    render(<JobRow job={job({ status, ...extra } as Partial<Job>)} />);
+    expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
+  });
+  it('shows a next-step pill when the follow-up is due', () => {
+    render(<JobRow job={job({ status: 'Applied', applied: '2020-01-01' } as Partial<Job>)} />);
+    expect(screen.getByText('Follow-up due')).toBeInTheDocument();
+  });
+  it('the row sheet is titled with the job and lists every action', async () => {
+    const user = userEvent.setup();
+    render(<JobRow job={job()} />);
+    await user.click(screen.getByRole('button', { name: 'Actions for Design Systems Lead' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Design Systems Lead');
+    expect(dialog).toHaveTextContent('Acme — Portland, OR');
+    for (const name of [
+      'Open job page',
+      'Open posting',
+      'Pin as priority',
+      'Find more like this',
+      'Archive',
+      'Remove',
+    ])
+      expect(screen.getByRole('button', { name })).toBeInTheDocument();
   });
 });
 

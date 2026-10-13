@@ -1,9 +1,10 @@
-// The Tracker tab, phone-first: add → filter → search/sort/data → the job list, then the overview
-// (this week, pipeline, funnel). One column at every width: the app is a phone app, and on a
+// The Tracker tab, phone-first: add → filter chips → search/sort/data → Next up → the job list.
+// First use (no jobs) shows the add bar and the empty state only. No pipeline stats or funnel
+// here (no vanity metrics). One column at every width: the app is a phone app, and on a
 // desktop it keeps HDS's content-width column rather than spreading into a rail.
 // A job's own page lives at #/queue/<encoded url> (JobDetailPage).
-import { useMemo, useState } from 'react';
-import { ArrowUpDown, Search } from 'lucide-react';
+import { useContext, useMemo, useState } from 'react';
+import { ArrowUpDown, DatabaseBackup, Search } from 'lucide-react';
 import {
   Box,
   Button,
@@ -19,9 +20,8 @@ import { Sheet, SheetMenu } from './Sheet';
 import JobDetailPage from './JobDetailPage';
 import { jobUrlFromSub } from './jobRoute';
 import { sortJobs, SORTS, type SortKey } from './jobSort';
-import { FunnelSummary } from './FunnelSummary';
-import { PipelineStats } from './PipelineStats';
-import ThisWeek from './ThisWeek';
+import { NextUp } from './ThisWeek';
+import { DataToolsContext } from './account/accountContext';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import { filterOptions, matchesFilter, type TrackerFilter as Filter } from './trackerCounts';
@@ -41,6 +41,10 @@ function TrackerList({ jobs }: { jobs: Job[] }) {
   const [q, setQ] = useState('');
   const [url, setUrl] = useState('');
   const [sortOpen, setSortOpen] = useState(false);
+  const [dataOpen, setDataOpen] = useState(false);
+  // Optional: outside the app shell (isolated renders) there is no provider, so no data button.
+  const data = useContext(DataToolsContext);
+  const firstUse = jobs.length === 0;
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -131,98 +135,127 @@ function TrackerList({ jobs }: { jobs: Job[] }) {
 
       <SampleBanner jobs={jobs} />
 
-      <Stack gap="tight">
-        {/* Status chips with live counts: Active + All always; a status once a job is under it.
+      {!firstUse && (
+        <Stack gap="tight">
+          {/* Status chips with live counts: Active + All always; a status once a job is under it.
             Scrolls sideways on phones (a partly visible chip is the affordance). */}
-        <Box sx={{ overflowX: 'auto', mx: -1, px: 1, pb: 1, '& > *': { minWidth: 'max-content' } }}>
-          <SegmentedControl
-            aria-label="Filter jobs by status"
-            size="sm"
-            value={filter}
-            onChange={(v) => setFilter(v as Filter)}
-            options={filterOptions(jobs, filter).map((o) => ({
-              value: o.value,
-              label: `${o.label} · ${o.count}`,
-            }))}
-          />
-        </Box>
-
-        {/* Search grows; sort + data are icon buttons so the field keeps its width. */}
-        <Stack direction="row" gap="gap" align="center">
-          <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-            <HdsInput
+          <Box
+            sx={{ overflowX: 'auto', mx: -1, px: 1, pb: 1, '& > *': { minWidth: 'max-content' } }}
+          >
+            <SegmentedControl
+              aria-label="Filter jobs by status"
               size="sm"
-              type="search"
-              aria-label="Search saved jobs"
-              placeholder="Search jobs…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              leadingVisual={<Search size={16} />}
-              style={{ width: '100%' }}
-            />
-          </Box>
-          <Button
-            variant="tertiary"
-            size="sm"
-            iconOnly
-            iconLeft={<Icon icon={ArrowUpDown} />}
-            label={`Sort: ${sortLabel}`}
-            onClick={() => setSortOpen(true)}
-          />
-          <Sheet open={sortOpen} onOpenChange={setSortOpen} title="Sort jobs">
-            <SheetMenu
-              label="Sort order"
-              items={SORTS.map((o) => ({
-                label: o.label,
-                selected: o.key === sort,
-                onSelect: () => {
-                  setSort(o.key);
-                  setSortOpen(false);
-                },
+              value={filter}
+              onChange={(v) => setFilter(v as Filter)}
+              options={filterOptions(jobs, filter).map((o) => ({
+                value: o.value,
+                label: `${o.label} · ${o.count}`,
               }))}
             />
-          </Sheet>
+          </Box>
+
+          {/* Search grows; sort + data are icon buttons so the field keeps its width. */}
+          <Stack direction="row" gap="gap" align="center">
+            <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+              <HdsInput
+                size="sm"
+                type="search"
+                aria-label="Search saved jobs"
+                placeholder="Search jobs…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                leadingVisual={<Search size={16} />}
+                style={{ width: '100%' }}
+              />
+            </Box>
+            <Button
+              variant="tertiary"
+              size="sm"
+              iconOnly
+              iconLeft={<Icon icon={ArrowUpDown} />}
+              label={`Sort: ${sortLabel}`}
+              onClick={() => setSortOpen(true)}
+            />
+            <Sheet open={sortOpen} onOpenChange={setSortOpen} title="Sort jobs">
+              <SheetMenu
+                label="Sort order"
+                items={SORTS.map((o) => ({
+                  label: o.label,
+                  selected: o.key === sort,
+                  onSelect: () => {
+                    setSort(o.key);
+                    setSortOpen(false);
+                  },
+                }))}
+              />
+            </Sheet>
+            {data && (
+              <>
+                <Button
+                  variant="tertiary"
+                  size="sm"
+                  iconOnly
+                  iconLeft={<Icon icon={DatabaseBackup} />}
+                  label="Your data"
+                  onClick={() => setDataOpen(true)}
+                />
+                <Sheet
+                  open={dataOpen}
+                  onOpenChange={setDataOpen}
+                  title="Your data"
+                  description="Everything stays on this device unless you sign in to sync."
+                >
+                  <SheetMenu
+                    label="Data tools"
+                    items={[
+                      {
+                        label: 'Back up',
+                        onSelect: () => {
+                          setDataOpen(false);
+                          data.backup();
+                        },
+                      },
+                      {
+                        label: 'Restore…',
+                        onSelect: () => {
+                          setDataOpen(false);
+                          data.chooseRestore();
+                        },
+                      },
+                      ...(data.canExport
+                        ? [
+                            {
+                              label: 'Export CSV',
+                              onSelect: () => {
+                                setDataOpen(false);
+                                data.exportCsv();
+                              },
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
+                </Sheet>
+              </>
+            )}
+          </Stack>
         </Stack>
-      </Stack>
+      )}
 
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 8,
-          alignItems: 'start',
-          gridTemplateColumns: 'minmax(0, 1fr)',
-        }}
-      >
-        <Box sx={{ minWidth: 0 }}>
-          {shown.length === 0 ? (
-            empty
-          ) : (
-            <Stack gap="gap" as="ul" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {shown.map((j) => (
-                <li key={j.url}>
-                  <JobRow job={j} />
-                </li>
-              ))}
-            </Stack>
-          )}
-        </Box>
+      {!firstUse && filter === 'active' && !q.trim() && <NextUp />}
 
-        {/* Overview after the list. Modules are divided so each reads as its own group (a module
-            that renders nothing leaves no divider). */}
-        <Box
-          as="aside"
-          aria-label="Pipeline overview"
-          sx={{
-            display: 'grid',
-            gap: 6,
-            minWidth: 0,
-            '& > * + *': { borderTop: 'thin solid', borderColor: 'border.subtle', pt: 6 },
-          }}
-        >
-          <ThisWeek />
-          <PipelineStats jobs={jobs} />
-          <FunnelSummary jobs={shown} />
-        </Box>
+      <Box sx={{ minWidth: 0 }}>
+        {shown.length === 0 ? (
+          empty
+        ) : (
+          <Stack gap="gap" as="ul" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {shown.map((j) => (
+              <li key={j.url}>
+                <JobRow job={j} />
+              </li>
+            ))}
+          </Stack>
+        )}
       </Box>
     </Stack>
   );
