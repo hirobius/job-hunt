@@ -44,10 +44,27 @@ describe('UseTemplate', () => {
     const preview = screen.getByLabelText('Preview') as HTMLTextAreaElement;
     expect(preview.value).toContain('about Fabricator at Acme Metals');
     expect(preview.value).toContain('[Contact]');
-    expect(screen.getByText(/Still unfilled: \[Contact\]/)).toBeInTheDocument();
+    // Contact is missing on the job: it gets an inline field instead of a note.
+    expect(screen.getByLabelText('Contact is missing')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Copy' }));
     expect(writeText).toHaveBeenCalledWith(preview.value);
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+  });
+
+  it('a missing token is an inline field that fills the copy', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText');
+    wrap();
+    await user.click(screen.getByRole('button', { name: 'Use template' }));
+    await user.click(screen.getByRole('button', { name: 'Plain note' }));
+    const preview = screen.getByLabelText('Preview') as HTMLTextAreaElement;
+    expect(preview.value).toContain('Hello [Contact]');
+    await user.type(screen.getByLabelText('Contact is missing'), 'Sam');
+    expect(preview.value).toContain('Hello Sam,');
+    // The field stays while you type (it does not vanish once the token is filled).
+    expect(screen.getByLabelText('Contact is missing')).toHaveValue('Sam');
+    await user.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Hello Sam,'));
   });
 
   it('has no axe violations when open', async () => {

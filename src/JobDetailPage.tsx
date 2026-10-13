@@ -1,17 +1,18 @@
-// A saved job's own page (#/queue/<encoded url>), phone-first. Order follows what you do next:
-//   header (who / what / status / the one primary action)
-//   → facts → interviews → notes & to-dos → "Edit details" (fields + screening) → research.
-// One column at every width (phone-first app).
-import { useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+// A saved job's own page (#/queue/<encoded url>), phone-first, v1 (docs/design/prototype-v1.html):
+//   back bar → who it is → the Next card (status, timing, the one primary action)
+//   → three rows that each open a Sheet (To-dos, Interviews, Details) → research links.
+// One column at every width. Every edit surface is a Sheet (src/Sheet.tsx).
+import { useState, type ReactNode } from 'react';
+import { ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   Badge,
   Box,
   Button,
-  Disclosure,
+  Card,
   Icon,
+  InlineLink,
   Input,
-  MetadataList,
+  SegmentedControl,
   Stack,
   Text,
   Textarea,
@@ -19,17 +20,25 @@ import {
 import { updateJob, setStatus, logFollowUp, prettyTitle, hostOf } from './store';
 import { deriveJobState } from './jobState';
 import { navigate } from './route';
-import { verdictTone, modeLabel, blockerLabel } from './screening';
-import { ScreeningEditor } from './ScreeningEditor';
+import { MODES, VERDICTS, modeLabel } from './screening';
+import { nextAction, NEXT_ACTION_LABEL, type NextAction } from './nextAction';
+import { Sheet, SheetMenu } from './Sheet';
 import InterviewLog from './InterviewLog';
-import UseTemplate from './UseTemplate';
+import { UseTemplateSheet } from './UseTemplate';
 import { TodosNotes } from './TodosNotes';
+import { notesOf } from './jobNotes';
 import EmptyState from './EmptyState';
+import { useCloudSync } from './account/accountContext';
 import { JobAvatar, JobActionsMenu } from './JobRow';
 import { STATUS_TONE, timingLabel } from './jobDisplay';
-import type { Job } from './types';
+import type { Job, JobMode, Status, Verdict } from './types';
 
 const muted = { color: 'var(--semantic-color-content-secondary)' } as const;
+
+type Overlay = 'status' | 'followup' | 'interview' | 'todos' | 'details' | 'template' | null;
+
+const OPEN_STATUSES: Status[] = ['Saved', 'Applied', 'Interviewing', 'Offer', 'Rejected'];
+const OUTCOMES = ['Sent note', 'Called', 'Got a reply'].map((o) => ({ value: o, label: o }));
 
 function research(label: string) {
   const q = encodeURIComponent(label || '');
@@ -43,219 +52,404 @@ function research(label: string) {
 
 const back = () => navigate({ tab: 'queue', sub: null });
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+/** Local YYYY-MM-DD (the format notes, follow-ups and events share). */
+function isoToday(now = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+}
+
+/** The prototype's one-line summary of the Interviews row: the next event, else how many are logged. */
+function interviewSummary(job: Job): string {
+  const events = job.events ?? [];
+  if (events.length === 0) return 'None scheduled';
+  const today = isoToday();
+  const next = events.find((e) => e.date >= today);
+  if (!next) return `${events.length} logged`;
+  const kind = next.kind.charAt(0).toUpperCase() + next.kind.slice(1);
+  return `${next.date}${next.time ? ` ${next.time}` : ''} — ${kind}`;
+}
+
+function detailsSummary(job: Job): string {
+  const fit = VERDICTS.find((v) => v.value === job.verdict)?.label;
+  const mode = job.mode ? modeLabel(job.mode) : '';
+  return [fit, mode, job.contact].filter(Boolean).join(' — ') || 'Add fit, mode and contact';
+}
+
+/** One of the three rows that open a sheet: bold name over a one-line summary, a chevron. */
+function SheetRow({
+  title,
+  summary,
+  onClick,
+}: {
+  title: string;
+  summary: string;
+  onClick: () => void;
+}) {
   return (
-    <Stack as="section" gap="tight">
-      <Text variant="title" as="h2" style={{ fontSize: '1.0625rem', margin: 0 }}>
-        {title}
-      </Text>
+    <Button variant="tertiary" className="app-sheet-item" onClick={onClick}>
+      <Stack gap="xs" style={{ textAlign: 'left', minWidth: 0 }}>
+        <Text variant="body" as="span" style={{ fontWeight: 700, color: 'inherit' }}>
+          {title}
+        </Text>
+        <Text variant="caption" as="span" style={muted}>
+          {summary}
+        </Text>
+      </Stack>
+      <Icon icon={ChevronRight} />
+    </Button>
+  );
+}
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <Text variant="caption" as="span" style={muted}>
       {children}
-    </Stack>
+    </Text>
+  );
+}
+
+function MissingJob() {
+  const { setSignInOpen } = useCloudSync();
+  return (
+    <EmptyState
+      title="This job isn't in your tracker"
+      message="It may have been removed, or the link came from another device that hasn't synced."
+      action={
+        <Button variant="primary" onClick={back}>
+          Back to Tracker
+        </Button>
+      }
+      secondaryAction={
+        <Button variant="secondary" onClick={() => setSignInOpen(true)}>
+          Sign in to sync
+        </Button>
+      }
+    />
+  );
+}
+
+/** Log follow-up: restarts the follow-up clock; a typed note is appended to the job's notes. */
+function FollowUpSheet({ job, onClose }: { job: Job; onClose: () => void }) {
+  const [outcome, setOutcome] = useState(OUTCOMES[0].value);
+  const [note, setNote] = useState('');
+  const save = () => {
+    logFollowUp(job.url);
+    const text = note.trim();
+    if (text) {
+      const line = `${isoToday()} follow-up (${outcome}): ${text}`;
+      const prev = notesOf(job);
+      updateJob(job.url, { notes: prev ? `${prev}\n${line}` : line, note: '' });
+    }
+    onClose();
+  };
+  return (
+    <Sheet
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title="Log follow-up"
+      description={[job.label, job.company].filter(Boolean).join(' — ')}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={save}>
+            Log follow-up
+          </Button>
+        </>
+      }
+    >
+      <Stack gap="normal">
+        <Input
+          label="Date"
+          readOnly
+          value={`Today, ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+          style={{ width: '100%' }}
+        />
+        <Stack gap="xs">
+          <FieldLabel>What happened</FieldLabel>
+          <SegmentedControl
+            aria-label="Outcome"
+            options={OUTCOMES}
+            value={outcome}
+            onChange={setOutcome}
+            fullWidth
+          />
+        </Stack>
+        <Textarea
+          label="Note (optional)"
+          rows={3}
+          placeholder="Anything worth remembering?"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          style={{ width: '100%' }}
+        />
+      </Stack>
+    </Sheet>
+  );
+}
+
+const FIT_OPTIONS = [
+  { value: '', label: 'Not set' },
+  ...VERDICTS.map((v) => ({ value: v.value, label: v.label })),
+];
+const MODE_OPTIONS = [
+  { value: '', label: 'Not set' },
+  ...MODES.map((m) => ({ value: m.value, label: m.label })),
+];
+
+/** Details: a grouped form over a local draft. Nothing is written until Save; Cancel discards. */
+function DetailsSheet({ job, onClose }: { job: Job; onClose: () => void }) {
+  const [d, setD] = useState({
+    label: job.label || prettyTitle(job.url),
+    company: job.company ?? '',
+    location: job.location ?? '',
+    contact: job.contact ?? '',
+    angle: job.angle ?? '',
+    seniority: job.seniority ?? '',
+    salary: job.salary ?? '',
+    verdict: (job.verdict ?? '') as Verdict | '',
+    mode: (job.mode ?? '') as JobMode | '',
+  });
+  const text = (
+    key: 'label' | 'company' | 'location' | 'contact' | 'angle' | 'seniority' | 'salary',
+    label: string,
+    placeholder?: string,
+  ) => (
+    <Input
+      label={label}
+      placeholder={placeholder}
+      value={d[key]}
+      onChange={(e) => setD((p) => ({ ...p, [key]: e.target.value }))}
+      style={{ width: '100%' }}
+    />
+  );
+  const save = () => {
+    updateJob(job.url, {
+      label: d.label.trim() || job.label,
+      company: d.company.trim(),
+      location: d.location.trim(),
+      contact: d.contact.trim(),
+      angle: d.angle.trim(),
+      seniority: d.seniority.trim(),
+      salary: d.salary.trim(),
+      verdict: d.verdict || undefined,
+      mode: d.mode || undefined,
+    });
+    onClose();
+  };
+  return (
+    <Sheet
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title="Edit details"
+      description="Nothing changes until you tap Save."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={save}>
+            Save
+          </Button>
+        </>
+      }
+    >
+      <Stack gap="normal">
+        {text('label', 'Title')}
+        {text('company', 'Company')}
+        {text('location', 'Location')}
+        {text('contact', 'Contact / referral', 'Name')}
+        {text('angle', 'Angle (fills templates)', 'Your angle for this role')}
+        {text('seniority', 'Seniority')}
+        {text('salary', 'Salary')}
+        <Stack gap="xs">
+          <FieldLabel>Fit</FieldLabel>
+          <SegmentedControl
+            aria-label="Fit"
+            options={FIT_OPTIONS}
+            value={d.verdict}
+            onChange={(v) => setD((p) => ({ ...p, verdict: v as Verdict | '' }))}
+            fullWidth
+          />
+        </Stack>
+        <Stack gap="xs">
+          <FieldLabel>Work mode</FieldLabel>
+          <SegmentedControl
+            aria-label="Work mode"
+            options={MODE_OPTIONS}
+            value={d.mode}
+            onChange={(v) => setD((p) => ({ ...p, mode: v as JobMode | '' }))}
+            fullWidth
+          />
+        </Stack>
+        <Text variant="caption" as="p" style={{ ...muted, margin: 0 }}>
+          {job.applicants != null ? `Applicants ${job.applicants} — ` : ''}Source {hostOf(job.url)}{' '}
+          (from the posting, not editable)
+        </Text>
+      </Stack>
+    </Sheet>
   );
 }
 
 export default function JobDetailPage({ job }: { job: Job | undefined }) {
-  const [saved, setSaved] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const flash = () => {
-    setSaved(true);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setSaved(false), 1200);
-  };
+  const [overlay, setOverlay] = useState<Overlay>(null);
+  const close = () => setOverlay(null);
 
-  if (!job)
-    return (
-      <EmptyState
-        title="This job isn't in your tracker"
-        message="It may have been removed, or the link came from another device that hasn't synced."
-        action={
-          <Button variant="secondary" size="sm" onClick={back}>
-            Back to Tracker
-          </Button>
-        }
-      />
-    );
+  if (!job) return <MissingJob />;
 
   const s = deriveJobState(job);
   const title = job.label || prettyTitle(job.url);
   const timing = timingLabel(job);
+  const statusLabel = job.archived ? 'Closed' : s.status;
+  const action = nextAction(job);
+  const openTodos = (job.todos ?? []).filter((t) => !t.done).length;
+  const todoSummary = `${openTodos ? `${openTodos} open` : 'None open'}${notesOf(job).trim() ? ' — Notes added' : ''}`;
+  const host = hostOf(job.url);
 
-  const field = (key: keyof Job, label: string) => (
-    <Input
-      size="sm"
-      label={label}
-      value={(job[key] as string) || ''}
-      onChange={(e) => {
-        updateJob(job.url, { [key]: e.target.value });
-        flash();
-      }}
-      style={{ width: '100%' }}
-    />
-  );
-  const pair = {
-    display: 'grid',
-    gap: 3,
-    gridTemplateColumns: '1fr',
-    '&': { gridTemplateColumns: { sm: '1fr 1fr' } },
+  const pickStatus = (status: Status | 'Closed') => {
+    if (status === 'Closed') updateJob(job.url, { archived: true });
+    else {
+      setStatus(job.url, status);
+      if (job.archived) updateJob(job.url, { archived: false });
+    }
+    close();
   };
 
-  const facts = [
-    { term: 'Status', description: <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge> },
-    timing && { term: 'Next', description: timing },
-    job.salary && { term: 'Salary', description: job.salary },
-    job.seniority && { term: 'Seniority', description: job.seniority },
-    job.verdict && {
-      term: 'Fit',
-      description: (
-        <Badge tone={verdictTone(job.verdict)}>
-          {job.verdict.charAt(0).toUpperCase() + job.verdict.slice(1)}
-        </Badge>
-      ),
-    },
-    job.mode && {
-      term: 'Mode',
-      description: `${modeLabel(job.mode)}${job.travelPct != null ? ` · ${job.travelPct}% travel` : ''}`,
-    },
-    job.blockers?.length && {
-      term: 'Blockers',
-      description: job.blockers.map(blockerLabel).join(', '),
-    },
-    job.applicants != null && { term: 'Applicants', description: String(job.applicants) },
-    { term: 'Source', description: hostOf(job.url) },
-  ].filter(Boolean) as { term: string; description: ReactNode }[];
+  const runPrimary = (a: NextAction) => {
+    if (a === 'apply') setStatus(job.url, 'Applied');
+    else if (a === 'followup') setOverlay('followup');
+    else if (a === 'interview') setOverlay('interview');
+    else {
+      if (s.status === 'Rejected') setStatus(job.url, 'Saved');
+      if (job.archived) updateJob(job.url, { archived: false });
+    }
+  };
 
-  const primary = s.followUp.due ? (
-    <Button size="md" variant="primary" tone="warning" onClick={() => logFollowUp(job.url)}>
-      Log follow-up
-    </Button>
-  ) : s.isApplyable ? (
-    <Button size="md" variant="primary" onClick={() => setStatus(job.url, 'Applied')}>
-      Mark applied
-    </Button>
-  ) : null;
+  const statusItems = [...OPEN_STATUSES, 'Closed' as const].map((st) => ({
+    label: st,
+    selected: st === statusLabel,
+    onSelect: () => pickStatus(st),
+  }));
 
   return (
     <Stack gap="normal">
-      <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Button variant="tertiary" size="sm" iconLeft={<Icon icon={ArrowLeft} />} onClick={back}>
           Tracker
         </Button>
+        <JobActionsMenu job={job} />
       </Box>
 
-      {/* Header: identity, then one row of actions (primary first, rare ones in ⋮). */}
-      <Stack
-        gap="tight"
-        style={{
-          paddingBlockEnd: 'var(--primitive-space-5)',
-          borderBottom: '1px solid var(--semantic-color-border-subtle)',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
-          <JobAvatar job={job} size="lg" />
-          <Box sx={{ minWidth: 0 }}>
-            <Text variant="title" as="h1" style={{ margin: 0, overflowWrap: 'anywhere' }}>
-              {title}
-            </Text>
-            <Text variant="caption" as="p" style={{ ...muted, margin: '2px 0 0' }}>
-              {[job.company, job.location].filter(Boolean).join(' · ') || hostOf(job.url)}
-            </Text>
-          </Box>
-        </Box>
-        <Stack direction="row" gap="gap" align="center" wrap="wrap">
-          {primary}
-          <Button size="md" variant="secondary" iconRight={<Icon icon={ExternalLink} />} asChild>
-            <a href={job.url} target="_blank" rel="noopener noreferrer">
-              Open posting
-            </a>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 'sm', minWidth: 0 }}>
+        <JobAvatar job={job} size="lg" />
+        <Stack gap="xs" style={{ minWidth: 0 }}>
+          <Text variant="title" as="h1" style={{ margin: 0, overflowWrap: 'anywhere' }}>
+            {title}
+          </Text>
+          <Text variant="caption" as="p" style={{ ...muted, margin: 0 }}>
+            {[job.company, job.location].filter(Boolean).join(' — ') || host}
+          </Text>
+          <InlineLink href={job.url} externalIcon>
+            View posting — {host}
+          </InlineLink>
+        </Stack>
+      </Box>
+
+      <Card as="section" aria-label="Next step" gap="normal">
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'sm' }}
+        >
+          <Button
+            variant="tertiary"
+            size="sm"
+            aria-label={`Change status, now ${statusLabel}`}
+            iconRight={<Icon icon={ChevronDown} />}
+            onClick={() => setOverlay('status')}
+          >
+            <Badge tone={job.archived ? 'neutral' : STATUS_TONE[s.status]}>{statusLabel}</Badge>
           </Button>
-          <UseTemplate job={job} />
-          <Box sx={{ ml: 'auto' }}>
-            <JobActionsMenu job={job} />
-          </Box>
+          {timing && (
+            <Text variant="ui" as="span" style={s.followUp.due ? { fontWeight: 700 } : muted}>
+              Next: {timing}
+            </Text>
+          )}
+        </Box>
+        <Button
+          variant="primary"
+          size="lg"
+          style={{ width: '100%' }}
+          onClick={() => runPrimary(action)}
+        >
+          {NEXT_ACTION_LABEL[action]}
+        </Button>
+        <Button
+          variant="secondary"
+          style={{ width: '100%' }}
+          onClick={() => setOverlay('template')}
+        >
+          Use a template
+        </Button>
+      </Card>
+
+      <Box>
+        <SheetRow title="To-dos" summary={todoSummary} onClick={() => setOverlay('todos')} />
+        <SheetRow
+          title="Interviews"
+          summary={interviewSummary(job)}
+          onClick={() => setOverlay('interview')}
+        />
+        <SheetRow
+          title="Details"
+          summary={detailsSummary(job)}
+          onClick={() => setOverlay('details')}
+        />
+      </Box>
+
+      <Stack gap="tight">
+        <Text variant="title" as="h2" style={{ fontSize: '1.0625rem', margin: 0 }}>
+          Research
+        </Text>
+        <Stack direction="row" gap="gap" wrap="wrap">
+          {research(title).map(([name, href]) => (
+            <Button key={name} size="sm" variant="secondary" asChild>
+              <a href={href} target="_blank" rel="noopener noreferrer">
+                {name}
+              </a>
+            </Button>
+          ))}
         </Stack>
       </Stack>
 
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 8,
-          alignItems: 'start',
-          gridTemplateColumns: 'minmax(0, 1fr)',
-        }}
+      <Sheet
+        open={overlay === 'status'}
+        onOpenChange={(o) => !o && close()}
+        title="Change status"
+        description={title}
       >
-        <Box
-          as="aside"
-          aria-label="Job facts"
-          sx={{
-            display: 'grid',
-            gap: 6,
-            minWidth: 0,
-          }}
-        >
-          <MetadataList orientation="horizontal" items={facts} />
-        </Box>
-
-        <Stack gap="spacious" style={{ minWidth: 0 }}>
-          <Section title="Interviews">
-            <InterviewLog job={job} />
-          </Section>
-          <Section title="Notes & to-dos">
-            <Textarea
-              label="Job note"
-              rows={4}
-              value={job.note || ''}
-              onChange={(e) => {
-                updateJob(job.url, { note: e.target.value });
-                flash();
-              }}
-              style={{ width: '100%' }}
-            />
-            <TodosNotes job={job} />
-          </Section>
-          <Disclosure label="Edit details & screening">
-            <Stack gap="normal">
-              <Text
-                variant="caption"
-                as="span"
-                aria-live="polite"
-                style={{
-                  color: 'var(--semantic-color-feedback-success)',
-                  opacity: saved ? 1 : 0,
-                  transition: 'opacity 0.2s',
-                  alignSelf: 'flex-end',
-                }}
-              >
-                Saved ✓
-              </Text>
-              {field('label', 'Title')}
-              <Box sx={pair}>
-                {field('company', 'Company')}
-                {field('location', 'Location')}
-              </Box>
-              <Box sx={pair}>
-                {field('seniority', 'Seniority')}
-                {field('salary', 'Salary')}
-              </Box>
-              <Box sx={pair}>
-                {field('contact', 'Contact / referral')}
-                {field('resume', 'Résumé version')}
-              </Box>
-              <ScreeningEditor job={job} />
-            </Stack>
-          </Disclosure>
-          <Section title="Research">
-            <Stack direction="row" gap="gap" wrap="wrap">
-              {research(title).map(([name, href]) => (
-                <Button key={name} size="sm" variant="secondary" asChild>
-                  <a href={href} target="_blank" rel="noopener noreferrer">
-                    {name}
-                  </a>
-                </Button>
-              ))}
-            </Stack>
-          </Section>
-        </Stack>
-      </Box>
+        <SheetMenu label="Status" items={statusItems} />
+      </Sheet>
+      {overlay === 'followup' && <FollowUpSheet job={job} onClose={close} />}
+      {overlay === 'details' && <DetailsSheet job={job} onClose={close} />}
+      <Sheet
+        open={overlay === 'todos'}
+        onOpenChange={(o) => !o && close()}
+        title="To-dos"
+        description={[title, job.company].filter(Boolean).join(' — ')}
+      >
+        <TodosNotes job={job} />
+      </Sheet>
+      <Sheet
+        open={overlay === 'interview'}
+        onOpenChange={(o) => !o && close()}
+        title="Add interview"
+        description={[title, job.company].filter(Boolean).join(' — ')}
+      >
+        <InterviewLog job={job} />
+      </Sheet>
+      {overlay === 'template' && (
+        <UseTemplateSheet job={job} open onOpenChange={(o) => !o && close()} />
+      )}
     </Stack>
   );
 }

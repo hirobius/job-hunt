@@ -1,14 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Dialog, Textarea } from '@hirobius/design-system';
+import { Box, Button, Input, Stack, Tag, Text, Textarea } from '@hirobius/design-system';
+import { Sheet } from './Sheet';
 import { useSnippets } from './copyDeckStore';
 import { fillTemplate, unfilledTokens, valuesFromJob } from './templateFill';
 import type { Job } from './types';
 
-// Fill a Copy Deck snippet from a job's company/role/contact/angle and copy it.
-export default function UseTemplate({ job }: { job: Job }) {
+const muted = { color: 'var(--semantic-color-content-secondary)' } as const;
+
+interface SheetProps {
+  job: Job;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+/** Fill a Copy Deck template from a job and copy it. A token the job has no value for gets an
+ *  inline field; what you type fills the copy (it is not written back to the job). */
+export function UseTemplateSheet({ job, open, onOpenChange }: SheetProps) {
   const snippets = useSnippets();
-  const [open, setOpen] = useState(false);
   const [pickedId, setPickedId] = useState<string | null>(null);
+  const [typed, setTyped] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
 
   const ordered = useMemo(
@@ -16,9 +26,15 @@ export default function UseTemplate({ job }: { job: Job }) {
     [snippets],
   );
   const picked = ordered.find((s) => s.id === pickedId) ?? ordered[0];
-  // Every job card mounts one of these — only fill while the dialog is actually open.
-  const filled = open && picked ? fillTemplate(picked.body, valuesFromJob(job)) : '';
-  const missing = open ? unfilledTokens(filled) : [];
+  const base = valuesFromJob(job);
+  // Tokens the job itself cannot fill — these keep their field while you type into it.
+  const missing = picked ? unfilledTokens(fillTemplate(picked.body, base)) : [];
+  const values = { ...base };
+  for (const tok of missing) {
+    const v = typed[tok.toLowerCase()]?.trim();
+    if (v) values[tok.toLowerCase() as keyof typeof values] = v;
+  }
+  const filled = picked ? fillTemplate(picked.body, values) : '';
 
   useEffect(() => {
     if (!copied) return;
@@ -36,77 +52,83 @@ export default function UseTemplate({ job }: { job: Job }) {
   };
 
   return (
-    <Dialog
+    <Sheet
       open={open}
       onOpenChange={(o) => {
-        setOpen(o);
-        if (!o) setCopied(false);
+        onOpenChange(o);
+        if (!o) {
+          setCopied(false);
+          setTyped({});
+        }
       }}
+      title="Use a template"
+      description="Pick a template to fill with this job's details, then copy it."
+      footer={
+        <Button variant="primary" onClick={copy} disabled={!picked}>
+          {copied ? 'Copied' : 'Copy'}
+        </Button>
+      }
     >
+      {ordered.length === 0 ? (
+        <Text variant="body" as="p" style={muted}>
+          Your Copy Deck is empty. Add a template there first.
+        </Text>
+      ) : (
+        <Stack gap="normal">
+          <Box
+            role="group"
+            aria-label="Templates"
+            sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs' }}
+          >
+            {ordered.map((s) => (
+              <Tag
+                key={s.id}
+                active={s.id === picked?.id}
+                aria-pressed={s.id === picked?.id}
+                onClick={() => {
+                  setPickedId(s.id);
+                  setCopied(false);
+                }}
+              >
+                {s.label}
+              </Tag>
+            ))}
+          </Box>
+          <Textarea
+            readOnly
+            rows={10}
+            aria-label="Preview"
+            value={filled}
+            style={{ width: '100%' }}
+          />
+          {missing.map((tok) => (
+            <Input
+              key={tok}
+              label={`${tok} is missing`}
+              placeholder={`Add ${tok.toLowerCase()}`}
+              value={typed[tok.toLowerCase()] ?? ''}
+              onChange={(e) => {
+                setTyped((t) => ({ ...t, [tok.toLowerCase()]: e.target.value }));
+                setCopied(false);
+              }}
+              style={{ width: '100%' }}
+            />
+          ))}
+        </Stack>
+      )}
+    </Sheet>
+  );
+}
+
+/** A "Use template" button that opens the sheet (for places without their own trigger). */
+export default function UseTemplate({ job }: { job: Job }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
       <Button size="sm" variant="tertiary" onClick={() => setOpen(true)}>
         Use template
       </Button>
-      <Dialog.Content
-        style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflowY: 'auto' }}
-      >
-        <Dialog.Header>
-          <Dialog.Title>Use a template</Dialog.Title>
-          <Dialog.Description>
-            Pick a snippet to fill in with this job's details, then copy it.
-          </Dialog.Description>
-        </Dialog.Header>
-        {ordered.length === 0 ? (
-          <p style={{ color: 'var(--semantic-color-content-secondary)' }}>
-            Your Copy Deck is empty. Add a snippet there first.
-          </p>
-        ) : (
-          <div
-            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--primitive-space-3)' }}
-          >
-            <div
-              role="group"
-              aria-label="Templates"
-              style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--primitive-space-2)' }}
-            >
-              {ordered.map((s) => (
-                <Button
-                  key={s.id}
-                  size="sm"
-                  variant={s.id === picked?.id ? 'primary' : 'secondary'}
-                  aria-pressed={s.id === picked?.id}
-                  onClick={() => {
-                    setPickedId(s.id);
-                    setCopied(false);
-                  }}
-                >
-                  {s.label}
-                </Button>
-              ))}
-            </div>
-            <Textarea
-              readOnly
-              rows={12}
-              aria-label="Preview"
-              value={filled}
-              style={{ width: '100%' }}
-            />
-            {missing.length > 0 && (
-              <p style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}>
-                Still unfilled: {missing.map((t) => `[${t}]`).join(', ')}. Add them on the job, or
-                edit after pasting.
-              </p>
-            )}
-          </div>
-        )}
-        <Dialog.Footer>
-          <Dialog.Close asChild>
-            <Button variant="secondary">Close</Button>
-          </Dialog.Close>
-          <Button onClick={copy} disabled={!picked}>
-            {copied ? 'Copied' : 'Copy'}
-          </Button>
-        </Dialog.Footer>
-      </Dialog.Content>
-    </Dialog>
+      {open && <UseTemplateSheet job={job} open onOpenChange={setOpen} />}
+    </>
   );
 }
