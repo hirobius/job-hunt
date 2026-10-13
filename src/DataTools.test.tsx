@@ -73,11 +73,17 @@ const backupFile = (jobs: Job[]) =>
 const upload = (file: File) =>
   userEvent.upload(screen.getByLabelText('Choose a backup file to restore'), file);
 
+// The data actions live in one "Data" menu; open it, then pick an item.
+const pick = async (name: string) => {
+  await userEvent.click(screen.getByRole('button', { name: 'Data' }));
+  return screen.findByRole('menuitem', { name });
+};
+
 describe('DataTools', () => {
   it('Back up downloads a file that parses back as a backup', async () => {
     replaceAll([job('https://example.com/a', 'A')]);
     setup();
-    await userEvent.click(screen.getByRole('button', { name: 'Back up' }));
+    await userEvent.click(await pick('Back up'));
     expect(downloads).toHaveLength(1);
     expect(downloads[0].name).toMatch(/^apply-board-backup-\d{4}-\d{2}-\d{2}\.json$/);
     const r = parseBackup(await downloads[0].blob.text());
@@ -120,13 +126,11 @@ describe('DataTools', () => {
 
   it('Export CSV is disabled with no jobs and downloads once there are some', async () => {
     const { unmount } = setup();
-    expect((screen.getByRole('button', { name: 'Export CSV' }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+    expect(await pick('Export CSV')).toHaveAttribute('aria-disabled', 'true');
     unmount();
     replaceAll([job('https://example.com/a', 'A')]);
     setup();
-    await userEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    await userEvent.click(await pick('Export CSV'));
     await waitFor(() => expect(downloads[0]?.name).toBe('apply-board.csv'));
   });
 

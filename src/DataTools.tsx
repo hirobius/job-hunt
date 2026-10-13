@@ -1,7 +1,8 @@
 // Data tools toolbar (#100): download a full-account backup, restore one (merge or replace,
 // with a safety backup first on replace), and export the job list as CSV. HDS components only.
 import { useRef, useState } from 'react';
-import { Alert, Button, Cluster, Dialog, Stack, Text } from '@hirobius/design-system';
+import { Alert, Button, Dialog, Menu, Stack, Text } from '@hirobius/design-system';
+import { Database } from 'lucide-react';
 import {
   applyBackup,
   buildBackup,
@@ -81,30 +82,33 @@ export default function DataTools() {
 
   return (
     <Stack gap="tight">
-      <Cluster gap="tight">
-        <Button size="sm" variant="tertiary" onClick={() => downloadBackup('apply-board-backup')}>
-          Back up
-        </Button>
-        <Button size="sm" variant="tertiary" onClick={() => fileRef.current?.click()}>
-          Restore…
-        </Button>
-        <Button
-          size="sm"
-          variant="tertiary"
-          disabled={jobs.length === 0}
-          onClick={() => download('apply-board.csv', toCsv(getAllJobs()), 'text/csv')}
-        >
-          Export CSV
-        </Button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="application/json,.json"
-          aria-label="Choose a backup file to restore"
-          hidden
-          onChange={onFile}
-        />
-      </Cluster>
+      {/* Rare, account-level actions: one menu instead of three buttons, so the Tracker toolbar
+          stays a single line (search · sort · data) at every width. */}
+      <Menu>
+        <Menu.Trigger asChild>
+          <Button size="sm" variant="tertiary" iconLeft={<Database size={16} />}>
+            Data
+          </Button>
+        </Menu.Trigger>
+        <Menu.Content align="end">
+          <Menu.Item onSelect={() => downloadBackup('apply-board-backup')}>Back up</Menu.Item>
+          <Menu.Item onSelect={() => fileRef.current?.click()}>Restore…</Menu.Item>
+          <Menu.Item
+            disabled={jobs.length === 0}
+            onSelect={() => download('apply-board.csv', toCsv(getAllJobs()), 'text/csv')}
+          >
+            Export CSV
+          </Menu.Item>
+        </Menu.Content>
+      </Menu>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json,.json"
+        aria-label="Choose a backup file to restore"
+        hidden
+        onChange={onFile}
+      />
 
       {error && (
         <Alert tone="danger" title="Can't restore that file">

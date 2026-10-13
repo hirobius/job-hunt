@@ -92,17 +92,13 @@ function TrackerList({ jobs }: { jobs: Job[] }) {
           }))}
         />
       </Box>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={1}
-        alignItems={{ xs: 'stretch', sm: 'center' }}
-        sx={{ mb: 2 }}
-      >
-        <Box sx={{ flex: 1, minWidth: 0, width: '100%', '& > *': { width: '100%' } }}>
+      {/* One toolbar line at every width: search grows, sort + data menu keep their size. */}
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
           <HdsInput
             size="sm"
             aria-label="Search saved jobs"
-            placeholder="Search title, company, location, notes…"
+            placeholder="Search jobs…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             leadingVisual={<Search size={16} />}
