@@ -7,8 +7,9 @@ export class FetchError extends Error {
   constructor(
     readonly status: number,
     readonly url: string,
+    readonly isTimeout: boolean = false,
   ) {
-    super(status ? `HTTP ${status}` : 'network error');
+    super(isTimeout ? 'timed out' : status ? `HTTP ${status}` : 'network error');
   }
 }
 

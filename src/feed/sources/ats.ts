@@ -41,7 +41,8 @@ export function parseBoardUrl(raw: string): Board | null {
   if (host === 'jobs.lever.co') return ok(seg[0]) ? { kind: 'lever', slug: seg[0] } : null;
   if (host === 'jobs.eu.lever.co')
     return ok(seg[0]) ? { kind: 'lever', slug: seg[0], eu: true } : null;
-  if (host === 'jobs.ashbyhq.com') return ok(seg[0]) ? { kind: 'ashby', slug: seg[0] } : null;
+  if (host === 'ashbyhq.com' || host.endsWith('.ashbyhq.com'))
+    return ok(seg[0]) ? { kind: 'ashby', slug: seg[0] } : null;
   return null;
 }
 
