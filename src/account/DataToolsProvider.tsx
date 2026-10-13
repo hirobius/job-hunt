@@ -19,6 +19,7 @@ import { getSnippets, replaceSnippets } from '../copyDeckStore';
 import { getCurationState, replaceCurationState } from '../curation/curationStore';
 import { pushRestoredCuration } from '../curation/sync';
 import { getTileTriage, replaceTriage } from '../tileTriage';
+import { BRAND } from '../brand';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
 
 const JSON_MIME = 'application/json';
@@ -67,7 +68,7 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
 
   const restore = (mode: 'merge' | 'replace') => {
     if (!pending) return;
-    if (mode === 'replace') downloadBackup('apply-board-before-restore');
+    if (mode === 'replace') downloadBackup(`${BRAND.slug}-before-restore`);
     applyState(applyBackup(currentState(), pending, mode));
     setPending(null);
     // Tracks live in their own cloud tables: mirror the restore there too, or the next sync
@@ -84,9 +85,9 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
   const summary = pending ? summarizeRestore(currentState(), pending) : null;
 
   const api: DataToolsApi = {
-    backup: () => downloadBackup('apply-board-backup'),
+    backup: () => downloadBackup(`${BRAND.slug}-backup`),
     chooseRestore: () => fileRef.current?.click(),
-    exportCsv: () => download('apply-board.csv', toCsv(getAllJobs()), 'text/csv'),
+    exportCsv: () => download(`${BRAND.slug}.csv`, toCsv(getAllJobs()), 'text/csv'),
     canExport: jobs.length > 0,
   };
 

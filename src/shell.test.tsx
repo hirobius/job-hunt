@@ -20,6 +20,7 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { BRAND } from './brand';
 import { getAllJobs, removeJob } from './store';
 import { OFFLINE_MSG } from './cloudMessages';
 
@@ -56,7 +57,7 @@ afterEach(() => {
 describe('app shell (#115 Phase 1)', () => {
   it('has a slim header: the product name, the top tabs and one account menu', () => {
     renderApp();
-    expect(screen.getByRole('heading', { level: 1, name: /Apply Board/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
     expect(tabs.map((t) => t.textContent)).toEqual(['Pipeline', 'Discover', 'Templates']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
@@ -108,7 +109,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Back up' }));
-    expect(name).toMatch(/^apply-board-backup-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(name).toMatch(/^hirebius-backup-\d{4}-\d{2}-\d{2}\.json$/);
   });
 
   it('a bad restore file is reported as a toast', async () => {
@@ -117,7 +118,7 @@ describe('app shell (#115 Phase 1)', () => {
       screen.getByLabelText('Choose a backup file to restore'),
       new File(['{"nope":1}'], 'x.json', { type: 'application/json' }),
     );
-    expect(await screen.findByText("This isn't an Apply Board backup.")).toBeInTheDocument();
+    expect(await screen.findByText("This file isn't a backup from Hirebius.")).toBeInTheDocument();
   });
 });
 

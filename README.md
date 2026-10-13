@@ -1,4 +1,6 @@
-# Apply Board
+# Hirebius
+
+_Working name, formerly Apply Board. The name is set in one place, `src/brand.ts` (#55)._
 
 A job-hunt tracker with a curated discovery board. **Live → https://job-hunt-jade.vercel.app**
 

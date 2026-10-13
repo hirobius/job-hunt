@@ -1,13 +1,18 @@
-# CLAUDE.md — Apply Board
+# CLAUDE.md — Hirebius (formerly Apply Board)
 
 Project memory for future Claude Code sessions in this repo.
 
 ## What this is
 
-**Apply Board** — a job-application tracker + discovery board, live at
+**Hirebius** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
 **https://job-hunt-jade.vercel.app** (repo `hirobius/job-hunt`). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
 commit `f15fd52`).
+
+**Product name = `src/brand.ts` only (#55).** Header wordmark, `<title>`/meta (index.html
+`%BRAND_*%` placeholders via the `brand-html` Vite plugin), toasts and download filenames read it;
+`src/brand.test.ts` fails on a hard-coded name. Stored identifiers stay fixed on purpose: the backup
+format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 
 ## Stack & conventions
 

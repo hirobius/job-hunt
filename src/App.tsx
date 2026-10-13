@@ -11,6 +11,7 @@ import {
   Stack,
 } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
+import { BRAND } from './brand';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
@@ -85,9 +86,9 @@ export default function App() {
                 {/* Slim header: name · top tabs · account. The tabs wrap under the name on mobile. */}
                 <Stack direction="row" wrap="wrap" gap="gap" align="center" justify="space-between">
                   <Text variant="title" as="h1" style={{ margin: 0 }}>
-                    Apply{' '}
+                    {BRAND.wordmark[0]}
                     <Box as="span" sx={{ color: 'accent' }}>
-                      Board
+                      {BRAND.wordmark[1]}
                     </Box>
                   </Text>
                   <AccountMenu />

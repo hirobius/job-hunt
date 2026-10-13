@@ -75,17 +75,17 @@ describe('buildBackup / parseBackup', () => {
   const rejections: [string, string, RegExp][] = [
     ['too large', 'x'.repeat(MAX_BACKUP_CHARS + 1), /too large/],
     ['invalid JSON', '{nope', /valid JSON/],
-    ['array', '[]', /isn't an Apply Board backup/],
-    ['null', 'null', /isn't an Apply Board backup/],
+    ['array', '[]', /isn't a backup from Hirebius/],
+    ['null', 'null', /isn't a backup from Hirebius/],
     [
       'wrong app',
       JSON.stringify({ app: 'other', kind: 'backup', v: 1 }),
-      /isn't an Apply Board backup/,
+      /isn't a backup from Hirebius/,
     ],
     [
       'wrong kind',
       JSON.stringify({ app: 'apply-board', kind: 'csv', v: 1 }),
-      /isn't an Apply Board backup/,
+      /isn't a backup from Hirebius/,
     ],
     [
       'wrong version',

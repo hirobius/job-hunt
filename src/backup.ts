@@ -3,6 +3,7 @@
 // file back into that shape, and apply it onto current state as a merge or a replace.
 // Parsing never trusts the input: known fields are copied into fresh objects, URLs must be
 // http(s), and prototype-pollution keys are dropped.
+import { BRAND } from './brand';
 import { mergeJobs, sanitizeJobs } from './store';
 import { mergeSnippets, type Snippet } from './copyDeckStore';
 import { mergeCuration } from './curation/merge';
@@ -220,7 +221,7 @@ export function parseBackup(text: string): ParseResult {
     return { ok: false, reason: "That file isn't valid JSON." };
   }
   if (!isRec(data) || data.app !== 'apply-board' || data.kind !== 'backup') {
-    return { ok: false, reason: "This isn't an Apply Board backup." };
+    return { ok: false, reason: `This file isn't a backup from ${BRAND.name}.` };
   }
   if (data.v !== 1) {
     return { ok: false, reason: `Backup version ${String(data.v)} isn't supported.` };
