@@ -111,7 +111,7 @@ export default function App() {
   }, []);
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.75, sm: 3 } }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.75, sm: 3, md: 4 } }}>
       <Stack
         direction="row"
         alignItems="center"
