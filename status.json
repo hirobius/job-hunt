@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-10-13T12:00:00Z",
+  "updatedAt": "2026-10-13T14:30:00Z",
   "phase": "redesign",
-  "headline": "Live on production (main unchanged). Redesign #115 Phases 0–1 built on branch claude/jh-redesign: HDS 0.24.1 exact-pinned, src/ui retired, HDS fonts (CSP self-only), hds/recommended lint, screenshot gallery harness, new shell with an Account menu, sync nudge and toasts. Preview build for review.",
+  "headline": "Live on production (main unchanged). Redesign #115 Phases 0–1 + the Pipeline toolbar slice (#129) on branch claude/jh-redesign with READY previews. Working name is now Hirebius (swappable in src/brand.ts, #55).",
   "next": [
     "Redesign #115: Adrian reviews the Phase 0–1 preview + before/after artifact, then merge phase by phase. Next build: Phase 2 Today (sub-issues on #115).",
     "After HDS lands: vite 8 + plugin-react 6, npm audit, React 19, jest-dom 7 (#105).",
