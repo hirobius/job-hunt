@@ -1,20 +1,13 @@
 // Per-account curated content store — the shared external store for categories/groups/tiles.
-// Built on the same createStore factory + local-first localStorage persistence as pillarStore.
+// Built on the shared createStore factory + local-first localStorage persistence.
 // Signed out: purely local. Signed in: every mutator ALSO mirrors the change to Supabase
 // (upsert on add/update, delete on remove) as thin fire-and-forget I/O through the anon client
-// under RLS — errors are swallowed exactly like CloudSync, so the local store is always the
-// source of truth and the cloud is best-effort. Dormant until a later phase wires the UI.
-import { createClient } from '@supabase/supabase-js';
+// under RLS — errors are swallowed, so the local store is always the source of truth and the
+// cloud is best-effort. The sign-in pull lives in sync.ts.
 import { createStore } from '../createStore';
 import { loadPersisted, savePersisted } from '../persisted';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config';
-import {
-  EMPTY_CURATION,
-  type Category,
-  type Group,
-  type Tile,
-  type CurationState,
-} from './types';
+import { supabase } from '../supabase';
+import { EMPTY_CURATION, type Category, type Group, type Tile, type CurationState } from './types';
 import {
   categoryToRow,
   groupToRow,
@@ -26,8 +19,8 @@ import {
 
 const KEY = 'rjb_curation';
 
-/** Shared anon client (RLS-scoped). Also used by sync.ts — its own instance would be fine too. */
-export const curationClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/** The app's shared anon client (RLS-scoped), re-exported under its historical name. */
+export const curationClient = supabase;
 
 const newId = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID

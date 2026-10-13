@@ -9,6 +9,29 @@ export type Verdict = 'match' | 'stretch' | 'reach';
 /** Work mode. Kept fixed/universal; the competition signal (remote ≈ 5× applicants) hangs off it. */
 export type JobMode = 'remote' | 'hybrid' | 'onsite';
 
+/** One dated status change (spec: pipeline metrics). `at` is an ISO date or datetime. */
+export interface StatusChange {
+  status: Status;
+  at: string;
+  /** Backfilled for a legacy job (date unknown, `at` borrowed from `applied`) — never persisted;
+   *  counts toward rates but not toward time-to-reply. */
+  derived?: boolean;
+}
+
+/** Kinds of dated event logged against a job (spec: interviews + calendar). */
+export type JobEventKind = 'interview' | 'call' | 'other';
+
+/** A dated event on a job — an interview, a call, etc. `date` is YYYY-MM-DD (local);
+ *  `time` is HH:MM (local, optional → all-day). */
+export interface JobEvent {
+  id: string;
+  kind: JobEventKind;
+  date: string;
+  time?: string;
+  durationMin?: number;
+  note?: string;
+}
+
 /** A single per-role checklist item. */
 export interface Todo {
   id: string;
@@ -42,4 +65,7 @@ export interface Job {
   blockers?: string[]; // dealbreaker tags (default vocab + custom)
   angle?: string; // positioning note for THIS job
   screenedAt?: string; // ISO — set when the JD screener (#61) last ran
+  // --- Pipeline + calendar (additive; old records lack them). ---
+  history?: StatusChange[]; // dated status changes, oldest first (backfilled from `applied`)
+  events?: JobEvent[]; // interviews / calls, any order
 }

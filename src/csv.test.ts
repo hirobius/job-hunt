@@ -1,0 +1,79 @@
+import { describe, expect, it } from 'vitest';
+import { csvCell, toCsv, CSV_COLUMNS } from './csv';
+import type { Job } from './types';
+
+describe('csvCell — quoting + formula neutralization', () => {
+  it.each([
+    ['plain', '"plain"'],
+    ['say "hi"', '"say ""hi"""'],
+    ['=SUM(A1)', `"'=SUM(A1)"`],
+    ['+1 555', `"'+1 555"`],
+    ['-2', `"'-2"`],
+    ['@cmd', `"'@cmd"`],
+    ['\tTab', `"'\tTab"`],
+    ['\rCR', `"'\rCR"`],
+    ['a=b', '"a=b"'],
+    ['', '""'],
+  ])('%j → %s', (input, out) => {
+    expect(csvCell(input)).toBe(out);
+  });
+});
+
+describe('toCsv', () => {
+  const job: Job = {
+    url: 'https://x.co/1',
+    label: '=HYPERLINK("evil")',
+    status: 'Applied',
+    applied: '2026-10-01',
+    followUp: '2026-10-08',
+    notes: 'long notes',
+    note: 'short',
+    screenedAt: '2026-09-30T10:00:00Z',
+    todos: [
+      { id: '1', text: 'Research', done: true },
+      { id: '2', text: 'Tailor', done: false },
+    ],
+    history: [
+      { status: 'Saved', at: '2026-09-29' },
+      { status: 'Applied', at: '2026-10-01' },
+    ],
+    events: [{ id: 'e', kind: 'interview', date: '2026-10-15', time: '14:00' }],
+  };
+
+  it('header row lists every column', () => {
+    const [head] = toCsv([]).split('\r\n');
+    expect(head.split(',').length).toBe(CSV_COLUMNS.length);
+    for (const c of ['notes', 'todos', 'follow_up', 'screened_at', 'history', 'events'])
+      expect(head).toContain(`"${c}"`);
+  });
+
+  it('includes notes, todos, follow-up, screenedAt, history, events and neutralizes formulas', () => {
+    const [, row] = toCsv([job]).split('\r\n');
+    expect(row).toContain(`"'=HYPERLINK(""evil"")"`);
+    expect(row).toContain('"long notes"');
+    expect(row).toContain('"[x] Research | [ ] Tailor"');
+    expect(row).toContain('"2026-10-08"');
+    expect(row).toContain('"2026-09-30T10:00:00Z"');
+    expect(row).toContain('"Saved 2026-09-29 > Applied 2026-10-01"');
+    expect(row).toContain('"interview 2026-10-15 14:00"');
+  });
+
+  it('one row per job, CRLF separated', () => {
+    expect(toCsv([job, { ...job, url: 'https://x.co/2' }]).split('\r\n')).toHaveLength(3);
+  });
+});
+
+describe('sample data (#110)', () => {
+  it('leaves demo-tagged jobs out of the export', () => {
+    const real: Job = { url: 'https://a.co/1', label: 'Real role', status: 'Saved' };
+    const sample = {
+      url: 'https://b.example.com/2',
+      label: 'Sample role',
+      status: 'Saved',
+      demo: true,
+    } as Job;
+    const csv = toCsv([sample, real]);
+    expect(csv).toContain('Real role');
+    expect(csv).not.toContain('Sample role');
+  });
+});
