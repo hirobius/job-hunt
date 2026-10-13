@@ -46,6 +46,7 @@ import ThisWeek from './ThisWeek';
 import UseTemplate from './UseTemplate';
 import InterviewLog from './InterviewLog';
 import EmptyState from './EmptyState';
+import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import { TodosNotes } from './TodosNotes';
 import type { Job, Status } from './types';
 
@@ -227,12 +228,14 @@ export default function TrackerView() {
         </Stack>
       </Stack>
 
+      <SampleBanner jobs={jobs} />
       <ThisWeek />
       <PipelineStats jobs={jobs} />
       <FunnelSummary jobs={shown} />
 
       {shown.length === 0 ? (
         <EmptyState
+          action={jobs.length === 0 ? <TrySampleButton /> : undefined}
           message={
             jobs.length === 0
               ? 'No saved jobs yet — paste a link above, or save some from Discover.'
