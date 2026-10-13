@@ -1,19 +1,22 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { useRoute, navigate, getRoute } from './route';
-import { Box, Container, Stack, Typography } from './ui/box';
-import { Sun, Moon, MoreVertical, MessageSquareText } from 'lucide-react';
 import {
-  IconButton as HdsIconButton,
-  Menu as HdsMenu,
   Tabs as HdsTabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-  HdsTooltip,
+  Box,
+  Text,
+  Container,
+  Stack,
 } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
-import CloudSync from './CloudSync';
-import { useColorMode } from './ColorMode';
+import { BRAND } from './brand';
+import CloudSyncProvider from './account/CloudSyncProvider';
+import DataToolsProvider from './account/DataToolsProvider';
+import AccountMenu from './account/AccountMenu';
+import SignInDialog from './account/SignInDialog';
+import SyncNudge from './account/SyncNudge';
 import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
@@ -23,51 +26,20 @@ import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 
-function ColorModeToggle() {
-  const { mode, toggle } = useColorMode();
-  const label = mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
-  return (
-    <HdsTooltip>
-      <HdsTooltip.Trigger asChild>
-        <HdsIconButton
-          variant="tertiary"
-          icon={mode === 'dark' ? Sun : Moon}
-          onClick={toggle}
-          label={label}
-        />
-      </HdsTooltip.Trigger>
-      <HdsTooltip.Content>{label}</HdsTooltip.Content>
-    </HdsTooltip>
-  );
-}
+// Top-level tabs, in render order (v1 prototype: Discover · Tracker · Templates, Tracker is the landing tab; Today joins in Phase 2
+// and becomes the landing route then). The URL hash carries the slug (#/queue …); slugs stay
+// back-compatible (`queue`/`copy-deck`) under the new labels, so old bookmarks keep working.
+// HDS TabsContent is a tinted, padded card pulled up under its tab strip — right for in-page
+// tabs, wrong for the app's top-level nav, where it indented every view 24px off the header's edge
+// and nested each page in a surface. Top-level panels are bare (HDS gap, filed under #133).
+const BARE_PANEL = {
+  background: 'transparent',
+  padding: 0,
+  marginTop: 0,
+  borderRadius: 0,
+} as const;
 
-// Secondary actions collapse into one overflow menu so the header stays a title + two controls at
-// any width. (Track management now lives in Discover — see the curation controls — so the old
-// "Manage trades" item is gone.)
-function OverflowMenu() {
-  return (
-    <HdsMenu>
-      <HdsMenu.Trigger asChild>
-        <HdsIconButton variant="tertiary" icon={MoreVertical} label="More options" />
-      </HdsMenu.Trigger>
-      <HdsMenu.Content align="end">
-        <HdsMenu.Item
-          onSelect={() =>
-            window.open('https://github.com/hirobius/job-hunt/issues/new', '_blank', 'noopener')
-          }
-        >
-          <MessageSquareText size={15} style={{ marginRight: 8 }} />
-          Send feedback
-        </HdsMenu.Item>
-      </HdsMenu.Content>
-    </HdsMenu>
-  );
-}
-
-// Top-level tabs, in render order. The URL hash carries the slug (#/queue …); the index is
-// derived from it. Slugs stay back-compatible (`queue`/`copy-deck`) even though the labels are now
-// Tracker/Templates, so old bookmarks keep working. Tracker is the default landing view.
-const TAB_SLUGS = ['discover', 'queue', 'copy-deck'] as const;
+const TAB_SLUGS = ['queue', 'discover', 'copy-deck'] as const;
 const DEFAULT_TAB = 'queue';
 const defaultTabIndex = TAB_SLUGS.indexOf(DEFAULT_TAB);
 
@@ -111,68 +83,51 @@ export default function App() {
   }, []);
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.75, sm: 3 } }}>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        spacing={1}
-        sx={{ mb: { xs: 1.5, sm: 2 } }}
-      >
-        <Typography variant="h1" sx={{ fontSize: { xs: '1.6rem', sm: '2.125rem' }, minWidth: 0 }}>
-          Apply{' '}
-          <Box component="span" sx={{ color: 'primary.main' }}>
-            Board
+    <CloudSyncProvider>
+      <DataToolsProvider>
+        <Container maxWidth="content">
+          {/* Page gutter: the HDS region-gutter role (Container's own padding prop is retired). */}
+          <Box sx={{ px: 'var(--semantic-space-region-gutter)', py: 'md' }}>
+            <HdsTabs
+              value={TAB_SLUGS[tab]}
+              onValueChange={(v) => navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null })}
+            >
+              <Stack gap="normal">
+                {/* Slim header: name · top tabs · account. The tabs wrap under the name on mobile. */}
+                <Stack direction="row" wrap="wrap" gap="gap" align="center" justify="space-between">
+                  <Text variant="title" as="h1" style={{ margin: 0 }}>
+                    {BRAND.wordmark[0]}
+                    <Box as="span" sx={{ color: 'accent' }}>
+                      {BRAND.wordmark[1]}
+                    </Box>
+                  </Text>
+                  <AccountMenu />
+                </Stack>
+                <TabsList style={{ width: '100%', marginBottom: 0 }} aria-label="Sections">
+                  <TabsTrigger value="discover">Discover</TabsTrigger>
+                  <TabsTrigger value="queue">Tracker</TabsTrigger>
+                  <TabsTrigger value="copy-deck">Templates</TabsTrigger>
+                </TabsList>
+                <SyncNudge />
+                <TabsContent value="queue" style={BARE_PANEL}>
+                  <TrackerView />
+                </TabsContent>
+                <TabsContent value="discover" style={BARE_PANEL}>
+                  <Suspense fallback={<DiscoverSkeleton />}>
+                    <DiscoverView />
+                  </Suspense>
+                </TabsContent>
+                <TabsContent value="copy-deck" style={BARE_PANEL}>
+                  <Suspense fallback={<CopyDeckSkeleton />}>
+                    <CopyDeckView />
+                  </Suspense>
+                </TabsContent>
+              </Stack>
+            </HdsTabs>
           </Box>
-        </Typography>
-        <Stack direction="row" alignItems="center" spacing={0.25} sx={{ flex: 'none' }}>
-          <ColorModeToggle />
-          <OverflowMenu />
-        </Stack>
-      </Stack>
-
-      <CloudSync />
-
-      {/* HDS underline tabs (Radix): value = route slug, aria wiring comes from Radix. The list
-          scrolls horizontally on narrow screens; the sx bump gives each tab a readable, tappable
-          target (the default underline tabs read too faint/small on phones). */}
-      <Box
-        sx={{
-          mb: { xs: 2, sm: 2.5 },
-          '& [role="tab"]': {
-            fontSize: { xs: '0.875rem', sm: '0.95rem' },
-            fontWeight: 600,
-            paddingTop: '10px',
-            paddingBottom: '10px',
-            paddingLeft: { xs: '7px', sm: '14px' },
-            paddingRight: { xs: '7px', sm: '14px' },
-          },
-        }}
-      >
-        <HdsTabs
-          value={TAB_SLUGS[tab]}
-          onValueChange={(v) => navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null })}
-        >
-          <TabsList style={{ width: '100%' }}>
-            <TabsTrigger value="discover">Discover</TabsTrigger>
-            <TabsTrigger value="queue">Tracker</TabsTrigger>
-            <TabsTrigger value="copy-deck">Templates</TabsTrigger>
-          </TabsList>
-          <TabsContent value="discover">
-            <Suspense fallback={<DiscoverSkeleton />}>
-              <DiscoverView />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="queue">
-            <TrackerView />
-          </TabsContent>
-          <TabsContent value="copy-deck">
-            <Suspense fallback={<CopyDeckSkeleton />}>
-              <CopyDeckView />
-            </Suspense>
-          </TabsContent>
-        </HdsTabs>
-      </Box>
-    </Container>
+        </Container>
+        <SignInDialog />
+      </DataToolsProvider>
+    </CloudSyncProvider>
   );
 }

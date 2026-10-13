@@ -1,29 +1,25 @@
 // Suspense fallbacks shaped like the view they stand in for, so the layout doesn't jump
-// when the real chunk loads (replaces a centered spinner). HDS Skeleton/Card; MUI only
-// for the Box/Stack layout primitives (last sweep, issue #11).
-import { Box, Stack } from './ui/box';
-import { Card, Skeleton } from '@hirobius/design-system';
-
-const gridSx = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-  gap: 1.25,
-} as const;
+// when the real chunk loads (replaces a centered spinner). All HDS: Skeleton, Card, Grid, Box.
+import { Card, Skeleton, Box, Grid } from '@hirobius/design-system';
 
 /** A grid of tile-card placeholders — matches TileGrid (Discover / Apprenticeships). */
 export function TileGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <Box sx={gridSx} aria-hidden>
+    <Grid layout="auto-fill" minItemWidth="160px" gap="medium" aria-hidden>
       {Array.from({ length: count }).map((_, i) => (
         <Card key={i} bordered padding="none" style={{ height: '100%' }}>
-          <Box sx={{ p: 1.5 }}>
+          <Box sx={{ p: 3 }}>
             <Skeleton variant="text" width="80%" />
             <Skeleton variant="text" width="55%" />
-            <Skeleton variant="rectangular" height={28} style={{ marginTop: 10 }} />
+            <Skeleton
+              variant="rectangular"
+              height={28}
+              style={{ marginTop: 'var(--primitive-space-2)' }}
+            />
           </Box>
         </Card>
       ))}
-    </Box>
+    </Grid>
   );
 }
 
@@ -31,11 +27,11 @@ export function TileGridSkeleton({ count = 8 }: { count?: number }) {
 export function DiscoverSkeleton() {
   return (
     <Box aria-busy aria-label="Loading">
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', mb: 'sm' }}>
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} variant="rectangular" width={88} height={32} />
         ))}
-      </Stack>
+      </Box>
       <TileGridSkeleton />
     </Box>
   );
@@ -45,21 +41,21 @@ export function DiscoverSkeleton() {
 export function CopyDeckSkeleton({ count = 3 }: { count?: number }) {
   return (
     <Box aria-busy aria-label="Loading">
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', mb: 'sm' }}>
         <Skeleton variant="rectangular" width={120} height={32} />
         <Skeleton variant="rectangular" width={120} height={32} style={{ marginLeft: 'auto' }} />
-      </Stack>
-      <Stack spacing={1.5}>
+      </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {Array.from({ length: count }).map((_, i) => (
           <Card key={i} bordered padding="none">
-            <Box sx={{ p: 2 }}>
+            <Box sx={{ p: 'sm' }}>
               <Skeleton variant="text" width="40%" height={28} />
               <Skeleton variant="text" width="90%" />
               <Skeleton variant="text" width="75%" />
             </Box>
           </Card>
         ))}
-      </Stack>
+      </Box>
     </Box>
   );
 }

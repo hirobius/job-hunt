@@ -1,7 +1,6 @@
-// The shared location + work-mode control for every generated search in Discover (Title search,
-// ATS search, Live postings). Extracted from DiscoverView so the Live postings panel can reuse it.
-import { Input as HdsInput, SegmentedControl } from '@hirobius/design-system';
-import { Box, Stack, Typography } from './ui/box';
+// The ONE shared work-mode + location block for every generated search in Discover (Search by
+// title, Search by company board, Postings) — v1. Extracted so each view reuses it unchanged.
+import { Input as HdsInput, SegmentedControl, Stack, Text } from '@hirobius/design-system';
 import type { WorkMode } from './jobsData';
 
 const REMOTE_COMPETITION_HINT =
@@ -19,10 +18,11 @@ export default function LocationControl({
   onMode: (v: WorkMode) => void;
 }) {
   return (
-    <Stack spacing={1} sx={{ mb: 1.5 }}>
+    <Stack gap="tight">
       <SegmentedControl
         aria-label="Work mode"
         size="sm"
+        fullWidth
         value={mode}
         onChange={(v) => onMode(v as WorkMode)}
         options={[
@@ -32,21 +32,23 @@ export default function LocationControl({
           { value: 'onsite', label: 'On-site' },
         ]}
       />
-      <Box sx={{ maxWidth: 280, '& > *': { width: '100%' } }}>
-        <HdsInput
-          size="sm"
-          aria-label="Location"
-          placeholder="City, State — blank = anywhere"
-          value={mode === 'remote' ? '' : where}
-          disabled={mode === 'remote'}
-          onChange={(e) => onWhere(e.target.value)}
-          style={{ width: '100%' }}
-        />
-      </Box>
+      <HdsInput
+        size="sm"
+        label="Location (optional)"
+        placeholder="City or State — leave blank for anywhere"
+        value={mode === 'remote' ? '' : where}
+        disabled={mode === 'remote'}
+        onChange={(e) => onWhere(e.target.value)}
+        style={{ width: '100%' }}
+      />
       {mode === 'remote' && (
-        <Typography variant="caption" color="text.secondary">
+        <Text
+          variant="caption"
+          as="span"
+          style={{ color: 'var(--semantic-color-content-secondary)' }}
+        >
           {REMOTE_COMPETITION_HINT}
-        </Typography>
+        </Text>
       )}
     </Stack>
   );

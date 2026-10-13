@@ -1,32 +1,38 @@
-// Shared empty-state block: a muted message with an optional action, centered. Replaces the
-// ad-hoc plain-text "nothing here" lines so empties read consistently across views.
-import { Box, Typography } from './ui/box';
+// Shared empty state: HDS `EmptyState` (title + muted description) plus what it does not carry
+// yet — up to two actions under the message (the action that fills the screen is the primary
+// one). Kept as a composition, not a local primitive, so it can collapse into the HDS component
+// once that grows an action slot (hds#654).
+import { EmptyState as HdsEmptyState, Stack } from '@hirobius/design-system';
 import type { ReactNode } from 'react';
 
 export default function EmptyState({
   title,
   message,
   action,
-  dense = false,
+  secondaryAction,
 }: {
   title?: string;
   message: ReactNode;
-  /** An action node (e.g. a Button) shown under the message. */
+  /** Primary action node (e.g. a Button) shown under the message. */
   action?: ReactNode;
-  /** Tighter padding for inline use within a section. */
-  dense?: boolean;
+  /** Optional lower-emphasis action beside the primary one. */
+  secondaryAction?: ReactNode;
 }) {
+  const empty = title ? (
+    <HdsEmptyState title={title} description={message} />
+  ) : (
+    <HdsEmptyState title={message} />
+  );
+  // Always the same centred column, with or without an action, so empties match within a view.
   return (
-    <Box sx={{ textAlign: 'center', py: dense ? 2 : 4, px: 2 }}>
-      {title && (
-        <Typography variant="subtitle1" sx={{ color: 'text.primary', mb: 0.5 }}>
-          {title}
-        </Typography>
+    <Stack gap="tight" align="center">
+      {empty}
+      {(action || secondaryAction) && (
+        <Stack direction="row" gap="gap" align="center" justify="center" wrap="wrap">
+          {action}
+          {secondaryAction}
+        </Stack>
       )}
-      <Typography variant="body2" color="text.secondary">
-        {message}
-      </Typography>
-      {action && <Box sx={{ mt: 1.5 }}>{action}</Box>}
-    </Box>
+    </Stack>
   );
 }

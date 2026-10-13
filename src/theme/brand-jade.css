@@ -2,10 +2,10 @@
  *
  * Principle (see docs/adr/0001): supply ONE seed (jade hue + chroma); the accent
  * LIGHTNESS comes from the system's contrast logic, not hardcoded brand hex. No
- * inverted overrides — on-accent text stays HDS's default white because the accent
- * resolves dark by design. HDS info/feedback stays blue (this only remaps accent).
+ * inverted overrides — on-accent text is white because the accent resolves dark by design.
+ * HDS info/feedback stays blue (this only remaps accent).
  * Load AFTER @hirobius/design-system/styles.css (ADR-0005). Dark overrides target
- * [data-theme="dark"], matching HDS's own theme switch (pinned at 0.13.0, HDS's final release). */
+ * [data-theme="dark"], matching HDS's own theme switch. */
 :root {
   /* —— the only brand-specific inputs —— */
   --brand-h: 165.2;
@@ -31,7 +31,10 @@
   --semantic-color-surface-accentSubtle: var(--brand-accent-subtle);
   --semantic-color-border-accent: var(--brand-accent-rest);
   --semantic-color-content-accent: var(--brand-accent-rest);
-  /* --semantic-color-content-onAccent: left as HDS default (white). NO inversion. */
+  /* On-accent text: HDS <=0.23 defaulted it to white; 0.24 made it near-white (#fafafa) in light
+   * and dark graphite in dark (its own accent inverts per theme). Jade does not invert, so pin the
+   * old white in both themes — #fafafa is 4.42:1 on jade-rest, just under AA (theme.contrast.test). */
+  --semantic-color-content-onAccent: #fff;
 }
 [data-theme='dark'] {
   /* on dark surfaces, accent-as-text lightens for AA (system logic, same seed) */

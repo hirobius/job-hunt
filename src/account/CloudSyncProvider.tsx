@@ -1,21 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { Box, Stack, Typography } from './ui/box';
-import {
-  Button,
-  HdsTooltip,
-  IconButton as HdsIconButton,
-  Input as HdsInput,
-} from '@hirobius/design-system';
-import { X } from 'lucide-react';
+// Cloud sync (#31, #99) as a provider (#115 Phase 1): owns the Supabase session, the debounced
+// push, the focus re-pull and sign-out/delete, and exposes them through CloudSyncContext. The UI
+// lives elsewhere — the account menu, the one-time sync nudge and the sign-in dialog — and
+// failures surface as toasts instead of a banner on every page.
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useToast } from '@hirobius/design-system';
 import type { User } from '@supabase/supabase-js';
-import { supabase as supa } from './supabase';
-import { useJobs, getAllJobs, replaceAll } from './store';
-import { useSnippets, getSnippets, replaceSnippets } from './copyDeckStore';
-import { useTileTriage, getTileTriage, replaceTriage } from './tileTriage';
-import { readBlob, writeBlob, mergeBlob, type SyncData } from './syncBlob';
-import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from './curation/sync';
-import { getCurationSyncStatus, setCurationSyncStatus } from './curation/syncStatus';
-import { OFFLINE_MSG, DELETE_ORDER, deleteFailedMsg } from './cloudMessages';
+import { supabase as supa } from '../supabase';
+import { useJobs, getAllJobs, replaceAll } from '../store';
+import { useSnippets, getSnippets, replaceSnippets } from '../copyDeckStore';
+import { useTileTriage, getTileTriage, replaceTriage } from '../tileTriage';
+import { readBlob, writeBlob, mergeBlob, type SyncData } from '../syncBlob';
+import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
+import { getCurationSyncStatus, setCurationSyncStatus } from '../curation/syncStatus';
+import { OFFLINE_MSG, DELETE_ORDER, deleteFailedMsg } from '../cloudMessages';
+import { CloudSyncContext, type CloudSyncApi } from './accountContext';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
 // delete so a shared browser can't carry one person's jobs/pillars/résumé to the next.
@@ -29,34 +27,17 @@ function clearLocalData() {
   }
 }
 
-// Once dismissed, the signed-out banner stays collapsed to a one-line link until the
-// user re-opens it (or signs in). Cleared by clearLocalData on sign-out, which is right:
-// a fresh person on this browser should see the full banner again.
-const HIDE_KEY = 'rjb_sync_banner_hidden';
-
-export default function CloudSync() {
+export default function CloudSyncProvider({ children }: { children: ReactNode }) {
+  const { toast } = useToast();
   const jobs = useJobs();
   const snippets = useSnippets();
   const triage = useTileTriage();
   const [user, setUser] = useState<User | null>(null);
-  const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('Sign in to sync across your devices');
-  const [hidden, setHidden] = useState(() => {
-    try {
-      return localStorage.getItem(HIDE_KEY) === '1';
-    } catch {
-      return false;
-    }
-  });
-  const hide = (v: boolean) => {
-    setHidden(v);
-    try {
-      if (v) localStorage.setItem(HIDE_KEY, '1');
-      else localStorage.removeItem(HIDE_KEY);
-    } catch {
-      /* ignore */
-    }
-  };
+  const [signInOpen, setSignInOpen] = useState(false);
+  // False until Supabase reports the stored session (or its absence), so signed-in users don't
+  // see the signed-out nudge flash on load.
+  const [authResolved, setAuthResolved] = useState(false);
   const lastSynced = useRef('');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -112,9 +93,14 @@ export default function CloudSync() {
   // auth state. Token refreshes / profile updates aren't a new sign-in — don't re-run the
   // seed merge (it would also flip the sync gate mid-onboarding).
   useEffect(() => {
+    void supa.auth.getSession().then(
+      () => setAuthResolved(true),
+      () => setAuthResolved(true),
+    );
     const { data } = supa.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null;
       setUser(u);
+      setAuthResolved(true);
       if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
       if (u) adopt(true, u);
       else {
@@ -180,7 +166,9 @@ export default function CloudSync() {
     }
     if (failed.length) {
       // Keep this device's copy so nothing is lost while the cloud copy is only partly gone.
-      setMsg(deleteFailedMsg(failed));
+      const why = deleteFailedMsg(failed);
+      setMsg(why);
+      toast({ title: 'Delete incomplete', description: why, tone: 'danger' });
       return;
     }
     clearLocalData();
@@ -188,116 +176,50 @@ export default function CloudSync() {
     location.reload();
   };
 
-  const sendLink = () => {
-    const e = email.trim();
-    if (!e) return;
-    setMsg('Sending link…');
-    supa.auth
-      .signInWithOtp({
-        email: e,
-        options: { emailRedirectTo: location.origin + location.pathname },
-      })
-      .then((r) =>
-        setMsg(
-          r.error
-            ? 'Could not send link: ' + r.error.message
-            : `✓ Check ${e} for your sign-in link`,
-        ),
-      );
+  const sendLink = async (email: string): Promise<string | null> => {
+    const r = await supa.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: location.origin + location.pathname },
+    });
+    if (!r.error) return null;
+    const why = 'Could not send link: ' + r.error.message;
+    toast({ title: 'Sign-in link not sent', description: r.error.message, tone: 'danger' });
+    return why;
   };
 
-  // Collapsed, signed-out state: a single quiet line instead of the full banner.
-  if (!user && hidden)
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-        <Button size="sm" variant="tertiary" onClick={() => hide(false)}>
-          Sign in to sync
-        </Button>
-      </Box>
-    );
+  // A failed pull/push is a toast once per outage (not a banner): focus re-pulls and Retry
+  // flip the status through "Refreshing…" but don't re-toast until a sync has succeeded again.
+  // The account menu keeps the status line and a Retry while the outage lasts.
+  const offline = msg === OFFLINE_MSG;
+  const toastRef = useRef(toast);
+  const outageToasted = useRef(false);
+  useEffect(() => {
+    toastRef.current = toast;
+  });
+  useEffect(() => {
+    if (msg.startsWith('Synced')) outageToasted.current = false;
+    if (msg !== OFFLINE_MSG || outageToasted.current) return;
+    outageToasted.current = true;
+    toastRef.current({ title: 'Sync paused', description: OFFLINE_MSG, tone: 'warning' });
+  }, [msg]);
 
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 1.25,
-        mb: 2,
-        p: 1.25,
-        borderRadius: 2,
-        bgcolor: 'background.paper',
-        border: 1,
-        borderColor: 'divider',
-      }}
-    >
-      <Box
-        sx={{
-          width: 9,
-          height: 9,
-          borderRadius: '50%',
-          bgcolor: user ? 'success.main' : 'text.disabled',
-          flex: 'none',
-        }}
-      />
-      <Typography
-        variant="caption"
-        color={user ? 'text.primary' : 'text.secondary'}
-        sx={{ mr: 'auto' }}
-      >
-        {msg}
-      </Typography>
-      {!user && (
-        <Typography variant="caption" color="text.secondary" sx={{ width: '100%', order: 9 }}>
-          Your data stays in your browser and (if you sign in) your own account — nothing is shared
-          with anyone else.
-        </Typography>
-      )}
-      {user ? (
-        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
-          {msg === OFFLINE_MSG && (
-            <Button size="sm" variant="secondary" onClick={() => adopt(false, user)}>
-              Retry
-            </Button>
-          )}
-          <Button size="sm" variant="secondary" onClick={signOut}>
-            Sign out
-          </Button>
-          <Button size="sm" variant="tertiary" tone="danger" onClick={deleteMyData}>
-            Delete my data
-          </Button>
-        </Stack>
-      ) : (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
-          <HdsInput
-            size="sm"
-            type="email"
-            aria-label="Email for sign-in link"
-            placeholder="you@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') sendLink();
-            }}
-            style={{ minWidth: 200 }}
-          />
-          <Button size="sm" variant="primary" onClick={sendLink}>
-            Email me a link
-          </Button>
-          <HdsTooltip>
-            <HdsTooltip.Trigger asChild>
-              <HdsIconButton
-                size="sm"
-                variant="tertiary"
-                icon={X}
-                onClick={() => hide(true)}
-                label="Hide sign-in banner"
-              />
-            </HdsTooltip.Trigger>
-            <HdsTooltip.Content>Hide — you can sign in anytime</HdsTooltip.Content>
-          </HdsTooltip>
-        </Stack>
-      )}
-    </Box>
+  // Stable unless what consumers read changes — the provider re-renders on every store change.
+  const api: CloudSyncApi = useMemo(
+    () => ({
+      user,
+      authResolved,
+      status: msg,
+      offline,
+      sendLink,
+      retry: () => user && void adopt(false, user),
+      signOut: () => void signOut(),
+      deleteMyData: () => void deleteMyData(),
+      signInOpen,
+      setSignInOpen,
+    }),
+    // The handlers only close over `user` (and stable module state).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, authResolved, msg, offline, signInOpen],
   );
+  return <CloudSyncContext.Provider value={api}>{children}</CloudSyncContext.Provider>;
 }

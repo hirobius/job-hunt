@@ -1,8 +1,7 @@
-/* base.css — the minimal global reset that MUI's <CssBaseline> used to provide, now that
- * MUI is gone (issue #11). HDS's styles.css is deliberately reset-free, so we own: the
- * border-box rule, the body background/text/font seeded from HDS tokens, and one shared
- * keyboard focus ring for the app's own interactive elements (HDS components ship their
- * own). Loaded after styles.css + brand-jade.css. */
+/* base.css — the minimal global reset HDS's reset-free styles.css leaves to the host: the
+ * border-box rule, the body background/text/type from HDS tokens (fonts.css supplies the
+ * typeface), and one keyboard focus ring for the app's own focusable elements (HDS
+ * components ship their own). Loaded after styles.css + brand-jade.css. */
 
 *,
 *::before,
@@ -17,11 +16,16 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  /* HDS's styles.css sets `html, body { overflow-x: hidden }`, which turns <body> into a scroll
+     container that never scrolls — so `position: sticky` (Onboarding's Start bar) never sticks to
+     the viewport. `clip` keeps the horizontal clipping without creating a scroll container. */
+  overflow-x: clip;
   background: var(--semantic-color-surface-page);
   color: var(--semantic-color-content-primary);
-  font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
-  font-size: 0.95rem;
-  line-height: 1.5;
+  /* HDS body role — the typeface itself comes from @hirobius/design-system/fonts.css. */
+  font-family: var(--semantic-typography-body-font-family);
+  font-size: var(--semantic-typography-body-font-size);
+  line-height: var(--semantic-typography-body-line-height);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -34,4 +38,101 @@ a:focus-visible,
   outline: 2px solid var(--semantic-accent-rest);
   outline-offset: 2px;
   border-radius: 6px;
+}
+
+/* HDS 0.24.1 bug (upstream ask in #133): the active tab's `data-[state=active]:border-foreground`
+ * sits in a cascade layer while `.border-transparent` is unlayered, so the unlayered rule wins and
+ * the selected tab shows no underline — the "selected state is invisible" audit finding. Restore
+ * HDS's intended indicator until the fix ships. */
+[role='tab'][data-state='active'] {
+  border-bottom-color: var(--role-foreground);
+}
+
+/* Sheet (src/Sheet.tsx): HDS Dialog docked to the bottom edge on phones — the v1 prototype's
+   sheet. HDS has no Sheet yet (HDS gap); token-only so it collapses into HDS when that lands. */
+.app-sheet-grab {
+  display: none;
+}
+@media (max-width: 639px) {
+  .app-sheet {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    max-height: 92dvh;
+    translate: none;
+    transform: none;
+    border-radius: var(--primitive-radius-12) var(--primitive-radius-12) 0 0;
+    border-bottom: 0;
+    padding-bottom: calc(var(--semantic-space-scale-md) + env(safe-area-inset-bottom));
+    animation: app-sheet-up var(--primitive-duration-short) ease-out;
+  }
+  .app-sheet-grab {
+    display: block;
+    width: var(--primitive-space-10);
+    height: var(--primitive-space-1);
+    border-radius: var(--primitive-radius-full);
+    background: var(--semantic-color-border-default);
+    margin: 0 auto;
+  }
+}
+@keyframes app-sheet-up {
+  from {
+    transform: translateY(var(--semantic-motion-distance));
+    opacity: 0.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-sheet {
+    animation: none;
+  }
+}
+.app-sheet-item.app-sheet-item {
+  display: flex;
+  height: auto;
+  border-radius: 0;
+  font-weight: inherit;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--semantic-space-scale-sm);
+  min-height: var(--primitive-space-12);
+  padding: var(--semantic-space-scale-xs) 0;
+  border-bottom: thin solid var(--semantic-color-border-subtle);
+  color: var(--semantic-color-content-primary);
+  cursor: pointer;
+}
+li:last-child > .app-sheet-item.app-sheet-item {
+  border-bottom: 0;
+}
+.app-sheet-item.app-sheet-item[data-tone='danger'] {
+  color: var(--semantic-color-feedback-error);
+}
+.app-sheet-item:focus-visible {
+  outline: medium solid var(--semantic-accent-rest);
+  outline-offset: var(--primitive-space-1);
+}
+.app-sheet-item.app-sheet-item:hover,
+.app-sheet-item.app-sheet-item[data-state='open'] {
+  background-color: var(--semantic-color-surface-sunken);
+  color: var(--semantic-color-content-primary);
+}
+.app-sheet-item.app-sheet-item {
+  border-bottom: thin solid var(--semantic-color-border-subtle);
+  padding-inline: var(--semantic-space-scale-xs);
+}
+
+/* Sheet action row that stays pinned to the bottom edge while a tall sheet scrolls (Manage track). */
+.app-sheet-foot {
+  position: sticky;
+  bottom: calc(-1 * var(--semantic-space-scale-sm));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--semantic-space-scale-xs);
+  padding-block: var(--semantic-space-scale-xs);
+  background: var(--semantic-color-surface-raised);
+  border-top: thin solid var(--semantic-color-border-subtle);
 }

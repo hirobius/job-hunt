@@ -4,7 +4,7 @@
 //
 // ⚠️ v1 is provisional (owner unsure of the ideal set) — keep this list trivially editable; add or
 // remove a pack by editing STARTER_PACKS + CONTENT_FOR. "blank" seeds an empty category to build on.
-import { addCategory, addGroup, addTile } from './curationStore';
+import { addCategory, addGroup, addTile, getCurationState, updateCategory } from './curationStore';
 import {
   CONSULTING_PACK,
   DESIGN_SYSTEMS_PACK,
@@ -80,4 +80,60 @@ export function seedPack(
     );
   });
   return categoryId;
+}
+
+export interface TopUpResult {
+  titles: number;
+  atsRoles: number;
+  groups: number;
+  tiles: number;
+}
+
+/**
+ * Bring an existing track up to date with its starter pack without touching the user's edits:
+ * add any pack titles / ATS terms it lacks (case-insensitive), any pack group it lacks (matched by
+ * label), and any pack link whose URL the track doesn't already have. Nothing is removed or
+ * renamed. Returns how many of each it added (all zero = already current).
+ */
+export function topUpFromPack(categoryId: string, packId: string): TopUpResult {
+  const content = CONTENT_FOR[packId];
+  const res: TopUpResult = { titles: 0, atsRoles: 0, groups: 0, tiles: 0 };
+  const state = getCurationState();
+  const cat = state.categories.find((c) => c.id === categoryId);
+  if (!content || !cat) return res;
+
+  const merge = (have: string[], want: string[]) => {
+    const seen = new Set(have.map((x) => x.toLowerCase()));
+    const add = want.filter((x) => !seen.has(x.toLowerCase()));
+    return { next: [...have, ...add], added: add.length };
+  };
+  const t = merge(cat.titles, content.titles);
+  const a = merge(cat.atsRoles, content.atsRoles);
+  res.titles = t.added;
+  res.atsRoles = a.added;
+  if (t.added || a.added) updateCategory(categoryId, { titles: t.next, atsRoles: a.next });
+
+  const groups = state.groups.filter((g) => g.categoryId === categoryId);
+  const urls = new Set(
+    state.tiles.filter((x) => groups.some((g) => g.id === x.groupId)).map((x) => x.url),
+  );
+  content.groups.forEach((pg, gi) => {
+    let groupId = groups.find((g) => g.label === pg.label)?.id;
+    if (!groupId) {
+      groupId = addGroup(categoryId, {
+        label: pg.label,
+        sortOrder: groups.length + gi,
+        archived: !!pg.archived,
+      });
+      res.groups++;
+    }
+    const gid = groupId;
+    pg.tiles.forEach((tile, ti) => {
+      if (urls.has(tile.url)) return;
+      addTile(gid, { name: tile.name, url: tile.url, meta: tile.meta, sortOrder: 1000 + ti });
+      urls.add(tile.url);
+      res.tiles++;
+    });
+  });
+  return res;
 }

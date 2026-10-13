@@ -63,52 +63,61 @@ export interface SearchLoc {
   mode: WorkMode;
 }
 const encc = encodeURIComponent;
-export const BOARDS: { name: string; tag: string; build: (term: string, loc: SearchLoc) => string }[] =
-  [
-    {
-      name: 'Indeed',
-      tag: 'Aggregator',
-      build: (term, { where, mode }) => {
-        const l = mode === 'remote' ? 'Remote' : where.trim();
-        return `https://www.indeed.com/jobs?q=${encc(term)}${l ? `&l=${encc(l)}` : ''}`;
-      },
+export const BOARDS: {
+  name: string;
+  tag: string;
+  build: (term: string, loc: SearchLoc) => string;
+}[] = [
+  {
+    name: 'Indeed',
+    tag: 'Aggregator',
+    build: (term, { where, mode }) => {
+      const l = mode === 'remote' ? 'Remote' : where.trim();
+      return `https://www.indeed.com/jobs?q=${encc(term)}${l ? `&l=${encc(l)}` : ''}`;
     },
-    {
-      name: 'LinkedIn',
-      tag: 'Aggregator',
-      build: (term, { where, mode }) => {
-        // f_WT: 1 = on-site, 2 = remote, 3 = hybrid; omit for "any".
-        const wt =
-          mode === 'remote' ? '&f_WT=2' : mode === 'hybrid' ? '&f_WT=3' : mode === 'onsite' ? '&f_WT=1' : '';
-        const loc = mode === 'remote' ? where.trim() || 'United States' : where.trim();
-        return `https://www.linkedin.com/jobs/search/?keywords=${encc(term)}${loc ? `&location=${encc(loc)}` : ''}${wt}`;
-      },
+  },
+  {
+    name: 'LinkedIn',
+    tag: 'Aggregator',
+    build: (term, { where, mode }) => {
+      // f_WT: 1 = on-site, 2 = remote, 3 = hybrid; omit for "any".
+      const wt =
+        mode === 'remote'
+          ? '&f_WT=2'
+          : mode === 'hybrid'
+            ? '&f_WT=3'
+            : mode === 'onsite'
+              ? '&f_WT=1'
+              : '';
+      const loc = mode === 'remote' ? where.trim() || 'United States' : where.trim();
+      return `https://www.linkedin.com/jobs/search/?keywords=${encc(term)}${loc ? `&location=${encc(loc)}` : ''}${wt}`;
     },
-    {
-      name: 'ZipRecruiter',
-      tag: '1-click',
-      build: (term, { where, mode }) => {
-        const l = mode === 'remote' ? 'Remote' : where.trim();
-        return `https://www.ziprecruiter.com/jobs-search?search=${encc(term)}${l ? `&location=${encc(l)}` : ''}`;
-      },
+  },
+  {
+    name: 'ZipRecruiter',
+    tag: '1-click',
+    build: (term, { where, mode }) => {
+      const l = mode === 'remote' ? 'Remote' : where.trim();
+      return `https://www.ziprecruiter.com/jobs-search?search=${encc(term)}${l ? `&location=${encc(l)}` : ''}`;
     },
-    {
-      name: 'Google Jobs',
-      tag: 'Aggregator',
-      build: (term, { where, mode }) => {
-        const q = term + (mode === 'remote' ? ' remote' : where.trim() ? ` ${where.trim()}` : '');
-        return `https://www.google.com/search?q=${encc(q)}&ibp=htl;jobs`;
-      },
+  },
+  {
+    name: 'Google Jobs',
+    tag: 'Aggregator',
+    build: (term, { where, mode }) => {
+      const q = term + (mode === 'remote' ? ' remote' : where.trim() ? ` ${where.trim()}` : '');
+      return `https://www.google.com/search?q=${encc(q)}&ibp=htl;jobs`;
     },
-    {
-      name: 'Snagajob',
-      tag: 'Hourly',
-      build: (term, { where, mode }) => {
-        const w = mode === 'remote' ? 'Remote' : where.trim();
-        return `https://www.snagajob.com/search?q=${encc(term)}${w ? `&w=${encc(w)}` : ''}`;
-      },
+  },
+  {
+    name: 'Snagajob',
+    tag: 'Hourly',
+    build: (term, { where, mode }) => {
+      const w = mode === 'remote' ? 'Remote' : where.trim();
+      return `https://www.snagajob.com/search?q=${encc(term)}${w ? `&w=${encc(w)}` : ''}`;
     },
-  ];
+  },
+];
 
 // ---- ATS hidden-jobs generator ----
 export const ATS_ROLES = [
@@ -149,6 +158,41 @@ export const GROUPS: Group[] = [
     label: 'Apply Now',
     tiles: [
       t(
+        'designsystems.jobs',
+        'Job board just for design-systems roles · check weekly',
+        'https://designsystems.jobs/',
+      ),
+      t(
+        'Into Design Systems · jobs',
+        'Design-systems job board · filter for AI-skilled roles',
+        'https://jobs.intodesignsystems.com/',
+      ),
+      t(
+        'Wellfound · Design Systems',
+        'Startup roles · search "design systems", filter remote',
+        'https://wellfound.com/jobs',
+      ),
+      t(
+        'Welcome to the Jungle · Design Systems',
+        'Curated tech roles (formerly Otta) · search design systems',
+        'https://www.welcometothejungle.com/en/jobs?query=design%20systems',
+      ),
+      t(
+        'LinkedIn · Design Systems (Contract)',
+        'Contract and fractional design-systems roles, remote',
+        'https://www.linkedin.com/jobs/search/?keywords=design%20systems&location=United%20States&f_WT=2&f_JT=C',
+      ),
+      t(
+        'Contra · Design Systems',
+        'Freelance / fractional projects · search design systems',
+        'https://contra.com/',
+      ),
+      t(
+        'We Work Remotely · Design',
+        'Remote-only design and frontend roles',
+        'https://weworkremotely.com/categories/remote-design-jobs',
+      ),
+      t(
         'LinkedIn · Design Systems (Remote)',
         'Live remote design-systems / design-engineer roles',
         'https://www.linkedin.com/jobs/search/?keywords=design%20systems%20engineer&location=United%20States&f_WT=2',
@@ -177,6 +221,98 @@ export const GROUPS: Group[] = [
         'Ashby · Design Systems (hidden jobs)',
         'Google-dork into Ashby boards · less competition',
         'https://www.google.com/search?q=site%3Ajobs.ashbyhq.com+%22design+systems%22+remote',
+      ),
+    ],
+  },
+  {
+    // Design Systems watched companies: their public job boards (Lever / Greenhouse / Ashby), which
+    // the Live postings feed pulls live, so a new design-systems opening shows up there. Durable
+    // board pages, not one-off postings. From Adrian's 2026-10 shortlist; on 2026-10-13 none of the
+    // three listed a design-systems role (the shortlisted postings had closed).
+    id: 'ds-watch',
+    label: 'Watched companies',
+    tiles: [
+      t(
+        'Deputy · jobs',
+        'Lever board · design technologist / DS engineer roles',
+        'https://jobs.lever.co/deputy',
+      ),
+      t(
+        'Instacart · jobs',
+        'Greenhouse board · design-systems technologist roles',
+        'https://boards.greenhouse.io/instacart',
+      ),
+      t(
+        'Cambly · jobs',
+        'Ashby board · contract design-systems roles',
+        'https://jobs.ashbyhq.com/cambly',
+      ),
+      t(
+        'Rocket Money · jobs',
+        'Greenhouse board · design-systems engineering (remote US)',
+        'https://job-boards.greenhouse.io/truebill',
+      ),
+      t(
+        'Vanta · jobs',
+        'Ashby board · design-systems and systems-design roles (remote US)',
+        'https://jobs.ashbyhq.com/vanta',
+      ),
+      t(
+        'Stripe · jobs',
+        'Greenhouse board · design engineering and design systems',
+        'https://boards.greenhouse.io/stripe',
+      ),
+      t(
+        'Ramp · jobs',
+        'Ashby board · Design Systems Lead + design engineering (remote)',
+        'https://jobs.ashbyhq.com/ramp',
+      ),
+      t(
+        'Vercel · jobs',
+        'Greenhouse board · Design engineering (remote US)',
+        'https://boards.greenhouse.io/vercel',
+      ),
+      t(
+        'Mixpanel · jobs',
+        'Greenhouse board · Staff design engineering (remote)',
+        'https://boards.greenhouse.io/mixpanel',
+      ),
+      t(
+        'Linear · jobs',
+        'Ashby board · Design engineering (North America remote)',
+        'https://jobs.ashbyhq.com/linear',
+      ),
+      t('Replit · jobs', 'Ashby board · Design engineering', 'https://jobs.ashbyhq.com/replit'),
+      t(
+        'Gusto · jobs',
+        'Greenhouse board · Design-systems product design (hybrid)',
+        'https://boards.greenhouse.io/gusto',
+      ),
+      t(
+        'Discord · jobs',
+        'Greenhouse board · Design-systems product design',
+        'https://boards.greenhouse.io/discord',
+      ),
+      t(
+        'Datadog · jobs',
+        'Greenhouse board · Design-systems leadership',
+        'https://boards.greenhouse.io/datadog',
+      ),
+      t(
+        'Faire · jobs',
+        'Greenhouse board · Design-systems frontend engineering',
+        'https://boards.greenhouse.io/faire',
+      ),
+      t('Okta · jobs', 'Greenhouse board · UI Platform team', 'https://boards.greenhouse.io/okta'),
+      t(
+        'Cloudflare · jobs',
+        'Greenhouse board · Design engineering',
+        'https://boards.greenhouse.io/cloudflare',
+      ),
+      t(
+        'Samsara · jobs',
+        'Greenhouse board · Product design engineering',
+        'https://boards.greenhouse.io/samsara',
       ),
     ],
   },

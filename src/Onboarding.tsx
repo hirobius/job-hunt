@@ -1,19 +1,14 @@
 import { useState } from 'react';
-import { Box, Stack, Typography } from './ui/box';
-import {
-  Button,
-  Input as HdsInput,
-  Spinner,
-  SelectableCard,
-  Stack as HdsStack,
-  Text,
-} from '@hirobius/design-system';
+import { Check } from 'lucide-react';
+import { Button, Input as HdsInput, Spinner, Card, Stack, Text } from '@hirobius/design-system';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import { useCurationSyncStatus } from './curation/syncStatus';
+import { addCategory } from './curation/curationStore';
 
 // First-run onboarding (issue #59 / B1, decision D1): an empty curation store routes here before
 // Discover renders. Pick one or more starter packs + an optional location → seed them into the
-// store (fork-on-pick) → Discover takes over. Minimal by design; the fuller catalog polish is B5.
+// store (fork-on-pick) → Discover takes over. Order is the decision order: tracks first (required),
+// then the optional location, then the start button.
 export function Onboarding() {
   const [picked, setPicked] = useState<string[]>([]);
   const [location, setLocation] = useState('');
@@ -29,103 +24,179 @@ export function Onboarding() {
       seedPack(id, location, id === 'blank' ? { titles: [firstTitle.trim()] } : undefined),
     );
 
+  // Skip: an empty "My track" so Discover opens (its empty states teach the next step) instead of
+  // looping back here — an empty curation store is what routes to onboarding.
+  const skip = () => addCategory({ label: 'My track', location: location.trim() });
+
   // A signed-in pull may be about to restore this user's tracks — don't offer to re-onboard
   // over it (that wrote duplicate tracks). The status always settles within a few seconds.
   if (syncStatus === 'syncing')
     return (
-      <HdsStack
+      <Stack
         direction="row"
         gap="normal"
         align="center"
         justify="center"
-        style={{ padding: 48 }}
+        style={{ padding: 'var(--primitive-space-12)' }}
       >
         <Spinner size="sm" />
         <Text variant="body">Restoring your tracks…</Text>
-      </HdsStack>
+      </Stack>
     );
 
   return (
-    <Box sx={{ maxWidth: 560, mx: 'auto', py: 4 }}>
-      <Stack spacing={2}>
-        <Typography sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Set up your board</Typography>
-        <Typography color="text.secondary">
-          Pick one or more tracks to start with — each pre-fills search terms and a few links. You
-          can edit or add more later.
-        </Typography>
-        <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-            Location (optional — blank = anywhere)
-          </Typography>
-          <HdsInput
-            size="sm"
-            aria-label="Location"
-            placeholder="City, State or Remote"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            style={{ maxWidth: 280 }}
-          />
-        </Box>
+    // Phone-first: one full-width column; from 640px a centred ~560px column. `margin-inline: auto`
+    // is what centres it (HDS `sx` has no base breakpoint, so this is plain style).
+    <div
+      style={{
+        maxWidth: 560,
+        marginInline: 'auto',
+        paddingBlock: 'var(--semantic-space-scale-lg)',
+      }}
+    >
+      <Stack gap="normal">
+        <Stack gap="tight">
+          <Text variant="title" as="h2">
+            Set up your board
+          </Text>
+          <Text variant="body" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+            Pick the tracks you want to search. Each one pre-fills search terms and a few links.
+          </Text>
+        </Stack>
         <div role="group" aria-label="Starter tracks">
-          <HdsStack gap="tight">
+          <Stack gap="px8">
             {STARTER_PACKS.map((p) => {
               const on = picked.includes(p.id);
               return (
-                // HDS SelectableCard = a real button with checkbox semantics (aria-checked), named
-                // by its pack and described by its blurb — keyboard + screen-reader operable (#104).
-                <SelectableCard
+                // HDS selectable Card = role="checkbox" with aria-checked, named by its pack and
+                // described by its blurb — keyboard + screen-reader operable (#104).
+                <Card
+                  selectable
                   key={p.id}
                   selected={on}
                   onSelectedChange={() => toggle(p.id)}
                   aria-labelledby={`pack-${p.id}`}
                   aria-describedby={`pack-${p.id}-blurb`}
-                  // The jade brand maps the selected fill to a light accent tint in BOTH themes, so
-                  // pin dark text on it (HDS's text-foreground stays light in dark mode).
+                  // Selected tint: a jade wash mixed into the raised surface, so the default text
+                  // colour stays AA in both themes (no pinned text colour needed).
                   style={{
                     textAlign: 'left',
-                    color: on ? 'var(--primitive-color-neutral-900)' : undefined,
+                    width: '100%',
+                    background: on
+                      ? 'color-mix(in srgb, var(--semantic-accent-rest) 16%, var(--semantic-color-surface-raised))'
+                      : undefined,
                   }}
                 >
-                  <Text
-                    variant="ui"
-                    as="span"
-                    id={`pack-${p.id}`}
-                    style={{ display: 'block', fontWeight: 600, color: 'inherit' }}
-                  >
-                    {p.label}
-                  </Text>
-                  <Text
-                    variant="caption"
-                    as="span"
-                    id={`pack-${p.id}-blurb`}
-                    style={{ display: 'block', color: 'inherit', opacity: 0.8 }}
-                  >
-                    {p.blurb}
-                  </Text>
-                </SelectableCard>
+                  <Stack direction="row" gap="px12" align="center">
+                    {/* Selected indicator: an empty ring when off, a filled accent circle + check when on. */}
+                    <span
+                      aria-hidden="true"
+                      data-testid={`pack-${p.id}-indicator`}
+                      data-selected={on}
+                      style={{
+                        flex: 'none',
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxSizing: 'border-box',
+                        border: `2px solid ${
+                          on
+                            ? 'var(--semantic-accent-rest)'
+                            : 'var(--semantic-color-border-default)'
+                        }`,
+                        background: on ? 'var(--semantic-accent-rest)' : 'transparent',
+                        color: 'var(--semantic-color-content-onAccent)',
+                      }}
+                    >
+                      {on && <Check size={14} strokeWidth={3} />}
+                    </span>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <Text
+                        variant="ui"
+                        as="span"
+                        id={`pack-${p.id}`}
+                        style={{ display: 'block', fontWeight: 600, color: 'inherit' }}
+                      >
+                        {p.label}
+                      </Text>
+                      <Text
+                        variant="caption"
+                        as="span"
+                        id={`pack-${p.id}-blurb`}
+                        style={{ display: 'block', color: 'inherit', opacity: 0.8 }}
+                      >
+                        {p.blurb}
+                      </Text>
+                    </div>
+                  </Stack>
+                </Card>
               );
             })}
-          </HdsStack>
+          </Stack>
         </div>
         {needsTitle && (
           <HdsInput
-            size="sm"
             label="First job title for your own track"
             required
             placeholder="e.g. Design Engineer"
             value={firstTitle}
             onChange={(e) => setFirstTitle(e.target.value)}
-            style={{ maxWidth: 320 }}
           />
         )}
-        <Button variant="primary" disabled={!ready} onClick={start}>
-          {!picked.length
-            ? 'Pick a track'
-            : !ready
-              ? 'Add a first job title'
-              : `Start with ${picked.length} track${picked.length > 1 ? 's' : ''}`}
-        </Button>
+        <HdsInput
+          label="Location (optional, blank = anywhere)"
+          placeholder="City, State or Remote"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+        />
+        {/* Sticky: stays at the bottom of the viewport while the pack list scrolls. */}
+        <div
+          data-testid="onboarding-footer"
+          style={{
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 1,
+            background: 'var(--semantic-color-surface-page)',
+            borderTop: 'thin solid var(--semantic-color-border-subtle)',
+            paddingBlock: 'var(--semantic-space-scale-xs)',
+          }}
+        >
+          <Stack gap="tight">
+            {!picked.length && (
+              <Text
+                variant="caption"
+                as="span"
+                style={{ color: 'var(--semantic-color-content-secondary)' }}
+              >
+                Pick at least 1 track
+              </Text>
+            )}
+            <Button
+              variant="primary"
+              style={{
+                width: '100%',
+                // HDS's disabled text (neutral-600 on near-black) is ~2.4:1; lift it to the
+                // secondary content token (AA) while the muted fill still reads as disabled.
+                color: ready ? undefined : 'var(--semantic-color-content-secondary)',
+              }}
+              disabled={!ready}
+              onClick={start}
+            >
+              {!picked.length
+                ? 'Start searching'
+                : !ready
+                  ? 'Add a first job title'
+                  : `Start with ${picked.length} track${picked.length > 1 ? 's' : ''}`}
+            </Button>
+            <Button variant="tertiary" style={{ width: '100%' }} onClick={skip}>
+              Skip for now
+            </Button>
+          </Stack>
+        </div>
       </Stack>
-    </Box>
+    </div>
   );
 }

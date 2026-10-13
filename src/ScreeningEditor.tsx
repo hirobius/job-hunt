@@ -1,6 +1,5 @@
 import { lazy, Suspense, useState } from 'react';
-import { Box, Stack, Typography } from './ui/box';
-import { Button, Input as HdsInput, Tag } from '@hirobius/design-system';
+import { Button, Input as HdsInput, Tag, Text, Box, Switcher } from '@hirobius/design-system';
 import { ScanText } from 'lucide-react';
 import { updateJob } from './store';
 import { DEFAULT_BLOCKERS, MODES, VERDICTS, blockerLabel } from './screening';
@@ -14,24 +13,22 @@ const ScreenJdDialog = lazy(() => import('./ScreenJdDialog'));
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Typography
+    <Text
       variant="caption"
-      color="text.secondary"
-      sx={{
+      as="span"
+      style={{
+        color: 'var(--semantic-color-content-secondary)',
         display: 'block',
-        mb: 0.5,
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        fontSize: 11,
+        marginBottom: 'var(--primitive-space-1)',
       }}
     >
       {children}
-    </Typography>
+    </Text>
   );
 }
 
 function Chips({ children }: { children: React.ReactNode }) {
-  return <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>{children}</Box>;
+  return <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>{children}</Box>;
 }
 
 function NumField({
@@ -81,7 +78,7 @@ export function ScreeningEditor({ job }: { job: Job }) {
   };
 
   return (
-    <Stack spacing={1.5}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Box>
         <Button
           variant="secondary"
@@ -92,9 +89,17 @@ export function ScreeningEditor({ job }: { job: Job }) {
           Screen a job description
         </Button>
         {job.screenedAt && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+          <Text
+            variant="caption"
+            as="span"
+            style={{
+              color: 'var(--semantic-color-content-secondary)',
+              display: 'block',
+              marginTop: 'var(--primitive-space-1)',
+            }}
+          >
             Screened {new Date(job.screenedAt).toLocaleDateString()}
-          </Typography>
+          </Text>
         )}
       </Box>
       {screenOpen && (
@@ -163,19 +168,23 @@ export function ScreeningEditor({ job }: { job: Job }) {
               addCustom();
             }
           }}
-          style={{ marginTop: 8, maxWidth: 240 }}
+          style={{ marginTop: 'var(--primitive-space-2)', maxWidth: 240 }}
         />
       </Box>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+      <Switcher gap="tight">
         <NumField
           label="Travel"
           suffix="%"
           value={job.travelPct}
           onChange={(v) => setNum('travelPct', v)}
         />
-        <NumField label="Applicants" value={job.applicants} onChange={(v) => setNum('applicants', v)} />
-      </Stack>
+        <NumField
+          label="Applicants"
+          value={job.applicants}
+          onChange={(v) => setNum('applicants', v)}
+        />
+      </Switcher>
 
       <Box sx={{ '& > *': { width: '100%' } }}>
         <HdsInput
@@ -186,6 +195,6 @@ export function ScreeningEditor({ job }: { job: Job }) {
           style={{ width: '100%' }}
         />
       </Box>
-    </Stack>
+    </Box>
   );
 }
