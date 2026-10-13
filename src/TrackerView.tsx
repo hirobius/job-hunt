@@ -10,6 +10,9 @@ import {
   DollarSign,
   Star,
   StickyNote,
+  Inbox,
+  SearchX,
+  PartyPopper,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -48,9 +51,9 @@ import InterviewLog from './InterviewLog';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import { TodosNotes } from './TodosNotes';
+import { filterOptions, matchesFilter, type TrackerFilter as Filter } from './trackerCounts';
+import { monogram, monogramHue } from './monogram';
 import type { Job, Status } from './types';
-
-type Filter = 'active' | 'all' | Status | 'retired';
 
 // Status → HDS Badge tone (the semantic feedback tokens; Interviewing = inProgress).
 const STATUS_TONE: Record<Status, 'warning' | 'info' | 'inProgress' | 'success' | 'danger'> = {
@@ -60,14 +63,6 @@ const STATUS_TONE: Record<Status, 'warning' | 'info' | 'inProgress' | 'success' 
   Offer: 'success',
   Rejected: 'danger',
 };
-
-function matches(j: Job, f: Filter): boolean {
-  const s = deriveJobState(j);
-  if (f === 'active') return s.isActive;
-  if (f === 'all') return true;
-  if (f === 'retired') return !!j.archived;
-  return !j.archived && s.status === f;
-}
 
 function research(label: string) {
   const q = encodeURIComponent(label || '');
@@ -102,7 +97,7 @@ export default function TrackerView() {
       [j.label, j.company, j.location, j.note, j.contact, j.url].some((f) =>
         (f || '').toLowerCase().includes(needle),
       );
-    return sortJobs(jobs, sort).filter((j) => matches(j, filter) && textMatch(j));
+    return sortJobs(jobs, sort).filter((j) => matchesFilter(j, filter) && textMatch(j));
   }, [jobs, filter, sort, q]);
   const sortLabel = SORTS.find((s) => s.key === sort)?.label ?? '';
 
@@ -164,25 +159,19 @@ export default function TrackerView() {
         </Stack>
       </Stack>
 
-      {/* Filters get the full row to themselves (horizontally scrollable — a partially
-          visible pill is the scroll affordance); sort/export live on their own line below.
-          Sharing one row squeezed the filters to a single pill on phones. */}
+      {/* Status chips with live counts (21st.dev filter-chip pattern): Active + All always show; a
+          status appears only once a job sits under it, so the row stays short on phones and every
+          chip is worth tapping. The row still scrolls sideways if it ever overflows. */}
       <Box sx={{ mb: 0.5, overflowX: 'auto', pb: 0.5, '& > *': { minWidth: 'max-content' } }}>
         <SegmentedControl
           aria-label="Filter jobs by status"
           size="sm"
           value={filter}
           onChange={(v) => setFilter(v as Filter)}
-          options={[
-            { value: 'active', label: 'Active' },
-            { value: 'all', label: 'All' },
-            { value: 'Saved', label: 'Saved' },
-            { value: 'Applied', label: 'Applied' },
-            { value: 'Interviewing', label: 'Interviewing' },
-            { value: 'Offer', label: 'Offer' },
-            { value: 'Rejected', label: 'Rejected' },
-            { value: 'retired', label: 'Retired' },
-          ]}
+          options={filterOptions(jobs, filter).map((o) => ({
+            value: o.value,
+            label: `${o.label} · ${o.count}`,
+          }))}
         />
       </Box>
       <Stack
@@ -234,18 +223,56 @@ export default function TrackerView() {
       <FunnelSummary jobs={shown} />
 
       {shown.length === 0 ? (
-        <EmptyState
-          action={jobs.length === 0 ? <TrySampleButton /> : undefined}
-          message={
-            jobs.length === 0
-              ? 'No saved jobs yet — paste a link above, or save some from Discover.'
-              : q.trim()
-                ? `No saved jobs match “${q.trim()}”.`
-                : filter === 'active'
-                  ? 'Nothing left to apply to right now — nice. Check Applied or add more jobs.'
-                  : `Nothing under “${filter}”.`
-          }
-        />
+        jobs.length === 0 ? (
+          <EmptyState
+            icon={Inbox}
+            title="Your tracker is empty"
+            message="Paste a job link above to start a queue, or save roles straight from Discover."
+            action={<TrySampleButton />}
+            secondaryAction={
+              <UiButton variant="tertiary" size="sm" onClick={() => navigate({ tab: 'discover' })}>
+                Browse Discover
+              </UiButton>
+            }
+          />
+        ) : q.trim() ? (
+          <EmptyState
+            icon={SearchX}
+            title={`No matches for “${q.trim()}”`}
+            message="Try a company, city or a word from your notes."
+            action={
+              <UiButton variant="secondary" size="sm" onClick={() => setQ('')}>
+                Clear search
+              </UiButton>
+            }
+          />
+        ) : filter === 'active' ? (
+          <EmptyState
+            icon={PartyPopper}
+            title="Queue cleared"
+            message="Nothing left to apply to right now. Check Applied for follow-ups, or add more roles."
+            action={
+              <UiButton variant="secondary" size="sm" onClick={() => setFilter('Applied')}>
+                See Applied
+              </UiButton>
+            }
+            secondaryAction={
+              <UiButton variant="tertiary" size="sm" onClick={() => navigate({ tab: 'discover' })}>
+                Find more roles
+              </UiButton>
+            }
+          />
+        ) : (
+          <EmptyState
+            title={`Nothing under “${filter}”`}
+            message="Jobs move here as their status changes."
+            action={
+              <UiButton variant="secondary" size="sm" onClick={() => setFilter('all')}>
+                Show all
+              </UiButton>
+            }
+          />
+        )
       ) : (
         <Stack spacing={1.25}>
           {shown.map((j) => {
@@ -272,6 +299,9 @@ export default function TrackerView() {
             if (j.seniority) facts.push({ icon: GraduationCap, text: j.seniority });
             if (j.salary) facts.push({ icon: DollarSign, text: j.salary });
             const host = hostOf(j.url);
+            // Stable per-company tint for the monogram; text stays the theme's primary ink so the
+            // medallion reads in both light and dark mode.
+            const hue = monogramHue(j.company || host || j.url);
             return (
               <HdsCard
                 key={j.url}
@@ -287,21 +317,56 @@ export default function TrackerView() {
                       : '3px solid transparent',
                   }}
                 >
-                  {/* Eyebrow + title | status badge · pin · overflow */}
-                  <Stack direction="row" alignItems="flex-start" spacing={1}>
+                  {/* Monogram · eyebrow + title | status badge · pin · overflow */}
+                  <Stack direction="row" alignItems="flex-start" spacing={1.25}>
+                    <Box
+                      aria-hidden
+                      sx={{
+                        flex: 'none',
+                        width: { xs: 36, sm: 40 },
+                        height: { xs: 36, sm: 40 },
+                        borderRadius: '10px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: 13,
+                        letterSpacing: '0.02em',
+                        color: 'text.primary',
+                        backgroundColor: `oklch(0.7 0.12 ${hue} / 0.18)`,
+                        border: `1px solid oklch(0.7 0.12 ${hue} / 0.32)`,
+                      }}
+                    >
+                      {monogram(j.company, host, j.label || prettyTitle(j.url))}
+                    </Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
+                      {/* Metadata slot: status badge + timing eyebrow share one line, so the
+                          header row keeps its width for the title on phones. */}
+                      <Box
                         sx={{
-                          display: 'block',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          fontSize: 11,
+                          display: 'flex',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: 0.75,
+                          minWidth: 0,
                         }}
                       >
-                        {eyebrow}
-                      </Typography>
+                        {s.status !== 'Saved' && (
+                          <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>
+                        )}
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            display: 'block',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            fontSize: 11,
+                          }}
+                        >
+                          {eyebrow}
+                        </Typography>
+                      </Box>
                       <Link
                         href={j.url}
                         target="_blank"
@@ -320,16 +385,20 @@ export default function TrackerView() {
                         {j.label || prettyTitle(j.url)}
                       </Link>
                     </Box>
-                    {s.status !== 'Saved' && <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>}
-                    <HdsIconButton
-                      size="sm"
-                      variant="tertiary"
-                      icon={Star}
-                      label={j.priority ? 'Unpin priority' : 'Pin as priority'}
-                      aria-pressed={!!j.priority}
-                      onClick={() => updateJob(j.url, { priority: !j.priority })}
-                      style={j.priority ? { color: 'var(--semantic-accent-rest)' } : undefined}
-                    />
+                    {/* The pin button is desktop-only; on phones it lives in the overflow menu
+                        (and the accent rail already shows a pinned job) so the title keeps its
+                        width. */}
+                    <Box sx={{ display: { xs: 'none', sm: 'inline-flex' }, flex: 'none' }}>
+                      <HdsIconButton
+                        size="sm"
+                        variant="tertiary"
+                        icon={Star}
+                        label={j.priority ? 'Unpin priority' : 'Pin as priority'}
+                        aria-pressed={!!j.priority}
+                        onClick={() => updateJob(j.url, { priority: !j.priority })}
+                        style={j.priority ? { color: 'var(--semantic-accent-rest)' } : undefined}
+                      />
+                    </Box>
                     <HdsMenu>
                       <HdsMenu.Trigger asChild>
                         <HdsIconButton
