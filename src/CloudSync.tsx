@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Stack, Typography } from './ui/box';
 import {
   Button,
-  HdsTooltip,
-  IconButton as HdsIconButton,
+  Tooltip as HdsTooltip,
   Input as HdsInput,
+  Icon,
+  Box,
+  Text,
+  Card,
 } from '@hirobius/design-system';
 import { X } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
@@ -209,7 +211,7 @@ export default function CloudSync() {
   // Collapsed, signed-out state: a single quiet line instead of the full banner.
   if (!user && hidden)
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Button size="sm" variant="tertiary" onClick={() => hide(false)}>
           Sign in to sync
         </Button>
@@ -217,87 +219,96 @@ export default function CloudSync() {
     );
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 1.25,
-        mb: 2,
-        p: 1.25,
-        borderRadius: 2,
-        bgcolor: 'background.paper',
-        border: 1,
-        borderColor: 'divider',
-      }}
-    >
-      <Box
-        sx={{
-          width: 9,
-          height: 9,
-          borderRadius: '50%',
-          bgcolor: user ? 'success.main' : 'text.disabled',
-          flex: 'none',
-        }}
-      />
-      <Typography
-        variant="caption"
-        color={user ? 'text.primary' : 'text.secondary'}
-        sx={{ mr: 'auto' }}
-      >
-        {msg}
-      </Typography>
-      {!user && (
-        <Typography variant="caption" color="text.secondary" sx={{ width: '100%', order: 9 }}>
-          Your data stays in your browser and (if you sign in) your own account — nothing is shared
-          with anyone else.
-        </Typography>
-      )}
-      {user ? (
-        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
-          {msg === OFFLINE_MSG && (
-            <Button size="sm" variant="secondary" onClick={() => adopt(false, user)}>
-              Retry
+    <Card bordered padding="none">
+      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2.5, p: 2.5 }}>
+        <Box
+          sx={{
+            width: 9,
+            height: 9,
+            borderRadius: '50%',
+            bgcolor: user ? 'feedback.success' : 'content.disabled',
+            flex: 'none',
+          }}
+        />
+        <Text
+          variant="caption"
+          as="span"
+          style={{
+            color: user
+              ? 'var(--semantic-color-content-primary)'
+              : 'var(--semantic-color-content-secondary)',
+          }}
+        >
+          {msg}
+        </Text>
+        {!user && (
+          <Text
+            variant="caption"
+            as="span"
+            style={{ color: 'var(--semantic-color-content-secondary)', width: '100%', order: 9 }}
+          >
+            Your data stays in your browser and (if you sign in) your own account — nothing is
+            shared with anyone else.
+          </Text>
+        )}
+        {user ? (
+          <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1 }}>
+            {msg === OFFLINE_MSG && (
+              <Button size="sm" variant="secondary" onClick={() => adopt(false, user)}>
+                Retry
+              </Button>
+            )}
+            <Button size="sm" variant="secondary" onClick={signOut}>
+              Sign out
             </Button>
-          )}
-          <Button size="sm" variant="secondary" onClick={signOut}>
-            Sign out
-          </Button>
-          <Button size="sm" variant="tertiary" tone="danger" onClick={deleteMyData}>
-            Delete my data
-          </Button>
-        </Stack>
-      ) : (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
-          <HdsInput
-            size="sm"
-            type="email"
-            aria-label="Email for sign-in link"
-            placeholder="you@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') sendLink();
+            <Button size="sm" variant="tertiary" tone="danger" onClick={deleteMyData}>
+              Delete my data
+            </Button>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 'xs',
             }}
-            style={{ minWidth: 200 }}
-          />
-          <Button size="sm" variant="primary" onClick={sendLink}>
-            Email me a link
-          </Button>
-          <HdsTooltip>
-            <HdsTooltip.Trigger asChild>
-              <HdsIconButton
+          >
+            {/* HDS 0.24's Input fills its parent; a fixed-width wrapper keeps the 0.13 row (field + button). */}
+            <Box sx={{ width: 220, maxWidth: '100%', '& > *': { width: '100%' } }}>
+              <HdsInput
                 size="sm"
-                variant="tertiary"
-                icon={X}
-                onClick={() => hide(true)}
-                label="Hide sign-in banner"
+                type="email"
+                aria-label="Email for sign-in link"
+                placeholder="you@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') sendLink();
+                }}
+                style={{ minWidth: 200 }}
               />
-            </HdsTooltip.Trigger>
-            <HdsTooltip.Content>Hide — you can sign in anytime</HdsTooltip.Content>
-          </HdsTooltip>
-        </Stack>
-      )}
-    </Box>
+            </Box>
+            <Button size="sm" variant="primary" onClick={sendLink}>
+              Email me a link
+            </Button>
+            <HdsTooltip>
+              <HdsTooltip.Trigger asChild>
+                <Button
+                  size="sm"
+                  variant="tertiary"
+                  iconOnly
+                  iconLeft={<Icon icon={X} />}
+                  onClick={() => hide(true)}
+                  label="Hide sign-in banner"
+                />
+              </HdsTooltip.Trigger>
+              <HdsTooltip.Content>Hide — you can sign in anytime</HdsTooltip.Content>
+            </HdsTooltip>
+          </Box>
+        )}
+      </Box>
+    </Card>
   );
 }

@@ -1,15 +1,5 @@
 import { useState } from 'react';
-import {
-  Button,
-  Cluster,
-  DateInput,
-  IconButton,
-  Input,
-  SegmentedControl,
-  Stack,
-  Text,
-  TimeInput,
-} from '@hirobius/design-system';
+import { Icon, Button, Input, SegmentedControl, Stack, Text } from '@hirobius/design-system';
 import { CalendarPlus, X } from 'lucide-react';
 import { buildIcs } from './ics';
 import { download } from './download';
@@ -23,9 +13,6 @@ const KINDS: { value: JobEventKind; label: string }[] = [
   { value: 'other', label: 'Other' },
 ];
 
-const pad = (n: number) => String(n).padStart(2, '0');
-const toYmd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
 const slug = (s: string) =>
   s
     .toLowerCase()
@@ -35,7 +22,8 @@ const slug = (s: string) =>
 
 /** Interview / call log for one job, with an "Add to calendar" (.ics) export. */
 export default function InterviewLog({ job }: { job: Job }) {
-  const [date, setDate] = useState<Date | undefined>();
+  // Native date input: the value is already yyyy-mm-dd (HDS DateInput was dropped, ADR-034).
+  const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [kind, setKind] = useState<JobEventKind>('interview');
   const [note, setNote] = useState('');
@@ -43,10 +31,10 @@ export default function InterviewLog({ job }: { job: Job }) {
 
   const add = () => {
     if (!date) return;
-    const next = addEvent(job.events, { kind, date: toYmd(date), time: time || undefined, note });
+    const next = addEvent(job.events, { kind, date, time: time || undefined, note });
     if (next.length === events.length) return;
     updateJob(job.url, { events: next });
-    setDate(undefined);
+    setDate('');
     setTime('');
     setNote('');
   };
@@ -66,7 +54,7 @@ export default function InterviewLog({ job }: { job: Job }) {
 
   return (
     <Stack gap="normal">
-      <Cluster gap="tight" align="center" justify="space-between">
+      <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
         <Text variant="ui" as="h4" style={{ margin: 0, fontWeight: 600 }}>
           Interviews & calls
         </Text>
@@ -79,12 +67,12 @@ export default function InterviewLog({ job }: { job: Job }) {
         >
           Add to calendar
         </Button>
-      </Cluster>
+      </Stack>
       {events.length > 0 && (
         <Stack gap="tight" as="ul" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {events.map((e) => (
             <li key={e.id}>
-              <Cluster gap="tight" align="center">
+              <Stack direction="row" wrap="wrap" gap="tight" align="center">
                 <Text variant="ui" as="span">
                   {e.date}
                   {e.time ? ` ${e.time}` : ''}
@@ -97,14 +85,15 @@ export default function InterviewLog({ job }: { job: Job }) {
                   {KINDS.find((k) => k.value === e.kind)?.label}
                   {e.note ? ` · ${e.note}` : ''}
                 </Text>
-                <IconButton
+                <Button
                   size="sm"
                   variant="tertiary"
-                  icon={X}
+                  iconOnly
+                  iconLeft={<Icon icon={X} size="small" />}
                   label={`Remove ${e.kind} on ${e.date}`}
                   onClick={() => updateJob(job.url, { events: removeEvent(job.events, e.id) })}
                 />
-              </Cluster>
+              </Stack>
             </li>
           ))}
         </Stack>
@@ -120,16 +109,17 @@ export default function InterviewLog({ job }: { job: Job }) {
       >
         <Stack gap="tight">
           {caption('Date')}
-          <DateInput
+          <Input
+            type="date"
             aria-label="Event date"
-            displayFormat="yyyy-MM-dd"
             value={date}
-            onChange={setDate}
+            onChange={(e) => setDate(e.target.value)}
           />
         </Stack>
         <Stack gap="tight">
           {caption('Time (optional)')}
-          <TimeInput
+          <Input
+            type="time"
             aria-label="Event time (optional)"
             size="md"
             value={time}
@@ -147,7 +137,7 @@ export default function InterviewLog({ job }: { job: Job }) {
           />
         </Stack>
       </div>
-      <Cluster gap="tight" align="center">
+      <Stack direction="row" wrap="wrap" gap="tight" align="center">
         <div style={{ flex: 1, minWidth: 160 }}>
           <Input
             aria-label="Event note"
@@ -159,7 +149,7 @@ export default function InterviewLog({ job }: { job: Job }) {
         <Button size="sm" variant="secondary" disabled={!date} onClick={add}>
           Add event
         </Button>
-      </Cluster>
+      </Stack>
     </Stack>
   );
 }

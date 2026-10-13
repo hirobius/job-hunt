@@ -1,47 +1,34 @@
-// One saved job at rest, built for glancing (21st.dev list-item pattern, docs/design P5).
-// Four fixed slots, each with its own space so nothing pushes or wraps into its neighbour:
+// One saved job at rest, built phone-first for glancing (21st.dev list-item pattern, docs/design P5).
 //
-//   [monogram] [title / company · location]        [status · timing] [next action] [⋮]
+//   phone            [avatar] [title (2 lines) / company · location]   [⋮]
+//                             [status · timing]
+//                             [next action]
+//   ≥ 640px          [avatar] [title / company · location] [status · timing] [next action] [⋮]
 //
-// Only what decides "do I act on this now?" renders here. Everything else (screening, notes,
-// to-dos, templates, research, editable fields) lives on the job's own page — the title opens it.
-// No status rail: the filter already groups by status.
-import { Box, Typography } from './ui/box';
+// Only what decides "do I act on this now?" renders here. Everything else lives on the job's own
+// page — the whole row opens it. No status rail: the filter already groups by status.
 import { EllipsisVertical, Star } from 'lucide-react';
-import { Badge, Button, Card, IconButton, Menu } from '@hirobius/design-system';
+import { Avatar, Badge, Box, Button, Card, Icon, Menu, Text } from '@hirobius/design-system';
 import { updateJob, setStatus, removeJob, logFollowUp, prettyTitle, hostOf } from './store';
 import { deriveJobState } from './jobState';
 import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
-import { monogram, monogramHue } from './monogram';
+import { monogram } from './monogram';
 import { jobHref } from './jobRoute';
 import { STATUS_TONE, timingLabel } from './jobDisplay';
 import type { Job } from './types';
 
-export function Monogram({ job, size = 40 }: { job: Job; size?: number }) {
+const muted = { color: 'var(--semantic-color-content-secondary)' } as const;
+
+export function JobAvatar({ job, size = 'md' }: { job: Job; size?: 'sm' | 'md' | 'lg' }) {
   const host = hostOf(job.url);
-  const hue = monogramHue(job.company || host || job.url);
   return (
-    <Box
+    <Avatar
+      size={size}
+      alt={job.company || host || 'Job'}
+      initials={monogram(job.company, host, job.label || prettyTitle(job.url))}
       aria-hidden
-      sx={{
-        width: size,
-        height: size,
-        flex: 'none',
-        borderRadius: '10px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 700,
-        fontSize: size >= 48 ? 16 : 13,
-        letterSpacing: '0.02em',
-        color: 'text.primary',
-        backgroundColor: `oklch(0.7 0.12 ${hue} / 0.18)`,
-        border: `1px solid oklch(0.7 0.12 ${hue} / 0.32)`,
-      }}
-    >
-      {monogram(job.company, host, job.label || prettyTitle(job.url))}
-    </Box>
+    />
   );
 }
 
@@ -50,7 +37,13 @@ export function JobActionsMenu({ job }: { job: Job }) {
   return (
     <Menu>
       <Menu.Trigger asChild>
-        <IconButton size="sm" variant="tertiary" icon={EllipsisVertical} label="More actions" />
+        <Button
+          size="sm"
+          variant="tertiary"
+          iconOnly
+          iconLeft={<Icon icon={EllipsisVertical} />}
+          label="More actions"
+        />
       </Menu.Trigger>
       <Menu.Content align="end">
         <Menu.Item onSelect={() => window.open(job.url, '_blank', 'noopener')}>
@@ -86,8 +79,8 @@ export function JobActionsMenu({ job }: { job: Job }) {
   );
 }
 
-/** The one next step for this job, or null. Saved → apply; follow-up due → log it. */
-function NextAction({ job }: { job: Job }) {
+/** The one next step for this job, or null. Follow-up due → log it; Saved → apply. */
+export function NextAction({ job }: { job: Job }) {
   const s = deriveJobState(job);
   if (s.followUp.due)
     return (
@@ -109,6 +102,7 @@ export default function JobRow({ job }: { job: Job }) {
   const title = job.label || prettyTitle(job.url);
   const sub = [job.company, job.location].filter(Boolean).join(' · ') || hostOf(job.url);
   const timing = timingLabel(job);
+  const hasAction = s.followUp.due || s.isApplyable;
 
   return (
     <Card bordered padding="none" style={{ opacity: job.archived ? 0.55 : 1 }}>
@@ -116,114 +110,119 @@ export default function JobRow({ job }: { job: Job }) {
         sx={{
           position: 'relative',
           display: 'grid',
-          alignItems: 'center',
-          columnGap: { xs: 1.5, sm: 2 },
-          rowGap: 1,
-          px: { xs: 1.75, sm: 2.5 },
-          py: { xs: 1.5, sm: 1.75 },
-          gridTemplateColumns: {
-            xs: '36px minmax(0, 1fr) auto',
-            sm: '40px minmax(0, 1fr) 132px 128px auto',
+          alignItems: 'start',
+          columnGap: 3,
+          rowGap: 2,
+          p: 4,
+          // Phone-first base (HDS sx has no base breakpoint, hds#652): 3 columns, stacked rows.
+          gridTemplateColumns: '40px minmax(0, 1fr) auto',
+          gridTemplateAreas: hasAction
+            ? '"av main menu" ". meta meta" ". action action"'
+            : '"av main menu" ". meta meta"',
+          '&': {
+            alignItems: { sm: 'center' },
+            gridTemplateColumns: { sm: '40px minmax(0, 1fr) 136px 132px auto' },
+            gridTemplateAreas: { sm: '"av main meta action menu"' },
+            columnGap: { sm: 4 },
+            px: { sm: 5 },
           },
-          gridTemplateAreas: {
-            xs: '"av main menu" ". meta meta" ". action action"',
-            sm: '"av main meta action menu"',
-          },
-          '&:hover': { bgcolor: 'action.hover' },
+          '&:hover': { bgcolor: 'surface.sunken' },
           // Stretched link: the whole row opens the job page; real controls sit above it.
+          '& .job-open': {
+            color: 'content.primary',
+            textDecoration: 'none',
+            lineHeight: 1.3,
+            minWidth: 0,
+            overflow: 'hidden',
+            overflowWrap: 'anywhere',
+            // Phones: wrap to two lines rather than cut the title; wider: one line.
+            display: '-webkit-box',
+            WebkitBoxOrient: 'vertical',
+            WebkitLineClamp: '2',
+            '&': { WebkitLineClamp: { sm: '1' } },
+          },
+          '& .job-open:focus-visible': { outline: '2px solid var(--semantic-accent-rest)' },
           '& .job-open::after': { content: '""', position: 'absolute', inset: 0 },
           '& .job-ctl': { position: 'relative', zIndex: 1 },
         }}
       >
         <Box sx={{ gridArea: 'av', display: 'flex' }}>
-          <Monogram job={job} size={40} />
+          <JobAvatar job={job} />
         </Box>
 
         <Box sx={{ gridArea: 'main', minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
-            <Box
-              component="a"
-              href={jobHref(job.url)}
-              className="job-open"
-              sx={{
-                color: 'text.primary',
-                textDecoration: 'none',
-                fontWeight: 600,
-                fontSize: '1rem',
-                lineHeight: 1.3,
-                // Phones: wrap to two lines rather than cut the title; wider: one line.
-                display: '-webkit-box',
-                WebkitBoxOrient: 'vertical',
-                WebkitLineClamp: { xs: '2', sm: '1' },
-                overflow: 'hidden',
-                overflowWrap: 'anywhere',
-                minWidth: 0,
-                '&:focus-visible': { outline: '2px solid var(--semantic-accent-rest)' },
-              }}
-            >
-              {title}
-            </Box>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, minWidth: 0 }}>
+            <a href={jobHref(job.url)} className="job-open">
+              <Text variant="ui" as="span" style={{ fontWeight: 600, color: 'inherit' }}>
+                {title}
+              </Text>
+            </a>
             {job.priority && (
               <Star
                 size={14}
                 aria-label="Priority"
                 fill="currentColor"
-                style={{ color: 'var(--semantic-accent-rest)', flex: 'none' }}
+                style={{ color: 'var(--semantic-accent-rest)', flex: 'none', marginTop: 3 }}
               />
             )}
           </Box>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              mt: 0.25,
+          <Text
+            variant="caption"
+            as="p"
+            style={{
+              ...muted,
+              margin: '2px 0 0',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
             }}
           >
             {sub}
-          </Typography>
+          </Text>
         </Box>
 
         <Box
           sx={{
             gridArea: 'meta',
             display: 'flex',
-            flexDirection: { xs: 'row', sm: 'column' },
-            alignItems: { xs: 'center', sm: 'flex-start' },
-            gap: { xs: 1, sm: 0.25 },
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 2,
             minWidth: 0,
+            '&': {
+              flexDirection: { sm: 'column' },
+              alignItems: { sm: 'flex-start' },
+              gap: { sm: 1 },
+            },
           }}
         >
-          <Box sx={{ flex: 'none', display: 'inline-flex' }}>
-            <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>
-          </Box>
+          <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>
           {timing && (
-            <Typography
+            <Text
               variant="caption"
-              sx={{
+              as="span"
+              style={{
                 whiteSpace: 'nowrap',
-                color: s.followUp.due ? 'var(--semantic-color-feedback-warning)' : 'text.secondary',
+                color: s.followUp.due
+                  ? 'var(--semantic-color-feedback-warning)'
+                  : 'var(--semantic-color-content-secondary)',
               }}
             >
               {timing}
-            </Typography>
+            </Text>
           )}
         </Box>
 
-        <Box
-          className="job-ctl"
-          sx={{
-            gridArea: 'action',
-            justifySelf: { xs: 'start', sm: 'end' },
-            '&:empty': { display: 'none' },
-          }}
-        >
-          <NextAction job={job} />
-        </Box>
+        {hasAction && (
+          <Box
+            className="job-ctl"
+            sx={{ gridArea: 'action', justifySelf: 'start', '&': { justifySelf: { sm: 'end' } } }}
+          >
+            <NextAction job={job} />
+          </Box>
+        )}
 
-        <Box className="job-ctl" sx={{ gridArea: 'menu', justifySelf: 'end' }}>
+        <Box className="job-ctl" sx={{ gridArea: 'menu', justifySelf: 'end', mt: -1 }}>
           <JobActionsMenu job={job} />
         </Box>
       </Box>

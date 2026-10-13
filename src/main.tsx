@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 // brand-jade.css remaps the accent to jade; base.css supplies the reset/body chrome MUI's
 // CssBaseline used to (MUI is gone — issue #11).
 import '@hirobius/design-system/styles.css';
+import '@hirobius/design-system/fonts.css';
 import './theme/brand-jade.css';
 import './theme/base.css';
 import { inject } from '@vercel/analytics';

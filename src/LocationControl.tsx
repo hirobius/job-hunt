@@ -1,7 +1,6 @@
 // The shared location + work-mode control for every generated search in Discover (Title search,
 // ATS search, Live postings). Extracted from DiscoverView so the Live postings panel can reuse it.
-import { Input as HdsInput, SegmentedControl } from '@hirobius/design-system';
-import { Box, Stack, Typography } from './ui/box';
+import { Input as HdsInput, SegmentedControl, Box, Text } from '@hirobius/design-system';
 import type { WorkMode } from './jobsData';
 
 const REMOTE_COMPETITION_HINT =
@@ -19,7 +18,7 @@ export default function LocationControl({
   onMode: (v: WorkMode) => void;
 }) {
   return (
-    <Stack spacing={1} sx={{ mb: 1.5 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'xs', mb: 3 }}>
       <SegmentedControl
         aria-label="Work mode"
         size="sm"
@@ -44,10 +43,14 @@ export default function LocationControl({
         />
       </Box>
       {mode === 'remote' && (
-        <Typography variant="caption" color="text.secondary">
+        <Text
+          variant="caption"
+          as="span"
+          style={{ color: 'var(--semantic-color-content-secondary)' }}
+        >
           {REMOTE_COMPETITION_HINT}
-        </Typography>
+        </Text>
       )}
-    </Stack>
+    </Box>
   );
 }

@@ -1,8 +1,8 @@
-// Shared empty state (21st.dev "empty state" pattern): a dashed, softly-sunken container with an
-// icon medallion, a title, one line of guidance and up to two actions. Props stay back-compatible
-// with the old text-only block, so every "nothing here" across the app upgrades at once.
-import { Box, Stack, Typography } from './ui/box';
-import { Inbox, type LucideIcon } from 'lucide-react';
+// Shared empty state: HDS `EmptyState` (title + muted description) plus what it does not carry
+// yet — up to two actions under the message (21st.dev empty-state rule P1: the action that fills
+// the screen is the primary button). Kept as a composition, not a local primitive, so it can
+// collapse into the HDS component once that grows an action slot (hds#654).
+import { EmptyState as HdsEmptyState, Stack } from '@hirobius/design-system';
 import type { ReactNode } from 'react';
 
 export default function EmptyState({
@@ -10,80 +10,29 @@ export default function EmptyState({
   message,
   action,
   secondaryAction,
-  icon: Icon = Inbox,
-  dense = false,
 }: {
   title?: string;
   message: ReactNode;
   /** Primary action node (e.g. a Button) shown under the message. */
   action?: ReactNode;
-  /** Optional second, lower-emphasis action rendered beside the primary one. */
+  /** Optional lower-emphasis action beside the primary one. */
   secondaryAction?: ReactNode;
-  /** Lucide icon for the medallion. Defaults to an inbox. */
-  icon?: LucideIcon;
-  /** Tighter padding + smaller medallion for inline use within a section. */
+  /** Accepted for existing call sites; HDS EmptyState has one density. */
   dense?: boolean;
 }) {
-  const size = dense ? 36 : 48;
+  const empty = title ? (
+    <HdsEmptyState title={title} description={message} />
+  ) : (
+    <HdsEmptyState title={message} />
+  );
+  if (!action && !secondaryAction) return empty;
   return (
-    <Box
-      role="status"
-      sx={{
-        textAlign: 'center',
-        py: dense ? 2.5 : 5,
-        px: 2,
-        border: '1px dashed var(--semantic-color-border-default)',
-        borderRadius: '12px',
-        bgcolor: 'action.hover',
-      }}
-    >
-      <Box
-        aria-hidden
-        sx={{
-          width: size,
-          height: size,
-          mx: 'auto',
-          mb: dense ? 1 : 1.5,
-          borderRadius: '50%',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'primary.main',
-          backgroundColor: 'color-mix(in srgb, var(--semantic-accent-rest) 14%, transparent)',
-          boxShadow: '0 0 0 6px color-mix(in srgb, var(--semantic-accent-rest) 6%, transparent)',
-        }}
-      >
-        <Icon size={dense ? 18 : 22} />
-      </Box>
-      {title && (
-        <Typography
-          variant="subtitle1"
-          sx={{ color: 'text.primary', fontWeight: 600, mb: 0.5, lineHeight: 1.3 }}
-        >
-          {title}
-        </Typography>
-      )}
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ maxWidth: 440, mx: 'auto', lineHeight: 1.5 }}
-      >
-        {message}
-      </Typography>
-      {(action || secondaryAction) && (
-        <Stack
-          direction="row"
-          spacing={1}
-          justifyContent="center"
-          alignItems="center"
-          flexWrap="wrap"
-          useFlexGap
-          sx={{ mt: dense ? 1.5 : 2 }}
-        >
-          {action}
-          {secondaryAction}
-        </Stack>
-      )}
-    </Box>
+    <Stack gap="tight" align="center">
+      {empty}
+      <Stack direction="row" gap="gap" align="center" justify="center" wrap="wrap">
+        {action}
+        {secondaryAction}
+      </Stack>
+    </Stack>
   );
 }

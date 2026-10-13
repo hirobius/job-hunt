@@ -50,7 +50,8 @@ describe('JobDetailPage', () => {
   it('shows the full record for a job', () => {
     render(<JobDetailPage job={job()} />);
     expect(screen.getByRole('heading', { name: 'Design Systems Lead' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Salary')).toHaveValue('$150k');
+    // Salary shows in the facts; its edit field sits behind "Edit details & screening".
+    expect(screen.getAllByText('$150k').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Job note')).toHaveValue('secret note');
     expect(screen.getByRole('link', { name: /open posting/i })).toHaveAttribute(
       'href',

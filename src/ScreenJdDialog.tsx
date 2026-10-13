@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Badge, Button, Dialog, Textarea } from '@hirobius/design-system';
-import { Box, Stack, Typography } from './ui/box';
+import { Badge, Button, Dialog, Textarea, Box, Text } from '@hirobius/design-system';
 import { screenJd, MAX_JD, type JdScreen } from './jdScreener';
 import { suggestVerdict, verdictTone, modeLabel, blockerLabel } from './screening';
 import { updateJob } from './store';
@@ -63,11 +62,11 @@ export default function ScreenJdDialog({
               margin: '8px 0',
             }}
           >
-            <Stack spacing={1.5}>
-              <Typography variant="body2" color="text.secondary">
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
                 Paste the posting. This runs local keyword rules — nothing leaves your browser, no
                 AI.
-              </Typography>
+              </Text>
               <Textarea
                 rows={8}
                 value={text}
@@ -79,22 +78,22 @@ export default function ScreenJdDialog({
               {result && (
                 <Box
                   sx={{
-                    borderTop: 1,
-                    borderColor: 'divider',
-                    pt: 1.5,
+                    borderTop: '1px solid',
+                    borderColor: 'border.default',
+                    pt: 3,
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 1,
+                    gap: 'xs',
                   }}
                 >
-                  <Typography
+                  <Text
                     variant="caption"
-                    color="text.secondary"
-                    sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                    as="span"
+                    style={{ color: 'var(--semantic-color-content-secondary)' }}
                   >
                     Suggested
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
+                  </Text>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
                     <Badge tone={verdictTone(result.verdict)}>
                       {result.verdict.charAt(0).toUpperCase() + result.verdict.slice(1)}
                     </Badge>
@@ -108,38 +107,52 @@ export default function ScreenJdDialog({
                       </Badge>
                     ))}
                     {result.blockers.length === 0 && !result.mode && result.travelPct == null && (
-                      <Typography variant="body2" color="text.secondary">
+                      <Text
+                        variant="ui"
+                        style={{ color: 'var(--semantic-color-content-secondary)' }}
+                      >
                         No blockers or mode detected — looks clean.
-                      </Typography>
+                      </Text>
                     )}
                   </Box>
                   {result.hits.length > 0 && (
-                    <Box sx={{ mt: 0.5 }}>
-                      <Typography
+                    <Box sx={{ mt: 1 }}>
+                      <Text
                         variant="caption"
-                        color="text.secondary"
-                        sx={{ display: 'block', mb: 0.25 }}
+                        as="span"
+                        style={{
+                          color: 'var(--semantic-color-content-secondary)',
+                          display: 'block',
+                          marginBottom: 'calc(var(--primitive-space-1) * 0.5)',
+                        }}
                       >
                         Why:
-                      </Typography>
+                      </Text>
                       {result.hits.map((h, i) => (
-                        <Typography
-                          key={i}
+                        <Text
                           variant="caption"
-                          color="text.secondary"
-                          sx={{ display: 'block' }}
+                          as="span"
+                          style={{
+                            color: 'var(--semantic-color-content-secondary)',
+                            display: 'block',
+                          }}
+                          key={i}
                         >
                           · {h.tag} — “{h.evidence}”
-                        </Typography>
+                        </Text>
                       ))}
                     </Box>
                   )}
-                  <Typography variant="caption" color="text.secondary">
+                  <Text
+                    variant="caption"
+                    as="span"
+                    style={{ color: 'var(--semantic-color-content-secondary)' }}
+                  >
                     Applying merges these with any tags you’ve set; you can edit everything after.
-                  </Typography>
+                  </Text>
                 </Box>
               )}
-            </Stack>
+            </Box>
           </div>
           <Dialog.Footer>
             <Button variant="tertiary" onClick={close}>
