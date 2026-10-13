@@ -158,6 +158,16 @@ export const GROUPS: Group[] = [
     label: 'Apply Now',
     tiles: [
       t(
+        'designsystems.jobs',
+        'Job board just for design-systems roles · check weekly',
+        'https://designsystems.jobs/',
+      ),
+      t(
+        'Into Design Systems · jobs',
+        'Design-systems job board · filter for AI-skilled roles',
+        'https://jobs.intodesignsystems.com/',
+      ),
+      t(
         'LinkedIn · Design Systems (Remote)',
         'Live remote design-systems / design-engineer roles',
         'https://www.linkedin.com/jobs/search/?keywords=design%20systems%20engineer&location=United%20States&f_WT=2',
@@ -211,6 +221,21 @@ export const GROUPS: Group[] = [
         'Cambly · jobs',
         'Ashby board · contract design-systems roles',
         'https://jobs.ashbyhq.com/cambly',
+      ),
+      t(
+        'Rocket Money · jobs',
+        'Greenhouse board · design-systems engineering (remote US)',
+        'https://job-boards.greenhouse.io/truebill',
+      ),
+      t(
+        'Vanta · jobs',
+        'Ashby board · design-systems and systems-design roles (remote US)',
+        'https://jobs.ashbyhq.com/vanta',
+      ),
+      t(
+        'Stripe · jobs',
+        'Greenhouse board · design engineering and design systems',
+        'https://boards.greenhouse.io/stripe',
       ),
     ],
   },
