@@ -153,29 +153,25 @@ describe('fetchFeed', () => {
   });
 
   it('proves one hung source times out without blocking the others', async () => {
-    const fetchJson = async (url: string) => {
-      if (url.includes('search_by_date')) return hnListing;
+    const fetchImpl = (url: string, init?: RequestInit) => {
+      if (url.includes('search_by_date')) return Promise.resolve(res(200, hnListing));
       if (url.includes('hn.algolia.com'))
-        return {
-          hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | UI Engineer' }],
-        };
+        return Promise.resolve(
+          res(200, {
+            hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | UI Engineer' }],
+          }),
+        );
       if (url.includes('remotive.com')) {
-        // Never resolves (hung source)
-        return new Promise(() => {});
+        return new Promise<Response>((_, rej) => {
+          init?.signal?.addEventListener('abort', () => rej(init?.signal?.reason));
+        });
       }
-      return { jobs: [] };
+      return Promise.resolve(res(200, { jobs: [] }));
     };
 
-    // Replace remotive run with a timed-out call
-    const timedOutFetchJson = async (url: string) => {
-      if (url.includes('remotive.com')) throw new FetchError(0, url, true);
-      return fetchJson(url);
-    };
+    const fetchJson = createFetchJson({ fetchImpl, timeoutMs: 50 });
+    const out = await fetchFeed({ term: 'design engineer', boardUrls: [] }, fetchJson);
 
-    const out = await fetchFeed(
-      { term: 'design engineer', boardUrls: [] },
-      timedOutFetchJson,
-    );
     expect(out.postings.map((p) => p.id)).toEqual(['hn:1']);
     expect(out.sources).toContainEqual({
       key: 'remotive',
