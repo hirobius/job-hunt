@@ -84,6 +84,22 @@ would be a re-architecture with no functional gain and real risk to the `[data-h
 scoping. Since HDS is frozen, `0.13.0` is the durable pin — no further upstream token/shape
 drift is expected. Keep the exact-match `manualChunks` react regex regardless.
 
+## Addendum — HDS unfroze; upgrades go through its CLI (2026-10-12)
+
+The 2026-07-14 addendum above is **wrong on one point: 0.13.0 was not HDS's final release.**
+HDS resumed publishing, and npm `latest` is `0.24.1` as of this date. This app is still pinned
+to `^0.13.0`, which can never resolve to a 0.14+ minor.
+
+- **How to upgrade from here.** HDS now ships a ledger-driven upgrade CLI
+  (`npx @hirobius/design-system@latest upgrade`), but it refuses anything below `0.16.0`. The
+  path is a hand bump to `0.16.0` (code-free, verified green), then the CLI for the rest, then
+  the manual items it lists. All of it is tracked in epic **#89** (#90 upgrade, #91 brand, #92
+  layout primitives, #93 inline styles).
+- **Dependabot** must not group HDS 0.x minors as "safe": they are breaking (the grouped
+  0.13 → 0.20 bump in #84 failed typecheck). The config change is #96.
+- **The decision itself stands.** Consume HDS straight from public npm, keep the jade accent as
+  the only local override, and keep the exact-match `manualChunks` react regex.
+
 ## References
 
 - `docs/hds-upstream-consumption.md` (the brief 0.9.0 closed), `docs/adr/0001`, `0003`, `0004`

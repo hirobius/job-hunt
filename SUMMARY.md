@@ -1,5 +1,9 @@
 # Overnight UX pass — summary
 
+> **Historical record (2026-06).** This summarises one past work session. The app has moved on
+> since: MUI is gone (the UI is HDS), the AI features were removed (#54), and the boards and tabs
+> were reorganised (#76). For how the app works today, read the [README](README.md).
+
 Autonomous UX pass on Apply Board. **11 commits, each gated** (`npm run build && npm run
 typecheck && npm test`) before landing on **`main`**. Final production deploy
 `f4d773f` reached Vercel **READY** (https://job-hunt-jade.vercel.app). MUI kept throughout —
