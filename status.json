@@ -1,11 +1,13 @@
 {
   "updatedAt": "2026-10-13T21:30:00Z",
-  "phase": "redesign",
-  "headline": "v1 redesign integrated on claude/job-hunt-ui-redesign-eltszi (HDS 0.24.1, phone-first sheets, job page, Discover, design-systems search round, real titles for ATS links). PR to main opened for Adrian to publish. Supabase restored after a free-tier pause.",
+  "phase": "live",
+  "headline": "Main re-based on the jh-redesign build (#115 Phases 0–1, Pipeline toolbar/hierarchy, dense layout, working name Hirebius) plus the design-systems data round; #144's v1 UI superseded.",
   "next": [
-    "Adrian: merge the redesign PR to publish, then start applying (design-systems round).",
-    "Supabase free tier pauses after ~a week idle: daily use keeps it up, or upgrade to Pro.",
-    "HDS gaps filed: hds#690 (Sheet)."
+    "Redesign #115 continues from this build: Phase 2 Today (#127/#128), then Pipeline rows (#129) and job page (#130).",
+    "Pick the product name (#55); swap it in src/brand.ts.",
+    "After HDS lands: vite 8 + plugin-react 6, npm audit, React 19, jest-dom 7 (#105).",
+    "Human / dashboard: #16 Vercel Analytics, #22 .env.example + revoke old key, #44 Supabase auth hardening, #17 stale branches, #55 name clearance.",
+    "Legal (before public launch): #43 Privacy Policy + Terms."
   ],
   "blocked": []
 }

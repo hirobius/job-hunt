@@ -3,8 +3,6 @@ import { mergeByKey } from './mergeByKey';
 import { type Job, type JobMode, type Status } from './types';
 import { applyStatus, logFollowUp as applyFollowUp, normStatus } from './jobState';
 import { normalizeScreening } from './screening';
-import { lookupPosting, postingRef } from './feed/lookupPosting';
-import { prettySlug, type FetchJson } from './feed/sources/http';
 
 const KEY = 'rjb_shortlist'; // same key as the legacy app
 const RETIRED: Record<string, 1> = {
@@ -22,9 +20,6 @@ export function hostOf(u: string): string {
 export function prettyTitle(u: string): string {
   try {
     const url = new URL(/^https?:\/\//i.test(u) ? u : 'https://' + u);
-    // ATS posting links end in an id: name them by the company on the board instead.
-    const ref = postingRef(url.href);
-    if (ref && /^(\d+|[0-9a-f-]{8,})$/i.test(ref.id)) return `${prettySlug(ref.slug)} job`;
     const host = url.hostname.replace(/^www\./, '');
     const brand = host.split('.')[0];
     let title = brand.charAt(0).toUpperCase() + brand.slice(1);
@@ -134,34 +129,7 @@ export function useJobs(): Job[] {
  *  `note` seeds the new Job's note (used by tile saves to carry the tile's description
  *  into the queue card — issue #57 "enriched save"). Ignored when the job already exists,
  *  so a re-save never clobbers the user's own notes. */
-// Browser fetch for posting lookups; off under the test runner so unit tests never hit the network
-// (tests pass their own `fetchJson`).
-const browserFetchJson: FetchJson | undefined =
-  (import.meta as { env?: { MODE?: string } }).env?.MODE === 'test' || typeof fetch !== 'function'
-    ? undefined
-    : (u) => fetch(u).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))));
-
-/** Fill an ATS job's title, company, location and mode from its live posting (never overwrites
- *  what the user typed: the title only while it's still the URL-derived one). */
-async function fillFromPosting(url: string, fetchJson: FetchJson) {
-  const p = await lookupPosting(url, fetchJson);
-  if (!p) return;
-  const cur = store.get().find((j) => j.url === url);
-  if (!cur) return;
-  updateJob(url, {
-    label: cur.label === prettyTitle(url) && p.title ? p.title : cur.label,
-    company: cur.company || p.company || undefined,
-    location: cur.location || p.location || undefined,
-    mode: cur.mode || p.mode,
-  });
-}
-
-export function addJob(
-  rawUrl: string,
-  label?: string,
-  note?: string,
-  fetchJson: FetchJson | undefined = browserFetchJson,
-): boolean {
+export function addJob(rawUrl: string, label?: string, note?: string): boolean {
   const jobs = store.get();
   let u = cleanUrl(rawUrl);
   if (!u) return false;
@@ -180,7 +148,6 @@ export function addJob(
   const job: Job = { url: u, label: (label || '').trim() || prettyTitle(u), status: 'Saved' };
   if (note?.trim()) job.note = note.trim();
   set([...jobs, job]);
-  if (fetchJson && postingRef(u)) void fillFromPosting(u, fetchJson);
   return true;
 }
 /** Add a job with extra fields in one shot (used by Live postings save). Returns the stored

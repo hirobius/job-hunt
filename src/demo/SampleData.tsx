@@ -21,8 +21,6 @@ export function TrySampleButton() {
 export function SampleBanner({ jobs }: { jobs: Job[] }) {
   const n = jobs.filter(isSample).length;
   if (n === 0) return null;
-  // A one-line notice strip (not a striped callout): it says what the data is and offers the
-  // way out, then gets out of the way of the list.
   return (
     <div style={{ marginBlockEnd: 'var(--semantic-space-component-gap)' }}>
       <Callout tone="info" role="status" aria-label="Sample data">

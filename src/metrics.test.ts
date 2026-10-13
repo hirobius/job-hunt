@@ -24,7 +24,6 @@ describe('pipelineMetrics', () => {
     expect(pipelineMetrics([], NOW)).toEqual({
       appliedLast7: 0,
       appliedLast30: 0,
-      appliedPrior30: 0,
       appliedTotal: 0,
       responseRate: null,
       interviewRate: null,
@@ -51,16 +50,6 @@ describe('pipelineMetrics', () => {
     expect(m.appliedLast7).toBe(in7);
     expect(m.appliedLast30).toBe(in30);
     expect(m.appliedTotal).toBe(1);
-  });
-
-  it.each([
-    ['29 days ago (current 30d, not prior)', 29, 0],
-    ['30 days ago (first day of prior 30d)', 30, 1],
-    ['59 days ago (last day of prior 30d)', 59, 1],
-    ['60 days ago (outside both)', 60, 0],
-  ])('prior window: applied %s', (_l, days, inPrior) => {
-    const m = pipelineMetrics([job({ status: 'Applied', applied: ago(days) })], NOW);
-    expect(m.appliedPrior30).toBe(inPrior);
   });
 
   it('response and interview rates come from history', () => {

@@ -1,4 +1,3 @@
-import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { axe } from 'vitest-axe';
@@ -13,12 +12,7 @@ const ago = (n: number) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 let n = 0;
-const job = (o: Partial<Job>): Job => ({
-  url: `https://x.co/${n++}`,
-  label: 'x',
-  status: 'Saved',
-  ...o,
-});
+const job = (o: Partial<Job>): Job => ({ url: `https://x.co/${n++}`, label: 'x', status: 'Saved', ...o });
 
 const seeded: Job[] = [
   job({ status: 'Applied', applied: ago(1) }),
@@ -43,18 +37,14 @@ const wrap = (jobs: Job[]) =>
 
 afterEach(cleanup);
 
-// The Pipeline panel starts collapsed (counts are secondary to the job list).
-const open = () => userEvent.click(screen.getByRole('button', { name: /^Pipeline/ }));
-
 describe('PipelineStats', () => {
   it('renders nothing when no job has been applied to', () => {
     const { container } = wrap([job({}), job({ status: 'Saved' })]);
     expect(container.textContent).toBe('');
   });
 
-  it('renders the stat band and 8 bars for seeded jobs', async () => {
+  it('renders the stat band and 8 bars for seeded jobs', () => {
     wrap(seeded);
-    await open();
     expect(screen.getByText('Applied 7d')).toBeTruthy();
     expect(screen.getByText('Applied 30d')).toBeTruthy();
     expect(screen.getByText('Response rate')).toBeTruthy();
@@ -64,9 +54,8 @@ describe('PipelineStats', () => {
     expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/last 8 weeks/);
   });
 
-  it('shows a dash for an unavailable median', async () => {
+  it('shows a dash for an unavailable median', () => {
     wrap([job({ status: 'Applied', applied: ago(1) })]);
-    await open();
     expect(screen.getAllByText('0%').length).toBe(2);
     expect(screen.getByText('—')).toBeTruthy();
   });

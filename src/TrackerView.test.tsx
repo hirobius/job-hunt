@@ -1,106 +1,103 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TrackerView from './TrackerView';
-import { DataToolsContext, type DataToolsApi } from './account/accountContext';
-import { addJob, getAllJobs, removeJob, updateJob } from './store';
-
-const tools: DataToolsApi = {
-  backup: vi.fn(),
-  chooseRestore: vi.fn(),
-  exportCsv: vi.fn(),
-  canExport: true,
-};
-
-beforeEach(() => {
-  vi.useFakeTimers({ toFake: ['Date'] });
-  vi.setSystemTime(new Date(2026, 9, 14, 10, 0));
-});
+import { addJob, getAllJobs, markAppliedByUrl, removeJob } from './store';
 
 afterEach(() => {
   cleanup();
-  vi.useRealTimers();
-  vi.clearAllMocks();
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
 });
 
-const renderTracker = () =>
-  render(
-    <DataToolsContext.Provider value={tools}>
-      <TrackerView />
-    </DataToolsContext.Provider>,
-  );
-
-const A = 'https://example.com/jobs/a';
-const B = 'https://example.com/jobs/b';
+const renderTracker = () => render(<TrackerView />);
 
 describe('TrackerView', () => {
-  it('adds a pasted job URL to the queue', async () => {
-    vi.useRealTimers();
+  it('adds a pasted job URL from the Add job dialog', async () => {
     const user = userEvent.setup();
     renderTracker();
-    await user.type(screen.getByLabelText(/job url/i), 'https://boards.greenhouse.io/acme/jobs/42');
-    await user.click(screen.getByRole('button', { name: /^add$/i }));
-    expect(await screen.findByRole('link', { name: /acme job/i })).toBeInTheDocument();
-  });
-
-  it('first use shows the add bar and empty state, no filters or toolbar', () => {
-    renderTracker();
-    expect(screen.getByLabelText(/job url/i)).toBeInTheDocument();
-    expect(screen.getByText('Your tracker is empty')).toBeInTheDocument();
-    expect(screen.queryByRole('radiogroup', { name: /filter jobs/i })).toBeNull();
-    expect(screen.queryByLabelText(/search saved jobs/i)).toBeNull();
-    expect(screen.queryByRole('button', { name: /^sort/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /your data/i })).toBeNull();
-  });
-
-  it('shows filters, search, sort and data once a job exists', () => {
-    addJob(A, 'Welder');
-    renderTracker();
-    expect(screen.getByRole('radiogroup', { name: /filter jobs/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/search saved jobs/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^sort/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /your data/i })).toBeInTheDocument();
-  });
-
-  it('lists due follow-ups under Next up, linking to the job page', () => {
-    addJob(A, 'Welder');
-    updateJob(A, { status: 'Applied', applied: '2026-09-20', priority: true });
-    addJob(B, 'Fitter');
-    renderTracker();
-    const next = screen.getByRole('region', { name: 'Next up' });
-    expect(within(next).getByRole('link', { name: 'Welder' })).toHaveAttribute(
-      'href',
-      expect.stringContaining('#/queue/'),
+    await user.click(screen.getByRole('button', { name: 'Add job' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add a job' });
+    await user.type(
+      within(dialog).getByLabelText(/job url/i),
+      'https://boards.greenhouse.io/acme/jobs/42',
     );
-    expect(within(next).getByText('Overdue')).toBeInTheDocument();
-    expect(within(next).queryByText('Fitter')).toBeNull();
+    await user.click(within(dialog).getByRole('button', { name: /^add$/i }));
+    expect(await screen.findByRole('link', { name: /boards/i })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+// #115 / #129: one compact toolbar (search · status · sort · add) instead of a full-width URL
+// field plus an 8-option status strip.
+describe('Pipeline toolbar', () => {
+  it('has no status strip; status is one menu button showing the current view', () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderTracker();
+    expect(screen.queryByRole('radiogroup', { name: /status/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
   });
 
-  it('hides Next up while searching and leaves no pipeline or funnel module', async () => {
-    vi.useRealTimers();
+  it('groups the status options with counts, and picking one filters the list', async () => {
     const user = userEvent.setup();
-    addJob(A, 'Welder');
-    updateJob(A, { status: 'Applied', applied: '2020-01-01', priority: true });
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    addJob('https://acme.example/jobs/2', 'Product Designer');
+    markAppliedByUrl('https://acme.example/jobs/2', 'Product Designer');
     renderTracker();
-    expect(screen.queryByText(/pipeline/i)).toBeNull();
-    expect(screen.queryByText(/funnel/i)).toBeNull();
-    expect(screen.getByRole('region', { name: 'Next up' })).toBeInTheDocument();
-    await user.type(screen.getByLabelText(/search saved jobs/i), 'wel');
-    expect(screen.queryByRole('region', { name: 'Next up' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: /^Status:/ }));
+    const menu = await screen.findByRole('menu');
+    for (const group of ['Views', 'In progress', 'Closed'])
+      expect(within(menu).getByText(group)).toBeInTheDocument();
+    await user.click(within(menu).getByRole('menuitemradio', { name: /^Applied\s*1$/ }));
+
+    expect(screen.getByRole('button', { name: /^Status: Applied/ })).toBeInTheDocument();
+    expect(screen.getByText('Product Designer')).toBeInTheDocument();
+    expect(screen.queryByText('Design Engineer')).toBeNull();
+  });
+});
+
+// Hierarchy pass (Adrian's review of the empty Pipeline): one page header with the primary
+// action, a first-use empty state with one primary + one secondary action, and no toolbar while
+// there is nothing to search or filter.
+describe('Pipeline hierarchy', () => {
+  it('opens with a Pipeline page header whose action is Add job', () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderTracker();
+    const heading = screen.getByRole('heading', { level: 2, name: 'Pipeline' });
+    const header = heading.closest('header')!;
+    expect(within(header).getByRole('button', { name: 'Add job' })).toBeInTheDocument();
   });
 
-  it('data sheet offers Back up, Restore and Export CSV', async () => {
-    vi.useRealTimers();
-    const user = userEvent.setup();
-    addJob(A, 'Welder');
+  it('first use: no toolbar, a teaching empty state with Add job + sample data', () => {
     renderTracker();
-    await user.click(screen.getByRole('button', { name: /your data/i }));
-    expect(screen.getByRole('button', { name: /restore/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /export csv/i })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /back up/i }));
-    expect(tools.backup).toHaveBeenCalled();
+    // One primary action on the screen: the empty state's, not a second one in the header.
+    expect(screen.getAllByRole('button', { name: 'Add job' })).toHaveLength(1);
+    expect(screen.queryByRole('textbox', { name: 'Search saved jobs' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Status:/ })).toBeNull();
+    expect(screen.getByText('Track your first job')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try with sample data' })).toBeInTheDocument();
+  });
+
+  it('with jobs: the toolbar is back and the header shows the counts', () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderTracker();
+    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
+    expect(screen.getByText('1 active · 1 total')).toBeInTheDocument();
+  });
+});
+
+// Dense layout: metrics fold into one closed Insights row so the list starts near the top.
+describe('Pipeline density', () => {
+  it('folds stats and funnel into a closed Insights row', async () => {
+    const user = userEvent.setup();
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderTracker();
+    const insights = screen.getByRole('button', { name: /Insights/ });
+    expect(insights).toHaveAttribute('aria-expanded', 'false');
+    await user.click(insights);
+    expect(insights).toHaveAttribute('aria-expanded', 'true');
   });
 });

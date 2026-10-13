@@ -73,7 +73,7 @@ export function addSnippet(tagPillar?: string) {
     ...store.get(),
     {
       id: newId(),
-      label: 'New template',
+      label: 'New snippet',
       body: '',
       open: true,
       pillars: tagPillar ? [tagPillar] : [],

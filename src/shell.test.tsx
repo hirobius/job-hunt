@@ -59,7 +59,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Discover', 'Tracker', 'Templates']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Pipeline', 'Discover', 'Templates']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -83,7 +83,7 @@ describe('app shell (#115 Phase 1)', () => {
     ]);
   });
 
-  it('data controls left the Tracker toolbar', () => {
+  it('data controls left the Pipeline toolbar', () => {
     renderApp();
     const panel = screen.getByRole('tabpanel');
     for (const name of ['Back up', 'Restore…', 'Export CSV'])
@@ -185,21 +185,21 @@ describe('sync nudge (#115 Phase 1)', () => {
 
 describe('routes keep working (#115 Phase 1)', () => {
   it.each([
-    ['#/queue', 'Tracker'],
+    ['#/queue', 'Pipeline'],
     ['#/discover', 'Discover'],
     ['#/copy-deck', 'Templates'],
-    ['', 'Tracker'],
+    ['', 'Pipeline'],
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(tab);
   });
 
-  it('a ?add= quick-add link lands on the Tracker with the job saved', async () => {
+  it('a ?add= quick-add link lands on the Pipeline with the job saved', async () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9&t=Design%20Engineer');
     renderApp();
     expect(window.location.hash).toBe('#/queue');
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Tracker');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/9');
   });
 });

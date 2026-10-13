@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import {
   Button,
-  Disclosure,
+  Dialog,
   Input as HdsInput,
   SegmentedControl,
   Tag,
   Icon,
   Box,
-  Stack,
   Text,
+  Switcher,
+  Stack,
+  Disclosure,
   useToast,
 } from '@hirobius/design-system';
-import { Sheet } from './Sheet';
-import { STARTER_PACKS, topUpFromPack } from './curation/starterPacks';
 import { Trash2, X } from 'lucide-react';
 import {
   updateCategory,
@@ -27,12 +27,13 @@ import {
   useTiles,
 } from './curation/curationStore';
 import type { Seniority } from './curation/types';
+import { STARTER_PACKS, topUpFromPack } from './curation/starterPacks';
 
 // In-app curation controls (issue #37 / B4): edit a track's search terms + seniority + location,
 // and add/remove its sections (groups) and links (tiles) — all through the curation store, which
 // persists locally and syncs. Replaces the old read-only hardcoded-pillar "Manage trades" dialog.
 
-// A chip editor for a string[] field on the category: removable chips + an add-term input.
+// A comma/enter-separated chip editor for a string[] field on the category.
 function ChipEditor({
   label,
   values,
@@ -49,22 +50,21 @@ function ChipEditor({
     setDraft('');
   };
   return (
-    <Stack gap="tight">
+    <Box>
       <Text
         variant="caption"
         as="span"
-        style={{ color: 'var(--semantic-color-content-secondary)' }}
+        style={{
+          color: 'var(--semantic-color-content-secondary)',
+          display: 'block',
+          marginBottom: 'var(--primitive-space-1)',
+        }}
       >
         {label}
       </Text>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs' }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
         {values.map((v) => (
-          <Tag
-            key={v}
-            active
-            aria-label={`Remove ${v}`}
-            onClick={() => onChange(values.filter((x) => x !== v))}
-          >
+          <Tag key={v} active onClick={() => onChange(values.filter((x) => x !== v))}>
             {v} ✕
           </Tag>
         ))}
@@ -78,28 +78,21 @@ function ChipEditor({
           </Text>
         )}
       </Box>
-      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', alignItems: 'flex-end' }}>
-        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-          <HdsInput
-            size="sm"
-            aria-label={`Add ${label.toLowerCase()}`}
-            placeholder="Add a term…"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                add();
-              }
-            }}
-            style={{ width: '100%' }}
-          />
-        </Box>
-        <Button variant="secondary" size="sm" onClick={add} disabled={!draft.trim()}>
-          Add
-        </Button>
-      </Box>
-    </Stack>
+      <HdsInput
+        size="sm"
+        aria-label={`Add ${label}`}
+        placeholder={`Add ${label.toLowerCase()}…`}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            add();
+          }
+        }}
+        style={{ maxWidth: 260 }}
+      />
+    </Box>
   );
 }
 
@@ -194,8 +187,8 @@ export default function ManageTrackDialog({
   onClose: () => void;
   onDeleted: () => void;
 }) {
-  const cat = useCategories().find((c) => c.id === categoryId);
   const { toast } = useToast();
+  const cat = useCategories().find((c) => c.id === categoryId);
   const groups = useGroups()
     .filter((g) => g.categoryId === categoryId)
     .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -211,139 +204,177 @@ export default function ManageTrackDialog({
   };
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()} title="Manage track">
-      <Stack gap="normal">
-        <HdsInput
-          size="sm"
-          label="Track name"
-          value={cat.label}
-          onChange={(e) => updateCategory(cat.id, { label: e.target.value })}
-          style={{ width: '100%' }}
-        />
-        <HdsInput
-          size="sm"
-          label="Location"
-          placeholder="City or State — leave blank for anywhere"
-          value={cat.location}
-          onChange={(e) => updateCategory(cat.id, { location: e.target.value })}
-          style={{ width: '100%' }}
-        />
-        <Stack gap="tight">
-          <Text
-            variant="caption"
-            as="span"
-            style={{ color: 'var(--semantic-color-content-secondary)' }}
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <Dialog.Content
+        style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
+          <Dialog.Header>
+            <Dialog.Title>Manage track</Dialog.Title>
+          </Dialog.Header>
+          <div
+            style={{
+              overflowY: 'auto',
+              padding: '16px 4px',
+              borderTop: '1px solid var(--semantic-color-border-default)',
+              borderBottom: '1px solid var(--semantic-color-border-default)',
+              margin: '8px 0',
+            }}
           >
-            Seniority
-          </Text>
-          <SegmentedControl
-            aria-label="Seniority"
-            size="sm"
-            fullWidth
-            value={cat.seniority}
-            onChange={(v) => updateCategory(cat.id, { seniority: v as Seniority })}
-            options={[
-              { value: 'any', label: 'Any' },
-              { value: 'entry', label: 'Entry' },
-              { value: 'experienced', label: 'Experienced' },
-            ]}
-          />
-        </Stack>
-        <ChipEditor
-          label="Title search terms"
-          values={cat.titles}
-          onChange={(next) => updateCategory(cat.id, { titles: next })}
-        />
-        <Disclosure label="Company-board role terms">
-          <ChipEditor
-            label="Company-board role terms"
-            values={cat.atsRoles}
-            onChange={(next) => updateCategory(cat.id, { atsRoles: next })}
-          />
-        </Disclosure>
-        <Disclosure label={`Sections & links (${groups.length})`}>
-          <Stack gap="normal">
-            {groups.map((g) => (
-              <Stack gap="tight" key={g.id}>
-                <Box
-                  sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', alignItems: 'center' }}
-                >
-                  <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-                    <HdsInput
-                      size="sm"
-                      aria-label="Section name"
-                      value={g.label}
-                      onChange={(e) => updateGroup(g.id, { label: e.target.value })}
-                      style={{ width: '100%' }}
-                    />
-                  </Box>
-                  <Button
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+              <Box sx={{ '& > *': { width: '100%' } }}>
+                <HdsInput
+                  size="sm"
+                  label="Track name"
+                  value={cat.label}
+                  onChange={(e) => updateCategory(cat.id, { label: e.target.value })}
+                  style={{ width: '100%' }}
+                />
+              </Box>
+              <Switcher gap="tight">
+                <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+                  <HdsInput
                     size="sm"
-                    variant="tertiary"
-                    tone="danger"
-                    iconOnly
-                    iconLeft={<Icon icon={Trash2} />}
-                    label={`Delete ${g.label} section`}
-                    onClick={() => removeGroup(g.id)}
+                    label="Location"
+                    value={cat.location}
+                    onChange={(e) => updateCategory(cat.id, { location: e.target.value })}
+                    style={{ width: '100%' }}
                   />
                 </Box>
-                <GroupEditor groupId={g.id} />
-              </Stack>
-            ))}
-            <Button
-              variant="tertiary"
-              size="sm"
-              onClick={() => addGroup(cat.id, { label: 'New section' })}
-            >
-              ＋ Add section
-            </Button>
-          </Stack>
-        </Disclosure>
-        {/* Pull the latest starter-pack terms and links into this track. Additive only:
-            nothing the user added or edited is removed (curation/starterPacks.ts topUpFromPack). */}
-        <Disclosure label="Update from a starter pack">
-          <Stack gap="tight">
-            <Text
-              variant="caption"
-              as="p"
-              style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}
-            >
-              Adds any search terms, sections and links from the pack that this track doesn’t have
-              yet. Your own edits stay.
-            </Text>
-            <Stack direction="row" gap="tight" wrap="wrap">
-              {STARTER_PACKS.filter((p) => p.id !== 'blank').map((p) => (
-                <Button
-                  key={p.id}
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    const r = topUpFromPack(cat.id, p.id);
-                    const n = r.titles + r.atsRoles + r.tiles;
-                    toast({
-                      tone: n ? 'success' : 'info',
-                      title: n
-                        ? `Added ${r.titles + r.atsRoles} terms and ${r.tiles} links from ${p.label}`
-                        : `Already up to date with ${p.label}`,
-                    });
-                  }}
+                <Box>
+                  <Text
+                    variant="caption"
+                    as="span"
+                    style={{
+                      color: 'var(--semantic-color-content-secondary)',
+                      display: 'block',
+                      marginBottom: 'var(--primitive-space-1)',
+                    }}
+                  >
+                    Seniority
+                  </Text>
+                  <SegmentedControl
+                    aria-label="Seniority"
+                    size="sm"
+                    value={cat.seniority}
+                    onChange={(v) => updateCategory(cat.id, { seniority: v as Seniority })}
+                    options={[
+                      { value: 'any', label: 'Any' },
+                      { value: 'entry', label: 'Entry' },
+                      { value: 'experienced', label: 'Exp.' },
+                    ]}
+                  />
+                </Box>
+              </Switcher>
+              <ChipEditor
+                label="Title-search terms"
+                values={cat.titles}
+                onChange={(next) => updateCategory(cat.id, { titles: next })}
+              />
+              <ChipEditor
+                label="ATS role terms"
+                values={cat.atsRoles}
+                onChange={(next) => updateCategory(cat.id, { atsRoles: next })}
+              />
+
+              <Box sx={{ borderTop: 'thin solid', borderColor: 'border.default', pt: 3 }}>
+                <Text
+                  variant="body"
+                  style={{ fontWeight: 600, marginBottom: 'var(--semantic-space-scale-xs)' }}
                 >
-                  {p.label}
-                </Button>
-              ))}
-            </Stack>
-          </Stack>
-        </Disclosure>
-        {/* Pinned to the sheet's bottom edge so Done / Delete stay reachable while it scrolls. */}
-        <div className="app-sheet-foot">
-          <Button variant="tertiary" tone="danger" onClick={del}>
-            Delete track
-          </Button>
-          <Button variant="primary" onClick={onClose}>
-            Done
-          </Button>
+                  Sections & links
+                </Text>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                  {groups.map((g) => (
+                    <Box key={g.id}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'row',
+                          gap: 1,
+                          alignItems: 'center',
+                          mb: 1,
+                        }}
+                      >
+                        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+                          <HdsInput
+                            size="sm"
+                            aria-label="Section name"
+                            value={g.label}
+                            onChange={(e) => updateGroup(g.id, { label: e.target.value })}
+                            style={{ width: '100%' }}
+                          />
+                        </Box>
+                        <Button
+                          size="sm"
+                          variant="tertiary"
+                          tone="danger"
+                          iconOnly
+                          iconLeft={<Icon icon={Trash2} />}
+                          label={`Delete ${g.label} section`}
+                          onClick={() => removeGroup(g.id)}
+                        />
+                      </Box>
+                      <GroupEditor groupId={g.id} />
+                    </Box>
+                  ))}
+                  <Button
+                    variant="tertiary"
+                    size="sm"
+                    onClick={() => addGroup(cat.id, { label: 'New section' })}
+                  >
+                    ＋ Add section
+                  </Button>
+                </Box>
+              </Box>
+              {/* Pull in what a starter pack gained since this track was made (e.g. the 2026-10
+                  design-systems round). Additive only: nothing the user added or edited is removed
+                  (curation/starterPacks.ts topUpFromPack). */}
+              <Disclosure variant="nav" label="Update from a starter pack">
+                <Stack gap="tight">
+                  <Text
+                    variant="caption"
+                    as="p"
+                    style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}
+                  >
+                    Adds the pack's newer titles, search terms and links that this track doesn't
+                    have yet. Nothing is removed.
+                  </Text>
+                  <Stack direction="row" wrap="wrap" gap="tight">
+                    {STARTER_PACKS.filter((p) => p.id !== 'blank').map((p) => (
+                      <Button
+                        key={p.id}
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          const r = topUpFromPack(cat.id, p.id);
+                          const n = r.titles + r.atsRoles + r.tiles;
+                          toast({
+                            tone: n ? 'success' : 'info',
+                            title: n
+                              ? `Added ${r.titles + r.atsRoles} terms and ${r.tiles} links from ${p.label}`
+                              : `Already up to date with ${p.label}`,
+                          });
+                        }}
+                      >
+                        {p.label}
+                      </Button>
+                    ))}
+                  </Stack>
+                </Stack>
+              </Disclosure>
+            </Box>
+          </div>
+          <Dialog.Footer>
+            <Button variant="tertiary" tone="danger" onClick={del}>
+              Delete track
+            </Button>
+            <Button variant="primary" onClick={onClose}>
+              Done
+            </Button>
+          </Dialog.Footer>
         </div>
-      </Stack>
-    </Sheet>
+      </Dialog.Content>
+    </Dialog>
   );
 }

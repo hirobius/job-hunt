@@ -53,7 +53,10 @@ export default function InterviewLog({ job }: { job: Job }) {
 
   return (
     <Stack gap="normal">
-      <Stack direction="row" gap="tight" align="center" justify="end">
+      <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
+        <Text variant="ui" as="h4" style={{ margin: 0, fontWeight: 600 }}>
+          Interviews & calls
+        </Text>
         <Button
           size="sm"
           variant="tertiary"
@@ -141,7 +144,7 @@ export default function InterviewLog({ job }: { job: Job }) {
             onChange={(e) => setNote(e.target.value)}
           />
         </div>
-        <Button variant="primary" disabled={!date} onClick={add}>
+        <Button size="sm" variant="secondary" disabled={!date} onClick={add}>
           Add event
         </Button>
       </Stack>

@@ -10,8 +10,6 @@ const INTERVIEW: Status[] = ['Interviewing', 'Offer'];
 export interface PipelineMetrics {
   appliedLast7: number;
   appliedLast30: number;
-  /** Applied in the 30 days before the current 30-day window (days 30–59 ago): the comparison. */
-  appliedPrior30: number;
   appliedTotal: number;
   responseRate: number | null;
   interviewRate: number | null;
@@ -63,7 +61,6 @@ export function pipelineMetrics(jobs: Job[], now: Date = new Date()): PipelineMe
   let appliedTotal = 0;
   let appliedLast7 = 0;
   let appliedLast30 = 0;
-  let appliedPrior30 = 0;
   let responded = 0;
   let interviewed = 0;
   const replyDays: number[] = [];
@@ -74,7 +71,6 @@ export function pipelineMetrics(jobs: Job[], now: Date = new Date()): PipelineMe
     const age = dayDiff(applied, today);
     if (age >= 0 && age < 7) appliedLast7++;
     if (age >= 0 && age < 30) appliedLast30++;
-    else if (age >= 30 && age < 60) appliedPrior30++;
     const hist = effectiveHistory(job);
     const first = hist.find((h) => RESPONSE.includes(h.status));
     if (first) {
@@ -87,7 +83,6 @@ export function pipelineMetrics(jobs: Job[], now: Date = new Date()): PipelineMe
   return {
     appliedLast7,
     appliedLast30,
-    appliedPrior30,
     appliedTotal,
     responseRate: appliedTotal ? responded / appliedTotal : null,
     interviewRate: appliedTotal ? interviewed / appliedTotal : null,
