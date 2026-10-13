@@ -32,21 +32,30 @@ export const TRADES_PACK: PackContent = {
   groups: pick('sm-brief', 'smshops', 'machineshops'),
 };
 
+// Titles first: the Live postings feed searches the first title on open. The token / design-
+// technologist titles come from Adrian's 2026-10 search (AI-ready tokens + MCP angle).
 const DESIGN_SYSTEMS_TITLES = [
   'Design Systems Engineer',
-  'Design Engineer',
-  'Frontend Engineer',
   'Design Technologist',
+  'Design System Technologist',
+  'Design Systems Designer',
+  'Design Systems Architect',
+  'Token Architect',
+  'Design Engineer',
   'UI Engineer',
   'Component Library Engineer',
+  'Frontend Engineer',
   'Staff Frontend Engineer',
   'Product Designer',
 ];
 const DESIGN_SYSTEMS_ATS_ROLES = [
   'design systems',
+  'design system technologist',
+  'design technologist',
+  'design tokens',
+  'token architect',
   'design engineer',
   'frontend engineer',
-  'design technologist',
   'UI engineer',
 ];
 
@@ -58,7 +67,7 @@ export const DESIGN_SYSTEMS_PACK: PackContent = {
   atsRoles: DESIGN_SYSTEMS_ATS_ROLES,
   seniority: 'experienced',
   location: 'Remote',
-  groups: pick('ds-brief'),
+  groups: pick('ds-brief', 'ds-watch'),
 };
 
 const CONSULTING_TITLES = [
