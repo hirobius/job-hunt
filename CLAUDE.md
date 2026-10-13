@@ -53,7 +53,7 @@ commit `f15fd52`).
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
-  publishable + RLS-protected). Cloud sync UI in `src/CloudSync.tsx`. Per-account curated
+  publishable + RLS-protected). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
   content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
   `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`.
 - **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Trades** (tab label; slug
@@ -74,9 +74,16 @@ commit `f15fd52`).
   **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
   terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
   pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
-  Header cleanup: the global pillar combobox + separate manage/feedback icon buttons were
-  replaced by a single overflow menu (theme toggle stays inline); the tab bar is sized for
-  readability and horizontal-scrolls on narrow screens.
+  **Shell (#115 Phase 1):** slim header = name · top tabs (**Pipeline · Discover · Templates**;
+  Today joins in Phase 2 and becomes home) · one **Account** menu. `src/account/` is the account
+  seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
+  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Back up,
+  Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible Callout;
+  `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
+  tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`.
+- **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
+  shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
+  (git-ignored). Run it before/after each redesign phase.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.

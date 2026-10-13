@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-13T06:00:00Z",
-  "phase": "live",
-  "headline": "Live on production. 2026-10-13: Vercel builds are gated by `npm run verify`; the CSP is now ENFORCING (#122, verified headless on production incl. the live feed); tracker features, 'Try with sample data' and a truthful README are live. Next up: the redesign (#115).",
+  "updatedAt": "2026-10-13T12:00:00Z",
+  "phase": "redesign",
+  "headline": "Live on production (main unchanged). Redesign #115 Phases 0–1 built on branch claude/jh-redesign: HDS 0.24.1 exact-pinned, src/ui retired, HDS fonts (CSP self-only), hds/recommended lint, screenshot gallery harness, new shell with an Account menu, sync nudge and toasts. Preview build for review.",
   "next": [
-    "Redesign epic #115 (decided: top tabs, Today home, job detail view, HDS fonts). Waiting on the 21st.dev reference pass + Adrian committing to the spec; then Phase 0\u20131 on a branch with a [preview] build + live artifact. Phase 0 = land claude/run-the-fetch-45j8i3 (#90\u2013#92) after merging main into it.",
+    "Redesign #115: Adrian reviews the Phase 0–1 preview + before/after artifact, then merge phase by phase. Next build: Phase 2 Today (sub-issues on #115).",
     "After HDS lands: vite 8 + plugin-react 6, npm audit, React 19, jest-dom 7 (#105).",
     "Human / dashboard: #16 confirm Vercel Analytics, #22 .env.example + revoke the old Anthropic key, #44 Supabase auth hardening, #17 stale branches, #55 name clearance.",
     "Legal (before public launch): #43 Privacy Policy + Terms."

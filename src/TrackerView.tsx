@@ -45,7 +45,6 @@ import { verdictTone, modeLabel, blockerLabel } from './screening';
 import { ScreeningEditor } from './ScreeningEditor';
 import { FunnelSummary } from './FunnelSummary';
 import { PipelineStats } from './PipelineStats';
-import DataTools from './DataTools';
 import ThisWeek from './ThisWeek';
 import UseTemplate from './UseTemplate';
 import InterviewLog from './InterviewLog';
@@ -249,7 +248,6 @@ export default function TrackerView() {
               </HdsMenu.RadioGroup>
             </HdsMenu.Content>
           </HdsMenu>
-          <DataTools />
         </Box>
       </Box>
 

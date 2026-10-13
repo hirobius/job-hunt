@@ -1,24 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
-import { ToastProvider } from '@hirobius/design-system';
 
 // The curation store pulls in the Supabase client; stub it so the test stays local + offline.
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
-    auth: { getSession: async () => ({ data: { session: null } }) },
+    auth: {
+      getSession: async () => ({ data: { session: null } }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    },
     from: () => ({ upsert: async () => ({}), delete: () => ({ eq: async () => ({}) }) }),
   }),
 }));
 
-import DataTools from './DataTools';
-import { buildBackup, parseBackup } from './backup';
-import { getAllJobs, replaceAll } from './store';
-import { replaceSnippets } from './copyDeckStore';
-import { replaceCurationState } from './curation/curationStore';
-import { replaceTriage } from './tileTriage';
-import type { Job } from './types';
+import { renderAccount, openAccount, chooseAccountItem } from '../test/renderAccount';
+import { buildBackup, parseBackup } from '../backup';
+import { getAllJobs, replaceAll } from '../store';
+import { replaceSnippets } from '../copyDeckStore';
+import { replaceCurationState } from '../curation/curationStore';
+import { replaceTriage } from '../tileTriage';
+import type { Job } from '../types';
 
 const job = (url: string, label: string): Job => ({ url, label, status: 'Saved' }) as Job;
 const EMPTY = { categories: [], groups: [], tiles: [] };
@@ -49,12 +51,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const setup = () =>
-  render(
-    <ToastProvider>
-      <DataTools />
-    </ToastProvider>,
-  );
+const setup = renderAccount;
 
 const backupFile = (jobs: Job[]) =>
   new File(
@@ -73,18 +70,18 @@ const backupFile = (jobs: Job[]) =>
 const upload = (file: File) =>
   userEvent.upload(screen.getByLabelText('Choose a backup file to restore'), file);
 
-describe('DataTools', () => {
+describe('DataToolsProvider (via the account menu)', () => {
   it('Back up downloads a file that parses back as a backup', async () => {
     replaceAll([job('https://example.com/a', 'A')]);
     setup();
-    await userEvent.click(screen.getByRole('button', { name: 'Back up' }));
+    await chooseAccountItem('Back up');
     expect(downloads).toHaveLength(1);
     expect(downloads[0].name).toMatch(/^apply-board-backup-\d{4}-\d{2}-\d{2}\.json$/);
     const r = parseBackup(await downloads[0].blob.text());
     expect(r.ok && r.backup.jobs.map((j) => j.url)).toEqual(['https://example.com/a']);
   });
 
-  it('shows the reason for an invalid file', async () => {
+  it('toasts the reason for an invalid file', async () => {
     setup();
     await upload(new File(['{"nope":1}'], 'x.json', { type: 'application/json' }));
     expect(await screen.findByText("This isn't an Apply Board backup.")).toBeTruthy();
@@ -120,13 +117,15 @@ describe('DataTools', () => {
 
   it('Export CSV is disabled with no jobs and downloads once there are some', async () => {
     const { unmount } = setup();
-    expect((screen.getByRole('button', { name: 'Export CSV' }) as HTMLButtonElement).disabled).toBe(
-      true,
+    const menu = await openAccount();
+    expect(within(menu).getByRole('menuitem', { name: 'Export CSV' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
     );
     unmount();
     replaceAll([job('https://example.com/a', 'A')]);
     setup();
-    await userEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    await chooseAccountItem('Export CSV');
     await waitFor(() => expect(downloads[0]?.name).toBe('apply-board.csv'));
   });
 

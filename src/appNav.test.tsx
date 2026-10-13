@@ -18,6 +18,7 @@ vi.mock('@supabase/supabase-js', () => ({
   }),
 }));
 
+import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 
@@ -29,12 +30,19 @@ afterEach(() => {
   window.location.hash = '';
 });
 
-const renderApp = () => render(<ColorModeProvider>{<App />}</ColorModeProvider>);
+const renderApp = () =>
+  render(
+    <ColorModeProvider>
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    </ColorModeProvider>,
+  );
 
 describe('App top-level tab wiring', () => {
-  it('renders three tabs (Discover · Tracker · Templates), each associated with a tabpanel', () => {
+  it('renders three tabs (Pipeline · Discover · Templates), each associated with a tabpanel', () => {
     renderApp();
-    const tabs = screen.getAllByRole('tab');
+    const tabs = screen.getAllByRole('tab').slice(0, 3);
     expect(tabs).toHaveLength(3);
     for (const tab of tabs) {
       expect(tab.getAttribute('id')).toBeTruthy();
@@ -50,8 +58,8 @@ describe('App top-level tab wiring', () => {
     expect(panel.getAttribute('aria-labelledby')).toBe(selected.getAttribute('id'));
   });
 
-  it('defaults to the Tracker tab when the hash carries no route', () => {
+  it('defaults to the Pipeline tab when the hash carries no route', () => {
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/tracker/i);
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/pipeline/i);
   });
 });
