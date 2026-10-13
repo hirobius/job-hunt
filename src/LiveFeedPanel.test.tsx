@@ -125,6 +125,20 @@ describe('LiveFeedPanel', () => {
     expect(await screen.findByText(/Remotive: rate-limited/)).toBeInTheDocument();
   });
 
+  it('renders "couldn\'t reach any source" empty state when every source fails', async () => {
+    feed.fetchFeed.mockResolvedValueOnce({
+      postings: [],
+      sources: [
+        { key: 'hn', label: 'Hacker News', fetched: 0, error: 'Hacker News: timed out — try again later.' },
+        { key: 'remotive', label: 'Remotive', fetched: 0, error: 'Remotive: timed out — try again later.' },
+      ],
+      boardsSkipped: 0,
+    });
+    renderPanel();
+    expect(await screen.findByText("Couldn't reach any source")).toBeInTheDocument();
+    expect(screen.queryByText(/No live openings mention/)).not.toBeInTheDocument();
+  });
+
   it('filters to contract-friendly openings', async () => {
     const user = userEvent.setup();
     renderPanel();

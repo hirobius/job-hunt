@@ -156,6 +156,7 @@ export default function LiveFeedPanel({
 
   const errors = current?.result?.sources.filter((s) => s.error) ?? [];
   const skipped = current?.result?.boardsSkipped ?? 0;
+  const allFailed = !!current?.result?.sources.length && errors.length === current.result.sources.length;
 
   return (
     <Stack gap="normal">
@@ -226,6 +227,11 @@ export default function LiveFeedPanel({
         <Alert tone="danger">{current.error}</Alert>
       ) : !term.trim() ? (
         <EmptyState message="Type a search term or pick one of this track's terms." />
+      ) : allFailed ? (
+        <EmptyState
+          title="Couldn't reach any source"
+          message="Check your internet connection or try again later."
+        />
       ) : ranked.length === 0 ? (
         <EmptyState
           title={`No live openings mention “${term}” right now`}
