@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useRef, useState } from 'react';
+import { PageHeader } from '@hirobius/design-system/patterns';
 import {
   EllipsisVertical,
   ArrowUpDown,
@@ -9,6 +10,7 @@ import {
   DollarSign,
   Star,
   StickyNote,
+  Briefcase,
   ListFilter,
   Plus,
   type LucideIcon,
@@ -77,6 +79,8 @@ const FILTER_LABEL: Record<Filter, string> = {
   Rejected: 'Rejected',
   retired: 'Retired',
 };
+const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+
 const FILTER_GROUPS: { label: string; items: Filter[] }[] = [
   { label: 'Views', items: ['active', 'all'] },
   { label: 'In progress', items: ['Saved', 'Applied', 'Interviewing', 'Offer'] },
@@ -173,102 +177,124 @@ export default function TrackerView() {
       </Box>
     );
 
+  const addJobButton = (
+    <UiButton
+      variant="primary"
+      size="sm"
+      iconLeft={<Plus size={16} />}
+      onClick={() => setAddOpen(true)}
+    >
+      Add job
+    </UiButton>
+  );
+
   return (
     <Box>
-      {/* One toolbar (#115 / #129): search grows; status, sort and add sit beside it and wrap
-          under it on phones. Status is a grouped menu, not an 8-option strip. */}
-      <Stack
-        direction="row"
-        wrap="wrap"
-        gap="tight"
-        align="center"
+      {/* One page header: the screen's name, its counts and its one primary action. */}
+      <PageHeader
+        level={2}
+        title="Pipeline"
+        status={
+          jobs.length > 0 ? (
+            <Text variant="caption" as="span" style={SECONDARY}>
+              {`${counts.active} active · ${counts.all} total`}
+            </Text>
+          ) : undefined
+        }
+        // One primary action per state: on first use it lives in the empty state instead.
+        actions={jobs.length > 0 ? addJobButton : undefined}
         style={{ marginBottom: 'var(--primitive-space-4)' }}
-      >
-        <Box sx={{ flex: '1 1 14rem', minWidth: 0, '& > *': { width: '100%' } }}>
-          <HdsInput
-            size="sm"
-            aria-label="Search saved jobs"
-            placeholder="Search jobs…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            leadingVisual={<Search size={16} />}
-            style={{ width: '100%' }}
-          />
-        </Box>
-        <Stack direction="row" wrap="wrap" gap="tight" align="center">
-          <HdsMenu>
-            <HdsMenu.Trigger asChild>
-              <UiButton
-                variant="secondary"
-                size="sm"
-                iconLeft={<ListFilter size={16} />}
-                style={{ whiteSpace: 'nowrap' }}
-              >
-                {`Status: ${FILTER_LABEL[filter]}`}
-              </UiButton>
-            </HdsMenu.Trigger>
-            <HdsMenu.Content align="end">
-              <HdsMenu.RadioGroup value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-                {FILTER_GROUPS.map((g, gi) => (
-                  <Fragment key={g.label}>
-                    {gi > 0 && <HdsMenu.Separator />}
-                    <HdsMenu.Label>{g.label}</HdsMenu.Label>
-                    {g.items.map((f) => (
-                      <HdsMenu.RadioItem key={f} value={f}>
-                        <Box
-                          as="span"
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            gap: 'sm',
-                            width: '100%',
-                          }}
-                        >
-                          <span>{FILTER_LABEL[f]}</span>
-                          <span style={{ color: 'var(--semantic-color-content-secondary)' }}>
-                            {counts[f]}
-                          </span>
-                        </Box>
-                      </HdsMenu.RadioItem>
-                    ))}
-                  </Fragment>
-                ))}
-              </HdsMenu.RadioGroup>
-            </HdsMenu.Content>
-          </HdsMenu>
-          <HdsMenu>
-            <HdsMenu.Trigger asChild>
-              {/* Icon-only so search · status · sort · add fit two rows at 390px; the name and
+      />
+
+      {/* One toolbar (#115 / #129): search grows; status and sort sit beside it and wrap under it
+          on phones. Status is a grouped menu, not an 8-option strip. No toolbar until there is
+          something to search or filter. */}
+      {jobs.length > 0 && (
+        <Stack
+          direction="row"
+          wrap="wrap"
+          gap="tight"
+          align="center"
+          style={{ marginBottom: 'var(--primitive-space-4)' }}
+        >
+          <Box sx={{ flex: '1 1 14rem', minWidth: 0, '& > *': { width: '100%' } }}>
+            <HdsInput
+              size="sm"
+              aria-label="Search saved jobs"
+              placeholder="Search jobs…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              leadingVisual={<Search size={16} />}
+              style={{ width: '100%' }}
+            />
+          </Box>
+          <Stack direction="row" wrap="wrap" gap="tight" align="center">
+            <HdsMenu>
+              <HdsMenu.Trigger asChild>
+                <UiButton
+                  variant="secondary"
+                  size="sm"
+                  iconLeft={<ListFilter size={16} />}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {`Status: ${FILTER_LABEL[filter]}`}
+                </UiButton>
+              </HdsMenu.Trigger>
+              <HdsMenu.Content align="end">
+                <HdsMenu.RadioGroup value={filter} onValueChange={(v) => setFilter(v as Filter)}>
+                  {FILTER_GROUPS.map((g, gi) => (
+                    <Fragment key={g.label}>
+                      {gi > 0 && <HdsMenu.Separator />}
+                      <HdsMenu.Label>{g.label}</HdsMenu.Label>
+                      {g.items.map((f) => (
+                        <HdsMenu.RadioItem key={f} value={f}>
+                          <Box
+                            as="span"
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              gap: 'sm',
+                              width: '100%',
+                            }}
+                          >
+                            <span>{FILTER_LABEL[f]}</span>
+                            <span style={{ color: 'var(--semantic-color-content-secondary)' }}>
+                              {counts[f]}
+                            </span>
+                          </Box>
+                        </HdsMenu.RadioItem>
+                      ))}
+                    </Fragment>
+                  ))}
+                </HdsMenu.RadioGroup>
+              </HdsMenu.Content>
+            </HdsMenu>
+            <HdsMenu>
+              <HdsMenu.Trigger asChild>
+                {/* Icon-only so search · status · sort · add fit two rows at 390px; the name and
                   tooltip carry the current order. */}
-              <UiButton
-                variant="tertiary"
-                size="sm"
-                iconOnly
-                iconLeft={<ArrowUpDown size={16} />}
-                label={`Sort: ${sortLabel}`}
-                title={`Sort: ${sortLabel}`}
-              />
-            </HdsMenu.Trigger>
-            <HdsMenu.Content align="end">
-              <HdsMenu.RadioGroup value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-                {SORTS.map((s) => (
-                  <HdsMenu.RadioItem key={s.key} value={s.key}>
-                    {s.label}
-                  </HdsMenu.RadioItem>
-                ))}
-              </HdsMenu.RadioGroup>
-            </HdsMenu.Content>
-          </HdsMenu>
-          <UiButton
-            variant="primary"
-            size="sm"
-            iconLeft={<Plus size={16} />}
-            onClick={() => setAddOpen(true)}
-          >
-            Add job
-          </UiButton>
+                <UiButton
+                  variant="tertiary"
+                  size="sm"
+                  iconOnly
+                  iconLeft={<ArrowUpDown size={16} />}
+                  label={`Sort: ${sortLabel}`}
+                  title={`Sort: ${sortLabel}`}
+                />
+              </HdsMenu.Trigger>
+              <HdsMenu.Content align="end">
+                <HdsMenu.RadioGroup value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+                  {SORTS.map((s) => (
+                    <HdsMenu.RadioItem key={s.key} value={s.key}>
+                      {s.label}
+                    </HdsMenu.RadioItem>
+                  ))}
+                </HdsMenu.RadioGroup>
+              </HdsMenu.Content>
+            </HdsMenu>
+          </Stack>
         </Stack>
-      </Stack>
+      )}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <Dialog.Content style={{ width: '100%', maxWidth: 480 }}>
@@ -304,17 +330,55 @@ export default function TrackerView() {
       <PipelineStats jobs={jobs} />
       <FunnelSummary jobs={shown} />
 
-      {shown.length === 0 ? (
+      {jobs.length === 0 ? (
+        // First use (21st.dev empty-state references): say what the screen will hold, one
+        // primary action, one way to see it working — all on one centred axis. HDS EmptyState is
+        // left-aligned with an italic title and no action slot (hds#654), so this composes Text.
+        <Stack
+          gap="normal"
+          align="center"
+          style={{
+            paddingBlock: 'var(--primitive-space-8)',
+            textAlign: 'center',
+            maxWidth: '28rem',
+            marginInline: 'auto',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              placeItems: 'center',
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              bgcolor: 'surface.raised',
+              color: 'accent',
+            }}
+          >
+            <Icon icon={Briefcase} />
+          </Box>
+          <Stack gap="tight" align="center">
+            <Text variant="title" as="h3" style={{ margin: 0 }}>
+              Track your first job
+            </Text>
+            <Text variant="body" as="p" style={{ ...SECONDARY, margin: 0 }}>
+              Paste a job link to save it here, then screen it, apply and follow up. You can also
+              save jobs from Discover.
+            </Text>
+          </Stack>
+          <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+            {addJobButton}
+            <TrySampleButton />
+          </Stack>
+        </Stack>
+      ) : shown.length === 0 ? (
         <EmptyState
-          action={jobs.length === 0 ? <TrySampleButton /> : undefined}
           message={
-            jobs.length === 0
-              ? 'No saved jobs yet — paste a link above, or save some from Discover.'
-              : q.trim()
-                ? `No saved jobs match “${q.trim()}”.`
-                : filter === 'active'
-                  ? 'Nothing left to apply to right now — nice. Check Applied or add more jobs.'
-                  : `Nothing under “${filter}”.`
+            q.trim()
+              ? `No saved jobs match “${q.trim()}”.`
+              : filter === 'active'
+                ? 'Nothing left to apply to right now — nice. Check Applied or add more jobs.'
+                : `Nothing under “${filter}”.`
           }
         />
       ) : (

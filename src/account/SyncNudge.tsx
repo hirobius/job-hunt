@@ -3,7 +3,8 @@
 // clears rjb_* keys, so the next person on a shared browser sees it again.
 import { useState } from 'react';
 import { Button, Callout, Icon, Stack, Text } from '@hirobius/design-system';
-import { X } from 'lucide-react';
+import { Cloud, X } from 'lucide-react';
+import { useJobs } from '../store';
 import { useCloudSync } from './accountContext';
 
 const DISMISSED_KEY = 'rjb_sync_banner_hidden';
@@ -18,8 +19,10 @@ function readDismissed() {
 
 export default function SyncNudge() {
   const { user, authResolved, setSignInOpen } = useCloudSync();
+  // Nothing to sync yet → no nudge; the first-use screen keeps one call to action.
+  const hasData = useJobs().length > 0;
   const [dismissed, setDismissed] = useState(readDismissed);
-  if (!authResolved || user || dismissed) return null;
+  if (!authResolved || user || dismissed || !hasData) return null;
 
   const dismiss = () => {
     setDismissed(true);
@@ -30,25 +33,39 @@ export default function SyncNudge() {
     }
   };
 
+  // Banner hierarchy (21st.dev banner/announcement references): icon · message · one action
+  // under the message · dismiss pinned top-right, so nothing competes with the page's own CTA.
   return (
     <Callout tone="accent" role="region" aria-label="Sync your data">
-      <Stack direction="row" gap="tight" align="center" justify="space-between">
-        <Text variant="ui" as="p" style={{ margin: 0, flex: 1, minWidth: 0 }}>
-          Your data is saved in this browser. Sign in to sync it across your devices.
-        </Text>
-        <Stack direction="row" gap="tight" align="center">
-          <Button size="sm" variant="secondary" onClick={() => setSignInOpen(true)}>
-            Sign in
-          </Button>
-          <Button
-            size="sm"
-            variant="tertiary"
-            iconOnly
-            iconLeft={<Icon icon={X} />}
-            label="Dismiss"
-            onClick={dismiss}
-          />
+      <Stack direction="row" gap="tight" align="start">
+        <span style={{ display: 'inline-flex', paddingTop: 'var(--primitive-space-1)' }}>
+          <Icon icon={Cloud} />
+        </span>
+        <Stack gap="tight" style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="ui" as="p" style={{ margin: 0, fontWeight: 600 }}>
+            Sync across your devices
+          </Text>
+          <Text
+            variant="caption"
+            as="p"
+            style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}
+          >
+            Your jobs are saved in this browser only. Sign in to keep them everywhere.
+          </Text>
+          <div>
+            <Button size="sm" variant="secondary" onClick={() => setSignInOpen(true)}>
+              Sign in
+            </Button>
+          </div>
         </Stack>
+        <Button
+          size="sm"
+          variant="tertiary"
+          iconOnly
+          iconLeft={<Icon icon={X} />}
+          label="Dismiss"
+          onClick={dismiss}
+        />
       </Stack>
     </Callout>
   );

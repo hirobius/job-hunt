@@ -21,7 +21,7 @@ import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { BRAND } from './brand';
-import { getAllJobs, removeJob } from './store';
+import { addJob, getAllJobs, removeJob } from './store';
 import { OFFLINE_MSG } from './cloudMessages';
 
 const fake = () => h.fake!;
@@ -123,6 +123,19 @@ describe('app shell (#115 Phase 1)', () => {
 });
 
 describe('sync nudge (#115 Phase 1)', () => {
+  // The nudge offers to sync data, so it needs some.
+  beforeEach(() => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+  });
+
+  it('is not shown on a first visit with nothing to sync', async () => {
+    removeJob('https://acme.example/jobs/1');
+    renderApp();
+    await screen.findByRole('button', { name: /^Account/ });
+    await new Promise((r) => setTimeout(r, 0)); // let the session check settle
+    expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
+  });
+
   it('signed out, a one-time callout offers sync instead of a sign-in form', async () => {
     renderApp();
     const nudge = await screen.findByRole('region', { name: 'Sync your data' });

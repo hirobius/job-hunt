@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import DiscoverView from './DiscoverView';
-import { getAllJobs, removeJob } from './store';
+import { addJob, getAllJobs, removeJob } from './store';
 import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
 
@@ -25,6 +25,7 @@ const withTheme = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProv
 
 describe('aria wiring', () => {
   it('Tracker status filter names the current view', () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
     withTheme(<TrackerView />);
     // The status filter is a menu button (#129) whose name carries the selected view.
     expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();

@@ -33,6 +33,7 @@ describe('TrackerView', () => {
 // field plus an 8-option status strip.
 describe('Pipeline toolbar', () => {
   it('has no status strip; status is one menu button showing the current view', () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();
     expect(screen.queryByRole('radiogroup', { name: /status/i })).toBeNull();
     expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
@@ -55,5 +56,35 @@ describe('Pipeline toolbar', () => {
     expect(screen.getByRole('button', { name: /^Status: Applied/ })).toBeInTheDocument();
     expect(screen.getByText('Product Designer')).toBeInTheDocument();
     expect(screen.queryByText('Design Engineer')).toBeNull();
+  });
+});
+
+// Hierarchy pass (Adrian's review of the empty Pipeline): one page header with the primary
+// action, a first-use empty state with one primary + one secondary action, and no toolbar while
+// there is nothing to search or filter.
+describe('Pipeline hierarchy', () => {
+  it('opens with a Pipeline page header whose action is Add job', () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderTracker();
+    const heading = screen.getByRole('heading', { level: 2, name: 'Pipeline' });
+    const header = heading.closest('header')!;
+    expect(within(header).getByRole('button', { name: 'Add job' })).toBeInTheDocument();
+  });
+
+  it('first use: no toolbar, a teaching empty state with Add job + sample data', () => {
+    renderTracker();
+    // One primary action on the screen: the empty state's, not a second one in the header.
+    expect(screen.getAllByRole('button', { name: 'Add job' })).toHaveLength(1);
+    expect(screen.queryByRole('textbox', { name: 'Search saved jobs' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Status:/ })).toBeNull();
+    expect(screen.getByText('Track your first job')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try with sample data' })).toBeInTheDocument();
+  });
+
+  it('with jobs: the toolbar is back and the header shows the counts', () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderTracker();
+    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
+    expect(screen.getByText('1 active · 1 total')).toBeInTheDocument();
   });
 });
