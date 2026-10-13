@@ -1,10 +1,9 @@
 {
-  "updatedAt": "2026-10-13T00:00:00Z",
+  "updatedAt": "2026-10-13T06:00:00Z",
   "phase": "live",
-  "headline": "Live on production. 2026-10-13: merged the platform gate (Vercel builds run `npm run verify`; report-only CSP), the trustworthy tracker (whole sync, backup/restore, pipeline stats, interviews + .ics, template fill), 'Try with sample data', and a README rewrite with a docs-claims test. Live postings (#88) is live.",
+  "headline": "Live on production. 2026-10-13: Vercel builds are gated by `npm run verify`; the CSP is now ENFORCING (#122, verified headless on production incl. the live feed); tracker features, 'Try with sample data' and a truthful README are live. Next up: the redesign (#115).",
   "next": [
-    "Redesign epic #115 (decided 2026-10-13: top tabs; Today as home; job detail as its own view; HDS fonts). Phase 0 = land the HDS 0.24.1 + src/ui retirement on claude/run-the-fetch-45j8i3 (#90-#92) after merging main into it.",
-    "CSP: check the console on production for [Report Only] lines, then enforce (#106).",
+    "Redesign epic #115 (decided: top tabs, Today home, job detail view, HDS fonts). Waiting on the 21st.dev reference pass + Adrian committing to the spec; then Phase 0\u20131 on a branch with a [preview] build + live artifact. Phase 0 = land claude/run-the-fetch-45j8i3 (#90\u2013#92) after merging main into it.",
     "After HDS lands: vite 8 + plugin-react 6, npm audit, React 19, jest-dom 7 (#105).",
     "Human / dashboard: #16 confirm Vercel Analytics, #22 .env.example + revoke the old Anthropic key, #44 Supabase auth hardening, #17 stale branches, #55 name clearance.",
     "Legal (before public launch): #43 Privacy Policy + Terms."
