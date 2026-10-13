@@ -280,3 +280,25 @@ describe('parseBackup — nested job fields + orphans (review)', () => {
     expect(r.backup.curation.tiles.map((t) => t.id)).toEqual(['t1']);
   });
 });
+
+describe('sample data (#110)', () => {
+  it('leaves demo-tagged jobs out of a backup', () => {
+    const real: Job = { url: 'https://a.co/1', label: 'Real role', status: 'Saved' };
+    const sample = {
+      url: 'https://b.example.com/2',
+      label: 'Sample',
+      status: 'Saved',
+      demo: true,
+    } as Job;
+    const b = buildBackup(
+      {
+        jobs: [sample, real],
+        copydeck: [],
+        curation: { categories: [], groups: [], tiles: [] },
+        triage: { pinned: [], dismissed: [] },
+      },
+      new Date(2026, 9, 13),
+    );
+    expect(b.jobs).toEqual([real]);
+  });
+});

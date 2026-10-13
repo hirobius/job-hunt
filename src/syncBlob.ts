@@ -14,6 +14,7 @@ import { mergeSnippets, type Snippet } from './copyDeckStore';
 import { mergeTriage, type Triage } from './tileTriage';
 import type { LegacyTile } from './curation/legacyTiles';
 import type { Job } from './types';
+import { isSample, withoutSample } from './demo/isSample';
 
 export type { Triage };
 
@@ -59,7 +60,7 @@ export function readBlob(data: unknown): SyncData {
 export function writeBlob(d: SyncData) {
   return {
     v: BLOB_VERSION,
-    jobs: d.jobs,
+    jobs: withoutSample(d.jobs), // sample data (#107) is device-local; never pushed
     copydeck: d.copydeck,
     triage: { dismissed: d.triage.dismissed },
   };
@@ -75,6 +76,7 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     const dismissed = new Set(cloud.triage.dismissed);
     return {
       ...cloud,
+      jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
       triage: {
         pinned: local.triage.pinned.filter((u) => !dismissed.has(u)),
         dismissed: cloud.triage.dismissed,

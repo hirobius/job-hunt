@@ -3,16 +3,14 @@
 // over the jobs store. Nothing here can overwrite or remove a record the user made.
 import type { Job } from '../types';
 import { getAllJobs, replaceAll } from '../store';
-import { isSample, sampleJobs } from './sampleData';
+import { withoutSample } from './isSample';
+import { sampleJobs } from './sampleData';
+
+export { withoutSample };
 
 /** The sample to store, or null when the tracker holds anything at all (archived included). */
 export function seedIfEmpty(existing: Job[], sample: Job[]): Job[] | null {
   return existing.length === 0 ? sample : null;
-}
-
-/** Every record that isn't sample data, order kept. */
-export function withoutSample(jobs: Job[]): Job[] {
-  return jobs.filter((j) => !isSample(j));
 }
 
 /** Whether a Supabase session is stored in this browser. The sample is never offered then: a

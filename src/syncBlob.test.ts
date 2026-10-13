@@ -107,3 +107,27 @@ describe('mergeBlob — refresh (focus re-pull)', () => {
     expect(mergeBlob(null, local, false)).toBe(local);
   });
 });
+
+describe('sample data (#110) never reaches the cloud', () => {
+  const sample = { ...job('https://larkspur.example.com/a'), demo: true } as Job;
+  const real = job('https://boards.greenhouse.io/acme/jobs/1');
+
+  it('writeBlob drops demo-tagged jobs', () => {
+    expect(writeBlob(blob({ jobs: [sample, real] })).jobs).toEqual([real]);
+  });
+
+  it('a first-sign-in merge keeps the sample on this device, but the push omits it', () => {
+    const merged = mergeBlob(
+      blob({ jobs: [job('https://c.example.org/x')] }),
+      blob({ jobs: [sample, real] }),
+      true,
+    );
+    expect(merged.jobs).toContainEqual(sample);
+    expect(writeBlob(merged).jobs).not.toContainEqual(sample);
+  });
+
+  it('a refresh keeps this device’s sample instead of wiping it with the cloud copy', () => {
+    const merged = mergeBlob(blob({ jobs: [real] }), blob({ jobs: [sample] }), false);
+    expect(merged.jobs).toEqual([real, sample]);
+  });
+});

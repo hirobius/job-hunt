@@ -4,33 +4,11 @@
 // URL is fictional on a reserved domain (RFC 2606 example.com), so nothing names a real employer.
 // Each record carries `demo: true`; that tag is the ONLY thing clearSample() uses to tell sample
 // records from the user's own (src/demo/loadSample.ts).
-import type { Job, Status } from '../types';
+import type { Job } from '../types';
 
-// `history` / `events` mirror the shape jh-tracker-pro adds to Job (StatusChange / JobEvent, on
-// its branch, not yet main). Structural copies keep this compiling today; once that lands these
-// become plain Job fields and the local types can go (follow-up noted in #107).
-export interface SampleStatusChange {
-  status: Status;
-  at: string; // YYYY-MM-DD
-}
-export interface SampleEvent {
-  id: string;
-  kind: 'interview' | 'call' | 'other';
-  date: string; // YYYY-MM-DD (local)
-  time?: string; // HH:MM (local)
-  durationMin?: number;
-  note?: string;
-}
-export type SampleJob = Job & {
-  demo: true;
-  history?: SampleStatusChange[];
-  events?: SampleEvent[];
-};
+export type SampleJob = Job & { demo: true };
 
-/** True only for records the sample loader created (`demo === true`, nothing looser). */
-export function isSample(job: Job): boolean {
-  return (job as { demo?: unknown }).demo === true;
-}
+export { isSample } from './isSample';
 
 /** Local-time YYYY-MM-DD, `offset` days from `now` (negative = past). */
 function day(now: Date, offset: number): string {

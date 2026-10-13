@@ -9,6 +9,7 @@ import { mergeCuration } from './curation/merge';
 import type { CurationState } from './curation/types';
 import { mergeTriage, type Triage } from './tileTriage';
 import { STATUSES, type Job } from './types';
+import { withoutSample } from './demo/isSample';
 
 export interface AccountState {
   jobs: Job[];
@@ -34,7 +35,7 @@ export function buildBackup(state: AccountState, now: Date): Backup {
     kind: 'backup',
     v: 1,
     exportedAt: now.toISOString(),
-    jobs: state.jobs,
+    jobs: withoutSample(state.jobs), // sample data (#107) never goes into a backup
     copydeck: state.copydeck,
     curation: state.curation,
     triage: state.triage,

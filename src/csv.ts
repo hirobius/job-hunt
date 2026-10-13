@@ -3,6 +3,7 @@
 // tab or CR — OWASP "CSV injection") is prefixed with a single quote so it opens as text.
 import { deriveJobState } from './jobState';
 import type { Job } from './types';
+import { withoutSample } from './demo/isSample';
 
 const FORMULA_START = /^[=+\-@\t\r]/;
 
@@ -52,9 +53,11 @@ const COLUMNS: [string, (j: Job) => string][] = [
 
 export const CSV_COLUMNS: readonly string[] = COLUMNS.map(([name]) => name);
 
-/** The whole file: a header row, then one row per job, CRLF-separated. */
+/** The whole file: a header row, then one row per job, CRLF-separated. Sample data (#107) is
+ *  left out, so a demo never leaks into a real export. */
 export function toCsv(jobs: readonly Job[]): string {
   const rows = [CSV_COLUMNS.map(csvCell).join(',')];
-  for (const j of jobs) rows.push(COLUMNS.map(([, get]) => csvCell(get(j))).join(','));
+  for (const j of withoutSample(jobs))
+    rows.push(COLUMNS.map(([, get]) => csvCell(get(j))).join(','));
   return rows.join('\r\n');
 }

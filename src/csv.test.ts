@@ -62,3 +62,18 @@ describe('toCsv', () => {
     expect(toCsv([job, { ...job, url: 'https://x.co/2' }]).split('\r\n')).toHaveLength(3);
   });
 });
+
+describe('sample data (#110)', () => {
+  it('leaves demo-tagged jobs out of the export', () => {
+    const real: Job = { url: 'https://a.co/1', label: 'Real role', status: 'Saved' };
+    const sample = {
+      url: 'https://b.example.com/2',
+      label: 'Sample role',
+      status: 'Saved',
+      demo: true,
+    } as Job;
+    const csv = toCsv([sample, real]);
+    expect(csv).toContain('Real role');
+    expect(csv).not.toContain('Sample role');
+  });
+});
