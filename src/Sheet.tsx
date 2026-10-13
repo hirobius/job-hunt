@@ -4,7 +4,7 @@
 // token-only, in src/theme/base.css (`.app-sheet`). API mirrors HDS Dialog: controlled `open` /
 // `onOpenChange`, a required `title`, an optional `description`, children, and a `footer` slot.
 import type { ReactNode } from 'react';
-import { Button, Dialog, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, Dialog, Text } from '@hirobius/design-system';
 
 export interface SheetProps {
   open: boolean;
@@ -43,7 +43,12 @@ export interface SheetMenuItem {
 /** A list of full-width actions inside a Sheet — the v1 replacement for small dropdown menus. */
 export function SheetMenu({ items, label }: { items: SheetMenuItem[]; label: string }) {
   return (
-    <Stack as="ul" gap="xs" aria-label={label} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    // Box, not Stack: Stack doesn't forward aria-label, and the list needs its name.
+    <Box
+      as="ul"
+      aria-label={label}
+      sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 0.5 }}
+    >
       {items.map((it, i) => (
         <li key={i}>
           <Button
@@ -64,6 +69,6 @@ export function SheetMenu({ items, label }: { items: SheetMenuItem[]; label: str
           </Button>
         </li>
       ))}
-    </Stack>
+    </Box>
   );
 }
