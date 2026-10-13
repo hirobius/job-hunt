@@ -21,12 +21,12 @@ import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
 
-// Code-split the non-default views so the initial bundle only carries the default Pipeline tab;
+// Code-split the non-default views so the initial bundle only carries the default Tracker tab;
 // the rest load on demand (tab switch).
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 
-// Top-level tabs, in render order (#115: Pipeline · Discover · Templates; Today joins in Phase 2
+// Top-level tabs, in render order (v1 prototype: Discover · Tracker · Templates, Tracker is the landing tab; Today joins in Phase 2
 // and becomes the landing route then). The URL hash carries the slug (#/queue …); slugs stay
 // back-compatible (`queue`/`copy-deck`) under the new labels, so old bookmarks keep working.
 // HDS TabsContent is a tinted, padded card pulled up under its tab strip — right for in-page
@@ -49,7 +49,7 @@ export default function App() {
   const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
 
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
-  // After ingesting, land on the Pipeline so the just-added job is visible; with no route at all,
+  // After ingesting, land on the Tracker so the just-added job is visible; with no route at all,
   // normalize the hash to the default landing tab so back/forward and refresh are consistent.
   useEffect(() => {
     const qp = new URLSearchParams(window.location.search);
@@ -104,8 +104,8 @@ export default function App() {
                   <AccountMenu />
                 </Stack>
                 <TabsList style={{ width: '100%', marginBottom: 0 }} aria-label="Sections">
-                  <TabsTrigger value="queue">Pipeline</TabsTrigger>
                   <TabsTrigger value="discover">Discover</TabsTrigger>
+                  <TabsTrigger value="queue">Tracker</TabsTrigger>
                   <TabsTrigger value="copy-deck">Templates</TabsTrigger>
                 </TabsList>
                 <SyncNudge />

@@ -41,7 +41,7 @@ const renderApp = () =>
   );
 
 describe('App top-level tab wiring', () => {
-  it('renders three tabs (Pipeline · Discover · Templates), each associated with a tabpanel', () => {
+  it('renders three tabs (Discover · Tracker · Templates), each associated with a tabpanel', () => {
     renderApp();
     const tabs = within(screen.getByRole('tablist', { name: 'Sections' })).getAllByRole('tab');
     expect(tabs).toHaveLength(3);
@@ -59,8 +59,8 @@ describe('App top-level tab wiring', () => {
     expect(panel.getAttribute('aria-labelledby')).toBe(selected.getAttribute('id'));
   });
 
-  it('defaults to the Pipeline tab when the hash carries no route', () => {
+  it('defaults to the Tracker tab when the hash carries no route', () => {
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/pipeline/i);
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/tracker/i);
   });
 });

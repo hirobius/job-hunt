@@ -43,3 +43,79 @@ a:focus-visible,
 [role='tab'][data-state='active'] {
   border-bottom-color: var(--role-foreground);
 }
+
+/* Sheet (src/Sheet.tsx): HDS Dialog docked to the bottom edge on phones — the v1 prototype's
+   sheet. HDS has no Sheet yet (HDS gap); token-only so it collapses into HDS when that lands. */
+.app-sheet-grab {
+  display: none;
+}
+@media (max-width: 639px) {
+  .app-sheet {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    max-height: 92dvh;
+    translate: none;
+    transform: none;
+    border-radius: var(--primitive-radius-12) var(--primitive-radius-12) 0 0;
+    border-bottom: 0;
+    padding-bottom: calc(var(--semantic-space-scale-md) + env(safe-area-inset-bottom));
+    animation: app-sheet-up var(--primitive-duration-short) ease-out;
+  }
+  .app-sheet-grab {
+    display: block;
+    width: var(--primitive-space-10);
+    height: var(--primitive-space-1);
+    border-radius: var(--primitive-radius-full);
+    background: var(--semantic-color-border-default);
+    margin: 0 auto;
+  }
+}
+@keyframes app-sheet-up {
+  from {
+    transform: translateY(var(--semantic-motion-distance));
+    opacity: 0.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-sheet {
+    animation: none;
+  }
+}
+.app-sheet-item.app-sheet-item {
+  display: flex;
+  height: auto;
+  border-radius: 0;
+  font-weight: inherit;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--semantic-space-scale-sm);
+  min-height: var(--primitive-space-12);
+  padding: var(--semantic-space-scale-xs) 0;
+  border-bottom: thin solid var(--semantic-color-border-subtle);
+  color: var(--semantic-color-content-primary);
+  cursor: pointer;
+}
+li:last-child > .app-sheet-item.app-sheet-item {
+  border-bottom: 0;
+}
+.app-sheet-item.app-sheet-item[data-tone='danger'] {
+  color: var(--semantic-color-feedback-error);
+}
+.app-sheet-item:focus-visible {
+  outline: medium solid var(--semantic-accent-rest);
+  outline-offset: var(--primitive-space-1);
+}
+.app-sheet-item.app-sheet-item:hover,
+.app-sheet-item.app-sheet-item[data-state='open'] {
+  background-color: var(--semantic-color-surface-sunken);
+  color: var(--semantic-color-content-primary);
+}
+.app-sheet-item.app-sheet-item {
+  border-bottom: thin solid var(--semantic-color-border-subtle);
+  padding-inline: var(--semantic-space-scale-xs);
+}

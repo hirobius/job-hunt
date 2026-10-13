@@ -9,13 +9,13 @@ import {
   Button,
   Icon,
   Input as HdsInput,
-  Menu as HdsMenu,
   SegmentedControl,
   Stack,
 } from '@hirobius/design-system';
 import { useJobs, addJob } from './store';
 import { navigate, useRoute } from './route';
 import JobRow from './JobRow';
+import { Sheet, SheetMenu } from './Sheet';
 import JobDetailPage from './JobDetailPage';
 import { jobUrlFromSub } from './jobRoute';
 import { sortJobs, SORTS, type SortKey } from './jobSort';
@@ -40,6 +40,7 @@ function TrackerList({ jobs }: { jobs: Job[] }) {
   const [sort, setSort] = useState<SortKey>('recent');
   const [q, setQ] = useState('');
   const [url, setUrl] = useState('');
+  const [sortOpen, setSortOpen] = useState(false);
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -160,26 +161,27 @@ function TrackerList({ jobs }: { jobs: Job[] }) {
               style={{ width: '100%' }}
             />
           </Box>
-          <HdsMenu>
-            <HdsMenu.Trigger asChild>
-              <Button
-                variant="tertiary"
-                size="sm"
-                iconOnly
-                iconLeft={<Icon icon={ArrowUpDown} />}
-                label={`Sort: ${sortLabel}`}
-              />
-            </HdsMenu.Trigger>
-            <HdsMenu.Content align="end">
-              <HdsMenu.RadioGroup value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-                {SORTS.map((s) => (
-                  <HdsMenu.RadioItem key={s.key} value={s.key}>
-                    {s.label}
-                  </HdsMenu.RadioItem>
-                ))}
-              </HdsMenu.RadioGroup>
-            </HdsMenu.Content>
-          </HdsMenu>
+          <Button
+            variant="tertiary"
+            size="sm"
+            iconOnly
+            iconLeft={<Icon icon={ArrowUpDown} />}
+            label={`Sort: ${sortLabel}`}
+            onClick={() => setSortOpen(true)}
+          />
+          <Sheet open={sortOpen} onOpenChange={setSortOpen} title="Sort jobs">
+            <SheetMenu
+              label="Sort order"
+              items={SORTS.map((o) => ({
+                label: o.label,
+                selected: o.key === sort,
+                onSelect: () => {
+                  setSort(o.key);
+                  setSortOpen(false);
+                },
+              }))}
+            />
+          </Sheet>
         </Stack>
       </Stack>
 
