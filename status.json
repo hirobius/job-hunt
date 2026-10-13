@@ -1,11 +1,11 @@
 {
-  "updatedAt": "2026-10-13T21:30:00Z",
-  "phase": "redesign",
-  "headline": "v1 redesign integrated on claude/job-hunt-ui-redesign-eltszi (HDS 0.24.1, phone-first sheets, job page, Discover, design-systems search round, real titles for ATS links). PR to main opened for Adrian to publish. Supabase restored after a free-tier pause.",
+  "updatedAt": "2026-10-13T22:30:00Z",
+  "phase": "live",
+  "headline": "Live on production: v1 redesign (#144) — phone-first on HDS 0.24.1, design-systems search round, real titles for ATS links. Health follow-up in #145.",
   "next": [
-    "Adrian: merge the redesign PR to publish, then start applying (design-systems round).",
-    "Supabase free tier pauses after ~a week idle: daily use keeps it up, or upgrade to Pro.",
-    "HDS gaps filed: hds#690 (Sheet)."
+    "Adrian: apply in the design-systems round (Tracker + Discover → Design Systems track).",
+    "Decide Supabase plan by 2026-10-27 (#147).",
+    "Retire HDS workarounds as upstream fixes land (#146); layout-primitive warnings (#148)."
   ],
   "blocked": []
 }
