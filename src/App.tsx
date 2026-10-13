@@ -133,12 +133,11 @@ export default function App() {
               </Box>
             </Text>
             <Stack direction="row" gap="gap" align="center">
+              <CloudSync />
               <ColorModeToggle />
               <OverflowMenu />
             </Stack>
           </Stack>
-
-          <CloudSync />
 
           <HdsTabs
             value={TAB_SLUGS[tab]}

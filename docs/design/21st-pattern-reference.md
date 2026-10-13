@@ -39,6 +39,11 @@ rebuild it with HDS (`@hirobius/design-system`) + `src/ui` layout primitives.
 2. Compare screenshots (1280px + 390px) against the rule column, not against taste.
 3. New pattern → add a row with a 21st.dev link and a one-line rule first, then build.
 
+## Phone-first (2026-10-13)
+
+The app is phone-first (App Store target). One column at every width; desktop keeps HDS's
+content-width column. Verify every change at 390px first.
+
 ## Review backlog (2026-10-13, `design-review` from HDS + `impeccable` from ops)
 
 Both reviews ranked the same top issue: on phones the rail pushed the job list ~1,500px down.
@@ -48,8 +53,8 @@ toolbar is one line (sort + data menu icon-only on phones), phone titles wrap to
 
 Still open, ranked:
 
-1. **Sync banner** (`CloudSync.tsx`, `App.tsx`): 80px desktop / 170px phone above the tabs on every
-   screen. Replace with a header chip "Not synced · Sign in" opening a dialog; keep dismissal.
+1. ~~**Sync banner**~~ — done: a header button (Sign in / Synced / Offline) opens the sync panel
+   in an HDS Popover.
 2. **Stats** (`PipelineStats.tsx`, P2): six equal tiles. One headline ("Applied 30d" vs prior 30d),
    the rest as a plain list, tabular figures; "Follow-ups due" becomes the rail header action.
 3. **Casing + type ramp**: ~19 uppercase nodes (badges, stat labels, OVERDUE, job-page eyebrows)

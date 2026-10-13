@@ -1,14 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Button,
-  Tooltip as HdsTooltip,
-  Input as HdsInput,
-  Icon,
-  Box,
-  Text,
-  Card,
-} from '@hirobius/design-system';
-import { X } from 'lucide-react';
+import { Button, Input as HdsInput, Box, Popover, Stack, Text } from '@hirobius/design-system';
 import type { User } from '@supabase/supabase-js';
 import { supabase as supa } from './supabase';
 import { useJobs, getAllJobs, replaceAll } from './store';
@@ -31,11 +22,6 @@ function clearLocalData() {
   }
 }
 
-// Once dismissed, the signed-out banner stays collapsed to a one-line link until the
-// user re-opens it (or signs in). Cleared by clearLocalData on sign-out, which is right:
-// a fresh person on this browser should see the full banner again.
-const HIDE_KEY = 'rjb_sync_banner_hidden';
-
 export default function CloudSync() {
   const jobs = useJobs();
   const snippets = useSnippets();
@@ -43,22 +29,6 @@ export default function CloudSync() {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('Sign in to sync across your devices');
-  const [hidden, setHidden] = useState(() => {
-    try {
-      return localStorage.getItem(HIDE_KEY) === '1';
-    } catch {
-      return false;
-    }
-  });
-  const hide = (v: boolean) => {
-    setHidden(v);
-    try {
-      if (v) localStorage.setItem(HIDE_KEY, '1');
-      else localStorage.removeItem(HIDE_KEY);
-    } catch {
-      /* ignore */
-    }
-  };
   const lastSynced = useRef('');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -208,78 +178,65 @@ export default function CloudSync() {
       );
   };
 
-  // Collapsed, signed-out state: a single quiet line instead of the full banner.
-  if (!user && hidden)
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button size="sm" variant="tertiary" onClick={() => hide(false)}>
-          Sign in to sync
-        </Button>
-      </Box>
-    );
+  // Header control (phone-first): a small status button — Sign in / Synced / Offline — that
+  // opens the full sync panel in a popover, instead of a banner above the tabs on every screen.
+  const offline = msg === OFFLINE_MSG;
+  const short = user ? (offline ? 'Offline' : msg === 'Saving…' ? 'Saving…' : 'Synced') : 'Sign in';
+  const dot = user ? (offline ? 'feedback.warning' : 'feedback.success') : 'content.disabled';
 
   return (
-    <Card bordered padding="none">
-      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2.5, p: 2.5 }}>
-        <Box
-          sx={{
-            width: 9,
-            height: 9,
-            borderRadius: '50%',
-            bgcolor: user ? 'feedback.success' : 'content.disabled',
-            flex: 'none',
-          }}
-        />
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: user
-              ? 'var(--semantic-color-content-primary)'
-              : 'var(--semantic-color-content-secondary)',
-          }}
+    <Popover>
+      <Popover.Trigger asChild>
+        <Button
+          size="sm"
+          variant="tertiary"
+          className="sync-trigger"
+          aria-label={`Cloud sync: ${short}`}
         >
-          {msg}
-        </Text>
-        {!user && (
-          <Text
-            variant="caption"
-            as="span"
-            style={{ color: 'var(--semantic-color-content-secondary)', width: '100%', order: 9 }}
-          >
-            Your data stays in your browser and (if you sign in) your own account — nothing is
-            shared with anyone else.
-          </Text>
-        )}
-        {user ? (
-          <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1 }}>
-            {msg === OFFLINE_MSG && (
-              <Button size="sm" variant="secondary" onClick={() => adopt(false, user)}>
-                Retry
-              </Button>
-            )}
-            <Button size="sm" variant="secondary" onClick={signOut}>
-              Sign out
-            </Button>
-            <Button size="sm" variant="tertiary" tone="danger" onClick={deleteMyData}>
-              Delete my data
-            </Button>
-          </Box>
-        ) : (
           <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 'xs',
-            }}
-          >
-            {/* HDS 0.24's Input fills its parent; a fixed-width wrapper keeps the 0.13 row (field + button). */}
-            <Box sx={{ width: 220, maxWidth: '100%', '& > *': { width: '100%' } }}>
+            as="span"
+            aria-hidden
+            sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dot, flex: 'none' }}
+            style={{ width: 8, height: 8, display: 'inline-block' }}
+          />
+          {short}
+        </Button>
+      </Popover.Trigger>
+      <Popover.Content align="end" style={{ width: 'min(340px, calc(100vw - 32px))' }}>
+        <Stack gap="tight">
+          <Text variant="ui" as="p" role="status" style={{ margin: 0 }}>
+            {msg}
+          </Text>
+          {!user && (
+            <Text
+              variant="caption"
+              as="p"
+              style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}
+            >
+              Your data stays in your browser and (if you sign in) your own account — nothing is
+              shared with anyone else.
+            </Text>
+          )}
+          {user ? (
+            <Stack direction="row" gap="gap" wrap="wrap" align="center">
+              {offline && (
+                <Button size="sm" variant="secondary" onClick={() => adopt(false, user)}>
+                  Retry
+                </Button>
+              )}
+              <Button size="sm" variant="secondary" onClick={signOut}>
+                Sign out
+              </Button>
+              <Button size="sm" variant="tertiary" tone="danger" onClick={deleteMyData}>
+                Delete my data
+              </Button>
+            </Stack>
+          ) : (
+            <Stack gap="tight">
               <HdsInput
-                size="sm"
                 type="email"
+                inputMode="email"
+                autoComplete="email"
                 aria-label="Email for sign-in link"
                 placeholder="you@email.com"
                 value={email}
@@ -287,28 +244,15 @@ export default function CloudSync() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') sendLink();
                 }}
-                style={{ minWidth: 200 }}
+                style={{ width: '100%' }}
               />
-            </Box>
-            <Button size="sm" variant="primary" onClick={sendLink}>
-              Email me a link
-            </Button>
-            <HdsTooltip>
-              <HdsTooltip.Trigger asChild>
-                <Button
-                  size="sm"
-                  variant="tertiary"
-                  iconOnly
-                  iconLeft={<Icon icon={X} />}
-                  onClick={() => hide(true)}
-                  label="Hide sign-in banner"
-                />
-              </HdsTooltip.Trigger>
-              <HdsTooltip.Content>Hide — you can sign in anytime</HdsTooltip.Content>
-            </HdsTooltip>
-          </Box>
-        )}
-      </Box>
-    </Card>
+              <Button variant="primary" onClick={sendLink}>
+                Email me a link
+              </Button>
+            </Stack>
+          )}
+        </Stack>
+      </Popover.Content>
+    </Popover>
   );
 }

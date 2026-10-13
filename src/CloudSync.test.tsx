@@ -71,6 +71,7 @@ describe('CloudSync', () => {
     await waitFor(() =>
       expect(getCurationState().categories.map((c) => c.label)).toEqual(['Design Systems']),
     );
+    await userEvent.click(await screen.findByRole('button', { name: 'Cloud sync: Synced' }));
     await screen.findByText(/Synced · u1@example.test/);
     // …and the tracker blob it pushed is v4 (no pillars / userTiles).
     expect(fake().tables.tracker[0].data).toMatchObject({ v: 4 });
@@ -81,6 +82,7 @@ describe('CloudSync', () => {
     fake().failNext('tracker', 'select');
     render(<CloudSync />);
     act(() => fake().signIn('u1'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Cloud sync: Offline' }));
     expect(await screen.findByText(OFFLINE_MSG)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
@@ -90,6 +92,7 @@ describe('CloudSync', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     render(<CloudSync />);
     act(() => fake().signIn('u1'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Cloud sync: Synced' }));
     await screen.findByText(/Synced · /);
     fake().failNext('groups', 'delete');
     await userEvent.click(screen.getByRole('button', { name: 'Delete my data' }));

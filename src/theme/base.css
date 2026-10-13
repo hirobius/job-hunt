@@ -40,3 +40,10 @@ a:focus-visible,
 @media (max-width: 599px) {
   .data-label { display: none; }
 }
+
+/* Header sync button: HDS fills an open trigger with the accent, which hides this button's label.
+   Keep it on a neutral surface while its popover is open. */
+.sync-trigger[data-state='open'] {
+  background-color: var(--semantic-color-surface-sunken);
+  color: var(--semantic-color-content-primary);
+}
