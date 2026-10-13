@@ -34,6 +34,7 @@ describe('parseBoardUrl', () => {
     'https://www.linkedin.com/jobs/search/?keywords=design',
     'not a url',
     'https://evil.example/jobs.lever.co/acme',
+    'https://evilashbyhq.com/ramp',
   ])('rejects %s', (url) => {
     expect(parseBoardUrl(url)).toBeNull();
   });

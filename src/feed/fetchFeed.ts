@@ -21,6 +21,7 @@ export const CACHE_TTL_MS = 60 * 60 * 1000;
 // go out in any rolling 24 hours. Over budget, a term with no fresh-enough copy says so instead.
 export const REMOTIVE_DAILY_MAX = 4;
 export const REMOTIVE_TTL_MS = 6 * 60 * 60 * 1000;
+export const FETCH_TIMEOUT_MS = 15_000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const REMOTIVE_KEY = 'rjb_feed_remotive';
 /** Bodies are trimmed before they are stored, to keep browser storage small. */
@@ -115,10 +116,12 @@ export function createFetchJson({
   fetchImpl = (u: string, init?: RequestInit) => fetch(u, init),
   now = Date.now,
   ttlMs = CACHE_TTL_MS,
+  timeoutMs = FETCH_TIMEOUT_MS,
 }: {
   fetchImpl?: (url: string, init?: RequestInit) => Promise<Response>;
   now?: () => number;
   ttlMs?: number;
+  timeoutMs?: number;
 } = {}): FetchJson {
   const cache = new Map<string, { at: number; body: unknown }>();
   return async (url) => {
@@ -126,8 +129,12 @@ export function createFetchJson({
     if (hit && now() - hit.at < ttlMs) return hit.body;
     let res: Response;
     try {
-      res = await fetchImpl(url, { headers: { Accept: 'application/json' } });
-    } catch {
+      const signal = AbortSignal.timeout(timeoutMs);
+      res = await fetchImpl(url, { headers: { Accept: 'application/json' }, signal });
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'TimeoutError') {
+        throw new FetchError(0, url, true);
+      }
       throw new FetchError(0, url);
     }
     if (!res.ok) throw new FetchError(res.status, url);
@@ -144,6 +151,7 @@ export function describeError(e: unknown, label: string, isBoard: boolean): stri
   if (e instanceof RemotiveBudgetSpent)
     return `${label}: daily limit reached — Remotive allows about ${REMOTIVE_DAILY_MAX} requests a day, so new terms load from it again tomorrow.`;
   if (!(e instanceof FetchError)) return `${label}: unexpected response.`;
+  if (e.isTimeout) return `${label}: timed out — try again later.`;
   if (e.status === 404 && isBoard)
     return `${label}: board not found — check the tile URL (the company may have moved to another ATS or closed its board).`;
   if (e.status === 429) return `${label}: rate-limited — try again in a few minutes.`;
