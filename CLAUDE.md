@@ -96,8 +96,8 @@ commit `f15fd52`).
   **`main` is the live production site** — run `npm run verify` before pushing. Branch pushes only
   build a preview when the commit message contains `[preview]`. E2E in cloud sessions:
   `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
-- **CSP (#97):** `Content-Security-Policy-Report-Only` in `vercel.json`, pinned by `src/csp.test.ts`
-  (add any new fetch host to `connect-src` and the test). Enforcing is #106.
+- **CSP (#97 → enforcing in #106):** `Content-Security-Policy` in `vercel.json`, pinned by
+  `src/csp.test.ts`. **Any new fetch host must go in `connect-src` and the test, or it's blocked.**
 - Branch pushes get Vercel **preview deploys** (use a branch for risky work; the
   live app stays on `main`).
 - The build/typecheck/test gate does **not** catch visual or runtime-CSS issues. Verify
