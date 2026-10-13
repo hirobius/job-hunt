@@ -20,8 +20,8 @@ const args = Object.fromEntries(
     .slice(2)
     .filter((a) => a.startsWith('--'))
     .map((a) => {
-      const [k, v = 'true'] = a.slice(2).split('=');
-      return [k, v];
+      const i = a.indexOf('=');
+      return i < 0 ? [a.slice(2), 'true'] : [a.slice(2, i), a.slice(i + 1)];
     }),
 );
 const OUT = args.out || 'gallery';
@@ -31,7 +31,9 @@ const WIDTHS = [1440, 390];
 const THEMES = ['light', 'dark'];
 
 async function serve() {
-  if (args.url) return { url: args.url.replace(/\/$/, ''), stop: () => {} };
+  // A full URL may carry a query (e.g. Vercel's ?_vercel_share= for a protected preview); it is
+  // the entry point, and shots navigate within that origin.
+  if (args.url) return { url: args.url, stop: () => {} };
   if (args['no-build'] !== 'true') await run('npx', ['vite', 'build']);
   const child = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], {
     stdio: 'ignore',
@@ -134,7 +136,12 @@ async function shoot(browser, base, theme, width, manifest) {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto(base + '/');
+  // CSP violations surface as console errors; record them so a build that blocks its own fonts
+  // or requests is caught here.
+  page.on('console', (m) => {
+    if (m.type() === 'error' && /Content Security Policy/i.test(m.text())) errors.push(m.text());
+  });
+  await page.goto(base);
   await settle(page);
   await seed(page);
 
@@ -189,7 +196,8 @@ async function shoot(browser, base, theme, width, manifest) {
   return errors;
 }
 
-const { url, stop } = await serve();
+const { url: entry, stop } = await serve();
+const url = entry.includes('://localhost') ? entry + '/' : entry;
 const browser = await chromium.launch({
   executablePath: process.env.PW_CHROMIUM_PATH || undefined,
 });
@@ -206,7 +214,7 @@ mkdirSync(OUT, { recursive: true });
 writeFileSync(
   join(OUT, 'manifest.json'),
   JSON.stringify(
-    { label: LABEL, url, at: new Date().toISOString(), shots: manifest, errors },
+    { label: LABEL, url: url.split('?')[0], at: new Date().toISOString(), shots: manifest, errors },
     null,
     2,
   ),
