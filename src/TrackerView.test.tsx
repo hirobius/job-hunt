@@ -88,3 +88,16 @@ describe('Pipeline hierarchy', () => {
     expect(screen.getByText('1 active · 1 total')).toBeInTheDocument();
   });
 });
+
+// Dense layout: metrics fold into one closed Insights row so the list starts near the top.
+describe('Pipeline density', () => {
+  it('folds stats and funnel into a closed Insights row', async () => {
+    const user = userEvent.setup();
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderTracker();
+    const insights = screen.getByRole('button', { name: /Insights/ });
+    expect(insights).toHaveAttribute('aria-expanded', 'false');
+    await user.click(insights);
+    expect(insights).toHaveAttribute('aria-expanded', 'true');
+  });
+});

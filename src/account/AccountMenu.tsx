@@ -4,6 +4,7 @@
 import { Button, Icon, Menu } from '@hirobius/design-system';
 import { CircleUserRound } from 'lucide-react';
 import { useColorMode } from '../ColorMode';
+import { useDensity } from '../Density';
 import { useCloudSync, useDataTools } from './accountContext';
 
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
@@ -12,6 +13,7 @@ export default function AccountMenu() {
   const sync = useCloudSync();
   const data = useDataTools();
   const { mode, toggle } = useColorMode();
+  const { density, toggle: toggleDensity } = useDensity();
 
   return (
     // Non-modal, so a dialog opened from an item (sign-in, restore) takes focus cleanly.
@@ -40,6 +42,9 @@ export default function AccountMenu() {
         </Menu.Item>
         <Menu.Separator />
         <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
+        <Menu.Item onSelect={toggleDensity}>
+          {density === 'compact' ? 'Comfortable' : 'Compact'} spacing
+        </Menu.Item>
         <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>
           Send feedback
         </Menu.Item>

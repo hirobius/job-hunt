@@ -25,9 +25,9 @@ export function SampleBanner({ jobs }: { jobs: Job[] }) {
     <div style={{ marginBlockEnd: 'var(--semantic-space-component-gap)' }}>
       <Callout tone="info" role="status" aria-label="Sample data">
         <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
-          <Text variant="body" as="span">
-            <strong>Sample data</strong> · {n} fictional {n === 1 ? 'job' : 'jobs'}. Clear removes
-            them, including any edits you made to them.
+          <Text variant="ui" as="span">
+            <strong>Sample data</strong> · {n} fictional {n === 1 ? 'job' : 'jobs'}. Clearing
+            removes them and any edits to them.
           </Text>
           <Button variant="tertiary" size="sm" onClick={() => clearSample()}>
             Clear sample data

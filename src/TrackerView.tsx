@@ -79,6 +79,7 @@ const FILTER_LABEL: Record<Filter, string> = {
   Rejected: 'Rejected',
   retired: 'Retired',
 };
+const INSIGHTS_KEY = 'rjb_ui_insights_open';
 const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 
 const FILTER_GROUPS: { label: string; items: Filter[] }[] = [
@@ -112,6 +113,13 @@ export default function TrackerView() {
   const [q, setQ] = useState('');
   const [url, setUrl] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(() => {
+    try {
+      return localStorage.getItem(INSIGHTS_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
   const [open, setOpen] = useState<Record<string, boolean>>({});
   // Transient "Saved ✓" flash after a detail field autosaves (per job url).
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
@@ -327,8 +335,26 @@ export default function TrackerView() {
 
       <SampleBanner jobs={jobs} />
       <ThisWeek />
-      <PipelineStats jobs={jobs} />
-      <FunnelSummary jobs={shown} />
+      {/* Dense layout: metrics fold into one closed "Insights" row so the list starts near the
+          top (Phase 2 moves them to Today). */}
+      {jobs.length > 0 && (
+        <Disclosure
+          label="Insights"
+          variant="nav"
+          open={insightsOpen}
+          onOpenChange={(o) => {
+            setInsightsOpen(o);
+            try {
+              localStorage.setItem(INSIGHTS_KEY, o ? '1' : '0');
+            } catch {
+              /* storage blocked */
+            }
+          }}
+        >
+          <PipelineStats jobs={jobs} />
+          <FunnelSummary jobs={shown} />
+        </Disclosure>
+      )}
 
       {jobs.length === 0 ? (
         // First use (21st.dev empty-state references): say what the screen will hold, one
@@ -674,6 +700,7 @@ export default function TrackerView() {
 
                   <Disclosure
                     label="Details"
+                    variant="nav"
                     open={isOpen}
                     onOpenChange={(o) => setOpen((p) => ({ ...p, [j.url]: o }))}
                   >

@@ -78,6 +78,7 @@ describe('app shell (#115 Phase 1)', () => {
       'Restore…',
       'Export CSV',
       expect.stringMatching(/^(Dark|Light) theme$/),
+      expect.stringMatching(/^(Compact|Comfortable) spacing$/),
       'Send feedback',
     ]);
   });

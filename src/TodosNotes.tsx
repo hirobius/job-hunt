@@ -53,6 +53,7 @@ export function TodosNotes({ job }: { job: Job }) {
   return (
     <Box>
       <Disclosure
+        variant="nav"
         label={`${total > 0 ? `To-dos ${done}/${total}` : 'To-dos & notes'}${notes.trim() ? ' · has notes' : ''}`}
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 'xs' }}>
