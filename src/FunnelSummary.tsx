@@ -9,13 +9,11 @@ import type { Job } from './types';
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-      <Text
-        variant="caption"
-        as="span"
-        style={{ color: 'var(--semantic-color-content-secondary)', minWidth: 44 }}
-      >
-        {label}
-      </Text>
+      <Box sx={{ minWidth: 44 }}>
+        <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+          {label}
+        </Text>
+      </Box>
       {children}
     </Box>
   );

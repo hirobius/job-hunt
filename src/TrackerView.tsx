@@ -180,7 +180,6 @@ export default function TrackerView() {
           updateJob(j.url, { [key]: e.target.value });
           flashSaved(j.url);
         }}
-        style={{ width: '100%' }}
       />
     ) : (
       <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
@@ -192,7 +191,6 @@ export default function TrackerView() {
             updateJob(j.url, { [key]: e.target.value });
             flashSaved(j.url);
           }}
-          style={{ width: '100%' }}
         />
       </Box>
     );
@@ -219,13 +217,14 @@ export default function TrackerView() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') submit();
             }}
-            style={{ width: '100%' }}
           />
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', flex: 'none' }}>
           {/* Box wrappers carry the responsive flex the seam Button can't express via sx. */}
-          <Box sx={{ display: 'flex', flex: 1, '&': { flex: { sm: 'none' } } }}>
-            <UiButton variant="primary" onClick={submit} style={{ flex: 1 }}>
+          <Box
+            sx={{ display: 'flex', flex: 1, '& > *': { flex: 1 }, '&': { flex: { sm: 'none' } } }}
+          >
+            <UiButton variant="primary" onClick={submit}>
               Add
             </UiButton>
           </Box>
@@ -271,7 +270,6 @@ export default function TrackerView() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             leadingVisual={<Search size={16} />}
-            style={{ width: '100%' }}
           />
         </Box>
         <Box
@@ -285,12 +283,7 @@ export default function TrackerView() {
         >
           <HdsMenu>
             <HdsMenu.Trigger asChild>
-              <UiButton
-                variant="tertiary"
-                size="sm"
-                iconLeft={<ArrowUpDown size={16} />}
-                style={{ whiteSpace: 'nowrap' }}
-              >
+              <UiButton variant="tertiary" size="sm" iconLeft={<ArrowUpDown size={16} />}>
                 {sortLabel}
               </UiButton>
             </HdsMenu.Trigger>
@@ -372,29 +365,20 @@ export default function TrackerView() {
                 >
                   {/* Eyebrow + title | status badge · pin · overflow */}
                   <Stack direction="row" gap="gap" align="start">
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
                       <Text
                         variant="caption"
-                        as="span"
-                        style={{
-                          color: 'var(--semantic-color-content-secondary)',
-                          display: 'block',
-                        }}
+                        style={{ color: 'var(--semantic-color-content-secondary)' }}
                       >
                         {eyebrow}
                       </Text>
-                      <Text
-                        variant="body"
-                        as="h3"
-                        style={{
-                          marginTop: 'calc(var(--primitive-space-1) * 0.5)',
-                          overflowWrap: 'anywhere',
-                        }}
-                      >
-                        <InlineLink href={j.url} externalIcon={false}>
-                          {j.label || prettyTitle(j.url)}
-                        </InlineLink>
-                      </Text>
+                      <Box sx={{ mt: 0.5 }}>
+                        <Text variant="body" as="h3">
+                          <InlineLink href={j.url} externalIcon={false}>
+                            {j.label || prettyTitle(j.url)}
+                          </InlineLink>
+                        </Text>
+                      </Box>
                     </Box>
                     {s.status !== 'Saved' && <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>}
                     <UiButton
@@ -405,7 +389,7 @@ export default function TrackerView() {
                       label={j.priority ? 'Unpin priority' : 'Pin as priority'}
                       aria-pressed={!!j.priority}
                       onClick={() => updateJob(j.url, { priority: !j.priority })}
-                      style={j.priority ? { color: 'var(--semantic-accent-rest)' } : undefined}
+                      style={{ color: j.priority ? 'var(--semantic-accent-rest)' : undefined }}
                     />
                     <HdsMenu>
                       <HdsMenu.Trigger asChild>
@@ -472,14 +456,12 @@ export default function TrackerView() {
                               alignItems: 'center',
                               gap: 0.8,
                               minWidth: 0,
+                              '& > svg': { flexShrink: 0 },
                             }}
                           >
                             <Icon
                               size={14}
-                              style={{
-                                color: 'var(--semantic-color-content-secondary)',
-                                flexShrink: 0,
-                              }}
+                              style={{ color: 'var(--semantic-color-content-secondary)' }}
                             />
                             <Text
                               variant="caption"

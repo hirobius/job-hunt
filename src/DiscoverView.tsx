@@ -14,6 +14,7 @@ import {
   Box,
   Text,
   Disclosure,
+  Stack,
 } from '@hirobius/design-system';
 import { Plus, SlidersHorizontal } from 'lucide-react';
 import TileGrid from './TileGrid';
@@ -54,17 +55,9 @@ function GroupPanel({
   const triage = useTileTriage();
   const { visible, saved, aside } = partitionTiles(tiles, triage, savedSet);
   return (
-    <Box>
+    <Stack gap="gap">
       {saved.length > 0 && (
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginBottom: 'var(--semantic-space-scale-xs)',
-          }}
-        >
+        <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
           {saved.length} saved — in your Queue
         </Text>
       )}
@@ -85,13 +78,11 @@ function GroupPanel({
         />
       )}
       {aside.length > 0 && (
-        <Box sx={{ mt: 'xs' }}>
-          <Disclosure label={`Set aside (${aside.length})`}>
-            <TileGrid tiles={aside} triage />
-          </Disclosure>
-        </Box>
+        <Disclosure label={`Set aside (${aside.length})`}>
+          <TileGrid tiles={aside} triage />
+        </Disclosure>
       )}
-    </Box>
+    </Stack>
   );
 }
 
@@ -115,16 +106,8 @@ function CategorySwitcher({
   // not only at first-run onboarding.
   const packs = STARTER_PACKS.filter((p) => p.id !== 'blank');
   return (
-    <Box sx={{ mb: 'sm' }}>
-      <Text
-        variant="caption"
-        as="span"
-        style={{
-          color: 'var(--semantic-color-content-secondary)',
-          display: 'block',
-          marginBottom: 'var(--primitive-space-1)',
-        }}
-      >
+    <Box sx={{ mb: 'sm', display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
         Track
       </Text>
       <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1.5, alignItems: 'center' }}>
@@ -212,16 +195,13 @@ function TitlesPanel({
   }));
   return (
     <Box>
-      <Text
-        variant="ui"
-        style={{
-          color: 'var(--semantic-color-content-secondary)',
-          marginBottom: 'var(--semantic-space-scale-xs)',
-        }}
-      >
-        Pick a title — searches fire {applyEntry ? 'entry-level filtered ' : ''}across every board.
-      </Text>
-      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
+      <Stack gap="gap">
+        <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+          Pick a title — searches fire {applyEntry ? 'entry-level filtered ' : ''}across every
+          board.
+        </Text>
+        <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
+      </Stack>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 'sm' }}>
         {titles.map((tt) => (
           <Tag key={tt} active={tt === title} onClick={() => setTitle(tt)}>
@@ -274,16 +254,12 @@ function AtsPanel({
   const allUrl = gUrl('(' + ATS.map((a) => a.site).join(' OR ') + ')');
   return (
     <Box>
-      <Text
-        variant="ui"
-        style={{
-          color: 'var(--semantic-color-content-secondary)',
-          marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
-        }}
-      >
-        Search companies' hiring systems straight through Google — far less competition.
-      </Text>
-      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
+      <Stack gap="px10">
+        <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+          Search companies' hiring systems straight through Google — far less competition.
+        </Text>
+        <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
+      </Stack>
       {/* Mobile-first: a column that becomes a row from sm. HDS sx has no base breakpoint (hds#652), so the base value sits on the key and the override nests under '&'. */}
       <Box
         sx={{
@@ -294,13 +270,14 @@ function AtsPanel({
           '&': { flexDirection: { sm: 'row' } },
         }}
       >
-        <HdsInput
-          size="sm"
-          label="Role / title"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          style={{ minWidth: 180 }}
-        />
+        <Box sx={{ minWidth: 180, '& > *': { width: '100%' } }}>
+          <HdsInput
+            size="sm"
+            label="Role / title"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          />
+        </Box>
         <SegmentedControl
           aria-label="Recency"
           size="sm"
@@ -320,11 +297,13 @@ function AtsPanel({
           </Tag>
         ))}
       </Box>
-      <Button variant="primary" style={{ marginTop: 12, marginBottom: 12 }} asChild>
-        <a href={allUrl} target="_blank" rel="noopener noreferrer">
-          Search all platforms
-        </a>
-      </Button>
+      <Box sx={{ py: 3 }}>
+        <Button variant="primary" asChild>
+          <a href={allUrl} target="_blank" rel="noopener noreferrer">
+            Search all platforms
+          </a>
+        </Button>
+      </Box>
       <TileGrid tiles={tiles} cta="Search" />
     </Box>
   );
@@ -464,7 +443,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         value={cur.key}
         onValueChange={(v) => navigate({ sub: v === tabs[0].key ? null : v })}
       >
-        <TabsList style={{ marginBottom: 16, width: '100%' }}>
+        <TabsList>
           {tabs.map((tb) => (
             <TabsTrigger key={tb.key} value={tb.key}>
               {tb.label}

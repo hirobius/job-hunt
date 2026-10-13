@@ -16,6 +16,7 @@ import {
   Box,
   Text,
   InlineLink,
+  Stack,
 } from '@hirobius/design-system';
 import EmptyState from './EmptyState';
 import LocationControl from './LocationControl';
@@ -153,17 +154,13 @@ export default function LiveFeedPanel({
 
   return (
     <Box>
-      <Text
-        variant="ui"
-        style={{
-          color: 'var(--semantic-color-content-secondary)',
-          marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
-        }}
-      >
-        Real openings from Hacker News “Who is hiring”, Remotive, and the company boards you watch —
-        ranked by fit. Nothing is kept until you save one.
-      </Text>
-      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
+      <Stack gap="px10">
+        <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+          Real openings from Hacker News “Who is hiring”, Remotive, and the company boards you watch
+          — ranked by fit. Nothing is kept until you save one.
+        </Text>
+        <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
+      </Stack>
 
       <Box
         as="form"
@@ -176,7 +173,6 @@ export default function LiveFeedPanel({
             label="Search term"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            style={{ width: '100%' }}
           />
         </Box>
         <Button type="submit" size="sm" variant="primary">
@@ -205,29 +201,27 @@ export default function LiveFeedPanel({
             placeholder="jobs.ashbyhq.com/company"
             value={watchUrl}
             onChange={(e) => setWatchUrl(e.target.value)}
-            style={{ width: '100%' }}
           />
         </Box>
         <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
           Watch
         </Button>
       </Box>
-      <Text
-        variant="caption"
-        as="span"
-        style={{
-          color: watchError
-            ? 'var(--semantic-color-feedback-error)'
-            : 'var(--semantic-color-content-secondary)',
-          display: 'block',
-          marginBottom: 'var(--semantic-space-scale-sm)',
-        }}
-      >
-        {watchError ||
-          (watchedCount
-            ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
-            : 'Paste a Greenhouse, Lever or Ashby job-board link to pull that company’s openings in.')}
-      </Text>
+      <Box sx={{ mb: 'sm' }}>
+        <Text
+          variant="caption"
+          style={{
+            color: watchError
+              ? 'var(--semantic-color-feedback-error)'
+              : 'var(--semantic-color-content-secondary)',
+          }}
+        >
+          {watchError ||
+            (watchedCount
+              ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
+              : 'Paste a Greenhouse, Lever or Ashby job-board link to pull that company’s openings in.')}
+        </Text>
+      </Box>
 
       {errors.length > 0 && (
         <Box sx={{ mb: 3 }}>
@@ -239,18 +233,12 @@ export default function LiveFeedPanel({
         </Box>
       )}
       {skipped > 0 && (
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginBottom: 'var(--semantic-space-scale-xs)',
-          }}
-        >
-          {skipped} watched {skipped === 1 ? 'board was' : 'boards were'} skipped — the feed reads
-          at most 25 per search.
-        </Text>
+        <Box sx={{ mb: 'xs' }}>
+          <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+            {skipped} watched {skipped === 1 ? 'board was' : 'boards were'} skipped — the feed reads
+            at most 25 per search.
+          </Text>
+        </Box>
       )}
 
       {loading ? (
@@ -309,14 +297,11 @@ export default function LiveFeedPanel({
             </Box>
           )}
           {visible.length > shown && (
-            <Button
-              variant="tertiary"
-              size="sm"
-              onClick={() => setShown((n) => n + PAGE)}
-              style={{ marginTop: 8 }}
-            >
-              Show more ({visible.length - shown})
-            </Button>
+            <Box sx={{ pt: 'xs' }}>
+              <Button variant="tertiary" size="sm" onClick={() => setShown((n) => n + PAGE)}>
+                Show more ({visible.length - shown})
+              </Button>
+            </Box>
           )}
         </Box>
       )}
@@ -354,24 +339,17 @@ function PostingRow({
         alignItems: 'flex-start',
       }}
     >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Text variant="ui" as="h3" style={{ overflowWrap: 'anywhere' }}>
+      <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+        <Text variant="ui" as="h3">
           <InlineLink href={p.url} externalIcon={false}>
             {p.title}
           </InlineLink>
         </Text>
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginTop: 'calc(var(--primitive-space-1) * 0.5)',
-            overflowWrap: 'anywhere',
-          }}
-        >
-          {meta.join(' · ')}
-        </Text>
+        <Box sx={{ mt: 0.5 }}>
+          <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+            {meta.join(' · ')}
+          </Text>
+        </Box>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
           {p.signals.map((s) => (
             <HdsTooltip key={s.id}>
@@ -386,16 +364,11 @@ function PostingRow({
           <Badge tone="neutral">{p.hit === 'title' ? 'In title' : 'In description'}</Badge>
         </Box>
         {p.snippet && (
-          <Text
-            variant="ui"
-            style={{
-              color: 'var(--semantic-color-content-secondary)',
-              marginTop: 'calc(var(--primitive-space-1) * 1.5)',
-              overflowWrap: 'anywhere',
-            }}
-          >
-            {p.snippet}
-          </Text>
+          <Box sx={{ mt: 1.5 }}>
+            <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+              {p.snippet}
+            </Text>
+          </Box>
         )}
       </Box>
       <Button

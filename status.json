@@ -1,10 +1,9 @@
 {
-  "updatedAt": "2026-10-12T00:00:00Z",
+  "updatedAt": "2026-10-14T00:00:00Z",
   "phase": "live",
-  "headline": "Live on production. 2026-10-12: Live postings feed built on branch claude/run-the-fetch-45j8i3 (not yet merged) — Discover pulls real openings from HN Who-is-hiring, Remotive and watched Greenhouse/Lever/Ashby boards, ranks them by fit (contract-friendly / first-hire signals) and saves to the Queue; keyless + browser-side; Remotive held to its 4-requests-a-day terms. 361 tests green.",
+  "headline": "Live on production, incl. the Live postings feed (#88, merged 2026-10-13). HDS epic #89 built on branch claude/run-the-fetch-45j8i3 (not yet merged): HDS 0.13 → 0.24.1, src/ui retired, every view on HDS primitives and the HDS type ramp, inline styles down to a tested allowlist. 421 tests green.",
   "next": [
-    "Merge #88 (Live postings) after checking its Vercel preview.",
-    "HDS epic #89 — fully on HDS (decided 2026-10-12: pure HDS, jade accent the only override): #90 upgrade 0.13 → 0.24.1 → #91 brand + #92 retire src/ui → #93 inline styles.",
+    "Review + merge the HDS epic #89 branch (closes #90–#93) after checking its Vercel preview.",
     "DEFERRED (own PR, non-user-facing): fully retire pillarStore + pillars.ts — still load-bearing for cloud sync (CloudSync/syncBlob/curationStore/copyDeckStore import them; user-pillars ride in the sync blob). Untangle the sync layer first. Last piece of #34.",
     "Human / dashboard: #44 Supabase auth hardening, #16 Vercel analytics, #17 delete stale remote branches, #55 name/trademark clearance (ApplyBoard conflict).",
     "Legal (before public launch): #43 Privacy Policy + Terms + subprocessor disclosure.",

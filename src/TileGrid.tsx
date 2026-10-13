@@ -74,32 +74,20 @@ export default function TileGrid({
             key={t.url + t.name}
             bordered
             padding="none"
-            style={{
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              opacity: isAside ? 0.6 : 1,
-            }}
+            style={{ opacity: isAside ? 0.6 : 1 }}
           >
             <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
-              <Text
-                variant="body"
-                style={{ fontWeight: 600, lineHeight: 1.2, overflowWrap: 'anywhere' }}
-              >
+              <Text variant="body" style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
                 {t.name}
               </Text>
-              <Text
-                variant="caption"
-                as="span"
-                style={{
-                  color: 'var(--semantic-color-content-secondary)',
-                  marginTop: 'calc(var(--primitive-space-1) * 0.5)',
-                  marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
-                  flex: 1,
-                }}
-              >
-                {metaWithTel(t.meta)}
-              </Text>
+              <Box sx={{ flex: 1, mt: 0.5, mb: 2.5 }}>
+                <Text
+                  variant="caption"
+                  style={{ color: 'var(--semantic-color-content-secondary)' }}
+                >
+                  {metaWithTel(t.meta)}
+                </Text>
+              </Box>
               {kindOf(t.url) && (
                 <Box sx={{ mb: 1.5 }}>
                   <Badge tone={kindOf(t.url)!.tone}>{kindOf(t.url)!.label}</Badge>

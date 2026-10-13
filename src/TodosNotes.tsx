@@ -28,7 +28,6 @@ function NotesField({ job }: { job: Job }) {
       onBlur={() => {
         if (draft !== (job.notes ?? '')) updateJob(job.url, { notes: draft });
       }}
-      style={{ width: '100%' }}
     />
   );
 }
@@ -133,7 +132,6 @@ export function TodosNotes({ job }: { job: Job }) {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') commitAdd();
                   }}
-                  style={{ width: '100%' }}
                 />
               </Box>
               <UiButton

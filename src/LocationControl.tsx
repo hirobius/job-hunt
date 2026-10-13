@@ -39,7 +39,6 @@ export default function LocationControl({
           value={mode === 'remote' ? '' : where}
           disabled={mode === 'remote'}
           onChange={(e) => onWhere(e.target.value)}
-          style={{ width: '100%' }}
         />
       </Box>
       {mode === 'remote' && (

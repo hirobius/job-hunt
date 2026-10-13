@@ -22,26 +22,19 @@ export function Onboarding() {
           Pick one or more tracks to start with — each pre-fills search terms and a few links. You
           can edit or add more later.
         </Text>
-        <Box>
-          <Text
-            variant="caption"
-            as="span"
-            style={{
-              color: 'var(--semantic-color-content-secondary)',
-              display: 'block',
-              marginBottom: 'var(--primitive-space-1)',
-            }}
-          >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
             Location (optional — blank = anywhere)
           </Text>
-          <HdsInput
-            size="sm"
-            aria-label="Location"
-            placeholder="City, State or Remote"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            style={{ maxWidth: 280 }}
-          />
+          <Box sx={{ maxWidth: 280, '& > *': { width: '100%' } }}>
+            <HdsInput
+              size="sm"
+              aria-label="Location"
+              placeholder="City, State or Remote"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </Box>
         </Box>
         <Stack gap="gap">
           {STARTER_PACKS.map((p) => {
@@ -49,20 +42,16 @@ export function Onboarding() {
             return (
               <Card
                 key={p.id}
-                as="button"
                 bordered
+                selectable
                 selected={on}
-                aria-pressed={on}
+                onSelectedChange={() => toggle(p.id)}
                 padding="none"
-                onClick={() => toggle(p.id)}
-                style={{ textAlign: 'left', cursor: 'pointer' }}
               >
                 <Box sx={{ display: 'flex', gap: 2.5, alignItems: 'center', p: 3 }}>
                   <Tag active={on}>{on ? '✓' : '+'}</Tag>
                   <Box sx={{ minWidth: 0 }}>
-                    <Text variant="ui" as="span" style={{ display: 'block' }}>
-                      {p.label}
-                    </Text>
+                    <Text variant="ui">{p.label}</Text>
                     <Text
                       variant="caption"
                       as="span"

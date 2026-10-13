@@ -66,7 +66,7 @@ function OverflowMenu() {
             window.open('https://github.com/hirobius/job-hunt/issues/new', '_blank', 'noopener')
           }
         >
-          <MessageSquareText size={15} style={{ marginRight: 8 }} />
+          <Icon icon={MessageSquareText} size="sm" />
           Send feedback
         </HdsMenu.Item>
       </HdsMenu.Content>
@@ -144,7 +144,7 @@ export default function App() {
             value={TAB_SLUGS[tab]}
             onValueChange={(v) => navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null })}
           >
-            <TabsList style={{ width: '100%' }}>
+            <TabsList>
               <TabsTrigger value="discover">Discover</TabsTrigger>
               <TabsTrigger value="queue">Tracker</TabsTrigger>
               <TabsTrigger value="copy-deck">Templates</TabsTrigger>

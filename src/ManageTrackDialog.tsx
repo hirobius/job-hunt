@@ -47,17 +47,11 @@ function ChipEditor({
   };
   return (
     <Box>
-      <Text
-        variant="caption"
-        as="span"
-        style={{
-          color: 'var(--semantic-color-content-secondary)',
-          display: 'block',
-          marginBottom: 'var(--primitive-space-1)',
-        }}
-      >
-        {label}
-      </Text>
+      <Box sx={{ mb: 1 }}>
+        <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+          {label}
+        </Text>
+      </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
         {values.map((v) => (
           <Tag key={v} active onClick={() => onChange(values.filter((x) => x !== v))}>
@@ -74,20 +68,21 @@ function ChipEditor({
           </Text>
         )}
       </Box>
-      <HdsInput
-        size="sm"
-        aria-label={`Add ${label}`}
-        placeholder={`Add ${label.toLowerCase()}…`}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            add();
-          }
-        }}
-        style={{ maxWidth: 260 }}
-      />
+      <Box sx={{ maxWidth: 260, '& > *': { width: '100%' } }}>
+        <HdsInput
+          size="sm"
+          aria-label={`Add ${label}`}
+          placeholder={`Add ${label.toLowerCase()}…`}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              add();
+            }
+          }}
+        />
+      </Box>
     </Box>
   );
 }
@@ -109,13 +104,9 @@ function GroupEditor({ groupId }: { groupId: string }) {
           sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center' }}
           key={t.id}
         >
-          <Text
-            variant="caption"
-            as="span"
-            style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}
-          >
-            {t.name}
-          </Text>
+          <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+            <Text variant="caption">{t.name}</Text>
+          </Box>
           <Button
             size="sm"
             variant="tertiary"
@@ -137,28 +128,30 @@ function GroupEditor({ groupId }: { groupId: string }) {
           '&': { flexDirection: { sm: 'row' } },
         }}
       >
-        <HdsInput
-          size="sm"
-          aria-label="Link name"
-          placeholder="Link name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={{ flex: 1, minWidth: 0 }}
-        />
-        <HdsInput
-          size="sm"
-          aria-label="Link URL"
-          placeholder="https://…"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              addLink();
-            }
-          }}
-          style={{ flex: 1, minWidth: 0 }}
-        />
+        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+          <HdsInput
+            size="sm"
+            aria-label="Link name"
+            placeholder="Link name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+          <HdsInput
+            size="sm"
+            aria-label="Link URL"
+            placeholder="https://…"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addLink();
+              }
+            }}
+          />
+        </Box>
         <Button
           variant="secondary"
           size="sm"
@@ -200,139 +193,113 @@ export default function ManageTrackDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <Dialog.Content
-        style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
-          <Dialog.Header>
-            <Dialog.Title>Manage track</Dialog.Title>
-          </Dialog.Header>
-          <div
-            style={{
-              overflowY: 'auto',
-              padding: '16px 4px',
-              borderTop: '1px solid var(--semantic-color-border-default)',
-              borderBottom: '1px solid var(--semantic-color-border-default)',
-              margin: '8px 0',
-            }}
-          >
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
-              <Box sx={{ '& > *': { width: '100%' } }}>
-                <HdsInput
-                  size="sm"
-                  label="Track name"
-                  value={cat.label}
-                  onChange={(e) => updateCategory(cat.id, { label: e.target.value })}
-                  style={{ width: '100%' }}
-                />
-              </Box>
-              <Switcher gap="tight">
-                <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-                  <HdsInput
-                    size="sm"
-                    label="Location"
-                    value={cat.location}
-                    onChange={(e) => updateCategory(cat.id, { location: e.target.value })}
-                    style={{ width: '100%' }}
-                  />
-                </Box>
-                <Box>
-                  <Text
-                    variant="caption"
-                    as="span"
-                    style={{
-                      color: 'var(--semantic-color-content-secondary)',
-                      display: 'block',
-                      marginBottom: 'var(--primitive-space-1)',
+      <Dialog.Content>
+        <Dialog.Header>
+          <Dialog.Title>Manage track</Dialog.Title>
+        </Dialog.Header>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+          <Box sx={{ '& > *': { width: '100%' } }}>
+            <HdsInput
+              size="sm"
+              label="Track name"
+              value={cat.label}
+              onChange={(e) => updateCategory(cat.id, { label: e.target.value })}
+            />
+          </Box>
+          <Switcher gap="tight">
+            <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+              <HdsInput
+                size="sm"
+                label="Location"
+                value={cat.location}
+                onChange={(e) => updateCategory(cat.id, { location: e.target.value })}
+              />
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+                Seniority
+              </Text>
+              <SegmentedControl
+                aria-label="Seniority"
+                size="sm"
+                value={cat.seniority}
+                onChange={(v) => updateCategory(cat.id, { seniority: v as Seniority })}
+                options={[
+                  { value: 'any', label: 'Any' },
+                  { value: 'entry', label: 'Entry' },
+                  { value: 'experienced', label: 'Exp.' },
+                ]}
+              />
+            </Box>
+          </Switcher>
+          <ChipEditor
+            label="Title-search terms"
+            values={cat.titles}
+            onChange={(next) => updateCategory(cat.id, { titles: next })}
+          />
+          <ChipEditor
+            label="ATS role terms"
+            values={cat.atsRoles}
+            onChange={(next) => updateCategory(cat.id, { atsRoles: next })}
+          />
+
+          <Box sx={{ borderTop: '1px solid', borderColor: 'border.default', pt: 3 }}>
+            <Box sx={{ mb: 'xs' }}>
+              <Text variant="body" as="h3" style={{ fontWeight: 600 }}>
+                Sections & links
+              </Text>
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              {groups.map((g) => (
+                <Box key={g.id}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      gap: 1,
+                      alignItems: 'center',
+                      mb: 1,
                     }}
                   >
-                    Seniority
-                  </Text>
-                  <SegmentedControl
-                    aria-label="Seniority"
-                    size="sm"
-                    value={cat.seniority}
-                    onChange={(v) => updateCategory(cat.id, { seniority: v as Seniority })}
-                    options={[
-                      { value: 'any', label: 'Any' },
-                      { value: 'entry', label: 'Entry' },
-                      { value: 'experienced', label: 'Exp.' },
-                    ]}
-                  />
-                </Box>
-              </Switcher>
-              <ChipEditor
-                label="Title-search terms"
-                values={cat.titles}
-                onChange={(next) => updateCategory(cat.id, { titles: next })}
-              />
-              <ChipEditor
-                label="ATS role terms"
-                values={cat.atsRoles}
-                onChange={(next) => updateCategory(cat.id, { atsRoles: next })}
-              />
-
-              <Box sx={{ borderTop: '1px solid', borderColor: 'border.default', pt: 3 }}>
-                <Text
-                  variant="body"
-                  style={{ fontWeight: 600, marginBottom: 'var(--semantic-space-scale-xs)' }}
-                >
-                  Sections & links
-                </Text>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                  {groups.map((g) => (
-                    <Box key={g.id}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'row',
-                          gap: 1,
-                          alignItems: 'center',
-                          mb: 1,
-                        }}
-                      >
-                        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-                          <HdsInput
-                            size="sm"
-                            aria-label="Section name"
-                            value={g.label}
-                            onChange={(e) => updateGroup(g.id, { label: e.target.value })}
-                            style={{ width: '100%' }}
-                          />
-                        </Box>
-                        <Button
-                          size="sm"
-                          variant="tertiary"
-                          tone="danger"
-                          iconOnly
-                          iconLeft={<Icon icon={Trash2} />}
-                          label={`Delete ${g.label} section`}
-                          onClick={() => removeGroup(g.id)}
-                        />
-                      </Box>
-                      <GroupEditor groupId={g.id} />
+                    <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+                      <HdsInput
+                        size="sm"
+                        aria-label="Section name"
+                        value={g.label}
+                        onChange={(e) => updateGroup(g.id, { label: e.target.value })}
+                      />
                     </Box>
-                  ))}
-                  <Button
-                    variant="tertiary"
-                    size="sm"
-                    onClick={() => addGroup(cat.id, { label: 'New section' })}
-                  >
-                    ＋ Add section
-                  </Button>
+                    <Button
+                      size="sm"
+                      variant="tertiary"
+                      tone="danger"
+                      iconOnly
+                      iconLeft={<Icon icon={Trash2} />}
+                      label={`Delete ${g.label} section`}
+                      onClick={() => removeGroup(g.id)}
+                    />
+                  </Box>
+                  <GroupEditor groupId={g.id} />
                 </Box>
-              </Box>
+              ))}
+              <Button
+                variant="tertiary"
+                size="sm"
+                onClick={() => addGroup(cat.id, { label: 'New section' })}
+              >
+                ＋ Add section
+              </Button>
             </Box>
-          </div>
-          <Dialog.Footer>
-            <Button variant="tertiary" tone="danger" onClick={del}>
-              Delete track
-            </Button>
-            <Button variant="primary" onClick={onClose}>
-              Done
-            </Button>
-          </Dialog.Footer>
-        </div>
+          </Box>
+        </Box>
+        <Dialog.Footer>
+          <Button variant="tertiary" tone="danger" onClick={del}>
+            Delete track
+          </Button>
+          <Button variant="primary" onClick={onClose}>
+            Done
+          </Button>
+        </Dialog.Footer>
       </Dialog.Content>
     </Dialog>
   );

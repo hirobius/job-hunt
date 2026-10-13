@@ -13,17 +13,11 @@ const ScreenJdDialog = lazy(() => import('./ScreenJdDialog'));
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Text
-      variant="caption"
-      as="span"
-      style={{
-        color: 'var(--semantic-color-content-secondary)',
-        display: 'block',
-        marginBottom: 'var(--primitive-space-1)',
-      }}
-    >
-      {children}
-    </Text>
+    <Box sx={{ mb: 1 }}>
+      <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+        {children}
+      </Text>
+    </Box>
   );
 }
 
@@ -50,7 +44,6 @@ function NumField({
         inputMode="numeric"
         value={value == null ? '' : String(value)}
         onChange={(e) => onChange(e.target.value)}
-        style={{ width: '100%' }}
       />
     </Box>
   );
@@ -89,17 +82,11 @@ export function ScreeningEditor({ job }: { job: Job }) {
           Screen a job description
         </Button>
         {job.screenedAt && (
-          <Text
-            variant="caption"
-            as="span"
-            style={{
-              color: 'var(--semantic-color-content-secondary)',
-              display: 'block',
-              marginTop: 'var(--primitive-space-1)',
-            }}
-          >
-            Screened {new Date(job.screenedAt).toLocaleDateString()}
-          </Text>
+          <Box sx={{ mt: 1 }}>
+            <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+              Screened {new Date(job.screenedAt).toLocaleDateString()}
+            </Text>
+          </Box>
         )}
       </Box>
       {screenOpen && (
@@ -156,20 +143,21 @@ export function ScreeningEditor({ job }: { job: Job }) {
             </Tag>
           ))}
         </Chips>
-        <HdsInput
-          size="sm"
-          aria-label="Add a custom dealbreaker"
-          placeholder="Add a dealbreaker…"
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              addCustom();
-            }
-          }}
-          style={{ marginTop: 8, maxWidth: 240 }}
-        />
+        <Box sx={{ mt: 'xs', maxWidth: 240, '& > *': { width: '100%' } }}>
+          <HdsInput
+            size="sm"
+            aria-label="Add a custom dealbreaker"
+            placeholder="Add a dealbreaker…"
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustom();
+              }
+            }}
+          />
+        </Box>
       </Box>
 
       <Switcher gap="tight">
@@ -192,7 +180,6 @@ export function ScreeningEditor({ job }: { job: Job }) {
           label="Angle (positioning for this role)"
           value={job.angle ?? ''}
           onChange={(e) => updateJob(job.url, { angle: e.target.value })}
-          style={{ width: '100%' }}
         />
       </Box>
     </Box>

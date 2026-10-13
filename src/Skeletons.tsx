@@ -7,11 +7,13 @@ export function TileGridSkeleton({ count = 8 }: { count?: number }) {
   return (
     <Grid layout="auto-fill" minItemWidth="160px" gap="medium" aria-hidden>
       {Array.from({ length: count }).map((_, i) => (
-        <Card key={i} bordered padding="none" style={{ height: '100%' }}>
+        <Card key={i} bordered padding="none">
           <Box sx={{ p: 3 }}>
             <Skeleton variant="text" width="80%" />
             <Skeleton variant="text" width="55%" />
-            <Skeleton variant="rectangular" height={28} style={{ marginTop: 10 }} />
+            <Box sx={{ mt: 2.5 }}>
+              <Skeleton variant="rectangular" height={28} />
+            </Box>
           </Box>
         </Card>
       ))}
@@ -37,9 +39,17 @@ export function DiscoverSkeleton() {
 export function CopyDeckSkeleton({ count = 3 }: { count?: number }) {
   return (
     <Box aria-busy aria-label="Loading">
-      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', mb: 'sm' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          gap: 'xs',
+          mb: 'sm',
+        }}
+      >
         <Skeleton variant="rectangular" width={120} height={32} />
-        <Skeleton variant="rectangular" width={120} height={32} style={{ marginLeft: 'auto' }} />
+        <Skeleton variant="rectangular" width={120} height={32} />
       </Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {Array.from({ length: count }).map((_, i) => (
