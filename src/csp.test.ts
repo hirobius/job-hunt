@@ -60,12 +60,9 @@ describe('content security policy', () => {
     expect(src('style-src')).toContain("'unsafe-inline'");
   });
 
-  it('allows data: fonts — HDS styles.css embeds its fonts as data URIs', () => {
-    expect(src('font-src')).toContain('data:');
-  });
-
   it('loads fonts and styles from the app only — no font CDN', () => {
-    expect(src('font-src')).toEqual(["'self'", 'data:']);
+    // HDS fonts.css ships woff2 files the bundler hashes into dist/ — no data: fonts either.
+    expect(src('font-src')).toEqual(["'self'"]);
     expect(src('style-src')).toEqual(["'self'", "'unsafe-inline'"]);
   });
 
