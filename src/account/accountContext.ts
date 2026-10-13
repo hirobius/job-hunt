@@ -7,6 +7,8 @@ import type { User } from '@supabase/supabase-js';
 export interface CloudSyncApi {
   /** The signed-in user, or null when signed out. */
   user: User | null;
+  /** False until the stored session (or its absence) is known. */
+  authResolved: boolean;
   /** One-line sync status ("Synced · a@b.c", "Saving…", the offline message…). */
   status: string;
   /** True while the last pull/push failed — the menu offers Retry. */

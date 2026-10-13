@@ -122,25 +122,27 @@ describe('app shell (#115 Phase 1)', () => {
 });
 
 describe('sync nudge (#115 Phase 1)', () => {
-  it('signed out, a one-time callout offers sync instead of a sign-in form', () => {
+  it('signed out, a one-time callout offers sync instead of a sign-in form', async () => {
     renderApp();
-    const nudge = screen.getByRole('region', { name: 'Sync your data' });
+    const nudge = await screen.findByRole('region', { name: 'Sync your data' });
     expect(within(nudge).getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: /email/i })).toBeNull();
   });
 
   it('dismissing it is remembered', async () => {
     const { unmount } = renderApp();
-    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
     unmount();
     renderApp();
+    await screen.findByRole('button', { name: /^Account/ });
+    await new Promise((r) => setTimeout(r, 0)); // let the session check settle
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
   });
 
   it('Sign in opens a dialog with the email field', async () => {
     renderApp();
-    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
     const dialog = await screen.findByRole('dialog', { name: 'Sign in to sync' });
     expect(within(dialog).getByRole('textbox', { name: /email/i })).toBeInTheDocument();
   });

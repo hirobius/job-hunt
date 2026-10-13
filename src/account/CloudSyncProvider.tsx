@@ -2,7 +2,7 @@
 // push, the focus re-pull and sign-out/delete, and exposes them through CloudSyncContext. The UI
 // lives elsewhere — the account menu, the one-time sync nudge and the sign-in dialog — and
 // failures surface as toasts instead of a banner on every page.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useToast } from '@hirobius/design-system';
 import type { User } from '@supabase/supabase-js';
 import { supabase as supa } from '../supabase';
@@ -35,6 +35,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const [signInOpen, setSignInOpen] = useState(false);
+  // False until Supabase reports the stored session (or its absence), so signed-in users don't
+  // see the signed-out nudge flash on load.
+  const [authResolved, setAuthResolved] = useState(false);
   const lastSynced = useRef('');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -90,9 +93,14 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // auth state. Token refreshes / profile updates aren't a new sign-in — don't re-run the
   // seed merge (it would also flip the sync gate mid-onboarding).
   useEffect(() => {
+    void supa.auth.getSession().then(
+      () => setAuthResolved(true),
+      () => setAuthResolved(true),
+    );
     const { data } = supa.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null;
       setUser(u);
+      setAuthResolved(true);
       if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
       if (u) adopt(true, u);
       else {
@@ -179,28 +187,39 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     return why;
   };
 
-  // A failed pull/push is a toast once per outage (not a banner); the account menu keeps the
-  // status line and a Retry while it lasts.
+  // A failed pull/push is a toast once per outage (not a banner): focus re-pulls and Retry
+  // flip the status through "Refreshing…" but don't re-toast until a sync has succeeded again.
+  // The account menu keeps the status line and a Retry while the outage lasts.
   const offline = msg === OFFLINE_MSG;
   const toastRef = useRef(toast);
+  const outageToasted = useRef(false);
   useEffect(() => {
     toastRef.current = toast;
   });
   useEffect(() => {
-    if (offline)
-      toastRef.current({ title: 'Sync paused', description: OFFLINE_MSG, tone: 'warning' });
-  }, [offline]);
+    if (msg.startsWith('Synced')) outageToasted.current = false;
+    if (msg !== OFFLINE_MSG || outageToasted.current) return;
+    outageToasted.current = true;
+    toastRef.current({ title: 'Sync paused', description: OFFLINE_MSG, tone: 'warning' });
+  }, [msg]);
 
-  const api: CloudSyncApi = {
-    user,
-    status: msg,
-    offline,
-    sendLink,
-    retry: () => user && void adopt(false, user),
-    signOut: () => void signOut(),
-    deleteMyData: () => void deleteMyData(),
-    signInOpen,
-    setSignInOpen,
-  };
+  // Stable unless what consumers read changes — the provider re-renders on every store change.
+  const api: CloudSyncApi = useMemo(
+    () => ({
+      user,
+      authResolved,
+      status: msg,
+      offline,
+      sendLink,
+      retry: () => user && void adopt(false, user),
+      signOut: () => void signOut(),
+      deleteMyData: () => void deleteMyData(),
+      signInOpen,
+      setSignInOpen,
+    }),
+    // The handlers only close over `user` (and stable module state).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, authResolved, msg, offline, signInOpen],
+  );
   return <CloudSyncContext.Provider value={api}>{children}</CloudSyncContext.Provider>;
 }

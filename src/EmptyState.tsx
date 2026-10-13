@@ -14,15 +14,13 @@ export default function EmptyState({
   message: ReactNode;
   /** An action node (e.g. a Button) shown under the message. */
   action?: ReactNode;
-  /** Accepted for existing call sites; HDS EmptyState has one density. */
-  dense?: boolean;
 }) {
   const empty = title ? (
     <HdsEmptyState title={title} description={message} />
   ) : (
     <HdsEmptyState title={message} />
   );
-  if (!action) return empty;
+  // Always the same centred column, with or without an action, so empties match within a view.
   return (
     <Stack gap="tight" align="center">
       {empty}

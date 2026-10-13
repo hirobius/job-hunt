@@ -87,6 +87,20 @@ describe('CloudSyncProvider (via the account menu)', () => {
     expect(within(menu).getByRole('menuitem', { name: 'Retry sync' })).toBeInTheDocument();
   });
 
+  it('toasts once per outage, not on every focus re-pull that fails again', async () => {
+    fake().failNext('tracker', 'select');
+    fake().failNext('tracker', 'select');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    expect(await screen.findByText(OFFLINE_MSG)).toBeInTheDocument();
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(screen.getAllByText('Sync paused')).toHaveLength(1));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getAllByText('Sync paused')).toHaveLength(1);
+  });
+
   it('Delete my data reports a failed delete and keeps the local copy', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     addJob('https://acme.example/jobs/1', 'Design Engineer');

@@ -71,10 +71,9 @@ function GroupPanel({
       {visible.length > 0 ? (
         <TileGrid tiles={visible} triage />
       ) : saved.length > 0 ? (
-        <EmptyState dense message="All saved — check your Tracker for these." />
+        <EmptyState message="All saved — check your Tracker for these." />
       ) : (
         <EmptyState
-          dense
           title="No links here yet"
           message="Add curated links to this section, or switch to Title / ATS search to generate live ones."
           action={

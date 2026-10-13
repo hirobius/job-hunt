@@ -17,9 +17,9 @@ function readDismissed() {
 }
 
 export default function SyncNudge() {
-  const { user, setSignInOpen } = useCloudSync();
+  const { user, authResolved, setSignInOpen } = useCloudSync();
   const [dismissed, setDismissed] = useState(readDismissed);
-  if (user || dismissed) return null;
+  if (!authResolved || user || dismissed) return null;
 
   const dismiss = () => {
     setDismissed(true);

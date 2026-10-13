@@ -265,7 +265,7 @@ export default function LiveFeedPanel({
       ) : current?.error ? (
         <Alert tone="danger">{current.error}</Alert>
       ) : !term.trim() ? (
-        <EmptyState dense message="Type a search term or pick one of this track's terms." />
+        <EmptyState message="Type a search term or pick one of this track's terms." />
       ) : ranked.length === 0 ? (
         <EmptyState
           title={`No live openings mention “${term}” right now`}
@@ -291,10 +291,7 @@ export default function LiveFeedPanel({
             />
           </Box>
           {visible.length === 0 ? (
-            <EmptyState
-              dense
-              message="None of these openings carry that signal — switch back to All."
-            />
+            <EmptyState message="None of these openings carry that signal — switch back to All." />
           ) : (
             <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
               {visible.slice(0, shown).map((p) => (

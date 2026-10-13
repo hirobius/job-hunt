@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 
 // CloudSync instantiates a Supabase client at module load; stub it so App can render in jsdom
 // without any network or real config. We only need the auth listener + a no-op query surface.
@@ -7,6 +7,7 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
     auth: {
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      getSession: async () => ({ data: { session: null } }),
       signOut: async () => {},
       signInWithOtp: async () => ({}),
     },
@@ -42,7 +43,7 @@ const renderApp = () =>
 describe('App top-level tab wiring', () => {
   it('renders three tabs (Pipeline · Discover · Templates), each associated with a tabpanel', () => {
     renderApp();
-    const tabs = screen.getAllByRole('tab').slice(0, 3);
+    const tabs = within(screen.getByRole('tablist', { name: 'Sections' })).getAllByRole('tab');
     expect(tabs).toHaveLength(3);
     for (const tab of tabs) {
       expect(tab.getAttribute('id')).toBeTruthy();
