@@ -81,7 +81,11 @@ describe('map: categories', () => {
   });
 
   it('defaults missing array columns to empty arrays', () => {
-    const row = { ...categoryRow, titles: undefined, ats_roles: undefined } as unknown as CategoryRow;
+    const row = {
+      ...categoryRow,
+      titles: undefined,
+      ats_roles: undefined,
+    } as unknown as CategoryRow;
     const model = categoryFromRow(row);
     expect(model.titles).toEqual([]);
     expect(model.atsRoles).toEqual([]);

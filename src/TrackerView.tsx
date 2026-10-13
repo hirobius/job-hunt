@@ -40,6 +40,11 @@ import { sortJobs, SORTS, type SortKey } from './jobSort';
 import { verdictTone, modeLabel, blockerLabel } from './screening';
 import { ScreeningEditor } from './ScreeningEditor';
 import { FunnelSummary } from './FunnelSummary';
+import { PipelineStats } from './PipelineStats';
+import DataTools from './DataTools';
+import ThisWeek from './ThisWeek';
+import UseTemplate from './UseTemplate';
+import InterviewLog from './InterviewLog';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import { TodosNotes } from './TodosNotes';
@@ -62,67 +67,6 @@ function matches(j: Job, f: Filter): boolean {
   if (f === 'all') return true;
   if (f === 'retired') return !!j.archived;
   return !j.archived && s.status === f;
-}
-
-function exportCsv(jobs: Job[]) {
-  const rows = [
-    [
-      'label',
-      'url',
-      'status',
-      'company',
-      'location',
-      'seniority',
-      'applied',
-      'resume',
-      'contact',
-      'salary',
-      'verdict',
-      'mode',
-      'travel_pct',
-      'applicants',
-      'blockers',
-      'angle',
-      'priority',
-      'retired',
-      'note',
-    ],
-  ];
-  jobs.forEach((j) =>
-    rows.push([
-      j.label,
-      j.url,
-      deriveJobState(j).status,
-      j.company || '',
-      j.location || '',
-      j.seniority || '',
-      j.applied || '',
-      j.resume || '',
-      j.contact || '',
-      j.salary || '',
-      j.verdict || '',
-      j.mode || '',
-      j.travelPct != null ? String(j.travelPct) : '',
-      j.applicants != null ? String(j.applicants) : '',
-      (j.blockers || []).join('|'),
-      j.angle || '',
-      j.priority ? 'yes' : '',
-      j.archived ? 'yes' : '',
-      j.note || '',
-    ]),
-  );
-  const csv = rows
-    .map((r) => r.map((c) => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(','))
-    .join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'apply-board.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function research(label: string) {
@@ -280,18 +224,13 @@ export default function TrackerView() {
               </HdsMenu.RadioGroup>
             </HdsMenu.Content>
           </HdsMenu>
-          <UiButton
-            variant="tertiary"
-            size="sm"
-            disabled={!jobs.length}
-            onClick={() => exportCsv(jobs)}
-          >
-            Export CSV
-          </UiButton>
+          <DataTools />
         </Stack>
       </Stack>
 
       <SampleBanner jobs={jobs} />
+      <ThisWeek />
+      <PipelineStats jobs={jobs} />
       <FunnelSummary jobs={shown} />
 
       {shown.length === 0 ? (
@@ -567,6 +506,7 @@ export default function TrackerView() {
                     >
                       {isOpen ? 'Hide' : 'Details'}
                     </UiButton>
+                    <UseTemplate job={j} />
                     {s.followUp.due && (
                       <>
                         <Badge tone="warning">Follow up now</Badge>
@@ -616,6 +556,7 @@ export default function TrackerView() {
                         {fld(j, 'salary', 'Salary')}
                       </Stack>
                       <ScreeningEditor job={j} />
+                      <InterviewLog job={j} />
                       {fld(j, 'note', 'Notes', true)}
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
                         {fld(j, 'contact', 'Contact / referral')}

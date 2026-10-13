@@ -34,6 +34,13 @@ describe('seedPack', () => {
     expect(s.groups.filter((g) => g.categoryId === id)).toEqual([]);
   });
 
+  it('optional titles replace the pack titles (Build your own needs a first title)', () => {
+    const id = seedPack('blank', '', { titles: ['Design Engineer'] });
+    expect(getCurationState().categories.find((c) => c.id === id)!.titles).toEqual([
+      'Design Engineer',
+    ]);
+  });
+
   it('every advertised pack id is seedable without throwing', () => {
     STARTER_PACKS.forEach((p) => expect(() => seedPack(p.id)).not.toThrow());
   });
