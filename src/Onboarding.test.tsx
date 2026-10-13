@@ -32,7 +32,7 @@ describe('Onboarding order and selected state', () => {
       Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
     const lastPack = screen.getAllByRole('checkbox').slice(-1)[0];
     const location = screen.getByLabelText(/Location/);
-    const start = screen.getByRole('button', { name: 'Pick a track' });
+    const start = screen.getByRole('button', { name: 'Start searching' });
     expect(follows(lastPack, location)).toBe(true);
     expect(follows(location, start)).toBe(true);
   });
@@ -69,6 +69,27 @@ describe('Onboarding pack picker a11y (#104)', () => {
     expect(getCurationState().categories.map((c) => [c.label, c.titles])).toEqual([
       ['Build your own', ['Design Engineer']],
     ]);
+  });
+
+  it('keeps Start sticky at the bottom with the pick-count hint, and Skip for now under it', async () => {
+    const user = userEvent.setup();
+    render(<Onboarding />);
+    const footer = screen.getByTestId('onboarding-footer');
+    expect(footer.style.position).toBe('sticky');
+    expect(footer.style.bottom).toBe('0px');
+    expect(footer).toHaveTextContent('Pick at least 1 track');
+    expect(screen.getByRole('button', { name: 'Start searching' })).toBeDisabled();
+    const buttons = footer.querySelectorAll('button');
+    expect(buttons[1]).toHaveTextContent('Skip for now');
+    await user.click(screen.getByRole('checkbox', { name: 'Design Systems / Design Eng' }));
+    expect(footer).not.toHaveTextContent('Pick at least 1 track');
+  });
+
+  it('Skip for now opens Discover on an empty track instead of looping back to onboarding', async () => {
+    const user = userEvent.setup();
+    render(<Onboarding />);
+    await user.click(screen.getByRole('button', { name: 'Skip for now' }));
+    expect(getCurationState().categories.map((c) => c.label)).toEqual(['My track']);
   });
 
   it('has no WCAG A/AA violations', async () => {

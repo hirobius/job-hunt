@@ -162,7 +162,8 @@ describe('LiveFeedPanel', () => {
   it('watches a company board, and explains a link that is not one', async () => {
     const user = userEvent.setup();
     renderPanel();
-    const input = screen.getByLabelText(/watch a company/i);
+    await user.click(screen.getByRole('button', { name: /Watch a company/ }));
+    const input = screen.getByLabelText(/company board link/i);
     await user.type(input, 'https://www.linkedin.com/company/ramp');
     await user.click(screen.getByRole('button', { name: 'Watch' }));
     expect(screen.getByText(/isn't a Greenhouse, Lever or Ashby job board/)).toBeInTheDocument();

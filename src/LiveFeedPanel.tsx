@@ -10,14 +10,19 @@ import {
   Tooltip as HdsTooltip,
   Input as HdsInput,
   SegmentedControl,
+  Card,
+  Icon,
   Spinner,
+  Stack,
   Tag,
   useToast,
   Box,
   Text,
   InlineLink,
 } from '@hirobius/design-system';
+import { ChevronRight } from 'lucide-react';
 import EmptyState from './EmptyState';
+import { Sheet } from './Sheet';
 import LocationControl from './LocationControl';
 import type { WorkMode } from './jobsData';
 import { addJobDetailed, dedupKey, useJobs } from './store';
@@ -69,6 +74,7 @@ export default function LiveFeedPanel({
   const [shown, setShown] = useState(PAGE);
   const [watchUrl, setWatchUrl] = useState('');
   const [watchError, setWatchError] = useState('');
+  const [watchOpen, setWatchOpen] = useState(false);
 
   const boardsKey = boardUrls.join('\n');
   const watchedCount = useMemo(() => boardsFromUrls(boardUrls, Infinity).length, [boardUrls]);
@@ -152,101 +158,55 @@ export default function LiveFeedPanel({
   const skipped = current?.result?.boardsSkipped ?? 0;
 
   return (
-    <Box>
-      <Text
-        variant="ui"
-        style={{
-          color: 'var(--semantic-color-content-secondary)',
-          marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
-        }}
-      >
+    <Stack gap="normal">
+      <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
         Real openings from Hacker News “Who is hiring”, Remotive, and the company boards you watch —
         ranked by fit. Nothing is kept until you save one.
       </Text>
       <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
 
-      <Box
-        as="form"
-        onSubmit={onSearch}
-        sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}
-      >
-        <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
-          <HdsInput
-            size="sm"
-            label="Search term"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            style={{ width: '100%' }}
-          />
+      <Stack gap="tight">
+        <Box
+          as="form"
+          onSubmit={onSearch}
+          sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end' }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+            <HdsInput
+              size="sm"
+              label="Search term"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </Box>
+          <Button type="submit" size="sm" variant="primary">
+            Search
+          </Button>
         </Box>
-        <Button type="submit" size="sm" variant="primary">
-          Search
-        </Button>
-      </Box>
-      {terms.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
-          {terms.map((t) => (
-            <Tag key={t} onClick={() => search(t)}>
-              {t}
-            </Tag>
-          ))}
-        </Box>
-      )}
-
-      <Box
-        as="form"
-        onSubmit={onWatch}
-        sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
-      >
-        <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
-          <HdsInput
-            size="sm"
-            label="Watch a company"
-            placeholder="jobs.ashbyhq.com/company"
-            value={watchUrl}
-            onChange={(e) => setWatchUrl(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </Box>
-        <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
-          Watch
-        </Button>
-      </Box>
-      <Text
-        variant="caption"
-        as="span"
-        style={{
-          color: watchError
-            ? 'var(--semantic-color-feedback-error)'
-            : 'var(--semantic-color-content-secondary)',
-          display: 'block',
-          marginBottom: 'var(--semantic-space-scale-sm)',
-        }}
-      >
-        {watchError ||
-          (watchedCount
-            ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
-            : 'Paste a Greenhouse, Lever or Ashby job-board link to pull that company’s openings in.')}
-      </Text>
+        {terms.length > 0 && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs' }}>
+            {terms.map((t) => (
+              <Tag key={t} active={t === term} onClick={() => search(t)}>
+                {t}
+              </Tag>
+            ))}
+          </Box>
+        )}
+      </Stack>
 
       {errors.length > 0 && (
-        <Box sx={{ mb: 3 }}>
-          <Alert tone="warning" title="Some sources didn’t respond">
-            {errors.map((s) => (
-              <Box key={s.key}>{s.error}</Box>
-            ))}
-          </Alert>
-        </Box>
+        <Alert tone="warning" title="Some sources didn’t respond">
+          {errors.map((s) => (
+            <Box key={s.key}>{s.error}</Box>
+          ))}
+        </Alert>
       )}
       {skipped > 0 && (
         <Text
           variant="caption"
           as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginBottom: 'var(--semantic-space-scale-xs)',
-          }}
+          style={{ color: 'var(--semantic-color-content-secondary)' }}
         >
           {skipped} watched {skipped === 1 ? 'board was' : 'boards were'} skipped — the feed reads
           at most 25 per search.
@@ -272,9 +232,8 @@ export default function LiveFeedPanel({
           message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
         />
       ) : (
-        <Box>
-          {/* Scrolls sideways on narrow screens rather than clipping (same as the tab bar). */}
-          <Box sx={{ mb: 'xs', overflowX: 'auto', maxWidth: '100%', pb: 0.5 }}>
+        <Stack gap="tight">
+          <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
             <SegmentedControl
               aria-label="Show"
               size="sm"
@@ -293,7 +252,18 @@ export default function LiveFeedPanel({
           {visible.length === 0 ? (
             <EmptyState message="None of these openings carry that signal — switch back to All." />
           ) : (
-            <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
+            <Box
+              as="ul"
+              aria-label="Live postings"
+              sx={{
+                listStyle: 'none',
+                m: 0,
+                p: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'xs',
+              }}
+            >
               {visible.slice(0, shown).map((p) => (
                 <PostingRow
                   key={p.id}
@@ -306,18 +276,77 @@ export default function LiveFeedPanel({
             </Box>
           )}
           {visible.length > shown && (
-            <Button
-              variant="tertiary"
-              size="sm"
-              onClick={() => setShown((n) => n + PAGE)}
-              style={{ marginTop: 'var(--primitive-space-2)' }}
-            >
+            <Button variant="tertiary" size="sm" onClick={() => setShown((n) => n + PAGE)}>
               Show more ({visible.length - shown})
             </Button>
           )}
-        </Box>
+        </Stack>
       )}
-    </Box>
+
+      <Button
+        variant="secondary"
+        iconRight={<Icon icon={ChevronRight} />}
+        onClick={() => setWatchOpen(true)}
+        style={{ width: '100%', justifyContent: 'space-between', textAlign: 'left' }}
+      >
+        <Box as="span" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+          <Text variant="ui" as="span" style={{ color: 'inherit', fontWeight: 600 }}>
+            {watchedCount === 0
+              ? 'Watch a company'
+              : `Watching ${watchedCount} ${watchedCount === 1 ? 'company' : 'companies'}`}
+          </Text>
+          <Text variant="caption" as="span" style={{ color: 'inherit', opacity: 0.8 }}>
+            Add a company board and new postings land here
+          </Text>
+        </Box>
+      </Button>
+
+      <Sheet
+        open={watchOpen}
+        onOpenChange={setWatchOpen}
+        title="Watch a company"
+        description={
+          watchedCount
+            ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — remove them under Manage this track → Sections & links.`
+            : 'Paste a Greenhouse, Lever or Ashby job-board link to pull that company’s openings in.'
+        }
+        footer={
+          <Button variant="primary" onClick={() => setWatchOpen(false)}>
+            Done
+          </Button>
+        }
+      >
+        <Box
+          as="form"
+          onSubmit={onWatch}
+          sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end' }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+            <HdsInput
+              size="sm"
+              label="Company board link"
+              placeholder="jobs.ashbyhq.com/company"
+              value={watchUrl}
+              onChange={(e) => setWatchUrl(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </Box>
+          <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
+            Watch
+          </Button>
+        </Box>
+        {watchError && (
+          <Text
+            variant="caption"
+            as="span"
+            role="alert"
+            style={{ color: 'var(--semantic-color-feedback-error)' }}
+          >
+            {watchError}
+          </Text>
+        )}
+      </Sheet>
+    </Stack>
   );
 }
 
@@ -340,69 +369,66 @@ function PostingRow({
     SOURCE_LABEL[p.source],
   ].filter(Boolean);
   return (
-    <Box
-      as="li"
-      sx={{
-        py: 3,
-        borderBottom: 'thin solid',
-        borderColor: 'border.default',
-        display: 'flex',
-        gap: 3,
-        alignItems: 'flex-start',
-      }}
-    >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Text variant="ui" as="h3" style={{ overflowWrap: 'anywhere' }}>
-          <InlineLink href={p.url} externalIcon={false}>
-            {p.title}
-          </InlineLink>
-        </Text>
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginTop: 'calc(var(--primitive-space-1) * 0.5)',
-            overflowWrap: 'anywhere',
-          }}
-        >
-          {meta.join(' · ')}
-        </Text>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
-          {p.signals.map((s) => (
-            <HdsTooltip key={s.id}>
-              <HdsTooltip.Trigger asChild>
-                <span tabIndex={0}>
-                  <Badge tone={s.id === 'contract' ? 'success' : 'info'}>{s.label}</Badge>
-                </span>
-              </HdsTooltip.Trigger>
-              <HdsTooltip.Content>Says “{s.evidence}”</HdsTooltip.Content>
-            </HdsTooltip>
-          ))}
-          <Badge tone="neutral">{p.hit === 'title' ? 'In title' : 'In description'}</Badge>
-        </Box>
-        {p.snippet && (
+    <li>
+      <Card bordered padding="none">
+        <Stack gap="tight" style={{ padding: 'var(--semantic-space-scale-xs)' }}>
+          <Box sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-start' }}>
+            <Text
+              variant="ui"
+              as="h3"
+              style={{ flex: 1, minWidth: 0, fontWeight: 600, overflowWrap: 'anywhere' }}
+            >
+              <InlineLink href={p.url} externalIcon={false}>
+                {p.title}
+              </InlineLink>
+            </Text>
+            <Button
+              size="sm"
+              variant={saved ? 'tertiary' : 'secondary'}
+              disabled={saved}
+              onClick={onSave}
+              aria-label={saved ? 'Saved' : 'Save'}
+            >
+              {saved ? 'Saved' : 'Save'}
+            </Button>
+          </Box>
           <Text
-            variant="ui"
-            style={{
-              color: 'var(--semantic-color-content-secondary)',
-              marginTop: 'calc(var(--primitive-space-1) * 1.5)',
-              overflowWrap: 'anywhere',
-            }}
+            variant="caption"
+            as="span"
+            style={{ color: 'var(--semantic-color-content-secondary)', overflowWrap: 'anywhere' }}
           >
-            {p.snippet}
+            {meta.join(' — ')}
           </Text>
-        )}
-      </Box>
-      <Button
-        size="sm"
-        variant={saved ? 'tertiary' : 'secondary'}
-        disabled={saved}
-        onClick={onSave}
-      >
-        {saved ? 'Saved' : 'Save'}
-      </Button>
-    </Box>
+          {p.snippet && (
+            <Text
+              variant="ui"
+              style={{
+                color: 'var(--semantic-color-content-secondary)',
+                overflowWrap: 'anywhere',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}
+            >
+              {p.snippet}
+            </Text>
+          )}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs' }}>
+            {p.signals.map((s) => (
+              <HdsTooltip key={s.id}>
+                <HdsTooltip.Trigger asChild>
+                  <span tabIndex={0}>
+                    <Badge tone={s.id === 'contract' ? 'success' : 'info'}>{s.label}</Badge>
+                  </span>
+                </HdsTooltip.Trigger>
+                <HdsTooltip.Content>Says “{s.evidence}”</HdsTooltip.Content>
+              </HdsTooltip>
+            ))}
+            <Badge tone="neutral">{p.hit === 'title' ? 'In title' : 'In description'}</Badge>
+          </Box>
+        </Stack>
+      </Card>
+    </li>
   );
 }

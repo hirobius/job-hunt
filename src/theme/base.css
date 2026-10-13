@@ -16,6 +16,10 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  /* HDS's styles.css sets `html, body { overflow-x: hidden }`, which turns <body> into a scroll
+     container that never scrolls — so `position: sticky` (Onboarding's Start bar) never sticks to
+     the viewport. `clip` keeps the horizontal clipping without creating a scroll container. */
+  overflow-x: clip;
   background: var(--semantic-color-surface-page);
   color: var(--semantic-color-content-primary);
   /* HDS body role — the typeface itself comes from @hirobius/design-system/fonts.css. */
@@ -118,4 +122,17 @@ li:last-child > .app-sheet-item.app-sheet-item {
 .app-sheet-item.app-sheet-item {
   border-bottom: thin solid var(--semantic-color-border-subtle);
   padding-inline: var(--semantic-space-scale-xs);
+}
+
+/* Sheet action row that stays pinned to the bottom edge while a tall sheet scrolls (Manage track). */
+.app-sheet-foot {
+  position: sticky;
+  bottom: calc(-1 * var(--semantic-space-scale-sm));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--semantic-space-scale-xs);
+  padding-block: var(--semantic-space-scale-xs);
+  background: var(--semantic-color-surface-raised);
+  border-top: thin solid var(--semantic-color-border-subtle);
 }

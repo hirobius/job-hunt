@@ -1,13 +1,11 @@
 import {
   Badge,
   Button,
-  Card as HdsCard,
   Tooltip as HdsTooltip,
   useToast,
   Icon,
   Box,
   Text,
-  Grid,
   InlineLink,
 } from '@hirobius/design-system';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
@@ -17,13 +15,13 @@ import type { Tile } from './jobsData';
 
 // Tile kind, derived from the URL (issue #12): aggregator queries are "Search", Google
 // fallback leads are "Lead" (verify before relying), everything else is a direct
-// employer/program page and gets no badge — absence of a badge = the strongest kind.
-const kindOf = (url: string): { label: string; tone: 'info' | 'warning' } | null =>
+// employer/program page.
+const kindOf = (url: string): { label: string; tone: 'info' | 'warning' | 'neutral' } =>
   /google\.com\/search/.test(url)
     ? { label: 'Lead', tone: 'warning' }
     : /(indeed|ziprecruiter|linkedin|snagajob|usajobs|worksourcewa)\./.test(url)
       ? { label: 'Search', tone: 'info' }
-      : null;
+      : { label: 'Direct', tone: 'neutral' };
 
 // First phone number in the meta becomes tap-to-call (issue #12).
 const PHONE = /\b(\d{3}-\d{3}-\d{4})\b/;
@@ -39,19 +37,21 @@ function metaWithTel(meta: string) {
   );
 }
 
-/** Shared grid of link tiles with an Open + Save-to-queue action. Used by Discover and
- *  Apprenticeships. Saving floats the tile in its group (issue #13 — pin is retired);
- *  with `triage`, each tile gets a set-aside control. */
+/** Compact link rows (v1): name + kind Badge + a one-line description, with Open + Save-to-queue.
+ *  Used by Discover's Links and Search views. Saving floats the tile in its group (issue #13);
+ *  with `triage`, each row gets a set-aside control. The file keeps its old name for call sites. */
 export default function TileGrid({
   tiles,
   cta = 'Open',
   triage = false,
   onRemove,
+  label = 'Links',
 }: {
   tiles: Tile[];
   cta?: string;
   triage?: boolean;
   onRemove?: (url: string) => void;
+  label?: string;
 }) {
   useJobs(); // re-render on save
   const { dismissed } = useTileTriage();
@@ -65,109 +65,102 @@ export default function TileGrid({
     }
   };
   return (
-    <Grid layout="auto-fill" minItemWidth="160px" gap="medium">
+    <Box as="ul" aria-label={label} sx={{ listStyle: 'none', m: 0, p: 0 }}>
       {tiles.map((t) => {
         const saved = isSaved(t.url);
         const isAside = dismissedSet.has(t.url);
+        const kind = kindOf(t.url);
         return (
-          <HdsCard
+          <Box
+            as="li"
             key={t.url + t.name}
-            bordered
-            padding="none"
-            style={{
-              height: '100%',
+            sx={{
               display: 'flex',
-              flexDirection: 'column',
+              flexDirection: 'row',
+              gap: 'xs',
+              alignItems: 'center',
+              py: 'xs',
+              borderBottom: 'thin solid',
+              borderColor: 'border.subtle',
               opacity: isAside ? 0.6 : 1,
             }}
           >
-            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
-              <Text
-                variant="body"
-                style={{ fontWeight: 600, lineHeight: 1.2, overflowWrap: 'anywhere' }}
-              >
-                {t.name}
-              </Text>
-              <Text
-                variant="caption"
-                as="span"
-                style={{
-                  color: 'var(--semantic-color-content-secondary)',
-                  marginTop: 'calc(var(--primitive-space-1) * 0.5)',
-                  marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
-                  flex: 1,
-                }}
-              >
-                {metaWithTel(t.meta)}
-              </Text>
-              {kindOf(t.url) && (
-                <Box sx={{ mb: 1.5 }}>
-                  <Badge tone={kindOf(t.url)!.tone}>{kindOf(t.url)!.label}</Badge>
-                </Box>
-              )}
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  gap: 1,
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  mt: 'auto',
-                }}
-              >
-                <Button size="sm" variant="tertiary" asChild>
-                  <a href={t.url} target="_blank" rel="noopener noreferrer">
-                    {cta}
-                  </a>
-                </Button>
-                <Button
-                  size="sm"
-                  variant={saved ? 'tertiary' : 'secondary'}
-                  disabled={saved}
-                  onClick={() => save(t)}
-                >
-                  {saved ? 'Saved' : 'Save'}
-                </Button>
-                {(triage || onRemove) && (
-                  <Box sx={{ display: 'flex', flexDirection: 'row', gap: 0, ml: 'auto' }}>
-                    {triage && (
-                      <HdsTooltip>
-                        <HdsTooltip.Trigger asChild>
-                          <Button
-                            size="sm"
-                            variant="tertiary"
-                            iconOnly
-                            iconLeft={<Icon icon={isAside ? ArchiveRestore : Archive} />}
-                            onClick={() => toggleDismiss(t.url)}
-                            label={isAside ? 'Restore tile' : 'Set tile aside'}
-                          />
-                        </HdsTooltip.Trigger>
-                        <HdsTooltip.Content>{isAside ? 'Restore' : 'Set aside'}</HdsTooltip.Content>
-                      </HdsTooltip>
-                    )}
-                    {onRemove && (
-                      <HdsTooltip>
-                        <HdsTooltip.Trigger asChild>
-                          <Button
-                            size="sm"
-                            variant="tertiary"
-                            tone="danger"
-                            iconOnly
-                            iconLeft={<Icon icon={Trash2} />}
-                            onClick={() => onRemove(t.url)}
-                            label="Remove tile"
-                          />
-                        </HdsTooltip.Trigger>
-                        <HdsTooltip.Content>Remove</HdsTooltip.Content>
-                      </HdsTooltip>
-                    )}
-                  </Box>
-                )}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'center' }}>
+                <Text variant="ui" as="span" style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
+                  {t.name}
+                </Text>
+                <Badge tone={kind.tone}>{kind.label}</Badge>
               </Box>
+              {t.meta ? (
+                <Text
+                  variant="caption"
+                  as="span"
+                  style={{
+                    color: 'var(--semantic-color-content-secondary)',
+                    display: 'block',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {metaWithTel(t.meta)}
+                </Text>
+              ) : null}
             </Box>
-          </HdsCard>
+            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'center' }}>
+              <Button size="sm" variant="tertiary" asChild>
+                <a
+                  href={t.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${cta} ${t.name}`}
+                >
+                  {cta}
+                </a>
+              </Button>
+              <Button
+                size="sm"
+                variant={saved ? 'tertiary' : 'secondary'}
+                disabled={saved}
+                onClick={() => save(t)}
+                aria-label={saved ? `${t.name} saved` : `Save ${t.name}`}
+              >
+                {saved ? 'Saved' : 'Save'}
+              </Button>
+              {triage && (
+                <HdsTooltip>
+                  <HdsTooltip.Trigger asChild>
+                    <Button
+                      size="sm"
+                      variant="tertiary"
+                      iconOnly
+                      iconLeft={<Icon icon={isAside ? ArchiveRestore : Archive} />}
+                      onClick={() => toggleDismiss(t.url)}
+                      label={isAside ? 'Restore link' : 'Set link aside'}
+                    />
+                  </HdsTooltip.Trigger>
+                  <HdsTooltip.Content>{isAside ? 'Restore' : 'Set aside'}</HdsTooltip.Content>
+                </HdsTooltip>
+              )}
+              {onRemove && (
+                <HdsTooltip>
+                  <HdsTooltip.Trigger asChild>
+                    <Button
+                      size="sm"
+                      variant="tertiary"
+                      tone="danger"
+                      iconOnly
+                      iconLeft={<Icon icon={Trash2} />}
+                      onClick={() => onRemove(t.url)}
+                      label="Remove link"
+                    />
+                  </HdsTooltip.Trigger>
+                  <HdsTooltip.Content>Remove</HdsTooltip.Content>
+                </HdsTooltip>
+              )}
+            </Box>
+          </Box>
         );
       })}
-    </Grid>
+    </Box>
   );
 }

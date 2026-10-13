@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import { Button, Input as HdsInput, Spinner, Card, Stack, Text } from '@hirobius/design-system';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import { useCurationSyncStatus } from './curation/syncStatus';
+import { addCategory } from './curation/curationStore';
 
 // First-run onboarding (issue #59 / B1, decision D1): an empty curation store routes here before
 // Discover renders. Pick one or more starter packs + an optional location → seed them into the
@@ -23,11 +24,21 @@ export function Onboarding() {
       seedPack(id, location, id === 'blank' ? { titles: [firstTitle.trim()] } : undefined),
     );
 
+  // Skip: an empty "My track" so Discover opens (its empty states teach the next step) instead of
+  // looping back here — an empty curation store is what routes to onboarding.
+  const skip = () => addCategory({ label: 'My track', location: location.trim() });
+
   // A signed-in pull may be about to restore this user's tracks — don't offer to re-onboard
   // over it (that wrote duplicate tracks). The status always settles within a few seconds.
   if (syncStatus === 'syncing')
     return (
-      <Stack direction="row" gap="normal" align="center" justify="center" style={{ padding: 'var(--primitive-space-12)' }}>
+      <Stack
+        direction="row"
+        gap="normal"
+        align="center"
+        justify="center"
+        style={{ padding: 'var(--primitive-space-12)' }}
+      >
         <Spinner size="sm" />
         <Text variant="body">Restoring your tracks…</Text>
       </Stack>
@@ -141,23 +152,50 @@ export function Onboarding() {
           value={location}
           onChange={(e) => setLocation(e.target.value)}
         />
-        <Button
-          variant="primary"
+        {/* Sticky: stays at the bottom of the viewport while the pack list scrolls. */}
+        <div
+          data-testid="onboarding-footer"
           style={{
-            width: '100%',
-            // HDS's disabled text (neutral-600 on near-black) is ~2.4:1; lift it to the secondary
-            // content token (AA) while the muted fill still reads as disabled.
-            color: ready ? undefined : 'var(--semantic-color-content-secondary)',
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 1,
+            background: 'var(--semantic-color-surface-page)',
+            borderTop: 'thin solid var(--semantic-color-border-subtle)',
+            paddingBlock: 'var(--semantic-space-scale-xs)',
           }}
-          disabled={!ready}
-          onClick={start}
         >
-          {!picked.length
-            ? 'Pick a track'
-            : !ready
-              ? 'Add a first job title'
-              : `Start with ${picked.length} track${picked.length > 1 ? 's' : ''}`}
-        </Button>
+          <Stack gap="tight">
+            {!picked.length && (
+              <Text
+                variant="caption"
+                as="span"
+                style={{ color: 'var(--semantic-color-content-secondary)' }}
+              >
+                Pick at least 1 track
+              </Text>
+            )}
+            <Button
+              variant="primary"
+              style={{
+                width: '100%',
+                // HDS's disabled text (neutral-600 on near-black) is ~2.4:1; lift it to the
+                // secondary content token (AA) while the muted fill still reads as disabled.
+                color: ready ? undefined : 'var(--semantic-color-content-secondary)',
+              }}
+              disabled={!ready}
+              onClick={start}
+            >
+              {!picked.length
+                ? 'Start searching'
+                : !ready
+                  ? 'Add a first job title'
+                  : `Start with ${picked.length} track${picked.length > 1 ? 's' : ''}`}
+            </Button>
+            <Button variant="tertiary" style={{ width: '100%' }} onClick={skip}>
+              Skip for now
+            </Button>
+          </Stack>
+        </div>
       </Stack>
     </div>
   );

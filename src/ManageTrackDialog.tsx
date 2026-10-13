@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import {
   Button,
-  Dialog,
+  Disclosure,
   Input as HdsInput,
   SegmentedControl,
   Tag,
   Icon,
   Box,
+  Stack,
   Text,
-  Switcher,
 } from '@hirobius/design-system';
+import { Sheet } from './Sheet';
 import { Trash2, X } from 'lucide-react';
 import {
   updateCategory,
@@ -29,7 +30,7 @@ import type { Seniority } from './curation/types';
 // and add/remove its sections (groups) and links (tiles) — all through the curation store, which
 // persists locally and syncs. Replaces the old read-only hardcoded-pillar "Manage trades" dialog.
 
-// A comma/enter-separated chip editor for a string[] field on the category.
+// A chip editor for a string[] field on the category: removable chips + an add-term input.
 function ChipEditor({
   label,
   values,
@@ -46,21 +47,22 @@ function ChipEditor({
     setDraft('');
   };
   return (
-    <Box>
+    <Stack gap="tight">
       <Text
         variant="caption"
         as="span"
-        style={{
-          color: 'var(--semantic-color-content-secondary)',
-          display: 'block',
-          marginBottom: 'var(--primitive-space-1)',
-        }}
+        style={{ color: 'var(--semantic-color-content-secondary)' }}
       >
         {label}
       </Text>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs' }}>
         {values.map((v) => (
-          <Tag key={v} active onClick={() => onChange(values.filter((x) => x !== v))}>
+          <Tag
+            key={v}
+            active
+            aria-label={`Remove ${v}`}
+            onClick={() => onChange(values.filter((x) => x !== v))}
+          >
             {v} ✕
           </Tag>
         ))}
@@ -74,21 +76,28 @@ function ChipEditor({
           </Text>
         )}
       </Box>
-      <HdsInput
-        size="sm"
-        aria-label={`Add ${label}`}
-        placeholder={`Add ${label.toLowerCase()}…`}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            add();
-          }
-        }}
-        style={{ maxWidth: 260 }}
-      />
-    </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', alignItems: 'flex-end' }}>
+        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+          <HdsInput
+            size="sm"
+            aria-label={`Add ${label.toLowerCase()}`}
+            placeholder="Add a term…"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                add();
+              }
+            }}
+            style={{ width: '100%' }}
+          />
+        </Box>
+        <Button variant="secondary" size="sm" onClick={add} disabled={!draft.trim()}>
+          Add
+        </Button>
+      </Box>
+    </Stack>
   );
 }
 
@@ -199,141 +208,104 @@ export default function ManageTrackDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <Dialog.Content
-        style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
-          <Dialog.Header>
-            <Dialog.Title>Manage track</Dialog.Title>
-          </Dialog.Header>
-          <div
-            style={{
-              overflowY: 'auto',
-              padding: '16px 4px',
-              borderTop: '1px solid var(--semantic-color-border-default)',
-              borderBottom: '1px solid var(--semantic-color-border-default)',
-              margin: '8px 0',
-            }}
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()} title="Manage track">
+      <Stack gap="normal">
+        <HdsInput
+          size="sm"
+          label="Track name"
+          value={cat.label}
+          onChange={(e) => updateCategory(cat.id, { label: e.target.value })}
+          style={{ width: '100%' }}
+        />
+        <HdsInput
+          size="sm"
+          label="Location"
+          placeholder="City or State — leave blank for anywhere"
+          value={cat.location}
+          onChange={(e) => updateCategory(cat.id, { location: e.target.value })}
+          style={{ width: '100%' }}
+        />
+        <Stack gap="tight">
+          <Text
+            variant="caption"
+            as="span"
+            style={{ color: 'var(--semantic-color-content-secondary)' }}
           >
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
-              <Box sx={{ '& > *': { width: '100%' } }}>
-                <HdsInput
-                  size="sm"
-                  label="Track name"
-                  value={cat.label}
-                  onChange={(e) => updateCategory(cat.id, { label: e.target.value })}
-                  style={{ width: '100%' }}
-                />
-              </Box>
-              <Switcher gap="tight">
-                <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-                  <HdsInput
-                    size="sm"
-                    label="Location"
-                    value={cat.location}
-                    onChange={(e) => updateCategory(cat.id, { location: e.target.value })}
-                    style={{ width: '100%' }}
-                  />
-                </Box>
-                <Box>
-                  <Text
-                    variant="caption"
-                    as="span"
-                    style={{
-                      color: 'var(--semantic-color-content-secondary)',
-                      display: 'block',
-                      marginBottom: 'var(--primitive-space-1)',
-                    }}
-                  >
-                    Seniority
-                  </Text>
-                  <SegmentedControl
-                    aria-label="Seniority"
-                    size="sm"
-                    value={cat.seniority}
-                    onChange={(v) => updateCategory(cat.id, { seniority: v as Seniority })}
-                    options={[
-                      { value: 'any', label: 'Any' },
-                      { value: 'entry', label: 'Entry' },
-                      { value: 'experienced', label: 'Exp.' },
-                    ]}
-                  />
-                </Box>
-              </Switcher>
-              <ChipEditor
-                label="Title-search terms"
-                values={cat.titles}
-                onChange={(next) => updateCategory(cat.id, { titles: next })}
-              />
-              <ChipEditor
-                label="ATS role terms"
-                values={cat.atsRoles}
-                onChange={(next) => updateCategory(cat.id, { atsRoles: next })}
-              />
-
-              <Box sx={{ borderTop: 'thin solid', borderColor: 'border.default', pt: 3 }}>
-                <Text
-                  variant="body"
-                  style={{ fontWeight: 600, marginBottom: 'var(--semantic-space-scale-xs)' }}
+            Seniority
+          </Text>
+          <SegmentedControl
+            aria-label="Seniority"
+            size="sm"
+            fullWidth
+            value={cat.seniority}
+            onChange={(v) => updateCategory(cat.id, { seniority: v as Seniority })}
+            options={[
+              { value: 'any', label: 'Any' },
+              { value: 'entry', label: 'Entry' },
+              { value: 'experienced', label: 'Experienced' },
+            ]}
+          />
+        </Stack>
+        <ChipEditor
+          label="Title search terms"
+          values={cat.titles}
+          onChange={(next) => updateCategory(cat.id, { titles: next })}
+        />
+        <Disclosure label="Company-board role terms">
+          <ChipEditor
+            label="Company-board role terms"
+            values={cat.atsRoles}
+            onChange={(next) => updateCategory(cat.id, { atsRoles: next })}
+          />
+        </Disclosure>
+        <Disclosure label={`Sections & links (${groups.length})`}>
+          <Stack gap="normal">
+            {groups.map((g) => (
+              <Stack gap="tight" key={g.id}>
+                <Box
+                  sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', alignItems: 'center' }}
                 >
-                  Sections & links
-                </Text>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                  {groups.map((g) => (
-                    <Box key={g.id}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'row',
-                          gap: 1,
-                          alignItems: 'center',
-                          mb: 1,
-                        }}
-                      >
-                        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-                          <HdsInput
-                            size="sm"
-                            aria-label="Section name"
-                            value={g.label}
-                            onChange={(e) => updateGroup(g.id, { label: e.target.value })}
-                            style={{ width: '100%' }}
-                          />
-                        </Box>
-                        <Button
-                          size="sm"
-                          variant="tertiary"
-                          tone="danger"
-                          iconOnly
-                          iconLeft={<Icon icon={Trash2} />}
-                          label={`Delete ${g.label} section`}
-                          onClick={() => removeGroup(g.id)}
-                        />
-                      </Box>
-                      <GroupEditor groupId={g.id} />
-                    </Box>
-                  ))}
+                  <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+                    <HdsInput
+                      size="sm"
+                      aria-label="Section name"
+                      value={g.label}
+                      onChange={(e) => updateGroup(g.id, { label: e.target.value })}
+                      style={{ width: '100%' }}
+                    />
+                  </Box>
                   <Button
-                    variant="tertiary"
                     size="sm"
-                    onClick={() => addGroup(cat.id, { label: 'New section' })}
-                  >
-                    ＋ Add section
-                  </Button>
+                    variant="tertiary"
+                    tone="danger"
+                    iconOnly
+                    iconLeft={<Icon icon={Trash2} />}
+                    label={`Delete ${g.label} section`}
+                    onClick={() => removeGroup(g.id)}
+                  />
                 </Box>
-              </Box>
-            </Box>
-          </div>
-          <Dialog.Footer>
-            <Button variant="tertiary" tone="danger" onClick={del}>
-              Delete track
+                <GroupEditor groupId={g.id} />
+              </Stack>
+            ))}
+            <Button
+              variant="tertiary"
+              size="sm"
+              onClick={() => addGroup(cat.id, { label: 'New section' })}
+            >
+              ＋ Add section
             </Button>
-            <Button variant="primary" onClick={onClose}>
-              Done
-            </Button>
-          </Dialog.Footer>
+          </Stack>
+        </Disclosure>
+        {/* Pinned to the sheet's bottom edge so Done / Delete stay reachable while it scrolls. */}
+        <div className="app-sheet-foot">
+          <Button variant="tertiary" tone="danger" onClick={del}>
+            Delete track
+          </Button>
+          <Button variant="primary" onClick={onClose}>
+            Done
+          </Button>
         </div>
-      </Dialog.Content>
-    </Dialog>
+      </Stack>
+    </Sheet>
   );
 }
