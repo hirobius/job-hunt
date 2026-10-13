@@ -36,12 +36,18 @@ export const TRADES_PACK: PackContent = {
 // technologist titles come from Adrian's 2026-10 search (AI-ready tokens + MCP angle).
 const DESIGN_SYSTEMS_TITLES = [
   'Design Systems Engineer',
+  'Design Systems Lead',
   'Design Technologist',
   'Design System Technologist',
   'Design Systems Designer',
   'Design Systems Architect',
   'Token Architect',
   'Design Engineer',
+  'Staff Design Engineer',
+  'Design Systems Manager',
+  'UI Platform Engineer',
+  'Frontend Platform Engineer',
+  'Design Infrastructure Engineer',
   'UI Engineer',
   'Component Library Engineer',
   'Frontend Engineer',
@@ -50,11 +56,15 @@ const DESIGN_SYSTEMS_TITLES = [
 ];
 const DESIGN_SYSTEMS_ATS_ROLES = [
   'design systems',
+  'design systems lead',
   'design system technologist',
   'design technologist',
   'design tokens',
   'token architect',
   'design engineer',
+  'UI platform',
+  'design infrastructure',
+  'component library',
   'frontend engineer',
   'UI engineer',
 ];
