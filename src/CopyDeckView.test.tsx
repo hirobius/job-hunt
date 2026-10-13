@@ -6,13 +6,20 @@ import CopyDeckView from './CopyDeckView';
 import { getSnippets, replaceSnippets } from './copyDeckStore';
 
 const row = (name: string) => screen.getByRole('listitem', { name });
-const openMenu = async (u: ReturnType<typeof userEvent.setup>, name: string) => {
-  await u.click(within(row(name)).getByRole('button', { name: 'More actions' }));
+type U = ReturnType<typeof userEvent.setup>;
+const openMenu = async (u: U, name: string) => {
+  await u.click(within(row(name)).getByRole('button', { name: `Actions for ${name}` }));
 };
+const sheet = () => screen.getByRole('dialog');
 
 beforeEach(() => {
+  window.location.hash = '#/copy-deck';
   replaceSnippets([
-    { id: 'a', label: 'Alpha note', body: 'Hello [Contact], first line of alpha.' },
+    {
+      id: 'a',
+      label: 'Alpha note',
+      body: 'Hello [Contact], first line of alpha for [Company] and [Contact].',
+    },
     { id: 'b', label: 'Beta note', body: 'Beta body text', pinned: true },
   ]);
   render(
@@ -26,72 +33,140 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('CopyDeckView rows', () => {
-  it('has a Templates heading, a New snippet button and a list of rows with previews', () => {
+describe('rows', () => {
+  it('has a Templates heading, New template, a Pinned label and pinned-first rows', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Templates' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'New snippet' })).toBeInTheDocument();
-    expect(screen.getAllByRole('listitem')).toHaveLength(2);
-    expect(screen.getByText('Beta body text')).toBeInTheDocument();
-    // pinned first
+    expect(screen.getByRole('button', { name: 'New template' })).toBeInTheDocument();
+    expect(screen.getByText('Pinned')).toBeInTheDocument();
     expect(screen.getAllByRole('listitem')[0]).toHaveAccessibleName('Beta note');
+    expect(screen.getByText('Beta body text')).toBeInTheDocument();
   });
 
-  it('shows one visible action (Copy) and keeps the rest in the menu', () => {
+  it('shows each distinct [Token] in the body once as a chip', () => {
+    const chips = within(row('Alpha note'))
+      .getAllByTestId('token-chip')
+      .map((c) => c.textContent);
+    expect(chips).toEqual(['[Contact]', '[Company]']);
+    expect(within(row('Beta note')).queryAllByTestId('token-chip')).toHaveLength(0);
+  });
+
+  it('keeps Preview and Copy visible and the rest behind the menu', () => {
     const r = row('Alpha note');
+    expect(within(r).getByRole('button', { name: 'Preview' })).toBeInTheDocument();
     expect(within(r).getByRole('button', { name: 'Copy' })).toBeInTheDocument();
     expect(within(r).queryByRole('button', { name: 'Delete' })).toBeNull();
-    expect(within(r).queryByRole('button', { name: 'Duplicate' })).toBeNull();
   });
 
-  it('copies to the clipboard and says Copied', async () => {
+  it('copies the raw template and says Copied', async () => {
     const u = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
-    await u.click(within(row('Alpha note')).getByRole('button', { name: 'Copy' }));
-    expect(writeText).toHaveBeenCalledWith('Hello [Contact], first line of alpha.');
-    expect(await within(row('Alpha note')).findByRole('button', { name: 'Copied' })).toBeVisible();
+    await u.click(within(row('Beta note')).getByRole('button', { name: 'Copy' }));
+    expect(writeText).toHaveBeenCalledWith('Beta body text');
+    expect(await within(row('Beta note')).findByRole('button', { name: 'Copied' })).toBeVisible();
   });
 
-  it('menu: Edit reveals the label and text editors, Hide closes them', async () => {
+  it('Preview opens a sheet with the full body and Copy', async () => {
+    const u = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    await u.click(within(row('Alpha note')).getByRole('button', { name: 'Preview' }));
+    expect(within(sheet()).getByText(/first line of alpha for \[Company\]/)).toBeInTheDocument();
+    await u.click(within(sheet()).getByRole('button', { name: 'Copy' }));
+    expect(writeText).toHaveBeenCalled();
+  });
+});
+
+describe('menu sheet', () => {
+  it('lists the actions in order with Delete last', async () => {
     const u = userEvent.setup();
     await openMenu(u, 'Alpha note');
-    await u.click(screen.getByRole('menuitem', { name: 'Edit' }));
-    expect(getSnippets().find((s) => s.id === 'a')?.open).toBe(true);
-    const text = within(row('Alpha note')).getByLabelText('Snippet text');
-    await u.type(text, '!');
-    expect(getSnippets().find((s) => s.id === 'a')?.body).toMatch(/alpha\.!$/);
-    await openMenu(u, 'Alpha note');
-    await u.click(screen.getByRole('menuitem', { name: 'Hide' }));
-    expect(within(row('Alpha note')).queryByLabelText('Snippet text')).toBeNull();
+    expect(within(sheet()).getByText('Alpha note')).toBeInTheDocument();
+    const labels = within(sheet())
+      .getAllByRole('listitem')
+      .map((li) => li.textContent);
+    expect(labels).toEqual(['Copy', 'Use with a job…', 'Edit', 'Pin', 'Duplicate', 'Delete']);
   });
 
-  it('menu: Pin and Unpin', async () => {
+  it('Pin and Unpin', async () => {
     const u = userEvent.setup();
     await openMenu(u, 'Alpha note');
-    await u.click(screen.getByRole('menuitem', { name: 'Pin' }));
+    await u.click(within(sheet()).getByRole('button', { name: 'Pin' }));
     expect(getSnippets().find((s) => s.id === 'a')?.pinned).toBe(true);
     await openMenu(u, 'Beta note');
-    expect(screen.getByRole('menuitem', { name: 'Unpin' })).toBeInTheDocument();
+    expect(within(sheet()).getByRole('button', { name: 'Unpin' })).toBeInTheDocument();
   });
 
-  it('menu: Duplicate adds a snippet', async () => {
+  it('Duplicate adds a template', async () => {
     const u = userEvent.setup();
     await openMenu(u, 'Alpha note');
-    await u.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
+    await u.click(within(sheet()).getByRole('button', { name: 'Duplicate' }));
     expect(getSnippets()).toHaveLength(3);
   });
 
-  it('menu: Delete is last, confirms, and removes', async () => {
+  it('Use with a job goes to the Tracker and toasts', async () => {
+    const u = userEvent.setup();
+    await openMenu(u, 'Alpha note');
+    await u.click(within(sheet()).getByRole('button', { name: 'Use with a job…' }));
+    expect(window.location.hash).toBe('#/queue');
+    expect(await screen.findByText('Open a job, then tap Use a template')).toBeInTheDocument();
+  });
+
+  it('Delete confirms, then removes', async () => {
     const u = userEvent.setup();
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     await openMenu(u, 'Alpha note');
-    const items = screen.getAllByRole('menuitem').map((i) => i.textContent);
-    expect(items[items.length - 1]).toBe('Delete');
-    await u.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    await u.click(within(sheet()).getByRole('button', { name: 'Delete' }));
     expect(confirm).toHaveBeenCalled();
     expect(getSnippets()).toHaveLength(2);
     confirm.mockReturnValue(true);
     await openMenu(u, 'Alpha note');
-    await u.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    await u.click(within(sheet()).getByRole('button', { name: 'Delete' }));
     expect(getSnippets().map((s) => s.id)).toEqual(['b']);
+  });
+});
+
+describe('edit sheet', () => {
+  const openEdit = async (u: U) => {
+    await openMenu(u, 'Alpha note');
+    await u.click(within(sheet()).getByRole('button', { name: 'Edit' }));
+  };
+
+  it('applies edits only on Save', async () => {
+    const u = userEvent.setup();
+    await openEdit(u);
+    const name = within(sheet()).getByLabelText('Name');
+    await u.clear(name);
+    await u.type(name, 'Renamed');
+    await u.click(within(sheet()).getByRole('button', { name: 'Cancel' }));
+    expect(getSnippets().find((s) => s.id === 'a')?.label).toBe('Alpha note');
+    await openEdit(u);
+    const name2 = within(sheet()).getByLabelText('Name');
+    await u.clear(name2);
+    await u.type(name2, 'Renamed');
+    await u.click(within(sheet()).getByRole('button', { name: 'Save' }));
+    expect(getSnippets().find((s) => s.id === 'a')?.label).toBe('Renamed');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('inserts a token at the cursor of the body', async () => {
+    const u = userEvent.setup();
+    await openEdit(u);
+    const body = within(sheet()).getByLabelText('Body') as HTMLTextAreaElement;
+    body.focus();
+    body.setSelectionRange(5, 5);
+    await u.click(within(sheet()).getByRole('button', { name: '[Your name]' }));
+    expect(body.value.startsWith('Hello[Your name] [Contact]')).toBe(true);
+    await u.click(within(sheet()).getByRole('button', { name: 'Save' }));
+    expect(
+      getSnippets()
+        .find((s) => s.id === 'a')
+        ?.body.startsWith('Hello[Your name]'),
+    ).toBe(true);
+  });
+
+  it('New template creates one and opens its edit sheet', async () => {
+    const u = userEvent.setup();
+    await u.click(screen.getByRole('button', { name: 'New template' }));
+    expect(getSnippets()).toHaveLength(3);
+    expect(within(sheet()).getByLabelText('Name')).toHaveValue('New template');
   });
 });
