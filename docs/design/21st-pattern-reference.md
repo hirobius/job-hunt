@@ -38,3 +38,26 @@ rebuild it with HDS (`@hirobius/design-system`) + `src/ui` layout primitives.
 1. Before a redesign pass, pick the rows you are closing and say so in the PR body.
 2. Compare screenshots (1280px + 390px) against the rule column, not against taste.
 3. New pattern → add a row with a 21st.dev link and a one-line rule first, then build.
+
+## Review backlog (2026-10-13, `design-review` from HDS + `impeccable` from ops)
+
+Both reviews ranked the same top issue: on phones the rail pushed the job list ~1,500px down.
+Fixed: rail renders after the list below 900px, modules are divided, sample notice is a
+one-line strip above the toolbar, agenda rows are time · title / kind · company capped at 5,
+toolbar is one line (sort + data menu icon-only on phones), phone titles wrap to 2 lines.
+
+Still open, ranked:
+
+1. **Sync banner** (`CloudSync.tsx`, `App.tsx`): 80px desktop / 170px phone above the tabs on every
+   screen. Replace with a header chip "Not synced · Sign in" opening a dialog; keep dismissal.
+2. **Stats** (`PipelineStats.tsx`, P2): six equal tiles. One headline ("Applied 30d" vs prior 30d),
+   the rest as a plain list, tabular figures; "Follow-ups due" becomes the rail header action.
+3. **Casing + type ramp**: ~19 uppercase nodes (badges, stat labels, OVERDUE, job-page eyebrows)
+   and 17 size/weight pairs against a limit of 6. Map text to HDS `Text` variants; sentence case.
+4. **Job page** (`JobDetailPage.tsx`): 14 equal inputs incl. empty optionals. Interviews + notes
+   first; optional fields behind "More details"; real h2s; one primary header action, rest in ⋮.
+5. **Templates** (`CopyDeckView.tsx`): five equal buttons per card, red Delete beside Copy. List
+   with one-line previews, one primary Copy, Pin/Duplicate/Delete in ⋮; add a page title.
+6. **Discover onboarding** (`Onboarding.tsx`): off-centre column, no selected state on track cards,
+   disabled CTA nearly invisible, optional location above the required pick.
+7. **Spacing scale**: use 8px inside groups, 24px between groups, 48px between regions.

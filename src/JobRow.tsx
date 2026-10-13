@@ -151,9 +151,12 @@ export default function JobRow({ job }: { job: Job }) {
                 fontWeight: 600,
                 fontSize: '1rem',
                 lineHeight: 1.3,
-                whiteSpace: 'nowrap',
+                // Phones: wrap to two lines rather than cut the title; wider: one line.
+                display: '-webkit-box',
+                WebkitBoxOrient: 'vertical',
+                WebkitLineClamp: { xs: '2', sm: '1' },
                 overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                overflowWrap: 'anywhere',
                 minWidth: 0,
                 '&:focus-visible': { outline: '2px solid var(--semantic-accent-rest)' },
               }}

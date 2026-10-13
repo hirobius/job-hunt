@@ -1,7 +1,7 @@
 // "Try with sample data" (#107): the empty-Tracker button that loads the fictional pipeline, and
 // the banner that stays up while any sample record exists. Pure HDS + tokens (no src/ui), so it
 // adds nothing to the src/ui retirement (#92) or the brand move (#91).
-import { Button, Callout, Cluster, Text } from '@hirobius/design-system';
+import { Button, Text } from '@hirobius/design-system';
 import type { Job } from '../types';
 import { clearSample, hasCloudSession, loadSample } from './loadSample';
 import { isSample } from './sampleData';
@@ -21,19 +21,30 @@ export function TrySampleButton() {
 export function SampleBanner({ jobs }: { jobs: Job[] }) {
   const n = jobs.filter(isSample).length;
   if (n === 0) return null;
+  // A one-line notice strip (not a striped callout): it says what the data is and offers the
+  // way out, then gets out of the way of the list.
   return (
-    <div style={{ marginBlockEnd: 'var(--semantic-space-component-gap)' }}>
-      <Callout tone="info" role="status" aria-label="Sample data">
-        <Cluster gap="tight" justify="space-between">
-          <Text variant="body" as="span">
-            <strong>Sample data</strong> · {n} fictional {n === 1 ? 'job' : 'jobs'}. Clear removes
-            them, including any edits you made to them.
-          </Text>
-          <Button variant="tertiary" size="sm" onClick={() => clearSample()}>
-            Clear sample data
-          </Button>
-        </Cluster>
-      </Callout>
+    <div
+      role="status"
+      aria-label="Sample data"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 'var(--primitive-space-3)',
+        marginBlockEnd: 'var(--primitive-space-3)',
+        padding: 'var(--primitive-space-2) var(--primitive-space-3)',
+        borderRadius: 8,
+        border: '1px solid var(--semantic-color-border-subtle)',
+        background: 'var(--semantic-color-feedback-bg-info)',
+      }}
+    >
+      <Text variant="ui" as="span">
+        <strong>Sample data</strong> · {n} fictional {n === 1 ? 'job' : 'jobs'}
+      </Text>
+      <Button variant="tertiary" size="sm" onClick={() => clearSample()}>
+        Clear sample data
+      </Button>
     </div>
   );
 }

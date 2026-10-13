@@ -86,8 +86,8 @@ export default function DataTools() {
           stays a single line (search · sort · data) at every width. */}
       <Menu>
         <Menu.Trigger asChild>
-          <Button size="sm" variant="tertiary" iconLeft={<Database size={16} />}>
-            Data
+          <Button size="sm" variant="tertiary" iconLeft={<Database size={16} />} aria-label="Data">
+            <span className="data-label">Data</span>
           </Button>
         </Menu.Trigger>
         <Menu.Content align="end">

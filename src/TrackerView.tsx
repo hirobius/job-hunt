@@ -77,6 +77,7 @@ function TrackerList({ jobs }: { jobs: Job[] }) {
         </Stack>
       </Stack>
 
+      <SampleBanner jobs={jobs} />
       {/* Status chips with live counts (21st.dev filter-chip pattern): Active + All always show; a
           status appears only once a job sits under it, so the row stays short on phones and every
           chip is worth tapping. The row still scrolls sideways if it ever overflows. */}
@@ -113,8 +114,12 @@ function TrackerList({ jobs }: { jobs: Job[] }) {
                 size="sm"
                 iconLeft={<ArrowUpDown size={16} />}
                 style={{ whiteSpace: 'nowrap' }}
+                aria-label={`Sort: ${sortLabel}`}
               >
-                {sortLabel}
+                {/* Icon-only on phones so the search field keeps the width. */}
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  {sortLabel}
+                </Box>
               </UiButton>
             </HdsMenu.Trigger>
             <HdsMenu.Content align="end">
@@ -146,15 +151,17 @@ function TrackerList({ jobs }: { jobs: Job[] }) {
           component="aside"
           aria-label="Pipeline overview"
           sx={{
-            order: { xs: 0, md: 1 },
+            order: { xs: 1, md: 1 },
             position: { md: 'sticky' },
             top: { md: 16 },
             display: 'grid',
-            rowGap: 2,
+            rowGap: 3,
+            // Divide the rail's modules so each reads as its own group (modules that render
+            // nothing leave no stray divider).
+            '& > * + *': { borderTop: '1px solid var(--semantic-color-border-subtle)', pt: 3 },
             minWidth: 0,
           }}
         >
-          <SampleBanner jobs={jobs} />
           <ThisWeek />
           <PipelineStats jobs={jobs} />
           <FunnelSummary jobs={shown} />

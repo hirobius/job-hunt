@@ -35,3 +35,8 @@ a:focus-visible,
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* Tracker toolbar: the data menu is icon-only on phones (its aria-label still says "Data"). */
+@media (max-width: 599px) {
+  .data-label { display: none; }
+}
