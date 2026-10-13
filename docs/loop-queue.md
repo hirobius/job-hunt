@@ -19,17 +19,19 @@ iteration. Stop conditions below.
 
 ### Definition of Done (the verify gate — every code item)
 
-1. `npm run typecheck` clean
-2. `npm run lint` clean
-3. `npm run typecheck:api` clean
-4. `npx vitest run` — all green; **new logic ships with table-driven tests**
-5. `npm run build` succeeds
-6. **UI changes:** headless Chromium (`/opt/pw-browsers/chromium` + `vite preview`) — screenshot at
+1. `npm run verify` green — runs, in order and stopping at the first failure:
+   `npm run typecheck` → `npm run lint` → `npm run test` (vitest) → `npm run build`.
+   **New logic ships with table-driven tests.** Vercel runs this same script as its build
+   command, so a red gate also fails the deploy (#95). Prettier is not part of the gate yet.
+   (The old `typecheck:api` step went away with `api/` — there is no server code left.)
+2. **Flows:** `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`
+   (the env var points Playwright at the pre-installed Chromium; unset = Playwright's own).
+3. **UI changes:** headless Chromium (`/opt/pw-browsers/chromium` + `vite preview`) — screenshot at
    desktop **and** 390px, **click the new controls**, confirm no console errors (ignore the known
    Fontshare-CDN / Supabase proxy 404s)
-7. Commit (descriptive body + the session footer) and push to the branch
+4. Commit (descriptive body + the session footer) and push to the branch
 
-Docs-only items skip 6; run 1–5 to be safe.
+Docs-only items skip 2–3; run 1 to be safe.
 
 ---
 
@@ -130,7 +132,11 @@ queue below assumes this is undecided and excludes those three.
 
 ### R4 — Dependabot + npm-audit CI step _(#47)_ — ✅ DONE
 - [x] `.github/dependabot.yml` — npm + github-actions ecosystems, weekly, grouped minor/patch.
+      _(2026-10: github-actions block dropped — no workflows; HDS minors/majors ignored —
+      they upgrade via the HDS CLI, #89. See #96.)_
 - [x] `npm audit --audit-level=high` step in the `verify` job (currently exits 0 locally).
+      _(That CI job is gone with Actions. Audit is deliberately NOT in `npm run verify`: it needs
+      the registry and would block deploys on advisories outside our control. Run it by hand.)_
 
 ### R5 — Docs refresh: CLAUDE.md + README _(housekeeping)_ — ✅ DONE
 - [x] CLAUDE.md: Discover generators are location/mode-driven (not Spokane); AI fully removed (#54);
