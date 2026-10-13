@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { addEvent, followUpDate, hash, jobIcsEvents, removeEvent, weekAgenda } from './jobEvents';
+import { addEvent, followUpDate, hash, jobIcsEvents, removeEvent } from './jobEvents';
 import type { Job, JobEvent } from './types';
 
 // Wed 2026-10-14 (local). Week = Mon 10-12 … Sun 10-18.
 const WED = new Date(2026, 9, 14, 10, 0);
-const SUN = new Date(2026, 9, 18, 23, 30);
-const MON = new Date(2026, 9, 19, 0, 5);
 
 const job = (over: Partial<Job> = {}): Job => ({
   url: 'https://x.test/a',
@@ -107,64 +105,5 @@ describe('jobIcsEvents', () => {
   it('is empty with nothing upcoming', () => {
     const j2 = job({ status: 'Saved', events: [ev('p', '2026-01-01')] });
     expect(jobIcsEvents(j2, WED)).toEqual([]);
-  });
-});
-
-describe('weekAgenda', () => {
-  it('includes Mon–Sun events and excludes the neighbours', () => {
-    const j = job({
-      events: [
-        ev('sun-before', '2026-10-11'),
-        ev('mon', '2026-10-12', '09:00'),
-        ev('sun', '2026-10-18', '17:00', 'call'),
-        ev('mon-after', '2026-10-19'),
-      ],
-    });
-    const dates = weekAgenda([j], WED)
-      .filter((i) => i.kind !== 'followup')
-      .map((i) => i.date);
-    expect(dates).toEqual(['2026-10-12', '2026-10-18']);
-  });
-
-  it('week edges: Sunday night is still the old week, Monday starts the next', () => {
-    const j = job({ events: [ev('a', '2026-10-18'), ev('b', '2026-10-19')] });
-    const pick = (now: Date) =>
-      weekAgenda([j], now)
-        .filter((i) => i.kind !== 'followup')
-        .map((i) => i.date);
-    expect(pick(SUN)).toEqual(['2026-10-18']);
-    expect(pick(MON)).toEqual(['2026-10-19']);
-  });
-
-  it('puts overdue follow-ups on today with overdue: true', () => {
-    expect(weekAgenda([job({ applied: '2026-09-20' })], WED)).toEqual([
-      expect.objectContaining({ kind: 'followup', date: '2026-10-14', overdue: true }),
-    ]);
-  });
-
-  it('shows a follow-up falling due later this week on its date, not overdue', () => {
-    const [it] = weekAgenda([job({ applied: '2026-10-11' })], new Date(2026, 9, 13));
-    expect(it).toMatchObject({ kind: 'followup', date: '2026-10-18' });
-    expect(it.overdue).toBeUndefined();
-  });
-
-  it('omits follow-ups due next week', () => {
-    expect(weekAgenda([job({ applied: '2026-10-14' })], WED)).toEqual([]);
-  });
-
-  it('excludes archived jobs and sorts all-day first, then by time', () => {
-    const a = job({ url: 'u1', archived: true, events: [ev('x', '2026-10-14', '08:00')] });
-    const b = job({
-      url: 'u2',
-      status: 'Interviewing',
-      events: [
-        ev('t', '2026-10-15', '13:00'),
-        ev('s', '2026-10-15', '09:00'),
-        ev('d', '2026-10-15'),
-      ],
-    });
-    const out = weekAgenda([a, b], WED);
-    expect(out.every((i) => i.jobUrl === 'u2')).toBe(true);
-    expect(out.map((i) => i.time)).toEqual([undefined, '09:00', '13:00']);
   });
 });

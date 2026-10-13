@@ -119,16 +119,3 @@ export function UseTemplateSheet({ job, open, onOpenChange }: SheetProps) {
     </Sheet>
   );
 }
-
-/** A "Use template" button that opens the sheet (for places without their own trigger). */
-export default function UseTemplate({ job }: { job: Job }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Button size="sm" variant="tertiary" onClick={() => setOpen(true)}>
-        Use template
-      </Button>
-      {open && <UseTemplateSheet job={job} open onOpenChange={setOpen} />}
-    </>
-  );
-}

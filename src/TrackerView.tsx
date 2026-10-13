@@ -20,7 +20,7 @@ import { Sheet, SheetMenu } from './Sheet';
 import JobDetailPage from './JobDetailPage';
 import { jobUrlFromSub } from './jobRoute';
 import { sortJobs, SORTS, type SortKey } from './jobSort';
-import { NextUp } from './ThisWeek';
+import { NextUp } from './NextUp';
 import { DataToolsContext } from './account/accountContext';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';

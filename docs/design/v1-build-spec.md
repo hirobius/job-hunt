@@ -65,7 +65,7 @@ Tracker · Templates (Tracker is the landing tab). Single column at every width.
 | Slice | Files owned |
 |---|---|
 | Foundation (done) | `Sheet.tsx`, `nextAction.ts`, shell tab labels |
-| Tracker | `TrackerView.tsx`, `JobRow.tsx`, `ThisWeek.tsx` (Next up), Tracker tests |
-| Job page | `JobDetailPage.tsx`, `UseTemplate.tsx`, `InterviewLog.tsx`, `TodosNotes.tsx` |
+| Tracker | `TrackerView.tsx`, `JobRow.tsx`, `NextUp.tsx`, Tracker tests |
+| Job page | `JobDetailPage.tsx`, `UseTemplate.tsx`, `InterviewLog.tsx`, `TodosNotes.tsx` (all built, #144) |
 | Templates | `CopyDeckView.tsx` + its tests |
 | Discover | `DiscoverView.tsx`, `Onboarding.tsx`, `LiveFeedPanel.tsx`, `ManageTrackDialog.tsx` |

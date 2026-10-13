@@ -18,8 +18,8 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
   days as "⏰ follow up". Most offers come from the nudge, not the first send.
 - ✅ **Up Next queue** — pinned view of the next 5 _Saved_ (or starred) items to
   work, so you always know what to do without scrolling. Chunk through it.
-- ✅ **Funnel analytics** — small dashboard: applied this week, total, **reply
-  rate**, interview conversion. Tells you if the problem is volume or resume.
+- ~~**Funnel analytics**~~ — removed in the v1 redesign (2026-10, #144): Adrian's call that
+  counts don't help find a job faster. The Tracker leads with the jobs and their next step.
 
 ## Phase 2 — Tracking depth (better interviews, less re-work)
 

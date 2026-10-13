@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
-import { ToastProvider } from '@hirobius/design-system';
-import UseTemplate from './UseTemplate';
+import { useState } from 'react';
+import { Button, ToastProvider } from '@hirobius/design-system';
+import { UseTemplateSheet } from './UseTemplate';
 import { replaceSnippets } from './copyDeckStore';
 import type { Job } from './types';
 
@@ -19,10 +20,21 @@ const SNIPS = [
   { id: 'b', label: 'Pinned note', body: 'Pinned for [Company]', pinned: true },
 ];
 
+// Opens the sheet from a trigger, the way the job page does.
+function Harness() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Use template</Button>
+      {open && <UseTemplateSheet job={job} open onOpenChange={setOpen} />}
+    </>
+  );
+}
+
 const wrap = () =>
   render(
     <ToastProvider>
-      <UseTemplate job={job} />
+      <Harness />
     </ToastProvider>,
   );
 

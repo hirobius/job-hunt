@@ -59,42 +59,48 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
   publishable + RLS-protected). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
-  content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
+  content (the Discover board) lives separately in normalized RLS tables
   `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`.
-- **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Trades** (tab label; slug
-  is still `apprenticeships` for URL back-compat) → `ApprenticeshipsView.tsx` +
-  `apprenticeships.ts`, the curated Spokane board. **Trades pivot (2026-07):** hands-on
-  metal leads — the live order is set by `VISIBLE_GROUP_ORDER` (apply-first → welding/fab
-  shops → foundry/casting → union JATCs → programs → live searches → veteran → finders);
-  groups flagged `archived: true` on the `Group` type (healthcare, remote programs, AI/expert,
-  SaaS) stash under a collapsed "Archived tracks" disclosure at the bottom (board-wide search
-  still spans them). Then **Queue** (`TrackerView.tsx`), **Copy Deck** (`CopyDeckView.tsx`,
-  incl. seeded call sheet + cold-call script; pillar-scoping removed — flat pinned-first list),
-  **Discover** (`DiscoverView.tsx` + `jobsData.ts` groups and Title/ATS generators; the generators
-  take a **user-set location + work-mode** (#58, no baked-in Spokane), and the trade/pillar switcher
-  lives at the top of this view, not the header). `types.ts` for the Job model. Board rule: **NO
-  static one-off job postings** —
-  live searches or durable portals/company pages only, so tiles never go stale.
-- **Pillars = trades** (`pillars.ts`): built-ins are **Sheet Metal & Fab** (default),
-  **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
-  terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
-  pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
-  **Shell (#115 Phase 1):** slim header = name · top tabs (**Pipeline · Discover · Templates**;
-  Today joins in Phase 2 and becomes home) · one **Account** menu. `src/account/` is the account
-  seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
-  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Back up,
-  Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible Callout;
-  `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
-  tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`.
+- **Structure (v1 redesign, #144, 2026-10-13):** phone-first, one column at every width.
+  `src/App.tsx` = header (name from `src/brand.ts` · one **Account** menu) + tabs **Discover ·
+  Tracker · Templates** (slugs `discover` / `queue` / `copy-deck`; Tracker is the landing tab).
+  The layout reference is `docs/design/prototype-v1.html`; how it maps onto HDS is
+  `docs/design/v1-build-spec.md`.
+  - **Tracker** (`TrackerView.tsx`, `JobRow.tsx`, `NextUp.tsx`, `trackerCounts.ts`): add bar,
+    filter chips with counts, search · sort · data toolbar, "Next up" (due follow-ups), job cards
+    with ONE primary action from `src/nextAction.ts`. No stats or funnel (Adrian: no vanity metrics).
+  - **Job page** `#/queue/<encoded url>` (`JobDetailPage.tsx`, `src/jobRoute.ts`): next-step card,
+    and sheets for status, log follow-up, add interview, to-dos + notes, details (Save/Cancel),
+    use-a-template (`UseTemplate.tsx`), plus the JD screener.
+  - **Templates** (`CopyDeckView.tsx`): pinned section, token chips, Preview/Copy, action + edit sheets.
+  - **Discover** (`DiscoverView.tsx`, `Onboarding.tsx`, `LiveFeedPanel.tsx`, `ManageTrackDialog.tsx`):
+    track sheet, then Links · Search (by title / by company board) · Postings. A track is a
+    curation `Category`; starter packs live in `src/curation/starterPacks.ts` + `packContent.ts`,
+    and `topUpFromPack` ("Update from a starter pack") adds new pack content to an older track.
+  - **Sheets:** every menu and short form is `src/Sheet.tsx` (HDS Dialog docked to the bottom on
+    phones) until HDS ships one (hds#690).
+  Board rule: **NO static one-off job postings** — live searches or durable portals/company
+  pages only, so tiles never go stale.
+- **Account seam:** `src/account/`: `CloudSyncProvider` + `DataToolsProvider` own sync / backup /
+  restore / CSV and expose `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu`
+  holds sign-in/out, Back up, Restore…, Export CSV, theme and feedback; `SyncNudge` is the
+  one-time dismissible Callout; `SignInDialog` is the magic-link form. Errors are HDS **Toasts**
+  (`ToastProvider` in `main.tsx`; tests wrap App in one). Shell behaviour is pinned in
+  `src/shell.test.tsx`.
+- **Pasted ATS links get real titles:** `addJob` looks up Greenhouse / Lever / Ashby postings via
+  `src/feed/lookupPosting.ts` (title, company, location, mode; never overwrites a name you typed).
+- **Steward the code (Adrian, 2026-10-13):** "I deeply care about the health and overall long-term
+  strategy of my code bases and I would love if you did as well." Remove what your change
+  orphans, give every workaround its issue number, keep this file true to the code.
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
   (git-ignored). Run it before/after each redesign phase.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
-- **Tracker model:** default "Active" filter = not-yet-applied (Saved) + pinned;
+- **Tracker model:** default "Active" filter = not archived and (Saved or pinned);
   applying drops a job out of the active queue. Follow-up loop: "Follow up in Nd" →
-  "Follow up now" → "Log follow-up" resets the clock. Weak titles auto-derive from
+  "Follow-up due" → "Log follow-up" resets the clock. Titles for non-ATS links derive from
   the URL. Board triage (pin / set-aside) lives in `tileTriage.ts` + `tileState.ts`;
   planned consolidation: saving also floats the tile (issue #13).
 
@@ -171,8 +177,8 @@ far this cycle:
   (`src/LocationControl.tsx`) drives the Title, ATS and Live postings panels.
 - **Screening pipeline on jobs (#60).** Additive `Job` fields — `verdict` (match/stretch/reach),
   `mode`, `travelPct`, `applicants`, `blockers[]`, `angle`, `screenedAt` — normalized on read in
-  `src/screening.ts`. Edited via `ScreeningEditor`; shown as card badges; new "Best fit" sort; a
-  collapsible **Funnel** summary (`FunnelSummary` + `funnel.ts`).
+  `src/screening.ts`. Set in the job page's Details sheet (fit, mode) and by the JD screener;
+  drives the "Best fit" sort. (The Funnel summary and pipeline stats were removed in v1, #144.)
 - **Rules-based JD screener (#61).** `src/jdScreener.ts` + `ScreenJdDialog` — paste a JD → suggested
   mode/blockers/verdict from deterministic keyword rules, one-click apply.
 - **Board↔Queue interop (#57).** Saved tiles leave the board (`partitionTiles`); enriched save

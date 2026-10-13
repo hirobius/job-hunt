@@ -17,8 +17,9 @@ signed-out in the browser; an optional email sign-in syncs it across devices.
   follow-up due first, best fit, applied date, status, salary, A–Z). The follow-up loop:
   "Follow up in Nd" → "Follow up now" → "Log follow-up" resets the clock. Per-job details,
   to-dos and notes, and an interviews & calls log with **Add to calendar** (`.ics`). Above the
-  list: a **This week** agenda, a **pipeline stats** band (applied, response and interview rates,
-  median reply time, weekly bars) and a collapsible funnel.
+  list, **Next up** lists the follow-ups that are due. Each job opens its own page, with one
+  next step and sheets for status, follow-ups, interviews, to-dos and details. Pasted Greenhouse,
+  Lever and Ashby links fill in their real title, company and location.
 - **Your data** — full-account **Back up / Restore** (versioned JSON, validated on restore) and a
   formula-safe **CSV export** of every job field.
 - **Try with sample data** — an empty tracker offers a one-click fictional pipeline (every
