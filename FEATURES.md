@@ -59,6 +59,13 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
   shared visible focus-visible ring; colour contrast (incl. the Interviewing chip) is
   AA-audited in `src/theme.contrast.test.ts`.
 
+## Phase 3b — Live discovery
+
+- ✅ **Live postings feed** (Discover → Live postings) — real openings from Hacker News "Who is
+  hiring", Remotive, and Greenhouse/Lever/Ashby boards you watch, phrase-matched to the track's
+  terms and ranked; flags **contract-friendly** and **first-hire** roles; one-click save to the
+  Queue. Keyless and browser-side (all four APIs allow CORS), so no backend was needed.
+
 ## Phase 4 — The unfair advantage (assistant-driven, not in-app code)
 
 These use the assistant's Gmail / Calendar / Drive access — no other tracker can.
