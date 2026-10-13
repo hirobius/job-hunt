@@ -7,8 +7,8 @@ import { SUPABASE_URL } from './config';
  * needs it. These tests tie the two together: an origin the app talks to that the policy
  * doesn't allow would be silently blocked once the policy is enforced.
  *
- * Shipped as Report-Only first; flipping to enforcing is a follow-up after a
- * zero-violation preview check. The Fontshare origins go when #91 moves to HDS fonts.
+ * Shipped report-only first (#97); enforcing since #106 after a zero-violation check of
+ * production (every tab, sample data, dialogs, the live feed). The Fontshare origins go when #91 moves to HDS fonts.
  */
 
 // The live-feed sources (PR #88) fetch these from the browser. Once the feed lands on main,
@@ -28,7 +28,7 @@ const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8')) as {
 };
 const indexHtml = fs.readFileSync('index.html', 'utf8');
 
-const CSP_HEADER = 'Content-Security-Policy-Report-Only';
+const CSP_HEADER = 'Content-Security-Policy';
 
 function policy(): Map<string, string[]> {
   const all = vercel.headers.find((h) => h.source === '/(.*)')?.headers ?? [];

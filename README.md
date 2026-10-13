@@ -61,7 +61,7 @@ signed-out in the browser; an optional email sign-in syncs it across devices.
   Most of the vendor chunk is HDS's single entry point; per-component imports are an open
   upstream ask.
 - **Security headers** (HSTS, nosniff, frame-deny, referrer and permissions policies) ship from
-  `vercel.json`, plus a Content-Security-Policy in report-only mode (#106 tracks enforcing it).
+  `vercel.json`, plus an enforcing Content-Security-Policy (#106).
 
 ## Develop
 
