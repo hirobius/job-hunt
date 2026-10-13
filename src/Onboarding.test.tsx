@@ -25,6 +25,28 @@ describe('Onboarding sync gate (#99)', () => {
   });
 });
 
+describe('Onboarding order and selected state', () => {
+  it('puts the optional location field after the track picks and before the start button', () => {
+    render(<Onboarding />);
+    const follows = (a: Element, b: Element) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const lastPack = screen.getAllByRole('checkbox').slice(-1)[0];
+    const location = screen.getByLabelText(/Location/);
+    const start = screen.getByRole('button', { name: 'Pick a track' });
+    expect(follows(lastPack, location)).toBe(true);
+    expect(follows(location, start)).toBe(true);
+  });
+
+  it('shows a check indicator only on the selected pack', async () => {
+    const user = userEvent.setup();
+    render(<Onboarding />);
+    const card = screen.getByRole('checkbox', { name: 'Design Systems / Design Eng' });
+    expect(card.querySelector('svg')).toBeNull();
+    await user.click(card);
+    expect(card.querySelector('svg')).not.toBeNull();
+  });
+});
+
 describe('Onboarding pack picker a11y (#104)', () => {
   it('each pack is a keyboard-operable checkbox-like button named by its pack', async () => {
     const user = userEvent.setup();
