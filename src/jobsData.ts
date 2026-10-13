@@ -168,6 +168,31 @@ export const GROUPS: Group[] = [
         'https://jobs.intodesignsystems.com/',
       ),
       t(
+        'Wellfound · Design Systems',
+        'Startup roles · search "design systems", filter remote',
+        'https://wellfound.com/jobs',
+      ),
+      t(
+        'Welcome to the Jungle · Design Systems',
+        'Curated tech roles (formerly Otta) · search design systems',
+        'https://www.welcometothejungle.com/en/jobs?query=design%20systems',
+      ),
+      t(
+        'LinkedIn · Design Systems (Contract)',
+        'Contract and fractional design-systems roles, remote',
+        'https://www.linkedin.com/jobs/search/?keywords=design%20systems&location=United%20States&f_WT=2&f_JT=C',
+      ),
+      t(
+        'Contra · Design Systems',
+        'Freelance / fractional projects · search design systems',
+        'https://contra.com/',
+      ),
+      t(
+        'We Work Remotely · Design',
+        'Remote-only design and frontend roles',
+        'https://weworkremotely.com/categories/remote-design-jobs',
+      ),
+      t(
         'LinkedIn · Design Systems (Remote)',
         'Live remote design-systems / design-engineer roles',
         'https://www.linkedin.com/jobs/search/?keywords=design%20systems%20engineer&location=United%20States&f_WT=2',
@@ -236,6 +261,58 @@ export const GROUPS: Group[] = [
         'Stripe · jobs',
         'Greenhouse board · design engineering and design systems',
         'https://boards.greenhouse.io/stripe',
+      ),
+      t(
+        'Ramp · jobs',
+        'Ashby board · Design Systems Lead + design engineering (remote)',
+        'https://jobs.ashbyhq.com/ramp',
+      ),
+      t(
+        'Vercel · jobs',
+        'Greenhouse board · Design engineering (remote US)',
+        'https://boards.greenhouse.io/vercel',
+      ),
+      t(
+        'Mixpanel · jobs',
+        'Greenhouse board · Staff design engineering (remote)',
+        'https://boards.greenhouse.io/mixpanel',
+      ),
+      t(
+        'Linear · jobs',
+        'Ashby board · Design engineering (North America remote)',
+        'https://jobs.ashbyhq.com/linear',
+      ),
+      t('Replit · jobs', 'Ashby board · Design engineering', 'https://jobs.ashbyhq.com/replit'),
+      t(
+        'Gusto · jobs',
+        'Greenhouse board · Design-systems product design (hybrid)',
+        'https://boards.greenhouse.io/gusto',
+      ),
+      t(
+        'Discord · jobs',
+        'Greenhouse board · Design-systems product design',
+        'https://boards.greenhouse.io/discord',
+      ),
+      t(
+        'Datadog · jobs',
+        'Greenhouse board · Design-systems leadership',
+        'https://boards.greenhouse.io/datadog',
+      ),
+      t(
+        'Faire · jobs',
+        'Greenhouse board · Design-systems frontend engineering',
+        'https://boards.greenhouse.io/faire',
+      ),
+      t('Okta · jobs', 'Greenhouse board · UI Platform team', 'https://boards.greenhouse.io/okta'),
+      t(
+        'Cloudflare · jobs',
+        'Greenhouse board · Design engineering',
+        'https://boards.greenhouse.io/cloudflare',
+      ),
+      t(
+        'Samsara · jobs',
+        'Greenhouse board · Product design engineering',
+        'https://boards.greenhouse.io/samsara',
       ),
     ],
   },
