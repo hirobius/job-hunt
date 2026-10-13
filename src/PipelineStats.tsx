@@ -31,7 +31,7 @@ export function PipelineStats({ jobs }: { jobs: Job[] }) {
 
   // Same disclosure panel as "This week" and "Funnel", so the overview reads as one set.
   return (
-    <Disclosure label={`Pipeline · ${m.appliedLast30} applied in 30 days`} defaultOpen>
+    <Disclosure label={`Pipeline · ${m.appliedLast30} applied in 30 days`}>
       <Stack gap="normal">
         {/* One headline number with its comparison period (21st.dev stat rule P2), then the rest
           as a compact list — not six equal tiles competing for attention. */}
