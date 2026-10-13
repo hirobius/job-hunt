@@ -35,3 +35,11 @@ a:focus-visible,
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* HDS 0.24.1 bug (upstream ask in #133): the active tab's `data-[state=active]:border-foreground`
+ * sits in a cascade layer while `.border-transparent` is unlayered, so the unlayered rule wins and
+ * the selected tab shows no underline — the "selected state is invisible" audit finding. Restore
+ * HDS's intended indicator until the fix ships. */
+[role='tab'][data-state='active'] {
+  border-bottom-color: var(--role-foreground);
+}

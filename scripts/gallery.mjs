@@ -12,7 +12,7 @@
 // /opt/pw-browsers/chromium-1194/chrome-linux/chrome), else Playwright's own.
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const args = Object.fromEntries(
@@ -28,6 +28,7 @@ const OUT = args.out || 'gallery';
 const LABEL = args.label || 'current';
 const PORT = Number(args.port || 4179);
 const WIDTHS = [1440, 390];
+const CLOUD_CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const THEMES = ['light', 'dark'];
 
 async function serve() {
@@ -201,7 +202,9 @@ async function shoot(browser, base, theme, width, manifest) {
 const { url: entry, stop } = await serve();
 const url = entry.includes('://localhost') ? entry + '/' : entry;
 const browser = await chromium.launch({
-  executablePath: process.env.PW_CHROMIUM_PATH || undefined,
+  // Cloud sessions ship a pre-installed Chromium; use it when PW_CHROMIUM_PATH isn't set.
+  executablePath:
+    process.env.PW_CHROMIUM_PATH || (existsSync(CLOUD_CHROMIUM) ? CLOUD_CHROMIUM : undefined),
 });
 const manifest = [];
 const errors = [];

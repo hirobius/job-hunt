@@ -33,7 +33,7 @@ export default function SyncNudge() {
   return (
     <Callout tone="accent" role="region" aria-label="Sync your data">
       <Stack direction="row" gap="tight" align="center" justify="space-between">
-        <Text variant="body" as="p" style={{ margin: 0, flex: 1, minWidth: 0 }}>
+        <Text variant="ui" as="p" style={{ margin: 0, flex: 1, minWidth: 0 }}>
           Your data is saved in this browser. Sign in to sync it across your devices.
         </Text>
         <Stack direction="row" gap="tight" align="center">

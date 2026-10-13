@@ -29,6 +29,16 @@ const CopyDeckView = lazy(() => import('./CopyDeckView'));
 // Top-level tabs, in render order (#115: Pipeline · Discover · Templates; Today joins in Phase 2
 // and becomes the landing route then). The URL hash carries the slug (#/queue …); slugs stay
 // back-compatible (`queue`/`copy-deck`) under the new labels, so old bookmarks keep working.
+// HDS TabsContent is a tinted, padded card pulled up under its tab strip — right for in-page
+// tabs, wrong for the app's top-level nav, where it indented every view 24px off the header's edge
+// and nested each page in a surface. Top-level panels are bare (HDS gap, filed under #133).
+const BARE_PANEL = {
+  background: 'transparent',
+  padding: 0,
+  marginTop: 0,
+  borderRadius: 0,
+} as const;
+
 const TAB_SLUGS = ['queue', 'discover', 'copy-deck'] as const;
 const DEFAULT_TAB = 'queue';
 const defaultTabIndex = TAB_SLUGS.indexOf(DEFAULT_TAB);
@@ -93,21 +103,21 @@ export default function App() {
                   </Text>
                   <AccountMenu />
                 </Stack>
-                <TabsList style={{ width: '100%' }} aria-label="Sections">
+                <TabsList style={{ width: '100%', marginBottom: 0 }} aria-label="Sections">
                   <TabsTrigger value="queue">Pipeline</TabsTrigger>
                   <TabsTrigger value="discover">Discover</TabsTrigger>
                   <TabsTrigger value="copy-deck">Templates</TabsTrigger>
                 </TabsList>
                 <SyncNudge />
-                <TabsContent value="queue">
+                <TabsContent value="queue" style={BARE_PANEL}>
                   <TrackerView />
                 </TabsContent>
-                <TabsContent value="discover">
+                <TabsContent value="discover" style={BARE_PANEL}>
                   <Suspense fallback={<DiscoverSkeleton />}>
                     <DiscoverView />
                   </Suspense>
                 </TabsContent>
-                <TabsContent value="copy-deck">
+                <TabsContent value="copy-deck" style={BARE_PANEL}>
                   <Suspense fallback={<CopyDeckSkeleton />}>
                     <CopyDeckView />
                   </Suspense>
