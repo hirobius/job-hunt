@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import {
   EllipsisVertical,
   ArrowUpDown,
@@ -9,6 +9,8 @@ import {
   DollarSign,
   Star,
   StickyNote,
+  ListFilter,
+  Plus,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -17,7 +19,7 @@ import {
   Card as HdsCard,
   Input as HdsInput,
   Menu as HdsMenu,
-  SegmentedControl,
+  Dialog,
   Textarea,
   Icon,
   Box,
@@ -64,6 +66,23 @@ const STATUS_TONE: Record<Status, 'warning' | 'info' | 'inProgress' | 'success' 
   Rejected: 'danger',
 };
 
+// The status menu (#129): two views, then the stages grouped by where a job is.
+const FILTER_LABEL: Record<Filter, string> = {
+  active: 'Active',
+  all: 'All',
+  Saved: 'Saved',
+  Applied: 'Applied',
+  Interviewing: 'Interviewing',
+  Offer: 'Offer',
+  Rejected: 'Rejected',
+  retired: 'Retired',
+};
+const FILTER_GROUPS: { label: string; items: Filter[] }[] = [
+  { label: 'Views', items: ['active', 'all'] },
+  { label: 'In progress', items: ['Saved', 'Applied', 'Interviewing', 'Offer'] },
+  { label: 'Closed', items: ['Rejected', 'retired'] },
+];
+
 function matches(j: Job, f: Filter): boolean {
   const s = deriveJobState(j);
   if (f === 'active') return s.isActive;
@@ -88,6 +107,7 @@ export default function TrackerView() {
   const [sort, setSort] = useState<SortKey>('recent');
   const [q, setQ] = useState('');
   const [url, setUrl] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   // Transient "Saved ✓" flash after a detail field autosaves (per job url).
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
@@ -108,10 +128,22 @@ export default function TrackerView() {
     return sortJobs(jobs, sort).filter((j) => matches(j, filter) && textMatch(j));
   }, [jobs, filter, sort, q]);
   const sortLabel = SORTS.find((s) => s.key === sort)?.label ?? '';
+  const counts = useMemo(
+    () =>
+      Object.fromEntries(
+        FILTER_GROUPS.flatMap((g) => g.items).map((f) => [
+          f,
+          jobs.filter((j) => matches(j, f)).length,
+        ]),
+      ) as Record<Filter, number>,
+    [jobs],
+  );
 
   const submit = () => {
-    addJob(url);
+    if (!url.trim()) return;
+    addJob(url.trim());
     setUrl('');
+    setAddOpen(false);
   };
   // Single-line fields are HDS Input; multiline (Notes) is HDS Textarea (both HDS since #11).
   const fld = (j: Job, key: keyof Job, label: string, multiline = false) =>
@@ -143,100 +175,79 @@ export default function TrackerView() {
 
   return (
     <Box>
-      {/* Mobile-first: a column that becomes a row from sm. HDS sx has no base breakpoint (hds#652), so the base value sits on the key and the override nests under '&'. */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'xs',
-          mb: 'sm',
-          '&': { flexDirection: { sm: 'row' } },
-        }}
+      {/* One toolbar (#115 / #129): search grows; status, sort and add sit beside it and wrap
+          under it on phones. Status is a grouped menu, not an 8-option strip. */}
+      <Stack
+        direction="row"
+        wrap="wrap"
+        gap="tight"
+        align="center"
+        style={{ marginBottom: 'var(--primitive-space-4)' }}
       >
-        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-          <HdsInput
-            size="sm"
-            aria-label="Job URL"
-            placeholder="Paste a job URL…"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submit();
-            }}
-            style={{ width: '100%' }}
-          />
-        </Box>
-        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', flex: 'none' }}>
-          {/* Box wrappers carry the responsive flex the seam Button can't express via sx. */}
-          <Box sx={{ display: 'flex', flex: 1, '&': { flex: { sm: 'none' } } }}>
-            <UiButton variant="primary" onClick={submit} style={{ flex: 1 }}>
-              Add
-            </UiButton>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* Filters get the full row to themselves (horizontally scrollable — a partially
-          visible pill is the scroll affordance); sort/export live on their own line below.
-          Sharing one row squeezed the filters to a single pill on phones. */}
-      <Box sx={{ mb: 1, overflowX: 'auto', pb: 1, '& > *': { minWidth: 'max-content' } }}>
-        <SegmentedControl
-          aria-label="Filter jobs by status"
-          size="sm"
-          value={filter}
-          onChange={(v) => setFilter(v as Filter)}
-          options={[
-            { value: 'active', label: 'Active' },
-            { value: 'all', label: 'All' },
-            { value: 'Saved', label: 'Saved' },
-            { value: 'Applied', label: 'Applied' },
-            { value: 'Interviewing', label: 'Interviewing' },
-            { value: 'Offer', label: 'Offer' },
-            { value: 'Rejected', label: 'Rejected' },
-            { value: 'retired', label: 'Retired' },
-          ]}
-        />
-      </Box>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'xs',
-          alignItems: 'stretch',
-          mb: 'sm',
-          '&': { flexDirection: { sm: 'row' }, alignItems: { sm: 'center' } },
-        }}
-      >
-        <Box sx={{ flex: 1, minWidth: 0, width: '100%', '& > *': { width: '100%' } }}>
+        <Box sx={{ flex: '1 1 14rem', minWidth: 0, '& > *': { width: '100%' } }}>
           <HdsInput
             size="sm"
             aria-label="Search saved jobs"
-            placeholder="Search title, company, location, notes…"
+            placeholder="Search jobs…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             leadingVisual={<Search size={16} />}
             style={{ width: '100%' }}
           />
         </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: 'xs',
-            alignItems: 'center',
-            flex: 'none',
-          }}
-        >
+        <Stack direction="row" wrap="wrap" gap="tight" align="center">
           <HdsMenu>
             <HdsMenu.Trigger asChild>
               <UiButton
-                variant="tertiary"
+                variant="secondary"
                 size="sm"
-                iconLeft={<ArrowUpDown size={16} />}
+                iconLeft={<ListFilter size={16} />}
                 style={{ whiteSpace: 'nowrap' }}
               >
-                {sortLabel}
+                {`Status: ${FILTER_LABEL[filter]}`}
               </UiButton>
+            </HdsMenu.Trigger>
+            <HdsMenu.Content align="end">
+              <HdsMenu.RadioGroup value={filter} onValueChange={(v) => setFilter(v as Filter)}>
+                {FILTER_GROUPS.map((g, gi) => (
+                  <Fragment key={g.label}>
+                    {gi > 0 && <HdsMenu.Separator />}
+                    <HdsMenu.Label>{g.label}</HdsMenu.Label>
+                    {g.items.map((f) => (
+                      <HdsMenu.RadioItem key={f} value={f}>
+                        <Box
+                          as="span"
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: 'sm',
+                            width: '100%',
+                          }}
+                        >
+                          <span>{FILTER_LABEL[f]}</span>
+                          <span style={{ color: 'var(--semantic-color-content-secondary)' }}>
+                            {counts[f]}
+                          </span>
+                        </Box>
+                      </HdsMenu.RadioItem>
+                    ))}
+                  </Fragment>
+                ))}
+              </HdsMenu.RadioGroup>
+            </HdsMenu.Content>
+          </HdsMenu>
+          <HdsMenu>
+            <HdsMenu.Trigger asChild>
+              {/* Icon-only so search · status · sort · add fit two rows at 390px; the name and
+                  tooltip carry the current order. */}
+              <UiButton
+                variant="tertiary"
+                size="sm"
+                iconOnly
+                iconLeft={<ArrowUpDown size={16} />}
+                label={`Sort: ${sortLabel}`}
+                title={`Sort: ${sortLabel}`}
+              />
             </HdsMenu.Trigger>
             <HdsMenu.Content align="end">
               <HdsMenu.RadioGroup value={sort} onValueChange={(v) => setSort(v as SortKey)}>
@@ -248,8 +259,45 @@ export default function TrackerView() {
               </HdsMenu.RadioGroup>
             </HdsMenu.Content>
           </HdsMenu>
-        </Box>
-      </Box>
+          <UiButton
+            variant="primary"
+            size="sm"
+            iconLeft={<Plus size={16} />}
+            onClick={() => setAddOpen(true)}
+          >
+            Add job
+          </UiButton>
+        </Stack>
+      </Stack>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <Dialog.Content style={{ width: '100%', maxWidth: 480 }}>
+          <Dialog.Header>
+            <Dialog.Title>Add a job</Dialog.Title>
+            <Dialog.Description>
+              Paste the posting's link. The title fills in from the URL; you can edit it after.
+            </Dialog.Description>
+          </Dialog.Header>
+          <HdsInput
+            label="Job URL"
+            type="url"
+            placeholder="https://…"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submit();
+            }}
+          />
+          <Dialog.Footer>
+            <Dialog.Close asChild>
+              <UiButton variant="secondary">Cancel</UiButton>
+            </Dialog.Close>
+            <UiButton variant="primary" disabled={!url.trim()} onClick={submit}>
+              Add
+            </UiButton>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog>
 
       <SampleBanner jobs={jobs} />
       <ThisWeek />

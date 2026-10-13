@@ -102,6 +102,8 @@ async function seed(page) {
 // Dialogs and menus: [tab name, file name, steps]. Each step is [role, name]; Escape closes.
 const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'account-menu', [['button', /^(Account|More options)/]]],
+  [/^(Pipeline|Tracker)$/, 'status-menu', [['button', /^Status:/]]],
+  [/^(Pipeline|Tracker)$/, 'add-job-dialog', [['button', /^Add job$/]]],
   [/^(Pipeline|Tracker)$/, 'sign-in-dialog', [['button', /^Sign in$/]]],
   [/^(Pipeline|Tracker)$/, 'job-details', [['button', /^Details$/]]],
   [

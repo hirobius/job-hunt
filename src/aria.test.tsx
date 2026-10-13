@@ -24,10 +24,10 @@ afterEach(() => {
 const withTheme = (ui: React.ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
 
 describe('aria wiring', () => {
-  it('Tracker filter group exposes an accessible name', () => {
+  it('Tracker status filter names the current view', () => {
     withTheme(<TrackerView />);
-    // HDS SegmentedControl renders a radiogroup (one-of-many semantics), not MUI's group.
-    expect(screen.getByRole('radiogroup', { name: /filter jobs by status/i })).toBeInTheDocument();
+    // The status filter is a menu button (#129) whose name carries the selected view.
+    expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
   });
 
   it('Discover tab is associated with its tabpanel both ways', () => {
