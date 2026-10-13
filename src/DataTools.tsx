@@ -96,6 +96,8 @@ export default function DataTools() {
         >
           Export CSV
         </Button>
+        {/* HDS has no file picker; a hidden native input behind the Restore button is the gap. */}
+        {/* eslint-disable-next-line hds/no-raw-controls */}
         <input
           ref={fileRef}
           type="file"

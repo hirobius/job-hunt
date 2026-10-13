@@ -313,7 +313,7 @@ export default function LiveFeedPanel({
               variant="tertiary"
               size="sm"
               onClick={() => setShown((n) => n + PAGE)}
-              style={{ marginTop: 8 }}
+              style={{ marginTop: 'var(--primitive-space-2)' }}
             >
               Show more ({visible.length - shown})
             </Button>
@@ -347,7 +347,7 @@ function PostingRow({
       as="li"
       sx={{
         py: 3,
-        borderBottom: '1px solid',
+        borderBottom: 'thin solid',
         borderColor: 'border.default',
         display: 'flex',
         gap: 3,

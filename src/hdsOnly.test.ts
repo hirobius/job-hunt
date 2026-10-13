@@ -34,3 +34,12 @@ describe('HDS-only UI (epic #89)', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('HDS version pin (#115 Phase 0)', () => {
+  it('pins HDS to an exact version — upgrades go through the HDS upgrade tool only', () => {
+    const pkg = JSON.parse(readFileSync(resolve(SRC, '../package.json'), 'utf8')) as {
+      dependencies: Record<string, string>;
+    };
+    expect(pkg.dependencies['@hirobius/design-system']).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+});

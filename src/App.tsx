@@ -66,7 +66,7 @@ function OverflowMenu() {
             window.open('https://github.com/hirobius/job-hunt/issues/new', '_blank', 'noopener')
           }
         >
-          <MessageSquareText size={15} style={{ marginRight: 8 }} />
+          <MessageSquareText size={15} style={{ marginRight: 'var(--primitive-space-2)' }} />
           Send feedback
         </HdsMenu.Item>
       </HdsMenu.Content>

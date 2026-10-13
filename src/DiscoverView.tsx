@@ -320,7 +320,11 @@ function AtsPanel({
           </Tag>
         ))}
       </Box>
-      <Button variant="primary" style={{ marginTop: 12, marginBottom: 12 }} asChild>
+      <Button
+        variant="primary"
+        style={{ marginTop: 'var(--primitive-space-3)', marginBottom: 'var(--primitive-space-3)' }}
+        asChild
+      >
         <a href={allUrl} target="_blank" rel="noopener noreferrer">
           Search all platforms
         </a>
@@ -464,7 +468,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         value={cur.key}
         onValueChange={(v) => navigate({ sub: v === tabs[0].key ? null : v })}
       >
-        <TabsList style={{ marginBottom: 16, width: '100%' }}>
+        <TabsList style={{ marginBottom: 'var(--primitive-space-4)', width: '100%' }}>
           {tabs.map((tb) => (
             <TabsTrigger key={tb.key} value={tb.key}>
               {tb.label}

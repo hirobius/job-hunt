@@ -38,7 +38,7 @@ commit `f15fd52`).
   Sans, the HDS type ramp) and surfaces; the **jade accent** in `src/theme/brand-jade.css` is the
   only local override. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (`^0.24.1`, no auth) — see `docs/adr/0005` and `docs/adr/0007`. Upgrade with
+  npm** (exact-pinned `0.24.1`, no auth; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`. Upgrade with
   `npx @hirobius/design-system@latest upgrade` (codemods + a to-do list; `--check` to verify).
   `main.tsx` imports `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` —
   set on `<body>` in `index.html`) and `fonts.css`, then `src/theme/brand-jade.css` (jade accent
@@ -100,6 +100,9 @@ commit `f15fd52`).
   `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
 - **CSP (#97 → enforcing in #106):** `Content-Security-Policy` in `vercel.json`, pinned by
   `src/csp.test.ts`. **Any new fetch host must go in `connect-src` and the test, or it's blocked.**
+  Fonts are HDS's self-hosted `fonts.css`, so `font-src`/`style-src` are `'self'` only — no font CDN (#115).
+- **HDS ESLint (`hds/recommended`)** runs on `src/**/*.tsx` via `eslint.config.js`: raw controls, hex, px spacing
+  and px-in-`sx` are errors (use `var(--primitive-space-N)` / t-shirt steps; `thin solid` for hairlines).
 - Branch pushes get Vercel **preview deploys** (use a branch for risky work; the
   live app stays on `main`).
 - The build/typecheck/test gate does **not** catch visual or runtime-CSS issues. Verify

@@ -60,11 +60,13 @@ export default function UseTemplate({ job }: { job: Job }) {
             Your Copy Deck is empty. Add a snippet there first.
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--primitive-space-3)' }}
+          >
             <div
               role="group"
               aria-label="Templates"
-              style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}
+              style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--primitive-space-2)' }}
             >
               {ordered.map((s) => (
                 <Button

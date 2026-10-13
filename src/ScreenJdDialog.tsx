@@ -78,7 +78,7 @@ export default function ScreenJdDialog({
               {result && (
                 <Box
                   sx={{
-                    borderTop: '1px solid',
+                    borderTop: 'thin solid',
                     borderColor: 'border.default',
                     pt: 3,
                     display: 'flex',

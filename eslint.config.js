@@ -4,6 +4,7 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import prettier from 'eslint-config-prettier';
+import hds from '@hirobius/design-system/eslint-plugin';
 
 export default tseslint.config(
   { ignores: ['dist', 'node_modules', 'src/theme/hds-palette.generated.ts', 'verify-*.mjs', 'vrfy*.mjs'] },
@@ -28,6 +29,8 @@ export default tseslint.config(
       ],
     },
   },
+  // HDS layout/token discipline (#115 Phase 0): raw controls, raw hex, raw px spacing, sx tokens.
+  ...hds.configs.recommended.map((c) => ({ ...c, files: ['src/**/*.tsx'] })),
   // Node-context files (build scripts + config)
   {
     files: ['scripts/**/*.mjs', 'vite.config.ts', 'eslint.config.js', 'playwright.config.ts'],

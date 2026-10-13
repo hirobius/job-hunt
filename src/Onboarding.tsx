@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { Button, Input as HdsInput, Spinner, Box, Stack, Text, Card } from '@hirobius/design-system';
+import {
+  Button,
+  Input as HdsInput,
+  Spinner,
+  Box,
+  Stack,
+  Text,
+  Card,
+} from '@hirobius/design-system';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import { useCurationSyncStatus } from './curation/syncStatus';
 
@@ -30,7 +38,7 @@ export function Onboarding() {
         gap="normal"
         align="center"
         justify="center"
-        style={{ padding: 48 }}
+        style={{ padding: 'var(--primitive-space-12)' }}
       >
         <Spinner size="sm" />
         <Text variant="body">Restoring your tracks…</Text>

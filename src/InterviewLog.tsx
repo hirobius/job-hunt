@@ -1,12 +1,5 @@
 import { useState } from 'react';
-import {
-  Button,
-  Icon,
-  Input,
-  SegmentedControl,
-  Stack,
-  Text,
-} from '@hirobius/design-system';
+import { Button, Icon, Input, SegmentedControl, Stack, Text } from '@hirobius/design-system';
 import { CalendarPlus, X } from 'lucide-react';
 import { buildIcs } from './ics';
 import { download } from './download';
@@ -19,7 +12,6 @@ const KINDS: { value: JobEventKind; label: string }[] = [
   { value: 'call', label: 'Call' },
   { value: 'other', label: 'Other' },
 ];
-
 
 const slug = (s: string) =>
   s
