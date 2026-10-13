@@ -9,6 +9,9 @@ import {
   Box,
   Text,
   Switcher,
+  Stack,
+  Disclosure,
+  useToast,
 } from '@hirobius/design-system';
 import { Trash2, X } from 'lucide-react';
 import {
@@ -24,6 +27,7 @@ import {
   useTiles,
 } from './curation/curationStore';
 import type { Seniority } from './curation/types';
+import { STARTER_PACKS, topUpFromPack } from './curation/starterPacks';
 
 // In-app curation controls (issue #37 / B4): edit a track's search terms + seniority + location,
 // and add/remove its sections (groups) and links (tiles) — all through the curation store, which
@@ -183,6 +187,7 @@ export default function ManageTrackDialog({
   onClose: () => void;
   onDeleted: () => void;
 }) {
+  const { toast } = useToast();
   const cat = useCategories().find((c) => c.id === categoryId);
   const groups = useGroups()
     .filter((g) => g.categoryId === categoryId)
@@ -322,6 +327,42 @@ export default function ManageTrackDialog({
                   </Button>
                 </Box>
               </Box>
+              {/* Pull in what a starter pack gained since this track was made (e.g. the 2026-10
+                  design-systems round). Additive only: nothing the user added or edited is removed
+                  (curation/starterPacks.ts topUpFromPack). */}
+              <Disclosure variant="nav" label="Update from a starter pack">
+                <Stack gap="tight">
+                  <Text
+                    variant="caption"
+                    as="p"
+                    style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}
+                  >
+                    Adds the pack's newer titles, search terms and links that this track doesn't
+                    have yet. Nothing is removed.
+                  </Text>
+                  <Stack direction="row" wrap="wrap" gap="tight">
+                    {STARTER_PACKS.filter((p) => p.id !== 'blank').map((p) => (
+                      <Button
+                        key={p.id}
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          const r = topUpFromPack(cat.id, p.id);
+                          const n = r.titles + r.atsRoles + r.tiles;
+                          toast({
+                            tone: n ? 'success' : 'info',
+                            title: n
+                              ? `Added ${r.titles + r.atsRoles} terms and ${r.tiles} links from ${p.label}`
+                              : `Already up to date with ${p.label}`,
+                          });
+                        }}
+                      >
+                        {p.label}
+                      </Button>
+                    ))}
+                  </Stack>
+                </Stack>
+              </Disclosure>
             </Box>
           </div>
           <Dialog.Footer>
