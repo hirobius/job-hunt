@@ -184,4 +184,16 @@ describe('Manage track sheet', () => {
     expect(trackNames()).toHaveLength(before - 1);
     confirm.mockRestore();
   });
+
+  it('Update from a starter pack adds the pack’s missing terms to an older track', async () => {
+    const user = userEvent.setup();
+    renderDiscover();
+    await openManage(user);
+    const sheet = await screen.findByRole('dialog', { name: 'Manage track' });
+    await user.click(within(sheet).getByRole('button', { name: 'Update from a starter pack' }));
+    await user.click(within(sheet).getByRole('button', { name: 'Design Systems / Design Eng' }));
+    const cat = getCurationState().categories[0];
+    expect(cat.titles).toContain('Token Architect');
+    expect(cat.atsRoles).toContain('design tokens');
+  });
 });

@@ -43,7 +43,7 @@ describe('TrackerView', () => {
     renderTracker();
     await user.type(screen.getByLabelText(/job url/i), 'https://boards.greenhouse.io/acme/jobs/42');
     await user.click(screen.getByRole('button', { name: /^add$/i }));
-    expect(await screen.findByRole('link', { name: /boards/i })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /acme job/i })).toBeInTheDocument();
   });
 
   it('first use shows the add bar and empty state, no filters or toolbar', () => {

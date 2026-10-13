@@ -9,8 +9,10 @@ import {
   Box,
   Stack,
   Text,
+  useToast,
 } from '@hirobius/design-system';
 import { Sheet } from './Sheet';
+import { STARTER_PACKS, topUpFromPack } from './curation/starterPacks';
 import { Trash2, X } from 'lucide-react';
 import {
   updateCategory,
@@ -193,6 +195,7 @@ export default function ManageTrackDialog({
   onDeleted: () => void;
 }) {
   const cat = useCategories().find((c) => c.id === categoryId);
+  const { toast } = useToast();
   const groups = useGroups()
     .filter((g) => g.categoryId === categoryId)
     .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -294,6 +297,41 @@ export default function ManageTrackDialog({
             >
               ＋ Add section
             </Button>
+          </Stack>
+        </Disclosure>
+        {/* Pull the latest starter-pack terms and links into this track. Additive only:
+            nothing the user added or edited is removed (curation/starterPacks.ts topUpFromPack). */}
+        <Disclosure label="Update from a starter pack">
+          <Stack gap="tight">
+            <Text
+              variant="caption"
+              as="p"
+              style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}
+            >
+              Adds any search terms, sections and links from the pack that this track doesn’t have
+              yet. Your own edits stay.
+            </Text>
+            <Stack direction="row" gap="tight" wrap="wrap">
+              {STARTER_PACKS.filter((p) => p.id !== 'blank').map((p) => (
+                <Button
+                  key={p.id}
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    const r = topUpFromPack(cat.id, p.id);
+                    const n = r.titles + r.atsRoles + r.tiles;
+                    toast({
+                      tone: n ? 'success' : 'info',
+                      title: n
+                        ? `Added ${r.titles + r.atsRoles} terms and ${r.tiles} links from ${p.label}`
+                        : `Already up to date with ${p.label}`,
+                    });
+                  }}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </Stack>
           </Stack>
         </Disclosure>
         {/* Pinned to the sheet's bottom edge so Done / Delete stay reachable while it scrolls. */}

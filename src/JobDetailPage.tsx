@@ -2,7 +2,7 @@
 //   back bar → who it is → the Next card (status, timing, the one primary action)
 //   → three rows that each open a Sheet (To-dos, Interviews, Details) → research links.
 // One column at every width. Every edit surface is a Sheet (src/Sheet.tsx).
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   Badge,
@@ -27,6 +27,8 @@ import InterviewLog from './InterviewLog';
 import { UseTemplateSheet } from './UseTemplate';
 import { TodosNotes } from './TodosNotes';
 import { notesOf } from './jobNotes';
+
+const ScreenJdDialog = lazy(() => import('./ScreenJdDialog'));
 import EmptyState from './EmptyState';
 import { useCloudSync } from './account/accountContext';
 import { JobAvatar, JobActionsMenu } from './JobRow';
@@ -35,7 +37,15 @@ import type { Job, JobMode, Status, Verdict } from './types';
 
 const muted = { color: 'var(--semantic-color-content-secondary)' } as const;
 
-type Overlay = 'status' | 'followup' | 'interview' | 'todos' | 'details' | 'template' | null;
+type Overlay =
+  | 'status'
+  | 'followup'
+  | 'interview'
+  | 'todos'
+  | 'details'
+  | 'template'
+  | 'screen'
+  | null;
 
 const OPEN_STATUSES: Status[] = ['Saved', 'Applied', 'Interviewing', 'Offer', 'Rejected'];
 const OUTCOMES = ['Sent note', 'Called', 'Got a reply'].map((o) => ({ value: o, label: o }));
@@ -199,7 +209,16 @@ const MODE_OPTIONS = [
 ];
 
 /** Details: a grouped form over a local draft. Nothing is written until Save; Cancel discards. */
-function DetailsSheet({ job, onClose }: { job: Job; onClose: () => void }) {
+function DetailsSheet({
+  job,
+  onClose,
+  onScreen,
+}: {
+  job: Job;
+  onClose: () => void;
+  /** Opens the rules-based job-description screener (fills fit, mode and blockers). */
+  onScreen: () => void;
+}) {
   const [d, setD] = useState({
     label: job.label || prettyTitle(job.url),
     company: job.company ?? '',
@@ -256,6 +275,9 @@ function DetailsSheet({ job, onClose }: { job: Job; onClose: () => void }) {
       }
     >
       <Stack gap="normal">
+        <Button variant="secondary" onClick={onScreen}>
+          Screen a job description
+        </Button>
         {text('label', 'Title')}
         {text('company', 'Company')}
         {text('location', 'Location')}
@@ -430,7 +452,14 @@ export default function JobDetailPage({ job }: { job: Job | undefined }) {
         <SheetMenu label="Status" items={statusItems} />
       </Sheet>
       {overlay === 'followup' && <FollowUpSheet job={job} onClose={close} />}
-      {overlay === 'details' && <DetailsSheet job={job} onClose={close} />}
+      {overlay === 'details' && (
+        <DetailsSheet job={job} onClose={close} onScreen={() => setOverlay('screen')} />
+      )}
+      {overlay === 'screen' && (
+        <Suspense fallback={null}>
+          <ScreenJdDialog job={job} open onClose={close} />
+        </Suspense>
+      )}
       <Sheet
         open={overlay === 'todos'}
         onOpenChange={(o) => !o && close()}
