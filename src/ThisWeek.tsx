@@ -1,4 +1,4 @@
-import { Badge, Cluster, Disclosure, InlineLink, Stack, Text } from '@hirobius/design-system';
+import { Badge, Disclosure, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { weekAgenda, type AgendaItem } from './jobEvents';
 import { useJobs } from './store';
 
@@ -43,7 +43,7 @@ export default function ThisWeek() {
               <Stack gap="tight" as="ul" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {day.items.map((it, i) => (
                   <li key={`${it.jobUrl}-${it.kind}-${it.time ?? ''}-${i}`}>
-                    <Cluster gap="tight" align="center">
+                    <Stack direction="row" wrap="wrap" gap="tight" align="center">
                       <Text
                         variant="ui"
                         as="span"
@@ -65,7 +65,7 @@ export default function ThisWeek() {
                           {it.company}
                         </Text>
                       )}
-                    </Cluster>
+                    </Stack>
                   </li>
                 ))}
               </Stack>

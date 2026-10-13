@@ -1,9 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
-import { Box, Stack, Typography } from './ui/box';
 import {
   Button,
   Combobox,
-  IconButton as HdsIconButton,
   Input as HdsInput,
   Menu as HdsMenu,
   SegmentedControl,
@@ -12,11 +10,14 @@ import {
   TabsTrigger,
   TabsContent,
   Tag,
+  Icon,
+  Box,
+  Text,
+  Disclosure,
 } from '@hirobius/design-system';
 import { Plus, SlidersHorizontal } from 'lucide-react';
 import TileGrid from './TileGrid';
 import EmptyState from './EmptyState';
-import { Reveal } from './ui/Reveal';
 import { useRoute, navigate } from './route';
 import { BOARDS, ATS, entryLevelize, type Tile, type WorkMode } from './jobsData';
 import { useJobs } from './store';
@@ -51,22 +52,26 @@ function GroupPanel({
   onManage: () => void;
 }) {
   const triage = useTileTriage();
-  const [showAside, setShowAside] = useState(false);
   const { visible, saved, aside } = partitionTiles(tiles, triage, savedSet);
   return (
     <Box>
       {saved.length > 0 && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+        <Text
+          variant="caption"
+          as="span"
+          style={{
+            color: 'var(--semantic-color-content-secondary)',
+            display: 'block',
+            marginBottom: 'var(--semantic-space-scale-xs)',
+          }}
+        >
           {saved.length} saved — in your Queue
-        </Typography>
+        </Text>
       )}
       {visible.length > 0 ? (
         <TileGrid tiles={visible} triage />
       ) : saved.length > 0 ? (
-        <EmptyState
-          dense
-          message="All saved — check your Tracker for these."
-        />
+        <EmptyState dense message="All saved — check your Tracker for these." />
       ) : (
         <EmptyState
           dense
@@ -80,15 +85,10 @@ function GroupPanel({
         />
       )}
       {aside.length > 0 && (
-        <Box sx={{ mt: 1 }}>
-          <Button variant="tertiary" size="sm" onClick={() => setShowAside((v) => !v)}>
-            {showAside ? 'Hide' : 'Show'} set aside ({aside.length})
-          </Button>
-          <Reveal open={showAside}>
-            <Box sx={{ mt: 1 }}>
-              <TileGrid tiles={aside} triage />
-            </Box>
-          </Reveal>
+        <Box sx={{ mt: 'xs' }}>
+          <Disclosure label={`Set aside (${aside.length})`}>
+            <TileGrid tiles={aside} triage />
+          </Disclosure>
         </Box>
       )}
     </Box>
@@ -115,11 +115,19 @@ function CategorySwitcher({
   // not only at first-run onboarding.
   const packs = STARTER_PACKS.filter((p) => p.id !== 'blank');
   return (
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+    <Box sx={{ mb: 'sm' }}>
+      <Text
+        variant="caption"
+        as="span"
+        style={{
+          color: 'var(--semantic-color-content-secondary)',
+          display: 'block',
+          marginBottom: 'var(--primitive-space-1)',
+        }}
+      >
         Track
-      </Typography>
-      <Stack direction="row" spacing={0.75} alignItems="center">
+      </Text>
+      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1.5, alignItems: 'center' }}>
         <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
           <Combobox
             aria-label="Track to search"
@@ -129,16 +137,23 @@ function CategorySwitcher({
             placeholder="Pick a track"
           />
         </Box>
-        <HdsIconButton
+        <Button
           size="sm"
           variant="tertiary"
-          icon={SlidersHorizontal}
+          iconOnly
+          iconLeft={<Icon icon={SlidersHorizontal} />}
           label="Manage this track"
           onClick={onManage}
         />
         <HdsMenu>
           <HdsMenu.Trigger asChild>
-            <HdsIconButton size="sm" variant="secondary" icon={Plus} label="New track" />
+            <Button
+              size="sm"
+              variant="secondary"
+              iconOnly
+              iconLeft={<Icon icon={Plus} />}
+              label="New track"
+            />
           </HdsMenu.Trigger>
           <HdsMenu.Content align="end">
             <HdsMenu.Label>Start from a pack</HdsMenu.Label>
@@ -151,7 +166,7 @@ function CategorySwitcher({
             <HdsMenu.Item onSelect={onBlank}>Blank track</HdsMenu.Item>
           </HdsMenu.Content>
         </HdsMenu>
-      </Stack>
+      </Box>
     </Box>
   );
 }
@@ -197,11 +212,17 @@ function TitlesPanel({
   }));
   return (
     <Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+      <Text
+        variant="ui"
+        style={{
+          color: 'var(--semantic-color-content-secondary)',
+          marginBottom: 'var(--semantic-space-scale-xs)',
+        }}
+      >
         Pick a title — searches fire {applyEntry ? 'entry-level filtered ' : ''}across every board.
-      </Typography>
+      </Text>
       <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 'sm' }}>
         {titles.map((tt) => (
           <Tag key={tt} active={tt === title} onClick={() => setTitle(tt)}>
             {tt}
@@ -253,11 +274,26 @@ function AtsPanel({
   const allUrl = gUrl('(' + ATS.map((a) => a.site).join(' OR ') + ')');
   return (
     <Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25 }}>
+      <Text
+        variant="ui"
+        style={{
+          color: 'var(--semantic-color-content-secondary)',
+          marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
+        }}
+      >
         Search companies' hiring systems straight through Google — far less competition.
-      </Typography>
+      </Text>
       <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 1.5 }}>
+      {/* Mobile-first: a column that becomes a row from sm. HDS sx has no base breakpoint (hds#652), so the base value sits on the key and the override nests under '&'. */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3,
+          mb: 3,
+          '&': { flexDirection: { sm: 'row' } },
+        }}
+      >
         <HdsInput
           size="sm"
           label="Role / title"
@@ -276,8 +312,8 @@ function AtsPanel({
             { value: 'm', label: 'Past month' },
           ]}
         />
-      </Stack>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 0.5 }}>
+      </Box>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 1 }}>
         {roles.map((r) => (
           <Tag key={r} onClick={() => setRole(r)}>
             {r}
@@ -377,12 +413,24 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   );
   const tabs: TabDesc[] = [
     ...(featured
-      ? [{ key: featured.id, label: 'Apply Now', kind: 'group' as const, tiles: tilesFor(featured.id) }]
+      ? [
+          {
+            key: featured.id,
+            label: 'Apply Now',
+            kind: 'group' as const,
+            tiles: tilesFor(featured.id),
+          },
+        ]
       : []),
     { key: 'titles', label: 'Title search', kind: 'titles' },
     { key: 'ats', label: 'ATS search', kind: 'ats' },
     { key: 'live', label: 'Live postings', kind: 'live' },
-    ...rest.map((g) => ({ key: g.id, label: g.label, kind: 'group' as const, tiles: tilesFor(g.id) })),
+    ...rest.map((g) => ({
+      key: g.id,
+      label: g.label,
+      kind: 'group' as const,
+      tiles: tilesFor(g.id),
+    })),
   ];
 
   const route = useRoute();
@@ -425,7 +473,11 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         </TabsList>
         <TabsContent value={cur.key}>
           {cur.kind === 'group' && (
-            <GroupPanel tiles={cur.tiles!} savedSet={savedSet} onManage={() => setManageOpen(true)} />
+            <GroupPanel
+              tiles={cur.tiles!}
+              savedSet={savedSet}
+              onManage={() => setManageOpen(true)}
+            />
           )}
           {cur.kind === 'titles' && (
             <TitlesPanel

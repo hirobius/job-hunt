@@ -1,15 +1,19 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { useRoute, navigate, getRoute } from './route';
-import { Box, Container, Stack, Typography } from './ui/box';
 import { Sun, Moon, MoreVertical, MessageSquareText } from 'lucide-react';
 import {
-  IconButton as HdsIconButton,
   Menu as HdsMenu,
   Tabs as HdsTabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-  HdsTooltip,
+  Tooltip as HdsTooltip,
+  Button,
+  Icon,
+  Box,
+  Text,
+  Container,
+  Stack,
 } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import CloudSync from './CloudSync';
@@ -29,9 +33,10 @@ function ColorModeToggle() {
   return (
     <HdsTooltip>
       <HdsTooltip.Trigger asChild>
-        <HdsIconButton
+        <Button
           variant="tertiary"
-          icon={mode === 'dark' ? Sun : Moon}
+          iconOnly
+          iconLeft={<Icon icon={mode === 'dark' ? Sun : Moon} />}
           onClick={toggle}
           label={label}
         />
@@ -48,7 +53,12 @@ function OverflowMenu() {
   return (
     <HdsMenu>
       <HdsMenu.Trigger asChild>
-        <HdsIconButton variant="tertiary" icon={MoreVertical} label="More options" />
+        <Button
+          variant="tertiary"
+          iconOnly
+          iconLeft={<Icon icon={MoreVertical} />}
+          label="More options"
+        />
       </HdsMenu.Trigger>
       <HdsMenu.Content align="end">
         <HdsMenu.Item
@@ -111,67 +121,49 @@ export default function App() {
   }, []);
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1.75, sm: 3 } }}>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        spacing={1}
-        sx={{ mb: { xs: 1.5, sm: 2 } }}
-      >
-        <Typography variant="h1" sx={{ fontSize: { xs: '1.6rem', sm: '2.125rem' }, minWidth: 0 }}>
-          Apply{' '}
-          <Box component="span" sx={{ color: 'primary.main' }}>
-            Board
-          </Box>
-        </Typography>
-        <Stack direction="row" alignItems="center" spacing={0.25} sx={{ flex: 'none' }}>
-          <ColorModeToggle />
-          <OverflowMenu />
+    <Container maxWidth="content">
+      {/* Page gutter: the HDS region-gutter role (Container's own padding prop is retired). */}
+      <Box sx={{ px: 'var(--semantic-space-region-gutter)', py: 'md' }}>
+        <Stack gap="normal">
+          <Stack direction="row" gap="gap" align="center" justify="space-between">
+            <Text variant="title" as="h1">
+              Apply{' '}
+              <Box as="span" sx={{ color: 'accent' }}>
+                Board
+              </Box>
+            </Text>
+            <Stack direction="row" gap="gap" align="center">
+              <ColorModeToggle />
+              <OverflowMenu />
+            </Stack>
+          </Stack>
+
+          <CloudSync />
+
+          <HdsTabs
+            value={TAB_SLUGS[tab]}
+            onValueChange={(v) => navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null })}
+          >
+            <TabsList style={{ width: '100%' }}>
+              <TabsTrigger value="discover">Discover</TabsTrigger>
+              <TabsTrigger value="queue">Tracker</TabsTrigger>
+              <TabsTrigger value="copy-deck">Templates</TabsTrigger>
+            </TabsList>
+            <TabsContent value="discover">
+              <Suspense fallback={<DiscoverSkeleton />}>
+                <DiscoverView />
+              </Suspense>
+            </TabsContent>
+            <TabsContent value="queue">
+              <TrackerView />
+            </TabsContent>
+            <TabsContent value="copy-deck">
+              <Suspense fallback={<CopyDeckSkeleton />}>
+                <CopyDeckView />
+              </Suspense>
+            </TabsContent>
+          </HdsTabs>
         </Stack>
-      </Stack>
-
-      <CloudSync />
-
-      {/* HDS underline tabs (Radix): value = route slug, aria wiring comes from Radix. The list
-          scrolls horizontally on narrow screens; the sx bump gives each tab a readable, tappable
-          target (the default underline tabs read too faint/small on phones). */}
-      <Box
-        sx={{
-          mb: { xs: 2, sm: 2.5 },
-          '& [role="tab"]': {
-            fontSize: { xs: '0.875rem', sm: '0.95rem' },
-            fontWeight: 600,
-            paddingTop: '10px',
-            paddingBottom: '10px',
-            paddingLeft: { xs: '7px', sm: '14px' },
-            paddingRight: { xs: '7px', sm: '14px' },
-          },
-        }}
-      >
-        <HdsTabs
-          value={TAB_SLUGS[tab]}
-          onValueChange={(v) => navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null })}
-        >
-          <TabsList style={{ width: '100%' }}>
-            <TabsTrigger value="discover">Discover</TabsTrigger>
-            <TabsTrigger value="queue">Tracker</TabsTrigger>
-            <TabsTrigger value="copy-deck">Templates</TabsTrigger>
-          </TabsList>
-          <TabsContent value="discover">
-            <Suspense fallback={<DiscoverSkeleton />}>
-              <DiscoverView />
-            </Suspense>
-          </TabsContent>
-          <TabsContent value="queue">
-            <TrackerView />
-          </TabsContent>
-          <TabsContent value="copy-deck">
-            <Suspense fallback={<CopyDeckSkeleton />}>
-              <CopyDeckView />
-            </Suspense>
-          </TabsContent>
-        </HdsTabs>
       </Box>
     </Container>
   );

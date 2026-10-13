@@ -1,5 +1,10 @@
 # @hirobius/design-system 0.9.0 — field report + remaining asks (Apply Board cutover)
 
+> **Superseded (2026-10-12, epic #89).** HDS shipped these asks — `Box` with a token-only `sx`,
+> `Stack`, `Text`, `Switcher`, `Disclosure`, `EmptyState` — and the app now uses them; the local
+> `src/ui` layer this document argued for is deleted. Kept as history. Open HDS gaps found during the
+> move are filed in hirobius/hds (hds#652 and the follow-ups linked from #89).
+
 **For the HDS repo/thread.** Grounded in a full production cutover of Apply Board
 (Vite + React 18 + TS, previously MUI v6) onto `@hirobius/design-system@0.9.0` from public
 npm. Six migration waves are live or on preview: consumption model + feedback tokens,

@@ -7,14 +7,16 @@ import {
   Alert,
   Badge,
   Button,
-  HdsTooltip,
+  Tooltip as HdsTooltip,
   Input as HdsInput,
   SegmentedControl,
   Spinner,
   Tag,
   useToast,
+  Box,
+  Text,
+  InlineLink,
 } from '@hirobius/design-system';
-import { Box, Link, Stack, Typography } from './ui/box';
 import EmptyState from './EmptyState';
 import LocationControl from './LocationControl';
 import type { WorkMode } from './jobsData';
@@ -151,16 +153,22 @@ export default function LiveFeedPanel({
 
   return (
     <Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25 }}>
+      <Text
+        variant="ui"
+        style={{
+          color: 'var(--semantic-color-content-secondary)',
+          marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
+        }}
+      >
         Real openings from Hacker News “Who is hiring”, Remotive, and the company boards you watch —
         ranked by fit. Nothing is kept until you save one.
-      </Typography>
+      </Text>
       <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
 
       <Box
-        component="form"
+        as="form"
         onSubmit={onSearch}
-        sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', mb: 1 }}
+        sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}
       >
         <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
           <HdsInput
@@ -176,7 +184,7 @@ export default function LiveFeedPanel({
         </Button>
       </Box>
       {terms.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
           {terms.map((t) => (
             <Tag key={t} onClick={() => search(t)}>
               {t}
@@ -186,9 +194,9 @@ export default function LiveFeedPanel({
       )}
 
       <Box
-        component="form"
+        as="form"
         onSubmit={onWatch}
-        sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', mb: 0.5 }}
+        sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
       >
         <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
           <HdsInput
@@ -204,19 +212,25 @@ export default function LiveFeedPanel({
           Watch
         </Button>
       </Box>
-      <Typography
+      <Text
         variant="caption"
-        color={watchError ? 'error.main' : 'text.secondary'}
-        sx={{ display: 'block', mb: 2 }}
+        as="span"
+        style={{
+          color: watchError
+            ? 'var(--semantic-color-feedback-error)'
+            : 'var(--semantic-color-content-secondary)',
+          display: 'block',
+          marginBottom: 'var(--semantic-space-scale-sm)',
+        }}
       >
         {watchError ||
           (watchedCount
             ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
             : 'Paste a Greenhouse, Lever or Ashby job-board link to pull that company’s openings in.')}
-      </Typography>
+      </Text>
 
       {errors.length > 0 && (
-        <Box sx={{ mb: 1.5 }}>
+        <Box sx={{ mb: 3 }}>
           <Alert tone="warning" title="Some sources didn’t respond">
             {errors.map((s) => (
               <Box key={s.key}>{s.error}</Box>
@@ -225,19 +239,29 @@ export default function LiveFeedPanel({
         </Box>
       )}
       {skipped > 0 && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+        <Text
+          variant="caption"
+          as="span"
+          style={{
+            color: 'var(--semantic-color-content-secondary)',
+            display: 'block',
+            marginBottom: 'var(--semantic-space-scale-xs)',
+          }}
+        >
           {skipped} watched {skipped === 1 ? 'board was' : 'boards were'} skipped — the feed reads
           at most 25 per search.
-        </Typography>
+        </Text>
       )}
 
       {loading ? (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 3 }}>
+        <Box
+          sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', alignItems: 'center', py: 'md' }}
+        >
           <Spinner size="sm" label="Loading live postings" />
-          <Typography variant="body2" color="text.secondary">
+          <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
             Pulling live openings for “{term}”…
-          </Typography>
-        </Stack>
+          </Text>
+        </Box>
       ) : current?.error ? (
         <Alert tone="danger">{current.error}</Alert>
       ) : !term.trim() ? (
@@ -250,7 +274,7 @@ export default function LiveFeedPanel({
       ) : (
         <Box>
           {/* Scrolls sideways on narrow screens rather than clipping (same as the tab bar). */}
-          <Box sx={{ mb: 1, overflowX: 'auto', maxWidth: '100%', pb: 0.25 }}>
+          <Box sx={{ mb: 'xs', overflowX: 'auto', maxWidth: '100%', pb: 0.5 }}>
             <SegmentedControl
               aria-label="Show"
               size="sm"
@@ -272,7 +296,7 @@ export default function LiveFeedPanel({
               message="None of these openings carry that signal — switch back to All."
             />
           ) : (
-            <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
+            <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
               {visible.slice(0, shown).map((p) => (
                 <PostingRow
                   key={p.id}
@@ -320,33 +344,35 @@ function PostingRow({
   ].filter(Boolean);
   return (
     <Box
-      component="li"
+      as="li"
       sx={{
-        py: 1.5,
+        py: 3,
         borderBottom: '1px solid',
-        borderColor: 'divider',
+        borderColor: 'border.default',
         display: 'flex',
-        gap: 1.5,
+        gap: 3,
         alignItems: 'flex-start',
       }}
     >
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Link
-          href={p.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          sx={{ fontWeight: 600, lineHeight: 1.25, overflowWrap: 'anywhere' }}
-        >
-          {p.title}
-        </Link>
-        <Typography
+        <Text variant="ui" as="h3" style={{ overflowWrap: 'anywhere' }}>
+          <InlineLink href={p.url} externalIcon={false}>
+            {p.title}
+          </InlineLink>
+        </Text>
+        <Text
           variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', mt: 0.25, overflowWrap: 'anywhere' }}
+          as="span"
+          style={{
+            color: 'var(--semantic-color-content-secondary)',
+            display: 'block',
+            marginTop: 'calc(var(--primitive-space-1) * 0.5)',
+            overflowWrap: 'anywhere',
+          }}
         >
           {meta.join(' · ')}
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.75 }}>
+        </Text>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
           {p.signals.map((s) => (
             <HdsTooltip key={s.id}>
               <HdsTooltip.Trigger asChild>
@@ -360,13 +386,16 @@ function PostingRow({
           <Badge tone="neutral">{p.hit === 'title' ? 'In title' : 'In description'}</Badge>
         </Box>
         {p.snippet && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 0.75, overflowWrap: 'anywhere' }}
+          <Text
+            variant="ui"
+            style={{
+              color: 'var(--semantic-color-content-secondary)',
+              marginTop: 'calc(var(--primitive-space-1) * 1.5)',
+              overflowWrap: 'anywhere',
+            }}
           >
             {p.snippet}
-          </Typography>
+          </Text>
         )}
       </Box>
       <Button

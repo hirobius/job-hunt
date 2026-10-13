@@ -1,7 +1,7 @@
 // Data tools toolbar (#100): download a full-account backup, restore one (merge or replace,
 // with a safety backup first on replace), and export the job list as CSV. HDS components only.
 import { useRef, useState } from 'react';
-import { Alert, Button, Cluster, Dialog, Stack, Text } from '@hirobius/design-system';
+import { Alert, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import {
   applyBackup,
   buildBackup,
@@ -81,7 +81,7 @@ export default function DataTools() {
 
   return (
     <Stack gap="tight">
-      <Cluster gap="tight">
+      <Stack direction="row" wrap="wrap" gap="tight" align="center">
         <Button size="sm" variant="tertiary" onClick={() => downloadBackup('apply-board-backup')}>
           Back up
         </Button>
@@ -104,7 +104,7 @@ export default function DataTools() {
           hidden
           onChange={onFile}
         />
-      </Cluster>
+      </Stack>
 
       {error && (
         <Alert tone="danger" title="Can't restore that file">

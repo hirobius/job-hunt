@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Box, Stack, Typography } from './ui/box';
 import {
   Button,
   Dialog,
-  IconButton as HdsIconButton,
   Input as HdsInput,
   SegmentedControl,
   Tag,
+  Icon,
+  Box,
+  Text,
+  Switcher,
 } from '@hirobius/design-system';
 import { Trash2, X } from 'lucide-react';
 import {
@@ -45,19 +47,31 @@ function ChipEditor({
   };
   return (
     <Box>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+      <Text
+        variant="caption"
+        as="span"
+        style={{
+          color: 'var(--semantic-color-content-secondary)',
+          display: 'block',
+          marginBottom: 'var(--primitive-space-1)',
+        }}
+      >
         {label}
-      </Typography>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.75 }}>
+      </Text>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
         {values.map((v) => (
           <Tag key={v} active onClick={() => onChange(values.filter((x) => x !== v))}>
             {v} ✕
           </Tag>
         ))}
         {values.length === 0 && (
-          <Typography variant="caption" color="text.secondary">
+          <Text
+            variant="caption"
+            as="span"
+            style={{ color: 'var(--semantic-color-content-secondary)' }}
+          >
             none yet
-          </Typography>
+          </Text>
         )}
       </Box>
       <HdsInput
@@ -89,23 +103,40 @@ function GroupEditor({ groupId }: { groupId: string }) {
     setUrl('');
   };
   return (
-    <Stack spacing={0.75} sx={{ pl: 1 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pl: 'xs' }}>
       {tiles.map((t) => (
-        <Stack key={t.id} direction="row" alignItems="center" spacing={0.5}>
-          <Typography variant="caption" sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+        <Box
+          sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center' }}
+          key={t.id}
+        >
+          <Text
+            variant="caption"
+            as="span"
+            style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}
+          >
             {t.name}
-          </Typography>
-          <HdsIconButton
+          </Text>
+          <Button
             size="sm"
             variant="tertiary"
             tone="danger"
-            icon={X}
+            iconOnly
+            iconLeft={<Icon icon={X} />}
             label={`Remove ${t.name}`}
             onClick={() => removeTile(t.id)}
           />
-        </Stack>
+        </Box>
       ))}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={0.5} sx={{ mt: 0.25 }}>
+      {/* Mobile-first: a column that becomes a row from sm. HDS sx has no base breakpoint (hds#652), so the base value sits on the key and the override nests under '&'. */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+          mt: 0.5,
+          '&': { flexDirection: { sm: 'row' } },
+        }}
+      >
         <HdsInput
           size="sm"
           aria-label="Link name"
@@ -128,11 +159,16 @@ function GroupEditor({ groupId }: { groupId: string }) {
           }}
           style={{ flex: 1, minWidth: 0 }}
         />
-        <Button variant="secondary" size="sm" onClick={addLink} disabled={!name.trim() || !url.trim()}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={addLink}
+          disabled={!name.trim() || !url.trim()}
+        >
           Add
         </Button>
-      </Stack>
-    </Stack>
+      </Box>
+    </Box>
   );
 }
 
@@ -154,7 +190,9 @@ export default function ManageTrackDialog({
   if (!cat) return null;
 
   const del = () => {
-    if (window.confirm(`Delete the “${cat.label}” track and all its content? This can't be undone.`)) {
+    if (
+      window.confirm(`Delete the “${cat.label}” track and all its content? This can't be undone.`)
+    ) {
       removeCategory(cat.id);
       onDeleted();
     }
@@ -162,7 +200,9 @@ export default function ManageTrackDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <Dialog.Content style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}>
+      <Dialog.Content
+        style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}
+      >
         <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
           <Dialog.Header>
             <Dialog.Title>Manage track</Dialog.Title>
@@ -176,7 +216,7 @@ export default function ManageTrackDialog({
               margin: '8px 0',
             }}
           >
-            <Stack spacing={1.75}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
               <Box sx={{ '& > *': { width: '100%' } }}>
                 <HdsInput
                   size="sm"
@@ -186,7 +226,7 @@ export default function ManageTrackDialog({
                   style={{ width: '100%' }}
                 />
               </Box>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+              <Switcher gap="tight">
                 <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
                   <HdsInput
                     size="sm"
@@ -197,9 +237,17 @@ export default function ManageTrackDialog({
                   />
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                  <Text
+                    variant="caption"
+                    as="span"
+                    style={{
+                      color: 'var(--semantic-color-content-secondary)',
+                      display: 'block',
+                      marginBottom: 'var(--primitive-space-1)',
+                    }}
+                  >
                     Seniority
-                  </Typography>
+                  </Text>
                   <SegmentedControl
                     aria-label="Seniority"
                     size="sm"
@@ -212,7 +260,7 @@ export default function ManageTrackDialog({
                     ]}
                   />
                 </Box>
-              </Stack>
+              </Switcher>
               <ChipEditor
                 label="Title-search terms"
                 values={cat.titles}
@@ -224,12 +272,25 @@ export default function ManageTrackDialog({
                 onChange={(next) => updateCategory(cat.id, { atsRoles: next })}
               />
 
-              <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 1.5 }}>
-                <Typography sx={{ fontWeight: 600, mb: 1 }}>Sections & links</Typography>
-                <Stack spacing={1.25}>
+              <Box sx={{ borderTop: '1px solid', borderColor: 'border.default', pt: 3 }}>
+                <Text
+                  variant="body"
+                  style={{ fontWeight: 600, marginBottom: 'var(--semantic-space-scale-xs)' }}
+                >
+                  Sections & links
+                </Text>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                   {groups.map((g) => (
                     <Box key={g.id}>
-                      <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5 }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'row',
+                          gap: 1,
+                          alignItems: 'center',
+                          mb: 1,
+                        }}
+                      >
                         <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
                           <HdsInput
                             size="sm"
@@ -239,15 +300,16 @@ export default function ManageTrackDialog({
                             style={{ width: '100%' }}
                           />
                         </Box>
-                        <HdsIconButton
+                        <Button
                           size="sm"
                           variant="tertiary"
                           tone="danger"
-                          icon={Trash2}
+                          iconOnly
+                          iconLeft={<Icon icon={Trash2} />}
                           label={`Delete ${g.label} section`}
                           onClick={() => removeGroup(g.id)}
                         />
-                      </Stack>
+                      </Box>
                       <GroupEditor groupId={g.id} />
                     </Box>
                   ))}
@@ -258,9 +320,9 @@ export default function ManageTrackDialog({
                   >
                     ＋ Add section
                   </Button>
-                </Stack>
+                </Box>
               </Box>
-            </Stack>
+            </Box>
           </div>
           <Dialog.Footer>
             <Button variant="tertiary" tone="danger" onClick={del}>

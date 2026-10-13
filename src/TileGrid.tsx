@@ -1,22 +1,19 @@
-import { Box, Link, Stack, Typography } from './ui/box';
 import {
   Badge,
   Button,
   Card as HdsCard,
-  HdsTooltip,
-  IconButton,
+  Tooltip as HdsTooltip,
   useToast,
+  Icon,
+  Box,
+  Text,
+  Grid,
+  InlineLink,
 } from '@hirobius/design-system';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 import { addJob, isSaved, useJobs } from './store';
 import { useTileTriage, toggleDismiss } from './tileTriage';
 import type { Tile } from './jobsData';
-
-const grid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-  gap: 1.25,
-} as const;
 
 // Tile kind, derived from the URL (issue #12): aggregator queries are "Search", Google
 // fallback leads are "Lead" (verify before relying), everything else is a direct
@@ -36,12 +33,7 @@ function metaWithTel(meta: string) {
   return (
     <>
       {meta.slice(0, m.index)}
-      <Link
-        href={`tel:${m[1].replace(/-/g, '')}`}
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-      >
-        {m[1]}
-      </Link>
+      <InlineLink href={`tel:${m[1].replace(/-/g, '')}`}>{m[1]}</InlineLink>
       {meta.slice(m.index + m[1].length)}
     </>
   );
@@ -73,7 +65,7 @@ export default function TileGrid({
     }
   };
   return (
-    <Box sx={grid}>
+    <Grid layout="auto-fill" minItemWidth="160px" gap="medium">
       {tiles.map((t) => {
         const saved = isSaved(t.url);
         const isAside = dismissedSet.has(t.url);
@@ -89,36 +81,39 @@ export default function TileGrid({
               opacity: isAside ? 0.6 : 1,
             }}
           >
-            <Box
-              sx={{
-                p: 1.5,
-                display: 'flex',
-                flexDirection: 'column',
-                flex: 1,
-              }}
-            >
-              <Typography sx={{ fontWeight: 600, lineHeight: 1.2, overflowWrap: 'anywhere' }}>
+            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <Text
+                variant="body"
+                style={{ fontWeight: 600, lineHeight: 1.2, overflowWrap: 'anywhere' }}
+              >
                 {t.name}
-              </Typography>
-              <Typography
+              </Text>
+              <Text
                 variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.25, mb: 1.25, flex: 1 }}
+                as="span"
+                style={{
+                  color: 'var(--semantic-color-content-secondary)',
+                  marginTop: 'calc(var(--primitive-space-1) * 0.5)',
+                  marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
+                  flex: 1,
+                }}
               >
                 {metaWithTel(t.meta)}
-              </Typography>
+              </Text>
               {kindOf(t.url) && (
-                <Box sx={{ mb: 0.75 }}>
+                <Box sx={{ mb: 1.5 }}>
                   <Badge tone={kindOf(t.url)!.tone}>{kindOf(t.url)!.label}</Badge>
                 </Box>
               )}
-              <Stack
-                direction="row"
-                spacing={0.5}
-                sx={{ mt: 'auto' }}
-                alignItems="center"
-                useFlexGap
-                flexWrap="wrap"
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  gap: 1,
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  mt: 'auto',
+                }}
               >
                 <Button size="sm" variant="tertiary" asChild>
                   <a href={t.url} target="_blank" rel="noopener noreferrer">
@@ -134,14 +129,15 @@ export default function TileGrid({
                   {saved ? 'Saved' : 'Save'}
                 </Button>
                 {(triage || onRemove) && (
-                  <Stack direction="row" spacing={0} sx={{ ml: 'auto' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'row', gap: 0, ml: 'auto' }}>
                     {triage && (
                       <HdsTooltip>
                         <HdsTooltip.Trigger asChild>
-                          <IconButton
+                          <Button
                             size="sm"
                             variant="tertiary"
-                            icon={isAside ? ArchiveRestore : Archive}
+                            iconOnly
+                            iconLeft={<Icon icon={isAside ? ArchiveRestore : Archive} />}
                             onClick={() => toggleDismiss(t.url)}
                             label={isAside ? 'Restore tile' : 'Set tile aside'}
                           />
@@ -152,11 +148,12 @@ export default function TileGrid({
                     {onRemove && (
                       <HdsTooltip>
                         <HdsTooltip.Trigger asChild>
-                          <IconButton
+                          <Button
                             size="sm"
                             variant="tertiary"
                             tone="danger"
-                            icon={Trash2}
+                            iconOnly
+                            iconLeft={<Icon icon={Trash2} />}
                             onClick={() => onRemove(t.url)}
                             label="Remove tile"
                           />
@@ -164,13 +161,13 @@ export default function TileGrid({
                         <HdsTooltip.Content>Remove</HdsTooltip.Content>
                       </HdsTooltip>
                     )}
-                  </Stack>
+                  </Box>
                 )}
-              </Stack>
+              </Box>
             </Box>
           </HdsCard>
         );
       })}
-    </Box>
+    </Grid>
   );
 }

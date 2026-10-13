@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import { Box, Stack, Typography } from './ui/box';
-import {
-  Button,
-  Input as HdsInput,
-  Spinner,
-  SelectableCard,
-  Stack as HdsStack,
-  Text,
-} from '@hirobius/design-system';
+import { Button, Input as HdsInput, Spinner, Box, Stack, Text, Card } from '@hirobius/design-system';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import { useCurationSyncStatus } from './curation/syncStatus';
 
@@ -33,7 +25,7 @@ export function Onboarding() {
   // over it (that wrote duplicate tracks). The status always settles within a few seconds.
   if (syncStatus === 'syncing')
     return (
-      <HdsStack
+      <Stack
         direction="row"
         gap="normal"
         align="center"
@@ -42,21 +34,31 @@ export function Onboarding() {
       >
         <Spinner size="sm" />
         <Text variant="body">Restoring your tracks…</Text>
-      </HdsStack>
+      </Stack>
     );
 
   return (
-    <Box sx={{ maxWidth: 560, mx: 'auto', py: 4 }}>
-      <Stack spacing={2}>
-        <Typography sx={{ fontSize: '1.4rem', fontWeight: 600 }}>Set up your board</Typography>
-        <Typography color="text.secondary">
+    <Box sx={{ maxWidth: 560, mx: 'auto', py: 'lg' }}>
+      <Stack gap="tight">
+        <Text variant="title" as="h2">
+          Set up your board
+        </Text>
+        <Text variant="body" style={{ color: 'var(--semantic-color-content-secondary)' }}>
           Pick one or more tracks to start with — each pre-fills search terms and a few links. You
           can edit or add more later.
-        </Typography>
+        </Text>
         <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+          <Text
+            variant="caption"
+            as="span"
+            style={{
+              color: 'var(--semantic-color-content-secondary)',
+              display: 'block',
+              marginBottom: 'var(--primitive-space-1)',
+            }}
+          >
             Location (optional — blank = anywhere)
-          </Typography>
+          </Text>
           <HdsInput
             size="sm"
             aria-label="Location"
@@ -67,14 +69,16 @@ export function Onboarding() {
           />
         </Box>
         <div role="group" aria-label="Starter tracks">
-          <HdsStack gap="tight">
+          <Stack gap="tight">
             {STARTER_PACKS.map((p) => {
               const on = picked.includes(p.id);
               return (
-                // HDS SelectableCard = a real button with checkbox semantics (aria-checked), named
+                // HDS selectable Card = one checkbox-like option (role=checkbox, aria-checked), named
                 // by its pack and described by its blurb — keyboard + screen-reader operable (#104).
-                <SelectableCard
+                <Card
                   key={p.id}
+                  bordered
+                  selectable
                   selected={on}
                   onSelectedChange={() => toggle(p.id)}
                   aria-labelledby={`pack-${p.id}`}
@@ -102,10 +106,10 @@ export function Onboarding() {
                   >
                     {p.blurb}
                   </Text>
-                </SelectableCard>
+                </Card>
               );
             })}
-          </HdsStack>
+          </Stack>
         </div>
         {needsTitle && (
           <HdsInput

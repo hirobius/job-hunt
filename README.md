@@ -48,8 +48,8 @@ signed-out in the browser; an optional email sign-in syncs it across devices.
   pushes build a preview only when the commit message contains `[preview]`).
 - **UI is `@hirobius/design-system` (HDS)**, installed from public npm. Theming is HDS token CSS
   variables: `src/theme/brand-jade.css` remaps the accent to jade, and light/dark is a
-  `data-theme` flip on `<html>`. A small local layout layer (`src/ui/`) fills the gap HDS 0.13
-  leaves; retiring it onto HDS's newer layout primitives is epic #89.
+  `data-theme` flip on `<html>`. Layout and type are HDS too (`Box`, `Stack`, `Grid`, `Text`, HDS
+  fonts); the old local layout layer is gone and `src/hdsOnly.test.ts` keeps it out.
 - **Accessibility and contrast are tested, not asserted.** Component tests run axe-core WCAG A/AA
   checks, and `src/theme.contrast.test.ts` computes AA contrast for both themes from the shipped
   HDS token file plus the jade override.
@@ -103,5 +103,7 @@ The architecture decision records explain how the app got here:
   from public npm (see its addenda for the current upgrade path).
 - [`docs/adr/0006`](docs/adr/0006-pivot-to-agnostic-pillar-driven-product.md) — pivot from a
   personal board to an agnostic, track-driven product.
+- [`docs/adr/0007`](docs/adr/0007-track-hds-latest-with-the-upgrade-tool.md) — track the latest
+  HDS with its upgrade tool (exact-pinned; bumped only through the tool).
 
 Domain vocabulary is in [`CONTEXT.md`](CONTEXT.md). The backlog lives in GitHub Issues.

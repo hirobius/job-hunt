@@ -1,7 +1,12 @@
 import { useState } from 'react';
-import { Box, Stack } from './ui/box';
-import { Button, Card as HdsCard, Textarea } from '@hirobius/design-system';
-import { Reveal } from './ui/Reveal';
+import {
+  Button,
+  Card as HdsCard,
+  Textarea,
+  Box,
+  Disclosure,
+  Input as HdsInput,
+} from '@hirobius/design-system';
 import EmptyState from './EmptyState';
 import {
   useSnippets,
@@ -37,16 +42,20 @@ export default function CopyDeckView() {
 
   return (
     <Box>
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          mb: 'sm',
+          flexWrap: 'wrap',
+          gap: 'xs',
+        }}
       >
         <Button variant="secondary" onClick={() => addSnippet()}>
           New snippet
         </Button>
-      </Stack>
+      </Box>
       {visible.length === 0 ? (
         <EmptyState
           message="No snippets yet — cover letters, outreach notes and call scripts live here."
@@ -57,37 +66,20 @@ export default function CopyDeckView() {
           }
         />
       ) : (
-        <Stack spacing={1.5}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {visible.map((s) => (
             <HdsCard key={s.id} bordered padding="none">
-              <Box sx={{ p: 2 }}>
-                <Box
-                  as="input"
+              <Box sx={{ p: 'sm' }}>
+                <HdsInput
+                  size="sm"
+                  aria-label="Snippet label"
                   value={s.label}
                   placeholder="Label"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    updateSnippet(s.id, { label: e.target.value })
-                  }
-                  sx={{
-                    width: '100%',
-                    border: 0,
-                    background: 'transparent',
-                    color: 'text.primary',
-                    outline: 'none',
-                    fontFamily: '"Clash Display", sans-serif',
-                    fontWeight: 600,
-                    fontSize: '1.1rem',
-                    mb: 0.5,
-                  }}
+                  onChange={(e) => updateSnippet(s.id, { label: e.target.value })}
                 />
-                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
-                  <Button
-                    variant="tertiary"
-                    size="sm"
-                    onClick={() => updateSnippet(s.id, { open: !s.open })}
-                  >
-                    {s.open ? 'Hide' : 'Show'}
-                  </Button>
+                <Box
+                  sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, mt: 'xs' }}
+                >
                   <Button variant="tertiary" size="sm" tone="success" onClick={() => copy(s.id)}>
                     {copied === s.id ? 'Copied' : 'Copy'}
                   </Button>
@@ -100,20 +92,24 @@ export default function CopyDeckView() {
                   <Button variant="tertiary" size="sm" tone="danger" onClick={() => del(s.id)}>
                     Delete
                   </Button>
-                </Stack>
-                <Reveal open={!!s.open}>
+                </Box>
+                <Disclosure
+                  label="Snippet text"
+                  open={!!s.open}
+                  onOpenChange={(open) => updateSnippet(s.id, { open })}
+                >
                   <Textarea
                     rows={4}
+                    aria-label="Snippet text"
                     value={s.body}
                     placeholder="Paste or write your snippet…"
                     onChange={(e) => updateSnippet(s.id, { body: e.target.value })}
-                    style={{ width: '100%', marginTop: 8 }}
                   />
-                </Reveal>
+                </Disclosure>
               </Box>
             </HdsCard>
           ))}
-        </Stack>
+        </Box>
       )}
     </Box>
   );

@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from 'react';
-import { Box, Link, Stack, Typography } from './ui/box';
 import {
   EllipsisVertical,
   ArrowUpDown,
@@ -16,13 +15,18 @@ import {
   Badge,
   Button as UiButton,
   Card as HdsCard,
-  IconButton as HdsIconButton,
   Input as HdsInput,
   Menu as HdsMenu,
   SegmentedControl,
   Textarea,
+  Icon,
+  Box,
+  Stack,
+  Text,
+  Disclosure,
+  InlineLink,
+  Switcher,
 } from '@hirobius/design-system';
-import { Reveal } from './ui/Reveal';
 import {
   useJobs,
   addJob,
@@ -140,7 +144,16 @@ export default function TrackerView() {
 
   return (
     <Box>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 2 }}>
+      {/* Mobile-first: a column that becomes a row from sm. HDS sx has no base breakpoint (hds#652), so the base value sits on the key and the override nests under '&'. */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'xs',
+          mb: 'sm',
+          '&': { flexDirection: { sm: 'row' } },
+        }}
+      >
         <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
           <HdsInput
             size="sm"
@@ -154,20 +167,20 @@ export default function TrackerView() {
             style={{ width: '100%' }}
           />
         </Box>
-        <Stack direction="row" spacing={1} sx={{ flex: 'none' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', flex: 'none' }}>
           {/* Box wrappers carry the responsive flex the seam Button can't express via sx. */}
-          <Box sx={{ display: 'flex', flex: { xs: 1, sm: 'none' } }}>
+          <Box sx={{ display: 'flex', flex: 1, '&': { flex: { sm: 'none' } } }}>
             <UiButton variant="primary" onClick={submit} style={{ flex: 1 }}>
               Add
             </UiButton>
           </Box>
-        </Stack>
-      </Stack>
+        </Box>
+      </Box>
 
       {/* Filters get the full row to themselves (horizontally scrollable — a partially
           visible pill is the scroll affordance); sort/export live on their own line below.
           Sharing one row squeezed the filters to a single pill on phones. */}
-      <Box sx={{ mb: 0.5, overflowX: 'auto', pb: 0.5, '& > *': { minWidth: 'max-content' } }}>
+      <Box sx={{ mb: 1, overflowX: 'auto', pb: 1, '& > *': { minWidth: 'max-content' } }}>
         <SegmentedControl
           aria-label="Filter jobs by status"
           size="sm"
@@ -185,11 +198,15 @@ export default function TrackerView() {
           ]}
         />
       </Box>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={1}
-        alignItems={{ xs: 'stretch', sm: 'center' }}
-        sx={{ mb: 2 }}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'xs',
+          alignItems: 'stretch',
+          mb: 'sm',
+          '&': { flexDirection: { sm: 'row' }, alignItems: { sm: 'center' } },
+        }}
       >
         <Box sx={{ flex: 1, minWidth: 0, width: '100%', '& > *': { width: '100%' } }}>
           <HdsInput
@@ -202,7 +219,15 @@ export default function TrackerView() {
             style={{ width: '100%' }}
           />
         </Box>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 'none' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 'xs',
+            alignItems: 'center',
+            flex: 'none',
+          }}
+        >
           <HdsMenu>
             <HdsMenu.Trigger asChild>
               <UiButton
@@ -225,8 +250,8 @@ export default function TrackerView() {
             </HdsMenu.Content>
           </HdsMenu>
           <DataTools />
-        </Stack>
-      </Stack>
+        </Box>
+      </Box>
 
       <SampleBanner jobs={jobs} />
       <ThisWeek />
@@ -247,7 +272,7 @@ export default function TrackerView() {
           }
         />
       ) : (
-        <Stack spacing={1.25}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           {shown.map((j) => {
             const s = deriveJobState(j);
             const isOpen = !!open[j.url];
@@ -281,50 +306,44 @@ export default function TrackerView() {
               >
                 <Box
                   sx={{
-                    p: 2,
+                    p: 'sm',
                     borderLeft: j.priority
                       ? '3px solid var(--semantic-accent-rest)'
                       : '3px solid transparent',
                   }}
                 >
                   {/* Eyebrow + title | status badge · pin · overflow */}
-                  <Stack direction="row" alignItems="flex-start" spacing={1}>
+                  <Stack direction="row" gap="gap" align="start">
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography
+                      <Text
                         variant="caption"
-                        color="text.secondary"
-                        sx={{
+                        as="span"
+                        style={{
+                          color: 'var(--semantic-color-content-secondary)',
                           display: 'block',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          fontSize: 11,
                         }}
                       >
                         {eyebrow}
-                      </Typography>
-                      <Link
-                        href={j.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        underline="hover"
-                        color="text.primary"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: '1.05rem',
-                          lineHeight: 1.25,
-                          display: 'block',
-                          mt: 0.25,
+                      </Text>
+                      <Text
+                        variant="body"
+                        as="h3"
+                        style={{
+                          marginTop: 'calc(var(--primitive-space-1) * 0.5)',
                           overflowWrap: 'anywhere',
                         }}
                       >
-                        {j.label || prettyTitle(j.url)}
-                      </Link>
+                        <InlineLink href={j.url} externalIcon={false}>
+                          {j.label || prettyTitle(j.url)}
+                        </InlineLink>
+                      </Text>
                     </Box>
                     {s.status !== 'Saved' && <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>}
-                    <HdsIconButton
+                    <UiButton
                       size="sm"
                       variant="tertiary"
-                      icon={Star}
+                      iconOnly
+                      iconLeft={<Icon icon={Star} />}
                       label={j.priority ? 'Unpin priority' : 'Pin as priority'}
                       aria-pressed={!!j.priority}
                       onClick={() => updateJob(j.url, { priority: !j.priority })}
@@ -332,10 +351,11 @@ export default function TrackerView() {
                     />
                     <HdsMenu>
                       <HdsMenu.Trigger asChild>
-                        <HdsIconButton
+                        <UiButton
                           size="sm"
                           variant="tertiary"
-                          icon={EllipsisVertical}
+                          iconOnly
+                          iconLeft={<Icon icon={EllipsisVertical} />}
                           label="More actions"
                         />
                       </HdsMenu.Trigger>
@@ -379,8 +399,8 @@ export default function TrackerView() {
                       sx={{
                         display: 'flex',
                         flexWrap: 'wrap',
-                        gap: 1.25,
-                        mt: 1,
+                        gap: 2.5,
+                        mt: 'xs',
                         alignItems: 'center',
                       }}
                     >
@@ -392,7 +412,7 @@ export default function TrackerView() {
                             sx={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 0.4,
+                              gap: 0.8,
                               minWidth: 0,
                             }}
                           >
@@ -403,13 +423,16 @@ export default function TrackerView() {
                                 flexShrink: 0,
                               }}
                             />
-                            <Typography
+                            <Text
                               variant="caption"
-                              color="text.secondary"
-                              sx={{ overflowWrap: 'anywhere' }}
+                              as="span"
+                              style={{
+                                color: 'var(--semantic-color-content-secondary)',
+                                overflowWrap: 'anywhere',
+                              }}
                             >
                               {f.text}
-                            </Typography>
+                            </Text>
                           </Box>
                         );
                       })}
@@ -425,8 +448,8 @@ export default function TrackerView() {
                       sx={{
                         display: 'flex',
                         flexWrap: 'wrap',
-                        gap: 0.5,
-                        mt: 1,
+                        gap: 1,
+                        mt: 'xs',
                         alignItems: 'center',
                       }}
                     >
@@ -447,9 +470,13 @@ export default function TrackerView() {
                         </Badge>
                       ))}
                       {j.applicants != null && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Text
+                          variant="caption"
+                          as="span"
+                          style={{ color: 'var(--semantic-color-content-secondary)' }}
+                        >
                           {j.applicants} applied
-                        </Typography>
+                        </Text>
                       )}
                     </Box>
                   )}
@@ -460,34 +487,40 @@ export default function TrackerView() {
                       sx={{
                         display: 'flex',
                         flexWrap: 'wrap',
-                        gap: 0.5,
-                        mt: 1,
+                        gap: 1,
+                        mt: 'xs',
                         alignItems: 'center',
                       }}
                     >
                       {host && <Badge tone="neutral">{host}</Badge>}
                       {j.note && (
-                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.35 }}>
+                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.7 }}>
                           <StickyNote
                             size={13}
                             style={{ color: 'var(--semantic-color-content-secondary)' }}
                           />
-                          <Typography variant="caption" color="text.secondary">
+                          <Text
+                            variant="caption"
+                            as="span"
+                            style={{ color: 'var(--semantic-color-content-secondary)' }}
+                          >
                             Notes
-                          </Typography>
+                          </Text>
                         </Box>
                       )}
                     </Box>
                   )}
 
                   {/* Actions */}
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ mt: 1.5 }}
-                    alignItems="center"
-                    flexWrap="wrap"
-                    useFlexGap
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      gap: 'xs',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      mt: 3,
+                    }}
                   >
                     {s.isApplyable && (
                       <UiButton
@@ -499,13 +532,6 @@ export default function TrackerView() {
                         Mark applied
                       </UiButton>
                     )}
-                    <UiButton
-                      size="sm"
-                      variant="tertiary"
-                      onClick={() => setOpen((p) => ({ ...p, [j.url]: !p[j.url] }))}
-                    >
-                      {isOpen ? 'Hide' : 'Details'}
-                    </UiButton>
                     <UseTemplate job={j} />
                     {s.followUp.due && (
                       <>
@@ -521,48 +547,57 @@ export default function TrackerView() {
                       </>
                     )}
                     {s.followUp.daysUntil != null && (
-                      <Typography variant="caption" color="text.secondary">
+                      <Text
+                        variant="caption"
+                        as="span"
+                        style={{ color: 'var(--semantic-color-content-secondary)' }}
+                      >
                         Follow up in {s.followUp.daysUntil}d
-                      </Typography>
+                      </Text>
                     )}
-                  </Stack>
+                  </Box>
 
                   {/* Per-role to-dos + notes (self-contained expander) */}
-                  <Box sx={{ mt: 1 }}>
+                  <Box sx={{ mt: 'xs' }}>
                     <TodosNotes job={j} />
                   </Box>
 
-                  <Reveal open={isOpen}>
-                    <Stack spacing={1.25} sx={{ mt: 1.5 }}>
+                  <Disclosure
+                    label="Details"
+                    open={isOpen}
+                    onOpenChange={(o) => setOpen((p) => ({ ...p, [j.url]: o }))}
+                  >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 3 }}>
                       <Box sx={{ height: 18, textAlign: 'right' }}>
-                        <Typography
+                        <Text
                           variant="caption"
-                          color="success.main"
+                          as="span"
                           style={{
+                            color: 'var(--semantic-color-feedback-success)',
                             opacity: savedUrl === j.url ? 1 : 0,
                             transition: 'opacity 0.2s',
                           }}
                         >
                           Saved ✓
-                        </Typography>
+                        </Text>
                       </Box>
                       {fld(j, 'label', 'Title')}
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+                      <Switcher gap="tight">
                         {fld(j, 'company', 'Company')}
                         {fld(j, 'location', 'Location')}
-                      </Stack>
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+                      </Switcher>
+                      <Switcher gap="tight">
                         {fld(j, 'seniority', 'Seniority')}
                         {fld(j, 'salary', 'Salary')}
-                      </Stack>
+                      </Switcher>
                       <ScreeningEditor job={j} />
                       <InterviewLog job={j} />
                       {fld(j, 'note', 'Notes', true)}
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+                      <Switcher gap="tight">
                         {fld(j, 'contact', 'Contact / referral')}
                         {fld(j, 'resume', 'Résumé version')}
-                      </Stack>
-                      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                      </Switcher>
+                      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
                         {research(j.label).map(([name, href]) => (
                           <UiButton key={name} size="sm" variant="secondary" asChild>
                             <a href={href} target="_blank" rel="noopener noreferrer">
@@ -571,13 +606,13 @@ export default function TrackerView() {
                           </UiButton>
                         ))}
                       </Box>
-                    </Stack>
-                  </Reveal>
+                    </Box>
+                  </Disclosure>
                 </Box>
               </HdsCard>
             );
           })}
-        </Stack>
+        </Box>
       )}
     </Box>
   );
