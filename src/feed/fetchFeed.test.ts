@@ -39,6 +39,17 @@ describe('createFetchJson', () => {
     await expect(fetchJson('https://a/y')).rejects.toMatchObject({ status: 0 });
     expect(await fetchJson('https://a/y')).toEqual({ ok: true });
   });
+
+  it('aborts each request after the timeout and maps TimeoutError to FetchError with isTimeout', async () => {
+    const timeoutErr = new Error('The operation was aborted');
+    timeoutErr.name = 'TimeoutError';
+    const fetchImpl = vi.fn().mockRejectedValue(timeoutErr);
+    const fetchJson = createFetchJson({ fetchImpl, timeoutMs: 100 });
+    await expect(fetchJson('https://a/slow')).rejects.toMatchObject({
+      status: 0,
+      isTimeout: true,
+    });
+  });
 });
 
 describe('describeError', () => {
@@ -139,6 +150,39 @@ describe('fetchFeed', () => {
     const out = await fetchFeed({ term: '  ', boardUrls: [] }, fetchJson);
     expect(fetchJson).not.toHaveBeenCalled();
     expect(out).toEqual({ postings: [], sources: [], boardsSkipped: 0 });
+  });
+
+  it('proves one hung source times out without blocking the others', async () => {
+    const fetchJson = async (url: string) => {
+      if (url.includes('search_by_date')) return hnListing;
+      if (url.includes('hn.algolia.com'))
+        return {
+          hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | UI Engineer' }],
+        };
+      if (url.includes('remotive.com')) {
+        // Never resolves (hung source)
+        return new Promise(() => {});
+      }
+      return { jobs: [] };
+    };
+
+    // Replace remotive run with a timed-out call
+    const timedOutFetchJson = async (url: string) => {
+      if (url.includes('remotive.com')) throw new FetchError(0, url, true);
+      return fetchJson(url);
+    };
+
+    const out = await fetchFeed(
+      { term: 'design engineer', boardUrls: [] },
+      timedOutFetchJson,
+    );
+    expect(out.postings.map((p) => p.id)).toEqual(['hn:1']);
+    expect(out.sources).toContainEqual({
+      key: 'remotive',
+      label: 'Remotive',
+      fetched: 0,
+      error: 'Remotive: timed out — try again later.',
+    });
   });
 });
 
