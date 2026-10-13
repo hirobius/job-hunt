@@ -63,52 +63,61 @@ export interface SearchLoc {
   mode: WorkMode;
 }
 const encc = encodeURIComponent;
-export const BOARDS: { name: string; tag: string; build: (term: string, loc: SearchLoc) => string }[] =
-  [
-    {
-      name: 'Indeed',
-      tag: 'Aggregator',
-      build: (term, { where, mode }) => {
-        const l = mode === 'remote' ? 'Remote' : where.trim();
-        return `https://www.indeed.com/jobs?q=${encc(term)}${l ? `&l=${encc(l)}` : ''}`;
-      },
+export const BOARDS: {
+  name: string;
+  tag: string;
+  build: (term: string, loc: SearchLoc) => string;
+}[] = [
+  {
+    name: 'Indeed',
+    tag: 'Aggregator',
+    build: (term, { where, mode }) => {
+      const l = mode === 'remote' ? 'Remote' : where.trim();
+      return `https://www.indeed.com/jobs?q=${encc(term)}${l ? `&l=${encc(l)}` : ''}`;
     },
-    {
-      name: 'LinkedIn',
-      tag: 'Aggregator',
-      build: (term, { where, mode }) => {
-        // f_WT: 1 = on-site, 2 = remote, 3 = hybrid; omit for "any".
-        const wt =
-          mode === 'remote' ? '&f_WT=2' : mode === 'hybrid' ? '&f_WT=3' : mode === 'onsite' ? '&f_WT=1' : '';
-        const loc = mode === 'remote' ? where.trim() || 'United States' : where.trim();
-        return `https://www.linkedin.com/jobs/search/?keywords=${encc(term)}${loc ? `&location=${encc(loc)}` : ''}${wt}`;
-      },
+  },
+  {
+    name: 'LinkedIn',
+    tag: 'Aggregator',
+    build: (term, { where, mode }) => {
+      // f_WT: 1 = on-site, 2 = remote, 3 = hybrid; omit for "any".
+      const wt =
+        mode === 'remote'
+          ? '&f_WT=2'
+          : mode === 'hybrid'
+            ? '&f_WT=3'
+            : mode === 'onsite'
+              ? '&f_WT=1'
+              : '';
+      const loc = mode === 'remote' ? where.trim() || 'United States' : where.trim();
+      return `https://www.linkedin.com/jobs/search/?keywords=${encc(term)}${loc ? `&location=${encc(loc)}` : ''}${wt}`;
     },
-    {
-      name: 'ZipRecruiter',
-      tag: '1-click',
-      build: (term, { where, mode }) => {
-        const l = mode === 'remote' ? 'Remote' : where.trim();
-        return `https://www.ziprecruiter.com/jobs-search?search=${encc(term)}${l ? `&location=${encc(l)}` : ''}`;
-      },
+  },
+  {
+    name: 'ZipRecruiter',
+    tag: '1-click',
+    build: (term, { where, mode }) => {
+      const l = mode === 'remote' ? 'Remote' : where.trim();
+      return `https://www.ziprecruiter.com/jobs-search?search=${encc(term)}${l ? `&location=${encc(l)}` : ''}`;
     },
-    {
-      name: 'Google Jobs',
-      tag: 'Aggregator',
-      build: (term, { where, mode }) => {
-        const q = term + (mode === 'remote' ? ' remote' : where.trim() ? ` ${where.trim()}` : '');
-        return `https://www.google.com/search?q=${encc(q)}&ibp=htl;jobs`;
-      },
+  },
+  {
+    name: 'Google Jobs',
+    tag: 'Aggregator',
+    build: (term, { where, mode }) => {
+      const q = term + (mode === 'remote' ? ' remote' : where.trim() ? ` ${where.trim()}` : '');
+      return `https://www.google.com/search?q=${encc(q)}&ibp=htl;jobs`;
     },
-    {
-      name: 'Snagajob',
-      tag: 'Hourly',
-      build: (term, { where, mode }) => {
-        const w = mode === 'remote' ? 'Remote' : where.trim();
-        return `https://www.snagajob.com/search?q=${encc(term)}${w ? `&w=${encc(w)}` : ''}`;
-      },
+  },
+  {
+    name: 'Snagajob',
+    tag: 'Hourly',
+    build: (term, { where, mode }) => {
+      const w = mode === 'remote' ? 'Remote' : where.trim();
+      return `https://www.snagajob.com/search?q=${encc(term)}${w ? `&w=${encc(w)}` : ''}`;
     },
-  ];
+  },
+];
 
 // ---- ATS hidden-jobs generator ----
 export const ATS_ROLES = [
@@ -177,6 +186,31 @@ export const GROUPS: Group[] = [
         'Ashby · Design Systems (hidden jobs)',
         'Google-dork into Ashby boards · less competition',
         'https://www.google.com/search?q=site%3Ajobs.ashbyhq.com+%22design+systems%22+remote',
+      ),
+    ],
+  },
+  {
+    // Design Systems watched companies: their public job boards (Lever / Greenhouse / Ashby), which
+    // the Live postings feed pulls live, so a new design-systems opening shows up there. Durable
+    // board pages, not one-off postings. From Adrian's 2026-10 shortlist; on 2026-10-13 none of the
+    // three listed a design-systems role (the shortlisted postings had closed).
+    id: 'ds-watch',
+    label: 'Watched companies',
+    tiles: [
+      t(
+        'Deputy · jobs',
+        'Lever board · design technologist / DS engineer roles',
+        'https://jobs.lever.co/deputy',
+      ),
+      t(
+        'Instacart · jobs',
+        'Greenhouse board · design-systems technologist roles',
+        'https://boards.greenhouse.io/instacart',
+      ),
+      t(
+        'Cambly · jobs',
+        'Ashby board · contract design-systems roles',
+        'https://jobs.ashbyhq.com/cambly',
       ),
     ],
   },
