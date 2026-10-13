@@ -63,10 +63,7 @@ function GroupPanel({
       {visible.length > 0 ? (
         <TileGrid tiles={visible} triage />
       ) : saved.length > 0 ? (
-        <EmptyState
-          dense
-          message="All saved — check your Tracker for these."
-        />
+        <EmptyState dense message="All saved — check your Tracker for these." />
       ) : (
         <EmptyState
           dense
@@ -377,12 +374,24 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   );
   const tabs: TabDesc[] = [
     ...(featured
-      ? [{ key: featured.id, label: 'Apply Now', kind: 'group' as const, tiles: tilesFor(featured.id) }]
+      ? [
+          {
+            key: featured.id,
+            label: 'Apply Now',
+            kind: 'group' as const,
+            tiles: tilesFor(featured.id),
+          },
+        ]
       : []),
     { key: 'titles', label: 'Title search', kind: 'titles' },
     { key: 'ats', label: 'ATS search', kind: 'ats' },
     { key: 'live', label: 'Live postings', kind: 'live' },
-    ...rest.map((g) => ({ key: g.id, label: g.label, kind: 'group' as const, tiles: tilesFor(g.id) })),
+    ...rest.map((g) => ({
+      key: g.id,
+      label: g.label,
+      kind: 'group' as const,
+      tiles: tilesFor(g.id),
+    })),
   ];
 
   const route = useRoute();
@@ -425,7 +434,11 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         </TabsList>
         <TabsContent value={cur.key}>
           {cur.kind === 'group' && (
-            <GroupPanel tiles={cur.tiles!} savedSet={savedSet} onManage={() => setManageOpen(true)} />
+            <GroupPanel
+              tiles={cur.tiles!}
+              savedSet={savedSet}
+              onManage={() => setManageOpen(true)}
+            />
           )}
           {cur.kind === 'titles' && (
             <TitlesPanel

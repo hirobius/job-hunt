@@ -47,7 +47,9 @@ export default function ScreenJdDialog({
         if (!o) close();
       }}
     >
-      <Dialog.Content style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}>
+      <Dialog.Content
+        style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}
+      >
         <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
           <Dialog.Header>
             <Dialog.Title>Screen a job description</Dialog.Title>
@@ -63,7 +65,8 @@ export default function ScreenJdDialog({
           >
             <Stack spacing={1.5}>
               <Typography variant="body2" color="text.secondary">
-                Paste the posting. This runs local keyword rules — nothing leaves your browser, no AI.
+                Paste the posting. This runs local keyword rules — nothing leaves your browser, no
+                AI.
               </Typography>
               <Textarea
                 rows={8}
@@ -84,7 +87,11 @@ export default function ScreenJdDialog({
                     gap: 1,
                   }}
                 >
-                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                  >
                     Suggested
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
@@ -108,11 +115,20 @@ export default function ScreenJdDialog({
                   </Box>
                   {result.hits.length > 0 && (
                     <Box sx={{ mt: 0.5 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: 'block', mb: 0.25 }}
+                      >
                         Why:
                       </Typography>
                       {result.hits.map((h, i) => (
-                        <Typography key={i} variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        <Typography
+                          key={i}
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block' }}
+                        >
                           · {h.tag} — “{h.evidence}”
                         </Typography>
                       ))}

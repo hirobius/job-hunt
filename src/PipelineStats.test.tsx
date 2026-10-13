@@ -12,7 +12,12 @@ const ago = (n: number) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 let n = 0;
-const job = (o: Partial<Job>): Job => ({ url: `https://x.co/${n++}`, label: 'x', status: 'Saved', ...o });
+const job = (o: Partial<Job>): Job => ({
+  url: `https://x.co/${n++}`,
+  label: 'x',
+  status: 'Saved',
+  ...o,
+});
 
 const seeded: Job[] = [
   job({ status: 'Applied', applied: ago(1) }),

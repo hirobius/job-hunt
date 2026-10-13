@@ -128,7 +128,12 @@ function GroupEditor({ groupId }: { groupId: string }) {
           }}
           style={{ flex: 1, minWidth: 0 }}
         />
-        <Button variant="secondary" size="sm" onClick={addLink} disabled={!name.trim() || !url.trim()}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={addLink}
+          disabled={!name.trim() || !url.trim()}
+        >
           Add
         </Button>
       </Stack>
@@ -154,7 +159,9 @@ export default function ManageTrackDialog({
   if (!cat) return null;
 
   const del = () => {
-    if (window.confirm(`Delete the “${cat.label}” track and all its content? This can't be undone.`)) {
+    if (
+      window.confirm(`Delete the “${cat.label}” track and all its content? This can't be undone.`)
+    ) {
       removeCategory(cat.id);
       onDeleted();
     }
@@ -162,7 +169,9 @@ export default function ManageTrackDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <Dialog.Content style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}>
+      <Dialog.Content
+        style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}
+      >
         <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
           <Dialog.Header>
             <Dialog.Title>Manage track</Dialog.Title>
@@ -197,7 +206,11 @@ export default function ManageTrackDialog({
                   />
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', mb: 0.5 }}
+                  >
                     Seniority
                   </Typography>
                   <SegmentedControl

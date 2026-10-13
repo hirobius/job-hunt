@@ -174,7 +174,11 @@ export function ScreeningEditor({ job }: { job: Job }) {
           value={job.travelPct}
           onChange={(v) => setNum('travelPct', v)}
         />
-        <NumField label="Applicants" value={job.applicants} onChange={(v) => setNum('applicants', v)} />
+        <NumField
+          label="Applicants"
+          value={job.applicants}
+          onChange={(v) => setNum('applicants', v)}
+        />
       </Stack>
 
       <Box sx={{ '& > *': { width: '100%' } }}>

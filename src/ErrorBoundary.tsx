@@ -47,8 +47,8 @@ export class ErrorBoundary extends Component<Props, State> {
         <Stack spacing={2} alignItems="center">
           <Typography sx={{ fontSize: '1.5rem', fontWeight: 600 }}>Something broke</Typography>
           <Typography color="text.secondary">
-            The app hit an unexpected error. Reloading usually fixes it. If it keeps happening, a bad
-            saved record may be the cause — resetting local data clears it.
+            The app hit an unexpected error. Reloading usually fixes it. If it keeps happening, a
+            bad saved record may be the cause — resetting local data clears it.
           </Typography>
           <Stack direction="row" spacing={1}>
             <Button variant="primary" onClick={() => window.location.reload()}>

@@ -28,7 +28,7 @@ rebuild it with HDS (`@hirobius/design-system`) + `src/ui` layout primitives.
 | P2 | `PipelineStats.tsx` | ◐ six equal `Stat` tiles | Equal grid: pick one headline (Applied 30d or Response rate), demote the rest; add "vs prior 30d"; tabular figures; "Follow-ups due" is an action, not a stat (move to rail header). |
 | P3 | `App.tsx` + `TrackerView.tsx` | ◐ 1200px container, two columns from 900px (queue + sticky rail) | Document still scrolls as a whole (rail is sticky, OK); Discover and Templates are single-column; no "Today" headline panel yet (#115 decision). |
 | P4 | `App.tsx` tabs, Tracker filter | ✅ HDS Tabs routed by hash; filter is a `SegmentedControl` radiogroup with counts | Discover's inner Title/ATS/Live switcher should be routed (it is content, `#/discover/live` exists). |
-| P5 | Tracker job card | ✅ monogram medallion, badge + eyebrow slot, overflow menu; pin desktop-only | Card body still stacks 5 rows (facts, screening chips, meta chips, actions, to-dos) — collapse meta + screening into one line, move research links out of Details. |
+| P5 | Tracker job row (`JobRow.tsx`) | ✅ four fixed grid slots: monogram · title + company/location · status + timing · one next action · ⋮; no status rail; everything else moved to the job page (`#/queue/<url>`, `JobDetailPage.tsx`) | — |
 | P6 | Tracker right rail | ✅ sticky from 900px | Rail has no header or grouping dividers; sample banner is a notice, not overview content. |
 | P7 | Tracker filter chips | ✅ counts, empties hidden | Toolbar (sort · Back up · Restore… · Export CSV) still wraps at 390px → fold into one overflow menu. |
 | P8 | — | ✗ not built | Decide after the Tracker list settles. |
