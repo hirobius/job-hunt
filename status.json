@@ -1,14 +1,13 @@
 {
-  "updatedAt": "2026-10-12T00:00:00Z",
+  "updatedAt": "2026-10-13T00:00:00Z",
   "phase": "live",
-  "headline": "Live on production. 2026-10-12: Live postings feed built on branch claude/run-the-fetch-45j8i3 (not yet merged) — Discover pulls real openings from HN Who-is-hiring, Remotive and watched Greenhouse/Lever/Ashby boards, ranks them by fit (contract-friendly / first-hire signals) and saves to the Queue; keyless + browser-side; Remotive held to its 4-requests-a-day terms. 361 tests green.",
+  "headline": "Live on production. 2026-10-13: merged the platform gate (Vercel builds run `npm run verify`; report-only CSP), the trustworthy tracker (whole sync, backup/restore, pipeline stats, interviews + .ics, template fill), 'Try with sample data', and a README rewrite with a docs-claims test. Live postings (#88) is live.",
   "next": [
-    "Merge #88 (Live postings) after checking its Vercel preview.",
-    "HDS epic #89 — fully on HDS (decided 2026-10-12: pure HDS, jade accent the only override): #90 upgrade 0.13 → 0.24.1 → #91 brand + #92 retire src/ui → #93 inline styles.",
-    "DEFERRED (own PR, non-user-facing): fully retire pillarStore + pillars.ts — still load-bearing for cloud sync (CloudSync/syncBlob/curationStore/copyDeckStore import them; user-pillars ride in the sync blob). Untangle the sync layer first. Last piece of #34.",
-    "Human / dashboard: #44 Supabase auth hardening, #16 Vercel analytics, #17 delete stale remote branches, #55 name/trademark clearance (ApplyBoard conflict).",
-    "Legal (before public launch): #43 Privacy Policy + Terms + subprocessor disclosure.",
-    "Hygiene: triage dependabot PRs (#84 minor/patch group; #68-#71 stale major bumps incl. React 19) with local + Vercel verify (no CI); refresh stale README (#20, still references removed AI)."
+    "Redesign epic #115 (decided 2026-10-13: top tabs; Today as home; job detail as its own view; HDS fonts). Phase 0 = land the HDS 0.24.1 + src/ui retirement on claude/run-the-fetch-45j8i3 (#90-#92) after merging main into it.",
+    "CSP: check the console on production for [Report Only] lines, then enforce (#106).",
+    "After HDS lands: vite 8 + plugin-react 6, npm audit, React 19, jest-dom 7 (#105).",
+    "Human / dashboard: #16 confirm Vercel Analytics, #22 .env.example + revoke the old Anthropic key, #44 Supabase auth hardening, #17 stale branches, #55 name clearance.",
+    "Legal (before public launch): #43 Privacy Policy + Terms."
   ],
   "blocked": []
 }

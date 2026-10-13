@@ -28,16 +28,17 @@ commit `f15fd52`).
     + a dismiss `IconButton`, `Input`/`Textarea`). **`src/ui` is now purely the layout gap:**
     `box.tsx` (Box/Stack/Typography/Container/Link/Divider + the `sx` engine) and `Reveal`.
   - **These layout primitives are the ONLY remaining non-HDS UI** — the last candidates to route
-    upstream into HDS (see `docs/hds-upstream-asks-0.9.md` §"Layout primitives"). HDS 0.13 is its
-    final frozen release and ships no `Box`/`sx`/layout equivalent, so until HDS grows one this
-    layer stays local; it is deliberately kept small and dependency-free for exactly that handoff.
+    upstream into HDS (see `docs/hds-upstream-asks-0.9.md` §"Layout primitives"). ⚠️ **Correction
+    (2026-10-13):** 0.13 was NOT HDS's final release — HDS is at **0.24.1** and now ships `Box`
+    (token `sx`, 4px units), `Stack`, `Grid`, `Text`, `Disclosure`. The upgrade + `src/ui` retirement
+    is built on branch `claude/run-the-fetch-45j8i3` (#90–#92) and is Phase 0 of the redesign (#115).
   - ⚠️ **No MUI `sx` on HDS components** — HDS takes semantic token props, not `sx`. Use the
     `src/ui` primitives (which DO take `sx`) for ad-hoc layout, HDS components for everything else.
 - **Design language:** jade dark theme; headlines **Clash Display**, body **Satoshi**
   (loaded via Fontshare CDN in `index.html`). Uppercase is reserved for
   eyebrows/buttons/labels only.
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (`^0.13.0` — HDS's final, frozen release; no auth) — see `docs/adr/0005`. `main.tsx` imports
+  npm** (`^0.13.0` today; upgrades go through the HDS CLI — #89/#115; no auth) — see `docs/adr/0005`. `main.tsx` imports
   `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` — set on
   `<body>` in `index.html`), then `src/theme/brand-jade.css` (jade accent override), then
   `src/theme/base.css` (the border-box + body reset/chrome MUI's `CssBaseline` used to give,
@@ -90,8 +91,13 @@ commit `f15fd52`).
   / `lint` / `test` / `build` + headless Chromium) **plus the Vercel deploy**. Never add or rely on
   an Actions workflow; don't treat Actions checks as a merge gate.
 - `npm install`, `npm run dev`, `npm run build`, `npm run typecheck`.
-- `vercel.json` builds this as Vite. **`main` is the live production site** — always
-  `npm run build` (and ideally `tsc --noEmit`) before pushing to `main`.
+- **Deploy gate (#95):** `vercel.json`'s `buildCommand` is `npm run verify` (typecheck → lint →
+  vitest → build), so a red check fails the Vercel build and the previous deploy stays live.
+  **`main` is the live production site** — run `npm run verify` before pushing. Branch pushes only
+  build a preview when the commit message contains `[preview]`. E2E in cloud sessions:
+  `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
+- **CSP (#97):** `Content-Security-Policy-Report-Only` in `vercel.json`, pinned by `src/csp.test.ts`
+  (add any new fetch host to `connect-src` and the test). Enforcing is #106.
 - Branch pushes get Vercel **preview deploys** (use a branch for risky work; the
   live app stays on `main`).
 - The build/typecheck/test gate does **not** catch visual or runtime-CSS issues. Verify
@@ -167,10 +173,8 @@ far this cycle:
   triage on Discover tiles) · **#79 B5** (teaching `EmptyState`s across Discover; retired the
   now-consumerless `Divider` primitive; #38 layout cleanup). The starter-pack list
   (`src/curation/starterPacks.ts`) is deliberately trivial to edit (v1 provisional).
-- **Open:** one deferred, non-user-facing piece of B2/#34 — **fully retiring `pillarStore` +
-  `pillars.ts`.** They're load-bearing for cloud sync (`CloudSync`/`syncBlob`/`curationStore`/
-  `copyDeckStore` import them; user-pillars ride in the sync blob), so deletion needs the sync layer
-  untangled first — its own PR. ⚠️ GitHub Actions CI is non-functional org-wide AND disabled by owner
+- **Done (#99, 2026-10-13):** `pillarStore` + `pillars.ts` are retired — sync is blob v4 (jobs,
+  snippets, set-aside tiles); curation syncs through its own tables. ⚠️ GitHub Actions CI is non-functional org-wide AND disabled by owner
   preference (`.github/workflows/ci.yml` removed); merges rely on local verify + Vercel.
 
 ## 2026-10 — Live postings feed (Discover → "Live postings", `#/discover/live`)
