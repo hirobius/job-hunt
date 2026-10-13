@@ -27,7 +27,7 @@ export function Onboarding() {
   // over it (that wrote duplicate tracks). The status always settles within a few seconds.
   if (syncStatus === 'syncing')
     return (
-      <Stack direction="row" gap="normal" align="center" justify="center" style={{ padding: 48 }}>
+      <Stack direction="row" gap="normal" align="center" justify="center" style={{ padding: 'var(--primitive-space-12)' }}>
         <Spinner size="sm" />
         <Text variant="body">Restoring your tracks…</Text>
       </Stack>
@@ -97,7 +97,7 @@ export function Onboarding() {
                             : 'var(--semantic-color-border-default)'
                         }`,
                         background: on ? 'var(--semantic-accent-rest)' : 'transparent',
-                        color: '#fff',
+                        color: 'var(--semantic-color-content-onAccent)',
                       }}
                     >
                       {on && <Check size={14} strokeWidth={3} />}

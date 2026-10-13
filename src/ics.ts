@@ -5,6 +5,7 @@
 //   - Timed events are "floating" local time (no TZID): an interview at 2pm is 2pm wherever
 //     the calendar opens it, which is what a person typing "14:00" means.
 //   - All-day events use VALUE=DATE with an exclusive next-day DTEND.
+import { BRAND } from './brand';
 
 export interface IcsEvent {
   /** Stable per-event id (gets `@uidDomain` appended). */
@@ -96,7 +97,7 @@ export function buildIcs(events: readonly IcsEvent[], opts: IcsOptions): string 
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Apply Board//Tracker//EN',
+    `PRODID:-//${BRAND.name}//Tracker//EN`,
     'CALSCALE:GREGORIAN',
     ...events.flatMap((e) => vevent(e, stamp, domain)),
     'END:VCALENDAR',

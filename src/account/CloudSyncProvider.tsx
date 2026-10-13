@@ -1,14 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { Button, Input as HdsInput, Box, Popover, Stack, Text } from '@hirobius/design-system';
+// Cloud sync (#31, #99) as a provider (#115 Phase 1): owns the Supabase session, the debounced
+// push, the focus re-pull and sign-out/delete, and exposes them through CloudSyncContext. The UI
+// lives elsewhere — the account menu, the one-time sync nudge and the sign-in dialog — and
+// failures surface as toasts instead of a banner on every page.
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useToast } from '@hirobius/design-system';
 import type { User } from '@supabase/supabase-js';
-import { supabase as supa } from './supabase';
-import { useJobs, getAllJobs, replaceAll } from './store';
-import { useSnippets, getSnippets, replaceSnippets } from './copyDeckStore';
-import { useTileTriage, getTileTriage, replaceTriage } from './tileTriage';
-import { readBlob, writeBlob, mergeBlob, type SyncData } from './syncBlob';
-import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from './curation/sync';
-import { getCurationSyncStatus, setCurationSyncStatus } from './curation/syncStatus';
-import { OFFLINE_MSG, DELETE_ORDER, deleteFailedMsg } from './cloudMessages';
+import { supabase as supa } from '../supabase';
+import { useJobs, getAllJobs, replaceAll } from '../store';
+import { useSnippets, getSnippets, replaceSnippets } from '../copyDeckStore';
+import { useTileTriage, getTileTriage, replaceTriage } from '../tileTriage';
+import { readBlob, writeBlob, mergeBlob, type SyncData } from '../syncBlob';
+import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
+import { getCurationSyncStatus, setCurationSyncStatus } from '../curation/syncStatus';
+import { OFFLINE_MSG, DELETE_ORDER, deleteFailedMsg } from '../cloudMessages';
+import { CloudSyncContext, type CloudSyncApi } from './accountContext';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
 // delete so a shared browser can't carry one person's jobs/pillars/résumé to the next.
@@ -22,13 +27,17 @@ function clearLocalData() {
   }
 }
 
-export default function CloudSync() {
+export default function CloudSyncProvider({ children }: { children: ReactNode }) {
+  const { toast } = useToast();
   const jobs = useJobs();
   const snippets = useSnippets();
   const triage = useTileTriage();
   const [user, setUser] = useState<User | null>(null);
-  const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('Sign in to sync across your devices');
+  const [signInOpen, setSignInOpen] = useState(false);
+  // False until Supabase reports the stored session (or its absence), so signed-in users don't
+  // see the signed-out nudge flash on load.
+  const [authResolved, setAuthResolved] = useState(false);
   const lastSynced = useRef('');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -84,9 +93,14 @@ export default function CloudSync() {
   // auth state. Token refreshes / profile updates aren't a new sign-in — don't re-run the
   // seed merge (it would also flip the sync gate mid-onboarding).
   useEffect(() => {
+    void supa.auth.getSession().then(
+      () => setAuthResolved(true),
+      () => setAuthResolved(true),
+    );
     const { data } = supa.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null;
       setUser(u);
+      setAuthResolved(true);
       if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
       if (u) adopt(true, u);
       else {
@@ -152,7 +166,9 @@ export default function CloudSync() {
     }
     if (failed.length) {
       // Keep this device's copy so nothing is lost while the cloud copy is only partly gone.
-      setMsg(deleteFailedMsg(failed));
+      const why = deleteFailedMsg(failed);
+      setMsg(why);
+      toast({ title: 'Delete incomplete', description: why, tone: 'danger' });
       return;
     }
     clearLocalData();
@@ -160,99 +176,50 @@ export default function CloudSync() {
     location.reload();
   };
 
-  const sendLink = () => {
-    const e = email.trim();
-    if (!e) return;
-    setMsg('Sending link…');
-    supa.auth
-      .signInWithOtp({
-        email: e,
-        options: { emailRedirectTo: location.origin + location.pathname },
-      })
-      .then((r) =>
-        setMsg(
-          r.error
-            ? 'Could not send link: ' + r.error.message
-            : `✓ Check ${e} for your sign-in link`,
-        ),
-      );
+  const sendLink = async (email: string): Promise<string | null> => {
+    const r = await supa.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: location.origin + location.pathname },
+    });
+    if (!r.error) return null;
+    const why = 'Could not send link: ' + r.error.message;
+    toast({ title: 'Sign-in link not sent', description: r.error.message, tone: 'danger' });
+    return why;
   };
 
-  // Header control (phone-first): a small status button — Sign in / Synced / Offline — that
-  // opens the full sync panel in a popover, instead of a banner above the tabs on every screen.
+  // A failed pull/push is a toast once per outage (not a banner): focus re-pulls and Retry
+  // flip the status through "Refreshing…" but don't re-toast until a sync has succeeded again.
+  // The account menu keeps the status line and a Retry while the outage lasts.
   const offline = msg === OFFLINE_MSG;
-  const short = user ? (offline ? 'Offline' : msg === 'Saving…' ? 'Saving…' : 'Synced') : 'Sign in';
-  const dot = user ? (offline ? 'feedback.warning' : 'feedback.success') : 'content.disabled';
+  const toastRef = useRef(toast);
+  const outageToasted = useRef(false);
+  useEffect(() => {
+    toastRef.current = toast;
+  });
+  useEffect(() => {
+    if (msg.startsWith('Synced')) outageToasted.current = false;
+    if (msg !== OFFLINE_MSG || outageToasted.current) return;
+    outageToasted.current = true;
+    toastRef.current({ title: 'Sync paused', description: OFFLINE_MSG, tone: 'warning' });
+  }, [msg]);
 
-  return (
-    <Popover>
-      <Popover.Trigger asChild>
-        <Button
-          size="sm"
-          variant="tertiary"
-          className="sync-trigger"
-          aria-label={`Cloud sync: ${short}`}
-        >
-          <Box
-            as="span"
-            aria-hidden
-            sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dot, flex: 'none' }}
-            style={{ width: 8, height: 8, display: 'inline-block' }}
-          />
-          {short}
-        </Button>
-      </Popover.Trigger>
-      <Popover.Content align="end" style={{ width: 'min(340px, calc(100vw - 32px))' }}>
-        <Stack gap="tight">
-          <Text variant="ui" as="p" role="status" style={{ margin: 0 }}>
-            {msg}
-          </Text>
-          {!user && (
-            <Text
-              variant="caption"
-              as="p"
-              style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}
-            >
-              Your data stays in your browser and (if you sign in) your own account — nothing is
-              shared with anyone else.
-            </Text>
-          )}
-          {user ? (
-            <Stack direction="row" gap="gap" wrap="wrap" align="center">
-              {offline && (
-                <Button size="sm" variant="secondary" onClick={() => adopt(false, user)}>
-                  Retry
-                </Button>
-              )}
-              <Button size="sm" variant="secondary" onClick={signOut}>
-                Sign out
-              </Button>
-              <Button size="sm" variant="tertiary" tone="danger" onClick={deleteMyData}>
-                Delete my data
-              </Button>
-            </Stack>
-          ) : (
-            <Stack gap="tight">
-              <HdsInput
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                aria-label="Email for sign-in link"
-                placeholder="you@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') sendLink();
-                }}
-                style={{ width: '100%' }}
-              />
-              <Button variant="primary" onClick={sendLink}>
-                Email me a link
-              </Button>
-            </Stack>
-          )}
-        </Stack>
-      </Popover.Content>
-    </Popover>
+  // Stable unless what consumers read changes — the provider re-renders on every store change.
+  const api: CloudSyncApi = useMemo(
+    () => ({
+      user,
+      authResolved,
+      status: msg,
+      offline,
+      sendLink,
+      retry: () => user && void adopt(false, user),
+      signOut: () => void signOut(),
+      deleteMyData: () => void deleteMyData(),
+      signInOpen,
+      setSignInOpen,
+    }),
+    // The handlers only close over `user` (and stable module state).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, authResolved, msg, offline, signInOpen],
   );
+  return <CloudSyncContext.Provider value={api}>{children}</CloudSyncContext.Provider>;
 }

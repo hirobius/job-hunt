@@ -21,7 +21,6 @@ import { jobUrlFromSub } from './jobRoute';
 import { sortJobs, SORTS, type SortKey } from './jobSort';
 import { FunnelSummary } from './FunnelSummary';
 import { PipelineStats } from './PipelineStats';
-import DataTools from './DataTools';
 import ThisWeek from './ThisWeek';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
@@ -181,7 +180,6 @@ function TrackerList({ jobs }: { jobs: Job[] }) {
               </HdsMenu.RadioGroup>
             </HdsMenu.Content>
           </HdsMenu>
-          <DataTools />
         </Stack>
       </Stack>
 
@@ -216,7 +214,7 @@ function TrackerList({ jobs }: { jobs: Job[] }) {
             display: 'grid',
             gap: 6,
             minWidth: 0,
-            '& > * + *': { borderTop: '1px solid', borderColor: 'border.subtle', pt: 6 },
+            '& > * + *': { borderTop: 'thin solid', borderColor: 'border.subtle', pt: 6 },
           }}
         >
           <ThisWeek />

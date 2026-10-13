@@ -11,7 +11,11 @@ export function TileGridSkeleton({ count = 8 }: { count?: number }) {
           <Box sx={{ p: 3 }}>
             <Skeleton variant="text" width="80%" />
             <Skeleton variant="text" width="55%" />
-            <Skeleton variant="rectangular" height={28} style={{ marginTop: 10 }} />
+            <Skeleton
+              variant="rectangular"
+              height={28}
+              style={{ marginTop: 'var(--primitive-space-2)' }}
+            />
           </Box>
         </Card>
       ))}

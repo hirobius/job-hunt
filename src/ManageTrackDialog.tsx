@@ -272,7 +272,7 @@ export default function ManageTrackDialog({
                 onChange={(next) => updateCategory(cat.id, { atsRoles: next })}
               />
 
-              <Box sx={{ borderTop: '1px solid', borderColor: 'border.default', pt: 3 }}>
+              <Box sx={{ borderTop: 'thin solid', borderColor: 'border.default', pt: 3 }}>
                 <Text
                   variant="body"
                   style={{ fontWeight: 600, marginBottom: 'var(--semantic-space-scale-xs)' }}

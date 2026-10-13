@@ -16,3 +16,4 @@ dist/
 # Local scratch verification scripts (never committed)
 /verify-*.mjs
 /vrfy*.mjs
+gallery/

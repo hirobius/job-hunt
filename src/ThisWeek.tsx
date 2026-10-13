@@ -41,7 +41,7 @@ export default function ThisWeek() {
 
   return (
     <div>
-      <Disclosure label={`This week · ${all.length}`} defaultOpen>
+      <Disclosure variant="nav" label={`This week · ${all.length}`} defaultOpen>
         <Stack gap="normal">
           {days.map((day) => (
             <Stack key={day.date} gap="tight">

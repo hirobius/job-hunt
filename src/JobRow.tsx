@@ -115,13 +115,13 @@ export default function JobRow({ job }: { job: Job }) {
           rowGap: 2,
           p: 4,
           // Phone-first base (HDS sx has no base breakpoint, hds#652): 3 columns, stacked rows.
-          gridTemplateColumns: '40px minmax(0, 1fr) auto',
+          gridTemplateColumns: 'var(--primitive-space-10) minmax(0, 1fr) auto',
           gridTemplateAreas: hasAction
             ? '"av main menu" ". meta meta" ". action action"'
             : '"av main menu" ". meta meta"',
           '&': {
             alignItems: { sm: 'center' },
-            gridTemplateColumns: { sm: '40px minmax(0, 1fr) 136px 132px auto' },
+            gridTemplateColumns: { sm: 'var(--primitive-space-10) minmax(0, 1fr) auto auto auto' },
             gridTemplateAreas: { sm: '"av main meta action menu"' },
             columnGap: { sm: 4 },
             px: { sm: 5 },
@@ -141,7 +141,7 @@ export default function JobRow({ job }: { job: Job }) {
             WebkitLineClamp: '2',
             '&': { WebkitLineClamp: { sm: '1' } },
           },
-          '& .job-open:focus-visible': { outline: '2px solid var(--semantic-accent-rest)' },
+          '& .job-open:focus-visible': { outline: 'medium solid var(--semantic-accent-rest)' },
           '& .job-open::after': { content: '""', position: 'absolute', inset: 0 },
           '& .job-ctl': { position: 'relative', zIndex: 1 },
         }}
@@ -162,7 +162,7 @@ export default function JobRow({ job }: { job: Job }) {
                 size={14}
                 aria-label="Priority"
                 fill="currentColor"
-                style={{ color: 'var(--semantic-accent-rest)', flex: 'none', marginTop: 3 }}
+                style={{ color: 'var(--semantic-accent-rest)', flex: 'none', marginTop: 'var(--primitive-space-1)' }}
               />
             )}
           </Box>

@@ -168,7 +168,7 @@ export function ScreeningEditor({ job }: { job: Job }) {
               addCustom();
             }
           }}
-          style={{ marginTop: 8, maxWidth: 240 }}
+          style={{ marginTop: 'var(--primitive-space-2)', maxWidth: 240 }}
         />
       </Box>
 

@@ -8,7 +8,8 @@ import { SUPABASE_URL } from './config';
  * doesn't allow would be silently blocked once the policy is enforced.
  *
  * Shipped report-only first (#97); enforcing since #106 after a zero-violation check of
- * production (every tab, sample data, dialogs, the live feed). The Fontshare origins go when #91 moves to HDS fonts.
+ * production (every tab, sample data, dialogs, the live feed). Fonts are HDS's self-hosted
+ * fonts.css (bundled woff2), so styles and fonts load from 'self' only — no font CDN (#115 Phase 0).
  */
 
 // The live-feed sources (PR #88) fetch these from the browser. Once the feed lands on main,
@@ -55,12 +56,14 @@ describe('content security policy', () => {
     expect(src('form-action')).toEqual(["'self'"]);
   });
 
-  it('allows inline styles — the src/ui sx engine and HDS inject them at runtime', () => {
+  it('allows inline styles — HDS (incl. Box sx) injects them at runtime', () => {
     expect(src('style-src')).toContain("'unsafe-inline'");
   });
 
-  it('allows data: fonts — HDS styles.css embeds its fonts as data URIs', () => {
-    expect(src('font-src')).toContain('data:');
+  it('loads fonts and styles from the app only — no font CDN', () => {
+    // HDS fonts.css ships woff2 files the bundler hashes into dist/ — no data: fonts either.
+    expect(src('font-src')).toEqual(["'self'"]);
+    expect(src('style-src')).toEqual(["'self'", "'unsafe-inline'"]);
   });
 
   it.each(FEED_SOURCE_HOSTS)('lets the live feed reach %s', (host) => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Icon, Button, Input, SegmentedControl, Stack, Text } from '@hirobius/design-system';
+import { Button, Icon, Input, SegmentedControl, Stack, Text } from '@hirobius/design-system';
 import { CalendarPlus, X } from 'lucide-react';
 import { buildIcs } from './ics';
 import { download } from './download';
@@ -22,7 +22,6 @@ const slug = (s: string) =>
 
 /** Interview / call log for one job, with an "Add to calendar" (.ics) export. */
 export default function InterviewLog({ job }: { job: Job }) {
-  // Native date input: the value is already yyyy-mm-dd (HDS DateInput was dropped, ADR-034).
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [kind, setKind] = useState<JobEventKind>('interview');
@@ -89,7 +88,7 @@ export default function InterviewLog({ job }: { job: Job }) {
                   size="sm"
                   variant="tertiary"
                   iconOnly
-                  iconLeft={<Icon icon={X} size="small" />}
+                  iconLeft={<Icon icon={X} />}
                   label={`Remove ${e.kind} on ${e.date}`}
                   onClick={() => updateJob(job.url, { events: removeEvent(job.events, e.id) })}
                 />
@@ -121,7 +120,6 @@ export default function InterviewLog({ job }: { job: Job }) {
           <Input
             type="time"
             aria-label="Event time (optional)"
-            size="md"
             value={time}
             onChange={(e) => setTime(e.target.value)}
           />

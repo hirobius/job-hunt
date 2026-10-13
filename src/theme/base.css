@@ -36,14 +36,10 @@ a:focus-visible,
   border-radius: 6px;
 }
 
-/* Tracker toolbar: the data menu is icon-only on phones (its aria-label still says "Data"). */
-@media (max-width: 599px) {
-  .data-label { display: none; }
-}
-
-/* Header sync button: HDS fills an open trigger with the accent, which hides this button's label.
-   Keep it on a neutral surface while its popover is open. */
-.sync-trigger[data-state='open'] {
-  background-color: var(--semantic-color-surface-sunken);
-  color: var(--semantic-color-content-primary);
+/* HDS 0.24.1 bug (upstream ask in #133): the active tab's `data-[state=active]:border-foreground`
+ * sits in a cascade layer while `.border-transparent` is unlayered, so the unlayered rule wins and
+ * the selected tab shows no underline — the "selected state is invisible" audit finding. Restore
+ * HDS's intended indicator until the fix ships. */
+[role='tab'][data-state='active'] {
+  border-bottom-color: var(--role-foreground);
 }

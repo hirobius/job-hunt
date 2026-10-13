@@ -1,8 +1,9 @@
-// Data tools toolbar (#100): download a full-account backup, restore one (merge or replace,
-// with a safety backup first on replace), and export the job list as CSV. HDS components only.
-import { useRef, useState } from 'react';
-import { Alert, Button, Dialog, Menu, Stack, Text } from '@hirobius/design-system';
-import { Database } from 'lucide-react';
+// Data tools (#100) as a provider (#115 Phase 1): download a full-account backup, restore one
+// (merge or replace, with a safety backup first on replace), and export the job list as CSV.
+// The account menu triggers them through DataToolsContext; this owns the hidden file picker and
+// the restore confirm dialog, and reports failures as toasts.
+import { useRef, useState, type ReactNode } from 'react';
+import { Button, Dialog, Stack, Text, useToast } from '@hirobius/design-system';
 import {
   applyBackup,
   buildBackup,
@@ -10,14 +11,16 @@ import {
   summarizeRestore,
   type AccountState,
   type Backup,
-} from './backup';
-import { toCsv } from './csv';
-import { download } from './download';
-import { getAllJobs, replaceAll, useJobs } from './store';
-import { getSnippets, replaceSnippets } from './copyDeckStore';
-import { getCurationState, replaceCurationState } from './curation/curationStore';
-import { pushRestoredCuration } from './curation/sync';
-import { getTileTriage, replaceTriage } from './tileTriage';
+} from '../backup';
+import { toCsv } from '../csv';
+import { download } from '../download';
+import { getAllJobs, replaceAll, useJobs } from '../store';
+import { getSnippets, replaceSnippets } from '../copyDeckStore';
+import { getCurationState, replaceCurationState } from '../curation/curationStore';
+import { pushRestoredCuration } from '../curation/sync';
+import { getTileTriage, replaceTriage } from '../tileTriage';
+import { BRAND } from '../brand';
+import { DataToolsContext, type DataToolsApi } from './accountContext';
 
 const JSON_MIME = 'application/json';
 const day = () => new Date().toISOString().slice(0, 10);
@@ -43,36 +46,37 @@ function applyState(next: AccountState) {
   replaceTriage(next.triage);
 }
 
-export default function DataTools() {
+export default function DataToolsProvider({ children }: { children: ReactNode }) {
   const jobs = useJobs();
+  const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<Backup | null>(null);
+  const fail = (title: string, description: string) =>
+    toast({ title, description, tone: 'danger', duration: 8000 });
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // let the same file be chosen again
     if (!file) return;
     const parsed = parseBackup(await file.text());
-    if (parsed.ok) {
-      setError(null);
-      setPending(parsed.backup);
-    } else {
+    if (parsed.ok) setPending(parsed.backup);
+    else {
       setPending(null);
-      setError(parsed.reason);
+      fail("Can't restore that file", parsed.reason);
     }
   };
 
   const restore = (mode: 'merge' | 'replace') => {
     if (!pending) return;
-    if (mode === 'replace') downloadBackup('apply-board-before-restore');
+    if (mode === 'replace') downloadBackup(`${BRAND.slug}-before-restore`);
     applyState(applyBackup(currentState(), pending, mode));
     setPending(null);
     // Tracks live in their own cloud tables: mirror the restore there too, or the next sync
     // would merge the old cloud rows back in (a "replace" silently becoming a merge).
     void pushRestoredCuration(mode).then((ok) => {
       if (!ok)
-        setError(
+        fail(
+          'Cloud copy not updated',
           'Restored on this device, but the cloud copy of your tracks could not be updated. Try again when you are back online.',
         );
     });
@@ -80,27 +84,18 @@ export default function DataTools() {
 
   const summary = pending ? summarizeRestore(currentState(), pending) : null;
 
+  const api: DataToolsApi = {
+    backup: () => downloadBackup(`${BRAND.slug}-backup`),
+    chooseRestore: () => fileRef.current?.click(),
+    exportCsv: () => download(`${BRAND.slug}.csv`, toCsv(getAllJobs()), 'text/csv'),
+    canExport: jobs.length > 0,
+  };
+
   return (
-    <Stack gap="tight">
-      {/* Rare, account-level actions: one menu instead of three buttons, so the Tracker toolbar
-          stays a single line (search · sort · data) at every width. */}
-      <Menu>
-        <Menu.Trigger asChild>
-          <Button size="sm" variant="tertiary" iconLeft={<Database size={16} />} aria-label="Data">
-            <span className="data-label">Data</span>
-          </Button>
-        </Menu.Trigger>
-        <Menu.Content align="end">
-          <Menu.Item onSelect={() => downloadBackup('apply-board-backup')}>Back up</Menu.Item>
-          <Menu.Item onSelect={() => fileRef.current?.click()}>Restore…</Menu.Item>
-          <Menu.Item
-            disabled={jobs.length === 0}
-            onSelect={() => download('apply-board.csv', toCsv(getAllJobs()), 'text/csv')}
-          >
-            Export CSV
-          </Menu.Item>
-        </Menu.Content>
-      </Menu>
+    <DataToolsContext.Provider value={api}>
+      {children}
+      {/* HDS has no file picker; a hidden native input behind "Restore…" is the gap. */}
+      {/* eslint-disable-next-line hds/no-raw-controls */}
       <input
         ref={fileRef}
         type="file"
@@ -109,13 +104,6 @@ export default function DataTools() {
         hidden
         onChange={onFile}
       />
-
-      {error && (
-        <Alert tone="danger" title="Can't restore that file">
-          {error}
-        </Alert>
-      )}
-
       <Dialog open={pending !== null} onOpenChange={(o) => !o && setPending(null)}>
         <Dialog.Content style={{ width: '100%', maxWidth: 520 }}>
           <Dialog.Header>
@@ -149,6 +137,6 @@ export default function DataTools() {
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog>
-    </Stack>
+    </DataToolsContext.Provider>
   );
 }

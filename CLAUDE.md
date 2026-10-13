@@ -1,13 +1,18 @@
-# CLAUDE.md — Apply Board
+# CLAUDE.md — Hirebius (formerly Apply Board)
 
 Project memory for future Claude Code sessions in this repo.
 
 ## What this is
 
-**Apply Board** — a job-application tracker + discovery board, live at
+**Hirebius** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
 **https://job-hunt-jade.vercel.app** (repo `hirobius/job-hunt`). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
 commit `f15fd52`).
+
+**Product name = `src/brand.ts` only (#55).** Header wordmark, `<title>`/meta (index.html
+`%BRAND_*%` placeholders via the `brand-html` Vite plugin), toasts and download filenames read it;
+`src/brand.test.ts` fails on a hard-coded name. Stored identifiers stay fixed on purpose: the backup
+format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 
 ## Stack & conventions
 
@@ -38,7 +43,7 @@ commit `f15fd52`).
   Sans, the HDS type ramp) and surfaces; the **jade accent** in `src/theme/brand-jade.css` is the
   only local override. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (`^0.24.1`, no auth) — see `docs/adr/0005` and `docs/adr/0007`. Upgrade with
+  npm** (exact-pinned `0.24.1`, no auth; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`. Upgrade with
   `npx @hirobius/design-system@latest upgrade` (codemods + a to-do list; `--check` to verify).
   `main.tsx` imports `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` —
   set on `<body>` in `index.html`) and `fonts.css`, then `src/theme/brand-jade.css` (jade accent
@@ -53,7 +58,7 @@ commit `f15fd52`).
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
-  publishable + RLS-protected). Cloud sync UI in `src/CloudSync.tsx`. Per-account curated
+  publishable + RLS-protected). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
   content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
   `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`.
 - **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Trades** (tab label; slug
@@ -74,9 +79,16 @@ commit `f15fd52`).
   **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
   terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
   pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
-  Header cleanup: the global pillar combobox + separate manage/feedback icon buttons were
-  replaced by a single overflow menu (theme toggle stays inline); the tab bar is sized for
-  readability and horizontal-scrolls on narrow screens.
+  **Shell (#115 Phase 1):** slim header = name · top tabs (**Pipeline · Discover · Templates**;
+  Today joins in Phase 2 and becomes home) · one **Account** menu. `src/account/` is the account
+  seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
+  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Back up,
+  Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible Callout;
+  `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
+  tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`.
+- **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
+  shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
+  (git-ignored). Run it before/after each redesign phase.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
@@ -100,6 +112,9 @@ commit `f15fd52`).
   `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
 - **CSP (#97 → enforcing in #106):** `Content-Security-Policy` in `vercel.json`, pinned by
   `src/csp.test.ts`. **Any new fetch host must go in `connect-src` and the test, or it's blocked.**
+  Fonts are HDS's self-hosted `fonts.css`, so `font-src`/`style-src` are `'self'` only — no font CDN (#115).
+- **HDS ESLint (`hds/recommended`)** runs on `src/**/*.tsx` via `eslint.config.js`: raw controls, hex, px spacing
+  and px-in-`sx` are errors (use `var(--primitive-space-N)` / t-shirt steps; `thin solid` for hairlines).
 - Branch pushes get Vercel **preview deploys** (use a branch for risky work; the
   live app stays on `main`).
 - The build/typecheck/test gate does **not** catch visual or runtime-CSS issues. Verify
