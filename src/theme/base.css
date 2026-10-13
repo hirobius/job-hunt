@@ -18,7 +18,8 @@ body {
   min-height: 100vh;
   /* HDS's styles.css sets `html, body { overflow-x: hidden }`, which turns <body> into a scroll
      container that never scrolls — so `position: sticky` (Onboarding's Start bar) never sticks to
-     the viewport. `clip` keeps the horizontal clipping without creating a scroll container. */
+     the viewport. `clip` keeps the horizontal clipping without creating a scroll container.
+     Workaround tracked in #146 (HDS issue to file). */
   overflow-x: clip;
   background: var(--semantic-color-surface-page);
   color: var(--semantic-color-content-primary);
@@ -40,7 +41,7 @@ a:focus-visible,
   border-radius: 6px;
 }
 
-/* HDS 0.24.1 bug (upstream ask in #133): the active tab's `data-[state=active]:border-foreground`
+/* HDS 0.24.1 bug (upstream ask in #133, tracked in #146): the active tab's `data-[state=active]:border-foreground`
  * sits in a cascade layer while `.border-transparent` is unlayered, so the unlayered rule wins and
  * the selected tab shows no underline — the "selected state is invisible" audit finding. Restore
  * HDS's intended indicator until the fix ships. */
@@ -49,7 +50,8 @@ a:focus-visible,
 }
 
 /* Sheet (src/Sheet.tsx): HDS Dialog docked to the bottom edge on phones — the v1 prototype's
-   sheet. HDS has no Sheet yet (HDS gap); token-only so it collapses into HDS when that lands. */
+   sheet. HDS has no Sheet yet (hirobius/hds#690, tracked in #146); token-only so it collapses
+   into HDS when that lands. */
 .app-sheet-grab {
   display: none;
 }
@@ -114,6 +116,7 @@ li:last-child > .app-sheet-item.app-sheet-item {
   outline: medium solid var(--semantic-accent-rest);
   outline-offset: var(--primitive-space-1);
 }
+/* HDS fills tertiary hover / open triggers with the accent, hiding the label (hds#690 note, #146). */
 .app-sheet-item.app-sheet-item:hover,
 .app-sheet-item.app-sheet-item[data-state='open'] {
   background-color: var(--semantic-color-surface-sunken);
@@ -124,7 +127,8 @@ li:last-child > .app-sheet-item.app-sheet-item {
   padding-inline: var(--semantic-space-scale-xs);
 }
 
-/* Sheet action row that stays pinned to the bottom edge while a tall sheet scrolls (Manage track). */
+/* Sheet action row that stays pinned to the bottom edge while a tall sheet scrolls (Manage track).
+   HDS Dialog's footer doesn't pin (hds#690, #146). */
 .app-sheet-foot {
   position: sticky;
   bottom: calc(-1 * var(--semantic-space-scale-sm));

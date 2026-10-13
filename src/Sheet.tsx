@@ -1,5 +1,5 @@
 // Sheet: the v1 prototype's bottom sheet, built on HDS Dialog (focus trap, Escape, scrim, portal)
-// because HDS has no Sheet/Drawer yet (HDS gap, see docs/design/v1-build-spec.md). On phones it
+// because HDS has no Sheet/Drawer yet (hirobius/hds#690; retire via #146). On phones it
 // docks to the bottom edge with a grab handle; from 640px it is HDS's centred dialog. Styling is
 // token-only, in src/theme/base.css (`.app-sheet`). API mirrors HDS Dialog: controlled `open` /
 // `onOpenChange`, a required `title`, an optional `description`, children, and a `footer` slot.
@@ -43,7 +43,7 @@ export interface SheetMenuItem {
 /** A list of full-width actions inside a Sheet — the v1 replacement for small dropdown menus. */
 export function SheetMenu({ items, label }: { items: SheetMenuItem[]; label: string }) {
   return (
-    // Box, not Stack: Stack doesn't forward aria-label, and the list needs its name.
+    // Box, not Stack: Stack doesn't forward aria-label, and the list needs its name (#146).
     <Box
       as="ul"
       aria-label={label}
