@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { normStatus, daysSince, deriveJobState, applyStatus, logFollowUp } from './jobState';
+import {
+  normStatus,
+  daysSince,
+  deriveJobState,
+  applyStatus,
+  effectiveHistory,
+  logFollowUp,
+} from './jobState';
 import type { Job } from './types';
 
 const NOW = new Date('2026-06-26T12:00:00.000Z');
@@ -101,11 +108,74 @@ describe('applyStatus', () => {
   });
 });
 
+describe('applyStatus history', () => {
+  it('appends a dated entry on a real change', () => {
+    expect(applyStatus(job(), 'Applied', NOW).history).toEqual([{ status: 'Applied', at: TODAY }]);
+  });
+
+  it('does not append when the status is unchanged (or unknown normalizes to it)', () => {
+    const applied = job({ status: 'Applied', applied: '2026-01-01' });
+    expect(applyStatus(applied, 'Applied', NOW).history).toBeUndefined();
+    expect(applyStatus(job({ status: 'bogus' as never }), 'Saved', NOW).history).toBeUndefined();
+  });
+
+  it('seeds a legacy job from its backfill before appending', () => {
+    const j = job({ status: 'Applied', applied: '2026-06-01' });
+    expect(applyStatus(j, 'Interviewing', NOW).history).toEqual([
+      { status: 'Applied', at: '2026-06-01' },
+      { status: 'Interviewing', at: TODAY },
+    ]);
+  });
+
+  it('appends to stored history and leaves the input untouched', () => {
+    const h = [{ status: 'Applied' as const, at: '2026-06-01' }];
+    const j = job({ status: 'Applied', applied: '2026-06-01', history: h });
+    const next = applyStatus(j, 'Rejected', NOW);
+    expect(next.history).toHaveLength(2);
+    expect(j.history).toBe(h);
+    expect(h).toHaveLength(1);
+  });
+});
+
+describe('effectiveHistory', () => {
+  it.each([
+    ['no applied, no history', {}, []],
+    ['Saved with applied', { applied: '2026-05-01' }, [{ status: 'Applied', at: '2026-05-01' }]],
+    [
+      'Applied',
+      { status: 'Applied', applied: '2026-05-01' },
+      [{ status: 'Applied', at: '2026-05-01' }],
+    ],
+    [
+      'Offer',
+      { status: 'Offer', applied: '2026-05-01' },
+      [
+        { status: 'Applied', at: '2026-05-01' },
+        { status: 'Offer', at: '2026-05-01', derived: true },
+      ],
+    ],
+    [
+      'stored wins',
+      { status: 'Offer', applied: '2026-05-01', history: [{ status: 'Applied', at: '2026-05-02' }] },
+      [{ status: 'Applied', at: '2026-05-02' }],
+    ],
+  ] as [string, Partial<Job>, unknown[]][])('%s', (_n, over, want) => {
+    expect(effectiveHistory(job(over))).toEqual(want);
+  });
+});
+
 describe('logFollowUp', () => {
   it('sets followUp to today and returns a new object', () => {
     const j = job({ status: 'Applied', applied: daysAgo(10) });
     const next = logFollowUp(j, NOW);
     expect(next.followUp).toBe(TODAY);
     expect(next).not.toBe(j);
+  });
+});
+
+describe('daysSince — a bare date is a local calendar day', () => {
+  it('counts whole local days, not UTC-midnight offsets', () => {
+    expect(daysSince('2026-10-05', new Date(2026, 9, 11, 23, 59))).toBe(6);
+    expect(daysSince('2026-10-05', new Date(2026, 9, 12, 0, 0))).toBe(7);
   });
 });
