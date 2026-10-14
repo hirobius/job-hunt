@@ -10,11 +10,14 @@ import {
 } from '@hirobius/design-system';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import { useCurationSyncStatus } from './curation/syncStatus';
+import { TrySampleButton } from './demo/SampleData';
 
-// First-run onboarding (issue #59 / B1, decision D1): an empty curation store routes here before
-// Discover renders. Pick one or more starter packs + an optional location → seed them into the
-// store (fork-on-pick) → Discover takes over. Minimal by design; the fuller catalog polish is B5.
-export function Onboarding() {
+// First-run onboarding (issue #59 / B1, decision D1): the shell's gate (App.tsx, #128) routes here
+// from Discover with no tracks, and from Today on a first run. Pick one or more starter packs + an
+// optional location → seed them into the store (fork-on-pick) → the view takes over. On Today it
+// also offers the sample pipeline, so a visitor can see the app working in one click (#107).
+// Minimal by design; the guided first run is #132.
+export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
   const [picked, setPicked] = useState<string[]>([]);
   const [location, setLocation] = useState('');
   const syncStatus = useCurationSyncStatus();
@@ -137,6 +140,18 @@ export function Onboarding() {
               ? 'Add a first job title'
               : `Start with ${picked.length} track${picked.length > 1 ? 's' : ''}`}
         </Button>
+        {offerSample && (
+          <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="center">
+            <Text
+              variant="caption"
+              as="span"
+              style={{ color: 'var(--semantic-color-content-secondary)' }}
+            >
+              Just looking?
+            </Text>
+            <TrySampleButton />
+          </Stack>
+        )}
       </Stack>
     </Box>
   );

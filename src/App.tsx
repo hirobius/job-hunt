@@ -10,26 +10,31 @@ import {
   Container,
   Stack,
 } from '@hirobius/design-system';
+import TodayView from './TodayView';
 import TrackerView from './TrackerView';
 import JobPage from './JobPage';
+import { Onboarding } from './Onboarding';
+import { markTodayNoticeSeen } from './todayNoticeSeen';
 import { BRAND } from './brand';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInDialog from './account/SignInDialog';
 import SyncNudge from './account/SyncNudge';
-import { addJob, markAppliedByUrl, setStatusByUrl } from './store';
+import { addJob, markAppliedByUrl, setStatusByUrl, useJobs } from './store';
+import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
+import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
 
-// Code-split the non-default views so the initial bundle only carries the default Pipeline tab;
-// the rest load on demand (tab switch).
+// Code-split Discover and Templates so the initial bundle carries Today and the Pipeline (home and
+// the quick-add landing); the rest load on demand (tab switch).
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 
-// Top-level tabs, in render order (#115: Pipeline · Discover · Templates; Today joins in Phase 2
-// and becomes the landing route then). The URL hash carries the slug (#/queue …); slugs stay
-// back-compatible (`queue`/`copy-deck`) under the new labels, so old bookmarks keep working.
+// Top-level tabs, in render order (#115: Today · Pipeline · Discover · Templates). The URL hash
+// carries the slug (#/today …); slugs stay back-compatible (`queue`/`copy-deck`) under the new
+// labels, so old bookmarks keep working.
 // HDS TabsContent is a tinted, padded card pulled up under its tab strip — right for in-page
 // tabs, wrong for the app's top-level nav, where it indented every view 24px off the header's edge
 // and nested each page in a surface. Top-level panels are bare (HDS gap, filed under #133).
@@ -40,11 +45,10 @@ const BARE_PANEL = {
   borderRadius: 0,
 } as const;
 
-const TAB_SLUGS = ['queue', 'discover', 'copy-deck'] as const;
+const TAB_SLUGS = ['today', 'queue', 'discover', 'copy-deck'] as const;
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
-// Today becomes the home route in Phase 2b (#128); quick-add always shows the Pipeline, where the
-// new job is.
-const HOME_ROUTE = 'queue';
+// Today is home (#128); quick-add always shows the Pipeline, where the new job is.
+const HOME_ROUTE = 'today';
 const QUICK_ADD_LANDING = 'queue';
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
@@ -52,6 +56,16 @@ export default function App() {
   const route = useRoute();
   const slugIndex = TAB_SLUGS.indexOf(route.tab as (typeof TAB_SLUGS)[number]);
   const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
+
+  // The onboarding gate (#128) lives here, not in a view. Discover can't work without a track;
+  // Today asks for one only on a first run (no tracks and no jobs), so nobody lands on an empty
+  // home. The Pipeline and Templates never gate: quick-add and sample data work before setup.
+  const hasTracks = useCategories().length > 0;
+  const hasJobs = useJobs().length > 0;
+  const firstRun = !hasTracks && !hasJobs;
+  useEffect(() => {
+    if (firstRun) markTodayNoticeSeen(); // new users never had a Tracker to miss
+  }, [firstRun]);
 
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
   // After ingesting, land on the Pipeline so the just-added job is visible; with no route at all,
@@ -110,19 +124,30 @@ export default function App() {
                   </Text>
                   <AccountMenu />
                 </Stack>
-                <TabsList style={{ width: '100%', marginBottom: 0 }} aria-label="Sections">
-                  <TabsTrigger value="queue">Pipeline</TabsTrigger>
-                  <TabsTrigger value="discover">Discover</TabsTrigger>
-                  <TabsTrigger value="copy-deck">Templates</TabsTrigger>
-                </TabsList>
+                {/* Four tabs overflow a phone; the fade says more sit past the edge. */}
+                <TabsOverflowFade value={TAB_SLUGS[tab]}>
+                  <TabsList style={{ width: '100%', marginBottom: 0 }} aria-label="Sections">
+                    <TabsTrigger value="today">Today</TabsTrigger>
+                    <TabsTrigger value="queue">Pipeline</TabsTrigger>
+                    <TabsTrigger value="discover">Discover</TabsTrigger>
+                    <TabsTrigger value="copy-deck">Templates</TabsTrigger>
+                  </TabsList>
+                </TabsOverflowFade>
                 <SyncNudge />
+                <TabsContent value="today" style={BARE_PANEL}>
+                  {firstRun ? <Onboarding offerSample /> : <TodayView />}
+                </TabsContent>
                 <TabsContent value="queue" style={BARE_PANEL}>
                   {route.jobId ? <JobPage jobId={route.jobId} /> : <TrackerView />}
                 </TabsContent>
                 <TabsContent value="discover" style={BARE_PANEL}>
-                  <Suspense fallback={<DiscoverSkeleton />}>
-                    <DiscoverView />
-                  </Suspense>
+                  {hasTracks ? (
+                    <Suspense fallback={<DiscoverSkeleton />}>
+                      <DiscoverView />
+                    </Suspense>
+                  ) : (
+                    <Onboarding />
+                  )}
                 </TabsContent>
                 <TabsContent value="copy-deck" style={BARE_PANEL}>
                   <Suspense fallback={<CopyDeckSkeleton />}>
