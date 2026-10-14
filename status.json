@@ -1,7 +1,7 @@
 {
   "updatedAt": "2026-10-14T04:00:00Z",
   "phase": "live",
-  "headline": "Live as Roleforge. Redesign #115 continues: Today view (#128) built on claude/jh-p2b-today (PR pending review, not merged). Cloud builds are budgeted — no [preview] or main merges unless Adrian asks (CLAUDE.md).",
+  "headline": "Live as Roleforge. Redesign #115 continues: Today view (#128) in PR #154 (claude/jh-p2b-today), awaiting review, not merged. Cloud builds are budgeted — no [preview] or main merges unless Adrian asks (CLAUDE.md).",
   "next": [
     "Redesign #115: review + merge Today (#128), then Pipeline rows (#129) and the job page (#130). Re-check #146–#148 against main.",
     "Pick the product name (#55); swap it in src/brand.ts.",
