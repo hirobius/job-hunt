@@ -79,7 +79,12 @@ describe('CloudSyncProvider (via the account menu)', () => {
   });
 
   it('a failed pull toasts the actionable offline message, with Retry in the menu', async () => {
+    // The sign-in also queues a debounced (500ms) push of the unsynced local copy. If the menu
+    // opens after it fires (CPU load), a *successful* push flips the status to "Synced" and
+    // "Retry sync" disappears (#156). Fail the push too, so the offline state holds whichever
+    // side of the debounce the test lands on — no wall-clock dependence.
     fake().failNext('tracker', 'select');
+    fake().failNext('tracker', 'upsert');
     renderAccount();
     act(() => fake().signIn('u1'));
     expect(await screen.findByText(OFFLINE_MSG)).toBeInTheDocument();
