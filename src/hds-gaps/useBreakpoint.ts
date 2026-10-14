@@ -2,24 +2,35 @@
 // Pipeline renders different markup per viewport: a Table at desktop, cards on a phone. This reads
 // an HDS breakpoint through matchMedia. With no matchMedia (jsdom, old browsers) it reports the
 // narrow layout, which works at every width. Filed with the Phase 7 asks (#133).
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import hds from '@hirobius/design-system/tokens';
 
 type Breakpoint = 'sm' | 'md' | 'lg';
 
-const queryOf = (bp: Breakpoint) => `(min-width: ${hds.breakpoints[bp]}px)`;
+const hasMatchMedia = () =>
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function';
 
 /** True while the viewport is at least the HDS breakpoint `bp` wide. */
 export function useAtLeast(bp: Breakpoint): boolean {
-  const query = queryOf(bp);
-  return useSyncExternalStore(
-    (onChange) => {
-      if (typeof window.matchMedia !== 'function') return () => {};
+  const query = `(min-width: ${hds.breakpoints[bp]}px)`;
+  // Stable per query, so useSyncExternalStore doesn't resubscribe on every render.
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      if (!hasMatchMedia()) return () => {};
       const mql = window.matchMedia(query);
-      mql.addEventListener?.('change', onChange);
-      return () => mql.removeEventListener?.('change', onChange);
+      // Safari < 14 has only the deprecated addListener.
+      if (mql.addEventListener) mql.addEventListener('change', onChange);
+      else mql.addListener?.(onChange);
+      return () => {
+        if (mql.removeEventListener) mql.removeEventListener('change', onChange);
+        else mql.removeListener?.(onChange);
+      };
     },
-    () => typeof window.matchMedia === 'function' && window.matchMedia(query).matches,
+    [query],
+  );
+  return useSyncExternalStore(
+    subscribe,
+    () => hasMatchMedia() && window.matchMedia(query).matches,
     () => false,
   );
 }

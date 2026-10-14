@@ -59,6 +59,20 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
           Pick one or more tracks to start with — each pre-fills search terms and a few links. You
           can edit or add more later.
         </Text>
+        {/* Up top, so a visitor sees it without scrolling past the packs (#154 review). Never
+            offered signed in (a signed-in tracker syncs), so neither is its caption. */}
+        {offerSample && !hasCloudSession() && (
+          <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="start">
+            <Text
+              variant="caption"
+              as="span"
+              style={{ color: 'var(--semantic-color-content-secondary)' }}
+            >
+              Just looking?
+            </Text>
+            <TrySampleButton />
+          </Stack>
+        )}
         <Box>
           <Text
             variant="caption"
@@ -139,19 +153,6 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
               ? 'Add a first job title'
               : `Start with ${picked.length} track${picked.length > 1 ? 's' : ''}`}
         </Button>
-        {/* Never offered signed in (a signed-in tracker syncs), so neither is its caption. */}
-        {offerSample && !hasCloudSession() && (
-          <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="center">
-            <Text
-              variant="caption"
-              as="span"
-              style={{ color: 'var(--semantic-color-content-secondary)' }}
-            >
-              Just looking?
-            </Text>
-            <TrySampleButton />
-          </Stack>
-        )}
       </Stack>
     </Box>
   );

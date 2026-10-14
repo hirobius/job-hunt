@@ -1,29 +1,34 @@
-// The pieces one Pipeline row is made of (#129), shared by the desktop table (JobsTable) and the
-// phone cards (JobListCard): the status badge, the row's one primary action, and the menu that
-// holds everything else. What a row offers is decided in jobRow.ts.
+// The pieces one job row is made of (#129), shared by the desktop table (JobsTable), the phone
+// cards (JobListCard) and the job page's card (JobCard): the status badge, the row's one next
+// step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
 import { EllipsisVertical } from 'lucide-react';
 import { Badge, Button, Icon, Menu } from '@hirobius/design-system';
-import { logFollowUp, removeJob, setStatus, updateJob } from './store';
+import { hostOf, logFollowUp, removeJob, setStatus, updateJob } from './store';
 import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
 import { primaryAction, STATUS_TONE, titleOf } from './jobRow';
 import { normStatus } from './jobState';
 import type { Job } from './types';
 
+/** Controls on a phone card are 40px tap targets; the denser table uses the small size. */
+type Size = 'sm' | 'md';
+
+/** The job's Status. A retired job keeps its status, greyed (Retired is not a Status). */
 export function StatusBadge({ job }: { job: Job }) {
   const status = normStatus(job.status);
-  return <Badge tone={STATUS_TONE[status]}>{job.archived ? 'Retired' : status}</Badge>;
+  return <Badge tone={job.archived ? 'neutral' : STATUS_TONE[status]}>{status}</Badge>;
 }
 
-/** The row's one next step, or nothing when there isn't one. */
-export function PrimaryAction({ job }: { job: Job }) {
+/** The row's one next step, or nothing when there isn't one. Secondary, so the page's own
+ *  primary action (Add job) stays the only filled button on the screen. */
+export function RowPrimaryAction({ job, size = 'sm' }: { job: Job; size?: Size }) {
   const action = primaryAction(job);
   const title = titleOf(job);
   if (action === 'apply')
     return (
       <Button
-        size="sm"
-        variant="primary"
+        size={size}
+        variant="secondary"
         aria-label={`Mark applied: ${title}`}
         onClick={() => setStatus(job.url, 'Applied')}
       >
@@ -33,7 +38,7 @@ export function PrimaryAction({ job }: { job: Job }) {
   if (action === 'followup')
     return (
       <Button
-        size="sm"
+        size={size}
         variant="secondary"
         aria-label={`Log follow-up: ${title}`}
         onClick={() => logFollowUp(job.url)}
@@ -45,13 +50,13 @@ export function PrimaryAction({ job }: { job: Job }) {
 }
 
 /** Everything else a row can do. */
-export function RowMenu({ job }: { job: Job }) {
+export function RowMenu({ job, size = 'sm' }: { job: Job; size?: Size }) {
   const title = titleOf(job);
   return (
     <Menu>
       <Menu.Trigger asChild>
         <Button
-          size="sm"
+          size={size}
           variant="tertiary"
           iconOnly
           iconLeft={<Icon icon={EllipsisVertical} />}
@@ -61,7 +66,7 @@ export function RowMenu({ job }: { job: Job }) {
       <Menu.Content align="end">
         <Menu.Item asChild>
           <a href={job.url} target="_blank" rel="noopener noreferrer">
-            Open posting
+            Open on {hostOf(job.url) || 'the original site'}
           </a>
         </Menu.Item>
         <Menu.Item onSelect={() => updateJob(job.url, { priority: !job.priority })}>
@@ -81,6 +86,7 @@ export function RowMenu({ job }: { job: Job }) {
           Find more like this
         </Menu.Item>
         <Menu.Separator />
+        {/* HDS Menu.Item has no danger tone; the feedback token marks the destructive item. */}
         <Menu.Item
           onSelect={() => removeJob(job.url)}
           style={{ color: 'var(--semantic-color-feedback-error)' }}

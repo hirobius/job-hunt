@@ -1,10 +1,13 @@
 // The Pipeline at desktop (#129): an HDS Table with sortable columns. A header click goes through
 // the same SortKey as the toolbar's Sort menu (jobRow.nextSort), so the two never disagree. Each
-// row's title links to the job's page; the last column holds the row's one primary action and its
-// menu. HDS Table rows can't be clicked or selected (HDS gap), so the link is the way in.
-import { useId } from 'react';
+// row's title links to the job's page; the last column holds the row's one next step and its
+// menu. HDS Table rows can't be clicked, selected or styled (HDS gap, filed with the Phase 7 asks,
+// #133), so the title link is the way in and a retired row dims its cells' content.
+import { useId, type ReactNode } from 'react';
+import { Star } from 'lucide-react';
 import {
   Badge,
+  Icon,
   InlineLink,
   Stack,
   Table,
@@ -16,16 +19,8 @@ import {
 import { jobIdOf } from './store';
 import { jobHash } from './route';
 import type { SortKey } from './jobSort';
-import {
-  appliedAgo,
-  followUpOf,
-  nextSort,
-  sortDirectionOf,
-  titleOf,
-  type SortableColumn,
-} from './jobRow';
-import { VERDICTS } from './screening';
-import { PrimaryAction, RowMenu, StatusBadge } from './JobRowParts';
+import { nextSort, rowView, sortDirectionOf, type SortableColumn } from './jobRow';
+import { RowMenu, RowPrimaryAction, StatusBadge } from './JobRowParts';
 import type { Job } from './types';
 
 const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
@@ -34,6 +29,8 @@ const NONE = (
     —
   </Text>
 );
+// HDS Table is a CSS grid: the job column takes the room, the rest size to their content.
+const HUG = 'max-content';
 
 export default function JobsTable({
   jobs,
@@ -45,29 +42,27 @@ export default function JobsTable({
   onSort: (next: SortKey) => void;
 }) {
   const labelId = useId();
-  const sortable = (key: SortableColumn, label: string): TableColumn => ({
+  const sortable = (key: SortableColumn, label: string, width = HUG): TableColumn => ({
     key,
     label,
+    width,
     sortable: true,
     sortDirection: sortDirectionOf(key, sort),
     onSort: () => onSort(nextSort(key, sort)),
   });
-  // HDS Table is a CSS grid: the job column takes the room, the rest size to their content.
-  const hug = 'max-content';
   const columns: TableColumn[] = [
-    { ...sortable('job', 'Job'), width: 'minmax(14rem, 1fr)' },
-    { ...sortable('status', 'Status'), width: hug },
-    { ...sortable('fit', 'Fit'), width: hug },
-    { ...sortable('applied', 'Applied'), width: hug },
-    { ...sortable('followup', 'Follow-up'), width: hug },
-    { key: 'actions', label: <VisuallyHidden>Actions</VisuallyHidden>, align: 'right', width: hug },
+    sortable('job', 'Job', 'minmax(14rem, 1fr)'),
+    sortable('status', 'Status'),
+    sortable('fit', 'Fit'),
+    sortable('applied', 'Applied'),
+    sortable('followup', 'Follow-up'),
+    { key: 'actions', label: <VisuallyHidden>Actions</VisuallyHidden>, align: 'right', width: HUG },
   ];
 
   const rows: TableRow[] = jobs.map((job) => {
-    const facts = [job.company, job.location].filter(Boolean).join(' · ');
-    const verdict = VERDICTS.find((v) => v.value === job.verdict);
-    const applied = appliedAgo(job);
-    const followUp = followUpOf(job);
+    const row = rowView(job);
+    const dim = (content: ReactNode) =>
+      row.retired ? <span style={{ opacity: 0.6 }}>{content}</span> : content;
     return {
       key: job.url,
       cells: [
@@ -75,32 +70,43 @@ export default function JobsTable({
           slot: 'custom',
           content: (
             <Stack gap="px2">
-              <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
-                {titleOf(job)}
-              </InlineLink>
-              {facts && (
+              <Stack direction="row" gap="px4" align="center">
+                {/* Pinned jobs float to the top in every sort (jobSort), so say why. */}
+                {row.pinned && (
+                  <>
+                    <Icon icon={Star} size="small" />
+                    <VisuallyHidden>Pinned</VisuallyHidden>
+                  </>
+                )}
+                <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
+                  {row.title}
+                </InlineLink>
+              </Stack>
+              {row.facts && (
                 <Text variant="caption" as="span" style={SECONDARY}>
-                  {facts}
+                  {row.facts}
                 </Text>
               )}
             </Stack>
           ),
         },
-        { slot: 'badge', content: <StatusBadge job={job} /> },
+        { slot: 'badge', content: dim(<StatusBadge job={job} />) },
         {
           slot: 'badge',
-          content: verdict ? <Badge tone={verdict.tone}>{verdict.label}</Badge> : NONE,
+          content: row.verdict
+            ? dim(<Badge tone={row.verdict.tone}>{row.verdict.label}</Badge>)
+            : NONE,
         },
-        { slot: 'description', content: applied ?? NONE },
+        { slot: 'description', content: row.applied ?? NONE },
         {
           slot: 'custom',
-          content: !followUp ? (
+          content: !row.followUp ? (
             NONE
-          ) : followUp.due ? (
+          ) : row.followUp.due ? (
             <Badge tone="warning">Due</Badge>
           ) : (
             <Text variant="caption" as="span" style={SECONDARY}>
-              In {followUp.inDays}d
+              In {row.followUp.inDays}d
             </Text>
           ),
         },
@@ -109,7 +115,7 @@ export default function JobsTable({
           align: 'right',
           content: (
             <Stack direction="row" gap="px8" align="center" justify="end">
-              <PrimaryAction job={job} />
+              <RowPrimaryAction job={job} />
               <RowMenu job={job} />
             </Stack>
           ),

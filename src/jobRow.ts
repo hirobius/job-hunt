@@ -3,8 +3,9 @@
 // goes in its menu. Sortable table columns map onto the existing jobSort keys, so a header click
 // and the toolbar's Sort menu are one sort.
 import { deriveJobState } from './jobState';
-import type { SortKey } from './jobSort';
+import { SORTS, type SortKey } from './jobSort';
 import { prettyTitle } from './store';
+import { VERDICTS } from './screening';
 import type { Job, Status } from './types';
 
 /** A row's title: the saved label, else one derived from the URL. */
@@ -21,9 +22,9 @@ export const STATUS_TONE: Record<Status, 'neutral' | 'info' | 'inProgress' | 'su
   };
 
 /** The one next step a row offers: apply to a saved job, or log a due follow-up. */
-export type PrimaryAction = 'apply' | 'followup';
+export type NextStep = 'apply' | 'followup';
 
-export function primaryAction(job: Job, now: Date = new Date()): PrimaryAction | null {
+export function primaryAction(job: Job, now: Date = new Date()): NextStep | null {
   if (job.archived) return null;
   const s = deriveJobState(job, now);
   if (s.isApplyable) return 'apply';
@@ -42,23 +43,13 @@ export const COLUMN_SORT = {
 
 export type SortableColumn = keyof typeof COLUMN_SORT;
 
-// The direction each sort runs (jobSort has one per key), for the header's aria-sort.
-const DIRECTION: Record<SortKey, 'ascending' | 'descending'> = {
-  recent: 'descending',
-  az: 'ascending',
-  status: 'ascending',
-  fit: 'ascending', // best fit first
-  applied: 'descending', // most recently applied first
-  followup: 'ascending', // soonest due first
-  salary: 'descending',
-};
-
 /** How a column header reads under the current sort. */
 export function sortDirectionOf(
   column: SortableColumn,
   sort: SortKey,
 ): 'ascending' | 'descending' | 'none' {
-  return COLUMN_SORT[column] === sort ? DIRECTION[sort] : 'none';
+  if (COLUMN_SORT[column] !== sort) return 'none';
+  return SORTS.find((s) => s.key === sort)?.direction ?? 'none';
 }
 
 /** A header click sorts by that column; clicking the active one goes back to recently added. */
@@ -82,4 +73,30 @@ export function followUpOf(
   const f = deriveJobState(job, now).followUp;
   if (f.due) return { due: true };
   return f.daysUntil != null ? { due: false, inDays: f.daysUntil } : null;
+}
+
+/** Everything one Pipeline row shows, worked out once for the table and the cards. */
+export interface RowView {
+  title: string;
+  /** Retired (when it is) · company · location. */
+  facts: string;
+  verdict: (typeof VERDICTS)[number] | undefined;
+  applied: string | null;
+  followUp: ReturnType<typeof followUpOf>;
+  next: NextStep | null;
+  pinned: boolean;
+  retired: boolean;
+}
+
+export function rowView(job: Job, now: Date = new Date()): RowView {
+  return {
+    title: titleOf(job),
+    facts: [job.archived ? 'Retired' : '', job.company, job.location].filter(Boolean).join(' · '),
+    verdict: VERDICTS.find((v) => v.value === job.verdict),
+    applied: appliedAgo(job, now),
+    followUp: followUpOf(job, now),
+    next: primaryAction(job, now),
+    pinned: !!job.priority,
+    retired: !!job.archived,
+  };
 }

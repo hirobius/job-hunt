@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import {
-  EllipsisVertical,
   Building2,
   MapPin,
   GraduationCap,
@@ -14,7 +13,6 @@ import {
   Button as UiButton,
   Card as HdsCard,
   Input as HdsInput,
-  Menu as HdsMenu,
   Textarea,
   Icon,
   Box,
@@ -24,11 +22,10 @@ import {
   InlineLink,
   Switcher,
 } from '@hirobius/design-system';
-import { updateJob, setStatus, removeJob, logFollowUp, prettyTitle, hostOf } from './store';
+import { updateJob, setStatus, logFollowUp, hostOf } from './store';
 import { deriveJobState } from './jobState';
-import { STATUS_TONE } from './jobRow';
-import { navigate } from './route';
-import { setDiscoverSeed } from './discoverSeed';
+import { STATUS_TONE, titleOf } from './jobRow';
+import { RowMenu } from './JobRowParts';
 import { verdictTone, modeLabel, blockerLabel } from './screening';
 import { ScreeningEditor } from './ScreeningEditor';
 import UseTemplate from './UseTemplate';
@@ -148,7 +145,7 @@ export default function JobCard({
               }}
             >
               <InlineLink href={j.url} externalIcon={false}>
-                {j.label || prettyTitle(j.url)}
+                {titleOf(j)}
               </InlineLink>
             </Text>
           </Box>
@@ -163,48 +160,7 @@ export default function JobCard({
             onClick={() => updateJob(j.url, { priority: !j.priority })}
             style={j.priority ? { color: 'var(--semantic-accent-rest)' } : undefined}
           />
-          <HdsMenu>
-            <HdsMenu.Trigger asChild>
-              <UiButton
-                size="sm"
-                variant="tertiary"
-                iconOnly
-                iconLeft={<Icon icon={EllipsisVertical} />}
-                label="More actions"
-              />
-            </HdsMenu.Trigger>
-            <HdsMenu.Content align="end">
-              {s.isApplyable && (
-                <HdsMenu.Item onSelect={() => setStatus(j.url, 'Applied')}>
-                  Mark applied
-                </HdsMenu.Item>
-              )}
-              <HdsMenu.Item onSelect={() => updateJob(j.url, { priority: !j.priority })}>
-                {j.priority ? 'Unpin priority' : 'Pin as priority'}
-              </HdsMenu.Item>
-              <HdsMenu.Item onSelect={() => updateJob(j.url, { archived: !j.archived })}>
-                {j.archived ? 'Unretire' : 'Retire'}
-              </HdsMenu.Item>
-              <HdsMenu.Separator />
-              {/* Reverse interop (issue #57): seed Discover's Title search with this
-                  job's title and jump there — pipeline feeds discovery. */}
-              <HdsMenu.Item
-                onSelect={() => {
-                  setDiscoverSeed(j.label || prettyTitle(j.url));
-                  navigate({ tab: 'discover', sub: 'titles' });
-                }}
-              >
-                Find more like this
-              </HdsMenu.Item>
-              <HdsMenu.Separator />
-              <HdsMenu.Item
-                onSelect={() => removeJob(j.url)}
-                style={{ color: 'var(--semantic-color-feedback-error)' }}
-              >
-                Remove
-              </HdsMenu.Item>
-            </HdsMenu.Content>
-          </HdsMenu>
+          <RowMenu job={j} />
         </Stack>
 
         {/* Icon-led facts line — company · location · seniority · salary */}

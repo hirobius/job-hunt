@@ -17,7 +17,7 @@ import {
 import { Form, Page, PageHeader } from '@hirobius/design-system/patterns';
 import { addJob, findJobByUrl, jobIdOf, logFollowUp, useJobs } from './store';
 import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
-import { dueFollowUps, KIND_WORD, upcomingEvents, ymd } from './jobEvents';
+import { dueFollowUps, KIND_WORD, UPCOMING_DAYS, upcomingEvents, ymd } from './jobEvents';
 import { jobHash } from './route';
 import type { Job } from './types';
 import Insights from './Insights';
@@ -170,7 +170,7 @@ export default function TodayView() {
         <TodayNotice />
         <SampleBanner jobs={jobs} />
         {/* The day's work reads at the HDS prose measure; Insights spans the page. */}
-        <div style={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
+        <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
           <Stack gap="normal">
             <QuickAdd />
             {jobs.length === 0 ? (
@@ -185,7 +185,7 @@ export default function TodayView() {
                   id="today-due"
                   title="Follow-ups due"
                   count={due.length}
-                  empty="Nothing due. Follow-ups fall due a week after you apply or last follow up."
+                  empty={`Nothing due. Follow-ups fall due ${days(FOLLOWUP_DAYS)} after you apply or last follow up.`}
                 >
                   {due.map(({ job }) => (
                     <li key={job.url}>
@@ -215,7 +215,7 @@ export default function TodayView() {
                 </Section>
                 <Section
                   id="today-next"
-                  title="Next 7 days"
+                  title={`Next ${UPCOMING_DAYS} days`}
                   count={upcoming.length}
                   empty="Nothing scheduled. Log interviews and calls on a job's page."
                 >
@@ -242,7 +242,7 @@ export default function TodayView() {
               </>
             )}
           </Stack>
-        </div>
+        </Box>
         {jobs.length > 0 && <Insights jobs={jobs} />}
       </Stack>
     </Page>

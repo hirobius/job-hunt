@@ -1,12 +1,13 @@
 import { Fragment, useMemo, useState } from 'react';
 import { PageHeader } from '@hirobius/design-system/patterns';
-import { ArrowUpDown, Search, Briefcase, ListFilter, Plus } from 'lucide-react';
+import { ArrowUpDown, Search, Briefcase, ListFilter, Plus, X } from 'lucide-react';
 import {
   Button as UiButton,
   Input as HdsInput,
   Menu as HdsMenu,
   Dialog,
   Icon,
+  Tag,
   Box,
   Stack,
   Text,
@@ -36,12 +37,14 @@ const FILTER_LABEL: Record<Filter, string> = {
 };
 const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 
-const FILTER_GROUPS: { label: string; items: Filter[] }[] = [
-  { label: 'Views', items: ['active', 'all'] },
+// Active first; All and Retired demoted to the end (#129). A group without a label is just a
+// separated section.
+const FILTER_GROUPS: { label?: string; items: Filter[] }[] = [
+  { label: 'Views', items: ['active'] },
   { label: 'In progress', items: ['Saved', 'Applied', 'Interviewing', 'Offer'] },
   { label: 'Closed', items: ['Rejected', 'retired'] },
+  { items: ['all'] },
 ];
-
 function matches(j: Job, f: Filter): boolean {
   const s = deriveJobState(j);
   if (f === 'active') return s.isActive;
@@ -162,9 +165,9 @@ export default function TrackerView() {
               <HdsMenu.Content align="end">
                 <HdsMenu.RadioGroup value={filter} onValueChange={(v) => setFilter(v as Filter)}>
                   {FILTER_GROUPS.map((g, gi) => (
-                    <Fragment key={g.label}>
+                    <Fragment key={gi}>
                       {gi > 0 && <HdsMenu.Separator />}
-                      <HdsMenu.Label>{g.label}</HdsMenu.Label>
+                      {g.label && <HdsMenu.Label>{g.label}</HdsMenu.Label>}
                       {g.items.map((f) => (
                         <HdsMenu.RadioItem key={f} value={f}>
                           <Box
@@ -188,6 +191,17 @@ export default function TrackerView() {
                 </HdsMenu.RadioGroup>
               </HdsMenu.Content>
             </HdsMenu>
+            {/* The active filter, when it isn't the default, as a chip that clears it. */}
+            {filter !== 'active' && (
+              <Tag
+                active
+                aria-label={`Clear filter: ${FILTER_LABEL[filter]}`}
+                onClick={() => setFilter('active')}
+              >
+                {FILTER_LABEL[filter]}
+                <Icon icon={X} size="small" />
+              </Tag>
+            )}
             <HdsMenu>
               <HdsMenu.Trigger asChild>
                 {/* Icon-only so search · status · sort · add fit two rows at 390px; the name and

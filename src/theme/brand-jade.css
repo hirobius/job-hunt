@@ -47,6 +47,11 @@
   /* The mint accent-subtle fill set in :root above also applied in dark, so hovers and the
    * highlighted menu item were pale mint with light text (#115 audit). Dark gets a dark jade fill
    * with the lightened accent text on it (#129). */
-  --semantic-color-surface-accentSubtle: oklch(0.32 0.05 var(--brand-h));
+  --brand-accent-subtle-dark: oklch(0.32 0.05 var(--brand-h));
+  --semantic-color-surface-accentSubtle: var(--brand-accent-subtle-dark);
+  --semantic-accent-subtle: var(--brand-accent-subtle-dark); /* active nav fill, too */
   --role-accent-foreground: var(--semantic-color-content-accent);
+  /* Accent borders and the focus ring lighten with accent text, so they clear 3:1 on the dark
+   * page and on the dark jade fill (#129). */
+  --semantic-color-border-accent: oklch(0.72 var(--brand-c) var(--brand-h));
 }

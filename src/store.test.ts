@@ -29,6 +29,18 @@ describe('url helpers', () => {
     expect(prettyTitle('https://example.com/')).toBe('Example');
   });
 
+  // A board host names the ATS, not the employer: "Boards" told you nothing (#154 review).
+  it.each([
+    ['https://boards.greenhouse.io/acme', 'Acme · Greenhouse'],
+    ['https://boards.greenhouse.io/acme/jobs/77', 'Acme · Greenhouse'],
+    ['https://job-boards.greenhouse.io/acme-co/jobs/123', 'Acme Co · Greenhouse'],
+    ['https://jobs.lever.co/acme/2f1c9b4e-1a2b-4c3d-9e8f-001122334455', 'Acme · Lever'],
+    ['https://jobs.lever.co/acme/senior-product-designer', 'Acme — Senior Product Designer'],
+    ['https://jobs.ashbyhq.com/acme', 'Acme · Ashby'],
+  ])('names the employer on an ATS board link: %s', (url, title) => {
+    expect(prettyTitle(url)).toBe(title);
+  });
+
   it('cleans wrapping junk and collapsed double protocols', () => {
     expect(cleanUrl('  <https://x.com/a>  ')).toBe('https://x.com/a');
     expect(cleanUrl('https://https://x.com/a')).toBe('https://x.com/a');

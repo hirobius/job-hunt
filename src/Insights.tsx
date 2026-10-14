@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Disclosure, Progress, Stack, Text } from '@hirobius/design-system';
 import { MetricTile } from '@hirobius/design-system/patterns';
 import MetricTilesAutoFit from './hds-gaps/MetricTilesAutoFit';
-import { pipelineMetrics, vsWeekBefore } from './metrics';
+import { pipelineMetrics, RECENT_DAYS, vsPrevious } from './metrics';
 import { computeFunnel } from './funnel';
 import { VERDICTS } from './screening';
 import type { Job } from './types';
@@ -61,9 +61,9 @@ export default function Insights({ jobs }: { jobs: Job[] }) {
       <Stack gap="normal">
         <MetricTilesAutoFit>
           <MetricTile
-            label="Applied, last 7 days"
+            label={`Applied, last ${RECENT_DAYS} days`}
             value={m.appliedLast7}
-            sub={vsWeekBefore(m.appliedLast7, m.appliedPrev7)}
+            sub={vsPrevious(m.appliedLast7, m.appliedPrev7)}
           />
           <MetricTile
             label="Response rate"

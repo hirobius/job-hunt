@@ -16,21 +16,40 @@ export function hostOf(u: string): string {
     return '';
   }
 }
+// Job-board hosts whose first path segment is the employer (boards.greenhouse.io/<company>/…).
+const ATS_HOSTS: Record<string, string> = {
+  'boards.greenhouse.io': 'Greenhouse',
+  'job-boards.greenhouse.io': 'Greenhouse',
+  'jobs.lever.co': 'Lever',
+  'jobs.eu.lever.co': 'Lever',
+  'jobs.ashbyhq.com': 'Ashby',
+};
+
+const titleCase = (s: string) => s.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
 /** A readable title derived from a URL when no label is set. */
 export function prettyTitle(u: string): string {
   try {
     const url = new URL(/^https?:\/\//i.test(u) ? u : 'https://' + u);
     const host = url.hostname.replace(/^www\./, '');
+    const segments = url.pathname.split('/').filter(Boolean);
+    // On a job board the host names the ATS, not the employer, so lead with the company slug.
+    const ats = ATS_HOSTS[host];
+    const company = ats && segments[0] ? titleCase(decodeURIComponent(segments[0])) : '';
     const brand = host.split('.')[0];
-    let title = brand.charAt(0).toUpperCase() + brand.slice(1);
-    let words = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() || '')
+    let title = company || brand.charAt(0).toUpperCase() + brand.slice(1);
+    let words = decodeURIComponent((company ? segments.slice(1) : segments).pop() || '')
       .replace(/\.(html?|php|aspx)$/i, '')
       .replace(/[-_]+/g, ' ')
       .trim();
-    if (/^[0-9a-f-]{16,}$/i.test(words) || /^\d+$/.test(words)) words = ''; // skip ids/uuids
+    // Skip ids and UUIDs (their hyphens are already spaces here).
+    if (/^[0-9a-f -]{16,}$/i.test(words) || /^\d+$/.test(words)) words = '';
+    if (company && words.toLowerCase() === 'jobs') words = '';
     if (words && words.length <= 42 && /[a-z]/i.test(words)) {
       words = words.replace(/\b\w/g, (c) => c.toUpperCase());
       title += ' — ' + words;
+    } else if (company) {
+      title += ' · ' + ats;
     }
     return title;
   } catch {

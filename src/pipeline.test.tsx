@@ -111,7 +111,7 @@ describe('Pipeline on a phone (#129)', () => {
       .getAllByRole('menuitem')
       .map((i) => i.textContent?.trim());
     expect(items).toEqual([
-      'Open posting',
+      'Open on acme.example',
       'Pin as priority',
       'Retire',
       'Find more like this',
@@ -124,6 +124,41 @@ describe('Pipeline on a phone (#129)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Mark applied: Design Engineer' }));
     expect(getAllJobs().find((j) => j.url === SAVED)?.status).toBe('Applied');
     expect(screen.queryByRole('article', { name: 'Design Engineer' })).toBeNull();
+  });
+});
+
+describe('Pipeline filter (#129)', () => {
+  beforeEach(() => viewport(390));
+
+  it('a non-default status shows as a chip that clears back to Active', async () => {
+    renderApp();
+    expect(screen.queryByRole('button', { name: /^Clear filter/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
+    await userEvent.click(
+      within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Applied/ }),
+    );
+    const chip = await screen.findByRole('button', { name: 'Clear filter: Applied' });
+    await userEvent.click(chip);
+    expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Clear filter/ })).toBeNull();
+  });
+
+  it('All is demoted to the end of the status menu', async () => {
+    renderApp();
+    await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
+    const names = within(await screen.findByRole('menu'))
+      .getAllByRole('menuitemradio')
+      .map((i) => i.textContent?.replace(/\d+$/, '').trim());
+    expect(names).toEqual([
+      'Active',
+      'Saved',
+      'Applied',
+      'Interviewing',
+      'Offer',
+      'Rejected',
+      'Retired',
+      'All',
+    ]);
   });
 });
 
@@ -148,6 +183,25 @@ describe('Pipeline on a desktop (#129)', () => {
     expect(
       within(row).getByRole('button', { name: 'Log follow-up: Zenith Product Designer' }),
     ).toBeInTheDocument();
+  });
+
+  it('marks pinned rows (they float in every sort) and retired ones', async () => {
+    updateJob(SAVED, { archived: true });
+    renderApp();
+    const table = screen.getByRole('table', { name: 'Saved jobs' });
+    expect(
+      within(within(table).getByRole('row', { name: /Zenith/ })).getByText('Pinned'),
+    ).toBeInTheDocument();
+    // Retired jobs show under the Retired view, with their real status and a Retired note.
+    await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
+    await userEvent.click(
+      within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Retired/ }),
+    );
+    const row = within(screen.getByRole('table', { name: 'Saved jobs' })).getByRole('row', {
+      name: /Design Engineer/,
+    });
+    expect(within(row).getByText('Saved')).toBeInTheDocument();
+    expect(within(row).getByText(/^Retired · Acme/)).toBeInTheDocument();
   });
 
   it('sorts by a column header through the same sort as the toolbar, and back', async () => {

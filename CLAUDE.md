@@ -93,7 +93,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **Job routes (#127):** every saved job has a page at `#/queue/<jobId>` (`Route.jobId`; the second
   segment is a job under `queue`, a sub-tab elsewhere). `store.jobIdOf(url)` derives the id (hash
   of `dedupKey`, never stored); `findJobById` resolves it; `route.openJob(id | null)` navigates.
-  `JobCard.tsx` is the one card for the list and `JobPage.tsx`; an unknown id waits for
+  `JobPage.tsx` shows the full `JobCard.tsx` (the list uses compact rows, #129); an unknown id waits for
   `useCloudSync().settled` before falling back to `#/queue`. `HOME_ROUTE` (`today`) and
   `QUICK_ADD_LANDING` (`queue`) are separate in `App.tsx`. Pinned in `src/jobRoute.test.tsx`.
 - **Today is home (#128):** `#/today` = `TodayView.tsx`: due follow-ups (`dueFollowUps`) and the
@@ -105,12 +105,15 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   there), Discover whenever there are no tracks; Pipeline and Templates never gate. Existing users
   get a one-time `TodayNotice` (`rjb_ui_today_home_seen`; a first run marks it seen). Pinned in
   `src/today.test.tsx`.
-- **Pipeline rows (#129):** the shell is HDS page width (`Container maxWidth="max"`, 1200); views
-  set their own measure (Today's lists sit at the 760 content width). `TrackerView` renders
+- **Pipeline rows (#129):** the shell is HDS page width (`Container maxWidth="max"`, 1200). The
+  Pipeline table and Discover's tile grid use it; Today's lists, the job page and Templates sit at
+  the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders
   `JobsTable` (HDS `Table`, sortable headers through `jobRow.nextSort` → the same `SortKey` as the
   toolbar) at ≥ the HDS `lg` breakpoint and `JobListCard` (title on its own row) below it, chosen
-  by `src/hds-gaps/useBreakpoint.ts` (no `matchMedia` → cards). Both use `JobRowParts.tsx`: one
-  primary action per row (`jobRow.primaryAction`: Mark applied / Log follow-up) + the row `Menu`.
+  by `src/hds-gaps/useBreakpoint.ts` (no `matchMedia` → cards). Both render `jobRow.rowView` with
+  `JobRowParts.tsx`: one next step per row (Mark applied / Log follow-up, secondary so Add job stays
+  the page's one primary) + the row `Menu` (also on the job page's `JobCard`); 40px controls on
+  cards. A non-default status filter shows as a `Tag` chip that clears it.
   Titles link to `#/queue/<jobId>`; details, to-dos, the screener and templates live on the job
   page (`JobCard`, until #130). Pinned in `src/pipeline.test.tsx`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,

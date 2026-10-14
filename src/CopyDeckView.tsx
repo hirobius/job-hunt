@@ -40,8 +40,9 @@ export default function CopyDeckView() {
 
   const visible = [...items].sort((a, b) => (a.pinned ? 0 : 1) - (b.pinned ? 0 : 1));
 
+  // Snippets read at the prose measure; the master/detail editor (#132) will use the full width.
   return (
-    <Box>
+    <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Box
         sx={{
           display: 'flex',
