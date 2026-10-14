@@ -52,6 +52,13 @@ function viewport(width: number) {
   });
 }
 
+/** True when the element or anything inside it is faded (0 < opacity < 1), which drops text below
+ *  AA. Opacity 0 is hidden, not faded (the job page's "Saved" flash). */
+const faded = (el: HTMLElement) =>
+  [el, ...el.querySelectorAll<HTMLElement>('*')].some(
+    (e) => e.style.opacity !== '' && Number(e.style.opacity) > 0 && Number(e.style.opacity) < 1,
+  );
+
 const pastDays = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -124,6 +131,36 @@ describe('Pipeline on a phone (#129)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Mark applied: Design Engineer' }));
     expect(getAllJobs().find((j) => j.url === SAVED)?.status).toBe('Applied');
     expect(screen.queryByRole('article', { name: 'Design Engineer' })).toBeNull();
+  });
+});
+
+describe('Retired jobs stay readable', () => {
+  beforeEach(() => updateJob(SAVED, { archived: true, verdict: 'match' }));
+  const showRetired = async () => {
+    await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
+    await userEvent.click(
+      within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Retired/ }),
+    );
+  };
+
+  it('a retired card says so in words, without fading its text', async () => {
+    viewport(390);
+    renderApp();
+    await showRetired();
+    const card = screen.getByRole('article', { name: 'Design Engineer' });
+    expect(within(card).getByText(/^Retired · Acme/)).toBeInTheDocument();
+    expect(faded(card)).toBe(false);
+  });
+
+  it('a retired table row says so in words without fading its cells', async () => {
+    viewport(1440);
+    renderApp();
+    await showRetired();
+    const row = within(screen.getByRole('table', { name: 'Saved jobs' })).getByRole('row', {
+      name: /Design Engineer/,
+    });
+    expect(within(row).getByText(/^Retired · Acme/)).toBeInTheDocument();
+    expect(faded(row)).toBe(false);
   });
 });
 

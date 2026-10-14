@@ -16,13 +16,7 @@ export default function JobListCard({ job }: { job: Job }) {
   const row = rowView(job);
 
   return (
-    <Card
-      as="article"
-      aria-labelledby={titleId}
-      bordered
-      padding="none"
-      style={row.retired ? { opacity: 0.55 } : undefined}
-    >
+    <Card as="article" aria-labelledby={titleId} bordered padding="none">
       {/* Pinned jobs keep the accent edge they had on the old card. */}
       <Box
         sx={{
