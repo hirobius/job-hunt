@@ -224,7 +224,7 @@ export default function JobCard({
             }}
           >
             {j.verdict && (
-              <Badge tone={verdictTone(j.verdict)}>
+              <Badge tone={j.archived ? 'neutral' : verdictTone(j.verdict)}>
                 {j.verdict.charAt(0).toUpperCase() + j.verdict.slice(1)}
               </Badge>
             )}
