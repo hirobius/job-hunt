@@ -41,6 +41,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // see the signed-out nudge flash on load.
   const [authResolved, setAuthResolved] = useState(false);
   const lastSynced = useRef('');
+  // True once a pull since sign-in has merged the cloud copy in. Until then local data is
+  // unmerged, so pushing it would overwrite cloud-only jobs (#161).
+  const pulledOk = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const localBlob = (): SyncData => ({
@@ -57,6 +60,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     return r.data ? readBlob(r.data.data) : null;
   }
   async function pushNow(u: User) {
+    if (!pulledOk.current) return;
     const r = await supa.from('tracker').upsert({
       user_id: u.id,
       data: writeBlob(localBlob()),
@@ -75,6 +79,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       replaceTriage(next.triage);
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
+      pulledOk.current = true;
       // Tracks live in their own tables: pull + reconcile + upload what's new here (#99).
       let curationOk = await syncOnLogin(u.id);
       // Retired user tiles (v3 cloud blob / this device's old store) fold into "My links" AFTER
@@ -107,6 +112,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       setUser(u);
       setAuthResolved(true);
       if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+      pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
       if (u) adopt(true, u);
       else {
         foldIntoStore(takeLocalLegacyTiles()); // signed out: fold this device's old links now
@@ -120,7 +126,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
 
   // push local changes (debounced); skip when nothing changed since the last sync
   useEffect(() => {
-    if (!user) return;
+    if (!user || !pulledOk.current) return;
     if (localJson() === lastSynced.current) return;
     setMsg('Saving…');
     clearTimeout(pushTimer.current);
