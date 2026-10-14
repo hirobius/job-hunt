@@ -1,12 +1,13 @@
 import { Fragment, useMemo, useState } from 'react';
 import { PageHeader } from '@hirobius/design-system/patterns';
-import { ArrowUpDown, Search, Briefcase, ListFilter, Plus } from 'lucide-react';
+import { ArrowUpDown, Search, Briefcase, ListFilter, Plus, X } from 'lucide-react';
 import {
   Button as UiButton,
   Input as HdsInput,
   Menu as HdsMenu,
   Dialog,
   Icon,
+  Tag,
   Box,
   Stack,
   Text,
@@ -17,7 +18,9 @@ import { sortJobs, SORTS, type SortKey } from './jobSort';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import type { Job, Status } from './types';
-import JobCard from './JobCard';
+import JobsTable from './JobsTable';
+import JobListCard from './JobListCard';
+import { useAtLeast } from './hds-gaps/useBreakpoint';
 
 type Filter = 'active' | 'all' | Status | 'retired';
 
@@ -34,12 +37,14 @@ const FILTER_LABEL: Record<Filter, string> = {
 };
 const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 
-const FILTER_GROUPS: { label: string; items: Filter[] }[] = [
-  { label: 'Views', items: ['active', 'all'] },
+// Active first; All and Retired demoted to the end (#129). A group without a label is just a
+// separated section.
+const FILTER_GROUPS: { label?: string; items: Filter[] }[] = [
+  { label: 'Views', items: ['active'] },
   { label: 'In progress', items: ['Saved', 'Applied', 'Interviewing', 'Offer'] },
   { label: 'Closed', items: ['Rejected', 'retired'] },
+  { items: ['all'] },
 ];
-
 function matches(j: Job, f: Filter): boolean {
   const s = deriveJobState(j);
   if (f === 'active') return s.isActive;
@@ -55,6 +60,8 @@ export default function TrackerView() {
   const [q, setQ] = useState('');
   const [url, setUrl] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  // A sortable table where there's room for its six columns; compact cards below that (#129).
+  const wide = useAtLeast('lg');
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -124,7 +131,15 @@ export default function TrackerView() {
           align="center"
           style={{ marginBottom: 'var(--primitive-space-4)' }}
         >
-          <Box sx={{ flex: '1 1 14rem', minWidth: 0, '& > *': { width: '100%' } }}>
+          {/* Grows only to the HDS form-control cap, so status and sort sit beside the field. */}
+          <Box
+            sx={{
+              flex: '1 1 14rem',
+              minWidth: 0,
+              maxWidth: 'var(--hds-form-control-max-width, 40rem)',
+              '& > *': { width: '100%' },
+            }}
+          >
             <HdsInput
               size="sm"
               aria-label="Search saved jobs"
@@ -150,9 +165,9 @@ export default function TrackerView() {
               <HdsMenu.Content align="end">
                 <HdsMenu.RadioGroup value={filter} onValueChange={(v) => setFilter(v as Filter)}>
                   {FILTER_GROUPS.map((g, gi) => (
-                    <Fragment key={g.label}>
+                    <Fragment key={gi}>
                       {gi > 0 && <HdsMenu.Separator />}
-                      <HdsMenu.Label>{g.label}</HdsMenu.Label>
+                      {g.label && <HdsMenu.Label>{g.label}</HdsMenu.Label>}
                       {g.items.map((f) => (
                         <HdsMenu.RadioItem key={f} value={f}>
                           <Box
@@ -176,6 +191,17 @@ export default function TrackerView() {
                 </HdsMenu.RadioGroup>
               </HdsMenu.Content>
             </HdsMenu>
+            {/* The active filter, when it isn't the default, as a chip that clears it. */}
+            {filter !== 'active' && (
+              <Tag
+                active
+                aria-label={`Clear filter: ${FILTER_LABEL[filter]}`}
+                onClick={() => setFilter('active')}
+              >
+                {FILTER_LABEL[filter]}
+                <Icon icon={X} size="small" />
+              </Tag>
+            )}
             <HdsMenu>
               <HdsMenu.Trigger asChild>
                 {/* Icon-only so search · status · sort · add fit two rows at 390px; the name and
@@ -284,12 +310,14 @@ export default function TrackerView() {
                 : `Nothing under “${filter}”.`
           }
         />
+      ) : wide ? (
+        <JobsTable jobs={shown} sort={sort} onSort={setSort} />
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        <Stack gap="px12">
           {shown.map((j) => (
-            <JobCard key={j.url} job={j} />
+            <JobListCard key={j.url} job={j} />
           ))}
-        </Box>
+        </Stack>
       )}
     </Box>
   );

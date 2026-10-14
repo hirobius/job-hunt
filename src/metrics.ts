@@ -7,6 +7,9 @@ import type { Job, Status } from './types';
 const RESPONSE: Status[] = ['Interviewing', 'Offer', 'Rejected'];
 const INTERVIEW: Status[] = ['Interviewing', 'Offer'];
 
+/** The recent window Insights reports on ("applied, last N days") and its trend baseline. */
+export const RECENT_DAYS = 7;
+
 export interface PipelineMetrics {
   appliedLast7: number;
   /** Applied in the 7 days before those (7–13 days ago): the trend's baseline. */
@@ -79,8 +82,8 @@ export function pipelineMetrics(jobs: Job[], now: Date = new Date()): PipelineMe
     if (!applied) continue;
     appliedTotal++;
     const age = dayDiff(applied, today);
-    if (age >= 0 && age < 7) appliedLast7++;
-    if (age >= 7 && age < 14) appliedPrev7++;
+    if (age >= 0 && age < RECENT_DAYS) appliedLast7++;
+    if (age >= RECENT_DAYS && age < 2 * RECENT_DAYS) appliedPrev7++;
     if (age >= 0 && age < 30) appliedLast30++;
     const hist = effectiveHistory(job);
     const first = hist.find((h) => RESPONSE.includes(h.status));
@@ -107,10 +110,11 @@ export function pipelineMetrics(jobs: Job[], now: Date = new Date()): PipelineMe
   };
 }
 
-/** The trend line under "applied, last 7 days": this week against the 7 days before. */
-export function vsWeekBefore(cur: number, prev: number): string {
-  if (cur === prev) return 'Same as the week before';
-  return `${cur > prev ? '+' : '−'}${Math.abs(cur - prev)} vs the week before`;
+/** The trend line under "applied, last N days": the window against the N days before it. */
+export function vsPrevious(cur: number, prev: number): string {
+  const before = `the ${RECENT_DAYS} days before`;
+  if (cur === prev) return `Same as ${before}`;
+  return `${cur > prev ? '+' : '−'}${Math.abs(cur - prev)} vs ${before}`;
 }
 
 /** Applications per Mon–Sun week, oldest → newest; the last bucket is the current week. */

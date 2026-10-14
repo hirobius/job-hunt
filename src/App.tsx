@@ -104,7 +104,9 @@ export default function App() {
     <CloudSyncProvider>
       <MarkFirstRun firstRun={firstRun} />
       <DataToolsProvider>
-        <Container maxWidth="content">
+        {/* The HDS page width (1200): wide enough for the Pipeline table and, next, the job page's
+            list rail (#129, #130). Each view sets its own inner measure where prose needs one. */}
+        <Container maxWidth="max">
           {/* Page gutter: the HDS region-gutter role (Container's own padding prop is retired). */}
           <Box sx={{ px: 'var(--semantic-space-region-gutter)', py: 'md' }}>
             <HdsTabs

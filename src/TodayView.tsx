@@ -17,7 +17,7 @@ import {
 import { Form, Page, PageHeader } from '@hirobius/design-system/patterns';
 import { addJob, findJobByUrl, jobIdOf, logFollowUp, useJobs } from './store';
 import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
-import { dueFollowUps, KIND_WORD, upcomingEvents, ymd } from './jobEvents';
+import { dueFollowUps, KIND_WORD, UPCOMING_DAYS, upcomingEvents, ymd } from './jobEvents';
 import { jobHash } from './route';
 import type { Job } from './types';
 import Insights from './Insights';
@@ -105,7 +105,14 @@ function QuickAdd() {
   return (
     <Form onSubmit={submit} noValidate>
       <Stack direction="row" gap="tight" align="start">
-        <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%' } }}>
+        <Box
+          sx={{
+            flex: '1 1 0%',
+            minWidth: 0,
+            maxWidth: 'var(--hds-form-control-max-width, 40rem)',
+            '& > *': { width: '100%' },
+          }}
+        >
           <HdsInput
             aria-label="Add a job"
             type="url"
@@ -149,7 +156,7 @@ export default function TodayView() {
   const upcoming = upcomingEvents(jobs, now);
 
   return (
-    <Page maxWidth="content" paddingY="none">
+    <Page paddingY="none">
       <Stack gap="normal">
         <PageHeader
           level={2}
@@ -162,76 +169,81 @@ export default function TodayView() {
         />
         <TodayNotice />
         <SampleBanner jobs={jobs} />
-        <QuickAdd />
-        {jobs.length === 0 ? (
-          <EmptyState
-            title="Nothing to follow up yet"
-            message="Save a job above or from Discover. Follow-ups, interviews and calls you log will show up here."
-            action={<TrySampleButton />}
-          />
-        ) : (
-          <>
-            <Section
-              id="today-due"
-              title="Follow-ups due"
-              count={due.length}
-              empty="Nothing due. Follow-ups fall due a week after you apply or last follow up."
-            >
-              {due.map(({ job }) => (
-                <li key={job.url}>
-                  <StatusListItem
-                    tone="warning"
-                    title={<InlineLink href={jobHref(job.url)}>{job.label}</InlineLink>}
-                    notes={[[job.company, sinceNote(job, now)].filter(Boolean).join(' · ')]}
-                    trailing={
-                      <Button
-                        variant="secondary"
-                        aria-label={`Log follow-up: ${job.label}`}
-                        onClick={() => {
-                          logFollowUp(job.url);
-                          toast({
-                            title: 'Follow-up logged',
-                            description: `${job.label}: the next one is due in ${days(FOLLOWUP_DAYS)}.`,
-                            tone: 'success',
-                          });
-                        }}
-                      >
-                        Log follow-up
-                      </Button>
-                    }
-                  />
-                </li>
-              ))}
-            </Section>
-            <Section
-              id="today-next"
-              title="Next 7 days"
-              count={upcoming.length}
-              empty="Nothing scheduled. Log interviews and calls on a job's page."
-            >
-              {upcoming.map((it) => (
-                <li key={`${it.jobUrl}-${it.id}`}>
-                  <StatusListItem
-                    tone={it.kind === 'interview' ? 'info' : 'neutral'}
-                    title={`${KIND_WORD[it.kind]} · ${it.label}`}
-                    notes={[
-                      `${dayLabel(it.date, now)} · ${it.time ?? 'All day'}`,
-                      [it.company, it.note].filter(Boolean).join(' · '),
-                    ].filter(Boolean)}
-                    trailing={
-                      <Button asChild variant="tertiary">
-                        <a href={jobHref(it.jobUrl)} aria-label={`Open job: ${it.label}`}>
-                          Open job
-                        </a>
-                      </Button>
-                    }
-                  />
-                </li>
-              ))}
-            </Section>
-            <Insights jobs={jobs} />
-          </>
-        )}
+        {/* The day's work reads at the HDS prose measure; Insights spans the page. */}
+        <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
+          <Stack gap="normal">
+            <QuickAdd />
+            {jobs.length === 0 ? (
+              <EmptyState
+                title="Nothing to follow up yet"
+                message="Save a job above or from Discover. Follow-ups, interviews and calls you log will show up here."
+                action={<TrySampleButton />}
+              />
+            ) : (
+              <>
+                <Section
+                  id="today-due"
+                  title="Follow-ups due"
+                  count={due.length}
+                  empty={`Nothing due. Follow-ups fall due ${days(FOLLOWUP_DAYS)} after you apply or last follow up.`}
+                >
+                  {due.map(({ job }) => (
+                    <li key={job.url}>
+                      <StatusListItem
+                        tone="warning"
+                        title={<InlineLink href={jobHref(job.url)}>{job.label}</InlineLink>}
+                        notes={[[job.company, sinceNote(job, now)].filter(Boolean).join(' · ')]}
+                        trailing={
+                          <Button
+                            variant="secondary"
+                            aria-label={`Log follow-up: ${job.label}`}
+                            onClick={() => {
+                              logFollowUp(job.url);
+                              toast({
+                                title: 'Follow-up logged',
+                                description: `${job.label}: the next one is due in ${days(FOLLOWUP_DAYS)}.`,
+                                tone: 'success',
+                              });
+                            }}
+                          >
+                            Log follow-up
+                          </Button>
+                        }
+                      />
+                    </li>
+                  ))}
+                </Section>
+                <Section
+                  id="today-next"
+                  title={`Next ${UPCOMING_DAYS} days`}
+                  count={upcoming.length}
+                  empty="Nothing scheduled. Log interviews and calls on a job's page."
+                >
+                  {upcoming.map((it) => (
+                    <li key={`${it.jobUrl}-${it.id}`}>
+                      <StatusListItem
+                        tone={it.kind === 'interview' ? 'info' : 'neutral'}
+                        title={`${KIND_WORD[it.kind]} · ${it.label}`}
+                        notes={[
+                          `${dayLabel(it.date, now)} · ${it.time ?? 'All day'}`,
+                          [it.company, it.note].filter(Boolean).join(' · '),
+                        ].filter(Boolean)}
+                        trailing={
+                          <Button asChild variant="tertiary">
+                            <a href={jobHref(it.jobUrl)} aria-label={`Open job: ${it.label}`}>
+                              Open job
+                            </a>
+                          </Button>
+                        }
+                      />
+                    </li>
+                  ))}
+                </Section>
+              </>
+            )}
+          </Stack>
+        </Box>
+        {jobs.length > 0 && <Insights jobs={jobs} />}
       </Stack>
     </Page>
   );

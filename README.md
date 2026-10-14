@@ -18,12 +18,13 @@ signed-out in the browser; an optional email sign-in syncs it across devices.
   **Insights** band (applied in the last 7 days against the week before, response and interview
   rates, median reply time, a Saved → Applied → Interviewed → Offer funnel and a fit summary).
   A first visit opens on setup (pick a track, or try the sample data) instead.
-- **Pipeline** (`#/queue`) — every saved job in one list. Statuses Saved → Applied →
-  Interviewing → Offer → Rejected, filters (Active, All, per-status, Retired), search, and seven
-  sorts (recently added, follow-up due first, best fit, applied date, status, salary, A–Z). The
-  follow-up loop: "Follow up in Nd" → "Follow up now" → "Log follow-up" resets the clock. Each job
-  has its own page (`#/queue/<jobId>`) with details, to-dos and notes, and an interviews & calls
-  log with **Add to calendar** (`.ics`).
+- **Pipeline** (`#/queue`) — every saved job in one list: a sortable table on a desktop, compact
+  cards on a phone, each row with one next step (Mark applied or Log follow-up) and a menu for the
+  rest. Statuses Saved → Applied → Interviewing → Offer → Rejected, filters (Active, All,
+  per-status, Retired), search, and seven sorts (recently added, follow-up due first, best fit,
+  applied date, status, salary, A–Z). The follow-up loop: "Follow up in Nd" → "Follow up now" →
+  "Log follow-up" resets the clock. Each job has its own page (`#/queue/<jobId>`) with details,
+  to-dos and notes, and an interviews & calls log with **Add to calendar** (`.ics`).
 - **Your data** — full-account **Back up / Restore** (versioned JSON, validated on restore) and a
   formula-safe **CSV export** of every job field.
 - **Try with sample data** — first-run setup and an empty Pipeline offer a one-click fictional

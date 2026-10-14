@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pipelineMetrics, vsWeekBefore, weeklyApplied } from './metrics';
+import { pipelineMetrics, vsPrevious, weeklyApplied } from './metrics';
 import type { Job, Status, StatusChange } from './types';
 
 // Local-time dates throughout; Wednesday 2026-10-14.
@@ -169,13 +169,13 @@ describe('weeklyApplied', () => {
   });
 });
 
-describe('vsWeekBefore', () => {
+describe('vsPrevious', () => {
   it.each([
-    [3, 1, '+2 vs the week before'],
-    [1, 3, '−2 vs the week before'],
-    [2, 2, 'Same as the week before'],
-    [0, 0, 'Same as the week before'],
-  ])('%i this week, %i before → %s', (cur, prev, label) => {
-    expect(vsWeekBefore(cur, prev)).toBe(label);
+    [3, 1, '+2 vs the 7 days before'],
+    [1, 3, '−2 vs the 7 days before'],
+    [2, 2, 'Same as the 7 days before'],
+    [0, 0, 'Same as the 7 days before'],
+  ])('%i in the window, %i before → %s', (cur, prev, label) => {
+    expect(vsPrevious(cur, prev)).toBe(label);
   });
 });

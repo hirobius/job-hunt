@@ -59,6 +59,20 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
           Pick one or more tracks to start with — each pre-fills search terms and a few links. You
           can edit or add more later.
         </Text>
+        {/* Up top, so a visitor sees it without scrolling past the packs (#154 review). Never
+            offered signed in (a signed-in tracker syncs), so neither is its caption. */}
+        {offerSample && !hasCloudSession() && (
+          <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="start">
+            <Text
+              variant="caption"
+              as="span"
+              style={{ color: 'var(--semantic-color-content-secondary)' }}
+            >
+              Just looking?
+            </Text>
+            <TrySampleButton />
+          </Stack>
+        )}
         <Box>
           <Text
             variant="caption"
@@ -95,12 +109,10 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
                   onSelectedChange={() => toggle(p.id)}
                   aria-labelledby={`pack-${p.id}`}
                   aria-describedby={`pack-${p.id}-blurb`}
-                  // The jade brand maps the selected fill to a light accent tint in BOTH themes, so
-                  // pin dark text on it (HDS's text-foreground stays light in dark mode).
-                  style={{
-                    textAlign: 'left',
-                    color: on ? 'var(--primitive-color-neutral-900)' : undefined,
-                  }}
+                  // HDS 0.24 marks a selected Card with a ring only (no fill), so the theme's own text
+                  // colour reads in both themes. (A pinned dark colour from the old accent fill went
+                  // black-on-black in dark mode, #129.)
+                  style={{ textAlign: 'left' }}
                 >
                   <Text
                     variant="ui"
@@ -141,19 +153,6 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
               ? 'Add a first job title'
               : `Start with ${picked.length} track${picked.length > 1 ? 's' : ''}`}
         </Button>
-        {/* Never offered signed in (a signed-in tracker syncs), so neither is its caption. */}
-        {offerSample && !hasCloudSession() && (
-          <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="center">
-            <Text
-              variant="caption"
-              as="span"
-              style={{ color: 'var(--semantic-color-content-secondary)' }}
-            >
-              Just looking?
-            </Text>
-            <TrySampleButton />
-          </Stack>
-        )}
       </Stack>
     </Box>
   );

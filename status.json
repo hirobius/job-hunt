@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-14T04:00:00Z",
+  "updatedAt": "2026-10-14T06:20:00Z",
   "phase": "live",
-  "headline": "Live as Roleforge. Redesign #115 continues: Today view (#128) in PR #154 (claude/jh-p2b-today), awaiting review, not merged. Cloud builds are budgeted — no [preview] or main merges unless Adrian asks (CLAUDE.md).",
+  "headline": "Live as Roleforge. Redesign #115: Today is home (#128, shipped in #154). Next: Pipeline table + mobile cards (#129) on claude/jh-p3-pipeline. Cloud builds are budgeted — no [preview] or main merges unless Adrian asks (CLAUDE.md).",
   "next": [
-    "Redesign #115: review + merge Today (#128), then Pipeline rows (#129) and the job page (#130). Re-check #146–#148 against main.",
+    "Redesign #115: Pipeline table + mobile cards (#129), then the job page (#130), Discover (#131), Templates/onboarding (#132), polish (#133).",
     "Pick the product name (#55); swap it in src/brand.ts.",
     "After HDS lands: vite 8 + plugin-react 6, npm audit, React 19, jest-dom 7 (#105).",
     "Human / dashboard: #16 Vercel Analytics, #22 .env.example + revoke old key, #44 Supabase auth hardening, #17 stale branches, #55 name clearance.",

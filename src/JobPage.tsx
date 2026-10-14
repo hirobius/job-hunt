@@ -2,10 +2,11 @@
 // job's card with Details open under a page header and a way back; Phase 4 (#130) turns it into
 // the two-pane / full-page detail with sections.
 import { useEffect } from 'react';
-import { Button, Icon } from '@hirobius/design-system';
+import { Box, Button, Icon } from '@hirobius/design-system';
 import { PageHeader } from '@hirobius/design-system/patterns';
 import { ArrowLeft } from 'lucide-react';
-import { findJobById, prettyTitle, useJobs } from './store';
+import { findJobById, useJobs } from './store';
+import { titleOf } from './jobRow';
 import { openJob } from './route';
 import { useCloudSync } from './account/accountContext';
 import EmptyState from './EmptyState';
@@ -40,15 +41,16 @@ export default function JobPage({ jobId }: { jobId: string }) {
   if (!job)
     return <EmptyState title="Job not found" message="It may still be syncing to this device." />;
 
+  // The prose measure for the detail form until Phase 4 (#130) makes this a two-pane page.
   return (
-    <>
+    <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <PageHeader
         level={2}
         breadcrumb={back}
-        title={job.label || prettyTitle(job.url)}
+        title={titleOf(job)}
         style={{ marginBottom: 'var(--primitive-space-4)' }}
       />
       <JobCard job={job} defaultDetailsOpen />
-    </>
+    </Box>
   );
 }

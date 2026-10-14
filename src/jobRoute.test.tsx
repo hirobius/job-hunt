@@ -2,7 +2,7 @@
 // route seam: a job link opens that job, the card links to its page, an unknown id falls back to
 // the Pipeline once sync has settled, and quick-add still lands on the Pipeline.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -66,14 +66,11 @@ describe('job route (#127)', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
   });
 
-  it('a card links to its job page', async () => {
+  it('a job in the list links to its page', async () => {
     addJob(URL_A, 'Design Engineer');
     window.location.hash = '#/queue';
     renderApp();
-    await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
-    await userEvent.click(
-      within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Open job page' }),
-    );
+    await userEvent.click(screen.getByRole('link', { name: 'Design Engineer' }));
     await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_A)}`));
   });
 

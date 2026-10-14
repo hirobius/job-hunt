@@ -24,7 +24,7 @@ describe('TrackerView', () => {
       'https://boards.greenhouse.io/acme/jobs/42',
     );
     await user.click(within(dialog).getByRole('button', { name: /^add$/i }));
-    expect(await screen.findByRole('link', { name: /boards/i })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Acme · Greenhouse' })).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

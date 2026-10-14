@@ -99,7 +99,10 @@ export function jobIcsEvents(job: Job, now: Date): IcsEvent[] {
   return out;
 }
 
-/** One interview / call / other event on Today's "Next 7 days" list. */
+/** How many days ahead Today's agenda looks, today included. */
+export const UPCOMING_DAYS = 7;
+
+/** One interview / call / other event on Today's "Next N days" list. */
 export interface AgendaItem {
   /** The event's id (unique within its job). */
   id: string;
@@ -114,7 +117,11 @@ export interface AgendaItem {
 
 /** Interviews, calls and other events from today through the next `days - 1` days (a rolling
  *  window, not the calendar week). Archived jobs excluded. Sorted by date, all-day first. */
-export function upcomingEvents(jobs: readonly Job[], now: Date, days = 7): AgendaItem[] {
+export function upcomingEvents(
+  jobs: readonly Job[],
+  now: Date,
+  days = UPCOMING_DAYS,
+): AgendaItem[] {
   const start = ymd(now);
   const end = ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + days - 1));
   const items: AgendaItem[] = [];
