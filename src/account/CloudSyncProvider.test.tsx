@@ -142,6 +142,9 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await waitFor(() =>
       expect(getAllJobs().map((j) => j.url)).toContain('https://cloud.example/jobs/1'),
     );
+    // The device's local-only job survives recovery: kept locally AND uploaded to the cloud row.
+    await waitFor(() => expect(JSON.stringify(fake().tables.tracker[0].data)).toContain('jobs/2'));
+    expect(getAllJobs().map((j) => j.url)).toContain('https://local.example/jobs/2');
     addJob('https://local.example/jobs/3', 'After the pull');
     await waitFor(() => expect(JSON.stringify(fake().tables.tracker[0].data)).toContain('jobs/3'));
   });
