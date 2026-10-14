@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { BRAND } from '../brand';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
@@ -76,7 +77,9 @@ describe('DataToolsProvider (via the account menu)', () => {
     setup();
     await chooseAccountItem('Back up');
     expect(downloads).toHaveLength(1);
-    expect(downloads[0].name).toMatch(/^hirebius-backup-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(downloads[0].name).toMatch(
+      new RegExp(`^${BRAND.slug}-backup-\\d{4}-\\d{2}-\\d{2}\\.json$`),
+    );
     const r = parseBackup(await downloads[0].blob.text());
     expect(r.ok && r.backup.jobs.map((j) => j.url)).toEqual(['https://example.com/a']);
   });
@@ -84,7 +87,7 @@ describe('DataToolsProvider (via the account menu)', () => {
   it('toasts the reason for an invalid file', async () => {
     setup();
     await upload(new File(['{"nope":1}'], 'x.json', { type: 'application/json' }));
-    expect(await screen.findByText("This file isn't a backup from Hirebius.")).toBeTruthy();
+    expect(await screen.findByText(`This file isn't a backup from ${BRAND.name}.`)).toBeTruthy();
   });
 
   it('Merge applies a valid backup without a safety download', async () => {
@@ -109,7 +112,7 @@ describe('DataToolsProvider (via the account menu)', () => {
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Replace my data' }));
     expect(downloads).toHaveLength(1);
-    expect(downloads[0].name).toMatch(/^hirebius-before-restore-/);
+    expect(downloads[0].name).toMatch(new RegExp(`^${BRAND.slug}-before-restore-`));
     const safety = parseBackup(await downloads[0].blob.text());
     expect(safety.ok && safety.backup.jobs.map((j) => j.url)).toEqual(['https://example.com/old']);
     expect(getAllJobs().map((j) => j.url)).toEqual(['https://example.com/new']);
@@ -126,7 +129,7 @@ describe('DataToolsProvider (via the account menu)', () => {
     replaceAll([job('https://example.com/a', 'A')]);
     setup();
     await chooseAccountItem('Export CSV');
-    await waitFor(() => expect(downloads[0]?.name).toBe('hirebius.csv'));
+    await waitFor(() => expect(downloads[0]?.name).toBe(`${BRAND.slug}.csv`));
   });
 
   it('has no WCAG A/AA violations', async () => {

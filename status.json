@@ -1,7 +1,7 @@
 {
   "updatedAt": "2026-10-13T21:30:00Z",
   "phase": "live",
-  "headline": "Main re-based on the jh-redesign build (#115 Phases 0–1, Pipeline toolbar/hierarchy, dense layout, working name Hirebius) plus the design-systems data round; #144's v1 UI superseded.",
+  "headline": "Main re-based on the jh-redesign build (#115 Phases 0–1, Pipeline toolbar/hierarchy, dense layout, working name Roleforge) plus the design-systems data round; #144's v1 UI superseded.",
   "next": [
     "Redesign #115 continues from this build: Phase 2 Today (#127/#128), then Pipeline rows (#129) and job page (#130).",
     "Pick the product name (#55); swap it in src/brand.ts.",
