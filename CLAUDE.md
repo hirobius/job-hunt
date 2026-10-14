@@ -89,6 +89,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
   (git-ignored). Run it before/after each redesign phase.
+- **Job routes (#127):** every saved job has a page at `#/queue/<jobId>` (`Route.jobId`; the second
+  segment is a job under `queue`, a sub-tab elsewhere). `store.jobIdOf(url)` derives the id (hash
+  of `dedupKey`, never stored); `findJobById` resolves it; `route.openJob(id | null)` navigates.
+  `JobCard.tsx` is the one card for the list and `JobPage.tsx`; an unknown id waits for
+  `useCloudSync().settled` before falling back to `#/queue`. `HOME_ROUTE` and `QUICK_ADD_LANDING`
+  are separate in `App.tsx` (Today becomes home in #128). Pinned in `src/jobRoute.test.tsx`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
@@ -99,6 +105,18 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   planned consolidation: saving also floats the tile (issue #13).
 
 ## Build / deploy / verify
+
+- ⚠️ **Build budget — Vercel build minutes cost money (Adrian, 2026-10-14). Default to NO cloud
+  builds.** Every push to `main` is a production build; every branch commit with `[preview]` is a
+  preview build.
+  - **Don't add `[preview]` by default.** Only when Adrian asks for a preview link, or when a
+    change can't be judged without a deployed URL. One preview per review round, on the last
+    commit of the round, never per commit.
+  - **Don't merge to `main` unless Adrian says so** ("merge", "ship", "ready for merging"). Batch
+    finished work into one merge instead of merging slice by slice.
+  - **Verify locally instead:** `npm run verify`, `npm run test:e2e`, and `npm run gallery`
+    (builds and serves `dist/` locally — no Vercel) for screenshots. Vercel is the deploy, not
+    the test runner.
 
 - **Do NOT use GitHub Actions (owner preference, 2026-07).** There is no Actions CI — the
   `.github/workflows/ci.yml` workflow was removed. **Verification is local** (`npm run typecheck`

@@ -6,11 +6,19 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
+const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));
 vi.mock('@supabase/supabase-js', async () => {
   const { createFakeSupabase } = await import('./test/fakeSupabase');
-  return { createClient: () => createFakeSupabase().client };
+  return {
+    createClient: () => {
+      h.fake = createFakeSupabase();
+      return h.fake.client;
+    },
+  };
 });
 
+import { act } from '@testing-library/react';
+import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, jobIdOf, removeJob } from './store';
@@ -27,6 +35,7 @@ const renderApp = () =>
   );
 
 beforeEach(() => {
+  h.fake?.reset();
   localStorage.clear();
   window.history.replaceState(null, '', '/');
   window.location.hash = '';
@@ -72,6 +81,25 @@ describe('job route (#127)', () => {
     window.location.hash = '#/queue/doesnotexist';
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+  });
+
+  it('signed in but offline, an unknown id stays put instead of guessing it is gone', async () => {
+    h.fake!.failNext('tracker', 'select');
+    window.location.hash = '#/queue/notsyncedyet';
+    renderApp();
+    act(() => h.fake!.signIn('u1'));
+    expect(await screen.findByText('Job not found')).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(window.location.hash).toBe('#/queue/notsyncedyet');
+  });
+
+  it('switching tabs drops the job id', async () => {
+    addJob(URL_A, 'Design Engineer');
+    window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
+    renderApp();
+    await userEvent.click(screen.getByRole('tab', { name: 'Templates' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
     expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
   });
 

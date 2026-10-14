@@ -34,7 +34,7 @@ import {
   jobIdOf,
 } from './store';
 import { deriveJobState } from './jobState';
-import { navigate } from './route';
+import { navigate, openJob } from './route';
 import { setDiscoverSeed } from './discoverSeed';
 import { verdictTone, modeLabel, blockerLabel } from './screening';
 import { ScreeningEditor } from './ScreeningEditor';
@@ -193,9 +193,7 @@ export default function JobCard({
                   Mark applied
                 </HdsMenu.Item>
               )}
-              <HdsMenu.Item onSelect={() => navigate({ tab: 'queue', jobId: jobIdOf(j.url) })}>
-                Open job page
-              </HdsMenu.Item>
+              <HdsMenu.Item onSelect={() => openJob(jobIdOf(j.url))}>Open job page</HdsMenu.Item>
               <HdsMenu.Item onSelect={() => updateJob(j.url, { priority: !j.priority })}>
                 {j.priority ? 'Unpin priority' : 'Pin as priority'}
               </HdsMenu.Item>

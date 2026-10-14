@@ -82,3 +82,12 @@ describe('route — job ids (#127)', () => {
     expect(parseHash(hash).jobId).toBe(id);
   });
 });
+
+describe('route — navigate drops a stale job id (#127)', () => {
+  it('a tab change without a job id clears it', async () => {
+    const { navigate, getRoute } = await import('./route');
+    window.location.hash = '#/queue/abc123';
+    navigate({ tab: 'discover' });
+    expect(getRoute()).toMatchObject({ tab: 'discover', jobId: null });
+  });
+});

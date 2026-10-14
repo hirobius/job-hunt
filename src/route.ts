@@ -22,7 +22,8 @@ export interface Route {
   jobId: string | null;
 }
 
-const JOB_TAB = 'queue';
+/** The tab whose second segment is a job id: #/queue/<jobId>. */
+export const JOB_TAB = 'queue';
 
 /** Parse a raw `location.hash` string into a Route. Pure — exported for tests. */
 export function parseHash(hash: string): Route {
@@ -81,7 +82,10 @@ function subscribe(cb: () => void): () => void {
 /** Merge a partial route into the current one and write it to the URL hash.
  *  `replace` swaps the history entry (no new back-stack step) instead of pushing. */
 export function navigate(patch: Partial<Route>, replace = false): void {
-  const next = { ...getSnapshot(), ...patch };
+  const cur = getSnapshot();
+  const next = { ...cur, ...patch };
+  // A job id belongs to the tab it was opened in: switching tabs without naming a job drops it.
+  if (patch.tab !== undefined && patch.tab !== cur.tab && !('jobId' in patch)) next.jobId = null;
   const h = buildHash(next);
   if (h === window.location.hash) return;
   if (replace) {
@@ -100,4 +104,9 @@ export function useRoute(): Route {
 /** Non-hook getter for callers outside React. */
 export function getRoute(): Route {
   return getSnapshot();
+}
+
+/** Open a saved job's page, or (null) go back to the Pipeline list. */
+export function openJob(jobId: string | null, replace = false): void {
+  navigate({ tab: JOB_TAB, jobId }, replace);
 }

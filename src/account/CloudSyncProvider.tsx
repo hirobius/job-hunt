@@ -35,6 +35,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const [signInOpen, setSignInOpen] = useState(false);
+  // True while a pull (adopt) is running: "settled" means none is, and the last one didn't fail.
+  const [pulling, setPulling] = useState(false);
   // False until Supabase reports the stored session (or its absence), so signed-in users don't
   // see the signed-out nudge flash on load.
   const [authResolved, setAuthResolved] = useState(false);
@@ -65,6 +67,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   }
   async function adopt(seed: boolean, u: User) {
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
+    setPulling(true);
     try {
       const next = mergeBlob(await pull(u.id), localBlob(), seed);
       replaceAll(next.jobs);
@@ -87,6 +90,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     } catch {
       setCurationSyncStatus('error');
       setMsg(OFFLINE_MSG);
+    } finally {
+      setPulling(false);
     }
   }
 
@@ -208,6 +213,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     () => ({
       user,
       authResolved,
+      // Signed out: settled once the session check answers. Signed in: no pull running and the
+      // last one didn't fail — an offline device can't know a job is gone, so it doesn't decide.
+      settled: authResolved && (!user || (!pulling && !offline)),
       status: msg,
       offline,
       sendLink,
@@ -219,7 +227,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }),
     // The handlers only close over `user` (and stable module state).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, authResolved, msg, offline, signInOpen],
+    [user, authResolved, pulling, msg, offline, signInOpen],
   );
   return <CloudSyncContext.Provider value={api}>{children}</CloudSyncContext.Provider>;
 }

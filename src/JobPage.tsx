@@ -6,25 +6,19 @@ import { Button, Icon } from '@hirobius/design-system';
 import { PageHeader } from '@hirobius/design-system/patterns';
 import { ArrowLeft } from 'lucide-react';
 import { findJobById, prettyTitle, useJobs } from './store';
-import { navigate } from './route';
+import { openJob } from './route';
 import { useCloudSync } from './account/accountContext';
 import EmptyState from './EmptyState';
 import JobCard from './JobCard';
 
-const toPipeline = (replace = false) => navigate({ tab: 'queue', jobId: null }, replace);
-
-/** Sync statuses that end in "…" (Syncing…, Refreshing…, Saving…) are still in flight. */
-const inFlight = (status: string) => status.endsWith('…');
-
 export default function JobPage({ jobId }: { jobId: string }) {
   const job = findJobById(jobId, useJobs());
-  const { authResolved, user, status } = useCloudSync();
-  // An unknown id may just not have synced onto this device yet: wait until the session is known
-  // and any pull has settled, then fall back to the Pipeline without a new history entry.
-  const settled = authResolved && (!user || !inFlight(status));
+  // An unknown id may just not have synced onto this device yet: wait until sync has settled,
+  // then fall back to the Pipeline without a new history entry.
+  const { settled } = useCloudSync();
 
   useEffect(() => {
-    if (!job && settled) toPipeline(true);
+    if (!job && settled) openJob(null, true);
   }, [job, settled]);
 
   // Opening a job from far down the list should start at its top, not at the list's scroll offset.
@@ -37,7 +31,7 @@ export default function JobPage({ jobId }: { jobId: string }) {
       variant="tertiary"
       size="sm"
       iconLeft={<Icon icon={ArrowLeft} />}
-      onClick={() => toPipeline()}
+      onClick={() => openJob(null)}
     >
       Back to Pipeline
     </Button>
