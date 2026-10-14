@@ -6,7 +6,7 @@ import { deriveJobState } from './jobState';
 import { SORTS, type SortKey } from './jobSort';
 import { prettyTitle } from './store';
 import { VERDICTS } from './screening';
-import type { Job, Status } from './types';
+import type { Job, Status, Verdict } from './types';
 
 /** A row's title: the saved label, else one derived from the URL. */
 export const titleOf = (job: Job) => job.label || prettyTitle(job.url);
@@ -80,7 +80,10 @@ export interface RowView {
   title: string;
   /** Retired (when it is) · company · location. */
   facts: string;
-  verdict: (typeof VERDICTS)[number] | undefined;
+  /** A retired job's fit drops to neutral, like its status: it no longer competes for attention. */
+  verdict:
+    | { value: Verdict; label: string; tone: (typeof VERDICTS)[number]['tone'] | 'neutral' }
+    | undefined;
   applied: string | null;
   followUp: ReturnType<typeof followUpOf>;
   next: NextStep | null;
@@ -89,10 +92,11 @@ export interface RowView {
 }
 
 export function rowView(job: Job, now: Date = new Date()): RowView {
+  const verdict = VERDICTS.find((v) => v.value === job.verdict);
   return {
     title: titleOf(job),
     facts: [job.archived ? 'Retired' : '', job.company, job.location].filter(Boolean).join(' · '),
-    verdict: VERDICTS.find((v) => v.value === job.verdict),
+    verdict: verdict && job.archived ? { ...verdict, tone: 'neutral' } : verdict,
     applied: appliedAgo(job, now),
     followUp: followUpOf(job, now),
     next: primaryAction(job, now),

@@ -2,8 +2,8 @@
 // the same SortKey as the toolbar's Sort menu (jobRow.nextSort), so the two never disagree. Each
 // row's title links to the job's page; the last column holds the row's one next step and its
 // menu. HDS Table rows can't be clicked, selected or styled (HDS gap, filed with the Phase 7 asks,
-// #133), so the title link is the way in and a retired row dims its cells' content.
-import { useId, type ReactNode } from 'react';
+// #133), so the title link is the way in, and a retired row says so in words with neutral badges.
+import { useId } from 'react';
 import { Star } from 'lucide-react';
 import {
   Badge,
@@ -61,8 +61,6 @@ export default function JobsTable({
 
   const rows: TableRow[] = jobs.map((job) => {
     const row = rowView(job);
-    const dim = (content: ReactNode) =>
-      row.retired ? <span style={{ opacity: 0.6 }}>{content}</span> : content;
     return {
       key: job.url,
       cells: [
@@ -90,12 +88,10 @@ export default function JobsTable({
             </Stack>
           ),
         },
-        { slot: 'badge', content: dim(<StatusBadge job={job} />) },
+        { slot: 'badge', content: <StatusBadge job={job} /> },
         {
           slot: 'badge',
-          content: row.verdict
-            ? dim(<Badge tone={row.verdict.tone}>{row.verdict.label}</Badge>)
-            : NONE,
+          content: row.verdict ? <Badge tone={row.verdict.tone}>{row.verdict.label}</Badge> : NONE,
         },
         { slot: 'description', content: row.applied ?? NONE },
         {

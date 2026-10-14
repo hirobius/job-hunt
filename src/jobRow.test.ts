@@ -5,6 +5,7 @@ import {
   followUpOf,
   nextSort,
   primaryAction,
+  rowView,
   sortDirectionOf,
 } from './jobRow';
 import type { Job } from './types';
@@ -83,5 +84,14 @@ describe('row timing labels (#129)', () => {
     expect(
       followUpOf(job({ status: 'Applied', applied: '2026-10-12', archived: true }), NOW),
     ).toBeNull();
+  });
+});
+
+describe('retired rows (#155 review)', () => {
+  it('say Retired in words and drop their colour coding to neutral', () => {
+    const row = rowView(job({ archived: true, verdict: 'match', company: 'Acme' }), NOW);
+    expect(row.facts).toBe('Retired · Acme');
+    expect(row.verdict).toEqual({ value: 'match', label: 'Match', tone: 'neutral' });
+    expect(rowView(job({ verdict: 'match' }), NOW).verdict?.tone).toBe('success');
   });
 });

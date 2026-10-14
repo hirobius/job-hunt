@@ -21,7 +21,7 @@ import { act } from '@testing-library/react';
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, getAllJobs, jobIdOf, removeJob } from './store';
+import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 
 const URL_A = 'https://acme.example/jobs/7';
 
@@ -55,6 +55,20 @@ describe('job route (#127)', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Design Engineer');
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
+  });
+
+  it('a retired job says so on its page, without fading its text', () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { archived: true });
+    window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
+    const { container: page } = renderApp();
+    expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
+    expect(screen.getByText('Retired · Saved')).toBeInTheDocument();
+    expect(
+      [page, ...page.querySelectorAll<HTMLElement>('*')].some(
+        (e) => e.style.opacity !== '' && Number(e.style.opacity) > 0 && Number(e.style.opacity) < 1,
+      ),
+    ).toBe(false);
   });
 
   it('Back returns to the Pipeline list', async () => {

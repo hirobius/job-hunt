@@ -92,8 +92,8 @@ export default function JobCard({
     );
   const s = deriveJobState(j);
 
-  // Eyebrow = status-aware timing (the status word itself lives in the badge).
-  const eyebrow =
+  // Eyebrow = status-aware timing (the status word itself lives in the badge), led by Retired.
+  const timing =
     s.status === 'Saved'
       ? 'Saved'
       : [
@@ -106,6 +106,7 @@ export default function JobCard({
         ]
           .filter(Boolean)
           .join(' · ');
+  const eyebrow = j.archived ? `Retired · ${timing}` : timing;
   // Icon-led facts — only those the job actually has.
   const facts: Array<{ icon: LucideIcon; text: string }> = [];
   if (j.company) facts.push({ icon: Building2, text: j.company });
@@ -114,7 +115,7 @@ export default function JobCard({
   if (j.salary) facts.push({ icon: DollarSign, text: j.salary });
   const host = hostOf(j.url);
   return (
-    <HdsCard bordered padding="none" style={{ opacity: j.archived ? 0.55 : 1 }}>
+    <HdsCard bordered padding="none">
       <Box
         sx={{
           p: 'sm',
@@ -149,7 +150,9 @@ export default function JobCard({
               </InlineLink>
             </Text>
           </Box>
-          {s.status !== 'Saved' && <Badge tone={STATUS_TONE[s.status]}>{s.status}</Badge>}
+          {s.status !== 'Saved' && (
+            <Badge tone={j.archived ? 'neutral' : STATUS_TONE[s.status]}>{s.status}</Badge>
+          )}
           <UiButton
             size="sm"
             variant="tertiary"
