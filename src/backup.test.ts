@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { BRAND } from './brand';
 import {
   applyBackup,
   buildBackup,
@@ -75,17 +76,17 @@ describe('buildBackup / parseBackup', () => {
   const rejections: [string, string, RegExp][] = [
     ['too large', 'x'.repeat(MAX_BACKUP_CHARS + 1), /too large/],
     ['invalid JSON', '{nope', /valid JSON/],
-    ['array', '[]', /isn't a backup from Hirebius/],
-    ['null', 'null', /isn't a backup from Hirebius/],
+    ['array', '[]', new RegExp(`isn't a backup from ${BRAND.name}`)],
+    ['null', 'null', new RegExp(`isn't a backup from ${BRAND.name}`)],
     [
       'wrong app',
       JSON.stringify({ app: 'other', kind: 'backup', v: 1 }),
-      /isn't a backup from Hirebius/,
+      new RegExp(`isn't a backup from ${BRAND.name}`),
     ],
     [
       'wrong kind',
       JSON.stringify({ app: 'apply-board', kind: 'csv', v: 1 }),
-      /isn't a backup from Hirebius/,
+      new RegExp(`isn't a backup from ${BRAND.name}`),
     ],
     [
       'wrong version',

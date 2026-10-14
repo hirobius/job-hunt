@@ -1,10 +1,10 @@
-# CLAUDE.md — Hirebius (formerly Apply Board)
+# CLAUDE.md — Roleforge (formerly Apply Board)
 
 Project memory for future Claude Code sessions in this repo.
 
 ## What this is
 
-**Hirebius** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
+**Roleforge** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
 **https://job-hunt-jade.vercel.app** (repo `hirobius/job-hunt`). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
 commit `f15fd52`).

@@ -1,6 +1,6 @@
-# Hirebius (formerly Apply Board)
+# Roleforge (formerly Apply Board)
 
-The domain language of Hirebius (working name; set in `src/brand.ts`) — a personal job-application tracker and discovery
+The domain language of Roleforge (working name; set in `src/brand.ts`) — a personal job-application tracker and discovery
 board. These are the concepts the code models; use them exactly and avoid the listed
 synonyms so the code, docs, and architecture reviews share one vocabulary.
 

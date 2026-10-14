@@ -110,7 +110,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Back up' }));
-    expect(name).toMatch(/^hirebius-backup-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(name).toMatch(new RegExp(`^${BRAND.slug}-backup-\\d{4}-\\d{2}-\\d{2}\\.json$`));
   });
 
   it('a bad restore file is reported as a toast', async () => {
@@ -119,7 +119,9 @@ describe('app shell (#115 Phase 1)', () => {
       screen.getByLabelText('Choose a backup file to restore'),
       new File(['{"nope":1}'], 'x.json', { type: 'application/json' }),
     );
-    expect(await screen.findByText("This file isn't a backup from Hirebius.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(`This file isn't a backup from ${BRAND.name}.`),
+    ).toBeInTheDocument();
   });
 });
 
