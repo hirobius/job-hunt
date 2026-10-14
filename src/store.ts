@@ -74,6 +74,28 @@ export function dedupKey(u: string): string {
     return (u || '').toLowerCase().replace(/\/+$/, '');
   }
 }
+
+const FNV_OFFSET = 0x811c9dc5; // the standard FNV-1a offset basis
+const FNV_OFFSET_ALT = 0x050c5d1f; // a second basis, so two independent 32-bit hashes make one id
+
+/** FNV-1a over a string with a given offset basis (32-bit). */
+function fnv1a(str: string, seed: number): number {
+  let h = seed >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h;
+}
+
+/** A job's stable, URL-safe id for its route (#/queue/<id>, #127). Job has no id field, and its URL
+ *  can't go raw into the hash (`/ ? & =`), so the id is a 2×32-bit hash of the same dedup key the
+ *  store uses — URLs the store treats as one job get one id. Never stored; always derived. */
+export function jobIdOf(url: string): string {
+  const key = dedupKey(url);
+  return fnv1a(key, FNV_OFFSET).toString(36) + fnv1a(key, FNV_OFFSET_ALT).toString(36);
+}
+
 /** Normalize any incoming list (localStorage OR cloud): clean URLs/labels,
  *  drop retired/blank, backfill weak titles, de-dupe by URL. Idempotent. */
 export function sanitizeJobs(arr: unknown): Job[] {
@@ -206,6 +228,11 @@ export function removeJob(url: string) {
 export function isSaved(url: string): boolean {
   const key = dedupKey(cleanUrl(url));
   return store.get().some((j) => dedupKey(j.url) === key);
+}
+
+/** The saved job a route's id points at, or undefined (unknown, removed, or not synced yet). */
+export function findJobById(id: string, jobs: Job[] = getAllJobs()): Job | undefined {
+  return jobs.find((j) => jobIdOf(j.url) === id);
 }
 
 // Used by the cloud-sync layer to read/replace the whole list.

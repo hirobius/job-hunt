@@ -11,6 +11,7 @@ import {
   Stack,
 } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
+import JobPage from './JobPage';
 import { BRAND } from './brand';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
@@ -40,8 +41,12 @@ const BARE_PANEL = {
 } as const;
 
 const TAB_SLUGS = ['queue', 'discover', 'copy-deck'] as const;
-const DEFAULT_TAB = 'queue';
-const defaultTabIndex = TAB_SLUGS.indexOf(DEFAULT_TAB);
+// Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
+// Today becomes the home route in Phase 2b (#128); quick-add always shows the Pipeline, where the
+// new job is.
+const HOME_ROUTE = 'queue';
+const QUICK_ADD_LANDING = 'queue';
+const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
 export default function App() {
   const route = useRoute();
@@ -75,10 +80,10 @@ export default function App() {
       window.history.replaceState(
         null,
         '',
-        window.location.pathname + (s ? '?' + s : '') + '#/' + DEFAULT_TAB,
+        window.location.pathname + (s ? '?' + s : '') + '#/' + QUICK_ADD_LANDING,
       );
     } else if (!getRoute().tab) {
-      navigate({ tab: DEFAULT_TAB }, true);
+      navigate({ tab: HOME_ROUTE }, true);
     }
   }, []);
 
@@ -90,7 +95,9 @@ export default function App() {
           <Box sx={{ px: 'var(--semantic-space-region-gutter)', py: 'md' }}>
             <HdsTabs
               value={TAB_SLUGS[tab]}
-              onValueChange={(v) => navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null })}
+              onValueChange={(v) =>
+                navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null, jobId: null })
+              }
             >
               <Stack gap="normal">
                 {/* Slim header: name · top tabs · account. The tabs wrap under the name on mobile. */}
@@ -110,7 +117,7 @@ export default function App() {
                 </TabsList>
                 <SyncNudge />
                 <TabsContent value="queue" style={BARE_PANEL}>
-                  <TrackerView />
+                  {route.jobId ? <JobPage jobId={route.jobId} /> : <TrackerView />}
                 </TabsContent>
                 <TabsContent value="discover" style={BARE_PANEL}>
                   <Suspense fallback={<DiscoverSkeleton />}>

@@ -8,6 +8,9 @@ import {
   isSaved,
   removeJob,
   getAllJobs,
+  replaceAll,
+  jobIdOf,
+  findJobById,
 } from './store';
 
 afterEach(() => {
@@ -67,5 +70,30 @@ describe('addJobDetailed', () => {
     const j = getAllJobs().find((x) => x.url === url)!;
     expect(j.label).toBe('Original'); // not overwritten
     expect(j.note).toBeUndefined();
+  });
+});
+
+// #127: stable, URL-safe job ids derived from the dedup key.
+describe('jobIdOf / findJobById (#127)', () => {
+  it('is URL-safe and short', () => {
+    const id = jobIdOf('https://boards.greenhouse.io/acme/jobs/42?gh_jid=42&x=a/b');
+    expect(id).toMatch(/^[a-z0-9]{6,16}$/);
+  });
+
+  it('is the same for URLs the store treats as the same job', () => {
+    const a = jobIdOf('https://www.Acme.example/Jobs/7/?utm_source=li');
+    const b = jobIdOf('https://acme.example/jobs/7');
+    expect(a).toBe(b);
+  });
+
+  it('differs between different jobs', () => {
+    expect(jobIdOf('https://acme.example/jobs/7')).not.toBe(jobIdOf('https://acme.example/jobs/8'));
+  });
+
+  it('finds the job a route points at', () => {
+    replaceAll([]);
+    addJob('https://acme.example/jobs/7', 'Design Engineer');
+    expect(findJobById(jobIdOf('https://acme.example/jobs/7'))?.label).toBe('Design Engineer');
+    expect(findJobById('nope')).toBeUndefined();
   });
 });

@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-13T21:30:00Z",
+  "updatedAt": "2026-10-14T02:00:00Z",
   "phase": "live",
-  "headline": "Main re-based on the jh-redesign build (#115 Phases 0–1, Pipeline toolbar/hierarchy, dense layout, working name Roleforge) plus the design-systems data round; #144's v1 UI superseded.",
+  "headline": "Live as Roleforge. Redesign #115 continues from main: job routes (#127) shipped; next is Today (#128). Cloud builds are budgeted — no [preview] or main merges unless Adrian asks (CLAUDE.md).",
   "next": [
-    "Redesign #115 continues from this build: Phase 2 Today (#127/#128), then Pipeline rows (#129) and job page (#130).",
+    "Redesign #115: Phase 2b Today (#128, incl. the shell-level onboarding gate), then Pipeline rows (#129) and the job page (#130).",
     "Pick the product name (#55); swap it in src/brand.ts.",
     "After HDS lands: vite 8 + plugin-react 6, npm audit, React 19, jest-dom 7 (#105).",
     "Human / dashboard: #16 Vercel Analytics, #22 .env.example + revoke old key, #44 Supabase auth hardening, #17 stale branches, #55 name clearance.",
