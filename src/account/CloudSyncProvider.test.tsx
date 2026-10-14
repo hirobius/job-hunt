@@ -23,6 +23,7 @@ import { getCurationState, replaceCurationState } from '../curation/curationStor
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
 import { OFFLINE_MSG } from '../cloudMessages';
+import { writeBlob } from '../syncBlob';
 
 const fake = () => h.fake!;
 const NOW = '2026-10-01T00:00:00.000Z';
@@ -111,5 +112,40 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await chooseAccountItem('Delete my data');
     expect(await screen.findByText(/Deleted 3 of 4 — couldn't delete groups/)).toBeInTheDocument();
     expect(getAllJobs()).toHaveLength(1);
+  });
+
+  it('never pushes the unmerged local copy after a failed pull; a later good pull re-opens pushes (#161)', async () => {
+    // Cloud holds a job that only lives there; this device holds a different one.
+    addJob('https://cloud.example/jobs/1', 'Cloud only');
+    const cloudData = writeBlob({
+      jobs: getAllJobs(),
+      copydeck: [],
+      triage: { pinned: [], dismissed: [] },
+      legacyUserTiles: [],
+    });
+    removeJob('https://cloud.example/jobs/1');
+    fake().tables.tracker = [{ user_id: 'u1', data: cloudData, updated_at: NOW }];
+    addJob('https://local.example/jobs/2', 'Local only');
+
+    fake().failNext('tracker', 'select');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    expect(await screen.findByText(OFFLINE_MSG)).toBeInTheDocument();
+    // Wait out the 500ms push debounce: the cloud row must be untouched.
+    await new Promise((r) => setTimeout(r, 800));
+    expect(fake().tables.tracker[0].data).toEqual(cloudData);
+
+    // A successful re-pull (focus) merges, then local edits push again.
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() =>
+      expect(getAllJobs().map((j) => j.url)).toContain('https://cloud.example/jobs/1'),
+    );
+    // The device's local-only job survives recovery: kept locally AND uploaded to the cloud row.
+    await waitFor(() => expect(JSON.stringify(fake().tables.tracker[0].data)).toContain('jobs/2'));
+    expect(getAllJobs().map((j) => j.url)).toContain('https://local.example/jobs/2');
+    addJob('https://local.example/jobs/3', 'After the pull');
+    await waitFor(() => expect(JSON.stringify(fake().tables.tracker[0].data)).toContain('jobs/3'));
   });
 });
