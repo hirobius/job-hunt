@@ -10,14 +10,10 @@ import {
   Box,
   Stack,
   Text,
-  Disclosure,
 } from '@hirobius/design-system';
 import { useJobs, addJob } from './store';
 import { deriveJobState } from './jobState';
 import { sortJobs, SORTS, type SortKey } from './jobSort';
-import { FunnelSummary } from './FunnelSummary';
-import { PipelineStats } from './PipelineStats';
-import ThisWeek from './ThisWeek';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import type { Job, Status } from './types';
@@ -36,7 +32,6 @@ const FILTER_LABEL: Record<Filter, string> = {
   Rejected: 'Rejected',
   retired: 'Retired',
 };
-const INSIGHTS_KEY = 'rjb_ui_insights_open';
 const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 
 const FILTER_GROUPS: { label: string; items: Filter[] }[] = [
@@ -60,13 +55,6 @@ export default function TrackerView() {
   const [q, setQ] = useState('');
   const [url, setUrl] = useState('');
   const [addOpen, setAddOpen] = useState(false);
-  const [insightsOpen, setInsightsOpen] = useState(() => {
-    try {
-      return localStorage.getItem(INSIGHTS_KEY) === '1';
-    } catch {
-      return false;
-    }
-  });
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -245,28 +233,6 @@ export default function TrackerView() {
       </Dialog>
 
       <SampleBanner jobs={jobs} />
-      <ThisWeek />
-      {/* Dense layout: metrics fold into one closed "Insights" row so the list starts near the
-          top (Phase 2 moves them to Today). */}
-      {jobs.length > 0 && (
-        <Disclosure
-          label="Insights"
-          variant="nav"
-          open={insightsOpen}
-          onOpenChange={(o) => {
-            setInsightsOpen(o);
-            try {
-              localStorage.setItem(INSIGHTS_KEY, o ? '1' : '0');
-            } catch {
-              /* storage blocked */
-            }
-          }}
-        >
-          <PipelineStats jobs={jobs} />
-          <FunnelSummary jobs={shown} />
-        </Disclosure>
-      )}
-
       {jobs.length === 0 ? (
         // First use (21st.dev empty-state references): say what the screen will hold, one
         // primary action, one way to see it working — all on one centred axis. HDS EmptyState is

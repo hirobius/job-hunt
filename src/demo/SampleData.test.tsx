@@ -28,11 +28,11 @@ describe('Try with sample data (Tracker)', () => {
 
       await user.click(tryButton()!);
       expect(banner()).toHaveTextContent(/10 fictional jobs/);
-      // Saved jobs + the pinned follow-ups/interviews show in the default Active view; the due
-      // follow-up and the interview in 2 days also appear in the This-week strip.
+      // Saved jobs + the pinned follow-ups/interviews show in the default Active view (their
+      // agenda lives on Today now, #128).
       expect(screen.getByText('Solutions Engineer')).toBeInTheDocument();
-      expect(screen.getAllByText('Clinical Systems Analyst').length).toBeGreaterThanOrEqual(2);
-      expect(screen.getAllByText('UX Researcher').length).toBeGreaterThanOrEqual(2);
+      expect(screen.getByText('Clinical Systems Analyst')).toBeInTheDocument();
+      expect(screen.getByText('UX Researcher')).toBeInTheDocument();
       expect(tryButton()).toBeNull();
 
       await user.click(within(banner()!).getByText(/clear sample data/i));

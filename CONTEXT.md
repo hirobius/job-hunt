@@ -26,8 +26,20 @@ _Avoid_: reminder, nudge, ping
 The model that owns a Job's Status transitions and its Follow-up clock — the read-side derivations (is it due, days until, active) and the write-side transitions (`src/jobState.ts`).
 _Avoid_: job state, workflow, state machine
 
+**Pipeline**:
+The view of every saved Job, as one list with search, a Status filter and sort (`#/queue`). It was called the Tracker until #128.
+_Avoid_: tracker, queue (in copy), board
+
+**Today**:
+The home view (`#/today`): Follow-ups due now, the next 7 days of interviews and calls, one quick-add field and the Insights band.
+_Avoid_: dashboard, home page, inbox
+
+**First run**:
+A visit with no tracks and no Jobs. The shell shows onboarding instead of Today; Discover shows it whenever there are no tracks.
+_Avoid_: new user, empty state
+
 **Active queue**:
-The default Tracker view: Jobs not yet applied to (Saved) plus any pinned as Priority, with Retired Jobs excluded.
+The default Pipeline view: Jobs not yet applied to (Saved) plus any pinned as Priority, with Retired Jobs excluded.
 _Avoid_: inbox, backlog, todo
 
 **Priority**:

@@ -106,6 +106,11 @@ export function getRoute(): Route {
   return getSnapshot();
 }
 
+/** The hash of a saved job's page (#/queue/<jobId>), for links. */
+export function jobHash(jobId: string): string {
+  return buildHash({ tab: JOB_TAB, sub: null, pillar: null, jobId });
+}
+
 /** Open a saved job's page, or (null) go back to the Pipeline list. */
 export function openJob(jobId: string | null, replace = false): void {
   navigate({ tab: JOB_TAB, jobId }, replace);

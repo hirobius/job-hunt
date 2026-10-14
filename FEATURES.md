@@ -49,8 +49,8 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
 - ✅ **URL-synced navigation** — hash routing (no react-router): the top-level tab,
   Discover's sub-tab, and the active career pillar all live in the hash
   (`#/queue`, `#/discover/titles`, `?pillar=<id>`) and restore on refresh /
-  back-forward. Queue is the default landing view; quick-add deep links still work
-  (`src/route.ts`).
+  back-forward. Today (`#/today`) is the default landing view (#128); quick-add deep links still
+  land on the Pipeline (`#/queue`) (`src/route.ts`, `src/App.tsx`).
 - ✅ **Sort, Saved filter, skeletons, empty states, autosave feedback** — see Phase 2
   for sort; the Tracker also has a Saved filter and a scrollable filter row on mobile,
   lazy views show layout-matched skeletons, empties use a shared `EmptyState`, and

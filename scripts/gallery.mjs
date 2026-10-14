@@ -36,19 +36,29 @@ async function serve() {
   // the entry point, and shots navigate within that origin.
   if (args.url) return { url: args.url, stop: () => {} };
   if (args['no-build'] !== 'true') await run('npx', ['vite', 'build']);
+  // Its own process group, so stop() takes down vite as well as the npx wrapper; a leftover
+  // server would answer the next run's port with this build.
   const child = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], {
     stdio: 'ignore',
+    detached: true,
   });
+  const stop = () => {
+    try {
+      process.kill(-child.pid);
+    } catch {
+      /* already gone */
+    }
+  };
   const url = `http://localhost:${PORT}`;
   for (let i = 0; i < 60; i++) {
     try {
-      if ((await fetch(url)).ok) return { url, stop: () => child.kill() };
+      if ((await fetch(url)).ok) return { url, stop };
     } catch {
       /* not up yet */
     }
     await new Promise((r) => setTimeout(r, 500));
   }
-  child.kill();
+  stop();
   throw new Error(`vite preview did not come up on ${url}`);
 }
 
@@ -146,7 +156,6 @@ async function shoot(browser, base, theme, width, manifest) {
   });
   await page.goto(base);
   await settle(page);
-  await seed(page);
 
   const dir = join(OUT, `${theme}-${width}`);
   mkdirSync(dir, { recursive: true });
@@ -163,6 +172,10 @@ async function shoot(browser, base, theme, width, manifest) {
       hash: await page.evaluate(() => location.hash),
     });
   };
+
+  // The landing screen before any data: what a first visit sees.
+  await snap('First visit');
+  await seed(page);
 
   for (const tab of await topTabs(page)) {
     await clickIf(page, 'tab', new RegExp(`^${tab}$`));

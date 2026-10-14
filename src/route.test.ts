@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseHash, buildHash } from './route';
+import { parseHash, buildHash, jobHash } from './route';
 import { jobIdOf } from './store';
 
 describe('route — parseHash', () => {
@@ -89,5 +89,12 @@ describe('route — navigate drops a stale job id (#127)', () => {
     window.location.hash = '#/queue/abc123';
     navigate({ tab: 'discover' });
     expect(getRoute()).toMatchObject({ tab: 'discover', jobId: null });
+  });
+});
+
+describe('jobHash (#128)', () => {
+  it('is the job route that parseHash reads back', () => {
+    expect(jobHash('k3x9a1')).toBe('#/queue/k3x9a1');
+    expect(parseHash(jobHash('k3x9a1')).jobId).toBe('k3x9a1');
   });
 });
