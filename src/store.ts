@@ -76,6 +76,24 @@ export function dedupKey(u: string): string {
 }
 /** Normalize any incoming list (localStorage OR cloud): clean URLs/labels,
  *  drop retired/blank, backfill weak titles, de-dupe by URL. Idempotent. */
+/** FNV-1a over a string with a given offset basis (32-bit). */
+function fnv1a(str: string, seed: number): number {
+  let h = seed >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h;
+}
+
+/** A job's stable, URL-safe id for its route (#/queue/<id>, #127). Job has no id field, and its URL
+ *  can't go raw into the hash (`/ ? & =`), so the id is a 2×32-bit hash of the same dedup key the
+ *  store uses — URLs the store treats as one job get one id. Never stored; always derived. */
+export function jobIdOf(url: string): string {
+  const key = dedupKey(url);
+  return fnv1a(key, 0x811c9dc5).toString(36) + fnv1a(key, 0x050c5d1f).toString(36);
+}
+
 export function sanitizeJobs(arr: unknown): Job[] {
   if (!Array.isArray(arr)) return [];
   const out: Job[] = [];
@@ -209,6 +227,11 @@ export function isSaved(url: string): boolean {
 }
 
 // Used by the cloud-sync layer to read/replace the whole list.
+/** The saved job a route's id points at, or undefined (unknown, removed, or not synced yet). */
+export function findJobById(id: string, jobs: Job[] = getAllJobs()): Job | undefined {
+  return jobs.find((j) => jobIdOf(j.url) === id);
+}
+
 export function getAllJobs(): Job[] {
   return store.get();
 }
