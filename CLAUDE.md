@@ -105,6 +105,14 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   there), Discover whenever there are no tracks; Pipeline and Templates never gate. Existing users
   get a one-time `TodayNotice` (`rjb_ui_today_home_seen`; a first run marks it seen). Pinned in
   `src/today.test.tsx`.
+- **Pipeline rows (#129):** the shell is HDS page width (`Container maxWidth="max"`, 1200); views
+  set their own measure (Today's lists sit at the 760 content width). `TrackerView` renders
+  `JobsTable` (HDS `Table`, sortable headers through `jobRow.nextSort` → the same `SortKey` as the
+  toolbar) at ≥ the HDS `lg` breakpoint and `JobListCard` (title on its own row) below it, chosen
+  by `src/hds-gaps/useBreakpoint.ts` (no `matchMedia` → cards). Both use `JobRowParts.tsx`: one
+  primary action per row (`jobRow.primaryAction`: Mark applied / Log follow-up) + the row `Menu`.
+  Titles link to `#/queue/<jobId>`; details, to-dos, the screener and templates live on the job
+  page (`JobCard`, until #130). Pinned in `src/pipeline.test.tsx`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.

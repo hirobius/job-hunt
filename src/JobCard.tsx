@@ -24,35 +24,21 @@ import {
   InlineLink,
   Switcher,
 } from '@hirobius/design-system';
-import {
-  updateJob,
-  setStatus,
-  removeJob,
-  logFollowUp,
-  prettyTitle,
-  hostOf,
-  jobIdOf,
-} from './store';
+import { updateJob, setStatus, removeJob, logFollowUp, prettyTitle, hostOf } from './store';
 import { deriveJobState } from './jobState';
-import { navigate, openJob } from './route';
+import { STATUS_TONE } from './jobRow';
+import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
 import { verdictTone, modeLabel, blockerLabel } from './screening';
 import { ScreeningEditor } from './ScreeningEditor';
 import UseTemplate from './UseTemplate';
 import InterviewLog from './InterviewLog';
 import { TodosNotes } from './TodosNotes';
-import type { Job, Status } from './types';
+import type { Job } from './types';
 
-// One saved job's card (#127): extracted from TrackerView so the Pipeline list and the job route
-// (#/queue/<jobId>) render the same thing. Owns its own Details-open and "Saved ✓" state.
-// Status → HDS Badge tone (the semantic feedback tokens; Interviewing = inProgress).
-const STATUS_TONE: Record<Status, 'warning' | 'info' | 'inProgress' | 'success' | 'danger'> = {
-  Saved: 'warning',
-  Applied: 'info',
-  Interviewing: 'inProgress',
-  Offer: 'success',
-  Rejected: 'danger',
-};
+// A saved job's full card with its Details editor (#127), shown on the job's page
+// (#/queue/<jobId>) until Phase 4 (#130) replaces it. The Pipeline list uses the compact
+// JobsTable / JobListCard rows (#129). Owns its own Details-open and "Saved ✓" state.
 
 function research(label: string) {
   const q = encodeURIComponent(label || '');
@@ -193,7 +179,6 @@ export default function JobCard({
                   Mark applied
                 </HdsMenu.Item>
               )}
-              <HdsMenu.Item onSelect={() => openJob(jobIdOf(j.url))}>Open job page</HdsMenu.Item>
               <HdsMenu.Item onSelect={() => updateJob(j.url, { priority: !j.priority })}>
                 {j.priority ? 'Unpin priority' : 'Pin as priority'}
               </HdsMenu.Item>

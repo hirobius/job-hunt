@@ -35,9 +35,18 @@
    * and dark graphite in dark (its own accent inverts per theme). Jade does not invert, so pin the
    * old white in both themes — #fafafa is 4.42:1 on jade-rest, just under AA (theme.contrast.test). */
   --semantic-color-content-onAccent: #fff;
+  /* Highlighted / hover text on the accent-subtle fill (menu items such as the Pipeline status
+   * filter, secondary-button hover): jade-rest is 4.2:1 on the mint fill, so use the pressed
+   * shade (#129, theme.contrast.test). */
+  --role-accent-foreground: var(--brand-accent-pressed);
 }
 [data-theme='dark'] {
   /* on dark surfaces, accent-as-text lightens for AA (system logic, same seed) */
   --semantic-accent-content: oklch(0.8 var(--brand-c) var(--brand-h));
   --semantic-color-content-accent: oklch(0.8 var(--brand-c) var(--brand-h));
+  /* The mint accent-subtle fill set in :root above also applied in dark, so hovers and the
+   * highlighted menu item were pale mint with light text (#115 audit). Dark gets a dark jade fill
+   * with the lightened accent text on it (#129). */
+  --semantic-color-surface-accentSubtle: oklch(0.32 0.05 var(--brand-h));
+  --role-accent-foreground: var(--semantic-color-content-accent);
 }

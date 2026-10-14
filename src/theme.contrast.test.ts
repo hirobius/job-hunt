@@ -163,6 +163,21 @@ const pairs: Pair[] = [
     bg: 'semantic-color-surface-raised',
     min: 3,
   },
+  // Selected / highlighted states the audit found unreadable (#115, #129): the status filter's
+  // highlighted menu item (and every HDS hover that uses the accent-subtle fill) paints
+  // accent text on the accent-subtle surface.
+  {
+    name: 'highlighted menu item (status filter) text on its accent-subtle fill',
+    fg: 'role-accent-foreground',
+    bg: 'role-accent',
+    min: 4.5,
+  },
+  {
+    name: 'button label on its accent-subtle hover fill',
+    fg: 'role-foreground',
+    bg: 'role-accent',
+    min: 4.5,
+  },
   ...FEEDBACK.flatMap((tone): Pair[] => [
     {
       name: `${tone} text/badge on page`,

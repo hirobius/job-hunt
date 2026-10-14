@@ -17,7 +17,9 @@ import { sortJobs, SORTS, type SortKey } from './jobSort';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import type { Job, Status } from './types';
-import JobCard from './JobCard';
+import JobsTable from './JobsTable';
+import JobListCard from './JobListCard';
+import { useAtLeast } from './hds-gaps/useBreakpoint';
 
 type Filter = 'active' | 'all' | Status | 'retired';
 
@@ -55,6 +57,8 @@ export default function TrackerView() {
   const [q, setQ] = useState('');
   const [url, setUrl] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  // A sortable table where there's room for its six columns; compact cards below that (#129).
+  const wide = useAtLeast('lg');
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -124,7 +128,15 @@ export default function TrackerView() {
           align="center"
           style={{ marginBottom: 'var(--primitive-space-4)' }}
         >
-          <Box sx={{ flex: '1 1 14rem', minWidth: 0, '& > *': { width: '100%' } }}>
+          {/* Grows only to the HDS form-control cap, so status and sort sit beside the field. */}
+          <Box
+            sx={{
+              flex: '1 1 14rem',
+              minWidth: 0,
+              maxWidth: 'var(--hds-form-control-max-width, 40rem)',
+              '& > *': { width: '100%' },
+            }}
+          >
             <HdsInput
               size="sm"
               aria-label="Search saved jobs"
@@ -284,12 +296,14 @@ export default function TrackerView() {
                 : `Nothing under “${filter}”.`
           }
         />
+      ) : wide ? (
+        <JobsTable jobs={shown} sort={sort} onSort={setSort} />
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        <Stack gap="px12">
           {shown.map((j) => (
-            <JobCard key={j.url} job={j} />
+            <JobListCard key={j.url} job={j} />
           ))}
-        </Box>
+        </Stack>
       )}
     </Box>
   );
