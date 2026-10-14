@@ -4,7 +4,7 @@
 // Pipeline keeps the list only; the shell owns the first-run gate; existing users get a one-time
 // "Today is home" notice.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -120,7 +120,7 @@ describe('Today view (#128)', () => {
     );
   });
 
-  it('one quick-add field saves a pasted link and stays on Today', async () => {
+  it('one quick-add field saves a pasted link, stays on Today and links to the new job', async () => {
     renderApp();
     await userEvent.type(
       screen.getByRole('textbox', { name: 'Add a job' }),
@@ -128,19 +128,38 @@ describe('Today view (#128)', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/42');
-    expect(await screen.findByText('Saved to your Pipeline')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Add a job' })).toHaveValue('');
     expect(window.location.hash).toBe('#/today');
+    const status = screen.getByRole('status', { name: 'Quick add' });
+    expect(status).toHaveTextContent(/Saved to your Pipeline/);
+    expect(within(status).getByRole('link')).toHaveAttribute(
+      'href',
+      `#/queue/${jobIdOf('https://acme.example/jobs/42')}`,
+    );
   });
 
-  it('quick-add says when the job is already saved', async () => {
+  it('quick-add says when the job is already saved, and links to it', async () => {
+    const url = 'https://larkspur.example.com/careers/senior-product-designer';
     renderApp();
-    await userEvent.type(
-      screen.getByRole('textbox', { name: 'Add a job' }),
-      'https://larkspur.example.com/careers/senior-product-designer',
-    );
+    await userEvent.type(screen.getByRole('textbox', { name: 'Add a job' }), url);
     await userEvent.click(screen.getByRole('button', { name: 'Add' }));
-    expect(await screen.findByText('Already in your Pipeline')).toBeInTheDocument();
+    const status = screen.getByRole('status', { name: 'Quick add' });
+    expect(status).toHaveTextContent(/Already in your Pipeline/);
+    expect(within(status).getByRole('link', { name: 'Senior Product Designer' })).toHaveAttribute(
+      'href',
+      `#/queue/${jobIdOf(url)}`,
+    );
+  });
+
+  it('quick-add flags something that is not a link, in place', async () => {
+    renderApp();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Add a job' }), 'not a link');
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+    expect(screen.getByRole('textbox', { name: 'Add a job' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
+    expect(screen.getByText(/doesn't look like a link/)).toBeInTheDocument();
   });
 
   it('Insights: metric tiles and a stage funnel in one band, open state kept per device', async () => {
@@ -150,7 +169,7 @@ describe('Today view (#128)', () => {
     expect(screen.getByText('Applied, last 7 days')).toBeInTheDocument();
     expect(screen.getByText('Response rate')).toBeInTheDocument();
     // The funnel: every stage as a progress row out of all saved jobs.
-    for (const stage of ['Saved', 'Applied', 'Interviewed', 'Offer'])
+    for (const stage of ['All jobs', 'Applied', 'Interviewed', 'Offer'])
       expect(screen.getByRole('progressbar', { name: new RegExp(`^${stage}: \\d+ of 10`) }));
     await userEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
@@ -241,7 +260,17 @@ describe('one-time "Today is home" notice (#128)', () => {
     expect(screen.queryByRole('region', NOTICE)).toBeNull();
   });
 
-  it('a new user never sees it', async () => {
+  it('a signed-in visit is not taken for a first run while sync is still bringing data down', async () => {
+    localStorage.setItem('sb-test-auth-token', '{}'); // a stored session, as supabase-js keeps it
+    h.fake!.failNext('tracker', 'select'); // offline: the pull fails, so sync never settles
+    renderApp();
+    await new Promise((r) => setTimeout(r, 0)); // the session check answers before the user loads
+    act(() => h.fake!.signIn('u1'));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(localStorage.getItem('rjb_ui_today_home_seen')).toBeNull();
+  });
+
+  it('a first run never sees it', async () => {
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
     await screen.findByRole('region', { name: /^Follow-ups due/ });

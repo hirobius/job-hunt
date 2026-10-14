@@ -11,6 +11,7 @@ import {
   replaceAll,
   jobIdOf,
   findJobById,
+  findJobByUrl,
 } from './store';
 
 afterEach(() => {
@@ -95,5 +96,16 @@ describe('jobIdOf / findJobById (#127)', () => {
     addJob('https://acme.example/jobs/7', 'Design Engineer');
     expect(findJobById(jobIdOf('https://acme.example/jobs/7'))?.label).toBe('Design Engineer');
     expect(findJobById('nope')).toBeUndefined();
+  });
+});
+
+describe('findJobByUrl (#128)', () => {
+  it('finds a saved job from a pasted link, cleaned the way addJob cleans it', () => {
+    addJob('https://www.acme.example/jobs/7/', 'Design Engineer');
+    expect(findJobByUrl('acme.example/jobs/7')?.label).toBe('Design Engineer');
+    expect(findJobByUrl(' "https://acme.example/jobs/7?utm_source=x" ')?.label).toBe(
+      'Design Engineer',
+    );
+    expect(findJobByUrl('https://acme.example/jobs/8')).toBeUndefined();
   });
 });

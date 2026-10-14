@@ -11,6 +11,7 @@ import {
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import { useCurationSyncStatus } from './curation/syncStatus';
 import { TrySampleButton } from './demo/SampleData';
+import { hasCloudSession } from './demo/loadSample';
 
 // First-run onboarding (issue #59 / B1, decision D1): the shell's gate (App.tsx, #128) routes here
 // from Discover with no tracks, and from Today on a first run. Pick one or more starter packs + an
@@ -140,7 +141,8 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
               ? 'Add a first job title'
               : `Start with ${picked.length} track${picked.length > 1 ? 's' : ''}`}
         </Button>
-        {offerSample && (
+        {/* Never offered signed in (a signed-in tracker syncs), so neither is its caption. */}
+        {offerSample && !hasCloudSession() && (
           <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="center">
             <Text
               variant="caption"

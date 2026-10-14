@@ -143,6 +143,7 @@ describe('upcomingEvents', () => {
     });
     expect(upcomingEvents([j], WED)).toEqual([
       {
+        id: 'e',
         kind: 'call',
         date: '2026-10-15',
         time: '11:00',

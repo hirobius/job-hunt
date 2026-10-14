@@ -36,8 +36,11 @@ export default function TabsOverflowFade({
 
   useEffect(() => {
     if (typeof ResizeObserver === 'undefined' || !ref.current) return;
+    // The wrapper's width (viewport) and the tab list's own (labels re-measure once fonts load).
     const ro = new ResizeObserver(measure);
     ro.observe(ref.current);
+    const list = tablistIn(ref.current);
+    if (list) ro.observe(list);
     return () => ro.disconnect();
   }, [measure]);
 

@@ -9,7 +9,7 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /** Local YYYY-MM-DD. */
-function ymd(d: Date): string {
+export function ymd(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
@@ -62,7 +62,8 @@ export function hash(s: string): string {
   return h.toString(36);
 }
 
-const KIND_WORD: Record<JobEventKind, string> = {
+/** How an event kind reads in a title ("Interview: …", "Call · …"). */
+export const KIND_WORD: Record<JobEventKind, string> = {
   interview: 'Interview',
   call: 'Call',
   other: 'Event',
@@ -100,6 +101,8 @@ export function jobIcsEvents(job: Job, now: Date): IcsEvent[] {
 
 /** One interview / call / other event on Today's "Next 7 days" list. */
 export interface AgendaItem {
+  /** The event's id (unique within its job). */
+  id: string;
   date: string;
   time?: string;
   kind: JobEventKind;
@@ -119,7 +122,13 @@ export function upcomingEvents(jobs: readonly Job[], now: Date, days = 7): Agend
     if (job.archived) continue;
     for (const e of job.events ?? []) {
       if (e.date < start || e.date > end) continue;
-      const item: AgendaItem = { date: e.date, kind: e.kind, jobUrl: job.url, label: job.label };
+      const item: AgendaItem = {
+        id: e.id,
+        date: e.date,
+        kind: e.kind,
+        jobUrl: job.url,
+        label: job.label,
+      };
       if (e.time) item.time = e.time;
       if (e.note) item.note = e.note;
       if (job.company) item.company = job.company;

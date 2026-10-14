@@ -15,6 +15,8 @@ import TrackerView from './TrackerView';
 import JobPage from './JobPage';
 import { Onboarding } from './Onboarding';
 import { markTodayNoticeSeen } from './todayNoticeSeen';
+import { useCloudSync } from './account/accountContext';
+import { hasCloudSession } from './demo/loadSample';
 import { BRAND } from './brand';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
@@ -63,9 +65,6 @@ export default function App() {
   const hasTracks = useCategories().length > 0;
   const hasJobs = useJobs().length > 0;
   const firstRun = !hasTracks && !hasJobs;
-  useEffect(() => {
-    if (firstRun) markTodayNoticeSeen(); // new users never had a Tracker to miss
-  }, [firstRun]);
 
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
   // After ingesting, land on the Pipeline so the just-added job is visible; with no route at all,
@@ -103,6 +102,7 @@ export default function App() {
 
   return (
     <CloudSyncProvider>
+      <MarkFirstRun firstRun={firstRun} />
       <DataToolsProvider>
         <Container maxWidth="content">
           {/* Page gutter: the HDS region-gutter role (Container's own padding prop is retired). */}
@@ -162,4 +162,16 @@ export default function App() {
       </DataToolsProvider>
     </CloudSyncProvider>
   );
+}
+
+// A first run marks the one-time "Today is home" notice seen: it never had a Tracker to miss. Only
+// once sync has settled, since a signed-in account's jobs and tracks may still be on their way down.
+// A stored session counts as signed in before its user loads (the session check can answer first).
+function MarkFirstRun({ firstRun }: { firstRun: boolean }) {
+  const { settled, user } = useCloudSync();
+  const signedOut = !user && !hasCloudSession();
+  useEffect(() => {
+    if (firstRun && settled && (user || signedOut)) markTodayNoticeSeen();
+  }, [firstRun, settled, user, signedOut]);
+  return null;
 }

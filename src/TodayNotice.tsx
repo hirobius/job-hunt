@@ -1,6 +1,6 @@
 // One-time "Today is home" notice (#128). Existing users opened on the Tracker for months; now
 // they land on Today, so it says once where the list went. A first run (the shell's onboarding
-// gate) marks it seen, so new users, who never had a Tracker, never get it. Dismissed per device;
+// gate) marks it seen: a first run never had a Tracker to miss. Dismissed per device;
 // sign-out clears rjb_* keys like the sync nudge's.
 import { useState } from 'react';
 import { Button, Callout, Icon, Stack, Text } from '@hirobius/design-system';
@@ -18,7 +18,6 @@ export default function TodayNotice() {
           coming up and how it's going. Your full job list is one tab over.
         </Text>
         <Button
-          size="sm"
           variant="tertiary"
           iconOnly
           iconLeft={<Icon icon={X} />}

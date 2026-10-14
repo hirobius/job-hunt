@@ -58,6 +58,11 @@ export function cleanUrl(u: string): string {
   while (/^https?:\/\/https?:\/\//i.test(u)) u = u.replace(/^https?:\/\//i, '');
   return u;
 }
+/** A pasted link as the store keeps it: cleaned, with https:// when it has no scheme. */
+function normalizeJobUrl(rawUrl: string): string {
+  const u = cleanUrl(rawUrl);
+  return u && !/^https?:\/\//i.test(u) ? 'https://' + u : u;
+}
 export function dedupKey(u: string): string {
   try {
     const x = new URL(u);
@@ -153,10 +158,8 @@ export function useJobs(): Job[] {
  *  so a re-save never clobbers the user's own notes. */
 export function addJob(rawUrl: string, label?: string, note?: string): boolean {
   const jobs = store.get();
-  let u = cleanUrl(rawUrl);
-  if (!u) return false;
-  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-  if (!/\./.test(u)) return false;
+  const u = normalizeJobUrl(rawUrl);
+  if (!u || !/\./.test(u)) return false;
   const key = dedupKey(u);
   const i = jobs.findIndex((j) => dedupKey(j.url) === key);
   if (i > -1) {
@@ -188,10 +191,8 @@ export function addJobDetailed(
   },
 ): string | null {
   const jobs = store.get();
-  let u = cleanUrl(rawUrl);
-  if (!u) return null;
-  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-  if (!/\./.test(u)) return null;
+  const u = normalizeJobUrl(rawUrl);
+  if (!u || !/\./.test(u)) return null;
   const key = dedupKey(u);
   if (jobs.some((j) => dedupKey(j.url) === key)) return null; // already saved
   const job: Job = {
@@ -228,6 +229,12 @@ export function removeJob(url: string) {
 export function isSaved(url: string): boolean {
   const key = dedupKey(cleanUrl(url));
   return store.get().some((j) => dedupKey(j.url) === key);
+}
+
+/** The saved job a pasted link points at (cleaned the way addJob cleans it), or undefined. */
+export function findJobByUrl(rawUrl: string): Job | undefined {
+  const key = dedupKey(normalizeJobUrl(rawUrl));
+  return store.get().find((j) => dedupKey(j.url) === key);
 }
 
 /** The saved job a route's id points at, or undefined (unknown, removed, or not synced yet). */

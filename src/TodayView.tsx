@@ -15,9 +15,10 @@ import {
   useToast,
 } from '@hirobius/design-system';
 import { Form, Page, PageHeader } from '@hirobius/design-system/patterns';
-import { addJob, isSaved, jobIdOf, logFollowUp, prettyTitle, useJobs } from './store';
+import { addJob, findJobByUrl, jobIdOf, logFollowUp, useJobs } from './store';
 import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
-import { dueFollowUps, upcomingEvents, type AgendaItem } from './jobEvents';
+import { dueFollowUps, KIND_WORD, upcomingEvents, ymd } from './jobEvents';
+import { jobHash } from './route';
 import type { Job } from './types';
 import Insights from './Insights';
 import TodayNotice from './TodayNotice';
@@ -26,19 +27,9 @@ import { SampleBanner, TrySampleButton } from './demo/SampleData';
 
 const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
-const KIND_WORD: Record<AgendaItem['kind'], string> = {
-  interview: 'Interview',
-  call: 'Call',
-  other: 'Event',
-};
 
-const jobHref = (url: string) => `#/queue/${jobIdOf(url)}`;
+const jobHref = (url: string) => jobHash(jobIdOf(url));
 const days = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`;
-
-function ymd(d: Date) {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
 
 /** "Today", "Tomorrow", else "Fri, Oct 16". */
 function dayLabel(date: string, now: Date) {
@@ -96,17 +87,19 @@ function Section({
 }
 
 function QuickAdd() {
-  const { toast } = useToast();
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
+  // The last add, with a link to its job. A toast can't carry one (HDS Toast has no action slot),
+  // so the outcome stays here, under the field, until the next add.
+  const [last, setLast] = useState<{ job: Job; added: boolean } | null>(null);
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const u = url.trim();
     if (!u) return;
-    if (addJob(u))
-      toast({ title: 'Saved to your Pipeline', description: prettyTitle(u), tone: 'success' });
-    else if (isSaved(u)) toast({ title: 'Already in your Pipeline', tone: 'info' });
-    else return setError("That doesn't look like a link. Paste the job posting's URL.");
+    const added = addJob(u);
+    const job = findJobByUrl(u);
+    if (!job) return setError("That doesn't look like a link. Paste the job's web address.");
+    setLast({ job, added });
     setUrl('');
   };
   return (
@@ -132,6 +125,18 @@ function QuickAdd() {
           Add
         </Button>
       </Stack>
+      {last && (
+        <Text
+          variant="caption"
+          as="p"
+          role="status"
+          aria-label="Quick add"
+          style={{ ...SECONDARY, margin: 0 }}
+        >
+          {last.added ? 'Saved to your Pipeline: ' : 'Already in your Pipeline: '}
+          <InlineLink href={jobHref(last.job.url)}>{last.job.label}</InlineLink>
+        </Text>
+      )}
     </Form>
   );
 }
@@ -180,7 +185,6 @@ export default function TodayView() {
                     notes={[[job.company, sinceNote(job, now)].filter(Boolean).join(' · ')]}
                     trailing={
                       <Button
-                        size="sm"
                         variant="secondary"
                         aria-label={`Log follow-up: ${job.label}`}
                         onClick={() => {
@@ -205,8 +209,8 @@ export default function TodayView() {
               count={upcoming.length}
               empty="Nothing scheduled. Log interviews and calls on a job's page."
             >
-              {upcoming.map((it, i) => (
-                <li key={`${it.jobUrl}-${it.date}-${it.time ?? ''}-${i}`}>
+              {upcoming.map((it) => (
+                <li key={`${it.jobUrl}-${it.id}`}>
                   <StatusListItem
                     tone={it.kind === 'interview' ? 'info' : 'neutral'}
                     title={`${KIND_WORD[it.kind]} · ${it.label}`}
@@ -215,7 +219,7 @@ export default function TodayView() {
                       [it.company, it.note].filter(Boolean).join(' · '),
                     ].filter(Boolean)}
                     trailing={
-                      <Button asChild size="sm" variant="tertiary">
+                      <Button asChild variant="tertiary">
                         <a href={jobHref(it.jobUrl)} aria-label={`Open job: ${it.label}`}>
                           Open job
                         </a>

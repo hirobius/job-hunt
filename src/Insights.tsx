@@ -1,10 +1,11 @@
-// Today's Insights band (#128): the pipeline's headline numbers as MetricTiles (with a trend line)
-// and a stage funnel as Progress rows, in one Disclosure whose open state is kept per device.
+// Today's Insights band (#128): the pipeline's headline numbers as metric tiles (with a trend line)
+// and a funnel as Progress rows (how many jobs reached each Status), in one Disclosure whose open state is kept per device.
 // Composes the existing pure read models (metrics.ts, funnel.ts); weekly bars wait for an HDS chart
 // primitive (#133).
 import { useState } from 'react';
-import { Disclosure, Grid, Progress, Stack, Text } from '@hirobius/design-system';
+import { Disclosure, Progress, Stack, Text } from '@hirobius/design-system';
 import { MetricTile } from '@hirobius/design-system/patterns';
+import MetricTilesAutoFit from './hds-gaps/MetricTilesAutoFit';
 import { pipelineMetrics, vsWeekBefore } from './metrics';
 import { computeFunnel } from './funnel';
 import { VERDICTS } from './screening';
@@ -28,8 +29,9 @@ export default function Insights({ jobs }: { jobs: Job[] }) {
   const m = pipelineMetrics(jobs, new Date());
   const f = computeFunnel(jobs);
   const total = jobs.length;
-  const stages = [
-    { label: 'Saved', count: total },
+  // The funnel: all jobs, then how many reached each Status.
+  const reached = [
+    { label: 'All jobs', count: total },
     { label: 'Applied', count: m.appliedTotal },
     { label: 'Interviewed', count: m.interviewed },
     { label: 'Offer', count: m.offered },
@@ -57,10 +59,7 @@ export default function Insights({ jobs }: { jobs: Job[] }) {
       }}
     >
       <Stack gap="normal">
-        {/* MetricTiles fixes min(n, 4) columns at every width, so four tiles squeeze into 80px
-            columns on a phone. An auto-fit Grid of the same MetricTile wraps to 2 × 2 there and
-            stays one row at desktop (HDS gap, filed with the Phase 7 asks, #133). */}
-        <Grid layout="auto-fit" minItemWidth="9rem" gap="tight" align="stretch">
+        <MetricTilesAutoFit>
           <MetricTile
             label="Applied, last 7 days"
             value={m.appliedLast7}
@@ -83,13 +82,13 @@ export default function Insights({ jobs }: { jobs: Job[] }) {
             value={median}
             sub={m.medianDaysToResponse == null ? 'No replies yet' : 'days to first reply'}
           />
-        </Grid>
+        </MetricTilesAutoFit>
         <section aria-labelledby="insights-funnel">
           <Stack gap="tight">
             <Text variant="ui" as="h3" id="insights-funnel" style={{ margin: 0, fontWeight: 600 }}>
               Funnel
             </Text>
-            {stages.map((s) => (
+            {reached.map((s) => (
               <Stack key={s.label} gap="px4">
                 <Stack direction="row" justify="space-between" align="center">
                   <Text variant="ui" as="span">
