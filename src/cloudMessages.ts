@@ -15,6 +15,10 @@ export const TRACK_WRITE_FAILED = {
 export const UNSYNCED_SIGN_OUT =
   'Some of your tracks haven’t reached the cloud yet. Signing out deletes them from this browser. Sign out anyway?';
 
+/** Outreach targets live on this device only (not synced), so sign-out's wipe removes them. */
+export const targetsSignOutMsg = (n: number) =>
+  `${n} saved outreach ${n === 1 ? 'target is' : 'targets are'} kept on this device only. Signing out deletes ${n === 1 ? 'it' : 'them'} from this browser. Sign out anyway?`;
+
 /** Child → parent, so erasure never depends on the FK cascade. */
 export const DELETE_ORDER = ['tiles', 'groups', 'categories', 'tracker'] as const;
 

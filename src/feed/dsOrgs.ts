@@ -21,6 +21,23 @@ export const PER_PAGE = 50;
 export const GH_CACHE_KEY = 'rjb_gh_cache';
 export const SEARCH_TTL_MS = 24 * 3600e3;
 export const ORG_TTL_MS = 7 * 86400e3;
+/** The most entries `rjb_gh_cache` keeps; a run adds at most 6 pages and 30 orgs. */
+export const GH_CACHE_MAX = 500;
+
+/** Drop expired (and unrecognised) entries, then keep the newest GH_CACHE_MAX, so the stored
+ *  cache can't only grow (#180 review). Search pages are `s:`, org lookups `o:`. */
+export function pruneGhCache<E extends { at: number }>(
+  cache: Record<string, E>,
+  now: number,
+): Record<string, E> {
+  const ttl = (k: string) =>
+    k.startsWith('s:') ? SEARCH_TTL_MS : k.startsWith('o:') ? ORG_TTL_MS : 0;
+  const live = Object.entries(cache).filter(
+    ([k, e]) => e && typeof e.at === 'number' && now - e.at < ttl(k),
+  );
+  live.sort((a, b) => b[1].at - a[1].at);
+  return Object.fromEntries(live.slice(0, GH_CACHE_MAX));
+}
 const GH_TIMEOUT_MS = 15_000;
 const QUERIES: string[][] = [['design-system', 'design-tokens'], ['design-system']];
 
@@ -321,9 +338,10 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
       yield target;
     }
   } finally {
-    if (dirty) {
+    const pruned = pruneGhCache(cache, now());
+    if (dirty || Object.keys(pruned).length !== Object.keys(cache).length) {
       try {
-        kv.set(GH_CACHE_KEY, JSON.stringify(cache));
+        kv.set(GH_CACHE_KEY, JSON.stringify(pruned));
       } catch {
         /* storage full: the next run just asks again */
       }

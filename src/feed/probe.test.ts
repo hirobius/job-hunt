@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryKv } from './fetchFeed';
 import {
+  MAX_IN_FLIGHT,
+  MAX_PER_HOST,
   PROBE_KEY,
   createLimiter,
   hostKey,
@@ -130,16 +132,22 @@ describe('createLimiter', () => {
         max = Math.max(max, now);
         perHost[h] = (perHost[h] ?? 0) + 1;
         maxHost = Math.max(maxHost, perHost[h]);
-        await slow(100)();
+        // Longer than the 150 ms host gap, so the caps (not the gap) are what bind.
+        await slow(1000)();
         now--;
         perHost[h]--;
       });
     });
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(60_000);
     await Promise.all(tasks);
-    expect(max).toBeLessThanOrEqual(6);
-    expect(maxHost).toBeLessThanOrEqual(2);
-    expect(max).toBeGreaterThan(1);
+    // Exact, so raising either default turns this red (#180 review).
+    expect(max).toBe(6);
+    expect(maxHost).toBe(2);
+  });
+
+  it('pins the politeness defaults', () => {
+    expect(MAX_IN_FLIGHT).toBe(6);
+    expect(MAX_PER_HOST).toBe(2);
   });
 
   it('leaves 150 ms between starts on one host', async () => {
@@ -243,6 +251,25 @@ describe('probeCompanies', () => {
     const [r] = await collect(probeCompanies(['Stripe'], { fetchJson: f, kv: memoryKv() }));
     expect(r.state).toBe('unknown');
     expect(r.unknown.map((b) => b.kind)).toEqual(['ashby']);
+  });
+
+  // #180 review: a company with no Recruitee subdomain fails DNS (status 0), which read as
+  // "Couldn't check". When the other ATSs answered, the network is up, so that is a miss.
+  it('counts a Recruitee connection failure as none when the other ATSs answered', async () => {
+    const f: FetchJson = async (url) => {
+      throw new FetchError(url.includes('recruitee') ? 0 : 404, url);
+    };
+    const [r] = await collect(probeCompanies(['Acme Labs'], { fetchJson: f, kv: memoryKv() }));
+    expect(r.state).toBe('missed');
+    expect(r.unknown).toEqual([]);
+  });
+
+  it('still reports unknown when nothing could be reached (offline)', async () => {
+    const f: FetchJson = async (url) => {
+      throw new FetchError(0, url);
+    };
+    const [r] = await collect(probeCompanies(['Acme Labs'], { fetchJson: f, kv: memoryKv() }));
+    expect(r.state).toBe('unknown');
   });
 
   it('keeps at most 6 requests in flight across 200 companies', async () => {
