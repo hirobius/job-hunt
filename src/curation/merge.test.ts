@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeCuration, localOnlyCuration, reconcileCuration } from './merge';
+import { mergeCuration, localOnlyCuration, reconcileCuration, applyPending } from './merge';
 import type { Category, CurationState, Group, Tile } from './types';
 
 // Minimal fixtures — id is all the merge cares about; other fields just prove which copy won.
@@ -136,9 +136,19 @@ describe('reconcileCuration — deletions elsewhere stay deleted', () => {
   });
 
   it('a local-only row older than the last sync was deleted elsewhere → dropped, not re-uploaded', () => {
-    const r = reconcileCuration(state([]), state([cat('c1', 'Deleted on B')]), AFTER);
-    expect(r.next.categories).toEqual([]);
+    const r = reconcileCuration(
+      state([cat('c2', 'Kept on B')]),
+      state([cat('c1', 'Deleted on B')]),
+      AFTER,
+    );
+    expect(r.next.categories.map((c) => c.id)).toEqual(['c2']);
     expect(r.upload.categories).toEqual([]);
+  });
+
+  it('an EMPTY cloud never drops local tracks, however old: they are kept and uploaded', () => {
+    const r = reconcileCuration(state([]), state([cat('c1', 'Never uploaded')]), AFTER);
+    expect(r.next.categories.map((c) => c.id)).toEqual(['c1']);
+    expect(r.upload.categories.map((c) => c.id)).toEqual(['c1']);
   });
 
   it('a local-only row created after the last sync is new here → kept + uploaded', () => {
@@ -159,12 +169,46 @@ describe('reconcileCuration — deletions elsewhere stay deleted', () => {
   it('children of a dropped parent are dropped too (no FK orphans uploaded)', () => {
     const newTile = { ...tile('t1', 'x'), createdAt: AFTER };
     const r = reconcileCuration(
-      state([]),
+      state([cat('c2', 'kept')]),
       state([cat('c1', 'gone')], [grp('g1', 'gone')], [newTile]),
       AFTER,
     );
-    expect(r.next).toEqual(state([], [], []));
+    expect(r.next).toEqual(state([cat('c2', 'kept')], [], []));
     expect(r.upload).toEqual(state([], [], []));
     expect(T0 < AFTER).toBe(true);
+  });
+});
+
+describe('applyPending (#168 review: refused writes are replayed, not reverted)', () => {
+  const st = (c: Category[], g: Group[] = [], t: Tile[] = []): CurationState => ({
+    categories: c,
+    groups: g,
+    tiles: t,
+  });
+  const none = { next: st([]), upload: st([]) };
+
+  it('a pending edit: the local row wins over the cloud copy and is uploaded', () => {
+    const cloudRow = cat('c1', 'old');
+    const localRow = cat('c1', 'NEW local edit');
+    const r = applyPending({ next: st([cloudRow]), upload: st([]) }, st([localRow]), [
+      { table: 'categories', id: 'c1', op: 'upsert' },
+    ]);
+    expect(r.next.categories.map((c) => c.label)).toEqual(['NEW local edit']);
+    expect(r.upload.categories.map((c) => c.label)).toEqual(['NEW local edit']);
+  });
+
+  it('a pending delete: the cloud row is removed and the delete re-sent', () => {
+    const r = applyPending({ next: st([cat('c1', 'x')]), upload: st([]) }, st([]), [
+      { table: 'categories', id: 'c1', op: 'delete' },
+    ]);
+    expect(r.next.categories).toEqual([]);
+    expect(r.deletes).toEqual([{ table: 'categories', id: 'c1' }]);
+  });
+
+  it('a pending child whose parent is gone is not uploaded (no FK orphans)', () => {
+    const r = applyPending(none, st([], [grp('g1', 'orphan')]), [
+      { table: 'groups', id: 'g1', op: 'upsert' },
+    ]);
+    expect(r.upload.groups).toEqual([]);
   });
 });

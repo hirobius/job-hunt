@@ -84,11 +84,20 @@ describe('syncOnLogin against a fake Supabase', () => {
 
 describe('deletions made elsewhere stay deleted (#99 review)', () => {
   it('a stale local track missing from the cloud is dropped, not re-uploaded', async () => {
+    f().tables.categories = [cloudCategory('kept', 'Kept elsewhere')];
     addCategory({ label: 'Deleted on another device', createdAt: '2026-01-01T00:00:00.000Z' });
     setCurationSyncedAt('2026-06-01T00:00:00.000Z');
     expect(await syncOnLogin('u1')).toBe(true);
-    expect(getCurationState().categories).toEqual([]);
-    expect(f().tables.categories ?? []).toEqual([]);
+    expect(getCurationState().categories.map((c) => c.label)).toEqual(['Kept elsewhere']);
+    expect(f().tables.categories.map((c) => c.label)).toEqual(['Kept elsewhere']);
+  });
+
+  it('an empty cloud keeps and uploads even stale local tracks (never wipes a board)', async () => {
+    addCategory({ label: 'Only here', createdAt: '2026-01-01T00:00:00.000Z' });
+    setCurationSyncedAt('2026-06-01T00:00:00.000Z');
+    expect(await syncOnLogin('u1')).toBe(true);
+    expect(getCurationState().categories.map((c) => c.label)).toEqual(['Only here']);
+    expect(f().tables.categories.map((c) => c.label)).toEqual(['Only here']);
   });
 
   it('a populated board re-syncs without flipping the onboarding gate to syncing', async () => {

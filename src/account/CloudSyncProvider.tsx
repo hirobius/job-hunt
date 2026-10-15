@@ -11,8 +11,19 @@ import { useSnippets, getSnippets, replaceSnippets } from '../copyDeckStore';
 import { useTileTriage, getTileTriage, replaceTriage } from '../tileTriage';
 import { readBlob, writeBlob, mergeBlob, type SyncData } from '../syncBlob';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
-import { getCurationSyncStatus, setCurationSyncStatus } from '../curation/syncStatus';
-import { OFFLINE_MSG, DELETE_ORDER, deleteFailedMsg } from '../cloudMessages';
+import {
+  getCurationSyncStatus,
+  onCurationWriteFailed,
+  setCurationSyncStatus,
+} from '../curation/syncStatus';
+import {
+  OFFLINE_MSG,
+  DELETE_ORDER,
+  deleteFailedMsg,
+  TRACK_WRITE_FAILED,
+  UNSYNCED_SIGN_OUT,
+} from '../cloudMessages';
+import { getPending, useFailedCount } from '../curation/pending';
 import { CloudSyncContext, type CloudSyncApi } from './accountContext';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
@@ -154,6 +165,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Sign out clears local data (then reloads to a clean slate). Cloud data is untouched
   // and restored on next sign-in; this only protects shared devices.
   const signOut = async () => {
+    // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
+    if (getPending().length > 0 && !window.confirm(UNSYNCED_SIGN_OUT)) return;
     await supa.auth.signOut();
     clearLocalData();
     location.reload();
@@ -207,7 +220,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // A failed pull/push is a toast once per outage (not a banner): focus re-pulls and Retry
   // flip the status through "Refreshing…" but don't re-toast until a sync has succeeded again.
   // The account menu keeps the status line and a Retry while the outage lasts.
-  const offline = msg === OFFLINE_MSG;
+  // Tracks keep their own sync state (pending.ts), so a later good jobs push can't hide Retry.
+  const tracksFailed = useFailedCount();
+  const offline = msg === OFFLINE_MSG || tracksFailed > 0;
   const toastRef = useRef(toast);
   const outageToasted = useRef(false);
   useEffect(() => {
@@ -220,6 +235,23 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     toastRef.current({ title: 'Sync paused', description: OFFLINE_MSG, tone: 'warning' });
   }, [msg]);
 
+  // A track change the cloud refused: one toast per burst (a starter pack writes many rows), with
+  // Retry sync in the account menu until every refused write is delivered (the next sync replays
+  // them, sync.ts). A new burst after that toasts again.
+  const trackToasted = useRef(false);
+  useEffect(() => {
+    if (tracksFailed === 0) trackToasted.current = false;
+  }, [tracksFailed]);
+  useEffect(
+    () =>
+      onCurationWriteFailed(() => {
+        if (trackToasted.current) return;
+        trackToasted.current = true;
+        toastRef.current({ ...TRACK_WRITE_FAILED, tone: 'warning' });
+      }),
+    [],
+  );
+
   // Stable unless what consumers read changes — the provider re-renders on every store change.
   const api: CloudSyncApi = useMemo(
     () => ({
@@ -227,7 +259,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       authResolved,
       // Signed out: settled once the session check answers. Signed in: no pull running and the
       // last one didn't fail — an offline device can't know a job is gone, so it doesn't decide.
-      settled: authResolved && (!user || (!pulling && !offline)),
+      // Track write failures don't count: they don't make a job's absence uncertain.
+      settled: authResolved && (!user || (!pulling && msg !== OFFLINE_MSG)),
       status: msg,
       offline,
       sendLink,
