@@ -13,21 +13,20 @@ import {
   InlineLink,
   Progress,
   Stack,
-  Tag,
+  Badge,
   Text,
   Textarea,
   useToast,
 } from '@hirobius/design-system';
 import { discoverBoards, MAX_LIST, parseList, type DiscoverResult } from './feed/discoverBoards';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
-import { createFetchJson, liveFetchJson } from './feed/fetchFeed';
+import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
+import { liveFetchJson } from './feed/fetchFeed';
+import { probeFetchJson } from './feed/probeFetch';
 import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
 import { SOURCE_LABEL } from './feed/types';
 import { addBoardTiles, watchBoard } from './feed/watchlist';
 import { batchLabel, fetchBatch, recentBatches, ycLines, YC_CREDIT } from './feed/yc';
-
-/** Probes never cache a body: a board's payload is not worth keeping, only the answer is (rjb_probe). */
-const probeFetchJson = createFetchJson({ budgetChars: 0 });
 
 const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 const EMPTY: DiscoverResult = {
@@ -166,14 +165,16 @@ export default function FindBoardsPanel({
           <Text variant="title" as="h3">
             Start from a YC batch
           </Text>
-          <SegmentedControl
-            aria-label="YC batch"
-            size="sm"
-            value={batch}
-            onChange={setBatch}
-            options={recentBatches(new Date()).map((b) => ({ value: b, label: batchLabel(b) }))}
-          />
-          <Stack direction="row" gap="xs" align="center" wrap="wrap">
+          <TabsOverflowFade value={batch}>
+            <SegmentedControl
+              aria-label="YC batch"
+              size="sm"
+              value={batch}
+              onChange={setBatch}
+              options={recentBatches(new Date()).map((b) => ({ value: b, label: batchLabel(b) }))}
+            />
+          </TabsOverflowFade>
+          <Stack direction="row" gap="inset" align="center" wrap="wrap">
             <Button
               size="sm"
               variant="secondary"
@@ -276,7 +277,7 @@ export default function FindBoardsPanel({
                           {f.company}
                         </InlineLink>
                       </Text>
-                      <Tag>{SOURCE_LABEL[f.board.kind]}</Tag>
+                      <Badge>{SOURCE_LABEL[f.board.kind]}</Badge>
                     </Stack>
                     {f.jobs !== undefined && (
                       <Text variant="caption" style={SECONDARY}>

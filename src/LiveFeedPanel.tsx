@@ -40,6 +40,7 @@ import { postedAgo } from './feed/format';
 import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
 import { groupByCompany, type CompanyGroup } from './feed/byCompany';
 import { useHashView } from './hashView';
+import { SavedTargets } from './OutreachRows';
 import { deleteFilter, readFilters, saveFilter, type SavedFilter } from './feed/savedFilters';
 import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
 import { boardsForPack, packIdForLabel } from './curation/starterPacks';
@@ -715,6 +716,11 @@ export default function LiveFeedPanel({
                   onSave={() => save(p)}
                 />
               ))}
+            </Box>
+          )}
+          {byCompany && (
+            <Box sx={{ mt: 'md' }}>
+              <SavedTargets categoryId={categoryId} boardUrls={boardUrls} />
             </Box>
           )}
           {/* One line, once, instead of a fit badge missing from every row. */}

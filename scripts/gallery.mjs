@@ -162,6 +162,60 @@ async function shoot(browser, base, theme, width, manifest) {
       /* storage blocked */
     }
   }, theme);
+  // Discovery tools call public APIs; answer them with canned bodies so the populated screens can be
+  // shot offline (Find boards, Design-system teams). Everything else is untouched.
+  const cors = { 'access-control-allow-origin': '*', 'content-type': 'application/json' };
+  const canned = (body, status = 200, extra = {}) => ({
+    status,
+    headers: { ...cors, ...extra },
+    body: JSON.stringify(body),
+  });
+  const ghRepo = (login, stars) => ({
+    full_name: `${login}/design-system`,
+    html_url: `https://github.com/${login}/design-system`,
+    stargazers_count: stars,
+    topics: ['design-system'],
+    archived: false,
+    fork: false,
+    owner: { login, type: 'Organization' },
+  });
+  await ctx.route('https://api.github.com/**', (r) => {
+    const u = r.request().url();
+    if (u.includes('/search/repositories'))
+      return r.fulfill(
+        canned({
+          items: [ghRepo('figma', 4200), ghRepo('quietco', 900), ghRepo('acme-design-labs', 310)],
+        }),
+      );
+    if (u.endsWith('/orgs/figma')) return r.fulfill(canned({ name: 'Figma', blog: 'figma.com' }));
+    if (u.endsWith('/orgs/quietco'))
+      return r.fulfill(canned({ name: 'Quiet Company', blog: 'quiet.example' }));
+    return r.fulfill(canned({ name: 'Acme Design Labs' }));
+  });
+  await ctx.route('https://boards-api.greenhouse.io/**', (r) =>
+    r.request().url().includes('/boards/figma/')
+      ? r.fulfill(canned({ jobs: [{}, {}, {}, {}] }))
+      : r.fulfill(canned({}, 404)),
+  );
+  await ctx.route('https://api.lever.co/**', (r) =>
+    r.request().url().includes('/postings/plaid')
+      ? r.fulfill(canned([{}]))
+      : r.fulfill(canned({}, 404)),
+  );
+  await ctx.route(
+    /https:\/\/(api\.ashbyhq\.com|apply\.workable\.com|api\.eu\.lever\.co|[a-z0-9-]+\.recruitee\.com)\/.*/,
+    (r) => r.fulfill(canned({}, 404)),
+  );
+  await ctx.route('https://yc-oss.github.io/**', (r) =>
+    r.fulfill(
+      canned([
+        { name: 'Figma', status: 'Active', isHiring: true },
+        { name: 'Plaid', status: 'Active', isHiring: true },
+        { name: 'Nobody Labs', status: 'Active', isHiring: false },
+        { name: 'Flaky Inc', status: 'Active', isHiring: false },
+      ]),
+    ),
+  );
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -228,6 +282,34 @@ async function shoot(browser, base, theme, width, manifest) {
       for (const label of labels.slice(1)) {
         await tools.getByRole('radio', { name: label, exact: true }).click();
         await snap(`${tab} · ${label}`);
+      }
+      // The discovery tools, populated: a YC batch through the board probe, and GitHub teams.
+      if (labels.some((l) => /^(Find boards|Boards)$/.test(l))) {
+        await tools.getByRole('radio', { name: /^(Find boards|Boards)$/ }).click();
+        if (await clickIf(page, 'button', /^Load batch$/)) {
+          await page.waitForTimeout(500);
+          if (await clickIf(page, 'button', /^Find boards$/)) {
+            await page
+              .getByText(/\d+ of \d+ checked/)
+              .first()
+              .waitFor({ timeout: 20000 })
+              .catch(() => {});
+            await page.waitForTimeout(4000);
+            await snap(`${tab} · Boards found`);
+          }
+        }
+      }
+      if (labels.some((l) => /^(Design-system teams|Teams)$/.test(l))) {
+        await tools.getByRole('radio', { name: /^(Design-system teams|Teams)$/ }).click();
+        if (await clickIf(page, 'button', /^Find design-system teams$/)) {
+          await page
+            .getByText(/\d+ teams? found/)
+            .first()
+            .waitFor({ timeout: 20000 })
+            .catch(() => {});
+          await clickIf(page, 'button', /^Save as target/);
+          await snap(`${tab} · Teams found`);
+        }
       }
       // Back to the default tool, so the overlays below open on Apply now.
       if (labels[0]) await tools.getByRole('radio', { name: labels[0], exact: true }).click();

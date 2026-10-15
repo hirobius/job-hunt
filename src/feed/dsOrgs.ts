@@ -191,7 +191,7 @@ const readCache = (kv: KeyValue): Record<string, CacheEntry> => {
 };
 
 export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<OrgTarget> {
-  const { fetchJson, budget, report, signal } = opts;
+  const { budget, report, signal } = opts;
   const ghGet = opts.ghGet ?? liveGhGet;
   const kv = opts.kv ?? browserKv();
   const now = opts.now ?? Date.now;
