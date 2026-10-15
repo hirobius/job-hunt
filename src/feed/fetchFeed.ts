@@ -165,7 +165,7 @@ export function describeError(e: unknown, label: string, isBoard: boolean): stri
 
 /** Promise.allSettled over thunks, with `limited` tasks run at most BOARD_CONCURRENCY at a time.
  *  The rest (HN, Remotive) start at once. */
-async function settleAll<T>(
+export async function settleAll<T>(
   thunks: (() => Promise<T>)[],
   limited: (i: number) => boolean,
 ): Promise<PromiseSettledResult<T>[]> {

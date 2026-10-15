@@ -176,9 +176,16 @@ export function parseAshbyJob(j: unknown, slug: string): Posting | null {
   };
 }
 
+/** The raw job list inside a board payload; null when the payload isn't shaped like that board's
+ *  (so a caller can tell "no openings" from "not a board response"). */
+export function boardJobs(b: Board, body: unknown): unknown[] | null {
+  const list = b.kind === 'lever' ? body : obj(body).jobs;
+  return Array.isArray(list) ? list : null;
+}
+
 export async function fetchBoard(b: Board, fetchJson: FetchJson): Promise<Posting[]> {
   const body = await fetchJson(boardApiUrl(b));
-  const jobs = b.kind === 'lever' ? arr(body) : arr(obj(body).jobs);
+  const jobs = boardJobs(b, body) ?? [];
   const parse = { greenhouse: parseGreenhouseJob, lever: parseLeverJob, ashby: parseAshbyJob }[
     b.kind
   ];
