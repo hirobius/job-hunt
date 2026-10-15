@@ -60,3 +60,22 @@ describe('HDS version pin (#115 Phase 0)', () => {
     expect(pkg.dependencies['@hirobius/design-system']).toMatch(/^\d+\.\d+\.\d+$/);
   });
 });
+
+// Discover redesign (#131): the new Discover parts add no inline `style={{` beyond what they have
+// today (HDS gaps and one-off type tweaks only). Lower a ceiling when you remove one; raising it
+// means a Stack, Box sx or token would have done.
+describe('Discover inline style ceilings (#131)', () => {
+  const CEILINGS: Record<string, number> = {
+    'DiscoverView.tsx': 9,
+    'DiscoverHeader.tsx': 1,
+    'LocationControl.tsx': 3,
+    'TileGrid.tsx': 5,
+    'LiveFeedPanel.tsx': 19,
+    'FeedFit.tsx': 5,
+    'hds-gaps/AsyncState.tsx': 0,
+  };
+  it.each(Object.entries(CEILINGS))('%s stays at or under %i', (file, max) => {
+    const n = (readFileSync(join(SRC, file), 'utf8').match(/style=\{\{/g) ?? []).length;
+    expect(n).toBeLessThanOrEqual(max);
+  });
+});
