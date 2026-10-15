@@ -123,7 +123,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         foldIntoStore(legacy);
         curationOk = await syncOnLogin(u.id);
       }
-      if (seed || next.legacyUserTiles.length) await pushNow(u);
+      // A pre-v5 cloud copy lacks the v5 fields (an old tab rewrote it): re-upload them now.
+      if (seed || next.legacyUserTiles.length || next.sourceV < BLOB_VERSION) await pushNow(u);
       if (!curationOk) setMsg(OFFLINE_MSG);
       else if (!seed) setMsg(`Synced · ${u.email}`);
     } catch {

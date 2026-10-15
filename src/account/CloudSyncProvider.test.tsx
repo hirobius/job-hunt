@@ -429,6 +429,25 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       await waitFor(() => expect(fake().tables.tracker[0].data.targets.trk).toHaveLength(2));
     });
 
+    it('an old-deploy tab that strips the v5 fields gets them re-uploaded on the next refresh', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(edit);
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
+      // An old client rewrites the row without the new fields.
+      fake().tables.tracker[0].data = { v: 4, jobs: [], copydeck: [], triage: { dismissed: [] } };
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
+      expect(fake().tables.tracker[0].data).toMatchObject({
+        v: 5,
+        evidence: 'Led a design system',
+        modes: { trk: 'hybrid' },
+      });
+    });
+
     it('a v4 cloud blob (no new fields) never wipes this device on sign-in or refresh', async () => {
       fake().tables.tracker = [
         {
