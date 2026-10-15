@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  CACHE_BUDGET_CHARS,
   createFetchJson,
   describeError,
   BOARD_CONCURRENCY,
@@ -23,6 +24,10 @@ const res = (status: number, body: unknown = {}) =>
   }) as Response;
 
 describe('createFetchJson', () => {
+  it('defaults the session cache to a 16 MB budget', () => {
+    expect(CACHE_BUDGET_CHARS).toBe(16_000_000);
+  });
+
   // #178 review: 133 boards are ~245 MB of raw JSON; a phone can't hold them all for an hour.
   it('keeps the cache under its byte budget, dropping the least recently used body', async () => {
     const big = (n: number) => ({ pad: 'x'.repeat(n) });
@@ -417,5 +422,43 @@ describe('Remotive request budget (its API terms: at most ~4 requests a day)', (
     t = 24 * 3600e3 + 1;
     await fetchFeed({ term: 'next day', boardUrls: [] }, remotiveOnly(calls), opts);
     expect(calls).toHaveLength(REMOTIVE_DAILY_MAX + 1);
+  });
+});
+
+describe('per-source hard timeout and single-source retry (#131)', () => {
+  const hung = () => new Promise<never>(() => {});
+  const okJson = async (url: string) =>
+    url.includes('search_by_date')
+      ? { hits: [] }
+      : url.includes('hn.algolia')
+        ? { hits: [] }
+        : { jobs: [] };
+
+  it('marks a source that never answers as timed out, without blocking the others', async () => {
+    const fetchJson = vi.fn(async (url: string) =>
+      url.includes('remotive.com') ? hung() : okJson(url),
+    );
+    const out = await fetchFeed({ term: 'design engineer', boardUrls: [] }, fetchJson, {
+      sourceTimeoutMs: 30,
+      sources: NO_AGGREGATORS,
+    });
+    expect(out.sources).toContainEqual({
+      key: 'remotive',
+      label: 'Remotive',
+      fetched: 0,
+      error: 'Remotive: timed out — try again later.',
+    });
+    expect(out.sources.find((s) => s.key === 'hn')?.error).toBeUndefined();
+  });
+
+  it('reads only the named sources when asked to retry them', async () => {
+    const fetchJson = vi.fn(okJson);
+    const out = await fetchFeed(
+      { term: 'design engineer', boardUrls: ['https://jobs.ashbyhq.com/ramp'], only: ['remotive'] },
+      fetchJson,
+      { sources: NO_AGGREGATORS },
+    );
+    expect(out.sources.map((s) => s.key)).toEqual(['remotive']);
+    expect(fetchJson.mock.calls.every(([u]) => String(u).includes('remotive.com'))).toBe(true);
   });
 });

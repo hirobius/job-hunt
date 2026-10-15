@@ -299,3 +299,92 @@ describe('LiveFeedPanel', () => {
     expect(getCurationState().tiles.map((t) => t.url)).toEqual(['https://jobs.ashbyhq.com/ramp']);
   });
 });
+
+describe('LiveFeedPanel states (#131)', () => {
+  const FAILED: FeedResult = {
+    postings: [],
+    sources: [
+      {
+        key: 'hn',
+        label: 'Hacker News',
+        fetched: 0,
+        error: 'Hacker News: timed out — try again later.',
+      },
+      {
+        key: 'remotive',
+        label: 'Remotive',
+        fetched: 0,
+        error: 'Remotive: timed out — try again later.',
+      },
+    ],
+  };
+
+  it('loads with skeleton rows and a status line, never a bare spinner', async () => {
+    feed.fetchFeed.mockImplementationOnce(() => new Promise(() => {}));
+    renderPanel();
+    expect(
+      await screen.findByText(/Pulling live openings for “design systems”/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('a thrown feed is an error with a Retry that searches again', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockRejectedValueOnce(new Error('boom'));
+    renderPanel();
+    expect(await screen.findByText(/The feed failed unexpectedly/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('list', { name: /live postings/i })).toBeInTheDocument();
+    expect(feed.fetchFeed).toHaveBeenCalledTimes(2);
+  });
+
+  it('every source failing offers Retry for the whole search', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValueOnce(FAILED);
+    renderPanel();
+    expect(await screen.findByText("Couldn't reach any source")).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('list', { name: /live postings/i })).toBeInTheDocument();
+    expect(screen.queryByText("Couldn't reach any source")).toBeNull();
+  });
+
+  it('says it is offline when the browser is', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    feed.fetchFeed.mockResolvedValueOnce(FAILED);
+    renderPanel();
+    expect(await screen.findByText('You’re offline')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+
+  it('a partly failed read names the source and retries only that one', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    expect(screen.getByText(/Remotive: rate-limited/)).toBeInTheDocument();
+    feed.fetchFeed.mockResolvedValueOnce({
+      postings: [],
+      sources: [{ key: 'remotive', label: 'Remotive', fetched: 4 }],
+    });
+    await user.click(screen.getByRole('button', { name: 'Retry Remotive' }));
+    expect(feed.fetchFeed).toHaveBeenLastCalledWith(
+      expect.objectContaining({ term: 'design systems', only: ['remotive'] }),
+    );
+    await waitFor(() => expect(screen.queryByText(/Remotive: rate-limited/)).toBeNull());
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+  });
+
+  it('an empty result offers a broader term that focuses the search box', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValueOnce({
+      postings: [],
+      sources: [{ key: 'hn', label: 'Hacker News', fetched: 0 }],
+    });
+    renderPanel();
+    expect(
+      await screen.findByText(/No live openings mention “design systems”/),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Try a broader term' }));
+    expect(screen.getByLabelText('Search term')).toHaveFocus();
+  });
+});

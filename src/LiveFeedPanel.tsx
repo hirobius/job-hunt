@@ -4,7 +4,7 @@
 // evidence, each posting also gets a fit (Role Radar's engine, src/radar/). Nothing is stored until
 // the user saves a posting, which turns it into a tracked Job. Watching a board files a tile on the
 // track (src/feed/watchlist.ts).
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   Alert,
   Badge,
@@ -30,6 +30,8 @@ import { setTrackContext, useTrackContext } from './discoverContext';
 import { ContextCaption } from './LocationControl';
 import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
 import { fetchFeed, type FeedResult } from './feed/fetchFeed';
+import { mergeRetry } from './feed/mergeFeed';
+import AsyncState, { type AsyncStatus } from './hds-gaps/AsyncState';
 import { rankPostings } from './feed/match';
 import { applyTargeting, NO_TARGETING } from './feed/targeting';
 import type { Seniority } from './curation/types';
@@ -81,6 +83,11 @@ export default function LiveFeedPanel({
   const [input, setInput] = useState(terms[0] ?? '');
   const [term, setTerm] = useState(terms[0] ?? '');
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  /** Bumped by Retry so the same term and boards are read again. */
+  const [attempt, setAttempt] = useState(0);
+  /** Source keys a per-source Retry is reading right now. */
+  const [retrying, setRetrying] = useState<string[]>([]);
+  const searchRef = useRef<HTMLInputElement>(null);
   const [focus, setFocus] = useState<Focus>('all');
   const [shown, setShown] = useState(PAGE);
   const [watchUrl, setWatchUrl] = useState('');
@@ -156,7 +163,7 @@ export default function LiveFeedPanel({
       alive = false;
       clearTimeout(timer);
     };
-  }, [term, boardsKey]);
+  }, [term, boardsKey, attempt]);
 
   const current = loaded && loaded.term === term && loaded.boardsKey === boardsKey ? loaded : null;
   const reading = current?.reading;
@@ -301,7 +308,73 @@ export default function LiveFeedPanel({
   const allFailed =
     !reading &&
     !!current?.result?.sources.length &&
+    current.result.postings.length === 0 &&
     errors.length === current.result.sources.length;
+  const status: AsyncStatus = loading
+    ? 'loading'
+    : current?.error || allFailed
+      ? 'error'
+      : !term.trim() || ranked.length === 0
+        ? 'empty'
+        : 'ready';
+
+  // Retry the whole search: forget what is on screen and read every source again.
+  const retryAll = () => {
+    setLoaded(null);
+    setAttempt((n) => n + 1);
+  };
+  // Retry only the named sources and fold their answers into what is showing.
+  const retrySources = (keys: string[]) => {
+    setRetrying((r) => [...r, ...keys]);
+    const forTerm = term;
+    const forBoards = boardsKey;
+    fetchFeed({
+      term: forTerm,
+      boardUrls: forBoards ? forBoards.split('\n') : [],
+      only: keys,
+    })
+      .then((patch) =>
+        setLoaded((prev) =>
+          prev && prev.term === forTerm && prev.boardsKey === forBoards && prev.result
+            ? { ...prev, result: mergeRetry(prev.result, patch) }
+            : prev,
+        ),
+      )
+      .catch(() => {})
+      .finally(() => setRetrying((r) => r.filter((k) => !keys.includes(k))));
+  };
+  const failedRow = (s: { key: string; label: string; error?: string }) => (
+    <Stack key={s.key} direction="row" gap="xs" align="center" wrap="wrap">
+      <Box>{s.error}</Box>
+      <Button
+        size="sm"
+        variant="tertiary"
+        disabled={retrying.includes(s.key)}
+        aria-label={`Retry ${s.label}`}
+        onClick={() => retrySources([s.key])}
+      >
+        {retrying.includes(s.key) ? 'Retrying…' : 'Retry'}
+      </Button>
+    </Stack>
+  );
+  const emptyState = !term.trim() ? (
+    <EmptyState message="Type a search term or pick one of this track's terms." />
+  ) : ranked.length === 0 && matched.length > 0 ? (
+    <EmptyState
+      title="Everything is hidden by your filters"
+      message="Loosen what you left out, the level or the pay floor to see them again."
+    />
+  ) : (
+    <EmptyState
+      title={`No live openings mention “${term}” right now`}
+      message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
+      action={
+        <Button variant="secondary" size="sm" onClick={() => searchRef.current?.focus()}>
+          Try a broader term
+        </Button>
+      }
+    />
+  );
 
   return (
     <Box>
@@ -325,6 +398,7 @@ export default function LiveFeedPanel({
         <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
           <HdsInput
             size="sm"
+            ref={searchRef}
             label="Search term"
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -499,25 +573,21 @@ export default function LiveFeedPanel({
         />
       </Box>
 
-      {errors.length > 0 && (
+      {errors.length > 0 && !allFailed && (
         <Box sx={{ mb: 3 }}>
           <Alert
             tone="warning"
             title={
-              errors.length > 3
+              errors.length > 2
                 ? `${errors.length} sources didn’t respond`
                 : 'Some sources didn’t respond'
             }
           >
             {/* Many boards can fail at once (a blocker, an outage): keep the list behind a disclosure. */}
-            {errors.length > 3 ? (
-              <Disclosure label="Show which ones">
-                {errors.map((s) => (
-                  <Box key={s.key}>{s.error}</Box>
-                ))}
-              </Disclosure>
+            {errors.length > 2 ? (
+              <Disclosure label="Show which ones">{errors.map(failedRow)}</Disclosure>
             ) : (
-              errors.map((s) => <Box key={s.key}>{s.error}</Box>)
+              errors.map(failedRow)
             )}
           </Alert>
         </Box>
@@ -541,43 +611,25 @@ export default function LiveFeedPanel({
         </Stack>
       )}
 
-      {loading ? (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: 'xs',
-            alignItems: 'center',
-            py: 'md',
-          }}
-        >
-          <Spinner size="sm" label="Loading live postings" />
-          <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
-            {reading
-              ? `Read ${reading.done} of ${reading.total} boards, nothing matching yet…`
-              : `Pulling live openings for “${term}”…`}
-          </Text>
-        </Box>
-      ) : current?.error ? (
-        <Alert tone="danger">{current.error}</Alert>
-      ) : !term.trim() ? (
-        <EmptyState message="Type a search term or pick one of this track's terms." />
-      ) : allFailed ? (
-        <EmptyState
-          title="Couldn't reach any source"
-          message="Check your internet connection or try again later."
-        />
-      ) : ranked.length === 0 && matched.length > 0 ? (
-        <EmptyState
-          title="Everything is hidden by your filters"
-          message="Loosen what you left out, the level or the pay floor to see them again."
-        />
-      ) : ranked.length === 0 ? (
-        <EmptyState
-          title={`No live openings mention “${term}” right now`}
-          message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
-        />
-      ) : (
+      <AsyncState
+        status={status}
+        onRetry={retryAll}
+        loadingLabel={
+          reading
+            ? `Read ${reading.done} of ${reading.total} boards, nothing matching yet…`
+            : `Pulling live openings for “${term}”…`
+        }
+        slowNote="Still trying: slow sources are skipped after 15 s"
+        error={
+          current?.error
+            ? { title: current.error }
+            : {
+                title: "Couldn't reach any source",
+                message: 'Check your internet connection or try again later.',
+              }
+        }
+        empty={emptyState}
+      >
         <Box>
           <Box sx={{ mb: 'xs' }}>
             <PatternsSummary patterns={patterns} />
@@ -667,7 +719,7 @@ export default function LiveFeedPanel({
             </Button>
           )}
         </Box>
-      )}
+      </AsyncState>
     </Box>
   );
 }
