@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-15T16:00:00Z",
+  "updatedAt": "2026-10-15T20:00:00Z",
   "phase": "live",
   "headline": "Live as Roleforge. Redesign #115: Today (#154) and Pipeline (#155) shipped; sync data-loss fixed (#162). Theme is pure HDS graphite (jade removed). Feature lock: tightening only. Cloud builds are budgeted — no [preview] or main merges unless Adrian asks (CLAUDE.md).",
   "next": [
-    "Redesign #115 (after the feature lock): job page (#130), Discover (#131), Templates/onboarding (#132), polish (#133).",
+    "Redesign #115 (after the feature lock): job page (#130), Discover (#131), polish (#133). Templates/onboarding (#132) is built on branch claude/jh-templates, awaiting review.",
     "After HDS lands: vite 8 + plugin-react 6, npm audit, React 19, jest-dom 7 (#105).",
     "Human / dashboard: #16 Vercel Analytics, #22 .env.example + revoke old key, #44 Supabase auth hardening, #17 stale branches, #55 name clearance.",
     "Legal (before public launch): #43 Privacy Policy + Terms."
