@@ -15,10 +15,11 @@ import type { Job } from './types';
 
 /** The job's one Notes field — kept in local state and committed on blur so every keystroke
  *  doesn't thrash the store/Supabase sync. Keyed by job url upstream so it re-seeds when the job
- *  changes. Jobs used to carry two (`note` from the card, `notes` from here); both stay in the
- *  data, and this field shows `notes`, else the older `note`. */
+ *  changes. Jobs carry two: `note` (where it was saved from) and `notes` (the user's). This edits
+ *  `notes`, showing `note` only when `notes` is empty; when both are set `note` is a read-only
+ *  line above, so neither is ever hidden. */
 function NotesField({ job }: { job: Job }) {
-  const shown = job.notes ?? job.note ?? '';
+  const shown = job.notes || job.note || '';
   const [draft, setDraft] = useState(shown);
   return (
     <Textarea
@@ -158,6 +159,20 @@ export function TodosNotes({ job }: { job: Job }) {
           {/* NOTES: the textarea carries its own label */}
           <Box>
             <Box sx={{ mt: 1.5 }}>
+              {job.notes && job.note && job.note !== job.notes && (
+                <Text
+                  variant="caption"
+                  as="p"
+                  style={{
+                    color: 'var(--semantic-color-content-secondary)',
+                    margin: 0,
+                    marginBottom: 'var(--primitive-space-2)',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  From when you saved it: {job.note}
+                </Text>
+              )}
               <NotesField key={job.url} job={job} />
             </Box>
           </Box>

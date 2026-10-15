@@ -233,11 +233,23 @@ describe('job page tabs (#130 slice 2)', () => {
     expect(getAllJobs()[0].notes).toBe('Ask about the shop floor');
   });
 
-  it('keeps showing a note saved the old way in the one Notes field', async () => {
+  it('never hides either note: both show on Overview, and To-dos edits notes with note read-only', async () => {
+    addJob(URL_A, 'Design Engineer', 'Found in Live postings · Remotive');
+    updateJob(URL_A, { notes: 'Ask about the shop floor' });
+    openJobPage();
+    expect(screen.getByText('Found in Live postings · Remotive')).toBeInTheDocument();
+    expect(screen.getByText('Ask about the shop floor')).toBeInTheDocument();
+    await userEvent.click(tab('To-dos'));
+    expect(screen.getByRole('textbox', { name: 'Notes' })).toHaveValue('Ask about the shop floor');
+    expect(screen.getByText(/From when you saved it: Found in Live postings/)).toBeInTheDocument();
+  });
+
+  it('with only the older note, the Notes field shows it and no duplicate line', async () => {
     addJob(URL_A, 'Design Engineer', 'Recruiter screen');
     openJobPage();
     await userEvent.click(tab('To-dos'));
     expect(screen.getByRole('textbox', { name: 'Notes' })).toHaveValue('Recruiter screen');
+    expect(screen.queryByText(/From when you saved it/)).toBeNull();
   });
 
   it('opens on Overview again when the job changes', async () => {

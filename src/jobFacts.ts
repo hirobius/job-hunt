@@ -27,6 +27,8 @@ export function jobFacts(job: Job, now: Date = new Date()): Fact[] {
     if (s.followUp.due) add('Follow-up', 'Due now');
     else if (s.followUp.daysUntil != null) add('Follow-up', `In ${s.followUp.daysUntil}d`);
   }
+  add('Saved with', job.note);
+  add('Notes', job.notes);
   add('Last follow-up', s.followUp.loggedDaysAgo != null ? ago(s.followUp.loggedDaysAgo) : null);
   return facts;
 }
