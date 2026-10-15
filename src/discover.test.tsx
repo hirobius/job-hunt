@@ -151,7 +151,7 @@ describe('Discover header and tools (slice 2)', () => {
       within(tools)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Apply', 'Titles', 'ATS', 'Live']);
+    ).toEqual(['Apply', 'Titles', 'ATS', 'Live', 'Boards']);
     expect(within(tools).getByRole('radio', { name: 'Apply' })).toBeChecked();
     await userEvent.click(within(tools).getByRole('radio', { name: 'ATS' }));
     expect(window.location.hash).toBe('#/discover/ats');

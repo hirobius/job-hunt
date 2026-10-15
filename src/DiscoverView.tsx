@@ -44,6 +44,7 @@ import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 
 const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
 const LiveFeedPanel = lazy(() => import('./LiveFeedPanel'));
+const FindBoardsPanel = lazy(() => import('./FindBoardsPanel'));
 
 // Discover reads the per-account CURATION STORE (categories→groups→tiles), not the old hardcoded
 // pillars (B1 / #30). A Category IS a track: its titles/atsRoles/seniority/location drive the
@@ -286,12 +287,13 @@ function AtsPanel({
 
 // The tools row is data-driven: adding a tool (e.g. "By company") is one entry here. Short labels
 // on a phone, full names from the HDS `sm` breakpoint up (docs/specs/discover.md, "Tools vs sections").
-type ToolKey = 'apply' | 'titles' | 'ats' | 'live';
+type ToolKey = 'apply' | 'titles' | 'ats' | 'live' | 'boards';
 const TOOLS: { key: ToolKey; label: string; short: string }[] = [
   { key: 'apply', label: 'Apply now', short: 'Apply' },
   { key: 'titles', label: 'Title search', short: 'Titles' },
   { key: 'ats', label: 'ATS search', short: 'ATS' },
   { key: 'live', label: 'Live postings', short: 'Live' },
+  { key: 'boards', label: 'Find boards', short: 'Boards' },
 ];
 
 export default function DiscoverView() {
@@ -458,6 +460,11 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             categoryId={cat.id}
             onManage={() => setManageOpen(true)}
           />
+        )}
+        {tool === 'boards' && (
+          <Suspense fallback={null}>
+            <FindBoardsPanel key={cat.id} categoryId={cat.id} boardUrls={boardUrls} />
+          </Suspense>
         )}
         {tool === 'live' && (
           <Suspense fallback={null}>
