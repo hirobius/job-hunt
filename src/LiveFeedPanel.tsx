@@ -18,9 +18,11 @@ import {
   Tag,
   useToast,
   Box,
+  Icon,
   Text,
   InlineLink,
 } from '@hirobius/design-system';
+import { X } from 'lucide-react';
 import EmptyState from './EmptyState';
 import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
 import LocationControl from './LocationControl';
@@ -35,6 +37,7 @@ import { postedAgo } from './feed/format';
 import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
 import { groupByCompany, type CompanyGroup } from './feed/byCompany';
 import { useHashView } from './hashView';
+import { deleteFilter, readFilters, saveFilter, type SavedFilter } from './feed/savedFilters';
 import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
 import { boardsForPack, packIdForLabel } from './curation/starterPacks';
 import { jobFieldsFor } from './feed/toJob';
@@ -95,6 +98,8 @@ export default function LiveFeedPanel({
   const [seniority, setSeniority] = useState<Seniority>(trackSeniority);
   const [floorText, setFloorText] = useState('');
   const [salaryOnly, setSalaryOnly] = useState(false);
+  const [saved, setSaved] = useState(() => readFilters(categoryId));
+  const [saveName, setSaveName] = useState('');
   const evidence = useMemo(() => parseEvidence(evidenceText), [evidenceText]);
 
   // The track's own watched boards, every distinct one (deduped in fetchFeed; there is no cap).
@@ -221,6 +226,36 @@ export default function LiveFeedPanel({
   const companies = useMemo(() => (byCompany ? groupByCompany(visible) : []), [byCompany, visible]);
   const jobs = useJobs();
   const savedKeys = useMemo(() => new Set(jobs.map((j) => dedupKey(j.url))), [jobs]);
+
+  const saveSearch = () => {
+    const name = saveName.trim();
+    if (!name) return;
+    setSaved(
+      saveFilter(categoryId, {
+        name,
+        term,
+        where,
+        mode,
+        exclude: targeting.exclude,
+        seniority,
+        salaryFloor: targeting.salaryFloor,
+        salaryOnly,
+        contractOnly: focus === 'contract',
+      }),
+    );
+    setSaveName('');
+    toast({ title: `Saved “${name}”`, tone: 'success' });
+  };
+  const applySaved = (f: SavedFilter) => {
+    setExcludeText(f.exclude.join(', '));
+    setSeniority(f.seniority);
+    setFloorText(f.salaryFloor ? String(f.salaryFloor) : '');
+    setSalaryOnly(f.salaryOnly);
+    setFocus(f.contractOnly ? 'contract' : 'all');
+    onWhere(f.where);
+    onMode(f.mode);
+    search(f.term);
+  };
 
   const search = (t: string) => {
     setInput(t);
@@ -361,6 +396,38 @@ export default function LiveFeedPanel({
           onChange={() => setSalaryOnly((v) => !v)}
         />
       </Box>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}>
+        <Box sx={{ width: 200 }}>
+          <HdsInput
+            size="sm"
+            label="Name this search"
+            placeholder="Austin contract"
+            value={saveName}
+            onChange={(e) => setSaveName(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </Box>
+        <Button size="sm" variant="secondary" disabled={!saveName.trim()} onClick={saveSearch}>
+          Save search
+        </Button>
+      </Box>
+      {saved.length > 0 && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', mb: 'xs' }}>
+          {saved.map((f) => (
+            <Box key={f.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Tag onClick={() => applySaved(f)}>{f.name}</Tag>
+              <Button
+                size="sm"
+                variant="tertiary"
+                iconOnly
+                iconLeft={<Icon icon={X} />}
+                label={`Remove saved search ${f.name}`}
+                onClick={() => setSaved(deleteFilter(categoryId, f.name))}
+              />
+            </Box>
+          ))}
+        </Box>
+      )}
       {hiddenNotes.length > 0 && (
         <Text
           variant="caption"
