@@ -203,3 +203,32 @@ describe('sanitizeLiveness (corrupt storage)', () => {
     expect(sanitizeLiveness([1, 2])).toEqual({});
   });
 });
+
+describe('boardOfJobUrl: Workable and Recruitee', () => {
+  it('extracts the posting ref', () => {
+    expect(boardOfJobUrl('https://apply.workable.com/acme/j/ABC123/')).toMatchObject({
+      board: { kind: 'workable', slug: 'acme' },
+      ref: 'ABC123',
+    });
+    expect(boardOfJobUrl('https://acme.recruitee.com/o/ui-engineer')).toMatchObject({
+      board: { kind: 'recruitee', slug: 'acme' },
+      ref: 'ui-engineer',
+    });
+    expect(boardOfJobUrl('https://apply.workable.com/acme')).toBeNull();
+    expect(boardOfJobUrl('https://acme.recruitee.com')).toBeNull();
+  });
+
+  it('checks a Recruitee job by its careers url, a Workable one by shortcode', async () => {
+    const rc = 'https://acme.recruitee.com/o/ui-engineer';
+    const wk = 'https://apply.workable.com/acme/j/ABC123/';
+    const fetchJson: FetchJson = async (u) =>
+      u.includes('recruitee')
+        ? { offers: [{ id: 1, title: 't', careers_url: rc }] }
+        : {
+            jobs: [{ shortcode: 'zzz', title: 't', url: 'https://apply.workable.com/acme/j/zzz/' }],
+          };
+    const out = await checkLive([job(rc), job(wk)], fetchJson, NOW);
+    expect(out.get(rc)!.state).toBe('open');
+    expect(out.get(wk)!.state).toBe('closed');
+  });
+});

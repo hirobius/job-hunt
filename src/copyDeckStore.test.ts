@@ -14,7 +14,9 @@ describe('copyDeckStore defaults', () => {
     const all = getSnippets();
     expect(all).toHaveLength(4);
     for (const s of all) {
-      expect(`${s.label}\n${s.body}`).not.toMatch(/Spokane|Air Force|veteran|\d{3}-\d{3}-\d{4}|welding/i);
+      expect(`${s.label}\n${s.body}`).not.toMatch(
+        /Spokane|Air Force|veteran|\d{3}-\d{3}-\d{4}|welding/i,
+      );
     }
   });
 

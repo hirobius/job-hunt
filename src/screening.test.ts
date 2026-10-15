@@ -24,7 +24,8 @@ describe('suggestVerdict', () => {
 });
 
 describe('blockerLabel', () => {
-  it('maps a known default id to its label', () => expect(blockerLabel('sql')).toBe('SQL required'));
+  it('maps a known default id to its label', () =>
+    expect(blockerLabel('sql')).toBe('SQL required'));
   it('returns the raw tag for a custom id', () =>
     expect(blockerLabel('night_shift')).toBe('night_shift'));
 });

@@ -1,4 +1,4 @@
-// Liveness: is a saved job still on its company's board? A saved Greenhouse, Lever or Ashby posting
+// Liveness: is a saved job still on its company's board? A saved Greenhouse, Lever, Ashby, Workable or Recruitee posting
 // can be pulled by the employer at any time, and nothing else tells you. This re-reads each job's
 // board (once per board, however many jobs it holds) and looks the job up by its posting ref.
 //
@@ -47,6 +47,12 @@ export function boardOfJobUrl(url: string): { board: Board; ref: string } | null
     case 'lever':
     case 'ashby':
       ref = seg[1];
+      break;
+    case 'workable':
+      ref = seg[1] === 'j' ? seg[2] : undefined;
+      break;
+    case 'recruitee':
+      ref = seg[0] === 'o' ? seg[1] : undefined;
       break;
   }
   return ref ? { board, ref } : null;

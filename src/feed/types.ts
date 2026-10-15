@@ -4,7 +4,15 @@
 import type { JobMode } from '../types';
 
 export type FeedSourceId =
-  'hn' | 'remotive' | 'jobicy' | 'remoteok' | 'greenhouse' | 'lever' | 'ashby';
+  | 'hn'
+  | 'remotive'
+  | 'jobicy'
+  | 'remoteok'
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'workable'
+  | 'recruitee';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
@@ -14,6 +22,8 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   greenhouse: 'Greenhouse',
   lever: 'Lever',
   ashby: 'Ashby',
+  workable: 'Workable',
+  recruitee: 'Recruitee',
 };
 
 export interface Posting {

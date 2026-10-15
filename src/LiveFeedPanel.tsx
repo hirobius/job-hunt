@@ -347,7 +347,7 @@ export default function LiveFeedPanel({
         {watchError ||
           (watchedCount
             ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
-            : 'Paste a Greenhouse, Lever or Ashby job-board link to pull that company’s openings in.')}
+            : 'Paste a Greenhouse, Lever, Ashby, Workable or Recruitee job-board link to pull that company’s openings in.')}
       </Text>
 
       <Box sx={{ mb: 'sm' }}>

@@ -23,6 +23,8 @@ const FEED_HOSTS = [
   'https://api.lever.co',
   'https://api.eu.lever.co',
   'https://api.ashbyhq.com',
+  'https://apply.workable.com',
+  'https://*.recruitee.com',
 ];
 
 type Header = { key: string; value: string };
