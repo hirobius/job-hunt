@@ -3,14 +3,25 @@
 // and what to do about it. Network goes through `FetchJson` so tests run on canned payloads.
 import { boardLabel, boardsFromUrls, fetchBoard, type Board } from './sources/ats';
 import { fetchHn } from './sources/hn';
+import { fetchJobicy } from './sources/jobicy';
+import { fetchRemoteOk } from './sources/remoteok';
 import { FetchError, type FetchJson } from './sources/http';
 import { fetchRemotive } from './sources/remotive';
 import { SOURCE_LABEL, type Posting } from './types';
 
-/** Most company boards one search reads: the track's watched boards plus the starter directory
- *  (src/radar/directory.ts). Each is one request and some are ~2–3 MB. */
-export const MAX_BOARDS = 100;
-/** Boards read at once — polite to the ATSs and kind to a phone's connection. */
+/** Per-source switch for the keyless aggregators we have not yet seen answer from a browser (no CORS
+ *  proof from the build sandbox). Turn one off here if its first deployed check shows it blocked.
+ *  A failure is already isolated and named per source either way. Remote OK stays off until its
+ *  API's own legal notice has been read from a network that reaches it and its terms are checked
+ *  against this adapter (#178): an attribution source does not ship on a guess of its terms. */
+export const SOURCE_ENABLED: Record<'jobicy' | 'remoteok', boolean> = {
+  jobicy: true,
+  remoteok: false,
+};
+
+/** Boards read at once — polite to the ATSs and kind to a phone's connection. There is no cap on
+ *  how many boards a search reads (Adrian, 2026-10-15): every distinct watched board is read, this
+ *  many at a time, and results appear as each one answers (see `onProgress`). */
 export const BOARD_CONCURRENCY = 6;
 /** Re-use a response for this long. Sources update a few times a day. In-memory only — board
  *  payloads are far too big for browser storage. (Remotive has its own, stricter budget below.) */
@@ -115,21 +126,41 @@ async function remotiveWithinBudget(
   return postings;
 }
 
+/** The most raw JSON the session cache keeps, in characters (~16 MB). Board payloads run 2–3 MB
+ *  each and a track can watch 100+ boards, so the cache holds the most recently used few and drops
+ *  the rest rather than every body for an hour (#178 review). */
+export const CACHE_BUDGET_CHARS = 16_000_000;
+
 export function createFetchJson({
   fetchImpl = (u: string, init?: RequestInit) => fetch(u, init),
   now = Date.now,
   ttlMs = CACHE_TTL_MS,
   timeoutMs = FETCH_TIMEOUT_MS,
+  budgetChars = CACHE_BUDGET_CHARS,
 }: {
   fetchImpl?: (url: string, init?: RequestInit) => Promise<Response>;
   now?: () => number;
   ttlMs?: number;
   timeoutMs?: number;
-} = {}): FetchJson {
-  const cache = new Map<string, { at: number; body: unknown }>();
-  return async (url) => {
+  budgetChars?: number;
+} = {}): FetchJson & { cachedChars: () => number } {
+  // A Map keeps insertion order, so re-inserting on a hit makes its first key the least recently used.
+  const cache = new Map<string, { at: number; body: unknown; size: number }>();
+  let total = 0;
+  const drop = (url: string) => {
+    const e = cache.get(url);
+    if (!e) return;
+    total -= e.size;
+    cache.delete(url);
+  };
+  const fetchJson = async (url: string, opts?: { fresh?: boolean }) => {
     const hit = cache.get(url);
-    if (hit && now() - hit.at < ttlMs) return hit.body;
+    if (hit && !opts?.fresh && now() - hit.at < ttlMs) {
+      cache.delete(url);
+      cache.set(url, hit);
+      return hit.body;
+    }
+    drop(url);
     let res: Response;
     try {
       const signal = AbortSignal.timeout(timeoutMs);
@@ -141,10 +172,20 @@ export function createFetchJson({
       throw new FetchError(0, url);
     }
     if (!res.ok) throw new FetchError(res.status, url);
-    const body: unknown = await res.json();
-    cache.set(url, { at: now(), body });
+    const text = await res.text();
+    const body: unknown = JSON.parse(text);
+    if (text.length <= budgetChars) {
+      drop(url); // a parallel read of the same url may have landed meanwhile
+      cache.set(url, { at: now(), body, size: text.length });
+      total += text.length;
+      for (const key of cache.keys()) {
+        if (total <= budgetChars) break;
+        drop(key);
+      }
+    }
     return body;
   };
+  return Object.assign(fetchJson, { cachedChars: () => total });
 }
 
 /** The app's shared fetcher — one cache for the whole session. */
@@ -165,9 +206,10 @@ export function describeError(e: unknown, label: string, isBoard: boolean): stri
 
 /** Promise.allSettled over thunks, with `limited` tasks run at most BOARD_CONCURRENCY at a time.
  *  The rest (HN, Remotive) start at once. */
-async function settleAll<T>(
+export async function settleAll<T>(
   thunks: (() => Promise<T>)[],
   limited: (i: number) => boolean,
+  onSettled?: (i: number, result: PromiseSettledResult<T>) => void,
 ): Promise<PromiseSettledResult<T>[]> {
   const out: PromiseSettledResult<T>[] = new Array(thunks.length);
   const run = async (i: number) => {
@@ -176,6 +218,7 @@ async function settleAll<T>(
     } catch (reason) {
       out[i] = { status: 'rejected', reason };
     }
+    onSettled?.(i, out[i]);
   };
   const queue = thunks.map((_, i) => i).filter(limited);
   const worker = async () => {
@@ -202,8 +245,12 @@ export interface SourceStatus {
 export interface FeedResult {
   postings: Posting[];
   sources: SourceStatus[];
-  /** Distinct company boards beyond MAX_BOARDS that were not fetched. */
-  boardsSkipped: number;
+}
+
+/** A snapshot of the search so far: everything that has answered, plus how many boards have. */
+export interface FeedProgress extends FeedResult {
+  boardsDone: number;
+  boardsTotal: number;
 }
 
 /** One source to read for this search — the feed's unit of fetch work. */
@@ -214,16 +261,39 @@ interface SourceTask {
   run: () => Promise<Posting[]>;
 }
 
+/** Turn one task's settled result into its status, pushing its postings (http(s) links only). */
+function statusOf(
+  task: SourceTask,
+  r: PromiseSettledResult<Posting[]>,
+  into: Posting[],
+): SourceStatus {
+  const { key, label, board } = task;
+  if (r.status === 'fulfilled') {
+    // A posting's URL is rendered as a link — only ever an http(s) one (never `javascript:`).
+    into.push(...r.value.filter((p) => /^https?:\/\//i.test(p.url)));
+    return { key, label, fetched: r.value.length };
+  }
+  return { key, label, fetched: 0, error: describeError(r.reason, label, !!board) };
+}
+
 export async function fetchFeed(
-  req: { term: string; boardUrls: string[] },
+  req: {
+    term: string;
+    boardUrls: string[];
+    /** Called as each source answers, with everything gathered so far (in source order). */
+    onProgress?: (p: FeedProgress) => void;
+  },
   fetchJson: FetchJson = liveFetchJson,
-  { kv = browserKv(), now = Date.now }: { kv?: KeyValue; now?: () => number } = {},
+  {
+    kv = browserKv(),
+    now = Date.now,
+    sources: enabled = SOURCE_ENABLED,
+  }: { kv?: KeyValue; now?: () => number; sources?: Partial<typeof SOURCE_ENABLED> } = {},
 ): Promise<FeedResult> {
   const term = req.term.trim();
-  if (!term) return { postings: [], sources: [], boardsSkipped: 0 };
+  if (!term) return { postings: [], sources: [] };
 
-  const allBoards = boardsFromUrls(req.boardUrls, Infinity);
-  const boards = allBoards.slice(0, MAX_BOARDS);
+  const boards = boardsFromUrls(req.boardUrls, Infinity);
   const tasks: SourceTask[] = [
     { key: 'hn', label: SOURCE_LABEL.hn, run: () => fetchHn(term, fetchJson) },
     {
@@ -231,6 +301,24 @@ export async function fetchFeed(
       label: SOURCE_LABEL.remotive,
       run: () => remotiveWithinBudget(term, fetchJson, kv, now()),
     },
+    ...(enabled.jobicy
+      ? [
+          {
+            key: 'jobicy',
+            label: SOURCE_LABEL.jobicy,
+            run: () => fetchJobicy(term, fetchJson),
+          },
+        ]
+      : []),
+    ...(enabled.remoteok
+      ? [
+          {
+            key: 'remoteok',
+            label: SOURCE_LABEL.remoteok,
+            run: () => fetchRemoteOk(term, fetchJson),
+          },
+        ]
+      : []),
     ...boards.map((b) => ({
       key: `${b.kind}:${b.slug}`,
       label: `${boardLabel(b)} (${SOURCE_LABEL[b.kind]})`,
@@ -239,19 +327,30 @@ export async function fetchFeed(
     })),
   ];
 
+  const results: (PromiseSettledResult<Posting[]> | undefined)[] = new Array(tasks.length);
+  const snapshot = (): FeedProgress => {
+    const postings: Posting[] = [];
+    const sources: SourceStatus[] = [];
+    tasks.forEach((t, i) => {
+      const r = results[i];
+      if (r) sources.push(statusOf(t, r, postings));
+    });
+    return {
+      postings,
+      sources,
+      boardsDone: tasks.filter((t, i) => t.board && results[i]).length,
+      boardsTotal: boards.length,
+    };
+  };
   const settled = await settleAll(
     tasks.map((t) => () => t.run()),
     (i) => !!tasks[i].board,
+    (i, r) => {
+      results[i] = r;
+      req.onProgress?.(snapshot());
+    },
   );
   const postings: Posting[] = [];
-  const sources = settled.map((r, i): SourceStatus => {
-    const { key, label, board } = tasks[i];
-    if (r.status === 'fulfilled') {
-      // A posting's URL is rendered as a link — only ever an http(s) one (never `javascript:`).
-      postings.push(...r.value.filter((p) => /^https?:\/\//i.test(p.url)));
-      return { key, label, fetched: r.value.length };
-    }
-    return { key, label, fetched: 0, error: describeError(r.reason, label, !!board) };
-  });
-  return { postings, sources, boardsSkipped: allBoards.length - boards.length };
+  const sources = settled.map((r, i) => statusOf(tasks[i], r, postings));
+  return { postings, sources };
 }

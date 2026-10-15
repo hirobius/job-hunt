@@ -14,7 +14,8 @@ describe('entryLevelize', () => {
   describe('Indeed', () => {
     it('adds sc parameter when q is present and sc is absent', () => {
       const input = 'https://www.indeed.com/jobs?q=welder&l=Spokane%2C%20WA';
-      const expected = 'https://www.indeed.com/jobs?q=welder&l=Spokane%2C%20WA&sc=0kf%3Aexplvl(ENTRY_LEVEL)%3B';
+      const expected =
+        'https://www.indeed.com/jobs?q=welder&l=Spokane%2C%20WA&sc=0kf%3Aexplvl(ENTRY_LEVEL)%3B';
       expect(entryLevelize(input)).toBe(expected);
     });
 
@@ -65,13 +66,15 @@ describe('entryLevelize', () => {
   describe('ZipRecruiter', () => {
     it('appends entry level to search param when present', () => {
       const input = 'https://www.ziprecruiter.com/jobs-search?search=welder&location=Spokane';
-      const expected = 'https://www.ziprecruiter.com/jobs-search?search=welder%20entry%20level&location=Spokane';
+      const expected =
+        'https://www.ziprecruiter.com/jobs-search?search=welder%20entry%20level&location=Spokane';
       expect(entryLevelize(input)).toBe(expected);
     });
 
     it('adds search=entry%20level when search param is missing', () => {
       const input = 'https://www.ziprecruiter.com/candidate/search?location=Spokane';
-      const expected = 'https://www.ziprecruiter.com/candidate/search?location=Spokane&search=entry%20level';
+      const expected =
+        'https://www.ziprecruiter.com/candidate/search?location=Spokane&search=entry%20level';
       expect(entryLevelize(input)).toBe(expected);
     });
 

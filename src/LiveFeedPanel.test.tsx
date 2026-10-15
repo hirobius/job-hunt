@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import { axe } from 'vitest-axe';
@@ -20,10 +20,14 @@ const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
 vi.mock('./feed/fetchFeed', () => feed);
 
 import LiveFeedPanel from './LiveFeedPanel';
-import { STARTER_DIRECTORY } from './radar/directory';
+import { DIRECTORY_BY_PACK } from './radar/directory';
 import { getAllJobs, removeJob } from './store';
 import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
+
+// These render the whole panel with axe and many user events; under a loaded machine they ran
+// past vitest's 5s default (#178 review), so they get more room.
+vi.setConfig({ testTimeout: 20_000 });
 
 const RESULT: FeedResult = {
   postings: [
@@ -65,7 +69,6 @@ const RESULT: FeedResult = {
       error: 'Remotive: rate-limited — try again in a few minutes.',
     },
   ],
-  boardsSkipped: 0,
 };
 
 let cat: string;
@@ -100,10 +103,12 @@ describe('LiveFeedPanel', () => {
   it('searches the first track term on open and lists only matching postings', async () => {
     renderPanel(['https://jobs.ashbyhq.com/ramp']);
     const list = await screen.findByRole('list', { name: /live postings/i });
-    expect(feed.fetchFeed).toHaveBeenCalledWith({
-      term: 'design systems',
-      boardUrls: ['https://jobs.ashbyhq.com/ramp', ...STARTER_DIRECTORY],
-    });
+    expect(feed.fetchFeed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        term: 'design systems',
+        boardUrls: ['https://jobs.ashbyhq.com/ramp'],
+      }),
+    );
     const rows = within(list).getAllByRole('listitem');
     expect(rows).toHaveLength(2);
     const hn = rows.find((r) => r.textContent?.includes('UX/UI Designer'))!;
@@ -143,7 +148,6 @@ describe('LiveFeedPanel', () => {
           error: 'Remotive: timed out — try again later.',
         },
       ],
-      boardsSkipped: 0,
     });
     renderPanel();
     expect(await screen.findByText("Couldn't reach any source")).toBeInTheDocument();
@@ -176,15 +180,111 @@ describe('LiveFeedPanel', () => {
     expect(within(ramp).getByRole('button', { name: 'Saved' })).toBeDisabled();
   });
 
+  it('Remote OK attribution: their link as given, followed, with "Remote OK" on the row', async () => {
+    const url = 'https://remoteOK.com/remote-jobs/design-systems-lead-9';
+    feed.fetchFeed.mockResolvedValueOnce({
+      postings: [
+        {
+          id: 'remoteok:9',
+          source: 'remoteok',
+          title: 'Design Systems Lead',
+          company: 'Acme',
+          url,
+          location: 'Worldwide',
+          mode: 'remote',
+          text: 'Lead the design system.',
+        },
+      ],
+      sources: [{ key: 'remoteok', label: 'Remote OK', fetched: 1 }],
+    });
+    renderPanel();
+    const row = (await screen.findByText('Design Systems Lead')).closest('li')!;
+    expect(row).toHaveTextContent('Remote OK');
+    const link = within(row).getByRole('link', { name: /Design Systems Lead/ });
+    expect(link).toHaveAttribute('href', url);
+    expect(link.getAttribute('rel') ?? '').not.toMatch(/nofollow/);
+  });
+
+  it('shows openings as boards answer, with a progress line, then settles', async () => {
+    let finish: (r: FeedResult) => void = () => {};
+    feed.fetchFeed.mockImplementationOnce(
+      (req: { onProgress?: (p: unknown) => void }) =>
+        new Promise<FeedResult>((resolve) => {
+          finish = resolve;
+          req.onProgress?.({
+            postings: RESULT.postings.slice(0, 1),
+            sources: RESULT.sources,
+            boardsDone: 1,
+            boardsTotal: 3,
+          });
+        }),
+    );
+    renderPanel();
+    expect(await screen.findByText('Design Systems Lead')).toBeInTheDocument();
+    expect(screen.getByText(/Read 1 of 3 boards/)).toBeInTheDocument();
+    act(() => finish(RESULT));
+    await waitFor(() => expect(screen.queryByText(/Read 1 of 3 boards/)).not.toBeInTheDocument());
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+  });
+
+  it('never says boards were skipped: there is no cap', async () => {
+    renderPanel(Array.from({ length: 150 }, (_, i) => `https://jobs.lever.co/co${i}`));
+    await screen.findByRole('list', { name: /live postings/i });
+    expect(screen.queryByText(/skipped/i)).not.toBeInTheDocument();
+  });
+
+  it("suggests the track's starter companies once, and a second click has nothing to add", async () => {
+    const user = userEvent.setup();
+    renderPanel(['https://jobs.ashbyhq.com/ramp']);
+    const n = DIRECTORY_BY_PACK.designsystems.length;
+    const btn = await screen.findByRole('button', {
+      name: new RegExp(`add suggested companies \\((${n}|${n - 1})\\)`, 'i'),
+    });
+    await user.click(btn);
+    expect(getCurationState().tiles.length).toBeGreaterThanOrEqual(n - 1);
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /add suggested companies/i })).toBeNull(),
+    );
+  });
+
+  it('suggests nothing for a track that matches no starter pack', async () => {
+    cat = addCategory({ label: 'My own thing' });
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    expect(screen.queryByRole('button', { name: /add suggested companies/i })).toBeNull();
+  });
+
+  it('suggests only trades boards to a trades track', async () => {
+    cat = addCategory({ label: 'Skilled Trades' });
+    renderPanel();
+    expect(
+      await screen.findByRole('button', {
+        name: `Add suggested companies (${DIRECTORY_BY_PACK.trades.length})`,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('folds a long list of failed sources behind a disclosure', async () => {
+    const sources = Array.from({ length: 6 }, (_, i) => ({
+      key: `b${i}`,
+      label: `Board ${i}`,
+      fetched: 0,
+      error: `Board ${i}: HTTP 500 — the service is having trouble; try again later.`,
+    }));
+    feed.fetchFeed.mockResolvedValueOnce({ postings: RESULT.postings, sources });
+    renderPanel();
+    expect(await screen.findByText('6 sources didn’t respond')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /show which ones/i })).toBeInTheDocument();
+  });
+
   it('searches a term chip when clicked', async () => {
     const user = userEvent.setup();
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     await user.click(screen.getByText('design engineer'));
-    expect(feed.fetchFeed).toHaveBeenLastCalledWith({
-      term: 'design engineer',
-      boardUrls: [...STARTER_DIRECTORY],
-    });
+    expect(feed.fetchFeed).toHaveBeenLastCalledWith(
+      expect.objectContaining({ term: 'design engineer', boardUrls: [] }),
+    );
   });
 
   it('watches a company board, and explains a link that is not one', async () => {
@@ -193,7 +293,9 @@ describe('LiveFeedPanel', () => {
     const input = screen.getByLabelText(/watch a company/i);
     await user.type(input, 'https://www.linkedin.com/company/ramp');
     await user.click(screen.getByRole('button', { name: 'Watch' }));
-    expect(screen.getByText(/isn't a Greenhouse, Lever or Ashby job board/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/isn't a Greenhouse, Lever, Ashby, Workable or Recruitee job board/),
+    ).toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, 'jobs.ashbyhq.com/ramp');

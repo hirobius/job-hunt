@@ -1,4 +1,5 @@
-// Company job boards on the three big startup ATSs — Greenhouse, Lever, Ashby. Each exposes a public,
+// Company job boards on five applicant-tracking systems — Greenhouse, Lever, Ashby, Workable and
+// Recruitee (the last two UNVERIFIED LIVE: written from their documented response shapes). Each exposes a public,
 // keyless, CORS-open JSON API per company. Which companies to watch comes from the track itself: any
 // tile whose URL is a board (e.g. https://jobs.ashbyhq.com/ramp) is pulled live. Durable portal in,
 // fresh openings out — so the board never holds a stale one-off posting.
@@ -8,7 +9,7 @@ import type { JobMode } from '../../types';
 import type { Posting } from '../types';
 import { arr, obj, prettySlug, str, type FetchJson } from './http';
 
-export type BoardKind = 'greenhouse' | 'lever' | 'ashby';
+export type BoardKind = 'greenhouse' | 'lever' | 'ashby' | 'workable' | 'recruitee';
 export interface Board {
   kind: BoardKind;
   slug: string;
@@ -43,6 +44,15 @@ export function parseBoardUrl(raw: string): Board | null {
     return ok(seg[0]) ? { kind: 'lever', slug: seg[0], eu: true } : null;
   if (host === 'ashbyhq.com' || host.endsWith('.ashbyhq.com'))
     return ok(seg[0]) ? { kind: 'ashby', slug: seg[0] } : null;
+  if (host === 'apply.workable.com')
+    return ok(seg[0]) && seg[0] !== 'api' ? { kind: 'workable', slug: seg[0] } : null;
+  if (host.endsWith('.recruitee.com')) {
+    // One label only: `acme.recruitee.com`, not `www.`, `api.` or a deeper host.
+    const sub = host.slice(0, -'.recruitee.com'.length);
+    return ok(sub) && !sub.includes('.') && !['www', 'api', 'app'].includes(sub)
+      ? { kind: 'recruitee', slug: sub }
+      : null;
+  }
   return null;
 }
 
@@ -71,6 +81,10 @@ export function boardApiUrl(b: Board): string {
       return `https://api${b.eu ? '.eu' : ''}.lever.co/v0/postings/${slug}?mode=json`;
     case 'ashby':
       return `https://api.ashbyhq.com/posting-api/job-board/${slug}`;
+    case 'workable':
+      return `https://apply.workable.com/api/v1/widget/accounts/${slug}?details=true`;
+    case 'recruitee':
+      return `https://${slug}.recruitee.com/api/offers/`;
   }
 }
 
@@ -85,6 +99,10 @@ export function canonicalBoardUrl(b: Board): string {
       return `https://jobs${b.eu ? '.eu' : ''}.lever.co/${b.slug}`;
     case 'ashby':
       return `https://jobs.ashbyhq.com/${b.slug}`;
+    case 'workable':
+      return `https://apply.workable.com/${b.slug}`;
+    case 'recruitee':
+      return `https://${b.slug}.recruitee.com`;
   }
 }
 
@@ -176,11 +194,67 @@ export function parseAshbyJob(j: unknown, slug: string): Posting | null {
   };
 }
 
+export function parseWorkableJob(j: unknown, slug: string): Posting | null {
+  const o = obj(j);
+  const code = str(o.shortcode);
+  const url = str(o.url);
+  if (!code || !url) return null;
+  const location = [str(o.city), str(o.state), str(o.country)].filter(Boolean).join(', ');
+  const employment = str(o.employment_type);
+  return {
+    id: `workable:${slug}:${code}`,
+    source: 'workable',
+    title: str(o.title),
+    company: prettySlug(slug),
+    url,
+    location,
+    mode: o.telecommuting === true ? 'remote' : undefined,
+    postedAt: str(o.published_on) || str(o.created_at) || undefined,
+    text: joinText(employment && `Employment: ${employment}`, htmlToText(str(o.description))),
+  };
+}
+
+export function parseRecruiteeJob(j: unknown, slug: string): Posting | null {
+  const o = obj(j);
+  const id = String(o.id ?? '');
+  const url = str(o.careers_url);
+  if (!id || !url) return null;
+  const location = str(o.location);
+  const employment = str(o.employment_type_code);
+  return {
+    id: `recruitee:${slug}:${id}`,
+    source: 'recruitee',
+    title: str(o.title),
+    company: str(o.company_name) || prettySlug(slug),
+    url,
+    location,
+    mode: o.remote === true ? 'remote' : inferMode(location),
+    postedAt: str(o.created_at) || undefined,
+    text: joinText(employment && `Employment: ${employment}`, htmlToText(str(o.description))),
+  };
+}
+
+/** The raw job list inside a board payload; null when the payload isn't shaped like that board's
+ *  (so a caller can tell "no openings" from "not a board response"). */
+export function boardJobs(b: Board, body: unknown): unknown[] | null {
+  const list =
+    b.kind === 'lever' ? body : b.kind === 'recruitee' ? obj(body).offers : obj(body).jobs;
+  return Array.isArray(list) ? list : null;
+}
+
 export async function fetchBoard(b: Board, fetchJson: FetchJson): Promise<Posting[]> {
   const body = await fetchJson(boardApiUrl(b));
-  const jobs = b.kind === 'lever' ? arr(body) : arr(obj(body).jobs);
-  const parse = { greenhouse: parseGreenhouseJob, lever: parseLeverJob, ashby: parseAshbyJob }[
-    b.kind
-  ];
+  const found = boardJobs(b, body);
+  // The two unofficial endpoints may change shape: say so rather than show an empty board.
+  if (!found && (b.kind === 'workable' || b.kind === 'recruitee'))
+    throw new Error(`${b.kind} board response had no job list`);
+  const jobs = found ?? [];
+  const parse = {
+    greenhouse: parseGreenhouseJob,
+    lever: parseLeverJob,
+    ashby: parseAshbyJob,
+    workable: parseWorkableJob,
+    recruitee: parseRecruiteeJob,
+  }[b.kind];
   return jobs.map((j) => parse(j, b.slug)).filter((p): p is Posting => !!p);
 }

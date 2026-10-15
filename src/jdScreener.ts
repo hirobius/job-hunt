@@ -32,7 +32,8 @@ const firstMatch = (re: RegExp, t: string): string | null => {
 function detectSql(t: string): string | null {
   // \bsql\b won't match inside PostgreSQL/MySQL/NoSQL (no word boundary), which is what we want.
   return (
-    firstMatch(/\b(t-?sql|pl\/?sql|sql)\b/i, t) ?? firstMatch(/\boracle\b[^.]{0,15}\b(quer|sql)/i, t)
+    firstMatch(/\b(t-?sql|pl\/?sql|sql)\b/i, t) ??
+    firstMatch(/\boracle\b[^.]{0,15}\b(quer|sql)/i, t)
   );
 }
 
@@ -70,7 +71,11 @@ function detectTitledYears(t: string): string | null {
       const years = parseInt(m[1], 10);
       if (!(years >= 3)) continue;
       const window = t.slice(Math.max(0, m.index - 25), m.index + m[0].length + 45);
-      if (/\bor\b[\s\S]{0,45}\b(home services|trades|construction|insurance|field service)\b/i.test(window))
+      if (
+        /\bor\b[\s\S]{0,45}\b(home services|trades|construction|insurance|field service)\b/i.test(
+          window,
+        )
+      )
         continue; // industry-OR escape hatch
       return m[0].trim().replace(/\s+/g, ' ');
     }
@@ -113,16 +118,23 @@ function detectMode(t: string): { mode?: JobMode; evidence?: string } {
     firstMatch(/\bhybrid\b/i, t) ??
     firstMatch(/\b\d\s*days?\s*(?:per week|a week|in[- ](?:the[- ])?office|on-?site)\b/i, t);
   if (hybrid) return { mode: 'hybrid', evidence: hybrid };
-  const onsite = firstMatch(/\b(on-?site|in-office|in the office|in-person|on premises?|relocat\w*)\b/i, t);
+  const onsite = firstMatch(
+    /\b(on-?site|in-office|in the office|in-person|on premises?|relocat\w*)\b/i,
+    t,
+  );
   if (onsite) return { mode: 'onsite', evidence: onsite };
-  const remote = firstMatch(/\b(fully remote|100% remote|remote-first|work from home|wfh|remote)\b/i, t);
+  const remote = firstMatch(
+    /\b(fully remote|100% remote|remote-first|work from home|wfh|remote)\b/i,
+    t,
+  );
   if (remote) return { mode: 'remote', evidence: remote };
   return {};
 }
 
 function detectTravel(t: string): number | null {
   const m =
-    /\b(?:up to\s*)?(\d{1,3})\s*%\s*travel\b/i.exec(t) ?? /\btravel\b[^.]{0,15}?(\d{1,3})\s*%/i.exec(t);
+    /\b(?:up to\s*)?(\d{1,3})\s*%\s*travel\b/i.exec(t) ??
+    /\btravel\b[^.]{0,15}?(\d{1,3})\s*%/i.exec(t);
   if (!m) return null;
   const n = parseInt(m[1], 10);
   return isFinite(n) && n >= 0 && n <= 100 ? n : null;

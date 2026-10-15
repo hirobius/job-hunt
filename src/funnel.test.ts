@@ -3,7 +3,12 @@ import { computeFunnel } from './funnel';
 import type { Job } from './types';
 
 let n = 0;
-const j = (o: Partial<Job>): Job => ({ url: `https://x.co/${n++}`, label: 'x', status: 'Saved', ...o });
+const j = (o: Partial<Job>): Job => ({
+  url: `https://x.co/${n++}`,
+  label: 'x',
+  status: 'Saved',
+  ...o,
+});
 
 describe('computeFunnel', () => {
   it('empty list → zeros and null median', () => {
@@ -28,7 +33,12 @@ describe('computeFunnel', () => {
   });
 
   it('median applicants: odd count, only jobs with a count', () => {
-    const f = computeFunnel([j({ applicants: 300 }), j({ applicants: 100 }), j({ applicants: 200 }), j({})]);
+    const f = computeFunnel([
+      j({ applicants: 300 }),
+      j({ applicants: 100 }),
+      j({ applicants: 200 }),
+      j({}),
+    ]);
     expect(f.medianApplicants).toBe(200);
   });
 

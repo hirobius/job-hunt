@@ -29,12 +29,16 @@ import {
   updateGroup,
   removeGroup,
   addTile,
+  addTiles,
+  TILE_CHUNK,
   updateTile,
   removeTile,
   getCurationState,
   replaceCurationState,
 } from './curationStore';
 import { EMPTY_CURATION } from './types';
+import { clearAllPending, getPending } from './pending';
+import { onCurationWriteFailed } from './syncStatus';
 
 // Reset to empty + signed-out after each test since the store and mock client are module
 // singletons shared across tests.
@@ -167,5 +171,69 @@ describe('cloud sync seam', () => {
     removeCategory(id);
     await vi.waitFor(() => expect(cloud.deleteEqSpy).toHaveBeenCalledTimes(1));
     expect(cloud.deleteEqSpy).toHaveBeenCalledWith('id', id);
+  });
+});
+
+// A starter pack files ~120 board tiles at once (#178): they go up as a few bulk upserts, not
+// one call per row, and a refused chunk leaves exactly its own rows journalled as failed.
+describe('addTiles (bulk)', () => {
+  afterEach(() => clearAllPending());
+
+  const partials = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ name: `Co ${i}`, url: `https://x.test/${i}` }));
+
+  it('adds every tile in one store write and sends them in chunks', async () => {
+    cloud.session = { user: { id: 'user-1' } };
+    const ids = addTiles('g1', partials(120));
+    expect(ids).toHaveLength(120);
+    expect(getCurationState().tiles.map((t) => t.id)).toEqual(ids);
+    await vi.waitFor(() => expect(cloud.upsertSpy).toHaveBeenCalledTimes(3));
+    const sizes = cloud.upsertSpy.mock.calls.map((c) => (c[0] as unknown[]).length);
+    expect(sizes).toEqual([TILE_CHUNK, TILE_CHUNK, 120 - 2 * TILE_CHUNK]);
+    await vi.waitFor(() => expect(getPending()).toEqual([]));
+  });
+
+  it('keeps only a refused chunk in the journal, marked failed, and reports once', async () => {
+    cloud.session = { user: { id: 'user-1' } };
+    const reported = vi.fn();
+    const off = onCurationWriteFailed(reported);
+    cloud.upsertSpy
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: null, error: { message: 'rls' } } as never)
+      .mockResolvedValueOnce({ data: null, error: null });
+    const ids = addTiles('g1', partials(120));
+    // Journalled before anything is sent: sign-out would ask.
+    expect(getPending()).toHaveLength(120);
+    await vi.waitFor(() => expect(cloud.upsertSpy).toHaveBeenCalledTimes(3));
+    await vi.waitFor(() => expect(getPending()).toHaveLength(TILE_CHUNK));
+    const pending = getPending();
+    expect(pending.every((p) => p.failed && p.table === 'tiles' && p.op === 'upsert')).toBe(true);
+    expect(pending.map((p) => p.id).sort()).toEqual(ids.slice(TILE_CHUNK, 2 * TILE_CHUNK).sort());
+    expect(reported).toHaveBeenCalledTimes(1);
+    off();
+  });
+
+  it('treats a chunk that throws like a refused one: its rows stay failed, the rest clear', async () => {
+    cloud.session = { user: { id: 'user-1' } };
+    const reported = vi.fn();
+    const off = onCurationWriteFailed(reported);
+    cloud.upsertSpy
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockRejectedValueOnce(new Error('network'));
+    const ids = addTiles('g1', partials(120));
+    await vi.waitFor(() => expect(cloud.upsertSpy).toHaveBeenCalledTimes(3));
+    await vi.waitFor(() => expect(getPending()).toHaveLength(120 - 2 * TILE_CHUNK));
+    const pending = getPending();
+    expect(pending.every((p) => p.failed)).toBe(true);
+    expect(pending.map((p) => p.id).sort()).toEqual(ids.slice(2 * TILE_CHUNK).sort());
+    expect(reported).toHaveBeenCalledTimes(1);
+    off();
+  });
+
+  it('journals nothing when signed out', async () => {
+    addTiles('g1', partials(3));
+    await vi.waitFor(() => expect(getPending()).toEqual([]));
+    expect(cloud.upsertSpy).not.toHaveBeenCalled();
   });
 });

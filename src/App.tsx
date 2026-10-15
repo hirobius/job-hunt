@@ -13,6 +13,7 @@ import {
 import TodayView from './TodayView';
 import TrackerView from './TrackerView';
 import JobPage from './JobPage';
+import { JobPageLiveness, PipelineLiveness } from './LivenessViews';
 import { Onboarding, ChooseTrack } from './Onboarding';
 import { markTodayNoticeSeen } from './todayNoticeSeen';
 import { useCloudSync } from './account/accountContext';
@@ -63,7 +64,8 @@ export default function App() {
   // Today asks for one only on a first run (no tracks and no jobs), so nobody lands on an empty
   // home. The Pipeline and Templates never gate: quick-add and sample data work before setup.
   const hasTracks = useCategories().length > 0;
-  const hasJobs = useJobs().length > 0;
+  const jobs = useJobs();
+  const hasJobs = jobs.length > 0;
   const firstRun = !hasTracks && !hasJobs;
 
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
@@ -140,7 +142,17 @@ export default function App() {
                   {firstRun ? <Onboarding offerSample /> : <TodayView />}
                 </TabsContent>
                 <TabsContent value="queue" style={BARE_PANEL}>
-                  {route.jobId ? <JobPage jobId={route.jobId} /> : <TrackerView />}
+                  {route.jobId ? (
+                    <>
+                      <JobPageLiveness jobId={route.jobId} />
+                      <JobPage jobId={route.jobId} />
+                    </>
+                  ) : (
+                    <>
+                      <PipelineLiveness jobs={jobs} />
+                      <TrackerView />
+                    </>
+                  )}
                 </TabsContent>
                 <TabsContent value="discover" style={BARE_PANEL}>
                   {hasTracks ? (
