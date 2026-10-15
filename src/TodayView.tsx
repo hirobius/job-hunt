@@ -167,7 +167,7 @@ export default function TodayView() {
         <TodayNotice />
         <SampleBanner jobs={jobs} />
         {/* The day's work reads at the HDS prose measure; Insights spans the page. */}
-        <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
+        <Box sx={{ maxWidth: '36rem' }}>
           <Stack gap="normal">
             <QuickAdd inputRef={quickAddRef} />
             <GettingStarted jobs={jobs} />
@@ -247,7 +247,7 @@ export default function TodayView() {
                           [it.company, it.note].filter(Boolean).join(' · '),
                         ].filter(Boolean)}
                         trailing={
-                          <Button asChild variant="tertiary">
+                          <Button asChild variant="secondary">
                             <a href={jobHref(it.jobUrl)} aria-label={`Open job: ${it.label}`}>
                               Open job
                             </a>

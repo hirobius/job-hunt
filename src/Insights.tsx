@@ -46,7 +46,11 @@ export default function Insights({ jobs }: { jobs: Job[] }) {
 
   return (
     <Disclosure
-      label="Insights"
+      label={
+        <Text variant="body" as="span" className="rjb-semibold">
+          Insights
+        </Text>
+      }
       variant="panel"
       open={open}
       onOpenChange={(o) => {

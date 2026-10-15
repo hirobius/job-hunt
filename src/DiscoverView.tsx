@@ -38,6 +38,9 @@ import type { Category, Seniority } from './curation/types';
 import { ContextCaption } from './LocationControl';
 import DiscoverHeader from './DiscoverHeader';
 import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
+import { BARE_PANEL } from './hds-gaps/barePanel';
+
+const SECTION_PANEL = { ...BARE_PANEL, paddingTop: 'var(--primitive-space-4)' } as const;
 import { useAtLeast } from './hds-gaps/useBreakpoint';
 import { useTrackContext } from './discoverContext';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
@@ -270,12 +273,22 @@ function AtsPanel({
           </Tag>
         ))}
       </Box>
-      <Text variant="title" as="h3" style={{ marginTop: 'var(--primitive-space-4)' }}>
+      <Text
+        variant="body"
+        as="h3"
+        className="rjb-semibold"
+        style={{ marginTop: 'var(--primitive-space-4)' }}
+      >
         Company hiring systems
       </Text>
       {allButton(ATS, 'hiring systems')}
       <TileGrid tiles={tilesFor(ATS)} cta="Search" />
-      <Text variant="title" as="h3" style={{ marginTop: 'var(--primitive-space-6)' }}>
+      <Text
+        variant="body"
+        as="h3"
+        className="rjb-semibold"
+        style={{ marginTop: 'var(--primitive-space-6)' }}
+      >
         Freelance, startup and remote boards
       </Text>
       <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
@@ -423,7 +436,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         </TabsOverflowFade>
         {tool === 'apply' && section && (
           <Stack gap="xs">
-            <Text variant="title" as="h3">
+            <Text variant="body" as="h3" className="rjb-semibold">
               Your sections
             </Text>
             {/* Key the tabs by track so switching tracks resets to the first section. */}
@@ -441,7 +454,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
                   ))}
                 </TabsList>
               </TabsOverflowFade>
-              <TabsContent value={section.key}>
+              <TabsContent value={section.key} style={SECTION_PANEL}>
                 <GroupPanel
                   tiles={section.tiles}
                   savedSet={savedSet}

@@ -66,7 +66,7 @@ function ChipEditor({
       </Text>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
         {values.map((v) => (
-          <Tag key={v} active onClick={() => onChange(values.filter((x) => x !== v))}>
+          <Tag key={v} onClick={() => onChange(values.filter((x) => x !== v))}>
             {v} ✕
           </Tag>
         ))}

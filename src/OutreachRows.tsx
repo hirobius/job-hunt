@@ -121,7 +121,7 @@ export function SavedTargets({
   return (
     <Stack gap="xs" as="section" aria-label="Outreach targets">
       {heading && (
-        <Text variant="title" as="h3">
+        <Text variant="body" as="h3" className="rjb-semibold">
           Outreach targets
         </Text>
       )}

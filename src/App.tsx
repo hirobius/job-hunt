@@ -29,6 +29,7 @@ import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
 import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
+import { BARE_PANEL } from './hds-gaps/barePanel';
 
 // Code-split Discover and Templates so the initial bundle carries Today and the Pipeline (home and
 // the quick-add landing); the rest load on demand (tab switch).
@@ -38,15 +39,6 @@ const CopyDeckView = lazy(() => import('./CopyDeckView'));
 // Top-level tabs, in render order (#115: Today · Pipeline · Discover · Templates). The URL hash
 // carries the slug (#/today …); slugs stay back-compatible (`queue`/`copy-deck`) under the new
 // labels, so old bookmarks keep working.
-// HDS TabsContent is a tinted, padded card pulled up under its tab strip — right for in-page
-// tabs, wrong for the app's top-level nav, where it indented every view 24px off the header's edge
-// and nested each page in a surface. Top-level panels are bare (HDS gap, filed under #133).
-const BARE_PANEL = {
-  background: 'transparent',
-  padding: 0,
-  marginTop: 0,
-  borderRadius: 0,
-} as const;
 
 const TAB_SLUGS = ['today', 'queue', 'discover', 'copy-deck'] as const;
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
