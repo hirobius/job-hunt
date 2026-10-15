@@ -1,12 +1,7 @@
-// Role Radar's board directory (docs/specs/role-radar.md, `board-directory`): the company boards a
-// radar scan reads. A starter list of design-systems employers on Greenhouse, Lever and Ashby (the
-// boards behind the 2026-10-12 Role Radar research), plus whatever boards the track already
-// watches. Boards only, never one-off postings, so the list doesn't go stale.
-import { boardsFromUrls, type Board } from '../feed/sources/ats';
-
-/** Most boards one scan reads. Each is one request and some are 2–3 MB, all from the browser. */
-export const RADAR_MAX_BOARDS = 100;
-
+// Role Radar's board directory (docs/specs/role-radar.md, `board-directory`): a starter list of
+// design-systems employers on Greenhouse, Lever and Ashby (the boards behind the 2026-10-12 Role
+// Radar research). Live postings reads them after the track's own watched boards. Boards only,
+// never one-off postings, so the list doesn't go stale.
 export const STARTER_DIRECTORY: readonly string[] = [
   'https://jobs.ashbyhq.com/langchain',
   'https://jobs.ashbyhq.com/frontcareers',
@@ -32,8 +27,3 @@ export const STARTER_DIRECTORY: readonly string[] = [
   'https://boards.greenhouse.io/stripe',
   'https://jobs.lever.co/virtualitics',
 ];
-
-/** The boards a scan reads: the track's watched boards first, then the starter list, deduped. */
-export function radarBoards(watchedUrls: string[]): Board[] {
-  return boardsFromUrls([...watchedUrls, ...STARTER_DIRECTORY], RADAR_MAX_BOARDS);
-}

@@ -1,7 +1,9 @@
 // Discover → "Live postings": real openings pulled at view time from public, keyless APIs — Hacker
-// News "Who is hiring?", Remotive, and the Greenhouse/Lever/Ashby boards this track watches — then
-// phrase-matched and ranked by src/feed/match.ts. Nothing is stored until the user saves a posting,
-// which turns it into a tracked Job. Watching a board files a tile on the track (src/feed/watchlist.ts).
+// News "Who is hiring?", Remotive, the Greenhouse/Lever/Ashby boards this track watches and a starter
+// directory of company boards — then phrase-matched and ranked by src/feed/match.ts. With the user's
+// evidence, each posting also gets a fit (Role Radar's engine, src/radar/). Nothing is stored until
+// the user saves a posting, which turns it into a tracked Job. Watching a board files a tile on the
+// track (src/feed/watchlist.ts).
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   Alert,
@@ -18,20 +20,24 @@ import {
   InlineLink,
 } from '@hirobius/design-system';
 import EmptyState from './EmptyState';
-import RadarPanel from './RadarPanel';
+import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
 import LocationControl from './LocationControl';
 import type { WorkMode } from './jobsData';
-import { addJobDetailed, dedupKey, useJobs } from './store';
-import { fetchFeed, type FeedResult } from './feed/fetchFeed';
+import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
+import { fetchFeed, MAX_BOARDS, type FeedResult } from './feed/fetchFeed';
 import { rankPostings } from './feed/match';
 import { postedAgo } from './feed/format';
 import { boardsFromUrls } from './feed/sources/ats';
 import { watchBoard } from './feed/watchlist';
 import { jobFieldsFor } from './feed/toJob';
-import { modeLabel } from './screening';
+import { modeLabel, verdictTone } from './screening';
+import { STARTER_DIRECTORY } from './radar/directory';
+import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
+import { demandPatterns } from './radar/patterns';
+import { readEvidence, TIER_INFO, writeEvidence } from './radar/evidenceStore';
 import { SOURCE_LABEL, type RankedPosting, type SignalId } from './feed/types';
 
-type Focus = 'all' | SignalId;
+type Focus = 'all' | 'strong' | SignalId;
 /** Rows rendered per page — the rest sit behind "Show more". */
 const PAGE = 40;
 
@@ -70,10 +76,11 @@ export default function LiveFeedPanel({
   const [shown, setShown] = useState(PAGE);
   const [watchUrl, setWatchUrl] = useState('');
   const [watchError, setWatchError] = useState('');
-  // Postings = the live feed; Radar = scan many boards and tier them against your evidence.
-  const [view, setView] = useState<'postings' | 'radar'>('postings');
+  const [evidenceText, setEvidenceText] = useState(readEvidence);
+  const evidence = useMemo(() => parseEvidence(evidenceText), [evidenceText]);
 
-  const boardsKey = boardUrls.join('\n');
+  // The track's own boards first, then the starter directory (deduped and capped in fetchFeed).
+  const boardsKey = [...boardUrls, ...STARTER_DIRECTORY].join('\n');
   const watchedCount = useMemo(() => boardsFromUrls(boardUrls, Infinity).length, [boardUrls]);
 
   useEffect(() => {
@@ -113,8 +120,22 @@ export default function LiveFeedPanel({
     }),
     [ranked],
   );
+  // Fit needs evidence: without it every posting would read as a Reach.
+  const fits = useMemo(
+    () =>
+      evidence.length
+        ? new Map(ranked.map((p) => [p.id, fitGap(p, evidence)] as const))
+        : new Map<string, FitGap>(),
+    [ranked, evidence],
+  );
+  const strongCount = ranked.filter((p) => fits.get(p.id)?.tier === 'strong').length;
+  const patterns = useMemo(() => demandPatterns(ranked, evidence), [ranked, evidence]);
   const visible =
-    focus === 'all' ? ranked : ranked.filter((p) => p.signals.some((s) => s.id === focus));
+    focus === 'all'
+      ? ranked
+      : focus === 'strong'
+        ? ranked.filter((p) => fits.get(p.id)?.tier === 'strong')
+        : ranked.filter((p) => p.signals.some((s) => s.id === focus));
 
   const jobs = useJobs();
   const savedKeys = useMemo(() => new Set(jobs.map((j) => dedupKey(j.url))), [jobs]);
@@ -147,8 +168,12 @@ export default function LiveFeedPanel({
 
   const save = (p: RankedPosting) => {
     const fields = jobFieldsFor(p, term);
-    if (addJobDetailed(p.url, fields))
-      toast({ title: 'Added to Queue', description: fields.label, tone: 'success' });
+    const url = addJobDetailed(p.url, fields);
+    if (!url) return;
+    // The fit rides along, so the Pipeline's Fit column and "Best fit" sort use it.
+    const fg = fits.get(p.id);
+    if (fg) updateJob(url, { verdict: TIER_INFO[fg.tier].verdict });
+    toast({ title: 'Added to Pipeline', description: fields.label, tone: 'success' });
   };
 
   const errors = current?.result?.sources.filter((s) => s.error) ?? [];
@@ -165,21 +190,10 @@ export default function LiveFeedPanel({
           marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
         }}
       >
-        Real openings from Hacker News “Who is hiring”, Remotive, and the company boards you watch —
-        ranked by fit. Nothing is kept until you save one.
+        Real openings from Hacker News “Who is hiring”, Remotive, the company boards you watch and a
+        starter list of {STARTER_DIRECTORY.length} more, ranked by relevance. Add your evidence and
+        each one gets a fit. Nothing is kept until you save one.
       </Text>
-      <Box sx={{ mb: 'sm' }}>
-        <SegmentedControl
-          aria-label="View"
-          size="sm"
-          value={view}
-          onChange={(v) => setView(v as 'postings' | 'radar')}
-          options={[
-            { value: 'postings', label: 'Postings' },
-            { value: 'radar', label: 'Radar' },
-          ]}
-        />
-      </Box>
       <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
 
       <Box
@@ -210,146 +224,164 @@ export default function LiveFeedPanel({
         </Box>
       )}
 
-      {view === 'radar' ? (
-        <RadarPanel term={term} where={where} mode={mode} boardUrls={boardUrls} />
-      ) : (
-        <>
-          <Box
-            as="form"
-            onSubmit={onWatch}
-            sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
-          >
-            <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
-              <HdsInput
-                size="sm"
-                label="Watch a company"
-                placeholder="jobs.ashbyhq.com/company"
-                value={watchUrl}
-                onChange={(e) => setWatchUrl(e.target.value)}
-                style={{ width: '100%' }}
-              />
-            </Box>
-            <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
-              Watch
-            </Button>
-          </Box>
-          <Text
-            variant="caption"
-            as="span"
-            style={{
-              color: watchError
-                ? 'var(--semantic-color-feedback-error)'
-                : 'var(--semantic-color-content-secondary)',
-              display: 'block',
-              marginBottom: 'var(--semantic-space-scale-sm)',
-            }}
-          >
-            {watchError ||
-              (watchedCount
-                ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
-                : 'Paste a Greenhouse, Lever or Ashby job-board link to pull that company’s openings in.')}
+      <Box
+        as="form"
+        onSubmit={onWatch}
+        sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
+      >
+        <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
+          <HdsInput
+            size="sm"
+            label="Watch a company"
+            placeholder="jobs.ashbyhq.com/company"
+            value={watchUrl}
+            onChange={(e) => setWatchUrl(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </Box>
+        <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
+          Watch
+        </Button>
+      </Box>
+      <Text
+        variant="caption"
+        as="span"
+        style={{
+          color: watchError
+            ? 'var(--semantic-color-feedback-error)'
+            : 'var(--semantic-color-content-secondary)',
+          display: 'block',
+          marginBottom: 'var(--semantic-space-scale-sm)',
+        }}
+      >
+        {watchError ||
+          (watchedCount
+            ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
+            : 'Paste a Greenhouse, Lever or Ashby job-board link to pull that company’s openings in.')}
+      </Text>
+
+      <Box sx={{ mb: 'sm' }}>
+        <EvidenceEditor
+          text={evidenceText}
+          count={evidence.length}
+          onChange={(t) => {
+            setEvidenceText(t);
+            writeEvidence(t);
+          }}
+        />
+      </Box>
+
+      {errors.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Alert tone="warning" title="Some sources didn’t respond">
+            {errors.map((s) => (
+              <Box key={s.key}>{s.error}</Box>
+            ))}
+          </Alert>
+        </Box>
+      )}
+      {skipped > 0 && (
+        <Text
+          variant="caption"
+          as="span"
+          style={{
+            color: 'var(--semantic-color-content-secondary)',
+            display: 'block',
+            marginBottom: 'var(--semantic-space-scale-xs)',
+          }}
+        >
+          {skipped} company {skipped === 1 ? 'board was' : 'boards were'} skipped — the feed reads
+          at most {MAX_BOARDS} per search.
+        </Text>
+      )}
+
+      {loading ? (
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 'xs',
+            alignItems: 'center',
+            py: 'md',
+          }}
+        >
+          <Spinner size="sm" label="Loading live postings" />
+          <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+            Pulling live openings for “{term}”…
           </Text>
-
-          {errors.length > 0 && (
-            <Box sx={{ mb: 3 }}>
-              <Alert tone="warning" title="Some sources didn’t respond">
-                {errors.map((s) => (
-                  <Box key={s.key}>{s.error}</Box>
-                ))}
-              </Alert>
-            </Box>
-          )}
-          {skipped > 0 && (
-            <Text
-              variant="caption"
-              as="span"
-              style={{
-                color: 'var(--semantic-color-content-secondary)',
-                display: 'block',
-                marginBottom: 'var(--semantic-space-scale-xs)',
+        </Box>
+      ) : current?.error ? (
+        <Alert tone="danger">{current.error}</Alert>
+      ) : !term.trim() ? (
+        <EmptyState message="Type a search term or pick one of this track's terms." />
+      ) : allFailed ? (
+        <EmptyState
+          title="Couldn't reach any source"
+          message="Check your internet connection or try again later."
+        />
+      ) : ranked.length === 0 ? (
+        <EmptyState
+          title={`No live openings mention “${term}” right now`}
+          message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
+        />
+      ) : (
+        <Box>
+          <Box sx={{ mb: 'xs' }}>
+            <PatternsSummary patterns={patterns} />
+          </Box>
+          {/* Scrolls sideways on narrow screens rather than clipping (same as the tab bar). */}
+          <Box sx={{ mb: 'xs', overflowX: 'auto', maxWidth: '100%', pb: 0.5 }}>
+            <SegmentedControl
+              aria-label="Show"
+              size="sm"
+              value={focus}
+              onChange={(v) => {
+                setFocus(v as Focus);
+                setShown(PAGE);
               }}
-            >
-              {skipped} watched {skipped === 1 ? 'board was' : 'boards were'} skipped — the feed
-              reads at most 25 per search.
-            </Text>
-          )}
-
-          {loading ? (
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'row',
-                gap: 'xs',
-                alignItems: 'center',
-                py: 'md',
-              }}
-            >
-              <Spinner size="sm" label="Loading live postings" />
-              <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
-                Pulling live openings for “{term}”…
-              </Text>
-            </Box>
-          ) : current?.error ? (
-            <Alert tone="danger">{current.error}</Alert>
-          ) : !term.trim() ? (
-            <EmptyState message="Type a search term or pick one of this track's terms." />
-          ) : allFailed ? (
-            <EmptyState
-              title="Couldn't reach any source"
-              message="Check your internet connection or try again later."
+              options={[
+                { value: 'all', label: `All (${ranked.length})` },
+                ...(evidence.length
+                  ? [{ value: 'strong', label: `Strong fit (${strongCount})` }]
+                  : []),
+                { value: 'contract', label: `Contract-friendly (${counts.contract})` },
+                { value: 'founding', label: `First hire (${counts.founding})` },
+              ]}
             />
-          ) : ranked.length === 0 ? (
+          </Box>
+          {visible.length === 0 ? (
             <EmptyState
-              title={`No live openings mention “${term}” right now`}
-              message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
+              message={
+                focus === 'strong'
+                  ? 'None is a strong fit for your evidence yet — switch back to All, or add evidence.'
+                  : 'None of these openings carry that signal — switch back to All.'
+              }
             />
           ) : (
-            <Box>
-              {/* Scrolls sideways on narrow screens rather than clipping (same as the tab bar). */}
-              <Box sx={{ mb: 'xs', overflowX: 'auto', maxWidth: '100%', pb: 0.5 }}>
-                <SegmentedControl
-                  aria-label="Show"
-                  size="sm"
-                  value={focus}
-                  onChange={(v) => {
-                    setFocus(v as Focus);
-                    setShown(PAGE);
-                  }}
-                  options={[
-                    { value: 'all', label: `All (${ranked.length})` },
-                    { value: 'contract', label: `Contract-friendly (${counts.contract})` },
-                    { value: 'founding', label: `First hire (${counts.founding})` },
-                  ]}
+            <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
+              {visible.slice(0, shown).map((p) => (
+                <PostingRow
+                  key={p.id}
+                  p={p}
+                  now={current!.at}
+                  saved={savedKeys.has(dedupKey(p.url))}
+                  fit={fits.get(p.id)}
+                  onSave={() => save(p)}
                 />
-              </Box>
-              {visible.length === 0 ? (
-                <EmptyState message="None of these openings carry that signal — switch back to All." />
-              ) : (
-                <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
-                  {visible.slice(0, shown).map((p) => (
-                    <PostingRow
-                      key={p.id}
-                      p={p}
-                      now={current!.at}
-                      saved={savedKeys.has(dedupKey(p.url))}
-                      onSave={() => save(p)}
-                    />
-                  ))}
-                </Box>
-              )}
-              {visible.length > shown && (
-                <Button
-                  variant="tertiary"
-                  size="sm"
-                  onClick={() => setShown((n) => n + PAGE)}
-                  style={{ marginTop: 'var(--primitive-space-2)' }}
-                >
-                  Show more ({visible.length - shown})
-                </Button>
-              )}
+              ))}
             </Box>
           )}
-        </>
+          {visible.length > shown && (
+            <Button
+              variant="tertiary"
+              size="sm"
+              onClick={() => setShown((n) => n + PAGE)}
+              style={{ marginTop: 'var(--primitive-space-2)' }}
+            >
+              Show more ({visible.length - shown})
+            </Button>
+          )}
+        </Box>
       )}
     </Box>
   );
@@ -359,11 +391,14 @@ function PostingRow({
   p,
   now,
   saved,
+  fit,
   onSave,
 }: {
   p: RankedPosting;
   now: number;
   saved: boolean;
+  /** Present once the user has evidence. */
+  fit?: FitGap;
   onSave: () => void;
 }) {
   const meta = [
@@ -404,6 +439,11 @@ function PostingRow({
           {meta.join(' · ')}
         </Text>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
+          {fit && (
+            <Badge tone={verdictTone(TIER_INFO[fit.tier].verdict)}>
+              {TIER_INFO[fit.tier].label}
+            </Badge>
+          )}
           {p.signals.map((s) => (
             <HdsTooltip key={s.id}>
               <HdsTooltip.Trigger asChild>
@@ -427,6 +467,11 @@ function PostingRow({
           >
             {p.snippet}
           </Text>
+        )}
+        {fit && (
+          <Box sx={{ mt: 'xs' }}>
+            <FitGapDetails fg={fit} />
+          </Box>
         )}
       </Box>
       <Button
