@@ -58,7 +58,13 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
-  publishable + RLS-protected). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
+  publishable + RLS-protected). **Blob v5 (ADR 0008)** carries jobs, snippets, set-aside tiles **and the
+  user-edited per-browser stores: outreach targets (`rjb_targets`), saved searches (`rjb_feed_filters`),
+  the evidence text (`rjb_radar_evidence`) and work mode per track (`rjb_ui_mode:<id>`, `src/trackModes.ts`)**
+  — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
+  Caches and device UI prefs (`rjb_liveness`, `rjb_probe`, `rjb_gh_*`, `rjb_feed_remotive`, `rjb_ui_*`, pins)
+  stay local. Sign-out flushes the blob first (confirms if the push fails); evidence is capped at 20,000
+  chars; per-track data is dropped when its track is deleted (`src/trackData.ts`; no sweep after sync, orphans are harmless). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
   content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
   `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`.
 - **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Trades** (tab label; slug
@@ -146,7 +152,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   Pinned in `src/pipeline.test.tsx`.
 - **Discover (#131, `docs/specs/discover.md`):** `DiscoverHeader` = `PageHeader` (track name, Manage
   track, New track `Menu`) + the track `Combobox` + one context `Popover` button ("Spokane, Hybrid")
-  holding the only `LocationControl`. **Location is `Category.location`; work mode is per device,
+  holding the only `LocationControl`. **Location is `Category.location`; work mode is per track and syncs,
   `rjb_ui_mode:<categoryId>`** (`src/discoverContext.ts`, `useTrackContext`; panels read it, they take
   no location props). Tools are one `SegmentedControl` (Apply / Titles / ATS / Live on a phone, full
   names from `sm`), wrapped in `hds-gaps/TabsOverflowFade`; the track's sections are `Tabs` under
@@ -325,7 +331,7 @@ track-agnostic like everything else in Discover.
     `FEED_HOSTS` in `csp.test.ts`.
   - **Targeting** (`feed/targeting.ts`): leave-out terms, level from the title only, a pay floor
     (only where a source states pay), each with a "hidden by" count. **Saved searches**
-    (`feed/savedFilters.ts`, `rjb_feed_filters`, per track, not synced).
+    (`feed/savedFilters.ts`, `rjb_feed_filters`, per track, synced in the blob).
   - **Liveness** (`feed/liveness.ts`, `livenessStore.ts`, `LivenessViews.tsx`): re-reads a saved
     Saved/Applied board job's board (once per board), flags "Closed on the board", never changes
     status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. Shown above the
@@ -344,7 +350,7 @@ track-agnostic like everything else in Discover.
   `discoverBoards.ts` + `FindBoardsPanel` take a pasted list (500 max) or a YC batch (`yc.ts`, community
   mirror) and offer Watch. `dsOrgs.ts` + `githubBudget.ts` find design-system orgs via keyless GitHub
   search (3 pages, 30 org lookups per run, 8 searches/min and 40 core/hour in `rjb_gh_budget`, stops with
-  "wait until" on 403/429); results are outreach targets (`targets.ts`, `rjb_targets`, local, per track,
+  "wait until" on 403/429); results are outreach targets (`targets.ts`, `rjb_targets`, per track, synced in the blob,
   shown in By company and the Teams tool). YC and GitHub sit behind `DISCOVERY_SOURCE_ENABLED`
   (`feed/discoverySources.ts`) and are **unverified live**, as are the new community-board `site:` clauses
   in `jobsData.ts`. Big-company ATSs (Workday, SuccessFactors, Taleo, Oracle) are Google links only: never

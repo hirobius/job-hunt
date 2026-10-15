@@ -11,12 +11,22 @@ import type { CurationState } from './curation/types';
 import { mergeTriage, type Triage } from './tileTriage';
 import { STATUSES, type Job } from './types';
 import { withoutSample } from './demo/isSample';
+import { mergeTargets, sanitizeTargets, type Target } from './feed/targets';
+import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFilters';
+import { capEvidence, mergeEvidence } from './radar/evidenceStore';
+import { mergeModes, sanitizeModes } from './trackModes';
+import type { WorkMode } from './jobsData';
 
 export interface AccountState {
   jobs: Job[];
   copydeck: Snippet[];
   curation: CurationState;
   triage: Triage;
+  /** Outreach targets, saved searches, evidence and work modes (ADR 0008). Older backups lack them. */
+  targets: Record<string, Target[]>;
+  filters: Record<string, SavedFilter[]>;
+  evidence: string;
+  modes: Record<string, WorkMode>;
 }
 
 export interface Backup extends AccountState {
@@ -40,6 +50,10 @@ export function buildBackup(state: AccountState, now: Date): Backup {
     copydeck: state.copydeck,
     curation: state.curation,
     triage: state.triage,
+    targets: state.targets,
+    filters: state.filters,
+    evidence: state.evidence,
+    modes: state.modes,
   };
 }
 
@@ -237,6 +251,10 @@ export function parseBackup(text: string): ParseResult {
       copydeck: cleanSnippets(data.copydeck),
       curation: cleanCuration(data.curation),
       triage: cleanTriage(data.triage),
+      targets: sanitizeTargets(data.targets),
+      filters: sanitizeFilters(data.filters),
+      evidence: isStr(data.evidence) ? capEvidence(data.evidence) : '',
+      modes: sanitizeModes(data.modes),
     },
   };
 }
@@ -253,6 +271,10 @@ export function applyBackup(
       copydeck: backup.copydeck,
       curation: backup.curation,
       triage: backup.triage,
+      targets: backup.targets,
+      filters: backup.filters,
+      evidence: backup.evidence,
+      modes: backup.modes,
     };
   }
   return {
@@ -260,6 +282,10 @@ export function applyBackup(
     copydeck: mergeSnippets(backup.copydeck, current.copydeck),
     curation: mergeCuration(backup.curation, current.curation),
     triage: mergeTriage(backup.triage, current.triage),
+    targets: mergeTargets(backup.targets, current.targets),
+    filters: mergeFilters(backup.filters, current.filters),
+    evidence: mergeEvidence(backup.evidence, current.evidence),
+    modes: mergeModes(backup.modes, current.modes),
   };
 }
 

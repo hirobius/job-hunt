@@ -116,5 +116,7 @@ The architecture decision records explain how the app got here:
   personal board to an agnostic, track-driven product.
 - [`docs/adr/0007`](docs/adr/0007-track-hds-latest-with-the-upgrade-tool.md) — track the latest
   HDS with its upgrade tool (exact-pinned; bumped only through the tool).
+- [`docs/adr/0008`](docs/adr/0008-sync-user-edited-stores-in-blob-v5.md) — every user-edited
+  store (targets, saved searches, evidence, work mode) syncs in blob v5.
 
 Domain vocabulary is in [`CONTEXT.md`](CONTEXT.md). The backlog lives in GitHub Issues.

@@ -1,8 +1,10 @@
 // Saved searches: a named bundle of everything that narrows Live postings, kept per track in local
-// storage (`rjb_feed_filters`) for one-tap recall. Not synced: a convenience, like the evidence box.
+// storage (`rjb_feed_filters`) for one-tap recall. Syncs with the account in the blob (ADR 0008).
 // Storage is untrusted: anything malformed reads as "none saved" rather than breaking the panel.
 import type { WorkMode } from '../jobsData';
 import type { Seniority } from '../curation/types';
+import { useMemo, useSyncExternalStore } from 'react';
+import { mergeByKey } from '../mergeByKey';
 import { loadPersisted, savePersisted } from '../persisted';
 
 export const FILTERS_KEY = 'rjb_feed_filters';
@@ -57,6 +59,37 @@ export function sanitizeFilters(raw: unknown): Record<string, SavedFilter[]> {
 }
 
 const readAll = () => sanitizeFilters(loadPersisted<unknown>(FILTERS_KEY, {}));
+const listeners = new Set<() => void>();
+const write = (all: Record<string, SavedFilter[]>) => {
+  savePersisted(FILTERS_KEY, all);
+  listeners.forEach((l) => l());
+};
+
+/** Every track's saved searches (for the sync blob and backup). */
+export const getAllFilters = readAll;
+
+/** Replace the whole store (a pull, a restore) and notify subscribers. */
+export function replaceFilters(all: Record<string, SavedFilter[]>): void {
+  write(sanitizeFilters(all));
+}
+
+/** Union by name (ignoring case) per track; `cloud` wins on a shared name, local-only searches are
+ *  kept, and a track's list is capped at its newest MAX_FILTERS_PER_TRACK. */
+export function mergeFilters(
+  cloud: Record<string, SavedFilter[]>,
+  local: Record<string, SavedFilter[]>,
+): Record<string, SavedFilter[]> {
+  const out: Record<string, SavedFilter[]> = {};
+  for (const track of new Set([...Object.keys(local), ...Object.keys(cloud)])) {
+    const merged = mergeByKey<SavedFilter>(
+      (f) => f.name.toLowerCase(),
+      cloud[track] ?? [],
+      local[track] ?? [],
+    );
+    if (merged.length) out[track] = merged.slice(-MAX_FILTERS_PER_TRACK);
+  }
+  return out;
+}
 
 export const readFilters = (categoryId: string): SavedFilter[] => readAll()[categoryId] ?? [];
 
@@ -71,7 +104,7 @@ export function saveFilter(categoryId: string, filter: SavedFilter): SavedFilter
   if (at >= 0) list[at] = next;
   else list.push(next);
   all[categoryId] = list.slice(-MAX_FILTERS_PER_TRACK);
-  savePersisted(FILTERS_KEY, all);
+  write(all);
   return all[categoryId];
 }
 
@@ -80,6 +113,39 @@ export function deleteFilter(categoryId: string, name: string): SavedFilter[] {
   const list = (all[categoryId] ?? []).filter((x) => x.name !== name);
   if (list.length) all[categoryId] = list;
   else delete all[categoryId];
-  savePersisted(FILTERS_KEY, all);
+  write(all);
   return list;
+}
+
+const rawNow = () => {
+  try {
+    return localStorage.getItem(FILTERS_KEY) ?? '';
+  } catch {
+    return '';
+  }
+};
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  window.addEventListener('storage', l);
+  return () => {
+    listeners.delete(l);
+    window.removeEventListener('storage', l);
+  };
+};
+
+/** Every track's saved searches, live. */
+export function useAllFilters(): Record<string, SavedFilter[]> {
+  const raw = useSyncExternalStore(subscribe, rawNow, rawNow);
+  return useMemo(() => {
+    try {
+      return sanitizeFilters(raw ? JSON.parse(raw) : {});
+    } catch {
+      return {};
+    }
+  }, [raw]);
+}
+
+/** A track's saved searches, live. */
+export function useFilters(categoryId: string): SavedFilter[] {
+  return useAllFilters()[categoryId] ?? [];
 }

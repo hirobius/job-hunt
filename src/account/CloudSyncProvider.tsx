@@ -9,7 +9,18 @@ import { supabase as supa } from '../supabase';
 import { useJobs, getAllJobs, replaceAll } from '../store';
 import { useSnippets, getSnippets, replaceSnippets } from '../copyDeckStore';
 import { useTileTriage, getTileTriage, replaceTriage } from '../tileTriage';
-import { readBlob, writeBlob, mergeBlob, type SyncData } from '../syncBlob';
+import { getAllTargets, replaceTargets, useAllTargets } from '../feed/targets';
+import { getAllFilters, replaceFilters, useAllFilters } from '../feed/savedFilters';
+import { readEvidence, replaceEvidence, useEvidence } from '../radar/evidenceStore';
+import { getAllModes, replaceModes, useAllModes } from '../trackModes';
+import {
+  readBlob,
+  writeBlob,
+  mergeBlob,
+  emptyBlob,
+  BLOB_VERSION,
+  type SyncData,
+} from '../syncBlob';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
 import {
   getCurationSyncStatus,
@@ -22,10 +33,9 @@ import {
   deleteFailedMsg,
   TRACK_WRITE_FAILED,
   UNSYNCED_SIGN_OUT,
-  targetsSignOutMsg,
+  UNSYNCED_CHANGES_SIGN_OUT,
 } from '../cloudMessages';
 import { getPending, useFailedCount } from '../curation/pending';
-import { countAllTargets } from '../feed/targets';
 import { CloudSyncContext, type CloudSyncApi } from './accountContext';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
@@ -45,6 +55,11 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const jobs = useJobs();
   const snippets = useSnippets();
   const triage = useTileTriage();
+  // Subscribed so a change to any of these re-runs the push effect below.
+  const targets = useAllTargets();
+  const filters = useAllFilters();
+  const evidence = useEvidence();
+  const modes = useAllModes();
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const [signInOpen, setSignInOpen] = useState(false);
@@ -68,6 +83,11 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     copydeck: getSnippets(),
     triage: getTileTriage(),
     legacyUserTiles: [],
+    targets: getAllTargets(),
+    filters: getAllFilters(),
+    evidence: readEvidence(),
+    modes: getAllModes(),
+    sourceV: BLOB_VERSION,
   });
   const localJson = () => JSON.stringify(writeBlob(localBlob()));
 
@@ -76,24 +96,41 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     if (r.error) throw new Error(r.error.message);
     return r.data ? readBlob(r.data.data) : null;
   }
-  async function pushNow(u: User) {
-    if (!pulledOk.current) return;
-    const r = await supa.from('tracker').upsert({
-      user_id: u.id,
-      data: writeBlob(localBlob()),
-      updated_at: new Date().toISOString(),
-    });
-    lastSynced.current = localJson();
-    setMsg(r.error ? OFFLINE_MSG : `Synced · ${u.email}`);
+  // Returns whether the cloud took it. `lastSynced` moves only on success, so a failed push
+  // stays "dirty": the next refresh and sign-out both retry it.
+  async function pushNow(u: User): Promise<boolean> {
+    if (!pulledOk.current) return false;
+    const sent = localJson();
+    let ok: boolean;
+    try {
+      const r = await supa.from('tracker').upsert({
+        user_id: u.id,
+        data: writeBlob(localBlob()),
+        updated_at: new Date().toISOString(),
+      });
+      ok = !r.error;
+    } catch {
+      ok = false;
+    }
+    if (ok) lastSynced.current = sent;
+    setMsg(ok ? `Synced · ${u.email}` : OFFLINE_MSG);
+    return ok;
   }
+  const dirty = () => localJson() !== lastSynced.current;
   async function adopt(seed: boolean, u: User) {
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     setPulling(true);
     try {
+      // Unsent local edits (a failed push) must go up before a pull would replace them.
+      if (!seed && pulledOk.current && dirty() && !(await pushNow(u))) return;
       const next = mergeBlob(await pull(u.id), localBlob(), seed);
       replaceAll(next.jobs);
       replaceSnippets(next.copydeck);
       replaceTriage(next.triage);
+      replaceTargets(next.targets);
+      replaceFilters(next.filters);
+      replaceEvidence(next.evidence);
+      replaceModes(next.modes);
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
       pulledOk.current = true;
@@ -107,7 +144,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         foldIntoStore(legacy);
         curationOk = await syncOnLogin(u.id);
       }
-      if (seed || next.legacyUserTiles.length) await pushNow(u);
+      // A pre-v5 cloud copy lacks the v5 fields (an old tab rewrote it): re-upload them now.
+      if (seed || next.legacyUserTiles.length || next.sourceV < BLOB_VERSION) await pushNow(u);
       if (!curationOk) setMsg(OFFLINE_MSG);
       else if (!seed) setMsg(`Synced · ${u.email}`);
     } catch {
@@ -152,7 +190,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     pushTimer.current = setTimeout(() => pushNow(user), 500);
     // pushNow/localJson are stable enough; we intentionally fire only on data + user changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobs, snippets, triage, user]);
+  }, [jobs, snippets, triage, targets, filters, evidence, modes, user]);
 
   // re-pull on focus
   useEffect(() => {
@@ -167,11 +205,15 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Sign out clears local data (then reloads to a clean slate). Cloud data is untouched
   // and restored on next sign-in; this only protects shared devices.
   const signOut = async () => {
+    // Flush edits still inside the push debounce (or a failed push) before the wipe.
+    clearTimeout(pushTimer.current);
+    if (user) {
+      const hasData = localJson() !== JSON.stringify(writeBlob(emptyBlob()));
+      const flushed = pulledOk.current && (!dirty() || (await pushNow(user)));
+      if (!flushed && hasData && !window.confirm(UNSYNCED_CHANGES_SIGN_OUT)) return;
+    }
     // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
     if (getPending().length > 0 && !window.confirm(UNSYNCED_SIGN_OUT)) return;
-    // Outreach targets are local only (company lists stay off the cloud by default), so say so.
-    const targets = countAllTargets();
-    if (targets > 0 && !window.confirm(targetsSignOutMsg(targets))) return;
     await supa.auth.signOut();
     clearLocalData();
     location.reload();

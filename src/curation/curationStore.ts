@@ -25,6 +25,7 @@ import {
   settlePendingMany,
   type PendingOp,
 } from './pending';
+import { dropTrackData } from '../trackData';
 import { hasPersistedSession } from '../supabase';
 
 const KEY = 'rjb_curation';
@@ -179,6 +180,7 @@ export function removeCategory(id: string) {
   if (!s.categories.some((c) => c.id === id)) return;
   store.set({ ...s, categories: s.categories.filter((c) => c.id !== id) });
   remove('categories', id);
+  dropTrackData(id); // its targets, saved searches and work mode go with it
 }
 
 // ---- groups ----

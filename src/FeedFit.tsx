@@ -3,6 +3,7 @@
 // src/radar/ (rules only, no AI); these only render it.
 import { useId } from 'react';
 import { Disclosure, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
+import { EVIDENCE_MAX } from './radar/evidenceStore';
 import type { FitGap } from './radar/fitGap';
 import type { Patterns } from './radar/patterns';
 import { SECONDARY } from './hds-gaps/tone';
@@ -26,7 +27,7 @@ export function EvidenceEditor({
       <Stack gap="xs">
         <Text variant="caption" style={SECONDARY}>
           One skill per line, as “Skill: what shows it (link)”. Each posting then gets a fit, and
-          Fit notes only ever cite these. Kept on this device.
+          Fit notes only ever cite these. Saved with your account.
         </Text>
         <Textarea
           aria-label="Your evidence"
@@ -37,6 +38,12 @@ export function EvidenceEditor({
           }
           onChange={(e) => onChange(e.target.value)}
         />
+        {text.length >= EVIDENCE_MAX && (
+          <Text variant="caption" role="status" style={SECONDARY}>
+            Trimmed to the {EVIDENCE_MAX.toLocaleString('en-US')} character limit; anything past it
+            is not kept.
+          </Text>
+        )}
       </Stack>
     </Disclosure>
   );
