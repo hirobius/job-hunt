@@ -10,8 +10,12 @@ import {
   Stack,
   Switcher,
   Text,
+  useToast,
 } from '@hirobius/design-system';
-import { updateJob } from './store';
+import { DestructiveSection } from '@hirobius/design-system/patterns';
+import { removeJob, updateJob } from './store';
+import { openJob } from './route';
+import { titleOf } from './jobRow';
 import { jobFacts, researchLinks } from './jobFacts';
 import { useSavedFlash } from './useSavedFlash';
 import UseTemplate from './UseTemplate';
@@ -47,6 +51,7 @@ export function JobField({
 
 export default function JobOverview({ job }: { job: Job }) {
   const { saved, flash } = useSavedFlash();
+  const { toast } = useToast();
   // A job saved from a bare link has nothing to read yet, so the editor starts open.
   const [editOpen, setEditOpen] = useState(!(job.label && job.company));
   const facts = jobFacts(job);
@@ -100,6 +105,19 @@ export default function JobOverview({ job }: { job: Job }) {
           </Switcher>
         </Stack>
       </Disclosure>
+      <DestructiveSection
+        level={3}
+        title="Remove this job"
+        description="Deletes the job, its to-dos, notes and interviews from this device and your account."
+        actionLabel="Remove this job"
+        confirmLabel="Remove job"
+        confirmBody={`“${titleOf(job)}” will be gone for good.`}
+        onConfirm={() => {
+          removeJob(job.url);
+          openJob(null, true);
+          toast({ title: 'Job removed', description: titleOf(job) });
+        }}
+      />
     </Stack>
   );
 }

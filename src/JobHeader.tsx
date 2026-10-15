@@ -45,7 +45,7 @@ export default function JobHeader({ job, showBack = true }: { job: Job; showBack
             style={job.priority ? { color: 'var(--semantic-accent-rest)' } : undefined}
           />
           <RowPrimaryAction job={job} variant="primary" />
-          <RowMenu job={job} />
+          <RowMenu job={job} canRemove={false} />
         </Stack>
       }
       style={{ marginBottom: 'var(--primitive-space-4)' }}

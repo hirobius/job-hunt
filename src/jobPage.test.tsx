@@ -1,7 +1,7 @@
 // The job page (#130), tested at the route seam through App: #/queue/<jobId>. Slice by slice:
 // header + Overview, tabs, delete, two-pane desktop.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -245,5 +245,31 @@ describe('job page tabs (#130 slice 2)', () => {
     });
     expect(await screen.findByRole('heading', { level: 2, name: 'Welder' })).toBeInTheDocument();
     expect(tab('Overview')).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
+describe('job page delete (#130 slice 3)', () => {
+  it('Remove is not in the page menu; it is the last section of Overview', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
+    expect(screen.queryByRole('menuitem', { name: 'Remove' })).toBeNull();
+    expect(screen.getByRole('menuitem', { name: 'Retire' })).toBeInTheDocument();
+  });
+
+  it('asks before removing, then removes, returns to the list and says so', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove this job' }));
+    // Cancel leaves the job alone.
+    const dialog = await screen.findByRole('alertdialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(getAllJobs()).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Remove this job' }));
+    const confirm = await screen.findByRole('alertdialog');
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Remove job' }));
+    expect(getAllJobs()).toHaveLength(0);
+    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    expect(await screen.findByText('Job removed')).toBeInTheDocument();
   });
 });
