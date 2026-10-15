@@ -7,10 +7,21 @@ import type { Job, Status } from './types';
 const RESPONSE: Status[] = ['Interviewing', 'Offer', 'Rejected'];
 const INTERVIEW: Status[] = ['Interviewing', 'Offer'];
 
+/** The recent window Insights reports on ("applied, last N days") and its trend baseline. */
+export const RECENT_DAYS = 7;
+
 export interface PipelineMetrics {
   appliedLast7: number;
+  /** Applied in the 7 days before those (7–13 days ago): the trend's baseline. */
+  appliedPrev7: number;
   appliedLast30: number;
   appliedTotal: number;
+  /** Applied jobs that got any reply (interview, offer or rejection). */
+  responded: number;
+  /** Applied jobs that reached interviews (an offer counts: it needs them). */
+  interviewed: number;
+  /** Applied jobs that reached an offer. */
+  offered: number;
   responseRate: number | null;
   interviewRate: number | null;
   medianDaysToResponse: number | null;
@@ -60,16 +71,19 @@ export function pipelineMetrics(jobs: Job[], now: Date = new Date()): PipelineMe
   const today = localDay(ymd(now)) as Date;
   let appliedTotal = 0;
   let appliedLast7 = 0;
+  let appliedPrev7 = 0;
   let appliedLast30 = 0;
   let responded = 0;
   let interviewed = 0;
+  let offered = 0;
   const replyDays: number[] = [];
   for (const job of jobs) {
     const applied = appliedDay(job);
     if (!applied) continue;
     appliedTotal++;
     const age = dayDiff(applied, today);
-    if (age >= 0 && age < 7) appliedLast7++;
+    if (age >= 0 && age < RECENT_DAYS) appliedLast7++;
+    if (age >= RECENT_DAYS && age < 2 * RECENT_DAYS) appliedPrev7++;
     if (age >= 0 && age < 30) appliedLast30++;
     const hist = effectiveHistory(job);
     const first = hist.find((h) => RESPONSE.includes(h.status));
@@ -79,16 +93,28 @@ export function pipelineMetrics(jobs: Job[], now: Date = new Date()): PipelineMe
       if (at) replyDays.push(Math.max(0, dayDiff(applied, at)));
     }
     if (hist.some((h) => INTERVIEW.includes(h.status))) interviewed++;
+    if (hist.some((h) => h.status === 'Offer')) offered++;
   }
   return {
     appliedLast7,
+    appliedPrev7,
     appliedLast30,
     appliedTotal,
+    responded,
+    interviewed,
+    offered,
     responseRate: appliedTotal ? responded / appliedTotal : null,
     interviewRate: appliedTotal ? interviewed / appliedTotal : null,
     medianDaysToResponse: median(replyDays),
     followUpsDue: jobs.filter((j) => deriveJobState(j, now).followUp.due).length,
   };
+}
+
+/** The trend line under "applied, last N days": the window against the N days before it. */
+export function vsPrevious(cur: number, prev: number): string {
+  const before = `the ${RECENT_DAYS} days before`;
+  if (cur === prev) return `Same as ${before}`;
+  return `${cur > prev ? '+' : '−'}${Math.abs(cur - prev)} vs ${before}`;
 }
 
 /** Applications per Mon–Sun week, oldest → newest; the last bucket is the current week. */

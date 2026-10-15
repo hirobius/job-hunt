@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { SORTS } from './jobSort';
 
 /**
  * README truth guard (#111). The README is the portfolio's front door and it drifted badly
@@ -41,5 +42,27 @@ describe('README makes no retired claims', () => {
     );
     for (const [, name] of README.matchAll(/npm run ([\w:-]+)/g))
       expect(scripts, `npm run ${name}`).toContain(name);
+  });
+});
+
+/** Every number in the docs is derived from a source or cut (hirobius/ops#681). */
+describe('README and FEATURES numbers have a source', () => {
+  const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+
+  it('"N sorts" matches the Sort menu', () => {
+    const m = README.match(/\b(\w+) sorts\b/i);
+    expect(m, 'README names how many sorts there are').not.toBeNull();
+    const n = WORDS.indexOf(m![1].toLowerCase());
+    expect(n, `"${m![1]}" is a number word`).toBeGreaterThan(-1);
+    expect(n, 'README sort count vs SORTS in jobSort.ts').toBe(SORTS.length);
+  });
+
+  it('quotes no bundle sizes (they change every build; run npm run build to see them)', () => {
+    expect(README).not.toMatch(/\d\s?kB/i);
+  });
+
+  it('does not describe an "Up Next" queue the app does not have', () => {
+    const FEATURES = fs.readFileSync('FEATURES.md', 'utf8');
+    expect(FEATURES).not.toMatch(/up next/i);
   });
 });

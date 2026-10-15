@@ -24,7 +24,7 @@ describe('TrackerView', () => {
       'https://boards.greenhouse.io/acme/jobs/42',
     );
     await user.click(within(dialog).getByRole('button', { name: /^add$/i }));
-    expect(await screen.findByRole('link', { name: /boards/i })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Acme · Greenhouse' })).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
@@ -89,15 +89,12 @@ describe('Pipeline hierarchy', () => {
   });
 });
 
-// Dense layout: metrics fold into one closed Insights row so the list starts near the top.
-describe('Pipeline density', () => {
-  it('folds stats and funnel into a closed Insights row', async () => {
-    const user = userEvent.setup();
+// The Pipeline holds the list only (#128): the agenda, stats and funnel moved to Today.
+describe('Pipeline holds the list only', () => {
+  it('has no This week agenda or Insights band', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();
-    const insights = screen.getByRole('button', { name: /Insights/ });
-    expect(insights).toHaveAttribute('aria-expanded', 'false');
-    await user.click(insights);
-    expect(insights).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.queryByRole('button', { name: /Insights/ })).toBeNull();
+    expect(screen.queryByText(/^This week/)).toBeNull();
   });
 });

@@ -1,10 +1,10 @@
-# CLAUDE.md — Hirebius (formerly Apply Board)
+# CLAUDE.md — Roleforge (formerly Apply Board)
 
 Project memory for future Claude Code sessions in this repo.
 
 ## What this is
 
-**Hirebius** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
+**Roleforge** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
 **https://job-hunt-jade.vercel.app** (repo `hirobius/job-hunt`). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
 commit `f15fd52`).
@@ -79,8 +79,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
   terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
   pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
-  **Shell (#115 Phase 1):** slim header = name · top tabs (**Pipeline · Discover · Templates**;
-  Today joins in Phase 2 and becomes home) · one **Account** menu. `src/account/` is the account
+  **Shell (#115 Phase 1):** slim header = name · top tabs (**Today · Pipeline · Discover ·
+  Templates**; they scroll on a phone, with the `src/hds-gaps/TabsOverflowFade` edge cue) · one
+  **Account** menu. `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Back up,
   Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible Callout;
@@ -89,6 +90,32 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
   (git-ignored). Run it before/after each redesign phase.
+- **Job routes (#127):** every saved job has a page at `#/queue/<jobId>` (`Route.jobId`; the second
+  segment is a job under `queue`, a sub-tab elsewhere). `store.jobIdOf(url)` derives the id (hash
+  of `dedupKey`, never stored); `findJobById` resolves it; `route.openJob(id | null)` navigates.
+  `JobPage.tsx` shows the full `JobCard.tsx` (the list uses compact rows, #129); an unknown id waits for
+  `useCloudSync().settled` before falling back to `#/queue`. `HOME_ROUTE` (`today`) and
+  `QUICK_ADD_LANDING` (`queue`) are separate in `App.tsx`. Pinned in `src/jobRoute.test.tsx`.
+- **Today is home (#128):** `#/today` = `TodayView.tsx`: due follow-ups (`dueFollowUps`) and the
+  next 7 days (`upcomingEvents`, both in `jobEvents.ts`) as `StatusListItem` rows, one quick-add
+  field (stays on Today; the line under it links the saved job), and `Insights.tsx` (metric tiles
+  via `src/hds-gaps/MetricTilesAutoFit` + Progress-row funnel; open state `rjb_ui_insights_open`).
+  HDS-gap stand-ins live in `src/hds-gaps/`, each naming its upstream ask. The Pipeline holds the list only. **The onboarding gate lives in the
+  shell:** Today shows `Onboarding` on a first run (no tracks and no jobs; it offers sample data
+  there), Discover whenever there are no tracks; Pipeline and Templates never gate. Existing users
+  get a one-time `TodayNotice` (`rjb_ui_today_home_seen`; a first run marks it seen). Pinned in
+  `src/today.test.tsx`.
+- **Pipeline rows (#129):** the shell is HDS page width (`Container maxWidth="max"`, 1200). The
+  Pipeline table and Discover's tile grid use it; Today's lists, the job page and Templates sit at
+  the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders
+  `JobsTable` (HDS `Table`, sortable headers through `jobRow.nextSort` → the same `SortKey` as the
+  toolbar) at ≥ the HDS `lg` breakpoint and `JobListCard` (title on its own row) below it, chosen
+  by `src/hds-gaps/useBreakpoint.ts` (no `matchMedia` → cards). Both render `jobRow.rowView` with
+  `JobRowParts.tsx`: one next step per row (Mark applied / Log follow-up, secondary so Add job stays
+  the page's one primary) + the row `Menu` (also on the job page's `JobCard`); 40px controls on
+  cards. A non-default status filter shows as a `Tag` chip that clears it.
+  Titles link to `#/queue/<jobId>`; details, to-dos, the screener and templates live on the job
+  page (`JobCard`, until #130). Pinned in `src/pipeline.test.tsx`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
@@ -99,6 +126,18 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   planned consolidation: saving also floats the tile (issue #13).
 
 ## Build / deploy / verify
+
+- ⚠️ **Build budget — Vercel build minutes cost money (Adrian, 2026-10-14). Default to NO cloud
+  builds.** Every push to `main` is a production build; every branch commit with `[preview]` is a
+  preview build.
+  - **Don't add `[preview]` by default.** Only when Adrian asks for a preview link, or when a
+    change can't be judged without a deployed URL. One preview per review round, on the last
+    commit of the round, never per commit.
+  - **Don't merge to `main` unless Adrian says so** ("merge", "ship", "ready for merging"). Batch
+    finished work into one merge instead of merging slice by slice.
+  - **Verify locally instead:** `npm run verify`, `npm run test:e2e`, and `npm run gallery`
+    (builds and serves `dist/` locally — no Vercel) for screenshots. Vercel is the deploy, not
+    the test runner.
 
 - **Do NOT use GitHub Actions (owner preference, 2026-07).** There is no Actions CI — the
   `.github/workflows/ci.yml` workflow was removed. **Verification is local** (`npm run typecheck`

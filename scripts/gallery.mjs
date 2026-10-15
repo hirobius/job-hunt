@@ -36,19 +36,29 @@ async function serve() {
   // the entry point, and shots navigate within that origin.
   if (args.url) return { url: args.url, stop: () => {} };
   if (args['no-build'] !== 'true') await run('npx', ['vite', 'build']);
+  // Its own process group, so stop() takes down vite as well as the npx wrapper; a leftover
+  // server would answer the next run's port with this build.
   const child = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], {
     stdio: 'ignore',
+    detached: true,
   });
+  const stop = () => {
+    try {
+      process.kill(-child.pid);
+    } catch {
+      /* already gone */
+    }
+  };
   const url = `http://localhost:${PORT}`;
   for (let i = 0; i < 60; i++) {
     try {
-      if ((await fetch(url)).ok) return { url, stop: () => child.kill() };
+      if ((await fetch(url)).ok) return { url, stop };
     } catch {
       /* not up yet */
     }
     await new Promise((r) => setTimeout(r, 500));
   }
-  child.kill();
+  stop();
   throw new Error(`vite preview did not come up on ${url}`);
 }
 
@@ -65,9 +75,13 @@ const slug = (s) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
-/** Click the first visible element matching a role + name; false when the build has none. */
+/** Click the first visible element matching a role + name; false when the build has none.
+ *  The pseudo-role 'first-job' opens the first job's page from the Pipeline list (#129). */
 async function clickIf(page, role, name) {
-  const el = page.getByRole(role, { name }).first();
+  const el =
+    role === 'first-job'
+      ? page.locator('[role="table"] a[href^="#/queue/"], article a[href^="#/queue/"]').first()
+      : page.getByRole(role, { name }).first();
   if (!(await el.isVisible().catch(() => false))) return false;
   await el.click();
   await page.waitForTimeout(350);
@@ -106,16 +120,15 @@ const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'status-menu', [['button', /^Status:/]]],
   [/^(Pipeline|Tracker)$/, 'add-job-dialog', [['button', /^Add job$/]]],
   [/^(Pipeline|Tracker)$/, 'sign-in-dialog', [['button', /^Sign in$/]]],
-  [/^(Pipeline|Tracker)$/, 'job-details', [['button', /^Details$/]]],
+  [/^(Pipeline|Tracker)$/, 'row-menu', [['button', /^More actions/]]],
+  // A job's details, screener and templates live on its page (#129 moved them off the list).
+  [/^(Pipeline|Tracker)$/, 'job-page', [['first-job']]],
   [
     /^(Pipeline|Tracker)$/,
     'screen-jd-dialog',
-    [
-      ['button', /^Details$/],
-      ['button', /^Screen a job description$/],
-    ],
+    [['first-job'], ['button', /^Screen a job description$/]],
   ],
-  [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['button', /^Use template$/]]],
+  [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['first-job'], ['button', /^Use template$/]]],
   [/^Discover$/, 'manage-track-dialog', [['button', /^Manage this track$/]]],
 ];
 
@@ -146,7 +159,6 @@ async function shoot(browser, base, theme, width, manifest) {
   });
   await page.goto(base);
   await settle(page);
-  await seed(page);
 
   const dir = join(OUT, `${theme}-${width}`);
   mkdirSync(dir, { recursive: true });
@@ -163,6 +175,10 @@ async function shoot(browser, base, theme, width, manifest) {
       hash: await page.evaluate(() => location.hash),
     });
   };
+
+  // The landing screen before any data: what a first visit sees.
+  await snap('First visit');
+  await seed(page);
 
   for (const tab of await topTabs(page)) {
     await clickIf(page, 'tab', new RegExp(`^${tab}$`));
@@ -191,9 +207,11 @@ async function shoot(browser, base, theme, width, manifest) {
       manifest.push({ theme, width, name, file: `${theme}-${width}/${file}`, overlay: true });
     }
     for (let i = 0; i < 2; i++) await page.keyboard.press('Escape');
+    // Back from a job's page to the list (re-clicking the selected Pipeline tab won't leave it).
+    await page.evaluate(() => {
+      if (/^#\/queue\/./.test(location.hash)) location.hash = '#/queue';
+    });
     await page.waitForTimeout(200);
-    if (name === 'job-details' || name === 'screen-jd-dialog')
-      await clickIf(page, 'button', /^Details$/);
   }
   await ctx.close();
   return errors;

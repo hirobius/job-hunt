@@ -16,21 +16,40 @@ export function hostOf(u: string): string {
     return '';
   }
 }
+// Job-board hosts whose first path segment is the employer (boards.greenhouse.io/<company>/…).
+const ATS_HOSTS: Record<string, string> = {
+  'boards.greenhouse.io': 'Greenhouse',
+  'job-boards.greenhouse.io': 'Greenhouse',
+  'jobs.lever.co': 'Lever',
+  'jobs.eu.lever.co': 'Lever',
+  'jobs.ashbyhq.com': 'Ashby',
+};
+
+const titleCase = (s: string) => s.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
 /** A readable title derived from a URL when no label is set. */
 export function prettyTitle(u: string): string {
   try {
     const url = new URL(/^https?:\/\//i.test(u) ? u : 'https://' + u);
     const host = url.hostname.replace(/^www\./, '');
+    const segments = url.pathname.split('/').filter(Boolean);
+    // On a job board the host names the ATS, not the employer, so lead with the company slug.
+    const ats = ATS_HOSTS[host];
+    const company = ats && segments[0] ? titleCase(decodeURIComponent(segments[0])) : '';
     const brand = host.split('.')[0];
-    let title = brand.charAt(0).toUpperCase() + brand.slice(1);
-    let words = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() || '')
+    let title = company || brand.charAt(0).toUpperCase() + brand.slice(1);
+    let words = decodeURIComponent((company ? segments.slice(1) : segments).pop() || '')
       .replace(/\.(html?|php|aspx)$/i, '')
       .replace(/[-_]+/g, ' ')
       .trim();
-    if (/^[0-9a-f-]{16,}$/i.test(words) || /^\d+$/.test(words)) words = ''; // skip ids/uuids
+    // Skip ids and UUIDs (their hyphens are already spaces here).
+    if (/^[0-9a-f -]{16,}$/i.test(words) || /^\d+$/.test(words)) words = '';
+    if (company && words.toLowerCase() === 'jobs') words = '';
     if (words && words.length <= 42 && /[a-z]/i.test(words)) {
       words = words.replace(/\b\w/g, (c) => c.toUpperCase());
       title += ' — ' + words;
+    } else if (company) {
+      title += ' · ' + ats;
     }
     return title;
   } catch {
@@ -58,6 +77,11 @@ export function cleanUrl(u: string): string {
   while (/^https?:\/\/https?:\/\//i.test(u)) u = u.replace(/^https?:\/\//i, '');
   return u;
 }
+/** A pasted link as the store keeps it: cleaned, with https:// when it has no scheme. */
+function normalizeJobUrl(rawUrl: string): string {
+  const u = cleanUrl(rawUrl);
+  return u && !/^https?:\/\//i.test(u) ? 'https://' + u : u;
+}
 export function dedupKey(u: string): string {
   try {
     const x = new URL(u);
@@ -74,6 +98,28 @@ export function dedupKey(u: string): string {
     return (u || '').toLowerCase().replace(/\/+$/, '');
   }
 }
+
+const FNV_OFFSET = 0x811c9dc5; // the standard FNV-1a offset basis
+const FNV_OFFSET_ALT = 0x050c5d1f; // a second basis, so two independent 32-bit hashes make one id
+
+/** FNV-1a over a string with a given offset basis (32-bit). */
+function fnv1a(str: string, seed: number): number {
+  let h = seed >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h;
+}
+
+/** A job's stable, URL-safe id for its route (#/queue/<id>, #127). Job has no id field, and its URL
+ *  can't go raw into the hash (`/ ? & =`), so the id is a 2×32-bit hash of the same dedup key the
+ *  store uses — URLs the store treats as one job get one id. Never stored; always derived. */
+export function jobIdOf(url: string): string {
+  const key = dedupKey(url);
+  return fnv1a(key, FNV_OFFSET).toString(36) + fnv1a(key, FNV_OFFSET_ALT).toString(36);
+}
+
 /** Normalize any incoming list (localStorage OR cloud): clean URLs/labels,
  *  drop retired/blank, backfill weak titles, de-dupe by URL. Idempotent. */
 export function sanitizeJobs(arr: unknown): Job[] {
@@ -131,10 +177,8 @@ export function useJobs(): Job[] {
  *  so a re-save never clobbers the user's own notes. */
 export function addJob(rawUrl: string, label?: string, note?: string): boolean {
   const jobs = store.get();
-  let u = cleanUrl(rawUrl);
-  if (!u) return false;
-  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-  if (!/\./.test(u)) return false;
+  const u = normalizeJobUrl(rawUrl);
+  if (!u || !/\./.test(u)) return false;
   const key = dedupKey(u);
   const i = jobs.findIndex((j) => dedupKey(j.url) === key);
   if (i > -1) {
@@ -166,10 +210,8 @@ export function addJobDetailed(
   },
 ): string | null {
   const jobs = store.get();
-  let u = cleanUrl(rawUrl);
-  if (!u) return null;
-  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-  if (!/\./.test(u)) return null;
+  const u = normalizeJobUrl(rawUrl);
+  if (!u || !/\./.test(u)) return null;
   const key = dedupKey(u);
   if (jobs.some((j) => dedupKey(j.url) === key)) return null; // already saved
   const job: Job = {
@@ -206,6 +248,17 @@ export function removeJob(url: string) {
 export function isSaved(url: string): boolean {
   const key = dedupKey(cleanUrl(url));
   return store.get().some((j) => dedupKey(j.url) === key);
+}
+
+/** The saved job a pasted link points at (cleaned the way addJob cleans it), or undefined. */
+export function findJobByUrl(rawUrl: string): Job | undefined {
+  const key = dedupKey(normalizeJobUrl(rawUrl));
+  return store.get().find((j) => dedupKey(j.url) === key);
+}
+
+/** The saved job a route's id points at, or undefined (unknown, removed, or not synced yet). */
+export function findJobById(id: string, jobs: Job[] = getAllJobs()): Job | undefined {
+  return jobs.find((j) => jobIdOf(j.url) === id);
 }
 
 // Used by the cloud-sync layer to read/replace the whole list.

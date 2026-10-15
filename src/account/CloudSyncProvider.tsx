@@ -35,10 +35,19 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const [signInOpen, setSignInOpen] = useState(false);
+  // True while a pull (adopt) is running: "settled" means none is, and the last one didn't fail.
+  const [pulling, setPulling] = useState(false);
   // False until Supabase reports the stored session (or its absence), so signed-in users don't
   // see the signed-out nudge flash on load.
   const [authResolved, setAuthResolved] = useState(false);
   const lastSynced = useRef('');
+  // True once a pull since sign-in has merged the cloud copy in. Until then local data is
+  // unmerged, so pushing it would overwrite cloud-only jobs (#161).
+  const pulledOk = useRef(false);
+  // True from sign-in until the seed merge (the union of this device + the cloud, then a push)
+  // has landed. While set, Retry and focus re-pulls seed too: a cloud-wins merge would drop
+  // this device's local-only jobs after a failed first pull.
+  const seedPending = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const localBlob = (): SyncData => ({
@@ -55,6 +64,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     return r.data ? readBlob(r.data.data) : null;
   }
   async function pushNow(u: User) {
+    if (!pulledOk.current) return;
     const r = await supa.from('tracker').upsert({
       user_id: u.id,
       data: writeBlob(localBlob()),
@@ -65,6 +75,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   }
   async function adopt(seed: boolean, u: User) {
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
+    setPulling(true);
     try {
       const next = mergeBlob(await pull(u.id), localBlob(), seed);
       replaceAll(next.jobs);
@@ -72,6 +83,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       replaceTriage(next.triage);
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
+      pulledOk.current = true;
+      if (seed) seedPending.current = false;
       // Tracks live in their own tables: pull + reconcile + upload what's new here (#99).
       let curationOk = await syncOnLogin(u.id);
       // Retired user tiles (v3 cloud blob / this device's old store) fold into "My links" AFTER
@@ -87,6 +100,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     } catch {
       setCurationSyncStatus('error');
       setMsg(OFFLINE_MSG);
+    } finally {
+      setPulling(false);
     }
   }
 
@@ -102,6 +117,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       setUser(u);
       setAuthResolved(true);
       if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+      pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
+      seedPending.current = !!u; // a sign-in owes a seed merge; sign-out or a user change resets it
       if (u) adopt(true, u);
       else {
         foldIntoStore(takeLocalLegacyTiles()); // signed out: fold this device's old links now
@@ -115,7 +132,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
 
   // push local changes (debounced); skip when nothing changed since the last sync
   useEffect(() => {
-    if (!user) return;
+    if (!user || !pulledOk.current) return;
     if (localJson() === lastSynced.current) return;
     setMsg('Saving…');
     clearTimeout(pushTimer.current);
@@ -127,7 +144,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // re-pull on focus
   useEffect(() => {
     const onFocus = () => {
-      if (user) adopt(false, user);
+      if (user) adopt(seedPending.current, user);
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
@@ -208,10 +225,13 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     () => ({
       user,
       authResolved,
+      // Signed out: settled once the session check answers. Signed in: no pull running and the
+      // last one didn't fail — an offline device can't know a job is gone, so it doesn't decide.
+      settled: authResolved && (!user || (!pulling && !offline)),
       status: msg,
       offline,
       sendLink,
-      retry: () => user && void adopt(false, user),
+      retry: () => user && void adopt(seedPending.current, user),
       signOut: () => void signOut(),
       deleteMyData: () => void deleteMyData(),
       signInOpen,
@@ -219,7 +239,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }),
     // The handlers only close over `user` (and stable module state).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, authResolved, msg, offline, signInOpen],
+    [user, authResolved, pulling, msg, offline, signInOpen],
   );
   return <CloudSyncContext.Provider value={api}>{children}</CloudSyncContext.Provider>;
 }

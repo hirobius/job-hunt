@@ -1,4 +1,4 @@
-# Feature Roadmap — Hirebius (formerly Career Apply Board)
+# Feature Roadmap — Roleforge (formerly Career Apply Board)
 
 Working backlog for the tracker. Ordered by impact on actually landing a job.
 The tracker stores each item as `{label, url, status}` in localStorage and mirrors
@@ -16,8 +16,8 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
   Saved → Applied → Interviewing → Offer → Rejected.)
 - ✅ **Follow-up nudges** — flag any _Applied_ item with no movement after ~7–10
   days as "⏰ follow up". Most offers come from the nudge, not the first send.
-- ✅ **Up Next queue** — pinned view of the next 5 _Saved_ (or starred) items to
-  work, so you always know what to do without scrolling. Chunk through it.
+- ✅ **Active queue**: the default view shows what is still _Saved_ plus anything
+  you pinned; applying drops a job out of it, so you always know what to do next.
 - ✅ **Funnel analytics** — small dashboard: applied this week, total, **reply
   rate**, interview conversion. Tells you if the problem is volume or resume.
 
@@ -49,8 +49,8 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
 - ✅ **URL-synced navigation** — hash routing (no react-router): the top-level tab,
   Discover's sub-tab, and the active career pillar all live in the hash
   (`#/queue`, `#/discover/titles`, `?pillar=<id>`) and restore on refresh /
-  back-forward. Queue is the default landing view; quick-add deep links still work
-  (`src/route.ts`).
+  back-forward. Today (`#/today`) is the default landing view (#128); quick-add deep links still
+  land on the Pipeline (`#/queue`) (`src/route.ts`, `src/App.tsx`).
 - ✅ **Sort, Saved filter, skeletons, empty states, autosave feedback** — see Phase 2
   for sort; the Tracker also has a Saved filter and a scrollable filter row on mobile,
   lazy views show layout-matched skeletons, empties use a shared `EmptyState`, and

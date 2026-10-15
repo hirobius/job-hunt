@@ -1,12 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
+import TodayView from './TodayView';
 import CopyDeckView from './CopyDeckView';
 import DiscoverView from './DiscoverView';
 import { Onboarding } from './Onboarding';
 import { getAllJobs, removeJob } from './store';
+import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
 
@@ -52,6 +54,38 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
 
   it.each(views)('%s', async (_name, ui) => {
     const { container } = withTheme(ui);
+    await auditA11y(container);
+  });
+});
+
+describe('a11y — Today with the sample pipeline (#128)', () => {
+  it('due follow-ups, the next 7 days and the open Insights band', async () => {
+    loadSample();
+    const { container } = withTheme(<TodayView />);
+    await auditA11y(container);
+  });
+});
+
+describe('a11y — the Pipeline list with the sample pipeline (#129)', () => {
+  const wideViewport = (wide: boolean) =>
+    (window.matchMedia = vi.fn().mockImplementation((media: string) => ({
+      matches: wide,
+      media,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })));
+  afterEach(() => {
+    // @ts-expect-error -- jsdom has no matchMedia; restore that
+    delete window.matchMedia;
+  });
+
+  it.each([
+    ['the desktop table', true],
+    ['the phone cards', false],
+  ])('%s', async (_name, wide) => {
+    wideViewport(wide);
+    loadSample();
+    const { container } = withTheme(<TrackerView />);
     await auditA11y(container);
   });
 });

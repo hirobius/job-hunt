@@ -1,5 +1,5 @@
 // Interview / call log on a Job, plus the calendar views derived from it: .ics export events and
-// the This-week agenda. Pure and DOM-free; `now` is always injected (local time).
+// Today's lists (due follow-ups, the next 7 days). Pure and DOM-free; `now` is always injected (local time).
 import type { IcsEvent } from './ics';
 import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
 import type { Job, JobEvent, JobEventKind } from './types';
@@ -9,7 +9,7 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /** Local YYYY-MM-DD. */
-function ymd(d: Date): string {
+export function ymd(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
@@ -62,7 +62,8 @@ export function hash(s: string): string {
   return h.toString(36);
 }
 
-const KIND_WORD: Record<JobEventKind, string> = {
+/** How an event kind reads in a title ("Interview: …", "Call · …"). */
+export const KIND_WORD: Record<JobEventKind, string> = {
   interview: 'Interview',
   call: 'Call',
   other: 'Event',
@@ -98,44 +99,64 @@ export function jobIcsEvents(job: Job, now: Date): IcsEvent[] {
   return out;
 }
 
+/** How many days ahead Today's agenda looks, today included. */
+export const UPCOMING_DAYS = 7;
+
+/** One interview / call / other event on Today's "Next N days" list. */
 export interface AgendaItem {
+  /** The event's id (unique within its job). */
+  id: string;
   date: string;
   time?: string;
-  kind: JobEventKind | 'followup';
+  kind: JobEventKind;
+  note?: string;
   jobUrl: string;
   label: string;
   company?: string;
-  overdue?: boolean;
 }
 
-/** Current Mon–Sun week (local) as inclusive YYYY-MM-DD bounds. */
-function weekBounds(now: Date): [string, string] {
-  const back = (now.getDay() + 6) % 7; // Mon=0 … Sun=6
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back);
-  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
-  return [ymd(start), ymd(end)];
-}
-
-/** Interviews/calls in the current Mon–Sun week, plus follow-ups due this week or overdue
- *  (overdue ones land on today). Archived jobs excluded. Sorted by date, all-day first. */
-export function weekAgenda(jobs: readonly Job[], now: Date): AgendaItem[] {
-  const [start, end] = weekBounds(now);
-  const today = ymd(now);
+/** Interviews, calls and other events from today through the next `days - 1` days (a rolling
+ *  window, not the calendar week). Archived jobs excluded. Sorted by date, all-day first. */
+export function upcomingEvents(
+  jobs: readonly Job[],
+  now: Date,
+  days = UPCOMING_DAYS,
+): AgendaItem[] {
+  const start = ymd(now);
+  const end = ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + days - 1));
   const items: AgendaItem[] = [];
   for (const job of jobs) {
     if (job.archived) continue;
-    const base = { jobUrl: job.url, label: job.label, company: job.company };
     for (const e of job.events ?? []) {
-      if (e.date >= start && e.date <= end) {
-        items.push({ ...base, date: e.date, time: e.time, kind: e.kind });
-      }
-    }
-    const fu = followUpDate(job, now);
-    if (fu && fu < today) {
-      items.push({ ...base, date: today, kind: 'followup', overdue: true });
-    } else if (fu && fu >= start && fu <= end) {
-      items.push({ ...base, date: fu, kind: 'followup' });
+      if (e.date < start || e.date > end) continue;
+      const item: AgendaItem = {
+        id: e.id,
+        date: e.date,
+        kind: e.kind,
+        jobUrl: job.url,
+        label: job.label,
+      };
+      if (e.time) item.time = e.time;
+      if (e.note) item.note = e.note;
+      if (job.company) item.company = job.company;
+      items.push(item);
     }
   }
   return items.sort(cmpEvents);
+}
+
+/** A job whose follow-up is due, and the day it fell due (today or earlier). */
+export interface DueFollowUp {
+  job: Job;
+  dueDate: string;
+}
+
+/** Jobs whose follow-up is due now, most overdue first. */
+export function dueFollowUps(jobs: readonly Job[], now: Date): DueFollowUp[] {
+  const out: DueFollowUp[] = [];
+  for (const job of jobs) {
+    const dueDate = followUpDate(job, now);
+    if (dueDate && deriveJobState(job, now).followUp.due) out.push({ job, dueDate });
+  }
+  return out.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }

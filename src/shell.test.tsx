@@ -59,7 +59,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Pipeline', 'Discover', 'Templates']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Today', 'Pipeline', 'Discover', 'Templates']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -84,6 +84,7 @@ describe('app shell (#115 Phase 1)', () => {
   });
 
   it('data controls left the Pipeline toolbar', () => {
+    window.location.hash = '#/queue';
     renderApp();
     const panel = screen.getByRole('tabpanel');
     for (const name of ['Back up', 'Restore…', 'Export CSV'])
@@ -110,7 +111,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Back up' }));
-    expect(name).toMatch(/^hirebius-backup-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(name).toMatch(new RegExp(`^${BRAND.slug}-backup-\\d{4}-\\d{2}-\\d{2}\\.json$`));
   });
 
   it('a bad restore file is reported as a toast', async () => {
@@ -119,7 +120,9 @@ describe('app shell (#115 Phase 1)', () => {
       screen.getByLabelText('Choose a backup file to restore'),
       new File(['{"nope":1}'], 'x.json', { type: 'application/json' }),
     );
-    expect(await screen.findByText("This file isn't a backup from Hirebius.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(`This file isn't a backup from ${BRAND.name}.`),
+    ).toBeInTheDocument();
   });
 });
 
@@ -146,7 +149,8 @@ describe('sync nudge (#115 Phase 1)', () => {
 
   it('dismissing it is remembered', async () => {
     const { unmount } = renderApp();
-    await userEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
+    const nudge = await screen.findByRole('region', { name: 'Sync your data' });
+    await userEvent.click(within(nudge).getByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
     unmount();
     renderApp();
@@ -188,7 +192,8 @@ describe('routes keep working (#115 Phase 1)', () => {
     ['#/queue', 'Pipeline'],
     ['#/discover', 'Discover'],
     ['#/copy-deck', 'Templates'],
-    ['', 'Pipeline'],
+    ['#/today', 'Today'],
+    ['', 'Today'],
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();

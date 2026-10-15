@@ -1,36 +1,42 @@
-# Hirebius
+# Roleforge
 
 _Working name, formerly Apply Board. The name is set in one place, `src/brand.ts` (#55)._
 
 A job-hunt tracker with a curated discovery board. **Live → https://job-hunt-jade.vercel.app**
 
-Paste a job link and it lands in your **Tracker**. Screen it (fit, work mode, travel, blockers,
-your angle), mark it applied, and it leaves the active queue with a follow-up countdown.
+Paste a job link and it lands in your **Pipeline**. Screen it (fit, work mode, travel, blockers,
+your angle), mark it applied, and it leaves the active queue with a follow-up countdown. **Today**
+opens each visit on what's due: follow-ups, the week's interviews and how the search is going.
 **Discover** holds your own tracks of saved searches, company pages and job boards, and
 **Templates** keeps reusable outreach copy one click from the clipboard. Everything works
 signed-out in the browser; an optional email sign-in syncs it across devices.
 
 ## What's in it
 
-- **Tracker** (`#/queue`, the default tab) — statuses Saved → Applied → Interviewing → Offer →
-  Rejected, filters (Active, All, per-status, Retired), search, and seven sorts (recently added,
-  follow-up due first, best fit, applied date, status, salary, A–Z). The follow-up loop:
-  "Follow up in Nd" → "Follow up now" → "Log follow-up" resets the clock. Per-job details,
-  to-dos and notes, and an interviews & calls log with **Add to calendar** (`.ics`). Above the
-  list: a **This week** agenda, a **pipeline stats** band (applied, response and interview rates,
-  median reply time, weekly bars) and a collapsible funnel.
+- **Today** (`#/today`, the home tab) — follow-ups due now, each with one-tap **Log follow-up**;
+  the next 7 days of interviews and calls; one quick-add field for a job link; and a collapsible
+  **Insights** band (applied in the last 7 days against the week before, response and interview
+  rates, median reply time, a Saved → Applied → Interviewed → Offer funnel and a fit summary).
+  A first visit opens on setup (pick a track, or try the sample data) instead.
+- **Pipeline** (`#/queue`) — every saved job in one list: a sortable table on a desktop, compact
+  cards on a phone, each row with one next step (Mark applied or Log follow-up) and a menu for the
+  rest. Statuses Saved → Applied → Interviewing → Offer → Rejected, filters (Active, All,
+  per-status, Retired), search, and seven sorts (recently added, follow-up due first, best fit,
+  applied date, status, salary, A–Z). The follow-up loop: "Follow up in Nd" → "Follow up now" →
+  "Log follow-up" resets the clock. Each job has its own page (`#/queue/<jobId>`) with details,
+  to-dos and notes, and an interviews & calls log with **Add to calendar** (`.ics`).
 - **Your data** — full-account **Back up / Restore** (versioned JSON, validated on restore) and a
   formula-safe **CSV export** of every job field.
-- **Try with sample data** — an empty tracker offers a one-click fictional pipeline (every
-  status, due follow-ups, upcoming interviews) with a banner to clear it. Sample records never
-  sync, export or back up.
+- **Try with sample data** — first-run setup and an empty Pipeline offer a one-click fictional
+  pipeline (every status, due follow-ups, upcoming interviews) with a banner to clear it. Sample
+  records never sync, export or back up.
 - **Screening** — per-job fit verdict (match / stretch / reach), work mode, travel %, applicant
   count, dealbreaker tags and a positioning angle, shown as card badges. **Screen a JD** pastes a
   job description and suggests mode / blockers / verdict from deterministic keyword rules — no
   AI, nothing leaves the browser.
 - **Discover** (`#/discover`) — per-account **tracks** (categories) of sections and links, picked
   from starter packs on first run and edited in place (create / rename / delete tracks, sections
-  and links). Tiles can be pinned or set aside; saving one sends it to the Tracker with its
+  and links). Tiles can be pinned or set aside; saving one sends it to the Pipeline with its
   details. **Title search** and **ATS search** build live job-board queries from your terms plus a
   location and work mode (Any / Remote / Hybrid / On-site). Board rule: no one-off postings — only
   live searches and durable company or board pages, so tiles don't go stale. **Live postings**
@@ -58,10 +64,9 @@ signed-out in the browser; an optional email sign-in syncs it across devices.
 - **State without a framework.** A shared external store (`useSyncExternalStore`) persisted to
   `localStorage`; URL state (tab, Discover sub-tab, track) lives in the hash via a tiny route
   store, with no router dependency.
-- **Bundle.** Discover, Templates and the dialogs load on demand. Production build as of 2026-10: app
-  75 kB (27 kB gzip), react 142 kB (46 kB), supabase 205 kB (53 kB), vendor 901 kB (221 kB gzip).
-  Most of the vendor chunk is HDS's single entry point; per-component imports are an open
-  upstream ask.
+- **Bundle.** Discover, Templates and the dialogs load on demand. Run `npm run build` for the
+  current chunk sizes. Most of the vendor chunk is HDS's single entry point; per-component
+  imports are an open upstream ask.
 - **Security headers** (HSTS, nosniff, frame-deny, referrer and permissions policies) ship from
   `vercel.json`, plus an enforcing Content-Security-Policy (#106).
 

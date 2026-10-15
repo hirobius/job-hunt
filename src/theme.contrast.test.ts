@@ -19,11 +19,14 @@ import { describe, expect, it } from 'vitest';
 const HDS_CSS = 'node_modules/@hirobius/design-system/dist/variables.css';
 const JADE_CSS = 'src/theme/brand-jade.css';
 
-/** All `--var: value;` declarations inside the first `selector { … }` block. */
+/** All `--var: value;` declarations inside the `selector { … }` rule. The selector must start a
+ *  line and open the block, so a mention of it in a comment above doesn't match (it did: the
+ *  dark map used to read the light `:root` block that followed a comment naming the dark one). */
 function block(css: string, selector: string): Record<string, string> {
-  const i = css.indexOf(selector);
-  if (i < 0) return {};
-  const s = css.indexOf('{', i);
+  const esc = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/["']/g, `["']`);
+  const m = new RegExp(`^${esc}\\s*\\{`, 'm').exec(css);
+  if (!m) return {};
+  const s = m.index + m[0].length - 1;
   let depth = 0;
   let e = -1;
   for (let k = s; k < css.length; k++) {
@@ -37,23 +40,29 @@ function block(css: string, selector: string): Record<string, string> {
     }
   }
   const map: Record<string, string> = {};
-  for (const m of css.slice(s + 1, e).matchAll(/--([a-zA-Z0-9-]+):\s*([^;]+);/g))
-    map[m[1]] = m[2].trim();
+  for (const d of css.slice(s + 1, e).matchAll(/--([a-zA-Z0-9-]+):\s*([^;]+);/g))
+    map[d[1]] = d[2].trim();
   return map;
 }
 
-/** The dark-theme block, tolerating either quote style in the selector. */
-const darkOf = (css: string) => {
-  const dq = block(css, '[data-theme="dark"]');
-  return Object.keys(dq).length ? dq : block(css, "[data-theme='dark']");
-};
-
 const hdsCss = fs.readFileSync(HDS_CSS, 'utf8');
 const jadeCss = fs.readFileSync(JADE_CSS, 'utf8');
+const DARK = '[data-theme="dark"]';
 
-// light = both :root layers (jade overrides hds); dark = light + both dark layers.
-const light = { ...block(hdsCss, ':root'), ...block(jadeCss, ':root') };
-const dark = { ...light, ...darkOf(hdsCss), ...darkOf(jadeCss) };
+// The browser's cascade: every rule here has the same specificity, so source order decides, and
+// HDS's stylesheet loads before brand-jade.css. Light = HDS :root, then jade :root. Dark (on top
+// of light) = HDS dark, then jade :root again, then jade dark — so a jade :root override that
+// isn't redeclared in jade's dark block wins in dark mode too.
+const hdsRoot = block(hdsCss, ':root');
+const jadeRoot = block(jadeCss, ':root');
+const light = { ...hdsRoot, ...jadeRoot };
+const dark = { ...hdsRoot, ...block(hdsCss, DARK), ...jadeRoot, ...block(jadeCss, DARK) };
+
+it('reads real light and dark blocks from both stylesheets', () => {
+  expect(Object.keys(hdsRoot).length).toBeGreaterThan(100);
+  expect(Object.keys(block(hdsCss, DARK)).length).toBeGreaterThan(20);
+  expect(block(jadeCss, DARK)['semantic-color-content-accent']).toMatch(/oklch\(0\.8/);
+});
 
 /** Substitute var() chains until a concrete value remains. */
 function resolve(map: Record<string, string>, name: string): string {
@@ -162,6 +171,39 @@ const pairs: Pair[] = [
     fg: 'semantic-color-content-accent',
     bg: 'semantic-color-surface-raised',
     min: 3,
+  },
+  // Selected / highlighted states the audit found unreadable (#115, #129): the status filter's
+  // highlighted menu item (and every HDS hover that uses the accent-subtle fill) paints
+  // accent text on the accent-subtle surface.
+  {
+    name: 'highlighted menu item (status filter) text on its accent-subtle fill',
+    fg: 'role-accent-foreground',
+    bg: 'role-accent',
+    min: 4.5,
+  },
+  {
+    name: 'button label on its accent-subtle hover fill',
+    fg: 'role-foreground',
+    bg: 'role-accent',
+    min: 4.5,
+  },
+  {
+    name: 'focus / highlight ring on the accent-subtle fill',
+    fg: 'role-ring',
+    bg: 'role-accent',
+    min: 3,
+  },
+  {
+    name: 'focus ring on page',
+    fg: 'role-ring',
+    bg: 'semantic-color-surface-page',
+    min: 3,
+  },
+  {
+    name: 'active nav item text on its fill',
+    fg: 'component-nav-textActive',
+    bg: 'component-nav-bgActive',
+    min: 4.5,
   },
   ...FEEDBACK.flatMap((tone): Pair[] => [
     {

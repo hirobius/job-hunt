@@ -10,14 +10,15 @@ import { STATUSES, type Job } from './types';
 
 export type SortKey = 'recent' | 'followup' | 'applied' | 'status' | 'salary' | 'fit' | 'az';
 
-export const SORTS: { key: SortKey; label: string }[] = [
-  { key: 'recent', label: 'Recently added' },
-  { key: 'followup', label: 'Follow-up due first' },
-  { key: 'fit', label: 'Best fit' },
-  { key: 'applied', label: 'Applied date' },
-  { key: 'status', label: 'Status' },
-  { key: 'salary', label: 'Salary' },
-  { key: 'az', label: 'A–Z' },
+/** Each sort runs one way; `direction` says which, for a table header's aria-sort. */
+export const SORTS: { key: SortKey; label: string; direction: 'ascending' | 'descending' }[] = [
+  { key: 'recent', label: 'Recently added', direction: 'descending' },
+  { key: 'followup', label: 'Follow-up due first', direction: 'ascending' }, // soonest due first
+  { key: 'fit', label: 'Best fit', direction: 'ascending' }, // match → reach
+  { key: 'applied', label: 'Applied date', direction: 'descending' }, // most recent first
+  { key: 'status', label: 'Status', direction: 'ascending' },
+  { key: 'salary', label: 'Salary', direction: 'descending' },
+  { key: 'az', label: 'A–Z', direction: 'ascending' },
 ];
 
 /** Largest dollar figure found in a free-text salary string, with k/K expanded; NaN if none. */

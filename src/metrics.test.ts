@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pipelineMetrics, weeklyApplied } from './metrics';
+import { pipelineMetrics, vsPrevious, weeklyApplied } from './metrics';
 import type { Job, Status, StatusChange } from './types';
 
 // Local-time dates throughout; Wednesday 2026-10-14.
@@ -23,8 +23,12 @@ describe('pipelineMetrics', () => {
   it('empty input gives zeros and nulls, never NaN', () => {
     expect(pipelineMetrics([], NOW)).toEqual({
       appliedLast7: 0,
+      appliedPrev7: 0,
       appliedLast30: 0,
       appliedTotal: 0,
+      responded: 0,
+      interviewed: 0,
+      offered: 0,
       responseRate: null,
       interviewRate: null,
       medianDaysToResponse: null,
@@ -39,15 +43,18 @@ describe('pipelineMetrics', () => {
   });
 
   it.each([
-    ['today', 0, 1, 1],
-    ['6 days ago (inside 7d)', 6, 1, 1],
-    ['7 days ago (outside 7d)', 7, 0, 1],
-    ['29 days ago (inside 30d)', 29, 0, 1],
-    ['30 days ago (outside 30d)', 30, 0, 0],
-    ['tomorrow (future, ignored)', -1, 0, 0],
-  ])('window: applied %s', (_l, days, in7, in30) => {
+    ['today', 0, 1, 0, 1],
+    ['6 days ago (inside 7d)', 6, 1, 0, 1],
+    ['7 days ago (the week before)', 7, 0, 1, 1],
+    ['13 days ago (the week before)', 13, 0, 1, 1],
+    ['14 days ago (before both weeks)', 14, 0, 0, 1],
+    ['29 days ago (inside 30d)', 29, 0, 0, 1],
+    ['30 days ago (outside 30d)', 30, 0, 0, 0],
+    ['tomorrow (future, ignored)', -1, 0, 0, 0],
+  ])('window: applied %s', (_l, days, in7, prev7, in30) => {
     const m = pipelineMetrics([job({ status: 'Applied', applied: ago(days) })], NOW);
     expect(m.appliedLast7).toBe(in7);
+    expect(m.appliedPrev7).toBe(prev7);
     expect(m.appliedLast30).toBe(in30);
     expect(m.appliedTotal).toBe(1);
   });
@@ -75,6 +82,7 @@ describe('pipelineMetrics', () => {
     expect(m.appliedTotal).toBe(4);
     expect(m.responseRate).toBe(0.75);
     expect(m.interviewRate).toBe(0.5);
+    expect([m.responded, m.interviewed, m.offered]).toEqual([3, 2, 0]);
     // first replies: 5, 4, 5 days -> median 5
     expect(m.medianDaysToResponse).toBe(5);
   });
@@ -84,7 +92,10 @@ describe('pipelineMetrics', () => {
       job({ status: 'Offer', applied: ago(9), history: h(['Applied', ago(9)], ['Offer', ago(7)]) }),
       job({ status: 'Offer', applied: ago(9), history: h(['Applied', ago(9)], ['Offer', ago(3)]) }),
     ];
-    expect(pipelineMetrics(jobs, NOW).medianDaysToResponse).toBe(4);
+    const m = pipelineMetrics(jobs, NOW);
+    expect(m.medianDaysToResponse).toBe(4);
+    // An offer counts as reaching interviews too: you can't get one without them.
+    expect([m.interviewed, m.offered]).toEqual([2, 2]);
   });
 
   it('legacy jobs without history are backfilled (rates count; reply time unknown)', () => {
@@ -155,5 +166,16 @@ describe('weeklyApplied', () => {
   it('uses the legacy applied date for jobs without history', () => {
     const w = weeklyApplied([job({ status: 'Interviewing', applied: '2026-10-07' })], NOW);
     expect(w[6].count).toBe(1);
+  });
+});
+
+describe('vsPrevious', () => {
+  it.each([
+    [3, 1, '+2 vs the 7 days before'],
+    [1, 3, '−2 vs the 7 days before'],
+    [2, 2, 'Same as the 7 days before'],
+    [0, 0, 'Same as the 7 days before'],
+  ])('%i in the window, %i before → %s', (cur, prev, label) => {
+    expect(vsPrevious(cur, prev)).toBe(label);
   });
 });

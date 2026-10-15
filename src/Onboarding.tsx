@@ -10,11 +10,15 @@ import {
 } from '@hirobius/design-system';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import { useCurationSyncStatus } from './curation/syncStatus';
+import { TrySampleButton } from './demo/SampleData';
+import { hasCloudSession } from './demo/loadSample';
 
-// First-run onboarding (issue #59 / B1, decision D1): an empty curation store routes here before
-// Discover renders. Pick one or more starter packs + an optional location → seed them into the
-// store (fork-on-pick) → Discover takes over. Minimal by design; the fuller catalog polish is B5.
-export function Onboarding() {
+// First-run onboarding (issue #59 / B1, decision D1): the shell's gate (App.tsx, #128) routes here
+// from Discover with no tracks, and from Today on a first run. Pick one or more starter packs + an
+// optional location → seed them into the store (fork-on-pick) → the view takes over. On Today it
+// also offers the sample pipeline, so a visitor can see the app working in one click (#107).
+// Minimal by design; the guided first run is #132.
+export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
   const [picked, setPicked] = useState<string[]>([]);
   const [location, setLocation] = useState('');
   const syncStatus = useCurationSyncStatus();
@@ -55,6 +59,20 @@ export function Onboarding() {
           Pick one or more tracks to start with — each pre-fills search terms and a few links. You
           can edit or add more later.
         </Text>
+        {/* Up top, so a visitor sees it without scrolling past the packs (#154 review). Never
+            offered signed in (a signed-in tracker syncs), so neither is its caption. */}
+        {offerSample && !hasCloudSession() && (
+          <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="start">
+            <Text
+              variant="caption"
+              as="span"
+              style={{ color: 'var(--semantic-color-content-secondary)' }}
+            >
+              Just looking?
+            </Text>
+            <TrySampleButton />
+          </Stack>
+        )}
         <Box>
           <Text
             variant="caption"
@@ -91,12 +109,10 @@ export function Onboarding() {
                   onSelectedChange={() => toggle(p.id)}
                   aria-labelledby={`pack-${p.id}`}
                   aria-describedby={`pack-${p.id}-blurb`}
-                  // The jade brand maps the selected fill to a light accent tint in BOTH themes, so
-                  // pin dark text on it (HDS's text-foreground stays light in dark mode).
-                  style={{
-                    textAlign: 'left',
-                    color: on ? 'var(--primitive-color-neutral-900)' : undefined,
-                  }}
+                  // HDS 0.24 marks a selected Card with a ring only (no fill), so the theme's own text
+                  // colour reads in both themes. (A pinned dark colour from the old accent fill went
+                  // black-on-black in dark mode, #129.)
+                  style={{ textAlign: 'left' }}
                 >
                   <Text
                     variant="ui"

@@ -27,7 +27,6 @@ import { consumeDiscoverSeed } from './discoverSeed';
 import { useCategories, useGroups, useTiles, addCategory } from './curation/curationStore';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import type { Category, Seniority } from './curation/types';
-import { Onboarding } from './Onboarding';
 import LocationControl from './LocationControl';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 
@@ -37,7 +36,7 @@ const LiveFeedPanel = lazy(() => import('./LiveFeedPanel'));
 // Discover reads the per-account CURATION STORE (categories→groups→tiles), not the old hardcoded
 // pillars (B1 / #30). A Category IS a track: its titles/atsRoles/seniority/location drive the
 // generated Title & ATS searches; its groups→tiles are the curated "Apply Now"/section content.
-// An empty store routes to first-run Onboarding (decision D1).
+// An empty store routes to first-run Onboarding (decision D1), gated by the shell (#128).
 
 const ACTIVE_CATEGORY_KEY = 'rjb_active_category';
 
@@ -342,9 +341,8 @@ type TabDesc = {
 
 export default function DiscoverView() {
   const categories = useCategories();
-  // Empty store → first-run onboarding (decision D1). Once a pack is seeded, categories is
-  // non-empty and this re-renders straight into Discover.
-  if (categories.length === 0) return <Onboarding />;
+  // No tracks → the shell shows onboarding instead of this view (App.tsx, #128).
+  if (categories.length === 0) return null;
   return <DiscoverInner categories={categories} />;
 }
 

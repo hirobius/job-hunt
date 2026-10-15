@@ -11,6 +11,9 @@ export interface CloudSyncApi {
   authResolved: boolean;
   /** One-line sync status ("Synced · a@b.c", "Saving…", the offline message…). */
   status: string;
+  /** True once the session is known and no pull/push is in flight (signed out counts as
+   *  settled). Views wait on this before deciding a record is really missing. */
+  settled: boolean;
   /** True while the last pull/push failed — the menu offers Retry. */
   offline: boolean;
   /** Email a magic sign-in link. Resolves to an error message, or null when sent. */

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { addEvent, followUpDate, hash, jobIcsEvents, removeEvent, weekAgenda } from './jobEvents';
+import {
+  addEvent,
+  dueFollowUps,
+  followUpDate,
+  hash,
+  jobIcsEvents,
+  removeEvent,
+  upcomingEvents,
+} from './jobEvents';
 import type { Job, JobEvent } from './types';
 
 // Wed 2026-10-14 (local). Week = Mon 10-12 … Sun 10-18.
@@ -110,46 +118,41 @@ describe('jobIcsEvents', () => {
   });
 });
 
-describe('weekAgenda', () => {
-  it('includes Mon–Sun events and excludes the neighbours', () => {
+describe('upcomingEvents', () => {
+  it('lists interviews and calls from today through the next 6 days', () => {
     const j = job({
       events: [
-        ev('sun-before', '2026-10-11'),
-        ev('mon', '2026-10-12', '09:00'),
-        ev('sun', '2026-10-18', '17:00', 'call'),
-        ev('mon-after', '2026-10-19'),
+        ev('yesterday', '2026-10-13'),
+        ev('today', '2026-10-14', '09:00'),
+        ev('in-6', '2026-10-20', '17:00', 'call'),
+        ev('in-7', '2026-10-21'),
       ],
     });
-    const dates = weekAgenda([j], WED)
-      .filter((i) => i.kind !== 'followup')
-      .map((i) => i.date);
-    expect(dates).toEqual(['2026-10-12', '2026-10-18']);
+    expect(upcomingEvents([j], WED).map((i) => i.date)).toEqual(['2026-10-14', '2026-10-20']);
   });
 
-  it('week edges: Sunday night is still the old week, Monday starts the next', () => {
+  it('rolls with the day, not the calendar week', () => {
     const j = job({ events: [ev('a', '2026-10-18'), ev('b', '2026-10-19')] });
-    const pick = (now: Date) =>
-      weekAgenda([j], now)
-        .filter((i) => i.kind !== 'followup')
-        .map((i) => i.date);
-    expect(pick(SUN)).toEqual(['2026-10-18']);
-    expect(pick(MON)).toEqual(['2026-10-19']);
+    expect(upcomingEvents([j], SUN).map((i) => i.date)).toEqual(['2026-10-18', '2026-10-19']);
+    expect(upcomingEvents([j], MON).map((i) => i.date)).toEqual(['2026-10-19']);
   });
 
-  it('puts overdue follow-ups on today with overdue: true', () => {
-    expect(weekAgenda([job({ applied: '2026-09-20' })], WED)).toEqual([
-      expect.objectContaining({ kind: 'followup', date: '2026-10-14', overdue: true }),
+  it('carries what the row shows: kind, time, note, job and company', () => {
+    const j = job({
+      events: [{ id: 'e', kind: 'call', date: '2026-10-15', time: '11:00', note: 'Recruiter' }],
+    });
+    expect(upcomingEvents([j], WED)).toEqual([
+      {
+        id: 'e',
+        kind: 'call',
+        date: '2026-10-15',
+        time: '11:00',
+        note: 'Recruiter',
+        jobUrl: 'https://x.test/a',
+        label: 'Welder',
+        company: 'Acme',
+      },
     ]);
-  });
-
-  it('shows a follow-up falling due later this week on its date, not overdue', () => {
-    const [it] = weekAgenda([job({ applied: '2026-10-11' })], new Date(2026, 9, 13));
-    expect(it).toMatchObject({ kind: 'followup', date: '2026-10-18' });
-    expect(it.overdue).toBeUndefined();
-  });
-
-  it('omits follow-ups due next week', () => {
-    expect(weekAgenda([job({ applied: '2026-10-14' })], WED)).toEqual([]);
   });
 
   it('excludes archived jobs and sorts all-day first, then by time', () => {
@@ -163,8 +166,39 @@ describe('weekAgenda', () => {
         ev('d', '2026-10-15'),
       ],
     });
-    const out = weekAgenda([a, b], WED);
+    const out = upcomingEvents([a, b], WED);
     expect(out.every((i) => i.jobUrl === 'u2')).toBe(true);
     expect(out.map((i) => i.time)).toEqual([undefined, '09:00', '13:00']);
+  });
+
+  it('holds no follow-ups (they are their own list)', () => {
+    expect(upcomingEvents([job({ applied: '2026-09-20' })], WED)).toEqual([]);
+  });
+});
+
+describe('dueFollowUps', () => {
+  it('lists jobs whose follow-up is due, most overdue first, with the day it fell due', () => {
+    const jobs = [
+      job({ url: 'recent', applied: '2026-10-07' }),
+      job({ url: 'old', applied: '2026-09-20' }),
+      job({ url: 'not-yet', applied: '2026-10-10' }),
+    ];
+    expect(dueFollowUps(jobs, WED).map((d) => [d.job.url, d.dueDate])).toEqual([
+      ['old', '2026-09-27'],
+      ['recent', '2026-10-14'],
+    ]);
+  });
+
+  it('a logged follow-up restarts the clock', () => {
+    expect(dueFollowUps([job({ applied: '2026-09-20', followUp: '2026-10-10' })], WED)).toEqual([]);
+  });
+
+  it('skips archived jobs and stages without a follow-up loop', () => {
+    const jobs = [
+      job({ applied: '2026-09-20', archived: true }),
+      job({ applied: '2026-09-20', status: 'Offer' }),
+      job({ applied: '2026-09-20', status: 'Saved' }),
+    ];
+    expect(dueFollowUps(jobs, WED)).toEqual([]);
   });
 });

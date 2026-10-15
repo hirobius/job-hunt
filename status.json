@@ -1,13 +1,14 @@
 {
-  "updatedAt": "2026-10-13T21:30:00Z",
+  "updatedAt": "2026-10-14T08:00:00Z",
   "phase": "live",
-  "headline": "Main re-based on the jh-redesign build (#115 Phases 0–1, Pipeline toolbar/hierarchy, dense layout, working name Hirebius) plus the design-systems data round; #144's v1 UI superseded.",
+  "headline": "Live as Roleforge. Redesign #115: Today (#154) and Pipeline (#155) shipped. Feature lock: tightening only. #156 is a sync data-loss bug (a failed first pull uploads local data over the cloud); fix waits for Adrian. Cloud builds are budgeted \u2014 no [preview] or main merges unless Adrian asks (CLAUDE.md).",
   "next": [
-    "Redesign #115 continues from this build: Phase 2 Today (#127/#128), then Pipeline rows (#129) and job page (#130).",
-    "Pick the product name (#55); swap it in src/brand.ts.",
+    "Adrian: approve the #156 sync fix (gate pushes until the first pull succeeds).",
+    "#159: jade link text is 4.42:1 on cards in light mode; darken the light link step.",
+    "Redesign #115 (after the feature lock): job page (#130), Discover (#131), Templates/onboarding (#132), polish (#133).",
     "After HDS lands: vite 8 + plugin-react 6, npm audit, React 19, jest-dom 7 (#105).",
     "Human / dashboard: #16 Vercel Analytics, #22 .env.example + revoke old key, #44 Supabase auth hardening, #17 stale branches, #55 name clearance.",
     "Legal (before public launch): #43 Privacy Policy + Terms."
   ],
-  "blocked": []
+  "blocked": ["#156 sync fix needs Adrian's go-ahead (sync code)."]
 }
