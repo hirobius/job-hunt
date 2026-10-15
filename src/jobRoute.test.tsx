@@ -48,7 +48,7 @@ afterEach(() => {
 });
 
 describe('job route (#127)', () => {
-  it('#/queue/<jobId> opens that job on its own page with its details open', async () => {
+  it('#/queue/<jobId> opens that job on its own page, with the editor open for a job without a company', async () => {
     addJob(URL_A, 'Design Engineer');
     window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
     renderApp();
@@ -63,7 +63,8 @@ describe('job route (#127)', () => {
     window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
     const { container: page } = renderApp();
     expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
-    expect(screen.getByText('Retired · Saved')).toBeInTheDocument();
+    // The header says Retired next to the status (it replaced the card's "Retired · Saved" eyebrow).
+    expect(screen.getByText('Retired')).toBeInTheDocument();
     expect(
       [page, ...page.querySelectorAll<HTMLElement>('*')].some(
         (e) => e.style.opacity !== '' && Number(e.style.opacity) > 0 && Number(e.style.opacity) < 1,

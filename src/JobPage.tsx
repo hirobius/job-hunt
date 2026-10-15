@@ -1,15 +1,13 @@
-// A saved job's own page (#127): `#/queue/<jobId>`, inside the Pipeline tab. For now it is the
-// job's card with Details open under a page header and a way back; Phase 4 (#130) turns it into
-// the two-pane / full-page detail with sections.
+// A saved job's own page (#127, #130): `#/queue/<jobId>`, inside the Pipeline tab. A header
+// (title, status, one next step, menu) over the job's sections.
 import { useEffect } from 'react';
-import { Box, Button, Icon } from '@hirobius/design-system';
-import { PageHeader } from '@hirobius/design-system/patterns';
-import { ArrowLeft } from 'lucide-react';
+import { Box, Stack } from '@hirobius/design-system';
 import { findJobById, useJobs } from './store';
-import { titleOf } from './jobRow';
 import { openJob } from './route';
 import { useCloudSync } from './account/accountContext';
 import EmptyState from './EmptyState';
+import JobHeader from './JobHeader';
+import JobOverview from './JobOverview';
 import JobCard from './JobCard';
 
 export default function JobPage({ jobId }: { jobId: string }) {
@@ -27,30 +25,17 @@ export default function JobPage({ jobId }: { jobId: string }) {
     window.scrollTo?.({ top: 0 });
   }, [jobId]);
 
-  const back = (
-    <Button
-      variant="tertiary"
-      size="sm"
-      iconLeft={<Icon icon={ArrowLeft} />}
-      onClick={() => openJob(null)}
-    >
-      Back to Pipeline
-    </Button>
-  );
-
   if (!job)
     return <EmptyState title="Job not found" message="It may still be syncing to this device." />;
 
-  // The prose measure for the detail form until Phase 4 (#130) makes this a two-pane page.
+  // Sections 3 to 5 (screening, contacts, to-dos) still live in the card until the tabs land.
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
-      <PageHeader
-        level={2}
-        breadcrumb={back}
-        title={titleOf(job)}
-        style={{ marginBottom: 'var(--primitive-space-4)' }}
-      />
-      <JobCard job={job} defaultDetailsOpen />
+      <JobHeader job={job} />
+      <Stack gap="normal">
+        <JobOverview key={job.url} job={job} />
+        <JobCard job={job} />
+      </Stack>
     </Box>
   );
 }

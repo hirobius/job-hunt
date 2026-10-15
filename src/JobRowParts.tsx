@@ -21,14 +21,23 @@ export function StatusBadge({ job }: { job: Job }) {
 
 /** The row's one next step, or nothing when there isn't one. Secondary, so the page's own
  *  primary action (Add job) stays the only filled button on the screen. */
-export function RowPrimaryAction({ job, size = 'sm' }: { job: Job; size?: Size }) {
+export function RowPrimaryAction({
+  job,
+  size = 'sm',
+  variant = 'secondary',
+}: {
+  job: Job;
+  size?: Size;
+  /** The job page's header makes this its one primary action. */
+  variant?: 'primary' | 'secondary';
+}) {
   const action = primaryAction(job);
   const title = titleOf(job);
   if (action === 'apply')
     return (
       <Button
         size={size}
-        variant="secondary"
+        variant={variant}
         aria-label={`Mark applied: ${title}`}
         onClick={() => setStatus(job.url, 'Applied')}
       >
@@ -39,7 +48,7 @@ export function RowPrimaryAction({ job, size = 'sm' }: { job: Job; size?: Size }
     return (
       <Button
         size={size}
-        variant="secondary"
+        variant={variant}
         aria-label={`Log follow-up: ${title}`}
         onClick={() => logFollowUp(job.url)}
       >
