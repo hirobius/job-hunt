@@ -28,6 +28,8 @@ export default function CopyDeckView() {
   // Read the context directly: this view also renders on its own in tests, outside the provider.
   const settled = useContext(CloudSyncContext)?.settled ?? true;
   const [query, setQuery] = useState('');
+  // The job the preview is filled for; kept here so it survives switching templates.
+  const [fillFor, setFillFor] = useState<string | null>(null);
 
   // Pinned first, otherwise the saved order.
   const ordered = useMemo(
@@ -91,6 +93,8 @@ export default function CopyDeckView() {
     <TemplateDetail
       key={selected.id}
       snippet={selected}
+      fillFor={fillFor}
+      onFillFor={setFillFor}
       backHref={wide ? undefined : LIST_HASH}
       onDuplicate={() => addAndOpen(() => duplicateSnippet(selected.id))}
       onDeleted={() => open(null)}
