@@ -151,9 +151,11 @@ export default function TemplateDetail({
   return (
     <Stack gap="normal">
       {backHref && (
-        <InlineLink href={backHref}>
-          <Icon icon={ChevronLeft} /> Templates
-        </InlineLink>
+        // The icon sits beside the link, not in it: an icon inside an inline link breaks onto its own line.
+        <Stack direction="row" gap="tight" align="center">
+          <Icon icon={ChevronLeft} />
+          <InlineLink href={backHref}>Templates</InlineLink>
+        </Stack>
       )}
       <HdsInput
         aria-label="Snippet label"
