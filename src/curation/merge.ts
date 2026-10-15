@@ -49,7 +49,11 @@ export function reconcileCuration(
   local: CurationState,
   syncedAt: string | null,
 ): { next: CurationState; upload: CurationState } {
-  const isNew = (x: { createdAt: string }) => syncedAt == null || x.createdAt > syncedAt;
+  // An empty cloud can't hold a deletion made elsewhere worth honouring over this device's whole
+  // board: treat everything local as new and upload it (2026-10-15: tracks had never reached the
+  // cloud, and a stale syncedAt could have dropped them all on sign-in).
+  const trustLocal = syncedAt == null || cloud.categories.length === 0;
+  const isNew = (x: { createdAt: string }) => trustLocal || x.createdAt > syncedAt!;
   const only = localOnlyCuration(cloud, local);
   const keepCats = new Set(only.categories.filter(isNew).map(id));
   const dropCats = new Set(only.categories.filter((c) => !keepCats.has(c.id)).map(id));

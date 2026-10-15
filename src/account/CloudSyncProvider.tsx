@@ -11,8 +11,19 @@ import { useSnippets, getSnippets, replaceSnippets } from '../copyDeckStore';
 import { useTileTriage, getTileTriage, replaceTriage } from '../tileTriage';
 import { readBlob, writeBlob, mergeBlob, type SyncData } from '../syncBlob';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
-import { getCurationSyncStatus, setCurationSyncStatus } from '../curation/syncStatus';
-import { OFFLINE_MSG, DELETE_ORDER, deleteFailedMsg } from '../cloudMessages';
+import {
+  getCurationSyncStatus,
+  onCurationWriteFailed,
+  setCurationSyncStatus,
+} from '../curation/syncStatus';
+import {
+  OFFLINE_MSG,
+  DELETE_ORDER,
+  deleteFailedMsg,
+  TRACK_WRITE_FAILED,
+  UNSYNCED_SIGN_OUT,
+} from '../cloudMessages';
+import { getCurationState } from '../curation/curationStore';
 import { CloudSyncContext, type CloudSyncApi } from './accountContext';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
@@ -154,6 +165,10 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Sign out clears local data (then reloads to a clean slate). Cloud data is untouched
   // and restored on next sign-in; this only protects shared devices.
   const signOut = async () => {
+    // Tracks a refused write left only on this device would be lost with the wipe: ask first.
+    const unsynced =
+      getCurationSyncStatus() === 'error' && getCurationState().categories.length > 0;
+    if (unsynced && !window.confirm(UNSYNCED_SIGN_OUT)) return;
     await supa.auth.signOut();
     clearLocalData();
     location.reload();
@@ -219,6 +234,18 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     outageToasted.current = true;
     toastRef.current({ title: 'Sync paused', description: OFFLINE_MSG, tone: 'warning' });
   }, [msg]);
+
+  // A track change the cloud refused: say so (its own toast, not "Sync paused"), and put Retry
+  // sync in the account menu. The next successful sync uploads what didn't make it.
+  useEffect(
+    () =>
+      onCurationWriteFailed(() => {
+        outageToasted.current = true;
+        toastRef.current({ ...TRACK_WRITE_FAILED, tone: 'warning' });
+        setMsg(OFFLINE_MSG);
+      }),
+    [],
+  );
 
   // Stable unless what consumers read changes — the provider re-renders on every store change.
   const api: CloudSyncApi = useMemo(

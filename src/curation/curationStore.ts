@@ -17,6 +17,8 @@ import {
   type TileRow,
 } from './map';
 
+import { reportCurationWriteFailed } from './syncStatus';
+
 const KEY = 'rjb_curation';
 
 /** The app's shared anon client (RLS-scoped), re-exported under its historical name. */
@@ -51,27 +53,26 @@ type RowForTable<T extends CurationTable> = T extends 'categories'
     ? GroupRow
     : TileRow;
 
-function upsert<T extends CurationTable>(table: T, buildRow: (uid: string) => RowForTable<T>) {
+// supabase-js reports a refused write (RLS, constraint, network) as `{ error }`, not a throw, so
+// both are checked. A failure keeps the local change and is reported, never swallowed: the
+// account menu offers Retry sync, and the next sync uploads what didn't make it.
+function mirror(write: (uid: string) => PromiseLike<{ error: unknown }>) {
   void (async () => {
     try {
       const uid = await currentUserId();
       if (!uid) return;
-      await curationClient.from(table).upsert(buildRow(uid));
+      const { error } = await write(uid);
+      if (error) reportCurationWriteFailed();
     } catch {
-      /* swallow — cloud is best-effort */
+      reportCurationWriteFailed();
     }
   })();
 }
+function upsert<T extends CurationTable>(table: T, buildRow: (uid: string) => RowForTable<T>) {
+  mirror((uid) => curationClient.from(table).upsert(buildRow(uid)));
+}
 function remove(table: CurationTable, rowId: string) {
-  void (async () => {
-    try {
-      const uid = await currentUserId();
-      if (!uid) return;
-      await curationClient.from(table).delete().eq('id', rowId);
-    } catch {
-      /* swallow — cloud is best-effort */
-    }
-  })();
+  mirror(() => curationClient.from(table).delete().eq('id', rowId));
 }
 
 // ---- sortOrder helpers (append to the end of the relevant scope) ----
