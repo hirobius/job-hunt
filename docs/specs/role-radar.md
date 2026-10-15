@@ -122,6 +122,23 @@ Radar view:
 After that, more sources: other job APIs, plus whether Upwork or similar platforms can feed
 design-systems contract work.
 
+## Second pass (2026-10-15)
+
+- **The separate Radar view is gone.** Live postings now:
+  - reads the starter directory after the track's watched boards, 6 at a time, up to 100 boards
+  - shows "Your evidence"
+  - once evidence is in, adds a fit badge, Fit and gap, a "Strong fit" filter and "What these
+    postings ask for" to every posting
+- **The hidden-jobs Google lane (ATS search) widened:**
+  - hiring systems: 8 → 18
+  - a new "Freelance, startup and remote boards" set: Upwork, Contra, Wellfound, YC, Remote OK,
+    Himalayas, Jobicy, WWR, Working Not Working, Dribbble
+  - a "Contract only" switch
+  - "Search the top N at once" stays under Google's 32-word limit
+- **New APIs (Jobicy, Himalayas, Remote OK, Workable, Recruitee): not added yet.** This session's
+  network blocks those hosts, so their CORS and response shapes can't be checked. See
+  `docs/research/job-sources.md`.
+
 ## Next gate
 
 After Adrian answers Q1–Q5:

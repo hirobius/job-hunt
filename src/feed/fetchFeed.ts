@@ -182,7 +182,10 @@ async function settleAll<T>(
     for (let i = queue.shift(); i !== undefined; i = queue.shift()) await run(i);
   };
   await Promise.all([
-    ...thunks.map((_, i) => i).filter((i) => !limited(i)).map(run),
+    ...thunks
+      .map((_, i) => i)
+      .filter((i) => !limited(i))
+      .map(run),
     ...Array.from({ length: Math.min(BOARD_CONCURRENCY, queue.length) }, worker),
   ]);
   return out;
@@ -236,7 +239,10 @@ export async function fetchFeed(
     })),
   ];
 
-  const settled = await settleAll(tasks.map((t) => () => t.run()), (i) => !!tasks[i].board);
+  const settled = await settleAll(
+    tasks.map((t) => () => t.run()),
+    (i) => !!tasks[i].board,
+  );
   const postings: Posting[] = [];
   const sources = settled.map((r, i): SourceStatus => {
     const { key, label, board } = tasks[i];
