@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  GH_CACHE_KEY,
+  GH_CACHE_MAX,
   MAX_ORG_LOOKUPS,
+  ORG_TTL_MS,
+  SEARCH_TTL_MS,
+  pruneGhCache,
   MAX_SEARCH_PAGES,
   companyFromOrg,
   findDesignSystemOrgs,
@@ -232,6 +237,25 @@ describe('findDesignSystemOrgs', () => {
     expect(out.map((o) => o.login)).toEqual(['acme', 'nocorp']);
   });
 
+  // #180 review: rjb_gh_cache only ever grew; expired pages and lookups stay forever otherwise.
+  it('prunes expired entries from the stored cache when a run saves it', async () => {
+    const kv = memoryKv();
+    const now = Date.now();
+    kv.set(
+      GH_CACHE_KEY,
+      JSON.stringify({
+        's:https://old': { at: now - SEARCH_TTL_MS - 1, v: { list: [], n: 0 } },
+        'o:gone': { at: now - ORG_TTL_MS - 1, v: { missing: true } },
+        'o:kept': { at: now - 1000, v: { missing: true } },
+      }),
+    );
+    await run({ ghGet: (u) => standard(u), kv });
+    const stored = JSON.parse(kv.get(GH_CACHE_KEY) ?? '{}');
+    expect(stored['s:https://old']).toBeUndefined();
+    expect(stored['o:gone']).toBeUndefined();
+    expect(stored['o:kept']).toBeDefined();
+  });
+
   it('honours a minimum-stars setting', async () => {
     const { out } = await run({ ghGet: standard, minStars: 600 });
     expect(out.map((o) => o.login)).toEqual(['acme']);
@@ -271,5 +295,22 @@ describe('findDesignSystemOrgs', () => {
     await vi.advanceTimersByTimeAsync(600_000);
     await p;
     expect(got.length).toBeLessThan(20);
+  });
+});
+
+describe('pruneGhCache', () => {
+  it('drops expired and unknown entries and keeps the newest GH_CACHE_MAX', () => {
+    const now = 10 * ORG_TTL_MS;
+    const cache: Record<string, { at: number; v: unknown }> = {
+      'x:odd': { at: now, v: 1 },
+      's:stale': { at: now - SEARCH_TTL_MS - 1, v: 1 },
+    };
+    for (let i = 0; i < GH_CACHE_MAX + 10; i++) cache[`o:${i}`] = { at: now - i, v: 1 };
+    const out = pruneGhCache(cache, now);
+    expect(Object.keys(out)).toHaveLength(GH_CACHE_MAX);
+    expect(out['x:odd']).toBeUndefined();
+    expect(out['s:stale']).toBeUndefined();
+    expect(out['o:0']).toBeDefined(); // newest kept
+    expect(out[`o:${GH_CACHE_MAX + 9}`]).toBeUndefined(); // oldest dropped
   });
 });

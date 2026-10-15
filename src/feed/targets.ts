@@ -81,6 +81,10 @@ const write = (all: Record<string, Target[]>) => {
 
 export const readTargets = (categoryId: string): Target[] => readAll()[categoryId] ?? [];
 
+/** Saved targets across every track: what sign-out's wipe would lose (they are not synced). */
+export const countAllTargets = (): number =>
+  Object.values(readAll()).reduce((n, list) => n + list.length, 0);
+
 /** Save (or refresh) an organisation as a target on a track. Returns the track's list. */
 export function saveTarget(categoryId: string, t: Omit<Target, 'savedAt'>): Target[] {
   const all = readAll();

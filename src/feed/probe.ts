@@ -307,6 +307,18 @@ export async function* probeCompanies(
     for (const group of groups) {
       if (halt()) return null;
       const outs = await Promise.all(group.map((b) => check(b)));
+      // A Recruitee board is a subdomain, so a company without one fails DNS (status 0), not 404.
+      // When another ATS in the same round answered, the network is up: read that as none.
+      const reached = outs.some((o) => o.result !== 'unknown');
+      group.forEach((b, i) => {
+        if (
+          reached &&
+          b.kind === 'recruitee' &&
+          outs[i].result === 'unknown' &&
+          outs[i].status === 0
+        )
+          outs[i] = { result: 'none', status: 0 };
+      });
       group.forEach((b, i) => {
         if (outs[i].result === 'live') hits.push({ board: b, jobs: outs[i].jobs });
         else if (outs[i].result === 'unknown') unknown.push(b);

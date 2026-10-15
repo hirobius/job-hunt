@@ -31,6 +31,7 @@ import { clearAllPending } from '../curation/pending';
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
 import { OFFLINE_MSG } from '../cloudMessages';
+import { saveTarget, TARGETS_KEY } from '../feed/targets';
 import { writeBlob } from '../syncBlob';
 
 const fake = () => h.fake!;
@@ -313,6 +314,31 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     await chooseAccountItem('Sign out');
     expect(confirm).toHaveBeenCalled();
     release();
+  });
+
+  // #180 review: outreach targets are local only (not synced), so sign-out's wipe loses them.
+  // It says so first, with the count, instead of dropping them silently.
+  it('sign-out warns that saved outreach targets are on this device only; cancel keeps them', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await signedInWithSyncedTrack();
+    saveTarget('track-1', {
+      login: 'acme',
+      company: 'Acme',
+      repo: 'acme/ds',
+      repoUrl: 'https://github.com/acme/ds',
+      stars: 900,
+    });
+    saveTarget('track-1', {
+      login: 'globex',
+      company: 'Globex',
+      repo: 'globex/ds',
+      repoUrl: 'https://github.com/globex/ds',
+      stars: 400,
+    });
+    await chooseAccountItem('Sign out');
+    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/2 saved outreach targets/));
+    expect(localStorage.getItem(TARGETS_KEY)).not.toBeNull();
+    localStorage.removeItem(TARGETS_KEY);
   });
 
   it('with every track synced, sign-out asks nothing', async () => {

@@ -22,8 +22,10 @@ import {
   deleteFailedMsg,
   TRACK_WRITE_FAILED,
   UNSYNCED_SIGN_OUT,
+  targetsSignOutMsg,
 } from '../cloudMessages';
 import { getPending, useFailedCount } from '../curation/pending';
+import { countAllTargets } from '../feed/targets';
 import { CloudSyncContext, type CloudSyncApi } from './accountContext';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
@@ -167,6 +169,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const signOut = async () => {
     // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
     if (getPending().length > 0 && !window.confirm(UNSYNCED_SIGN_OUT)) return;
+    // Outreach targets are local only (company lists stay off the cloud by default), so say so.
+    const targets = countAllTargets();
+    if (targets > 0 && !window.confirm(targetsSignOutMsg(targets))) return;
     await supa.auth.signOut();
     clearLocalData();
     location.reload();
