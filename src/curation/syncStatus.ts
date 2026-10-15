@@ -20,11 +20,11 @@ export function setCurationSyncStatus(next: CurationSyncStatus) {
   if (store.get() !== next) store.set(next);
 }
 
-/** A per-change cloud write (curationStore's mirror) that the cloud refused. Marks the board as
- *  not synced and tells whoever listens (CloudSyncProvider toasts it), so it's never silent. */
+/** A per-change cloud write (curationStore's mirror) that the cloud refused. It stays journalled
+ *  in pending.ts; this tells whoever listens (CloudSyncProvider toasts it), so it's never silent.
+ *  It leaves the pull status alone: tracks and jobs keep separate sync state. */
 const writeFailureListeners = new Set<() => void>();
 export function reportCurationWriteFailed() {
-  setCurationSyncStatus('error');
   writeFailureListeners.forEach((l) => l());
 }
 export function onCurationWriteFailed(listener: () => void): () => void {

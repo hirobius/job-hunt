@@ -27,6 +27,7 @@ import {
   updateCategory,
 } from '../curation/curationStore';
 import { setCurationSyncedAt } from '../curation/syncStatus';
+import { clearAllPending } from '../curation/pending';
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
 import { OFFLINE_MSG } from '../cloudMessages';
@@ -161,7 +162,10 @@ describe('CloudSyncProvider (via the account menu)', () => {
 // hurt: a write the cloud refused went unnoticed, a sign-in against an empty cloud could drop this
 // browser's tracks, and sign-out wiped tracks that only lived here.
 describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
-  beforeEach(() => setCurationSyncedAt(null));
+  beforeEach(() => {
+    setCurationSyncedAt(null);
+    clearAllPending();
+  });
   const localTrack = (id: string, label: string, createdAt = NOW) =>
     replaceCurationState({
       categories: [

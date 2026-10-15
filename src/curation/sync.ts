@@ -4,7 +4,8 @@
 // in curationStore, this reports failure: every Supabase `{ error }` is checked, the outcome
 // lands in syncStatus (which Onboarding reads), and the caller gets a boolean.
 import { curationClient, getCurationState, replaceCurationState } from './curationStore';
-import { reconcileCuration } from './merge';
+import { applyPending, reconcileCuration } from './merge';
+import { clearDelivered, getPending } from './pending';
 import { foldLegacyTiles, type LegacyTile } from './legacyTiles';
 import { getCurationSyncedAt, setCurationSyncStatus, setCurationSyncedAt } from './syncStatus';
 import {
@@ -99,9 +100,20 @@ export async function syncOnLogin(userId: string): Promise<boolean> {
   if (getCurationState().categories.length === 0) setCurationSyncStatus('syncing');
   try {
     const cloud = await pullAll(userId);
-    const { next, upload } = reconcileCuration(cloud, getCurationState(), getCurationSyncedAt());
+    const local = getCurationState();
+    const pending = getPending();
+    const { next, upload, deletes } = applyPending(
+      reconcileCuration(cloud, local, getCurationSyncedAt()),
+      local,
+      pending,
+    );
     replaceCurationState(next);
     await uploadLocalOnly(userId, upload);
+    // Re-send deletes the cloud refused earlier, children before parents (FKs).
+    for (const table of ['tiles', 'groups', 'categories'] as const)
+      for (const d of deletes.filter((x) => x.table === table))
+        check(await curationClient.from(table).delete().eq('id', d.id));
+    clearDelivered(pending);
     setCurationSyncedAt(startedAt);
     setCurationSyncStatus('done');
     return true;

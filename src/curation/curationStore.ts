@@ -1,9 +1,9 @@
 // Per-account curated content store — the shared external store for categories/groups/tiles.
 // Built on the shared createStore factory + local-first localStorage persistence.
 // Signed out: purely local. Signed in: every mutator ALSO mirrors the change to Supabase
-// (upsert on add/update, delete on remove) as thin fire-and-forget I/O through the anon client
-// under RLS — errors are swallowed, so the local store is always the source of truth and the
-// cloud is best-effort. The sign-in pull lives in sync.ts.
+// (upsert on add/update, delete on remove) through the anon client under RLS. Local stays the
+// source of truth: each write is journalled in pending.ts first, and a refused one stays there and
+// is reported (a toast, Retry sync in the account menu); the next sync replays it (sync.ts).
 import { createStore } from '../createStore';
 import { loadPersisted, savePersisted } from '../persisted';
 import { supabase } from '../supabase';
@@ -18,6 +18,8 @@ import {
 } from './map';
 
 import { reportCurationWriteFailed } from './syncStatus';
+import { markPending, settlePending, type PendingOp } from './pending';
+import { hasPersistedSession } from '../supabase';
 
 const KEY = 'rjb_curation';
 
@@ -54,25 +56,39 @@ type RowForTable<T extends CurationTable> = T extends 'categories'
     : TileRow;
 
 // supabase-js reports a refused write (RLS, constraint, network) as `{ error }`, not a throw, so
-// both are checked. A failure keeps the local change and is reported, never swallowed: the
-// account menu offers Retry sync, and the next sync uploads what didn't make it.
-function mirror(write: (uid: string) => PromiseLike<{ error: unknown }>) {
+// both count as a failure. So does a stored session the client no longer honours (a token that
+// expired mid-session): the write is journalled and reported, never silently skipped.
+function mirror(
+  table: CurationTable,
+  id: string,
+  op: PendingOp,
+  write: (uid: string) => PromiseLike<{ error: unknown }>,
+) {
+  // Journalled before any await, so a write still in flight counts as unsynced (sign-out asks).
+  const v = markPending(table, id, op);
   void (async () => {
+    let ok = false;
     try {
       const uid = await currentUserId();
-      if (!uid) return;
-      const { error } = await write(uid);
-      if (error) reportCurationWriteFailed();
+      // No session at all: signed out, purely local, nothing to send.
+      if (!uid && !hasPersistedSession()) return settlePending(table, id, v, true);
+      if (uid) ok = !(await write(uid)).error;
     } catch {
-      reportCurationWriteFailed();
+      ok = false;
     }
+    settlePending(table, id, v, ok);
+    if (!ok) reportCurationWriteFailed();
   })();
 }
-function upsert<T extends CurationTable>(table: T, buildRow: (uid: string) => RowForTable<T>) {
-  mirror((uid) => curationClient.from(table).upsert(buildRow(uid)));
+function upsert<T extends CurationTable>(
+  table: T,
+  id: string,
+  buildRow: (uid: string) => RowForTable<T>,
+) {
+  mirror(table, id, 'upsert', (uid) => curationClient.from(table).upsert(buildRow(uid)));
 }
 function remove(table: CurationTable, rowId: string) {
-  mirror(() => curationClient.from(table).delete().eq('id', rowId));
+  mirror(table, rowId, 'delete', () => curationClient.from(table).delete().eq('id', rowId));
 }
 
 // ---- sortOrder helpers (append to the end of the relevant scope) ----
@@ -98,7 +114,7 @@ export function addCategory(partial: Partial<Category> = {}): string {
     ...partial,
   };
   store.set({ ...s, categories: [...s.categories, c] });
-  upsert('categories', (uid) => categoryToRow(c, uid));
+  upsert('categories', c.id, (uid) => categoryToRow(c, uid));
   return c.id;
 }
 
@@ -113,7 +129,7 @@ export function updateCategory(id: string, patch: Partial<Category>) {
   if (!updated) return;
   store.set({ ...s, categories });
   const row = updated;
-  upsert('categories', (uid) => categoryToRow(row, uid));
+  upsert('categories', row.id, (uid) => categoryToRow(row, uid));
 }
 
 export function removeCategory(id: string) {
@@ -138,7 +154,7 @@ export function addGroup(categoryId: string, partial: Partial<Group> = {}): stri
   // categoryId is intrinsic to the group — a patch must never reroute it.
   g.categoryId = categoryId;
   store.set({ ...s, groups: [...s.groups, g] });
-  upsert('groups', (uid) => groupToRow(g, uid));
+  upsert('groups', g.id, (uid) => groupToRow(g, uid));
   return g.id;
 }
 
@@ -153,7 +169,7 @@ export function updateGroup(id: string, patch: Partial<Group>) {
   if (!updated) return;
   store.set({ ...s, groups });
   const row = updated;
-  upsert('groups', (uid) => groupToRow(row, uid));
+  upsert('groups', row.id, (uid) => groupToRow(row, uid));
 }
 
 export function removeGroup(id: string) {
@@ -178,7 +194,7 @@ export function addTile(groupId: string, partial: Partial<Tile> = {}): string {
   };
   t.groupId = groupId;
   store.set({ ...s, tiles: [...s.tiles, t] });
-  upsert('tiles', (uid) => tileToRow(t, uid));
+  upsert('tiles', t.id, (uid) => tileToRow(t, uid));
   return t.id;
 }
 
@@ -193,7 +209,7 @@ export function updateTile(id: string, patch: Partial<Tile>) {
   if (!updated) return;
   store.set({ ...s, tiles });
   const row = updated;
-  upsert('tiles', (uid) => tileToRow(row, uid));
+  upsert('tiles', row.id, (uid) => tileToRow(row, uid));
 }
 
 export function removeTile(id: string) {

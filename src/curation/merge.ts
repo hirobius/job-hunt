@@ -51,7 +51,10 @@ export function reconcileCuration(
 ): { next: CurationState; upload: CurationState } {
   // An empty cloud can't hold a deletion made elsewhere worth honouring over this device's whole
   // board: treat everything local as new and upload it (2026-10-15: tracks had never reached the
-  // cloud, and a stale syncedAt could have dropped them all on sign-in).
+  // cloud, and a stale syncedAt could have dropped them all on sign-in). Known trade-off: if
+  // another device deliberately deleted its LAST track, a device holding an older copy uploads it
+  // again on its next sync, and the deleting device pulls it back. Losing a whole board is worse;
+  // a delete that failed to send is not affected (pending.ts replays it).
   const trustLocal = syncedAt == null || cloud.categories.length === 0;
   const isNew = (x: { createdAt: string }) => trustLocal || x.createdAt > syncedAt!;
   const only = localOnlyCuration(cloud, local);
@@ -71,4 +74,58 @@ export function reconcileCuration(
   );
   const next = { categories, groups, tiles };
   return { next, upload: localOnlyCuration(cloud, next) };
+}
+
+/**
+ * Replay this device's undelivered writes (pending.ts) over a reconcile result. A pending upsert is
+ * a local change the cloud never got, so the local row wins over the cloud copy and is uploaded
+ * (kept even if the reconcile would have dropped it, as long as its parent survives). A pending
+ * delete removes the row and is re-sent. Without this, Retry sync would revert a refused edit and
+ * resurrect a refused delete (#168 review).
+ */
+export function applyPending(
+  reconciled: { next: CurationState; upload: CurationState },
+  local: CurationState,
+  pending: readonly { table: keyof CurationState; id: string; op: 'upsert' | 'delete' }[],
+): {
+  next: CurationState;
+  upload: CurationState;
+  deletes: { table: keyof CurationState; id: string }[];
+} {
+  const next: CurationState = {
+    categories: [...reconciled.next.categories],
+    groups: [...reconciled.next.groups],
+    tiles: [...reconciled.next.tiles],
+  };
+  const upload: CurationState = {
+    categories: [...reconciled.upload.categories],
+    groups: [...reconciled.upload.groups],
+    tiles: [...reconciled.upload.tiles],
+  };
+  const deletes: { table: keyof CurationState; id: string }[] = [];
+  const put = <T extends { id: string }>(list: T[], row: T) => {
+    const i = list.findIndex((x) => x.id === row.id);
+    if (i > -1) list[i] = row;
+    else list.push(row);
+  };
+  // Parents first, so a replayed child can check its parent survived.
+  const order: (keyof CurationState)[] = ['categories', 'groups', 'tiles'];
+  for (const table of order)
+    for (const p of pending.filter((x) => x.table === table)) {
+      if (p.op === 'delete') {
+        (next[table] as { id: string }[]) = (next[table] as { id: string }[]).filter(
+          (x) => x.id !== p.id,
+        );
+        deletes.push({ table, id: p.id });
+        continue;
+      }
+      const row = (local[table] as { id: string }[]).find((x) => x.id === p.id);
+      if (!row) continue;
+      if (table === 'groups' && !next.categories.some((c) => c.id === (row as Group).categoryId))
+        continue;
+      if (table === 'tiles' && !next.groups.some((g) => g.id === (row as Tile).groupId)) continue;
+      put(next[table] as { id: string }[], row);
+      put(upload[table] as { id: string }[], row);
+    }
+  return { next, upload, deletes };
 }
