@@ -19,7 +19,13 @@ vi.mock('@supabase/supabase-js', async () => {
 });
 
 import { renderAccount, openAccount, chooseAccountItem } from '../test/renderAccount';
-import { addCategory, getCurationState, replaceCurationState } from '../curation/curationStore';
+import {
+  addCategory,
+  getCurationState,
+  removeCategory,
+  replaceCurationState,
+  updateCategory,
+} from '../curation/curationStore';
 import { setCurationSyncedAt } from '../curation/syncStatus';
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
@@ -205,11 +211,72 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     expect(getCurationState().categories.map((c) => c.label)).toEqual(['Design Systems']);
   });
 
-  it('sign-out warns before wiping tracks that never reached the cloud', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  const signedInWithSyncedTrack = async () => {
     renderAccount();
     act(() => fake().signIn('u1'));
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    act(() => {
+      addCategory({ label: 'Design Systems' });
+    });
+    await waitFor(() => expect(fake().tables.categories?.length).toBe(1));
+    return getCurationState().categories[0].id;
+  };
+  const label = () => getCurationState().categories.map((c) => c.label);
+  const cloudLabels = () => (fake().tables.categories ?? []).map((c) => c.label);
+
+  it('a refused EDIT to a synced track is sent by Retry sync, not reverted by the cloud copy', async () => {
+    const id = await signedInWithSyncedTrack();
+    fake().failNext('categories', 'upsert');
+    act(() => updateCategory(id, { label: 'Design Engineering' }));
+    await screen.findByText('Track changes didn’t reach the cloud');
+    await chooseAccountItem('Retry sync');
+    await waitFor(() => expect(cloudLabels()).toEqual(['Design Engineering']));
+    expect(label()).toEqual(['Design Engineering']);
+  });
+
+  it('a refused DELETE is sent by Retry sync, not brought back by the cloud copy', async () => {
+    const id = await signedInWithSyncedTrack();
+    fake().failNext('categories', 'delete');
+    act(() => removeCategory(id));
+    await screen.findByText('Track changes didn’t reach the cloud');
+    await chooseAccountItem('Retry sync');
+    await waitFor(() => expect(cloudLabels()).toEqual([]));
+    expect(label()).toEqual([]);
+  });
+
+  it('Retry sync stays in the menu while tracks are unsynced, even after jobs sync fine', async () => {
+    await signedInWithSyncedTrack();
+    fake().failNext('categories', 'upsert');
+    act(() => {
+      addCategory({ label: 'Only here' });
+    });
+    await screen.findByText('Track changes didn’t reach the cloud');
+    addJob('https://acme.example/jobs/9', 'Design Engineer');
+    await waitFor(() => expect(JSON.stringify(fake().tables.tracker[0].data)).toContain('jobs/9'));
+    const menu = await openAccount();
+    expect(within(menu).getByRole('menuitem', { name: 'Retry sync' })).toBeInTheDocument();
+  });
+
+  it('several refused writes in a burst make one toast, not one each', async () => {
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    fake().failNext('categories', 'upsert');
+    fake().failNext('categories', 'upsert');
+    fake().failNext('categories', 'upsert');
+    act(() => {
+      addCategory({ label: 'A' });
+      addCategory({ label: 'B' });
+      addCategory({ label: 'C' });
+    });
+    await screen.findByText('Track changes didn’t reach the cloud');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getAllByText('Track changes didn’t reach the cloud')).toHaveLength(1);
+  });
+
+  it('sign-out warns before wiping tracks that never reached the cloud; cancel keeps them', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await signedInWithSyncedTrack();
     fake().failNext('categories', 'upsert');
     act(() => {
       addCategory({ label: 'Only here' });
@@ -217,7 +284,48 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     await screen.findByText('Track changes didn’t reach the cloud');
     await chooseAccountItem('Sign out');
     expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/haven’t reached the cloud/));
-    // Cancelled: still signed in, track still here.
-    expect(getCurationState().categories.map((c) => c.label)).toEqual(['Only here']);
+    expect(label()).toEqual(['Design Systems', 'Only here']);
+  });
+
+  it('confirming the warning signs out and wipes this browser', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await signedInWithSyncedTrack();
+    fake().failNext('categories', 'upsert');
+    act(() => {
+      addCategory({ label: 'Only here' });
+    });
+    await screen.findByText('Track changes didn’t reach the cloud');
+    await chooseAccountItem('Sign out');
+    await waitFor(() => expect(localStorage.getItem('rjb_curation')).toBeNull());
+  });
+
+  it('a track write still in flight counts as unsynced at sign-out', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await signedInWithSyncedTrack();
+    const release = fake().holdNext('categories', 'upsert');
+    act(() => {
+      addCategory({ label: 'In flight' });
+    });
+    await chooseAccountItem('Sign out');
+    expect(confirm).toHaveBeenCalled();
+    release();
+  });
+
+  it('with every track synced, sign-out asks nothing', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await signedInWithSyncedTrack();
+    await chooseAccountItem('Sign out');
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('a session that expired mid-session is loud too, not a silent skip', async () => {
+    await signedInWithSyncedTrack();
+    // The stored session is still there, but the client no longer returns one (refresh failed).
+    localStorage.setItem('sb-test-auth-token', '{}');
+    vi.spyOn(fake().client.auth, 'getSession').mockResolvedValue({ data: { session: null } });
+    act(() => {
+      addCategory({ label: 'After expiry' });
+    });
+    expect(await screen.findByText('Track changes didn’t reach the cloud')).toBeInTheDocument();
   });
 });

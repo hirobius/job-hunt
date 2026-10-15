@@ -10,6 +10,14 @@ type Result = { data: unknown; error: { message: string } | null };
 export function createFakeSupabase() {
   const tables: Record<string, Row[]> = {};
   const failures: { table: string; op: Op }[] = [];
+  // `holdNext` parks the next matching write until its release() is called (an in-flight write).
+  const holds: { table: string; op: Op; gate: Promise<void> }[] = [];
+  const held = async (table: string, op: Op) => {
+    const i = holds.findIndex((h) => h.table === table && h.op === op);
+    if (i < 0) return;
+    const [h] = holds.splice(i, 1);
+    await h.gate;
+  };
   const keyOf = (table: string, r: Row) => String(table === 'tracker' ? r.user_id : r.id);
   const rows = (t: string) => (tables[t] ??= []);
   const fail = (table: string, op: Op): Result | null => {
@@ -48,6 +56,7 @@ export function createFakeSupabase() {
           return q;
         },
         async upsert(input: Row | Row[]): Promise<Result> {
+          await held(table, 'upsert');
           const f = fail(table, 'upsert');
           if (f) return f;
           for (const r of Array.isArray(input) ? input : [input]) {
@@ -61,6 +70,7 @@ export function createFakeSupabase() {
         delete() {
           return {
             async eq(k: string, v: unknown): Promise<Result> {
+              await held(table, 'delete');
               const f = fail(table, 'delete');
               if (f) return f;
               tables[table] = rows(table).filter((r) => r[k] !== v);
@@ -93,6 +103,13 @@ export function createFakeSupabase() {
     client,
     tables,
     failNext: (table: string, op: Op) => failures.push({ table, op }),
+    /** Park the next matching write; returns the function that lets it finish. */
+    holdNext(table: string, op: Op): () => void {
+      let release = () => {};
+      const gate = new Promise<void>((r) => (release = r));
+      holds.push({ table, op, gate });
+      return release;
+    },
     signIn(id: string, email = `${id}@example.test`) {
       session = { user: { id, email } };
       listeners.forEach((l) => l('SIGNED_IN', session));
@@ -100,6 +117,7 @@ export function createFakeSupabase() {
     reset() {
       for (const k of Object.keys(tables)) delete tables[k];
       failures.length = 0;
+      holds.length = 0;
       session = null;
     },
   };
