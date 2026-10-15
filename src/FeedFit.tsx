@@ -11,15 +11,19 @@ const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 export function EvidenceEditor({
   text,
   count,
+  startOpen = false,
   onChange,
 }: {
   text: string;
   count: number;
+  /** Open on first show — Live postings passes true only while no postings are showing. */
+  startOpen?: boolean;
   onChange: (text: string) => void;
 }) {
   return (
-    // Starts open while empty (it's the ask); collapsed once filled, so the postings lead.
-    <Disclosure label={`Your evidence (${count})`} variant="panel" defaultOpen={!text}>
+    // Open on first show only while empty and nothing else is on screen (it's the ask); collapsed
+    // otherwise, so the postings lead. Same trigger style as Fit and gap and the patterns roll-up.
+    <Disclosure label={`Your evidence (${count})`} defaultOpen={!text && startOpen}>
       <Stack gap="xs">
         <Text variant="caption" style={SECONDARY}>
           One skill per line, as “Skill: what shows it (link)”. Each posting then gets a fit, and
@@ -41,7 +45,7 @@ export function EvidenceEditor({
 
 export function FitGapDetails({ fg }: { fg: FitGap }) {
   return (
-    <Disclosure label={`Fit and gap (${fg.fit.length} · ${fg.gap.length})`}>
+    <Disclosure label={`Fit and gap (${fg.fit.length + fg.gap.length})`}>
       <Stack gap="xs">
         <Text variant="caption" style={SECONDARY}>
           Fit
@@ -107,7 +111,7 @@ export function PatternsSummary({ patterns }: { patterns: Patterns }) {
     </Stack>
   );
   return (
-    <Disclosure label={`What these postings ask for (${patterns.total})`} variant="panel">
+    <Disclosure label={`What these postings ask for (${patterns.total})`}>
       <Stack gap="px16">
         {list('Covered by your evidence', patterns.covered)}
         {list('Thin or not shown', patterns.thin)}

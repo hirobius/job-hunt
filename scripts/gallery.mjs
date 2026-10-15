@@ -140,7 +140,9 @@ const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['first-job'], ['button', /^Use template$/]]],
   // Templates: a row opens its editor (beside the list on a desktop, alone on a phone).
   [/^Templates$/, 'template-detail', [['link', /^Cover letter/]]],
-  [/^Discover$/, 'manage-track-dialog', [['button', /^Manage this track$/]]],
+  [/^Discover$/, 'manage-track-dialog', [['button', /^Manage track$/]]],
+  // The location and work-mode popover in the header (#131).
+  [/^Discover$/, 'discover-context-popover', [['button', /, (Any mode|Hybrid|On-site)$|^Remote$/]]],
 ];
 
 async function shoot(browser, base, theme, width, manifest) {
@@ -210,7 +212,8 @@ async function shoot(browser, base, theme, width, manifest) {
     await clickIf(page, 'tab', new RegExp(`^${tab}$`));
     await snap(tab);
     if (/^Discover$/.test(tab)) {
-      const inner = page.getByRole('tabpanel').getByRole('tablist').first();
+      // The sections (tabs under "Your sections"), then each search tool (a segmented row, #131).
+      const inner = page.getByRole('tabpanel').getByRole('tablist', { name: 'Your sections' });
       const subs = (await inner.isVisible().catch(() => false))
         ? await inner.getByRole('tab').allInnerTexts()
         : [];
@@ -218,6 +221,16 @@ async function shoot(browser, base, theme, width, manifest) {
         await inner.getByRole('tab', { name: sub, exact: true }).click();
         await snap(`${tab} · ${sub}`);
       }
+      const tools = page.getByRole('radiogroup', { name: 'Search tool' });
+      const labels = (await tools.isVisible().catch(() => false))
+        ? await tools.getByRole('radio').allInnerTexts()
+        : [];
+      for (const label of labels.slice(1)) {
+        await tools.getByRole('radio', { name: label, exact: true }).click();
+        await snap(`${tab} · ${label}`);
+      }
+      // Back to the default tool, so the overlays below open on Apply now.
+      if (labels[0]) await tools.getByRole('radio', { name: labels[0], exact: true }).click();
     }
   }
 

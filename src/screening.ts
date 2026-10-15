@@ -5,7 +5,7 @@ import type { Job, JobMode, Verdict } from './types';
 
 export const VERDICTS: { value: Verdict; label: string; tone: 'success' | 'warning' | 'danger' }[] =
   [
-    { value: 'match', label: 'Match', tone: 'success' },
+    { value: 'match', label: 'Strong fit', tone: 'success' },
     { value: 'stretch', label: 'Stretch', tone: 'warning' },
     { value: 'reach', label: 'Reach', tone: 'danger' },
   ];
@@ -21,6 +21,9 @@ export const VERDICT_RANK: Record<Verdict, number> = { match: 0, stretch: 1, rea
 
 export const verdictTone = (v: Verdict): 'success' | 'warning' | 'danger' =>
   VERDICTS.find((x) => x.value === v)!.tone;
+
+/** The one wording for a fit, wherever it shows: Live rows, the Pipeline, the job page. */
+export const verdictLabel = (v: Verdict): string => VERDICTS.find((x) => x.value === v)!.label;
 
 export const modeLabel = (m: JobMode): string => MODES.find((x) => x.value === m)!.label;
 

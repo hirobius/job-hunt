@@ -36,6 +36,9 @@ export const CACHE_TTL_MS = 60 * 60 * 1000;
 export const REMOTIVE_DAILY_MAX = 4;
 export const REMOTIVE_TTL_MS = 6 * 60 * 60 * 1000;
 export const FETCH_TIMEOUT_MS = 15_000;
+/** The whole of one source (a source can make several requests) gets this long, then it is marked
+ *  failed and the rest carry on. Matches the per-request limit above. */
+export const SOURCE_TIMEOUT_MS = 15_000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const REMOTIVE_KEY = 'rjb_feed_remotive';
 /** Bodies are trimmed before they are stored, to keep browser storage small. */
@@ -261,6 +264,15 @@ interface SourceTask {
   run: () => Promise<Posting[]>;
 }
 
+/** Reject with a timeout FetchError if `p` hasn't settled in `ms` (the source is then reported failed). */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new FetchError(0, '', true)), ms);
+  });
+  return Promise.race([p, limit]).finally(() => clearTimeout(timer));
+}
+
 /** Turn one task's settled result into its status, pushing its postings (http(s) links only). */
 function statusOf(
   task: SourceTask,
@@ -282,19 +294,27 @@ export async function fetchFeed(
     boardUrls: string[];
     /** Called as each source answers, with everything gathered so far (in source order). */
     onProgress?: (p: FeedProgress) => void;
+    /** Read only these sources (by `SourceStatus.key`) — "Retry" on a failed source. */
+    only?: string[];
   },
   fetchJson: FetchJson = liveFetchJson,
   {
     kv = browserKv(),
     now = Date.now,
     sources: enabled = SOURCE_ENABLED,
-  }: { kv?: KeyValue; now?: () => number; sources?: Partial<typeof SOURCE_ENABLED> } = {},
+    sourceTimeoutMs = SOURCE_TIMEOUT_MS,
+  }: {
+    kv?: KeyValue;
+    now?: () => number;
+    sources?: Partial<typeof SOURCE_ENABLED>;
+    sourceTimeoutMs?: number;
+  } = {},
 ): Promise<FeedResult> {
   const term = req.term.trim();
   if (!term) return { postings: [], sources: [] };
 
   const boards = boardsFromUrls(req.boardUrls, Infinity);
-  const tasks: SourceTask[] = [
+  const all: SourceTask[] = [
     { key: 'hn', label: SOURCE_LABEL.hn, run: () => fetchHn(term, fetchJson) },
     {
       key: 'remotive',
@@ -326,6 +346,8 @@ export async function fetchFeed(
       run: () => fetchBoard(b, fetchJson),
     })),
   ];
+  const tasks = req.only ? all.filter((t) => req.only!.includes(t.key)) : all;
+  const boardsRead = tasks.filter((t) => t.board).length;
 
   const results: (PromiseSettledResult<Posting[]> | undefined)[] = new Array(tasks.length);
   const snapshot = (): FeedProgress => {
@@ -339,11 +361,11 @@ export async function fetchFeed(
       postings,
       sources,
       boardsDone: tasks.filter((t, i) => t.board && results[i]).length,
-      boardsTotal: boards.length,
+      boardsTotal: boardsRead,
     };
   };
   const settled = await settleAll(
-    tasks.map((t) => () => t.run()),
+    tasks.map((t) => () => withTimeout(t.run(), sourceTimeoutMs)),
     (i) => !!tasks[i].board,
     (i, r) => {
       results[i] = r;

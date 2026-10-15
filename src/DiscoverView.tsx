@@ -1,21 +1,18 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 import {
   Button,
-  Combobox,
   Input as HdsInput,
-  Menu as HdsMenu,
   SegmentedControl,
   Tabs as HdsTabs,
   TabsList,
   TabsTrigger,
   TabsContent,
   Tag,
-  Icon,
   Box,
   Text,
   Disclosure,
+  Stack,
 } from '@hirobius/design-system';
-import { Plus, SlidersHorizontal } from 'lucide-react';
 import TileGrid from './TileGrid';
 import EmptyState from './EmptyState';
 import { useRoute, navigate } from './route';
@@ -30,16 +27,19 @@ import {
   type HiddenQuery,
   type HiddenSite,
   type Tile,
-  type WorkMode,
 } from './jobsData';
 import { useJobs } from './store';
 import { partitionTiles } from './tileState';
 import { useTileTriage } from './tileTriage';
 import { consumeDiscoverSeed } from './discoverSeed';
 import { useCategories, useGroups, useTiles, addCategory } from './curation/curationStore';
-import { STARTER_PACKS, seedPack } from './curation/starterPacks';
+import { seedPack } from './curation/starterPacks';
 import type { Category, Seniority } from './curation/types';
-import LocationControl from './LocationControl';
+import { ContextCaption } from './LocationControl';
+import DiscoverHeader from './DiscoverHeader';
+import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
+import { useAtLeast } from './hds-gaps/useBreakpoint';
+import { useTrackContext } from './discoverContext';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 
 const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
@@ -105,101 +105,20 @@ function GroupPanel({
   );
 }
 
-function CategorySwitcher({
-  categories,
-  activeId,
-  onChange,
-  onSeedPack,
-  onBlank,
-  onManage,
-}: {
-  categories: Category[];
-  activeId: string;
-  onChange: (id: string) => void;
-  onSeedPack: (packId: string) => void;
-  onBlank: () => void;
-  onManage: () => void;
-}) {
-  // Packs the user can pull in as a ready-made track (skip "blank" — that's the explicit
-  // "Blank track" item below). Lets an existing user add e.g. the ServiceNow track any time,
-  // not only at first-run onboarding.
-  const packs = STARTER_PACKS.filter((p) => p.id !== 'blank');
-  return (
-    <Box sx={{ mb: 'sm' }}>
-      <Text
-        variant="caption"
-        as="span"
-        style={{
-          color: 'var(--semantic-color-content-secondary)',
-          display: 'block',
-          marginBottom: 'var(--primitive-space-1)',
-        }}
-      >
-        Track
-      </Text>
-      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1.5, alignItems: 'center' }}>
-        <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-          <Combobox
-            aria-label="Track to search"
-            options={categories.map((c) => ({ value: c.id, label: c.label }))}
-            value={activeId}
-            onChange={onChange}
-            placeholder="Pick a track"
-          />
-        </Box>
-        <Button
-          size="sm"
-          variant="tertiary"
-          iconOnly
-          iconLeft={<Icon icon={SlidersHorizontal} />}
-          label="Manage this track"
-          onClick={onManage}
-        />
-        <HdsMenu>
-          <HdsMenu.Trigger asChild>
-            <Button
-              size="sm"
-              variant="secondary"
-              iconOnly
-              iconLeft={<Icon icon={Plus} />}
-              label="New track"
-            />
-          </HdsMenu.Trigger>
-          <HdsMenu.Content align="end">
-            <HdsMenu.Label>Start from a pack</HdsMenu.Label>
-            {packs.map((p) => (
-              <HdsMenu.Item key={p.id} onSelect={() => onSeedPack(p.id)}>
-                {p.label}
-              </HdsMenu.Item>
-            ))}
-            <HdsMenu.Separator />
-            <HdsMenu.Item onSelect={onBlank}>Blank track</HdsMenu.Item>
-          </HdsMenu.Content>
-        </HdsMenu>
-      </Box>
-    </Box>
-  );
-}
-
 function TitlesPanel({
   titles,
   applyEntry,
   initialTitle,
-  where,
-  mode,
-  onWhere,
-  onMode,
+  categoryId,
   onManage,
 }: {
   titles: string[];
   applyEntry: boolean;
   initialTitle?: string | null;
-  where: string;
-  mode: WorkMode;
-  onWhere: (v: string) => void;
-  onMode: (v: WorkMode) => void;
+  categoryId: string;
   onManage: () => void;
 }) {
+  const { where, mode } = useTrackContext(categoryId);
   const [title, setTitle] = useState(initialTitle || titles[0] || '');
   if (titles.length === 0)
     return (
@@ -231,7 +150,7 @@ function TitlesPanel({
       >
         Pick a title — searches fire {applyEntry ? 'entry-level filtered ' : ''}across every board.
       </Text>
-      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
+      <ContextCaption categoryId={categoryId} />
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 'sm' }}>
         {titles.map((tt) => (
           <Tag key={tt} active={tt === title} onClick={() => setTitle(tt)}>
@@ -247,20 +166,15 @@ function TitlesPanel({
 function AtsPanel({
   roles,
   seniority,
-  where,
-  mode,
-  onWhere,
-  onMode,
+  categoryId,
   onManage,
 }: {
   roles: string[];
   seniority: Seniority;
-  where: string;
-  mode: WorkMode;
-  onWhere: (v: string) => void;
-  onMode: (v: WorkMode) => void;
+  categoryId: string;
   onManage: () => void;
 }) {
+  const { where, mode } = useTrackContext(categoryId);
   const [role, setRole] = useState(roles[0] ?? '');
   const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
   const [contract, setContract] = useState(false);
@@ -302,7 +216,7 @@ function AtsPanel({
       >
         Search companies' hiring systems straight through Google — far less competition.
       </Text>
-      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
+      <ContextCaption categoryId={categoryId} />
       {/* Mobile-first: a column that becomes a row from sm. HDS sx has no base breakpoint (hds#652), so the base value sits on the key and the override nests under '&'. */}
       <Box
         sx={{
@@ -366,12 +280,15 @@ function AtsPanel({
   );
 }
 
-type TabDesc = {
-  key: string;
-  label: string;
-  kind: 'group' | 'titles' | 'ats' | 'live';
-  tiles?: Tile[];
-};
+// The tools row is data-driven: adding a tool (e.g. "By company") is one entry here. Short labels
+// on a phone, full names from the HDS `sm` breakpoint up (docs/specs/discover.md, "Tools vs sections").
+type ToolKey = 'apply' | 'titles' | 'ats' | 'live';
+const TOOLS: { key: ToolKey; label: string; short: string }[] = [
+  { key: 'apply', label: 'Apply now', short: 'Apply' },
+  { key: 'titles', label: 'Title search', short: 'Titles' },
+  { key: 'ats', label: 'ATS search', short: 'ATS' },
+  { key: 'live', label: 'Live postings', short: 'Live' },
+];
 
 export default function DiscoverView() {
   const categories = useCategories();
@@ -397,8 +314,6 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const savedSet = useMemo(() => new Set(jobs.map((j) => j.url)), [jobs]);
   const [seed] = useState(() => consumeDiscoverSeed());
   const [activeId, setActiveId] = useState(() => loadActiveCategory(categories));
-  const [where, setWhere] = useState('');
-  const [mode, setMode] = useState<WorkMode>('any');
   const [manageOpen, setManageOpen] = useState(false);
 
   const cat = categories.find((c) => c.id === activeId) ?? categories[0];
@@ -446,38 +361,28 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
     () => boardUrlsFor(cat.id, { categories, groups: allGroups, tiles: allTiles }),
     [cat.id, categories, allGroups, allTiles],
   );
-  const tabs: TabDesc[] = [
-    ...(featured
-      ? [
-          {
-            key: featured.id,
-            label: 'Apply Now',
-            kind: 'group' as const,
-            tiles: tilesFor(featured.id),
-          },
-        ]
-      : []),
-    { key: 'titles', label: 'Title search', kind: 'titles' },
-    { key: 'ats', label: 'ATS search', kind: 'ats' },
-    { key: 'live', label: 'Live postings', kind: 'live' },
-    ...rest.map((g) => ({
-      key: g.id,
-      label: g.label,
-      kind: 'group' as const,
-      tiles: tilesFor(g.id),
-    })),
+  // The track's own sections: the first curated group is the featured "Apply now" one (never the
+  // feed's watch list); the rest keep their own names.
+  const sections = [
+    ...(featured ? [{ key: featured.id, label: 'Apply now', tiles: tilesFor(featured.id) }] : []),
+    ...rest.map((g) => ({ key: g.id, label: g.label, tiles: tilesFor(g.id) })),
   ];
 
   const route = useRoute();
-  const subIndex = route.sub ? tabs.findIndex((tb) => tb.key === route.sub) : -1;
-  const tab = subIndex >= 0 ? subIndex : 0;
-  const cur = tabs[tab] ?? tabs[0];
+  const wide = useAtLeast('sm');
+  // A track with no sections has no "Apply now" view to show: open on Title search instead.
+  const tools = sections.length ? TOOLS : TOOLS.filter((t) => t.key !== 'apply');
+  const sub = route.sub;
+  const tool: ToolKey =
+    (tools.find((t) => t.key === sub)?.key as ToolKey | undefined) ??
+    (sections.length ? 'apply' : 'titles');
+  const section = sections.find((sc) => sc.key === sub) ?? sections[0];
 
   return (
     <Box>
-      <CategorySwitcher
+      <DiscoverHeader
         categories={categories}
-        activeId={cat.id}
+        cat={cat}
         onChange={setActive}
         onSeedPack={handleSeedPack}
         onBlank={handleBlank}
@@ -493,66 +398,74 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
           />
         </Suspense>
       )}
-      {/* Key the tabs by category so switching tracks resets to the first sub-tab. */}
-      <HdsTabs
-        key={cat.id}
-        value={cur.key}
-        onValueChange={(v) => navigate({ sub: v === tabs[0].key ? null : v })}
-      >
-        <TabsList style={{ marginBottom: 'var(--primitive-space-4)', width: '100%' }}>
-          {tabs.map((tb) => (
-            <TabsTrigger key={tb.key} value={tb.key}>
-              {tb.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        <TabsContent value={cur.key}>
-          {cur.kind === 'group' && (
-            <GroupPanel
-              tiles={cur.tiles!}
-              savedSet={savedSet}
-              onManage={() => setManageOpen(true)}
+      <Stack gap="inset">
+        <TabsOverflowFade value={tool}>
+          <SegmentedControl
+            aria-label="Search tool"
+            size="sm"
+            value={tool}
+            onChange={(v) => navigate({ sub: v === 'apply' ? null : v })}
+            options={tools.map((t) => ({ value: t.key, label: wide ? t.label : t.short }))}
+          />
+        </TabsOverflowFade>
+        {tool === 'apply' && section && (
+          <Stack gap="xs">
+            <Text variant="title" as="h3">
+              Your sections
+            </Text>
+            {/* Key the tabs by track so switching tracks resets to the first section. */}
+            <HdsTabs
+              key={cat.id}
+              value={section.key}
+              onValueChange={(v) => navigate({ sub: v === sections[0].key ? null : v })}
+            >
+              <TabsOverflowFade value={section.key}>
+                <TabsList aria-label="Your sections" style={{ width: '100%' }}>
+                  {sections.map((sc) => (
+                    <TabsTrigger key={sc.key} value={sc.key}>
+                      {sc.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </TabsOverflowFade>
+              <TabsContent value={section.key}>
+                <GroupPanel
+                  tiles={section.tiles}
+                  savedSet={savedSet}
+                  onManage={() => setManageOpen(true)}
+                />
+              </TabsContent>
+            </HdsTabs>
+          </Stack>
+        )}
+        {tool === 'titles' && (
+          <TitlesPanel
+            titles={cat.titles}
+            applyEntry={cat.seniority === 'entry'}
+            initialTitle={seed}
+            categoryId={cat.id}
+            onManage={() => setManageOpen(true)}
+          />
+        )}
+        {tool === 'ats' && (
+          <AtsPanel
+            roles={cat.atsRoles}
+            seniority={cat.seniority}
+            categoryId={cat.id}
+            onManage={() => setManageOpen(true)}
+          />
+        )}
+        {tool === 'live' && (
+          <Suspense fallback={null}>
+            <LiveFeedPanel
+              key={cat.id}
+              categoryId={cat.id}
+              terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
+              boardUrls={boardUrls}
             />
-          )}
-          {cur.kind === 'titles' && (
-            <TitlesPanel
-              titles={cat.titles}
-              applyEntry={cat.seniority === 'entry'}
-              initialTitle={seed}
-              where={where}
-              mode={mode}
-              onWhere={setWhere}
-              onMode={setMode}
-              onManage={() => setManageOpen(true)}
-            />
-          )}
-          {cur.kind === 'ats' && (
-            <AtsPanel
-              roles={cat.atsRoles}
-              seniority={cat.seniority}
-              where={where}
-              mode={mode}
-              onWhere={setWhere}
-              onMode={setMode}
-              onManage={() => setManageOpen(true)}
-            />
-          )}
-          {cur.kind === 'live' && (
-            <Suspense fallback={null}>
-              <LiveFeedPanel
-                key={cat.id}
-                categoryId={cat.id}
-                terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
-                boardUrls={boardUrls}
-                where={where}
-                mode={mode}
-                onWhere={setWhere}
-                onMode={setMode}
-              />
-            </Suspense>
-          )}
-        </TabsContent>
-      </HdsTabs>
+          </Suspense>
+        )}
+      </Stack>
     </Box>
   );
 }

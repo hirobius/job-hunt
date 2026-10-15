@@ -144,6 +144,21 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   Titles link to `#/queue/<jobId>`; details, to-dos, the screener and templates live on the job
   page (tabs, #130). The filter/search/sort survive opening a job and Back (`pipelineView.ts`).
   Pinned in `src/pipeline.test.tsx`.
+- **Discover (#131, `docs/specs/discover.md`):** `DiscoverHeader` = `PageHeader` (track name, Manage
+  track, New track `Menu`) + the track `Combobox` + one context `Popover` button ("Spokane, Hybrid")
+  holding the only `LocationControl`. **Location is `Category.location`; work mode is per device,
+  `rjb_ui_mode:<categoryId>`** (`src/discoverContext.ts`, `useTrackContext`; panels read it, they take
+  no location props). Tools are one `SegmentedControl` (Apply / Titles / ATS / Live on a phone, full
+  names from `sm`), wrapped in `hds-gaps/TabsOverflowFade`; the track's sections are `Tabs` under
+  "Your sections", shown only for Apply now; slugs unchanged (`#/discover/<tool | groupId>`).
+  `TileGrid` cards are equal-height (240px min), with chips parsed from the meta string by
+  `tileMeta.parseMeta` (raw text is the fallback; no data migration), a `Details` disclosure with
+  tap-to-call for every phone, and a labelled Set aside. Live postings states go through
+  `hds-gaps/AsyncState` (skeleton + "still trying" at 10 s; `fetchFeed` has a 15 s per-source cap and
+  `only: [keys]` for the per-source Retry, merged by `feed/mergeFeed`); Watch a company, suggested
+  companies and Your evidence sit in a collapsed **Refine** disclosure under the search. Fit wording
+  is `screening.verdictLabel` everywhere (Strong fit / Stretch / Reach). Pinned in
+  `src/discover.test.tsx`, `TileGrid.test.tsx`, `LiveFeed*.test.tsx`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
@@ -234,8 +249,8 @@ far this cycle:
 
 - **Search is location-agnostic (#58).** `BOARDS` in `jobsData.ts` no longer hard-code Spokane —
   `build(term, { where, mode })` takes a user-set location + work-mode (Any/Remote/Hybrid/On-site).
-  There is **no remote default** (remote roles draw ~5× the applicants); a shared `LocationControl`
-  (`src/LocationControl.tsx`) drives the Title, ATS and Live postings panels.
+  There is **no remote default** (remote roles draw ~5× the applicants); one `LocationControl`
+  (`src/LocationControl.tsx`, in the Discover header's popover) drives the Title, ATS and Live postings panels.
 - **Screening pipeline on jobs (#60).** Additive `Job` fields — `verdict` (match/stretch/reach),
   `mode`, `travelPct`, `applicants`, `blockers[]`, `angle`, `screenedAt` — normalized on read in
   `src/screening.ts`. Edited via `ScreeningEditor`; shown as card badges; new "Best fit" sort; a

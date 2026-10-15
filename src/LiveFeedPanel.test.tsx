@@ -75,7 +75,7 @@ let cat: string;
 beforeEach(() => {
   feed.fetchFeed.mockReset().mockResolvedValue(RESULT);
   replaceCurationState(EMPTY_CURATION);
-  cat = addCategory({ label: 'Design Systems' });
+  cat = addCategory({ label: 'Design Systems', location: '' });
 });
 afterEach(() => {
   cleanup();
@@ -84,6 +84,8 @@ afterEach(() => {
     .forEach((j) => removeJob(j.url));
 });
 
+const openRefine = () => userEvent.click(screen.getByRole('button', { name: 'Refine' }));
+
 const renderPanel = (boardUrls: string[] = []) =>
   render(
     <ToastProvider>
@@ -91,10 +93,6 @@ const renderPanel = (boardUrls: string[] = []) =>
         categoryId={cat}
         terms={['design systems', 'design engineer']}
         boardUrls={boardUrls}
-        where=""
-        mode="any"
-        onWhere={() => {}}
-        onMode={() => {}}
       />
     </ToastProvider>,
   );
@@ -236,6 +234,7 @@ describe('LiveFeedPanel', () => {
   it("suggests the track's starter companies once, and a second click has nothing to add", async () => {
     const user = userEvent.setup();
     renderPanel(['https://jobs.ashbyhq.com/ramp']);
+    await openRefine();
     const n = DIRECTORY_BY_PACK.designsystems.length;
     const btn = await screen.findByRole('button', {
       name: new RegExp(`add suggested companies \\((${n}|${n - 1})\\)`, 'i'),
@@ -251,12 +250,14 @@ describe('LiveFeedPanel', () => {
     cat = addCategory({ label: 'My own thing' });
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
+    await openRefine();
     expect(screen.queryByRole('button', { name: /add suggested companies/i })).toBeNull();
   });
 
   it('suggests only trades boards to a trades track', async () => {
     cat = addCategory({ label: 'Skilled Trades' });
     renderPanel();
+    await openRefine();
     expect(
       await screen.findByRole('button', {
         name: `Add suggested companies (${DIRECTORY_BY_PACK.trades.length})`,
@@ -290,6 +291,7 @@ describe('LiveFeedPanel', () => {
   it('watches a company board, and explains a link that is not one', async () => {
     const user = userEvent.setup();
     renderPanel();
+    await openRefine();
     const input = screen.getByLabelText(/watch a company/i);
     await user.type(input, 'https://www.linkedin.com/company/ramp');
     await user.click(screen.getByRole('button', { name: 'Watch' }));
@@ -301,5 +303,140 @@ describe('LiveFeedPanel', () => {
     await user.type(input, 'jobs.ashbyhq.com/ramp');
     await user.click(screen.getByRole('button', { name: 'Watch' }));
     expect(getCurationState().tiles.map((t) => t.url)).toEqual(['https://jobs.ashbyhq.com/ramp']);
+  });
+});
+
+describe('LiveFeedPanel states (#131)', () => {
+  const FAILED: FeedResult = {
+    postings: [],
+    sources: [
+      {
+        key: 'hn',
+        label: 'Hacker News',
+        fetched: 0,
+        error: 'Hacker News: timed out — try again later.',
+      },
+      {
+        key: 'remotive',
+        label: 'Remotive',
+        fetched: 0,
+        error: 'Remotive: timed out — try again later.',
+      },
+    ],
+  };
+
+  it('loads with skeleton rows and a status line, never a bare spinner', async () => {
+    feed.fetchFeed.mockImplementationOnce(() => new Promise(() => {}));
+    renderPanel();
+    expect(
+      await screen.findByText(/Pulling live openings for “design systems”/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('a thrown feed is an error with a Retry that searches again', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockRejectedValueOnce(new Error('boom'));
+    renderPanel();
+    expect(await screen.findByText(/The feed failed unexpectedly/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('list', { name: /live postings/i })).toBeInTheDocument();
+    expect(feed.fetchFeed).toHaveBeenCalledTimes(2);
+  });
+
+  it('every source failing offers Retry for the whole search', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValueOnce(FAILED);
+    renderPanel();
+    expect(await screen.findByText("Couldn't reach any source")).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('list', { name: /live postings/i })).toBeInTheDocument();
+    expect(screen.queryByText("Couldn't reach any source")).toBeNull();
+  });
+
+  it('says it is offline when the browser is', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    feed.fetchFeed.mockResolvedValueOnce(FAILED);
+    renderPanel();
+    expect(await screen.findByText('You’re offline')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+
+  it('a partly failed read names the source and retries only that one', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    expect(screen.getByText(/Remotive: rate-limited/)).toBeInTheDocument();
+    feed.fetchFeed.mockResolvedValueOnce({
+      postings: [],
+      sources: [{ key: 'remotive', label: 'Remotive', fetched: 4 }],
+    });
+    await user.click(screen.getByRole('button', { name: 'Retry Remotive' }));
+    expect(feed.fetchFeed).toHaveBeenLastCalledWith(
+      expect.objectContaining({ term: 'design systems', only: ['remotive'] }),
+    );
+    await waitFor(() => expect(screen.queryByText(/Remotive: rate-limited/)).toBeNull());
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+  });
+
+  it('an empty result offers a broader term that focuses the search box', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValueOnce({
+      postings: [],
+      sources: [{ key: 'hn', label: 'Hacker News', fetched: 0 }],
+    });
+    renderPanel();
+    expect(
+      await screen.findByText(/No live openings mention “design systems”/),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Try a broader term' }));
+    expect(screen.getByLabelText('Search term')).toHaveFocus();
+  });
+
+  it('puts the postings ahead of watching companies and evidence, which sit behind Refine', async () => {
+    renderPanel();
+    const list = await screen.findByRole('list', { name: /live postings/i });
+    const refine = screen.getByRole('button', { name: 'Refine' });
+    expect(refine).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByLabelText(/watch a company/i)).toBeNull();
+    expect(screen.getByLabelText('Search term').compareDocumentPosition(list)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(refine.compareDocumentPosition(list)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('opens evidence by default only while empty and no postings are showing', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValueOnce({
+      postings: [],
+      sources: [{ key: 'hn', label: 'Hacker News', fetched: 0 }],
+    });
+    renderPanel();
+    await screen.findByText(/No live openings mention/);
+    await user.click(screen.getByRole('button', { name: 'Refine' }));
+    expect(screen.getByRole('button', { name: 'Your evidence (0)' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+  });
+
+  it('says once, under the list, that evidence adds a fit, and the link opens Refine', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    await user.click(screen.getByRole('button', { name: 'Add evidence to see fit' }));
+    expect(screen.getByRole('button', { name: 'Refine' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('lays a posting out as title, meta, then Save, so the title keeps the whole row', async () => {
+    renderPanel();
+    const list = await screen.findByRole('list', { name: /live postings/i });
+    const row = within(list).getByText('Design Systems Lead').closest('li')!;
+    const link = within(row).getByRole('link', { name: /Design Systems Lead/ });
+    const meta = within(row).getByText(/Ramp · New York/);
+    const save = within(row).getByRole('button', { name: 'Save' });
+    expect(link.compareDocumentPosition(meta)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(meta.compareDocumentPosition(save)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 });

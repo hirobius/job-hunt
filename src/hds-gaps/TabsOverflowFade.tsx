@@ -2,7 +2,8 @@
 // no cue that more tabs sit past the edge (the four top tabs overflow a 390px phone). This wrapper
 // fades whichever edge has more to scroll past, and keeps the selected tab in view
 // (Radix doesn't scroll to it). Filed upstream with the Phase 7 asks (#133); delete this when
-// TabsList grows an overflow cue.
+// TabsList grows an overflow cue. Also wraps a SegmentedControl (its radiogroup scrolls the same
+// way, e.g. Discover's four tools on a phone): the ask is an `overflow` prop on both.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 // Mask alpha only: currentColor is opaque, so an edge fades to transparent without a colour.
@@ -12,8 +13,9 @@ const mask = (start: boolean, end: boolean) =>
     end ? `currentColor calc(100% - ${EDGE}), transparent` : 'currentColor 100%'
   })`;
 
+const SCROLLER = '[role="tablist"],[role="radiogroup"]';
 const tablistIn = (root: HTMLElement | null) =>
-  root?.querySelector<HTMLElement>('[role="tablist"]') ?? null;
+  root?.querySelector<HTMLElement>(SCROLLER) ?? null;
 
 export default function TabsOverflowFade({
   value,
@@ -46,7 +48,7 @@ export default function TabsOverflowFade({
 
   useEffect(() => {
     tablistIn(ref.current)
-      ?.querySelector<HTMLElement>('[aria-selected="true"]')
+      ?.querySelector<HTMLElement>('[aria-selected="true"],[aria-checked="true"]')
       ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
     measure();
   }, [value, measure]);

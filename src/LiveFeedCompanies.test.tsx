@@ -60,15 +60,7 @@ afterEach(() => {
 const renderPanel = (boardUrls: string[] = []) =>
   render(
     <ToastProvider>
-      <LiveFeedPanel
-        categoryId={cat}
-        terms={['design systems']}
-        boardUrls={boardUrls}
-        where=""
-        mode="any"
-        onWhere={() => {}}
-        onMode={() => {}}
-      />
+      <LiveFeedPanel categoryId={cat} terms={['design systems']} boardUrls={boardUrls} />
     </ToastProvider>,
   );
 

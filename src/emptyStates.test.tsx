@@ -100,7 +100,8 @@ describe('Discover empties', () => {
     expect(
       screen.getByText(/Add links you trust, or use Title and ATS search for live ones/),
     ).toBeInTheDocument();
-    // The track bar has an icon button with the same name; the empty state's is the text one.
-    expect(screen.getAllByRole('button', { name: 'Manage this track' })).toHaveLength(2);
+    // The empty state's own action, beside the header's Manage track (#131).
+    expect(screen.getAllByRole('button', { name: 'Manage this track' })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Manage track' })).toBeInTheDocument();
   });
 });

@@ -4,7 +4,7 @@
 // evidence, each posting also gets a fit (Role Radar's engine, src/radar/). Nothing is stored until
 // the user saves a posting, which turns it into a tracked Job. Watching a board files a tile on the
 // track (src/feed/watchlist.ts).
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   Alert,
   Badge,
@@ -26,10 +26,12 @@ import {
 import { X } from 'lucide-react';
 import EmptyState from './EmptyState';
 import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
-import LocationControl from './LocationControl';
-import type { WorkMode } from './jobsData';
+import { setTrackContext, useTrackContext } from './discoverContext';
+import { ContextCaption } from './LocationControl';
 import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
 import { fetchFeed, type FeedResult } from './feed/fetchFeed';
+import { mergeRetry } from './feed/mergeFeed';
+import AsyncState, { type AsyncStatus } from './hds-gaps/AsyncState';
 import { rankPostings } from './feed/match';
 import { applyTargeting, NO_TARGETING } from './feed/targeting';
 import type { Seniority } from './curation/types';
@@ -42,7 +44,7 @@ import { deleteFilter, readFilters, saveFilter, type SavedFilter } from './feed/
 import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
 import { boardsForPack, packIdForLabel } from './curation/starterPacks';
 import { jobFieldsFor } from './feed/toJob';
-import { modeLabel, verdictTone } from './screening';
+import { modeLabel, verdictLabel, verdictTone } from './screening';
 import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
 import { demandPatterns } from './radar/patterns';
 import { readEvidence, TIER_INFO, writeEvidence } from './radar/evidenceStore';
@@ -69,25 +71,24 @@ export default function LiveFeedPanel({
   categoryId,
   terms,
   boardUrls,
-  where,
-  mode,
-  onWhere,
-  onMode,
 }: {
   categoryId: string;
   /** The track's search terms — offered as chips; the first is searched on open. */
   terms: string[];
   /** Every tile URL on the track; the feed pulls the ones that are company boards. */
   boardUrls: string[];
-  where: string;
-  mode: WorkMode;
-  onWhere: (v: string) => void;
-  onMode: (v: WorkMode) => void;
 }) {
+  const { where, mode } = useTrackContext(categoryId);
   const { toast } = useToast();
   const [input, setInput] = useState(terms[0] ?? '');
   const [term, setTerm] = useState(terms[0] ?? '');
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  /** Bumped by Retry so the same term and boards are read again. */
+  const [attempt, setAttempt] = useState(0);
+  /** Source keys a per-source Retry is reading right now. */
+  const [retrying, setRetrying] = useState<string[]>([]);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [refineOpen, setRefineOpen] = useState(false);
   const [focus, setFocus] = useState<Focus>('all');
   const [shown, setShown] = useState(PAGE);
   const [watchUrl, setWatchUrl] = useState('');
@@ -163,7 +164,7 @@ export default function LiveFeedPanel({
       alive = false;
       clearTimeout(timer);
     };
-  }, [term, boardsKey]);
+  }, [term, boardsKey, attempt]);
 
   const current = loaded && loaded.term === term && loaded.boardsKey === boardsKey ? loaded : null;
   const reading = current?.reading;
@@ -253,8 +254,7 @@ export default function LiveFeedPanel({
     setFloorText(f.salaryFloor ? String(f.salaryFloor) : '');
     setSalaryOnly(f.salaryOnly);
     setFocus(f.contractOnly ? 'contract' : 'all');
-    onWhere(f.where);
-    onMode(f.mode);
+    setTrackContext(categoryId, { where: f.where, mode: f.mode });
     search(f.term);
   };
 
@@ -309,7 +309,73 @@ export default function LiveFeedPanel({
   const allFailed =
     !reading &&
     !!current?.result?.sources.length &&
+    current.result.postings.length === 0 &&
     errors.length === current.result.sources.length;
+  const status: AsyncStatus = loading
+    ? 'loading'
+    : current?.error || allFailed
+      ? 'error'
+      : !term.trim() || ranked.length === 0
+        ? 'empty'
+        : 'ready';
+
+  // Retry the whole search: forget what is on screen and read every source again.
+  const retryAll = () => {
+    setLoaded(null);
+    setAttempt((n) => n + 1);
+  };
+  // Retry only the named sources and fold their answers into what is showing.
+  const retrySources = (keys: string[]) => {
+    setRetrying((r) => [...r, ...keys]);
+    const forTerm = term;
+    const forBoards = boardsKey;
+    fetchFeed({
+      term: forTerm,
+      boardUrls: forBoards ? forBoards.split('\n') : [],
+      only: keys,
+    })
+      .then((patch) =>
+        setLoaded((prev) =>
+          prev && prev.term === forTerm && prev.boardsKey === forBoards && prev.result
+            ? { ...prev, result: mergeRetry(prev.result, patch) }
+            : prev,
+        ),
+      )
+      .catch(() => {})
+      .finally(() => setRetrying((r) => r.filter((k) => !keys.includes(k))));
+  };
+  const failedRow = (s: { key: string; label: string; error?: string }) => (
+    <Stack key={s.key} direction="row" gap="xs" align="center" wrap="wrap">
+      <Box>{s.error}</Box>
+      <Button
+        size="sm"
+        variant="tertiary"
+        disabled={retrying.includes(s.key)}
+        aria-label={`Retry ${s.label}`}
+        onClick={() => retrySources([s.key])}
+      >
+        {retrying.includes(s.key) ? 'Retrying…' : 'Retry'}
+      </Button>
+    </Stack>
+  );
+  const emptyState = !term.trim() ? (
+    <EmptyState message="Type a search term or pick one of this track's terms." />
+  ) : ranked.length === 0 && matched.length > 0 ? (
+    <EmptyState
+      title="Everything is hidden by your filters"
+      message="Loosen what you left out, the level or the pay floor to see them again."
+    />
+  ) : (
+    <EmptyState
+      title={`No live openings mention “${term}” right now`}
+      message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
+      action={
+        <Button variant="secondary" size="sm" onClick={() => searchRef.current?.focus()}>
+          Try a broader term
+        </Button>
+      }
+    />
+  );
 
   return (
     <Box>
@@ -324,8 +390,7 @@ export default function LiveFeedPanel({
         Jobicy, Remote OK and the company boards you watch, ranked by relevance. Add your evidence
         and each one gets a fit. Nothing is kept until you save one.
       </Text>
-      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
-
+      <ContextCaption categoryId={categoryId} />
       <Box
         as="form"
         onSubmit={onSearch}
@@ -334,6 +399,7 @@ export default function LiveFeedPanel({
         <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
           <HdsInput
             size="sm"
+            ref={searchRef}
             label="Search term"
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -442,91 +508,95 @@ export default function LiveFeedPanel({
         </Text>
       )}
 
-      <Box
-        as="form"
-        onSubmit={onWatch}
-        sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
-      >
-        <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
-          <HdsInput
-            size="sm"
-            label="Watch a company"
-            placeholder="jobs.ashbyhq.com/company"
-            value={watchUrl}
-            onChange={(e) => setWatchUrl(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </Box>
-        <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
-          Watch
-        </Button>
-      </Box>
-      <Text
-        variant="caption"
-        as="span"
-        style={{
-          color: watchError
-            ? 'var(--semantic-color-feedback-error)'
-            : 'var(--semantic-color-content-secondary)',
-          display: 'block',
-          marginBottom: 'var(--semantic-space-scale-sm)',
-        }}
-      >
-        {watchError ||
-          (watchedCount
-            ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
-            : 'Paste a Greenhouse, Lever, Ashby, Workable or Recruitee job-board link to pull that company’s openings in.')}
-      </Text>
-
-      {suggestedCount > 0 && (
-        <Box sx={{ mb: 'xs' }}>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => {
-              const n = addBoardTiles(categoryId, suggested);
-              toast({
-                title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
-                description: 'Their openings now show up here. Remove any in Manage track.',
-                tone: 'success',
-              });
-            }}
-          >
-            Add suggested companies ({suggestedCount})
-          </Button>
-        </Box>
-      )}
-
+      {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
       <Box sx={{ mb: 'sm' }}>
-        <EvidenceEditor
-          text={evidenceText}
-          count={evidence.length}
-          onChange={(t) => {
-            setEvidenceText(t);
-            writeEvidence(t);
-          }}
-        />
+        <Disclosure label="Refine" open={refineOpen} onOpenChange={setRefineOpen}>
+          <Stack gap="xs">
+            <Box
+              as="form"
+              onSubmit={onWatch}
+              sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
+            >
+              <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
+                <HdsInput
+                  size="sm"
+                  label="Watch a company"
+                  placeholder="jobs.ashbyhq.com/company"
+                  value={watchUrl}
+                  onChange={(e) => setWatchUrl(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </Box>
+              <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
+                Watch
+              </Button>
+            </Box>
+            <Text
+              variant="caption"
+              as="span"
+              style={{
+                color: watchError
+                  ? 'var(--semantic-color-feedback-error)'
+                  : 'var(--semantic-color-content-secondary)',
+                display: 'block',
+                marginBottom: 'var(--semantic-space-scale-sm)',
+              }}
+            >
+              {watchError ||
+                (watchedCount
+                  ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
+                  : 'Paste a Greenhouse, Lever, Ashby, Workable or Recruitee job-board link to pull that company’s openings in.')}
+            </Text>
+
+            {suggestedCount > 0 && (
+              <Box sx={{ mb: 'xs' }}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    const n = addBoardTiles(categoryId, suggested);
+                    toast({
+                      title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
+                      description: 'Their openings now show up here. Remove any in Manage track.',
+                      tone: 'success',
+                    });
+                  }}
+                >
+                  Add suggested companies ({suggestedCount})
+                </Button>
+              </Box>
+            )}
+
+            <Box>
+              <EvidenceEditor
+                startOpen={ranked.length === 0}
+                text={evidenceText}
+                count={evidence.length}
+                onChange={(t) => {
+                  setEvidenceText(t);
+                  writeEvidence(t);
+                }}
+              />
+            </Box>
+          </Stack>
+        </Disclosure>
       </Box>
 
-      {errors.length > 0 && (
+      {errors.length > 0 && !allFailed && (
         <Box sx={{ mb: 3 }}>
           <Alert
             tone="warning"
             title={
-              errors.length > 3
+              errors.length > 2
                 ? `${errors.length} sources didn’t respond`
                 : 'Some sources didn’t respond'
             }
           >
             {/* Many boards can fail at once (a blocker, an outage): keep the list behind a disclosure. */}
-            {errors.length > 3 ? (
-              <Disclosure label="Show which ones">
-                {errors.map((s) => (
-                  <Box key={s.key}>{s.error}</Box>
-                ))}
-              </Disclosure>
+            {errors.length > 2 ? (
+              <Disclosure label="Show which ones">{errors.map(failedRow)}</Disclosure>
             ) : (
-              errors.map((s) => <Box key={s.key}>{s.error}</Box>)
+              errors.map(failedRow)
             )}
           </Alert>
         </Box>
@@ -550,43 +620,25 @@ export default function LiveFeedPanel({
         </Stack>
       )}
 
-      {loading ? (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: 'xs',
-            alignItems: 'center',
-            py: 'md',
-          }}
-        >
-          <Spinner size="sm" label="Loading live postings" />
-          <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
-            {reading
-              ? `Read ${reading.done} of ${reading.total} boards, nothing matching yet…`
-              : `Pulling live openings for “${term}”…`}
-          </Text>
-        </Box>
-      ) : current?.error ? (
-        <Alert tone="danger">{current.error}</Alert>
-      ) : !term.trim() ? (
-        <EmptyState message="Type a search term or pick one of this track's terms." />
-      ) : allFailed ? (
-        <EmptyState
-          title="Couldn't reach any source"
-          message="Check your internet connection or try again later."
-        />
-      ) : ranked.length === 0 && matched.length > 0 ? (
-        <EmptyState
-          title="Everything is hidden by your filters"
-          message="Loosen what you left out, the level or the pay floor to see them again."
-        />
-      ) : ranked.length === 0 ? (
-        <EmptyState
-          title={`No live openings mention “${term}” right now`}
-          message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
-        />
-      ) : (
+      <AsyncState
+        status={status}
+        onRetry={retryAll}
+        loadingLabel={
+          reading
+            ? `Read ${reading.done} of ${reading.total} boards, nothing matching yet…`
+            : `Pulling live openings for “${term}”…`
+        }
+        slowNote="Still trying: slow sources are skipped after 15 s"
+        error={
+          current?.error
+            ? { title: current.error }
+            : {
+                title: "Couldn't reach any source",
+                message: 'Check your internet connection or try again later.',
+              }
+        }
+        empty={emptyState}
+      >
         <Box>
           <Box sx={{ mb: 'xs' }}>
             <PatternsSummary patterns={patterns} />
@@ -665,6 +717,21 @@ export default function LiveFeedPanel({
               ))}
             </Box>
           )}
+          {/* One line, once, instead of a fit badge missing from every row. */}
+          {!byCompany && evidence.length === 0 && visible.length > 0 && (
+            <Box sx={{ mt: 'xs' }}>
+              <Text
+                variant="caption"
+                as="span"
+                style={{ color: 'var(--semantic-color-content-secondary)' }}
+              >
+                Postings get a fit once you add evidence.{' '}
+              </Text>
+              <Button size="sm" variant="tertiary" onClick={() => setRefineOpen(true)}>
+                Add evidence to see fit
+              </Button>
+            </Box>
+          )}
           {(byCompany ? companies.length : visible.length) > shown && (
             <Button
               variant="tertiary"
@@ -676,7 +743,7 @@ export default function LiveFeedPanel({
             </Button>
           )}
         </Box>
-      )}
+      </AsyncState>
     </Box>
   );
 }
@@ -787,18 +854,8 @@ function PostingRow({
     SOURCE_LABEL[p.source],
   ].filter(Boolean);
   return (
-    <Box
-      as="li"
-      sx={{
-        py: 3,
-        borderBottom: 'thin solid',
-        borderColor: 'border.default',
-        display: 'flex',
-        gap: 3,
-        alignItems: 'flex-start',
-      }}
-    >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+    <Box as="li" sx={{ py: 3, borderBottom: 'thin solid', borderColor: 'border.default' }}>
+      <Box sx={{ minWidth: 0 }}>
         <Text variant="ui" as="h3" style={{ overflowWrap: 'anywhere' }}>
           <InlineLink href={p.url} externalIcon={false}>
             {p.title}
@@ -816,10 +873,21 @@ function PostingRow({
         >
           {meta.join(' · ')}
         </Text>
+        {/* Under the meta, not beside it: the title keeps the full row on a phone. 40px target. */}
+        <Box sx={{ mt: 'xs' }}>
+          <Button
+            size="md"
+            variant={saved ? 'tertiary' : 'secondary'}
+            disabled={saved}
+            onClick={onSave}
+          >
+            {saved ? 'Saved' : 'Save'}
+          </Button>
+        </Box>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
           {fit && (
             <Badge tone={verdictTone(TIER_INFO[fit.tier].verdict)}>
-              {TIER_INFO[fit.tier].label}
+              {verdictLabel(TIER_INFO[fit.tier].verdict)}
             </Badge>
           )}
           {p.signals.map((s) => (
@@ -852,14 +920,6 @@ function PostingRow({
           </Box>
         )}
       </Box>
-      <Button
-        size="sm"
-        variant={saved ? 'tertiary' : 'secondary'}
-        disabled={saved}
-        onClick={onSave}
-      >
-        {saved ? 'Saved' : 'Save'}
-      </Button>
     </Box>
   );
 }
