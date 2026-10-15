@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Icon, Input, SegmentedControl, Stack, Text } from '@hirobius/design-system';
+import { Button, Grid, Icon, Input, SegmentedControl, Stack, Text } from '@hirobius/design-system';
 import { CalendarPlus, X } from 'lucide-react';
 import { buildIcs } from './ics';
 import { download } from './download';
@@ -54,7 +54,7 @@ export default function InterviewLog({ job }: { job: Job }) {
   return (
     <Stack gap="normal">
       <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
-        <Text variant="ui" as="h4" style={{ margin: 0, fontWeight: 600 }}>
+        <Text variant="ui" as="h4" className="rjb-semibold">
           Interviews & calls
         </Text>
         <Button
@@ -98,14 +98,7 @@ export default function InterviewLog({ job }: { job: Job }) {
         </Stack>
       )}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          gap: 'var(--primitive-space-3)',
-          alignItems: 'end',
-        }}
-      >
+      <Grid layout="auto-fit" minItemWidth="150px" gap="medium" align="end">
         <Stack gap="tight">
           {caption('Date')}
           <Input
@@ -134,7 +127,7 @@ export default function InterviewLog({ job }: { job: Job }) {
             onChange={(v) => setKind(v as JobEventKind)}
           />
         </Stack>
-      </div>
+      </Grid>
       <Stack direction="row" wrap="wrap" gap="tight" align="center">
         <div style={{ flex: 1, minWidth: 160 }}>
           <Input

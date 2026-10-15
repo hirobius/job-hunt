@@ -22,8 +22,8 @@ import type { SortKey } from './jobSort';
 import { nextSort, rowView, sortDirectionOf, type SortableColumn } from './jobRow';
 import { RowMenu, RowPrimaryAction, StatusBadge } from './JobRowParts';
 import type { Job } from './types';
+import { SECONDARY } from './hds-gaps/tone';
 
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 const NONE = (
   <Text variant="caption" as="span" style={SECONDARY}>
     —

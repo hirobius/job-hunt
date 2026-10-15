@@ -5,6 +5,7 @@
 // apart on purpose: only a 404 means a company has no board there.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Box,
   Alert,
   Button,
   Checkbox,
@@ -27,8 +28,8 @@ import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/at
 import { SOURCE_LABEL } from './feed/types';
 import { addBoardTiles, watchBoard } from './feed/watchlist';
 import { batchLabel, fetchBatch, recentBatches, ycLines, YC_CREDIT } from './feed/yc';
+import { SECONDARY } from './hds-gaps/tone';
 
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 const EMPTY: DiscoverResult = {
   found: [],
   missed: [],
@@ -190,7 +191,7 @@ export default function FindBoardsPanel({
             />
           </Stack>
           {batchNote && (
-            <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+            <Text variant="caption" as="p" style={SECONDARY}>
               {batchNote}
             </Text>
           )}
@@ -207,7 +208,7 @@ export default function FindBoardsPanel({
         style={{ width: '100%' }}
       />
       {(parsed.trimmed > 0 || parsed.ignored.length > 0) && (
-        <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+        <Text variant="caption" as="p" style={SECONDARY}>
           {parsed.trimmed > 0 &&
             `Only the first ${MAX_LIST} are checked in one run; ${parsed.trimmed} left out. `}
           {parsed.ignored.length > 0 &&
@@ -238,7 +239,7 @@ export default function FindBoardsPanel({
             max={Math.max(result.total, 1)}
             label={`${checked} of ${result.total} checked`}
           />
-          <Text variant="ui" as="p" role="status" style={{ margin: 0 }}>
+          <Text variant="ui" as="p" role="status">
             {`${checked} of ${result.total} checked, ${result.found.length} ${result.found.length === 1 ? 'board' : 'boards'} found`}
             {!running && checked < result.total - result.unknown.length ? ' (stopped)' : ''}
           </Text>
@@ -257,15 +258,10 @@ export default function FindBoardsPanel({
               </Button>
             )}
           </Stack>
-          <ul
+          <Box
+            as="ul"
             aria-label="Boards found"
-            style={{
-              listStyle: 'none',
-              margin: 0,
-              padding: 0,
-              display: 'grid',
-              gap: 'var(--primitive-space-2)',
-            }}
+            sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 'xs' }}
           >
             {result.found.map((f) => (
               <li key={`${f.board.kind}:${f.board.slug}`}>
@@ -297,12 +293,12 @@ export default function FindBoardsPanel({
                 </Stack>
               </li>
             ))}
-          </ul>
+          </Box>
         </Stack>
       )}
 
       {result && result.alreadyWatched.length > 0 && (
-        <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+        <Text variant="caption" as="p" style={SECONDARY}>
           {`Already watching: ${result.alreadyWatched.join(', ')}.`}
         </Text>
       )}
@@ -310,11 +306,11 @@ export default function FindBoardsPanel({
       {result && result.missed.length > 0 && (
         <Disclosure label={`Not found (${result.missed.length})`}>
           <Stack gap="xs">
-            <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+            <Text variant="caption" as="p" style={SECONDARY}>
               No public board on any of the five systems under the names we tried. They may use
               another system or a different spelling; paste the board link if you have it.
             </Text>
-            <Text variant="ui" as="p" style={{ margin: 0 }}>
+            <Text variant="ui" as="p">
               {result.missed.join(', ')}
             </Text>
           </Stack>
@@ -324,11 +320,11 @@ export default function FindBoardsPanel({
       {result && result.unknown.length > 0 && (
         <Disclosure label={`Couldn't check (${result.unknown.length})`}>
           <Stack gap="xs">
-            <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+            <Text variant="caption" as="p" style={SECONDARY}>
               These didn't get an answer (rate-limited, offline or blocked), so we can't say whether
               a board exists.
             </Text>
-            <Text variant="ui" as="p" style={{ margin: 0 }}>
+            <Text variant="ui" as="p">
               {result.unknown.join(', ')}
             </Text>
             <div>

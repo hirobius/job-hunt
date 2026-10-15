@@ -25,8 +25,8 @@ import TodayNotice from './TodayNotice';
 import GettingStarted from './GettingStarted';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
+import { SECONDARY } from './hds-gaps/tone';
 
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 
 const jobHref = (url: string) => jobHash(jobIdOf(url));
@@ -70,7 +70,7 @@ function Section({
   return (
     <section aria-labelledby={id}>
       <Stack gap="tight">
-        <Text variant="ui" as="h3" id={id} style={{ margin: 0, fontWeight: 600 }}>
+        <Text variant="ui" as="h3" id={id} className="rjb-semibold">
           {count > 0 ? `${title} · ${count}` : title}
         </Text>
         {count > 0 ? (
@@ -78,7 +78,7 @@ function Section({
             {children}
           </Stack>
         ) : (
-          <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+          <Text variant="caption" as="p" style={SECONDARY}>
             {empty}
           </Text>
         )}
@@ -135,13 +135,7 @@ function QuickAdd({ inputRef }: { inputRef: React.Ref<HTMLInputElement> }) {
         </Button>
       </Stack>
       {last && (
-        <Text
-          variant="caption"
-          as="p"
-          role="status"
-          aria-label="Quick add"
-          style={{ ...SECONDARY, margin: 0 }}
-        >
+        <Text variant="caption" as="p" role="status" aria-label="Quick add" style={SECONDARY}>
           {last.added ? 'Saved to your Pipeline: ' : 'Already in your Pipeline: '}
           <InlineLink href={jobHref(last.job.url)}>{last.job.label}</InlineLink>
         </Text>

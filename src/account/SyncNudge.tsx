@@ -6,6 +6,7 @@ import { Button, Callout, Icon, Stack, Text } from '@hirobius/design-system';
 import { Cloud, X } from 'lucide-react';
 import { useJobs } from '../store';
 import { useCloudSync } from './accountContext';
+import { SECONDARY } from '../hds-gaps/tone';
 
 const DISMISSED_KEY = 'rjb_sync_banner_hidden';
 
@@ -42,14 +43,10 @@ export default function SyncNudge() {
           <Icon icon={Cloud} />
         </span>
         <Stack gap="tight" style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="ui" as="p" style={{ margin: 0, fontWeight: 600 }}>
+          <Text variant="ui" as="p" className="rjb-semibold">
             Sync across your devices
           </Text>
-          <Text
-            variant="caption"
-            as="p"
-            style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}
-          >
+          <Text variant="caption" as="p" style={SECONDARY}>
             Your jobs are saved in this browser only. Sign in to keep them everywhere.
           </Text>
           <div>

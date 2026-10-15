@@ -3,20 +3,19 @@
 import { Stack, Text } from '@hirobius/design-system';
 import InterviewLog from './InterviewLog';
 import type { Job } from './types';
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
 
 export default function JobInterviews({ job }: { job: Job }) {
   return (
     <Stack gap="normal">
       {job.contact && (
-        <Text variant="ui" as="p" style={{ margin: 0 }}>
+        <Text variant="ui" as="p">
           <span style={SECONDARY}>Contact: </span>
           {job.contact}
         </Text>
       )}
       {!job.events?.length && (
-        <Text variant="ui" as="p" style={{ ...SECONDARY, margin: 0 }}>
+        <Text variant="ui" as="p" style={SECONDARY}>
           No interviews or calls yet. Add the date when one is booked and export it to your
           calendar.
         </Text>

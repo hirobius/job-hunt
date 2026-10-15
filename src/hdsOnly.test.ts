@@ -79,3 +79,24 @@ describe('Discover inline style ceilings (#131)', () => {
     expect(n).toBeLessThanOrEqual(max);
   });
 });
+
+// Design polish (#133): one global ratchet on inline `style={{` in non-test .tsx. It only goes
+// down: lower INLINE_STYLE_CEILING when you remove one; raising it means a Stack, Box sx, a
+// token or a hds-gaps stand-in would have done.
+describe('Inline style ratchet (#133)', () => {
+  const INLINE_STYLE_CEILING = 113;
+  const tsx = sourceFiles(SRC).filter((f) => f.endsWith('.tsx'));
+  it('does not grow', () => {
+    const n = tsx.reduce(
+      (sum, f) => sum + (readFileSync(f, 'utf8').match(/style=\{\{/g) ?? []).length,
+      0,
+    );
+    expect(n).toBeLessThanOrEqual(INLINE_STYLE_CEILING);
+  });
+  it('sets no raw font size or weight inline', () => {
+    const offenders = tsx.filter((f) =>
+      /style=\{\{[^}]*\bfont(Size|Weight)\s*:/.test(readFileSync(f, 'utf8')),
+    );
+    expect(offenders.map((f) => f.replace(SRC, ''))).toEqual([]);
+  });
+});

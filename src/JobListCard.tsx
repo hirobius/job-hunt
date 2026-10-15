@@ -8,8 +8,7 @@ import { jobHash } from './route';
 import { rowView } from './jobRow';
 import { RowMenu, RowPrimaryAction, StatusBadge } from './JobRowParts';
 import type { Job } from './types';
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
 
 export default function JobListCard({ job }: { job: Job }) {
   const titleId = useId();
@@ -31,14 +30,15 @@ export default function JobListCard({ job }: { job: Job }) {
             variant="body"
             as="h3"
             id={titleId}
-            style={{ margin: 0, fontWeight: 600, overflowWrap: 'anywhere' }}
+            className="rjb-semibold"
+            style={{ overflowWrap: 'anywhere' }}
           >
             <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
               {row.title}
             </InlineLink>
           </Text>
           {row.facts && (
-            <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+            <Text variant="caption" as="p" style={SECONDARY}>
               {row.facts}
             </Text>
           )}

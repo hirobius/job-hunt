@@ -17,8 +17,7 @@ import { addJob, isSaved, useJobs } from './store';
 import { useTileTriage, toggleDismiss } from './tileTriage';
 import { parseMeta } from './tileMeta';
 import type { Tile } from './jobsData';
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
 
 // Tile kind, derived from the URL (issue #12): aggregator queries are "Search", Google
 // fallback leads are "Lead" (verify before relying), everything else is a direct
@@ -85,23 +84,21 @@ export default function TileGrid({
             padding="none"
             style={{
               height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
               opacity: isAside ? 0.6 : 1,
             }}
           >
             <Box
               as="article"
               aria-label={t.name}
-              sx={{ p: 'sm', display: 'flex', flexDirection: 'column', gap: 'xs', flex: 1 }}
+              sx={{ p: 'sm', display: 'flex', flexDirection: 'column', gap: 'xs', height: '100%' }}
             >
               <Stack direction="row" gap="xs" align="center" justify="space-between">
                 <Text
                   variant="body"
                   as="h3"
+                  className="rjb-semibold"
                   title={t.name}
                   style={{
-                    fontWeight: 600,
                     lineHeight: 1.2,
                     minWidth: 0,
                     // Two lines, then an ellipsis: one line cut most names at 1440. Full name in Details.

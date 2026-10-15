@@ -44,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return (
       <Box sx={{ maxWidth: 480, mx: 'auto', mt: 16, px: 'md', textAlign: 'center' }}>
         <Stack gap="tight" align="center">
-          <Text variant="body" style={{ fontSize: '1.5rem', fontWeight: 600 }}>
+          <Text variant="title" as="h1">
             Something broke
           </Text>
           <Text variant="body" style={{ color: 'var(--semantic-color-content-secondary)' }}>

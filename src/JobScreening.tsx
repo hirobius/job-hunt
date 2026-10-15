@@ -5,8 +5,7 @@ import { verdictTone, verdictLabel, modeLabel, blockerLabel } from './screening'
 import { ScreeningEditor } from './ScreeningEditor';
 import JdScreenPanel from './JdScreenPanel';
 import type { Job } from './types';
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
 
 /** Verdict, work mode and travel, dealbreakers and applicant count on one line. */
 function FitLine({ job }: { job: Job }) {

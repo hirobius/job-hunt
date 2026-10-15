@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Dialog, InlineLink, Textarea, useToast } from '@hirobius/design-system';
+import { Button, Dialog, InlineLink, Stack, Textarea, useToast } from '@hirobius/design-system';
 import { useSnippets } from './copyDeckStore';
 import { fillTemplate, unfilledTokens, valuesFromJob } from './templateFill';
 import { copyFilled } from './templateCopy';
 import type { Job } from './types';
+import { SECONDARY } from './hds-gaps/tone';
 
 // Fill a Copy Deck snippet from a job's company/role/contact/angle and copy it.
 export default function UseTemplate({ job }: { job: Job }) {
@@ -59,28 +60,24 @@ export default function UseTemplate({ job }: { job: Job }) {
             Your Copy Deck is empty. Add a snippet there first.
           </p>
         ) : (
-          <div
-            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--primitive-space-3)' }}
-          >
-            <div
-              role="group"
-              aria-label="Templates"
-              style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--primitive-space-2)' }}
-            >
-              {ordered.map((s) => (
-                <Button
-                  key={s.id}
-                  size="sm"
-                  variant={s.id === picked?.id ? 'primary' : 'secondary'}
-                  aria-pressed={s.id === picked?.id}
-                  onClick={() => {
-                    setPickedId(s.id);
-                    setCopied(false);
-                  }}
-                >
-                  {s.label}
-                </Button>
-              ))}
+          <Stack gap="medium">
+            <div role="group" aria-label="Templates">
+              <Stack direction="row" gap="px8" wrap="wrap">
+                {ordered.map((s) => (
+                  <Button
+                    key={s.id}
+                    size="sm"
+                    variant={s.id === picked?.id ? 'primary' : 'secondary'}
+                    aria-pressed={s.id === picked?.id}
+                    onClick={() => {
+                      setPickedId(s.id);
+                      setCopied(false);
+                    }}
+                  >
+                    {s.label}
+                  </Button>
+                ))}
+              </Stack>
             </div>
             <Textarea
               readOnly
@@ -90,12 +87,12 @@ export default function UseTemplate({ job }: { job: Job }) {
               style={{ width: '100%' }}
             />
             {missing.length > 0 && (
-              <p style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}>
+              <p style={SECONDARY}>
                 Still unfilled: {missing.map((t) => `[${t}]`).join(', ')}. Add them on the job, or
                 edit after pasting.
               </p>
             )}
-          </div>
+          </Stack>
         )}
         <Dialog.Footer>
           {picked && (

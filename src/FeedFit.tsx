@@ -5,8 +5,7 @@ import { useId } from 'react';
 import { Disclosure, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
 import type { FitGap } from './radar/fitGap';
 import type { Patterns } from './radar/patterns';
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
 
 export function EvidenceEditor({
   text,
@@ -51,7 +50,7 @@ export function FitGapDetails({ fg }: { fg: FitGap }) {
           Fit
         </Text>
         {fg.fit.length ? (
-          <ul aria-label="Fit" style={{ margin: 0 }}>
+          <ul aria-label="Fit">
             {fg.fit.map((f) => (
               <li key={f.ask.id}>
                 <Text variant="ui" as="span">
@@ -69,7 +68,7 @@ export function FitGapDetails({ fg }: { fg: FitGap }) {
           Gap
         </Text>
         {fg.gap.length ? (
-          <ul aria-label="Gap" style={{ margin: 0 }}>
+          <ul aria-label="Gap">
             {fg.gap.map((a) => (
               <li key={a.id}>
                 <Text variant="ui" as="span">
@@ -90,11 +89,11 @@ export function PatternsSummary({ patterns }: { patterns: Patterns }) {
   const id = useId();
   const list = (name: string, items: { label: string; count: number }[]) => (
     <Stack gap="xs" style={{ minWidth: 0 }}>
-      <Text variant="ui" as="h4" id={`${id}-${name}`} style={{ margin: 0 }}>
+      <Text variant="ui" as="h4" id={`${id}-${name}`}>
         {name}
       </Text>
       {items.length ? (
-        <ul aria-label={name} style={{ margin: 0 }}>
+        <ul aria-label={name}>
           {items.map((d) => (
             <li key={d.label}>
               <Text variant="ui" as="span">

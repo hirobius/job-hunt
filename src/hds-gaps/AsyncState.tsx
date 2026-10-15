@@ -8,6 +8,7 @@
 // Filed upstream with the Phase 7 asks (#133) as an `AsyncState` pattern; delete this when it lands.
 import { useEffect, useState, type ReactNode } from 'react';
 import { Alert, Box, Button, Skeleton, Stack, Text } from '@hirobius/design-system';
+import { SECONDARY } from './tone';
 
 export type AsyncStatus = 'loading' | 'error' | 'empty' | 'ready';
 
@@ -107,5 +108,3 @@ function Loading({
     </Stack>
   );
 }
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;

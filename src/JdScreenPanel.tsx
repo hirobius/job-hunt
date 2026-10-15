@@ -4,8 +4,7 @@ import { screenJd, MAX_JD, type JdScreen } from './jdScreener';
 import { suggestVerdict, verdictTone, verdictLabel, modeLabel, blockerLabel } from './screening';
 import { updateJob } from './store';
 import type { Job } from './types';
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
 
 // Paste a job description → deterministic rules screen → one-click apply onto the job (issue #61),
 // inline in the job's Screening tab (#130). No AI. The screen SUGGESTS; applying merges blockers

@@ -43,3 +43,20 @@ a:focus-visible,
 [role='tab'][data-state='active'] {
   border-bottom-color: var(--role-foreground);
 }
+
+/* Host type resets for HDS `Text` (#133). Reset-free styles.css leaves heading/paragraph margins to
+ * the browser, so rhythm comes from parent Stack gaps only. `.rjb-semibold` is the one weight
+ * step the app uses on `ui` headings and names; upstream ask: a `weight` prop on HDS Text (hds#655). */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+}
+
+.rjb-semibold {
+  font-weight: 600;
+}

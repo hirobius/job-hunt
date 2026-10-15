@@ -28,8 +28,7 @@ import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import JobsTable from './JobsTable';
 import JobListCard from './JobListCard';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
 
 export default function TrackerView() {
   const jobs = useJobs();

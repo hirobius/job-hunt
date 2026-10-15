@@ -120,7 +120,7 @@ export default function App() {
               <Stack gap="normal">
                 {/* Slim header: name · top tabs · account. The tabs wrap under the name on mobile. */}
                 <Stack direction="row" wrap="wrap" gap="gap" align="center" justify="space-between">
-                  <Text variant="title" as="h1" style={{ margin: 0 }}>
+                  <Text variant="title" as="h1">
                     {BRAND.wordmark[0]}
                     <Box as="span" sx={{ color: 'accent' }}>
                       {BRAND.wordmark[1]}
