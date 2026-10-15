@@ -1,7 +1,7 @@
 // The job page (#130), tested at the route seam through App: #/queue/<jobId>. Slice by slice:
 // header + Overview, tabs, delete, two-pane desktop.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -138,5 +138,112 @@ describe('job page header and Overview (#130 slice 1)', () => {
   });
 });
 
-// Kept for later slices.
-export { URL_B, openJobPage, renderApp };
+/** The job page's own tabs, not the shell's "Sections". */
+const sectionTabs = () => screen.getByRole('tablist', { name: 'Job sections' });
+const tab = (name: string | RegExp) => within(sectionTabs()).getByRole('tab', { name });
+
+describe('job page tabs (#130 slice 2)', () => {
+  it('has four tabs, Overview first and selected', () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const names = within(sectionTabs())
+      .getAllByRole('tab')
+      .map((t) => t.textContent);
+    expect(names).toEqual(['Overview', 'Screening', 'Interviews', 'To-dos']);
+    expect(tab('Overview')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('puts counts on the labels of tabs that have something in them', () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, {
+      events: [{ id: 'e1', kind: 'interview', date: '2026-10-20' }],
+      todos: [
+        { id: 't1', text: 'One', done: false },
+        { id: 't2', text: 'Two', done: false },
+        { id: 't3', text: 'Three', done: true },
+      ],
+    });
+    openJobPage();
+    expect(tab('Interviews (1)')).toBeInTheDocument();
+    expect(tab('To-dos (2)')).toBeInTheDocument();
+  });
+
+  it('Screening is one click away and shows the fit line over the editor', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, {
+      verdict: 'match',
+      mode: 'hybrid',
+      travelPct: 10,
+      blockers: ['clearance'],
+      applicants: 40,
+    });
+    openJobPage();
+    await userEvent.click(tab('Screening'));
+    const fit = screen.getByRole('group', { name: 'Fit summary' });
+    expect(within(fit).getByText('Match')).toBeInTheDocument();
+    expect(within(fit).getByText(/10% travel/)).toBeInTheDocument();
+    expect(within(fit).getByText('40 applied')).toBeInTheDocument();
+    expect(screen.getByText('Work mode')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Add a custom dealbreaker' })).toBeInTheDocument();
+  });
+
+  it('the JD screener is inline in Screening, no dialog, and applies to the job', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    await userEvent.click(tab('Screening'));
+    await userEvent.click(screen.getByRole('button', { name: /Screen a job description/ }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Job description' }),
+      'Fully remote role. Must hold an active security clearance. Up to 25% travel.',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Screen' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Apply to this job' }));
+    const j = getAllJobs()[0];
+    expect(j.verdict).toBeTruthy();
+    expect(j.screenedAt).toBeTruthy();
+    expect(j.travelPct).toBe(25);
+  });
+
+  it('Interviews shows a teaching empty state, then the log', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    await userEvent.click(tab('Interviews'));
+    expect(screen.getByText(/No interviews or calls yet/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Event date')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add to calendar' })).toBeInTheDocument();
+  });
+
+  it('To-dos has the checklist and Notes, once', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    await userEvent.click(tab('To-dos'));
+    expect(screen.getByText(/No to-dos yet/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Add starter tasks' }));
+    expect(getAllJobs()[0].todos?.length).toBeGreaterThan(0);
+    const notes = screen.getAllByRole('textbox', { name: 'Notes' });
+    expect(notes).toHaveLength(1);
+    await userEvent.type(notes[0], 'Ask about the shop floor');
+    await userEvent.tab();
+    expect(getAllJobs()[0].notes).toBe('Ask about the shop floor');
+  });
+
+  it('keeps showing a note saved the old way in the one Notes field', async () => {
+    addJob(URL_A, 'Design Engineer', 'Recruiter screen');
+    openJobPage();
+    await userEvent.click(tab('To-dos'));
+    expect(screen.getByRole('textbox', { name: 'Notes' })).toHaveValue('Recruiter screen');
+  });
+
+  it('opens on Overview again when the job changes', async () => {
+    addJob(URL_A, 'Design Engineer');
+    addJob(URL_B, 'Welder');
+    openJobPage(URL_A);
+    await userEvent.click(tab('Screening'));
+    act(() => {
+      window.location.hash = `#/queue/${jobIdOf(URL_B)}`;
+    });
+    expect(await screen.findByRole('heading', { level: 2, name: 'Welder' })).toBeInTheDocument();
+    expect(tab('Overview')).toHaveAttribute('aria-selected', 'true');
+  });
+});

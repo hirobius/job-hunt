@@ -2,7 +2,7 @@
 // route seam: a job link opens that job, the card links to its page, an unknown id falls back to
 // the Pipeline once sync has settled, and quick-add still lands on the Pipeline.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -54,7 +54,12 @@ describe('job route (#127)', () => {
     renderApp();
     expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Design Engineer');
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
+    // The shell's own tab list: the job page has its own tabs now.
+    expect(
+      within(screen.getByRole('tablist', { name: 'Sections' })).getByRole('tab', {
+        selected: true,
+      }),
+    ).toHaveAccessibleName('Pipeline');
   });
 
   it('a retired job says so on its page, without fading its text', () => {
