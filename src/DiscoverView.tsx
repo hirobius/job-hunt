@@ -192,7 +192,11 @@ function AtsPanel({
     );
   const query: HiddenQuery = { role, entry: seniority === 'entry', where, mode, recency, contract };
   const tilesFor = (sites: HiddenSite[]): Tile[] =>
-    sites.map((a) => ({ name: a.name, meta: a.domain, url: atsSearchUrl(a.site, query) }));
+    sites.map((a) => ({
+      name: a.name,
+      meta: a.note ?? a.domain,
+      url: a.href ?? atsSearchUrl(a.site, query),
+    }));
   const allButton = (sites: HiddenSite[], what: string) => (
     <Button
       variant="secondary"

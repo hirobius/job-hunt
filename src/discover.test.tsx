@@ -159,6 +159,17 @@ describe('Discover header and tools (slice 2)', () => {
     expect(window.location.hash).toBe('#/discover');
   });
 
+  it('lists the community boards and big-company systems on ATS search; the Slack row is a plain link', async () => {
+    window.location.hash = '#/discover/ats';
+    renderApp();
+    for (const name of ['Smashing Jobs', 'SuccessFactors', 'Taleo', 'Oracle Recruiting'])
+      expect(await screen.findByText(name)).toBeVisible();
+    const card = await screen.findByRole('article', { name: 'Join Design Systems Slack' });
+    const href = within(card).getByRole('link', { name: 'Search' }).getAttribute('href');
+    expect(href).toMatch(/^https:\/\/.*slack/);
+    expect(href).not.toContain('site%3A');
+  });
+
   it('shows the track sections as tabs only under Apply now', async () => {
     addGroup(cat, { label: 'First picks' });
     addGroup(cat, { label: 'Union halls' });
