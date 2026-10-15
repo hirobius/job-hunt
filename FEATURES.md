@@ -16,8 +16,8 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
   Saved → Applied → Interviewing → Offer → Rejected.)
 - ✅ **Follow-up nudges** — flag any _Applied_ item with no movement after ~7–10
   days as "⏰ follow up". Most offers come from the nudge, not the first send.
-- ✅ **Up Next queue** — pinned view of the next 5 _Saved_ (or starred) items to
-  work, so you always know what to do without scrolling. Chunk through it.
+- ✅ **Active queue** — the default view shows what is still _Saved_ plus anything
+  you pinned; applying drops a job out of it, so you always know what to do next.
 - ✅ **Funnel analytics** — small dashboard: applied this week, total, **reply
   rate**, interview conversion. Tells you if the problem is volume or resume.
 
