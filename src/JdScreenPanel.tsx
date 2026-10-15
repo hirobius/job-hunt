@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Badge, Button, Disclosure, Stack, Text, Textarea } from '@hirobius/design-system';
 import { screenJd, MAX_JD, type JdScreen } from './jdScreener';
-import { suggestVerdict, verdictTone, modeLabel, blockerLabel } from './screening';
+import { suggestVerdict, verdictTone, verdictLabel, modeLabel, blockerLabel } from './screening';
 import { updateJob } from './store';
 import type { Job } from './types';
 
@@ -55,9 +55,7 @@ export default function JdScreenPanel({ job }: { job: Job }) {
               Suggested
             </Text>
             <Stack direction="row" wrap="wrap" gap="tight" align="center">
-              <Badge tone={verdictTone(result.verdict)}>
-                {result.verdict.charAt(0).toUpperCase() + result.verdict.slice(1)}
-              </Badge>
+              <Badge tone={verdictTone(result.verdict)}>{verdictLabel(result.verdict)}</Badge>
               {result.mode && <Badge tone="neutral">{modeLabel(result.mode)}</Badge>}
               {result.travelPct != null && <Badge tone="neutral">{result.travelPct}% travel</Badge>}
               {result.blockers.map((b) => (

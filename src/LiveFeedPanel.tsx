@@ -44,7 +44,7 @@ import { deleteFilter, readFilters, saveFilter, type SavedFilter } from './feed/
 import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
 import { boardsForPack, packIdForLabel } from './curation/starterPacks';
 import { jobFieldsFor } from './feed/toJob';
-import { modeLabel, verdictTone } from './screening';
+import { modeLabel, verdictLabel, verdictTone } from './screening';
 import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
 import { demandPatterns } from './radar/patterns';
 import { readEvidence, TIER_INFO, writeEvidence } from './radar/evidenceStore';
@@ -88,6 +88,7 @@ export default function LiveFeedPanel({
   /** Source keys a per-source Retry is reading right now. */
   const [retrying, setRetrying] = useState<string[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
+  const [refineOpen, setRefineOpen] = useState(false);
   const [focus, setFocus] = useState<Focus>('all');
   const [shown, setShown] = useState(PAGE);
   const [watchUrl, setWatchUrl] = useState('');
@@ -507,70 +508,78 @@ export default function LiveFeedPanel({
         </Text>
       )}
 
-      <Box
-        as="form"
-        onSubmit={onWatch}
-        sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
-      >
-        <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
-          <HdsInput
-            size="sm"
-            label="Watch a company"
-            placeholder="jobs.ashbyhq.com/company"
-            value={watchUrl}
-            onChange={(e) => setWatchUrl(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </Box>
-        <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
-          Watch
-        </Button>
-      </Box>
-      <Text
-        variant="caption"
-        as="span"
-        style={{
-          color: watchError
-            ? 'var(--semantic-color-feedback-error)'
-            : 'var(--semantic-color-content-secondary)',
-          display: 'block',
-          marginBottom: 'var(--semantic-space-scale-sm)',
-        }}
-      >
-        {watchError ||
-          (watchedCount
-            ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
-            : 'Paste a Greenhouse, Lever, Ashby, Workable or Recruitee job-board link to pull that company’s openings in.')}
-      </Text>
-
-      {suggestedCount > 0 && (
-        <Box sx={{ mb: 'xs' }}>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => {
-              const n = addBoardTiles(categoryId, suggested);
-              toast({
-                title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
-                description: 'Their openings now show up here. Remove any in Manage track.',
-                tone: 'success',
-              });
-            }}
-          >
-            Add suggested companies ({suggestedCount})
-          </Button>
-        </Box>
-      )}
-
+      {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
       <Box sx={{ mb: 'sm' }}>
-        <EvidenceEditor
-          text={evidenceText}
-          count={evidence.length}
-          onChange={(t) => {
-            setEvidenceText(t);
-            writeEvidence(t);
-          }}
-        />
+        <Disclosure label="Refine" open={refineOpen} onOpenChange={setRefineOpen}>
+          <Stack gap="xs">
+            <Box
+              as="form"
+              onSubmit={onWatch}
+              sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
+            >
+              <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
+                <HdsInput
+                  size="sm"
+                  label="Watch a company"
+                  placeholder="jobs.ashbyhq.com/company"
+                  value={watchUrl}
+                  onChange={(e) => setWatchUrl(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </Box>
+              <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
+                Watch
+              </Button>
+            </Box>
+            <Text
+              variant="caption"
+              as="span"
+              style={{
+                color: watchError
+                  ? 'var(--semantic-color-feedback-error)'
+                  : 'var(--semantic-color-content-secondary)',
+                display: 'block',
+                marginBottom: 'var(--semantic-space-scale-sm)',
+              }}
+            >
+              {watchError ||
+                (watchedCount
+                  ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
+                  : 'Paste a Greenhouse, Lever, Ashby, Workable or Recruitee job-board link to pull that company’s openings in.')}
+            </Text>
+
+            {suggestedCount > 0 && (
+              <Box sx={{ mb: 'xs' }}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    const n = addBoardTiles(categoryId, suggested);
+                    toast({
+                      title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
+                      description: 'Their openings now show up here. Remove any in Manage track.',
+                      tone: 'success',
+                    });
+                  }}
+                >
+                  Add suggested companies ({suggestedCount})
+                </Button>
+              </Box>
+            )}
+
+            <Box>
+              <EvidenceEditor
+                startOpen={ranked.length === 0}
+                text={evidenceText}
+                count={evidence.length}
+                onChange={(t) => {
+                  setEvidenceText(t);
+                  writeEvidence(t);
+                }}
+              />
+            </Box>
+          </Stack>
+        </Disclosure>
       </Box>
 
       {errors.length > 0 && !allFailed && (
@@ -708,6 +717,21 @@ export default function LiveFeedPanel({
               ))}
             </Box>
           )}
+          {/* One line, once, instead of a fit badge missing from every row. */}
+          {!byCompany && evidence.length === 0 && visible.length > 0 && (
+            <Box sx={{ mt: 'xs' }}>
+              <Text
+                variant="caption"
+                as="span"
+                style={{ color: 'var(--semantic-color-content-secondary)' }}
+              >
+                Postings get a fit once you add evidence.{' '}
+              </Text>
+              <Button size="sm" variant="tertiary" onClick={() => setRefineOpen(true)}>
+                Add evidence to see fit
+              </Button>
+            </Box>
+          )}
           {(byCompany ? companies.length : visible.length) > shown && (
             <Button
               variant="tertiary"
@@ -830,18 +854,8 @@ function PostingRow({
     SOURCE_LABEL[p.source],
   ].filter(Boolean);
   return (
-    <Box
-      as="li"
-      sx={{
-        py: 3,
-        borderBottom: 'thin solid',
-        borderColor: 'border.default',
-        display: 'flex',
-        gap: 3,
-        alignItems: 'flex-start',
-      }}
-    >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+    <Box as="li" sx={{ py: 3, borderBottom: 'thin solid', borderColor: 'border.default' }}>
+      <Box sx={{ minWidth: 0 }}>
         <Text variant="ui" as="h3" style={{ overflowWrap: 'anywhere' }}>
           <InlineLink href={p.url} externalIcon={false}>
             {p.title}
@@ -859,10 +873,21 @@ function PostingRow({
         >
           {meta.join(' · ')}
         </Text>
+        {/* Under the meta, not beside it: the title keeps the full row on a phone. 40px target. */}
+        <Box sx={{ mt: 'xs' }}>
+          <Button
+            size="md"
+            variant={saved ? 'tertiary' : 'secondary'}
+            disabled={saved}
+            onClick={onSave}
+          >
+            {saved ? 'Saved' : 'Save'}
+          </Button>
+        </Box>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
           {fit && (
             <Badge tone={verdictTone(TIER_INFO[fit.tier].verdict)}>
-              {TIER_INFO[fit.tier].label}
+              {verdictLabel(TIER_INFO[fit.tier].verdict)}
             </Badge>
           )}
           {p.signals.map((s) => (
@@ -895,14 +920,6 @@ function PostingRow({
           </Box>
         )}
       </Box>
-      <Button
-        size="sm"
-        variant={saved ? 'tertiary' : 'secondary'}
-        disabled={saved}
-        onClick={onSave}
-      >
-        {saved ? 'Saved' : 'Save'}
-      </Button>
     </Box>
   );
 }

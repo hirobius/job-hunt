@@ -1,7 +1,7 @@
 // The job page's Screening tab (#130): the fit at a glance, the paste-a-JD screener inline, and
 // the editor for every screening field.
 import { Badge, Box, Stack, Text } from '@hirobius/design-system';
-import { verdictTone, modeLabel, blockerLabel } from './screening';
+import { verdictTone, verdictLabel, modeLabel, blockerLabel } from './screening';
 import { ScreeningEditor } from './ScreeningEditor';
 import JdScreenPanel from './JdScreenPanel';
 import type { Job } from './types';
@@ -22,7 +22,7 @@ function FitLine({ job }: { job: Job }) {
         )}
         {job.verdict && (
           <Badge tone={job.archived ? 'neutral' : verdictTone(job.verdict)}>
-            {job.verdict.charAt(0).toUpperCase() + job.verdict.slice(1)}
+            {verdictLabel(job.verdict)}
           </Badge>
         )}
         {job.mode && (

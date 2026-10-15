@@ -185,7 +185,7 @@ describe('job page tabs (#130 slice 2)', () => {
     openJobPage();
     await userEvent.click(tab('Screening'));
     const fit = screen.getByRole('group', { name: 'Fit summary' });
-    expect(within(fit).getByText('Match')).toBeInTheDocument();
+    expect(within(fit).getByText('Strong fit')).toBeInTheDocument();
     expect(within(fit).getByText(/10% travel/)).toBeInTheDocument();
     expect(within(fit).getByText('40 applied')).toBeInTheDocument();
     expect(screen.getByText('Work mode')).toBeInTheDocument();
