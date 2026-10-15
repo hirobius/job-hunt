@@ -223,46 +223,21 @@ export default function TrackerView() {
 
       <SampleBanner jobs={jobs} />
       {jobs.length === 0 ? (
-        // First use (21st.dev empty-state references): say what the screen will hold, one
-        // primary action, one way to see it working — all on one centred axis. HDS EmptyState is
-        // left-aligned with an italic title and no action slot (hds#654), so this composes Text.
-        <Stack
-          gap="normal"
-          align="center"
-          style={{
-            paddingBlock: 'var(--primitive-space-8)',
-            textAlign: 'center',
-            maxWidth: '28rem',
-            marginInline: 'auto',
-          }}
-        >
-          <Box
-            sx={{
-              display: 'grid',
-              placeItems: 'center',
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              bgcolor: 'surface.raised',
-              color: 'accent',
-            }}
-          >
-            <Icon icon={Briefcase} />
-          </Box>
-          <Stack gap="tight" align="center">
-            <Text variant="title" as="h3" style={{ margin: 0 }}>
-              Track your first job
-            </Text>
-            <Text variant="body" as="p" style={{ ...SECONDARY, margin: 0 }}>
-              Paste a job link to save it here, then screen it, apply and follow up. You can also
-              save jobs from Discover.
-            </Text>
-          </Stack>
-          <Stack direction="row" wrap="wrap" gap="tight" justify="center">
-            {addJobButton}
-            <TrySampleButton />
-          </Stack>
-        </Stack>
+        // First use: the shared teaching empty (#132): what this will hold, one primary action,
+        // one way to see it working.
+        <Box sx={{ paddingBlock: 'xl' }}>
+          <EmptyState
+            icon={Briefcase}
+            title="Track your first job"
+            message="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Discover."
+            action={
+              <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+                {addJobButton}
+                <TrySampleButton />
+              </Stack>
+            }
+          />
+        </Box>
       ) : shown.length === 0 ? (
         <EmptyState
           message={

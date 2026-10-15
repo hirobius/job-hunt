@@ -145,6 +145,10 @@ describe('Templates on a desktop (list and detail together)', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Pin' }));
     expect(rowNames()[0]).toMatch(/^Thank-you after interview/);
     expect(within(rows()[0]).getByLabelText('Pinned')).toBeInTheDocument();
+    // The old 'Pinned ★' button is gone: the menu now says Unpin, and unpinning drops the star.
+    await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Unpin' }));
+    expect(within(rows()[0]).queryByLabelText('Pinned')).toBeNull();
   });
 
   it('search filters by name or text; no match says so and Clear search restores', async () => {

@@ -128,7 +128,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the Today gate goes to
   `#/today`). Sample data is a step 1 offer on Today. Discover with no track shows `ChooseTrack`
   first. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in Today,
-  Discover and Templates; the Pipeline's own empty (in `TrackerView`) is still hand-built. Today
+  Discover, Templates and the Pipeline (`TrackerView`, with the Briefcase icon). Today
   gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
   `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
   `today.test.tsx`.
