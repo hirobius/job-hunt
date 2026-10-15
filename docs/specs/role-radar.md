@@ -106,6 +106,22 @@ A real scan of 35 boards for "design systems" found 12 title matches (3 Strong, 
   own evidence skills, but no default catalog.
 - The starter directory is the same for every track.
 
+## Direction after the first pass (Adrian, 2026-10-15)
+
+> "I didn't want an entirely new UX button, more like merge how smart the logic is under the hood
+> of scanning and finding new jobs and populating your discover … I am just trying to supercharge
+> all of the different lanes in which jobs can be sourced and fed to the user so they are able to
+> turn over every stone possible and really narrow down and explicitly target their search."
+
+So the next pass folds the radar's engine into Discover's existing lanes instead of a separate
+Radar view:
+- The board directory joins the Live postings scan.
+- Fit/Gap and tiers show on the posting rows.
+- Patterns become a summary of the feed.
+
+After that, more sources: other job APIs, plus whether Upwork or similar platforms can feed
+design-systems contract work.
+
 ## Next gate
 
 After Adrian answers Q1–Q5:
