@@ -5,7 +5,13 @@
 import { addGroup, addTile, getCurationState } from '../curation/curationStore';
 import type { CurationState } from '../curation/types';
 import { SOURCE_LABEL } from './types';
-import { boardLabel, canonicalBoardUrl, parseBoardUrl } from './sources/ats';
+import {
+  boardLabel,
+  boardsFromUrls,
+  canonicalBoardUrl,
+  parseBoardUrl,
+  type Board,
+} from './sources/ats';
 
 export const WATCH_GROUP_LABEL = 'Watched companies';
 
@@ -46,4 +52,49 @@ export function watchBoard(categoryId: string, rawUrl: string): WatchResult {
     meta: `${SOURCE_LABEL[board.kind]} board · pulled into Live postings`,
   });
   return { ok: true, label };
+}
+
+const sameBoard = (a: Board, b: Board) =>
+  a.kind === b.kind && a.slug.toLowerCase() === b.slug.toLowerCase();
+
+/** Board urls (from `urls`) the track isn't watching yet, one per distinct board; non-boards drop. */
+function unwatched(categoryId: string, urls: readonly string[]): { url: string; board: Board }[] {
+  const have = boardsFromUrls(boardUrlsFor(categoryId), Infinity);
+  const out: { url: string; board: Board }[] = [];
+  for (const url of urls) {
+    const board = parseBoardUrl(url);
+    if (
+      !board ||
+      have.some((b) => sameBoard(b, board)) ||
+      out.some((o) => sameBoard(o.board, board))
+    )
+      continue;
+    out.push({ url, board });
+  }
+  return out;
+}
+
+/** How many of `urls` an "Add suggested companies" click would add. */
+export const countUnwatched = (categoryId: string, urls: readonly string[]): number =>
+  unwatched(categoryId, urls).length;
+
+/** File many boards as watched tiles at once (one "Watched companies" group). Idempotent: boards
+ *  the track already watches, and links that aren't boards, are skipped. Returns how many it added. */
+export function addBoardTiles(categoryId: string, urls: readonly string[]): number {
+  const fresh = unwatched(categoryId, urls);
+  if (fresh.length === 0) return 0;
+  const s = getCurationState();
+  const group =
+    s.groups.find(
+      (g) => g.categoryId === categoryId && !g.archived && g.label === WATCH_GROUP_LABEL,
+    )?.id ?? addGroup(categoryId, { label: WATCH_GROUP_LABEL });
+  fresh.forEach(({ board }, i) =>
+    addTile(group, {
+      name: `${boardLabel(board)} jobs`,
+      url: canonicalBoardUrl(board),
+      meta: `${SOURCE_LABEL[board.kind]} board · pulled into Live postings`,
+      sortOrder: i,
+    }),
+  );
+  return fresh.length;
 }

@@ -20,7 +20,7 @@ const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
 vi.mock('./feed/fetchFeed', () => feed);
 
 import LiveFeedPanel from './LiveFeedPanel';
-import { STARTER_DIRECTORY } from './radar/directory';
+import { DIRECTORY_BY_PACK } from './radar/directory';
 import { getAllJobs, removeJob } from './store';
 import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
@@ -102,7 +102,7 @@ describe('LiveFeedPanel', () => {
     expect(feed.fetchFeed).toHaveBeenCalledWith(
       expect.objectContaining({
         term: 'design systems',
-        boardUrls: ['https://jobs.ashbyhq.com/ramp', ...STARTER_DIRECTORY],
+        boardUrls: ['https://jobs.ashbyhq.com/ramp'],
       }),
     );
     const rows = within(list).getAllByRole('listitem');
@@ -229,13 +229,44 @@ describe('LiveFeedPanel', () => {
     expect(screen.queryByText(/skipped/i)).not.toBeInTheDocument();
   });
 
+  it("suggests the track's starter companies once, and a second click has nothing to add", async () => {
+    const user = userEvent.setup();
+    renderPanel(['https://jobs.ashbyhq.com/ramp']);
+    const n = DIRECTORY_BY_PACK.designsystems.length;
+    const btn = await screen.findByRole('button', {
+      name: new RegExp(`add suggested companies \\((${n}|${n - 1})\\)`, 'i'),
+    });
+    await user.click(btn);
+    expect(getCurationState().tiles.length).toBeGreaterThanOrEqual(n - 1);
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /add suggested companies/i })).toBeNull(),
+    );
+  });
+
+  it('suggests nothing for a track that matches no starter pack', async () => {
+    cat = addCategory({ label: 'My own thing' });
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    expect(screen.queryByRole('button', { name: /add suggested companies/i })).toBeNull();
+  });
+
+  it('suggests only trades boards to a trades track', async () => {
+    cat = addCategory({ label: 'Skilled Trades' });
+    renderPanel();
+    expect(
+      await screen.findByRole('button', {
+        name: `Add suggested companies (${DIRECTORY_BY_PACK.trades.length})`,
+      }),
+    ).toBeInTheDocument();
+  });
+
   it('searches a term chip when clicked', async () => {
     const user = userEvent.setup();
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     await user.click(screen.getByText('design engineer'));
     expect(feed.fetchFeed).toHaveBeenLastCalledWith(
-      expect.objectContaining({ term: 'design engineer', boardUrls: [...STARTER_DIRECTORY] }),
+      expect.objectContaining({ term: 'design engineer', boardUrls: [] }),
     );
   });
 

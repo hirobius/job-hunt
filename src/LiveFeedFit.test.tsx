@@ -26,7 +26,6 @@ import LiveFeedPanel from './LiveFeedPanel';
 import { getAllJobs, removeJob } from './store';
 import { addCategory, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
-import { STARTER_DIRECTORY } from './radar/directory';
 
 const posting = (id: string, title: string, text: string) => ({
   id: `ashby:newco:${id}`,
@@ -100,14 +99,14 @@ const row = (title: string) =>
     .find((li) => within(li).queryByRole('link', { name: new RegExp(`^${title}`) }))!;
 
 describe('Live postings with the radar engine', () => {
-  it('is one feed, no separate Radar view, reading watched boards plus the starter directory', async () => {
+  it('is one feed, no separate Radar view, reading only the tracks watched boards', async () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     expect(screen.queryByRole('radio', { name: 'Radar' })).toBeNull();
     expect(feed.fetchFeed).toHaveBeenCalledWith(
       expect.objectContaining({
         term: 'design systems',
-        boardUrls: ['https://jobs.ashbyhq.com/newco', ...STARTER_DIRECTORY],
+        boardUrls: ['https://jobs.ashbyhq.com/newco'],
       }),
     );
   });

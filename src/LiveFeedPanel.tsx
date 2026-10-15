@@ -30,13 +30,13 @@ import { fetchFeed, type FeedResult } from './feed/fetchFeed';
 import { rankPostings } from './feed/match';
 import { applyTargeting, NO_TARGETING } from './feed/targeting';
 import type { Seniority } from './curation/types';
-import { useCategories } from './curation/curationStore';
+import { useCategories, useGroups, useTiles } from './curation/curationStore';
 import { postedAgo } from './feed/format';
 import { boardsFromUrls } from './feed/sources/ats';
-import { watchBoard } from './feed/watchlist';
+import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
+import { boardsForPack, packIdForLabel } from './curation/starterPacks';
 import { jobFieldsFor } from './feed/toJob';
 import { modeLabel, verdictTone } from './screening';
-import { STARTER_DIRECTORY } from './radar/directory';
 import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
 import { demandPatterns } from './radar/patterns';
 import { readEvidence, TIER_INFO, writeEvidence } from './radar/evidenceStore';
@@ -87,15 +87,26 @@ export default function LiveFeedPanel({
   const [watchUrl, setWatchUrl] = useState('');
   const [watchError, setWatchError] = useState('');
   const [evidenceText, setEvidenceText] = useState(readEvidence);
-  const trackSeniority = useCategories().find((c) => c.id === categoryId)?.seniority ?? 'any';
+  const track = useCategories().find((c) => c.id === categoryId);
+  const trackSeniority = track?.seniority ?? 'any';
   const [excludeText, setExcludeText] = useState('');
   const [seniority, setSeniority] = useState<Seniority>(trackSeniority);
   const [floorText, setFloorText] = useState('');
   const [salaryOnly, setSalaryOnly] = useState(false);
   const evidence = useMemo(() => parseEvidence(evidenceText), [evidenceText]);
 
-  // The track's own boards first, then the starter directory (deduped and capped in fetchFeed).
-  const boardsKey = [...boardUrls, ...STARTER_DIRECTORY].join('\n');
+  // The track's own watched boards, every distinct one (deduped in fetchFeed; there is no cap).
+  const boardsKey = boardUrls.join('\n');
+  // Boards suggested for this kind of track (by its label), not yet watched. A click files them.
+  const suggested = boardsForPack(packIdForLabel(track?.label ?? ''));
+  const tiles = useTiles();
+  const groups = useGroups();
+  const suggestedCount = useMemo(
+    () => countUnwatched(categoryId, suggested),
+    // Recount whenever the track's tiles or groups change (watching, removing, archiving).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [categoryId, suggested, tiles, groups],
+  );
   const watchedCount = useMemo(() => boardsFromUrls(boardUrls, Infinity).length, [boardUrls]);
 
   useEffect(() => {
@@ -256,9 +267,9 @@ export default function LiveFeedPanel({
           marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
         }}
       >
-        Real openings from Hacker News “Who is hiring”, Remotive, the company boards you watch and a
-        starter list of {STARTER_DIRECTORY.length} more, ranked by relevance. Add your evidence and
-        each one gets a fit. Nothing is kept until you save one.
+        Real openings from Hacker News (“Who is hiring” and the freelancer thread), Remotive,
+        Jobicy, Remote OK and the company boards you watch, ranked by relevance. Add your evidence
+        and each one gets a fit. Nothing is kept until you save one.
       </Text>
       <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
 
@@ -383,6 +394,25 @@ export default function LiveFeedPanel({
             ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
             : 'Paste a Greenhouse, Lever, Ashby, Workable or Recruitee job-board link to pull that company’s openings in.')}
       </Text>
+
+      {suggestedCount > 0 && (
+        <Box sx={{ mb: 'xs' }}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              const n = addBoardTiles(categoryId, suggested);
+              toast({
+                title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
+                description: 'Their openings now show up here. Remove any in Manage track.',
+                tone: 'success',
+              });
+            }}
+          >
+            Add suggested companies ({suggestedCount})
+          </Button>
+        </Box>
+      )}
 
       <Box sx={{ mb: 'sm' }}>
         <EvidenceEditor

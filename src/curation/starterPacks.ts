@@ -4,6 +4,7 @@
 //
 // ⚠️ v1 is provisional (owner unsure of the ideal set) — keep this list trivially editable; add or
 // remove a pack by editing STARTER_PACKS + CONTENT_FOR. "blank" seeds an empty category to build on.
+import { addBoardTiles } from '../feed/watchlist';
 import { addCategory, addGroup, addTile, getCurationState, updateCategory } from './curationStore';
 import {
   CONSULTING_PACK,
@@ -79,8 +80,28 @@ export function seedPack(
       addTile(groupId, { name: t.name, url: t.url, meta: t.meta, sortOrder: ti }),
     );
   });
+  // The pack's company boards, filed as the track's own editable "Watched companies" group.
+  if (content?.boards.length) addBoardTiles(categoryId, content.boards);
   return categoryId;
 }
+
+/** The starter pack a track's label belongs to (matching the onboarding label or the pack's own,
+ *  ignoring case), so Live postings can suggest that pack's boards to a track made earlier. */
+export function packIdForLabel(label: string): string | undefined {
+  const want = label.trim().toLowerCase();
+  if (!want) return undefined;
+  return Object.entries(CONTENT_FOR).find(
+    ([id, c]) =>
+      c &&
+      [STARTER_PACKS.find((p) => p.id === id)?.label, c.label].some(
+        (l) => l?.toLowerCase() === want,
+      ),
+  )?.[0];
+}
+
+/** The board urls suggested for a pack id; empty when it has none. */
+export const boardsForPack = (packId: string | undefined): readonly string[] =>
+  (packId && CONTENT_FOR[packId]?.boards) || [];
 
 export interface TopUpResult {
   titles: number;
