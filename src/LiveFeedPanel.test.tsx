@@ -260,6 +260,19 @@ describe('LiveFeedPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('folds a long list of failed sources behind a disclosure', async () => {
+    const sources = Array.from({ length: 6 }, (_, i) => ({
+      key: `b${i}`,
+      label: `Board ${i}`,
+      fetched: 0,
+      error: `Board ${i}: HTTP 500 — the service is having trouble; try again later.`,
+    }));
+    feed.fetchFeed.mockResolvedValueOnce({ postings: RESULT.postings, sources });
+    renderPanel();
+    expect(await screen.findByText('6 sources didn’t respond')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /show which ones/i })).toBeInTheDocument();
+  });
+
   it('searches a term chip when clicked', async () => {
     const user = userEvent.setup();
     renderPanel();

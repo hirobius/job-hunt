@@ -13,6 +13,7 @@ import {
   Input as HdsInput,
   SegmentedControl,
   Checkbox as HdsCheckbox,
+  Disclosure,
   Spinner,
   Stack,
   Tag,
@@ -375,21 +376,19 @@ export default function LiveFeedPanel({
             style={{ width: '100%' }}
           />
         </Box>
-      </Box>
-      <Box sx={{ mb: 'xs', overflowX: 'auto', maxWidth: '100%' }}>
-        <SegmentedControl
-          aria-label="Level"
-          size="sm"
-          value={seniority}
-          onChange={(v) => setSeniority(v as Seniority)}
-          options={[
-            { value: 'any', label: 'Any level' },
-            { value: 'entry', label: 'Entry level' },
-            { value: 'experienced', label: 'Experienced' },
-          ]}
-        />
-      </Box>
-      <Box sx={{ mb: 'xs' }}>
+        <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+          <SegmentedControl
+            aria-label="Level"
+            size="sm"
+            value={seniority}
+            onChange={(v) => setSeniority(v as Seniority)}
+            options={[
+              { value: 'any', label: 'Any level' },
+              { value: 'entry', label: 'Entry level' },
+              { value: 'experienced', label: 'Experienced' },
+            ]}
+          />
+        </Box>
         <HdsCheckbox
           label="Only show postings with a salary"
           checked={salaryOnly}
@@ -511,10 +510,24 @@ export default function LiveFeedPanel({
 
       {errors.length > 0 && (
         <Box sx={{ mb: 3 }}>
-          <Alert tone="warning" title="Some sources didn’t respond">
-            {errors.map((s) => (
-              <Box key={s.key}>{s.error}</Box>
-            ))}
+          <Alert
+            tone="warning"
+            title={
+              errors.length > 3
+                ? `${errors.length} sources didn’t respond`
+                : 'Some sources didn’t respond'
+            }
+          >
+            {/* Many boards can fail at once (a blocker, an outage): keep the list behind a disclosure. */}
+            {errors.length > 3 ? (
+              <Disclosure label="Show which ones">
+                {errors.map((s) => (
+                  <Box key={s.key}>{s.error}</Box>
+                ))}
+              </Disclosure>
+            ) : (
+              errors.map((s) => <Box key={s.key}>{s.error}</Box>)
+            )}
           </Alert>
         </Box>
       )}
