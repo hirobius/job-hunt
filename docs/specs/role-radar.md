@@ -1,7 +1,9 @@
 # Spec: Role Radar in Roleforge — Phase 0 (capability map)
 
-Status: **draft, waiting on Adrian** (2026-10-15). No code until the map and the open questions
-below are approved.
+Status: **first pass built** (2026-10-15). Adrian made Role Radar an exception to the feature lock
+("one of the primary projects that will be on my portfolio") and asked for a first pass from this
+spec. It uses the recommended answers to Q1–Q4 below: browser scan, rules, local evidence, and a
+Radar mode inside Live postings.
 
 ## Where this comes from
 
@@ -83,6 +85,26 @@ saved jobs.
   mode with a tier/patterns layout over the same sources, rather than building a second feed.
 - **Q5. Feature lock.** The last orchestrator round froze new features ("tightening, not adding").
   Is Role Radar the exception, and does it start before or after the rest of #115?
+
+## First pass (shipped on `claude/jh-role-radar-spec`)
+
+| Module | Where | State |
+|---|---|---|
+| `board-directory` | `src/radar/directory.ts` | 23 starter boards (all answered live on 2026-10-15) + the track's watched boards, capped at 100 |
+| `scan` | `src/radar/scan.ts` | 6 requests at a time; each board is read, closed (404) or didn't answer, named in the report |
+| `evidence-profile` | `RadarPanel` textarea, `rjb_radar_evidence` | Local only: "Skill: proof (link)" per line |
+| `fit-gap` | `src/radar/fitGap.ts` | 15-ask catalog + the user's own skills; tier by coverage |
+| `demand-patterns` | `src/radar/patterns.ts` | Covered vs thin, most-asked first |
+| `radar-view` | `src/RadarPanel.tsx` in `LiveFeedPanel` | Patterns first, then tiers (10 each, Show more); title matches only by default; Save sets the job's fit from the tier |
+| `liveness` | — | Not built yet |
+
+A real scan of 35 boards for "design systems" found 12 title matches (3 Strong, 9 Stretch) and
+166 more that only mention it in the description.
+
+**Known limits of the first pass:**
+- The ask catalog is software and design-systems shaped. A trades track still gets tiers from its
+  own evidence skills, but no default catalog.
+- The starter directory is the same for every track.
 
 ## Next gate
 

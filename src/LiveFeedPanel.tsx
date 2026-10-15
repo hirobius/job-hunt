@@ -18,6 +18,7 @@ import {
   InlineLink,
 } from '@hirobius/design-system';
 import EmptyState from './EmptyState';
+import RadarPanel from './RadarPanel';
 import LocationControl from './LocationControl';
 import type { WorkMode } from './jobsData';
 import { addJobDetailed, dedupKey, useJobs } from './store';
@@ -69,6 +70,8 @@ export default function LiveFeedPanel({
   const [shown, setShown] = useState(PAGE);
   const [watchUrl, setWatchUrl] = useState('');
   const [watchError, setWatchError] = useState('');
+  // Postings = the live feed; Radar = scan many boards and tier them against your evidence.
+  const [view, setView] = useState<'postings' | 'radar'>('postings');
 
   const boardsKey = boardUrls.join('\n');
   const watchedCount = useMemo(() => boardsFromUrls(boardUrls, Infinity).length, [boardUrls]);
@@ -150,7 +153,8 @@ export default function LiveFeedPanel({
 
   const errors = current?.result?.sources.filter((s) => s.error) ?? [];
   const skipped = current?.result?.boardsSkipped ?? 0;
-  const allFailed = !!current?.result?.sources.length && errors.length === current.result.sources.length;
+  const allFailed =
+    !!current?.result?.sources.length && errors.length === current.result.sources.length;
 
   return (
     <Box>
@@ -164,6 +168,18 @@ export default function LiveFeedPanel({
         Real openings from Hacker News “Who is hiring”, Remotive, and the company boards you watch —
         ranked by fit. Nothing is kept until you save one.
       </Text>
+      <Box sx={{ mb: 'sm' }}>
+        <SegmentedControl
+          aria-label="View"
+          size="sm"
+          value={view}
+          onChange={(v) => setView(v as 'postings' | 'radar')}
+          options={[
+            { value: 'postings', label: 'Postings' },
+            { value: 'radar', label: 'Radar' },
+          ]}
+        />
+      </Box>
       <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
 
       <Box
@@ -194,134 +210,146 @@ export default function LiveFeedPanel({
         </Box>
       )}
 
-      <Box
-        as="form"
-        onSubmit={onWatch}
-        sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
-      >
-        <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
-          <HdsInput
-            size="sm"
-            label="Watch a company"
-            placeholder="jobs.ashbyhq.com/company"
-            value={watchUrl}
-            onChange={(e) => setWatchUrl(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </Box>
-        <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
-          Watch
-        </Button>
-      </Box>
-      <Text
-        variant="caption"
-        as="span"
-        style={{
-          color: watchError
-            ? 'var(--semantic-color-feedback-error)'
-            : 'var(--semantic-color-content-secondary)',
-          display: 'block',
-          marginBottom: 'var(--semantic-space-scale-sm)',
-        }}
-      >
-        {watchError ||
-          (watchedCount
-            ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
-            : 'Paste a Greenhouse, Lever or Ashby job-board link to pull that company’s openings in.')}
-      </Text>
-
-      {errors.length > 0 && (
-        <Box sx={{ mb: 3 }}>
-          <Alert tone="warning" title="Some sources didn’t respond">
-            {errors.map((s) => (
-              <Box key={s.key}>{s.error}</Box>
-            ))}
-          </Alert>
-        </Box>
-      )}
-      {skipped > 0 && (
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginBottom: 'var(--semantic-space-scale-xs)',
-          }}
-        >
-          {skipped} watched {skipped === 1 ? 'board was' : 'boards were'} skipped — the feed reads
-          at most 25 per search.
-        </Text>
-      )}
-
-      {loading ? (
-        <Box
-          sx={{ display: 'flex', flexDirection: 'row', gap: 'xs', alignItems: 'center', py: 'md' }}
-        >
-          <Spinner size="sm" label="Loading live postings" />
-          <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
-            Pulling live openings for “{term}”…
-          </Text>
-        </Box>
-      ) : current?.error ? (
-        <Alert tone="danger">{current.error}</Alert>
-      ) : !term.trim() ? (
-        <EmptyState message="Type a search term or pick one of this track's terms." />
-      ) : allFailed ? (
-        <EmptyState
-          title="Couldn't reach any source"
-          message="Check your internet connection or try again later."
-        />
-      ) : ranked.length === 0 ? (
-        <EmptyState
-          title={`No live openings mention “${term}” right now`}
-          message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
-        />
+      {view === 'radar' ? (
+        <RadarPanel term={term} where={where} mode={mode} boardUrls={boardUrls} />
       ) : (
-        <Box>
-          {/* Scrolls sideways on narrow screens rather than clipping (same as the tab bar). */}
-          <Box sx={{ mb: 'xs', overflowX: 'auto', maxWidth: '100%', pb: 0.5 }}>
-            <SegmentedControl
-              aria-label="Show"
-              size="sm"
-              value={focus}
-              onChange={(v) => {
-                setFocus(v as Focus);
-                setShown(PAGE);
-              }}
-              options={[
-                { value: 'all', label: `All (${ranked.length})` },
-                { value: 'contract', label: `Contract-friendly (${counts.contract})` },
-                { value: 'founding', label: `First hire (${counts.founding})` },
-              ]}
-            />
+        <>
+          <Box
+            as="form"
+            onSubmit={onWatch}
+            sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
+          >
+            <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
+              <HdsInput
+                size="sm"
+                label="Watch a company"
+                placeholder="jobs.ashbyhq.com/company"
+                value={watchUrl}
+                onChange={(e) => setWatchUrl(e.target.value)}
+                style={{ width: '100%' }}
+              />
+            </Box>
+            <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
+              Watch
+            </Button>
           </Box>
-          {visible.length === 0 ? (
-            <EmptyState message="None of these openings carry that signal — switch back to All." />
-          ) : (
-            <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
-              {visible.slice(0, shown).map((p) => (
-                <PostingRow
-                  key={p.id}
-                  p={p}
-                  now={current!.at}
-                  saved={savedKeys.has(dedupKey(p.url))}
-                  onSave={() => save(p)}
-                />
-              ))}
+          <Text
+            variant="caption"
+            as="span"
+            style={{
+              color: watchError
+                ? 'var(--semantic-color-feedback-error)'
+                : 'var(--semantic-color-content-secondary)',
+              display: 'block',
+              marginBottom: 'var(--semantic-space-scale-sm)',
+            }}
+          >
+            {watchError ||
+              (watchedCount
+                ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
+                : 'Paste a Greenhouse, Lever or Ashby job-board link to pull that company’s openings in.')}
+          </Text>
+
+          {errors.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Alert tone="warning" title="Some sources didn’t respond">
+                {errors.map((s) => (
+                  <Box key={s.key}>{s.error}</Box>
+                ))}
+              </Alert>
             </Box>
           )}
-          {visible.length > shown && (
-            <Button
-              variant="tertiary"
-              size="sm"
-              onClick={() => setShown((n) => n + PAGE)}
-              style={{ marginTop: 'var(--primitive-space-2)' }}
+          {skipped > 0 && (
+            <Text
+              variant="caption"
+              as="span"
+              style={{
+                color: 'var(--semantic-color-content-secondary)',
+                display: 'block',
+                marginBottom: 'var(--semantic-space-scale-xs)',
+              }}
             >
-              Show more ({visible.length - shown})
-            </Button>
+              {skipped} watched {skipped === 1 ? 'board was' : 'boards were'} skipped — the feed
+              reads at most 25 per search.
+            </Text>
           )}
-        </Box>
+
+          {loading ? (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'row',
+                gap: 'xs',
+                alignItems: 'center',
+                py: 'md',
+              }}
+            >
+              <Spinner size="sm" label="Loading live postings" />
+              <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+                Pulling live openings for “{term}”…
+              </Text>
+            </Box>
+          ) : current?.error ? (
+            <Alert tone="danger">{current.error}</Alert>
+          ) : !term.trim() ? (
+            <EmptyState message="Type a search term or pick one of this track's terms." />
+          ) : allFailed ? (
+            <EmptyState
+              title="Couldn't reach any source"
+              message="Check your internet connection or try again later."
+            />
+          ) : ranked.length === 0 ? (
+            <EmptyState
+              title={`No live openings mention “${term}” right now`}
+              message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
+            />
+          ) : (
+            <Box>
+              {/* Scrolls sideways on narrow screens rather than clipping (same as the tab bar). */}
+              <Box sx={{ mb: 'xs', overflowX: 'auto', maxWidth: '100%', pb: 0.5 }}>
+                <SegmentedControl
+                  aria-label="Show"
+                  size="sm"
+                  value={focus}
+                  onChange={(v) => {
+                    setFocus(v as Focus);
+                    setShown(PAGE);
+                  }}
+                  options={[
+                    { value: 'all', label: `All (${ranked.length})` },
+                    { value: 'contract', label: `Contract-friendly (${counts.contract})` },
+                    { value: 'founding', label: `First hire (${counts.founding})` },
+                  ]}
+                />
+              </Box>
+              {visible.length === 0 ? (
+                <EmptyState message="None of these openings carry that signal — switch back to All." />
+              ) : (
+                <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
+                  {visible.slice(0, shown).map((p) => (
+                    <PostingRow
+                      key={p.id}
+                      p={p}
+                      now={current!.at}
+                      saved={savedKeys.has(dedupKey(p.url))}
+                      onSave={() => save(p)}
+                    />
+                  ))}
+                </Box>
+              )}
+              {visible.length > shown && (
+                <Button
+                  variant="tertiary"
+                  size="sm"
+                  onClick={() => setShown((n) => n + PAGE)}
+                  style={{ marginTop: 'var(--primitive-space-2)' }}
+                >
+                  Show more ({visible.length - shown})
+                </Button>
+              )}
+            </Box>
+          )}
+        </>
       )}
     </Box>
   );

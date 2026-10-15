@@ -1,0 +1,39 @@
+// Role Radar's board directory (docs/specs/role-radar.md, `board-directory`): the company boards a
+// radar scan reads. A starter list of design-systems employers on Greenhouse, Lever and Ashby (the
+// boards behind the 2026-10-12 Role Radar research), plus whatever boards the track already
+// watches. Boards only, never one-off postings, so the list doesn't go stale.
+import { boardsFromUrls, type Board } from '../feed/sources/ats';
+
+/** Most boards one scan reads. Each is one request and some are 2–3 MB, all from the browser. */
+export const RADAR_MAX_BOARDS = 100;
+
+export const STARTER_DIRECTORY: readonly string[] = [
+  'https://jobs.ashbyhq.com/langchain',
+  'https://jobs.ashbyhq.com/frontcareers',
+  'https://jobs.ashbyhq.com/perplexity',
+  'https://jobs.ashbyhq.com/writer',
+  'https://jobs.ashbyhq.com/junipersquare',
+  'https://jobs.ashbyhq.com/workos',
+  'https://jobs.ashbyhq.com/ashby',
+  'https://jobs.ashbyhq.com/vetcove',
+  'https://jobs.ashbyhq.com/ramp',
+  'https://jobs.ashbyhq.com/linear',
+  'https://jobs.ashbyhq.com/baseten',
+  'https://jobs.ashbyhq.com/deepgram',
+  'https://boards.greenhouse.io/mixpanel',
+  'https://boards.greenhouse.io/truebill',
+  'https://boards.greenhouse.io/celigo',
+  'https://boards.greenhouse.io/seed',
+  'https://boards.greenhouse.io/reddit',
+  'https://boards.greenhouse.io/vercel',
+  'https://boards.greenhouse.io/doordashusa',
+  'https://boards.greenhouse.io/gametimeunited',
+  'https://boards.greenhouse.io/databricks',
+  'https://boards.greenhouse.io/stripe',
+  'https://jobs.lever.co/virtualitics',
+];
+
+/** The boards a scan reads: the track's watched boards first, then the starter list, deduped. */
+export function radarBoards(watchedUrls: string[]): Board[] {
+  return boardsFromUrls([...watchedUrls, ...STARTER_DIRECTORY], RADAR_MAX_BOARDS);
+}
