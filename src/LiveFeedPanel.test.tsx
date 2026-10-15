@@ -20,6 +20,7 @@ const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
 vi.mock('./feed/fetchFeed', () => feed);
 
 import LiveFeedPanel from './LiveFeedPanel';
+import { STARTER_DIRECTORY } from './radar/directory';
 import { getAllJobs, removeJob } from './store';
 import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
@@ -101,7 +102,7 @@ describe('LiveFeedPanel', () => {
     const list = await screen.findByRole('list', { name: /live postings/i });
     expect(feed.fetchFeed).toHaveBeenCalledWith({
       term: 'design systems',
-      boardUrls: ['https://jobs.ashbyhq.com/ramp'],
+      boardUrls: ['https://jobs.ashbyhq.com/ramp', ...STARTER_DIRECTORY],
     });
     const rows = within(list).getAllByRole('listitem');
     expect(rows).toHaveLength(2);
@@ -129,8 +130,18 @@ describe('LiveFeedPanel', () => {
     feed.fetchFeed.mockResolvedValueOnce({
       postings: [],
       sources: [
-        { key: 'hn', label: 'Hacker News', fetched: 0, error: 'Hacker News: timed out — try again later.' },
-        { key: 'remotive', label: 'Remotive', fetched: 0, error: 'Remotive: timed out — try again later.' },
+        {
+          key: 'hn',
+          label: 'Hacker News',
+          fetched: 0,
+          error: 'Hacker News: timed out — try again later.',
+        },
+        {
+          key: 'remotive',
+          label: 'Remotive',
+          fetched: 0,
+          error: 'Remotive: timed out — try again later.',
+        },
       ],
       boardsSkipped: 0,
     });
@@ -170,7 +181,10 @@ describe('LiveFeedPanel', () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     await user.click(screen.getByText('design engineer'));
-    expect(feed.fetchFeed).toHaveBeenLastCalledWith({ term: 'design engineer', boardUrls: [] });
+    expect(feed.fetchFeed).toHaveBeenLastCalledWith({
+      term: 'design engineer',
+      boardUrls: [...STARTER_DIRECTORY],
+    });
   });
 
   it('watches a company board, and explains a link that is not one', async () => {

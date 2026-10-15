@@ -7,8 +7,11 @@ import { FetchError, type FetchJson } from './sources/http';
 import { fetchRemotive } from './sources/remotive';
 import { SOURCE_LABEL, type Posting } from './types';
 
-/** Politeness cap on watched company boards per fetch (each is one request, some are ~2–3 MB). */
-export const MAX_BOARDS = 25;
+/** Most company boards one search reads: the track's watched boards plus the starter directory
+ *  (src/radar/directory.ts). Each is one request and some are ~2–3 MB. */
+export const MAX_BOARDS = 100;
+/** Boards read at once — polite to the ATSs and kind to a phone's connection. */
+export const BOARD_CONCURRENCY = 6;
 /** Re-use a response for this long. Sources update a few times a day. In-memory only — board
  *  payloads are far too big for browser storage. (Remotive has its own, stricter budget below.) */
 export const CACHE_TTL_MS = 60 * 60 * 1000;
@@ -160,6 +163,34 @@ export function describeError(e: unknown, label: string, isBoard: boolean): stri
   return `${label}: HTTP ${e.status} — the service is having trouble; try again later.`;
 }
 
+/** Promise.allSettled over thunks, with `limited` tasks run at most BOARD_CONCURRENCY at a time.
+ *  The rest (HN, Remotive) start at once. */
+async function settleAll<T>(
+  thunks: (() => Promise<T>)[],
+  limited: (i: number) => boolean,
+): Promise<PromiseSettledResult<T>[]> {
+  const out: PromiseSettledResult<T>[] = new Array(thunks.length);
+  const run = async (i: number) => {
+    try {
+      out[i] = { status: 'fulfilled', value: await thunks[i]() };
+    } catch (reason) {
+      out[i] = { status: 'rejected', reason };
+    }
+  };
+  const queue = thunks.map((_, i) => i).filter(limited);
+  const worker = async () => {
+    for (let i = queue.shift(); i !== undefined; i = queue.shift()) await run(i);
+  };
+  await Promise.all([
+    ...thunks
+      .map((_, i) => i)
+      .filter((i) => !limited(i))
+      .map(run),
+    ...Array.from({ length: Math.min(BOARD_CONCURRENCY, queue.length) }, worker),
+  ]);
+  return out;
+}
+
 export interface SourceStatus {
   key: string;
   label: string;
@@ -171,7 +202,7 @@ export interface SourceStatus {
 export interface FeedResult {
   postings: Posting[];
   sources: SourceStatus[];
-  /** Distinct watched boards beyond MAX_BOARDS that were not fetched. */
+  /** Distinct company boards beyond MAX_BOARDS that were not fetched. */
   boardsSkipped: number;
 }
 
@@ -208,7 +239,10 @@ export async function fetchFeed(
     })),
   ];
 
-  const settled = await Promise.allSettled(tasks.map((t) => t.run()));
+  const settled = await settleAll(
+    tasks.map((t) => () => t.run()),
+    (i) => !!tasks[i].board,
+  );
   const postings: Posting[] = [];
   const sources = settled.map((r, i): SourceStatus => {
     const { key, label, board } = tasks[i];

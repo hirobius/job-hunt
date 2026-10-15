@@ -128,24 +128,111 @@ export const ATS_ROLES = [
   'machine operator',
   'CNC machinist',
 ];
-export const ATS: { name: string; domain: string; site: string }[] = [
+export interface HiddenSite {
+  name: string;
+  domain: string;
+  /** The Google `site:` clause — a host, or several ORed. */
+  site: string;
+}
+const site = (name: string, domain: string): HiddenSite => ({
+  name,
+  domain,
+  site: `site:${domain}`,
+});
+
+/** Companies' own hiring systems, searched through Google — far less competition than the big
+ *  aggregators. Most-used first: "Search all" fills Google's word limit in this order. */
+export const ATS: HiddenSite[] = [
   {
     name: 'Greenhouse',
     domain: 'boards.greenhouse.io',
     site: '(site:boards.greenhouse.io OR site:job-boards.greenhouse.io)',
   },
-  { name: 'Lever', domain: 'jobs.lever.co', site: 'site:jobs.lever.co' },
-  { name: 'Ashby', domain: 'jobs.ashbyhq.com', site: 'site:jobs.ashbyhq.com' },
-  { name: 'Workday', domain: 'myworkdayjobs.com', site: 'site:myworkdayjobs.com' },
-  {
-    name: 'SmartRecruiters',
-    domain: 'jobs.smartrecruiters.com',
-    site: 'site:jobs.smartrecruiters.com',
-  },
-  { name: 'iCIMS', domain: 'careers.icims.com', site: 'site:careers.icims.com' },
-  { name: 'JazzHR', domain: 'applytojob.com', site: 'site:applytojob.com' },
-  { name: 'Workable', domain: 'apply.workable.com', site: 'site:apply.workable.com' },
+  site('Lever', 'jobs.lever.co'),
+  site('Ashby', 'jobs.ashbyhq.com'),
+  site('Workday', 'myworkdayjobs.com'),
+  site('SmartRecruiters', 'jobs.smartrecruiters.com'),
+  site('Workable', 'apply.workable.com'),
+  site('Recruitee', 'recruitee.com'),
+  site('Teamtailor', 'teamtailor.com'),
+  site('BambooHR', 'bamboohr.com'),
+  site('Rippling', 'ats.rippling.com'),
+  site('Pinpoint', 'pinpointhq.com'),
+  site('Breezy HR', 'breezy.hr'),
+  site('Gem', 'jobs.gem.com'),
+  site('Dover', 'app.dover.com'),
+  site('Jobvite', 'jobs.jobvite.com'),
+  site('iCIMS', 'careers.icims.com'),
+  site('JazzHR', 'applytojob.com'),
+  site('Personio', 'jobs.personio.com'),
 ];
+
+/** Freelance, startup and remote boards with no open API (or one this app can't call from the
+ *  browser): Google is the way in. */
+export const HIDDEN_BOARDS: HiddenSite[] = [
+  site('Upwork', 'upwork.com'),
+  site('Contra', 'contra.com'),
+  site('Wellfound', 'wellfound.com'),
+  site('YC Work at a Startup', 'workatastartup.com'),
+  site('Remote OK', 'remoteok.com'),
+  site('Himalayas', 'himalayas.app'),
+  site('Jobicy', 'jobicy.com'),
+  site('We Work Remotely', 'weworkremotely.com'),
+  site('Working Not Working', 'workingnotworking.com'),
+  site('Dribbble Jobs', 'dribbble.com'),
+];
+
+/** "Contract only": the words contract and fractional postings use. */
+export const CONTRACT_CLAUSE = '(contract OR freelance OR fractional)';
+
+export interface HiddenQuery {
+  role: string;
+  entry?: boolean;
+  where: string;
+  mode: WorkMode;
+  recency?: '' | 'w' | 'm';
+  contract?: boolean;
+}
+
+function queryTail({ role, entry, where, mode, contract }: HiddenQuery): string {
+  const w = where.trim();
+  return [
+    `"${role}"`,
+    entry ? '(entry OR junior OR associate)' : '',
+    mode === 'remote' ? 'remote' : w ? `"${w}"` : '',
+    contract ? CONTRACT_CLAUSE : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+const googleUrl = (query: string, recency?: string) =>
+  `https://www.google.com/search?q=${encc(query)}${recency ? '&tbs=qdr:' + recency : ''}`;
+
+export const atsSearchUrl = (siteClause: string, o: HiddenQuery) =>
+  googleUrl(`${siteClause} ${queryTail(o)}`, o.recency);
+
+/** Google ignores everything after a query's 32nd word. */
+const GOOGLE_MAX_WORDS = 32;
+const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
+
+/** As many of `sites` as fit in one query, in order, ORed together. */
+export function searchAllUrl(sites: HiddenSite[], o: HiddenQuery): string {
+  const tail = queryTail(o);
+  const picked: string[] = [];
+  for (const s of sites) {
+    const next = `(${[...picked, s.site].join(' OR ')}) ${tail}`;
+    if (words(next) > GOOGLE_MAX_WORDS) break;
+    picked.push(s.site);
+  }
+  return googleUrl(`(${picked.join(' OR ')}) ${tail}`, o.recency);
+}
+
+/** How many sites `searchAllUrl` fits — shown on its button. */
+export function searchAllCount(sites: HiddenSite[], o: HiddenQuery): number {
+  const q = new URL(searchAllUrl(sites, o)).searchParams.get('q') ?? '';
+  return (q.match(/site:/g) ?? []).length - (q.includes('job-boards.greenhouse.io') ? 1 : 0);
+}
 
 // ---- Curated groups ----
 export const GROUPS: Group[] = [

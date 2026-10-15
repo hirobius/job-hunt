@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createFetchJson,
   describeError,
+  BOARD_CONCURRENCY,
   fetchFeed,
+  MAX_BOARDS,
   memoryKv,
   REMOTIVE_DAILY_MAX,
 } from './fetchFeed';
@@ -136,13 +138,31 @@ describe('fetchFeed', () => {
     expect(out.postings.map((p) => p.id)).toEqual(['remotive:2']);
   });
 
-  it('caps watched boards and says how many it skipped', async () => {
-    const urls = Array.from({ length: 30 }, (_, i) => `https://jobs.lever.co/co${i}`);
+  it('caps company boards and says how many it skipped', async () => {
+    const urls = Array.from({ length: MAX_BOARDS + 5 }, (_, i) => `https://jobs.lever.co/co${i}`);
     const out = await fetchFeed({ term: 'x', boardUrls: urls }, async (url) =>
       url.includes('search_by_date') ? { hits: [] } : url.includes('remotive') ? { jobs: [] } : [],
     );
-    expect(out.sources.filter((s) => s.key.startsWith('lever:'))).toHaveLength(25);
+    expect(MAX_BOARDS).toBe(100);
+    expect(out.sources.filter((s) => s.key.startsWith('lever:'))).toHaveLength(MAX_BOARDS);
     expect(out.boardsSkipped).toBe(5);
+  });
+
+  it('reads company boards a few at a time, not all at once', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const urls = Array.from({ length: 20 }, (_, i) => `https://jobs.lever.co/co${i}`);
+    await fetchFeed({ term: 'x', boardUrls: urls }, async (url) => {
+      if (url.includes('search_by_date')) return { hits: [] };
+      if (url.includes('remotive')) return { jobs: [] };
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight--;
+      return [];
+    });
+    expect(BOARD_CONCURRENCY).toBe(6);
+    expect(peak).toBe(6);
   });
 
   it('skips the network entirely for a blank term', async () => {

@@ -19,7 +19,19 @@ import { Plus, SlidersHorizontal } from 'lucide-react';
 import TileGrid from './TileGrid';
 import EmptyState from './EmptyState';
 import { useRoute, navigate } from './route';
-import { BOARDS, ATS, entryLevelize, type Tile, type WorkMode } from './jobsData';
+import {
+  BOARDS,
+  ATS,
+  HIDDEN_BOARDS,
+  atsSearchUrl,
+  entryLevelize,
+  searchAllCount,
+  searchAllUrl,
+  type HiddenQuery,
+  type HiddenSite,
+  type Tile,
+  type WorkMode,
+} from './jobsData';
 import { useJobs } from './store';
 import { partitionTiles } from './tileState';
 import { useTileTriage } from './tileTriage';
@@ -251,6 +263,7 @@ function AtsPanel({
 }) {
   const [role, setRole] = useState(roles[0] ?? '');
   const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
+  const [contract, setContract] = useState(false);
   if (roles.length === 0)
     return (
       <EmptyState
@@ -263,13 +276,21 @@ function AtsPanel({
         }
       />
     );
-  const w = where.trim();
-  const locClause = mode === 'remote' ? 'remote' : w ? `"${w}"` : '';
-  const levelClause = seniority === 'entry' ? ' (entry OR junior OR associate)' : '';
-  const gUrl = (site: string) =>
-    `https://www.google.com/search?q=${encodeURIComponent(`${site} "${role}"${levelClause}${locClause ? ' ' + locClause : ''}`)}${recency ? '&tbs=qdr:' + recency : ''}`;
-  const tiles: Tile[] = ATS.map((a) => ({ name: a.name, meta: a.domain, url: gUrl(a.site) }));
-  const allUrl = gUrl('(' + ATS.map((a) => a.site).join(' OR ') + ')');
+  const query: HiddenQuery = { role, entry: seniority === 'entry', where, mode, recency, contract };
+  const tilesFor = (sites: HiddenSite[]): Tile[] =>
+    sites.map((a) => ({ name: a.name, meta: a.domain, url: atsSearchUrl(a.site, query) }));
+  const allButton = (sites: HiddenSite[], what: string) => (
+    <Button
+      variant="secondary"
+      size="sm"
+      style={{ marginTop: 'var(--primitive-space-3)', marginBottom: 'var(--primitive-space-3)' }}
+      asChild
+    >
+      <a href={searchAllUrl(sites, query)} target="_blank" rel="noopener noreferrer">
+        {`Search the top ${searchAllCount(sites, query)} ${what} at once`}
+      </a>
+    </Button>
+  );
   return (
     <Box>
       <Text
@@ -310,6 +331,16 @@ function AtsPanel({
             { value: 'm', label: 'Past month' },
           ]}
         />
+        <SegmentedControl
+          aria-label="Engagement"
+          size="sm"
+          value={contract ? 'contract' : 'any'}
+          onChange={(v) => setContract(v === 'contract')}
+          options={[
+            { value: 'any', label: 'Any role' },
+            { value: 'contract', label: 'Contract only' },
+          ]}
+        />
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 1 }}>
         {roles.map((r) => (
@@ -318,16 +349,19 @@ function AtsPanel({
           </Tag>
         ))}
       </Box>
-      <Button
-        variant="primary"
-        style={{ marginTop: 'var(--primitive-space-3)', marginBottom: 'var(--primitive-space-3)' }}
-        asChild
-      >
-        <a href={allUrl} target="_blank" rel="noopener noreferrer">
-          Search all platforms
-        </a>
-      </Button>
-      <TileGrid tiles={tiles} cta="Search" />
+      <Text variant="title" as="h3" style={{ marginTop: 'var(--primitive-space-4)' }}>
+        Company hiring systems
+      </Text>
+      {allButton(ATS, 'hiring systems')}
+      <TileGrid tiles={tilesFor(ATS)} cta="Search" />
+      <Text variant="title" as="h3" style={{ marginTop: 'var(--primitive-space-6)' }}>
+        Freelance, startup and remote boards
+      </Text>
+      <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+        Boards with no open feed (Upwork, Contra, Wellfound…), reached through Google instead.
+      </Text>
+      {allButton(HIDDEN_BOARDS, 'boards')}
+      <TileGrid tiles={tilesFor(HIDDEN_BOARDS)} cta="Search" />
     </Box>
   );
 }
