@@ -192,12 +192,14 @@ describe('Today view (#128)', () => {
 });
 
 describe('Today with nothing due', () => {
-  it('says so in each list instead of hiding it', () => {
+  // Slice 1 of #132: with jobs but nothing due and nothing scheduled, one "You're caught up" empty
+  // replaces the two one-line lists (see emptyStates.test.tsx).
+  it("with jobs but nothing due or scheduled, says you're caught up", () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     window.location.hash = '#/today';
     renderApp();
-    expect(within(region(/^Follow-ups due/)).getByText(/Nothing due/)).toBeInTheDocument();
-    expect(within(region(/^Next 7 days/)).getByText(/Nothing scheduled/)).toBeInTheDocument();
+    expect(screen.getByText("You're caught up")).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /^Follow-ups due/ })).toBeNull();
   });
 
   it('with a track but no jobs, teaches the next step', () => {
@@ -205,7 +207,7 @@ describe('Today with nothing due', () => {
     window.location.hash = '#/today';
     renderApp();
     expect(screen.getByRole('textbox', { name: 'Add a job' })).toBeInTheDocument();
-    expect(screen.getByText('Nothing to follow up yet')).toBeInTheDocument();
+    expect(screen.getByText('Nothing to do yet')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Insights/ })).toBeNull();
   });
 });
@@ -235,7 +237,7 @@ describe('first-run gate in the shell (#128)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     window.location.hash = '#/discover';
     const { unmount } = renderApp();
-    expect(screen.getByRole('heading', { name: 'Set up your board' })).toBeInTheDocument();
+    expect(screen.getByText('Pick a track to search')).toBeInTheDocument();
     unmount();
     removeJob('https://acme.example/jobs/1');
     window.location.hash = '#/queue';

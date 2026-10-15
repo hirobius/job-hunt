@@ -8,6 +8,7 @@ import {
   Text,
   Card,
 } from '@hirobius/design-system';
+import EmptyState from './EmptyState';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import { useCurationSyncStatus } from './curation/syncStatus';
 import { TrySampleButton } from './demo/SampleData';
@@ -154,6 +155,26 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
               : `Start with ${picked.length} track${picked.length > 1 ? 's' : ''}`}
         </Button>
       </Stack>
+    </Box>
+  );
+}
+
+/** Discover with no track (#132): says what a track is and opens the setup on one click, instead
+ *  of dropping a stranger straight into the picker. */
+export function ChooseTrack() {
+  const [open, setOpen] = useState(false);
+  if (open) return <Onboarding />;
+  return (
+    <Box sx={{ py: 'lg' }}>
+      <EmptyState
+        title="Pick a track to search"
+        message="A track holds your job titles, location and saved links."
+        action={
+          <Button variant="primary" onClick={() => setOpen(true)}>
+            Choose a track
+          </Button>
+        }
+      />
     </Box>
   );
 }

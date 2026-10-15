@@ -86,7 +86,7 @@ function GroupPanel({
       ) : (
         <EmptyState
           title="No links here yet"
-          message="Add curated links to this section, or switch to Title / ATS search to generate live ones."
+          message="Add links you trust, or use Title and ATS search for live ones."
           action={
             <Button variant="secondary" size="sm" onClick={onManage}>
               Manage this track
