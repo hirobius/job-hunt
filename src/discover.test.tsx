@@ -1,6 +1,6 @@
 // Discover redesign (#131), pinned at the route seam: App at #/discover, driven by role and text.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -20,7 +20,12 @@ vi.mock('./feed/fetchFeed', () => feed);
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addCategory, addGroup, replaceCurationState } from './curation/curationStore';
+import {
+  addCategory,
+  addGroup,
+  replaceCurationState,
+  updateCategory,
+} from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 import { modeKey } from './discoverContext';
 
@@ -50,6 +55,10 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+// The location and mode controls live in the header's context popover.
+const openContext = async (label: RegExp | string = /, (Any mode|Hybrid|On-site)$|^Remote$/) =>
+  userEvent.click(await screen.findByRole('button', { name: label }));
+
 const hrefs = () =>
   screen.getAllByRole('link', { name: /search/i }).map((a) => a.getAttribute('href') ?? '');
 
@@ -57,6 +66,7 @@ describe('Discover track context (slice 1)', () => {
   it('reads location from the track and shows one location control for every tool', async () => {
     window.location.hash = '#/discover/titles';
     renderApp();
+    await openContext();
     expect(await screen.findByLabelText('Location')).toHaveValue('Spokane');
     expect(screen.getAllByLabelText('Location')).toHaveLength(1);
     expect(hrefs().some((u) => u.includes('l=Spokane'))).toBe(true);
@@ -65,6 +75,7 @@ describe('Discover track context (slice 1)', () => {
   it('changing the mode changes the Title search links', async () => {
     window.location.hash = '#/discover/titles';
     renderApp();
+    await openContext();
     await userEvent.click(await screen.findByRole('radio', { name: 'Remote' }));
     expect(hrefs().some((u) => u.includes('l=Remote'))).toBe(true);
     expect(localStorage.getItem(modeKey(cat))).toBe('remote');
@@ -73,11 +84,13 @@ describe('Discover track context (slice 1)', () => {
   it('keeps one location control on ATS search and Live postings', async () => {
     window.location.hash = '#/discover/ats';
     const { unmount } = renderApp();
+    await openContext();
     expect(await screen.findByLabelText('Location')).toHaveValue('Spokane');
     expect(screen.getAllByLabelText('Location')).toHaveLength(1);
     unmount();
     window.location.hash = '#/discover/live';
     renderApp();
+    await openContext();
     expect(await screen.findByLabelText('Location')).toHaveValue('Spokane');
     expect(screen.getAllByLabelText('Location')).toHaveLength(1);
   });
@@ -85,12 +98,14 @@ describe('Discover track context (slice 1)', () => {
   it('typing a location writes it to the track, and the mode survives a remount', async () => {
     window.location.hash = '#/discover/titles';
     const first = renderApp();
+    await openContext();
     const box = await screen.findByLabelText('Location');
     await userEvent.clear(box);
     await userEvent.type(box, 'Boise');
     await userEvent.click(screen.getByRole('radio', { name: 'Hybrid' }));
     first.unmount();
     renderApp();
+    await openContext('Boise, Hybrid');
     expect(await screen.findByLabelText('Location')).toHaveValue('Boise');
     expect(screen.getByRole('radio', { name: 'Hybrid' })).toBeChecked();
   });
@@ -102,5 +117,75 @@ describe('Discover track context (slice 1)', () => {
     renderApp();
     expect(await screen.findByRole('tab', { name: 'Union halls', selected: true })).toBeVisible();
     expect(within(document.body).queryByText(/Pick a title/)).not.toBeInTheDocument();
+  });
+});
+
+describe('Discover header and tools (slice 2)', () => {
+  it('names the track in a page header and shows where and how you search in one button', async () => {
+    renderApp();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Welding' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Spokane, Any mode' })).toBeVisible();
+  });
+
+  it('the context line follows the Manage track location', async () => {
+    renderApp();
+    await screen.findByRole('button', { name: 'Spokane, Any mode' });
+    act(() => updateCategory(cat, { location: 'Tacoma' }));
+    expect(await screen.findByRole('button', { name: 'Tacoma, Any mode' })).toBeVisible();
+  });
+
+  it('the Live search uses the mode picked in the header', async () => {
+    window.location.hash = '#/discover/live';
+    renderApp();
+    await openContext();
+    await userEvent.click(await screen.findByRole('radio', { name: 'Hybrid' }));
+    expect(await screen.findByText('Searching in Spokane, Hybrid')).toBeVisible();
+  });
+
+  it('offers the tools as one segmented row and routes between them', async () => {
+    addGroup(cat, { label: 'First picks' });
+    renderApp();
+    const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
+    expect(
+      within(tools)
+        .getAllByRole('radio')
+        .map((r) => r.textContent),
+    ).toEqual(['Apply', 'Titles', 'ATS', 'Live']);
+    expect(within(tools).getByRole('radio', { name: 'Apply' })).toBeChecked();
+    await userEvent.click(within(tools).getByRole('radio', { name: 'ATS' }));
+    expect(window.location.hash).toBe('#/discover/ats');
+    await userEvent.click(within(tools).getByRole('radio', { name: 'Apply' }));
+    expect(window.location.hash).toBe('#/discover');
+  });
+
+  it('shows the track sections as tabs only under Apply now', async () => {
+    addGroup(cat, { label: 'First picks' });
+    addGroup(cat, { label: 'Union halls' });
+    renderApp();
+    const sections = await screen.findByRole('tablist', { name: 'Your sections' });
+    expect(
+      within(sections)
+        .getAllByRole('tab')
+        .map((t) => t.textContent),
+    ).toEqual(['Apply now', 'Union halls']);
+    await userEvent.click(screen.getByRole('radio', { name: 'Titles' }));
+    expect(screen.queryByRole('tablist', { name: 'Your sections' })).toBeNull();
+  });
+
+  it('a track with no sections opens on Title search', async () => {
+    renderApp();
+    expect(await screen.findByRole('radio', { name: 'Titles' })).toBeChecked();
+    expect(screen.queryByRole('radio', { name: 'Apply' })).toBeNull();
+  });
+
+  it('Manage track keeps Delete out of the footer so it cannot sit on Done', async () => {
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: 'Manage track' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('button', { name: 'Done' })).toBeVisible();
+    const del = within(dialog).getByRole('button', { name: /delete track/i });
+    expect(within(dialog).getByRole('button', { name: 'Done' }).parentElement).not.toContainElement(
+      del,
+    );
   });
 });

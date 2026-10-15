@@ -27,6 +27,7 @@ import { X } from 'lucide-react';
 import EmptyState from './EmptyState';
 import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
 import { setTrackContext, useTrackContext } from './discoverContext';
+import { ContextCaption } from './LocationControl';
 import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
 import { fetchFeed, type FeedResult } from './feed/fetchFeed';
 import { rankPostings } from './feed/match';
@@ -315,6 +316,7 @@ export default function LiveFeedPanel({
         Jobicy, Remote OK and the company boards you watch, ranked by relevance. Add your evidence
         and each one gets a fit. Nothing is kept until you save one.
       </Text>
+      <ContextCaption categoryId={categoryId} />
       <Box
         as="form"
         onSubmit={onSearch}

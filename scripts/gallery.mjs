@@ -133,7 +133,7 @@ const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'job-page-interviews', [['first-job'], ['tab', /^Interviews/]]],
   [/^(Pipeline|Tracker)$/, 'job-page-todos', [['first-job'], ['tab', /^To-dos/]]],
   [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['first-job'], ['button', /^Use template$/]]],
-  [/^Discover$/, 'manage-track-dialog', [['button', /^Manage this track$/]]],
+  [/^Discover$/, 'manage-track-dialog', [['button', /^Manage track$/]]],
 ];
 
 async function shoot(browser, base, theme, width, manifest) {

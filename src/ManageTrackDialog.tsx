@@ -13,6 +13,7 @@ import {
   Disclosure,
   useToast,
 } from '@hirobius/design-system';
+import { DestructiveSection } from '@hirobius/design-system/patterns';
 import { Trash2, X } from 'lucide-react';
 import {
   updateCategory,
@@ -194,15 +195,6 @@ export default function ManageTrackDialog({
     .sort((a, b) => a.sortOrder - b.sortOrder);
   if (!cat) return null;
 
-  const del = () => {
-    if (
-      window.confirm(`Delete the “${cat.label}” track and all its content? This can't be undone.`)
-    ) {
-      removeCategory(cat.id);
-      onDeleted();
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Content
@@ -363,12 +355,22 @@ export default function ManageTrackDialog({
                   </Stack>
                 </Stack>
               </Disclosure>
+              {/* Delete sits at the end of the body, not beside Done, so the two can't overlap on a phone. */}
+              <DestructiveSection
+                level={3}
+                title="Delete this track"
+                description="Deletes the track and all its sections and links. Jobs you saved stay in your Pipeline."
+                actionLabel="Delete track"
+                confirmLabel="Delete track"
+                confirmBody={`“${cat.label}” and all its content will be gone for good.`}
+                onConfirm={() => {
+                  removeCategory(cat.id);
+                  onDeleted();
+                }}
+              />
             </Box>
           </div>
           <Dialog.Footer>
-            <Button variant="tertiary" tone="danger" onClick={del}>
-              Delete track
-            </Button>
             <Button variant="primary" onClick={onClose}>
               Done
             </Button>
