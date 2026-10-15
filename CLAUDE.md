@@ -114,6 +114,24 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   there), Discover whenever there are no tracks; Pipeline and Templates never gate. Existing users
   get a one-time `TodayNotice` (`rjb_ui_today_home_seen`; a first run marks it seen). Pinned in
   `src/today.test.tsx`.
+- **Templates list + detail (#132):** `#/copy-deck` is the list, `#/copy-deck/<snippetId>` opens
+  one (`Route.sub`; an unknown id falls back to the list once sync has settled). `CopyDeckView` picks
+  the layout with `useAtLeast('lg')`: a rail (`TemplatesList`, HDS `Sidebar`) beside `TemplateDetail`,
+  or one pane on a phone with a back link. The detail has token chips (`templateEditor.ts`
+  `insertAt`), a preview filled from a job picked in a `Select` (no job = `[Token]` text), Write /
+  Preview `Tabs` below `lg`, `templateCopy.copyFilled` (shared with `UseTemplate`), and Delete behind
+  an `AlertDialog`. Its `Menu` is `modal={false}` on purpose: a modal menu plus the dialog left the
+  page unclickable. `restoreStarterSnippets` re-adds missing `tpl-*` defaults. Pinned in
+  `src/copyDeck.test.tsx` and `src/copyDeckFill.test.tsx`.
+- **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
+  first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
+  Finish / the last Skip (which seeds the picked packs, saves the job, and on the Today gate goes to
+  `#/today`). Sample data is a step 1 offer on Today. Discover with no track shows `ChooseTrack`
+  first. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in Today,
+  Discover, Templates and the Pipeline (`TrackerView`, with the Briefcase icon). Today
+  gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
+  `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
+  `today.test.tsx`.
 - **Pipeline rows (#129):** the shell is HDS page width (`Container maxWidth="max"`, 1200). The
   Pipeline table and Discover's tile grid use it; Today's lists, the job page and Templates sit at
   the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders

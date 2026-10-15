@@ -106,10 +106,15 @@ async function seed(page) {
   // A Discover track: first starter pack from onboarding.
   if (await clickIf(page, 'tab', /^Discover$/)) {
     await page.waitForTimeout(600);
+    // Discover with no track asks first (#132); the button opens the setup.
+    await clickIf(page, 'button', /^Choose a track$/);
     const pack = page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first();
     if (await pack.isVisible().catch(() => false)) {
       await pack.click();
-      await clickIf(page, 'button', /^Start with/);
+      // Three steps (#132): Continue, Continue, Finish.
+      await clickIf(page, 'button', /^Continue$/);
+      await clickIf(page, 'button', /^Continue$/);
+      await clickIf(page, 'button', /^Finish$/);
     }
   }
 }
@@ -133,6 +138,8 @@ const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'job-page-interviews', [['first-job'], ['tab', /^Interviews/]]],
   [/^(Pipeline|Tracker)$/, 'job-page-todos', [['first-job'], ['tab', /^To-dos/]]],
   [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['first-job'], ['button', /^Use template$/]]],
+  // Templates: a row opens its editor (beside the list on a desktop, alone on a phone).
+  [/^Templates$/, 'template-detail', [['link', /^Cover letter/]]],
   [/^Discover$/, 'manage-track-dialog', [['button', /^Manage this track$/]]],
 ];
 
@@ -182,6 +189,21 @@ async function shoot(browser, base, theme, width, manifest) {
 
   // The landing screen before any data: what a first visit sees.
   await snap('First visit');
+  // The guided first run (#132): steps 2 and 3, then back out so seed() starts from step 1.
+  const firstPack = page
+    .getByRole('group', { name: 'Starter tracks' })
+    .getByRole('checkbox')
+    .first();
+  if (await firstPack.isVisible().catch(() => false)) {
+    await firstPack.click();
+    if (await clickIf(page, 'button', /^Continue$/)) {
+      await snap('First run · location');
+      if (await clickIf(page, 'button', /^Continue$/)) await snap('First run · first job');
+      await clickIf(page, 'button', /^Back$/);
+      await clickIf(page, 'button', /^Back$/);
+    }
+    await firstPack.click();
+  }
   await seed(page);
 
   for (const tab of await topTabs(page)) {

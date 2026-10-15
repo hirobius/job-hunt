@@ -37,7 +37,8 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
 
 - ✅ **Cover-letter template copy board** — a few reusable templates
   (IT support / SOC / GRC) with `[Company]`/`[Role]` merge blanks and a Copy
-  button each. Fill 2 blanks, send.
+  button each. Fill 2 blanks, send. (#132: now a list and an editor at `#/copy-deck/<id>`,
+  with token chips and a preview filled for a saved job.)
 - ✅ **JD ↔ resume keyword match** — paste a job description, highlight the ATS
   keywords your master skill list is missing. Quick in-app self-check; deep
   tailoring done by the assistant (see Phase 4).

@@ -50,6 +50,21 @@ describe('UseTemplate', () => {
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
   });
 
+  it('links to the picked template in Templates (#132)', async () => {
+    const user = userEvent.setup();
+    wrap();
+    await user.click(screen.getByRole('button', { name: 'Use template' }));
+    expect(screen.getByRole('link', { name: 'Manage templates' })).toHaveAttribute(
+      'href',
+      '#/copy-deck/b',
+    );
+    await user.click(screen.getByRole('button', { name: 'Plain note' }));
+    expect(screen.getByRole('link', { name: 'Manage templates' })).toHaveAttribute(
+      'href',
+      '#/copy-deck/a',
+    );
+  });
+
   it('has no axe violations when open', async () => {
     const user = userEvent.setup();
     wrap();

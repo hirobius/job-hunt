@@ -2,7 +2,7 @@
 // of interviews and calls as StatusListItem rows, each with one trailing action; one quick-add
 // field; and the Insights band. The read models are pure (jobEvents.ts, metrics.ts); this view
 // only lays them out.
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'lucide-react';
 import {
   Box,
@@ -18,10 +18,11 @@ import { Form, Page, PageHeader } from '@hirobius/design-system/patterns';
 import { addJob, findJobByUrl, jobIdOf, logFollowUp, useJobs } from './store';
 import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
 import { dueFollowUps, KIND_WORD, UPCOMING_DAYS, upcomingEvents, ymd } from './jobEvents';
-import { jobHash } from './route';
+import { jobHash, navigate } from './route';
 import type { Job } from './types';
 import Insights from './Insights';
 import TodayNotice from './TodayNotice';
+import GettingStarted from './GettingStarted';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 
@@ -86,7 +87,7 @@ function Section({
   );
 }
 
-function QuickAdd() {
+function QuickAdd({ inputRef }: { inputRef: React.Ref<HTMLInputElement> }) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   // The last add, with a link to its job. A toast can't carry one (HDS Toast has no action slot),
@@ -114,6 +115,7 @@ function QuickAdd() {
           }}
         >
           <HdsInput
+            ref={inputRef}
             aria-label="Add a job"
             type="url"
             placeholder="Paste a job link to save it"
@@ -154,6 +156,7 @@ export default function TodayView() {
   const now = new Date();
   const due = dueFollowUps(jobs, now);
   const upcoming = upcomingEvents(jobs, now);
+  const quickAddRef = useRef<HTMLInputElement>(null);
 
   return (
     <Page paddingY="none">
@@ -172,12 +175,33 @@ export default function TodayView() {
         {/* The day's work reads at the HDS prose measure; Insights spans the page. */}
         <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
           <Stack gap="normal">
-            <QuickAdd />
+            <QuickAdd inputRef={quickAddRef} />
+            <GettingStarted jobs={jobs} />
             {jobs.length === 0 ? (
               <EmptyState
-                title="Nothing to follow up yet"
-                message="Save a job above or from Discover. Follow-ups, interviews and calls you log will show up here."
-                action={<TrySampleButton />}
+                title="Nothing to do yet"
+                message="Save a job and its follow-ups and interviews show up here."
+                action={
+                  <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+                    <Button variant="primary" onClick={() => quickAddRef.current?.focus()}>
+                      Add a job
+                    </Button>
+                    <TrySampleButton />
+                  </Stack>
+                }
+              />
+            ) : due.length === 0 && upcoming.length === 0 ? (
+              <EmptyState
+                title="You're caught up"
+                message={`Follow-ups fall due ${days(FOLLOWUP_DAYS)} after you apply or last follow up.`}
+                action={
+                  <Button
+                    variant="secondary"
+                    onClick={() => navigate({ tab: 'queue', jobId: null })}
+                  >
+                    Open Pipeline
+                  </Button>
+                }
               />
             ) : (
               <>

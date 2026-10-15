@@ -116,6 +116,14 @@ export function toggleSnippetTag(id: string, pid: string) {
   );
 }
 
+/** Re-add any starter template (`tpl-*`) that is missing, by id. Never overwrites one that is there,
+ *  edited or not. Built on the existing replaceSnippets mutator (#132). */
+export function restoreStarterSnippets() {
+  const have = new Set(store.get().map((s) => s.id));
+  const missing = DEFAULTS.filter((d) => !have.has(d.id));
+  if (missing.length) replaceSnippets([...store.get(), ...missing.map((d) => ({ ...d }))]);
+}
+
 // ---- reads + sync ----
 export function useSnippets(): Snippet[] {
   return store.use();
