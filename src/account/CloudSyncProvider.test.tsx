@@ -31,7 +31,11 @@ import { clearAllPending } from '../curation/pending';
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
 import { OFFLINE_MSG } from '../cloudMessages';
-import { writeBlob } from '../syncBlob';
+import { saveTarget, readTargets } from '../feed/targets';
+import { saveFilter, readFilters } from '../feed/savedFilters';
+import { readEvidence, writeEvidence } from '../radar/evidenceStore';
+import { readMode, writeMode } from '../trackModes';
+import { emptyBlob, writeBlob } from '../syncBlob';
 
 const fake = () => h.fake!;
 const NOW = '2026-10-01T00:00:00.000Z';
@@ -82,8 +86,8 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     const menu = await openAccount();
     expect(within(menu).getByText(/Synced · u1@example.test/)).toBeInTheDocument();
-    // …and the tracker blob it pushed is v4 (no pillars / userTiles).
-    expect(fake().tables.tracker[0].data).toMatchObject({ v: 4 });
+    // …and the tracker blob it pushed is v5 (no pillars / userTiles).
+    expect(fake().tables.tracker[0].data).toMatchObject({ v: 5 });
     expect(fake().tables.tracker[0].data).not.toHaveProperty('pillars');
   });
 
@@ -126,10 +130,8 @@ describe('CloudSyncProvider (via the account menu)', () => {
     // Cloud holds a job that only lives there; this device holds a different one.
     addJob('https://cloud.example/jobs/1', 'Cloud only');
     const cloudData = writeBlob({
+      ...emptyBlob(),
       jobs: getAllJobs(),
-      copydeck: [],
-      triage: { pinned: [], dismissed: [] },
-      legacyUserTiles: [],
     });
     removeJob('https://cloud.example/jobs/1');
     fake().tables.tracker = [{ user_id: 'u1', data: cloudData, updated_at: NOW }];
@@ -331,5 +333,120 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       addCategory({ label: 'After expiry' });
     });
     expect(await screen.findByText('Track changes didn’t reach the cloud')).toBeInTheDocument();
+  });
+
+  // ADR 0008: what the user edits (targets, saved searches, evidence, work mode) follows the account.
+  describe('user-edited stores follow the account', () => {
+    beforeEach(() => localStorage.clear());
+    const target = {
+      login: 'acme',
+      company: 'Acme',
+      repo: 'acme/ds',
+      repoUrl: 'https://github.com/acme/ds',
+      stars: 3,
+    };
+    const search = {
+      name: 'Austin hybrid',
+      term: 'design systems',
+      where: 'Austin, TX',
+      mode: 'hybrid' as const,
+      exclude: ['manager'],
+      seniority: 'any' as const,
+      salaryOnly: false,
+      contractOnly: false,
+    };
+    const edit = () => {
+      saveTarget('trk', target);
+      saveFilter('trk', search);
+      writeEvidence('Led a design system');
+      writeMode('trk', 'hybrid');
+    };
+
+    it('survives sign-out and comes back on a fresh device', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(edit);
+      await waitFor(() =>
+        expect(fake().tables.tracker[0].data).toMatchObject({
+          v: 5,
+          targets: { trk: [{ login: 'acme' }] },
+          filters: { trk: [{ name: 'Austin hybrid' }] },
+          evidence: 'Led a design system',
+          modes: { trk: 'hybrid' },
+        }),
+      );
+
+      // Sign out wipes this browser…
+      await chooseAccountItem('Sign out');
+      await waitFor(() => expect(readTargets('trk')).toEqual([]));
+      expect(readFilters('trk')).toEqual([]);
+      expect(readEvidence()).toBe('');
+      expect(readMode('trk')).toBe('any');
+
+      // …and a fresh device signing in gets it all back.
+      cleanup();
+      localStorage.clear();
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(readTargets('trk').map((t) => t.login)).toEqual(['acme']));
+      expect(readFilters('trk').map((f) => f.name)).toEqual(['Austin hybrid']);
+      expect(readEvidence()).toBe('Led a design system');
+      expect(readMode('trk')).toBe('hybrid');
+    });
+
+    it('first sign-in keeps this device’s entries and unions them with the cloud’s', async () => {
+      fake().tables.tracker = [
+        {
+          user_id: 'u1',
+          updated_at: NOW,
+          data: {
+            v: 5,
+            jobs: [],
+            copydeck: [],
+            triage: { dismissed: [] },
+            targets: { trk: [{ ...target, login: 'cloudco', repo: 'cloudco/ds', savedAt: NOW }] },
+            filters: {},
+            evidence: 'cloud evidence',
+            modes: { other: 'remote' },
+          },
+        },
+      ];
+      edit(); // this device was used signed out
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() =>
+        expect(
+          readTargets('trk')
+            .map((t) => t.login)
+            .sort(),
+        ).toEqual(['acme', 'cloudco']),
+      );
+      expect(readFilters('trk')).toHaveLength(1);
+      expect(readEvidence()).toBe('cloud evidence'); // cloud text wins when it has any
+      expect(readMode('trk')).toBe('hybrid');
+      expect(readMode('other')).toBe('remote');
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets.trk).toHaveLength(2));
+    });
+
+    it('a v4 cloud blob (no new fields) never wipes this device on sign-in or refresh', async () => {
+      fake().tables.tracker = [
+        {
+          user_id: 'u1',
+          updated_at: NOW,
+          data: { v: 4, jobs: [], copydeck: [], triage: { dismissed: [] } },
+        },
+      ];
+      edit();
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(5));
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await new Promise((r) => setTimeout(r, 50));
+      expect(readTargets('trk')).toHaveLength(1);
+      expect(readEvidence()).toBe('Led a design system');
+    });
   });
 });
