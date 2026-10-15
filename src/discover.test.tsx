@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 
 const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));
@@ -187,5 +188,24 @@ describe('Discover header and tools (slice 2)', () => {
     expect(within(dialog).getByRole('button', { name: 'Done' }).parentElement).not.toContainElement(
       del,
     );
+  });
+});
+
+describe('Discover accessibility', () => {
+  it.each([
+    ['apply', '#/discover'],
+    ['titles', '#/discover/titles'],
+    ['ats', '#/discover/ats'],
+    ['live', '#/discover/live'],
+  ])('has no WCAG A/AA violations on the %s tool', async (_name, hash) => {
+    const g1 = addGroup(cat, { label: 'First picks' });
+    void g1;
+    window.location.hash = hash;
+    const { container } = renderApp();
+    await screen.findByRole('radiogroup', { name: 'Search tool' });
+    const results = await axe(container, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+    });
+    expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
   });
 });
