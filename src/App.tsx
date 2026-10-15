@@ -14,7 +14,7 @@ import TodayView from './TodayView';
 import TrackerView from './TrackerView';
 import JobPage from './JobPage';
 import { JobPageLiveness, PipelineLiveness } from './LivenessViews';
-import { Onboarding } from './Onboarding';
+import { Onboarding, ChooseTrack } from './Onboarding';
 import { markTodayNoticeSeen } from './todayNoticeSeen';
 import { useCloudSync } from './account/accountContext';
 import { hasCloudSession } from './demo/loadSample';
@@ -160,7 +160,7 @@ export default function App() {
                       <DiscoverView />
                     </Suspense>
                   ) : (
-                    <Onboarding />
+                    <ChooseTrack />
                   )}
                 </TabsContent>
                 <TabsContent value="copy-deck" style={BARE_PANEL}>

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Dialog, Textarea } from '@hirobius/design-system';
+import { Button, Dialog, InlineLink, Textarea, useToast } from '@hirobius/design-system';
 import { useSnippets } from './copyDeckStore';
 import { fillTemplate, unfilledTokens, valuesFromJob } from './templateFill';
+import { copyFilled } from './templateCopy';
 import type { Job } from './types';
 
 // Fill a Copy Deck snippet from a job's company/role/contact/angle and copy it.
 export default function UseTemplate({ job }: { job: Job }) {
   const snippets = useSnippets();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -27,12 +29,9 @@ export default function UseTemplate({ job }: { job: Job }) {
   }, [copied]);
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(filled);
-      setCopied(true);
-    } catch {
-      /* clipboard unavailable */
-    }
+    const r = await copyFilled(filled);
+    if (r.ok) setCopied(true);
+    else toast({ title: "Couldn't copy", description: r.reason, tone: 'danger' });
   };
 
   return (
@@ -99,6 +98,11 @@ export default function UseTemplate({ job }: { job: Job }) {
           </div>
         )}
         <Dialog.Footer>
+          {picked && (
+            <InlineLink href={`#/copy-deck/${encodeURIComponent(picked.id)}`}>
+              Manage templates
+            </InlineLink>
+          )}
           <Dialog.Close asChild>
             <Button variant="secondary">Close</Button>
           </Dialog.Close>

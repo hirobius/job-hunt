@@ -42,8 +42,12 @@ signed-out in the browser; an optional email sign-in syncs it across devices.
   live searches and durable company or board pages, so tiles don't go stale. **Live postings**
   pulls real openings at view time from HN "Who is hiring", Remotive and the Greenhouse / Lever /
   Ashby boards of companies you watch.
-- **Templates** (`#/copy-deck`) — pinned-first outreach snippets with copy buttons;
-  `[Company]` / `[Role]` / `[Contact]` / `[Angle]` fill from a job via **Use template**.
+- **Templates** (`#/copy-deck`, one template at `#/copy-deck/<id>`) — a searchable list of
+  pinned-first outreach snippets beside an editor with token chips and a preview filled for a
+  saved job; **Copy** puts the filled text on the clipboard. `[Company]` / `[Role]` / `[Contact]` /
+  `[Angle]` also fill from a job via **Use template**.
+- **First run** — three steps (pick a track, where you want to work, add your first job), each
+  with Back and Skip; **Today** then shows a Getting started card until you dismiss it.
 - **Quick-add links** — `?add=<url>`, `?applied=<url>`, `?status=<Status>&u=<url>` (optional
   `&t=` / `&title=` label) power a bookmarklet or phone shortcut.
 - **Cloud sync** — Supabase magic-link sign-in; jobs sync as one row per user and tracks live in
