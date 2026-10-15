@@ -2,13 +2,15 @@
 // (title, status, one next step, menu) over the job's sections as tabs. The open tab is local
 // state, not in the URL, and resets to Overview when the job changes.
 import { useEffect } from 'react';
-import { Box, Tabs, TabsContent, TabsList, TabsTrigger } from '@hirobius/design-system';
+import { Box, Sidebar, Tabs, TabsContent, TabsList, TabsTrigger } from '@hirobius/design-system';
 import { findJobById, useJobs } from './store';
 import { openJob } from './route';
 import { useCloudSync } from './account/accountContext';
 import EmptyState from './EmptyState';
 import JobHeader from './JobHeader';
 import JobOverview from './JobOverview';
+import JobRail from './JobRail';
+import { useAtLeast } from './hds-gaps/useBreakpoint';
 import JobScreening from './JobScreening';
 import JobInterviews from './JobInterviews';
 import { TodosNotes } from './TodosNotes';
@@ -61,14 +63,26 @@ export default function JobPage({ jobId }: { jobId: string }) {
     window.scrollTo?.({ top: 0 });
   }, [jobId]);
 
+  // HDS Sidebar only wraps with CSS, so below lg it would stack the list above the job: choose in
+  // JS and show the job alone, with a Back link, instead.
+  const wide = useAtLeast('lg');
+
   if (!job)
     return <EmptyState title="Job not found" message="It may still be syncing to this device." />;
 
-  return (
-    <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
-      <JobHeader job={job} />
+  const detail = (
+    <Box>
+      <JobHeader job={job} showBack={!wide} />
       {/* Keyed by job, so the open tab and every field's draft reset when the job changes. */}
       <JobSections key={job.url} job={job} />
     </Box>
   );
+  if (wide)
+    return (
+      <Sidebar side="start" sideWidth="22rem" contentMin="50%" gap="normal">
+        <JobRail openId={jobId} />
+        {detail}
+      </Sidebar>
+    );
+  return <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>{detail}</Box>;
 }

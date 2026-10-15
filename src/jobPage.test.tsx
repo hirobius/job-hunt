@@ -17,6 +17,8 @@ vi.mock('@supabase/supabase-js', async () => {
 });
 
 import { createFakeSupabase } from './test/fakeSupabase';
+import { viewport } from './test/viewport';
+import { setPipelineView } from './pipelineView';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, findJobById, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
@@ -46,6 +48,8 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  // viewport() installs a matchMedia stub; drop it so the next test is narrow again.
+  delete (window as { matchMedia?: unknown }).matchMedia;
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
@@ -271,5 +275,88 @@ describe('job page delete (#130 slice 3)', () => {
     expect(getAllJobs()).toHaveLength(0);
     await waitFor(() => expect(window.location.hash).toBe('#/queue'));
     expect(await screen.findByText('Job removed')).toBeInTheDocument();
+  });
+});
+
+const rail = () => screen.getByRole('navigation', { name: 'Jobs' });
+/** The job rows in the rail, not its Change filters link. */
+const railRows = () =>
+  within(rail())
+    .getAllByRole('link')
+    .filter((l) => l.getAttribute('href')?.startsWith('#/queue/'));
+
+describe('job page two-pane (#130 slice 5)', () => {
+  beforeEach(() => {
+    addJob(URL_A, 'Design Engineer');
+    addJob(URL_B, 'Welder');
+  });
+
+  it('at lg and up shows the rail and the open job, with aria-current on its row', () => {
+    viewport(1280);
+    openJobPage(URL_A);
+    expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
+    const current = within(rail()).getByRole('link', { current: 'page' });
+    expect(current).toHaveTextContent('Design Engineer');
+    expect(within(rail()).getByRole('link', { name: /Welder/ })).not.toHaveAttribute(
+      'aria-current',
+    );
+    // The rail replaces the Back link.
+    expect(screen.queryByRole('button', { name: /Back to Pipeline/ })).toBeNull();
+  });
+
+  it('below lg there is only the job, with Back', () => {
+    viewport(390);
+    openJobPage(URL_A);
+    expect(screen.queryByRole('navigation', { name: 'Jobs' })).toBeNull();
+    expect(screen.getByRole('button', { name: /Back to Pipeline/ })).toBeInTheDocument();
+  });
+
+  it('clicking another rail row swaps the job without leaving the page', async () => {
+    viewport(1280);
+    openJobPage(URL_A);
+    await userEvent.click(within(rail()).getByRole('link', { name: /Welder/ }));
+    expect(await screen.findByRole('heading', { level: 2, name: 'Welder' })).toBeInTheDocument();
+    expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_B)}`);
+    expect(within(rail()).getByRole('link', { current: 'page' })).toHaveTextContent('Welder');
+    expect(screen.getByRole('tab', { name: 'Overview', selected: true })).toBeInTheDocument();
+  });
+
+  it('shows the same jobs the Pipeline list showed: its search and filter', () => {
+    viewport(1280);
+    setPipelineView({ q: 'welder' });
+    openJobPage(URL_B);
+    expect(railRows()).toHaveLength(1);
+    expect(within(rail()).getByText(/Change filters/)).toHaveAttribute('href', '#/queue');
+  });
+
+  it('pins the open job at the top with a note when the filter hides it', () => {
+    viewport(1280);
+    setPipelineView({ filter: 'retired' });
+    openJobPage(URL_A);
+    expect(railRows()[0]).toHaveAttribute('aria-current', 'page');
+    expect(within(rail()).getByText('Not in this filter')).toBeInTheDocument();
+  });
+
+  it('searching in the rail narrows it', async () => {
+    viewport(1280);
+    openJobPage(URL_A);
+    await userEvent.type(within(rail()).getByRole('textbox', { name: 'Search jobs' }), 'Welder');
+    expect(within(rail()).getByRole('link', { name: /Welder/ })).toBeInTheDocument();
+    // The open job stays, pinned, because the search hides it.
+    expect(within(rail()).getByText('Not in this filter')).toBeInTheDocument();
+  });
+
+  it('marks a follow-up that is due', () => {
+    viewport(1280);
+    const d = new Date();
+    d.setDate(d.getDate() - 10);
+    const p = (n: number) => String(n).padStart(2, '0');
+    updateJob(URL_B, {
+      status: 'Applied',
+      priority: true,
+      applied: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
+    });
+    openJobPage(URL_A);
+    expect(within(rail()).getByText('Follow-up due')).toBeInTheDocument();
   });
 });

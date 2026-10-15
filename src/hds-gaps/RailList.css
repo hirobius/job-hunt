@@ -1,0 +1,29 @@
+/* HDS gap (#130): the look of RailList rows, in HDS tokens only. Hover, focus and the current row
+   need CSS states that inline styles cannot carry. */
+.rail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--primitive-space-1);
+}
+.rail-list__row {
+  display: block;
+  padding: var(--primitive-space-2) var(--primitive-space-3);
+  border-radius: var(--primitive-radius-md, 6px);
+  border-left: 3px solid transparent;
+  color: var(--semantic-color-content-primary);
+  text-decoration: none;
+}
+.rail-list__row:hover {
+  background: var(--semantic-color-surface-raised);
+}
+.rail-list__row:focus-visible {
+  outline: 2px solid var(--semantic-accent-rest);
+  outline-offset: -2px;
+}
+.rail-list__row[aria-current='page'] {
+  background: var(--semantic-color-surface-raised);
+  border-left-color: var(--semantic-accent-rest);
+}
