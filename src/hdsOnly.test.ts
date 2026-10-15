@@ -35,6 +35,23 @@ describe('HDS-only UI (epic #89)', () => {
   });
 });
 
+describe('HDS default theme (graphite, Adrian 2026-10-15)', () => {
+  it('ships no local accent override: no brand CSS file and no import of one', () => {
+    const theme = join(SRC, 'theme');
+    const css = existsSync(theme) ? readdirSync(theme).filter((f) => f.endsWith('.css')) : [];
+    expect(css.filter((f) => f.startsWith('brand-'))).toEqual([]);
+    expect(readFileSync(join(SRC, 'main.tsx'), 'utf8')).not.toMatch(/brand-[a-z]+\.css/);
+  });
+
+  it('remaps no HDS accent token in its own CSS', () => {
+    const theme = join(SRC, 'theme');
+    for (const f of existsSync(theme) ? readdirSync(theme).filter((x) => x.endsWith('.css')) : [])
+      expect(readFileSync(join(theme, f), 'utf8'), f).not.toMatch(
+        /--(semantic-accent|semantic-color-[a-z]+-accent|semantic-color-content-onAccent|role-accent)[\w-]*\s*:/,
+      );
+  });
+});
+
 describe('HDS version pin (#115 Phase 0)', () => {
   it('pins HDS to an exact version — upgrades go through the HDS upgrade tool only', () => {
     const pkg = JSON.parse(readFileSync(resolve(SRC, '../package.json'), 'utf8')) as {

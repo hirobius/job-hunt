@@ -39,15 +39,15 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
     tone prop (hds#655).
   - **`EmptyState.tsx`** is a composition (HDS `EmptyState` + an optional action), because HDS's
     has no action slot yet (hds#654); collapse it into HDS when that lands.
-- **Design language (pure HDS, Adrian 2026-10-12):** HDS typography (`fonts.css`, Plus Jakarta
-  Sans, the HDS type ramp) and surfaces; the **jade accent** in `src/theme/brand-jade.css` is the
-  only local override. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
+- **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
+  (`fonts.css`, Plus Jakarta Sans, the HDS type ramp), surfaces and the default **graphite
+  accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
+  `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
   npm** (exact-pinned `0.24.1`, no auth; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`. Upgrade with
   `npx @hirobius/design-system@latest upgrade` (codemods + a to-do list; `--check` to verify).
   `main.tsx` imports `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` —
-  set on `<body>` in `index.html`) and `fonts.css`, then `src/theme/brand-jade.css` (jade accent
-  override, incl. white on-accent text), then
+  set on `<body>` in `index.html`) and `fonts.css`, then
   `src/theme/base.css` (border-box + body chrome from HDS tokens — what reset-free `styles.css`
   leaves to the host). Theming is pure HDS token CSS vars — **no MUI theme object**; `ColorMode`
   just flips `data-theme` on `<html>` (light/dark) and HDS's variables cascade. Status colors are

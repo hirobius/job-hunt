@@ -55,12 +55,12 @@ signed-out in the browser; an optional email sign-in syncs it across devices.
 - **Vite · React 18 · TypeScript**, deployed on **Vercel** (`main` is production; branch
   pushes build a preview only when the commit message contains `[preview]`).
 - **UI is `@hirobius/design-system` (HDS)**, installed from public npm. Theming is HDS token CSS
-  variables: `src/theme/brand-jade.css` remaps the accent to jade, and light/dark is a
+  variables with HDS's default graphite accent (no local colour override), and light/dark is a
   `data-theme` flip on `<html>`. Layout and type are HDS too (`Box`, `Stack`, `Grid`, `Text`, HDS
   fonts); the old local layout layer is gone and `src/hdsOnly.test.ts` keeps it out.
 - **Accessibility and contrast are tested, not asserted.** Component tests run axe-core WCAG A/AA
   checks, and `src/theme.contrast.test.ts` computes AA contrast for both themes from the shipped
-  HDS token file plus the jade override.
+  HDS token file.
 - **State without a framework.** A shared external store (`useSyncExternalStore`) persisted to
   `localStorage`; URL state (tab, Discover sub-tab, track) lives in the hash via a tiny route
   store, with no router dependency.
