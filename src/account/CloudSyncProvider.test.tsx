@@ -448,6 +448,48 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       });
     });
 
+    it('sign-out inside the push debounce still uploads the edit before wiping', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(edit);
+      await chooseAccountItem('Sign out'); // well inside the 500 ms debounce
+      await waitFor(() => expect(readTargets('trk')).toEqual([]));
+      expect(fake().tables.tracker[0].data).toMatchObject({
+        targets: { trk: [{ login: 'acme' }] },
+        evidence: 'Led a design system',
+        modes: { trk: 'hybrid' },
+      });
+    });
+
+    it('a failed push at sign-out asks before wiping; cancel keeps everything', async () => {
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      fake().failNext('tracker', 'upsert');
+      act(edit);
+      await chooseAccountItem('Sign out');
+      await waitFor(() =>
+        expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/latest changes/)),
+      );
+      expect(readTargets('trk')).toHaveLength(1);
+      expect(readEvidence()).toBe('Led a design system');
+    });
+
+    it('a failed push is retried (the edit is still dirty), so a later sign-out uploads it', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      fake().failNext('tracker', 'upsert');
+      act(edit);
+      await screen.findByText(OFFLINE_MSG);
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await chooseAccountItem('Sign out');
+      await waitFor(() => expect(readTargets('trk')).toEqual([]));
+      expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1);
+    });
+
     it('a v4 cloud blob (no new fields) never wipes this device on sign-in or refresh', async () => {
       fake().tables.tracker = [
         {
