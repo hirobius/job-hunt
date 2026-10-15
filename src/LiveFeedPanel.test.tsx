@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import { axe } from 'vitest-axe';
@@ -65,7 +65,6 @@ const RESULT: FeedResult = {
       error: 'Remotive: rate-limited — try again in a few minutes.',
     },
   ],
-  boardsSkipped: 0,
 };
 
 let cat: string;
@@ -100,10 +99,12 @@ describe('LiveFeedPanel', () => {
   it('searches the first track term on open and lists only matching postings', async () => {
     renderPanel(['https://jobs.ashbyhq.com/ramp']);
     const list = await screen.findByRole('list', { name: /live postings/i });
-    expect(feed.fetchFeed).toHaveBeenCalledWith({
-      term: 'design systems',
-      boardUrls: ['https://jobs.ashbyhq.com/ramp', ...STARTER_DIRECTORY],
-    });
+    expect(feed.fetchFeed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        term: 'design systems',
+        boardUrls: ['https://jobs.ashbyhq.com/ramp', ...STARTER_DIRECTORY],
+      }),
+    );
     const rows = within(list).getAllByRole('listitem');
     expect(rows).toHaveLength(2);
     const hn = rows.find((r) => r.textContent?.includes('UX/UI Designer'))!;
@@ -143,7 +144,6 @@ describe('LiveFeedPanel', () => {
           error: 'Remotive: timed out — try again later.',
         },
       ],
-      boardsSkipped: 0,
     });
     renderPanel();
     expect(await screen.findByText("Couldn't reach any source")).toBeInTheDocument();
@@ -192,7 +192,6 @@ describe('LiveFeedPanel', () => {
         },
       ],
       sources: [{ key: 'remoteok', label: 'Remote OK', fetched: 1 }],
-      boardsSkipped: 0,
     });
     renderPanel();
     const row = (await screen.findByText('Design Systems Lead')).closest('li')!;
@@ -202,15 +201,42 @@ describe('LiveFeedPanel', () => {
     expect(link.getAttribute('rel') ?? '').not.toMatch(/nofollow/);
   });
 
+  it('shows openings as boards answer, with a progress line, then settles', async () => {
+    let finish: (r: FeedResult) => void = () => {};
+    feed.fetchFeed.mockImplementationOnce(
+      (req: { onProgress?: (p: unknown) => void }) =>
+        new Promise<FeedResult>((resolve) => {
+          finish = resolve;
+          req.onProgress?.({
+            postings: RESULT.postings.slice(0, 1),
+            sources: RESULT.sources,
+            boardsDone: 1,
+            boardsTotal: 3,
+          });
+        }),
+    );
+    renderPanel();
+    expect(await screen.findByText('Design Systems Lead')).toBeInTheDocument();
+    expect(screen.getByText(/Read 1 of 3 boards/)).toBeInTheDocument();
+    act(() => finish(RESULT));
+    await waitFor(() => expect(screen.queryByText(/Read 1 of 3 boards/)).not.toBeInTheDocument());
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+  });
+
+  it('never says boards were skipped: there is no cap', async () => {
+    renderPanel(Array.from({ length: 150 }, (_, i) => `https://jobs.lever.co/co${i}`));
+    await screen.findByRole('list', { name: /live postings/i });
+    expect(screen.queryByText(/skipped/i)).not.toBeInTheDocument();
+  });
+
   it('searches a term chip when clicked', async () => {
     const user = userEvent.setup();
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     await user.click(screen.getByText('design engineer'));
-    expect(feed.fetchFeed).toHaveBeenLastCalledWith({
-      term: 'design engineer',
-      boardUrls: [...STARTER_DIRECTORY],
-    });
+    expect(feed.fetchFeed).toHaveBeenLastCalledWith(
+      expect.objectContaining({ term: 'design engineer', boardUrls: [...STARTER_DIRECTORY] }),
+    );
   });
 
   it('watches a company board, and explains a link that is not one', async () => {
@@ -219,7 +245,9 @@ describe('LiveFeedPanel', () => {
     const input = screen.getByLabelText(/watch a company/i);
     await user.type(input, 'https://www.linkedin.com/company/ramp');
     await user.click(screen.getByRole('button', { name: 'Watch' }));
-    expect(screen.getByText(/isn't a Greenhouse, Lever, Ashby, Workable or Recruitee job board/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/isn't a Greenhouse, Lever, Ashby, Workable or Recruitee job board/),
+    ).toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, 'jobs.ashbyhq.com/ramp');

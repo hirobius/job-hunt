@@ -14,6 +14,7 @@ import {
   SegmentedControl,
   Checkbox as HdsCheckbox,
   Spinner,
+  Stack,
   Tag,
   useToast,
   Box,
@@ -25,7 +26,7 @@ import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
 import LocationControl from './LocationControl';
 import type { WorkMode } from './jobsData';
 import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
-import { fetchFeed, MAX_BOARDS, type FeedResult } from './feed/fetchFeed';
+import { fetchFeed, type FeedResult } from './feed/fetchFeed';
 import { rankPostings } from './feed/match';
 import { applyTargeting, NO_TARGETING } from './feed/targeting';
 import type { Seniority } from './curation/types';
@@ -51,7 +52,12 @@ interface Loaded {
   at: number;
   result?: FeedResult;
   error?: string;
+  /** Still reading boards: `result` is what has answered so far. */
+  reading?: { done: number; total: number };
 }
+
+/** How often a long board read repaints the list. */
+const PROGRESS_REPAINT_MS = 250;
 
 export default function LiveFeedPanel({
   categoryId,
@@ -95,25 +101,50 @@ export default function LiveFeedPanel({
   useEffect(() => {
     if (!term.trim()) return;
     let alive = true;
-    fetchFeed({ term, boardUrls: boardsKey ? boardsKey.split('\n') : [] })
-      .then((result) => alive && setLoaded({ term, boardsKey, at: Date.now(), result }))
-      .catch(
-        () =>
-          alive &&
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const startedAt = Date.now();
+    fetchFeed({
+      term,
+      boardUrls: boardsKey ? boardsKey.split('\n') : [],
+      // Show what has answered so far, repainting at most a few times a second.
+      onProgress: (p) => {
+        if (!alive || timer) return;
+        timer = setTimeout(() => {
+          timer = undefined;
+          if (!alive) return;
+          setLoaded({
+            term,
+            boardsKey,
+            at: startedAt,
+            result: { postings: p.postings, sources: p.sources },
+            reading: { done: p.boardsDone, total: p.boardsTotal },
+          });
+        }, PROGRESS_REPAINT_MS);
+      },
+    })
+      .then((result) => {
+        clearTimeout(timer);
+        timer = undefined;
+        if (alive) setLoaded({ term, boardsKey, at: Date.now(), result });
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        if (alive)
           setLoaded({
             term,
             boardsKey,
             at: Date.now(),
             error: 'The feed failed unexpectedly — try searching again.',
-          }),
-      );
+          });
+      });
     return () => {
       alive = false;
+      clearTimeout(timer);
     };
   }, [term, boardsKey]);
 
   const current = loaded && loaded.term === term && loaded.boardsKey === boardsKey ? loaded : null;
-  const loading = !!term.trim() && !current;
+  const reading = current?.reading;
 
   const matched = useMemo(
     () =>
@@ -145,6 +176,8 @@ export default function LiveFeedPanel({
     hidden.seniority > 0 && `${hidden.seniority} hidden by level`,
     hidden.salary > 0 && `${hidden.salary} hidden by pay`,
   ].filter(Boolean);
+  // Boards still being read with nothing to show yet reads as loading; once some rows exist they show.
+  const loading = !!term.trim() && (!current || (!!reading && ranked.length === 0));
   const counts = useMemo(
     () => ({
       contract: ranked.filter((p) => p.signals.some((s) => s.id === 'contract')).length,
@@ -209,9 +242,10 @@ export default function LiveFeedPanel({
   };
 
   const errors = current?.result?.sources.filter((s) => s.error) ?? [];
-  const skipped = current?.result?.boardsSkipped ?? 0;
   const allFailed =
-    !!current?.result?.sources.length && errors.length === current.result.sources.length;
+    !reading &&
+    !!current?.result?.sources.length &&
+    errors.length === current.result.sources.length;
 
   return (
     <Box>
@@ -370,19 +404,23 @@ export default function LiveFeedPanel({
           </Alert>
         </Box>
       )}
-      {skipped > 0 && (
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginBottom: 'var(--semantic-space-scale-xs)',
-          }}
+      {reading && !loading && (
+        <Stack
+          direction="row"
+          gap="xs"
+          align="center"
+          style={{ marginBottom: 'var(--semantic-space-scale-xs)' }}
         >
-          {skipped} company {skipped === 1 ? 'board was' : 'boards were'} skipped — the feed reads
-          at most {MAX_BOARDS} per search.
-        </Text>
+          <Spinner size="sm" label="Reading company boards" />
+          <Text
+            variant="caption"
+            as="span"
+            role="status"
+            style={{ color: 'var(--semantic-color-content-secondary)' }}
+          >
+            Read {reading.done} of {reading.total} boards. More openings may appear.
+          </Text>
+        </Stack>
       )}
 
       {loading ? (
@@ -397,7 +435,9 @@ export default function LiveFeedPanel({
         >
           <Spinner size="sm" label="Loading live postings" />
           <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
-            Pulling live openings for “{term}”…
+            {reading
+              ? `Read ${reading.done} of ${reading.total} boards, nothing matching yet…`
+              : `Pulling live openings for “${term}”…`}
           </Text>
         </Box>
       ) : current?.error ? (

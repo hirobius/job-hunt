@@ -50,7 +50,6 @@ const RESULT: FeedResult = {
     posting('3', 'Backend Engineer', 'Postgres only.'),
   ],
   sources: [{ key: 'ashby:newco', label: 'Newco (Ashby)', fetched: 3 }],
-  boardsSkipped: 0,
 };
 
 const EVIDENCE = `Design system ownership: HDS (https://example.com/hds)
@@ -105,10 +104,12 @@ describe('Live postings with the radar engine', () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     expect(screen.queryByRole('radio', { name: 'Radar' })).toBeNull();
-    expect(feed.fetchFeed).toHaveBeenCalledWith({
-      term: 'design systems',
-      boardUrls: ['https://jobs.ashbyhq.com/newco', ...STARTER_DIRECTORY],
-    });
+    expect(feed.fetchFeed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        term: 'design systems',
+        boardUrls: ['https://jobs.ashbyhq.com/newco', ...STARTER_DIRECTORY],
+      }),
+    );
   });
 
   it('without evidence, postings carry no fit and the evidence box invites one', async () => {

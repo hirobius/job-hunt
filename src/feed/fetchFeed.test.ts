@@ -4,7 +4,6 @@ import {
   describeError,
   BOARD_CONCURRENCY,
   fetchFeed,
-  MAX_BOARDS,
   memoryKv,
   REMOTIVE_DAILY_MAX,
 } from './fetchFeed';
@@ -124,7 +123,6 @@ describe('fetchFeed', () => {
         error: expect.stringContaining('board not found'),
       }),
     ]);
-    expect(out.boardsSkipped).toBe(0);
   });
 
   it('drops postings whose link is not http(s) — it becomes a clickable href', async () => {
@@ -144,20 +142,66 @@ describe('fetchFeed', () => {
     expect(out.postings.map((p) => p.id)).toEqual(['remotive:2']);
   });
 
-  it('caps company boards and says how many it skipped', async () => {
-    const urls = Array.from({ length: MAX_BOARDS + 5 }, (_, i) => `https://jobs.lever.co/co${i}`);
-    const out = await fetchFeed({ term: 'x', boardUrls: urls }, async (url) =>
-      url.includes('search_by_date') ? { hits: [] } : url.includes('remotive') ? { jobs: [] } : [],
+  it('reads every distinct board: there is no cap', async () => {
+    const urls = Array.from({ length: 130 }, (_, i) => `https://jobs.lever.co/co${i}`);
+    const out = await fetchFeed(
+      { term: 'x', boardUrls: urls },
+      async (url) =>
+        url.includes('search_by_date')
+          ? { hits: [] }
+          : url.includes('remotive')
+            ? { jobs: [] }
+            : [],
+      { sources: NO_AGGREGATORS },
     );
-    expect(MAX_BOARDS).toBe(100);
-    expect(out.sources.filter((s) => s.key.startsWith('lever:'))).toHaveLength(MAX_BOARDS);
-    expect(out.boardsSkipped).toBe(5);
+    expect(out.sources.filter((s) => s.key.startsWith('lever:'))).toHaveLength(130);
+    expect(out).not.toHaveProperty('boardsSkipped');
+  });
+
+  it('reports progress as boards finish, so fast boards show before slow ones', async () => {
+    const urls = ['https://jobs.lever.co/fast', 'https://jobs.lever.co/slow'];
+    let releaseSlow: () => void = () => {};
+    const slow = new Promise<void>((r) => (releaseSlow = r));
+    const snaps: { done: number; total: number; ids: string[] }[] = [];
+    const run = fetchFeed(
+      {
+        term: 'engineer',
+        boardUrls: urls,
+        onProgress: (p) =>
+          snaps.push({
+            done: p.boardsDone,
+            total: p.boardsTotal,
+            ids: p.postings.map((x) => x.id),
+          }),
+      },
+      async (url) => {
+        if (url.includes('search_by_date')) return { hits: [] };
+        if (url.includes('remotive')) return { jobs: [] };
+        if (url.includes('lever.co/v0/postings/slow')) {
+          await slow;
+          return [{ id: 's', text: 'Engineer', hostedUrl: 'https://jobs.lever.co/slow/s' }];
+        }
+        return [{ id: 'f', text: 'Engineer', hostedUrl: 'https://jobs.lever.co/fast/f' }];
+      },
+      { sources: NO_AGGREGATORS },
+    );
+    await vi.waitFor(() => expect(snaps.some((s) => s.ids.includes('lever:fast:f'))).toBe(true));
+    const early = snaps.find((s) => s.ids.includes('lever:fast:f'))!;
+    expect(early.ids).not.toContain('lever:slow:s');
+    expect(early.total).toBe(2);
+    expect(early.done).toBeLessThan(2);
+    releaseSlow();
+    const out = await run;
+    const last = snaps[snaps.length - 1];
+    expect(last.done).toBe(2);
+    expect(last.ids.sort()).toEqual(out.postings.map((p) => p.id).sort());
+    expect(snaps.map((s) => s.done)).toEqual([...snaps.map((s) => s.done)].sort((a, b) => a - b));
   });
 
   it('reads company boards a few at a time, not all at once', async () => {
     let inFlight = 0;
     let peak = 0;
-    const urls = Array.from({ length: 20 }, (_, i) => `https://jobs.lever.co/co${i}`);
+    const urls = Array.from({ length: 130 }, (_, i) => `https://jobs.lever.co/co${i}`);
     await fetchFeed({ term: 'x', boardUrls: urls }, async (url) => {
       if (url.includes('search_by_date')) return { hits: [] };
       if (!url.includes('lever.co')) return url.includes('remotive') ? { jobs: [] } : [];
@@ -175,7 +219,7 @@ describe('fetchFeed', () => {
     const fetchJson = vi.fn();
     const out = await fetchFeed({ term: '  ', boardUrls: [] }, fetchJson);
     expect(fetchJson).not.toHaveBeenCalled();
-    expect(out).toEqual({ postings: [], sources: [], boardsSkipped: 0 });
+    expect(out).toEqual({ postings: [], sources: [] });
   });
 
   it('proves one hung source times out without blocking the others', async () => {

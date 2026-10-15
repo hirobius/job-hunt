@@ -55,7 +55,6 @@ const RESULT: FeedResult = {
     },
   ],
   sources: [{ key: 'hn', label: 'Hacker News', fetched: 4 }],
-  boardsSkipped: 0,
 };
 
 let cat: string;
