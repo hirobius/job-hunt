@@ -9,7 +9,11 @@ import { supabase as supa } from '../supabase';
 import { useJobs, getAllJobs, replaceAll } from '../store';
 import { useSnippets, getSnippets, replaceSnippets } from '../copyDeckStore';
 import { useTileTriage, getTileTriage, replaceTriage } from '../tileTriage';
-import { readBlob, writeBlob, mergeBlob, type SyncData } from '../syncBlob';
+import { getAllTargets, replaceTargets, useAllTargets } from '../feed/targets';
+import { getAllFilters, replaceFilters, useAllFilters } from '../feed/savedFilters';
+import { readEvidence, replaceEvidence, useEvidence } from '../radar/evidenceStore';
+import { getAllModes, replaceModes, useAllModes } from '../trackModes';
+import { readBlob, writeBlob, mergeBlob, BLOB_VERSION, type SyncData } from '../syncBlob';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
 import {
   getCurationSyncStatus,
@@ -43,6 +47,11 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const jobs = useJobs();
   const snippets = useSnippets();
   const triage = useTileTriage();
+  // Subscribed so a change to any of these re-runs the push effect below.
+  const targets = useAllTargets();
+  const filters = useAllFilters();
+  const evidence = useEvidence();
+  const modes = useAllModes();
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const [signInOpen, setSignInOpen] = useState(false);
@@ -66,6 +75,11 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     copydeck: getSnippets(),
     triage: getTileTriage(),
     legacyUserTiles: [],
+    targets: getAllTargets(),
+    filters: getAllFilters(),
+    evidence: readEvidence(),
+    modes: getAllModes(),
+    sourceV: BLOB_VERSION,
   });
   const localJson = () => JSON.stringify(writeBlob(localBlob()));
 
@@ -92,6 +106,10 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       replaceAll(next.jobs);
       replaceSnippets(next.copydeck);
       replaceTriage(next.triage);
+      replaceTargets(next.targets);
+      replaceFilters(next.filters);
+      replaceEvidence(next.evidence);
+      replaceModes(next.modes);
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
       pulledOk.current = true;
@@ -150,7 +168,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     pushTimer.current = setTimeout(() => pushNow(user), 500);
     // pushNow/localJson are stable enough; we intentionally fire only on data + user changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobs, snippets, triage, user]);
+  }, [jobs, snippets, triage, targets, filters, evidence, modes, user]);
 
   // re-pull on focus
   useEffect(() => {

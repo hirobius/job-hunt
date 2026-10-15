@@ -19,6 +19,10 @@ import { getSnippets, replaceSnippets } from '../copyDeckStore';
 import { getCurationState, replaceCurationState } from '../curation/curationStore';
 import { pushRestoredCuration } from '../curation/sync';
 import { getTileTriage, replaceTriage } from '../tileTriage';
+import { getAllTargets, replaceTargets } from '../feed/targets';
+import { getAllFilters, replaceFilters } from '../feed/savedFilters';
+import { readEvidence, replaceEvidence } from '../radar/evidenceStore';
+import { getAllModes, replaceModes } from '../trackModes';
 import { BRAND } from '../brand';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
 
@@ -31,6 +35,10 @@ function currentState(): AccountState {
     copydeck: getSnippets(),
     curation: getCurationState(),
     triage: getTileTriage(),
+    targets: getAllTargets(),
+    filters: getAllFilters(),
+    evidence: readEvidence(),
+    modes: getAllModes(),
   };
 }
 
@@ -44,6 +52,10 @@ function applyState(next: AccountState) {
   replaceSnippets(next.copydeck);
   replaceCurationState(next.curation);
   replaceTriage(next.triage);
+  replaceTargets(next.targets);
+  replaceFilters(next.filters);
+  replaceEvidence(next.evidence);
+  replaceModes(next.modes);
 }
 
 export default function DataToolsProvider({ children }: { children: ReactNode }) {
