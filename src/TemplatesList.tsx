@@ -5,8 +5,8 @@ import { Star } from 'lucide-react';
 import { Box, Button, Card, Icon, Input as HdsInput, Stack, Text } from '@hirobius/design-system';
 import EmptyState from './EmptyState';
 import type { Snippet } from './copyDeckStore';
+import { SECONDARY } from './hds-gaps/tone';
 
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 
 const snippetHash = (id: string) => `#/copy-deck/${encodeURIComponent(id)}`;
@@ -73,7 +73,7 @@ export default function TemplatesList({
                               <Icon icon={Star} weight="fill" />
                             </Box>
                           )}
-                          <Text variant="ui" as="span" style={{ fontWeight: 600 }}>
+                          <Text variant="ui" as="span" className="rjb-semibold">
                             {s.label.trim() || 'Untitled'}
                           </Text>
                         </Stack>

@@ -1,15 +1,13 @@
 // Rows shared by the Teams tool and the By company view: one outreach target (a design-system team
 // with its repo, stars and open roles), the watch action, and the saved-targets section. Kept apart
 // from the engine so Live postings can show saved targets without loading the GitHub search code.
-import { useMemo } from 'react';
-import { Badge, Button, InlineLink, Stack, Text, useToast } from '@hirobius/design-system';
+import { Badge, Button, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { atsSearchUrl } from './jobsData';
-import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
+import type { Board } from './feed/sources/ats';
 import { removeTarget, useTargets, type Target } from './feed/targets';
 import { SOURCE_LABEL } from './feed/types';
-import { watchBoard } from './feed/watchlist';
-
-export const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
+import { listStyle, useWatching } from './outreachShared';
 
 export type Row = Omit<Target, 'savedAt'>;
 
@@ -108,33 +106,6 @@ export function TargetRow({
   );
 }
 
-export const listStyle = {
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-  display: 'grid',
-  gap: 'var(--primitive-space-3)',
-} as const;
-
-/** Hook: what the track already watches and the watch action, shared by both surfaces. */
-export function useWatching(categoryId: string, boardUrls: string[]) {
-  const { toast } = useToast();
-  const watched = useMemo(() => boardsFromUrls(boardUrls, Infinity), [boardUrls]);
-  const isWatching = (b?: Board) =>
-    !!b && watched.some((w) => w.kind === b.kind && w.slug.toLowerCase() === b.slug.toLowerCase());
-  const watch = (b: Board) => {
-    const r = watchBoard(categoryId, canonicalBoardUrl(b));
-    if (r.ok)
-      toast({
-        title: `Watching ${r.label}`,
-        description: 'Its openings now show up in Live postings.',
-        tone: 'success',
-      });
-    else toast({ title: r.error, tone: 'warning' });
-  };
-  return { isWatching, watch };
-}
-
 /** The saved targets of a track, as a section. Used under the By company view. */
 export function SavedTargets({
   categoryId,
@@ -150,12 +121,12 @@ export function SavedTargets({
   return (
     <Stack gap="xs" as="section" aria-label="Outreach targets">
       {heading && (
-        <Text variant="title" as="h3">
+        <Text variant="body" as="h3" className="rjb-semibold">
           Outreach targets
         </Text>
       )}
       {targets.length === 0 ? (
-        <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+        <Text variant="caption" as="p" style={SECONDARY}>
           Companies with no opening yet that you want to write to. Find design-system teams in the
           Teams tool and save the ones worth a note.{' '}
           <InlineLink href="#/discover/teams" externalIcon={false}>

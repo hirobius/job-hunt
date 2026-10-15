@@ -32,8 +32,8 @@ import { fillTemplate, unfilledTokens, valuesFromJob } from './templateFill';
 import { insertAt, TOKEN_CHIPS } from './templateEditor';
 import { copyFilled } from './templateCopy';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
+import { SECONDARY } from './hds-gaps/tone';
 
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 const NO_JOB = 'none';
 // HDS TabsContent is a tinted, padded card; inside an editor pane it should be bare (as in App.tsx).
 const BARE_PANEL = {
@@ -139,7 +139,7 @@ export default function TemplateDetail({
         </Text>
       </Surface>
       {missing.length > 0 && (
-        <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+        <Text variant="caption" as="p" style={SECONDARY}>
           {job
             ? `Still unfilled for this job: ${missing.join(', ')}. Add them on the job, or edit after pasting.`
             : 'Pick a job to fill the [Tokens] in.'}

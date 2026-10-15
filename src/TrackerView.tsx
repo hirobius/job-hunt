@@ -28,8 +28,7 @@ import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import JobsTable from './JobsTable';
 import JobListCard from './JobListCard';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
 
 export default function TrackerView() {
   const jobs = useJobs();
@@ -82,6 +81,7 @@ export default function TrackerView() {
         actions={jobs.length > 0 ? addJobButton : undefined}
         style={{ marginBottom: 'var(--primitive-space-4)' }}
       />
+      <SampleBanner jobs={jobs} />
 
       {/* One toolbar (#115 / #129): search grows; status and sort sit beside it and wrap under it
           on phones. Status is a grouped menu, not an 8-option strip. No toolbar until there is
@@ -143,9 +143,7 @@ export default function TrackerView() {
                             }}
                           >
                             <span>{FILTER_LABEL[f]}</span>
-                            <span style={{ color: 'var(--semantic-color-content-secondary)' }}>
-                              {counts[f]}
-                            </span>
+                            <span style={SECONDARY}>{counts[f]}</span>
                           </Box>
                         </HdsMenu.RadioItem>
                       ))}
@@ -221,7 +219,6 @@ export default function TrackerView() {
         </Dialog.Content>
       </Dialog>
 
-      <SampleBanner jobs={jobs} />
       {jobs.length === 0 ? (
         // First use: the shared teaching empty (#132): what this will hold, one primary action,
         // one way to see it working.

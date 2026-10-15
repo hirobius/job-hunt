@@ -159,6 +159,16 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   companies and Your evidence sit in a collapsed **Refine** disclosure under the search. Fit wording
   is `screening.verdictLabel` everywhere (Strong fit / Stretch / Reach). Pinned in
   `src/discover.test.tsx`, `TileGrid.test.tsx`, `LiveFeed*.test.tsx`.
+- **Design polish (#133, `docs/specs/design-polish.md`, `docs/redesign-2026.md`):** banners are not page
+  furniture: `SyncNudge` is one line, Today only (`useUnsynced` also drives the dot on the Account
+  trigger elsewhere), and `SampleBanner` is a one-line note under the page header. Section heads are
+  `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
+  host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 40px phone buttons,
+  reduced motion); shared secondary colour is `hds-gaps/tone` `SECONDARY`. Guards: inline `style={{`
+  ceiling and no inline font size/weight in `hdsOnly.test.ts` (only lower the ceiling), lint is
+  `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a
+  held HDS gap, hds#748; also tracked upstream: active-tab underline hds#749, touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
+  targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.12.1).
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.

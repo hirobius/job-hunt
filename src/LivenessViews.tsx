@@ -7,8 +7,7 @@ import { eligibleJobs, type LiveCheck } from './feed/liveness';
 import { autoLivenessCheck, checkFor, runLivenessCheck, useLiveness } from './livenessStore';
 import { findJobById, jobIdOf, useJobs } from './store';
 import type { Job } from './types';
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
 
 const checkedOn = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });

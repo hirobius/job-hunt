@@ -233,6 +233,36 @@ const pairs: Pair[] = [
       min: 4.5,
     },
   ]),
+  // Composed Badge/Tag/Button states (#133): the tint a Badge sits on, and hover/selected/pressed
+  // fills under the ordinary text roles.
+  ...(['success', 'warning', 'error', 'info', 'inProgress'] as const).map((tone): Pair => ({
+    name: `${tone} badge text on its tint`,
+    fg: `semantic-color-feedback-${tone}`,
+    bg: `semantic-color-feedback-bg-${tone}`,
+    min: 4.5,
+  })),
+  ...(['hover', 'pressed', 'selected', 'sunken', 'muted'] as const).flatMap((fill): Pair[] => [
+    {
+      name: `body text on ${fill}`,
+      fg: 'semantic-color-content-primary',
+      bg: `semantic-color-surface-${fill}`,
+      min: 4.5,
+    },
+    {
+      name: `secondary text on ${fill}`,
+      fg: 'semantic-color-content-secondary',
+      bg: `semantic-color-surface-${fill}`,
+      min: 4.5,
+    },
+  ]),
+  ...(['hover', 'pressed'] as const).map((state): Pair => ({
+    // KNOWN HDS GAP: the dark-mode pressed accent is under 4.5:1 with the on-accent label (a
+    // moment of press, not a resting state; 4.17:1). Held at a 3.0 floor until hds#748 ships.
+    name: `on-accent label on the ${state} accent${state === 'pressed' ? ' (hds#748, floor 3.0)' : ''}`,
+    fg: 'semantic-color-content-onAccent',
+    bg: `semantic-accent-${state}`,
+    min: state === 'pressed' ? 3 : 4.5,
+  })),
 ];
 
 for (const [mode, map] of [

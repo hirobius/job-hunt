@@ -10,9 +10,9 @@ import { pipelineMetrics, RECENT_DAYS, vsPrevious } from './metrics';
 import { computeFunnel } from './funnel';
 import { VERDICTS } from './screening';
 import type { Job } from './types';
+import { SECONDARY } from './hds-gaps/tone';
 
 const OPEN_KEY = 'rjb_ui_insights_open';
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 const pct = (r: number | null) => (r == null ? '—' : `${Math.round(r * 100)}%`);
 
 // Open unless this device closed it.
@@ -46,7 +46,11 @@ export default function Insights({ jobs }: { jobs: Job[] }) {
 
   return (
     <Disclosure
-      label="Insights"
+      label={
+        <Text variant="body" as="span" className="rjb-semibold">
+          Insights
+        </Text>
+      }
       variant="panel"
       open={open}
       onOpenChange={(o) => {
@@ -85,7 +89,7 @@ export default function Insights({ jobs }: { jobs: Job[] }) {
         </MetricTilesAutoFit>
         <section aria-labelledby="insights-funnel">
           <Stack gap="tight">
-            <Text variant="ui" as="h3" id="insights-funnel" style={{ margin: 0, fontWeight: 600 }}>
+            <Text variant="ui" as="h3" id="insights-funnel" className="rjb-semibold">
               Funnel
             </Text>
             {reached.map((s) => (
@@ -106,7 +110,7 @@ export default function Insights({ jobs }: { jobs: Job[] }) {
                 />
               </Stack>
             ))}
-            <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+            <Text variant="caption" as="p" style={SECONDARY}>
               Fit: {fit}
             </Text>
           </Stack>

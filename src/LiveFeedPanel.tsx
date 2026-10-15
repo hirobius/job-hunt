@@ -50,6 +50,7 @@ import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
 import { demandPatterns } from './radar/patterns';
 import { readEvidence, TIER_INFO, writeEvidence } from './radar/evidenceStore';
 import { SOURCE_LABEL, type RankedPosting, type SignalId } from './feed/types';
+import { SECONDARY } from './hds-gaps/tone';
 
 type Focus = 'all' | 'strong' | SignalId;
 /** Rows rendered per page — the rest sit behind "Show more". */
@@ -610,12 +611,7 @@ export default function LiveFeedPanel({
           style={{ marginBottom: 'var(--semantic-space-scale-xs)' }}
         >
           <Spinner size="sm" label="Reading company boards" />
-          <Text
-            variant="caption"
-            as="span"
-            role="status"
-            style={{ color: 'var(--semantic-color-content-secondary)' }}
-          >
+          <Text variant="caption" as="span" role="status" style={SECONDARY}>
             Read {reading.done} of {reading.total} boards. More openings may appear.
           </Text>
         </Stack>
@@ -726,11 +722,7 @@ export default function LiveFeedPanel({
           {/* One line, once, instead of a fit badge missing from every row. */}
           {!byCompany && evidence.length === 0 && visible.length > 0 && (
             <Box sx={{ mt: 'xs' }}>
-              <Text
-                variant="caption"
-                as="span"
-                style={{ color: 'var(--semantic-color-content-secondary)' }}
-              >
+              <Text variant="caption" as="span" style={SECONDARY}>
                 Postings get a fit once you add evidence.{' '}
               </Text>
               <Button size="sm" variant="tertiary" onClick={() => setRefineOpen(true)}>
@@ -812,11 +804,7 @@ function CompanyRow({
                   {p.title}
                 </InlineLink>
               </Text>
-              <Text
-                variant="caption"
-                as="span"
-                style={{ color: 'var(--semantic-color-content-secondary)' }}
-              >
+              <Text variant="caption" as="span" style={SECONDARY}>
                 {' '}
                 · {SOURCE_LABEL[p.source]}
               </Text>

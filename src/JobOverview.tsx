@@ -84,7 +84,8 @@ export default function JobOverview({ job }: { job: Job }) {
               style={{
                 color: 'var(--semantic-color-feedback-success)',
                 opacity: saved ? 1 : 0,
-                transition: 'opacity 0.2s',
+                transition:
+                  'opacity var(--hds-motion-productive-duration) var(--hds-motion-productive-easing)',
               }}
             >
               Saved ✓

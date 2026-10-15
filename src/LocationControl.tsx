@@ -4,6 +4,7 @@
 import { Input as HdsInput, SegmentedControl, Box, Text } from '@hirobius/design-system';
 import type { WorkMode } from './jobsData';
 import { contextLabel, useTrackContext } from './discoverContext';
+import { SECONDARY } from './hds-gaps/tone';
 
 const REMOTE_COMPETITION_HINT =
   'Remote roles draw ~5× the applicants (2024) — local & hybrid compete less.';
@@ -37,11 +38,7 @@ export default function LocationControl({ categoryId }: { categoryId: string }) 
         />
       </Box>
       {mode === 'remote' && (
-        <Text
-          variant="caption"
-          as="span"
-          style={{ color: 'var(--semantic-color-content-secondary)' }}
-        >
+        <Text variant="caption" as="span" style={SECONDARY}>
           {REMOTE_COMPETITION_HINT}
         </Text>
       )}

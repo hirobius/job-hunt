@@ -18,8 +18,7 @@ import { TrySampleButton } from './demo/SampleData';
 import { hasCloudSession } from './demo/loadSample';
 import { addJob, findJobByUrl } from './store';
 import { navigate } from './route';
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
 
 // The guided first run (#132; started as #59 / B1, decision D1). The shell's gate (App.tsx, #128)
 // shows it on Today for a first run and, behind "Choose a track", on Discover with no tracks.
@@ -103,7 +102,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
               Set up your board
             </Text>
             <Progress value={step} max={STEPS} label={`Step ${step} of ${STEPS}`} />
-            <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+            <Text variant="caption" as="p" style={SECONDARY}>
               Step {step} of {STEPS}
             </Text>
           </Stack>
@@ -118,7 +117,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
           )}
           {step === 2 && (
             <Stack gap="tight">
-              <Text variant="ui" as="h3" style={{ margin: 0, fontWeight: 600 }}>
+              <Text variant="ui" as="h3" className="rjb-semibold">
                 Where do you want to work?
               </Text>
               <HdsInput
@@ -133,7 +132,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
           )}
           {step === 3 && (
             <Stack gap="tight">
-              <Text variant="ui" as="h3" style={{ margin: 0, fontWeight: 600 }}>
+              <Text variant="ui" as="h3" className="rjb-semibold">
                 Add your first job
               </Text>
               <HdsInput
@@ -204,7 +203,7 @@ function PickTrack({
 }) {
   return (
     <Stack gap="tight">
-      <Text variant="ui" as="h3" style={{ margin: 0, fontWeight: 600 }}>
+      <Text variant="ui" as="h3" className="rjb-semibold">
         Pick a track
       </Text>
       <Text variant="body" style={SECONDARY}>
@@ -246,7 +245,8 @@ function PickTrack({
                     variant="ui"
                     as="span"
                     id={`pack-${p.id}`}
-                    style={{ fontWeight: 600, color: 'inherit' }}
+                    className="rjb-semibold"
+                    style={{ color: 'inherit' }}
                   >
                     {p.label}
                   </Text>

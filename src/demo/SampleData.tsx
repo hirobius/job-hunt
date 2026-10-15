@@ -1,7 +1,8 @@
 // "Try with sample data" (#107): the empty-Tracker button that loads the fictional pipeline, and
 // the banner that stays up while any sample record exists. Pure HDS + tokens (no src/ui), so it
 // adds nothing to the src/ui retirement (#92) or the brand move (#91).
-import { Button, Callout, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, Stack, Text } from '@hirobius/design-system';
+import { SECONDARY } from '../hds-gaps/tone';
 import type { Job } from '../types';
 import { clearSample, hasCloudSession, loadSample } from './loadSample';
 import { isSample } from './sampleData';
@@ -17,23 +18,22 @@ export function TrySampleButton() {
   );
 }
 
-/** Visible while the tracker holds sample records; Clear removes exactly those. */
+/** Visible while the tracker holds sample records; Clear removes exactly those. A one-line note
+ *  under the page header (#133), not a full-width band. */
 export function SampleBanner({ jobs }: { jobs: Job[] }) {
   const n = jobs.filter(isSample).length;
   if (n === 0) return null;
   return (
-    <div style={{ marginBlockEnd: 'var(--semantic-space-component-gap)' }}>
-      <Callout tone="info" role="status" aria-label="Sample data">
-        <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
-          <Text variant="ui" as="span">
-            <strong>Sample data</strong> · {n} fictional {n === 1 ? 'job' : 'jobs'}. Clearing
-            removes them and any edits to them.
-          </Text>
-          <Button variant="tertiary" size="sm" onClick={() => clearSample()}>
-            Clear sample data
-          </Button>
-        </Stack>
-      </Callout>
-    </div>
+    <Box role="status" aria-label="Sample data" sx={{ marginBlockEnd: 'sm' }}>
+      <Stack direction="row" wrap="wrap" gap="px8" align="center">
+        <Text variant="caption" as="span" style={SECONDARY}>
+          <span className="rjb-semibold">Sample data</span> · {n} fictional{' '}
+          {n === 1 ? 'job' : 'jobs'}. Clearing removes them and any edits to them.
+        </Text>
+        <Button variant="tertiary" size="sm" onClick={() => clearSample()}>
+          Clear sample data
+        </Button>
+      </Stack>
+    </Box>
   );
 }

@@ -21,7 +21,7 @@ export default function GettingStarted({ jobs }: { jobs: Job[] }) {
     <Card bordered role="region" aria-label="Getting started">
       <Stack gap="tight">
         <Stack direction="row" gap="tight" align="center" justify="space-between">
-          <Text variant="ui" as="h3" style={{ margin: 0, fontWeight: 600 }}>
+          <Text variant="ui" as="h3" className="rjb-semibold">
             Getting started
           </Text>
           <Button

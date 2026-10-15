@@ -124,7 +124,11 @@ const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'account-menu', [['button', /^(Account|More options)/]]],
   [/^(Pipeline|Tracker)$/, 'status-menu', [['button', /^Status:/]]],
   [/^(Pipeline|Tracker)$/, 'add-job-dialog', [['button', /^Add job$/]]],
-  [/^(Pipeline|Tracker)$/, 'sign-in-dialog', [['button', /^Sign in$/]]],
+  [
+    /^(Pipeline|Tracker)$/,
+    'sign-in-dialog',
+    [['button', /^Account/], ['menuitem', /^Sign in/]],
+  ],
   [/^(Pipeline|Tracker)$/, 'row-menu', [['button', /^More actions/]]],
   // A job's details, screener and templates live on its page (#129 moved them off the list).
   [/^(Pipeline|Tracker)$/, 'job-page', [['first-job']]],

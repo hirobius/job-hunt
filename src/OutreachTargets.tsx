@@ -5,14 +5,9 @@
 // rows: the "Teams" tool (find + saved) and the By company view of Live postings (saved only).
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Input as HdsInput, Stack, Text, useToast } from '@hirobius/design-system';
-import {
-  listStyle,
-  SavedTargets,
-  SECONDARY,
-  TargetRow,
-  useWatching,
-  type Row,
-} from './OutreachRows';
+import { SavedTargets, TargetRow, type Row } from './OutreachRows';
+import { listStyle, useWatching } from './outreachShared';
+import { SECONDARY } from './hds-gaps/tone';
 import { findDesignSystemOrgs, MIN_STARS, type OrgTarget, type RunReport } from './feed/dsOrgs';
 import { createGithubBudget } from './feed/githubBudget';
 import { probeFetchJson } from './feed/probeFetch';
@@ -119,7 +114,7 @@ export default function OutreachTargets({
       {report?.error && <Alert tone="warning">{report.error}</Alert>}
 
       {ran && (
-        <Text variant="ui" as="p" role="status" style={{ margin: 0 }}>
+        <Text variant="ui" as="p" role="status">
           {running
             ? `Checking… ${rows.length} ${rows.length === 1 ? 'team' : 'teams'} so far`
             : `${rows.length} ${rows.length === 1 ? 'team' : 'teams'} found`}
