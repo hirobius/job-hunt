@@ -13,76 +13,39 @@ import {
   Text,
 } from '@hirobius/design-system';
 import { useJobs, addJob } from './store';
-import { deriveJobState } from './jobState';
-import { sortJobs, SORTS, type SortKey } from './jobSort';
+import { SORTS, type SortKey } from './jobSort';
+import {
+  FILTER_GROUPS,
+  FILTER_LABEL,
+  filterCounts,
+  setPipelineView,
+  usePipelineView,
+  visibleJobs,
+  type Filter,
+} from './pipelineView';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
-import type { Job, Status } from './types';
 import JobsTable from './JobsTable';
 import JobListCard from './JobListCard';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
 
-type Filter = 'active' | 'all' | Status | 'retired';
-
-// The status menu (#129): two views, then the stages grouped by where a job is.
-const FILTER_LABEL: Record<Filter, string> = {
-  active: 'Active',
-  all: 'All',
-  Saved: 'Saved',
-  Applied: 'Applied',
-  Interviewing: 'Interviewing',
-  Offer: 'Offer',
-  Rejected: 'Rejected',
-  retired: 'Retired',
-};
 const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
-
-// Active first; All and Retired demoted to the end (#129). A group without a label is just a
-// separated section.
-const FILTER_GROUPS: { label?: string; items: Filter[] }[] = [
-  { label: 'Views', items: ['active'] },
-  { label: 'In progress', items: ['Saved', 'Applied', 'Interviewing', 'Offer'] },
-  { label: 'Closed', items: ['Rejected', 'retired'] },
-  { items: ['all'] },
-];
-function matches(j: Job, f: Filter): boolean {
-  const s = deriveJobState(j);
-  if (f === 'active') return s.isActive;
-  if (f === 'all') return true;
-  if (f === 'retired') return !!j.archived;
-  return !j.archived && s.status === f;
-}
 
 export default function TrackerView() {
   const jobs = useJobs();
-  const [filter, setFilter] = useState<Filter>('active');
-  const [sort, setSort] = useState<SortKey>('recent');
-  const [q, setQ] = useState('');
+  const view = usePipelineView();
+  const { filter, sort, q } = view;
+  const setFilter = (filter: Filter) => setPipelineView({ filter });
+  const setSort = (sort: SortKey) => setPipelineView({ sort });
+  const setQ = (q: string) => setPipelineView({ q });
   const [url, setUrl] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   // A sortable table where there's room for its six columns; compact cards below that (#129).
   const wide = useAtLeast('lg');
 
-  const shown = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    const textMatch = (j: Job) =>
-      !needle ||
-      [j.label, j.company, j.location, j.note, j.contact, j.url].some((f) =>
-        (f || '').toLowerCase().includes(needle),
-      );
-    return sortJobs(jobs, sort).filter((j) => matches(j, filter) && textMatch(j));
-  }, [jobs, filter, sort, q]);
+  const shown = useMemo(() => visibleJobs(jobs, view), [jobs, view]);
   const sortLabel = SORTS.find((s) => s.key === sort)?.label ?? '';
-  const counts = useMemo(
-    () =>
-      Object.fromEntries(
-        FILTER_GROUPS.flatMap((g) => g.items).map((f) => [
-          f,
-          jobs.filter((j) => matches(j, f)).length,
-        ]),
-      ) as Record<Filter, number>,
-    [jobs],
-  );
+  const counts = useMemo(() => filterCounts(jobs), [jobs]);
 
   const submit = () => {
     if (!url.trim()) return;

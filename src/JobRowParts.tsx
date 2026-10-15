@@ -1,5 +1,5 @@
 // The pieces one job row is made of (#129), shared by the desktop table (JobsTable), the phone
-// cards (JobListCard) and the job page's card (JobCard): the status badge, the row's one next
+// cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
 // step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
 import { EllipsisVertical } from 'lucide-react';
 import { Badge, Button, Icon, Menu } from '@hirobius/design-system';
@@ -21,14 +21,23 @@ export function StatusBadge({ job }: { job: Job }) {
 
 /** The row's one next step, or nothing when there isn't one. Secondary, so the page's own
  *  primary action (Add job) stays the only filled button on the screen. */
-export function RowPrimaryAction({ job, size = 'sm' }: { job: Job; size?: Size }) {
+export function RowPrimaryAction({
+  job,
+  size = 'sm',
+  variant = 'secondary',
+}: {
+  job: Job;
+  size?: Size;
+  /** The job page's header makes this its one primary action. */
+  variant?: 'primary' | 'secondary';
+}) {
   const action = primaryAction(job);
   const title = titleOf(job);
   if (action === 'apply')
     return (
       <Button
         size={size}
-        variant="secondary"
+        variant={variant}
         aria-label={`Mark applied: ${title}`}
         onClick={() => setStatus(job.url, 'Applied')}
       >
@@ -39,7 +48,7 @@ export function RowPrimaryAction({ job, size = 'sm' }: { job: Job; size?: Size }
     return (
       <Button
         size={size}
-        variant="secondary"
+        variant={variant}
         aria-label={`Log follow-up: ${title}`}
         onClick={() => logFollowUp(job.url)}
       >
@@ -50,7 +59,16 @@ export function RowPrimaryAction({ job, size = 'sm' }: { job: Job; size?: Size }
 }
 
 /** Everything else a row can do. */
-export function RowMenu({ job, size = 'sm' }: { job: Job; size?: Size }) {
+export function RowMenu({
+  job,
+  size = 'sm',
+  canRemove = true,
+}: {
+  job: Job;
+  size?: Size;
+  /** The job page puts Remove in its own confirmed section instead (#130). */
+  canRemove?: boolean;
+}) {
   const title = titleOf(job);
   return (
     <Menu>
@@ -85,14 +103,18 @@ export function RowMenu({ job, size = 'sm' }: { job: Job; size?: Size }) {
         >
           Find more like this
         </Menu.Item>
-        <Menu.Separator />
-        {/* HDS Menu.Item has no danger tone; the feedback token marks the destructive item. */}
-        <Menu.Item
-          onSelect={() => removeJob(job.url)}
-          style={{ color: 'var(--semantic-color-feedback-error)' }}
-        >
-          Remove
-        </Menu.Item>
+        {canRemove && (
+          <>
+            <Menu.Separator />
+            {/* HDS Menu.Item has no danger tone; the feedback token marks the destructive item. */}
+            <Menu.Item
+              onSelect={() => removeJob(job.url)}
+              style={{ color: 'var(--semantic-color-feedback-error)' }}
+            >
+              Remove
+            </Menu.Item>
+          </>
+        )}
       </Menu.Content>
     </Menu>
   );

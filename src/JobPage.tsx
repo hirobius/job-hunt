@@ -1,16 +1,92 @@
-// A saved job's own page (#127): `#/queue/<jobId>`, inside the Pipeline tab. For now it is the
-// job's card with Details open under a page header and a way back; Phase 4 (#130) turns it into
-// the two-pane / full-page detail with sections.
-import { useEffect } from 'react';
-import { Box, Button, Icon } from '@hirobius/design-system';
-import { PageHeader } from '@hirobius/design-system/patterns';
-import { ArrowLeft } from 'lucide-react';
+// A saved job's own page (#127, #130): `#/queue/<jobId>`, inside the Pipeline tab. A header
+// (title, status, one next step, menu) over the job's sections as tabs. The open tab is local
+// state, not in the URL, and resets to Overview when the job changes.
+import { useEffect, useState } from 'react';
+import {
+  Box,
+  Skeleton,
+  Stack,
+  Text,
+  Sidebar,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@hirobius/design-system';
 import { findJobById, useJobs } from './store';
-import { titleOf } from './jobRow';
 import { openJob } from './route';
 import { useCloudSync } from './account/accountContext';
-import EmptyState from './EmptyState';
-import JobCard from './JobCard';
+import JobHeader from './JobHeader';
+import JobOverview from './JobOverview';
+import JobRail from './JobRail';
+import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
+import { useAtLeast } from './hds-gaps/useBreakpoint';
+import JobScreening from './JobScreening';
+import JobInterviews from './JobInterviews';
+import { TodosNotes } from './TodosNotes';
+import type { Job } from './types';
+
+const withCount = (label: string, n: number) => (n > 0 ? `${label} (${n})` : label);
+
+function JobSections({ job }: { job: Job }) {
+  const [tab, setTab] = useState('overview');
+  const openTodos = (job.todos ?? []).filter((t) => !t.done).length;
+  // HDS TabsContent is a padded surface (as for the shell's tabs, see App.tsx BARE_PANEL): make
+  // it bare so the section sits on the page, a step under the tab rule.
+  const panel = {
+    background: 'transparent',
+    padding: 0,
+    borderRadius: 0,
+    marginTop: 'var(--primitive-space-4)',
+  } as const;
+  return (
+    <Tabs value={tab} onValueChange={setTab}>
+      {/* Four tabs can outrun a 390px phone: the fade says more sit past the edge. */}
+      <TabsOverflowFade value={tab}>
+        <TabsList aria-label="Job sections" style={{ width: '100%', marginBottom: 0 }}>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="screening">Screening</TabsTrigger>
+          <TabsTrigger value="interviews">
+            {withCount('Interviews', job.events?.length ?? 0)}
+          </TabsTrigger>
+          <TabsTrigger value="todos">{withCount('To-dos', openTodos)}</TabsTrigger>
+        </TabsList>
+      </TabsOverflowFade>
+      <TabsContent value="overview" style={panel}>
+        <JobOverview job={job} />
+      </TabsContent>
+      <TabsContent value="screening" style={panel}>
+        <JobScreening job={job} />
+      </TabsContent>
+      <TabsContent value="interviews" style={panel}>
+        <JobInterviews job={job} />
+      </TabsContent>
+      <TabsContent value="todos" style={panel}>
+        <TodosNotes key={job.url} job={job} />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function JobPageSkeleton() {
+  return (
+    <Box aria-busy="true" sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
+      <Text
+        variant="ui"
+        as="p"
+        role="status"
+        style={{ color: 'var(--semantic-color-content-secondary)' }}
+      >
+        Looking for this job. It may still be syncing to this device.
+      </Text>
+      <Stack gap="normal" aria-hidden="true">
+        <Skeleton variant="text" width="60%" />
+        <Skeleton variant="text" width="35%" />
+        <Skeleton variant="rectangular" height={120} />
+      </Stack>
+    </Box>
+  );
+}
 
 export default function JobPage({ jobId }: { jobId: string }) {
   const job = findJobById(jobId, useJobs());
@@ -27,30 +103,27 @@ export default function JobPage({ jobId }: { jobId: string }) {
     window.scrollTo?.({ top: 0 });
   }, [jobId]);
 
-  const back = (
-    <Button
-      variant="tertiary"
-      size="sm"
-      iconLeft={<Icon icon={ArrowLeft} />}
-      onClick={() => openJob(null)}
-    >
-      Back to Pipeline
-    </Button>
-  );
+  // HDS Sidebar only wraps with CSS, so below lg it would stack the list above the job: choose in
+  // JS and show the job alone, with a Back link, instead.
+  const wide = useAtLeast('lg');
 
-  if (!job)
-    return <EmptyState title="Job not found" message="It may still be syncing to this device." />;
+  // Not found yet: it may be about to sync in, so wait quietly. Once sync has settled the effect
+  // above has already sent us back to the Pipeline.
+  if (!job) return <JobPageSkeleton />;
 
-  // The prose measure for the detail form until Phase 4 (#130) makes this a two-pane page.
-  return (
-    <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
-      <PageHeader
-        level={2}
-        breadcrumb={back}
-        title={titleOf(job)}
-        style={{ marginBottom: 'var(--primitive-space-4)' }}
-      />
-      <JobCard job={job} defaultDetailsOpen />
+  const detail = (
+    <Box>
+      <JobHeader job={job} showBack={!wide} />
+      {/* Keyed by job, so the open tab and every field's draft reset when the job changes. */}
+      <JobSections key={job.url} job={job} />
     </Box>
   );
+  if (wide)
+    return (
+      <Sidebar side="start" sideWidth="22rem" contentMin="50%" gap="normal">
+        <JobRail openId={jobId} />
+        {detail}
+      </Sidebar>
+    );
+  return <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>{detail}</Box>;
 }

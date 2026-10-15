@@ -7,18 +7,20 @@ import {
   Icon,
   Box,
   Text,
-  Disclosure,
 } from '@hirobius/design-system';
 import { X, Plus } from 'lucide-react';
 import { updateJob } from './store';
-import { addTodo, toggleTodo, deleteTodo, todoProgress, seedStarterTodos } from './todos';
+import { addTodo, toggleTodo, deleteTodo, seedStarterTodos } from './todos';
 import type { Job } from './types';
 
-/** Notes field — kept in local state and committed on blur so every keystroke
- *  doesn't thrash the store/Supabase sync. Keyed by job url upstream so it
- *  re-seeds when the card changes. */
+/** The job's one Notes field — kept in local state and committed on blur so every keystroke
+ *  doesn't thrash the store/Supabase sync. Keyed by job url upstream so it re-seeds when the job
+ *  changes. Jobs carry two: `note` (where it was saved from) and `notes` (the user's). This edits
+ *  `notes`, showing `note` only when `notes` is empty; when both are set `note` is a read-only
+ *  line above, so neither is ever hidden. */
 function NotesField({ job }: { job: Job }) {
-  const [draft, setDraft] = useState(job.notes ?? '');
+  const shown = job.notes || job.note || '';
+  const [draft, setDraft] = useState(shown);
   return (
     <Textarea
       label="Notes"
@@ -26,21 +28,18 @@ function NotesField({ job }: { job: Job }) {
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => {
-        if (draft !== (job.notes ?? '')) updateJob(job.url, { notes: draft });
+        if (draft !== shown) updateJob(job.url, { notes: draft });
       }}
       style={{ width: '100%' }}
     />
   );
 }
 
-/** Per-role to-dos + notes: a compact summary label that opens a Disclosure
- *  with a checklist and a notes field. All mutations flow through updateJob so
+/** Per-role to-dos + notes, the job page's To-dos tab (#130): a checklist and one notes field. All mutations flow through updateJob so
  *  they persist via the existing localStorage + Supabase sync path. */
 export function TodosNotes({ job }: { job: Job }) {
   const [draft, setDraft] = useState('');
   const todos = job.todos ?? [];
-  const notes = job.notes ?? '';
-  const { done, total } = todoProgress(todos);
 
   const commitAdd = () => {
     const next = addTodo(todos, draft);
@@ -52,11 +51,8 @@ export function TodosNotes({ job }: { job: Job }) {
 
   return (
     <Box>
-      <Disclosure
-        variant="nav"
-        label={`${total > 0 ? `To-dos ${done}/${total}` : 'To-dos & notes'}${notes.trim() ? ' · has notes' : ''}`}
-      >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 'xs' }}>
+      <Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {/* TO-DOS */}
           <Box>
             <Text
@@ -103,6 +99,17 @@ export function TodosNotes({ job }: { job: Job }) {
 
               {todos.length === 0 && (
                 <Box>
+                  <Text
+                    variant="ui"
+                    as="p"
+                    style={{
+                      color: 'var(--semantic-color-content-secondary)',
+                      margin: 0,
+                      marginBottom: 'var(--primitive-space-2)',
+                    }}
+                  >
+                    No to-dos yet. Add your own below, or start from a short checklist.
+                  </Text>
                   <UiButton
                     size="sm"
                     variant="secondary"
@@ -138,9 +145,9 @@ export function TodosNotes({ job }: { job: Job }) {
                 />
               </Box>
               <UiButton
-                size="small"
-                variant="outlined"
-                startIcon={<Plus size={16} />}
+                size="sm"
+                variant="secondary"
+                iconLeft={<Plus size={16} />}
                 disabled={!draft.trim()}
                 onClick={commitAdd}
               >
@@ -149,21 +156,28 @@ export function TodosNotes({ job }: { job: Job }) {
             </Box>
           </Box>
 
-          {/* NOTES */}
+          {/* NOTES: the textarea carries its own label */}
           <Box>
-            <Text
-              variant="caption"
-              as="span"
-              style={{ color: 'var(--semantic-color-content-secondary)' }}
-            >
-              Notes
-            </Text>
             <Box sx={{ mt: 1.5 }}>
+              {job.notes && job.note && job.note !== job.notes && (
+                <Text
+                  variant="caption"
+                  as="p"
+                  style={{
+                    color: 'var(--semantic-color-content-secondary)',
+                    margin: 0,
+                    marginBottom: 'var(--primitive-space-2)',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  From when you saved it: {job.note}
+                </Text>
+              )}
               <NotesField key={job.url} job={job} />
             </Box>
           </Box>
         </Box>
-      </Disclosure>
+      </Box>
     </Box>
   );
 }

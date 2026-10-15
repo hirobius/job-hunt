@@ -1,11 +1,8 @@
-import { lazy, Suspense, useState } from 'react';
-import { Button, Input as HdsInput, Tag, Text, Box, Switcher } from '@hirobius/design-system';
-import { ScanText } from 'lucide-react';
+import { useState } from 'react';
+import { Input as HdsInput, Tag, Text, Box, Switcher } from '@hirobius/design-system';
 import { updateJob } from './store';
 import { DEFAULT_BLOCKERS, MODES, VERDICTS, blockerLabel } from './screening';
 import type { Job } from './types';
-
-const ScreenJdDialog = lazy(() => import('./ScreenJdDialog'));
 
 // Detail-panel editor for a job's screening fields (issue #60): fit (verdict), work mode, and
 // dealbreakers are toggle chips (all optional → chips, not a required SegmentedControl); travel /
@@ -58,7 +55,6 @@ function NumField({
 
 export function ScreeningEditor({ job }: { job: Job }) {
   const [custom, setCustom] = useState('');
-  const [screenOpen, setScreenOpen] = useState(false);
   const blockers = job.blockers ?? [];
   const defaultIds = new Set(DEFAULT_BLOCKERS.map((b) => b.id));
   const customTags = blockers.filter((b) => !defaultIds.has(b));
@@ -79,35 +75,6 @@ export function ScreeningEditor({ job }: { job: Job }) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box>
-        <Button
-          variant="secondary"
-          size="sm"
-          iconLeft={<ScanText size={15} />}
-          onClick={() => setScreenOpen(true)}
-        >
-          Screen a job description
-        </Button>
-        {job.screenedAt && (
-          <Text
-            variant="caption"
-            as="span"
-            style={{
-              color: 'var(--semantic-color-content-secondary)',
-              display: 'block',
-              marginTop: 'var(--primitive-space-1)',
-            }}
-          >
-            Screened {new Date(job.screenedAt).toLocaleDateString()}
-          </Text>
-        )}
-      </Box>
-      {screenOpen && (
-        <Suspense fallback={null}>
-          <ScreenJdDialog job={job} open onClose={() => setScreenOpen(false)} />
-        </Suspense>
-      )}
-
       <Box>
         <FieldLabel>Fit</FieldLabel>
         <Chips>
