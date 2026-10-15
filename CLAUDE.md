@@ -93,8 +93,17 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **Job routes (#127):** every saved job has a page at `#/queue/<jobId>` (`Route.jobId`; the second
   segment is a job under `queue`, a sub-tab elsewhere). `store.jobIdOf(url)` derives the id (hash
   of `dedupKey`, never stored); `findJobById` resolves it; `route.openJob(id | null)` navigates.
-  `JobPage.tsx` shows the full `JobCard.tsx` (the list uses compact rows, #129); an unknown id waits for
-  `useCloudSync().settled` before falling back to `#/queue`. `HOME_ROUTE` (`today`) and
+  **Job page (#130):** `JobPage.tsx` = `JobHeader` (title, status, pin, the one primary next step,
+  menu; Remove is not in this menu) over `Tabs` Overview (`JobOverview`: facts via `jobFacts` in an
+  HDS `MetadataList`, an "Edit details" `Disclosure` open only for a job without title and company,
+  templates, research links, then `DestructiveSection` Remove with confirm + toast) · Screening
+  (`JobScreening`: fit line, inline `JdScreenPanel`, `ScreeningEditor`) · Interviews · To-dos
+  (`TodosNotes`, holds the one Notes field: `notes`, else the older `note`). The open tab is local
+  state keyed by job, not in the URL. At ≥ `lg` an HDS `Sidebar` puts `JobRail` (links with
+  `aria-current`, `hds-gaps/RailList`) beside the job; below it the job is alone with a Back link.
+  The Pipeline's filter/search/sort live in `pipelineView.ts` (in memory, shared by `TrackerView`
+  and the rail; `test/setup.ts` resets it per test). An unknown id shows a skeleton, then waits for
+  `useCloudSync().settled` before falling back to `#/queue`. Pinned in `src/jobPage.test.tsx`. `HOME_ROUTE` (`today`) and
   `QUICK_ADD_LANDING` (`queue`) are separate in `App.tsx`. Pinned in `src/jobRoute.test.tsx`.
 - **Today is home (#128):** `#/today` = `TodayView.tsx`: due follow-ups (`dueFollowUps`) and the
   next 7 days (`upcomingEvents`, both in `jobEvents.ts`) as `StatusListItem` rows, one quick-add
@@ -130,10 +139,11 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   toolbar) at ≥ the HDS `lg` breakpoint and `JobListCard` (title on its own row) below it, chosen
   by `src/hds-gaps/useBreakpoint.ts` (no `matchMedia` → cards). Both render `jobRow.rowView` with
   `JobRowParts.tsx`: one next step per row (Mark applied / Log follow-up, secondary so Add job stays
-  the page's one primary) + the row `Menu` (also on the job page's `JobCard`); 40px controls on
+  the page's one primary) + the row `Menu` (also on the job page's header, minus Remove); 40px controls on
   cards. A non-default status filter shows as a `Tag` chip that clears it.
   Titles link to `#/queue/<jobId>`; details, to-dos, the screener and templates live on the job
-  page (`JobCard`, until #130). Pinned in `src/pipeline.test.tsx`.
+  page (tabs, #130). The filter/search/sort survive opening a job and Back (`pipelineView.ts`).
+  Pinned in `src/pipeline.test.tsx`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
@@ -230,7 +240,7 @@ far this cycle:
   `mode`, `travelPct`, `applicants`, `blockers[]`, `angle`, `screenedAt` — normalized on read in
   `src/screening.ts`. Edited via `ScreeningEditor`; shown as card badges; new "Best fit" sort; a
   collapsible **Funnel** summary (`FunnelSummary` + `funnel.ts`).
-- **Rules-based JD screener (#61).** `src/jdScreener.ts` + `ScreenJdDialog` — paste a JD → suggested
+- **Rules-based JD screener (#61).** `src/jdScreener.ts` + `JdScreenPanel` (inline in a job's Screening tab) — paste a JD → suggested
   mode/blockers/verdict from deterministic keyword rules, one-click apply.
 - **Board↔Queue interop (#57).** Saved tiles leave the board (`partitionTiles`); enriched save
   carries a tile's meta into the job; a save toast; "Find more like this" seeds Discover.
