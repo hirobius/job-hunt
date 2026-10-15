@@ -1,7 +1,7 @@
 /* base.css — the minimal global reset HDS's reset-free styles.css leaves to the host: the
  * border-box rule, the body background/text/type from HDS tokens (fonts.css supplies the
  * typeface), and one keyboard focus ring for the app's own focusable elements (HDS
- * components ship their own). Loaded after styles.css + brand-jade.css. */
+ * components ship their own). Loaded after styles.css. */
 
 *,
 *::before,
@@ -26,8 +26,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* One visible focus ring for the app's own controls (links, tiles). The jade accent
- * clears 3:1 on both surfaces; the offset keeps it legible even on a jade control. */
+/* One visible focus ring for the app's own controls (links, tiles). The HDS accent clears 3:1
+ * on both surfaces (theme.contrast.test); the offset keeps it legible on an accent control. */
 a:focus-visible,
 [role='button']:focus-visible,
 [tabindex]:focus-visible {

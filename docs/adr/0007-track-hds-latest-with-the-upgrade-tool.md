@@ -1,6 +1,6 @@
 # ADR 0007 — Track the latest HDS with its upgrade tool
 
-- **Status:** Accepted
+- **Status:** Accepted (point 3 amended 2026-10-15: no brand override at all)
 - **Date:** 2026-10-12
 - **Supersedes:** the version pin in ADR-0005 (`^0.13.0`, "HDS's final, frozen release").
   ADR-0005's consumption model — public npm, `styles.css` scoped to `[data-hds]`, `brand-jade.css`
@@ -25,6 +25,9 @@ machine-readable ledger per release.
    HDS's default near-white (`#fafafa`), which is 4.42:1 on jade — under AA, caught by
    `theme.contrast.test.ts`. Adrian's call (2026-10-12) is "pure HDS with only jade overrides"; the
    rest of that move is epic #89.
+   **Amended 2026-10-15 (Adrian):** the jade override is removed; the app uses HDS's default
+   graphite accent with no local colour file. Jade link text was 4.42:1 on cards (#159); graphite
+   passes `theme.contrast.test.ts` as shipped, and `hdsOnly.test.ts` keeps an override out.
 
 ## Consequences
 

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
  * axe-core can't evaluate colour-contrast under jsdom (no layout engine), so the a11y
  * suite covers structure/semantics and this covers colour. Since ADR-0005 the palette is
  * HDS token CSS variables, so the audit reads the SHIPPED token files — HDS's
- * variables.css plus our brand-jade.css override — resolves the alias chains for both
+ * variables.css (the app ships no colour override since graphite, 2026-10-15) — resolves the alias chains for both
  * themes, and computes ratios per the WCAG 2.x relative-luminance formula. "Light + dark,
  * both AA-checked" stays enforced, not asserted in prose (and a regression in an HDS
  * release fails here before it ships).
@@ -17,7 +17,6 @@ import { describe, expect, it } from 'vitest';
  */
 
 const HDS_CSS = 'node_modules/@hirobius/design-system/dist/variables.css';
-const JADE_CSS = 'src/theme/brand-jade.css';
 
 /** All `--var: value;` declarations inside the `selector { … }` rule. The selector must start a
  *  line and open the block, so a mention of it in a comment above doesn't match (it did: the
@@ -46,22 +45,17 @@ function block(css: string, selector: string): Record<string, string> {
 }
 
 const hdsCss = fs.readFileSync(HDS_CSS, 'utf8');
-const jadeCss = fs.readFileSync(JADE_CSS, 'utf8');
 const DARK = '[data-theme="dark"]';
 
-// The browser's cascade: every rule here has the same specificity, so source order decides, and
-// HDS's stylesheet loads before brand-jade.css. Light = HDS :root, then jade :root. Dark (on top
-// of light) = HDS dark, then jade :root again, then jade dark — so a jade :root override that
-// isn't redeclared in jade's dark block wins in dark mode too.
+// The browser's cascade: equal specificity, so source order decides. Light = HDS :root; dark =
+// HDS :root with HDS's dark block on top.
 const hdsRoot = block(hdsCss, ':root');
-const jadeRoot = block(jadeCss, ':root');
-const light = { ...hdsRoot, ...jadeRoot };
-const dark = { ...hdsRoot, ...block(hdsCss, DARK), ...jadeRoot, ...block(jadeCss, DARK) };
+const light = { ...hdsRoot };
+const dark = { ...hdsRoot, ...block(hdsCss, DARK) };
 
-it('reads real light and dark blocks from both stylesheets', () => {
+it('reads real light and dark blocks from the HDS stylesheet', () => {
   expect(Object.keys(hdsRoot).length).toBeGreaterThan(100);
   expect(Object.keys(block(hdsCss, DARK)).length).toBeGreaterThan(20);
-  expect(block(jadeCss, DARK)['semantic-color-content-accent']).toMatch(/oklch\(0\.8/);
 });
 
 /** Substitute var() chains until a concrete value remains. */
@@ -155,21 +149,41 @@ const pairs: Pair[] = [
     min: 4.5,
   },
   {
-    name: 'on-accent label on jade accent (buttons)',
+    name: 'on-accent label on the accent (buttons)',
     fg: 'semantic-color-content-onAccent',
     bg: 'semantic-accent-rest',
     min: 4.5,
   },
   {
-    name: 'jade accent as UI/link on page',
+    name: 'accent as UI/link on page',
     fg: 'semantic-color-content-accent',
     bg: 'semantic-color-surface-page',
     min: 3,
   },
   {
-    name: 'jade accent as UI/link on raised',
+    name: 'accent as UI/link on raised',
     fg: 'semantic-color-content-accent',
     bg: 'semantic-color-surface-raised',
+    min: 3,
+  },
+  // Link text (InlineLink paints --semantic-accent-content) and the app's own focus ring
+  // (base.css, --semantic-accent-rest). Jade links were 4.42:1 on cards (#159).
+  {
+    name: 'link text on page',
+    fg: 'semantic-accent-content',
+    bg: 'semantic-color-surface-page',
+    min: 4.5,
+  },
+  {
+    name: 'link text on raised (job titles on cards)',
+    fg: 'semantic-accent-content',
+    bg: 'semantic-color-surface-raised',
+    min: 4.5,
+  },
+  {
+    name: 'app focus ring on page',
+    fg: 'semantic-accent-rest',
+    bg: 'semantic-color-surface-page',
     min: 3,
   },
   // Selected / highlighted states the audit found unreadable (#115, #129): the status filter's
@@ -225,7 +239,7 @@ for (const [mode, map] of [
   ['light', light],
   ['dark', dark],
 ] as const) {
-  describe(`token contrast — ${mode} (WCAG AA, from shipped HDS variables.css + brand-jade.css)`, () => {
+  describe(`token contrast — ${mode} (WCAG AA, from shipped HDS variables.css)`, () => {
     it.each(pairs)('$name meets $min:1', ({ fg, bg, min }) => {
       expect(contrast(map, fg, bg)).toBeGreaterThanOrEqual(min);
     });
