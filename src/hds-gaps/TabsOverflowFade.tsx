@@ -1,4 +1,4 @@
-// HDS gap (#115): TabsList scrolls sideways when its tabs don't fit, with the scrollbar hidden and
+// HDS gap (#115, hds#723, closed upstream: recheck and drop on the next HDS upgrade): TabsList scrolls sideways when its tabs don't fit, with the scrollbar hidden and
 // no cue that more tabs sit past the edge (the four top tabs overflow a 390px phone). This wrapper
 // fades whichever edge has more to scroll past, and keeps the selected tab in view
 // (Radix doesn't scroll to it). Filed upstream with the Phase 7 asks (#133); delete this when
@@ -14,8 +14,7 @@ const mask = (start: boolean, end: boolean) =>
   })`;
 
 const SCROLLER = '[role="tablist"],[role="radiogroup"]';
-const tablistIn = (root: HTMLElement | null) =>
-  root?.querySelector<HTMLElement>(SCROLLER) ?? null;
+const tablistIn = (root: HTMLElement | null) => root?.querySelector<HTMLElement>(SCROLLER) ?? null;
 
 export default function TabsOverflowFade({
   value,

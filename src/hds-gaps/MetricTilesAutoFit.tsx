@@ -1,4 +1,4 @@
-// HDS gap (#115): MetricTiles fixes min(n, 4) columns at every width, so four tiles squeeze into
+// HDS gap (#115, hds#724, closed upstream: recheck and drop on the next HDS upgrade): MetricTiles fixes min(n, 4) columns at every width, so four tiles squeeze into
 // ~80px columns on a 390px phone. This is the same row as an auto-fit Grid of MetricTile: one row
 // at desktop, 2 × 2 on a phone. Filed with the Phase 7 asks (#133); swap back to MetricTiles when it
 // wraps on narrow widths.

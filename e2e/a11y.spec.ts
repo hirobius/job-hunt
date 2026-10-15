@@ -99,7 +99,7 @@ test.describe('phone sweep', () => {
             if (r.width === 0 || r.height === 0) return;
             // Height always; width only for icon-only controls (a labelled one is as wide as its label).
             const iconOnly = !(el.textContent || '').trim();
-            // HDS's own clear-input button is 30px wide (upstream ask).
+            // HDS's own clear-input button is 30px wide (hds#750).
             if (el.getAttribute('aria-label') === 'Clear input') return;
             if (r.height < 40 || (iconOnly && r.width < 40))
               out.small.push(`${label(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
