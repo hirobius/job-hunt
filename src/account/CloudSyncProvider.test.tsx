@@ -19,7 +19,8 @@ vi.mock('@supabase/supabase-js', async () => {
 });
 
 import { renderAccount, openAccount, chooseAccountItem } from '../test/renderAccount';
-import { getCurationState, replaceCurationState } from '../curation/curationStore';
+import { addCategory, getCurationState, replaceCurationState } from '../curation/curationStore';
+import { setCurationSyncedAt } from '../curation/syncStatus';
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
 import { OFFLINE_MSG } from '../cloudMessages';
@@ -147,5 +148,76 @@ describe('CloudSyncProvider (via the account menu)', () => {
     expect(getAllJobs().map((j) => j.url)).toContain('https://local.example/jobs/2');
     addJob('https://local.example/jobs/3', 'After the pull');
     await waitFor(() => expect(JSON.stringify(fake().tables.tracker[0].data)).toContain('jobs/3'));
+  });
+});
+
+// Tracks never reached the cloud for any account (2026-10-15). These pin the three ways that can
+// hurt: a write the cloud refused went unnoticed, a sign-in against an empty cloud could drop this
+// browser's tracks, and sign-out wiped tracks that only lived here.
+describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
+  beforeEach(() => setCurationSyncedAt(null));
+  const localTrack = (id: string, label: string, createdAt = NOW) =>
+    replaceCurationState({
+      categories: [
+        {
+          id,
+          label,
+          titles: ['Design Engineer'],
+          atsRoles: [],
+          seniority: 'any',
+          location: '',
+          tailorRole: null,
+          sortOrder: 0,
+          archived: false,
+          createdAt,
+          updatedAt: createdAt,
+        },
+      ],
+      groups: [],
+      tiles: [],
+    });
+
+  it('a track change the cloud refuses is loud: a toast says what and how to fix it', async () => {
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    fake().failNext('categories', 'upsert');
+    act(() => {
+      addCategory({ label: 'Design Systems' });
+    });
+    expect(await screen.findByText('Track changes didn’t reach the cloud')).toBeInTheDocument();
+    expect(
+      screen.getByText(/kept on this device.*Retry sync in the Account menu/),
+    ).toBeInTheDocument();
+    const menu = await openAccount();
+    expect(within(menu).getByRole('menuitem', { name: 'Retry sync' })).toBeInTheDocument();
+  });
+
+  it('signing in with an empty cloud uploads this browser’s tracks instead of dropping them', async () => {
+    localTrack('c1', 'Design Systems');
+    // This browser synced once before (an earlier, emptier session), so the track is "older".
+    setCurationSyncedAt('2026-10-05T00:00:00.000Z');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await waitFor(() =>
+      expect(fake().tables.categories?.map((c) => c.label)).toEqual(['Design Systems']),
+    );
+    expect(getCurationState().categories.map((c) => c.label)).toEqual(['Design Systems']);
+  });
+
+  it('sign-out warns before wiping tracks that never reached the cloud', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    fake().failNext('categories', 'upsert');
+    act(() => {
+      addCategory({ label: 'Only here' });
+    });
+    await screen.findByText('Track changes didn’t reach the cloud');
+    await chooseAccountItem('Sign out');
+    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/haven’t reached the cloud/));
+    // Cancelled: still signed in, track still here.
+    expect(getCurationState().categories.map((c) => c.label)).toEqual(['Only here']);
   });
 });
