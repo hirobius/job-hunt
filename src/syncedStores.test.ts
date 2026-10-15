@@ -19,7 +19,13 @@ import {
   useFilters,
   type SavedFilter,
 } from './feed/savedFilters';
-import { mergeEvidence, readEvidence, replaceEvidence, useEvidence } from './radar/evidenceStore';
+import {
+  EVIDENCE_MAX,
+  mergeEvidence,
+  readEvidence,
+  replaceEvidence,
+  useEvidence,
+} from './radar/evidenceStore';
 import {
   getAllModes,
   mergeModes,
@@ -131,6 +137,13 @@ describe('evidence', () => {
     act(() => replaceEvidence('a'));
     act(() => replaceEvidence('ab'));
     expect(result.current).toBe('ab');
+  });
+});
+
+describe('evidence size cap', () => {
+  it('writes are trimmed to EVIDENCE_MAX', () => {
+    replaceEvidence('x'.repeat(EVIDENCE_MAX + 50));
+    expect(readEvidence()).toHaveLength(EVIDENCE_MAX);
   });
 });
 

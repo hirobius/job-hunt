@@ -7,6 +7,10 @@ import type { Tier } from './fitGap';
 
 export const EVIDENCE_KEY = 'rjb_radar_evidence';
 
+/** The longest evidence text kept (and synced); longer input is trimmed. */
+export const EVIDENCE_MAX = 20_000;
+export const capEvidence = (t: string): string => t.slice(0, EVIDENCE_MAX);
+
 const listeners = new Set<() => void>();
 // Only used after a failed write (blocked or full storage), so the text still lasts the page view.
 let memory: string | null = null;
@@ -21,7 +25,8 @@ export function readEvidence(): string {
   return memory ?? '';
 }
 
-export function writeEvidence(text: string) {
+export function writeEvidence(raw: string) {
+  const text = capEvidence(raw);
   try {
     localStorage.setItem(EVIDENCE_KEY, text);
     memory = null;

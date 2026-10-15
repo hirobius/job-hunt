@@ -17,7 +17,7 @@ import { mergeTriage, type Triage } from './tileTriage';
 import type { LegacyTile } from './curation/legacyTiles';
 import { mergeTargets, sanitizeTargets, type Target } from './feed/targets';
 import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFilters';
-import { mergeEvidence } from './radar/evidenceStore';
+import { capEvidence, mergeEvidence } from './radar/evidenceStore';
 import { mergeModes, sanitizeModes } from './trackModes';
 import type { WorkMode } from './jobsData';
 import type { Job } from './types';
@@ -83,7 +83,7 @@ export function readBlob(data: unknown): SyncData {
       .map((t) => ({ name: t.name || '', meta: t.meta || '', url: t.url })),
     targets: sanitizeTargets(o.targets),
     filters: sanitizeFilters(o.filters),
-    evidence: typeof o.evidence === 'string' ? o.evidence : '',
+    evidence: typeof o.evidence === 'string' ? capEvidence(o.evidence) : '',
     modes: sanitizeModes(o.modes),
     sourceV: typeof o.v === 'number' ? o.v : 0,
   };

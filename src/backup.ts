@@ -13,7 +13,7 @@ import { STATUSES, type Job } from './types';
 import { withoutSample } from './demo/isSample';
 import { mergeTargets, sanitizeTargets, type Target } from './feed/targets';
 import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFilters';
-import { mergeEvidence } from './radar/evidenceStore';
+import { capEvidence, mergeEvidence } from './radar/evidenceStore';
 import { mergeModes, sanitizeModes } from './trackModes';
 import type { WorkMode } from './jobsData';
 
@@ -253,7 +253,7 @@ export function parseBackup(text: string): ParseResult {
       triage: cleanTriage(data.triage),
       targets: sanitizeTargets(data.targets),
       filters: sanitizeFilters(data.filters),
-      evidence: isStr(data.evidence) ? data.evidence : '',
+      evidence: isStr(data.evidence) ? capEvidence(data.evidence) : '',
       modes: sanitizeModes(data.modes),
     },
   };

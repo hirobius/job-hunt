@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readBlob, mergeBlob, emptyBlob, writeBlob, BLOB_VERSION, type SyncData } from './syncBlob';
+import { EVIDENCE_MAX } from './radar/evidenceStore';
 import type { Target } from './feed/targets';
 import type { SavedFilter } from './feed/savedFilters';
 import type { Job } from './types';
@@ -223,6 +224,12 @@ describe('blob v5 — targets, saved searches, evidence, work mode', () => {
     ['both empty', '', '', ''],
   ])('seed evidence: %s', (_n, c, l, want) => {
     expect(mergeBlob(blob({ evidence: c }), blob({ evidence: l }), true).evidence).toBe(want);
+  });
+
+  it('reads evidence capped at EVIDENCE_MAX', () => {
+    expect(readBlob({ v: 5, evidence: 'y'.repeat(EVIDENCE_MAX + 5) }).evidence).toHaveLength(
+      EVIDENCE_MAX,
+    );
   });
 
   it('seed with a null cloud keeps every local v5 field', () => {
