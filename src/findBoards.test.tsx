@@ -45,8 +45,18 @@ const LIVE: Record<string, unknown> = {
   'https://api.lever.co/v0/postings/plaid?mode=json': [{}],
 };
 const calls: string[] = [];
+const yc = { down: false };
+const BATCH = [
+  { name: 'Figma', status: 'Active', isHiring: true },
+  { name: 'Gone Co', status: 'Acquired', isHiring: true },
+  { name: 'Nobody', status: 'Active', isHiring: false },
+];
 const fakeFetch = vi.fn(async (url: string) => {
   calls.push(url);
+  if (url.startsWith('https://yc-oss.github.io/api/batches/'))
+    return yc.down
+      ? new Response('{}', { status: 404 })
+      : new Response(JSON.stringify(BATCH), { status: 200 });
   const ok = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
   if (url in LIVE) return ok(LIVE[url]);
   return new Response('{}', { status: url.includes('flaky') ? 503 : 404 });
@@ -57,6 +67,7 @@ beforeEach(() => {
   h.fake?.reset();
   localStorage.clear();
   calls.length = 0;
+  yc.down = false;
   fakeFetch.mockClear();
   vi.stubGlobal('fetch', fakeFetch);
   replaceCurationState(EMPTY_CURATION);
@@ -161,6 +172,44 @@ describe('Find boards', () => {
     await userEvent.click(box);
     await userEvent.paste('Acme\n!!!');
     expect(await screen.findByText(/1 line is not a company name/)).toBeVisible();
+  });
+
+  describe('YC batches', () => {
+    const box = () => screen.findByRole('textbox', { name: 'Companies' });
+
+    it('offers the last four batches and loads the active companies into the box', async () => {
+      renderApp();
+      const batches = await screen.findByRole('radiogroup', { name: 'YC batch' });
+      expect(within(batches).getAllByRole('radio')).toHaveLength(4);
+      await userEvent.click(screen.getByRole('button', { name: 'Load batch' }));
+      await waitFor(async () => expect(await box()).toHaveValue('Figma\nNobody'));
+      expect(screen.getByText(/Loaded 2 active companies/)).toBeVisible();
+      expect(screen.getByText(/YC directory \(community mirror\)/)).toBeVisible();
+      // Those lines feed the probe.
+      await userEvent.click(screen.getByRole('button', { name: 'Find boards' }));
+      expect(await screen.findByText('2 of 2 checked, 1 board found')).toBeVisible();
+    });
+
+    it('can keep only companies that are hiring', async () => {
+      renderApp();
+      await userEvent.click(await screen.findByRole('checkbox', { name: 'Only companies hiring' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Load batch' }));
+      await waitFor(async () => expect(await box()).toHaveValue('Figma'));
+    });
+
+    it('says so plainly when the mirror is down, and the paste box still works', async () => {
+      yc.down = true;
+      renderApp();
+      // The shared fetcher caches an hour; an earlier test loaded the newest batch, so use another.
+      const batches = await screen.findByRole('radiogroup', { name: 'YC batch' });
+      await userEvent.click(within(batches).getAllByRole('radio')[3]);
+      await userEvent.click(screen.getByRole('button', { name: 'Load batch' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        /YC directory \(community mirror\) didn't answer/,
+      );
+      await paste('Figma');
+      expect(await screen.findByText('1 of 1 checked, 1 board found')).toBeVisible();
+    });
   });
 
   it('has no WCAG A/AA violations', async () => {

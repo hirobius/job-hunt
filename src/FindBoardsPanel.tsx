@@ -5,8 +5,11 @@
 // apart on purpose: only a 404 means a company has no board there.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Button,
+  Checkbox,
   Disclosure,
+  SegmentedControl,
   InlineLink,
   Progress,
   Stack,
@@ -16,10 +19,12 @@ import {
   useToast,
 } from '@hirobius/design-system';
 import { discoverBoards, MAX_LIST, parseList, type DiscoverResult } from './feed/discoverBoards';
-import { createFetchJson } from './feed/fetchFeed';
+import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
+import { createFetchJson, liveFetchJson } from './feed/fetchFeed';
 import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
 import { SOURCE_LABEL } from './feed/types';
 import { addBoardTiles, watchBoard } from './feed/watchlist';
+import { batchLabel, fetchBatch, recentBatches, ycLines, YC_CREDIT } from './feed/yc';
 
 /** Probes never cache a body: a board's payload is not worth keeping, only the answer is (rjb_probe). */
 const probeFetchJson = createFetchJson({ budgetChars: 0 });
@@ -48,6 +53,11 @@ export default function FindBoardsPanel({
   const [text, setText] = useState('');
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<DiscoverResult | null>(null);
+  const [batch, setBatch] = useState(() => recentBatches(new Date())[0]);
+  const [hiringOnly, setHiringOnly] = useState(false);
+  const [loadingBatch, setLoadingBatch] = useState(false);
+  const [batchNote, setBatchNote] = useState('');
+  const [batchError, setBatchError] = useState('');
   const abort = useRef<AbortController | null>(null);
   const resultRef = useRef<DiscoverResult | null>(null);
   useEffect(() => () => abort.current?.abort(), []);
@@ -99,6 +109,27 @@ export default function FindBoardsPanel({
     }
   };
 
+  // A batch is loaded into the box, not probed blind: you see (and can trim) what will be checked.
+  const loadBatch = async () => {
+    setLoadingBatch(true);
+    setBatchError('');
+    setBatchNote('');
+    try {
+      const companies = await fetchBatch(batch, liveFetchJson, { hiringOnly });
+      const lines = ycLines(companies);
+      setText(lines.join('\n'));
+      setBatchNote(
+        lines.length
+          ? `Loaded ${lines.length} active ${lines.length === 1 ? 'company' : 'companies'} from ${batchLabel(batch)}. Source: ${YC_CREDIT}.`
+          : `No active companies came back for ${batchLabel(batch)}.`,
+      );
+    } catch (e) {
+      setBatchError(e instanceof Error ? e.message : 'The YC directory could not be loaded.');
+    } finally {
+      setLoadingBatch(false);
+    }
+  };
+
   const watchOne = (b: Board) => {
     const r = watchBoard(categoryId, canonicalBoardUrl(b));
     if (r.ok)
@@ -130,6 +161,41 @@ export default function FindBoardsPanel({
         Paste company names, slugs or job-board links, one per line. We check Greenhouse, Lever,
         Ashby, Workable and Recruitee for a public board, so you can watch the ones that exist.
       </Text>
+      {DISCOVERY_SOURCE_ENABLED.yc && (
+        <Stack gap="xs">
+          <Text variant="title" as="h3">
+            Start from a YC batch
+          </Text>
+          <SegmentedControl
+            aria-label="YC batch"
+            size="sm"
+            value={batch}
+            onChange={setBatch}
+            options={recentBatches(new Date()).map((b) => ({ value: b, label: batchLabel(b) }))}
+          />
+          <Stack direction="row" gap="xs" align="center" wrap="wrap">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={loadingBatch || running}
+              onClick={() => void loadBatch()}
+            >
+              {loadingBatch ? 'Loading…' : 'Load batch'}
+            </Button>
+            <Checkbox
+              label="Only companies hiring"
+              checked={hiringOnly}
+              onChange={() => setHiringOnly((v) => !v)}
+            />
+          </Stack>
+          {batchNote && (
+            <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
+              {batchNote}
+            </Text>
+          )}
+          {batchError && <Alert tone="warning">{batchError}</Alert>}
+        </Stack>
+      )}
       <Textarea
         label="Companies"
         rows={6}
