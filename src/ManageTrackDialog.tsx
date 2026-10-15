@@ -348,10 +348,10 @@ export default function ManageTrackDialog({
               <DestructiveSection
                 level={3}
                 title="Delete this track"
-                description="Deletes the track and all its sections and links. Jobs you saved stay in your Pipeline."
+                description="Deletes the track, all its sections and links, and its outreach targets and saved searches. Jobs you saved stay in your Pipeline."
                 actionLabel="Delete track"
                 confirmLabel="Delete track"
-                confirmBody={`“${cat.label}” and all its content will be gone for good.`}
+                confirmBody={`“${cat.label}”, all its content, and its outreach targets and saved searches will be gone for good.`}
                 onConfirm={() => {
                   removeCategory(cat.id);
                   onDeleted();

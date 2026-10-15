@@ -36,6 +36,7 @@ import {
   UNSYNCED_CHANGES_SIGN_OUT,
 } from '../cloudMessages';
 import { getPending, useFailedCount } from '../curation/pending';
+import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { CloudSyncContext, type CloudSyncApi } from './accountContext';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
@@ -123,7 +124,12 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     try {
       // Unsent local edits (a failed push) must go up before a pull would replace them.
       if (!seed && pulledOk.current && dirty() && !(await pushNow(u))) return;
-      const next = mergeBlob(await pull(u.id), localBlob(), seed);
+      const cloud = await pull(u.id);
+      const local = localBlob();
+      const next = mergeBlob(cloud, local, seed);
+      // A first-sign-in merge that keeps both evidence texts can pass the cap: say so, don't cut silently.
+      if (seed && cloud && evidenceMergeOverflows(cloud.evidence, local.evidence))
+        toast({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });
       replaceAll(next.jobs);
       replaceSnippets(next.copydeck);
       replaceTriage(next.triage);
