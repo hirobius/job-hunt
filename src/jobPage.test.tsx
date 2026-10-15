@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 
 const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));
@@ -358,5 +359,57 @@ describe('job page two-pane (#130 slice 5)', () => {
     });
     openJobPage(URL_A);
     expect(within(rail()).getByText('Follow-up due')).toBeInTheDocument();
+  });
+});
+
+describe('job page polish and guards (#130 slice 6)', () => {
+  const audit = async (el: Element) => {
+    const r = await axe(el, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+    });
+    expect(r.violations.map((v) => `${v.id} x${v.nodes.length}`)).toEqual([]);
+  };
+
+  it.each([
+    ['wide', 1280],
+    ['narrow', 390],
+  ])('has no WCAG A/AA violations, %s, on every tab', async (_n, width) => {
+    addJob(URL_A, 'Design Engineer');
+    addJob(URL_B, 'Welder');
+    updateJob(URL_A, {
+      company: 'Acme',
+      verdict: 'match',
+      todos: [{ id: 't', text: 'Call', done: false }],
+    });
+    viewport(width);
+    const { container } = openJobPage(URL_A);
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('tablist', { name: 'Job sections' })).toBeInTheDocument();
+    if (width >= 1024) expect(rail()).toBeInTheDocument();
+    for (const name of ['Overview', 'Screening', 'Interviews', /To-dos/]) {
+      await userEvent.click(tab(name));
+      await audit(container);
+    }
+  });
+
+  it('shows a skeleton, never Job not found, for an id that has not synced yet', () => {
+    window.location.hash = '#/queue/notsyncedyet';
+    renderApp();
+    expect(screen.getByText(/Looking for this job/)).toBeInTheDocument();
+    expect(screen.queryByText('Job not found')).toBeNull();
+  });
+
+  it('opening a job from the rail starts the page at the top and keeps focus on the link', async () => {
+    addJob(URL_A, 'Design Engineer');
+    addJob(URL_B, 'Welder');
+    viewport(1280);
+    const scroll = vi.fn();
+    window.scrollTo = scroll as unknown as typeof window.scrollTo;
+    openJobPage(URL_A);
+    const link = within(rail()).getByRole('link', { name: /Welder/ });
+    await userEvent.click(link);
+    await screen.findByRole('heading', { level: 2, name: 'Welder' });
+    expect(scroll).toHaveBeenCalledWith({ top: 0 });
+    expect(within(rail()).getByRole('link', { name: /Welder/ })).toHaveFocus();
   });
 });

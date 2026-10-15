@@ -2,11 +2,20 @@
 // (title, status, one next step, menu) over the job's sections as tabs. The open tab is local
 // state, not in the URL, and resets to Overview when the job changes.
 import { useEffect } from 'react';
-import { Box, Sidebar, Tabs, TabsContent, TabsList, TabsTrigger } from '@hirobius/design-system';
+import {
+  Box,
+  Skeleton,
+  Stack,
+  Text,
+  Sidebar,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@hirobius/design-system';
 import { findJobById, useJobs } from './store';
 import { openJob } from './route';
 import { useCloudSync } from './account/accountContext';
-import EmptyState from './EmptyState';
 import JobHeader from './JobHeader';
 import JobOverview from './JobOverview';
 import JobRail from './JobRail';
@@ -48,6 +57,26 @@ function JobSections({ job }: { job: Job }) {
   );
 }
 
+function JobPageSkeleton() {
+  return (
+    <Box aria-busy="true" sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
+      <Text
+        variant="ui"
+        as="p"
+        role="status"
+        style={{ color: 'var(--semantic-color-content-secondary)' }}
+      >
+        Looking for this job. It may still be syncing to this device.
+      </Text>
+      <Stack gap="normal" aria-hidden="true">
+        <Skeleton variant="text" width="60%" />
+        <Skeleton variant="text" width="35%" />
+        <Skeleton variant="rectangular" height={120} />
+      </Stack>
+    </Box>
+  );
+}
+
 export default function JobPage({ jobId }: { jobId: string }) {
   const job = findJobById(jobId, useJobs());
   // An unknown id may just not have synced onto this device yet: wait until sync has settled,
@@ -67,8 +96,9 @@ export default function JobPage({ jobId }: { jobId: string }) {
   // JS and show the job alone, with a Back link, instead.
   const wide = useAtLeast('lg');
 
-  if (!job)
-    return <EmptyState title="Job not found" message="It may still be syncing to this device." />;
+  // Not found yet: it may be about to sync in, so wait quietly. Once sync has settled the effect
+  // above has already sent us back to the Pipeline.
+  if (!job) return <JobPageSkeleton />;
 
   const detail = (
     <Box>

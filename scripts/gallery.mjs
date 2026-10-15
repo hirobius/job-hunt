@@ -123,11 +123,15 @@ const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'row-menu', [['button', /^More actions/]]],
   // A job's details, screener and templates live on its page (#129 moved them off the list).
   [/^(Pipeline|Tracker)$/, 'job-page', [['first-job']]],
+  // The job page's tabs (#130); the screener is inline in Screening, not a dialog.
+  [/^(Pipeline|Tracker)$/, 'job-page-screening', [['first-job'], ['tab', /^Screening/]]],
   [
     /^(Pipeline|Tracker)$/,
-    'screen-jd-dialog',
-    [['first-job'], ['button', /^Screen a job description$/]],
+    'job-page-screener-open',
+    [['first-job'], ['tab', /^Screening/], ['button', /^Screen a job description$/]],
   ],
+  [/^(Pipeline|Tracker)$/, 'job-page-interviews', [['first-job'], ['tab', /^Interviews/]]],
+  [/^(Pipeline|Tracker)$/, 'job-page-todos', [['first-job'], ['tab', /^To-dos/]]],
   [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['first-job'], ['button', /^Use template$/]]],
   [/^Discover$/, 'manage-track-dialog', [['button', /^Manage this track$/]]],
 ];

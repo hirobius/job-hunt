@@ -106,7 +106,9 @@ describe('job route (#127)', () => {
     window.location.hash = '#/queue/notsyncedyet';
     renderApp();
     act(() => h.fake!.signIn('u1'));
-    expect(await screen.findByText('Job not found')).toBeInTheDocument();
+    // A job that is about to sync in is never called missing: a skeleton, not 'not found'.
+    expect(await screen.findByText(/Looking for this job/)).toBeInTheDocument();
+    expect(screen.queryByText('Job not found')).toBeNull();
     await new Promise((r) => setTimeout(r, 50));
     expect(window.location.hash).toBe('#/queue/notsyncedyet');
   });
