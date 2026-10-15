@@ -28,6 +28,11 @@ export interface Posting {
   postedAt?: string;
   /** Plain-text body (HTML stripped) — what the matcher searches. */
   text: string;
+  /** Yearly pay as the source states it; absent when it doesn't. Never parsed from free text. */
+  salaryMin?: number;
+  salaryMax?: number;
+  /** ISO currency code ('USD'); absent when the source doesn't say. */
+  currency?: string;
 }
 
 export type SignalId = 'contract' | 'founding';

@@ -12,6 +12,7 @@ import {
   Tooltip as HdsTooltip,
   Input as HdsInput,
   SegmentedControl,
+  Checkbox as HdsCheckbox,
   Spinner,
   Tag,
   useToast,
@@ -26,6 +27,9 @@ import type { WorkMode } from './jobsData';
 import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
 import { fetchFeed, MAX_BOARDS, type FeedResult } from './feed/fetchFeed';
 import { rankPostings } from './feed/match';
+import { applyTargeting, NO_TARGETING } from './feed/targeting';
+import type { Seniority } from './curation/types';
+import { useCategories } from './curation/curationStore';
 import { postedAgo } from './feed/format';
 import { boardsFromUrls } from './feed/sources/ats';
 import { watchBoard } from './feed/watchlist';
@@ -77,6 +81,11 @@ export default function LiveFeedPanel({
   const [watchUrl, setWatchUrl] = useState('');
   const [watchError, setWatchError] = useState('');
   const [evidenceText, setEvidenceText] = useState(readEvidence);
+  const trackSeniority = useCategories().find((c) => c.id === categoryId)?.seniority ?? 'any';
+  const [excludeText, setExcludeText] = useState('');
+  const [seniority, setSeniority] = useState<Seniority>(trackSeniority);
+  const [floorText, setFloorText] = useState('');
+  const [salaryOnly, setSalaryOnly] = useState(false);
   const evidence = useMemo(() => parseEvidence(evidenceText), [evidenceText]);
 
   // The track's own boards first, then the starter directory (deduped and capped in fetchFeed).
@@ -106,13 +115,36 @@ export default function LiveFeedPanel({
   const current = loaded && loaded.term === term && loaded.boardsKey === boardsKey ? loaded : null;
   const loading = !!term.trim() && !current;
 
-  const ranked = useMemo(
+  const matched = useMemo(
     () =>
       current?.result
         ? rankPostings(current.result.postings, { term, where, mode, now: current.at })
         : [],
     [current, term, where, mode],
   );
+  const floor = Number(floorText.replace(/[^\d.]/g, ''));
+  const targeting = useMemo(
+    () => ({
+      ...NO_TARGETING,
+      exclude: excludeText
+        .split(/[,\n]/)
+        .map((x) => x.trim())
+        .filter(Boolean),
+      seniority,
+      salaryFloor: floor > 0 ? floor : undefined,
+      salaryOnly,
+    }),
+    [excludeText, seniority, floor, salaryOnly],
+  );
+  const { postings: ranked, hidden } = useMemo(
+    () => applyTargeting(matched, targeting),
+    [matched, targeting],
+  );
+  const hiddenNotes = [
+    hidden.exclude > 0 && `${hidden.exclude} hidden by what you left out`,
+    hidden.seniority > 0 && `${hidden.seniority} hidden by level`,
+    hidden.salary > 0 && `${hidden.salary} hidden by pay`,
+  ].filter(Boolean);
   const counts = useMemo(
     () => ({
       contract: ranked.filter((p) => p.signals.some((s) => s.id === 'contract')).length,
@@ -224,6 +256,64 @@ export default function LiveFeedPanel({
         </Box>
       )}
 
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}>
+        <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
+          <HdsInput
+            size="sm"
+            label="Leave out (words, commas between)"
+            placeholder="manager, sales"
+            value={excludeText}
+            onChange={(e) => setExcludeText(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </Box>
+        <Box sx={{ width: 160 }}>
+          <HdsInput
+            size="sm"
+            label="Pay floor (USD a year)"
+            inputMode="numeric"
+            placeholder="120000"
+            value={floorText}
+            onChange={(e) => setFloorText(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </Box>
+      </Box>
+      <Box sx={{ mb: 'xs', overflowX: 'auto', maxWidth: '100%' }}>
+        <SegmentedControl
+          aria-label="Level"
+          size="sm"
+          value={seniority}
+          onChange={(v) => setSeniority(v as Seniority)}
+          options={[
+            { value: 'any', label: 'Any level' },
+            { value: 'entry', label: 'Entry level' },
+            { value: 'experienced', label: 'Experienced' },
+          ]}
+        />
+      </Box>
+      <Box sx={{ mb: 'xs' }}>
+        <HdsCheckbox
+          label="Only show postings with a salary"
+          checked={salaryOnly}
+          onChange={() => setSalaryOnly((v) => !v)}
+        />
+      </Box>
+      {hiddenNotes.length > 0 && (
+        <Text
+          variant="caption"
+          as="span"
+          role="status"
+          style={{
+            color: 'var(--semantic-color-content-secondary)',
+            display: 'block',
+            marginBottom: 'var(--semantic-space-scale-xs)',
+          }}
+        >
+          {hiddenNotes.join(' · ')}
+        </Text>
+      )}
+
       <Box
         as="form"
         onSubmit={onWatch}
@@ -318,6 +408,11 @@ export default function LiveFeedPanel({
         <EmptyState
           title="Couldn't reach any source"
           message="Check your internet connection or try again later."
+        />
+      ) : ranked.length === 0 && matched.length > 0 ? (
+        <EmptyState
+          title="Everything is hidden by your filters"
+          message="Loosen what you left out, the level or the pay floor to see them again."
         />
       ) : ranked.length === 0 ? (
         <EmptyState
