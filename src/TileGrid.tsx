@@ -104,9 +104,12 @@ export default function TileGrid({
                     fontWeight: 600,
                     lineHeight: 1.2,
                     minWidth: 0,
+                    // Two lines, then an ellipsis: one line cut most names at 1440. Full name in Details.
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    overflowWrap: 'anywhere',
                   }}
                 >
                   {t.name}

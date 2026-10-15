@@ -146,7 +146,8 @@ export function addCategory(partial: Partial<Category> = {}): string {
     titles: [],
     atsRoles: [],
     seniority: 'any',
-    location: 'Remote',
+    // No remote default (#58): an unset place searches anywhere.
+    location: '',
     tailorRole: null,
     sortOrder: nextSort(s.categories),
     archived: false,
