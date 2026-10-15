@@ -13,6 +13,7 @@ import { FetchError } from './sources/http';
 // fetchFeed's default Remotive budget lives in localStorage — never let it leak between tests.
 beforeEach(() => localStorage.clear());
 
+const NO_AGGREGATORS = { jobicy: false, remoteok: false };
 const res = (status: number, body: unknown = {}) =>
   ({ ok: status >= 200 && status < 300, status, json: async () => body }) as Response;
 
@@ -105,6 +106,7 @@ describe('fetchFeed', () => {
         ],
       },
       fetchJson,
+      { sources: NO_AGGREGATORS },
     );
     expect(out.postings.map((p) => p.id).sort()).toEqual(['ashby:ramp:u', 'hn:1']);
     expect(out.sources).toEqual([
@@ -126,15 +128,19 @@ describe('fetchFeed', () => {
   });
 
   it('drops postings whose link is not http(s) — it becomes a clickable href', async () => {
-    const out = await fetchFeed({ term: 'x', boardUrls: [] }, async (url) => {
-      if (url.includes('search_by_date')) return { hits: [] };
-      return {
-        jobs: [
-          { id: 1, url: 'javascript:alert(1)', title: 'x' },
-          { id: 2, url: 'https://remotive.com/remote-jobs/2', title: 'x' },
-        ],
-      };
-    });
+    const out = await fetchFeed(
+      { term: 'x', boardUrls: [] },
+      async (url) => {
+        if (url.includes('search_by_date')) return { hits: [] };
+        return {
+          jobs: [
+            { id: 1, url: 'javascript:alert(1)', title: 'x' },
+            { id: 2, url: 'https://remotive.com/remote-jobs/2', title: 'x' },
+          ],
+        };
+      },
+      { sources: NO_AGGREGATORS },
+    );
     expect(out.postings.map((p) => p.id)).toEqual(['remotive:2']);
   });
 
@@ -154,7 +160,7 @@ describe('fetchFeed', () => {
     const urls = Array.from({ length: 20 }, (_, i) => `https://jobs.lever.co/co${i}`);
     await fetchFeed({ term: 'x', boardUrls: urls }, async (url) => {
       if (url.includes('search_by_date')) return { hits: [] };
-      if (url.includes('remotive')) return { jobs: [] };
+      if (!url.includes('lever.co')) return url.includes('remotive') ? { jobs: [] } : [];
       inFlight++;
       peak = Math.max(peak, inFlight);
       await new Promise((r) => setTimeout(r, 5));
@@ -202,6 +208,76 @@ describe('fetchFeed', () => {
   });
 });
 
+describe('Jobicy and Remote OK', () => {
+  const hn = { hits: [] };
+  const jobicyJob = {
+    id: 1,
+    url: 'https://jobicy.com/jobs/1',
+    jobTitle: 'Design Systems Engineer',
+  };
+  const rokJob = {
+    id: 2,
+    url: 'https://remoteok.com/remote-jobs/2',
+    position: 'Design Systems Lead',
+  };
+
+  it('both show up as named sources with a count', async () => {
+    const out = await fetchFeed(
+      { term: 'design systems', boardUrls: [] },
+      async (url) => {
+        if (url.includes('jobicy')) return { jobs: [jobicyJob] };
+        if (url.includes('remoteok')) return [{ legal: 'x' }, rokJob];
+        return url.includes('remotive') ? { jobs: [] } : hn;
+      },
+      { kv: memoryKv() },
+    );
+    expect(out.sources).toContainEqual({ key: 'jobicy', label: 'Jobicy', fetched: 1 });
+    expect(out.sources).toContainEqual({ key: 'remoteok', label: 'Remote OK', fetched: 1 });
+    expect(out.postings.map((p) => p.id).sort()).toEqual(['jobicy:1', 'remoteok:2']);
+  });
+
+  it('a blocked one is named and does not block the others', async () => {
+    const out = await fetchFeed(
+      { term: 'design systems', boardUrls: [] },
+      async (url) => {
+        if (url.includes('jobicy')) throw new FetchError(0, url);
+        if (url.includes('remoteok')) return [rokJob];
+        return url.includes('remotive') ? { jobs: [] } : hn;
+      },
+      { kv: memoryKv() },
+    );
+    expect(out.sources.find((s) => s.key === 'jobicy')?.error).toMatch(/^Jobicy: couldn't connect/);
+    expect(out.postings.map((p) => p.id)).toEqual(['remoteok:2']);
+  });
+
+  it('the per-source switch leaves a source out entirely', async () => {
+    const urls: string[] = [];
+    const out = await fetchFeed(
+      { term: 'design systems', boardUrls: [] },
+      async (url) => {
+        urls.push(url);
+        return url.includes('remotive') ? { jobs: [] } : hn;
+      },
+      { kv: memoryKv(), sources: { jobicy: false, remoteok: false } },
+    );
+    expect(urls.some((u) => /jobicy|remoteok/.test(u))).toBe(false);
+    expect(out.sources.map((s) => s.key)).toEqual(['hn', 'remotive']);
+  });
+
+  it('a term too short for Jobicy skips it without a request', async () => {
+    const urls: string[] = [];
+    await fetchFeed(
+      { term: 'UI', boardUrls: [] },
+      async (url) => {
+        urls.push(url);
+        return url.includes('remotive') ? { jobs: [] } : url.includes('remoteok') ? [] : hn;
+      },
+      { kv: memoryKv() },
+    );
+    expect(urls.some((u) => u.includes('jobicy'))).toBe(false);
+  });
+});
+
 describe('Remotive request budget (its API terms: at most ~4 requests a day)', () => {
   const remotiveOnly = (calls: string[]) => async (url: string) => {
     if (url.includes('search_by_date')) return { hits: [] };
@@ -217,7 +293,7 @@ describe('Remotive request budget (its API terms: at most ~4 requests a day)', (
     const calls: string[] = [];
     const kv = memoryKv();
     let t = 0;
-    const opts = { kv, now: () => t };
+    const opts = { kv, now: () => t, sources: NO_AGGREGATORS };
     await fetchFeed({ term: 'design systems', boardUrls: [] }, remotiveOnly(calls), opts);
     t = 5 * 3600e3;
     const again = await fetchFeed(
@@ -232,7 +308,7 @@ describe('Remotive request budget (its API terms: at most ~4 requests a day)', (
   it('stops calling Remotive after the daily budget and says so', async () => {
     const calls: string[] = [];
     const kv = memoryKv();
-    const opts = { kv, now: () => 0 };
+    const opts = { kv, now: () => 0, sources: NO_AGGREGATORS };
     for (let i = 0; i < REMOTIVE_DAILY_MAX; i++)
       await fetchFeed({ term: `term ${i}`, boardUrls: [] }, remotiveOnly(calls), opts);
     const over = await fetchFeed({ term: 'one more', boardUrls: [] }, remotiveOnly(calls), opts);
@@ -244,7 +320,7 @@ describe('Remotive request budget (its API terms: at most ~4 requests a day)', (
     const calls: string[] = [];
     const kv = memoryKv();
     let t = 0;
-    const opts = { kv, now: () => t };
+    const opts = { kv, now: () => t, sources: NO_AGGREGATORS };
     for (let i = 0; i < REMOTIVE_DAILY_MAX; i++)
       await fetchFeed({ term: `term ${i}`, boardUrls: [] }, remotiveOnly(calls), opts);
     t = 24 * 3600e3 + 1;

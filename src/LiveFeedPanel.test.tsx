@@ -176,6 +176,32 @@ describe('LiveFeedPanel', () => {
     expect(within(ramp).getByRole('button', { name: 'Saved' })).toBeDisabled();
   });
 
+  it('Remote OK attribution: their link as given, followed, with "Remote OK" on the row', async () => {
+    const url = 'https://remoteOK.com/remote-jobs/design-systems-lead-9';
+    feed.fetchFeed.mockResolvedValueOnce({
+      postings: [
+        {
+          id: 'remoteok:9',
+          source: 'remoteok',
+          title: 'Design Systems Lead',
+          company: 'Acme',
+          url,
+          location: 'Worldwide',
+          mode: 'remote',
+          text: 'Lead the design system.',
+        },
+      ],
+      sources: [{ key: 'remoteok', label: 'Remote OK', fetched: 1 }],
+      boardsSkipped: 0,
+    });
+    renderPanel();
+    const row = (await screen.findByText('Design Systems Lead')).closest('li')!;
+    expect(row).toHaveTextContent('Remote OK');
+    const link = within(row).getByRole('link', { name: /Design Systems Lead/ });
+    expect(link).toHaveAttribute('href', url);
+    expect(link.getAttribute('rel') ?? '').not.toMatch(/nofollow/);
+  });
+
   it('searches a term chip when clicked', async () => {
     const user = userEvent.setup();
     renderPanel();

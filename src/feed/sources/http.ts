@@ -25,3 +25,9 @@ export const prettySlug = (slug: string) =>
     .filter(Boolean)
     .map((w) => w[0].toUpperCase() + w.slice(1))
     .join(' ');
+
+/** A positive finite number from a number or numeric string; undefined otherwise (0 = "not stated"). */
+export const num = (v: unknown): number | undefined => {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v.trim()) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+};

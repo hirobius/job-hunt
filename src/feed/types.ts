@@ -3,11 +3,14 @@
 // time; it is never stored. Saving one turns it into a tracked Job (src/types.ts) by URL.
 import type { JobMode } from '../types';
 
-export type FeedSourceId = 'hn' | 'remotive' | 'greenhouse' | 'lever' | 'ashby';
+export type FeedSourceId =
+  'hn' | 'remotive' | 'jobicy' | 'remoteok' | 'greenhouse' | 'lever' | 'ashby';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
   remotive: 'Remotive',
+  jobicy: 'Jobicy',
+  remoteok: 'Remote OK',
   greenhouse: 'Greenhouse',
   lever: 'Lever',
   ashby: 'Ashby',

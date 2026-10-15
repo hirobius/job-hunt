@@ -3,9 +3,19 @@
 // and what to do about it. Network goes through `FetchJson` so tests run on canned payloads.
 import { boardLabel, boardsFromUrls, fetchBoard, type Board } from './sources/ats';
 import { fetchHn } from './sources/hn';
+import { fetchJobicy } from './sources/jobicy';
+import { fetchRemoteOk } from './sources/remoteok';
 import { FetchError, type FetchJson } from './sources/http';
 import { fetchRemotive } from './sources/remotive';
 import { SOURCE_LABEL, type Posting } from './types';
+
+/** Per-source switch for the keyless aggregators we have not yet seen answer from a browser (no CORS
+ *  proof from the build sandbox). On by default; turn one off here if its first deployed check
+ *  shows it blocked. A failure is already isolated and named per source either way. */
+export const SOURCE_ENABLED: Record<'jobicy' | 'remoteok', boolean> = {
+  jobicy: true,
+  remoteok: true,
+};
 
 /** Most company boards one search reads: the track's watched boards plus the starter directory
  *  (src/radar/directory.ts). Each is one request and some are ~2–3 MB. */
@@ -217,7 +227,11 @@ interface SourceTask {
 export async function fetchFeed(
   req: { term: string; boardUrls: string[] },
   fetchJson: FetchJson = liveFetchJson,
-  { kv = browserKv(), now = Date.now }: { kv?: KeyValue; now?: () => number } = {},
+  {
+    kv = browserKv(),
+    now = Date.now,
+    sources: enabled = SOURCE_ENABLED,
+  }: { kv?: KeyValue; now?: () => number; sources?: Partial<typeof SOURCE_ENABLED> } = {},
 ): Promise<FeedResult> {
   const term = req.term.trim();
   if (!term) return { postings: [], sources: [], boardsSkipped: 0 };
@@ -231,6 +245,24 @@ export async function fetchFeed(
       label: SOURCE_LABEL.remotive,
       run: () => remotiveWithinBudget(term, fetchJson, kv, now()),
     },
+    ...(enabled.jobicy
+      ? [
+          {
+            key: 'jobicy',
+            label: SOURCE_LABEL.jobicy,
+            run: () => fetchJobicy(term, fetchJson),
+          },
+        ]
+      : []),
+    ...(enabled.remoteok
+      ? [
+          {
+            key: 'remoteok',
+            label: SOURCE_LABEL.remoteok,
+            run: () => fetchRemoteOk(term, fetchJson),
+          },
+        ]
+      : []),
     ...boards.map((b) => ({
       key: `${b.kind}:${b.slug}`,
       label: `${boardLabel(b)} (${SOURCE_LABEL[b.kind]})`,
