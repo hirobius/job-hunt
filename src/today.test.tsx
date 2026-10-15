@@ -22,7 +22,7 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, getAllJobs, jobIdOf, removeJob } from './store';
+import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob } from './store';
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
@@ -280,5 +280,60 @@ describe('one-time "Today is home" notice (#128)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
     await screen.findByRole('region', { name: /^Follow-ups due/ });
     expect(screen.queryByRole('region', NOTICE)).toBeNull();
+  });
+});
+
+// Slice 5 of #132: a three-item "Getting started" card after the first job. Ticks come from real
+// state; Dismiss is remembered per device (rjb_ui_getting_started_done).
+describe('Getting started card (#132)', () => {
+  const card = () => screen.queryByRole('region', { name: 'Getting started' });
+  const ticks = () =>
+    within(card()!)
+      .getAllByRole('checkbox')
+      .map((c) => [
+        c.getAttribute('aria-label') ?? c.parentElement?.textContent,
+        (c as HTMLInputElement).checked,
+      ]);
+
+  it('is not shown before there is a job of your own, nor for sample data alone', () => {
+    seedPack('consulting');
+    window.location.hash = '#/today';
+    const { unmount } = renderApp();
+    expect(card()).toBeNull();
+    unmount();
+    loadSample();
+    renderApp();
+    expect(card()).toBeNull();
+  });
+
+  it('after the first job it lists three steps and ticks the ones that are true', () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    window.location.hash = '#/today';
+    renderApp();
+    expect(ticks()).toEqual([
+      [expect.stringMatching(/Save a job/), true],
+      [expect.stringMatching(/Log a follow-up date or mark a job applied/), false],
+      [expect.stringMatching(/Sign in to sync/), false],
+    ]);
+  });
+
+  it('marking a job applied ticks the second step', () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    markAppliedByUrl('https://acme.example/jobs/1');
+    window.location.hash = '#/today';
+    renderApp();
+    expect(ticks().map((t) => t[1])).toEqual([true, true, false]);
+  });
+
+  it('Dismiss hides it and it stays gone', async () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    window.location.hash = '#/today';
+    const { unmount } = renderApp();
+    await userEvent.click(within(card()!).getByRole('button', { name: 'Dismiss' }));
+    expect(card()).toBeNull();
+    expect(localStorage.getItem('rjb_ui_getting_started_done')).toBe('1');
+    unmount();
+    renderApp();
+    expect(card()).toBeNull();
   });
 });

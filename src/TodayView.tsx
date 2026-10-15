@@ -22,6 +22,7 @@ import { jobHash, navigate } from './route';
 import type { Job } from './types';
 import Insights from './Insights';
 import TodayNotice from './TodayNotice';
+import GettingStarted from './GettingStarted';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 
@@ -175,6 +176,7 @@ export default function TodayView() {
         <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
           <Stack gap="normal">
             <QuickAdd inputRef={quickAddRef} />
+            <GettingStarted jobs={jobs} />
             {jobs.length === 0 ? (
               <EmptyState
                 title="Nothing to do yet"
