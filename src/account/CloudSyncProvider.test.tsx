@@ -337,7 +337,29 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
 
   // ADR 0008: what the user edits (targets, saved searches, evidence, work mode) follows the account.
   describe('user-edited stores follow the account', () => {
-    beforeEach(() => localStorage.clear());
+    beforeEach(() => {
+      localStorage.clear();
+      // The edits below belong to track 'trk', which must exist or they are pruned as orphans.
+      replaceCurationState({
+        categories: [
+          {
+            id: 'trk',
+            label: 'Design Systems',
+            titles: [],
+            atsRoles: [],
+            seniority: 'any',
+            location: '',
+            tailorRole: null,
+            sortOrder: 0,
+            archived: false,
+            createdAt: NOW,
+            updatedAt: NOW,
+          },
+        ],
+        groups: [],
+        tiles: [],
+      });
+    });
     const target = {
       login: 'acme',
       company: 'Acme',
@@ -408,7 +430,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
             targets: { trk: [{ ...target, login: 'cloudco', repo: 'cloudco/ds', savedAt: NOW }] },
             filters: {},
             evidence: 'cloud evidence',
-            modes: { other: 'remote' },
+            modes: {},
           },
         },
       ];
@@ -427,7 +449,6 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
         'cloud evidence\n\n--- From this device ---\n\nLed a design system',
       ); // both kept when they differ
       expect(readMode('trk')).toBe('hybrid');
-      expect(readMode('other')).toBe('remote');
       await waitFor(() => expect(fake().tables.tracker[0].data.targets.trk).toHaveLength(2));
     });
 
@@ -489,6 +510,19 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
       await chooseAccountItem('Sign out');
       await waitFor(() => expect(readTargets('trk')).toEqual([]));
+      expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1);
+    });
+
+    it('sign-in prunes per-track data for tracks that no longer exist', async () => {
+      saveTarget('gone', target);
+      writeMode('gone', 'remote');
+      edit();
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(readTargets('gone')).toEqual([]));
+      expect(readMode('gone')).toBe('any');
+      expect(readTargets('trk')).toHaveLength(1);
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.gone).toBeUndefined());
       expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1);
     });
 

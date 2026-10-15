@@ -21,6 +21,8 @@ import {
   BLOB_VERSION,
   type SyncData,
 } from '../syncBlob';
+import { keepOnlyTracks } from '../trackData';
+import { getCurationState } from '../curation/curationStore';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
 import {
   getCurationSyncStatus,
@@ -145,6 +147,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         curationOk = await syncOnLogin(u.id);
       }
       // A pre-v5 cloud copy lacks the v5 fields (an old tab rewrote it): re-upload them now.
+      // Tracks are settled now: drop per-track data for tracks that no longer exist anywhere.
+      if (curationOk) keepOnlyTracks(new Set(getCurationState().categories.map((c) => c.id)));
       if (seed || next.legacyUserTiles.length || next.sourceV < BLOB_VERSION) await pushNow(u);
       if (!curationOk) setMsg(OFFLINE_MSG);
       else if (!seed) setMsg(`Synced · ${u.email}`);
