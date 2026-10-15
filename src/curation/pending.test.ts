@@ -96,3 +96,23 @@ describe('a damaged or shared journal (#168 re-review)', () => {
     expect(getPending()).toEqual([]);
   });
 });
+
+describe('the pending count follows other tabs (storage event)', () => {
+  it('a hook re-renders when another tab changes the journal', async () => {
+    const { renderHook, act } = await import('@testing-library/react');
+    const { usePendingCount } = await import('./pending');
+    const { result } = renderHook(() => usePendingCount());
+    expect(result.current).toBe(0);
+    // Another tab writes an entry straight to storage; only the event tells this tab.
+    localStorage.setItem(
+      'rjb_curation_pending',
+      JSON.stringify({
+        'groups:g9': { table: 'groups', id: 'g9', op: 'upsert', v: 1, failed: true },
+      }),
+    );
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: 'rjb_curation_pending' }));
+    });
+    expect(result.current).toBe(1);
+  });
+});
