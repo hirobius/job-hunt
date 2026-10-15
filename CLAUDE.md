@@ -63,7 +63,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   the evidence text (`rjb_radar_evidence`) and work mode per track (`rjb_ui_mode:<id>`, `src/trackModes.ts`)**
   — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
   Caches and device UI prefs (`rjb_liveness`, `rjb_probe`, `rjb_gh_*`, `rjb_feed_remotive`, `rjb_ui_*`, pins)
-  stay local. Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
+  stay local. Sign-out flushes the blob first (confirms if the push fails); evidence is capped at 20,000
+  chars; per-track data is pruned with its track (`src/trackData.ts`). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
   content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
   `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`.
 - **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Trades** (tab label; slug

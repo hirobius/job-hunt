@@ -19,7 +19,7 @@ wipes every `rjb_` key, so signing out, or opening a second device, lost them.
    (still `v: 1`).
 2. **Merge rule per shape.** First sign-in (seed): targets union by login (case-insensitive) per
    track, saved searches union by name per track, modes union by track; cloud wins a shared key, a
-   local-only entry is never dropped. Evidence is one text: the cloud's if non-empty, else local.
+   local-only entry is never dropped. Evidence is one text: if both sides have different text, both are kept (the cloud's, a `--- From this device ---` line, then this device's); otherwise the non-empty one.
    Later pulls (refresh): the cloud copy wins like every other field, so an emptied evidence box or a
    removed target propagates.
 3. **Pre-v5 guard.** `SyncData.sourceV` records the version read. A refresh against a pre-v5 cloud
@@ -30,8 +30,16 @@ wipes every `rjb_` key, so signing out, or opening a second device, lost them.
    `discoverContext.ts` so the blob module need not import the curation layer). `CloudSyncProvider`
    subscribes to them, so a change pushes on the same 500 ms debounce as jobs, and a pull calls
    `replace*` so the open UI re-renders. `DataToolsProvider` backs up and restores them the same way.
-5. **Sign-out** still wipes this browser, which is now safe for these stores: they come back on the
-   next sign-in. The only sign-out warning left is for track writes not yet in the cloud.
+4a. **An old-deploy tab can strip the v5 fields** (its v4 `writeBlob` omits them). After a merge
+   where the cloud copy is older than v5, the provider pushes at once instead of marking local as synced.
+5. **Sign-out** still wipes this browser, which is safe because the data comes back on sign-in, but
+   only after the blob is flushed: sign-out cancels the push debounce and awaits a push if local
+   differs from the last successful one. `pushNow` records "synced" only on success, so a failed
+   push stays dirty (refresh retries it first). If the push fails, sign-out confirms before wiping.
+   The older warning for track writes not yet in the cloud stays.
+6. **Bounds.** Evidence is capped at 20,000 characters (trimmed on write and read, with a note in the
+   editor). Per-track entries are dropped when their track is deleted and, after each sync settles,
+   for any track that no longer exists (`src/trackData.ts`).
 
 ## Consequences
 
