@@ -155,15 +155,8 @@ export function TodosNotes({ job }: { job: Job }) {
             </Box>
           </Box>
 
-          {/* NOTES */}
+          {/* NOTES: the textarea carries its own label */}
           <Box>
-            <Text
-              variant="caption"
-              as="span"
-              style={{ color: 'var(--semantic-color-content-secondary)' }}
-            >
-              Notes
-            </Text>
             <Box sx={{ mt: 1.5 }}>
               <NotesField key={job.url} job={job} />
             </Box>

@@ -1,7 +1,7 @@
 // A saved job's own page (#127, #130): `#/queue/<jobId>`, inside the Pipeline tab. A header
 // (title, status, one next step, menu) over the job's sections as tabs. The open tab is local
 // state, not in the URL, and resets to Overview when the job changes.
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Skeleton,
@@ -19,6 +19,7 @@ import { useCloudSync } from './account/accountContext';
 import JobHeader from './JobHeader';
 import JobOverview from './JobOverview';
 import JobRail from './JobRail';
+import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
 import JobScreening from './JobScreening';
 import JobInterviews from './JobInterviews';
@@ -28,19 +29,29 @@ import type { Job } from './types';
 const withCount = (label: string, n: number) => (n > 0 ? `${label} (${n})` : label);
 
 function JobSections({ job }: { job: Job }) {
+  const [tab, setTab] = useState('overview');
   const openTodos = (job.todos ?? []).filter((t) => !t.done).length;
-  // Panels sit flush under the list; the tab list keeps its own bottom rule.
-  const panel = { marginTop: 'var(--primitive-space-4)' } as const;
+  // HDS TabsContent is a padded surface (as for the shell's tabs, see App.tsx BARE_PANEL): make
+  // it bare so the section sits on the page, a step under the tab rule.
+  const panel = {
+    background: 'transparent',
+    padding: 0,
+    borderRadius: 0,
+    marginTop: 'var(--primitive-space-4)',
+  } as const;
   return (
-    <Tabs defaultValue="overview">
-      <TabsList aria-label="Job sections">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="screening">Screening</TabsTrigger>
-        <TabsTrigger value="interviews">
-          {withCount('Interviews', job.events?.length ?? 0)}
-        </TabsTrigger>
-        <TabsTrigger value="todos">{withCount('To-dos', openTodos)}</TabsTrigger>
-      </TabsList>
+    <Tabs value={tab} onValueChange={setTab}>
+      {/* Four tabs can outrun a 390px phone: the fade says more sit past the edge. */}
+      <TabsOverflowFade value={tab}>
+        <TabsList aria-label="Job sections" style={{ width: '100%', marginBottom: 0 }}>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="screening">Screening</TabsTrigger>
+          <TabsTrigger value="interviews">
+            {withCount('Interviews', job.events?.length ?? 0)}
+          </TabsTrigger>
+          <TabsTrigger value="todos">{withCount('To-dos', openTodos)}</TabsTrigger>
+        </TabsList>
+      </TabsOverflowFade>
       <TabsContent value="overview" style={panel}>
         <JobOverview job={job} />
       </TabsContent>
