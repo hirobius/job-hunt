@@ -1,7 +1,8 @@
 // Outreach targets (method 3): companies worth writing to, with or without an opening. A saved
 // company entry, not a Job (docs/specs/discovery-methods.md): it lives in local storage per track
-// (`rjb_targets`) and is not synced, because company lists stay local by default. Storage is untrusted.
+// (`rjb_targets`) and syncs with the account in the blob (ADR 0008). Storage is untrusted.
 import { useMemo, useSyncExternalStore } from 'react';
+import { mergeByKey } from '../mergeByKey';
 import { loadPersisted, savePersisted } from '../persisted';
 import { PROBE_KINDS } from './probe';
 import type { Board } from './sources/ats';
@@ -79,6 +80,32 @@ const write = (all: Record<string, Target[]>) => {
   listeners.forEach((l) => l());
 };
 
+/** Every track's targets (for the sync blob and backup). */
+export const getAllTargets = readAll;
+
+/** Replace the whole store (a pull, a restore) and notify subscribers. */
+export function replaceTargets(all: Record<string, Target[]>): void {
+  write(sanitizeTargets(all));
+}
+
+/** Union by organisation login (ignoring case) per track; `cloud` wins on a shared login, local-only
+ *  entries are kept, and a track's list is capped at its newest MAX_TARGETS_PER_TRACK. */
+export function mergeTargets(
+  cloud: Record<string, Target[]>,
+  local: Record<string, Target[]>,
+): Record<string, Target[]> {
+  const out: Record<string, Target[]> = {};
+  for (const track of new Set([...Object.keys(local), ...Object.keys(cloud)])) {
+    const merged = mergeByKey<Target>(
+      (t) => t.login.toLowerCase(),
+      cloud[track] ?? [],
+      local[track] ?? [],
+    );
+    if (merged.length) out[track] = merged.slice(-MAX_TARGETS_PER_TRACK);
+  }
+  return out;
+}
+
 export const readTargets = (categoryId: string): Target[] => readAll()[categoryId] ?? [];
 
 /** Save (or refresh) an organisation as a target on a track. Returns the track's list. */
@@ -130,4 +157,16 @@ export function useTargets(categoryId: string): Target[] {
       return [];
     }
   }, [raw, categoryId]);
+}
+
+/** Every track's targets, live (the sync provider pushes when this changes). */
+export function useAllTargets(): Record<string, Target[]> {
+  const raw = useSyncExternalStore(subscribe, rawNow, rawNow);
+  return useMemo(() => {
+    try {
+      return sanitizeTargets(raw ? JSON.parse(raw) : {});
+    } catch {
+      return {};
+    }
+  }, [raw]);
 }

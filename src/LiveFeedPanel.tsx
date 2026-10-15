@@ -41,14 +41,14 @@ import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/at
 import { groupByCompany, type CompanyGroup } from './feed/byCompany';
 import { useHashView } from './hashView';
 import { SavedTargets } from './OutreachRows';
-import { deleteFilter, readFilters, saveFilter, type SavedFilter } from './feed/savedFilters';
+import { deleteFilter, saveFilter, useFilters, type SavedFilter } from './feed/savedFilters';
 import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
 import { boardsForPack, packIdForLabel } from './curation/starterPacks';
 import { jobFieldsFor } from './feed/toJob';
 import { modeLabel, verdictLabel, verdictTone } from './screening';
 import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
 import { demandPatterns } from './radar/patterns';
-import { readEvidence, TIER_INFO, writeEvidence } from './radar/evidenceStore';
+import { TIER_INFO, useEvidence, writeEvidence } from './radar/evidenceStore';
 import { SOURCE_LABEL, type RankedPosting, type SignalId } from './feed/types';
 import { SECONDARY } from './hds-gaps/tone';
 
@@ -95,14 +95,14 @@ export default function LiveFeedPanel({
   const [shown, setShown] = useState(PAGE);
   const [watchUrl, setWatchUrl] = useState('');
   const [watchError, setWatchError] = useState('');
-  const [evidenceText, setEvidenceText] = useState(readEvidence);
+  const evidenceText = useEvidence();
   const track = useCategories().find((c) => c.id === categoryId);
   const trackSeniority = track?.seniority ?? 'any';
   const [excludeText, setExcludeText] = useState('');
   const [seniority, setSeniority] = useState<Seniority>(trackSeniority);
   const [floorText, setFloorText] = useState('');
   const [salaryOnly, setSalaryOnly] = useState(false);
-  const [saved, setSaved] = useState(() => readFilters(categoryId));
+  const saved = useFilters(categoryId);
   const [saveName, setSaveName] = useState('');
   const evidence = useMemo(() => parseEvidence(evidenceText), [evidenceText]);
 
@@ -234,19 +234,17 @@ export default function LiveFeedPanel({
   const saveSearch = () => {
     const name = saveName.trim();
     if (!name) return;
-    setSaved(
-      saveFilter(categoryId, {
-        name,
-        term,
-        where,
-        mode,
-        exclude: targeting.exclude,
-        seniority,
-        salaryFloor: targeting.salaryFloor,
-        salaryOnly,
-        contractOnly: focus === 'contract',
-      }),
-    );
+    saveFilter(categoryId, {
+      name,
+      term,
+      where,
+      mode,
+      exclude: targeting.exclude,
+      seniority,
+      salaryFloor: targeting.salaryFloor,
+      salaryOnly,
+      contractOnly: focus === 'contract',
+    });
     setSaveName('');
     toast({ title: `Saved “${name}”`, tone: 'success' });
   };
@@ -489,7 +487,7 @@ export default function LiveFeedPanel({
                 iconOnly
                 iconLeft={<Icon icon={X} />}
                 label={`Remove saved search ${f.name}`}
-                onClick={() => setSaved(deleteFilter(categoryId, f.name))}
+                onClick={() => deleteFilter(categoryId, f.name)}
               />
             </Box>
           ))}
@@ -574,10 +572,7 @@ export default function LiveFeedPanel({
                 startOpen={ranked.length === 0}
                 text={evidenceText}
                 count={evidence.length}
-                onChange={(t) => {
-                  setEvidenceText(t);
-                  writeEvidence(t);
-                }}
+                onChange={writeEvidence}
               />
             </Box>
           </Stack>
