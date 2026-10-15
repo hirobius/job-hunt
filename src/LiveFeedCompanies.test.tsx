@@ -20,6 +20,7 @@ vi.mock('./feed/fetchFeed', () => feed);
 import LiveFeedPanel from './LiveFeedPanel';
 import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
+import { saveTarget } from './feed/targets';
 
 const p = (id: string, company: string, title: string, url: string, source = 'ashby' as const) => ({
   id,
@@ -47,6 +48,7 @@ const RESULT: FeedResult = {
 
 let cat: string;
 beforeEach(() => {
+  localStorage.clear();
   window.location.hash = '#/discover/live';
   feed.fetchFeed.mockReset().mockResolvedValue(RESULT);
   replaceCurationState(EMPTY_CURATION);
@@ -111,6 +113,39 @@ describe('By company view', () => {
     await user.click(await screen.findByRole('radio', { name: 'Companies' }));
     const list = await screen.findByRole('list', { name: /companies/i });
     expect(within(list).queryByRole('button', { name: /watch/i })).toBeNull();
+  });
+
+  it('lists saved outreach targets under the companies, with stars and open roles', async () => {
+    const user = userEvent.setup();
+    saveTarget(cat, {
+      login: 'acme',
+      company: 'Acme Design',
+      repo: 'acme/ds',
+      repoUrl: 'https://github.com/acme/ds',
+      stars: 1234,
+      board: { kind: 'lever', slug: 'acme' },
+      openRoles: 2,
+    });
+    renderPanel();
+    expect(screen.queryByRole('list', { name: 'Saved targets' })).toBeNull();
+    await user.click(await screen.findByRole('radio', { name: 'Companies' }));
+    const saved = await screen.findByRole('list', { name: 'Saved targets' });
+    expect(saved).toHaveTextContent('Acme Design');
+    expect(saved).toHaveTextContent('1,234 stars');
+    expect(saved).toHaveTextContent('Open roles: 2');
+    expect(
+      within(saved).getByRole('button', { name: 'Watch board for Acme Design' }),
+    ).toBeVisible();
+  });
+
+  it('points to the Teams tool when nothing is saved', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await user.click(await screen.findByRole('radio', { name: 'Companies' }));
+    expect(await screen.findByRole('link', { name: 'Find design-system teams' })).toHaveAttribute(
+      'href',
+      '#/discover/teams',
+    );
   });
 
   it('has no WCAG A/AA violations', async () => {

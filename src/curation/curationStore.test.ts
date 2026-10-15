@@ -237,3 +237,10 @@ describe('addTiles (bulk)', () => {
     expect(cloud.upsertSpy).not.toHaveBeenCalled();
   });
 });
+
+describe('new tracks start with no place (#58)', () => {
+  it('addCategory() with no location leaves location empty', () => {
+    const id = addCategory();
+    expect(getCurationState().categories.find((c) => c.id === id)?.location).toBe('');
+  });
+});

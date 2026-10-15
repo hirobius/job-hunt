@@ -25,6 +25,8 @@ const FEED_HOSTS = [
   'https://api.ashbyhq.com',
   'https://apply.workable.com',
   'https://*.recruitee.com',
+  'https://yc-oss.github.io',
+  'https://api.github.com',
 ];
 
 type Header = { key: string; value: string };

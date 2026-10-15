@@ -40,10 +40,13 @@ import DiscoverHeader from './DiscoverHeader';
 import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
 import { useTrackContext } from './discoverContext';
+import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 
 const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
 const LiveFeedPanel = lazy(() => import('./LiveFeedPanel'));
+const FindBoardsPanel = lazy(() => import('./FindBoardsPanel'));
+const OutreachTargets = lazy(() => import('./OutreachTargets'));
 
 // Discover reads the per-account CURATION STORE (categories→groups→tiles), not the old hardcoded
 // pillars (B1 / #30). A Category IS a track: its titles/atsRoles/seniority/location drive the
@@ -192,7 +195,11 @@ function AtsPanel({
     );
   const query: HiddenQuery = { role, entry: seniority === 'entry', where, mode, recency, contract };
   const tilesFor = (sites: HiddenSite[]): Tile[] =>
-    sites.map((a) => ({ name: a.name, meta: a.domain, url: atsSearchUrl(a.site, query) }));
+    sites.map((a) => ({
+      name: a.name,
+      meta: a.note ?? a.domain,
+      url: a.href ?? atsSearchUrl(a.site, query),
+    }));
   const allButton = (sites: HiddenSite[], what: string) => (
     <Button
       variant="secondary"
@@ -282,12 +289,14 @@ function AtsPanel({
 
 // The tools row is data-driven: adding a tool (e.g. "By company") is one entry here. Short labels
 // on a phone, full names from the HDS `sm` breakpoint up (docs/specs/discover.md, "Tools vs sections").
-type ToolKey = 'apply' | 'titles' | 'ats' | 'live';
+type ToolKey = 'apply' | 'titles' | 'ats' | 'live' | 'boards' | 'teams';
 const TOOLS: { key: ToolKey; label: string; short: string }[] = [
   { key: 'apply', label: 'Apply now', short: 'Apply' },
   { key: 'titles', label: 'Title search', short: 'Titles' },
   { key: 'ats', label: 'ATS search', short: 'ATS' },
   { key: 'live', label: 'Live postings', short: 'Live' },
+  { key: 'boards', label: 'Find boards', short: 'Boards' },
+  { key: 'teams', label: 'Design-system teams', short: 'Teams' },
 ];
 
 export default function DiscoverView() {
@@ -371,7 +380,11 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const route = useRoute();
   const wide = useAtLeast('sm');
   // A track with no sections has no "Apply now" view to show: open on Title search instead.
-  const tools = sections.length ? TOOLS : TOOLS.filter((t) => t.key !== 'apply');
+  const tools = TOOLS.filter(
+    (t) =>
+      (sections.length || t.key !== 'apply') &&
+      (DISCOVERY_SOURCE_ENABLED.github || t.key !== 'teams'),
+  );
   const sub = route.sub;
   const tool: ToolKey =
     (tools.find((t) => t.key === sub)?.key as ToolKey | undefined) ??
@@ -454,6 +467,16 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             categoryId={cat.id}
             onManage={() => setManageOpen(true)}
           />
+        )}
+        {tool === 'boards' && (
+          <Suspense fallback={null}>
+            <FindBoardsPanel key={cat.id} categoryId={cat.id} boardUrls={boardUrls} />
+          </Suspense>
+        )}
+        {tool === 'teams' && (
+          <Suspense fallback={null}>
+            <OutreachTargets key={cat.id} categoryId={cat.id} boardUrls={boardUrls} />
+          </Suspense>
         )}
         {tool === 'live' && (
           <Suspense fallback={null}>

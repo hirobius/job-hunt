@@ -327,6 +327,18 @@ track-agnostic like everything else in Discover.
     no longer reads a global list.
   - **By company** (`feed/byCompany.ts`): an Openings/Companies toggle, view kept in the hash as
     `?view=companies` (`hashView.ts`).
+- **Hidden-job discovery (2026-10-15, `docs/specs/discovery-methods.md`).** Discover tools **Boards** and
+  **Teams** (`#/discover/boards`, `#/discover/teams`). `feed/probe.ts` asks Greenhouse / Lever / Ashby /
+  Workable / Recruitee for a company's board (200 + job list = live, 404 = none, anything else =
+  **unknown, never none**; 6 in flight, 2 per host, 150 ms gap, 3×429 stops a host, cache `rjb_probe`);
+  `discoverBoards.ts` + `FindBoardsPanel` take a pasted list (500 max) or a YC batch (`yc.ts`, community
+  mirror) and offer Watch. `dsOrgs.ts` + `githubBudget.ts` find design-system orgs via keyless GitHub
+  search (3 pages, 30 org lookups per run, 8 searches/min and 40 core/hour in `rjb_gh_budget`, stops with
+  "wait until" on 403/429); results are outreach targets (`targets.ts`, `rjb_targets`, local, per track,
+  shown in By company and the Teams tool). YC and GitHub sit behind `DISCOVERY_SOURCE_ENABLED`
+  (`feed/discoverySources.ts`) and are **unverified live**, as are the new community-board `site:` clauses
+  in `jobsData.ts`. Big-company ATSs (Workday, SuccessFactors, Taleo, Oracle) are Google links only: never
+  fetch them. New hosts `yc-oss.github.io` and `api.github.com` are in `connect-src` and `csp.test.ts`.
 - ⚠️ **CSP (#41):** when a Content-Security-Policy lands, `connect-src` must allow `hn.algolia.com`,
   `remotive.com`, `boards-api.greenhouse.io`, `api.lever.co`, `api.eu.lever.co`, `api.ashbyhq.com`
   or the feed goes silent (each source would report "couldn't connect").

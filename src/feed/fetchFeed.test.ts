@@ -8,6 +8,8 @@ import {
   memoryKv,
   REMOTIVE_DAILY_MAX,
   SOURCE_ENABLED,
+  SOURCE_TIMEOUT_MS,
+  FETCH_TIMEOUT_MS,
 } from './fetchFeed';
 import { FetchError } from './sources/http';
 
@@ -449,6 +451,31 @@ describe('per-source hard timeout and single-source retry (#131)', () => {
       error: 'Remotive: timed out — try again later.',
     });
     expect(out.sources.find((s) => s.key === 'hn')?.error).toBeUndefined();
+  });
+
+  it('pins the 15 s cap: the constants, and a source hanging past it fails while others resolve', async () => {
+    expect(SOURCE_TIMEOUT_MS).toBe(15_000);
+    expect(FETCH_TIMEOUT_MS).toBe(15_000);
+    vi.useFakeTimers();
+    try {
+      const fetchJson = vi.fn(async (url: string) =>
+        url.includes('remotive.com') ? hung() : okJson(url),
+      );
+      // Default sourceTimeoutMs on purpose: changing the constant must turn this red.
+      const pending = fetchFeed({ term: 'design engineer', boardUrls: [] }, fetchJson, {
+        sources: NO_AGGREGATORS,
+      });
+      let done = false;
+      void pending.then(() => (done = true));
+      await vi.advanceTimersByTimeAsync(14_999);
+      expect(done).toBe(false);
+      await vi.advanceTimersByTimeAsync(2);
+      const out = await pending;
+      expect(out.sources.find((s) => s.key === 'remotive')?.error).toMatch(/timed out/);
+      expect(out.sources.find((s) => s.key === 'hn')?.error).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('reads only the named sources when asked to retry them', async () => {
