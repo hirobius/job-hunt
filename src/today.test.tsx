@@ -229,7 +229,10 @@ describe('first-run gate in the shell (#128)', () => {
   it('picking a track finishes setup and shows Today', async () => {
     renderApp();
     await userEvent.click(screen.getAllByRole('checkbox')[0]);
-    await userEvent.click(screen.getByRole('button', { name: /^Start with/ }));
+    // Three steps (#132): Continue, Continue, Finish.
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
     expect(await screen.findByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument();
   });
 

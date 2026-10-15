@@ -111,7 +111,10 @@ async function seed(page) {
     const pack = page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first();
     if (await pack.isVisible().catch(() => false)) {
       await pack.click();
-      await clickIf(page, 'button', /^Start with/);
+      // Three steps (#132): Continue, Continue, Finish.
+      await clickIf(page, 'button', /^Continue$/);
+      await clickIf(page, 'button', /^Continue$/);
+      await clickIf(page, 'button', /^Finish$/);
     }
   }
 }
@@ -182,6 +185,21 @@ async function shoot(browser, base, theme, width, manifest) {
 
   // The landing screen before any data: what a first visit sees.
   await snap('First visit');
+  // The guided first run (#132): steps 2 and 3, then back out so seed() starts from step 1.
+  const firstPack = page
+    .getByRole('group', { name: 'Starter tracks' })
+    .getByRole('checkbox')
+    .first();
+  if (await firstPack.isVisible().catch(() => false)) {
+    await firstPack.click();
+    if (await clickIf(page, 'button', /^Continue$/)) {
+      await snap('First run · location');
+      if (await clickIf(page, 'button', /^Continue$/)) await snap('First run · first job');
+      await clickIf(page, 'button', /^Back$/);
+      await clickIf(page, 'button', /^Back$/);
+    }
+    await firstPack.click();
+  }
   await seed(page);
 
   for (const tab of await topTabs(page)) {
