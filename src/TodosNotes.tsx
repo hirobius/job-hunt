@@ -50,133 +50,127 @@ export function TodosNotes({ job }: { job: Job }) {
   };
 
   return (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* TO-DOS */}
       <Box>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {/* TO-DOS */}
-          <Box>
-            <Text
-              variant="caption"
-              as="span"
-              style={{ color: 'var(--semantic-color-content-secondary)' }}
-            >
-              To-dos
-            </Text>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1.5 }}>
-              {todos.map((todo) => (
-                <Box
-                  sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center' }}
-                  key={todo.id}
-                >
-                  <Box
-                    sx={{
-                      flex: 1,
-                      minWidth: 0,
-                      ...(todo.done && {
-                        '& label > span:last-of-type': {
-                          textDecoration: 'line-through',
-                          opacity: 0.6,
-                        },
-                      }),
-                    }}
-                  >
-                    <HdsCheckbox
-                      label={todo.text}
-                      checked={todo.done}
-                      onChange={() => updateJob(job.url, { todos: toggleTodo(todos, todo.id) })}
-                    />
-                  </Box>
-                  <UiButton
-                    size="sm"
-                    variant="tertiary"
-                    iconOnly
-                    iconLeft={<Icon icon={X} />}
-                    label={`Delete “${todo.text}”`}
-                    onClick={() => updateJob(job.url, { todos: deleteTodo(todos, todo.id) })}
-                  />
-                </Box>
-              ))}
-
-              {todos.length === 0 && (
-                <Box>
-                  <Text
-                    variant="ui"
-                    as="p"
-                    style={{
-                      color: 'var(--semantic-color-content-secondary)',
-                      margin: 0,
-                      marginBottom: 'var(--primitive-space-2)',
-                    }}
-                  >
-                    No to-dos yet. Add your own below, or start from a short checklist.
-                  </Text>
-                  <UiButton
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => updateJob(job.url, { todos: seedStarterTodos() })}
-                  >
-                    Add starter tasks
-                  </UiButton>
-                </Box>
-              )}
-            </Box>
-
-            {/* add-todo row */}
+        <Text
+          variant="caption"
+          as="span"
+          style={{ color: 'var(--semantic-color-content-secondary)' }}
+        >
+          To-dos
+        </Text>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1.5 }}>
+          {todos.map((todo) => (
             <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'row',
-                gap: 1.5,
-                alignItems: 'center',
-                mt: 1.5,
-              }}
+              sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center' }}
+              key={todo.id}
             >
-              <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-                <HdsInput
-                  size="sm"
-                  aria-label="New to-do"
-                  placeholder="Add a to-do…"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitAdd();
-                  }}
-                  style={{ width: '100%' }}
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  ...(todo.done && {
+                    '& label > span:last-of-type': {
+                      textDecoration: 'line-through',
+                      opacity: 0.6,
+                    },
+                  }),
+                }}
+              >
+                <HdsCheckbox
+                  label={todo.text}
+                  checked={todo.done}
+                  onChange={() => updateJob(job.url, { todos: toggleTodo(todos, todo.id) })}
                 />
               </Box>
               <UiButton
                 size="sm"
-                variant="secondary"
-                iconLeft={<Plus size={16} />}
-                disabled={!draft.trim()}
-                onClick={commitAdd}
+                variant="tertiary"
+                iconOnly
+                iconLeft={<Icon icon={X} />}
+                label={`Delete “${todo.text}”`}
+                onClick={() => updateJob(job.url, { todos: deleteTodo(todos, todo.id) })}
+              />
+            </Box>
+          ))}
+
+          {todos.length === 0 && (
+            <Box>
+              <Text
+                variant="ui"
+                as="p"
+                style={{
+                  color: 'var(--semantic-color-content-secondary)',
+                  margin: 0,
+                  marginBottom: 'var(--primitive-space-2)',
+                }}
               >
-                Add
+                No to-dos yet. Add your own below, or start from a short checklist.
+              </Text>
+              <UiButton
+                size="sm"
+                variant="secondary"
+                onClick={() => updateJob(job.url, { todos: seedStarterTodos() })}
+              >
+                Add starter tasks
               </UiButton>
             </Box>
-          </Box>
-
-          {/* NOTES: the textarea carries its own label */}
-          <Box>
-            <Box sx={{ mt: 1.5 }}>
-              {job.notes && job.note && job.note !== job.notes && (
-                <Text
-                  variant="caption"
-                  as="p"
-                  style={{
-                    color: 'var(--semantic-color-content-secondary)',
-                    margin: 0,
-                    marginBottom: 'var(--primitive-space-2)',
-                    overflowWrap: 'anywhere',
-                  }}
-                >
-                  From when you saved it: {job.note}
-                </Text>
-              )}
-              <NotesField key={job.url} job={job} />
-            </Box>
-          </Box>
+          )}
         </Box>
+
+        {/* add-todo row */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 1.5,
+            alignItems: 'center',
+            mt: 1.5,
+          }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+            <HdsInput
+              size="sm"
+              aria-label="New to-do"
+              placeholder="Add a to-do…"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitAdd();
+              }}
+              style={{ width: '100%' }}
+            />
+          </Box>
+          <UiButton
+            size="sm"
+            variant="secondary"
+            iconLeft={<Plus size={16} />}
+            disabled={!draft.trim()}
+            onClick={commitAdd}
+          >
+            Add
+          </UiButton>
+        </Box>
+      </Box>
+
+      {/* NOTES: the textarea carries its own label */}
+      <Box sx={{ mt: 1.5 }}>
+        {job.notes && job.note && job.note !== job.notes && (
+          <Text
+            variant="caption"
+            as="p"
+            style={{
+              color: 'var(--semantic-color-content-secondary)',
+              margin: 0,
+              marginBottom: 'var(--primitive-space-2)',
+              overflowWrap: 'anywhere',
+            }}
+          >
+            From when you saved it: {job.note}
+          </Text>
+        )}
+        <NotesField key={job.url} job={job} />
       </Box>
     </Box>
   );
