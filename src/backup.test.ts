@@ -364,7 +364,7 @@ describe('backup carries targets, saved searches, evidence and work modes (ADR 0
     const merged = applyBackup(current, rich(), 'merge');
     expect(merged.targets.t1.map((t) => t.login)).toEqual(['mine', 'acme']);
     expect(merged.filters.t1.map((f) => f.name)).toEqual(['Mine', 'Austin']);
-    expect(merged.evidence).toBe('Led HDS');
+    expect(merged.evidence).toBe('Led HDS\n\n--- From this device ---\n\nmine');
     expect(merged.modes).toEqual({ t1: 'remote', t2: 'hybrid' });
     const replaced = applyBackup(current, rich(), 'replace');
     expect(replaced.targets.t1.map((t) => t.login)).toEqual(['acme']);

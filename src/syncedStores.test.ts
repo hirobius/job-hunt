@@ -122,7 +122,7 @@ describe('evidence', () => {
   });
 
   it.each([
-    ['cloud text wins', 'c', 'l', 'c'],
+    ['differing texts are both kept', 'c', 'l', 'c\n\n--- From this device ---\n\nl'],
     ['blank cloud keeps local', '  ', 'l', 'l'],
     ['both empty', '', '', ''],
   ])('merge: %s', (_n, c, l, want) => expect(mergeEvidence(c, l)).toBe(want));

@@ -39,9 +39,18 @@ export function writeEvidence(raw: string) {
 /** Replace from a pull or restore (same as a write; named for the sync seam). */
 export const replaceEvidence = writeEvidence;
 
-/** Merge two evidence texts: `cloud` wins when it has any text, otherwise keep `local`. */
-export const mergeEvidence = (cloud: string, local: string): string =>
-  cloud.trim() ? cloud : local;
+export const EVIDENCE_SEPARATOR = '--- From this device ---';
+
+/** Merge two evidence texts. One side empty, or one containing the other: keep the fuller one.
+ *  Both different: keep both, the cloud's first, a separator line, then this device's. */
+export function mergeEvidence(cloud: string, local: string): string {
+  const c = cloud.trim();
+  const l = local.trim();
+  if (!c) return local;
+  if (!l || c === l || c.includes(l)) return cloud;
+  if (l.includes(c)) return local;
+  return capEvidence(`${c}\n\n${EVIDENCE_SEPARATOR}\n\n${l}`);
+}
 
 const subscribe = (l: () => void) => {
   listeners.add(l);

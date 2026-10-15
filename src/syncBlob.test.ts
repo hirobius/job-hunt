@@ -219,7 +219,15 @@ describe('blob v5 — targets, saved searches, evidence, work mode', () => {
   });
 
   it.each([
-    ['cloud has text', 'cloud text', 'local text', 'cloud text'],
+    ['cloud only', 'cloud text', '', 'cloud text'],
+    ['same text', 'same', 'same', 'same'],
+    ['local already contains cloud', 'short', 'short and more', 'short and more'],
+    [
+      'both differ: keep both',
+      'cloud text',
+      'local text',
+      'cloud text\n\n--- From this device ---\n\nlocal text',
+    ],
     ['cloud is empty', '', 'local text', 'local text'],
     ['both empty', '', '', ''],
   ])('seed evidence: %s', (_n, c, l, want) => {

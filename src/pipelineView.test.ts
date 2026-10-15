@@ -53,7 +53,7 @@ describe('pipelineView', () => {
       visibleJobs(all, { filter: 'all', sort: 'az', q: '' })
         .filter((j) => !j.archived)
         .map((j) => j.label),
-    ).toEqual(['Gamma', 'Alpha welder', 'Beta fitter']) // pinned floats first;
+    ).toEqual(['Gamma', 'Alpha welder', 'Beta fitter']); // pinned floats first;
   });
 
   it('counts every filter', () => {

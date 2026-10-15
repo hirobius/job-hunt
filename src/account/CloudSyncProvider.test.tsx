@@ -423,7 +423,9 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
         ).toEqual(['acme', 'cloudco']),
       );
       expect(readFilters('trk')).toHaveLength(1);
-      expect(readEvidence()).toBe('cloud evidence'); // cloud text wins when it has any
+      expect(readEvidence()).toBe(
+        'cloud evidence\n\n--- From this device ---\n\nLed a design system',
+      ); // both kept when they differ
       expect(readMode('trk')).toBe('hybrid');
       expect(readMode('other')).toBe('remote');
       await waitFor(() => expect(fake().tables.tracker[0].data.targets.trk).toHaveLength(2));
