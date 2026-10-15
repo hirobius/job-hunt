@@ -1,0 +1,106 @@
+// Discover redesign (#131), pinned at the route seam: App at #/discover, driven by role and text.
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { ToastProvider } from '@hirobius/design-system';
+
+const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));
+vi.mock('@supabase/supabase-js', async () => {
+  const { createFakeSupabase } = await import('./test/fakeSupabase');
+  return {
+    createClient: () => {
+      h.fake = createFakeSupabase();
+      return h.fake.client;
+    },
+  };
+});
+const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
+vi.mock('./feed/fetchFeed', () => feed);
+
+import { createFakeSupabase } from './test/fakeSupabase';
+import { ColorModeProvider } from './ColorMode';
+import App from './App';
+import { addCategory, addGroup, replaceCurationState } from './curation/curationStore';
+import { EMPTY_CURATION } from './curation/types';
+import { modeKey } from './discoverContext';
+
+const renderApp = () =>
+  render(
+    <ColorModeProvider>
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    </ColorModeProvider>,
+  );
+
+let cat: string;
+beforeEach(() => {
+  h.fake?.reset();
+  localStorage.clear();
+  feed.fetchFeed.mockReset().mockResolvedValue({ postings: [], sources: [] });
+  replaceCurationState(EMPTY_CURATION);
+  cat = addCategory({
+    label: 'Welding',
+    titles: ['Welder'],
+    atsRoles: ['welder'],
+    location: 'Spokane',
+  });
+  window.history.replaceState(null, '', '/');
+  window.location.hash = '#/discover';
+});
+afterEach(cleanup);
+
+const hrefs = () =>
+  screen.getAllByRole('link', { name: /search/i }).map((a) => a.getAttribute('href') ?? '');
+
+describe('Discover track context (slice 1)', () => {
+  it('reads location from the track and shows one location control for every tool', async () => {
+    window.location.hash = '#/discover/titles';
+    renderApp();
+    expect(await screen.findByLabelText('Location')).toHaveValue('Spokane');
+    expect(screen.getAllByLabelText('Location')).toHaveLength(1);
+    expect(hrefs().some((u) => u.includes('l=Spokane'))).toBe(true);
+  });
+
+  it('changing the mode changes the Title search links', async () => {
+    window.location.hash = '#/discover/titles';
+    renderApp();
+    await userEvent.click(await screen.findByRole('radio', { name: 'Remote' }));
+    expect(hrefs().some((u) => u.includes('l=Remote'))).toBe(true);
+    expect(localStorage.getItem(modeKey(cat))).toBe('remote');
+  });
+
+  it('keeps one location control on ATS search and Live postings', async () => {
+    window.location.hash = '#/discover/ats';
+    const { unmount } = renderApp();
+    expect(await screen.findByLabelText('Location')).toHaveValue('Spokane');
+    expect(screen.getAllByLabelText('Location')).toHaveLength(1);
+    unmount();
+    window.location.hash = '#/discover/live';
+    renderApp();
+    expect(await screen.findByLabelText('Location')).toHaveValue('Spokane');
+    expect(screen.getAllByLabelText('Location')).toHaveLength(1);
+  });
+
+  it('typing a location writes it to the track, and the mode survives a remount', async () => {
+    window.location.hash = '#/discover/titles';
+    const first = renderApp();
+    const box = await screen.findByLabelText('Location');
+    await userEvent.clear(box);
+    await userEvent.type(box, 'Boise');
+    await userEvent.click(screen.getByRole('radio', { name: 'Hybrid' }));
+    first.unmount();
+    renderApp();
+    expect(await screen.findByLabelText('Location')).toHaveValue('Boise');
+    expect(screen.getByRole('radio', { name: 'Hybrid' })).toBeChecked();
+  });
+
+  it('old #/discover/<groupId> routes still resolve', async () => {
+    addGroup(cat, { label: 'First picks' });
+    const g = addGroup(cat, { label: 'Union halls' });
+    window.location.hash = `#/discover/${g}`;
+    renderApp();
+    expect(await screen.findByRole('tab', { name: 'Union halls', selected: true })).toBeVisible();
+    expect(within(document.body).queryByText(/Pick a title/)).not.toBeInTheDocument();
+  });
+});

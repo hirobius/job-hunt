@@ -17,8 +17,9 @@ const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
 vi.mock('./feed/fetchFeed', () => feed);
 
 import LiveFeedPanel from './LiveFeedPanel';
-import { addCategory, replaceCurationState } from './curation/curationStore';
+import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
+import { readMode } from './discoverContext';
 import { FILTERS_KEY } from './feed/savedFilters';
 
 const RESULT: FeedResult = {
@@ -37,15 +38,11 @@ const RESULT: FeedResult = {
 };
 
 let cat: string;
-let where = '';
-let mode: 'any' | 'remote' | 'hybrid' | 'onsite' = 'any';
 beforeEach(() => {
   localStorage.clear();
-  where = '';
-  mode = 'any';
   feed.fetchFeed.mockReset().mockResolvedValue(RESULT);
   replaceCurationState(EMPTY_CURATION);
-  cat = addCategory({ label: 'Design Systems' });
+  cat = addCategory({ label: 'Design Systems', location: '' });
 });
 afterEach(cleanup);
 
@@ -56,10 +53,6 @@ const renderPanel = () =>
         categoryId={cat}
         terms={['design systems', 'design engineer']}
         boardUrls={[]}
-        where={where}
-        mode={mode}
-        onWhere={(v) => (where = v)}
-        onMode={(v) => (mode = v)}
       />
     </ToastProvider>,
   );
@@ -114,8 +107,8 @@ describe('saved searches', () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     await user.click(screen.getByRole('button', { name: 'Eng Austin' }));
-    expect(where).toBe('Austin, TX');
-    expect(mode).toBe('hybrid');
+    expect(getCurationState().categories.find((c) => c.id === cat)?.location).toBe('Austin, TX');
+    expect(readMode(cat)).toBe('hybrid');
     expect(feed.fetchFeed).toHaveBeenLastCalledWith(
       expect.objectContaining({ term: 'design engineer' }),
     );

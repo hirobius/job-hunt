@@ -26,8 +26,7 @@ import {
 import { X } from 'lucide-react';
 import EmptyState from './EmptyState';
 import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
-import LocationControl from './LocationControl';
-import type { WorkMode } from './jobsData';
+import { setTrackContext, useTrackContext } from './discoverContext';
 import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
 import { fetchFeed, type FeedResult } from './feed/fetchFeed';
 import { rankPostings } from './feed/match';
@@ -69,21 +68,14 @@ export default function LiveFeedPanel({
   categoryId,
   terms,
   boardUrls,
-  where,
-  mode,
-  onWhere,
-  onMode,
 }: {
   categoryId: string;
   /** The track's search terms — offered as chips; the first is searched on open. */
   terms: string[];
   /** Every tile URL on the track; the feed pulls the ones that are company boards. */
   boardUrls: string[];
-  where: string;
-  mode: WorkMode;
-  onWhere: (v: string) => void;
-  onMode: (v: WorkMode) => void;
 }) {
+  const { where, mode } = useTrackContext(categoryId);
   const { toast } = useToast();
   const [input, setInput] = useState(terms[0] ?? '');
   const [term, setTerm] = useState(terms[0] ?? '');
@@ -253,8 +245,7 @@ export default function LiveFeedPanel({
     setFloorText(f.salaryFloor ? String(f.salaryFloor) : '');
     setSalaryOnly(f.salaryOnly);
     setFocus(f.contractOnly ? 'contract' : 'all');
-    onWhere(f.where);
-    onMode(f.mode);
+    setTrackContext(categoryId, { where: f.where, mode: f.mode });
     search(f.term);
   };
 
@@ -324,8 +315,6 @@ export default function LiveFeedPanel({
         Jobicy, Remote OK and the company boards you watch, ranked by relevance. Add your evidence
         and each one gets a fit. Nothing is kept until you save one.
       </Text>
-      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
-
       <Box
         as="form"
         onSubmit={onSearch}

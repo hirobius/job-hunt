@@ -61,7 +61,7 @@ beforeEach(() => {
   localStorage.clear();
   feed.fetchFeed.mockReset().mockResolvedValue(RESULT);
   replaceCurationState(EMPTY_CURATION);
-  cat = addCategory({ label: 'Design Systems' });
+  cat = addCategory({ label: 'Design Systems', location: '' });
 });
 afterEach(() => {
   cleanup();
@@ -77,10 +77,6 @@ const renderPanel = () =>
         categoryId={cat}
         terms={['design systems']}
         boardUrls={['https://jobs.ashbyhq.com/newco']}
-        where=""
-        mode="any"
-        onWhere={() => {}}
-        onMode={() => {}}
       />
     </ToastProvider>,
   );

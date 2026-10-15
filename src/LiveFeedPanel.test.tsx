@@ -75,7 +75,7 @@ let cat: string;
 beforeEach(() => {
   feed.fetchFeed.mockReset().mockResolvedValue(RESULT);
   replaceCurationState(EMPTY_CURATION);
-  cat = addCategory({ label: 'Design Systems' });
+  cat = addCategory({ label: 'Design Systems', location: '' });
 });
 afterEach(() => {
   cleanup();
@@ -91,10 +91,6 @@ const renderPanel = (boardUrls: string[] = []) =>
         categoryId={cat}
         terms={['design systems', 'design engineer']}
         boardUrls={boardUrls}
-        where=""
-        mode="any"
-        onWhere={() => {}}
-        onMode={() => {}}
       />
     </ToastProvider>,
   );

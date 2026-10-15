@@ -30,7 +30,6 @@ import {
   type HiddenQuery,
   type HiddenSite,
   type Tile,
-  type WorkMode,
 } from './jobsData';
 import { useJobs } from './store';
 import { partitionTiles } from './tileState';
@@ -40,6 +39,7 @@ import { useCategories, useGroups, useTiles, addCategory } from './curation/cura
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import type { Category, Seniority } from './curation/types';
 import LocationControl from './LocationControl';
+import { useTrackContext } from './discoverContext';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 
 const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
@@ -185,21 +185,16 @@ function TitlesPanel({
   titles,
   applyEntry,
   initialTitle,
-  where,
-  mode,
-  onWhere,
-  onMode,
+  categoryId,
   onManage,
 }: {
   titles: string[];
   applyEntry: boolean;
   initialTitle?: string | null;
-  where: string;
-  mode: WorkMode;
-  onWhere: (v: string) => void;
-  onMode: (v: WorkMode) => void;
+  categoryId: string;
   onManage: () => void;
 }) {
+  const { where, mode } = useTrackContext(categoryId);
   const [title, setTitle] = useState(initialTitle || titles[0] || '');
   if (titles.length === 0)
     return (
@@ -231,7 +226,6 @@ function TitlesPanel({
       >
         Pick a title — searches fire {applyEntry ? 'entry-level filtered ' : ''}across every board.
       </Text>
-      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 'sm' }}>
         {titles.map((tt) => (
           <Tag key={tt} active={tt === title} onClick={() => setTitle(tt)}>
@@ -247,20 +241,15 @@ function TitlesPanel({
 function AtsPanel({
   roles,
   seniority,
-  where,
-  mode,
-  onWhere,
-  onMode,
+  categoryId,
   onManage,
 }: {
   roles: string[];
   seniority: Seniority;
-  where: string;
-  mode: WorkMode;
-  onWhere: (v: string) => void;
-  onMode: (v: WorkMode) => void;
+  categoryId: string;
   onManage: () => void;
 }) {
+  const { where, mode } = useTrackContext(categoryId);
   const [role, setRole] = useState(roles[0] ?? '');
   const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
   const [contract, setContract] = useState(false);
@@ -302,7 +291,6 @@ function AtsPanel({
       >
         Search companies' hiring systems straight through Google — far less competition.
       </Text>
-      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
       {/* Mobile-first: a column that becomes a row from sm. HDS sx has no base breakpoint (hds#652), so the base value sits on the key and the override nests under '&'. */}
       <Box
         sx={{
@@ -397,8 +385,6 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const savedSet = useMemo(() => new Set(jobs.map((j) => j.url)), [jobs]);
   const [seed] = useState(() => consumeDiscoverSeed());
   const [activeId, setActiveId] = useState(() => loadActiveCategory(categories));
-  const [where, setWhere] = useState('');
-  const [mode, setMode] = useState<WorkMode>('any');
   const [manageOpen, setManageOpen] = useState(false);
 
   const cat = categories.find((c) => c.id === activeId) ?? categories[0];
@@ -493,6 +479,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
           />
         </Suspense>
       )}
+      <LocationControl categoryId={cat.id} />
       {/* Key the tabs by category so switching tracks resets to the first sub-tab. */}
       <HdsTabs
         key={cat.id}
@@ -519,10 +506,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               titles={cat.titles}
               applyEntry={cat.seniority === 'entry'}
               initialTitle={seed}
-              where={where}
-              mode={mode}
-              onWhere={setWhere}
-              onMode={setMode}
+              categoryId={cat.id}
               onManage={() => setManageOpen(true)}
             />
           )}
@@ -530,10 +514,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             <AtsPanel
               roles={cat.atsRoles}
               seniority={cat.seniority}
-              where={where}
-              mode={mode}
-              onWhere={setWhere}
-              onMode={setMode}
+              categoryId={cat.id}
               onManage={() => setManageOpen(true)}
             />
           )}
@@ -544,10 +525,6 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
                 categoryId={cat.id}
                 terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
                 boardUrls={boardUrls}
-                where={where}
-                mode={mode}
-                onWhere={setWhere}
-                onMode={setMode}
               />
             </Suspense>
           )}

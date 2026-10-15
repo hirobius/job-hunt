@@ -68,15 +68,7 @@ afterEach(cleanup);
 const renderPanel = () =>
   render(
     <ToastProvider>
-      <LiveFeedPanel
-        categoryId={cat}
-        terms={['design systems']}
-        boardUrls={[]}
-        where=""
-        mode="any"
-        onWhere={() => {}}
-        onMode={() => {}}
-      />
+      <LiveFeedPanel categoryId={cat} terms={['design systems']} boardUrls={[]} />
     </ToastProvider>,
   );
 

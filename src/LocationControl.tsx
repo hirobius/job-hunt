@@ -2,21 +2,15 @@
 // ATS search, Live postings). Extracted from DiscoverView so the Live postings panel can reuse it.
 import { Input as HdsInput, SegmentedControl, Box, Text } from '@hirobius/design-system';
 import type { WorkMode } from './jobsData';
+import { useTrackContext } from './discoverContext';
 
 const REMOTE_COMPETITION_HINT =
   'Remote roles draw ~5× the applicants (2024) — local & hybrid compete less.';
 
-export default function LocationControl({
-  where,
-  mode,
-  onWhere,
-  onMode,
-}: {
-  where: string;
-  mode: WorkMode;
-  onWhere: (v: string) => void;
-  onMode: (v: WorkMode) => void;
-}) {
+// Rendered once, in the Discover header: location lives on the track, work mode on the device
+// (src/discoverContext.ts), and every search tool reads them from there.
+export default function LocationControl({ categoryId }: { categoryId: string }) {
+  const { where, mode, setWhere: onWhere, setMode: onMode } = useTrackContext(categoryId);
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'xs', mb: 3 }}>
       <SegmentedControl
