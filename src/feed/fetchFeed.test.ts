@@ -161,7 +161,8 @@ describe('fetchFeed', () => {
       inFlight--;
       return [];
     });
-    expect(peak).toBe(BOARD_CONCURRENCY);
+    expect(BOARD_CONCURRENCY).toBe(6);
+    expect(peak).toBe(6);
   });
 
   it('skips the network entirely for a blank term', async () => {

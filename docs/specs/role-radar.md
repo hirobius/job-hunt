@@ -2,8 +2,9 @@
 
 Status: **first pass built** (2026-10-15). Adrian made Role Radar an exception to the feature lock
 ("one of the primary projects that will be on my portfolio") and asked for a first pass from this
-spec. It uses the recommended answers to Q1–Q4 below: browser scan, rules, local evidence, and a
-Radar mode inside Live postings.
+spec. It uses the recommended answers to Q1–Q4 below: browser scan, rules, local evidence, and the
+engine built into Live postings. The first pass had a separate Radar view; the second pass removed
+it, per Adrian's direction below.
 
 ## Where this comes from
 
@@ -86,17 +87,20 @@ saved jobs.
 - **Q5. Feature lock.** The last orchestrator round froze new features ("tightening, not adding").
   Is Role Radar the exception, and does it start before or after the rest of #115?
 
-## First pass (shipped on `claude/jh-role-radar-spec`)
+## Where each module lives (after the second pass)
 
 | Module | Where | State |
 |---|---|---|
-| `board-directory` | `src/radar/directory.ts` | 23 starter boards (all answered live on 2026-10-15) + the track's watched boards, capped at 100 |
-| `scan` | `src/radar/scan.ts` | 6 requests at a time; each board is read, closed (404) or didn't answer, named in the report |
-| `evidence-profile` | `RadarPanel` textarea, `rjb_radar_evidence` | Local only: "Skill: proof (link)" per line |
-| `fit-gap` | `src/radar/fitGap.ts` | 15-ask catalog + the user's own skills; tier by coverage |
-| `demand-patterns` | `src/radar/patterns.ts` | Covered vs thin, most-asked first |
-| `radar-view` | `src/RadarPanel.tsx` in `LiveFeedPanel` | Patterns first, then tiers (10 each, Show more); title matches only by default; Save sets the job's fit from the tier |
+| `board-directory` | `src/radar/directory.ts` | 23 starter boards (all answered live on 2026-10-15). Live postings reads them after the track's watched boards. |
+| `scan` | `src/feed/fetchFeed.ts` | Board reads run 6 at a time, capped at 100 boards. Each failing board is named in the feed's source warning. |
+| `evidence-profile` | `src/radar/evidenceStore.ts` + `EvidenceEditor` (`src/FeedFit.tsx`) | Local only (`rjb_radar_evidence`): "Skill: proof (link)" per line |
+| `fit-gap` | `src/radar/fitGap.ts` | 15-ask catalog + the user's own skills |
+| `demand-patterns` | `src/radar/patterns.ts` + `PatternsSummary` | Covered vs thin, most-asked first |
+| `radar-view` | Folded into `src/LiveFeedPanel.tsx` | Fit badge, Fit and gap, "Strong fit" filter. Save sets the job's fit. |
 | `liveness` | — | Not built yet |
+
+**Tier thresholds (`tierOf`):** Strong is at least 3 asks covered and 70% or more of the asks the
+posting makes. Stretch is 40% or more, or a single covered ask. Everything else is Reach.
 
 A real scan of 35 boards for "design systems" found 12 title matches (3 Strong, 9 Stretch) and
 166 more that only mention it in the description.
