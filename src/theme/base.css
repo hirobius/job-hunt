@@ -90,3 +90,13 @@ p {
     min-height: var(--primitive-space-10);
   }
 }
+
+/* Reduced motion (#133): the app's own transitions and HDS's settle at once; Spinner and Skeleton
+ * keep their loop (the e2e probe allows only those to run). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

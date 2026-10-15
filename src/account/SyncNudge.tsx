@@ -45,13 +45,15 @@ export default function SyncNudge() {
           wrap="wrap"
           style={{ flex: 1, minWidth: 0 }}
         >
-          <Box as="span" sx={{ display: 'inline-flex' }}>
-            <Icon icon={Cloud} />
-          </Box>
-          <Text variant="ui" as="p">
-            <span className="rjb-semibold">Saved in this browser only.</span> Sign in to keep your
-            jobs on every device.
-          </Text>
+          <Stack direction="row" gap="px8" align="start" style={{ flex: '1 1 16rem', minWidth: 0 }}>
+            <Box as="span" sx={{ display: 'inline-flex', pt: 1 }}>
+              <Icon icon={Cloud} />
+            </Box>
+            <Text variant="ui" as="p">
+              <span className="rjb-semibold">Saved in this browser only.</span> Sign in to keep your
+              jobs on every device.
+            </Text>
+          </Stack>
           <Button size="sm" variant="secondary" onClick={() => setSignInOpen(true)}>
             Sign in
           </Button>

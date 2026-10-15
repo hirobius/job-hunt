@@ -56,9 +56,7 @@ export default function UseTemplate({ job }: { job: Job }) {
           </Dialog.Description>
         </Dialog.Header>
         {ordered.length === 0 ? (
-          <p style={{ color: 'var(--semantic-color-content-secondary)' }}>
-            Your Copy Deck is empty. Add a snippet there first.
-          </p>
+          <p style={SECONDARY}>Your Copy Deck is empty. Add a snippet there first.</p>
         ) : (
           <Stack gap="medium">
             <div role="group" aria-label="Templates">

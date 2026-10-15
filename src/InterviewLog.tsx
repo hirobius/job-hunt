@@ -6,6 +6,7 @@ import { download } from './download';
 import { addEvent, jobIcsEvents, removeEvent } from './jobEvents';
 import { updateJob } from './store';
 import type { Job, JobEventKind } from './types';
+import { SECONDARY } from './hds-gaps/tone';
 
 const KINDS: { value: JobEventKind; label: string }[] = [
   { value: 'interview', label: 'Interview' },
@@ -46,7 +47,7 @@ export default function InterviewLog({ job }: { job: Job }) {
   };
 
   const caption = (text: string) => (
-    <Text variant="caption" as="span" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+    <Text variant="caption" as="span" style={SECONDARY}>
       {text}
     </Text>
   );
@@ -76,11 +77,7 @@ export default function InterviewLog({ job }: { job: Job }) {
                   {e.date}
                   {e.time ? ` ${e.time}` : ''}
                 </Text>
-                <Text
-                  variant="ui"
-                  as="span"
-                  style={{ color: 'var(--semantic-color-content-secondary)' }}
-                >
+                <Text variant="ui" as="span" style={SECONDARY}>
                   {KINDS.find((k) => k.value === e.kind)?.label}
                   {e.note ? ` · ${e.note}` : ''}
                 </Text>

@@ -45,6 +45,7 @@ import { useAtLeast } from './hds-gaps/useBreakpoint';
 import { useTrackContext } from './discoverContext';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
+import { SECONDARY } from './hds-gaps/tone';
 
 const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
 const LiveFeedPanel = lazy(() => import('./LiveFeedPanel'));
@@ -291,7 +292,7 @@ function AtsPanel({
       >
         Freelance, startup and remote boards
       </Text>
-      <Text variant="caption" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+      <Text variant="caption" style={SECONDARY}>
         Boards with no open feed (Upwork, Contra, Wellfound…), reached through Google instead.
       </Text>
       {allButton(HIDDEN_BOARDS, 'boards')}

@@ -71,11 +71,7 @@ function ChipEditor({
           </Tag>
         ))}
         {values.length === 0 && (
-          <Text
-            variant="caption"
-            as="span"
-            style={{ color: 'var(--semantic-color-content-secondary)' }}
-          >
+          <Text variant="caption" as="span" style={SECONDARY}>
             none yet
           </Text>
         )}

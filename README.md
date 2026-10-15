@@ -69,7 +69,7 @@ signed-out in the browser; an optional email sign-in syncs it across devices.
   `localStorage`; URL state (tab, Discover sub-tab, track) lives in the hash via a tiny route
   store, with no router dependency.
 - **Bundle.** Discover, Templates and the dialogs load on demand. Run `npm run build` for the
-  current chunk sizes. Most of the vendor chunk is HDS's single entry point; per-component
+  current chunk sizes. The redesign story is in [`docs/redesign-2026.md`](docs/redesign-2026.md). Most of the vendor chunk is HDS's single entry point; per-component
   imports are an open upstream ask.
 - **Security headers** (HSTS, nosniff, frame-deny, referrer and permissions policies) ship from
   `vercel.json`, plus an enforcing Content-Security-Policy (#106).

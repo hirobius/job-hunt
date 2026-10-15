@@ -143,9 +143,7 @@ export default function TrackerView() {
                             }}
                           >
                             <span>{FILTER_LABEL[f]}</span>
-                            <span style={{ color: 'var(--semantic-color-content-secondary)' }}>
-                              {counts[f]}
-                            </span>
+                            <span style={SECONDARY}>{counts[f]}</span>
                           </Box>
                         </HdsMenu.RadioItem>
                       ))}
