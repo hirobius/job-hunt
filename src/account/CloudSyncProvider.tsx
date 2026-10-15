@@ -103,7 +103,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   async function pushNow(u: User): Promise<boolean> {
     if (!pulledOk.current) return false;
     const sent = localJson();
-    let ok = false;
+    let ok: boolean;
     try {
       const r = await supa.from('tracker').upsert({
         user_id: u.id,
