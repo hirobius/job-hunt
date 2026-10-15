@@ -2,7 +2,7 @@
 // Greenhouse/Lever/Ashby/Workable/Recruitee board gets pulled live. Watching from the feed just files that tile into
 // a "Watched companies" group on the active track, so it syncs to the cloud with the rest of the
 // curation and can be removed in Manage track like any other link.
-import { addGroup, addTile, getCurationState } from '../curation/curationStore';
+import { addGroup, addTile, addTiles, getCurationState } from '../curation/curationStore';
 import type { CurationState } from '../curation/types';
 import { SOURCE_LABEL } from './types';
 import {
@@ -88,13 +88,15 @@ export function addBoardTiles(categoryId: string, urls: readonly string[]): numb
     s.groups.find(
       (g) => g.categoryId === categoryId && !g.archived && g.label === WATCH_GROUP_LABEL,
     )?.id ?? addGroup(categoryId, { label: WATCH_GROUP_LABEL });
-  fresh.forEach(({ board }, i) =>
-    addTile(group, {
+  // One bulk write: a pack's ~120 boards go up as a few requests, not one per tile (#178).
+  addTiles(
+    group,
+    fresh.map(({ board }, i) => ({
       name: `${boardLabel(board)} jobs`,
       url: canonicalBoardUrl(board),
       meta: `${SOURCE_LABEL[board.kind]} board · pulled into Live postings`,
       sortOrder: i,
-    }),
+    })),
   );
   return fresh.length;
 }

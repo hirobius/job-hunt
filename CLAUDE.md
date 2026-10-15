@@ -264,7 +264,7 @@ track-agnostic like everything else in Discover.
     and calls `onProgress` as each answers; the panel repaints every 250ms with "Read N of M boards".
   - **More sources.** HN also reads the monthly "Freelancer? Seeking freelancer?" thread (only
     SEEKING FREELANCER posts, marked contract). Jobicy and Remote OK sit behind `SOURCE_ENABLED` in
-    `fetchFeed.ts` (on by default), and Workable and Recruitee are watchable boards. All four are
+    `fetchFeed.ts` (Jobicy on; Remote OK off until its live legal notice is read and checked), and Workable and Recruitee are watchable boards. All four are
     **unverified live** (built from documented shapes); turn one off there if its first deployed check
     is blocked. Remote OK attribution is a hard rule (their link as given, "Remote OK" on the row).
     Himalayas is skipped (its OpenAPI could not be read). Every new host goes in `vercel.json` and
@@ -277,7 +277,8 @@ track-agnostic like everything else in Discover.
     status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. Shown above the
     Pipeline and the job page from `App.tsx`.
   - **Per-track boards.** `radar/directory.ts` is `DIRECTORY_BY_PACK`; `seedPack` files a pack's
-    boards into the track's `Watched companies` group, and Live postings offers "Add suggested
+    boards into the track's `Watched companies` group (one `addTiles` bulk write, sent as upserts of
+    `TILE_CHUNK` = 50 rows; a refused chunk leaves only its rows journalled as failed), and Live postings offers "Add suggested
     companies (N)" to an existing track whose label matches a pack (`packIdForLabel`). Live postings
     no longer reads a global list.
   - **By company** (`feed/byCompany.ts`): an Openings/Companies toggle, view kept in the hash as

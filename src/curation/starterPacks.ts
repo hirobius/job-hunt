@@ -5,7 +5,7 @@
 // ⚠️ v1 is provisional (owner unsure of the ideal set) — keep this list trivially editable; add or
 // remove a pack by editing STARTER_PACKS + CONTENT_FOR. "blank" seeds an empty category to build on.
 import { addBoardTiles } from '../feed/watchlist';
-import { addCategory, addGroup, addTile, getCurationState, updateCategory } from './curationStore';
+import { addCategory, addGroup, addTiles, getCurationState, updateCategory } from './curationStore';
 import {
   CONSULTING_PACK,
   DESIGN_SYSTEMS_PACK,
@@ -76,8 +76,9 @@ export function seedPack(
   });
   content?.groups.forEach((g, gi) => {
     const groupId = addGroup(categoryId, { label: g.label, sortOrder: gi, archived: !!g.archived });
-    g.tiles.forEach((t, ti) =>
-      addTile(groupId, { name: t.name, url: t.url, meta: t.meta, sortOrder: ti }),
+    addTiles(
+      groupId,
+      g.tiles.map((t, ti) => ({ name: t.name, url: t.url, meta: t.meta, sortOrder: ti })),
     );
   });
   // The pack's company boards, filed as the track's own editable "Watched companies" group.
@@ -148,13 +149,13 @@ export function topUpFromPack(categoryId: string, packId: string): TopUpResult {
       });
       res.groups++;
     }
-    const gid = groupId;
-    pg.tiles.forEach((tile, ti) => {
-      if (urls.has(tile.url)) return;
-      addTile(gid, { name: tile.name, url: tile.url, meta: tile.meta, sortOrder: 1000 + ti });
+    const fresh = pg.tiles.flatMap((tile, ti) => {
+      if (urls.has(tile.url)) return [];
       urls.add(tile.url);
-      res.tiles++;
+      return [{ name: tile.name, url: tile.url, meta: tile.meta, sortOrder: 1000 + ti }];
     });
+    addTiles(groupId, fresh);
+    res.tiles += fresh.length;
   });
   return res;
 }

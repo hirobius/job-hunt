@@ -4,8 +4,8 @@
 // The first element is a legal notice, not a job, and is dropped. The API has no search, so the
 // term is matched here. Their terms are an attribution rule, kept as hard behaviour: every row links
 // to the job's own Remote OK `url`, exactly as given and followed (never rewritten, never
-// `nofollow`), and shows "Remote OK" as its source. Their logo is never used. TODO: paste the live
-// `legal` string here once the endpoint has answered from a network that can reach it.
+// `nofollow`), and shows "Remote OK" as its source. Their logo is never used. Off by default
+// (`SOURCE_ENABLED.remoteok` in fetchFeed.ts) until the live `legal` notice has been read and checked.
 import { htmlToText } from '../html';
 import { matchTerm } from '../match';
 import type { Posting } from '../types';

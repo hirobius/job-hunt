@@ -6,6 +6,7 @@ import {
   fetchFeed,
   memoryKv,
   REMOTIVE_DAILY_MAX,
+  SOURCE_ENABLED,
 } from './fetchFeed';
 import { FetchError } from './sources/http';
 
@@ -265,6 +266,10 @@ describe('Jobicy and Remote OK', () => {
     position: 'Design Systems Lead',
   };
 
+  it('ships with Remote OK off until its live legal notice is checked (#178)', () => {
+    expect(SOURCE_ENABLED.remoteok).toBe(false);
+  });
+
   it('both show up as named sources with a count', async () => {
     const out = await fetchFeed(
       { term: 'design systems', boardUrls: [] },
@@ -273,7 +278,7 @@ describe('Jobicy and Remote OK', () => {
         if (url.includes('remoteok')) return [{ legal: 'x' }, rokJob];
         return url.includes('remotive') ? { jobs: [] } : hn;
       },
-      { kv: memoryKv() },
+      { kv: memoryKv(), sources: { jobicy: true, remoteok: true } },
     );
     expect(out.sources).toContainEqual({ key: 'jobicy', label: 'Jobicy', fetched: 1 });
     expect(out.sources).toContainEqual({ key: 'remoteok', label: 'Remote OK', fetched: 1 });
@@ -288,7 +293,7 @@ describe('Jobicy and Remote OK', () => {
         if (url.includes('remoteok')) return [rokJob];
         return url.includes('remotive') ? { jobs: [] } : hn;
       },
-      { kv: memoryKv() },
+      { kv: memoryKv(), sources: { jobicy: true, remoteok: true } },
     );
     expect(out.sources.find((s) => s.key === 'jobicy')?.error).toMatch(/^Jobicy: couldn't connect/);
     expect(out.postings.map((p) => p.id)).toEqual(['remoteok:2']);
