@@ -259,6 +259,29 @@ track-agnostic like everything else in Discover.
   "Apply Now" tab. This keeps the board rule: durable portals in, fresh openings out.
 - Key-backed aggregators (Adzuna, TheirStack) would need a serverless function for the secret —
   deliberately not built yet.
+- **Job sources slice (2026-10-15, `docs/specs/job-sources.md`).**
+  - **No board cap.** `fetchFeed` reads every distinct watched board, 6 at a time (`BOARD_CONCURRENCY`),
+    and calls `onProgress` as each answers; the panel repaints every 250ms with "Read N of M boards".
+  - **More sources.** HN also reads the monthly "Freelancer? Seeking freelancer?" thread (only
+    SEEKING FREELANCER posts, marked contract). Jobicy and Remote OK sit behind `SOURCE_ENABLED` in
+    `fetchFeed.ts` (on by default), and Workable and Recruitee are watchable boards. All four are
+    **unverified live** (built from documented shapes); turn one off there if its first deployed check
+    is blocked. Remote OK attribution is a hard rule (their link as given, "Remote OK" on the row).
+    Himalayas is skipped (its OpenAPI could not be read). Every new host goes in `vercel.json` and
+    `FEED_HOSTS` in `csp.test.ts`.
+  - **Targeting** (`feed/targeting.ts`): leave-out terms, level from the title only, a pay floor
+    (only where a source states pay), each with a "hidden by" count. **Saved searches**
+    (`feed/savedFilters.ts`, `rjb_feed_filters`, per track, not synced).
+  - **Liveness** (`feed/liveness.ts`, `livenessStore.ts`, `LivenessViews.tsx`): re-reads a saved
+    Saved/Applied board job's board (once per board), flags "Closed on the board", never changes
+    status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. Shown above the
+    Pipeline and the job page from `App.tsx`.
+  - **Per-track boards.** `radar/directory.ts` is `DIRECTORY_BY_PACK`; `seedPack` files a pack's
+    boards into the track's `Watched companies` group, and Live postings offers "Add suggested
+    companies (N)" to an existing track whose label matches a pack (`packIdForLabel`). Live postings
+    no longer reads a global list.
+  - **By company** (`feed/byCompany.ts`): an Openings/Companies toggle, view kept in the hash as
+    `?view=companies` (`hashView.ts`).
 - ⚠️ **CSP (#41):** when a Content-Security-Policy lands, `connect-src` must allow `hn.algolia.com`,
   `remotive.com`, `boards-api.greenhouse.io`, `api.lever.co`, `api.eu.lever.co`, `api.ashbyhq.com`
   or the feed goes silent (each source would report "couldn't connect").
