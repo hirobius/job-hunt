@@ -106,6 +106,8 @@ async function seed(page) {
   // A Discover track: first starter pack from onboarding.
   if (await clickIf(page, 'tab', /^Discover$/)) {
     await page.waitForTimeout(600);
+    // Discover with no track asks first (#132); the button opens the setup.
+    await clickIf(page, 'button', /^Choose a track$/);
     const pack = page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first();
     if (await pack.isVisible().catch(() => false)) {
       await pack.click();
@@ -129,6 +131,8 @@ const OVERLAYS = [
     [['first-job'], ['button', /^Screen a job description$/]],
   ],
   [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['first-job'], ['button', /^Use template$/]]],
+  // Templates: a row opens its editor (beside the list on a desktop, alone on a phone).
+  [/^Templates$/, 'template-detail', [['link', /^Cover letter/]]],
   [/^Discover$/, 'manage-track-dialog', [['button', /^Manage this track$/]]],
 ];
 
