@@ -41,6 +41,20 @@ export const replaceEvidence = writeEvidence;
 
 export const EVIDENCE_SEPARATOR = '--- From this device ---';
 
+/** True when merging these two texts would keep both and pass EVIDENCE_MAX, so the merge cuts
+ *  the end off. Callers tell the user instead of trimming silently (#189 follow-up). */
+export function evidenceMergeOverflows(cloud: string, local: string): boolean {
+  const c = cloud.trim();
+  const l = local.trim();
+  if (!c || !l || c.includes(l) || l.includes(c)) return false;
+  return `${c}\n\n${EVIDENCE_SEPARATOR}\n\n${l}`.length > EVIDENCE_MAX;
+}
+
+export const EVIDENCE_TRIMMED = {
+  title: 'Evidence was trimmed',
+  description: `Your evidence from two places was combined and passed the ${EVIDENCE_MAX.toLocaleString('en-US')} character limit, so the end was cut. Check Your evidence in Live postings.`,
+};
+
 /** Merge two evidence texts. One side empty, or one containing the other: keep the fuller one.
  *  Both different: keep both, the cloud's first, a separator line, then this device's. */
 export function mergeEvidence(cloud: string, local: string): string {

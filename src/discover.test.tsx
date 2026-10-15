@@ -200,6 +200,18 @@ describe('Discover header and tools (slice 2)', () => {
       del,
     );
   });
+
+  // #189 follow-up: deleting a track also drops its outreach targets and saved searches; say so.
+  it('Delete track names the targets and saved searches that go with it', async () => {
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: 'Manage track' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/outreach targets and saved searches/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: /delete track/i }));
+    expect(
+      await screen.findByText(/its outreach targets and saved searches will be gone for good/),
+    ).toBeInTheDocument();
+  });
 });
 
 describe('Discover accessibility', () => {

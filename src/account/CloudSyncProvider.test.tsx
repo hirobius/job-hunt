@@ -452,6 +452,27 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       await waitFor(() => expect(fake().tables.tracker[0].data.targets.trk).toHaveLength(2));
     });
 
+    it('first sign-in says so when combining evidence from two devices passes the cap', async () => {
+      fake().tables.tracker = [
+        {
+          user_id: 'u1',
+          updated_at: NOW,
+          data: {
+            v: 5,
+            jobs: [],
+            copydeck: [],
+            triage: { dismissed: [] },
+            evidence: 'c'.repeat(15_000),
+          },
+        },
+      ];
+      writeEvidence('l'.repeat(10_000));
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      expect(await screen.findByText('Evidence was trimmed')).toBeInTheDocument();
+      expect(readEvidence().length).toBe(20_000);
+    });
+
     it('an old-deploy tab that strips the v5 fields gets them re-uploaded on the next refresh', async () => {
       renderAccount();
       act(() => fake().signIn('u1'));

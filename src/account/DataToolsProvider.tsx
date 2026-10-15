@@ -24,6 +24,7 @@ import { getAllFilters, replaceFilters } from '../feed/savedFilters';
 import { readEvidence, replaceEvidence } from '../radar/evidenceStore';
 import { getAllModes, replaceModes } from '../trackModes';
 import { BRAND } from '../brand';
+import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
 
 const JSON_MIME = 'application/json';
@@ -81,7 +82,10 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
   const restore = (mode: 'merge' | 'replace') => {
     if (!pending) return;
     if (mode === 'replace') downloadBackup(`${BRAND.slug}-before-restore`);
-    applyState(applyBackup(currentState(), pending, mode));
+    const before = currentState();
+    applyState(applyBackup(before, pending, mode));
+    if (mode === 'merge' && evidenceMergeOverflows(pending.evidence, before.evidence))
+      toast({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });
     setPending(null);
     // Tracks live in their own cloud tables: mirror the restore there too, or the next sync
     // would merge the old cloud rows back in (a "replace" silently becoming a merge).

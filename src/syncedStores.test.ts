@@ -22,6 +22,7 @@ import {
 import {
   EVIDENCE_MAX,
   mergeEvidence,
+  evidenceMergeOverflows,
   readEvidence,
   replaceEvidence,
   useEvidence,
@@ -171,4 +172,15 @@ describe('work mode per track', () => {
       b: 'onsite',
     });
   });
+});
+
+// #189 follow-up: a merge past the cap must be reported, not cut silently.
+describe('evidenceMergeOverflows', () => {
+  const half = 'a'.repeat(EVIDENCE_MAX / 2 + 10);
+  it.each([
+    ['both fit together', 'cloud', 'local', false],
+    ['one side empty never overflows', '', 'x'.repeat(EVIDENCE_MAX), false],
+    ['one contains the other is not a combine', half, half, false],
+    ['two different halves pass the cap', half, 'b'.repeat(EVIDENCE_MAX / 2 + 10), true],
+  ])('%s', (_n, c, l, want) => expect(evidenceMergeOverflows(c, l)).toBe(want));
 });
