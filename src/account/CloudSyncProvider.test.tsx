@@ -513,16 +513,98 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1);
     });
 
-    it('sign-in prunes per-track data for tracks that no longer exist', async () => {
-      saveTarget('gone', target);
-      writeMode('gone', 'remote');
-      edit();
+    it('a track whose upload is still pending never loses its data to another device’s sync', async () => {
+      // Device A: the track write is refused while the blob push (with its target) succeeds.
       renderAccount();
       act(() => fake().signIn('u1'));
-      await waitFor(() => expect(readTargets('gone')).toEqual([]));
-      expect(readMode('gone')).toBe('any');
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      const release = fake().holdNext('categories', 'upsert');
+      let id = '';
+      act(() => {
+        id = addCategory({ label: 'Pending track' });
+      });
+      act(() => {
+        saveTarget(id, target);
+      });
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.[id]).toHaveLength(1));
+      expect((fake().tables.categories ?? []).some((r) => r.id === id)).toBe(false);
+
+      // Device B (fresh) signs in and syncs: it cannot see the track, but must not prune its data.
+      cleanup();
+      localStorage.clear();
+      replaceCurationState({ categories: [], groups: [], tiles: [] });
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(readTargets(id)).toHaveLength(1));
+      await new Promise((r) => setTimeout(r, 100));
+      expect(fake().tables.tracker[0].data.targets?.[id]).toHaveLength(1);
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await new Promise((r) => setTimeout(r, 100));
+      expect(fake().tables.tracker[0].data.targets?.[id]).toHaveLength(1);
+      expect(readTargets(id)).toHaveLength(1);
+      release();
+    });
+
+    it('an old-deploy tab that strips the v5 fields gets them re-uploaded on the next refresh', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(edit);
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
+      // An old client rewrites the row without the new fields.
+      fake().tables.tracker[0].data = { v: 4, jobs: [], copydeck: [], triage: { dismissed: [] } };
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
+      expect(fake().tables.tracker[0].data).toMatchObject({
+        v: 5,
+        evidence: 'Led a design system',
+        modes: { trk: 'hybrid' },
+      });
+    });
+
+    it('sign-out inside the push debounce still uploads the edit before wiping', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(edit);
+      await chooseAccountItem('Sign out'); // well inside the 500 ms debounce
+      await waitFor(() => expect(readTargets('trk')).toEqual([]));
+      expect(fake().tables.tracker[0].data).toMatchObject({
+        targets: { trk: [{ login: 'acme' }] },
+        evidence: 'Led a design system',
+        modes: { trk: 'hybrid' },
+      });
+    });
+
+    it('a failed push at sign-out asks before wiping; cancel keeps everything', async () => {
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      fake().failNext('tracker', 'upsert');
+      act(edit);
+      await chooseAccountItem('Sign out');
+      await waitFor(() =>
+        expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/latest changes/)),
+      );
       expect(readTargets('trk')).toHaveLength(1);
-      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.gone).toBeUndefined());
+      expect(readEvidence()).toBe('Led a design system');
+    });
+
+    it('a failed push is retried (the edit is still dirty), so a later sign-out uploads it', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      fake().failNext('tracker', 'upsert');
+      act(edit);
+      await screen.findByText(OFFLINE_MSG);
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await chooseAccountItem('Sign out');
+      await waitFor(() => expect(readTargets('trk')).toEqual([]));
       expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1);
     });
 

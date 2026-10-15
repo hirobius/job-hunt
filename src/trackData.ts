@@ -1,5 +1,7 @@
 // Per-track user data (outreach targets, saved searches, work mode) is keyed by track id. When a
-// track goes, its entries go too, so the synced blob does not grow orphans (ADR 0008). Evidence is
+// track is explicitly deleted, its entries go too (ADR 0008). There is deliberately no sweep of
+// "unknown" tracks after a sync: another device's track upload may still be in flight, and an orphan
+// is harmless while a pruned entry is lost for good. Evidence is
 // one text for the account, not per track, so it is untouched.
 import { getAllTargets, replaceTargets } from './feed/targets';
 import { getAllFilters, replaceFilters } from './feed/savedFilters';
@@ -25,6 +27,3 @@ function prune(keep: (id: string) => boolean) {
 
 /** A track was deleted. */
 export const dropTrackData = (id: string) => prune((x) => x !== id);
-
-/** Keep only these tracks' data (after a sync has settled which tracks exist). */
-export const keepOnlyTracks = (ids: ReadonlySet<string>) => prune((x) => ids.has(x));

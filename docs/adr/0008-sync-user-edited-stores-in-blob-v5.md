@@ -38,8 +38,10 @@ wipes every `rjb_` key, so signing out, or opening a second device, lost them.
    push stays dirty (refresh retries it first). If the push fails, sign-out confirms before wiping.
    The older warning for track writes not yet in the cloud stays.
 6. **Bounds.** Evidence is capped at 20,000 characters (trimmed on write and read, with a note in the
-   editor). Per-track entries are dropped when their track is deleted and, after each sync settles,
-   for any track that no longer exists (`src/trackData.ts`).
+   editor). A track's targets, saved searches and mode are dropped when the track is explicitly
+   deleted (`src/trackData.ts`). There is deliberately **no sweep after sync** for unknown tracks:
+   another device's track upload can still be in flight while its blob already reached the cloud, so a
+   sweep would delete live data across devices. Orphans from other paths are small and harmless.
 
 ## Consequences
 

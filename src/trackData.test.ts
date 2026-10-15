@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { dropTrackData, keepOnlyTracks } from './trackData';
+import { dropTrackData } from './trackData';
 import { getAllTargets, saveTarget } from './feed/targets';
 import { getAllFilters, saveFilter } from './feed/savedFilters';
 import { getAllModes, writeMode } from './trackModes';
@@ -38,14 +38,6 @@ describe('per-track data follows its track', () => {
   it('dropTrackData removes one track from all three stores', () => {
     fill(['a', 'b']);
     dropTrackData('a');
-    expect(Object.keys(getAllTargets())).toEqual(['b']);
-    expect(Object.keys(getAllFilters())).toEqual(['b']);
-    expect(Object.keys(getAllModes())).toEqual(['b']);
-  });
-
-  it('keepOnlyTracks prunes every track not in the set', () => {
-    fill(['a', 'b', 'c']);
-    keepOnlyTracks(new Set(['b']));
     expect(Object.keys(getAllTargets())).toEqual(['b']);
     expect(Object.keys(getAllFilters())).toEqual(['b']);
     expect(Object.keys(getAllModes())).toEqual(['b']);
