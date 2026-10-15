@@ -6,12 +6,14 @@ import { CircleUserRound } from 'lucide-react';
 import { useColorMode } from '../ColorMode';
 import { useDensity } from '../Density';
 import { useCloudSync, useDataTools } from './accountContext';
+import { useUnsynced } from './useUnsynced';
 
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
 export default function AccountMenu() {
   const sync = useCloudSync();
   const data = useDataTools();
+  const unsynced = useUnsynced();
   const { mode, toggle } = useColorMode();
   const { density, toggle: toggleDensity } = useDensity();
 
@@ -19,8 +21,14 @@ export default function AccountMenu() {
     // Non-modal, so a dialog opened from an item (sign-in, restore) takes focus cleanly.
     <Menu modal={false}>
       <Menu.Trigger asChild>
-        <Button variant="tertiary" size="sm" iconLeft={<Icon icon={CircleUserRound} />}>
+        <Button
+          variant="tertiary"
+          size="sm"
+          iconLeft={<Icon icon={CircleUserRound} />}
+          title={unsynced ? 'Saved on this device only' : undefined}
+        >
           Account
+          {unsynced && <span className="rjb-unsynced-dot" aria-hidden="true" />}
         </Button>
       </Menu.Trigger>
       <Menu.Content align="end">

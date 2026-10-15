@@ -147,6 +147,14 @@ describe('sync nudge (#115 Phase 1)', () => {
     expect(screen.queryByRole('textbox', { name: /email/i })).toBeNull();
   });
 
+  it('is a Today-only row; elsewhere the Account trigger carries a not-synced cue (#133)', async () => {
+    window.location.hash = '#/queue';
+    renderApp();
+    const account = await screen.findByRole('button', { name: /^Account/ });
+    expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
+    expect(account).toHaveAttribute('title', 'Saved on this device only');
+  });
+
   it('dismissing it is remembered', async () => {
     const { unmount } = renderApp();
     const nudge = await screen.findByRole('region', { name: 'Sync your data' });

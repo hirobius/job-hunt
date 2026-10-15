@@ -137,7 +137,7 @@ export default function App() {
                     <TabsTrigger value="copy-deck">Templates</TabsTrigger>
                   </TabsList>
                 </TabsOverflowFade>
-                <SyncNudge />
+                {TAB_SLUGS[tab] === 'today' && !firstRun && <SyncNudge />}
                 <TabsContent value="today" style={BARE_PANEL}>
                   {firstRun ? <Onboarding offerSample /> : <TodayView />}
                 </TabsContent>
