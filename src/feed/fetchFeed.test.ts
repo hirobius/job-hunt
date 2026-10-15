@@ -15,9 +15,51 @@ beforeEach(() => localStorage.clear());
 
 const NO_AGGREGATORS = { jobicy: false, remoteok: false };
 const res = (status: number, body: unknown = {}) =>
-  ({ ok: status >= 200 && status < 300, status, json: async () => body }) as Response;
+  ({
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  }) as Response;
 
 describe('createFetchJson', () => {
+  // #178 review: 133 boards are ~245 MB of raw JSON; a phone can't hold them all for an hour.
+  it('keeps the cache under its byte budget, dropping the least recently used body', async () => {
+    const big = (n: number) => ({ pad: 'x'.repeat(n) });
+    const fetchImpl = vi.fn(async (u: string) => res(200, big(u.endsWith('c') ? 50 : 40)));
+    // Each body is ~50-60 chars as JSON: a 130-char budget holds two of them.
+    const fetchJson = createFetchJson({ fetchImpl, now: () => 0, budgetChars: 130 });
+    await fetchJson('https://a/a');
+    await fetchJson('https://a/b');
+    await fetchJson('https://a/a'); // a is now the most recently used
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    await fetchJson('https://a/c'); // over budget: evicts b, the least recently used
+    expect(fetchJson.cachedChars()).toBeLessThanOrEqual(130);
+    await fetchJson('https://a/a');
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    await fetchJson('https://a/b');
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+  });
+
+  it('never caches a body larger than the whole budget', async () => {
+    const fetchImpl = vi.fn(async () => res(200, { pad: 'x'.repeat(500) }));
+    const fetchJson = createFetchJson({ fetchImpl, now: () => 0, budgetChars: 100 });
+    await fetchJson('https://a/huge');
+    await fetchJson('https://a/huge');
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchJson.cachedChars()).toBe(0);
+  });
+
+  it('a fresh read skips the cache and replaces the cached copy', async () => {
+    let n = 0;
+    const fetchImpl = vi.fn(async () => res(200, { n: ++n }));
+    const fetchJson = createFetchJson({ fetchImpl, now: () => 0 });
+    expect(await fetchJson('https://a/z')).toEqual({ n: 1 });
+    expect(await fetchJson('https://a/z', { fresh: true })).toEqual({ n: 2 });
+    expect(await fetchJson('https://a/z')).toEqual({ n: 2 });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
   it('caches successful responses for the TTL, then refetches', async () => {
     let t = 0;
     const fetchImpl = vi.fn(async () => res(200, { n: 1 }));

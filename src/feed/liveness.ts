@@ -111,7 +111,8 @@ export async function checkLive(
   const all = [...groups.values()];
   const settled = await settleAll(
     all.map((g) => async () => {
-      const body = await fetchJson(boardApiUrl(g.board));
+      // Fresh: the feed's 1h cache may still hold the job the employer has since pulled.
+      const body = await fetchJson(boardApiUrl(g.board), { fresh: true });
       if (boardJobs(g.board, body) === null) throw new BoardShapeError();
       return fetchBoard(g.board, async () => body);
     }),

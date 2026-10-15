@@ -25,6 +25,10 @@ import { getAllJobs, removeJob } from './store';
 import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 
+// These render the whole panel with axe and many user events; under a loaded machine they ran
+// past vitest's 5s default (#178 review), so they get more room.
+vi.setConfig({ testTimeout: 20_000 });
+
 const RESULT: FeedResult = {
   postings: [
     {

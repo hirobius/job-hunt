@@ -126,21 +126,41 @@ async function remotiveWithinBudget(
   return postings;
 }
 
+/** The most raw JSON the session cache keeps, in characters (~16 MB). Board payloads run 2–3 MB
+ *  each and a track can watch 100+ boards, so the cache holds the most recently used few and drops
+ *  the rest rather than every body for an hour (#178 review). */
+export const CACHE_BUDGET_CHARS = 16_000_000;
+
 export function createFetchJson({
   fetchImpl = (u: string, init?: RequestInit) => fetch(u, init),
   now = Date.now,
   ttlMs = CACHE_TTL_MS,
   timeoutMs = FETCH_TIMEOUT_MS,
+  budgetChars = CACHE_BUDGET_CHARS,
 }: {
   fetchImpl?: (url: string, init?: RequestInit) => Promise<Response>;
   now?: () => number;
   ttlMs?: number;
   timeoutMs?: number;
-} = {}): FetchJson {
-  const cache = new Map<string, { at: number; body: unknown }>();
-  return async (url) => {
+  budgetChars?: number;
+} = {}): FetchJson & { cachedChars: () => number } {
+  // A Map keeps insertion order, so re-inserting on a hit makes its first key the least recently used.
+  const cache = new Map<string, { at: number; body: unknown; size: number }>();
+  let total = 0;
+  const drop = (url: string) => {
+    const e = cache.get(url);
+    if (!e) return;
+    total -= e.size;
+    cache.delete(url);
+  };
+  const fetchJson = async (url: string, opts?: { fresh?: boolean }) => {
     const hit = cache.get(url);
-    if (hit && now() - hit.at < ttlMs) return hit.body;
+    if (hit && !opts?.fresh && now() - hit.at < ttlMs) {
+      cache.delete(url);
+      cache.set(url, hit);
+      return hit.body;
+    }
+    drop(url);
     let res: Response;
     try {
       const signal = AbortSignal.timeout(timeoutMs);
@@ -152,10 +172,20 @@ export function createFetchJson({
       throw new FetchError(0, url);
     }
     if (!res.ok) throw new FetchError(res.status, url);
-    const body: unknown = await res.json();
-    cache.set(url, { at: now(), body });
+    const text = await res.text();
+    const body: unknown = JSON.parse(text);
+    if (text.length <= budgetChars) {
+      drop(url); // a parallel read of the same url may have landed meanwhile
+      cache.set(url, { at: now(), body, size: text.length });
+      total += text.length;
+      for (const key of cache.keys()) {
+        if (total <= budgetChars) break;
+        drop(key);
+      }
+    }
     return body;
   };
+  return Object.assign(fetchJson, { cachedChars: () => total });
 }
 
 /** The app's shared fetcher — one cache for the whole session. */

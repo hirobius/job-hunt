@@ -245,7 +245,8 @@ track-agnostic like everything else in Discover.
   `match.ts` (phrase matching — "system design" is NOT "design system" — filters, signals
   `contract` + `founding`, scoring, dedupe), `fetchFeed.ts` (parallel sources, per-source failure
   isolation with actionable messages, 1h **in-memory** cache — board payloads are 2–3 MB, far too big
-  for browser storage), `toJob.ts` (Posting → saved Job fields), `watchlist.ts`, `html.ts`, `format.ts`.
+  for browser storage; an LRU capped at `CACHE_BUDGET_CHARS` ≈ 16 MB, and liveness reads pass
+  `{ fresh: true }` to skip it), `toJob.ts` (Posting → saved Job fields), `watchlist.ts`, `html.ts`, `format.ts`.
   Domain words: a **Posting** is the live, unsaved opening; saving one makes a **Job** (CONTEXT.md).
 - **Sources** (`src/feed/sources/`): HN "Who is hiring?" via Algolia (latest 2 monthly threads),
   Remotive (its terms: link to the Remotive URL + credit it — the row's source label does — and

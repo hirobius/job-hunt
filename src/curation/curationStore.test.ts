@@ -213,6 +213,24 @@ describe('addTiles (bulk)', () => {
     off();
   });
 
+  it('treats a chunk that throws like a refused one: its rows stay failed, the rest clear', async () => {
+    cloud.session = { user: { id: 'user-1' } };
+    const reported = vi.fn();
+    const off = onCurationWriteFailed(reported);
+    cloud.upsertSpy
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockRejectedValueOnce(new Error('network'));
+    const ids = addTiles('g1', partials(120));
+    await vi.waitFor(() => expect(cloud.upsertSpy).toHaveBeenCalledTimes(3));
+    await vi.waitFor(() => expect(getPending()).toHaveLength(120 - 2 * TILE_CHUNK));
+    const pending = getPending();
+    expect(pending.every((p) => p.failed)).toBe(true);
+    expect(pending.map((p) => p.id).sort()).toEqual(ids.slice(2 * TILE_CHUNK).sort());
+    expect(reported).toHaveBeenCalledTimes(1);
+    off();
+  });
+
   it('journals nothing when signed out', async () => {
     addTiles('g1', partials(3));
     await vi.waitFor(() => expect(getPending()).toEqual([]));
