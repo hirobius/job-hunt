@@ -29,7 +29,16 @@ const LABEL = args.label || 'current';
 const PORT = Number(args.port || 4179);
 const WIDTHS = [1440, 390];
 const CLOUD_CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// --pack=<regex> picks the starter track by name instead of the first (the case-study set uses it).
+const PACK = args.pack ? new RegExp(args.pack, 'i') : undefined;
+const packBox = (page) => {
+  const boxes = page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox');
+  return PACK ? boxes.filter({ hasText: PACK }).first() : boxes.first();
+};
 const THEMES = ['light', 'dark'];
+// --format=png for lossless shots (the case-study set, #199); default is small JPEGs.
+const EXT = args.format === 'png' ? 'png' : 'jpg';
+const shotOpts = (path) => (EXT === 'png' ? { path, type: 'png' } : { path, type: 'jpeg', quality: 70 });
 
 async function serve() {
   // A full URL may carry a query (e.g. Vercel's ?_vercel_share= for a protected preview); it is
@@ -108,7 +117,7 @@ async function seed(page) {
     await page.waitForTimeout(600);
     // Discover with no track asks first (#132); the button opens the setup.
     await clickIf(page, 'button', /^Choose a track$/);
-    const pack = page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first();
+    const pack = packBox(page);
     if (await pack.isVisible().catch(() => false)) {
       await pack.click();
       // Three steps (#132): Continue, Continue, Finish.
@@ -236,8 +245,8 @@ async function shoot(browser, base, theme, width, manifest) {
   let n = 0;
   const snap = async (name) => {
     await settle(page);
-    const file = `${String(++n).padStart(2, '0')}-${slug(name)}.jpg`;
-    await page.screenshot({ path: join(dir, file), fullPage: true, type: 'jpeg', quality: 70 });
+    const file = `${String(++n).padStart(2, '0')}-${slug(name)}.${EXT}`;
+    await page.screenshot({ ...shotOpts(join(dir, file)), fullPage: true });
     manifest.push({
       theme,
       width,
@@ -250,10 +259,7 @@ async function shoot(browser, base, theme, width, manifest) {
   // The landing screen before any data: what a first visit sees.
   await snap('First visit');
   // The guided first run (#132): steps 2 and 3, then back out so seed() starts from step 1.
-  const firstPack = page
-    .getByRole('group', { name: 'Starter tracks' })
-    .getByRole('checkbox')
-    .first();
+  const firstPack = packBox(page);
   if (await firstPack.isVisible().catch(() => false)) {
     await firstPack.click();
     if (await clickIf(page, 'button', /^Continue$/)) {
@@ -320,6 +326,8 @@ async function shoot(browser, base, theme, width, manifest) {
     }
   }
 
+  // Let the last toast ("Saved … as a target") expire so it isn't in every overlay shot.
+  await page.waitForTimeout(7000);
   for (const [tab, name, steps] of OVERLAYS) {
     await clickIf(page, 'tab', tab);
     let ok = true;
@@ -327,8 +335,8 @@ async function shoot(browser, base, theme, width, manifest) {
     if (ok) {
       // Overlays: viewport shot (fullPage can't see portalled dialogs past the fold).
       await settle(page);
-      const file = `${String(++n).padStart(2, '0')}-${slug(name)}.jpg`;
-      await page.screenshot({ path: join(dir, file), type: 'jpeg', quality: 70 });
+      const file = `${String(++n).padStart(2, '0')}-${slug(name)}.${EXT}`;
+      await page.screenshot(shotOpts(join(dir, file)));
       manifest.push({ theme, width, name, file: `${theme}-${width}/${file}`, overlay: true });
     }
     for (let i = 0; i < 2; i++) await page.keyboard.press('Escape');
