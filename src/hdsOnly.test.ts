@@ -100,3 +100,35 @@ describe('Inline style ratchet (#133)', () => {
     expect(offenders.map((f) => f.replace(SRC, ''))).toEqual([]);
   });
 });
+
+// No raw letter-spacing (#191): tracking comes from HDS type tokens, never hand-set. Covers .ts,
+// .tsx and .css under src/ and e2e/, which includes inline `style` and `sx` (camelCase) and CSS.
+const RAW_LETTER_SPACING = /letter-?spacing\s*:/i;
+const hasRawLetterSpacing = (text: string) => RAW_LETTER_SPACING.test(text);
+
+function guardedFiles(dir: string): string[] {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).flatMap((name) => {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) return name === 'node_modules' ? [] : guardedFiles(p);
+    return /\.(ts|tsx|css)$/.test(name) ? [p] : [];
+  });
+}
+
+describe('No raw letter-spacing (#191)', () => {
+  it('catches camelCase, kebab-case, inline style and sx samples', () => {
+    expect(hasRawLetterSpacing(`<Box style={{ ${'letter' + 'Spacing'}: '0.05em' }} />`)).toBe(true);
+    expect(hasRawLetterSpacing(`<Box sx={{ ${'letter' + 'Spacing'}: 1 }} />`)).toBe(true);
+    expect(hasRawLetterSpacing(`h1 { ${'letter' + '-spacing'} : 0.1em; }`)).toBe(true);
+    expect(hasRawLetterSpacing('<Text variant="caption">Spacing</Text>')).toBe(false);
+  });
+
+  it('finds none in src/ or e2e/', () => {
+    const self = join(SRC, 'hdsOnly.test.ts');
+    const files = [...guardedFiles(SRC), ...guardedFiles(resolve(SRC, '..', 'e2e'))].filter(
+      (f) => f !== self,
+    );
+    const offenders = files.filter((f) => hasRawLetterSpacing(readFileSync(f, 'utf8')));
+    expect(offenders.map((f) => f.replace(resolve(SRC, '..'), ''))).toEqual([]);
+  });
+});
