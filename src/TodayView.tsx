@@ -1,16 +1,16 @@
 // Today (#128), the home route `#/today`: what needs doing now. Due follow-ups and the next 7 days
-// of interviews and calls as StatusListItem rows, each with one trailing action; one quick-add
+// of interviews and calls as plain rows, each with one trailing action; one quick-add
 // field; and the Insights band. The read models are pure (jobEvents.ts, metrics.ts); this view
 // only lays them out.
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'lucide-react';
 import {
+  Badge,
   Box,
   Button,
   InlineLink,
   Input as HdsInput,
   Stack,
-  StatusListItem,
   Text,
   useToast,
 } from '@hirobius/design-system';
@@ -52,6 +52,41 @@ function sinceNote(job: Job, now: Date) {
   return s.appliedDaysAgo != null ? `Applied ${days(s.appliedDaysAgo)} ago` : '';
 }
 
+/** One Today row: title, up to a few note lines, a trailing action. State is text (a Badge or the
+ * title's own words); HDS has a row primitive that draws a status marker; #193 removed it. */
+function TodayRow({
+  title,
+  badge,
+  notes,
+  trailing,
+}: {
+  title: ReactNode;
+  badge?: ReactNode;
+  notes: string[];
+  trailing: ReactNode;
+}) {
+  return (
+    <Stack direction="row" gap="px8" align="center" justify="space-between">
+      <Box sx={{ minWidth: 0 }}>
+        <Stack gap="px4">
+          <Stack direction="row" gap="px8" align="center" wrap="wrap">
+            <Text variant="body" as="span">
+              {title}
+            </Text>
+            {badge}
+          </Stack>
+          {notes.map((n) => (
+            <Text key={n} variant="caption" as="span" style={SECONDARY}>
+              {n}
+            </Text>
+          ))}
+        </Stack>
+      </Box>
+      {trailing}
+    </Stack>
+  );
+}
+
 /** A titled list: a region named by its heading, rows or one line saying it's empty. */
 function Section({
   id,
@@ -69,20 +104,21 @@ function Section({
   // A native <section>: Stack doesn't pass aria-* through.
   return (
     <section aria-labelledby={id}>
-      <Stack gap="tight">
-        <Text variant="ui" as="h3" id={id} className="rjb-semibold">
-          {count > 0 ? `${title} · ${count}` : title}
-        </Text>
-        {count > 0 ? (
+      {count > 0 ? (
+        <Stack gap="tight">
+          <Text variant="ui" as="h3" id={id} className="rjb-semibold">
+            {`${title} · ${count}`}
+          </Text>
           <Stack as="ul" gap="tight" style={LIST}>
             {children}
           </Stack>
-        ) : (
-          <Text variant="caption" as="p" style={SECONDARY}>
-            {empty}
-          </Text>
-        )}
-      </Stack>
+        </Stack>
+      ) : (
+        // No heading over a lone supporting line: the label sits with its value (#193).
+        <Text variant="caption" as="p" id={id} style={SECONDARY}>
+          {`${title}: ${empty}`}
+        </Text>
+      )}
     </section>
   );
 }
@@ -203,13 +239,13 @@ export default function TodayView() {
                   id="today-due"
                   title="Follow-ups due"
                   count={due.length}
-                  empty={`Nothing due. Follow-ups fall due ${days(FOLLOWUP_DAYS)} after you apply or last follow up.`}
+                  empty={`none. Follow-ups fall due ${days(FOLLOWUP_DAYS)} after you apply or last follow up.`}
                 >
                   {due.map(({ job }) => (
                     <li key={job.url}>
-                      <StatusListItem
-                        tone="warning"
+                      <TodayRow
                         title={<InlineLink href={jobHref(job.url)}>{job.label}</InlineLink>}
+                        badge={<Badge tone="warning">Due</Badge>}
                         notes={[[job.company, sinceNote(job, now)].filter(Boolean).join(' · ')]}
                         trailing={
                           <Button
@@ -235,12 +271,11 @@ export default function TodayView() {
                   id="today-next"
                   title={`Next ${UPCOMING_DAYS} days`}
                   count={upcoming.length}
-                  empty="Nothing scheduled. Log interviews and calls on a job's page."
+                  empty="nothing scheduled. Log interviews and calls on a job's page."
                 >
                   {upcoming.map((it) => (
                     <li key={`${it.jobUrl}-${it.id}`}>
-                      <StatusListItem
-                        tone={it.kind === 'interview' ? 'info' : 'neutral'}
+                      <TodayRow
                         title={`${KIND_WORD[it.kind]} · ${it.label}`}
                         notes={[
                           `${dayLabel(it.date, now)} · ${it.time ?? 'All day'}`,

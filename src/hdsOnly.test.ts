@@ -100,3 +100,42 @@ describe('Inline style ratchet (#133)', () => {
     expect(offenders.map((f) => f.replace(SRC, ''))).toEqual([]);
   });
 });
+
+// #193: no decoration that adds noise. Left accent bars and status dots are out; state is text or
+// a Tag/Badge, pinned is a star. The Account trigger's unsynced dot is a sync signal, not a row
+// status dot, so it is the one allowlisted dot.
+export const ACCENT_BAR =
+  /border-?left(?!-?(?:width|style)\b)|borderInlineStart|border-inline-start/i;
+export const STATUS_DOT = /StatusListItem|(?<![\w-])[\w-]*-dot\b|\bdot\b\s*[:=]/;
+const DOT_ALLOWLIST = ['account/AccountMenu.tsx', 'theme/base.css'];
+
+function styleFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) return styleFiles(p);
+    return /\.(ts|tsx|css)$/.test(name) && !/\.test\.tsx?$/.test(name) ? [p] : [];
+  });
+}
+
+describe('No accent bars or status dots (#193)', () => {
+  it('sets no left accent bar in code or CSS', () => {
+    const offenders = styleFiles(SRC).filter((f) => ACCENT_BAR.test(readFileSync(f, 'utf8')));
+    expect(offenders.map((f) => f.slice(SRC.length + 1))).toEqual([]);
+  });
+
+  it('draws no status dot in a row (only the allowlisted sync dot)', () => {
+    const offenders = styleFiles(SRC)
+      .filter((f) => !DOT_ALLOWLIST.some((a) => f.endsWith(a)))
+      .filter((f) => STATUS_DOT.test(readFileSync(f, 'utf8')));
+    expect(offenders.map((f) => f.slice(SRC.length + 1))).toEqual([]);
+  });
+
+  it('bites: the patterns catch a bad sample and pass a clean one', () => {
+    expect(ACCENT_BAR.test("sx={{ borderLeft: '3px solid red' }}")).toBe(true);
+    expect(ACCENT_BAR.test('border-left: 3px solid var(--x);')).toBe(true);
+    expect(ACCENT_BAR.test("sx={{ border: '1px solid' }}")).toBe(false);
+    expect(STATUS_DOT.test('<StatusListItem tone="warning" />')).toBe(true);
+    expect(STATUS_DOT.test('<span className="row-status-dot" />')).toBe(true);
+    expect(STATUS_DOT.test('<Badge tone="warning">Due</Badge>')).toBe(false);
+  });
+});

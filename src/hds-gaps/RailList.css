@@ -12,7 +12,6 @@
   display: block;
   padding: var(--primitive-space-2) var(--primitive-space-3);
   border-radius: var(--primitive-radius-md, 6px);
-  border-left: 3px solid transparent;
   color: var(--semantic-color-content-primary);
   text-decoration: none;
 }
@@ -25,5 +24,5 @@
 }
 .rail-list__row[aria-current='page'] {
   background: var(--semantic-color-surface-raised);
-  border-left-color: var(--semantic-accent-rest);
+  font-weight: 600;
 }
