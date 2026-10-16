@@ -41,11 +41,11 @@ function RowBody({ job }: { job: Job }) {
           <StatusBadge job={job} />
         </Stack>
       </Stack>
-      {v.facts && (
-        <Text variant="caption" as="span" style={SECONDARY}>
-          {v.facts}
+      {v.factLines.map((line) => (
+        <Text key={line} variant="caption" as="span" style={SECONDARY}>
+          {line}
         </Text>
-      )}
+      ))}
     </Stack>
   );
 }

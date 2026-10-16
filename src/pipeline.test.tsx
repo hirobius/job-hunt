@@ -2,6 +2,8 @@
 // driven by role + name. A phone gets compact cards whose title owns its row; a desktop gets a
 // sortable table. Either way each job links to its page and has one primary action, with the
 // rest in its menu.
+import { itemsInLine, MAX_META_ITEMS } from './metaLines';
+import { rowView } from './jobRow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -273,5 +275,22 @@ describe('shared list state (#130 slice 4)', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/queue'));
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('Zenith');
     expect(screen.queryByRole('link', { name: 'Design Engineer' })).toBeNull();
+  });
+});
+
+describe('Pipeline rows keep to two items per dotted line (#192)', () => {
+  it('a job with company and location and a retired mark wraps its facts to two per line', () => {
+    viewport(0); // cards
+    updateJob(SAVED, { company: 'Acme Cloud', location: 'Remote', archived: true });
+    expect(rowView(getAllJobs().find((j) => j.url === SAVED)!).factLines).toEqual([
+      'Retired · Acme Cloud',
+      'Remote',
+    ]);
+    window.location.hash = '#/queue';
+    renderApp();
+    const texts = [...document.querySelectorAll('article *, tr *')]
+      .filter((e) => e.children.length === 0)
+      .map((e) => e.textContent ?? '');
+    expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
   });
 });

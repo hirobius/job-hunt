@@ -81,3 +81,12 @@ describe('TileGrid cards (#12, #131)', () => {
     expect(screen.queryByRole('button', { name: 'Set aside' })).toBeNull();
   });
 });
+
+describe('Tile chips keep to two per row (#192)', () => {
+  it('a tile with pay, place and a phone shows them on two rows, never three together', () => {
+    renderGrid();
+    const rows = card('Travis Pattern & Foundry').querySelectorAll('[data-meta-row]');
+    expect(rows.length).toBe(2);
+    rows.forEach((r) => expect(r.children.length).toBeLessThanOrEqual(2));
+  });
+});

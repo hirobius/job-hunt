@@ -25,6 +25,7 @@ import TodayNotice from './TodayNotice';
 import GettingStarted from './GettingStarted';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
+import { metaLines } from './metaLines';
 import { SECONDARY } from './hds-gaps/tone';
 
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
@@ -246,7 +247,7 @@ export default function TodayView() {
                       <TodayRow
                         title={<InlineLink href={jobHref(job.url)}>{job.label}</InlineLink>}
                         badge={<Badge tone="warning">Due</Badge>}
-                        notes={[[job.company, sinceNote(job, now)].filter(Boolean).join(' · ')]}
+                        notes={metaLines([job.company, sinceNote(job, now)])}
                         trailing={
                           <Button
                             variant="secondary"
@@ -277,10 +278,12 @@ export default function TodayView() {
                     <li key={`${it.jobUrl}-${it.id}`}>
                       <TodayRow
                         title={`${KIND_WORD[it.kind]} · ${it.label}`}
-                        notes={[
-                          `${dayLabel(it.date, now)} · ${it.time ?? 'All day'}`,
-                          [it.company, it.note].filter(Boolean).join(' · '),
-                        ].filter(Boolean)}
+                        notes={metaLines([
+                          dayLabel(it.date, now),
+                          it.time ?? 'All day',
+                          it.company,
+                          it.note,
+                        ])}
                         trailing={
                           <Button asChild variant="secondary">
                             <a href={jobHref(it.jobUrl)} aria-label={`Open job: ${it.label}`}>

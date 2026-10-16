@@ -1,3 +1,4 @@
+import { chunkMeta } from './metaLines';
 import {
   Badge,
   Button,
@@ -114,18 +115,27 @@ export default function TileGrid({
                 {kind && <Badge tone={kind.tone}>{kind.label}</Badge>}
               </Stack>
               {chips.length > 0 && (
-                <Stack direction="row" wrap="wrap" gap="tight" align="center">
-                  {chips.map((c) =>
-                    c.kind === 'contact' ? (
-                      <InlineLink key={c.text} href={telHref(c.text)}>
-                        {c.text}
-                      </InlineLink>
-                    ) : (
-                      <Badge key={c.kind + c.text} tone="neutral">
-                        {c.text}
-                      </Badge>
-                    ),
-                  )}
+                <Stack gap="px4">
+                  {/* At most two chips per row (#192). */}
+                  {chunkMeta(chips).map((row) => (
+                    <Box
+                      key={row.map((c) => c.kind + c.text).join('|')}
+                      data-meta-row=""
+                      sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'center' }}
+                    >
+                      {row.map((c) =>
+                        c.kind === 'contact' ? (
+                          <InlineLink key={c.text} href={telHref(c.text)}>
+                            {c.text}
+                          </InlineLink>
+                        ) : (
+                          <Badge key={c.kind + c.text} tone="neutral">
+                            {c.text}
+                          </Badge>
+                        ),
+                      )}
+                    </Box>
+                  ))}
                 </Stack>
               )}
               {note && (
