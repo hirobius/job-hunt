@@ -46,7 +46,7 @@ const menuOutline = (menu: HTMLElement) =>
   );
 
 const openAccount = async () => {
-  await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
   return screen.findByRole('menu');
 };
 
@@ -70,7 +70,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
     expect(tabs.map((t) => t.textContent)).toEqual(['Today', 'Pipeline', 'Discover', 'Templates']);
-    expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Menu' })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'More options' })).toBeNull();
@@ -93,12 +93,14 @@ describe('app shell (#115 Phase 1)', () => {
     ]);
   });
 
-  it('the Account trigger is just the word: no unsynced dot', async () => {
+  it('the trigger is an icon-only "Menu" button: no word, no unsynced dot', async () => {
     addJob('https://acme.example/jobs/dot', 'Design Engineer');
     window.location.hash = '#/queue';
     renderApp();
-    const account = await screen.findByRole('button', { name: /^Account/ });
-    expect(account.textContent).toBe('Account');
+    const account = await screen.findByRole('button', { name: 'Menu' });
+    expect(account).toHaveAttribute('aria-label', 'Menu');
+    expect(account.textContent?.trim()).toBe('');
+    expect(account.querySelector('svg')).not.toBeNull();
     expect(account.querySelector('[class*="dot"]')).toBeNull();
   });
 
@@ -154,7 +156,7 @@ describe('sync nudge (#115 Phase 1)', () => {
   it('is not shown on a first visit with nothing to sync', async () => {
     removeJob('https://acme.example/jobs/1');
     renderApp();
-    await screen.findByRole('button', { name: /^Account/ });
+    await screen.findByRole('button', { name: 'Menu' });
     await new Promise((r) => setTimeout(r, 0)); // let the session check settle
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
   });
@@ -169,7 +171,7 @@ describe('sync nudge (#115 Phase 1)', () => {
   it('is a Today-only row; elsewhere the Account trigger carries a not-synced cue (#133)', async () => {
     window.location.hash = '#/queue';
     renderApp();
-    const account = await screen.findByRole('button', { name: /^Account/ });
+    const account = await screen.findByRole('button', { name: 'Menu' });
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
     expect(account).toHaveAttribute('title', 'Saved on this device only');
   });
@@ -181,7 +183,7 @@ describe('sync nudge (#115 Phase 1)', () => {
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
     unmount();
     renderApp();
-    await screen.findByRole('button', { name: /^Account/ });
+    await screen.findByRole('button', { name: 'Menu' });
     await new Promise((r) => setTimeout(r, 0)); // let the session check settle
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
   });

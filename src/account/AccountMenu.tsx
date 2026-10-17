@@ -2,7 +2,7 @@
 // used to crowd the Tracker toolbar (back up, restore, export), the theme and feedback — one
 // home for everything about "my account and my data".
 import { Button, Icon, Menu } from '@hirobius/design-system';
-import { CircleUserRound } from 'lucide-react';
+import { Menu as MenuIcon } from 'lucide-react';
 import { useColorMode } from '../ColorMode';
 import { useDensity } from '../Density';
 import { useCloudSync, useDataTools } from './accountContext';
@@ -24,14 +24,15 @@ export default function AccountMenu() {
     // Non-modal, so a dialog opened from an item (sign-in, restore) takes focus cleanly.
     <Menu modal={false}>
       <Menu.Trigger asChild>
+        {/* Icon-only: the menu holds settings, data and feedback, not just the account. */}
         <Button
           variant="tertiary"
           size="sm"
-          iconLeft={<Icon icon={CircleUserRound} />}
+          iconOnly
+          iconLeft={<Icon icon={MenuIcon} />}
+          label="Menu"
           title={unsynced ? 'Saved on this device only' : undefined}
-        >
-          Account
-        </Button>
+        />
       </Menu.Trigger>
       <Menu.Content align="end">
         {sync.user ? (
