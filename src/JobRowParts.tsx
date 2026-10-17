@@ -8,7 +8,7 @@ import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
 import { primaryAction, STATUS_TONE, titleOf } from './jobRow';
 import { normStatus } from './jobState';
-import type { Job } from './types';
+import { STATUSES, type Job, type Status } from './types';
 
 /** Controls on a phone card are 40px tap targets; the denser table uses the small size. */
 type Size = 'sm' | 'md';
@@ -87,6 +87,19 @@ export function RowMenu({
             Open on {hostOf(job.url) || 'the original site'}
           </a>
         </Menu.Item>
+        {/* Every stage is one tap from the row: Interviewing, Offer and Rejected included. */}
+        <Menu.Label>Status</Menu.Label>
+        <Menu.RadioGroup
+          value={normStatus(job.status)}
+          onValueChange={(v) => setStatus(job.url, v as Status)}
+        >
+          {STATUSES.map((st) => (
+            <Menu.RadioItem key={st} value={st}>
+              {st}
+            </Menu.RadioItem>
+          ))}
+        </Menu.RadioGroup>
+        <Menu.Separator />
         <Menu.Item onSelect={() => updateJob(job.url, { priority: !job.priority })}>
           {job.priority ? 'Unpin priority' : 'Pin as priority'}
         </Menu.Item>

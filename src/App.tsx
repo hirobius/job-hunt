@@ -13,6 +13,7 @@ import {
 import TodayView from './TodayView';
 import TrackerView from './TrackerView';
 import JobPage from './JobPage';
+import ApplyMode from './ApplyMode';
 import { JobPageLiveness, PipelineLiveness } from './LivenessViews';
 import { Onboarding, ChooseTrack } from './Onboarding';
 import { markTodayNoticeSeen } from './todayNoticeSeen';
@@ -24,7 +25,9 @@ import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInDialog from './account/SignInDialog';
 import SyncNudge from './account/SyncNudge';
-import { addJob, markAppliedByUrl, setStatusByUrl, useJobs } from './store';
+import { addJob, findJobByUrl, markAppliedByUrl, setStatusByUrl, useJobs } from './store';
+import NoticeHost from './NoticeHost';
+import { notifySaved } from './saveNotice';
 import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
@@ -45,11 +48,16 @@ const TAB_SLUGS = ['today', 'queue', 'discover', 'copy-deck'] as const;
 // Today is home (#128); quick-add always shows the Pipeline, where the new job is.
 const HOME_ROUTE = 'today';
 const QUICK_ADD_LANDING = 'queue';
+const APPLY_ROUTE = 'apply';
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
 export default function App() {
   const route = useRoute();
-  const slugIndex = TAB_SLUGS.indexOf(route.tab as (typeof TAB_SLUGS)[number]);
+  // Apply mode (#/apply/<jobId>) is a Pipeline page: the Pipeline tab stays selected.
+  const applying = route.tab === APPLY_ROUTE;
+  const slugIndex = TAB_SLUGS.indexOf(
+    (applying ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
+  );
   const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
 
   // The onboarding gate (#128) lives here, not in a view. Discover can't work without a track;
@@ -68,7 +76,10 @@ export default function App() {
     const label = qp.get('t') || qp.get('title') || '';
     let acted = false;
     if (qp.get('add')) {
-      addJob(qp.get('add')!, label);
+      if (addJob(qp.get('add')!, label)) {
+        const job = findJobByUrl(qp.get('add')!);
+        if (job) notifySaved([job.url], job.label);
+      }
       acted = true;
     }
     if (qp.get('applied')) {
@@ -134,7 +145,9 @@ export default function App() {
                   {firstRun ? <Onboarding offerSample /> : <TodayView />}
                 </TabsContent>
                 <TabsContent value="queue" style={BARE_PANEL}>
-                  {route.jobId ? (
+                  {applying ? (
+                    <ApplyMode jobId={route.sub} />
+                  ) : route.jobId ? (
                     <>
                       <JobPageLiveness jobId={route.jobId} />
                       <JobPage jobId={route.jobId} />
@@ -165,6 +178,7 @@ export default function App() {
           </Box>
         </Container>
         <SignInDialog />
+        <NoticeHost />
       </DataToolsProvider>
     </CloudSyncProvider>
   );

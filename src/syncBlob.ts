@@ -3,6 +3,7 @@
 // reasoning lives here and is unit-testable without Supabase. Each field's merge rule lives
 // with its store (mergeJobs, mergeTriage's set-aside-wins, …); this module only composes them.
 //
+// v6 adds the Application kit (rapid apply: profile fields + saved answers), optional on read.
 // v5 (ADR 0008) adds the user-edited stores that used to live only in this browser: outreach
 // targets, saved searches, the evidence text and the work mode per track. All optional on read.
 // v4 (#99) carried jobs, snippets, and set-aside tiles. Curated
@@ -19,6 +20,7 @@ import { mergeTargets, sanitizeTargets, type Target } from './feed/targets';
 import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFilters';
 import { capEvidence, mergeEvidence } from './radar/evidenceStore';
 import { mergeModes, sanitizeModes } from './trackModes';
+import { emptyKit, mergeKit, sanitizeKit, type ApplyKit } from './applyKit';
 import type { WorkMode } from './jobsData';
 import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
@@ -40,13 +42,15 @@ export interface SyncData {
   evidence: string;
   /** Work mode per track (v5). */
   modes: Record<string, WorkMode>;
+  /** The Application kit (v6). */
+  kit: ApplyKit;
   /** The blob version this was read from (0 = not read from a blob). A pre-v5 cloud copy says
    *  nothing about the v5 fields, so a refresh must not let its emptiness wipe local values. */
   sourceV: number;
 }
 
 /** Blob schema version written to the cloud. */
-export const BLOB_VERSION = 5;
+export const BLOB_VERSION = 6;
 
 export function emptyBlob(): SyncData {
   return {
@@ -58,6 +62,7 @@ export function emptyBlob(): SyncData {
     filters: {},
     evidence: '',
     modes: {},
+    kit: emptyKit(),
     sourceV: 0,
   };
 }
@@ -85,11 +90,12 @@ export function readBlob(data: unknown): SyncData {
     filters: sanitizeFilters(o.filters),
     evidence: typeof o.evidence === 'string' ? capEvidence(o.evidence) : '',
     modes: sanitizeModes(o.modes),
+    kit: sanitizeKit(o.kit),
     sourceV: typeof o.v === 'number' ? o.v : 0,
   };
 }
 
-/** The v5 object written to the cloud. */
+/** The v6 object written to the cloud. */
 export function writeBlob(d: SyncData) {
   return {
     v: BLOB_VERSION,
@@ -100,6 +106,7 @@ export function writeBlob(d: SyncData) {
     filters: d.filters,
     evidence: d.evidence,
     modes: d.modes,
+    kit: d.kit,
   };
 }
 
@@ -121,9 +128,12 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
             evidence: local.evidence,
             modes: local.modes,
           };
+    // Likewise a pre-v6 copy says nothing about the kit.
+    const v6 = cloud.sourceV >= 6 ? {} : { kit: local.kit };
     return {
       ...cloud,
       ...v5,
+      ...v6,
       jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
       triage: {
         pinned: local.triage.pinned.filter((u) => !dismissed.has(u)),
@@ -140,6 +150,7 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     filters: mergeFilters(cloud.filters, local.filters),
     evidence: mergeEvidence(cloud.evidence, local.evidence),
     modes: mergeModes(cloud.modes, local.modes),
+    kit: mergeKit(cloud.kit, local.kit),
     sourceV: cloud.sourceV,
   };
 }
