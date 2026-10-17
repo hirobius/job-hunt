@@ -48,8 +48,8 @@ export default function JobListCard({ job }: { job: Job }) {
             </Text>
             <RowMenu job={job} size="md" />
           </Stack>
-          {row.factLines.map((line) => (
-            <Text key={line} variant="caption" as="p" style={SECONDARY}>
+          {row.factLines.map((line, i) => (
+            <Text key={i} variant="caption" as="p" style={SECONDARY}>
               {line}
             </Text>
           ))}

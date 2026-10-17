@@ -15,6 +15,7 @@ import App from './App';
 import { addJob, findJobByUrl, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { getApplyKit, replaceApplyKit, emptyKit } from './applyKit';
 import { notifySaved, dismissNotice } from './saveNotice';
+import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 
 const A = 'https://acme.example/jobs/1';
 const B = 'https://bolt.example/jobs/2';
@@ -106,5 +107,19 @@ describe('To apply queue and Apply mode', () => {
     await user.click(screen.getAllByRole('button', { name: /^More actions: Bolt Designer/ })[0]);
     await user.click(await screen.findByRole('menuitemradio', { name: 'Interviewing' }));
     expect(findJobByUrl(B)?.status).toBe('Interviewing');
+  });
+});
+
+describe('Apply mode header keeps to two items per dotted line (#192)', () => {
+  it('splits company, stage and position across lines', async () => {
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('link', { name: 'Open application' });
+    const texts = [...document.body.querySelectorAll('*')]
+      .filter((e) => e.children.length === 0)
+      .map((e) => e.textContent ?? '');
+    expect(texts).toContain('Acme · To apply');
+    expect(texts).toContain('1 of 3');
+    expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
   });
 });

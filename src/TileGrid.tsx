@@ -115,6 +115,7 @@ export default function TileGrid({
                 <Stack gap="px4">
                   {/* At most two chips per row (#192). */}
                   {chunkMeta(chips).map((row) => (
+                    // Box, not Stack: Stack drops the data-meta-row hook the tests count.
                     <Box
                       key={row.map((c) => c.kind + c.text).join('|')}
                       data-meta-row=""

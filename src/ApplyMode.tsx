@@ -19,6 +19,7 @@ import { PageHeader } from '@hirobius/design-system/patterns';
 import EmptyState from './EmptyState';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
 import { openApply, openJob } from './route';
+import { metaLines } from './metaLines';
 import { titleOf } from './jobRow';
 import { followUpDate, toApplyQueue } from './applyQueue';
 import {
@@ -105,11 +106,17 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
           breadcrumb={back}
           title={titleOf(job)}
           status={
-            <Text variant="caption" as="span" style={SECONDARY}>
-              {[company, idx >= 0 ? `To apply · ${idx + 1} of ${queue.length}` : job.status]
-                .filter(Boolean)
-                .join(' · ')}
-            </Text>
+            <Stack gap="px2">
+              {metaLines([
+                company,
+                idx >= 0 ? 'To apply' : job.status,
+                idx >= 0 && `${idx + 1} of ${queue.length}`,
+              ]).map((line, i) => (
+                <Text key={i} variant="caption" as="span" style={SECONDARY}>
+                  {line}
+                </Text>
+              ))}
+            </Stack>
           }
         />
         <Button asChild variant="primary" size="lg" iconRight={<Icon icon={ExternalLink} />}>

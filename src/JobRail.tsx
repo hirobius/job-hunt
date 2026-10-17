@@ -26,8 +26,8 @@ function RowBody({ job }: { job: Job }) {
           <StatusBadge job={job} />
         </Stack>
       </Stack>
-      {v.factLines.map((line) => (
-        <Text key={line} variant="caption" as="span" style={SECONDARY}>
+      {v.factLines.map((line, i) => (
+        <Text key={i} variant="caption" as="span" style={SECONDARY}>
           {line}
         </Text>
       ))}
