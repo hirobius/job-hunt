@@ -129,6 +129,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   an `AlertDialog`. Its `Menu` is `modal={false}` on purpose: a modal menu plus the dialog left the
   page unclickable. `restoreStarterSnippets` re-adds missing `tpl-*` defaults. Pinned in
   `src/copyDeck.test.tsx` and `src/copyDeckFill.test.tsx`.
+  **Variable chips (#221):** the text is `hds-gaps/TokenTextarea` (contenteditable; each `[Name]` is one
+  atomic chip; Backspace/Delete/arrows/Enter/paste go through `templateEditor` helpers). Insert variable
+  `Menu` + chip row share `insertAt`. A Variables panel sets values: a picked job's four fields save on
+  the job, the rest on `Snippet.values`; `[Your name]` falls back to the kit name. `templateFill.fillSnippet`
+  is the one fill path (editor, Use template, Apply mode). Body stays plain text. E2E:
+  `e2e/template-variables.spec.ts`.
 - **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
   first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the Today gate goes to

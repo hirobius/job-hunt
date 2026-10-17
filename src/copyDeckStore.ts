@@ -13,6 +13,8 @@ export interface Snippet {
   open?: boolean;
   pillars?: string[]; // pillar ids this snippet is tagged to; empty/undefined = global
   pinned?: boolean;
+  /** Variable values set on this template (#221), keyed by lower-case name; the body keeps its [Token]s. */
+  values?: Record<string, string>;
 }
 
 const KEY = 'rjb_copydeck_v1';

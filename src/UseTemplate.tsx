@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Dialog, InlineLink, Stack, Textarea, useToast } from '@hirobius/design-system';
 import { useSnippets } from './copyDeckStore';
-import { fillTemplate, unfilledTokens, valuesFromJob } from './templateFill';
+import { fillSnippet, unfilledTokens } from './templateFill';
+import { useApplyKit } from './applyKit';
 import { copyFilled } from './templateCopy';
 import type { Job } from './types';
 import { SECONDARY } from './hds-gaps/tone';
@@ -20,7 +21,8 @@ export default function UseTemplate({ job }: { job: Job }) {
   );
   const picked = ordered.find((s) => s.id === pickedId) ?? ordered[0];
   // Every job card mounts one of these — only fill while the dialog is actually open.
-  const filled = open && picked ? fillTemplate(picked.body, valuesFromJob(job)) : '';
+  const kitName = useApplyKit().fields.name;
+  const filled = open && picked ? fillSnippet(picked, job, kitName) : '';
   const missing = open ? unfilledTokens(filled) : [];
 
   useEffect(() => {
