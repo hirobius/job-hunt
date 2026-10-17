@@ -70,7 +70,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
     expect(within(header).getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
   });
 
-  it('the primary action is Log follow-up when one is due, and Mark applied is gone', () => {
+  it('the primary action is Follow up when one is due, and Mark applied is gone', () => {
     addJob(URL_A, 'Design Engineer');
     const d = new Date();
     d.setDate(d.getDate() - 10);
@@ -80,7 +80,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
       applied: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
     });
     openJobPage();
-    expect(screen.getByRole('button', { name: /^Log follow-up/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Follow up/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Mark applied/ })).toBeNull();
   });
 

@@ -12,6 +12,10 @@ import {
   jobIdOf,
   findJobById,
   findJobByUrl,
+  sanitizeJobs,
+  snoozeFollowUp,
+  logFollowUp,
+  restoreFollowUp,
 } from './store';
 
 afterEach(() => {
@@ -119,5 +123,32 @@ describe('findJobByUrl (#128)', () => {
       'Design Engineer',
     );
     expect(findJobByUrl('https://acme.example/jobs/8')).toBeUndefined();
+  });
+});
+
+describe('follow-up snooze + undo', () => {
+  const U = 'https://acme.example/jobs/1';
+
+  it('normalizes snoozeUntil on read: a real day stays, junk is dropped', () => {
+    const [ok, bad] = sanitizeJobs([
+      { url: U, label: 'A', status: 'Applied', snoozeUntil: '2026-10-20' },
+      { url: 'https://acme.example/jobs/2', label: 'B', status: 'Applied', snoozeUntil: 'later' },
+    ]);
+    expect(ok.snoozeUntil).toBe('2026-10-20');
+    expect('snoozeUntil' in bad).toBe(false);
+  });
+
+  it('snooze sets a day; restore puts the old follow-up clock back exactly', () => {
+    addJob(U, 'A');
+    const before = findJobByUrl(U)!;
+    snoozeFollowUp(U);
+    expect(findJobByUrl(U)!.snoozeUntil).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    restoreFollowUp(U, before);
+    logFollowUp(U);
+    expect(findJobByUrl(U)!.followUp).toBeTruthy();
+    restoreFollowUp(U, before);
+    const after = findJobByUrl(U)!;
+    expect(after.followUp).toBeUndefined();
+    expect(after.snoozeUntil).toBeUndefined();
   });
 });

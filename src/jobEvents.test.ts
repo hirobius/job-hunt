@@ -77,6 +77,8 @@ describe('followUpDate', () => {
     ['Saved is not tracked', job({ status: 'Saved' }), null],
     ['archived', job({ archived: true }), null],
     ['no reference date', job({ applied: undefined }), null],
+    ['a snooze past the clock wins', job({ snoozeUntil: '2026-10-24' }), '2026-10-24'],
+    ['a snooze before the clock is ignored', job({ snoozeUntil: '2026-10-16' }), '2026-10-21'],
   ])('%s', (_n, j, want) => {
     expect(followUpDate(j, WED)).toBe(want);
   });
@@ -186,6 +188,14 @@ describe('dueFollowUps', () => {
     expect(dueFollowUps(jobs, WED).map((d) => [d.job.url, d.dueDate])).toEqual([
       ['old', '2026-09-27'],
       ['recent', '2026-10-14'],
+    ]);
+  });
+
+  it('a snoozed follow-up leaves the list until the snooze day', () => {
+    const j = job({ applied: '2026-09-20', snoozeUntil: '2026-10-17' });
+    expect(dueFollowUps([j], WED)).toEqual([]);
+    expect(dueFollowUps([j], new Date(2026, 9, 17, 8))).toEqual([
+      { job: j, dueDate: '2026-10-17' },
     ]);
   });
 

@@ -12,10 +12,10 @@ import {
   Input as HdsInput,
   Stack,
   Text,
-  useToast,
 } from '@hirobius/design-system';
 import { Form, Page, PageHeader } from '@hirobius/design-system/patterns';
-import { addJob, findJobByUrl, jobIdOf, logFollowUp, useJobs } from './store';
+import { addJob, findJobByUrl, jobIdOf, useJobs } from './store';
+import { FollowUpButton } from './FollowUp';
 import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
 import { dueFollowUps, KIND_WORD, UPCOMING_DAYS, upcomingEvents, ymd } from './jobEvents';
 import { jobHash, navigate } from './route';
@@ -183,7 +183,6 @@ function QuickAdd({ inputRef }: { inputRef: React.Ref<HTMLInputElement> }) {
 
 export default function TodayView() {
   const jobs = useJobs();
-  const { toast } = useToast();
   const now = new Date();
   const due = dueFollowUps(jobs, now);
   const upcoming = upcomingEvents(jobs, now);
@@ -248,22 +247,7 @@ export default function TodayView() {
                         title={<InlineLink href={jobHref(job.url)}>{job.label}</InlineLink>}
                         badge={<Badge tone="warning">Due</Badge>}
                         notes={metaLines([job.company, sinceNote(job, now)])}
-                        trailing={
-                          <Button
-                            variant="secondary"
-                            aria-label={`Log follow-up: ${job.label}`}
-                            onClick={() => {
-                              logFollowUp(job.url);
-                              toast({
-                                title: 'Follow-up logged',
-                                description: `${job.label}: the next one is due in ${days(FOLLOWUP_DAYS)}.`,
-                                tone: 'success',
-                              });
-                            }}
-                          >
-                            Log follow-up
-                          </Button>
-                        }
+                        trailing={<FollowUpButton job={job} />}
                       />
                     </li>
                   ))}

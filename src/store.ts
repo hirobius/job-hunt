@@ -1,7 +1,13 @@
 import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
 import { type Job, type JobMode, type Status } from './types';
-import { applyStatus, logFollowUp as applyFollowUp, normStatus } from './jobState';
+import {
+  applyStatus,
+  logFollowUp as applyFollowUp,
+  normSnooze,
+  normStatus,
+  snoozeFollowUp as applySnooze,
+} from './jobState';
 import { normalizeScreening } from './screening';
 
 const KEY = 'rjb_shortlist'; // same key as the legacy app
@@ -134,9 +140,12 @@ export function sanitizeJobs(arr: unknown): Job[] {
     if (seen.has(key)) continue; // first occurrence wins
     seen.add(key);
     const label = (it.label || '').replace(/[<>]/g, '').trim();
+    const { snoozeUntil: rawSnooze, ...rest } = it;
+    const snoozeUntil = normSnooze(rawSnooze);
     out.push(
       normalizeScreening({
-        ...it,
+        ...rest,
+        ...(snoozeUntil ? { snoozeUntil } : {}),
         url,
         status: normStatus(it.status),
         label: label && label !== 'Saved job' ? label : prettyTitle(url), // backfill weak titles
@@ -228,10 +237,30 @@ export function addJobDetailed(
   set([...jobs, job]);
   return u;
 }
-/** Log a follow-up today (restarts the follow-up countdown). */
+/** Record a follow-up sent today (restarts the follow-up countdown). */
 export function logFollowUp(url: string) {
   const jobs = store.get();
   set(jobs.map((j) => (j.url === url ? applyFollowUp(j) : j)));
+}
+/** Hold a due follow-up back a few days without recording one. */
+export function snoozeFollowUp(url: string) {
+  const jobs = store.get();
+  set(jobs.map((j) => (j.url === url ? applySnooze(j) : j)));
+}
+/** Undo a follow-up send or snooze: put back the job's follow-up clock as it was in `before`. */
+export function restoreFollowUp(url: string, before: Pick<Job, 'followUp' | 'snoozeUntil'>) {
+  const jobs = store.get();
+  set(
+    jobs.map((j) => {
+      if (j.url !== url) return j;
+      const { followUp: _f, snoozeUntil: _s, ...rest } = j;
+      return {
+        ...rest,
+        ...(before.followUp ? { followUp: before.followUp } : {}),
+        ...(before.snoozeUntil ? { snoozeUntil: before.snoozeUntil } : {}),
+      };
+    }),
+  );
 }
 export function updateJob(url: string, patch: Partial<Job>) {
   const jobs = store.get();

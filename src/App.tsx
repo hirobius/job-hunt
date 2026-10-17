@@ -11,6 +11,7 @@ import {
   Stack,
 } from '@hirobius/design-system';
 import TodayView from './TodayView';
+import { FollowUpHost } from './FollowUp';
 import TrackerView from './TrackerView';
 import JobPage from './JobPage';
 import { JobPageLiveness, PipelineLiveness } from './LivenessViews';
@@ -165,6 +166,7 @@ export default function App() {
           </Box>
         </Container>
         <SignInDialog />
+        <FollowUpHost />
       </DataToolsProvider>
     </CloudSyncProvider>
   );

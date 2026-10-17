@@ -93,14 +93,78 @@ describe('Today view (#128)', () => {
     expect(within(rows[0]).getAllByRole('button')).toHaveLength(1);
   });
 
-  it('Log follow-up clears the row and confirms with a toast', async () => {
-    renderApp();
-    await userEvent.click(screen.getByRole('button', { name: 'Log follow-up: UX Researcher' }));
-    expect(await screen.findByText('Follow-up logged')).toBeInTheDocument();
-    const names = within(region(/^Follow-ups due/))
+  // The follow-up flow (Adrian, 2026-10-17): "Follow up" opens the message to send; the clock only
+  // moves on "Mark as sent" (undoable) or "Snooze 3 days". Closing changes nothing.
+  const UXR = 'https://brambleandfinch.example.com/jobs/ux-researcher';
+  const dueNames = () =>
+    within(region(/^Follow-ups due/))
       .getAllByRole('link')
       .map((l) => l.textContent);
-    expect(names).toEqual(['Design Systems Lead']);
+  const openFollowUp = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole('button', { name: 'Follow up: UX Researcher' }));
+    return screen.findByRole('dialog', { name: 'Follow up' });
+  };
+
+  it('Follow up opens the follow-up template, filled from the job and editable', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const dialog = await openFollowUp(user);
+    const message = within(dialog).getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement;
+    expect(message.value).toContain('the UX Researcher role at Bramble & Finch');
+    await user.type(message, ' PS');
+    expect(message.value.endsWith(' PS')).toBe(true);
+    expect(within(dialog).getByRole('link', { name: 'Open job posting' })).toHaveAttribute(
+      'href',
+      UXR,
+    );
+    // Nothing to mark until it has been copied.
+    expect(within(dialog).queryByRole('button', { name: 'Mark as sent' })).toBeNull();
+  });
+
+  it('closing without marking it sent changes nothing', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const before = getAllJobs().find((j) => j.url === UXR);
+    await openFollowUp(user);
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(getAllJobs().find((j) => j.url === UXR)).toEqual(before);
+    expect(dueNames()).toEqual(['UX Researcher', 'Design Systems Lead']);
+  });
+
+  it('Copy message, then Mark as sent restarts the clock; Undo puts it back', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText');
+    renderApp();
+    const dialog = await openFollowUp(user);
+    const message = within(dialog).getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement;
+    await user.click(within(dialog).getByRole('button', { name: 'Copy message' }));
+    expect(writeText).toHaveBeenCalledWith(message.value);
+    await user.click(within(dialog).getByRole('button', { name: 'Mark as sent' }));
+    expect(within(dialog).getByText('Follow-up sent. Next one due in 7 days.')).toBeInTheDocument();
+    expect(getAllJobs().find((j) => j.url === UXR)?.followUp).toBeTruthy();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs().find((j) => j.url === UXR)?.followUp).toBeUndefined();
+    // Back to the message, ready to send again.
+    expect(within(dialog).getByRole('textbox', { name: 'Message' })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Mark as sent' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Done' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(dueNames()).toEqual(['Design Systems Lead']);
+  });
+
+  it('Snooze 3 days moves the due date without recording a follow-up', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const dialog = await openFollowUp(user);
+    await user.click(within(dialog).getByRole('button', { name: 'Snooze 3 days' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const job = getAllJobs().find((j) => j.url === UXR)!;
+    expect(job.followUp).toBeUndefined();
+    expect(job.snoozeUntil).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(dueNames()).toEqual(['Design Systems Lead']);
+    expect(await screen.findByText(/^Snoozed until /)).toBeInTheDocument();
   });
 
   it('lists the interviews and calls coming up in the next 7 days; Open job goes to its page', async () => {

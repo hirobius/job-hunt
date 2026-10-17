@@ -6,6 +6,9 @@ import {
   applyStatus,
   effectiveHistory,
   logFollowUp,
+  normSnooze,
+  snoozeFollowUp,
+  SNOOZE_DAYS,
 } from './jobState';
 import type { Job } from './types';
 
@@ -174,6 +177,41 @@ describe('logFollowUp', () => {
     const next = logFollowUp(j, NOW);
     expect(next.followUp).toBe(TODAY);
     expect(next).not.toBe(j);
+  });
+
+  it('clears a snooze: a sent follow-up restarts the full clock', () => {
+    const next = logFollowUp(job({ status: 'Applied', snoozeUntil: '2026-06-28' }), NOW);
+    expect(next.snoozeUntil).toBeUndefined();
+  });
+});
+
+describe('snoozeFollowUp', () => {
+  const due = job({ status: 'Applied', applied: daysAgo(10) });
+
+  it(`pushes a due follow-up ${SNOOZE_DAYS} days out without logging one`, () => {
+    const next = snoozeFollowUp(due, NOW);
+    expect(next.followUp).toBeUndefined();
+    expect(next.snoozeUntil).toBe('2026-06-29');
+    expect(deriveJobState(next, NOW).followUp).toMatchObject({ due: false, daysUntil: 3 });
+  });
+
+  it('falls due again on the snooze day', () => {
+    const next = snoozeFollowUp(due, NOW);
+    expect(deriveJobState(next, new Date(2026, 5, 29, 9)).followUp.due).toBe(true);
+  });
+
+  it('a snooze earlier than the clock does not pull the due day in', () => {
+    const fresh = job({ status: 'Applied', applied: daysAgo(1), snoozeUntil: '2026-06-27' });
+    expect(deriveJobState(fresh, NOW).followUp).toMatchObject({ due: false, daysUntil: 6 });
+  });
+});
+
+describe('normSnooze', () => {
+  it('keeps a real calendar day, drops anything else', () => {
+    expect(normSnooze('2026-06-29')).toBe('2026-06-29');
+    expect(normSnooze('2026-02-31')).toBeUndefined();
+    expect(normSnooze('soon')).toBeUndefined();
+    expect(normSnooze(42)).toBeUndefined();
   });
 });
 

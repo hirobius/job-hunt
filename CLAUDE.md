@@ -179,8 +179,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
 - **Tracker model:** default "Active" filter = not-yet-applied (Saved) + pinned;
-  applying drops a job out of the active queue. Follow-up loop: "Follow up in Nd" →
-  "Follow up now" → "Log follow-up" resets the clock. Weak titles auto-derive from
+  applying drops a job out of the active queue. Follow-up loop: due 7 days after applying or the
+  last follow-up. Every "Follow up" button (Today, Pipeline row, job header) opens the one
+  `FollowUpHost` dialog (`FollowUp.tsx`, mounted in `App`; open job in `followUpFlow.ts`): the
+  follow-up template filled from the job, Copy message → Mark as sent (resets the clock; Undo in
+  the dialog, since HDS Toast has no action slot) or Snooze 3 days (`Job.snoozeUntil`, normalized
+  on read, syncs with the job). Closing changes nothing. Weak titles auto-derive from
   the URL. Board triage (pin / set-aside) lives in `tileTriage.ts` + `tileState.ts`;
   planned consolidation: saving also floats the tile (issue #13).
 

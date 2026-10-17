@@ -45,6 +45,7 @@ export interface Job {
   status: Status;
   applied?: string;
   followUp?: string;
+  snoozeUntil?: string; // YYYY-MM-DD: a due follow-up is held back until this day (normalized on read)
   note?: string;
   contact?: string;
   resume?: string;

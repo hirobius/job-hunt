@@ -16,6 +16,10 @@ test('opens on Today; the sample pipeline lists due follow-ups', async ({ page }
   await expect(page).toHaveURL(/#\/today$/);
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   await expect(page.getByRole('region', { name: /^Follow-ups due/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Log follow-up: UX Researcher' }).click();
-  await expect(page.getByText('Follow-up logged', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Follow up: UX Researcher' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Follow up' });
+  await expect(dialog.getByRole('textbox', { name: 'Message' })).toHaveValue(/UX Researcher/);
+  await dialog.getByRole('button', { name: 'Copy message' }).click();
+  await dialog.getByRole('button', { name: 'Mark as sent' }).click();
+  await expect(dialog.getByText('Follow-up sent. Next one due in 7 days.')).toBeVisible();
 });
