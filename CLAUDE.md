@@ -113,9 +113,10 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `QUICK_ADD_LANDING` (`queue`) are separate in `App.tsx`. Pinned in `src/jobRoute.test.tsx`.
 - **Today is home (#128):** `#/today` = `TodayView.tsx`: due follow-ups (`dueFollowUps`) and the
   next 7 days (`upcomingEvents`, both in `jobEvents.ts`) as `StatusListItem` rows, one quick-add
-  field (stays on Today; the line under it links the saved job), and `Insights.tsx` (metric tiles
-  via `src/hds-gaps/MetricTilesAutoFit` + Progress-row funnel; open state `rjb_ui_insights_open`).
-  HDS-gap stand-ins live in `src/hds-gaps/`, each naming its upstream ask. The Pipeline holds the list only. **The onboarding gate lives in the
+  field (stays on Today; the line under it links the saved job). **Insights live on the Pipeline**
+  (Adrian 2026-10-17): `Insights.tsx` (metric tiles via `src/hds-gaps/MetricTilesAutoFit` +
+  Progress-row funnel) is a disclosure above the list, closed by default (`rjb_ui_insights_open`).
+  HDS-gap stand-ins live in `src/hds-gaps/`, each naming its upstream ask. **The onboarding gate lives in the
   shell:** Today shows `Onboarding` on a first run (no tracks and no jobs; it offers sample data
   there), Discover whenever there are no tracks; Pipeline and Templates never gate. Existing users
   get a one-time `TodayNotice` (`rjb_ui_today_home_seen`; a first run marks it seen). Pinned in

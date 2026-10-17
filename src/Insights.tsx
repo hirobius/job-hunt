@@ -1,4 +1,4 @@
-// Today's Insights band (#128): the pipeline's headline numbers as metric tiles (with a trend line)
+// The Pipeline's Insights band (#128; moved off Today): the pipeline's headline numbers as metric tiles (with a trend line)
 // and a funnel as Progress rows (how many jobs reached each Status), in one Disclosure whose open state is kept per device.
 // Composes the existing pure read models (metrics.ts, funnel.ts); weekly bars wait for an HDS chart
 // primitive (#133).
@@ -15,12 +15,12 @@ import { SECONDARY } from './hds-gaps/tone';
 const OPEN_KEY = 'rjb_ui_insights_open';
 const pct = (r: number | null) => (r == null ? '—' : `${Math.round(r * 100)}%`);
 
-// Open unless this device closed it.
+// Closed unless this device opened it.
 function readOpen(): boolean {
   try {
-    return localStorage.getItem(OPEN_KEY) !== '0';
+    return localStorage.getItem(OPEN_KEY) === '1';
   } catch {
-    return true;
+    return false;
   }
 }
 

@@ -294,3 +294,33 @@ describe('Pipeline rows keep to two items per dotted line (#192)', () => {
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
   });
 });
+
+describe('Insights on the Pipeline', () => {
+  it('sit above the list, collapsed by default, open state kept per device', async () => {
+    const { unmount } = renderApp();
+    const toggle = screen.getByRole('button', { name: /^Insights/ });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Response rate')).toBeNull();
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Applied, last 7 days')).toBeInTheDocument();
+    expect(screen.getByText('Response rate')).toBeInTheDocument();
+    for (const stage of ['All jobs', 'Applied', 'Interviewed', 'Offer'])
+      expect(screen.getByRole('progressbar', { name: new RegExp(`^${stage}: \\d+ of 2`) }));
+    expect(localStorage.getItem('rjb_ui_insights_open')).toBe('1');
+    unmount();
+    renderApp();
+    expect(screen.getByRole('button', { name: /^Insights/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+  });
+
+  it('are absent with no saved jobs', () => {
+    getAllJobs()
+      .slice()
+      .forEach((j) => removeJob(j.url));
+    renderApp();
+    expect(screen.queryByRole('button', { name: /^Insights/ })).toBeNull();
+  });
+});

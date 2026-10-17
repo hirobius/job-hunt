@@ -24,6 +24,7 @@ import {
   type Filter,
 } from './pipelineView';
 import EmptyState from './EmptyState';
+import Insights from './Insights';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import JobsTable from './JobsTable';
 import JobListCard from './JobListCard';
@@ -82,6 +83,12 @@ export default function TrackerView() {
         style={{ marginBottom: 'var(--primitive-space-4)' }}
       />
       <SampleBanner jobs={jobs} />
+      {/* Insights: collapsed by default, above the list. */}
+      {jobs.length > 0 && (
+        <Box sx={{ marginBottom: 'sm' }}>
+          <Insights jobs={jobs} />
+        </Box>
+      )}
 
       {/* One toolbar (#115 / #129): search grows; status and sort sit beside it and wrap under it
           on phones. Status is a grouped menu, not an 8-option strip. No toolbar until there is

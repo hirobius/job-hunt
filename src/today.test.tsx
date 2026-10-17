@@ -1,7 +1,7 @@
 // Phase 2b of the redesign (#128): Today is home. Tested at the route seam through App and driven
 // by role + name: the empty hash lands on Today, which lists due follow-ups and the next week's
-// interviews from the sample pipeline, has one quick-add field and the Insights band; the
-// Pipeline keeps the list only; the shell owns the first-run gate; existing users get a one-time
+// interviews from the sample pipeline, has one quick-add field; Insights
+// lives on the Pipeline; the shell owns the first-run gate; existing users get a one-time
 // "Today is home" notice.
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -163,31 +163,9 @@ describe('Today view (#128)', () => {
     expect(screen.getByText(/doesn't look like a link/)).toBeInTheDocument();
   });
 
-  it('Insights: metric tiles and a stage funnel in one band, open state kept per device', async () => {
-    const { unmount } = renderApp();
-    const toggle = screen.getByRole('button', { name: /^Insights/ });
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('Applied, last 7 days')).toBeInTheDocument();
-    expect(screen.getByText('Response rate')).toBeInTheDocument();
-    // The funnel: every stage as a progress row out of all saved jobs.
-    for (const stage of ['All jobs', 'Applied', 'Interviewed', 'Offer'])
-      expect(screen.getByRole('progressbar', { name: new RegExp(`^${stage}: \\d+ of 10`) }));
-    await userEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(localStorage.getItem('rjb_ui_insights_open')).toBe('0');
-    unmount();
-    renderApp();
-    expect(screen.getByRole('button', { name: /^Insights/ })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
-  });
-
-  it('the Pipeline holds the list only: no This week, stats or funnel', () => {
-    window.location.hash = '#/queue';
+  it('has no Insights band: it lives on the Pipeline', () => {
     renderApp();
     expect(screen.queryByRole('button', { name: /^Insights/ })).toBeNull();
-    expect(screen.queryByText(/^This week/)).toBeNull();
     expect(screen.queryByText('Response rate')).toBeNull();
   });
 });

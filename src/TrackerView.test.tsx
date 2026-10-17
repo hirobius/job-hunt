@@ -99,12 +99,11 @@ describe('Pipeline hierarchy', () => {
   });
 });
 
-// The Pipeline holds the list only (#128): the agenda, stats and funnel moved to Today.
-describe('Pipeline holds the list only', () => {
-  it('has no This week agenda or Insights band', () => {
+// Insights live on the Pipeline, collapsed by default (Adrian's feedback; pinned in pipeline.test.tsx).
+describe('Pipeline has no This week agenda', () => {
+  it('has no This week agenda', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();
-    expect(screen.queryByRole('button', { name: /Insights/ })).toBeNull();
     expect(screen.queryByText(/^This week/)).toBeNull();
   });
 });
