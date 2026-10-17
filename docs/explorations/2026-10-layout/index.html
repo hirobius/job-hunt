@@ -1170,13 +1170,13 @@ button { font: inherit; color: inherit; }
 .x-chips { display: flex; gap: var(--primitive-space-2); overflow: hidden; }
 .x-meta-chip { display: inline-flex; align-items: center; height: var(--primitive-space-6); padding: 0 var(--primitive-space-2); border-radius: var(--primitive-radius-4); background: var(--semantic-color-surface-muted); color: var(--semantic-color-content-secondary); font-size: var(--primitive-typography-size-xs); font-weight: var(--semantic-typography-ui-font-weight); white-space: nowrap; }
 
-.x-pad { padding: 0 var(--primitive-space-4); }
+.x-pad { padding: 0 var(--primitive-space-5); }
 .x-stack { display: flex; flex-direction: column; }
 .g1 { gap: var(--primitive-space-1); } .g2 { gap: var(--primitive-space-2); } .g3 { gap: var(--primitive-space-3); } .g4 { gap: var(--primitive-space-4); } .g6 { gap: var(--primitive-space-6); }
 .x-row-flex { display: flex; align-items: center; gap: var(--primitive-space-2); min-width: 0; }
 .x-between { justify-content: space-between; }
-.mt2 { margin-top: var(--primitive-space-2); } .mt3 { margin-top: var(--primitive-space-3); } .mt4 { margin-top: var(--primitive-space-4); } .mt6 { margin-top: var(--primitive-space-6); }
-.pt4 { padding-top: var(--primitive-space-4); } .pb4 { padding-bottom: var(--primitive-space-4); }
+.mt2 { margin-top: var(--primitive-space-2); } .mt3 { margin-top: var(--primitive-space-3); } .mt4 { margin-top: var(--primitive-space-4); } .mt6 { margin-top: var(--primitive-space-8); }
+.pt4 { padding-top: var(--primitive-space-6); } .pb4 { padding-bottom: var(--primitive-space-6); }
 
 .t-title { font-family: var(--semantic-typography-title-font-family); font-size: var(--semantic-typography-title-font-size); font-weight: var(--semantic-typography-title-font-weight); line-height: 1.25; }
 .t-sec { font-size: var(--primitive-typography-size-base); font-weight: var(--semantic-typography-title-font-weight); line-height: 1.4; }
@@ -1191,8 +1191,8 @@ button { font: inherit; color: inherit; }
 
 /* Rows: one title line, one meta line, one trailing control */
 .x-list { display: flex; flex-direction: column; }
-.x-row { display: flex; align-items: center; gap: var(--primitive-space-3); padding: var(--primitive-space-3) var(--primitive-space-4); border-bottom: 1px solid var(--semantic-color-border-subtle); min-height: 64px; }
-.x-row.compact { min-height: 56px; padding-top: var(--primitive-space-2); padding-bottom: var(--primitive-space-2); }
+.x-row { display: flex; align-items: center; gap: var(--primitive-space-4); padding: var(--primitive-space-4) var(--primitive-space-5); border-bottom: 1px solid var(--semantic-color-border-subtle); min-height: 72px; }
+.x-row.compact { min-height: 64px; padding-top: var(--primitive-space-3); padding-bottom: var(--primitive-space-3); }
 .x-row.sel { background: var(--semantic-color-surface-selected); }
 .x-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--primitive-space-1); }
 .x-row-title { font-weight: var(--semantic-typography-ui-font-weight); font-size: var(--primitive-typography-size-sm); color: var(--semantic-color-content-primary); }
@@ -1200,14 +1200,14 @@ button { font: inherit; color: inherit; }
 .x-date { width: var(--primitive-space-10); flex: none; text-align: center; line-height: 1.1; }
 .x-date b { display: block; font-size: var(--primitive-typography-size-base); }
 
-.x-card { background: var(--semantic-color-surface-page); border: 1px solid var(--semantic-color-border-default); border-radius: var(--primitive-radius-12); padding: var(--primitive-space-4); display: flex; flex-direction: column; gap: var(--primitive-space-3); }
-.x-cards { display: flex; flex-direction: column; gap: var(--primitive-space-3); padding: 0 var(--primitive-space-4); }
+.x-card { background: var(--semantic-color-surface-page); border: 1px solid var(--semantic-color-border-default); border-radius: var(--primitive-radius-12); padding: var(--primitive-space-5); display: flex; flex-direction: column; gap: var(--primitive-space-3); }
+.x-cards { display: flex; flex-direction: column; gap: var(--primitive-space-6); padding: 0 var(--primitive-space-5); }
 
-.x-actionbar { flex: none; display: flex; gap: var(--primitive-space-2); padding: var(--primitive-space-3) var(--primitive-space-4); border-top: 1px solid var(--semantic-color-border-subtle); background: var(--semantic-color-surface-page); }
-.x-toolbar { flex: none; display: flex; align-items: center; gap: var(--primitive-space-1); height: 48px; padding: 0 var(--primitive-space-2) 0 var(--primitive-space-2); border-bottom: 1px solid var(--semantic-color-border-subtle); }
+.x-actionbar { flex: none; display: flex; gap: var(--primitive-space-3); padding: var(--primitive-space-4) var(--primitive-space-5); border-top: 1px solid var(--semantic-color-border-subtle); background: var(--semantic-color-surface-page); }
+.x-toolbar { flex: none; display: flex; align-items: center; gap: var(--primitive-space-1); height: 56px; padding: 0 var(--primitive-space-3); border-bottom: 1px solid var(--semantic-color-border-subtle); }
 
 .x-sheet-scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--semantic-color-surface-scrim) 48%, transparent); display: flex; align-items: flex-end; }
-.x-sheet { width: 100%; background: var(--semantic-color-surface-page); border-radius: var(--primitive-radius-12) var(--primitive-radius-12) 0 0; padding: var(--primitive-space-2) var(--primitive-space-4) var(--primitive-space-6); display: flex; flex-direction: column; gap: var(--primitive-space-4); box-shadow: var(--semantic-shadow-overlay); }
+.x-sheet { width: 100%; background: var(--semantic-color-surface-page); border-radius: var(--primitive-radius-12) var(--primitive-radius-12) 0 0; padding: var(--primitive-space-3) var(--primitive-space-5) var(--primitive-space-8); display: flex; flex-direction: column; gap: var(--primitive-space-6); box-shadow: var(--semantic-shadow-overlay); }
 .x-grab { width: var(--primitive-space-10); height: var(--primitive-space-1); border-radius: var(--primitive-radius-full); background: var(--semantic-color-border-strong); margin: 0 auto; }
 .x-field { display: flex; flex-direction: column; gap: var(--primitive-space-2); }
 .x-label { font-weight: var(--semantic-typography-ui-font-weight); }
@@ -1215,25 +1215,25 @@ button { font: inherit; color: inherit; }
 .x-divider { height: 1px; background: var(--semantic-color-border-subtle); }
 .x-empty-dot { display: none; }
 
-.x-due { border: 1px solid var(--semantic-color-border-default); border-radius: var(--primitive-radius-12); padding: var(--primitive-space-3) var(--primitive-space-4); display: flex; flex-direction: column; gap: var(--primitive-space-1); }
-.x-due-row { display: flex; align-items: center; gap: var(--primitive-space-3); padding: var(--primitive-space-2) 0; border-top: 1px solid var(--semantic-color-border-subtle); min-width: 0; }
+.x-due { border: 1px solid var(--semantic-color-border-default); border-radius: var(--primitive-radius-12); padding: var(--primitive-space-4) var(--primitive-space-5); display: flex; flex-direction: column; gap: var(--primitive-space-1); }
+.x-due-row { display: flex; align-items: center; gap: var(--primitive-space-3); padding: var(--primitive-space-3) 0; border-top: 1px solid var(--semantic-color-border-subtle); min-width: 0; }
 .x-due-row .x-date { width: var(--primitive-space-8); }
-.x-template { padding: var(--primitive-space-3) var(--primitive-space-4); border-bottom: 1px solid var(--semantic-color-border-subtle); display: flex; flex-direction: column; gap: var(--primitive-space-1); }
+.x-template { padding: var(--primitive-space-4) var(--primitive-space-5); border-bottom: 1px solid var(--semantic-color-border-subtle); display: flex; flex-direction: column; gap: var(--primitive-space-2); }
 .x-preview { color: var(--semantic-color-content-secondary); font-size: var(--primitive-typography-size-xs); line-height: 1.5; }
 
 /* Desktop panes */
 .d-body { flex: 1; display: flex; min-height: 0; }
-.d-rail { width: 248px; flex: none; border-right: 1px solid var(--semantic-color-border-subtle); padding: var(--primitive-space-4) var(--primitive-space-3); display: flex; flex-direction: column; gap: var(--primitive-space-1); }
+.d-rail { width: 264px; flex: none; border-right: 1px solid var(--semantic-color-border-subtle); padding: var(--primitive-space-6) var(--primitive-space-4); display: flex; flex-direction: column; gap: var(--primitive-space-1); }
 .d-rail-h { font-size: var(--primitive-typography-size-xs); color: var(--semantic-color-content-secondary); font-weight: var(--semantic-typography-ui-font-weight); padding: var(--primitive-space-3) var(--primitive-space-3) var(--primitive-space-1); }
-.d-rail a { display: flex; align-items: center; gap: var(--primitive-space-2); height: 36px; padding: 0 var(--primitive-space-3); border-radius: var(--semantic-radius-action); color: var(--semantic-color-content-primary); text-decoration: none; font-weight: var(--semantic-typography-ui-font-weight); }
+.d-rail a { display: flex; align-items: center; gap: var(--primitive-space-2); height: 40px; padding: 0 var(--primitive-space-3); border-radius: var(--semantic-radius-action); color: var(--semantic-color-content-primary); text-decoration: none; font-weight: var(--semantic-typography-ui-font-weight); }
 .d-rail a.on { background: var(--semantic-color-surface-selected); }
 .d-rail a .n { margin-left: auto; color: var(--semantic-color-content-secondary); font-size: var(--primitive-typography-size-xs); }
 .d-list { width: 440px; flex: none; border-right: 1px solid var(--semantic-color-border-subtle); display: flex; flex-direction: column; }
-.d-detail { flex: 1; min-width: 0; padding: var(--primitive-space-8); display: flex; flex-direction: column; gap: var(--primitive-space-6); max-width: 760px; }
+.d-detail { flex: 1; min-width: 0; padding: var(--primitive-space-10); display: flex; flex-direction: column; gap: var(--primitive-space-6); max-width: 760px; }
 .d-col { width: 100%; max-width: 760px; margin: 0 auto; padding: var(--primitive-space-8) 0; display: flex; flex-direction: column; gap: var(--primitive-space-4); }
-.d-filters { width: 280px; flex: none; padding: var(--primitive-space-6); border-right: 1px solid var(--semantic-color-border-subtle); display: flex; flex-direction: column; gap: var(--primitive-space-6); }
-.d-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--primitive-space-4); }
-.d-main { flex: 1; min-width: 0; padding: var(--primitive-space-6) var(--primitive-space-8); display: flex; flex-direction: column; gap: var(--primitive-space-4); }
+.d-filters { width: 296px; flex: none; padding: var(--primitive-space-8); border-right: 1px solid var(--semantic-color-border-subtle); display: flex; flex-direction: column; gap: var(--primitive-space-6); }
+.d-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--primitive-space-6); }
+.d-main { flex: 1; min-width: 0; padding: var(--primitive-space-8) var(--primitive-space-10); display: flex; flex-direction: column; gap: var(--primitive-space-6); }
 .x-check { display: flex; align-items: center; gap: var(--primitive-space-2); min-height: var(--primitive-space-8); }
 .x-box { width: var(--primitive-space-4); height: var(--primitive-space-4); border: 1px solid var(--semantic-color-border-strong); border-radius: var(--primitive-radius-4); display: inline-flex; align-items: center; justify-content: center; }
 .x-box.on { background: var(--semantic-accent-rest); border-color: var(--semantic-accent-rest); color: var(--semantic-color-content-onAccent); }
@@ -1299,7 +1299,7 @@ button { font: inherit; color: inherit; }
       <li>Templates: full-width secondary "New snippet"; preview runs "[Company]Hi [Contact]," together (bug, filed as #207).</li>
       <li>Header: an unexplained dot next to Account.</li>
     </ul>
-    <p class="assume">Adrian's input: prefers the earlier three-tab shell (Pipeline · Discover · Templates, no Today), and not that era's cards (input-looking titles, a row of tinted Copy / Pin / Duplicate / Delete buttons, a "Snippet text" disclosure). Direction A follows both. Assumed from parallel PRs: Insights moves to the Pipeline, status dots are gone, tables are restyled in HDS. None of these mocks show them.</p>
+    <p class="assume">Adrian's input: prefers the earlier three-tab shell (Pipeline · Discover · Templates, no Today), and not that era's cards (input-looking titles, a row of tinted Copy / Pin / Duplicate / Delete buttons, a "Snippet text" disclosure). Direction A follows both. All three use roomier spacing than the app today (he liked how breathable the old UX was): even padding across sibling cards and rows, inner padding no larger than the gap outside it, clear section gaps, and no dead zones like the Details row or the Insights card. Assumed from parallel PRs: Insights moves to the Pipeline, status dots are gone, tables are restyled in HDS. None of these mocks show them.</p>
   </section>
 
   <div id="directions"></div>
@@ -1522,7 +1522,7 @@ button { font: inherit; color: inherit; }
         '<b>Two nav levels max</b>: three app tabs (no Today; follow-ups and the next 7 days fold into the Pipeline\'s Due now strip) and one 4-way tool switch. Track sections become a filter, not a third tab row.',
         '<b>The title is the context</b>: the track name is the page title and the track switcher; location is one caption line under it. No intro paragraphs.',
         '<b>Filters collapse</b> into one "Filters (n)" button that opens a sheet. Above results: title, tool switch, count. Nothing else.',
-        '<b>Rows, not cards</b>: titles are text (never input-looking boxes), one meta line, one trailing control, no "Snippet text" disclosure rows. Spacing: 16 gutter, 12 inside rows, 24 between sections; section heads are body bold.'
+        '<b>Rows, not cards</b>: titles are text (never input-looking boxes), one meta line, one trailing control, no "Snippet text" disclosure rows. Breathable spacing: 20 gutter, 16 inside rows (72px), 32 between sections; section heads are body bold.'
       ],
       stats: ['3 app tabs, no Today', '3 rows before results', '2 nav levels', 'Low build cost'],
       shots: [
@@ -1541,7 +1541,7 @@ button { font: inherit; color: inherit; }
         '<b>One toolbar per list</b> (48px): track, tool, sort, filter icon. On a phone the app tab name is the only title.',
         '<b>Two nav levels max</b>: app tabs, then the tool menu (rail on desktop). Sections and saved searches sit in the rail, never as tabs.',
         '<b>Actions live in the detail</b>, which owns the one primary (Save to pipeline). Rows carry a fit badge at most and a chevron.',
-        '<b>Dense rhythm</b>: 56px compact rows, 8 inside the toolbar, 16 gutter. Filters open from the toolbar icon as a popover (desktop) or sheet (phone).'
+        '<b>Even rhythm, still roomy</b>: 64px rows with 12 above and below, a 56px toolbar, 20 gutter, 40 around the detail. Filters open from the toolbar icon as a popover (desktop) or sheet (phone).'
       ],
       stats: ['1 row before results', '2 nav levels', 'High build cost'],
       shots: [
@@ -1561,7 +1561,7 @@ button { font: inherit; color: inherit; }
         '<b>Scope chips replace tool tabs</b>: All · Saved · Live · Searches · Find. Two nav levels max.',
         '<b>All filters in one sheet</b> (phone) or a left panel (desktop). Applied filters stay as removable chips with a "hidden by filters" count.',
         '<b>Cards only for results you scan</b> (title, meta, two-line snippet, fit + one chip, one Save). Today and Templates use rows.',
-        '<b>One primary per screen</b>, small, in the header (Add / New). Spacing: 16 gutter and card padding, 12 between cards.'
+        '<b>One primary per screen</b>, small, in the header (Add / New). Spacing: 20 gutter and card padding, 24 between cards (inner padding never larger than the gap), 32 between sections.'
       ],
       stats: ['2 rows before results', '2 nav levels', 'Medium build cost'],
       shots: [
