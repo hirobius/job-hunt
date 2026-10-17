@@ -1135,6 +1135,7 @@ button { font: inherit; color: inherit; }
 .x-avatar { width: var(--primitive-space-8); height: var(--primitive-space-8); border-radius: var(--primitive-radius-full); background: var(--semantic-color-surface-muted); border: 1px solid var(--semantic-color-border-default); display: inline-flex; align-items: center; justify-content: center; color: var(--semantic-color-content-secondary); }
 
 .x-tabbar { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--semantic-color-border-default); background: var(--semantic-color-surface-page); padding-bottom: var(--primitive-space-4); }
+.x-tabbar.three { grid-template-columns: repeat(3, 1fr); }
 .x-tabbar a { display: flex; flex-direction: column; align-items: center; gap: var(--primitive-space-1); padding-top: var(--primitive-space-2); min-height: 56px; font-size: var(--primitive-typography-size-xs); font-weight: var(--semantic-typography-ui-font-weight); color: var(--semantic-color-content-secondary); text-decoration: none; }
 .x-tabbar a.on { color: var(--semantic-color-content-primary); }
 
@@ -1214,6 +1215,9 @@ button { font: inherit; color: inherit; }
 .x-divider { height: 1px; background: var(--semantic-color-border-subtle); }
 .x-empty-dot { display: none; }
 
+.x-due { border: 1px solid var(--semantic-color-border-default); border-radius: var(--primitive-radius-12); padding: var(--primitive-space-3) var(--primitive-space-4); display: flex; flex-direction: column; gap: var(--primitive-space-1); }
+.x-due-row { display: flex; align-items: center; gap: var(--primitive-space-3); padding: var(--primitive-space-2) 0; border-top: 1px solid var(--semantic-color-border-subtle); min-width: 0; }
+.x-due-row .x-date { width: var(--primitive-space-8); }
 .x-template { padding: var(--primitive-space-3) var(--primitive-space-4); border-bottom: 1px solid var(--semantic-color-border-subtle); display: flex; flex-direction: column; gap: var(--primitive-space-1); }
 .x-preview { color: var(--semantic-color-content-secondary); font-size: var(--primitive-typography-size-xs); line-height: 1.5; }
 
@@ -1295,7 +1299,7 @@ button { font: inherit; color: inherit; }
       <li>Templates: full-width secondary "New snippet"; preview runs "[Company]Hi [Contact]," together (bug, filed as #207).</li>
       <li>Header: an unexplained dot next to Account.</li>
     </ul>
-    <p class="assume">Assumed from parallel PRs: Insights moves to the Pipeline, status dots are gone, tables are restyled in HDS. None of these mocks show them.</p>
+    <p class="assume">Adrian's input: prefers the earlier three-tab shell (Pipeline · Discover · Templates, no Today), and not that era's cards (input-looking titles, a row of tinted Copy / Pin / Duplicate / Delete buttons, a "Snippet text" disclosure). Direction A follows both. Assumed from parallel PRs: Insights moves to the Pipeline, status dots are gone, tables are restyled in HDS. None of these mocks show them.</p>
   </section>
 
   <div id="directions"></div>
@@ -1307,6 +1311,7 @@ button { font: inherit; color: inherit; }
       <thead><tr><th scope="col"></th><th scope="col">Today (live)</th><th scope="col">A · Calm list</th><th scope="col">B · List and detail</th><th scope="col">C · Search first</th></tr></thead>
       <tbody>
         <tr><th scope="row">Rows above first Discover result (390)</th><td>5 + intro + context line</td><td>3 (title, tool switch, count)</td><td>1 (toolbar)</td><td>2 (search, scope chips)</td></tr>
+        <tr><th scope="row">App tabs</th><td>4 (Today first)</td><td>3: Pipeline · Discover · Templates; Due now strip on the Pipeline</td><td>4</td><td>4</td></tr>
         <tr><th scope="row">Nav levels</th><td>3</td><td>2</td><td>2</td><td>2</td></tr>
         <tr><th scope="row">Discover tools</th><td>6 (Apply, Titles, ATS, Live, Boards, Teams)</td><td>4: Saved, Live, Searches, Find</td><td>4, in rail / toolbar menu</td><td>4 scope chips</td></tr>
         <tr><th scope="row">Where filters go</th><td>Inline, always open</td><td>One Filters button → sheet</td><td>Toolbar icon → popover / sheet</td><td>Sheet; applied filters as chips</td></tr>
@@ -1318,7 +1323,7 @@ button { font: inherit; color: inherit; }
     </div>
     <div class="reco">
       <p class="t-strong">Recommendation: A · Calm list, taking B's rail at ≥ lg.</p>
-      <p class="t-sec2 mt2">It fixes every phone complaint (one nav level less, one primary action, rows instead of cards, filters behind one button) by rearranging parts we already ship, and the desktop gets B's rail where the width is there to use. C's search is worth folding in later as the Live postings tool's first control.</p>
+      <p class="t-sec2 mt2">It fixes every phone complaint (one nav level less, one primary action, rows instead of cards, filters behind one button) by rearranging parts we already ship, and it brings back the three-tab shell Adrian prefers: Today folds into a Due now strip at the top of the Pipeline. The desktop gets B's rail where the width is there to use. C's search is worth folding in later as the Live postings tool's first control.</p>
     </div>
   </section>
 </main>
@@ -1362,12 +1367,14 @@ button { font: inherit; color: inherit; }
 
   var badge = function (p) { return '<span class="hds-badge hds-badge--' + p.tone + '">' + p.fit + '</span>'; };
   var lead = function (k) { return '<span class="x-lead" aria-hidden="true">' + k + '</span>'; };
-  var tabbar = function (on) {
+  var tabbar = function (on, three) {
     var t = [['today', 'Today', 'today'], ['pipe', 'Pipeline', 'pipe'], ['disc', 'Discover', 'disc'], ['tpl', 'Templates', 'tpl']];
-    return '<nav class="x-tabbar" aria-label="App">' + t.map(function (x) { return '<a class="' + (x[2] === on ? 'on' : '') + '">' + I(x[0]) + x[1] + '</a>'; }).join('') + '</nav>';
+    if (three) t = t.slice(1);
+    return '<nav class="x-tabbar' + (three ? ' three' : '') + '" aria-label="App">' + t.map(function (x) { return '<a class="' + (x[2] === on ? 'on' : '') + '">' + I(x[0]) + x[1] + '</a>'; }).join('') + '</nav>';
   };
-  var toptabs = function (on) {
+  var toptabs = function (on, three) {
     var t = [['today', 'Today'], ['pipe', 'Pipeline'], ['disc', 'Discover'], ['tpl', 'Templates']];
+    if (three) t = t.slice(1);
     return '<nav class="x-toptabs" aria-label="App">' + t.map(function (x) { return '<a class="' + (x[0] === on ? 'on' : '') + '">' + x[1] + '</a>'; }).join('') + '</nav>';
   };
   var frame = function (inner, desk) { return '<div class="frame' + (desk ? ' desk' : '') + '" data-w="' + (desk ? 1440 : 390) + '">' + inner + '</div>'; };
@@ -1390,28 +1397,37 @@ button { font: inherit; color: inherit; }
   }).join('');
   var aDiscover = aHeader + '<div class="scroll">' + aTrack + aTools('Saved') + aCount('7 boards and searches · 3 sections', 0) +
     '<div class="x-list mt2">' + aTileRows + '</div></div>' +
-    '<div class="x-actionbar"><button class="x-btn primary block">' + I('plus', 'i-sm') + 'Add a board or search</button></div>' + tabbar('disc');
+    '<div class="x-actionbar"><button class="x-btn primary block">' + I('plus', 'i-sm') + 'Add a board or search</button></div>' + tabbar('disc', true);
 
   var aPostRows = posts.map(function (p) {
     return '<div class="x-row" style="align-items:flex-start"><div class="x-row-main"><span class="x-row-title">' + p.t + '</span><span class="t-cap trunc">' + p.c + ' · ' + p.w + (p.pay ? ' · ' + p.pay : '') + '</span><span class="x-row-flex mt2">' + badge(p) + '<span class="t-cap">' + p.src + ' · ' + p.age + '</span></span></div><button class="x-btn icon sm ghost" aria-label="Save">' + I('save', 'i-sm') + '</button></div>';
   }).join('');
   var aLive = aHeader + '<div class="scroll">' + aTrack + aTools('Live') +
     '<div class="x-pad mt3"><div class="x-input">' + I('search', 'i-sm') + '<span class="ph">Refine: "design system", "tokens"</span></div></div>' +
-    aCount('38 openings · newest first', 2) + '<div class="x-list mt2">' + aPostRows + '</div></div>' + tabbar('disc');
+    aCount('38 openings · newest first', 2) + '<div class="x-list mt2">' + aPostRows + '</div></div>' + tabbar('disc', true);
 
-  var aToday = aHeader + '<div class="scroll"><div class="x-pad pt4"><h2 class="t-title">Today</h2><p class="t-cap mt2">Friday 17 October · 2 follow-ups, 2 events this week</p></div>' +
-    '<div class="x-pad mt6"><h3 class="t-sec">Follow up</h3></div><div class="x-list mt2">' +
-    due.map(function (d) { return '<div class="x-row"><div class="x-row-main"><span class="x-row-title trunc">' + d.t + '</span><span class="t-cap trunc">' + d.c + ' · ' + d.m + '</span></div><button class="x-btn sm secondary">Log</button></div>'; }).join('') + '</div>' +
-    '<div class="x-pad mt6"><h3 class="t-sec">Next 7 days</h3></div><div class="x-list mt2">' +
-    soon.map(function (e) { return '<div class="x-row"><span class="x-date"><span class="t-cap">' + e.d + '</span><b>' + e.n + '</b></span><div class="x-row-main"><span class="x-row-title">' + e.t + '</span><span class="t-cap">' + e.c + '</span></div>' + I('right', 'i-sm') + '</div>'; }).join('') + '</div>' +
-    '<div class="x-pad mt6 pb4"><p class="t-cap">Nothing else due. Pipeline has 12 saved jobs.</p></div></div>' +
-    '<div class="x-actionbar"><div class="x-input x-grow"><span class="ph">Paste a job link</span></div><button class="x-btn primary">Add job</button></div>' + tabbar('today');
+  var jobs = [
+    { t: 'Design systems engineer', c: 'Northwind Labs', m: 'Saved 2 days ago', a: 'Mark applied' },
+    { t: 'Component library lead', c: 'Fabrikam Cloud', m: 'Interview Tue 21', a: '' },
+    { t: 'Senior product designer, platform', c: 'Contoso Health', m: 'Applied 8 days ago', a: '' },
+    { t: 'UI engineer, tokens', c: 'Tailspin Studio', m: 'Applied 5 days ago', a: '' },
+    { t: 'Founding product designer', c: 'Bellows', m: 'Saved today', a: 'Mark applied' },
+    { t: 'Senior UX engineer', c: 'Adatum', m: 'Saved last week', a: 'Mark applied' }
+  ];
+  var aDue = '<section class="x-due" aria-label="Due now"><div class="x-row-flex x-between"><h3 class="t-sec">Due now</h3><span class="t-cap">2 follow-ups · 2 this week</span></div>' +
+    due.map(function (d) { return '<div class="x-due-row"><div class="x-row-main"><span class="x-row-title trunc">' + d.c + ' · ' + d.t + '</span><span class="t-cap trunc">' + d.m + '</span></div><button class="x-btn sm secondary">Log follow-up</button></div>'; }).join('') +
+    soon.map(function (e) { return '<div class="x-due-row"><span class="x-date"><span class="t-cap">' + e.d + '</span><b>' + e.n + '</b></span><div class="x-row-main"><span class="x-row-title trunc">' + e.t + '</span><span class="t-cap trunc">' + e.c + '</span></div></div>'; }).join('') + '</section>';
+  var aPipe = aHeader + '<div class="scroll"><div class="x-pad pt4 x-row-flex x-between"><h2 class="t-title">Pipeline</h2><span class="t-cap">12 jobs</span></div>' +
+    '<div class="x-pad mt3 x-row-flex"><div class="x-input x-grow"><span class="ph">Paste a job link</span></div><button class="x-btn primary">Add job</button></div>' +
+    '<div class="x-pad mt4">' + aDue + '</div>' +
+    '<div class="x-pad mt6 x-row-flex x-between"><span class="x-select plain" style="padding-left:0"><span class="v t-strong">Active</span>' + I('down', 'i-sm') + '</span><button class="x-btn sm ghost">' + I('sort', 'i-sm') + 'Next step</button></div>' +
+    '<div class="x-list mt2">' + jobs.map(function (j) { return '<div class="x-row"><div class="x-row-main"><span class="x-row-title trunc">' + j.t + '</span><span class="t-cap trunc">' + j.c + ' · ' + j.m + '</span></div>' + (j.a ? '<button class="x-btn sm ghost">' + j.a + '</button>' : '') + '<button class="x-btn icon sm ghost" aria-label="More">' + I('more', 'i-sm') + '</button></div>'; }).join('') + '</div></div>' + tabbar('pipe', true);
 
   var aTpl = aHeader + '<div class="scroll"><div class="x-pad pt4 x-row-flex x-between"><h2 class="t-title">Templates</h2><span class="t-cap">5</span></div><div class="x-list mt4">' +
     tpls.map(function (t) { return '<div class="x-template"><div class="x-row-flex x-between"><span class="x-row-title">' + t.t + '</span>' + (t.pin ? '<span class="t-cap">Pinned</span>' : '') + '</div><p class="x-preview pre clamp2">' + t.p + '</p></div>'; }).join('') +
-    '</div></div><div class="x-actionbar"><button class="x-btn primary block">' + I('plus', 'i-sm') + 'New template</button></div>' + tabbar('tpl');
+    '</div></div><div class="x-actionbar"><button class="x-btn primary block">' + I('plus', 'i-sm') + 'New template</button></div>' + tabbar('tpl', true);
 
-  var aDesk = '<header class="x-appbar" style="padding:0 var(--primitive-space-8);gap:var(--primitive-space-8)"><span class="x-word">Roleforge</span>' + toptabs('disc') + '<span class="x-grow"></span><span class="x-avatar">' + I('user', 'i-sm') + '</span></header>' +
+  var aDesk = '<header class="x-appbar" style="padding:0 var(--primitive-space-8);gap:var(--primitive-space-8)"><span class="x-word">Roleforge</span>' + toptabs('disc', true) + '<span class="x-grow"></span><span class="x-avatar">' + I('user', 'i-sm') + '</span></header>' +
     '<div class="d-body"><aside class="d-rail"><p class="d-rail-h">Tracks</p><a class="on">Design systems<span class="n">7</span></a><a>Sheet metal &amp; fab<span class="n">12</span></a><a class="t-sec2">' + I('plus', 'i-sm') + 'New track</a>' +
     '<p class="d-rail-h">Sections</p><a>Apply first<span class="n">3</span></a><a>Company boards<span class="n">3</span></a><a>Community<span class="n">1</span></a></aside>' +
     '<div class="d-main" style="max-width:1000px"><div class="x-row-flex x-between"><div class="x-stack g1"><h2 class="t-title">Design systems</h2><p class="t-cap x-row-flex">' + I('pin', 'i-sm') + 'Spokane, WA · Hybrid · <span class="t-med" style="color:var(--semantic-color-content-primary)">Change</span></p></div><div class="x-row-flex"><button class="x-btn secondary">Manage track</button><button class="x-btn primary">' + I('plus', 'i-sm') + 'Add a board or search</button></div></div>' +
@@ -1500,20 +1516,20 @@ button { font: inherit; color: inherit; }
   var dirs = [
     {
       id: 'dir-a', L: 'A', name: 'Calm list',
-      thesis: 'One column, quiet rows, and a single action bar at the bottom of the screen. The page title carries the context, so nothing is said twice.',
+      thesis: 'One column, quiet rows, one action bar. Three app tabs (Pipeline · Discover · Templates): Today is gone, and what was due there sits in a compact Due now strip at the top of the Pipeline.',
       rules: [
-        '<b>One primary action per screen</b>, always in the bottom action bar on a phone and the page header on desktop. Row actions are icon buttons in one ghost style.',
-        '<b>Two nav levels max</b>: app tabs (bottom bar on a phone) and one 4-way tool switch. Track sections become a filter, not a third tab row.',
+        '<b>One primary action per screen</b>: Add job in the Pipeline header (with the paste-a-link field), elsewhere the bottom action bar. Rows get at most one ghost next step; everything else, Remove included, sits in the "…" menu. No tinted buttons on a list item.',
+        '<b>Two nav levels max</b>: three app tabs (no Today; follow-ups and the next 7 days fold into the Pipeline\'s Due now strip) and one 4-way tool switch. Track sections become a filter, not a third tab row.',
         '<b>The title is the context</b>: the track name is the page title and the track switcher; location is one caption line under it. No intro paragraphs.',
         '<b>Filters collapse</b> into one "Filters (n)" button that opens a sheet. Above results: title, tool switch, count. Nothing else.',
-        '<b>Rows, not cards</b>: title, one meta line, one trailing control. Spacing: 16 gutter, 12 inside rows, 24 between sections; section heads are body bold.'
+        '<b>Rows, not cards</b>: titles are text (never input-looking boxes), one meta line, one trailing control, no "Snippet text" disclosure rows. Spacing: 16 gutter, 12 inside rows, 24 between sections; section heads are body bold.'
       ],
-      stats: ['3 rows before results', '2 nav levels', 'Low build cost'],
+      stats: ['3 app tabs, no Today', '3 rows before results', '2 nav levels', 'Low build cost'],
       shots: [
         ['Shell + Discover · 390', 'Header is wordmark + account (no dot). Track title opens the track menu; "…" holds Manage track and New track.', aDiscover],
         ['Live postings · 390', 'One refine field, one Filters button (2 applied). Each result: title, meta, fit + source, Save.', aLive],
-        ['Today · 390', 'Two plain sections; quick-add lives in the action bar.', aToday],
-        ['Templates · 390', 'Rows with a two-line preview; the line break is kept. One primary: New template.', aTpl]
+        ['Pipeline (home) · 390', 'Replaces Today: quick-add in the header, then a compact Due now strip (follow-ups + next 7 days), then the job rows. One ghost next step per row, the rest in "…".', aPipe],
+        ['Templates · 390', 'Text titles, a two-line preview with the line break kept (#207). Copy, Pin, Duplicate and Delete live in the template, not on the list. One primary: New template.', aTpl]
       ],
       desk: ['Discover · 1440', 'Same column, plus a tracks + sections rail at ≥ lg (taken from B).', aDesk]
     },
