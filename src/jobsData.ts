@@ -224,6 +224,8 @@ export const CONTRACT_CLAUSE = '(contract OR freelance OR fractional)';
 
 export interface HiddenQuery {
   role: string;
+  /** Several roles searched at once, ORed (the wide sweep, #213). Overrides `role` when 2+. */
+  roles?: string[];
   entry?: boolean;
   where: string;
   mode: WorkMode;
@@ -231,10 +233,16 @@ export interface HiddenQuery {
   contract?: boolean;
 }
 
-function queryTail({ role, entry, where, mode, contract }: HiddenQuery): string {
+/** One quoted title, or several ORed: ("a" OR "b"). */
+export function titleClause(titles: string[]): string {
+  const q = titles.map((t) => `"${t.trim()}"`);
+  return q.length > 1 ? `(${q.join(' OR ')})` : (q[0] ?? '""');
+}
+
+function queryTail({ role, roles, entry, where, mode, contract }: HiddenQuery): string {
   const w = where.trim();
   return [
-    `"${role}"`,
+    titleClause(roles && roles.length > 1 ? roles : [role]),
     entry ? '(entry OR junior OR associate)' : '',
     mode === 'remote' ? 'remote' : w ? `"${w}"` : '',
     contract ? CONTRACT_CLAUSE : '',

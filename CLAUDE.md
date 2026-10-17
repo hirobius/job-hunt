@@ -185,6 +185,14 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   (retire + Undo), and the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**): profile
   fields, two template-filled letters and custom Q&A, each a copy row. The row menu sets any status.
   Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
+- **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
+  title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys
+  `hn|<term>`), merged/deduped/tagged by `feed/sweep.ts` `sweepRank` ("Matched …" on each row). Per-title
+  `Tag` chips with counts hide rows with no re-fetch. The list and on/off live in `feed/sweepTitles.ts`
+  (`rjb_sweep_titles`, seeded from the track's titles, max 12 on, synced in blob **v7**, dropped with its
+  track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
+  "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
+  apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
