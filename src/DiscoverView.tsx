@@ -304,13 +304,14 @@ function AtsPanel({
 // The tools row is data-driven: adding a tool (e.g. "By company") is one entry here. Short labels
 // on a phone, full names from the HDS `sm` breakpoint up (docs/specs/discover.md, "Tools vs sections").
 type ToolKey = 'apply' | 'titles' | 'ats' | 'live' | 'boards' | 'teams';
+// Companies (slug `teams`, kept for old links) leads and is the default: open roles first.
 const TOOLS: { key: ToolKey; label: string; short: string }[] = [
+  { key: 'teams', label: 'Companies', short: 'Companies' },
   { key: 'apply', label: 'Apply now', short: 'Apply' },
   { key: 'titles', label: 'Title search', short: 'Titles' },
   { key: 'ats', label: 'ATS search', short: 'ATS' },
   { key: 'live', label: 'Live postings', short: 'Live' },
   { key: 'boards', label: 'Find boards', short: 'Boards' },
-  { key: 'teams', label: 'Design-system teams', short: 'Teams' },
 ];
 
 export default function DiscoverView() {
@@ -400,10 +401,17 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
       (DISCOVERY_SOURCE_ENABLED.github || t.key !== 'teams'),
   );
   const sub = route.sub;
+  // No sub → the default tool (Companies when it is on); a section id → Apply now on that section.
+  const fallback: ToolKey = sections.length ? 'apply' : 'titles';
   const tool: ToolKey =
     (tools.find((t) => t.key === sub)?.key as ToolKey | undefined) ??
-    (sections.length ? 'apply' : 'titles');
+    (!sub && tools[0].key === 'teams' ? 'teams' : fallback);
   const section = sections.find((sc) => sc.key === sub) ?? sections[0];
+  const defaultTool = tools[0].key === 'teams' ? 'teams' : fallback;
+  const toolSub = (v: string) => (v === defaultTool ? null : v);
+  // The first section's own slug when Apply now isn't the default (`apply` then names it).
+  const sectionSub = (v: string) =>
+    v === sections[0].key ? (defaultTool === 'apply' ? null : 'apply') : v;
 
   return (
     <Box>
@@ -431,7 +439,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             aria-label="Search tool"
             size="sm"
             value={tool}
-            onChange={(v) => navigate({ sub: v === 'apply' ? null : v })}
+            onChange={(v) => navigate({ sub: toolSub(v) })}
             options={tools.map((t) => ({ value: t.key, label: wide ? t.label : t.short }))}
           />
         </TabsOverflowFade>
@@ -444,7 +452,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             <HdsTabs
               key={cat.id}
               value={section.key}
-              onValueChange={(v) => navigate({ sub: v === sections[0].key ? null : v })}
+              onValueChange={(v) => navigate({ sub: sectionSub(v) })}
             >
               <TabsOverflowFade value={section.key}>
                 <TabsList aria-label="Your sections" style={{ width: '100%' }}>
@@ -489,7 +497,12 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         )}
         {tool === 'teams' && (
           <Suspense fallback={null}>
-            <OutreachTargets key={cat.id} categoryId={cat.id} boardUrls={boardUrls} />
+            <OutreachTargets
+              key={cat.id}
+              categoryId={cat.id}
+              boardUrls={boardUrls}
+              terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
+            />
           </Suspense>
         )}
         {tool === 'live' && (

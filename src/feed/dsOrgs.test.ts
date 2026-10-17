@@ -172,6 +172,21 @@ describe('findDesignSystemOrgs', () => {
     expect(out[0].openRoles).toBe(0);
   });
 
+  it.each([
+    ['every board answered 404', 404, undefined],
+    ['a board check got no answer (never read as none)', 503, 'unknown'],
+  ])('board check: %s', async (_n, status, want) => {
+    const fetchJson: FetchJson = async (u) => {
+      throw new FetchError(u.includes('lever') ? status : 404, u);
+    };
+    const { out } = await run({ ghGet: standard, fetchJson });
+    const acme = out.find((o) => o.login === 'acme')!;
+    expect(acme.board).toBeUndefined();
+    expect(acme.boardCheck).toBe(want);
+    // An organisation that was never looked up was never checked either.
+    expect(out.find((o) => o.login === 'nocorp')!.boardCheck).toBe('unchecked');
+  });
+
   it('reads at most 3 search pages (150 repos) and 30 org lookups per run', async () => {
     let searches = 0;
     let lookups = 0;

@@ -169,6 +169,9 @@ export interface OrgTarget {
   board?: Board;
   /** Open roles on `board` at the time of the check. */
   openRoles?: number;
+  /** Why there is no `board`, when it isn't "none": a board check that got no answer (rate-limited,
+   *  offline: never read as none), or an organisation not looked up yet. */
+  boardCheck?: 'unknown' | 'unchecked';
 }
 
 /** What a run did, filled in as it goes (a generator cannot also return a summary to `for await`). */
@@ -329,11 +332,12 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
       };
       if (resolved) {
         const hit = await findBoard(company, r.login, opts, kv, now);
-        if (hit) {
+        if (hit === 'unknown') target.boardCheck = 'unknown';
+        else if (hit) {
           target.board = hit.board;
           target.openRoles = hit.jobs;
         }
-      }
+      } else target.boardCheck = 'unchecked';
       if (halt()) return;
       yield target;
     }
@@ -349,14 +353,16 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
   }
 }
 
-/** The company's board by its name, else by the organisation's login. */
+/** The company's board by its name, else by the organisation's login. 'unknown' when no board was
+ *  found and some check got no answer: that is not "none". */
 async function findBoard(
   company: string,
   login: string,
   o: DsOrgOptions,
   kv: KeyValue,
   now: () => number,
-): Promise<{ board: Board; jobs?: number } | null> {
+): Promise<{ board: Board; jobs?: number } | 'unknown' | null> {
+  let unknown = false;
   const lines = [company];
   const l = login.toLowerCase();
   if (!slugCandidates(company).includes(l)) lines.push(login);
@@ -369,7 +375,8 @@ async function findBoard(
       limiter: o.limiter,
     })) {
       if (r.state === 'found') return { board: r.hits[0].board, jobs: r.hits[0].jobs };
+      if (r.state === 'unknown') unknown = true;
     }
   }
-  return null;
+  return unknown ? 'unknown' : null;
 }

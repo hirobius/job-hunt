@@ -21,6 +21,7 @@ import LiveFeedPanel from './LiveFeedPanel';
 import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 import { saveTarget } from './feed/targets';
+import { readDreams } from './feed/dreams';
 
 const p = (id: string, company: string, title: string, url: string, source = 'ashby' as const) => ({
   id,
@@ -107,6 +108,17 @@ describe('By company view', () => {
     expect(getCurationState().tiles.map((t) => t.url)).toEqual(['https://jobs.ashbyhq.com/ramp']);
   });
 
+  it('a company can be starred as a dream company, with its board', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await user.click(await screen.findByRole('radio', { name: 'Companies' }));
+    const list = await screen.findByRole('list', { name: /companies/i });
+    const star = within(list).getAllByRole('button', { name: /as a dream company$/ })[0];
+    await user.click(star);
+    expect(readDreams(cat)).toMatchObject([{ board: { kind: 'ashby', slug: 'ramp' } }]);
+    expect(within(list).getAllByRole('button', { name: /^Unstar / })).toHaveLength(1);
+  });
+
   it('hides Watch for a board the track already watches', async () => {
     const user = userEvent.setup();
     renderPanel(['https://jobs.ashbyhq.com/ramp']);
@@ -138,7 +150,7 @@ describe('By company view', () => {
     ).toBeVisible();
   });
 
-  it('points to the Teams tool when nothing is saved', async () => {
+  it('points to the Companies tool when nothing is saved', async () => {
     const user = userEvent.setup();
     renderPanel();
     await user.click(await screen.findByRole('radio', { name: 'Companies' }));

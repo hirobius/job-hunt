@@ -39,6 +39,7 @@ import { useCategories, useGroups, useTiles } from './curation/curationStore';
 import { postedAgo } from './feed/format';
 import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
 import { groupByCompany, type CompanyGroup } from './feed/byCompany';
+import { DreamStar } from './TeamRoles';
 import { useHashView } from './hashView';
 import { SavedTargets } from './OutreachRows';
 import { deleteFilter, saveFilter, useFilters, type SavedFilter } from './feed/savedFilters';
@@ -684,6 +685,7 @@ export default function LiveFeedPanel({
                 <CompanyRow
                   key={g.key}
                   g={g}
+                  categoryId={categoryId}
                   now={current!.at}
                   unwatched={g.boards.find(
                     (b) =>
@@ -743,11 +745,13 @@ export default function LiveFeedPanel({
 
 function CompanyRow({
   g,
+  categoryId,
   now,
   unwatched,
   onWatch,
 }: {
   g: CompanyGroup;
+  categoryId: string;
   now: number;
   /** A board these openings sit on that the track doesn't watch yet. */
   unwatched?: Board;
@@ -817,6 +821,7 @@ function CompanyRow({
           Watch
         </Button>
       )}
+      <DreamStar categoryId={categoryId} company={g.company} board={g.boards[0]} />
     </Box>
   );
 }

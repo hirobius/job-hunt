@@ -303,19 +303,20 @@ async function shoot(browser, base, theme, width, manifest) {
           }
         }
       }
-      if (labels.some((l) => /^(Design-system teams|Teams)$/.test(l))) {
-        await tools.getByRole('radio', { name: /^(Design-system teams|Teams)$/ }).click();
+      if (labels.some((l) => /^(Design-system teams|Teams|Companies)$/.test(l))) {
+        await tools.getByRole('radio', { name: /^(Design-system teams|Teams|Companies)$/ }).click();
         if (await clickIf(page, 'button', /^Find design-system teams$/)) {
           await page
             .getByText(/\d+ teams? found/)
             .first()
             .waitFor({ timeout: 20000 })
             .catch(() => {});
-          await clickIf(page, 'button', /^Save as target/);
+          await page.waitForTimeout(4000); // the teams' boards are read after they are found
+          await clickIf(page, 'button', /^Show \d+ matching roles?$/);
           await snap(`${tab} · Teams found`);
         }
       }
-      // Back to the default tool, so the overlays below open on Apply now.
+      // Back to the default tool before the overlays below.
       if (labels[0]) await tools.getByRole('radio', { name: labels[0], exact: true }).click();
     }
   }

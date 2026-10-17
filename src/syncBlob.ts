@@ -3,6 +3,7 @@
 // reasoning lives here and is unit-testable without Supabase. Each field's merge rule lives
 // with its store (mergeJobs, mergeTriage's set-aside-wins, …); this module only composes them.
 //
+// v6 adds dream companies per track (src/feed/dreams.ts), same pattern as the v5 stores.
 // v5 (ADR 0008) adds the user-edited stores that used to live only in this browser: outreach
 // targets, saved searches, the evidence text and the work mode per track. All optional on read.
 // v4 (#99) carried jobs, snippets, and set-aside tiles. Curated
@@ -19,6 +20,7 @@ import { mergeTargets, sanitizeTargets, type Target } from './feed/targets';
 import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFilters';
 import { capEvidence, mergeEvidence } from './radar/evidenceStore';
 import { mergeModes, sanitizeModes } from './trackModes';
+import { mergeDreams, sanitizeDreams, type Dream } from './feed/dreams';
 import type { WorkMode } from './jobsData';
 import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
@@ -40,13 +42,15 @@ export interface SyncData {
   evidence: string;
   /** Work mode per track (v5). */
   modes: Record<string, WorkMode>;
+  /** Dream companies per track (v6). */
+  dreams: Record<string, Dream[]>;
   /** The blob version this was read from (0 = not read from a blob). A pre-v5 cloud copy says
    *  nothing about the v5 fields, so a refresh must not let its emptiness wipe local values. */
   sourceV: number;
 }
 
 /** Blob schema version written to the cloud. */
-export const BLOB_VERSION = 5;
+export const BLOB_VERSION = 6;
 
 export function emptyBlob(): SyncData {
   return {
@@ -58,6 +62,7 @@ export function emptyBlob(): SyncData {
     filters: {},
     evidence: '',
     modes: {},
+    dreams: {},
     sourceV: 0,
   };
 }
@@ -85,11 +90,12 @@ export function readBlob(data: unknown): SyncData {
     filters: sanitizeFilters(o.filters),
     evidence: typeof o.evidence === 'string' ? capEvidence(o.evidence) : '',
     modes: sanitizeModes(o.modes),
+    dreams: sanitizeDreams(o.dreams),
     sourceV: typeof o.v === 'number' ? o.v : 0,
   };
 }
 
-/** The v5 object written to the cloud. */
+/** The object written to the cloud. */
 export function writeBlob(d: SyncData) {
   return {
     v: BLOB_VERSION,
@@ -100,6 +106,7 @@ export function writeBlob(d: SyncData) {
     filters: d.filters,
     evidence: d.evidence,
     modes: d.modes,
+    dreams: d.dreams,
   };
 }
 
@@ -111,7 +118,7 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
   if (!cloud) return seed ? { ...local, legacyUserTiles: [] } : local;
   if (!seed) {
     const dismissed = new Set(cloud.triage.dismissed);
-    // A pre-v5 cloud copy has no opinion on the v5 fields: keep this device's.
+    // A cloud copy older than a field has no opinion on it: keep this device's.
     const v5 =
       cloud.sourceV >= 5
         ? {}
@@ -121,9 +128,11 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
             evidence: local.evidence,
             modes: local.modes,
           };
+    const v6 = cloud.sourceV >= 6 ? {} : { dreams: local.dreams };
     return {
       ...cloud,
       ...v5,
+      ...v6,
       jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
       triage: {
         pinned: local.triage.pinned.filter((u) => !dismissed.has(u)),
@@ -140,6 +149,7 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     filters: mergeFilters(cloud.filters, local.filters),
     evidence: mergeEvidence(cloud.evidence, local.evidence),
     modes: mergeModes(cloud.modes, local.modes),
+    dreams: mergeDreams(cloud.dreams, local.dreams),
     sourceV: cloud.sourceV,
   };
 }

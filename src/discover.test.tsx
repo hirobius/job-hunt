@@ -15,7 +15,11 @@ vi.mock('@supabase/supabase-js', async () => {
     },
   };
 });
-const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
+const feed = vi.hoisted(() => ({
+  fetchFeed: vi.fn(),
+  liveFetchJson: vi.fn(),
+  createFetchJson: () => vi.fn(),
+}));
 vi.mock('./feed/fetchFeed', () => feed);
 
 import { createFakeSupabase } from './test/fakeSupabase';
@@ -52,7 +56,7 @@ beforeEach(() => {
     location: 'Spokane',
   });
   window.history.replaceState(null, '', '/');
-  window.location.hash = '#/discover';
+  window.location.hash = '#/discover/apply';
 });
 afterEach(cleanup);
 
@@ -151,12 +155,30 @@ describe('Discover header and tools (slice 2)', () => {
       within(tools)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Apply', 'Titles', 'ATS', 'Live', 'Boards', 'Teams']);
+    ).toEqual(['Companies', 'Apply', 'Titles', 'ATS', 'Live', 'Boards']);
     expect(within(tools).getByRole('radio', { name: 'Apply' })).toBeChecked();
     await userEvent.click(within(tools).getByRole('radio', { name: 'ATS' }));
     expect(window.location.hash).toBe('#/discover/ats');
-    await userEvent.click(within(tools).getByRole('radio', { name: 'Apply' }));
+    await userEvent.click(within(tools).getByRole('radio', { name: 'Companies' }));
     expect(window.location.hash).toBe('#/discover');
+    await userEvent.click(within(tools).getByRole('radio', { name: 'Apply' }));
+    expect(window.location.hash).toBe('#/discover/apply');
+  });
+
+  it('opens on Companies by default; the old teams slug still works', async () => {
+    addGroup(cat, { label: 'First picks' });
+    window.location.hash = '#/discover';
+    renderApp();
+    const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
+    expect(within(tools).getByRole('radio', { name: 'Companies' })).toBeChecked();
+    cleanup();
+    window.location.hash = '#/discover/teams';
+    renderApp();
+    expect(
+      within(await screen.findByRole('radiogroup', { name: 'Search tool' })).getByRole('radio', {
+        name: 'Companies',
+      }),
+    ).toBeChecked();
   });
 
   it('lists the community boards and big-company systems on ATS search; the Slack row is a plain link', async () => {
@@ -216,7 +238,8 @@ describe('Discover header and tools (slice 2)', () => {
 
 describe('Discover accessibility', () => {
   it.each([
-    ['apply', '#/discover'],
+    ['apply', '#/discover/apply'],
+    ['companies', '#/discover'],
     ['titles', '#/discover/titles'],
     ['ats', '#/discover/ats'],
     ['live', '#/discover/live'],

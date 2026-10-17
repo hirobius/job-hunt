@@ -32,6 +32,7 @@ describe('aria wiring', () => {
   });
 
   it('Discover tab is associated with its tabpanel both ways', () => {
+    window.location.hash = '#/discover/apply'; // the section tabs live under Apply now
     withTheme(<DiscoverView />);
     const selected = screen.getByRole('tab', { selected: true });
     const panel = screen.getByRole('tabpanel');

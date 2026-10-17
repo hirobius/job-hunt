@@ -15,6 +15,7 @@ import { mergeTargets, sanitizeTargets, type Target } from './feed/targets';
 import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFilters';
 import { capEvidence, mergeEvidence } from './radar/evidenceStore';
 import { mergeModes, sanitizeModes } from './trackModes';
+import { mergeDreams, sanitizeDreams, type Dream } from './feed/dreams';
 import type { WorkMode } from './jobsData';
 
 export interface AccountState {
@@ -27,6 +28,8 @@ export interface AccountState {
   filters: Record<string, SavedFilter[]>;
   evidence: string;
   modes: Record<string, WorkMode>;
+  /** Dream companies per track. Older backups lack them. */
+  dreams: Record<string, Dream[]>;
 }
 
 export interface Backup extends AccountState {
@@ -54,6 +57,7 @@ export function buildBackup(state: AccountState, now: Date): Backup {
     filters: state.filters,
     evidence: state.evidence,
     modes: state.modes,
+    dreams: state.dreams,
   };
 }
 
@@ -255,6 +259,7 @@ export function parseBackup(text: string): ParseResult {
       filters: sanitizeFilters(data.filters),
       evidence: isStr(data.evidence) ? capEvidence(data.evidence) : '',
       modes: sanitizeModes(data.modes),
+      dreams: sanitizeDreams(data.dreams),
     },
   };
 }
@@ -275,6 +280,7 @@ export function applyBackup(
       filters: backup.filters,
       evidence: backup.evidence,
       modes: backup.modes,
+      dreams: backup.dreams,
     };
   }
   return {
@@ -286,6 +292,7 @@ export function applyBackup(
     filters: mergeFilters(backup.filters, current.filters),
     evidence: mergeEvidence(backup.evidence, current.evidence),
     modes: mergeModes(backup.modes, current.modes),
+    dreams: mergeDreams(backup.dreams, current.dreams),
   };
 }
 

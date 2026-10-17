@@ -53,3 +53,10 @@ wipes every `rjb_` key, so signing out, or opening a second device, lost them.
 - Last write wins per store on refresh; two devices editing the same store between pulls can lose the
   older edit. Acceptable for single-user lists, and the seed merge never loses on first sign-in.
 - Entries are capped as before (500 targets and 12 saved searches per track); the blob stays small.
+
+## Addendum (2026-10-17): blob v6, dream companies
+
+Dream companies (`rjb_dreams`, `src/feed/dreams.ts`) follow the same pattern: per track, union by
+company on the seed merge (cloud wins on a shared company), cloud wins on refresh only from a v6+
+copy (a v5 copy keeps this device's), dropped with their track, included in backups. Each keeps the
+posting ids seen at its last check (capped at 300) so "Check dream companies" can say what is new.
