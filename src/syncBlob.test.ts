@@ -71,9 +71,9 @@ describe('readBlob — tolerant of every historical shape', () => {
 describe('writeBlob — v4 shape', () => {
   it('writes only jobs, copydeck and set-aside (no pillars, userTiles or pins)', () => {
     const out = writeBlob(blob({ jobs: [job('a')], triage: { pinned: ['p'], dismissed: ['d'] } }));
-    expect(BLOB_VERSION).toBe(5);
+    expect(BLOB_VERSION).toBe(7);
     expect(out).toEqual({
-      v: 5,
+      v: 7,
       jobs: [job('a')],
       copydeck: [],
       triage: { dismissed: ['d'] },
@@ -81,6 +81,8 @@ describe('writeBlob — v4 shape', () => {
       filters: {},
       evidence: '',
       modes: {},
+      kit: { fields: {}, answers: [] },
+      sweeps: {},
     });
   });
 
@@ -93,7 +95,7 @@ describe('writeBlob — v4 shape', () => {
       evidence: 'Led a design system',
       modes: { t1: 'hybrid' },
     });
-    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 5 });
+    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 7 });
   });
 });
 
