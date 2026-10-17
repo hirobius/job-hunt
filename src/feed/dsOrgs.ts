@@ -128,8 +128,23 @@ export function parseRepo(raw: unknown): DsRepo | null {
   };
 }
 
+/** awesome-* lists are link collections, not a team's design system. */
+const LIST_REPO = /\/awesome[-_.]/i;
+
 export const keepRepo = (r: DsRepo, minStars: number) =>
-  r.ownerType === 'Organization' && !r.archived && !r.fork && r.stars >= minStars;
+  r.ownerType === 'Organization' &&
+  !r.archived &&
+  !r.fork &&
+  r.stars >= minStars &&
+  !LIST_REPO.test(r.repo);
+
+/** Names and descriptions of groups that publish a design system but don't hire for it. */
+const NOT_EMPLOYER =
+  /\b(community|working|interest) group\b|\bfoundation\b|\bW3C\b|\bopen[- ]source (collective|community)\b|\bawesome\b/i;
+
+/** An organisation that looks like a company: it names a website and isn't a community group. */
+export const isEmployer = (info: OrgInfo, website?: string) =>
+  !!website && !NOT_EMPLOYER.test(`${info.name ?? ''} ${info.description ?? ''}`);
 
 // ---- organisations ----
 
@@ -321,6 +336,8 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
       const resolved = !!info;
       if (!resolved) report.unresolved++;
       const { company, website } = companyFromOrg(r.login, info);
+      // Projects and community groups are not employers: leave them out.
+      if (info && !isEmployer(info, website)) continue;
       const target: OrgTarget = {
         login: r.login,
         company,

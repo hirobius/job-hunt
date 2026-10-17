@@ -15,7 +15,7 @@ export type Row = Omit<Target, 'savedAt'>;
 const rolesText = (r: Row) =>
   r.board
     ? `Open roles: ${r.openRoles ?? 0}`
-    : 'Open roles: none found (no public board on the five systems we check)';
+    : 'Board not found (none on the systems we check; it may hire elsewhere)';
 
 export function TargetRow({
   r,

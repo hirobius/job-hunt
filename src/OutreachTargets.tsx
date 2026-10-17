@@ -110,6 +110,9 @@ export default function OutreachTargets({
     hiringOnly,
   );
   const hiring = rows.filter((r) => statusOf(r) === 'hiring').length;
+  // No board found on the systems we check is not "no openings": under Hiring now these sit below,
+  // collapsed, rather than hidden.
+  const notFound = hiringOnly ? rows.filter((r) => statusOf(r) === 'none') : [];
 
   const find = async () => {
     if (running) return;
@@ -146,6 +149,36 @@ export default function OutreachTargets({
     toast({ title: `Saved ${r.company} as a target`, tone: 'success' });
   };
 
+  const teamRow = (r: TeamRow) => {
+    const rs = rolesOf(r);
+    const status = statusOf(r);
+    return (
+      <TargetRow
+        key={r.login}
+        r={r}
+        saved={saved(r)}
+        watching={isWatching(r.board)}
+        onSave={() => save(r)}
+        onWatch={watch}
+        rolesLine={ROLES_LINE[status]?.(rs)}
+        star={
+          <DreamStar
+            categoryId={categoryId}
+            company={r.company}
+            website={r.website}
+            board={r.board}
+          />
+        }
+      >
+        {rs?.state === 'ok' && rs.roles.length > 0 && (
+          <Disclosure label={`Show ${roleCount(rs.roles.length)}`}>
+            <RoleList company={r.company} roles={rs.roles} />
+          </Disclosure>
+        )}
+      </TargetRow>
+    );
+  };
+
   return (
     <Stack gap="inset">
       <DreamCompanies categoryId={categoryId} terms={terms} limiter={limiter} />
@@ -156,19 +189,7 @@ export default function OutreachTargets({
         Companies that publish a design system on GitHub, with their open roles that match this
         track first. Source: GitHub search and the companies' own job boards, no sign-in.
       </Text>
-      <Stack direction="row" gap="xs" align="end" wrap="wrap">
-        <div style={{ width: 'calc(var(--primitive-space-1) * 36)' }}>
-          <HdsInput
-            size="sm"
-            label="Minimum stars"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={minStars}
-            onChange={(e) => setMinStars(e.target.value)}
-            disabled={running}
-          />
-        </div>
+      <Stack direction="row" gap="xs" align="center" wrap="wrap">
         {running ? (
           <Button size="sm" variant="secondary" onClick={() => abort.current?.abort()}>
             Cancel
@@ -180,6 +201,20 @@ export default function OutreachTargets({
         )}
         <Toggle label="Hiring now" checked={hiringOnly} onChange={setHiringOnly} />
       </Stack>
+      <Disclosure label="Refine">
+        <div style={{ width: 'calc(var(--primitive-space-1) * 36)' }}>
+          <HdsInput
+            size="sm"
+            label="Minimum stars"
+            helperText="Used on the next search"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={minStars}
+            onChange={(e) => setMinStars(e.target.value)}
+          />
+        </div>
+      </Disclosure>
 
       {report?.stoppedUntil && (
         <Alert tone="warning">{`GitHub asks us to wait until ${clock(report.stoppedUntil)}. What was found so far is below; try again after that.`}</Alert>
@@ -191,8 +226,8 @@ export default function OutreachTargets({
           {running
             ? `Checking… ${rows.length} ${rows.length === 1 ? 'team' : 'teams'} so far`
             : `${rows.length} ${rows.length === 1 ? 'team' : 'teams'} found · ${hiring} hiring now`}
-          {!running && shown.length < rows.length
-            ? `. ${rows.length - shown.length} with no matching role hidden: turn off Hiring now to see them.`
+          {!running && shown.length + notFound.length < rows.length
+            ? `. ${rows.length - shown.length - notFound.length} with no matching role hidden: turn off Hiring now to see them.`
             : ''}
           {report && !running && report.unresolved > 0 && !report.stoppedUntil
             ? `. ${report.unresolved} not looked up yet: find more to resolve the next ${30}.`
@@ -202,36 +237,15 @@ export default function OutreachTargets({
 
       {shown.length > 0 && (
         <ul aria-label="Design-system teams" style={listStyle}>
-          {shown.map((r) => {
-            const rs = rolesOf(r);
-            const status = statusOf(r);
-            return (
-              <TargetRow
-                key={r.login}
-                r={r}
-                saved={saved(r)}
-                watching={isWatching(r.board)}
-                onSave={() => save(r)}
-                onWatch={watch}
-                rolesLine={ROLES_LINE[status]?.(rs)}
-                star={
-                  <DreamStar
-                    categoryId={categoryId}
-                    company={r.company}
-                    website={r.website}
-                    board={r.board}
-                  />
-                }
-              >
-                {rs?.state === 'ok' && rs.roles.length > 0 && (
-                  <Disclosure label={`Show ${roleCount(rs.roles.length)}`}>
-                    <RoleList company={r.company} roles={rs.roles} />
-                  </Disclosure>
-                )}
-              </TargetRow>
-            );
-          })}
+          {shown.map(teamRow)}
         </ul>
+      )}
+      {notFound.length > 0 && (
+        <Disclosure label={`Board not found (${notFound.length})`}>
+          <ul aria-label="Board not found" style={listStyle}>
+            {notFound.map(teamRow)}
+          </ul>
+        </Disclosure>
       )}
 
       <SavedTargets categoryId={categoryId} boardUrls={boardUrls} />

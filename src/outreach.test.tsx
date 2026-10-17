@@ -70,6 +70,8 @@ const fakeFetch = vi.fn(async (url: string) => {
       items: [
         repo('acme', 900),
         repo('flaky', 500),
+        repo('dtcg', 450),
+        repo('voltagent', 400, { full_name: 'voltagent/awesome-design-md' }),
         repo('quiet', 300),
         repo('forky', 800, { fork: true }),
         repo('tiny', 3),
@@ -78,8 +80,12 @@ const fakeFetch = vi.fn(async (url: string) => {
   }
   if (url === 'https://api.github.com/orgs/acme')
     return json({ name: 'Acme Design', blog: 'acme.example.com' });
-  if (url === 'https://api.github.com/orgs/quiet') return json({ name: 'Quiet Co' });
-  if (url === 'https://api.github.com/orgs/flaky') return json({ name: 'Flaky' });
+  if (url === 'https://api.github.com/orgs/quiet')
+    return json({ name: 'Quiet Co', blog: 'quiet.example' });
+  if (url === 'https://api.github.com/orgs/dtcg')
+    return json({ name: 'Design Tokens Community Group', blog: 'design-tokens.org' });
+  if (url === 'https://api.github.com/orgs/flaky')
+    return json({ name: 'Flaky', blog: 'flaky.example' });
   // Flaky's boards never answer: "Couldn't check", never "no board".
   if (url.includes('flaky')) return json({}, 503);
   if (url === 'https://api.lever.co/v0/postings/acme?mode=json') return json(acmeJobs);
@@ -115,7 +121,7 @@ describe('Companies (design-system teams)', () => {
     expect(within(tools).getByRole('radio', { name: 'Companies' })).toBeChecked();
   });
 
-  it('open roles first: Hiring now hides teams with no matching role, keeps the unchecked', async () => {
+  it('open roles first: Hiring now puts boards not found below, collapsed; keeps the unchecked', async () => {
     renderApp();
     const list = await find();
     await screen.findByText(/3 teams found · 1 hiring now/);
@@ -126,7 +132,11 @@ describe('Companies (design-system teams)', () => {
         .map((n) => n.textContent?.replace(' (opens in new tab)', ''));
     expect(names()).toEqual(['Acme Design', 'Flaky']);
     expect(list).toHaveTextContent("Couldn't check");
-    expect(screen.getByText(/1 with no matching role hidden/)).toBeVisible();
+    // Not employers: the community group and the awesome-* list are left out.
+    expect(screen.queryByText(/Design Tokens Community Group|voltagent/)).toBeNull();
+    // Board not found is unknown, not "none": below, collapsed.
+    await userEvent.click(screen.getByRole('button', { name: 'Board not found (1)' }));
+    expect(screen.getByRole('list', { name: 'Board not found' })).toHaveTextContent('Quiet Co');
 
     await userEvent.click(screen.getByRole('switch', { name: 'Hiring now' }));
     expect(names()).toEqual(['Acme Design', 'Flaky', 'Quiet Co']);
@@ -134,7 +144,7 @@ describe('Companies (design-system teams)', () => {
       'listitem',
     );
     const quiet = rows.find((r) => r.textContent?.includes('Quiet Co'))!;
-    expect(quiet).toHaveTextContent('Open roles: none found');
+    expect(quiet).toHaveTextContent('Board not found');
     // An organisation without a board still gets a careers search, not a dead end.
     expect(within(quiet).getByRole('link', { name: 'Search careers for Quiet Co' })).toBeVisible();
     expect(within(rows[0]).getByRole('link', { name: /^Acme Design/ })).toHaveAttribute(
