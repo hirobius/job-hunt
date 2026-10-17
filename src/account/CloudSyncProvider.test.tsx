@@ -645,7 +645,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       edit();
       renderAccount();
       act(() => fake().signIn('u1'));
-      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(6));
+      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(8));
       act(() => {
         window.dispatchEvent(new Event('focus'));
       });

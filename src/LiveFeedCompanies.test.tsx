@@ -154,7 +154,7 @@ describe('By company view', () => {
     const user = userEvent.setup();
     renderPanel();
     await user.click(await screen.findByRole('radio', { name: 'Companies' }));
-    expect(await screen.findByRole('link', { name: 'Find design-system teams' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'Find teams' })).toHaveAttribute(
       'href',
       '#/discover/teams',
     );

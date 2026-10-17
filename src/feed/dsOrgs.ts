@@ -1,7 +1,8 @@
-// Method 3: companies with a public design system on GitHub (docs/specs/discovery-methods.md). Keyless
-// GitHub REST search finds repositories tagged `design-system`; the owning organisations are the
-// companies, each looked up once for a display name and website, then probed for a job board. An
-// organisation with no board is still returned: that is an outreach target, not a dead end.
+// Method 3: companies with public work on GitHub (docs/specs/discovery-methods.md). Keyless GitHub
+// REST search finds repositories tagged with the track's topics (teamTopics.ts; `design-system` by
+// default); the owning organisations are the companies, each looked up once for a display name and
+// website, then probed for a job board. An organisation with no board is still returned: that is an
+// outreach target, not a dead end.
 //
 // UNVERIFIED LIVE from the build sandbox (a search call was refused by its proxy); see
 // DISCOVERY_SOURCE_ENABLED.github. Rate limits are respected, not worked around: `githubBudget.ts`
@@ -11,6 +12,7 @@ import { browserKv, type KeyValue } from './fetchFeed';
 import type { GithubBudget } from './githubBudget';
 import { probeCompanies, slugCandidates, type Limiter } from './probe';
 import type { Board } from './sources/ats';
+import { DESIGN_SYSTEM_SEARCH } from './teamTopics';
 import { arr, obj, str, type FetchJson } from './sources/http';
 
 export const GH_API = 'https://api.github.com';
@@ -39,7 +41,8 @@ export function pruneGhCache<E extends { at: number }>(
   return Object.fromEntries(live.slice(0, GH_CACHE_MAX));
 }
 const GH_TIMEOUT_MS = 15_000;
-const QUERIES: string[][] = [['design-system', 'design-tokens'], ['design-system']];
+/** The design-systems search, used when a caller names no other (teamTopics.ts picks per track). */
+export const DS_QUERIES = DESIGN_SYSTEM_SEARCH.queries;
 
 export function searchUrl(topics: string[], page: number): string {
   const q = topics.map((t) => `topic:${t}`).join(' ');
@@ -212,6 +215,8 @@ export interface DsOrgOptions {
   limiter?: Limiter;
   signal?: AbortSignal;
   minStars?: number;
+  /** GitHub topic queries, narrowest first (teamTopics.ts). Defaults to DS_QUERIES. */
+  queries?: string[][];
   report: RunReport;
 }
 
@@ -236,14 +241,22 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
   delete report.error;
 
   const cache = readCache(kv);
-  let dirty = false;
   const fromCache = <T>(key: string, ttl: number): T | undefined => {
     const e = cache[key];
     return e && typeof e.at === 'number' && now() - e.at < ttl ? (e.v as T) : undefined;
   };
+  // Written through, not at the end: a run cancelled mid-way (the tool closed) keeps what it paid
+  // for, and never writes to storage after it is gone.
+  const persist = () => {
+    try {
+      kv.set(GH_CACHE_KEY, JSON.stringify(pruneGhCache(cache, now())));
+    } catch {
+      /* storage full: the next run just asks again */
+    }
+  };
   const toCache = (key: string, v: unknown) => {
     cache[key] = { at: now(), v };
-    dirty = true;
+    persist();
   };
   const halt = () => !!signal?.aborted;
 
@@ -255,6 +268,7 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
       return null;
     }
     const res = await ghGet(url);
+    if (halt()) return null;
     const limited =
       (res.status === 403 || res.status === 429) && (res.remaining === 0 || res.retryAfter != null);
     if (limited) {
@@ -277,7 +291,7 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
     // 1. repositories, the narrower query first, at most MAX_SEARCH_PAGES pages in all
     const repos: DsRepo[] = [];
     let stop = false;
-    for (const topics of QUERIES) {
+    for (const topics of opts.queries ?? DS_QUERIES) {
       for (let page = 1; !stop && !halt() && report.searchPages < MAX_SEARCH_PAGES; page++) {
         const url = searchUrl(topics, page);
         let entry = fromCache<{ list: DsRepo[]; n: number }>(`s:${url}`, SEARCH_TTL_MS);
@@ -359,14 +373,8 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
       yield target;
     }
   } finally {
-    const pruned = pruneGhCache(cache, now());
-    if (dirty || Object.keys(pruned).length !== Object.keys(cache).length) {
-      try {
-        kv.set(GH_CACHE_KEY, JSON.stringify(pruned));
-      } catch {
-        /* storage full: the next run just asks again */
-      }
-    }
+    // Expired entries go even when nothing new was cached.
+    if (Object.keys(pruneGhCache(cache, now())).length !== Object.keys(cache).length) persist();
   }
 }
 

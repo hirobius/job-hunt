@@ -153,7 +153,7 @@ describe('Companies (design-system teams)', () => {
     );
   });
 
-  it('saves a matching role to the Pipeline in one tap, with Undo', async () => {
+  it('saves a matching role to the Pipeline in one tap; the shared save notice offers Undo', async () => {
     renderApp();
     await find();
     await userEvent.click(await screen.findByRole('button', { name: /Show 1 matching role/ }));
@@ -162,10 +162,11 @@ describe('Companies (design-system teams)', () => {
     await userEvent.click(within(roles).getByRole('button', { name: 'Save Design Engineer' }));
     expect(getAllJobs().map((j) => j.label)).toEqual(['Design Engineer']);
     expect(getAllJobs()[0].note).toMatch(/Found in Companies/);
-    expect(await screen.findByText('Added to Pipeline')).toBeInTheDocument();
-    await userEvent.click(
-      within(roles).getByRole('button', { name: 'Undo save: Design Engineer' }),
-    );
+    expect(within(roles).getByRole('button', { name: 'Saved Design Engineer' })).toBeDisabled();
+    const notice = (await screen.findByText('Saved to Pipeline · To apply')).closest(
+      '[role="status"]',
+    ) as HTMLElement;
+    await userEvent.click(within(notice).getByRole('button', { name: 'Undo' }));
     expect(getAllJobs()).toEqual([]);
     expect(within(roles).getByRole('button', { name: 'Save Design Engineer' })).toBeEnabled();
   });

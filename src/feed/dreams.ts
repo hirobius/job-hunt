@@ -1,6 +1,6 @@
 // Dream companies: companies the user always wants to see, open roles or not, starred from the
 // Companies tool or the By company view. Per track in local storage (`rjb_dreams`), synced with the
-// account in the blob (v6, ADR 0008). Each keeps the posting ids seen at its last check, so "Check
+// account in the blob (v8, ADR 0008). Each keeps the posting ids seen at its last check, so "Check
 // dream companies" can say what is new. Storage is untrusted.
 import { useMemo, useSyncExternalStore } from 'react';
 import { mergeByKey } from '../mergeByKey';
@@ -42,7 +42,7 @@ function sanitizeOne(raw: unknown): Dream | null {
     company,
     website: httpUrl(o.website),
     board: sanitizeBoard(o.board),
-    seen: seen.slice(-MAX_SEEN),
+    seen: seen.slice(0, MAX_SEEN),
     checkedAt: typeof o.checkedAt === 'string' ? o.checkedAt : undefined,
     starredAt: typeof o.starredAt === 'string' ? o.starredAt : new Date(0).toISOString(),
   };
@@ -129,7 +129,7 @@ export function unstarDream(categoryId: string, key: string): void {
 /** Record a check: the posting ids now on its board, and when. */
 export function markDreamChecked(categoryId: string, key: string, ids: string[], at: string): void {
   update(categoryId, (list) =>
-    list.map((x) => (x.key === key ? { ...x, seen: ids.slice(-MAX_SEEN), checkedAt: at } : x)),
+    list.map((x) => (x.key === key ? { ...x, seen: ids.slice(0, MAX_SEEN), checkedAt: at } : x)),
   );
 }
 

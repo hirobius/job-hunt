@@ -1,4 +1,4 @@
-// Rows shared by the Teams tool and the By company view: one outreach target (a design-system team
+// Rows shared by the Teams tool and the By company view: one outreach target (a team found on GitHub,
 // with its repo, stars and open roles), the watch action, and the saved-targets section. Kept apart
 // from the engine so Live postings can show saved targets without loading the GitHub search code.
 import type { ReactNode } from 'react';
@@ -125,10 +125,13 @@ export function SavedTargets({
   categoryId,
   boardUrls,
   heading = true,
+  findLink = true,
 }: {
   categoryId: string;
   boardUrls: string[];
   heading?: boolean;
+  /** Point to the Companies tool's team search (off where there is none to point to). */
+  findLink?: boolean;
 }) {
   const targets = useTargets(categoryId);
   const { isWatching, watch } = useWatching(categoryId, boardUrls);
@@ -141,11 +144,16 @@ export function SavedTargets({
       )}
       {targets.length === 0 ? (
         <Text variant="caption" as="p" style={SECONDARY}>
-          Companies with no opening yet that you want to write to. Find design-system teams in the
-          Companies tool and save the ones worth a note.{' '}
-          <InlineLink href="#/discover/teams" externalIcon={false}>
-            Find design-system teams
-          </InlineLink>
+          Companies with no opening yet that you want to write to.
+          {findLink && (
+            <>
+              {' '}
+              Find teams in the Companies tool and save the ones worth a note.{' '}
+              <InlineLink href="#/discover/teams" externalIcon={false}>
+                Find teams
+              </InlineLink>
+            </>
+          )}
         </Text>
       ) : (
         <ul aria-label="Saved targets" style={listStyle}>

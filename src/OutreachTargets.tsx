@@ -1,5 +1,6 @@
-// The Companies tool (Discover's default, slug `teams`; docs/specs/discovery-methods.md, method 3):
-// companies that publish a design system on GitHub, found with the keyless GitHub search
+// The Companies tool (slug `teams`; docs/specs/discovery-methods.md, method 3): companies with public
+// work on GitHub in the track's own field (src/feed/teamTopics.ts picks the topics; a track with none
+// gets no search, only its dream companies and saved targets), found with the keyless GitHub search
 // (src/feed/dsOrgs.ts). Open roles first: each team's board is read live and filtered by the track's
 // terms (src/feed/teamRoles.ts), "Hiring now" hides the teams known to have none, and a team's
 // matching roles save to the Pipeline inline. Dream companies sit on top (DreamCompanies.tsx). A team
@@ -20,6 +21,7 @@ import { listStyle, useWatching } from './outreachShared';
 import { SECONDARY } from './hds-gaps/tone';
 import { findDesignSystemOrgs, MIN_STARS, type OrgTarget, type RunReport } from './feed/dsOrgs';
 import { createGithubBudget } from './feed/githubBudget';
+import type { TeamSearch } from './feed/teamTopics';
 import { probeFetchJson } from './feed/probeFetch';
 import { saveTarget, useTargets } from './feed/targets';
 import { liveFetchJson } from './feed/fetchFeed';
@@ -65,11 +67,14 @@ export default function OutreachTargets({
   categoryId,
   boardUrls,
   terms,
+  search,
 }: {
   categoryId: string;
   boardUrls: string[];
   /** The track's search terms: a role matches when it mentions one as a phrase. */
   terms: string[];
+  /** The GitHub search for this track's field, or null when its terms name no topic. */
+  search: TeamSearch | null;
 }) {
   const { toast } = useToast();
   const targets = useTargets(categoryId);
@@ -115,7 +120,7 @@ export default function OutreachTargets({
   const notFound = hiringOnly ? rows.filter((r) => statusOf(r) === 'none') : [];
 
   const find = async () => {
-    if (running) return;
+    if (running || !search) return;
     const ac = new AbortController();
     abort.current = ac;
     const rep = {} as RunReport;
@@ -130,6 +135,7 @@ export default function OutreachTargets({
         budget: createGithubBudget(),
         signal: ac.signal,
         minStars: Number.isFinite(stars) && stars >= 0 ? stars : MIN_STARS,
+        queries: search.queries,
         report: rep,
         limiter,
       })) {
@@ -179,14 +185,29 @@ export default function OutreachTargets({
     );
   };
 
+  if (!search)
+    return (
+      <Stack gap="inset">
+        <DreamCompanies categoryId={categoryId} terms={terms} limiter={limiter} />
+        <Text variant="ui" as="p" style={SECONDARY}>
+          The team search looks on GitHub, and this track's titles don't name anything GitHub
+          tracks. Star the companies you want to work for above, or use Apply now and Live postings
+          to find openings.
+        </Text>
+        <SavedTargets categoryId={categoryId} boardUrls={boardUrls} findLink={false} />
+      </Stack>
+    );
+
+  const teams = `${search.noun} teams`;
+  const Teams = teams[0].toUpperCase() + teams.slice(1);
   return (
     <Stack gap="inset">
       <DreamCompanies categoryId={categoryId} terms={terms} limiter={limiter} />
       <Text variant="body" as="h3" className="rjb-semibold">
-        Design-system teams
+        {Teams}
       </Text>
       <Text variant="ui" style={SECONDARY}>
-        Companies that publish a design system on GitHub, with their open roles that match this
+        Companies with public {search.noun} work on GitHub, with their open roles that match this
         track first. Source: GitHub search and the companies' own job boards, no sign-in.
       </Text>
       <Stack direction="row" gap="xs" align="center" wrap="wrap">
@@ -196,7 +217,7 @@ export default function OutreachTargets({
           </Button>
         ) : (
           <Button size="sm" onClick={() => void find()}>
-            {ran ? 'Find more design-system teams' : 'Find design-system teams'}
+            {ran ? `Find more ${teams}` : `Find ${teams}`}
           </Button>
         )}
         <Toggle label="Hiring now" checked={hiringOnly} onChange={setHiringOnly} />
@@ -236,7 +257,7 @@ export default function OutreachTargets({
       )}
 
       {shown.length > 0 && (
-        <ul aria-label="Design-system teams" style={listStyle}>
+        <ul aria-label={Teams} style={listStyle}>
           {shown.map(teamRow)}
         </ul>
       )}

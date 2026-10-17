@@ -58,10 +58,10 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
-  publishable + RLS-protected). **Blob v6 (ADR 0008)** carries jobs, snippets, set-aside tiles **and the
+  publishable + RLS-protected). **Blob v8 (ADR 0008)** carries jobs, snippets, set-aside tiles **and the
   user-edited per-browser stores: outreach targets (`rjb_targets`), saved searches (`rjb_feed_filters`),
-  the evidence text (`rjb_radar_evidence`), work mode per track (`rjb_ui_mode:<id>`, `src/trackModes.ts`)
-  and dream companies (`rjb_dreams`, v6)**
+  the evidence text (`rjb_radar_evidence`), work mode per track (`rjb_ui_mode:<id>`, `src/trackModes.ts`),
+  the Application kit (v6), the trash (v7, #214) and dream companies (`rjb_dreams`, v8)**
   — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
   Caches and device UI prefs (`rjb_liveness`, `rjb_probe`, `rjb_gh_*`, `rjb_feed_remotive`, `rjb_ui_*`, pins)
   stay local. Sign-out flushes the blob first (confirms if the push fails); evidence is capped at 20,000
@@ -366,14 +366,17 @@ track-agnostic like everything else in Discover.
   (`feed/discoverySources.ts`) and are **unverified live**, as are the new community-board `site:` clauses
   in `jobsData.ts`. Big-company ATSs (Workday, SuccessFactors, Taleo, Oracle) are Google links only: never
   fetch them. New hosts `yc-oss.github.io` and `api.github.com` are in `connect-src` and `csp.test.ts`.
-- **Companies tool (2026-10-17).** The Teams tool is now **Companies**, Discover's first and default tool
-  (slug still `teams`; `#/discover` opens it, `#/discover/apply` is Apply now). Open roles first: each
+- **Companies tool (2026-10-17).** The Teams tool is now **Companies** (slug still `teams`). Its GitHub
+  search follows the track: `feed/teamTopics.ts` `teamSearchFor` maps the track's titles/ATS roles to
+  topics (design systems → `design-system`, ServiceNow → `servicenow`); where it finds one, Companies
+  leads and `#/discover` opens it (`#/discover/apply` is Apply now), else Apply now leads, Companies
+  sits second and says there is no search for this track (PR #217 review). Open roles first: each
   team's board is read live (`feed/teamRoles.ts` `readRoles`, the probe's limiter, any failure =
   "Couldn't check") and filtered by the track's terms (`matchRoles` over `match.rankPostings`); a
   **Hiring now** Toggle (on by default) hides teams known to have no matching role (`orderTeams`).
   `dsOrgs` marks `boardCheck: 'unknown' | 'unchecked'` so unknown is never none. Roles save inline
-  (`TeamRoles.tsx` `RoleList`: toast + an inline Undo, since HDS Toast has no action slot). **Dream
-  companies** (`feed/dreams.ts`, `rjb_dreams`, per track, **blob v6**, ADR 0008 addendum) are starred
+  (`TeamRoles.tsx` `RoleList`, through `saveNotice.notifySaved`: Open + Undo). **Dream
+  companies** (`feed/dreams.ts`, `rjb_dreams`, per track, **blob v8**, ADR 0008 addendum) are starred
   from team rows or By company (`DreamStar`), always show on top (`DreamCompanies.tsx`), and "Check
   dream companies" re-reads boards fresh and flags openings new since the last check. Pinned in
   `src/outreach.test.tsx`, `discover.test.tsx`, `feed/teamRoles.test.ts`, `feed/dreams.test.ts`.

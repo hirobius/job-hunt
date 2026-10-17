@@ -60,7 +60,9 @@ describe('sanitizeDreams', () => {
     expect(d.board).toBeUndefined();
     expect(d.website).toBeUndefined();
     expect(d.seen).toHaveLength(MAX_SEEN);
-    expect(d.seen[d.seen.length - 1]).toBe(`p${MAX_SEEN + 4}`);
+    // Ids arrive best first, so the first MAX_SEEN are the ones kept.
+    expect(d.seen[0]).toBe('a');
+    expect(d.seen).not.toContain(`p${MAX_SEEN + 4}`);
   });
 });
 

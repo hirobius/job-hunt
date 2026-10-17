@@ -1,9 +1,9 @@
 // The Companies tool's inline roles (a team's matching openings, saved in one tap) and the dream
 // star, shared by the team rows, the dream companies section and the By company view.
-import { useState } from 'react';
-import { Badge, Button, Icon, InlineLink, Stack, Text, useToast } from '@hirobius/design-system';
+import { Badge, Button, Icon, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { Star } from 'lucide-react';
-import { addJobDetailed, dedupKey, removeJob, useJobs } from './store';
+import { addJobDetailed, dedupKey, useJobs } from './store';
+import { notifySaved } from './saveNotice';
 import { jobFieldsFor } from './feed/toJob';
 import type { Role } from './feed/teamRoles';
 import { dreamKey, starDream, unstarDream, useDreams } from './feed/dreams';
@@ -11,8 +11,8 @@ import type { Board } from './feed/sources/ats';
 import { SECONDARY } from './hds-gaps/tone';
 import { listStyle } from './outreachShared';
 
-/** A team's matching roles. Save adds one to the Pipeline; Undo (here, since an HDS toast has no
- *  action slot) takes it back out. The title links out: the only step that leaves the app is Apply. */
+/** A team's matching roles. Save adds one to the Pipeline and raises the shared save notice
+ *  (saveNotice.ts: Open, Undo). The title links out: the only step that leaves the app is Apply. */
 export function RoleList({
   company,
   roles,
@@ -22,21 +22,12 @@ export function RoleList({
   roles: Role[];
   newIds?: Set<string>;
 }) {
-  const { toast } = useToast();
   const jobs = useJobs();
   const savedKeys = new Set(jobs.map((j) => dedupKey(j.url)));
-  // Saved here this visit: role id → the stored URL, for Undo.
-  const [mine, setMine] = useState<Record<string, string>>({});
   const save = (r: Role) => {
     const fields = jobFieldsFor(r, r.term, 'Companies');
     const url = addJobDetailed(r.url, fields);
-    if (!url) return;
-    setMine((m) => ({ ...m, [r.id]: url }));
-    toast({ title: 'Added to Pipeline', description: fields.label, tone: 'success' });
-  };
-  const undo = (r: Role) => {
-    removeJob(mine[r.id]);
-    setMine(({ [r.id]: _gone, ...rest }) => rest);
+    if (url) notifySaved([url], fields.label);
   };
   return (
     <ul aria-label={`Open roles at ${company}`} style={listStyle}>
@@ -58,26 +49,15 @@ export function RoleList({
                   </Text>
                 )}
               </Stack>
-              {saved && mine[r.id] ? (
-                <Button
-                  size="sm"
-                  variant="tertiary"
-                  aria-label={`Undo save: ${r.title}`}
-                  onClick={() => undo(r)}
-                >
-                  Undo
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={saved}
-                  aria-label={`${saved ? 'Saved' : 'Save'} ${r.title}`}
-                  onClick={() => save(r)}
-                >
-                  {saved ? 'Saved' : 'Save'}
-                </Button>
-              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={saved}
+                aria-label={`${saved ? 'Saved' : 'Save'} ${r.title}`}
+                onClick={() => save(r)}
+              >
+                {saved ? 'Saved' : 'Save'}
+              </Button>
             </Stack>
           </li>
         );
@@ -108,7 +88,6 @@ export function DreamStar({
       iconOnly
       iconLeft={<Icon icon={Star} />}
       label={on ? `Unstar ${company}` : `Star ${company} as a dream company`}
-      aria-pressed={on}
       onClick={() =>
         on ? unstarDream(categoryId, key) : starDream(categoryId, { company, website, board })
       }

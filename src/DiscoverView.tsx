@@ -44,6 +44,7 @@ const SECTION_PANEL = { ...BARE_PANEL, paddingTop: 'var(--primitive-space-4)' } 
 import { useAtLeast } from './hds-gaps/useBreakpoint';
 import { useTrackContext } from './discoverContext';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
+import { teamSearchFor } from './feed/teamTopics';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 import { SECONDARY } from './hds-gaps/tone';
 
@@ -304,7 +305,8 @@ function AtsPanel({
 // The tools row is data-driven: adding a tool (e.g. "By company") is one entry here. Short labels
 // on a phone, full names from the HDS `sm` breakpoint up (docs/specs/discover.md, "Tools vs sections").
 type ToolKey = 'apply' | 'titles' | 'ats' | 'live' | 'boards' | 'teams';
-// Companies (slug `teams`, kept for old links) leads and is the default: open roles first.
+// Companies (slug `teams`, kept for old links) leads and is the default where the track's terms give
+// its GitHub search something to find (teamTopics.ts); elsewhere it sits after Apply now.
 const TOOLS: { key: ToolKey; label: string; short: string }[] = [
   { key: 'teams', label: 'Companies', short: 'Companies' },
   { key: 'apply', label: 'Apply now', short: 'Apply' },
@@ -394,20 +396,29 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
 
   const route = useRoute();
   const wide = useAtLeast('sm');
+  const teamSearch = useMemo(
+    () => teamSearchFor([...cat.titles, ...cat.atsRoles]),
+    [cat.titles, cat.atsRoles],
+  );
+  const companiesLead = !!teamSearch && DISCOVERY_SOURCE_ENABLED.github;
+  // Apply now first where Companies doesn't lead (a stable sort keeps the rest in order).
+  const ordered = companiesLead
+    ? TOOLS
+    : [...TOOLS].sort((a, b) => Number(b.key === 'apply') - Number(a.key === 'apply'));
   // A track with no sections has no "Apply now" view to show: open on Title search instead.
-  const tools = TOOLS.filter(
+  const tools = ordered.filter(
     (t) =>
       (sections.length || t.key !== 'apply') &&
       (DISCOVERY_SOURCE_ENABLED.github || t.key !== 'teams'),
   );
   const sub = route.sub;
-  // No sub → the default tool (Companies when it is on); a section id → Apply now on that section.
+  // No sub → the default tool; a section id → Apply now on that section.
   const fallback: ToolKey = sections.length ? 'apply' : 'titles';
+  const defaultTool: ToolKey = companiesLead ? 'teams' : fallback;
   const tool: ToolKey =
     (tools.find((t) => t.key === sub)?.key as ToolKey | undefined) ??
-    (!sub && tools[0].key === 'teams' ? 'teams' : fallback);
+    (!sub ? defaultTool : fallback);
   const section = sections.find((sc) => sc.key === sub) ?? sections[0];
-  const defaultTool = tools[0].key === 'teams' ? 'teams' : fallback;
   const toolSub = (v: string) => (v === defaultTool ? null : v);
   // The first section's own slug when Apply now isn't the default (`apply` then names it).
   const sectionSub = (v: string) =>
@@ -502,6 +513,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               categoryId={cat.id}
               boardUrls={boardUrls}
               terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
+              search={teamSearch}
             />
           </Suspense>
         )}

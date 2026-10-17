@@ -13,6 +13,7 @@ const ROUTES = [
   '#/today',
   '#/queue',
   '#/discover',
+  '#/discover/apply',
   '#/discover/titles',
   '#/discover/ats',
   '#/discover/live',
@@ -29,6 +30,8 @@ async function seed(page: Page) {
   await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().click();
   for (const name of ['Continue', 'Continue', 'Finish'])
     await page.getByRole('button', { name, exact: true }).click();
+  // Apply now by name: which tool `#/discover` opens on depends on the track (teamTopics.ts).
+  await go(page, '#/discover/apply');
   await expect(page.getByRole('tablist', { name: 'Your sections' })).toBeVisible();
 }
 
