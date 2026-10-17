@@ -1,8 +1,9 @@
 {
-  "updatedAt": "2026-10-15T16:30:00Z",
+  "updatedAt": "2026-10-17T18:00:00Z",
   "phase": "live",
-  "headline": "Live as Roleforge. Redesign #115 shipped: job page (#130), Discover (#131), Templates (#132); job sources (#178) and hidden-job discovery (#180) merged. Polish (#133, PR #181) and discovery follow-ups (PR #187) in review. Theme is pure HDS graphite. Cloud builds are budgeted (CLAUDE.md).",
+  "headline": "Live as Roleforge. Rapid apply in review (claude/rapid-apply): save notices with Open/Undo, bulk save in Live postings, To apply queue, Apply mode with a synced Application kit (blob v6).",
   "next": [
+    "Review and merge the rapid-apply PR so Adrian can apply from the app today.",
     "Merge #181 (polish) and #187 (discovery follow-ups) after review.",
     "Persist all user-edited data across devices: outreach targets, saved searches, evidence, work mode (Adrian, 2026-10-15).",
     "Verify unverified-live sources on a preview: YC mirror, GitHub search, Jobicy, Workable/Recruitee probes, community site: clauses; Remote OK stays off until its legal notice is read.",

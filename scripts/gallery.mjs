@@ -38,7 +38,8 @@ const packBox = (page) => {
 const THEMES = ['light', 'dark'];
 // --format=png for lossless shots (the case-study set, #199); default is small JPEGs.
 const EXT = args.format === 'png' ? 'png' : 'jpg';
-const shotOpts = (path) => (EXT === 'png' ? { path, type: 'png' } : { path, type: 'jpeg', quality: 70 });
+const shotOpts = (path) =>
+  EXT === 'png' ? { path, type: 'png' } : { path, type: 'jpeg', quality: 70 };
 
 async function serve() {
   // A full URL may carry a query (e.g. Vercel's ?_vercel_share= for a protected preview); it is
@@ -136,9 +137,14 @@ const OVERLAYS = [
   [
     /^(Pipeline|Tracker)$/,
     'sign-in-dialog',
-    [['button', /^Account/], ['menuitem', /^Sign in/]],
+    [
+      ['button', /^Account/],
+      ['menuitem', /^Sign in/],
+    ],
   ],
   [/^(Pipeline|Tracker)$/, 'row-menu', [['button', /^More actions/]]],
+  // Rapid apply: the To apply queue's Start applying opens Apply mode on the first job.
+  [/^(Pipeline|Tracker)$/, 'apply-mode', [['button', /^Start applying$/]]],
   // A job's details, screener and templates live on its page (#129 moved them off the list).
   [/^(Pipeline|Tracker)$/, 'job-page', [['first-job']]],
   // The job page's tabs (#130); the screener is inline in Screening, not a dialog.

@@ -29,6 +29,7 @@ import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
 import { setTrackContext, useTrackContext } from './discoverContext';
 import { ContextCaption } from './LocationControl';
 import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
+import { notifySaved } from './saveNotice';
 import { fetchFeed, type FeedResult } from './feed/fetchFeed';
 import { mergeRetry } from './feed/mergeFeed';
 import AsyncState, { type AsyncStatus } from './hds-gaps/AsyncState';
@@ -295,15 +296,33 @@ export default function LiveFeedPanel({
     else toast({ title: r.error, tone: 'warning' });
   };
 
-  const save = (p: RankedPosting) => {
+  // Saves one posting as a Job; the stored URL when it was new, else null.
+  const saveOne = (p: RankedPosting): string | null => {
     const fields = jobFieldsFor(p, term);
     const url = addJobDetailed(p.url, fields);
-    if (!url) return;
+    if (!url) return null;
     // The fit rides along, so the Pipeline's Fit column and "Best fit" sort use it.
     const fg = fits.get(p.id);
     if (fg) updateJob(url, { verdict: TIER_INFO[fg.tier].verdict });
-    toast({ title: 'Added to Pipeline', description: fields.label, tone: 'success' });
+    return url;
   };
+  const save = (p: RankedPosting) => {
+    const url = saveOne(p);
+    if (url) notifySaved([url], p.title);
+  };
+  // Wide net (rapid apply): save every picked posting, or every one on screen, in one go.
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const saveMany = (list: RankedPosting[]) => {
+    notifySaved(list.map(saveOne).filter((u): u is string => !!u));
+    setPicked(new Set());
+  };
+  const togglePick = (id: string) =>
+    setPicked((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const errors = current?.result?.sources.filter((s) => s.error) ?? [];
   const allFailed =
@@ -670,6 +689,13 @@ export default function LiveFeedPanel({
               ]}
             />
           </Box>
+          {visible.length > 0 && (
+            <BulkSaveBar
+              picked={visible.filter((p) => picked.has(p.id) && !savedKeys.has(dedupKey(p.url)))}
+              shown={visible.slice(0, shown).filter((p) => !savedKeys.has(dedupKey(p.url)))}
+              onSave={saveMany}
+            />
+          )}
           {visible.length === 0 ? (
             <EmptyState
               message={
@@ -705,6 +731,8 @@ export default function LiveFeedPanel({
                   saved={savedKeys.has(dedupKey(p.url))}
                   fit={fits.get(p.id)}
                   onSave={() => save(p)}
+                  picked={picked.has(p.id)}
+                  onPick={() => togglePick(p.id)}
                 />
               ))}
             </Box>
@@ -738,6 +766,35 @@ export default function LiveFeedPanel({
         </Box>
       </AsyncState>
     </Box>
+  );
+}
+
+function BulkSaveBar({
+  picked,
+  shown,
+  onSave,
+}: {
+  picked: RankedPosting[];
+  /** Unsaved postings on screen. */
+  shown: RankedPosting[];
+  onSave: (list: RankedPosting[]) => void;
+}) {
+  return (
+    <Stack direction="row" wrap="wrap" gap="tight" align="center">
+      {picked.length > 0 && (
+        <Button size="sm" variant="primary" onClick={() => onSave(picked)}>
+          {`Save ${picked.length} to Pipeline`}
+        </Button>
+      )}
+      <Button
+        size="sm"
+        variant="secondary"
+        disabled={shown.length === 0}
+        onClick={() => onSave(shown)}
+      >
+        {`Save all shown (${shown.length})`}
+      </Button>
+    </Stack>
   );
 }
 
@@ -827,6 +884,8 @@ function PostingRow({
   saved,
   fit,
   onSave,
+  picked,
+  onPick,
 }: {
   p: RankedPosting;
   now: number;
@@ -834,6 +893,8 @@ function PostingRow({
   /** Present once the user has evidence. */
   fit?: FitGap;
   onSave: () => void;
+  picked: boolean;
+  onPick: () => void;
 }) {
   const meta = [
     p.company,
@@ -864,14 +925,24 @@ function PostingRow({
         </Text>
         {/* Under the meta, not beside it: the title keeps the full row on a phone. 40px target. */}
         <Box sx={{ mt: 'xs' }}>
-          <Button
-            size="md"
-            variant={saved ? 'tertiary' : 'secondary'}
-            disabled={saved}
-            onClick={onSave}
-          >
-            {saved ? 'Saved' : 'Save'}
-          </Button>
+          <Stack direction="row" gap="tight" align="center" wrap="wrap">
+            <Button
+              size="md"
+              variant={saved ? 'tertiary' : 'secondary'}
+              disabled={saved}
+              onClick={onSave}
+            >
+              {saved ? 'Saved' : 'Save'}
+            </Button>
+            {!saved && (
+              <HdsCheckbox
+                label="Pick"
+                aria-label={`Pick ${p.title}`}
+                checked={picked}
+                onChange={onPick}
+              />
+            )}
+          </Stack>
         </Box>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
           {fit && (
