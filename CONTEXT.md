@@ -59,11 +59,11 @@ A company whose Greenhouse, Lever or Ashby job board is on a track (as a tile), 
 _Avoid_: followed company, subscription
 
 **Company**:
-An employer the user tracks, grouping its Jobs and any Documents written for it. Its page shows every Job, Document and Note for that employer.
+An employer the user tracks, grouping its Jobs and any Documents written for it. Created automatically from a Job's company name; its page shows every Job, Document and Note for that employer.
 _Avoid_: employer, org, account
 
 **Document**:
-A piece of writing the user sends or keeps for a job search, of one kind: Résumé, Cover letter, Note or Outreach message. Written as text in the app and downloaded as PDF or Word; an uploaded file is only a final copy. Outreach messages replace Templates.
+A piece of writing the user sends or keeps for a job search, of one kind: Résumé, Cover letter, Note or Outreach message. Written as text in the app and downloaded as PDF or Word (no share links); an uploaded file is only a final copy. Outreach messages replace Templates, and the Templates tab becomes the Documents library.
 _Avoid_: file, asset, template (for new code)
 
 **Base document**:

@@ -22,6 +22,12 @@ keep in step).
 3. Every AI draft or rewrite saves as a new **Version**; it never overwrites one, and never touches a
    **Sent** Version.
 4. The function needs a signed-in user (Supabase session), so the endpoint is not open to the web.
+5. The starting cap is **$10 a month** (grill round 2); raising it is Adrian's call.
+
+Related product calls from grill round 2 (not part of this decision, recorded so they are not
+re-asked): the Templates tab becomes **Documents** (the library) and each job page gets a Documents
+tab; export is PDF and Word downloads only, no share links; a Company is created automatically from
+a Job's company name.
 
 ## Consequences
 
