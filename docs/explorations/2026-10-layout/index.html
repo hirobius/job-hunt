@@ -1092,6 +1092,7 @@ body {
 h1, h2, h3, h4, p, ul, ol { margin: 0; }
 button { font: inherit; color: inherit; }
 .i { width: var(--primitive-space-5); height: var(--primitive-space-5); flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.i-fill { fill: currentColor; }
 .i-sm { width: var(--primitive-space-4); height: var(--primitive-space-4); }
 
 /* Page chrome (the exploration document, not the app) */
@@ -1243,6 +1244,10 @@ button { font: inherit; color: inherit; }
 .cmp th, .cmp td { text-align: left; padding: var(--primitive-space-3); border-bottom: 1px solid var(--semantic-color-border-subtle); vertical-align: top; }
 .cmp th { font-weight: var(--semantic-typography-title-font-weight); }
 .cmp-wrap { overflow-x: auto; }
+.loop { list-style: none; padding: 0; margin-top: var(--primitive-space-4); display: grid; gap: var(--primitive-space-4); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); counter-reset: step; }
+.loop li { counter-increment: step; border: 1px solid var(--semantic-color-border-default); border-radius: var(--semantic-radius-action); padding: var(--primitive-space-4); display: flex; flex-direction: column; gap: var(--primitive-space-1); font-size: var(--primitive-typography-size-sm); }
+.loop li b::before { content: counter(step) ' · '; color: var(--semantic-color-content-secondary); }
+.loop li span { color: var(--semantic-color-content-secondary); }
 .reco { margin-top: var(--primitive-space-6); padding: var(--primitive-space-4); border-radius: var(--semantic-radius-action); background: var(--semantic-color-surface-muted); }
 </style>
 </head>
@@ -1267,6 +1272,9 @@ button { font: inherit; color: inherit; }
     <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
     <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></symbol>
+    <symbol id="i-co" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4"/></symbol>
     <symbol id="i-sort" viewBox="0 0 24 24"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></symbol>
   </defs>
 </svg>
@@ -1275,7 +1283,7 @@ button { font: inherit; color: inherit; }
   <header class="doc-head">
     <div>
       <h1>Layout explorations: three directions</h1>
-      <p class="lede">Design exploration only, no app code. Each direction is mocked at phone width (390) for the shell, Discover, Live postings, Today and Templates, with a desktop frame (1440) for Discover. Everything is HDS 0.24.1 tokens: graphite accent, Plus Jakarta Sans, the HDS type ramp. Sample data is invented.</p>
+      <p class="lede">Design exploration only, no app code. Each direction is built around one repeatable loop, starting from Companies, and mocked at phone width (390) with a desktop frame (1440) for Companies. Everything is HDS 0.24.1 tokens: graphite accent, Plus Jakarta Sans, the HDS type ramp. Sample data is invented.</p>
       <nav class="doc-nav" aria-label="Directions">
         <a class="x-chip" href="#dir-a">A · Calm list</a>
         <a class="x-chip" href="#dir-b">B · List and detail</a>
@@ -1299,7 +1307,18 @@ button { font: inherit; color: inherit; }
       <li>Templates: full-width secondary "New snippet"; preview runs "[Company]Hi [Contact]," together (bug, filed as #207).</li>
       <li>Header: an unexplained dot next to Account.</li>
     </ul>
-    <p class="assume">Adrian's input: prefers the earlier three-tab shell (Pipeline · Discover · Templates, no Today), and not that era's cards (input-looking titles, a row of tinted Copy / Pin / Duplicate / Delete buttons, a "Snippet text" disclosure). Direction A follows both. All three use the HDS docs site's spacing (his reference for "breathable, comfortable"): 24 gutter and card padding, 32 between cards, 24 under a heading, 48 between sections, all from the HDS tokens (region-gutter, surface-padding, grid-gap, docs-space-paragraph / -section). Also: even padding across sibling cards and rows, inner padding no larger than the gap outside it, clear section gaps, and no dead zones like the Details row or the Insights card. Assumed from parallel PRs: Insights moves to the Pipeline, status dots are gone, tables are restyled in HDS. None of these mocks show them.</p>
+    <p class="assume">Adrian's input, applied to all three: one obvious loop you can repeat for the next job; Companies (teams with open roles, plus starred dream companies with a one-button check) is the home screen; fewer routes, fewer tabs (no Today; follow-ups live in the Pipeline); none of the old card patterns (input-looking titles, rows of tinted Copy / Pin / Duplicate / Delete buttons, a "Snippet text" disclosure); HDS docs-site spacing (24 gutter and card padding, 32 between cards, 24 under a heading, 48 between sections). Assumed from parallel PRs: Insights moves to the Pipeline, status dots are gone, tables are restyled in HDS, HDS spacing is raised.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="loop-h">
+    <h2 id="loop-h">The loop every direction is built on</h2>
+    <ol class="loop">
+      <li><b>Find</b><span>Companies hiring now, or check your starred ones</span></li>
+      <li><b>Save</b><span>Pick a role on the company, one Save</span></li>
+      <li><b>Apply</b><span>Pipeline "To apply": open it, send it, Mark applied</span></li>
+      <li><b>Follow up</b><span>Due follow-ups sit in the Pipeline; Log resets the clock</span></li>
+    </ol>
+    <p class="assume">The Pipeline always ends with "Find the next company", so the loop starts again. Live postings, Boards and Teams stop being separate tools: open roles live on each company, and finding new companies is one "Add a company" action.</p>
   </section>
 
   <div id="directions"></div>
@@ -1310,20 +1329,20 @@ button { font: inherit; color: inherit; }
     <table class="cmp">
       <thead><tr><th scope="col"></th><th scope="col">Today (live)</th><th scope="col">A · Calm list</th><th scope="col">B · List and detail</th><th scope="col">C · Search first</th></tr></thead>
       <tbody>
-        <tr><th scope="row">Rows above first Discover result (390)</th><td>5 + intro + context line</td><td>3 (title, tool switch, count)</td><td>1 (toolbar)</td><td>2 (search, scope chips)</td></tr>
-        <tr><th scope="row">App tabs</th><td>4 (Today first)</td><td>3: Pipeline · Discover · Templates; Due now strip on the Pipeline</td><td>4</td><td>4</td></tr>
+        <tr><th scope="row">App tabs</th><td>4: Today · Pipeline · Discover · Templates</td><td>3: Companies · Pipeline · Templates</td><td>3: Companies · Pipeline · Templates</td><td>2: Companies · Pipeline</td></tr>
+        <tr><th scope="row">Home screen</th><td>Today</td><td>Companies (rows)</td><td>Companies (list + detail)</td><td>Companies (search + cards)</td></tr>
+        <tr><th scope="row">Discover tools</th><td>6 (Apply, Titles, ATS, Live, Boards, Teams)</td><td>None: Hiring now / Starred switch; other searches behind one link</td><td>View select (Hiring now / Starred)</td><td>Scope chips (Hiring now / Starred / All)</td></tr>
         <tr><th scope="row">Nav levels</th><td>3</td><td>2</td><td>2</td><td>2</td></tr>
-        <tr><th scope="row">Discover tools</th><td>6 (Apply, Titles, ATS, Live, Boards, Teams)</td><td>4: Saved, Live, Searches, Find</td><td>4, in rail / toolbar menu</td><td>4 scope chips</td></tr>
-        <tr><th scope="row">Where filters go</th><td>Inline, always open</td><td>One Filters button → sheet</td><td>Toolbar icon → popover / sheet</td><td>Sheet; applied filters as chips</td></tr>
-        <tr><th scope="row">Primary action</th><td>Several per screen</td><td>One, in the bottom action bar</td><td>One, in the detail pane</td><td>One, in the header</td></tr>
-        <tr><th scope="row">Lists</th><td>Big cards</td><td>Rows everywhere</td><td>Compact rows + detail</td><td>Cards for results, rows elsewhere</td></tr>
-        <tr><th scope="row">Build cost</th><td></td><td>Low: reshuffles existing HDS parts</td><td>High: new detail routes for tiles and postings</td><td>Medium: unified search + sheet</td></tr>
+        <tr><th scope="row">Screens per job, find → follow up</th><td>5+ across Discover tools, Pipeline, Today</td><td>3: company, Pipeline, job</td><td>3: company detail, Pipeline, job detail</td><td>3: company, Pipeline, Apply sheet</td></tr>
+        <tr><th scope="row">Where templates are used</th><td>Templates tab + job page</td><td>Templates tab + job page</td><td>Templates tab + job detail</td><td>Inside the Apply sheet</td></tr>
+        <tr><th scope="row">Primary action</th><td>Several per screen</td><td>One, in the action bar</td><td>One, in the detail</td><td>One per card / sheet</td></tr>
+        <tr><th scope="row">Build cost</th><td></td><td>Low: reuses the Teams and By-company views</td><td>High: new detail routes</td><td>Medium: unified search + Apply sheet</td></tr>
       </tbody>
     </table>
     </div>
     <div class="reco">
-      <p class="t-strong">Recommendation: A · Calm list, taking B's rail at ≥ lg.</p>
-      <p class="t-sec2 mt2">It fixes every phone complaint (one nav level less, one primary action, rows instead of cards, filters behind one button) by rearranging parts we already ship, and it brings back the three-tab shell Adrian prefers: Today folds into a Due now strip at the top of the Pipeline. The desktop gets B's rail where the width is there to use. C's search is worth folding in later as the Live postings tool's first control.</p>
+      <p class="t-strong">Recommendation: A · Calm list, with C's Apply sheet.</p>
+      <p class="t-sec2 mt2">A makes Companies home and keeps the loop on three screens. It is built from parts we already ship (the Teams tool, By company, Pipeline rows). C's Apply sheet puts templates where you use them, so the Templates tab can go later (down to 2 tabs). B's rail takes the extra width at ≥ lg.</p>
     </div>
   </section>
 </main>
@@ -1333,245 +1352,234 @@ button { font: inherit; color: inherit; }
   var I = function (n, cls) { return '<svg class="i' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
 
   /* ---------- Sample data (invented) ---------- */
-  var tiles = [
-    { t: 'Northwind Labs', m: 'Company board · Greenhouse', n: '4 open', k: 'NL' },
-    { t: '"Design systems" roles, past week', m: 'Search · LinkedIn · Remote + Spokane', n: '', k: 'S' },
-    { t: 'Contoso Health', m: 'Company board · Lever', n: '2 open', k: 'CH' },
-    { t: 'Fabrikam Cloud', m: 'Company board · Ashby', n: '6 open', k: 'FC' },
-    { t: 'Contract design systems work', m: 'Search · Google · remote', n: '', k: 'S' },
-    { t: 'Inland Tech Collective', m: 'Community board · jobs channel', n: '', k: 'IT' },
-    { t: 'Tailspin Studio', m: 'Careers page', n: '1 open', k: 'TS' }
+  var cos = [
+    { n: 'Northwind Labs', k: 'NL', team: 'Design system team', roles: 3, top: 'Design systems engineer', star: true, fresh: 1 },
+    { n: 'Fabrikam Cloud', k: 'FC', team: 'Design system team', roles: 2, top: 'Component library lead', star: true, fresh: 0 },
+    { n: 'Bellows', k: 'BE', team: 'Founding design team', roles: 1, top: 'Founding product designer', star: false, fresh: 1 },
+    { n: 'Contoso Health', k: 'CH', team: 'Platform design team', roles: 2, top: 'Senior product designer, platform', star: false, fresh: 0 },
+    { n: 'Adatum', k: 'AD', team: 'Design system team', roles: 1, top: 'Senior UX engineer', star: true, fresh: 0 },
+    { n: 'Tailspin Studio', k: 'TS', team: 'UI platform team', roles: 1, top: 'UI engineer, tokens', star: false, fresh: 0 }
   ];
-  var posts = [
-    { t: 'Design systems engineer', c: 'Northwind Labs', w: 'Remote (US)', pay: '$150k–$180k', src: 'HN Who is hiring', age: '2d', fit: 'Strong fit', tone: 'success', s: 'Own our token pipeline and React component library, working with two product designers.' },
-    { t: 'Founding product designer', c: 'Bellows', w: 'Remote (US)', pay: 'Contract', src: 'Remotive', age: '3d', fit: 'Stretch', tone: 'warning', s: 'First design hire. Set up the system, ship the onboarding flow, hire the second designer.' },
-    { t: 'Component library lead', c: 'Fabrikam Cloud', w: 'Remote', pay: 'Contract · 6 mo', src: 'Ashby', age: '5d', fit: 'Strong fit', tone: 'success', s: 'Lead a three-person team rebuilding the component library on tokens.' },
-    { t: 'Senior UX engineer', c: 'Adatum', w: 'Spokane · Hybrid', pay: '$130k–$150k', src: 'Greenhouse', age: '1w', fit: 'Reach', tone: 'neutral', s: 'Prototype in code with research, then hand off production-ready components.' },
-    { t: 'Design technologist', c: 'Litware', w: 'Remote', pay: '', src: 'Jobicy', age: '1w', fit: 'Stretch', tone: 'warning', s: 'Bridge design and engineering on a small platform team.' }
+  var starredOnly = [
+    { n: 'Northwind Labs', k: 'NL', m: '3 open · 1 new since Monday', fresh: 1 },
+    { n: 'Fabrikam Cloud', k: 'FC', m: '2 open', fresh: 0 },
+    { n: 'Adatum', k: 'AD', m: '1 open', fresh: 0 },
+    { n: 'Litware', k: 'LI', m: 'No open roles', fresh: 0 },
+    { n: 'Proseware', k: 'PW', m: 'No open roles', fresh: 0 }
   ];
-  var due = [
-    { t: 'Senior product designer, platform', c: 'Contoso Health', m: 'Applied 8 days ago · follow-up due' },
-    { t: 'UI engineer, tokens', c: 'Tailspin Studio', m: 'Follow up today' }
+  var roles = [
+    { t: 'Design systems engineer', m: 'Remote (US) · $150k–$180k · 2d', fit: 'Strong fit', tone: 'success', fresh: true },
+    { t: 'Senior design technologist', m: 'Remote (US) · 1w', fit: 'Stretch', tone: 'warning' },
+    { t: 'Staff product designer, platform', m: 'Hybrid · Seattle · 2w', fit: 'Reach', tone: 'neutral' }
   ];
-  var soon = [
-    { d: 'Tue', n: '21', t: 'Phone screen', c: 'Fabrikam Cloud · 10:00' },
-    { d: 'Thu', n: '23', t: 'Portfolio review', c: 'Northwind Labs · 14:30' }
+  var stages = [
+    { h: 'To apply', jobs: [
+      { t: 'Design systems engineer', c: 'Northwind Labs', m: 'Saved 2 days ago', a: 'Apply' },
+      { t: 'Founding product designer', c: 'Bellows', m: 'Saved today', a: 'Apply' }] },
+    { h: 'Follow up', jobs: [
+      { t: 'Senior product designer, platform', c: 'Contoso Health', m: 'Applied 8 days ago', a: 'Log follow-up' },
+      { t: 'UI engineer, tokens', c: 'Tailspin Studio', m: 'Follow-up due today', a: 'Log follow-up' }] },
+    { h: 'Interviewing', jobs: [
+      { t: 'Component library lead', c: 'Fabrikam Cloud', m: 'Phone screen Tue 21, 10:00', a: '' }] },
+    { h: 'Waiting', jobs: [
+      { t: 'Senior UX engineer', c: 'Adatum', m: 'Applied 3 days ago · follow up Mon', a: '' }] }
   ];
   var tpls = [
     { t: 'Cold intro', p: 'Hi [Contact],\nI saw the [Role] opening at [Company] and wanted to reach out directly…', pin: true },
     { t: 'Follow-up after applying', p: 'Hi [Contact],\nI applied for [Role] last week and wanted to follow up…', pin: true },
     { t: 'Thank-you after an interview', p: 'Hi [Contact],\nThank you for your time today talking about [Role]…' },
-    { t: 'Referral ask', p: 'Hi [Contact],\nI am applying for [Role] at [Company]. Would you be open to…' },
-    { t: 'Recruiter reply', p: 'Hi [Contact],\nThanks for reaching out about [Role]. I would love to hear more…' }
+    { t: 'Referral ask', p: 'Hi [Contact],\nI am applying for [Role] at [Company]. Would you be open to…' }
   ];
 
   var badge = function (p) { return '<span class="hds-badge hds-badge--' + p.tone + '">' + p.fit + '</span>'; };
+  var newBadge = '<span class="hds-badge hds-badge--info">New</span>';
   var lead = function (k) { return '<span class="x-lead" aria-hidden="true">' + k + '</span>'; };
-  var tabbar = function (on, three) {
-    var t = [['today', 'Today', 'today'], ['pipe', 'Pipeline', 'pipe'], ['disc', 'Discover', 'disc'], ['tpl', 'Templates', 'tpl']];
-    if (three) t = t.slice(1);
-    return '<nav class="x-tabbar' + (three ? ' three' : '') + '" aria-label="App">' + t.map(function (x) { return '<a class="' + (x[2] === on ? 'on' : '') + '">' + I(x[0]) + x[1] + '</a>'; }).join('') + '</nav>';
+  var star = function (on) { return '<button class="x-btn icon sm ghost" aria-label="' + (on ? 'Starred' : 'Star') + '">' + I('star', 'i-sm' + (on ? ' i-fill' : '')) + '</button>'; };
+  var TABS = { co: ['co', 'Companies', 'co'], pipe: ['pipe', 'Pipeline', 'pipe'], tpl: ['tpl', 'Templates', 'tpl'] };
+  var tabbar = function (on, set) {
+    var t = set.map(function (k) { return TABS[k]; });
+    return '<nav class="x-tabbar" style="grid-template-columns:repeat(' + t.length + ',1fr)" aria-label="App">' + t.map(function (x) { return '<a class="' + (x[2] === on ? 'on' : '') + '">' + I(x[0]) + x[1] + '</a>'; }).join('') + '</nav>';
   };
-  var toptabs = function (on, three) {
-    var t = [['today', 'Today'], ['pipe', 'Pipeline'], ['disc', 'Discover'], ['tpl', 'Templates']];
-    if (three) t = t.slice(1);
-    return '<nav class="x-toptabs" aria-label="App">' + t.map(function (x) { return '<a class="' + (x[0] === on ? 'on' : '') + '">' + x[1] + '</a>'; }).join('') + '</nav>';
+  var toptabs = function (on, set) {
+    return '<nav class="x-toptabs" aria-label="App">' + set.map(function (k) { return '<a class="' + (k === on ? 'on' : '') + '">' + TABS[k][1] + '</a>'; }).join('') + '</nav>';
   };
   var frame = function (inner, desk) { return '<div class="frame' + (desk ? ' desk' : '') + '" data-w="' + (desk ? 1440 : 390) + '">' + inner + '</div>'; };
   var shot = function (label, note, inner, desk) {
     return '<figure class="shot' + (desk ? ' shot-wide' : '') + '" style="margin:0"><figcaption class="shot-label">' + label + '</figcaption><div class="fit">' + frame(inner, desk) + '</div>' + (note ? '<p class="shot-note">' + note + '</p>' : '') + '</figure>';
   };
+  var ctx = '<p class="t-cap x-row-flex">Design systems · ' + I('pin', 'i-sm') + 'Spokane, WA · Hybrid</p>';
+  var coRow = function (c, tail) {
+    return '<div class="x-row">' + lead(c.k) + '<div class="x-row-main"><span class="x-row-flex"><span class="x-row-title trunc">' + c.n + '</span>' + (c.fresh ? newBadge : '') + '</span><span class="t-cap trunc">' + (c.m || (c.roles + ' open · ' + c.top)) + '</span></div>' + (tail || '') + '</div>';
+  };
+  var roleRow = function (r, btn) {
+    return '<div class="x-row" style="align-items:flex-start"><div class="x-row-main"><span class="x-row-flex"><span class="x-row-title">' + r.t + '</span>' + (r.fresh ? newBadge : '') + '</span><span class="t-cap">' + r.m + '</span><span class="mt2">' + badge(r) + '</span></div>' + btn + '</div>';
+  };
+  var jobRow = function (j, cls) {
+    return '<div class="x-row' + (cls || '') + '"><div class="x-row-main"><span class="x-row-title trunc">' + j.t + '</span><span class="t-cap trunc">' + j.c + ' · ' + j.m + '</span></div>' + (j.a ? '<button class="x-btn sm ' + (j.a === 'Apply' ? 'secondary' : 'ghost') + '">' + j.a + '</button>' : '') + '<button class="x-btn icon sm ghost" aria-label="More">' + I('more', 'i-sm') + '</button></div>';
+  };
+  var stageHead = function (s, i) { return '<div class="x-pad ' + (i ? 'mt6' : 'mt4') + ' x-row-flex x-between"><h3 class="t-sec">' + s.h + '</h3><span class="t-cap">' + s.jobs.length + '</span></div>'; };
+  var nextLoop = '<div class="x-pad mt6 pb4"><a class="x-btn secondary block">' + I('disc', 'i-sm') + 'Find the next company</a></div>';
+  var acct = '<span class="x-avatar" title="Account">' + I('user', 'i-sm') + '</span>';
+  var deskHead = function (on, set, extra) { return '<header class="x-appbar" style="gap:var(--primitive-space-8)"><span class="x-word">Roleforge</span>' + toptabs(on, set) + '<span class="x-grow"></span>' + (extra || '') + acct + '</header>'; };
 
   /* =====================================================================
-     A · Calm list — one column, rows, a single bottom action bar
+     A · Calm list — Companies · Pipeline · Templates
      ===================================================================== */
-  var aHeader = '<header class="x-appbar"><span class="x-word">Roleforge</span><span class="x-grow"></span><span class="x-avatar" title="Account">' + I('user', 'i-sm') + '</span></header>';
-  var aTrack = '<div class="x-pad pt4 x-stack g1"><div class="x-row-flex"><h2 class="t-title">Design systems</h2>' + I('down') + '<span class="x-grow"></span><button class="x-btn icon ghost" aria-label="Track options">' + I('more') + '</button></div>' +
-    '<p class="t-cap x-row-flex">' + I('pin', 'i-sm') + 'Spokane, WA · Hybrid · <span class="t-med" style="color:var(--semantic-color-content-primary)">Change</span></p></div>';
-  var aTools = function (on) {
-    return '<div class="x-pad mt4"><div class="x-seg" role="tablist">' + ['Saved', 'Live', 'Searches', 'Find'].map(function (x) { return '<span class="' + (x === on ? 'on' : '') + '">' + x + '</span>'; }).join('') + '</div></div>';
-  };
-  var aCount = function (txt, f) { return '<div class="x-pad mt3 x-row-flex x-between"><span class="t-cap">' + txt + '</span><button class="x-btn sm ghost">' + I('filter', 'i-sm') + 'Filters' + (f ? ' <span class="x-count">' + f + '</span>' : '') + '</button></div>'; };
-  var aTileRows = tiles.map(function (t) {
-    return '<div class="x-row">' + lead(t.k) + '<div class="x-row-main"><span class="x-row-title trunc">' + t.t + '</span><span class="t-cap trunc">' + t.m + (t.n ? ' · ' + t.n : '') + '</span></div><button class="x-btn icon sm ghost" aria-label="Open">' + I('open', 'i-sm') + '</button><button class="x-btn icon sm ghost" aria-label="More">' + I('more', 'i-sm') + '</button></div>';
-  }).join('');
-  var aDiscover = aHeader + '<div class="scroll">' + aTrack + aTools('Saved') + aCount('7 boards and searches · 3 sections', 0) +
-    '<div class="x-list mt2">' + aTileRows + '</div></div>' +
-    '<div class="x-actionbar"><button class="x-btn primary block">' + I('plus', 'i-sm') + 'Add a board or search</button></div>' + tabbar('disc', true);
-
-  var aPostRows = posts.map(function (p) {
-    return '<div class="x-row" style="align-items:flex-start"><div class="x-row-main"><span class="x-row-title">' + p.t + '</span><span class="t-cap trunc">' + p.c + ' · ' + p.w + (p.pay ? ' · ' + p.pay : '') + '</span><span class="x-row-flex mt2">' + badge(p) + '<span class="t-cap">' + p.src + ' · ' + p.age + '</span></span></div><button class="x-btn icon sm ghost" aria-label="Save">' + I('save', 'i-sm') + '</button></div>';
-  }).join('');
-  var aLive = aHeader + '<div class="scroll">' + aTrack + aTools('Live') +
-    '<div class="x-pad mt3"><div class="x-input">' + I('search', 'i-sm') + '<span class="ph">Refine: "design system", "tokens"</span></div></div>' +
-    aCount('38 openings · newest first', 2) + '<div class="x-list mt2">' + aPostRows + '</div></div>' + tabbar('disc', true);
-
-  var jobs = [
-    { t: 'Design systems engineer', c: 'Northwind Labs', m: 'Saved 2 days ago', a: 'Mark applied' },
-    { t: 'Component library lead', c: 'Fabrikam Cloud', m: 'Interview Tue 21', a: '' },
-    { t: 'Senior product designer, platform', c: 'Contoso Health', m: 'Applied 8 days ago', a: '' },
-    { t: 'UI engineer, tokens', c: 'Tailspin Studio', m: 'Applied 5 days ago', a: '' },
-    { t: 'Founding product designer', c: 'Bellows', m: 'Saved today', a: 'Mark applied' },
-    { t: 'Senior UX engineer', c: 'Adatum', m: 'Saved last week', a: 'Mark applied' }
-  ];
-  var aDue = '<section class="x-due" aria-label="Due now"><div class="x-row-flex x-between"><h3 class="t-sec">Due now</h3><span class="t-cap">2 follow-ups · 2 this week</span></div>' +
-    due.map(function (d) { return '<div class="x-due-row"><div class="x-row-main"><span class="x-row-title trunc">' + d.c + ' · ' + d.t + '</span><span class="t-cap trunc">' + d.m + '</span></div><button class="x-btn sm secondary">Log follow-up</button></div>'; }).join('') +
-    soon.map(function (e) { return '<div class="x-due-row"><span class="x-date"><span class="t-cap">' + e.d + '</span><b>' + e.n + '</b></span><div class="x-row-main"><span class="x-row-title trunc">' + e.t + '</span><span class="t-cap trunc">' + e.c + '</span></div></div>'; }).join('') + '</section>';
-  var aPipe = aHeader + '<div class="scroll"><div class="x-pad pt4 x-row-flex x-between"><h2 class="t-title">Pipeline</h2><span class="t-cap">12 jobs</span></div>' +
-    '<div class="x-pad mt3 x-row-flex"><div class="x-input x-grow"><span class="ph">Paste a job link</span></div><button class="x-btn primary">Add job</button></div>' +
-    '<div class="x-pad mt4">' + aDue + '</div>' +
-    '<div class="x-pad mt6 x-row-flex x-between"><span class="x-select plain" style="padding-left:0"><span class="v t-strong">Active</span>' + I('down', 'i-sm') + '</span><button class="x-btn sm ghost">' + I('sort', 'i-sm') + 'Next step</button></div>' +
-    '<div class="x-list mt2">' + jobs.map(function (j) { return '<div class="x-row"><div class="x-row-main"><span class="x-row-title trunc">' + j.t + '</span><span class="t-cap trunc">' + j.c + ' · ' + j.m + '</span></div>' + (j.a ? '<button class="x-btn sm ghost">' + j.a + '</button>' : '') + '<button class="x-btn icon sm ghost" aria-label="More">' + I('more', 'i-sm') + '</button></div>'; }).join('') + '</div></div>' + tabbar('pipe', true);
-
-  var aTpl = aHeader + '<div class="scroll"><div class="x-pad pt4 x-row-flex x-between"><h2 class="t-title">Templates</h2><span class="t-cap">5</span></div><div class="x-list mt4">' +
+  var A3 = ['co', 'pipe', 'tpl'];
+  var aHeader = '<header class="x-appbar"><span class="x-word">Roleforge</span><span class="x-grow"></span>' + acct + '</header>';
+  var aTitle = function (t, right) { return '<div class="x-pad pt4 x-stack g2"><div class="x-row-flex x-between"><h2 class="t-title">' + t + '</h2>' + (right || '') + '</div>' + ctx + '</div>'; };
+  var aSeg = function (on) { return '<div class="x-pad mt4"><div class="x-seg">' + ['Hiring now', 'Starred'].map(function (x) { return '<span class="' + (x === on ? 'on' : '') + '">' + x + '</span>'; }).join('') + '</div></div>'; };
+  var aCompanies = aHeader + '<div class="scroll">' + aTitle('Companies', '<button class="x-btn icon ghost" aria-label="Track options">' + I('more') + '</button>') + aSeg('Hiring now') +
+    '<p class="t-cap x-pad mt4">6 teams with open roles, newest first</p><div class="x-list mt2">' + cos.map(function (c) { return coRow(c, star(c.star) + I('right', 'i-sm')); }).join('') + '</div>' +
+    '<div class="x-pad mt4 pb4"><a class="t-cap">More ways to find companies: job-title searches, ATS searches, YC batches</a></div></div>' +
+    '<div class="x-actionbar"><button class="x-btn primary block">' + I('plus', 'i-sm') + 'Add a company</button></div>' + tabbar('co', A3);
+  var aStarred = aHeader + '<div class="scroll">' + aTitle('Companies') + aSeg('Starred') +
+    '<p class="t-cap x-pad mt4">5 dream companies · checked yesterday</p><div class="x-list mt2">' + starredOnly.map(function (c) { return coRow(c, I('right', 'i-sm')); }).join('') + '</div></div>' +
+    '<div class="x-actionbar"><button class="x-btn primary block">' + I('refresh', 'i-sm') + 'Check 5 starred for new roles</button></div>' + tabbar('co', A3);
+  var aCompany = '<header class="x-appbar"><button class="x-btn icon ghost" aria-label="Back">' + I('left') + '</button><span class="t-cap">Companies</span><span class="x-grow"></span>' + star(true) + '</header>' +
+    '<div class="scroll"><div class="x-pad pt4 x-stack g2"><div class="x-row-flex">' + lead('NL') + '<h2 class="t-title">Northwind Labs</h2></div><p class="t-cap">Design system team · Greenhouse board · checked 5 min ago</p></div>' +
+    '<div class="x-pad mt6 x-row-flex x-between"><h3 class="t-sec">Open roles</h3><span class="t-cap">3</span></div><div class="x-list mt2">' +
+    roles.map(function (r) { return roleRow(r, '<button class="x-btn sm secondary">' + I('save', 'i-sm') + 'Save</button>'); }).join('') + '</div></div>' +
+    '<div class="x-actionbar"><button class="x-btn secondary x-grow">' + I('open', 'i-sm') + 'Careers page</button></div>';
+  var aPipe = aHeader + '<div class="scroll"><div class="x-pad pt4 x-row-flex x-between"><h2 class="t-title">Pipeline</h2><span class="t-cap">6 jobs</span></div>' +
+    '<div class="x-pad mt4 x-row-flex"><div class="x-input x-grow"><span class="ph">Paste a job link</span></div><button class="x-btn primary">Add job</button></div>' +
+    stages.map(function (s, i) { return stageHead(s, i) + '<div class="x-list mt2">' + s.jobs.map(function (j) { return jobRow(j); }).join('') + '</div>'; }).join('') + nextLoop + '</div>' + tabbar('pipe', A3);
+  var aTpl = aHeader + '<div class="scroll"><div class="x-pad pt4 x-row-flex x-between"><h2 class="t-title">Templates</h2><span class="t-cap">4</span></div><div class="x-list mt4">' +
     tpls.map(function (t) { return '<div class="x-template"><div class="x-row-flex x-between"><span class="x-row-title">' + t.t + '</span>' + (t.pin ? '<span class="t-cap">Pinned</span>' : '') + '</div><p class="x-preview pre clamp2">' + t.p + '</p></div>'; }).join('') +
-    '</div></div><div class="x-actionbar"><button class="x-btn primary block">' + I('plus', 'i-sm') + 'New template</button></div>' + tabbar('tpl', true);
-
-  var aDesk = '<header class="x-appbar" style="padding:0 var(--primitive-space-8);gap:var(--primitive-space-8)"><span class="x-word">Roleforge</span>' + toptabs('disc', true) + '<span class="x-grow"></span><span class="x-avatar">' + I('user', 'i-sm') + '</span></header>' +
-    '<div class="d-body"><aside class="d-rail"><p class="d-rail-h">Tracks</p><a class="on">Design systems<span class="n">7</span></a><a>Sheet metal &amp; fab<span class="n">12</span></a><a class="t-sec2">' + I('plus', 'i-sm') + 'New track</a>' +
-    '<p class="d-rail-h">Sections</p><a>Apply first<span class="n">3</span></a><a>Company boards<span class="n">3</span></a><a>Community<span class="n">1</span></a></aside>' +
-    '<div class="d-main" style="max-width:1000px"><div class="x-row-flex x-between"><div class="x-stack g1"><h2 class="t-title">Design systems</h2><p class="t-cap x-row-flex">' + I('pin', 'i-sm') + 'Spokane, WA · Hybrid · <span class="t-med" style="color:var(--semantic-color-content-primary)">Change</span></p></div><div class="x-row-flex"><button class="x-btn secondary">Manage track</button><button class="x-btn primary">' + I('plus', 'i-sm') + 'Add a board or search</button></div></div>' +
-    '<div class="x-row-flex x-between mt2"><div class="x-seg" style="width:440px">' + ['Saved', 'Live', 'Searches', 'Find'].map(function (x) { return '<span class="' + (x === 'Saved' ? 'on' : '') + '">' + x + '</span>'; }).join('') + '</div><button class="x-btn ghost">' + I('filter', 'i-sm') + 'Filters</button></div>' +
-    '<div class="x-list" style="border-top:1px solid var(--semantic-color-border-subtle)">' + aTileRows + '</div></div></div>';
+    '</div></div><div class="x-actionbar"><button class="x-btn primary block">' + I('plus', 'i-sm') + 'New template</button></div>' + tabbar('tpl', A3);
+  var aDesk = deskHead('co', A3) +
+    '<div class="d-body"><aside class="d-rail"><p class="d-rail-h">Companies</p><a class="on">' + I('disc', 'i-sm') + 'Hiring now<span class="n">6</span></a><a>' + I('star', 'i-sm') + 'Starred<span class="n">5</span></a>' +
+    '<p class="d-rail-h">Tracks</p><a class="on">Design systems</a><a>Sheet metal &amp; fab</a><a class="t-sec2">' + I('plus', 'i-sm') + 'New track</a></aside>' +
+    '<div class="d-main" style="max-width:1040px"><div class="x-row-flex x-between"><div class="x-stack g2"><h2 class="t-title">Companies hiring now</h2>' + ctx + '</div><div class="x-row-flex"><button class="x-btn secondary">' + I('refresh', 'i-sm') + 'Check starred</button><button class="x-btn primary">' + I('plus', 'i-sm') + 'Add a company</button></div></div>' +
+    '<div class="x-list" style="border-top:1px solid var(--semantic-color-border-subtle)">' + cos.map(function (c) { return coRow(c, '<span class="t-cap">' + c.team + '</span>' + star(c.star) + I('right', 'i-sm')); }).join('') + '</div></div></div>';
 
   /* =====================================================================
-     B · List and detail — compact toolbar, actions in the detail
+     B · List and detail — Companies · Pipeline · Templates, compact toolbar
      ===================================================================== */
-  var bHeader = function (title) { return '<header class="x-appbar"><span class="t-sec">' + title + '</span><span class="x-grow"></span><span class="x-avatar">' + I('user', 'i-sm') + '</span></header>'; };
-  var bToolbar = function (tool, extra) {
-    return '<div class="x-toolbar"><span class="x-select plain"><span class="v t-strong">Design systems</span>' + I('down', 'i-sm') + '</span><span class="x-select"><span class="v">' + tool + '</span>' + I('down', 'i-sm') + '</span><span class="x-grow"></span>' + (extra || '') + '<button class="x-btn icon sm ghost" aria-label="Filters">' + I('filter', 'i-sm') + '</button></div>';
+  var B3 = ['co', 'pipe', 'tpl'];
+  var bHeader = function (title) { return '<header class="x-appbar"><span class="t-sec">' + title + '</span><span class="x-grow"></span>' + acct + '</header>'; };
+  var bToolbar = function (view, extra) {
+    return '<div class="x-toolbar"><span class="x-select plain"><span class="v t-strong">Design systems</span>' + I('down', 'i-sm') + '</span><span class="x-select"><span class="v">' + view + '</span>' + I('down', 'i-sm') + '</span><span class="x-grow"></span>' + (extra || '') + '<button class="x-btn icon sm ghost" aria-label="Filters">' + I('filter', 'i-sm') + '</button></div>';
   };
-  var bTileRows = function (sel) {
-    return tiles.map(function (t, i) { return '<div class="x-row compact' + (i === sel ? ' sel' : '') + '">' + lead(t.k) + '<div class="x-row-main"><span class="x-row-title trunc">' + t.t + '</span><span class="t-cap trunc">' + t.m + '</span></div>' + (t.n ? '<span class="t-cap">' + t.n + '</span>' : '') + I('right', 'i-sm') + '</div>'; }).join('');
-  };
-  var bDiscover = bHeader('Discover') + bToolbar('Saved') + '<div class="scroll"><p class="t-cap x-pad pt4 x-row-flex">' + I('pin', 'i-sm') + 'Spokane, WA · Hybrid</p><div class="x-list mt2">' + bTileRows(-1) + '</div></div>' + tabbar('disc');
-  var bPostRows = function (sel) {
-    return posts.map(function (p, i) { return '<div class="x-row compact' + (i === sel ? ' sel' : '') + '"><div class="x-row-main"><span class="x-row-title trunc">' + p.t + '</span><span class="t-cap trunc">' + p.c + ' · ' + p.w + ' · ' + p.age + '</span></div>' + badge(p) + '</div>'; }).join('');
-  };
-  var bLive = bHeader('Discover') + bToolbar('Live', '<button class="x-btn icon sm ghost" aria-label="Sort">' + I('sort', 'i-sm') + '</button>') +
-    '<div class="scroll"><div class="x-pad pt4 x-row-flex x-between"><span class="t-cap">38 openings</span><span class="x-chip removable">Contract' + I('x', 'i-sm') + '</span></div><div class="x-list mt2">' + bPostRows(-1) + '</div></div>' + tabbar('disc');
-  var p0 = posts[0];
-  var bDetail = '<header class="x-appbar">' + '<button class="x-btn icon ghost" aria-label="Back">' + I('left') + '</button><span class="t-cap">Live · 1 of 38</span><span class="x-grow"></span><button class="x-btn icon ghost" aria-label="More">' + I('more') + '</button></header>' +
-    '<div class="scroll x-pad pt4 x-stack g4"><div class="x-stack g2"><h2 class="t-title">' + p0.t + '</h2><p class="t-sec2">' + p0.c + ' · ' + p0.w + '</p><div class="x-row-flex">' + badge(p0) + '<span class="x-meta-chip">' + p0.pay + '</span><span class="x-meta-chip">' + p0.src + '</span></div></div>' +
-    '<div class="x-divider"></div><div class="x-stack g2"><h3 class="t-sec">Why it fits</h3><p class="t-sec2">Matches "design system", "tokens" and "React". No blockers found. Posted ' + p0.age + ' ago.</p></div>' +
-    '<div class="x-stack g2"><h3 class="t-sec">From the posting</h3><p class="t-sec2">' + p0.s + ' You will partner with engineering leads across three product teams and set contribution rules for the library.</p></div></div>' +
-    '<div class="x-actionbar"><button class="x-btn secondary">' + I('open', 'i-sm') + 'Open</button><button class="x-btn primary x-grow">' + I('save', 'i-sm') + 'Save to pipeline</button></div>';
-  var bToday = bHeader('Today') + '<div class="x-toolbar"><span class="x-select plain"><span class="v t-strong">This week</span>' + I('down', 'i-sm') + '</span><span class="x-grow"></span><button class="x-btn sm primary">' + I('plus', 'i-sm') + 'Add job</button></div>' +
-    '<div class="scroll"><p class="t-cap x-pad pt4">Follow up · 2</p><div class="x-list mt2">' +
-    due.map(function (d) { return '<div class="x-row compact"><div class="x-row-main"><span class="x-row-title trunc">' + d.t + '</span><span class="t-cap trunc">' + d.c + ' · ' + d.m + '</span></div>' + I('right', 'i-sm') + '</div>'; }).join('') + '</div>' +
-    '<p class="t-cap x-pad pt4">Next 7 days · 2</p><div class="x-list mt2">' +
-    soon.map(function (e) { return '<div class="x-row compact"><span class="x-date"><span class="t-cap">' + e.d + '</span><b>' + e.n + '</b></span><div class="x-row-main"><span class="x-row-title">' + e.t + '</span><span class="t-cap">' + e.c + '</span></div>' + I('right', 'i-sm') + '</div>'; }).join('') + '</div></div>' + tabbar('today');
+  var bCoRows = function (sel) { return cos.map(function (c, i) { return '<div class="x-row compact' + (i === sel ? ' sel' : '') + '">' + lead(c.k) + '<div class="x-row-main"><span class="x-row-flex"><span class="x-row-title trunc">' + c.n + '</span>' + (c.fresh ? newBadge : '') + '</span><span class="t-cap trunc">' + c.team + '</span></div><span class="t-cap">' + c.roles + ' open</span>' + I('right', 'i-sm') + '</div>'; }).join(''); };
+  var bCompanies = bHeader('Companies') + bToolbar('Hiring now', '<button class="x-btn icon sm ghost" aria-label="Add a company">' + I('plus', 'i-sm') + '</button>') +
+    '<div class="scroll"><p class="t-cap x-pad pt4 x-row-flex">' + I('pin', 'i-sm') + 'Spokane, WA · Hybrid · 6 teams</p><div class="x-list mt2">' + bCoRows(-1) + '</div></div>' + tabbar('co', B3);
+  var bStarred = bHeader('Companies') + bToolbar('Starred') +
+    '<div class="scroll"><div class="x-pad pt4 x-row-flex x-between"><span class="t-cap">5 starred · checked yesterday</span><button class="x-btn sm primary">' + I('refresh', 'i-sm') + 'Check now</button></div><div class="x-list mt2">' +
+    starredOnly.map(function (c) { return '<div class="x-row compact">' + lead(c.k) + '<div class="x-row-main"><span class="x-row-flex"><span class="x-row-title trunc">' + c.n + '</span>' + (c.fresh ? newBadge : '') + '</span><span class="t-cap trunc">' + c.m + '</span></div>' + I('right', 'i-sm') + '</div>'; }).join('') + '</div></div>' + tabbar('co', B3);
+  var bCompanyBody = '<div class="x-stack g2"><div class="x-row-flex">' + lead('NL') + '<h2 class="t-title">Northwind Labs</h2>' + star(true) + '</div><p class="t-cap">Design system team · Greenhouse board · checked 5 min ago</p></div>' +
+    '<div class="x-divider"></div><div class="x-row-flex x-between"><h3 class="t-sec">Open roles</h3><span class="t-cap">3</span></div>';
+  var bRoleRows = function (selBtn) { return roles.map(function (r, i) { return '<div class="x-row compact" style="padding-left:0;padding-right:0"><div class="x-row-main"><span class="x-row-flex"><span class="x-row-title trunc">' + r.t + '</span>' + (r.fresh ? newBadge : '') + '</span><span class="t-cap trunc">' + r.m + '</span></div>' + badge(r) + '<button class="x-btn sm ' + (i === 0 ? 'primary' : 'secondary') + '">' + I('save', 'i-sm') + 'Save</button></div>'; }).join(''); };
+  var bCompany = '<header class="x-appbar"><button class="x-btn icon ghost" aria-label="Back">' + I('left') + '</button><span class="t-cap">Companies · 1 of 6</span><span class="x-grow"></span><button class="x-btn icon ghost" aria-label="More">' + I('more') + '</button></header>' +
+    '<div class="scroll x-pad pt4 x-stack g4">' + bCompanyBody + '<div class="x-list">' + bRoleRows() + '</div></div>' +
+    '<div class="x-actionbar"><button class="x-btn secondary x-grow">' + I('open', 'i-sm') + 'Careers page</button></div>';
+  var bPipe = bHeader('Pipeline') + '<div class="x-toolbar"><span class="x-select plain"><span class="v t-strong">Next step</span>' + I('down', 'i-sm') + '</span><span class="x-grow"></span><button class="x-btn sm primary">' + I('plus', 'i-sm') + 'Add job</button></div>' +
+    '<div class="scroll">' + stages.map(function (s) { return '<p class="t-cap x-pad pt4">' + s.h + ' · ' + s.jobs.length + '</p><div class="x-list mt2">' + s.jobs.map(function (j) { return '<div class="x-row compact"><div class="x-row-main"><span class="x-row-title trunc">' + j.t + '</span><span class="t-cap trunc">' + j.c + ' · ' + j.m + '</span></div>' + I('right', 'i-sm') + '</div>'; }).join('') + '</div>'; }).join('') + '</div>' + tabbar('pipe', B3);
   var bTpl = bHeader('Templates') + '<div class="x-toolbar"><div class="x-input x-grow" style="height:var(--primitive-space-8)">' + I('search', 'i-sm') + '<span class="ph">Find a template</span></div><button class="x-btn icon sm ghost" aria-label="New template">' + I('plus', 'i-sm') + '</button></div>' +
-    '<div class="scroll"><div class="x-list">' + tpls.map(function (t) { return '<div class="x-row compact"><div class="x-row-main"><span class="x-row-title">' + t.t + '</span><span class="t-cap trunc">' + t.p.split('\n')[1] + '</span></div>' + I('right', 'i-sm') + '</div>'; }).join('') + '</div></div>' + tabbar('tpl');
-  var bDesk = '<header class="x-appbar" style="padding:0 var(--primitive-space-6);gap:var(--primitive-space-8)"><span class="x-word">Roleforge</span>' + toptabs('disc') + '<span class="x-grow"></span><span class="x-avatar">' + I('user', 'i-sm') + '</span></header>' +
+    '<div class="scroll"><div class="x-list">' + tpls.map(function (t) { return '<div class="x-row compact"><div class="x-row-main"><span class="x-row-title">' + t.t + '</span><span class="t-cap trunc">' + t.p.split('\n')[1] + '</span></div>' + I('right', 'i-sm') + '</div>'; }).join('') + '</div></div>' + tabbar('tpl', B3);
+  var bDesk = deskHead('co', B3) +
     '<div class="d-body"><aside class="d-rail"><div class="x-select" style="height:var(--primitive-space-10);justify-content:space-between"><span class="v t-strong">Design systems</span>' + I('down', 'i-sm') + '</div><p class="t-cap x-row-flex" style="padding:var(--primitive-space-2) var(--primitive-space-3)">' + I('pin', 'i-sm') + 'Spokane, WA · Hybrid</p>' +
-    '<p class="d-rail-h">Tools</p><a>Saved<span class="n">7</span></a><a class="on">Live postings<span class="n">38</span></a><a>Searches</a><a>Find companies</a>' +
-    '<p class="d-rail-h">Saved searches</p><a>Contract only<span class="n">9</span></a><a>Founding roles<span class="n">4</span></a></aside>' +
-    '<div class="d-list"><div class="x-toolbar" style="padding:0 var(--primitive-space-4)"><span class="t-strong">Live postings</span><span class="x-grow"></span><span class="t-cap">38</span><button class="x-btn icon sm ghost" aria-label="Sort">' + I('sort', 'i-sm') + '</button><button class="x-btn icon sm ghost" aria-label="Filters">' + I('filter', 'i-sm') + '</button></div><div class="x-list">' + bPostRows(0) + '</div></div>' +
-    '<div class="d-detail"><div class="x-row-flex x-between"><div class="x-stack g2"><h2 class="t-title">' + p0.t + '</h2><p class="t-sec2">' + p0.c + ' · ' + p0.w + '</p></div><div class="x-row-flex"><button class="x-btn secondary">' + I('open', 'i-sm') + 'Open</button><button class="x-btn primary">' + I('save', 'i-sm') + 'Save to pipeline</button></div></div>' +
-    '<div class="x-row-flex">' + badge(p0) + '<span class="x-meta-chip">' + p0.pay + '</span><span class="x-meta-chip">' + p0.src + ' · ' + p0.age + '</span></div><div class="x-divider"></div>' +
-    '<div class="x-stack g2"><h3 class="t-sec">Why it fits</h3><p class="t-sec2">Matches "design system", "tokens" and "React". No blockers found.</p></div><div class="x-stack g2"><h3 class="t-sec">From the posting</h3><p class="t-sec2">' + p0.s + ' You will partner with engineering leads across three product teams and set contribution rules for the library.</p></div></div></div>';
+    '<p class="d-rail-h">Companies</p><a class="on">Hiring now<span class="n">6</span></a><a>Starred<span class="n">5</span></a><a class="t-sec2">' + I('plus', 'i-sm') + 'Add a company</a></aside>' +
+    '<div class="d-list"><div class="x-toolbar" style="padding:0 var(--primitive-space-4)"><span class="t-strong">Hiring now</span><span class="x-grow"></span><button class="x-btn sm secondary">' + I('refresh', 'i-sm') + 'Check starred</button><button class="x-btn icon sm ghost" aria-label="Filters">' + I('filter', 'i-sm') + '</button></div><div class="x-list">' + bCoRows(0) + '</div></div>' +
+    '<div class="d-detail">' + bCompanyBody + '<div class="x-list">' + bRoleRows() + '</div></div></div>';
 
   /* =====================================================================
-     C · Search first — one search field, scope chips, filters in a sheet
+     C · Search first — Companies · Pipeline; templates live in the Apply step
      ===================================================================== */
-  var cHeader = function (action) { return '<header class="x-appbar"><span class="x-word">Roleforge</span><span class="x-grow"></span>' + (action || '') + '<span class="x-avatar">' + I('user', 'i-sm') + '</span></header>'; };
-  var cSearch = function (ph, f) { return '<div class="x-pad pt4 x-row-flex"><div class="x-input lg x-grow">' + I('search') + '<span class="ph">' + ph + '</span></div><button class="x-btn icon secondary" style="height:48px;width:48px" aria-label="Filters">' + I('filter') + '</button></div>' + (f || ''); };
-  var cScopes = function (on) { return '<div class="x-pad mt3 x-chips">' + ['All', 'Saved', 'Live', 'Searches', 'Find'].map(function (x) { return '<span class="x-chip' + (x === on ? ' on' : '') + '">' + x + '</span>'; }).join('') + '</div>'; };
-  var cCtx = '<p class="t-cap x-pad mt3 x-row-flex">Design systems · ' + I('pin', 'i-sm') + 'Spokane, WA · Hybrid</p>';
-  var cTileCards = tiles.slice(0, 5).map(function (t) {
-    return '<article class="x-card"><div class="x-row-flex">' + lead(t.k) + '<div class="x-row-main"><span class="x-row-title trunc">' + t.t + '</span><span class="t-cap trunc">' + t.m + '</span></div></div><div class="x-row-flex x-between">' + (t.n ? '<span class="x-meta-chip">' + t.n + '</span>' : '<span class="x-meta-chip">Search</span>') + '<button class="x-btn sm secondary">' + I('open', 'i-sm') + 'Open</button></div></article>';
-  }).join('');
-  var cDiscover = cHeader('<button class="x-btn sm primary">' + I('plus', 'i-sm') + 'Add</button>') + '<div class="scroll">' + cSearch('Search Design systems') + cScopes('Saved') + cCtx + '<div class="x-cards mt3 pb4">' + cTileCards + '</div></div>' + tabbar('disc');
-  var cPostCards = posts.slice(0, 4).map(function (p) {
-    return '<article class="x-card"><div class="x-stack g1"><span class="x-row-title">' + p.t + '</span><span class="t-cap trunc">' + p.c + ' · ' + p.w + ' · ' + p.age + '</span></div><p class="t-sec2 clamp2">' + p.s + '</p><div class="x-row-flex x-between"><span class="x-row-flex">' + badge(p) + (p.pay ? '<span class="x-meta-chip">' + p.pay + '</span>' : '') + '</span><button class="x-btn sm secondary">' + I('save', 'i-sm') + 'Save</button></div></article>';
-  }).join('');
-  var cApplied = '<div class="x-pad mt3 x-chips"><span class="x-chip removable">Contract' + I('x', 'i-sm') + '</span><span class="x-chip removable">Pay ≥ $120k' + I('x', 'i-sm') + '</span><span class="x-chip" style="border-color:transparent">Clear</span></div>';
-  var cLive = cHeader() + '<div class="scroll">' + cSearch('design system, tokens', '') + cScopes('Live') + cApplied + '<p class="t-cap x-pad mt3">38 openings · 6 hidden by filters</p><div class="x-cards mt2 pb4">' + cPostCards + '</div></div>' + tabbar('disc');
-  var cSheet = cLive.replace(/<nav class="x-tabbar"[\s\S]*<\/nav>$/, '') +
-    '<div class="x-sheet-scrim"><div class="x-sheet" role="dialog" aria-label="Filters"><span class="x-grab"></span><div class="x-row-flex x-between"><h3 class="t-sec">Filters</h3><button class="x-btn sm ghost">Reset</button></div>' +
-    '<div class="x-field"><span class="x-label">Where</span><div class="x-row-flex"><div class="x-input x-grow">' + I('pin', 'i-sm') + '<span class="ph" style="color:var(--semantic-color-content-primary)">Spokane, WA</span></div></div><div class="x-seg">' + ['Any', 'Remote', 'Hybrid', 'On-site'].map(function (x) { return '<span class="' + (x === 'Hybrid' ? 'on' : '') + '">' + x + '</span>'; }).join('') + '</div></div>' +
-    '<div class="x-field"><span class="x-label">Kind</span><div class="x-chips" style="flex-wrap:wrap"><span class="x-chip on">Contract</span><span class="x-chip">Founding</span><span class="x-chip">Full-time</span></div></div>' +
-    '<div class="x-field"><span class="x-label">Pay floor</span><div class="x-input">$120,000</div><span class="t-cap">Only applies where a source states pay.</span></div>' +
-    '<div class="x-field"><span class="x-label">Leave out</span><div class="x-input"><span class="ph">e.g. "intern", "crypto"</span></div></div>' +
-    '<button class="x-btn primary block">Show 38 openings</button></div></div>';
-  var cToday = cHeader() + '<div class="scroll"><div class="x-pad pt4"><h2 class="t-title">Today</h2></div><div class="x-pad mt3"><div class="x-input lg">' + I('plus') + '<span class="ph">Paste a job link to add it</span></div></div>' +
-    '<div class="x-pad mt6"><h3 class="t-sec">Follow up</h3></div><div class="x-list mt2">' +
-    due.map(function (d) { return '<div class="x-row"><div class="x-row-main"><span class="x-row-title trunc">' + d.t + '</span><span class="t-cap trunc">' + d.c + ' · ' + d.m + '</span></div><button class="x-btn sm secondary">Log</button></div>'; }).join('') + '</div>' +
-    '<div class="x-pad mt6"><h3 class="t-sec">Next 7 days</h3></div><div class="x-list mt2">' +
-    soon.map(function (e) { return '<div class="x-row"><span class="x-date"><span class="t-cap">' + e.d + '</span><b>' + e.n + '</b></span><div class="x-row-main"><span class="x-row-title">' + e.t + '</span><span class="t-cap">' + e.c + '</span></div>' + I('right', 'i-sm') + '</div>'; }).join('') + '</div></div>' + tabbar('today');
-  var cTpl = cHeader('<button class="x-btn sm primary">' + I('plus', 'i-sm') + 'New</button>') + '<div class="scroll">' + cSearch('Search templates') + '<div class="x-pad mt3 x-chips"><span class="x-chip on">All</span><span class="x-chip">Pinned</span><span class="x-chip">Outreach</span><span class="x-chip">Follow-up</span></div><div class="x-list mt3">' +
-    tpls.map(function (t) { return '<div class="x-template"><span class="x-row-title">' + t.t + '</span><p class="x-preview pre clamp2">' + t.p + '</p></div>'; }).join('') + '</div></div>' + tabbar('tpl');
-  var cDesk = '<header class="x-appbar" style="padding:0 var(--primitive-space-8);gap:var(--primitive-space-8)"><span class="x-word">Roleforge</span>' + toptabs('disc') + '<span class="x-grow"></span><button class="x-btn sm primary">' + I('plus', 'i-sm') + 'Add</button><span class="x-avatar">' + I('user', 'i-sm') + '</span></header>' +
-    '<div class="x-stack g3" style="padding:var(--primitive-space-6) var(--primitive-space-8);border-bottom:1px solid var(--semantic-color-border-subtle)"><div class="x-row-flex" style="max-width:960px"><span class="x-select" style="height:48px"><span class="v t-strong">Design systems</span>' + I('down', 'i-sm') + '</span><div class="x-input lg x-grow">' + I('search') + '<span class="ph">design system, tokens</span></div></div><div class="x-chips">' + ['All', 'Saved', 'Live', 'Searches', 'Find'].map(function (x) { return '<span class="x-chip' + (x === 'Live' ? ' on' : '') + '">' + x + '</span>'; }).join('') + '</div></div>' +
+  var C2 = ['co', 'pipe'];
+  var cHeader = function (action) { return '<header class="x-appbar"><span class="x-word">Roleforge</span><span class="x-grow"></span>' + (action || '') + acct + '</header>'; };
+  var cSearch = function (ph) { return '<div class="x-pad pt4 x-row-flex"><div class="x-input lg x-grow">' + I('search') + '<span class="ph">' + ph + '</span></div><button class="x-btn icon secondary" style="height:48px;width:48px" aria-label="Filters">' + I('filter') + '</button></div>'; };
+  var cScopes = function (on, list) { return '<div class="x-pad mt4 x-chips" style="flex-wrap:wrap">' + list.map(function (x) { return '<span class="x-chip' + (x === on ? ' on' : '') + '">' + x + '</span>'; }).join('') + '</div>'; };
+  var cCoCard = function (c) {
+    return '<article class="x-card"><div class="x-row-flex">' + lead(c.k) + '<div class="x-row-main"><span class="x-row-flex"><span class="x-row-title trunc">' + c.n + '</span>' + (c.fresh ? newBadge : '') + '</span><span class="t-cap trunc">' + c.team + '</span></div>' + star(c.star) + '</div>' +
+      '<p class="t-sec2 trunc">' + c.top + (c.roles > 1 ? ' + ' + (c.roles - 1) + ' more' : '') + '</p><div class="x-row-flex x-between"><span class="x-meta-chip">' + c.roles + ' open</span><button class="x-btn sm secondary">See roles' + I('right', 'i-sm') + '</button></div></article>';
+  };
+  var cCompanies = cHeader('<button class="x-btn sm primary">' + I('plus', 'i-sm') + 'Add</button>') + '<div class="scroll">' + cSearch('Search companies or roles') + cScopes('Hiring now', ['Hiring now', 'Starred', 'All']) +
+    '<div class="x-pad mt4">' + ctx + '</div><div class="x-cards mt4 pb4">' + cos.slice(0, 4).map(cCoCard).join('') + '</div></div>' + tabbar('co', C2);
+  var cStarred = cHeader() + '<div class="scroll">' + cSearch('Search starred') + cScopes('Starred', ['Hiring now', 'Starred', 'All']) +
+    '<div class="x-pad mt4"><div class="x-card"><div class="x-row-flex x-between"><div class="x-stack g1"><span class="x-row-title">5 dream companies</span><span class="t-cap">Last checked yesterday</span></div><button class="x-btn primary">' + I('refresh', 'i-sm') + 'Check now</button></div></div></div>' +
+    '<div class="x-list mt4">' + starredOnly.map(function (c) { return coRow(c, I('right', 'i-sm')); }).join('') + '</div></div>' + tabbar('co', C2);
+  var cCompany = '<header class="x-appbar"><button class="x-btn icon ghost" aria-label="Back">' + I('left') + '</button><span class="t-cap">Companies</span><span class="x-grow"></span>' + star(true) + '</header>' +
+    '<div class="scroll"><div class="x-pad pt4 x-stack g2"><div class="x-row-flex">' + lead('NL') + '<h2 class="t-title">Northwind Labs</h2></div><p class="t-cap">Design system team · Greenhouse board · checked 5 min ago</p></div>' +
+    '<div class="x-cards mt6 pb4">' + roles.map(function (r) { return '<article class="x-card"><div class="x-stack g1"><span class="x-row-flex"><span class="x-row-title">' + r.t + '</span>' + (r.fresh ? newBadge : '') + '</span><span class="t-cap">' + r.m + '</span></div><div class="x-row-flex x-between">' + badge(r) + '<button class="x-btn sm secondary">' + I('save', 'i-sm') + 'Save</button></div></article>'; }).join('') + '</div></div>';
+  var cPipe = cHeader() + '<div class="scroll"><div class="x-pad pt4"><div class="x-input lg">' + I('plus') + '<span class="ph">Paste a job link to add it</span></div></div>' +
+    cScopes('To apply · 2', ['To apply · 2', 'Follow up · 2', 'Interviewing · 1', 'Waiting · 1']) +
+    '<div class="x-cards mt4">' + stages[0].jobs.map(function (j) { return '<article class="x-card"><div class="x-stack g1"><span class="x-row-title">' + j.t + '</span><span class="t-cap">' + j.c + ' · ' + j.m + '</span></div><div class="x-row-flex x-between"><button class="x-btn icon sm ghost" aria-label="More">' + I('more', 'i-sm') + '</button><button class="x-btn sm primary">Apply' + I('right', 'i-sm') + '</button></div></article>'; }).join('') + '</div>' + nextLoop + '</div>' + tabbar('pipe', C2);
+  var cApply = cPipe.replace(/<nav class="x-tabbar"[\s\S]*<\/nav>$/, '') +
+    '<div class="x-sheet-scrim"><div class="x-sheet" role="dialog" aria-label="Apply"><span class="x-grab"></span><div class="x-stack g1"><h3 class="t-sec">Apply: Design systems engineer</h3><span class="t-cap">Northwind Labs · Greenhouse</span></div>' +
+    '<div class="x-field"><span class="x-label">1 · Open the posting</span><button class="x-btn secondary block">' + I('open', 'i-sm') + 'Open on Greenhouse</button></div>' +
+    '<div class="x-field"><span class="x-label">2 · Note or cover letter</span><div class="x-select" style="height:var(--primitive-space-10);justify-content:space-between"><span class="v">Cold intro</span>' + I('down', 'i-sm') + '</div><p class="x-preview pre clamp2">Hi Sam,\nI saw the Design systems engineer opening at Northwind Labs and wanted to reach out directly…</p><button class="x-btn ghost" style="align-self:flex-start">' + I('copy', 'i-sm') + 'Copy filled text</button></div>' +
+    '<div class="x-field"><span class="x-label">3 · Done?</span><span class="t-cap">Marks it applied and sets a follow-up for 7 days from today.</span></div>' +
+    '<button class="x-btn primary block">' + I('check', 'i-sm') + 'Mark applied</button></div></div>';
+  var cDesk = deskHead('co', C2, '<button class="x-btn sm primary">' + I('plus', 'i-sm') + 'Add a company</button>') +
+    '<div class="x-stack g4" style="padding:var(--semantic-space-layout-inset) var(--semantic-space-layout-spacious);border-bottom:1px solid var(--semantic-color-border-subtle)"><div class="x-row-flex" style="max-width:960px"><span class="x-select" style="height:48px"><span class="v t-strong">Design systems</span>' + I('down', 'i-sm') + '</span><div class="x-input lg x-grow">' + I('search') + '<span class="ph">Search companies or roles</span></div></div><div class="x-chips">' + ['Hiring now', 'Starred', 'All'].map(function (x) { return '<span class="x-chip' + (x === 'Hiring now' ? ' on' : '') + '">' + x + '</span>'; }).join('') + '</div></div>' +
     '<div class="d-body"><aside class="d-filters"><div class="x-row-flex x-between"><h3 class="t-sec">Filters</h3><button class="x-btn sm ghost">Reset</button></div>' +
-    '<div class="x-field"><span class="x-label">Where</span><div class="x-input">' + I('pin', 'i-sm') + '<span class="ph" style="color:var(--semantic-color-content-primary)">Spokane, WA</span></div>' + ['Any', 'Remote', 'Hybrid', 'On-site'].map(function (x) { return '<span class="x-check"><span class="x-box' + (x === 'Hybrid' || x === 'Remote' ? ' on' : '') + '">' + (x === 'Hybrid' || x === 'Remote' ? I('check', 'i-sm') : '') + '</span>' + x + '</span>'; }).join('') + '</div>' +
-    '<div class="x-field"><span class="x-label">Kind</span>' + ['Contract', 'Founding', 'Full-time'].map(function (x, i) { return '<span class="x-check"><span class="x-box' + (i === 0 ? ' on' : '') + '">' + (i === 0 ? I('check', 'i-sm') : '') + '</span>' + x + '</span>'; }).join('') + '</div>' +
-    '<div class="x-field"><span class="x-label">Pay floor</span><div class="x-input">$120,000</div></div></aside>' +
-    '<div class="d-main"><div class="x-row-flex x-between"><span class="t-cap">38 openings · 6 hidden by filters</span><span class="x-select plain">Newest' + I('down', 'i-sm') + '</span></div><div class="d-grid">' +
-    posts.concat(posts.slice(0, 1)).map(function (p) { return '<article class="x-card"><div class="x-stack g1"><span class="x-row-title">' + p.t + '</span><span class="t-cap trunc">' + p.c + ' · ' + p.w + ' · ' + p.age + '</span></div><p class="t-sec2 clamp2">' + p.s + '</p><div class="x-row-flex x-between"><span class="x-row-flex">' + badge(p) + (p.pay ? '<span class="x-meta-chip">' + p.pay + '</span>' : '') + '</span><button class="x-btn sm secondary">' + I('save', 'i-sm') + 'Save</button></div></article>'; }).join('') +
-    '</div></div></div>';
+    '<div class="x-field"><span class="x-label">Where</span><div class="x-input">' + I('pin', 'i-sm') + '<span class="ph" style="color:var(--semantic-color-content-primary)">Spokane, WA</span></div>' + ['Remote', 'Hybrid', 'On-site'].map(function (x) { var on = x !== 'On-site'; return '<span class="x-check"><span class="x-box' + (on ? ' on' : '') + '">' + (on ? I('check', 'i-sm') : '') + '</span>' + x + '</span>'; }).join('') + '</div>' +
+    '<div class="x-field"><span class="x-label">Team</span>' + ['Design system team', 'Founding team', 'Any team'].map(function (x, i) { return '<span class="x-check"><span class="x-box' + (i === 0 ? ' on' : '') + '">' + (i === 0 ? I('check', 'i-sm') : '') + '</span>' + x + '</span>'; }).join('') + '</div>' +
+    '<div class="x-field"><span class="x-label">Starred</span><button class="x-btn secondary">' + I('refresh', 'i-sm') + 'Check 5 starred</button></div></aside>' +
+    '<div class="d-main"><span class="t-cap">6 teams with open roles</span><div class="d-grid">' + cos.map(cCoCard).join('') + '</div></div></div>';
 
   /* ---------- Directions ---------- */
   var dirs = [
     {
       id: 'dir-a', L: 'A', name: 'Calm list',
-      thesis: 'One column, quiet rows, one action bar. Three app tabs (Pipeline · Discover · Templates): Today is gone, and what was due there sits in a compact Due now strip at the top of the Pipeline.',
+      thesis: 'Three tabs, one column of quiet rows, one action bar. Companies is home: teams hiring now, plus your starred dream companies with one button to check them. Every screen points to the next step of the loop.',
       rules: [
-        '<b>One primary action per screen</b>: Add job in the Pipeline header (with the paste-a-link field), elsewhere the bottom action bar. Rows get at most one ghost next step; everything else, Remove included, sits in the "…" menu. No tinted buttons on a list item.',
-        '<b>Two nav levels max</b>: three app tabs (no Today; follow-ups and the next 7 days fold into the Pipeline\'s Due now strip) and one 4-way tool switch. Track sections become a filter, not a third tab row.',
-        '<b>The title is the context</b>: the track name is the page title and the track switcher; location is one caption line under it. No intro paragraphs.',
-        '<b>Filters collapse</b> into one "Filters (n)" button that opens a sheet. Above results: title, tool switch, count. Nothing else.',
-        '<b>Rows, not cards</b>: titles are text (never input-looking boxes), one meta line, one trailing control, no "Snippet text" disclosure rows. Spacing matches the HDS docs site: 24 gutter (region-gutter), 80px rows with 20 above and below, 24 under a page title (docs paragraph), 48 between sections (docs section); section heads are body bold.'
+        '<b>One loop, one direction</b>: Companies → company → Save a role → Pipeline "To apply" → Apply → "Follow up" → Log. The Pipeline ends with "Find the next company", back to the start.',
+        '<b>Three app tabs, two nav levels max</b>: Companies · Pipeline · Templates, then one Hiring now / Starred switch. Live postings, Boards and Teams are not tools any more: open roles live on each company.',
+        '<b>One primary action per screen</b>: Add a company, Check starred, Add job, New template. Rows get at most one next step; the rest sits in "…". No tinted buttons on list items; titles are text.',
+        '<b>Filters collapse</b> into the track menu ("…"): location, work mode, other searches. Above the list: title, one context line, the switch.',
+        '<b>Rows, not cards</b>. HDS docs spacing: 24 gutter, 80px rows, 24 under a heading, 48 between sections.'
       ],
-      stats: ['3 app tabs, no Today', '3 rows before results', '2 nav levels', 'Low build cost'],
+      stats: ['3 tabs', '3 routes per job: company, pipeline, job', 'Low build cost'],
       shots: [
-        ['Shell + Discover · 390', 'Header is wordmark + account (no dot). Track title opens the track menu; "…" holds Manage track and New track.', aDiscover],
-        ['Live postings · 390', 'One refine field, one Filters button (2 applied). Each result: title, meta, fit + source, Save.', aLive],
-        ['Pipeline (home) · 390', 'Replaces Today: quick-add in the header, then a compact Due now strip (follow-ups + next 7 days), then the job rows. One ghost next step per row, the rest in "…".', aPipe],
-        ['Templates · 390', 'Text titles, a two-line preview with the line break kept (#207). Copy, Pin, Duplicate and Delete live in the template, not on the list. One primary: New template.', aTpl]
+        ['Companies (home) · 390', 'Teams with open roles, newest first. Star a company to watch it. Other search tools sit behind one link.', aCompanies],
+        ['Starred · 390', 'Dream companies; the one primary is "Check 5 starred for new roles". New openings get a New badge.', aStarred],
+        ['Company · 390', 'Open roles on this team, each with one Save. Saving puts it in "To apply".', aCompany],
+        ['Pipeline · 390', 'Grouped by the next step: To apply → Follow up → Interviewing → Waiting. Ends with "Find the next company".', aPipe],
+        ['Templates · 390', 'Text titles, a two-line preview with the line break kept (#207).', aTpl]
       ],
-      desk: ['Discover · 1440', 'Same column, plus a tracks + sections rail at ≥ lg (taken from B).', aDesk]
+      desk: ['Companies · 1440', 'Rail: Hiring now / Starred and tracks (from B). Same rows, same loop.', aDesk]
     },
     {
       id: 'dir-b', L: 'B', name: 'List and detail',
-      thesis: 'Every screen is a list plus a detail. One compact 48px toolbar holds the context; actions move off the rows and into the detail.',
+      thesis: 'Three tabs, each a list plus a detail. Companies is home: pick a team, its open roles are the detail, Save is the primary there. One compact toolbar per list.',
       rules: [
-        '<b>List → detail everywhere</b>: on a phone, tap a row for a full-screen detail with Back; on desktop, rail · list · detail in three panes.',
-        '<b>One toolbar per list</b> (48px): track, tool, sort, filter icon. On a phone the app tab name is the only title.',
-        '<b>Two nav levels max</b>: app tabs, then the tool menu (rail on desktop). Sections and saved searches sit in the rail, never as tabs.',
-        '<b>Actions live in the detail</b>, which owns the one primary (Save to pipeline). Rows carry a fit badge at most and a chevron.',
-        '<b>Even rhythm, still roomy</b>: 72px rows with 16 above and below, a 56px toolbar, 24 gutter, 48 around the detail and 32 between its blocks (HDS docs rhythm). Filters open from the toolbar icon as a popover (desktop) or sheet (phone).'
+        '<b>One loop</b>: Companies list → company detail (roles, one primary Save) → Pipeline sorted by next step → job detail (Apply, Log follow-up).',
+        '<b>Three app tabs, two nav levels max</b>: Companies · Pipeline · Templates, then the view select (Hiring now / Starred). Desktop puts both in the rail.',
+        '<b>Actions live in the detail</b>. Rows carry a count or badge and a chevron, nothing else.',
+        '<b>One toolbar per list</b> (56px): track, view, filter icon. Filters open as a popover (desktop) or sheet (phone).',
+        '<b>Even rhythm</b>: 72px rows, 24 gutter, 48 around the detail and 32 between its blocks (HDS docs rhythm).'
       ],
-      stats: ['1 row before results', '2 nav levels', 'High build cost'],
+      stats: ['3 tabs', '1 row before the list', 'High build cost'],
       shots: [
-        ['Shell + Discover · 390', 'Track and tool are two selects in one toolbar. Location is a caption, set in the track menu.', bDiscover],
-        ['Live postings · 390', 'Compact rows with the fit badge only; an applied filter shows as one chip.', bLive],
-        ['Posting detail · 390', 'Detail owns the actions: Open and the one primary, Save to pipeline.', bDetail],
-        ['Today · 390', 'Same row pattern; Add job sits in the toolbar.', bToday],
-        ['Templates · 390', 'Search in the toolbar, "+" for new; the detail is the editor (already shipped in #132).', bTpl]
+        ['Companies (home) · 390', 'Track + view in the toolbar; "+" adds a company.', bCompanies],
+        ['Starred · 390', 'Same list, starred view; Check now is the one primary.', bStarred],
+        ['Company detail · 390', 'Roles with Save; the top role\'s Save is the primary.', bCompany],
+        ['Pipeline · 390', 'Sorted by next step; the job detail holds Apply and Log follow-up.', bPipe],
+        ['Templates · 390', 'Search + "+"; the detail is the editor (#132).', bTpl]
       ],
-      desk: ['Discover · Live postings · 1440', 'Rail (track, tools, saved searches) · list · detail.', bDesk]
+      desk: ['Companies · 1440', 'Rail (track, Hiring now / Starred) · companies · open roles.', bDesk]
     },
     {
       id: 'dir-c', L: 'C', name: 'Search first',
-      thesis: 'Each list opens on one big search field. Scope chips replace tool tabs, and every filter lives in one sheet that leaves applied chips behind.',
+      thesis: 'Two tabs only. Companies opens on one search field; the Pipeline opens on paste-a-link. Templates are not a place you go: they appear inside the Apply step, where you need them.',
       rules: [
-        '<b>Search is the first control</b> after the header on every list screen (Discover, Live, Templates); Today opens on the paste-a-link field.',
-        '<b>Scope chips replace tool tabs</b>: All · Saved · Live · Searches · Find. Two nav levels max.',
-        '<b>All filters in one sheet</b> (phone) or a left panel (desktop). Applied filters stay as removable chips with a "hidden by filters" count.',
-        '<b>Cards only for results you scan</b> (title, meta, two-line snippet, fit + one chip, one Save). Today and Templates use rows.',
-        '<b>One primary per screen</b>, small, in the header (Add / New). Spacing from the HDS docs site: 24 gutter and card padding (surface-padding), 32 between cards (grid-gap, so inner padding stays smaller than the gap), 48 between sections.'
+        '<b>One loop with a guided Apply</b>: Companies → See roles → Save → Pipeline "To apply" → Apply sheet (open posting, pick a template, copy, Mark applied) → follow-up set for you.',
+        '<b>Two app tabs</b>: Companies · Pipeline. Templates are edited from the Apply sheet or the Account menu. Two nav levels max (tab + scope chips).',
+        '<b>Search is the first control</b>; scope chips (Hiring now · Starred · All, or the Pipeline stages) replace tabs. Filters live in one sheet / side panel.',
+        '<b>Cards only for things you scan</b>: a company card has its team, top role and one "See roles"; a job card has one "Apply". Secondary actions in "…".',
+        '<b>HDS docs spacing</b>: 24 gutter and card padding, 32 between cards (inner padding stays smaller), 48 between sections.'
       ],
-      stats: ['2 rows before results', '2 nav levels', 'Medium build cost'],
+      stats: ['2 tabs', 'Templates inside Apply', 'Medium build cost'],
       shots: [
-        ['Shell + Discover · 390', 'Search, scope chips, a one-line context. Cards keep one action each.', cDiscover],
-        ['Live postings · 390', 'Applied filters as chips; cards show the snippet under the title, Save last.', cLive],
-        ['Live filters sheet · 390', 'Location, work mode, kind, pay floor and leave-out terms in one place, one primary.', cSheet],
-        ['Today · 390', 'Opens on the paste-a-link field, then follow-ups and the week.', cToday],
-        ['Templates · 390', 'Search + category chips, rows with a two-line preview.', cTpl]
+        ['Companies (home) · 390', 'Search, scope chips, one context line; one action per card.', cCompanies],
+        ['Starred · 390', 'One card holds the check: "Check now". New openings get a badge.', cStarred],
+        ['Company · 390', 'Role cards with one Save each.', cCompany],
+        ['Pipeline · 390', 'Paste-a-link first; stage chips; one Apply per card; "Find the next company".', cPipe],
+        ['Apply sheet · 390', 'The loop\'s middle step in one place: open, pick a template, copy, Mark applied (sets the follow-up).', cApply]
       ],
-      desk: ['Discover · Live postings · 1440', 'Track select beside the search; filters panel left; 3-column card grid.', cDesk]
+      desk: ['Companies · 1440', 'Track select beside the search; filters left; company cards in a 3-column grid.', cDesk]
     }
   ];
 
