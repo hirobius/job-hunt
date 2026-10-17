@@ -223,6 +223,17 @@ describe('Variables panel (#221)', () => {
   });
 });
 
+it('a variable named [constructor] or [__proto__] renders and can be set', async () => {
+  viewport(1440);
+  window.location.hash = '#/copy-deck/tpl-cover';
+  replaceSnippets([{ id: 'tpl-cover', label: 'Cover', body: '[constructor] [__proto__]' }]);
+  await renderApp();
+  const vars = screen.getByRole('region', { name: 'Variables' });
+  await userEvent.type(within(vars).getByRole('textbox', { name: '__proto__' }), 'P');
+  expect(preview()).toHaveTextContent('[constructor] P');
+  expect(Object.prototype.hasOwnProperty.call(getSnippets()[0].values, '__proto__')).toBe(true);
+});
+
 describe('preview', () => {
   beforeEach(() => viewport(1440));
 

@@ -32,7 +32,7 @@ import { removeSnippet, toggleSnippetPin, updateSnippet } from './copyDeckStore'
 import type { Snippet } from './copyDeckStore';
 import { updateJob, useJobs } from './store';
 import type { Job } from './types';
-import { fillSnippet, resolveVariables } from './templateFill';
+import { fillSnippet, ownValue, resolveVariables } from './templateFill';
 import { insertAt, templateVariables, TOKEN_CHIPS } from './templateEditor';
 import { useApplyKit } from './applyKit';
 import TokenTextarea from './hds-gaps/TokenTextarea';
@@ -96,11 +96,10 @@ export default function TemplateDetail({
     updateSnippet(snippet.id, { body: r.value });
     area.current?.setCaret(r.caret);
   };
+  // fromEntries makes own keys, so even a variable named `__proto__` is stored as a plain value.
   const setTemplateValue = (key: string, v: string) => {
-    const values = { ...snippet.values };
-    if (v) values[key] = v;
-    else delete values[key];
-    updateSnippet(snippet.id, { values });
+    const rest = Object.entries(snippet.values ?? {}).filter(([k]) => k !== key);
+    updateSnippet(snippet.id, { values: Object.fromEntries(v ? [...rest, [key, v]] : rest) });
   };
 
   const copy = async () => {
@@ -151,14 +150,14 @@ export default function TemplateDetail({
 
   const variableField = (n: string) => {
     const key = n.toLowerCase();
-    const field = job && JOB_FIELD[key];
+    const field = job && (ownValue(JOB_FIELD, key) as (typeof JOB_FIELD)[string] | undefined);
     if (job && field)
       return (
         <HdsInput
           key={key}
           label={n}
           value={job[field] ?? ''}
-          placeholder={snippet.values?.[key] || 'Not set'}
+          placeholder={ownValue(snippet.values, key) || 'Not set'}
           onChange={(e) => updateJob(job.url, { [field]: e.target.value } as Partial<Job>)}
         />
       );
@@ -167,7 +166,7 @@ export default function TemplateDetail({
       <HdsInput
         key={key}
         label={n}
-        value={snippet.values?.[key] ?? ''}
+        value={ownValue(snippet.values, key) ?? ''}
         placeholder={kit || 'Not set'}
         helperText={kit ? 'Empty uses your Application kit name' : undefined}
         onChange={(e) => setTemplateValue(key, e.target.value)}

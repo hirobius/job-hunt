@@ -24,10 +24,20 @@ export function unfilledTokens(text: string): string[] {
   return TEMPLATE_TOKENS.filter((t) => new RegExp(`\\[${t}\\]`, 'i').test(text));
 }
 
+/** A map's own string value for `key`, so `[constructor]` or `[__proto__]` never reads the prototype. */
+export function ownValue(
+  o: Record<string, unknown> | null | undefined,
+  key: string,
+): string | undefined {
+  if (!o || !Object.prototype.hasOwnProperty.call(o, key)) return undefined;
+  const v = o[key];
+  return typeof v === 'string' ? v : undefined;
+}
+
 /** Fill any `[Variable]` from values keyed by its lower-case name; unset ones stay visible (#221). */
 export function fillVariables(body: string, values: Record<string, string | undefined>): string {
   return body.replace(/\[([^[\]\n]{1,40})\]/g, (m, name: string) => {
-    const v = values[name.trim().toLowerCase()]?.trim();
+    const v = ownValue(values, name.trim().toLowerCase())?.trim();
     return v ? v : m;
   });
 }
@@ -47,11 +57,12 @@ export function resolveVariables(
   kitName?: string,
 ): Resolved {
   const fromJob: Record<string, string | undefined> = job ? valuesFromJob(job) : {};
-  const out: Resolved = {};
+  // No prototype: a variable named `__proto__` or `constructor` is just a key.
+  const out: Resolved = Object.create(null);
   for (const n of names) {
     const key = n.toLowerCase();
-    const j = fromJob[key]?.trim();
-    const t = templateValues?.[key]?.trim();
+    const j = ownValue(fromJob, key)?.trim();
+    const t = ownValue(templateValues, key)?.trim();
     const k = key === 'your name' ? kitName?.trim() : '';
     if (j) out[key] = { value: j, source: 'job' };
     else if (t) out[key] = { value: t, source: 'template' };

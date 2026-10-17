@@ -3,6 +3,7 @@ import {
   fillTemplate,
   fillSnippet,
   fillVariables,
+  ownValue,
   resolveVariables,
   unfilledTokens,
   valuesFromJob,
@@ -100,5 +101,24 @@ describe('fillSnippet', () => {
         'Sam',
       ),
     ).toBe('Welder at Acme, Team. Sam [X]');
+  });
+});
+
+describe('variables named after Object.prototype members', () => {
+  const names = ['constructor', '__proto__', 'toString', 'hasOwnProperty'];
+  it.each(names)('[%s] stays visible when unset and never throws', (n) => {
+    const job = { url: 'u', company: 'Acme' } as Job;
+    expect(fillSnippet({ body: `Hi [${n}]` }, job, 'Sam')).toBe(`Hi [${n}]`);
+    expect(fillVariables(`[${n}]`, {})).toBe(`[${n}]`);
+    expect(Object.keys(resolveVariables([n], {}, job))).toEqual([]);
+  });
+  it.each(names)('[%s] fills from its own template value', (n) => {
+    const values = Object.fromEntries([[n.toLowerCase(), 'X']]);
+    expect(fillSnippet({ body: `[${n}]`, values }, null)).toBe('X');
+  });
+  it('ignores non-string values from an unsanitized synced blob', () => {
+    const values = { pet: 42, contact: null } as unknown as Record<string, string>;
+    expect(fillSnippet({ body: '[Pet] [Contact]', values }, null)).toBe('[Pet] [Contact]');
+    expect(ownValue({ a: 1 } as Record<string, unknown>, 'a')).toBeUndefined();
   });
 });
