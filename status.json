@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-17T18:00:00Z",
+  "updatedAt": "2026-10-17T19:30:00Z",
   "phase": "live",
-  "headline": "Live as Roleforge. Rapid apply in review (claude/rapid-apply): save notices with Open/Undo, bulk save in Live postings, To apply queue, Apply mode with a synced Application kit (blob v6).",
+  "headline": "Live as Roleforge. Rapid apply is on main. Wide sweep (#213) in review on claude/wide-sweep: one \"Find more\" search across every title on for the track, per-title chips, synced titles (blob v7).",
   "next": [
-    "Review and merge the rapid-apply PR so Adrian can apply from the app today.",
+    "Review and merge the wide-sweep PR (#213); it may merge outside the daily batch.",
     "Merge #181 (polish) and #187 (discovery follow-ups) after review.",
     "Persist all user-edited data across devices: outreach targets, saved searches, evidence, work mode (Adrian, 2026-10-15).",
     "Verify unverified-live sources on a preview: YC mirror, GitHub search, Jobicy, Workable/Recruitee probes, community site: clauses; Remote OK stays off until its legal notice is read.",
