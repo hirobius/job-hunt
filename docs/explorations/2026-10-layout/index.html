@@ -1133,6 +1133,7 @@ button { font: inherit; color: inherit; }
 .x-appbar { height: 56px; flex: none; display: flex; align-items: center; gap: var(--primitive-space-2); padding: 0 var(--semantic-space-region-gutter); border-bottom: 1px solid var(--semantic-color-border-subtle); background: var(--semantic-color-surface-page); }
 .x-word { font-family: var(--semantic-typography-title-font-family); font-weight: var(--semantic-typography-title-font-weight); font-size: var(--primitive-typography-size-base); }
 .x-grow { flex: 1; min-width: 0; }
+.x-mark { width: var(--primitive-space-7); height: var(--primitive-space-7); border-radius: var(--semantic-radius-action); background: var(--semantic-accent-rest); color: var(--semantic-color-content-onAccent); display: inline-flex; align-items: center; justify-content: center; font-family: var(--semantic-typography-title-font-family); font-weight: var(--semantic-typography-title-font-weight); font-size: var(--primitive-typography-size-sm); }
 .x-avatar { width: var(--primitive-space-8); height: var(--primitive-space-8); border-radius: var(--primitive-radius-full); background: var(--semantic-color-surface-muted); border: 1px solid var(--semantic-color-border-default); display: inline-flex; align-items: center; justify-content: center; color: var(--semantic-color-content-secondary); }
 
 .x-tabbar { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--semantic-color-border-default); background: var(--semantic-color-surface-page); padding-bottom: var(--primitive-space-4); }
@@ -1307,7 +1308,7 @@ button { font: inherit; color: inherit; }
       <li>Templates: full-width secondary "New snippet"; preview runs "[Company]Hi [Contact]," together (bug, filed as #207).</li>
       <li>Header: an unexplained dot next to Account.</li>
     </ul>
-    <p class="assume">Adrian's input, applied to all three: one obvious loop you can repeat for the next job; Companies (teams with open roles, plus starred dream companies with a one-button check) is the home screen; fewer routes, fewer tabs (no Today; follow-ups live in the Pipeline); none of the old card patterns (input-looking titles, rows of tinted Copy / Pin / Duplicate / Delete buttons, a "Snippet text" disclosure); HDS docs-site spacing (24 gutter and card padding, 32 between cards, 24 under a heading, 48 between sections). Assumed from parallel PRs: Insights moves to the Pipeline, status dots are gone, tables are restyled in HDS, HDS spacing is raised.</p>
+    <p class="assume">Adrian's input, applied to all three: one obvious loop you can repeat for the next job; Companies (teams with open roles, plus starred dream companies with a one-button check) is the home screen; fewer routes, fewer tabs (no Today; follow-ups live in the Pipeline); none of the old card patterns (input-looking titles, rows of tinted Copy / Pin / Duplicate / Delete buttons, a "Snippet text" disclosure); the app name never competes with page titles (a small mark on phone, a 16px wordmark in the desktop app bar; the page title is the largest type on every screen); HDS docs-site spacing (24 gutter and card padding, 32 between cards, 24 under a heading, 48 between sections). Assumed from parallel PRs: Insights moves to the Pipeline, status dots are gone, tables are restyled in HDS, HDS spacing is raised.</p>
   </section>
 
   <section class="panel" aria-labelledby="loop-h">
@@ -1419,6 +1420,7 @@ button { font: inherit; color: inherit; }
   };
   var stageHead = function (s, i) { return '<div class="x-pad ' + (i ? 'mt6' : 'mt4') + ' x-row-flex x-between"><h3 class="t-sec">' + s.h + '</h3><span class="t-cap">' + s.jobs.length + '</span></div>'; };
   var nextLoop = '<div class="x-pad mt6 pb4"><a class="x-btn secondary block">' + I('disc', 'i-sm') + 'Find the next company</a></div>';
+  var mark = '<span class="x-mark" role="img" aria-label="Roleforge">R</span>';
   var acct = '<span class="x-avatar" title="Account">' + I('user', 'i-sm') + '</span>';
   var deskHead = function (on, set, extra) { return '<header class="x-appbar" style="gap:var(--primitive-space-8)"><span class="x-word">Roleforge</span>' + toptabs(on, set) + '<span class="x-grow"></span>' + (extra || '') + acct + '</header>'; };
 
@@ -1426,7 +1428,7 @@ button { font: inherit; color: inherit; }
      A · Calm list — Companies · Pipeline · Templates
      ===================================================================== */
   var A3 = ['co', 'pipe', 'tpl'];
-  var aHeader = '<header class="x-appbar"><span class="x-word">Roleforge</span><span class="x-grow"></span>' + acct + '</header>';
+  var aHeader = '<header class="x-appbar">' + mark + '<span class="x-grow"></span>' + acct + '</header>';
   var aTitle = function (t, right) { return '<div class="x-pad pt4 x-stack g2"><div class="x-row-flex x-between"><h2 class="t-title">' + t + '</h2>' + (right || '') + '</div>' + ctx + '</div>'; };
   var aSeg = function (on) { return '<div class="x-pad mt4"><div class="x-seg">' + ['Hiring now', 'Starred'].map(function (x) { return '<span class="' + (x === on ? 'on' : '') + '">' + x + '</span>'; }).join('') + '</div></div>'; };
   var aCompanies = aHeader + '<div class="scroll">' + aTitle('Companies', '<button class="x-btn icon ghost" aria-label="Track options">' + I('more') + '</button>') + aSeg('Hiring now') +
@@ -1457,7 +1459,7 @@ button { font: inherit; color: inherit; }
      B · List and detail — Companies · Pipeline · Templates, compact toolbar
      ===================================================================== */
   var B3 = ['co', 'pipe', 'tpl'];
-  var bHeader = function (title) { return '<header class="x-appbar"><span class="t-sec">' + title + '</span><span class="x-grow"></span>' + acct + '</header>'; };
+  var bHeader = function (title) { return '<header class="x-appbar" style="height:64px">' + mark + '<h2 class="t-title">' + title + '</h2><span class="x-grow"></span>' + acct + '</header>'; };
   var bToolbar = function (view, extra) {
     return '<div class="x-toolbar"><span class="x-select plain"><span class="v t-strong">Design systems</span>' + I('down', 'i-sm') + '</span><span class="x-select"><span class="v">' + view + '</span>' + I('down', 'i-sm') + '</span><span class="x-grow"></span>' + (extra || '') + '<button class="x-btn icon sm ghost" aria-label="Filters">' + I('filter', 'i-sm') + '</button></div>';
   };
@@ -1487,7 +1489,7 @@ button { font: inherit; color: inherit; }
      C · Search first — Companies · Pipeline; templates live in the Apply step
      ===================================================================== */
   var C2 = ['co', 'pipe'];
-  var cHeader = function (action) { return '<header class="x-appbar"><span class="x-word">Roleforge</span><span class="x-grow"></span>' + (action || '') + acct + '</header>'; };
+  var cHeader = function (action) { return '<header class="x-appbar">' + mark + '<span class="x-grow"></span>' + (action || '') + acct + '</header>'; };
   var cSearch = function (ph) { return '<div class="x-pad pt4 x-row-flex"><div class="x-input lg x-grow">' + I('search') + '<span class="ph">' + ph + '</span></div><button class="x-btn icon secondary" style="height:48px;width:48px" aria-label="Filters">' + I('filter') + '</button></div>'; };
   var cScopes = function (on, list) { return '<div class="x-pad mt4 x-chips" style="flex-wrap:wrap">' + list.map(function (x) { return '<span class="x-chip' + (x === on ? ' on' : '') + '">' + x + '</span>'; }).join('') + '</div>'; };
   var cCoCard = function (c) {
