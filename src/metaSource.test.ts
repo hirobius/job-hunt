@@ -33,6 +33,8 @@ describe('meta lines in source (#192)', () => {
           if (/^(\/\/|\/?\*|\{\/\*)/.test(code)) return; // comments
           if ((code.match(/\$\{/g) ?? []).length >= 2 && (code.match(/ · /g) ?? []).length >= 2)
             bad.push(`${f}:${i + 1} ${code}`);
+          // JSX text: {a} · {b} · {c}
+          if ((code.match(/\} · \{/g) ?? []).length >= 2) bad.push(`${f}:${i + 1} ${code}`);
         });
     }
     expect(bad).toEqual([]);
