@@ -43,10 +43,10 @@ function excludeRegexes(terms: string[]): RegExp[] {
 
 const usd = (p: RankedPosting) => !p.currency || p.currency.toUpperCase() === 'USD';
 
-export function applyTargeting(
-  postings: RankedPosting[],
+export function applyTargeting<P extends RankedPosting>(
+  postings: P[],
   t: Targeting,
-): { postings: RankedPosting[]; hidden: HiddenCounts } {
+): { postings: P[]; hidden: HiddenCounts } {
   const hidden: HiddenCounts = { exclude: 0, seniority: 0, salary: 0 };
   const excludes = excludeRegexes(t.exclude);
   const kept = postings.filter((p) => {

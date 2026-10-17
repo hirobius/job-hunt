@@ -278,11 +278,18 @@ function statusOf(
   task: SourceTask,
   r: PromiseSettledResult<Posting[]>,
   into: Posting[],
+  /** Ids already in `into` (shared across one pass). */
+  have: Set<string>,
 ): SourceStatus {
   const { key, label, board } = task;
   if (r.status === 'fulfilled') {
     // A posting's URL is rendered as a link — only ever an http(s) one (never `javascript:`).
-    into.push(...r.value.filter((p) => /^https?:\/\//i.test(p.url)));
+    // A sweep can read one posting through two terms (an HN comment naming both): keep it once.
+    for (const p of r.value) {
+      if (!/^https?:\/\//i.test(p.url) || have.has(p.id)) continue;
+      have.add(p.id);
+      into.push(p);
+    }
     return { key, label, fetched: r.value.length };
   }
   return { key, label, fetched: 0, error: describeError(r.reason, label, !!board) };
@@ -290,7 +297,10 @@ function statusOf(
 
 export async function fetchFeed(
   req: {
-    term: string;
+    /** One search term. A sweep passes `terms` instead. */
+    term?: string;
+    /** The wide sweep (#213): every term source runs once per term; boards are read once. */
+    terms?: string[];
     boardUrls: string[];
     /** Called as each source answers, with everything gathered so far (in source order). */
     onProgress?: (p: FeedProgress) => void;
@@ -310,35 +320,48 @@ export async function fetchFeed(
     sourceTimeoutMs?: number;
   } = {},
 ): Promise<FeedResult> {
-  const term = req.term.trim();
-  if (!term) return { postings: [], sources: [] };
+  const seen = new Set<string>();
+  const terms = (req.terms ?? [req.term ?? ''])
+    .map((t) => t.trim())
+    .filter((t) => t && !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase()));
+  if (!terms.length) return { postings: [], sources: [] };
+
+  // One term keeps the plain keys ('hn'); a sweep names the term in each key and label.
+  const many = terms.length > 1;
+  const termTasks = (term: string): SourceTask[] => {
+    const k = (key: string) => (many ? `${key}|${term}` : key);
+    const l = (label: string) => (many ? `${label} · “${term}”` : label);
+    return [
+      { key: k('hn'), label: l(SOURCE_LABEL.hn), run: () => fetchHn(term, fetchJson) },
+      {
+        key: k('remotive'),
+        label: l(SOURCE_LABEL.remotive),
+        run: () => remotiveWithinBudget(term, fetchJson, kv, now()),
+      },
+      ...(enabled.jobicy
+        ? [
+            {
+              key: k('jobicy'),
+              label: l(SOURCE_LABEL.jobicy),
+              run: () => fetchJobicy(term, fetchJson),
+            },
+          ]
+        : []),
+      ...(enabled.remoteok
+        ? [
+            {
+              key: k('remoteok'),
+              label: l(SOURCE_LABEL.remoteok),
+              run: () => fetchRemoteOk(term, fetchJson),
+            },
+          ]
+        : []),
+    ];
+  };
 
   const boards = boardsFromUrls(req.boardUrls, Infinity);
   const all: SourceTask[] = [
-    { key: 'hn', label: SOURCE_LABEL.hn, run: () => fetchHn(term, fetchJson) },
-    {
-      key: 'remotive',
-      label: SOURCE_LABEL.remotive,
-      run: () => remotiveWithinBudget(term, fetchJson, kv, now()),
-    },
-    ...(enabled.jobicy
-      ? [
-          {
-            key: 'jobicy',
-            label: SOURCE_LABEL.jobicy,
-            run: () => fetchJobicy(term, fetchJson),
-          },
-        ]
-      : []),
-    ...(enabled.remoteok
-      ? [
-          {
-            key: 'remoteok',
-            label: SOURCE_LABEL.remoteok,
-            run: () => fetchRemoteOk(term, fetchJson),
-          },
-        ]
-      : []),
+    ...terms.flatMap(termTasks),
     ...boards.map((b) => ({
       key: `${b.kind}:${b.slug}`,
       label: `${boardLabel(b)} (${SOURCE_LABEL[b.kind]})`,
@@ -353,9 +376,10 @@ export async function fetchFeed(
   const snapshot = (): FeedProgress => {
     const postings: Posting[] = [];
     const sources: SourceStatus[] = [];
+    const have = new Set<string>();
     tasks.forEach((t, i) => {
       const r = results[i];
-      if (r) sources.push(statusOf(t, r, postings));
+      if (r) sources.push(statusOf(t, r, postings, have));
     });
     return {
       postings,
@@ -373,6 +397,7 @@ export async function fetchFeed(
     },
   );
   const postings: Posting[] = [];
-  const sources = settled.map((r, i) => statusOf(tasks[i], r, postings));
+  const have = new Set<string>();
+  const sources = settled.map((r, i) => statusOf(tasks[i], r, postings, have));
   return { postings, sources };
 }
