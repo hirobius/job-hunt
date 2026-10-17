@@ -60,8 +60,6 @@ export interface Job {
   //     records simply lack them. `blockers` holds default-vocab ids or custom user tags. ---
   verdict?: Verdict;
   mode?: JobMode;
-  travelPct?: number;
-  applicants?: number; // self-entered at apply time — a real competition metric
   blockers?: string[]; // dealbreaker tags (default vocab + custom)
   angle?: string; // positioning note for THIS job
   screenedAt?: string; // ISO — set when the JD screener (#61) last ran

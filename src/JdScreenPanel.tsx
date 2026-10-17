@@ -24,7 +24,6 @@ export default function JdScreenPanel({ job }: { job: Job }) {
     const merged = Array.from(new Set([...(job.blockers ?? []), ...result.blockers]));
     updateJob(job.url, {
       mode: result.mode ?? job.mode,
-      travelPct: result.travelPct ?? job.travelPct,
       blockers: merged,
       verdict: suggestVerdict(merged),
       screenedAt: new Date().toISOString(),
