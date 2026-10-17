@@ -254,10 +254,14 @@ not just the entry skill:
   adapter, leverage, locality**) + principles (deletion test; "the interface is the test surface";
   "one adapter = hypothetical seam, two = real"; depth-as-leverage). Use these terms exactly.
   Companions: `DEEPENING.md`, `DESIGN-IT-TWICE.md` (parallel design-it-twice sub-agents).
-- **`/grilling`** — interview the user one question at a time to stress-test the chosen design.
-- **`/domain-modeling`** — keep `CONTEXT.md` (glossary only, no impl) + `docs/adr/` current as
-  decisions crystallize. Companions: `CONTEXT-FORMAT.md`, `ADR-FORMAT.md`. Offer an ADR only when
-  it's hard to reverse + surprising + a real trade-off.
+- **`/grilling`** — interview the user in rounds (numbered questions, a recommended answer each)
+  to stress-test the chosen design.
+- **`/domain-modeling`** — keep the glossary (no impl) + `docs/adr/` current as decisions
+  crystallize. Companions: `GLOSSARY-FORMAT.md`, `ADR-FORMAT.md`. Offer an ADR only when it's hard
+  to reverse + surprising + a real trade-off. ⚠️ Upstream calls the glossary `GLOSSARY.md`; **here
+  it is `CONTEXT.md`** — write terms there.
+- **`/grill-with-docs`** — `/grilling` + `/domain-modeling` together: the interview writes the
+  glossary and ADRs as it goes. (Vendored from mattpocock/skills @ 49dd158, 2026-10-09.)
 
 Use `CONTEXT.md` for domain vocabulary and `/codebase-design` for architecture vocabulary; don't
 re-litigate decisions already in `docs/adr/`.
