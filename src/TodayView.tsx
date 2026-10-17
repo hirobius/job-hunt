@@ -15,6 +15,7 @@ import {
   useToast,
 } from '@hirobius/design-system';
 import { Form, Page, PageHeader } from '@hirobius/design-system/patterns';
+import { notifySaved } from './saveNotice';
 import { addJob, findJobByUrl, jobIdOf, logFollowUp, useJobs } from './store';
 import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
 import { dueFollowUps, KIND_WORD, UPCOMING_DAYS, upcomingEvents, ymd } from './jobEvents';
@@ -137,6 +138,7 @@ function QuickAdd({ inputRef }: { inputRef: React.Ref<HTMLInputElement> }) {
     const job = findJobByUrl(u);
     if (!job) return setError("That doesn't look like a link. Paste the job's web address.");
     setLast({ job, added });
+    if (added) notifySaved([job.url], job.label);
     setUrl('');
   };
   return (

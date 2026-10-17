@@ -175,6 +175,24 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a
   held HDS gap, hds#748; also tracked upstream: active-tab underline hds#749, touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
   targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.12.1).
+- **Rapid apply (2026-10-17):** every save (Discover tiles, Live postings incl. "Save N to Pipeline"
+  / "Save all shown", quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
+  Open + Undo (`NoticeHost` in the shell; `hds-gaps/ActionToast` because HDS Toast has no action slot).
+  The Pipeline opens on `ApplyQueueSummary`: **To apply (N)** + the one primary **Start applying**, and
+  **Follow up (M)** with dates (`applyQueue.ts`: Saved & not set aside, pinned first then newest).
+  **Apply mode** `#/apply/<jobId>` (`ApplyMode.tsx`, `route.openApply`; the Pipeline tab stays
+  selected): Open application, Mark applied (follow-up 7 days on), Next job (k of N), Skip, Not a fit
+  (retire + Undo), and the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**): profile
+  fields, two template-filled letters and custom Q&A, each a copy row. The row menu sets any status.
+  Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
+- **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
+  title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys
+  `hn|<term>`), merged/deduped/tagged by `feed/sweep.ts` `sweepRank` ("Matched …" on each row). Per-title
+  `Tag` chips with counts hide rows with no re-fetch. The list and on/off live in `feed/sweepTitles.ts`
+  (`rjb_sweep_titles`, seeded from the track's titles, max 12 on, synced in blob **v7**, dropped with its
+  track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
+  "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
+  apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
