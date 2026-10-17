@@ -92,7 +92,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Back up,
   Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible Callout;
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
-  tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`.
+  tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
+  (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
+  line as non-item labels | data | display | Sign out, Delete my data last in the danger colour).
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
   (git-ignored). Run it before/after each redesign phase.
@@ -166,8 +168,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   is `screening.verdictLabel` everywhere (Strong fit / Stretch / Reach). Pinned in
   `src/discover.test.tsx`, `TileGrid.test.tsx`, `LiveFeed*.test.tsx`.
 - **Design polish (#133, `docs/specs/design-polish.md`, `docs/redesign-2026.md`):** banners are not page
-  furniture: `SyncNudge` is one line, Today only (`useUnsynced` also drives the dot on the Account
-  trigger elsewhere), and `SampleBanner` is a one-line note under the page header. Section heads are
+  furniture: `SyncNudge` is one line, Today only (no dot on the Account trigger; its title says
+  "Saved on this device only"), and `SampleBanner` is a one-line note under the page header. Section heads are
   `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
   host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 40px phone buttons,
   reduced motion); shared secondary colour is `hds-gaps/tone` `SECONDARY`. Guards: inline `style={{`

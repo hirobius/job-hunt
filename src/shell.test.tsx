@@ -35,6 +35,16 @@ const renderApp = () =>
     </ColorModeProvider>,
   );
 
+// The open menu top to bottom: header lines (labels, not focusable), items and separators.
+const menuOutline = (menu: HTMLElement) =>
+  Array.from(
+    menu.querySelectorAll('[role="menuitem"], [role="separator"], [data-account-line]'),
+  ).map((el) =>
+    el.getAttribute('role') === 'separator'
+      ? '---'
+      : `${el.getAttribute('role') === 'menuitem' ? 'item' : 'label'}:${el.textContent?.trim()}`,
+  );
+
 const openAccount = async () => {
   await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
   return screen.findByRole('menu');
@@ -66,21 +76,30 @@ describe('app shell (#115 Phase 1)', () => {
     expect(screen.queryByRole('button', { name: 'More options' })).toBeNull();
   });
 
-  it('the account menu holds sign-in, back up, restore, export, theme and feedback', async () => {
+  it('signed out, the account menu reads: device-only line, sign in | data | display', async () => {
     renderApp();
     const menu = await openAccount();
-    const items = within(menu)
-      .getAllByRole('menuitem')
-      .map((i) => i.textContent?.trim());
-    expect(items).toEqual([
-      'Sign in to sync…',
-      'Back up',
-      'Restore…',
-      'Export CSV',
-      expect.stringMatching(/^(Dark|Light) theme$/),
-      expect.stringMatching(/^(Compact|Comfortable) spacing$/),
-      'Send feedback',
+    expect(menuOutline(menu)).toEqual([
+      'label:Saved on this device only',
+      'item:Sign in to sync…',
+      '---',
+      'item:Back up',
+      'item:Restore…',
+      'item:Export CSV',
+      '---',
+      expect.stringMatching(/^item:(Dark|Light) theme$/),
+      expect.stringMatching(/^item:(Compact|Comfortable) spacing$/),
+      'item:Send feedback',
     ]);
+  });
+
+  it('the Account trigger is just the word: no unsynced dot', async () => {
+    addJob('https://acme.example/jobs/dot', 'Design Engineer');
+    window.location.hash = '#/queue';
+    renderApp();
+    const account = await screen.findByRole('button', { name: /^Account/ });
+    expect(account.textContent).toBe('Account');
+    expect(account.querySelector('[class*="dot"]')).toBeNull();
   });
 
   it('data controls left the Pipeline toolbar', () => {
@@ -181,8 +200,27 @@ describe('sync nudge (#115 Phase 1)', () => {
       expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull(),
     );
     const menu = await openAccount();
-    expect(await within(menu).findByText(/Synced · u1@example.test/)).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: 'Sign out' })).toBeInTheDocument();
+    await within(menu).findByText('Synced');
+    expect(menuOutline(menu)).toEqual([
+      'label:Signed in as u1@example.test',
+      'label:Synced',
+      '---',
+      'item:Back up',
+      'item:Restore…',
+      'item:Export CSV',
+      '---',
+      expect.stringMatching(/^item:(Dark|Light) theme$/),
+      expect.stringMatching(/^item:(Compact|Comfortable) spacing$/),
+      'item:Send feedback',
+      '---',
+      'item:Sign out',
+      'item:Delete my data',
+    ]);
+    // The email is plain text: not a link, not a menu item, not focusable.
+    expect(within(menu).queryAllByRole('link')).toEqual([]);
+    const email = within(menu).getByText('Signed in as u1@example.test');
+    expect(email.closest('a, [role="menuitem"]')).toBeNull();
+    expect(email).not.toHaveAttribute('tabindex');
   });
 
   it('a failed sync is a toast, with Retry in the account menu', async () => {
