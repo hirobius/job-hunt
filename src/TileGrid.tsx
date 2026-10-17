@@ -4,7 +4,6 @@ import {
   Button,
   Card as HdsCard,
   Tooltip as HdsTooltip,
-  useToast,
   Disclosure,
   Icon,
   Box,
@@ -14,7 +13,8 @@ import {
   InlineLink,
 } from '@hirobius/design-system';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
-import { addJob, isSaved, useJobs } from './store';
+import { addJob, findJobByUrl, isSaved, useJobs } from './store';
+import { notifySaved } from './saveNotice';
 import { useTileTriage, toggleDismiss } from './tileTriage';
 import { parseMeta } from './tileMeta';
 import type { Tile } from './jobsData';
@@ -58,13 +58,10 @@ export default function TileGrid({
   useJobs(); // re-render on save
   const { dismissed } = useTileTriage();
   const dismissedSet = new Set(dismissed);
-  const { toast } = useToast();
   // Enriched save (issue #57): carry the tile name → label and its meta → note so the queue
-  // card isn't a bare URL; confirm with a toast pointing at the Queue.
+  // card isn't a bare URL; the save notice says where it went and offers Open / Undo.
   const save = (t: Tile) => {
-    if (addJob(t.url, t.name, t.meta)) {
-      toast({ title: 'Added to Queue', description: t.name, tone: 'success' });
-    }
+    if (addJob(t.url, t.name, t.meta)) notifySaved([findJobByUrl(t.url)?.url ?? t.url], t.name);
   };
   return (
     <Grid layout="auto-fill" minItemWidth="240px" gap="medium" align="stretch">

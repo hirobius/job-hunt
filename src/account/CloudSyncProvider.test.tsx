@@ -88,7 +88,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     const menu = await openAccount();
     expect(within(menu).getByText(/Synced · u1@example.test/)).toBeInTheDocument();
     // …and the tracker blob it pushed is v5 (no pillars / userTiles).
-    expect(fake().tables.tracker[0].data).toMatchObject({ v: 6 });
+    expect(fake().tables.tracker[0].data).toMatchObject({ v: 8 });
     expect(fake().tables.tracker[0].data).not.toHaveProperty('pillars');
   });
 
@@ -393,7 +393,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       act(edit);
       await waitFor(() =>
         expect(fake().tables.tracker[0].data).toMatchObject({
-          v: 6,
+          v: 8,
           targets: { trk: [{ login: 'acme' }] },
           filters: { trk: [{ name: 'Austin hybrid' }] },
           evidence: 'Led a design system',
@@ -491,7 +491,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       });
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
       expect(fake().tables.tracker[0].data).toMatchObject({
-        v: 6,
+        v: 8,
         evidence: 'Led a design system',
         modes: { trk: 'hybrid' },
       });
@@ -586,7 +586,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       });
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
       expect(fake().tables.tracker[0].data).toMatchObject({
-        v: 6,
+        v: 8,
         evidence: 'Led a design system',
         modes: { trk: 'hybrid' },
       });

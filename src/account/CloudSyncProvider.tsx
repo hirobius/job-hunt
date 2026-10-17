@@ -13,6 +13,7 @@ import { getAllTargets, replaceTargets, useAllTargets } from '../feed/targets';
 import { getAllFilters, replaceFilters, useAllFilters } from '../feed/savedFilters';
 import { readEvidence, replaceEvidence, useEvidence } from '../radar/evidenceStore';
 import { getAllModes, replaceModes, useAllModes } from '../trackModes';
+import { getApplyKit, replaceApplyKit, useApplyKit } from '../applyKit';
 import { getAllDreams, replaceDreams, useAllDreams } from '../feed/dreams';
 import {
   readBlob,
@@ -62,6 +63,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const filters = useAllFilters();
   const evidence = useEvidence();
   const modes = useAllModes();
+  const kit = useApplyKit();
   const dreams = useAllDreams();
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
@@ -90,6 +92,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     filters: getAllFilters(),
     evidence: readEvidence(),
     modes: getAllModes(),
+    kit: getApplyKit(),
     dreams: getAllDreams(),
     sourceV: BLOB_VERSION,
   });
@@ -140,6 +143,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       replaceFilters(next.filters);
       replaceEvidence(next.evidence);
       replaceModes(next.modes);
+      replaceApplyKit(next.kit);
       replaceDreams(next.dreams);
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
@@ -200,7 +204,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     pushTimer.current = setTimeout(() => pushNow(user), 500);
     // pushNow/localJson are stable enough; we intentionally fire only on data + user changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobs, snippets, triage, targets, filters, evidence, modes, dreams, user]);
+  }, [jobs, snippets, triage, targets, filters, evidence, modes, kit, dreams, user]);
 
   // re-pull on focus
   useEffect(() => {
