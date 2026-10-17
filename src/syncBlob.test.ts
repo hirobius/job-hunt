@@ -76,7 +76,7 @@ describe('readBlob — tolerant of every historical shape', () => {
 describe('writeBlob — v4 shape', () => {
   it('writes only jobs, copydeck and set-aside (no pillars, userTiles or pins)', () => {
     const out = writeBlob(blob({ jobs: [job('a')], triage: { pinned: ['p'], dismissed: ['d'] } }));
-    expect(BLOB_VERSION).toBe(6);
+    expect(BLOB_VERSION).toBe(7);
     expect(out).toEqual({
       v: 7,
       jobs: [job('a')],

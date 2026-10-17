@@ -72,11 +72,11 @@ describe('application kit', () => {
     expect(m.answers.map((x) => x.a)).toEqual(['cloud', 'b']);
   });
 
-  it('rides in the sync blob (v6); an older cloud copy keeps this device kit on refresh', () => {
-    expect(BLOB_VERSION).toBe(6);
+  it('rides in the sync blob (v6, current v7); an older cloud copy keeps this device kit on refresh', () => {
+    expect(BLOB_VERSION).toBe(7);
     const local = { ...emptyBlob(), kit: { fields: { name: 'Sam' }, answers: [] } };
     const written = writeBlob(local);
-    expect(written.v).toBe(6);
+    expect(written.v).toBe(7);
     expect(readBlob(written).kit.fields.name).toBe('Sam');
     const oldCloud = readBlob({ v: 5, jobs: [] });
     expect(mergeBlob(oldCloud, local, false).kit.fields.name).toBe('Sam');

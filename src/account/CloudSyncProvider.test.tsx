@@ -47,6 +47,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  replaceTrash([]);
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
@@ -516,7 +517,6 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 7 }));
       expect(fake().tables.tracker[0].data.trash).toHaveLength(1);
       expect(getTrash().map((r) => r.job.url)).toEqual(['https://example.test/removed']);
-      act(() => replaceTrash([]));
     });
 
     it('sign-out inside the push debounce still uploads the edit before wiping', async () => {
@@ -667,7 +667,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       edit();
       renderAccount();
       act(() => fake().signIn('u1'));
-      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(6));
+      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(7));
       act(() => {
         window.dispatchEvent(new Event('focus'));
       });
