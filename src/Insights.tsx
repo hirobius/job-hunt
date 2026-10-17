@@ -9,6 +9,7 @@ import MetricTilesAutoFit from './hds-gaps/MetricTilesAutoFit';
 import { pipelineMetrics, RECENT_DAYS, vsPrevious } from './metrics';
 import { computeFunnel } from './funnel';
 import { VERDICTS } from './screening';
+import { metaLines } from './metaLines';
 import type { Job } from './types';
 import { SECONDARY } from './hds-gaps/tone';
 
@@ -39,10 +40,10 @@ export default function Insights({ jobs }: { jobs: Job[] }) {
   const median =
     m.medianDaysToResponse == null ? '—' : String(Math.round(m.medianDaysToResponse * 10) / 10);
   // Screening shows as one compact fit line, not a row of pills (#115 design rules).
-  const fit = [
+  const fit = metaLines([
     ...VERDICTS.map((v) => `${f.byVerdict[v.value]} ${v.label.toLowerCase()}`),
     ...(f.medianApplicants == null ? [] : [`median ${f.medianApplicants} applicants`]),
-  ].join(' · ');
+  ]);
 
   return (
     <Disclosure
@@ -110,9 +111,11 @@ export default function Insights({ jobs }: { jobs: Job[] }) {
                 />
               </Stack>
             ))}
-            <Text variant="caption" as="p" style={SECONDARY}>
-              Fit: {fit}
-            </Text>
+            {fit.map((line, i) => (
+              <Text key={i} variant="caption" as="p" style={SECONDARY}>
+                {i === 0 ? `Fit: ${line}` : line}
+              </Text>
+            ))}
           </Stack>
         </section>
       </Stack>

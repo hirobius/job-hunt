@@ -63,7 +63,9 @@ export default function JobRail({ openId }: { openId: string }) {
           style={{ width: '100%' }}
         />
         <Text variant="caption" as="p" style={SECONDARY}>
-          {FILTER_LABEL[view.filter]} · {shown.length} {shown.length === 1 ? 'job' : 'jobs'} ·{' '}
+          {FILTER_LABEL[view.filter]} · {shown.length} {shown.length === 1 ? 'job' : 'jobs'}
+        </Text>
+        <Text variant="caption" as="p" style={SECONDARY}>
           <InlineLink href="#/queue" externalIcon={false}>
             Change filters
           </InlineLink>
