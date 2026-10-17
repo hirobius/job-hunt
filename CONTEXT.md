@@ -57,3 +57,23 @@ _Avoid_: listing, opening (in code), result
 **Watched company**:
 A company whose Greenhouse, Lever or Ashby job board is on a track (as a tile), so its openings are pulled into Live postings.
 _Avoid_: followed company, subscription
+
+**Company**:
+An employer the user tracks, grouping its Jobs and any Documents written for it. Its page shows every Job, Document and Note for that employer.
+_Avoid_: employer, org, account
+
+**Document**:
+A piece of writing the user sends or keeps for a job search, of one kind: Résumé, Cover letter, Note or Outreach message. Written as text in the app and downloaded as PDF or Word; an uploaded file is only a final copy. Outreach messages replace Templates.
+_Avoid_: file, asset, template (for new code)
+
+**Base document**:
+A Document in the library that is not tied to a Job or Company, such as the default Résumé. Using it for a Job makes an independent copy, so later edits to either never change the other.
+_Avoid_: master, template, default (alone)
+
+**Version**:
+One saved draft of a Document. Every draft or rewrite (by hand or AI) adds a Version; earlier ones stay viewable.
+_Avoid_: revision, iteration, draft (as a noun for the record)
+
+**Sent**:
+The Version that actually went to the employer, marked when sent and then locked. A Job has at most one Sent Version per Document kind.
+_Avoid_: final, active, submitted
