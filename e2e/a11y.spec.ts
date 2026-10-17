@@ -19,6 +19,7 @@ const ROUTES = [
   '#/discover/boards',
   '#/discover/teams',
   '#/copy-deck',
+  '#/copy-deck/tpl-outreach',
 ];
 
 async function seed(page: Page) {

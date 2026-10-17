@@ -33,7 +33,7 @@ import {
   type KitAnswer,
 } from './applyKit';
 import { useSnippets } from './copyDeckStore';
-import { fillTemplate, valuesFromJob } from './templateFill';
+import { fillSnippet } from './templateFill';
 import { copyFilled } from './templateCopy';
 import { showNotice } from './saveNotice';
 import { SECONDARY } from './hds-gaps/tone';
@@ -275,7 +275,7 @@ function ApplicationKit({ job }: { job: Job }) {
   ];
   const filled = (id?: string) => {
     const s = snippets.find((x) => x.id === id);
-    return s ? fillTemplate(s.body, valuesFromJob(job)) : '';
+    return s ? fillSnippet(s, job, kit.fields.name) : '';
   };
   return (
     <Stack gap="normal">
