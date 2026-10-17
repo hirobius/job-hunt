@@ -1,9 +1,13 @@
 // One template (#132): its name, a row of token chips, the text, and a preview filled for a job.
+// Variables (#221) are atomic chips in the text (hds-gaps/TokenTextarea), put in from the chip row
+// or the Insert variable menu, and given values in the Variables panel: a picked job's four fields
+// are saved on the job, everything else on the template (`Snippet.values`). The body stays plain
+// text with `[Token]`s.
 // Copy (the filled text) is the one primary action; Pin / Duplicate / Delete sit in a menu and
 // Delete asks first (AlertDialog, not window.confirm). From the HDS `lg` breakpoint the editor and
 // the preview sit side by side; below it they are Write and Preview tabs.
-import { useLayoutEffect, useRef, useState } from 'react';
-import { ChevronLeft, EllipsisVertical } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { ChevronLeft, EllipsisVertical, Plus } from 'lucide-react';
 import {
   AlertDialog,
   Button,
@@ -21,20 +25,30 @@ import {
   TabsTrigger,
   Tag,
   Text,
-  Textarea,
   Tooltip as HdsTooltip,
   useToast,
 } from '@hirobius/design-system';
 import { removeSnippet, toggleSnippetPin, updateSnippet } from './copyDeckStore';
 import type { Snippet } from './copyDeckStore';
-import { useJobs } from './store';
-import { fillTemplate, unfilledTokens, valuesFromJob } from './templateFill';
-import { insertAt, TOKEN_CHIPS } from './templateEditor';
+import { updateJob, useJobs } from './store';
+import type { Job } from './types';
+import { fillSnippet, resolveVariables } from './templateFill';
+import { insertAt, templateVariables, TOKEN_CHIPS } from './templateEditor';
+import { useApplyKit } from './applyKit';
+import TokenTextarea from './hds-gaps/TokenTextarea';
+import type { TokenTextareaHandle } from './hds-gaps/TokenTextarea';
 import { copyFilled } from './templateCopy';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
 import { SECONDARY } from './hds-gaps/tone';
 
 const NO_JOB = 'none';
+// The variables a picked job fills, and the job field each one is saved to.
+const JOB_FIELD: Record<string, 'company' | 'label' | 'contact' | 'angle'> = {
+  company: 'company',
+  role: 'label',
+  contact: 'contact',
+  angle: 'angle',
+};
 // HDS TabsContent is a tinted, padded card; inside an editor pane it should be bare (as in App.tsx).
 const BARE_PANEL = {
   background: 'transparent',
@@ -67,26 +81,26 @@ export default function TemplateDetail({
   const [pane, setPane] = useState('write');
   const name = snippet.label.trim() || 'this template';
 
+  const kitName = useApplyKit().fields.name;
   const job = jobs.find((j) => j.url === fillFor);
-  const filled = job ? fillTemplate(snippet.body, valuesFromJob(job)) : snippet.body;
-  const missing = unfilledTokens(filled).map((t) => `[${t}]`);
+  const names = templateVariables(snippet.body);
+  const resolved = resolveVariables(names, snippet.values, job, kitName);
+  const filled = fillSnippet(snippet, job, kitName);
+  const missing = names.filter((n) => !resolved[n.toLowerCase()]).map((n) => `[${n}]`);
 
-  // HDS Textarea has no insert-at-cursor API: read the element's selection, write the new body,
-  // then put the caret after the token once React has re-rendered the value.
-  const area = useRef<HTMLTextAreaElement>(null);
-  const caret = useRef<number | null>(null);
-  useLayoutEffect(() => {
-    const el = area.current;
-    if (caret.current == null || !el) return;
-    el.focus();
-    el.setSelectionRange(caret.current, caret.current);
-    caret.current = null;
-  }, [snippet.body]);
+  // Chips and the Insert variable menu both go through insertAt at the field's last caret.
+  const area = useRef<TokenTextareaHandle>(null);
   const insert = (token: string) => {
-    const el = area.current;
-    const r = insertAt(snippet.body, el?.selectionStart ?? null, el?.selectionEnd ?? null, token);
-    caret.current = r.caret;
+    const sel = area.current?.selection();
+    const r = insertAt(snippet.body, sel?.start ?? null, sel?.end ?? null, token);
     updateSnippet(snippet.id, { body: r.value });
+    area.current?.setCaret(r.caret);
+  };
+  const setTemplateValue = (key: string, v: string) => {
+    const values = { ...snippet.values };
+    if (v) values[key] = v;
+    else delete values[key];
+    updateSnippet(snippet.id, { values });
   };
 
   const copy = async () => {
@@ -106,17 +120,60 @@ export default function TemplateDetail({
             <HdsTooltip.Content>{c.hint}</HdsTooltip.Content>
           </HdsTooltip>
         ))}
+        <Menu>
+          <Menu.Trigger asChild>
+            <Button variant="secondary" size="sm" iconLeft={<Icon icon={Plus} />}>
+              Insert variable
+            </Button>
+          </Menu.Trigger>
+          {/* Focus goes back to the text with the caret after the chip, not to this button. */}
+          <Menu.Content align="start" onCloseAutoFocus={(e) => e.preventDefault()}>
+            {TOKEN_CHIPS.map((c) => (
+              <Menu.Item key={c.token} onSelect={() => insert(c.token)}>
+                {c.token.slice(1, -1)}
+              </Menu.Item>
+            ))}
+          </Menu.Content>
+        </Menu>
       </Stack>
-      <Textarea
+      <TokenTextarea
         ref={area}
-        rows={14}
         aria-label="Snippet text"
         value={snippet.body}
         placeholder="Paste or write your snippet…"
-        onChange={(e) => updateSnippet(snippet.id, { body: e.target.value })}
+        onChange={(body) => updateSnippet(snippet.id, { body })}
       />
+      <Text variant="caption" as="p" style={SECONDARY}>
+        Type a name in square brackets, like [Hiring manager], to make your own variable.
+      </Text>
     </Stack>
   );
+
+  const variableField = (n: string) => {
+    const key = n.toLowerCase();
+    const field = job && JOB_FIELD[key];
+    if (job && field)
+      return (
+        <HdsInput
+          key={key}
+          label={n}
+          value={job[field] ?? ''}
+          placeholder={snippet.values?.[key] || 'Not set'}
+          onChange={(e) => updateJob(job.url, { [field]: e.target.value } as Partial<Job>)}
+        />
+      );
+    const kit = key === 'your name' && kitName ? kitName : '';
+    return (
+      <HdsInput
+        key={key}
+        label={n}
+        value={snippet.values?.[key] ?? ''}
+        placeholder={kit || 'Not set'}
+        helperText={kit ? 'Empty uses your Application kit name' : undefined}
+        onChange={(e) => setTemplateValue(key, e.target.value)}
+      />
+    );
+  };
 
   const options = [
     { value: NO_JOB, label: 'No job (show [Tokens])' },
@@ -133,6 +190,21 @@ export default function TemplateDetail({
         value={job ? job.url : NO_JOB}
         onChange={(v) => onFillFor(v === NO_JOB ? null : v)}
       />
+      {names.length > 0 && (
+        <section aria-labelledby={`vars-${snippet.id}`}>
+          <Stack gap="tight">
+            <Text variant="body" as="h3" id={`vars-${snippet.id}`} className="rjb-semibold">
+              Variables
+            </Text>
+            <Text variant="caption" as="p" style={SECONDARY}>
+              {job
+                ? 'Company, Role, Contact and Angle are saved on this job; the rest on this template.'
+                : 'Saved on this template. Pick a job to fill its company, role, contact and angle.'}
+            </Text>
+            {names.map(variableField)}
+          </Stack>
+        </section>
+      )}
       <Surface padding="px16" role="region" aria-label="Preview">
         <Text variant="body" as="p" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
           {filled || 'Nothing to preview yet.'}
@@ -141,8 +213,8 @@ export default function TemplateDetail({
       {missing.length > 0 && (
         <Text variant="caption" as="p" style={SECONDARY}>
           {job
-            ? `Still unfilled for this job: ${missing.join(', ')}. Add them on the job, or edit after pasting.`
-            : 'Pick a job to fill the [Tokens] in.'}
+            ? `Still unfilled for this job: ${missing.join(', ')}. Set them under Variables, or edit after pasting.`
+            : `Not set yet: ${missing.join(', ')}. Set them under Variables, or pick a job.`}
         </Text>
       )}
     </Stack>

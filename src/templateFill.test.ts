@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { fillTemplate, unfilledTokens, valuesFromJob } from './templateFill';
+import {
+  fillTemplate,
+  fillSnippet,
+  fillVariables,
+  resolveVariables,
+  unfilledTokens,
+  valuesFromJob,
+} from './templateFill';
 import type { Job } from './types';
 
 describe('fillTemplate', () => {
@@ -44,5 +51,54 @@ describe('valuesFromJob', () => {
 describe('unfilledTokens', () => {
   it('lists remaining known tokens only', () => {
     expect(unfilledTokens('[Company] [role] [Your name]')).toEqual(['Company', 'Role']);
+  });
+});
+
+describe('fillVariables', () => {
+  it('fills any variable by name, without case; unset ones stay visible', () => {
+    expect(
+      fillVariables('[Pet], [your name] at [Company] [Role]', {
+        pet: 'Rex',
+        'your name': 'Sam',
+        company: ' ',
+      }),
+    ).toBe('Rex, Sam at [Company] [Role]');
+  });
+});
+
+describe('resolveVariables', () => {
+  const job = { url: 'u', company: 'Acme', label: 'Welder', contact: '' } as Job;
+  it('with no job, values come from the template, then the kit name', () => {
+    expect(resolveVariables(['Company', 'Your name'], { company: 'X' }, null, 'Sam')).toEqual({
+      company: { value: 'X', source: 'template' },
+      'your name': { value: 'Sam', source: 'kit' },
+    });
+  });
+  it('a picked job fills its fields; the template fills what the job lacks', () => {
+    expect(
+      resolveVariables(['Company', 'Contact', 'Pet'], { contact: 'Team', pet: 'Rex' }, job),
+    ).toEqual({
+      company: { value: 'Acme', source: 'job' },
+      contact: { value: 'Team', source: 'template' },
+      pet: { value: 'Rex', source: 'template' },
+    });
+  });
+  it('a template value beats the kit name', () => {
+    expect(
+      resolveVariables(['Your name'], { 'your name': 'A' }, null, 'B')['your name'].value,
+    ).toBe('A');
+  });
+});
+
+describe('fillSnippet', () => {
+  it('fills from the job, then the template values, then the kit name', () => {
+    const job = { url: 'u', company: 'Acme', label: 'Welder' } as Job;
+    expect(
+      fillSnippet(
+        { body: '[Role] at [Company], [Contact]. [Your name] [X]', values: { contact: 'Team' } },
+        job,
+        'Sam',
+      ),
+    ).toBe('Welder at Acme, Team. Sam [X]');
   });
 });
