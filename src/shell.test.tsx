@@ -170,7 +170,7 @@ describe('sync nudge (#115 Phase 1)', () => {
   it('Sign in opens a dialog with the email field', async () => {
     renderApp();
     await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Sign in to sync' });
+    const dialog = await screen.findByRole('dialog', { name: 'Sign in' });
     expect(within(dialog).getByRole('textbox', { name: /email/i })).toBeInTheDocument();
   });
 
