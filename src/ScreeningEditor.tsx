@@ -5,7 +5,8 @@ import { DEFAULT_BLOCKERS, MODES, VERDICTS, blockerLabel } from './screening';
 import type { Job } from './types';
 
 // Detail-panel editor for a job's screening fields (issue #60): fit (verdict), work mode, and
-// dealbreakers are toggle chips (all optional → chips, not a required SegmentedControl); angle is a note. Every change writes straight through updateJob.
+// dealbreakers are toggle chips (all optional → chips, not a required SegmentedControl); angle is a note.
+// Every change writes straight through updateJob.
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
