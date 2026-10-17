@@ -53,3 +53,12 @@ wipes every `rjb_` key, so signing out, or opening a second device, lost them.
 - Last write wins per store on refresh; two devices editing the same store between pulls can lose the
   older edit. Acceptable for single-user lists, and the seed merge never loses on first sign-in.
 - Entries are capped as before (500 targets and 12 saved searches per track); the blob stays small.
+
+## Addendum (2026-10-17): blob v6, Recently removed
+
+Removing a job is no longer permanent. `src/trash.ts` keeps removed jobs (whole, with to-dos, notes
+and interviews) for 30 days in `rjb_trash`, and **blob v6** carries them as `trash` under the same
+rules as the v5 fields: optional on read, seed merge unions by job URL (cloud wins a shared job),
+refresh lets the cloud win, and a refresh against a pre-v6 cloud copy keeps this device's trash.
+Sample jobs never go up. Entries older than 30 days drop on every read. Not in backups (a backup
+is the account's live data; the trash is a short undo window).

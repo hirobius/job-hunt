@@ -13,6 +13,7 @@ import { getAllTargets, replaceTargets, useAllTargets } from '../feed/targets';
 import { getAllFilters, replaceFilters, useAllFilters } from '../feed/savedFilters';
 import { readEvidence, replaceEvidence, useEvidence } from '../radar/evidenceStore';
 import { getAllModes, replaceModes, useAllModes } from '../trackModes';
+import { getTrash, replaceTrash, useTrash } from '../trash';
 import {
   readBlob,
   writeBlob,
@@ -61,6 +62,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const filters = useAllFilters();
   const evidence = useEvidence();
   const modes = useAllModes();
+  const trash = useTrash();
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const [signInOpen, setSignInOpen] = useState(false);
@@ -88,6 +90,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     filters: getAllFilters(),
     evidence: readEvidence(),
     modes: getAllModes(),
+    trash: getTrash(),
     sourceV: BLOB_VERSION,
   });
   const localJson = () => JSON.stringify(writeBlob(localBlob()));
@@ -137,6 +140,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       replaceFilters(next.filters);
       replaceEvidence(next.evidence);
       replaceModes(next.modes);
+      replaceTrash(next.trash);
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
       pulledOk.current = true;
@@ -150,7 +154,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         foldIntoStore(legacy);
         curationOk = await syncOnLogin(u.id);
       }
-      // A pre-v5 cloud copy lacks the v5 fields (an old tab rewrote it): re-upload them now.
+      // An older cloud copy lacks the newer fields (an old tab rewrote it): re-upload them now.
       if (seed || next.legacyUserTiles.length || next.sourceV < BLOB_VERSION) await pushNow(u);
       if (!curationOk) setMsg(OFFLINE_MSG);
       else if (!seed) setMsg(`Synced · ${u.email}`);
@@ -196,7 +200,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     pushTimer.current = setTimeout(() => pushNow(user), 500);
     // pushNow/localJson are stable enough; we intentionally fire only on data + user changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobs, snippets, triage, targets, filters, evidence, modes, user]);
+  }, [jobs, snippets, triage, targets, filters, evidence, modes, trash, user]);
 
   // re-pull on focus
   useEffect(() => {

@@ -23,6 +23,7 @@ import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInDialog from './account/SignInDialog';
+import { UndoRemove } from './RecentlyRemoved';
 import SyncNudge from './account/SyncNudge';
 import { addJob, markAppliedByUrl, setStatusByUrl, useJobs } from './store';
 import { useCategories } from './curation/curationStore';
@@ -165,6 +166,7 @@ export default function App() {
           </Box>
         </Container>
         <SignInDialog />
+        <UndoRemove />
       </DataToolsProvider>
     </CloudSyncProvider>
   );

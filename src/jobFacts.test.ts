@@ -11,7 +11,7 @@ describe('jobFacts', () => {
       jobFacts({ ...base, salary: '$80k', company: 'Acme', location: 'Spokane' }, NOW).map(
         (f) => f.term,
       ),
-    ).toEqual(['Company', 'Location', 'Salary', 'Source']);
+    ).toEqual(['Company', 'Location', 'Pay', 'Source']);
   });
   it('names the source host', () => {
     expect(jobFacts(base, NOW)).toEqual([{ term: 'Source', description: 'acme.example' }]);

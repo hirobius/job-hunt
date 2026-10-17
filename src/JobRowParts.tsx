@@ -1,9 +1,10 @@
 // The pieces one job row is made of (#129), shared by the desktop table (JobsTable), the phone
 // cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
 // step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
-import { EllipsisVertical } from 'lucide-react';
-import { Badge, Button, Icon, Menu } from '@hirobius/design-system';
-import { hostOf, logFollowUp, removeJob, setStatus, updateJob } from './store';
+import { EllipsisVertical, Star } from 'lucide-react';
+import { Badge, Button, Icon, Menu, useToast } from '@hirobius/design-system';
+import { hostOf, logFollowUp, setStatus, updateJob } from './store';
+import { trashJob } from './trash';
 import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
 import { primaryAction, STATUS_TONE, titleOf } from './jobRow';
@@ -17,6 +18,37 @@ type Size = 'sm' | 'md';
 export function StatusBadge({ job }: { job: Job }) {
   const status = normStatus(job.status);
   return <Badge tone={job.archived ? 'neutral' : STATUS_TONE[status]}>{status}</Badge>;
+}
+
+/** The star: outline when off, filled when on. */
+export function StarIcon({ on }: { on: boolean }) {
+  return <Icon icon={Star} size="small" className={on ? 'rjb-icon-filled' : undefined} />;
+}
+
+/** Star or unstar a job; starring says where starred jobs show. */
+function useToggleStar() {
+  const { toast } = useToast();
+  return (job: Job) => {
+    updateJob(job.url, { priority: !job.priority });
+    if (!job.priority) toast({ title: 'Starred', description: 'Shows first in your Pipeline' });
+  };
+}
+
+/** The job page's star toggle: says Star or Starred, so the state reads without the icon. */
+export function StarButton({ job }: { job: Job }) {
+  const toggle = useToggleStar();
+  const on = !!job.priority;
+  return (
+    <Button
+      size="sm"
+      variant="tertiary"
+      iconLeft={<StarIcon on={on} />}
+      aria-pressed={on}
+      onClick={() => toggle(job)}
+    >
+      {on ? 'Starred' : 'Star'}
+    </Button>
+  );
 }
 
 /** The row's one next step, or nothing when there isn't one. Secondary, so the page's own
@@ -62,14 +94,15 @@ export function RowPrimaryAction({
 export function RowMenu({
   job,
   size = 'sm',
-  canRemove = true,
+  onRemoved,
 }: {
   job: Job;
   size?: Size;
-  /** The job page puts Remove in its own confirmed section instead (#130). */
-  canRemove?: boolean;
+  /** Runs after Remove (the job page goes back to the Pipeline). */
+  onRemoved?: () => void;
 }) {
   const title = titleOf(job);
+  const toggleStar = useToggleStar();
   return (
     <Menu>
       <Menu.Trigger asChild>
@@ -87,9 +120,7 @@ export function RowMenu({
             Open on {hostOf(job.url) || 'the original site'}
           </a>
         </Menu.Item>
-        <Menu.Item onSelect={() => updateJob(job.url, { priority: !job.priority })}>
-          {job.priority ? 'Unpin priority' : 'Pin as priority'}
-        </Menu.Item>
+        <Menu.Item onSelect={() => toggleStar(job)}>{job.priority ? 'Unstar' : 'Star'}</Menu.Item>
         <Menu.Item onSelect={() => updateJob(job.url, { archived: !job.archived })}>
           {job.archived ? 'Unretire' : 'Retire'}
         </Menu.Item>
@@ -103,18 +134,18 @@ export function RowMenu({
         >
           Find more like this
         </Menu.Item>
-        {canRemove && (
-          <>
-            <Menu.Separator />
-            {/* HDS Menu.Item has no danger tone; the feedback token marks the destructive item. */}
-            <Menu.Item
-              onSelect={() => removeJob(job.url)}
-              style={{ color: 'var(--semantic-color-feedback-error)' }}
-            >
-              Remove
-            </Menu.Item>
-          </>
-        )}
+        <Menu.Separator />
+        {/* Remove goes to Recently removed, with Undo, so it needs no confirm. HDS Menu.Item has
+            no danger tone; the feedback token marks the destructive item. */}
+        <Menu.Item
+          onSelect={() => {
+            trashJob(job.url);
+            onRemoved?.();
+          }}
+          style={{ color: 'var(--semantic-color-feedback-error)' }}
+        >
+          Remove
+        </Menu.Item>
       </Menu.Content>
     </Menu>
   );

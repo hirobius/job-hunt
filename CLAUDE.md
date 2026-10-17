@@ -58,7 +58,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
-  publishable + RLS-protected). **Blob v5 (ADR 0008)** carries jobs, snippets, set-aside tiles **and the
+  publishable + RLS-protected). **Blob v6 (ADR 0008 + addendum)** adds Recently removed (`src/trash.ts`,
+  `rjb_trash`, 30 days) to v5, which carries jobs, snippets, set-aside tiles **and the
   user-edited per-browser stores: outreach targets (`rjb_targets`), saved searches (`rjb_feed_filters`),
   the evidence text (`rjb_radar_evidence`) and work mode per track (`rjb_ui_mode:<id>`, `src/trackModes.ts`)**
   — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
@@ -99,12 +100,17 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **Job routes (#127):** every saved job has a page at `#/queue/<jobId>` (`Route.jobId`; the second
   segment is a job under `queue`, a sub-tab elsewhere). `store.jobIdOf(url)` derives the id (hash
   of `dedupKey`, never stored); `findJobById` resolves it; `route.openJob(id | null)` navigates.
-  **Job page (#130):** `JobPage.tsx` = `JobHeader` (title, status, pin, the one primary next step,
-  menu; Remove is not in this menu) over `Tabs` Overview (`JobOverview`: facts via `jobFacts` in an
-  HDS `MetadataList`, an "Edit details" `Disclosure` open only for a job without title and company,
-  templates, research links, then `DestructiveSection` Remove with confirm + toast) · Screening
-  (`JobScreening`: fit line, inline `JdScreenPanel`, `ScreeningEditor`) · Interviews · To-dos
-  (`TodosNotes`, holds the one Notes field: `notes`, else the older `note`). The open tab is local
+  **Job page (#130):** `JobPage.tsx` = `JobHeader` (title + status; Star (filled when on, "Starred"),
+  the one primary next step and the menu, which holds Remove; one row on desktop, actions in one row
+  under the title on a phone) over `Tabs` Overview (`JobOverview`: a Details card that is the
+  `jobFacts` `MetadataList`, and turns into its fields on Edit: title, company, location, pay, link
+  (saves on blur, the page follows the new id), contact, with seniority and résumé under More
+  fields; starts in edit for a job without title and company; then templates and research links) ·
+  Screening (`JobScreening`: fit line, inline `JdScreenPanel`, `ScreeningEditor`) · Interviews ·
+  To-dos (`TodosNotes`, holds the one Notes field: `notes`, else the older `note`). **Remove is soft
+  (`trash.ts`):** the job goes to Recently removed (link under the Pipeline list, Restore / Delete
+  forever) with an Undo toast (`hds-gaps/ActionToast`: HDS Toast has no action slot). Starred jobs
+  have their own Pipeline filter. The open tab is local
   state keyed by job, not in the URL. At ≥ `lg` an HDS `Sidebar` puts `JobRail` (links with
   `aria-current`, `hds-gaps/RailList`) beside the job; below it the job is alone with a Back link.
   The Pipeline's filter/search/sort live in `pipelineView.ts` (in memory, shared by `TrackerView`

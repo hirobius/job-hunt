@@ -4,10 +4,8 @@
 // menu. HDS Table rows can't be clicked, selected or styled (HDS gap, filed with the Phase 7 asks,
 // #133), so the title link is the way in, and a retired row says so in words with neutral badges.
 import { useId } from 'react';
-import { Star } from 'lucide-react';
 import {
   Badge,
-  Icon,
   InlineLink,
   Stack,
   Table,
@@ -20,7 +18,7 @@ import { jobIdOf } from './store';
 import { jobHash } from './route';
 import type { SortKey } from './jobSort';
 import { nextSort, rowView, sortDirectionOf, type SortableColumn } from './jobRow';
-import { RowMenu, RowPrimaryAction, StatusBadge } from './JobRowParts';
+import { RowMenu, RowPrimaryAction, StarIcon, StatusBadge } from './JobRowParts';
 import type { Job } from './types';
 import { SECONDARY } from './hds-gaps/tone';
 
@@ -69,11 +67,11 @@ export default function JobsTable({
           content: (
             <Stack gap="px2">
               <Stack direction="row" gap="px4" align="center">
-                {/* Pinned jobs float to the top in every sort (jobSort), so say why. */}
+                {/* Starred jobs float to the top in every sort (jobSort), so say why. */}
                 {row.pinned && (
                   <>
-                    <Icon icon={Star} size="small" />
-                    <VisuallyHidden>Pinned</VisuallyHidden>
+                    <StarIcon on />
+                    <VisuallyHidden>Starred</VisuallyHidden>
                   </>
                 )}
                 <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>

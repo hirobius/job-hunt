@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import { addJob, getAllJobs, markAppliedByUrl, removeJob } from './store';
 
@@ -11,7 +12,12 @@ afterEach(() => {
     .forEach((j) => removeJob(j.url));
 });
 
-const renderTracker = () => render(<TrackerView />);
+const renderTracker = () =>
+  render(
+    <ToastProvider>
+      <TrackerView />
+    </ToastProvider>,
+  );
 
 describe('TrackerView', () => {
   it('adds a pasted job URL from the Add job dialog', async () => {

@@ -1,8 +1,16 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from '../TrackerView';
 import { addJob, getAllJobs, removeJob } from '../store';
+
+const renderTracker = () =>
+  render(
+    <ToastProvider>
+      <TrackerView />
+    </ToastProvider>,
+  );
 
 afterEach(() => {
   cleanup();
@@ -23,7 +31,7 @@ describe('Try with sample data (Tracker)', () => {
     { timeout: 20_000 },
     async () => {
       const user = userEvent.setup();
-      render(<TrackerView />);
+      renderTracker();
       expect(banner()).toBeNull();
 
       await user.click(tryButton()!);
@@ -44,20 +52,20 @@ describe('Try with sample data (Tracker)', () => {
 
   it('is not offered when the tracker already has real jobs', () => {
     addJob('https://boards.greenhouse.io/acme/jobs/7');
-    render(<TrackerView />);
+    renderTracker();
     expect(tryButton()).toBeNull();
     expect(banner()).toBeNull();
   });
 
   it('is not offered while a cloud session is stored (sync could merge the sample in)', () => {
     localStorage.setItem('sb-nelrcmbkimjjmfmgnixj-auth-token', '{}');
-    render(<TrackerView />);
+    renderTracker();
     expect(tryButton()).toBeNull();
   });
 
   it('keeps the banner (and Clear) up when a search hides every sample row', async () => {
     const user = userEvent.setup();
-    render(<TrackerView />);
+    renderTracker();
     await user.click(tryButton()!);
     await user.type(screen.getByPlaceholderText(/search/i), 'zzz-no-match');
     expect(banner()).toBeInTheDocument();
@@ -65,7 +73,7 @@ describe('Try with sample data (Tracker)', () => {
 
   it('Clear keeps a job the user added on top of the sample', async () => {
     const user = userEvent.setup();
-    render(<TrackerView />);
+    renderTracker();
     await user.click(tryButton()!);
     addJob('https://boards.greenhouse.io/acme/jobs/8');
     await user.click(within(banner()!).getByText(/clear sample data/i));
