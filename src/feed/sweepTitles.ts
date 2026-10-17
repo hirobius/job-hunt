@@ -99,7 +99,12 @@ function edit(categoryId: string, seed: string[], change: (s: SweepTitles) => Sw
 }
 
 /** Switch one title on or off. Turning one on past MAX_SWEEP_ON is refused (returns false). */
-export function setTitleOn(categoryId: string, seed: string[], title: string, on: boolean): boolean {
+export function setTitleOn(
+  categoryId: string,
+  seed: string[],
+  title: string,
+  on: boolean,
+): boolean {
   const cur = sweepFor(readAll(), categoryId, seed);
   if (on && activeTitles(cur).length >= MAX_SWEEP_ON) return false;
   edit(categoryId, seed, (s) => ({
@@ -164,4 +169,10 @@ export function useSweep(categoryId: string, seed: string[]): SweepTitles {
     () => sweepFor(all, categoryId, seedKey ? seedKey.split('\n') : []),
     [all, categoryId, seedKey],
   );
+}
+
+/** A track's titles that are on, live. */
+export function useActiveTitles(categoryId: string, seed: string[]): string[] {
+  const sweep = useSweep(categoryId, seed);
+  return useMemo(() => activeTitles(sweep), [sweep]);
 }

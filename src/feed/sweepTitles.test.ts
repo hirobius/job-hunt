@@ -34,7 +34,10 @@ describe('sweep titles store', () => {
     addTitle('t1', SEED, 'UX Engineer');
     addTitle('t1', SEED, 'ux engineer');
     removeTitle('t1', SEED, 'Design Engineer');
-    expect(sweepFor(getAllSweeps(), 't1', SEED).titles).toEqual(['Design Technologist', 'UX Engineer']);
+    expect(sweepFor(getAllSweeps(), 't1', SEED).titles).toEqual([
+      'Design Technologist',
+      'UX Engineer',
+    ]);
     expect(getAllSweeps().t2).toBeUndefined();
   });
 
@@ -50,9 +53,9 @@ describe('sweep titles store', () => {
   it('reads malformed storage as nothing saved', () => {
     localStorage.setItem(SWEEP_KEY, '{"t1":{"titles":"x"},"__proto__":{"titles":["a"]}}');
     expect(getAllSweeps()).toEqual({});
-    expect(
-      sanitizeSweeps({ t1: { titles: [' A ', 'a', 3, 'B'], off: ['b', 'Z'] } }),
-    ).toEqual({ t1: { titles: ['A', 'B'], off: ['b'] } });
+    expect(sanitizeSweeps({ t1: { titles: [' A ', 'a', 3, 'B'], off: ['b', 'Z'] } })).toEqual({
+      t1: { titles: ['A', 'B'], off: ['b'] },
+    });
   });
 
   it('merges cloud-wins per track and keeps local-only tracks', () => {

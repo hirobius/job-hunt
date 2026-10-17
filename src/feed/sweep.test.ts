@@ -27,7 +27,12 @@ describe('sweepRank: merge, dedupe and tag across titles', () => {
     {
       name: 'the same opening on two boards (same company + title) shows once',
       postings: [
-        post({ id: 'greenhouse:a:1', source: 'greenhouse', title: 'Design Engineer', url: 'https://a/1' }),
+        post({
+          id: 'greenhouse:a:1',
+          source: 'greenhouse',
+          title: 'Design Engineer',
+          url: 'https://a/1',
+        }),
         post({ id: 'lever:a:2', source: 'lever', title: 'Design Engineer', url: 'https://b/2' }),
       ],
       titles: ['design engineer'],

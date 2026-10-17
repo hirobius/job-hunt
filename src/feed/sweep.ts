@@ -13,8 +13,10 @@ export interface SweptPosting extends RankedPosting {
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
 /** The same keys rankPostings dedupes on: the URL, and company + title + location. */
 const keysOf = (p: Posting) =>
-  [dedupKey(p.url), p.company.trim() && `${norm(p.company)}|${norm(p.title)}|${norm(p.location)}`]
-    .filter(Boolean) as string[];
+  [
+    dedupKey(p.url),
+    p.company.trim() && `${norm(p.company)}|${norm(p.title)}|${norm(p.location)}`,
+  ].filter(Boolean) as string[];
 
 export function sweepRank(
   postings: Posting[],
