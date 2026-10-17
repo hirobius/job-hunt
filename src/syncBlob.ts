@@ -3,7 +3,8 @@
 // reasoning lives here and is unit-testable without Supabase. Each field's merge rule lives
 // with its store (mergeJobs, mergeTriage's set-aside-wins, …); this module only composes them.
 //
-// v6 (ADR 0009) adds Recently removed: jobs removed in the last 30 days (`src/trash.ts`).
+// v7 (ADR 0009) adds Recently removed: jobs removed in the last 30 days (`src/trash.ts`).
+// v6 adds the Application kit (rapid apply: profile fields + saved answers), optional on read.
 // v5 (ADR 0008) adds the user-edited stores that used to live only in this browser: outreach
 // targets, saved searches, the evidence text and the work mode per track. All optional on read.
 // v4 (#99) carried jobs, snippets, and set-aside tiles. Curated
@@ -12,7 +13,7 @@
 //   v3  { jobs, pillars, copydeck, triage: { pinned, dismissed }, userTiles }
 //       → pillars are ignored (retired), cloud pins are ignored (pins are device-local now),
 //         userTiles surface as `legacyUserTiles` for the one-time "My links" fold.
-import { mergeJobs } from './store';
+import { dedupKey, mergeJobs } from './store';
 import { mergeSnippets, type Snippet } from './copyDeckStore';
 import { mergeTriage, type Triage } from './tileTriage';
 import type { LegacyTile } from './curation/legacyTiles';
@@ -20,6 +21,7 @@ import { mergeTargets, sanitizeTargets, type Target } from './feed/targets';
 import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFilters';
 import { capEvidence, mergeEvidence } from './radar/evidenceStore';
 import { mergeModes, sanitizeModes } from './trackModes';
+import { emptyKit, mergeKit, sanitizeKit, type ApplyKit } from './applyKit';
 import type { WorkMode } from './jobsData';
 import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
@@ -42,7 +44,9 @@ export interface SyncData {
   evidence: string;
   /** Work mode per track (v5). */
   modes: Record<string, WorkMode>;
-  /** Jobs removed in the last 30 days, newest first (v6). */
+  /** The Application kit (v6). */
+  kit: ApplyKit;
+  /** Jobs removed in the last 30 days, newest first (v7). */
   trash: Removed[];
   /** The blob version this was read from (0 = not read from a blob). A pre-v5 cloud copy says
    *  nothing about the v5 fields, so a refresh must not let its emptiness wipe local values. */
@@ -50,7 +54,7 @@ export interface SyncData {
 }
 
 /** Blob schema version written to the cloud. */
-export const BLOB_VERSION = 6;
+export const BLOB_VERSION = 7;
 
 export function emptyBlob(): SyncData {
   return {
@@ -62,6 +66,7 @@ export function emptyBlob(): SyncData {
     filters: {},
     evidence: '',
     modes: {},
+    kit: emptyKit(),
     trash: [],
     sourceV: 0,
   };
@@ -90,12 +95,13 @@ export function readBlob(data: unknown): SyncData {
     filters: sanitizeFilters(o.filters),
     evidence: typeof o.evidence === 'string' ? capEvidence(o.evidence) : '',
     modes: sanitizeModes(o.modes),
+    kit: sanitizeKit(o.kit),
     trash: sanitizeTrash(o.trash),
     sourceV: typeof o.v === 'number' ? o.v : 0,
   };
 }
 
-/** The v6 object written to the cloud. */
+/** The v7 object written to the cloud. */
 export function writeBlob(d: SyncData) {
   return {
     v: BLOB_VERSION,
@@ -106,6 +112,7 @@ export function writeBlob(d: SyncData) {
     filters: d.filters,
     evidence: d.evidence,
     modes: d.modes,
+    kit: d.kit,
     trash: d.trash.filter((r) => !isSample(r.job)),
   };
 }
@@ -128,11 +135,15 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
             evidence: local.evidence,
             modes: local.modes,
           };
-    const v6 = cloud.sourceV >= 6 ? {} : { trash: local.trash };
+    // Likewise a pre-v6 copy says nothing about the kit.
+    const v6 = cloud.sourceV >= 6 ? {} : { kit: local.kit };
+    // And a pre-v7 copy says nothing about Recently removed.
+    const v7 = cloud.sourceV >= 7 ? {} : { trash: local.trash };
     return {
       ...cloud,
       ...v5,
       ...v6,
+      ...v7,
       jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
       triage: {
         pinned: local.triage.pinned.filter((u) => !dismissed.has(u)),
@@ -140,8 +151,10 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
       },
     };
   }
+  const jobs = mergeJobs(cloud.jobs, local.jobs);
+  const saved = new Set(jobs.map((j) => dedupKey(j.url)));
   return {
-    jobs: mergeJobs(cloud.jobs, local.jobs),
+    jobs,
     copydeck: mergeSnippets(cloud.copydeck, local.copydeck),
     triage: mergeTriage(cloud.triage, local.triage),
     legacyUserTiles: cloud.legacyUserTiles,
@@ -149,7 +162,9 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     filters: mergeFilters(cloud.filters, local.filters),
     evidence: mergeEvidence(cloud.evidence, local.evidence),
     modes: mergeModes(cloud.modes, local.modes),
-    trash: mergeTrash(cloud.trash, local.trash),
+    kit: mergeKit(cloud.kit, local.kit),
+    // A job saved on either side is not also listed as removed.
+    trash: mergeTrash(cloud.trash, local.trash).filter((r) => !saved.has(dedupKey(r.job.url))),
     sourceV: cloud.sourceV,
   };
 }

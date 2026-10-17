@@ -1,6 +1,6 @@
 // Recently removed: removing a job moves it here instead of deleting it. Each entry keeps the
 // whole job (to-dos, notes, interviews) for 30 days, then drops on the next read. Persisted in
-// `rjb_trash` and synced in the blob (v6), like every store the user edits (ADR 0008).
+// `rjb_trash` and synced in the blob (v7), like every store the user edits (ADR 0008).
 // Storage and the cloud are untrusted: everything goes through sanitizeTrash.
 import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
@@ -54,12 +54,6 @@ export const replaceTrash = (next: Removed[]) => store.set(sanitizeTrash(next));
 export const mergeTrash = (cloud: Removed[] | null, local: Removed[]): Removed[] =>
   sanitizeTrash(mergeByKey((r) => dedupKey(r.job.url), cloud, local));
 
-// The job just removed on this device, for the Undo toast. In memory only.
-const last = createStore<string | null>(null);
-export const useLastRemoved = last.use;
-export const getLastRemoved = last.get;
-export const clearLastRemoved = () => last.set(null);
-
 /** Remove a job: out of the list, into the trash. */
 export function trashJob(url: string) {
   const job = getAllJobs().find((j) => j.url === url);
@@ -70,24 +64,52 @@ export function trashJob(url: string) {
     { job, removedAt: new Date().toISOString() },
     ...getTrash().filter((r) => dedupKey(r.job.url) !== key),
   ]);
-  last.set(url);
 }
 
-/** Put a removed job back. If it was saved again since, the saved one stays. */
-export function restoreJob(url: string) {
+const notesOf = (j: Job) => (j.notes ?? j.note ?? '').trim();
+
+/** The removed copy's notes, to-dos and interviews folded into the copy saved since. The saved
+ *  copy's own fields win; nothing either copy holds is dropped. */
+export function mergeRemovedInto(saved: Job, removed: Job): Job {
+  const a = notesOf(saved);
+  const b = notesOf(removed);
+  const notes = !b || a === b ? a : !a ? b : `${a}\n\n--- From the removed copy ---\n\n${b}`;
+  const byId = <T extends { id: string }>(keep: T[] = [], add: T[] = []) => {
+    const ids = new Set(keep.map((x) => x.id));
+    return [...keep, ...add.filter((x) => !ids.has(x.id))];
+  };
+  const todos = byId(saved.todos, removed.todos);
+  const events = byId(saved.events, removed.events);
+  return {
+    ...saved,
+    ...(notes ? { notes } : {}),
+    ...(todos.length ? { todos } : {}),
+    ...(events.length ? { events } : {}),
+  };
+}
+
+/** Put a removed job back. If the posting was saved again since, the removed copy's notes,
+ *  to-dos and interviews are merged into the saved one ('merged'); either way nothing is lost. */
+export function restoreJob(url: string): 'restored' | 'merged' | 'missing' {
   const key = dedupKey(url);
   const entry = getTrash().find((r) => dedupKey(r.job.url) === key);
-  if (!entry) return;
+  if (!entry) return 'missing';
+  let outcome: 'restored' | 'merged' = 'restored';
   if (addJob(entry.job.url)) {
     // addJob made a bare job: swap in the removed one, keeping its place at the end.
     replaceAll(getAllJobs().map((j) => (dedupKey(j.url) === key ? entry.job : j)));
+  } else {
+    outcome = 'merged';
+    replaceAll(
+      getAllJobs().map((j) => (dedupKey(j.url) === key ? mergeRemovedInto(j, entry.job) : j)),
+    );
   }
   purgeJob(url);
+  return outcome;
 }
 
 /** Delete a removed job for good. */
 export function purgeJob(url: string) {
   const key = dedupKey(url);
   replaceTrash(getTrash().filter((r) => dedupKey(r.job.url) !== key));
-  if (getLastRemoved() && dedupKey(getLastRemoved()!) === key) clearLastRemoved();
 }

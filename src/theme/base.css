@@ -61,6 +61,12 @@ p {
   font-weight: 600;
 }
 
+/* Apply mode copy rows: keep a saved answer's line breaks. */
+.rjb-prewrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* The "saved on this device only" cue on the Account trigger (#133), shown off Today where the
  * sync nudge is not. Accent colour, decorative (the trigger's title carries the words). */
 .rjb-unsynced-dot {

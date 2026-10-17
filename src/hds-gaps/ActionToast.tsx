@@ -1,48 +1,75 @@
-// HDS gap: a toast with an action (Undo). HDS Toast takes a title and description only, so this
-// is an HDS Card in a polite live region, placed like the toast viewport, that closes itself
-// after `duration`. Ask: an `action` slot on HDS ToastOptions. Delete this when it lands.
-import { useEffect } from 'react';
-import { X } from 'lucide-react';
+// A toast with action buttons (Open, Undo). HDS `useToast` takes only title/description/tone — no
+// action slot yet (upstream ask: Toast `actions`). Built from HDS Card + Text + Button, pinned to
+// the bottom of the viewport, announced politely, and dismissed after `duration` ms. Collapse into
+// HDS Toast when it grows actions.
+import { useEffect, type ReactNode } from 'react';
 import { Box, Button, Card, Icon, Stack, Text } from '@hirobius/design-system';
-import './ActionToast.css';
+import { X } from 'lucide-react';
+import { SECONDARY } from './tone';
 
 export default function ActionToast({
-  message,
-  actionLabel,
-  onAction,
+  title,
+  description,
+  actions,
   onClose,
   duration = 8000,
 }: {
-  message: string;
-  actionLabel: string;
-  onAction: () => void;
+  title: string;
+  description?: string;
+  actions: ReactNode;
   onClose: () => void;
   duration?: number;
 }) {
   useEffect(() => {
     const t = setTimeout(onClose, duration);
     return () => clearTimeout(t);
-  }, [message, duration, onClose]);
+  }, [title, description, duration, onClose]);
   return (
-    <Card className="action-toast" bordered padding="item" role="status" aria-live="polite">
-      <Stack direction="row" gap="tight" align="center">
-        <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-          <Text variant="ui" as="span">
-            {message}
-          </Text>
-        </Box>
-        <Button size="sm" variant="secondary" onClick={onAction}>
-          {actionLabel}
-        </Button>
-        <Button
-          size="sm"
-          variant="tertiary"
-          iconOnly
-          iconLeft={<Icon icon={X} />}
-          label="Dismiss"
-          onClick={onClose}
-        />
-      </Stack>
-    </Card>
+    <Box
+      role="status"
+      aria-live="polite"
+      sx={{
+        position: 'fixed',
+        // Inset keys take no t-shirt names (only spacing keys do): the token var itself.
+        left: 0,
+        right: 0,
+        bottom: 'var(--semantic-space-scale-sm)',
+        px: 'sm',
+        zIndex: 50,
+        display: 'flex',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+      }}
+    >
+      <Box sx={{ pointerEvents: 'auto', width: '100%', maxWidth: '30rem' }}>
+        <Card bordered padding="none">
+          <Box sx={{ p: 'sm' }}>
+            <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
+              <Box sx={{ minWidth: 0, flex: '1 1 10rem' }}>
+                <Text variant="ui" as="p" className="rjb-semibold">
+                  {title}
+                </Text>
+                {description && (
+                  <Text variant="caption" as="p" style={SECONDARY}>
+                    {description}
+                  </Text>
+                )}
+              </Box>
+              <Stack direction="row" gap="tight" align="center">
+                {actions}
+                <Button
+                  size="sm"
+                  variant="tertiary"
+                  iconOnly
+                  iconLeft={<Icon icon={X} />}
+                  label="Dismiss"
+                  onClick={onClose}
+                />
+              </Stack>
+            </Stack>
+          </Box>
+        </Card>
+      </Box>
+    </Box>
   );
 }

@@ -78,7 +78,7 @@ describe('writeBlob — v4 shape', () => {
     const out = writeBlob(blob({ jobs: [job('a')], triage: { pinned: ['p'], dismissed: ['d'] } }));
     expect(BLOB_VERSION).toBe(6);
     expect(out).toEqual({
-      v: 6,
+      v: 7,
       jobs: [job('a')],
       copydeck: [],
       triage: { dismissed: ['d'] },
@@ -86,6 +86,7 @@ describe('writeBlob — v4 shape', () => {
       filters: {},
       evidence: '',
       modes: {},
+      kit: { fields: {}, answers: [] },
       trash: [],
     });
   });
@@ -100,7 +101,7 @@ describe('writeBlob — v4 shape', () => {
       modes: { t1: 'hybrid' },
       trash: [removed('b')],
     });
-    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 6 });
+    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 7 });
   });
 });
 
@@ -279,25 +280,37 @@ describe('blob v5 — targets, saved searches, evidence, work mode', () => {
   });
 });
 
-describe('blob v6 — Recently removed', () => {
-  it('a v5 blob reads with an empty trash; v6 drops malformed entries', () => {
-    expect(readBlob({ v: 5, jobs: [] }).trash).toEqual([]);
-    const r = readBlob({ v: 6, trash: [removed('a'), { job: {} }, 'junk'] });
+describe('blob v7 — Recently removed', () => {
+  it('a v6 blob reads with an empty trash; v7 drops malformed entries', () => {
+    expect(readBlob({ v: 6, jobs: [] }).trash).toEqual([]);
+    const r = readBlob({ v: 7, trash: [removed('a'), { job: {} }, 'junk'] });
     expect(r.trash.map((x) => x.job.label)).toEqual(['a']);
   });
 
   it('seed: unions both sides, cloud wins a shared job', () => {
     const out = mergeBlob(
-      blob({ sourceV: 6, trash: [removed('a', 'cloud')] }),
+      blob({ sourceV: 7, trash: [removed('a', 'cloud')] }),
       blob({ trash: [removed('a', 'local'), removed('b')] }),
       true,
     );
     expect(out.trash.map((x) => x.job.label).sort()).toEqual(['b', 'cloud']);
   });
 
-  it('refresh: a v6 cloud copy wins; an older one never wipes this device’s trash', () => {
+  it('seed: a job saved on either side is not also listed under Recently removed', () => {
+    const job = removed('a').job;
+    const out = mergeBlob(
+      blob({ sourceV: 7, jobs: [job] }),
+      blob({ trash: [removed('a'), removed('b')] }),
+      true,
+    );
+    expect(out.jobs.map((j) => j.label)).toEqual(['a']);
+    expect(out.trash.map((x) => x.job.label)).toEqual(['b']);
+  });
+
+  it('refresh: a v7 cloud copy wins; a v6 one (production, kit only) never wipes this device’s trash', () => {
     const local = blob({ trash: [removed('a')] });
-    expect(mergeBlob(blob({ sourceV: 6 }), local, false).trash).toEqual([]);
+    expect(mergeBlob(blob({ sourceV: 7 }), local, false).trash).toEqual([]);
+    expect(mergeBlob(blob({ sourceV: 6 }), local, false).trash).toEqual(local.trash);
     expect(mergeBlob(blob({ sourceV: 5 }), local, false).trash).toEqual(local.trash);
   });
 

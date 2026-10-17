@@ -1,36 +1,13 @@
-// Recently removed (src/trash.ts) in the UI: the Undo toast after a Remove, and the quiet link
-// under the Pipeline list that opens the list of removed jobs, each with Restore and Delete forever.
+// Recently removed (src/trash.ts) in the UI: the quiet link under the Pipeline list that opens
+// the list of removed jobs, each with Restore and Delete forever. The Undo after a Remove is a
+// save notice (saveNotice.removeWithUndo), so it never stacks with another notice.
 import { useState } from 'react';
 import { Box, Button, Dialog, Stack, Text } from '@hirobius/design-system';
-import ActionToast from './hds-gaps/ActionToast';
 import { SECONDARY } from './hds-gaps/tone';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
-import {
-  clearLastRemoved,
-  purgeJob,
-  restoreJob,
-  TRASH_DAYS,
-  useLastRemoved,
-  useTrash,
-  type Removed,
-} from './trash';
-
-/** The toast after a Remove, wherever it happened. */
-export function UndoRemove() {
-  const url = useLastRemoved();
-  const entry = useTrash().find((r) => r.job.url === url);
-  if (!url || !entry) return null;
-  return (
-    <ActionToast
-      key={url}
-      message={`Removed “${titleOf(entry.job)}”`}
-      actionLabel="Undo"
-      onAction={() => restoreJob(url)}
-      onClose={clearLastRemoved}
-    />
-  );
-}
+import { purgeJob, TRASH_DAYS, useTrash, type Removed } from './trash';
+import { restoreWithNotice } from './saveNotice';
 
 const daysAgo = (iso: string, now = Date.now()) => {
   const d = Math.floor((now - Date.parse(iso)) / 86_400_000);
@@ -54,7 +31,7 @@ function RemovedRow({ entry }: { entry: Removed }) {
           size="sm"
           variant="secondary"
           aria-label={`Restore: ${title}`}
-          onClick={() => restoreJob(entry.job.url)}
+          onClick={() => restoreWithNotice(entry.job.url)}
         >
           Restore
         </Button>

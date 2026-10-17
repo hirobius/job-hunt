@@ -1,5 +1,7 @@
 # HDS adoption map
 
+> **Historical.** Written when the app ran on MUI. The app now uses HDS directly; see ADR 0005.
+
 **Status:** planning doc — _no implementation_. Apply Board renders on **MUI v6** today and
 consumes `@hirobius/design-system` (HDS) **only as design tokens** (see
 [ADR 0001](./adr/0001-consume-hds-via-tokens-on-mui.md)). This document maps the MUI

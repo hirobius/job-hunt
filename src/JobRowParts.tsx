@@ -4,12 +4,12 @@
 import { EllipsisVertical, Star } from 'lucide-react';
 import { Badge, Button, Icon, Menu, useToast } from '@hirobius/design-system';
 import { hostOf, logFollowUp, setStatus, updateJob } from './store';
-import { trashJob } from './trash';
+import { removeWithUndo } from './saveNotice';
 import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
 import { primaryAction, STATUS_TONE, titleOf } from './jobRow';
 import { normStatus } from './jobState';
-import type { Job } from './types';
+import { STATUSES, type Job, type Status } from './types';
 
 /** Controls on a phone card are 40px tap targets; the denser table uses the small size. */
 type Size = 'sm' | 'md';
@@ -34,7 +34,8 @@ function useToggleStar() {
   };
 }
 
-/** The job page's star toggle: says Star or Starred, so the state reads without the icon. */
+/** The job page's star toggle: says Star or Starred, so the state reads without the icon. The
+ *  text carries the state, so there is no aria-pressed (both would announce it twice). */
 export function StarButton({ job }: { job: Job }) {
   const toggle = useToggleStar();
   const on = !!job.priority;
@@ -43,7 +44,6 @@ export function StarButton({ job }: { job: Job }) {
       size="sm"
       variant="tertiary"
       iconLeft={<StarIcon on={on} />}
-      aria-pressed={on}
       onClick={() => toggle(job)}
     >
       {on ? 'Starred' : 'Star'}
@@ -120,6 +120,19 @@ export function RowMenu({
             Open on {hostOf(job.url) || 'the original site'}
           </a>
         </Menu.Item>
+        {/* Every stage is one tap from the row: Interviewing, Offer and Rejected included. */}
+        <Menu.Label>Status</Menu.Label>
+        <Menu.RadioGroup
+          value={normStatus(job.status)}
+          onValueChange={(v) => setStatus(job.url, v as Status)}
+        >
+          {STATUSES.map((st) => (
+            <Menu.RadioItem key={st} value={st}>
+              {st}
+            </Menu.RadioItem>
+          ))}
+        </Menu.RadioGroup>
+        <Menu.Separator />
         <Menu.Item onSelect={() => toggleStar(job)}>{job.priority ? 'Unstar' : 'Star'}</Menu.Item>
         <Menu.Item onSelect={() => updateJob(job.url, { archived: !job.archived })}>
           {job.archived ? 'Unretire' : 'Retire'}
@@ -139,7 +152,7 @@ export function RowMenu({
             no danger tone; the feedback token marks the destructive item. */}
         <Menu.Item
           onSelect={() => {
-            trashJob(job.url);
+            removeWithUndo(job);
             onRemoved?.();
           }}
           style={{ color: 'var(--semantic-color-feedback-error)' }}

@@ -58,8 +58,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
-  publishable + RLS-protected). **Blob v6 (ADR 0008 + addendum)** adds Recently removed (`src/trash.ts`,
-  `rjb_trash`, 30 days) to v5, which carries jobs, snippets, set-aside tiles **and the
+  publishable + RLS-protected). **Blob v7 (ADR 0008 + addendum)** adds Recently removed (`src/trash.ts`,
+  `rjb_trash`, 30 days; also in backups) on top of v6's Application kit; v5 carries jobs, snippets, set-aside tiles **and the
   user-edited per-browser stores: outreach targets (`rjb_targets`), saved searches (`rjb_feed_filters`),
   the evidence text (`rjb_radar_evidence`) and work mode per track (`rjb_ui_mode:<id>`, `src/trackModes.ts`)**
   — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
@@ -109,7 +109,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   Screening (`JobScreening`: fit line, inline `JdScreenPanel`, `ScreeningEditor`) · Interviews ·
   To-dos (`TodosNotes`, holds the one Notes field: `notes`, else the older `note`). **Remove is soft
   (`trash.ts`):** the job goes to Recently removed (link under the Pipeline list, Restore / Delete
-  forever) with an Undo toast (`hds-gaps/ActionToast`: HDS Toast has no action slot). Starred jobs
+  forever) with an Undo notice (`saveNotice.removeWithUndo`, shown by the one `NoticeHost`, so it
+  never stacks with a save notice). Restoring a posting saved again since merges the removed copy's
+  notes, to-dos and interviews into the saved one. Starred jobs
   have their own Pipeline filter. The open tab is local
   state keyed by job, not in the URL. At ≥ `lg` an HDS `Sidebar` puts `JobRail` (links with
   `aria-current`, `hds-gaps/RailList`) beside the job; below it the job is alone with a Back link.
@@ -181,6 +183,16 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a
   held HDS gap, hds#748; also tracked upstream: active-tab underline hds#749, touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
   targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.12.1).
+- **Rapid apply (2026-10-17):** every save (Discover tiles, Live postings incl. "Save N to Pipeline"
+  / "Save all shown", quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
+  Open + Undo (`NoticeHost` in the shell; `hds-gaps/ActionToast` because HDS Toast has no action slot).
+  The Pipeline opens on `ApplyQueueSummary`: **To apply (N)** + the one primary **Start applying**, and
+  **Follow up (M)** with dates (`applyQueue.ts`: Saved & not set aside, pinned first then newest).
+  **Apply mode** `#/apply/<jobId>` (`ApplyMode.tsx`, `route.openApply`; the Pipeline tab stays
+  selected): Open application, Mark applied (follow-up 7 days on), Next job (k of N), Skip, Not a fit
+  (retire + Undo), and the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**): profile
+  fields, two template-filled letters and custom Q&A, each a copy row. The row menu sets any status.
+  Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.

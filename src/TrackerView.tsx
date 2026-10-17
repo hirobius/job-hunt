@@ -12,7 +12,8 @@ import {
   Stack,
   Text,
 } from '@hirobius/design-system';
-import { useJobs, addJob } from './store';
+import { useJobs, addJob, findJobByUrl } from './store';
+import { notifySaved } from './saveNotice';
 import { SORTS, type SortKey } from './jobSort';
 import {
   FILTER_GROUPS,
@@ -26,6 +27,7 @@ import {
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import JobsTable from './JobsTable';
+import ApplyQueueSummary from './ApplyQueueSummary';
 import JobListCard from './JobListCard';
 import { RecentlyRemovedLink } from './RecentlyRemoved';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
@@ -49,14 +51,18 @@ export default function TrackerView() {
 
   const submit = () => {
     if (!url.trim()) return;
-    addJob(url.trim());
+    if (addJob(url.trim())) {
+      const job = findJobByUrl(url.trim());
+      if (job) notifySaved([job.url], job.label);
+    }
     setUrl('');
     setAddOpen(false);
   };
 
+  // Start applying is the page's one primary once there are jobs; Add job steps down.
   const addJobButton = (
     <UiButton
-      variant="primary"
+      variant={jobs.length > 0 ? 'secondary' : 'primary'}
       size="sm"
       iconLeft={<Plus size={16} />}
       onClick={() => setAddOpen(true)}
@@ -83,6 +89,11 @@ export default function TrackerView() {
         style={{ marginBottom: 'var(--primitive-space-4)' }}
       />
       <SampleBanner jobs={jobs} />
+      {jobs.length > 0 && (
+        <Box sx={{ mb: 'sm' }}>
+          <ApplyQueueSummary jobs={jobs} />
+        </Box>
+      )}
 
       {/* One toolbar (#115 / #129): search grows; status and sort sit beside it and wrap under it
           on phones. Status is a grouped menu, not an 8-option strip. No toolbar until there is

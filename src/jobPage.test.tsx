@@ -23,7 +23,8 @@ import { setPipelineView } from './pipelineView';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, findJobById, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
-import { clearLastRemoved, replaceTrash } from './trash';
+import { replaceTrash } from './trash';
+import { dismissNotice } from './saveNotice';
 
 const URL_A = 'https://acme.example/jobs/7';
 const URL_B = 'https://zenith.example/jobs/2';
@@ -56,7 +57,7 @@ afterEach(() => {
     .slice()
     .forEach((j) => removeJob(j.url));
   replaceTrash([]);
-  clearLastRemoved();
+  dismissNotice();
 });
 
 describe('job page header and Overview (#130 slice 1)', () => {
@@ -68,10 +69,8 @@ describe('job page header and Overview (#130 slice 1)', () => {
       .closest('header') as HTMLElement;
     expect(header).not.toBeNull();
     expect(within(header).getByText('Saved')).toBeInTheDocument();
-    expect(within(header).getByRole('button', { name: 'Star' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
+    const star = within(header).getByRole('button', { name: 'Star' });
+    expect(star).not.toHaveAttribute('aria-pressed'); // the text carries the state
     expect(within(header).getByRole('button', { name: /^Mark applied/ })).toBeInTheDocument();
     expect(within(header).getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
   });
@@ -96,7 +95,6 @@ describe('job page header and Overview (#130 slice 1)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Star' }));
     expect(findJobById(jobIdOf(URL_A), getAllJobs())?.priority).toBe(true);
     const on = screen.getByRole('button', { name: 'Starred' });
-    expect(on).toHaveAttribute('aria-pressed', 'true');
     expect(on.querySelector('svg')).toHaveClass('rjb-icon-filled');
     expect(await screen.findByText('Shows first in your Pipeline')).toBeInTheDocument();
     await userEvent.click(on);
