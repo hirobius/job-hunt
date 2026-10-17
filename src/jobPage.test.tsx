@@ -366,7 +366,7 @@ describe('job page two-pane (#130 slice 5)', () => {
       applied: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
     });
     openJobPage(URL_A);
-    expect(within(rail()).getByText('Follow-up due')).toBeInTheDocument();
+    expect(within(rail()).getByText('Due')).toBeInTheDocument();
   });
 });
 
