@@ -76,6 +76,13 @@ describe('app shell (#115 Phase 1)', () => {
     expect(screen.queryByRole('button', { name: 'More options' })).toBeNull();
   });
 
+  it('the wordmark is an app-bar label, smaller than any page title', () => {
+    renderApp();
+    const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
+    expect(wordmark.className).not.toMatch(/hds-type-(title|display)/);
+    expect(wordmark.className).toMatch(/hds-type-(body|ui)/);
+  });
+
   it('signed out, the account menu reads: device-only line, sign in | data | display', async () => {
     renderApp();
     const menu = await openAccount();

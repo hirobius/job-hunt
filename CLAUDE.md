@@ -85,7 +85,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
   terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
   pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
-  **Shell (#115 Phase 1):** slim header = name · top tabs (**Today · Pipeline · Discover ·
+  **Shell (#115 Phase 1):** slim header = wordmark (the one `h1`, but `Text variant="body"` semibold, so the
+  page title is always the biggest text) · top tabs (**Today · Pipeline · Discover ·
   Templates**; they scroll on a phone, with the `src/hds-gaps/TabsOverflowFade` edge cue) · one
   icon-only **Menu** button (hamburger, `aria-label="Menu"`; it holds account, data, display and feedback). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
