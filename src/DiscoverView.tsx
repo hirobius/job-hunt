@@ -24,6 +24,7 @@ import {
   entryLevelize,
   searchAllCount,
   searchAllUrl,
+  titleClause,
   type HiddenQuery,
   type HiddenSite,
   type Tile,
@@ -47,6 +48,8 @@ import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
 import { teamSearchFor } from './feed/teamTopics';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 import { SECONDARY } from './hds-gaps/tone';
+import { useActiveTitles } from './feed/sweepTitles';
+import { SweepTitlesEditor } from './SweepTitles';
 
 const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
 const LiveFeedPanel = lazy(() => import('./LiveFeedPanel'));
@@ -128,6 +131,10 @@ function TitlesPanel({
 }) {
   const { where, mode } = useTrackContext(categoryId);
   const [title, setTitle] = useState(initialTitle || titles[0] || '');
+  // "All selected" searches every title that is on for the track at once (the wide sweep, #213).
+  const active = useActiveTitles(categoryId, titles);
+  const [all, setAll] = useState(false);
+  const many = all && active.length > 1;
   if (titles.length === 0)
     return (
       <EmptyState
@@ -140,7 +147,7 @@ function TitlesPanel({
         }
       />
     );
-  const term = `"${title}"`;
+  const term = titleClause(many ? active : [title]);
   const loc = { where, mode };
   const tiles: Tile[] = BOARDS.map((b) => ({
     name: b.name,
@@ -156,15 +163,31 @@ function TitlesPanel({
           marginBottom: 'var(--semantic-space-scale-xs)',
         }}
       >
-        Pick a title — searches fire {applyEntry ? 'entry-level filtered ' : ''}across every board.
+        Pick a title, or All selected for every title at once — searches fire{' '}
+        {applyEntry ? 'entry-level filtered ' : ''}across every board.
       </Text>
       <ContextCaption categoryId={categoryId} />
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 'sm' }}>
+        {active.length > 1 && (
+          <Tag active={many} onClick={() => setAll(true)}>
+            {`All selected (${active.length})`}
+          </Tag>
+        )}
         {titles.map((tt) => (
-          <Tag key={tt} active={tt === title} onClick={() => setTitle(tt)}>
+          <Tag
+            key={tt}
+            active={!many && tt === title}
+            onClick={() => {
+              setTitle(tt);
+              setAll(false);
+            }}
+          >
             {tt}
           </Tag>
         ))}
+      </Box>
+      <Box sx={{ mb: 'sm' }}>
+        <SweepTitlesEditor categoryId={categoryId} seed={titles} />
       </Box>
       <TileGrid tiles={tiles} cta="Search" />
     </Box>
@@ -173,17 +196,23 @@ function TitlesPanel({
 
 function AtsPanel({
   roles,
+  titles,
   seniority,
   categoryId,
   onManage,
 }: {
   roles: string[];
+  /** The track's titles: the wide sweep's list until edited (#213). */
+  titles: string[];
   seniority: Seniority;
   categoryId: string;
   onManage: () => void;
 }) {
   const { where, mode } = useTrackContext(categoryId);
   const [role, setRole] = useState(roles[0] ?? '');
+  const active = useActiveTitles(categoryId, titles);
+  const [all, setAll] = useState(false);
+  const many = all && active.length > 1;
   const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
   const [contract, setContract] = useState(false);
   if (roles.length === 0)
@@ -198,7 +227,15 @@ function AtsPanel({
         }
       />
     );
-  const query: HiddenQuery = { role, entry: seniority === 'entry', where, mode, recency, contract };
+  const query: HiddenQuery = {
+    role,
+    roles: many ? active : undefined,
+    entry: seniority === 'entry',
+    where,
+    mode,
+    recency,
+    contract,
+  };
   const tilesFor = (sites: HiddenSite[]): Tile[] =>
     sites.map((a) => ({
       name: a.name,
@@ -242,8 +279,12 @@ function AtsPanel({
         <HdsInput
           size="sm"
           label="Role / title"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
+          value={many ? '' : role}
+          placeholder={many ? `All selected (${active.length})` : undefined}
+          onChange={(e) => {
+            setRole(e.target.value);
+            setAll(false);
+          }}
           style={{ minWidth: 180 }}
         />
         <SegmentedControl
@@ -269,11 +310,25 @@ function AtsPanel({
         />
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 1 }}>
+        {active.length > 1 && (
+          <Tag active={many} onClick={() => setAll(true)}>
+            {`All selected (${active.length})`}
+          </Tag>
+        )}
         {roles.map((r) => (
-          <Tag key={r} onClick={() => setRole(r)}>
+          <Tag
+            key={r}
+            onClick={() => {
+              setRole(r);
+              setAll(false);
+            }}
+          >
             {r}
           </Tag>
         ))}
+      </Box>
+      <Box sx={{ mb: 'xs' }}>
+        <SweepTitlesEditor categoryId={categoryId} seed={titles} />
       </Box>
       <Text
         variant="body"
@@ -496,6 +551,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         {tool === 'ats' && (
           <AtsPanel
             roles={cat.atsRoles}
+            titles={cat.titles}
             seniority={cat.seniority}
             categoryId={cat.id}
             onManage={() => setManageOpen(true)}
@@ -523,6 +579,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               key={cat.id}
               categoryId={cat.id}
               terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
+              sweepSeed={cat.titles.length ? cat.titles : cat.atsRoles}
               boardUrls={boardUrls}
             />
           </Suspense>

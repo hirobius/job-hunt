@@ -3,8 +3,9 @@
 // reasoning lives here and is unit-testable without Supabase. Each field's merge rule lives
 // with its store (mergeJobs, mergeTriage's set-aside-wins, …); this module only composes them.
 //
-// v8 adds dream companies per track (src/feed/dreams.ts), same pattern as the v5 stores.
-// (v7 is the trash, #214.)
+// v9 adds dream companies per track (src/feed/dreams.ts), same pattern as the v5 stores.
+// (v8 is the trash, #214.)
+// v7 adds the wide sweep's titles per track (#213), optional on read.
 // v6 adds the Application kit (rapid apply: profile fields + saved answers), optional on read.
 // v5 (ADR 0008) adds the user-edited stores that used to live only in this browser: outreach
 // targets, saved searches, the evidence text and the work mode per track. All optional on read.
@@ -23,6 +24,7 @@ import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFil
 import { capEvidence, mergeEvidence } from './radar/evidenceStore';
 import { mergeModes, sanitizeModes } from './trackModes';
 import { emptyKit, mergeKit, sanitizeKit, type ApplyKit } from './applyKit';
+import { mergeSweeps, sanitizeSweeps, type SweepTitles } from './feed/sweepTitles';
 import { mergeDreams, sanitizeDreams, type Dream } from './feed/dreams';
 import type { WorkMode } from './jobsData';
 import type { Job } from './types';
@@ -47,7 +49,9 @@ export interface SyncData {
   modes: Record<string, WorkMode>;
   /** The Application kit (v6). */
   kit: ApplyKit;
-  /** Dream companies per track (v8). */
+  /** The wide sweep's titles and on/off per track (v7). */
+  sweeps: Record<string, SweepTitles>;
+  /** Dream companies per track (v9). */
   dreams: Record<string, Dream[]>;
   /** The blob version this was read from (0 = not read from a blob). A pre-v5 cloud copy says
    *  nothing about the v5 fields, so a refresh must not let its emptiness wipe local values. */
@@ -55,7 +59,7 @@ export interface SyncData {
 }
 
 /** Blob schema version written to the cloud. */
-export const BLOB_VERSION = 8;
+export const BLOB_VERSION = 9;
 
 export function emptyBlob(): SyncData {
   return {
@@ -68,6 +72,7 @@ export function emptyBlob(): SyncData {
     evidence: '',
     modes: {},
     kit: emptyKit(),
+    sweeps: {},
     dreams: {},
     sourceV: 0,
   };
@@ -97,12 +102,12 @@ export function readBlob(data: unknown): SyncData {
     evidence: typeof o.evidence === 'string' ? capEvidence(o.evidence) : '',
     modes: sanitizeModes(o.modes),
     kit: sanitizeKit(o.kit),
+    sweeps: sanitizeSweeps(o.sweeps),
     dreams: sanitizeDreams(o.dreams),
     sourceV: typeof o.v === 'number' ? o.v : 0,
   };
 }
 
-/** The object written to the cloud. */
 /** The object written to the cloud. */
 export function writeBlob(d: SyncData) {
   return {
@@ -115,6 +120,7 @@ export function writeBlob(d: SyncData) {
     evidence: d.evidence,
     modes: d.modes,
     kit: d.kit,
+    sweeps: d.sweeps,
     dreams: d.dreams,
   };
 }
@@ -139,13 +145,15 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
           };
     // Likewise a pre-v6 copy says nothing about the kit.
     const v6 = cloud.sourceV >= 6 ? {} : { kit: local.kit };
-    // And a pre-v8 copy says nothing about dream companies.
-    const v8 = cloud.sourceV >= 8 ? {} : { dreams: local.dreams };
+    const v7 = cloud.sourceV >= 7 ? {} : { sweeps: local.sweeps };
+    // And a pre-v9 copy says nothing about dream companies.
+    const v9 = cloud.sourceV >= 9 ? {} : { dreams: local.dreams };
     return {
       ...cloud,
       ...v5,
       ...v6,
-      ...v8,
+      ...v7,
+      ...v9,
       jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
       triage: {
         pinned: local.triage.pinned.filter((u) => !dismissed.has(u)),
@@ -163,6 +171,7 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     evidence: mergeEvidence(cloud.evidence, local.evidence),
     modes: mergeModes(cloud.modes, local.modes),
     kit: mergeKit(cloud.kit, local.kit),
+    sweeps: mergeSweeps(cloud.sweeps, local.sweeps),
     dreams: mergeDreams(cloud.dreams, local.dreams),
     sourceV: cloud.sourceV,
   };

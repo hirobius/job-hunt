@@ -54,11 +54,12 @@ wipes every `rjb_` key, so signing out, or opening a second device, lost them.
   older edit. Acceptable for single-user lists, and the seed merge never loses on first sign-in.
 - Entries are capped as before (500 targets and 12 saved searches per track); the blob stays small.
 
-## Addendum (2026-10-17): blob v8, dream companies
+## Addendum (2026-10-17): blob v9, dream companies
 
 Dream companies (`rjb_dreams`, `src/feed/dreams.ts`) follow the same pattern: per track, union by
-company on the seed merge (cloud wins on a shared company), cloud wins on refresh only from a v8+
+company on the seed merge (cloud wins on a shared company), cloud wins on refresh only from a v9+
 copy (an older copy keeps this device's), dropped with their track, included in backups. Each keeps the
 posting ids seen at its last check (the best 300) so "Check dream companies" can say what is new.
 
-v6 is the Application kit (rapid apply) and v7 the trash (#214), so dream companies take v8.
+v6 is the Application kit (rapid apply), v7 the wide sweep's titles (#220) and v8 the trash (#214),
+so dream companies take v9.

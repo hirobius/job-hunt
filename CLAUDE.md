@@ -58,10 +58,11 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
-  publishable + RLS-protected). **Blob v8 (ADR 0008)** carries jobs, snippets, set-aside tiles **and the
+  publishable + RLS-protected). **Blob v9 (ADR 0008)** carries jobs, snippets, set-aside tiles **and the
   user-edited per-browser stores: outreach targets (`rjb_targets`), saved searches (`rjb_feed_filters`),
   the evidence text (`rjb_radar_evidence`), work mode per track (`rjb_ui_mode:<id>`, `src/trackModes.ts`),
-  the Application kit (v6), the trash (v7, #214) and dream companies (`rjb_dreams`, v8)**
+  the Application kit (v6), sweep titles (v7, #220), the trash (v8, #214) and dream companies
+  (`rjb_dreams`, v9)**
   — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
   Caches and device UI prefs (`rjb_liveness`, `rjb_probe`, `rjb_gh_*`, `rjb_feed_remotive`, `rjb_ui_*`, pins)
   stay local. Sign-out flushes the blob first (confirms if the push fails); evidence is capped at 20,000
@@ -186,6 +187,14 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   (retire + Undo), and the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**): profile
   fields, two template-filled letters and custom Q&A, each a copy row. The row menu sets any status.
   Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
+- **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
+  title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys
+  `hn|<term>`), merged/deduped/tagged by `feed/sweep.ts` `sweepRank` ("Matched …" on each row). Per-title
+  `Tag` chips with counts hide rows with no re-fetch. The list and on/off live in `feed/sweepTitles.ts`
+  (`rjb_sweep_titles`, seeded from the track's titles, max 12 on, synced in blob **v7**, dropped with its
+  track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
+  "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
+  apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
@@ -376,7 +385,7 @@ track-agnostic like everything else in Discover.
   **Hiring now** Toggle (on by default) hides teams known to have no matching role (`orderTeams`).
   `dsOrgs` marks `boardCheck: 'unknown' | 'unchecked'` so unknown is never none. Roles save inline
   (`TeamRoles.tsx` `RoleList`, through `saveNotice.notifySaved`: Open + Undo). **Dream
-  companies** (`feed/dreams.ts`, `rjb_dreams`, per track, **blob v8**, ADR 0008 addendum) are starred
+  companies** (`feed/dreams.ts`, `rjb_dreams`, per track, **blob v9**, ADR 0008 addendum) are starred
   from team rows or By company (`DreamStar`), always show on top (`DreamCompanies.tsx`), and "Check
   dream companies" re-reads boards fresh and flags openings new since the last check. Pinned in
   `src/outreach.test.tsx`, `discover.test.tsx`, `feed/teamRoles.test.ts`, `feed/dreams.test.ts`.

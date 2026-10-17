@@ -1,6 +1,6 @@
 // Dream companies: companies the user always wants to see, open roles or not, starred from the
 // Companies tool or the By company view. Per track in local storage (`rjb_dreams`), synced with the
-// account in the blob (v8, ADR 0008). Each keeps the posting ids seen at its last check, so "Check
+// account in the blob (v9, ADR 0008). Each keeps the posting ids seen at its last check, so "Check
 // dream companies" can say what is new. Storage is untrusted.
 import { useMemo, useSyncExternalStore } from 'react';
 import { mergeByKey } from '../mergeByKey';

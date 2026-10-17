@@ -79,9 +79,9 @@ describe('readBlob — tolerant of every historical shape', () => {
 describe('writeBlob — v4 shape', () => {
   it('writes only jobs, copydeck and set-aside (no pillars, userTiles or pins)', () => {
     const out = writeBlob(blob({ jobs: [job('a')], triage: { pinned: ['p'], dismissed: ['d'] } }));
-    expect(BLOB_VERSION).toBe(8);
+    expect(BLOB_VERSION).toBe(9);
     expect(out).toEqual({
-      v: 8,
+      v: 9,
       jobs: [job('a')],
       copydeck: [],
       triage: { dismissed: ['d'] },
@@ -90,6 +90,7 @@ describe('writeBlob — v4 shape', () => {
       evidence: '',
       modes: {},
       kit: { fields: {}, answers: [] },
+      sweeps: {},
       dreams: {},
     });
   });
@@ -104,7 +105,7 @@ describe('writeBlob — v4 shape', () => {
       modes: { t1: 'hybrid' },
       dreams: { t1: [dream('Acme')] },
     });
-    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 8 });
+    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 9 });
   });
 });
 
@@ -282,15 +283,15 @@ describe('blob v5 — targets, saved searches, evidence, work mode', () => {
     expect(out.modes).toEqual(local.modes);
   });
 
-  it('refresh: a pre-v8 cloud copy never wipes this device’s dream companies; a v8 one wins', () => {
+  it('refresh: a pre-v9 cloud copy never wipes this device’s dream companies; a v9 one wins', () => {
     const local = blob({ dreams: { t1: [dream('Acme')] } });
-    expect(mergeBlob(blob({ sourceV: 6 }), local, false).dreams).toEqual(local.dreams);
-    expect(mergeBlob(blob({ sourceV: 8 }), local, false).dreams).toEqual({});
+    expect(mergeBlob(blob({ sourceV: 8 }), local, false).dreams).toEqual(local.dreams);
+    expect(mergeBlob(blob({ sourceV: 9 }), local, false).dreams).toEqual({});
   });
 
   it('seed: unions dream companies per track', () => {
     const out = mergeBlob(
-      blob({ sourceV: 8, dreams: { t1: [dream('Cloud')] } }),
+      blob({ sourceV: 9, dreams: { t1: [dream('Cloud')] } }),
       blob({ dreams: { t1: [dream('Local')] } }),
       true,
     );
