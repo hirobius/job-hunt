@@ -7,7 +7,7 @@ import prettier from 'eslint-config-prettier';
 import hds from '@hirobius/design-system/eslint-plugin';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src/theme/hds-palette.generated.ts', 'verify-*.mjs', 'vrfy*.mjs'] },
+  { ignores: ['dist', 'docs/explorations/**/dist', 'node_modules', 'src/theme/hds-palette.generated.ts', 'verify-*.mjs', 'vrfy*.mjs'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

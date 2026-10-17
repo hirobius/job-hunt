@@ -1,0 +1,780 @@
+{
+ "screens": [
+  {
+   "id": "companies",
+   "name": "Companies (home)",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "starred",
+   "name": "Companies · Starred scope",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "company",
+   "name": "Company",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "filters",
+   "name": "Filters sheet",
+   "kind": "Sheet",
+   "w": 390
+  },
+  {
+   "id": "findmore",
+   "name": "Find more · Openings",
+   "kind": "Panel",
+   "w": 390
+  },
+  {
+   "id": "findmore-search",
+   "name": "Find more · Title and ATS search",
+   "kind": "Panel",
+   "w": 390
+  },
+  {
+   "id": "findmore-boards",
+   "name": "Find more · Boards and Teams",
+   "kind": "Panel",
+   "w": 390
+  },
+  {
+   "id": "pipeline",
+   "name": "Pipeline (To apply)",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "pipeline-follow",
+   "name": "Pipeline · Follow up + This week",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "insights",
+   "name": "Pipeline · Insights",
+   "kind": "Panel",
+   "w": 390
+  },
+  {
+   "id": "job",
+   "name": "Job · Overview",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "job-screening",
+   "name": "Job · Screening",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "job-interviews",
+   "name": "Job · Interviews",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "job-todos",
+   "name": "Job · To-dos",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "apply",
+   "name": "Apply sheet",
+   "kind": "Sheet",
+   "w": 390
+  },
+  {
+   "id": "templates",
+   "name": "Templates sheet",
+   "kind": "Sheet",
+   "w": 390
+  },
+  {
+   "id": "template-edit",
+   "name": "Template editor",
+   "kind": "Sheet",
+   "w": 390
+  },
+  {
+   "id": "account",
+   "name": "Account menu",
+   "kind": "Menu",
+   "w": 390
+  },
+  {
+   "id": "track",
+   "name": "Track sheet",
+   "kind": "Sheet",
+   "w": 390
+  },
+  {
+   "id": "onboarding",
+   "name": "First run",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "getting-started",
+   "name": "Companies · first week",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "signin",
+   "name": "Sign in",
+   "kind": "Dialog",
+   "w": 390
+  },
+  {
+   "id": "error",
+   "name": "Something broke",
+   "kind": "Screen",
+   "w": 390
+  },
+  {
+   "id": "companies-desk",
+   "name": "Companies · desktop",
+   "kind": "Screen",
+   "w": 1440
+  },
+  {
+   "id": "pipeline-desk",
+   "name": "Pipeline · desktop",
+   "kind": "Screen",
+   "w": 1440
+  },
+  {
+   "id": "job-desk",
+   "name": "Job · desktop with rail",
+   "kind": "Screen",
+   "w": 1440
+  },
+  {
+   "id": "companies-dark",
+   "name": "Companies (home) · dark",
+   "kind": "Screen",
+   "w": 390,
+   "theme": "dark",
+   "of": "companies"
+  },
+  {
+   "id": "pipeline-dark",
+   "name": "Pipeline · dark",
+   "kind": "Screen",
+   "w": 390,
+   "theme": "dark",
+   "of": "pipeline"
+  }
+ ],
+ "features": [
+  [
+   "F1",
+   "Apply now (featured sections)",
+   "Works",
+   "companies",
+   "\"Your links\" scope chip: the track's curated sections as company cards"
+  ],
+  [
+   "F2",
+   "Title search",
+   "Works",
+   "findmore-search",
+   "Find more → Title search, one row per board with Open"
+  ],
+  [
+   "F3",
+   "ATS search",
+   "Works",
+   "findmore-search",
+   "Find more → ATS search (community clauses unverified live)"
+  ],
+  [
+   "F4",
+   "Live postings",
+   "Works",
+   "findmore",
+   "Find more → Openings: the ranked list; also feeds the role counts on Companies"
+  ],
+  [
+   "F5",
+   "Source: HN Who is hiring",
+   "Works",
+   "filters",
+   "Filters → Sources toggle"
+  ],
+  [
+   "F6",
+   "Source: Remotive",
+   "Works",
+   "filters",
+   "Filters → Sources toggle, with its 4-a-day budget note"
+  ],
+  [
+   "F7",
+   "Source: Jobicy",
+   "Works (unverified live)",
+   "filters",
+   "Filters → Sources toggle, marked unverified"
+  ],
+  [
+   "F8",
+   "Source: Remote OK",
+   "Off",
+   "filters",
+   "Filters → Sources toggle, disabled and marked Off (legal notice unread)"
+  ],
+  [
+   "F9",
+   "Source: company boards",
+   "Works",
+   "starred",
+   "Starred → Check now reads every starred board, \"Read N of M\""
+  ],
+  [
+   "F10",
+   "Per-source retry",
+   "Works",
+   "findmore",
+   "Openings → one failed-source Alert with Retry"
+  ],
+  [
+   "F11",
+   "Targeting",
+   "Works",
+   "filters",
+   "Filters → Leave out, Level, Pay floor, each with a hidden-by count"
+  ],
+  [
+   "F12",
+   "Saved searches",
+   "Works",
+   "filters",
+   "Filters → Saved searches select + Save search"
+  ],
+  [
+   "F13",
+   "Openings / Companies view",
+   "Works",
+   "companies",
+   "Is the home screen: companies grouped from openings (Find more keeps the flat Openings list)"
+  ],
+  [
+   "F14",
+   "Fit from evidence",
+   "Works",
+   "company",
+   "Fit badge on each role; evidence text lives in Filters → Your evidence"
+  ],
+  [
+   "F15",
+   "Watch a company",
+   "Works",
+   "company",
+   "Star on a company = watch its board; also \"Add a company\" in Find more"
+  ],
+  [
+   "F16",
+   "Suggested companies",
+   "Works",
+   "companies",
+   "Card at the end of the list: Add suggested companies (N)"
+  ],
+  [
+   "F17",
+   "Find boards",
+   "Works",
+   "findmore-boards",
+   "Find more → Boards: paste a list or load a YC batch (YC unverified live)"
+  ],
+  [
+   "F18",
+   "Teams",
+   "Partial",
+   "findmore-boards",
+   "Find more → Teams, now searched with the track's own terms (fix noted; GitHub unverified live)"
+  ],
+  [
+   "F19",
+   "Outreach targets list",
+   "Works",
+   "companies",
+   "\"To contact\" scope chip on Companies"
+  ],
+  [
+   "F20",
+   "Find more like this",
+   "Works",
+   "job",
+   "Job \"…\" menu → opens Find more seeded with the title"
+  ],
+  [
+   "F21",
+   "Location + work mode",
+   "Works",
+   "companies",
+   "Context button under search (\"Spokane · Hybrid\") opens a popover"
+  ],
+  [
+   "F22",
+   "Tile details",
+   "Works",
+   "company",
+   "Company page facts: chips, phone, links"
+  ],
+  [
+   "F23",
+   "Set aside / restore tile",
+   "Works",
+   "companies",
+   "Company card \"…\" → Set aside; Filters → Show set aside"
+  ],
+  [
+   "S1",
+   "Quick add",
+   "Works",
+   "pipeline",
+   "Paste-a-link field at the top of the Pipeline"
+  ],
+  [
+   "S2",
+   "Save a tile",
+   "Works",
+   "companies",
+   "Save on a \"Your links\" card"
+  ],
+  [
+   "S3",
+   "Save a posting",
+   "Works",
+   "company",
+   "One Save per role card"
+  ],
+  [
+   "S4",
+   "Quick-add URL params",
+   "Works",
+   "pipeline",
+   "No UI; lands on the Pipeline with a toast (system)"
+  ],
+  [
+   "S5",
+   "Dedup",
+   "Works",
+   "pipeline",
+   "No UI; \"Already saved\" state on a role's Save (system)"
+  ],
+  [
+   "P1",
+   "Pipeline list",
+   "Works",
+   "pipeline",
+   "Cards on phone; HDS Table on desktop"
+  ],
+  [
+   "P2",
+   "Status filter",
+   "Works",
+   "pipeline",
+   "Stage chips: To apply · Follow up · Applied · Interviewing · Offer · Closed"
+  ],
+  [
+   "P3",
+   "Search",
+   "Works",
+   "pipeline",
+   "Search field beside the paste field (icon on phone)"
+  ],
+  [
+   "P4",
+   "Sort",
+   "Works",
+   "pipeline",
+   "Sort select in the toolbar; sortable headers on desktop"
+  ],
+  [
+   "P5",
+   "Row next step",
+   "Works",
+   "pipeline",
+   "One button per card: Apply (opens the Apply sheet) or Log follow-up"
+  ],
+  [
+   "P6",
+   "Row menu",
+   "Works",
+   "pipeline",
+   "Card \"…\": Open posting, Star, Retire, Find more like this, Remove"
+  ],
+  [
+   "P7",
+   "Priority star",
+   "Partial",
+   "job",
+   "Star in the job header shows filled + \"Starred\" text (PR #214 fix)"
+  ],
+  [
+   "P8",
+   "Job page",
+   "Works",
+   "job",
+   "Job screen with tabs Overview · Screening · Interviews · To-dos"
+  ],
+  [
+   "P9",
+   "Job rail",
+   "Works",
+   "job-desk",
+   "Desktop: list beside the open job"
+  ],
+  [
+   "P10",
+   "Overview facts + edit",
+   "Works",
+   "job",
+   "Facts list + Edit button in the facts header"
+  ],
+  [
+   "P11",
+   "Research links",
+   "Works",
+   "job",
+   "Overview → Research row"
+  ],
+  [
+   "P12",
+   "Remove job",
+   "Works",
+   "pipeline-follow",
+   "Remove → the card turns into \"Removed · Undo\" for 10 s (gap fixed)"
+  ],
+  [
+   "P13",
+   "Liveness check",
+   "Works",
+   "pipeline",
+   "One-line Alert: \"2 saved jobs closed on the board\""
+  ],
+  [
+   "P14",
+   "Retire",
+   "Works",
+   "pipeline",
+   "Card \"…\" → Retire; Closed chip shows them"
+  ],
+  [
+   "A1",
+   "Mark applied",
+   "Works",
+   "apply",
+   "Apply sheet's primary button; sets the follow-up"
+  ],
+  [
+   "A2",
+   "JD screener",
+   "Works",
+   "job-screening",
+   "Screening tab → paste JD → Use suggestions"
+  ],
+  [
+   "A3",
+   "Screening editor",
+   "Works",
+   "job-screening",
+   "Screening tab fields below the screener"
+  ],
+  [
+   "A4",
+   "Use template",
+   "Works",
+   "apply",
+   "Apply sheet: pick a template, preview filled, Copy"
+  ],
+  [
+   "U1",
+   "Follow-up clock",
+   "Works",
+   "pipeline-follow",
+   "Card line \"Follow up in 3 days\"; Follow up chip"
+  ],
+  [
+   "U2",
+   "Today: due follow-ups",
+   "Works",
+   "pipeline-follow",
+   "Follow up stage chip (replaces Today)"
+  ],
+  [
+   "U3",
+   "Today: next 7 days",
+   "Works",
+   "pipeline-follow",
+   "\"This week\" list at the top of Follow up"
+  ],
+  [
+   "U4",
+   "Interview log",
+   "Works",
+   "job-interviews",
+   "Interviews tab: list + Add interview"
+  ],
+  [
+   "U5",
+   "Add to calendar",
+   "Works",
+   "job-interviews",
+   "Interviews tab → Add to calendar (.ics)"
+  ],
+  [
+   "U6",
+   "To-dos + notes",
+   "Works",
+   "job-todos",
+   "To-dos tab: checklist + Notes"
+  ],
+  [
+   "T1",
+   "Templates list",
+   "Works",
+   "templates",
+   "Templates sheet (from Apply sheet or Account menu)"
+  ],
+  [
+   "T2",
+   "Template editor",
+   "Works",
+   "template-edit",
+   "Editor sheet with token chips, Write / Preview"
+  ],
+  [
+   "T3",
+   "Fill preview",
+   "Works",
+   "apply",
+   "Apply sheet preview is filled from the job"
+  ],
+  [
+   "T4",
+   "Copy filled",
+   "Works",
+   "apply",
+   "Apply sheet → Copy"
+  ],
+  [
+   "T5",
+   "Pin / Duplicate / Delete",
+   "Works",
+   "template-edit",
+   "Editor \"…\" menu"
+  ],
+  [
+   "T6",
+   "New snippet",
+   "Works",
+   "templates",
+   "Templates sheet → New template"
+  ],
+  [
+   "T7",
+   "Restore starter set",
+   "Works",
+   "templates",
+   "Templates sheet → Restore starter templates"
+  ],
+  [
+   "I1",
+   "Metric tiles",
+   "Works",
+   "insights",
+   "Insights panel at the end of the Pipeline"
+  ],
+  [
+   "I2",
+   "Funnel",
+   "Works",
+   "insights",
+   "Insights → stage funnel"
+  ],
+  [
+   "I3",
+   "Weekly applied trend",
+   "Placeholder",
+   "insights",
+   "Insights → 8-week bars (gap fixed: now shown)"
+  ],
+  [
+   "K1",
+   "Onboarding",
+   "Works",
+   "onboarding",
+   "First run, step 1 of 3"
+  ],
+  [
+   "K2",
+   "Starter packs",
+   "Works",
+   "track",
+   "Track sheet → New track from a pack; also first run"
+  ],
+  [
+   "K3",
+   "Track switcher",
+   "Works",
+   "track",
+   "Header track button opens the Track sheet"
+  ],
+  [
+   "K4",
+   "New track",
+   "Works",
+   "track",
+   "Track sheet → New track"
+  ],
+  [
+   "K5",
+   "Manage track",
+   "Works",
+   "track",
+   "Track sheet → Manage this track"
+  ],
+  [
+   "K6",
+   "Getting started",
+   "Works",
+   "getting-started",
+   "Card at the top of Companies in the first week"
+  ],
+  [
+   "K7",
+   "Sample data",
+   "Works",
+   "onboarding",
+   "First run → Try with sample data"
+  ],
+  [
+   "K8",
+   "Today notice",
+   "Works",
+   "drop",
+   "DROP: it announces Today as home, and C removes Today"
+  ],
+  [
+   "D1",
+   "Sign in (magic link)",
+   "Works",
+   "signin",
+   "Account menu → Sign in → dialog"
+  ],
+  [
+   "D2",
+   "Cloud sync",
+   "Works",
+   "account",
+   "Automatic; status line at the top of the Account menu"
+  ],
+  [
+   "D3",
+   "Sync nudge + dot",
+   "Works",
+   "account",
+   "Dot on the Account button; one line in the menu"
+  ],
+  [
+   "D4",
+   "Sign out",
+   "Works",
+   "account",
+   "Account menu"
+  ],
+  [
+   "D5",
+   "Delete my data",
+   "Works",
+   "account",
+   "Account menu (danger)"
+  ],
+  [
+   "D6",
+   "Back up",
+   "Works",
+   "account",
+   "Account menu"
+  ],
+  [
+   "D7",
+   "Restore",
+   "Works",
+   "account",
+   "Account menu"
+  ],
+  [
+   "D8",
+   "Export CSV",
+   "Works",
+   "account",
+   "Account menu"
+  ],
+  [
+   "D9",
+   "Theme",
+   "Works",
+   "account",
+   "Account menu"
+  ],
+  [
+   "D10",
+   "Density",
+   "Works",
+   "account",
+   "Account menu"
+  ],
+  [
+   "D11",
+   "Send feedback",
+   "Works",
+   "account",
+   "Account menu"
+  ],
+  [
+   "Y1",
+   "Error boundary",
+   "Works",
+   "error",
+   "Full-screen fallback with Reload / Reset"
+  ],
+  [
+   "Y2",
+   "Hash routes",
+   "Works",
+   "companies",
+   "No UI; old slugs redirect to Companies / Pipeline (system)"
+  ],
+  [
+   "Y3",
+   "Toasts",
+   "Works",
+   "company",
+   "Save → \"Saved to Pipeline\" toast"
+  ],
+  [
+   "Y4",
+   "Save flash",
+   "Works",
+   "job-todos",
+   "\"Saved\" note beside Notes"
+  ],
+  [
+   "Y5",
+   "Rate budgets",
+   "Works",
+   "findmore-boards",
+   "Caption under Teams / Boards: \"GitHub: 6 searches left this minute\""
+  ]
+ ]
+}

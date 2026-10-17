@@ -10,7 +10,7 @@ This lists every user-facing function in the app on `main` (785e613). It was che
 
 **Unverified live** means it was built from a documented API shape but never checked against the real host.
 
-**Counts:** 74 functions. Works 66 · Partial 2 · Placeholder 1 · Off 1 · plus 4 Works that are unverified live.
+**Counts:** 86 functions. Works 82 (7 of them unverified live) · Partial 2 · Placeholder 1 · Off 1.
 
 Tests are in `src/**.test.ts(x)` beside each file unless noted.
 
