@@ -1,6 +1,6 @@
 // Recently removed: removing a job moves it here instead of deleting it. Each entry keeps the
 // whole job (to-dos, notes, interviews) for 30 days, then drops on the next read. Persisted in
-// `rjb_trash` and synced in the blob (v7), like every store the user edits (ADR 0008).
+// `rjb_trash` and synced in the blob (v8), like every store the user edits (ADR 0008).
 // Storage and the cloud are untrusted: everything goes through sanitizeTrash.
 import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';

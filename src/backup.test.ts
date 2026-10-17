@@ -374,7 +374,7 @@ describe('backup carries targets, saved searches, evidence and work modes (ADR 0
   });
 });
 
-describe('backup carries Recently removed (blob v7)', () => {
+describe('backup carries Recently removed (blob v8)', () => {
   const removed = (url: string, label = 'Gone') => ({
     job: job(url, label),
     removedAt: new Date().toISOString(),

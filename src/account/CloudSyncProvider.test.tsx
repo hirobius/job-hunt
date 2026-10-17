@@ -88,8 +88,8 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     const menu = await openAccount();
     expect(within(menu).getByText(/Synced · u1@example.test/)).toBeInTheDocument();
-    // …and the tracker blob it pushed is v7 (no pillars / userTiles).
-    expect(fake().tables.tracker[0].data).toMatchObject({ v: 7 });
+    // …and the tracker blob it pushed is v8 (no pillars / userTiles).
+    expect(fake().tables.tracker[0].data).toMatchObject({ v: 8 });
     expect(fake().tables.tracker[0].data).not.toHaveProperty('pillars');
   });
 
@@ -393,7 +393,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       act(edit);
       await waitFor(() =>
         expect(fake().tables.tracker[0].data).toMatchObject({
-          v: 7,
+          v: 8,
           targets: { trk: [{ login: 'acme' }] },
           filters: { trk: [{ name: 'Austin hybrid' }] },
           evidence: 'Led a design system',
@@ -488,13 +488,13 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       });
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
       expect(fake().tables.tracker[0].data).toMatchObject({
-        v: 7,
+        v: 8,
         evidence: 'Led a design system',
         modes: { trk: 'hybrid' },
       });
     });
 
-    it('a v6 blob from the production deploy never wipes Recently removed, and gets it re-uploaded', async () => {
+    it('a v7 blob from the production deploy never wipes Recently removed, and gets it re-uploaded', async () => {
       renderAccount();
       act(() => fake().signIn('u1'));
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
@@ -503,18 +503,19 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
         trashJob('https://example.test/removed');
       });
       await waitFor(() => expect(fake().tables.tracker[0].data.trash).toHaveLength(1));
-      // A tab on the v6 deploy (kit, no trash) rewrites the row.
+      // A tab on the v7 deploy (kit and sweeps, no trash) rewrites the row.
       fake().tables.tracker[0].data = {
-        v: 6,
+        v: 7,
         jobs: [],
         copydeck: [],
         triage: { dismissed: [] },
         kit: { fields: {}, answers: [] },
+        sweeps: {},
       };
       act(() => {
         window.dispatchEvent(new Event('focus'));
       });
-      await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 7 }));
+      await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 8 }));
       expect(fake().tables.tracker[0].data.trash).toHaveLength(1);
       expect(getTrash().map((r) => r.job.url)).toEqual(['https://example.test/removed']);
     });
@@ -608,7 +609,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       });
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
       expect(fake().tables.tracker[0].data).toMatchObject({
-        v: 7,
+        v: 8,
         evidence: 'Led a design system',
         modes: { trk: 'hybrid' },
       });
@@ -667,7 +668,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       edit();
       renderAccount();
       act(() => fake().signIn('u1'));
-      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(7));
+      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(8));
       act(() => {
         window.dispatchEvent(new Event('focus'));
       });

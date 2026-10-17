@@ -28,7 +28,7 @@ export interface AccountState {
   filters: Record<string, SavedFilter[]>;
   evidence: string;
   modes: Record<string, WorkMode>;
-  /** Recently removed (blob v7). Older backups lack it. */
+  /** Recently removed (blob v8). Older backups lack it. */
   trash: Removed[];
 }
 
