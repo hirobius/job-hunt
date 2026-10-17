@@ -106,7 +106,7 @@ describe('Inline style ratchet (#133)', () => {
 // status dot, so it is the one allowlisted dot.
 export const ACCENT_BAR =
   /border-?left(?!-?(?:width|style)\b)|borderInlineStart|border-inline-start/i;
-export const STATUS_DOT = /StatusListItem|(?<![\w-])[\w-]*-dot\b|\bdot\b\s*[:=]/;
+export const STATUS_DOT = /StatusListItem|(?<![\w-])[\w-]*-dot\b|\bdot\b\s*[:=]|borderRadius:\s*['"]50%['"]/;
 const DOT_ALLOWLIST = ['account/AccountMenu.tsx', 'theme/base.css'];
 
 function styleFiles(dir: string): string[] {
@@ -136,6 +136,7 @@ describe('No accent bars or status dots (#193)', () => {
     expect(ACCENT_BAR.test("sx={{ border: '1px solid' }}")).toBe(false);
     expect(STATUS_DOT.test('<StatusListItem tone="warning" />')).toBe(true);
     expect(STATUS_DOT.test('<span className="row-status-dot" />')).toBe(true);
+    expect(STATUS_DOT.test("sx={{ width: 8, borderRadius: '50%', bgcolor: 'feedback.warning' }}")).toBe(true);
     expect(STATUS_DOT.test('<Badge tone="warning">Due</Badge>')).toBe(false);
   });
 });
