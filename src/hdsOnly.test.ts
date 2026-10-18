@@ -81,18 +81,29 @@ describe('Discover inline style ceilings (#131)', () => {
 });
 
 // Design polish (#133): one global ratchet on inline `style={{` in non-test .tsx. It only goes
-// down: lower INLINE_STYLE_CEILING when you remove one; raising it means a Stack, Box sx, a
+// down: lower MAX_INLINE_STYLES when you remove one; raising it means a Stack, Box sx, a
 // token or a hds-gaps stand-in would have done.
 describe('Inline style ratchet (#133)', () => {
-  const INLINE_STYLE_CEILING = 96;
+  // lower it as styles are burned down, never raise it
+  const MAX_INLINE_STYLES = 96;
   const tsx = sourceFiles(SRC).filter((f) => f.endsWith('.tsx'));
-  it('does not grow', () => {
-    const n = tsx.reduce(
+
+  it('counts style={{ in src/**/*.tsx and fails above MAX_INLINE_STYLES', () => {
+    const count = tsx.reduce(
       (sum, f) => sum + (readFileSync(f, 'utf8').match(/style=\{\{/g) ?? []).length,
       0,
     );
-    expect(n).toBeLessThanOrEqual(INLINE_STYLE_CEILING);
+    expect(count).toBeLessThanOrEqual(MAX_INLINE_STYLES);
   });
+
+  it('fails when MAX_INLINE_STYLES is set one lower', () => {
+    const count = tsx.reduce(
+      (sum, f) => sum + (readFileSync(f, 'utf8').match(/style=\{\{/g) ?? []).length,
+      0,
+    );
+    expect(count).toBeGreaterThan(MAX_INLINE_STYLES - 1);
+  });
+
   it('sets no raw font size or weight inline', () => {
     const offenders = tsx.filter((f) =>
       /style=\{\{[^}]*\bfont(Size|Weight)\s*:/.test(readFileSync(f, 'utf8')),
