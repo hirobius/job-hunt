@@ -2,7 +2,7 @@
 // is a link to `#/copy-deck/<id>` so it works with the back button, a middle click and a phone's
 // one-pane flow. The star marks a pinned template; the caption is the body's first line.
 import { Star } from 'lucide-react';
-import { Box, Button, Card, Icon, Input as HdsInput, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, Icon, Input as HdsInput, Stack, Text } from '@hirobius/design-system';
 import EmptyState from './EmptyState';
 import type { Snippet } from './copyDeckStore';
 import { SECONDARY } from './hds-gaps/tone';
@@ -50,54 +50,62 @@ export default function TemplatesList({
         />
       ) : (
         <nav aria-label="Templates">
-          <Stack as="ul" gap="tight" style={LIST}>
+          <Box as="ul" sx={LIST}>
             {items.map((s) => {
               const current = s.id === currentId;
+              // Flat rows split by hairlines (#241); the open one sits on the raised surface.
               return (
-                <li key={s.id}>
-                  <Card bordered padding="item" variant={current ? 'accent' : 'default'}>
-                    <a
-                      href={snippetHash(s.id)}
-                      aria-current={current ? 'page' : undefined}
-                      style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}
-                    >
-                      <Stack gap="tight">
-                        <Stack direction="row" gap="tight" align="center">
-                          {s.pinned && (
-                            <Box
-                              as="span"
-                              role="img"
-                              aria-label="Pinned"
-                              sx={{ display: 'inline-flex' }}
-                            >
-                              <Icon icon={Star} weight="fill" />
-                            </Box>
-                          )}
-                          <Text variant="ui" as="span" className="rjb-semibold">
-                            {s.label.trim() || 'Untitled'}
-                          </Text>
-                        </Stack>
-                        <Text
-                          variant="caption"
-                          as="span"
-                          style={{
-                            ...SECONDARY,
-                            color: current ? 'inherit' : SECONDARY.color,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            display: 'block',
-                          }}
-                        >
-                          {firstLine(s.body) || 'Empty'}
+                <Box
+                  as="li"
+                  key={s.id}
+                  sx={{
+                    px: 'xs',
+                    py: 'sm',
+                    borderBottom: 'thin solid',
+                    borderColor: 'border.default',
+                    ...(current ? { bg: 'surface.raised' } : {}),
+                  }}
+                >
+                  <a
+                    href={snippetHash(s.id)}
+                    aria-current={current ? 'page' : undefined}
+                    style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}
+                  >
+                    <Stack gap="tight">
+                      <Stack direction="row" gap="tight" align="center">
+                        {s.pinned && (
+                          <Box
+                            as="span"
+                            role="img"
+                            aria-label="Pinned"
+                            sx={{ display: 'inline-flex' }}
+                          >
+                            <Icon icon={Star} weight="fill" />
+                          </Box>
+                        )}
+                        <Text variant="ui" as="span" className="rjb-semibold">
+                          {s.label.trim() || 'Untitled'}
                         </Text>
                       </Stack>
-                    </a>
-                  </Card>
-                </li>
+                      <Text
+                        variant="caption"
+                        as="span"
+                        style={{
+                          ...SECONDARY,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'block',
+                        }}
+                      >
+                        {firstLine(s.body) || 'Empty'}
+                      </Text>
+                    </Stack>
+                  </a>
+                </Box>
               );
             })}
-          </Stack>
+          </Box>
         </nav>
       )}
     </Stack>

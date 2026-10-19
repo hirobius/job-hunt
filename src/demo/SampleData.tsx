@@ -32,7 +32,7 @@ export function SampleBanner({ jobs }: { jobs: Job[] }) {
   const n = jobs.filter(isSample).length;
   if (n === 0) return null;
   return (
-    <Box role="status" aria-label="Sample data" sx={{ marginBlockEnd: 'sm' }}>
+    <Box role="status" aria-label="Sample data">
       <Stack direction="row" wrap="wrap" gap="px8" align="center">
         <Text variant="caption" as="span" style={SECONDARY}>
           <span className="rjb-semibold">Sample data</span> · {n} fictional{' '}

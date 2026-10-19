@@ -19,7 +19,7 @@ import {
   useToast,
 } from '@hirobius/design-system';
 import { SavedTargets, TargetRow, type Row } from './OutreachRows';
-import { listStyle, useWatching } from './outreachShared';
+import { ROWS_CLASS, rowsStyle, useWatching } from './outreachShared';
 import { SECONDARY } from './hds-gaps/tone';
 import { findDesignSystemOrgs, MIN_STARS, type OrgTarget, type RunReport } from './feed/dsOrgs';
 import { createGithubBudget } from './feed/githubBudget';
@@ -267,7 +267,8 @@ export default function CompaniesPanel({
   const hidden = rows.length - shown.length - notFound.length;
 
   return (
-    <Stack gap="inset">
+    // HDS docs-site rhythm (#241): 48 between sections, 24 under each heading.
+    <Stack gap="spacious">
       <Stack direction="row" gap="xs" align="center" justify="space-between" wrap="wrap">
         <Text variant="ui" style={SECONDARY}>
           Companies you watch or star, with their open roles.
@@ -276,17 +277,19 @@ export default function CompaniesPanel({
       </Stack>
       <DreamCompanies categoryId={categoryId} terms={terms} limiter={limiter} />
 
-      <Stack gap="xs" as="section" aria-label="Open roles by company">
-        <Text variant="body" as="h3" className="rjb-semibold">
-          Open roles by company
-        </Text>
-        <Text variant="ui" as="p" style={SECONDARY}>
-          {search
-            ? `Companies you watch and companies with public ${search.noun} work on GitHub, the ones with roles that match this track first. Source: GitHub search and the companies' own job boards, no sign-in.`
-            : rows.length
-              ? "Companies you watch, the ones with roles that match this track first. Source: the companies' own job boards."
-              : "Add a company to see its open roles here. The team search looks on GitHub, and this track's titles don't name anything GitHub tracks."}
-        </Text>
+      <Stack gap="normal" as="section" aria-label="Open roles by company">
+        <Stack gap="xs">
+          <Text variant="body" as="h3" className="rjb-semibold">
+            Open roles by company
+          </Text>
+          <Text variant="ui" as="p" style={SECONDARY}>
+            {search
+              ? `Companies you watch and companies with public ${search.noun} work on GitHub, the ones with roles that match this track first. Source: GitHub search and the companies' own job boards, no sign-in.`
+              : rows.length
+                ? "Companies you watch, the ones with roles that match this track first. Source: the companies' own job boards."
+                : "Add a company to see its open roles here. The team search looks on GitHub, and this track's titles don't name anything GitHub tracks."}
+          </Text>
+        </Stack>
         {(search || rows.length > 0) && (
           <Stack direction="row" gap="xs" align="center" wrap="wrap">
             {search &&
@@ -329,26 +332,28 @@ export default function CompaniesPanel({
         )}
         {report?.error && <Alert tone="warning">{report.error}</Alert>}
 
-        {summary && (
-          <Text variant="ui" as="p" role="status">
-            {summary}
-            {!running && hidden > 0
-              ? `. ${hidden} with no matching role or not checked yet hidden: turn off Hiring now to see them.`
-              : ''}
-            {report && !running && report.unresolved > 0 && !report.stoppedUntil
-              ? `. ${report.unresolved} not looked up yet: find more to resolve the next ${30}.`
-              : ''}
-          </Text>
-        )}
+        <Stack gap="xs">
+          {summary && (
+            <Text variant="ui" as="p" role="status">
+              {summary}
+              {!running && hidden > 0
+                ? `. ${hidden} with no matching role or not checked yet hidden: turn off Hiring now to see them.`
+                : ''}
+              {report && !running && report.unresolved > 0 && !report.stoppedUntil
+                ? `. ${report.unresolved} not looked up yet: find more to resolve the next ${30}.`
+                : ''}
+            </Text>
+          )}
 
-        {shown.length > 0 && (
-          <ul aria-label="Companies" style={listStyle}>
-            {shown.map(companyRow)}
-          </ul>
-        )}
+          {shown.length > 0 && (
+            <ul aria-label="Companies" style={rowsStyle} className={ROWS_CLASS}>
+              {shown.map(companyRow)}
+            </ul>
+          )}
+        </Stack>
         {notFound.length > 0 && (
           <Disclosure label={`Board not found (${notFound.length})`}>
-            <ul aria-label="Board not found" style={listStyle}>
+            <ul aria-label="Board not found" style={rowsStyle} className={ROWS_CLASS}>
               {notFound.map(companyRow)}
             </ul>
           </Disclosure>
@@ -357,20 +362,22 @@ export default function CompaniesPanel({
 
       <SavedTargets categoryId={categoryId} boardUrls={boardUrls} findLink={false} />
 
-      <Stack gap="xs" as="section" aria-label="More ways to find companies">
+      <Stack gap="normal" as="section" aria-label="More ways to find companies">
         <Text variant="body" as="h3" className="rjb-semibold">
           More ways to find companies
         </Text>
-        <Text variant="ui" as="p">
-          <InlineLink href="#/discover/live" externalIcon={false}>
-            Live postings from job boards
-          </InlineLink>
-        </Text>
-        <Text variant="ui" as="p">
-          <InlineLink href="#/discover/boards" externalIcon={false}>
-            Check a list of companies
-          </InlineLink>
-        </Text>
+        <Stack gap="xs">
+          <Text variant="ui" as="p">
+            <InlineLink href="#/discover/live" externalIcon={false}>
+              Live postings from job boards
+            </InlineLink>
+          </Text>
+          <Text variant="ui" as="p">
+            <InlineLink href="#/discover/boards" externalIcon={false}>
+              Check a list of companies
+            </InlineLink>
+          </Text>
+        </Stack>
       </Stack>
     </Stack>
   );

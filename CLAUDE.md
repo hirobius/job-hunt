@@ -91,12 +91,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
   terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
   pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
-  **Shell (#115 Phase 1):** slim header = wordmark (the one `h1`, but `Text variant="body"` semibold, so the
+  **Shell (#115 Phase 1):** slim header = mark on a phone, wordmark from `sm` (the one `h1`, `Text variant="body"` semibold, so the
   page title is always the biggest text) · top tabs (**Companies · Pipeline**; they scroll on a phone, with the `src/hds-gaps/TabsOverflowFade` edge cue) · one
   icon-only **Menu** button (hamburger, `aria-label="Menu"`; it holds account, data, display and feedback). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Templates, Back up,
-  Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible Callout;
+  Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible one-line note (flat, #241);
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
@@ -132,6 +132,14 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `discover`, home, hosts the first-run gate) and an empty hash lands there. "Try with sample data"
   lands on the Pipeline. The Pipeline always ends with a secondary **Find the next company** button
   (→ `#/discover`, empty or not; Calm list 4/7, #238, pinned in `pipeline.test.tsx`).
+- **Header and spacing (Calm list 7/7, #241):** the `h1` is a small accent mark (`BRAND.name[0]`,
+  `role="img"` named by BRAND, `.rjb-mark` in `base.css`) below `sm` and the body-size wordmark from
+  `sm` up (`useAtLeast('sm')`). Rhythm is HDS Stack gaps, no margins: 24 under a heading (`normal`),
+  48 between sections (`spacious`) on the Pipeline and Companies. No card patterns: the Pipeline's
+  To apply / Follow up / Next 7 days / Getting started, the sync note, phone job rows, the Templates
+  list, company lists (`rowsStyle` + `.rjb-rows` hairlines) and the loading skeletons are flat rows
+  on the page. Cards stay only where they hold a form or a choice (job Details, Onboarding picks).
+  Pinned in `src/calmLayout.test.tsx`.
 - **Today is gone (Calm list 2/7, #236):** `#/today` redirects to Companies (`navigate(…, true)`,
   so Back skips it); `TodayView`, `TodayNotice` and `rjb_ui_today_home_seen` are deleted. Its lists
   live at the top of the Pipeline (`ApplyQueueSummary` → `PipelineAgenda.tsx`): under To apply, one
