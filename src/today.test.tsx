@@ -3,6 +3,7 @@
 // interviews from the sample pipeline, has one quick-add field; the
 // Pipeline keeps the list only; the shell owns the first-run gate; existing users get a one-time
 // "Today is home" notice.
+import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -340,5 +341,20 @@ describe('Getting started card (#132)', () => {
     unmount();
     renderApp();
     expect(card()).toBeNull();
+  });
+});
+
+describe('Today rows keep to two items per dotted line (#192)', () => {
+  it('no line in a row holds three or more " · " items', () => {
+    loadSample();
+    window.location.hash = '#/today';
+    renderApp();
+    const lines = [region(/^Follow-ups due/), region(/^Next 7 days/)].flatMap((r) =>
+      [...r.querySelectorAll('li *')]
+        .filter((e) => e.children.length === 0)
+        .map((e) => e.textContent ?? ''),
+    );
+    expect(lines.some((l) => l.includes(' · '))).toBe(true); // the scan sees real dotted lines
+    expect(lines.filter((l) => itemsInLine(l) > MAX_META_ITEMS)).toEqual([]);
   });
 });

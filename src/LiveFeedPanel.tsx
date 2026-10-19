@@ -52,6 +52,7 @@ import { SOURCE_LABEL, type SignalId } from './feed/types';
 import { SECONDARY } from './hds-gaps/tone';
 import { sweepRank, titleCounts, withoutHidden, type SweptPosting } from './feed/sweep';
 import { SweepTitlesEditor } from './SweepTitles';
+import { metaLines } from './metaLines';
 import { useActiveTitles } from './feed/sweepTitles';
 
 type Focus = 'all' | 'strong' | SignalId;
@@ -212,11 +213,11 @@ export default function LiveFeedPanel({
     () => applyTargeting(matched, targeting),
     [matched, targeting],
   );
-  const hiddenNotes = [
+  const hiddenNotes = metaLines([
     hidden.exclude > 0 && `${hidden.exclude} hidden by what you left out`,
     hidden.seniority > 0 && `${hidden.seniority} hidden by level`,
     hidden.salary > 0 && `${hidden.salary} hidden by pay`,
-  ].filter(Boolean);
+  ]);
   // Boards still being read with nothing to show yet reads as loading; once some rows exist they show.
   const loading = hasQuery && (!current || (!!reading && ranked.length === 0));
   const counts = useMemo(
@@ -581,18 +582,18 @@ export default function LiveFeedPanel({
         </Box>
       )}
       {hiddenNotes.length > 0 && (
-        <Text
-          variant="caption"
-          as="span"
-          role="status"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginBottom: 'var(--semantic-space-scale-xs)',
-          }}
-        >
-          {hiddenNotes.join(' · ')}
-        </Text>
+        <Box role="status" sx={{ mb: 'xs' }}>
+          {hiddenNotes.map((line, i) => (
+            <Text
+              key={i}
+              variant="caption"
+              as="span"
+              style={{ color: 'var(--semantic-color-content-secondary)', display: 'block' }}
+            >
+              {line}
+            </Text>
+          ))}
+        </Box>
       )}
 
       {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
@@ -867,13 +868,13 @@ function PostingRow({
   picked: boolean;
   onPick: () => void;
 }) {
-  const meta = [
+  const meta = metaLines([
     p.company,
     p.location,
     p.mode && modeLabel(p.mode),
     postedAgo(p.postedAt, now),
     SOURCE_LABEL[p.source],
-  ].filter(Boolean);
+  ]);
   return (
     <Box as="li" sx={{ py: 3, borderBottom: 'thin solid', borderColor: 'border.default' }}>
       <Box sx={{ minWidth: 0 }}>
@@ -882,18 +883,21 @@ function PostingRow({
             {p.title}
           </InlineLink>
         </Text>
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginTop: 'calc(var(--primitive-space-1) * 0.5)',
-            overflowWrap: 'anywhere',
-          }}
-        >
-          {meta.join(' · ')}
-        </Text>
+        {meta.map((line, i) => (
+          <Text
+            key={i}
+            variant="caption"
+            as="span"
+            style={{
+              color: 'var(--semantic-color-content-secondary)',
+              display: 'block',
+              marginTop: i === 0 ? 'calc(var(--primitive-space-1) * 0.5)' : undefined,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {line}
+          </Text>
+        ))}
         {p.titles.length > 0 && (
           <Text variant="caption" as="span" style={SECONDARY}>
             {`Matched ${p.titles.map((t) => `“${t}”`).join(', ')}`}

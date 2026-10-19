@@ -1,3 +1,4 @@
+import { chunkMeta, metaLines } from './metaLines';
 import {
   Badge,
   Button,
@@ -70,7 +71,7 @@ export default function TileGrid({
         const kind = kindOf(t.url);
         const meta = parseMeta(t.meta);
         // Pay and place read as chips; the first phone stays one tap from the card (every phone is
-        // in the detail). With nothing parsed, the raw meta shows as the note.
+        // in the detail). With nothing parsed, the raw meta shows as the note; the detail repeats it two items a line.
         const chips = meta.chips.filter((c) => c.kind !== 'contact' || c.text === meta.phones[0]);
         const note = meta.notes[0];
         const host = hostOf(t.url);
@@ -111,18 +112,28 @@ export default function TileGrid({
                 {kind && <Badge tone={kind.tone}>{kind.label}</Badge>}
               </Stack>
               {chips.length > 0 && (
-                <Stack direction="row" wrap="wrap" gap="tight" align="center">
-                  {chips.map((c) =>
-                    c.kind === 'contact' ? (
-                      <InlineLink key={c.text} href={telHref(c.text)}>
-                        {c.text}
-                      </InlineLink>
-                    ) : (
-                      <Badge key={c.kind + c.text} tone="neutral">
-                        {c.text}
-                      </Badge>
-                    ),
-                  )}
+                <Stack gap="px4">
+                  {/* At most two chips per row (#192). */}
+                  {chunkMeta(chips).map((row) => (
+                    // Box, not Stack: Stack drops the data-meta-row hook the tests count.
+                    <Box
+                      key={row.map((c) => c.kind + c.text).join('|')}
+                      data-meta-row=""
+                      sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'center' }}
+                    >
+                      {row.map((c) =>
+                        c.kind === 'contact' ? (
+                          <InlineLink key={c.text} href={telHref(c.text)}>
+                            {c.text}
+                          </InlineLink>
+                        ) : (
+                          <Badge key={c.kind + c.text} tone="neutral">
+                            {c.text}
+                          </Badge>
+                        ),
+                      )}
+                    </Box>
+                  ))}
                 </Stack>
               )}
               {note && (
@@ -147,15 +158,17 @@ export default function TileGrid({
                     <Text variant="ui" as="span" style={{ overflowWrap: 'anywhere' }}>
                       {t.name}
                     </Text>
-                    {meta.raw && (
+                    {metaLines(meta.raw.split(/\s+·\s+/)).map((line) => (
                       <Text
+                        key={line}
                         variant="caption"
                         as="span"
+                        data-meta-detail
                         style={{ ...SECONDARY, overflowWrap: 'anywhere' }}
                       >
-                        {meta.raw}
+                        {line}
                       </Text>
-                    )}
+                    ))}
                     {meta.phones.map((ph) => (
                       <InlineLink key={ph} href={telHref(ph)}>
                         {ph}

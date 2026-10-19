@@ -7,6 +7,7 @@ import { deriveJobState } from './jobState';
 import { jobIdOf } from './store';
 import { jobHash, openApply } from './route';
 import { titleOf } from './jobRow';
+import { metaLines } from './metaLines';
 import { SECONDARY } from './hds-gaps/tone';
 import type { Job } from './types';
 
@@ -51,9 +52,17 @@ export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
                   <Box as="li" key={j.url} sx={{ pt: 'xs' }}>
                     <Text variant="ui" as="span">
                       <InlineLink href={jobHash(jobIdOf(j.url))} externalIcon={false}>
-                        {`${titleOf(j)} · ${s.status} · ${s.followUp.due ? 'follow up now' : `follow up ${followUpDate(j)}`}`}
+                        {titleOf(j)}
                       </InlineLink>
                     </Text>
+                    {metaLines([
+                      s.status,
+                      s.followUp.due ? 'follow up now' : `follow up ${followUpDate(j)}`,
+                    ]).map((line, i) => (
+                      <Text key={i} variant="caption" as="p" style={SECONDARY}>
+                        {line}
+                      </Text>
+                    ))}
                   </Box>
                 );
               })}

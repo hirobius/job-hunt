@@ -80,11 +80,11 @@ export default function JobsTable({
                   {row.title}
                 </InlineLink>
               </Stack>
-              {row.facts && (
-                <Text variant="caption" as="span" style={SECONDARY}>
-                  {row.facts}
+              {row.factLines.map((line, i) => (
+                <Text key={i} variant="caption" as="span" style={SECONDARY}>
+                  {line}
                 </Text>
-              )}
+              ))}
             </Stack>
           ),
         },
