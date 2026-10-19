@@ -198,7 +198,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   ceiling and no inline font size/weight in `hdsOnly.test.ts` (only lower the ceiling), lint is
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a
   held HDS gap, hds#748; also tracked upstream: active-tab underline hds#749, touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
-  targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.12.1).
+  targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.14.0).
 - **Rapid apply (2026-10-17):** every save (Discover tiles, Live postings incl. "Save N to Pipeline"
   / "Save all shown", quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
   Open + Undo (`NoticeHost` in the shell; `hds-gaps/ActionToast` because HDS Toast has no action slot).
