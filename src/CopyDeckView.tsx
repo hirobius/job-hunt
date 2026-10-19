@@ -29,8 +29,12 @@ const header = (
   <PageHeader
     level={2}
     breadcrumb={
-      <Button asChild variant="tertiary" size="sm" iconLeft={<Icon icon={ArrowLeft} />}>
-        <a href="#/queue">Back to Pipeline</a>
+      // HDS Button asChild drops iconLeft, so the arrow is the link's own child.
+      <Button asChild variant="tertiary" size="sm">
+        <a href="#/queue">
+          <Icon icon={ArrowLeft} />
+          Back to Pipeline
+        </a>
       </Button>
     }
     title="Templates"

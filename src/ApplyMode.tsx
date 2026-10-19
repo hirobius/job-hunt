@@ -278,8 +278,12 @@ function ApplyTemplates({ job }: { job: Job }) {
   );
   const edit = (label: string) => (
     <Box>
-      <Button asChild variant="tertiary" size="md" iconLeft={<Icon icon={Pencil} />}>
-        <a href="#/copy-deck">{label}</a>
+      {/* HDS Button asChild drops iconLeft, so the pencil is the link's own child. */}
+      <Button asChild variant="tertiary" size="md">
+        <a href="#/copy-deck">
+          <Icon icon={Pencil} />
+          {label}
+        </a>
       </Button>
     </Box>
   );

@@ -142,6 +142,9 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
       'href',
       '#/copy-deck',
     );
+    expect(
+      screen.getByRole('link', { name: 'Edit templates' }).querySelector('svg'),
+    ).not.toBeNull();
   });
 
   it('with no templates, points to Templates instead', async () => {

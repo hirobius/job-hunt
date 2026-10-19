@@ -205,7 +205,10 @@ describe('Templates on a phone (one pane at a time)', () => {
     expect(rows()).toHaveLength(5);
     expect(screen.queryByRole('textbox', { name: 'Snippet label' })).toBeNull();
     // The list carries the page header (#240: Templates has no tab, so it links back itself).
-    expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toBeInTheDocument();
+    // Its arrow sits inside the link: HDS Button asChild drops iconLeft, so the icon is a child.
+    expect(
+      screen.getByRole('link', { name: 'Back to Pipeline' }).querySelector('svg'),
+    ).not.toBeNull();
     await userEvent.click(within(rows()[1]).getByRole('link'));
     await waitFor(() => expect(window.location.hash).toBe('#/copy-deck/tpl-cover'));
     expect(label().value).toBe('Cover letter');
