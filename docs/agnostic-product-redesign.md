@@ -1,7 +1,5 @@
 # Agnostic job-hunt product — redesign plan
 
-> **Historical.** Written in 2026-07 for the agnostic-product pivot. For how the app works now, read the [README](../README.md) and the ADRs.
-
 **Status:** planned (grilled 2026-07-27) · **Owner:** Apply Board · **ADR:** `docs/adr/0006`
 
 This is the design that came out of an end-to-end grilling session. It pivots Apply Board

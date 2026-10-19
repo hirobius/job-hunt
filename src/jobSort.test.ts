@@ -41,12 +41,10 @@ describe('sortJobs invariants', () => {
 
   it('keeps retired jobs last in every sort', () => {
     const list = [job({ url: 'a', archived: true }), job({ url: 'b' }), job({ url: 'c' })];
-    (['recent', 'followup', 'applied', 'status', 'salary', 'fit', 'az'] as SortKey[]).forEach(
-      (k) => {
-        const out = urls(sortJobs(list, k, NOW));
-        expect(out[out.length - 1]).toBe('a');
-      },
-    );
+    (['recent', 'followup', 'applied', 'status', 'salary', 'fit', 'az'] as SortKey[]).forEach((k) => {
+      const out = urls(sortJobs(list, k, NOW));
+      expect(out[out.length - 1]).toBe('a');
+    });
   });
 
   it('floats priority within its group', () => {

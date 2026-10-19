@@ -26,6 +26,7 @@ import LiveFeedPanel from './LiveFeedPanel';
 import { getAllJobs, removeJob } from './store';
 import { addCategory, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
+import { STARTER_DIRECTORY } from './radar/directory';
 
 const posting = (id: string, title: string, text: string) => ({
   id: `ashby:newco:${id}`,
@@ -49,6 +50,7 @@ const RESULT: FeedResult = {
     posting('3', 'Backend Engineer', 'Postgres only.'),
   ],
   sources: [{ key: 'ashby:newco', label: 'Newco (Ashby)', fetched: 3 }],
+  boardsSkipped: 0,
 };
 
 const EVIDENCE = `Design system ownership: HDS (https://example.com/hds)
@@ -61,7 +63,7 @@ beforeEach(() => {
   localStorage.clear();
   feed.fetchFeed.mockReset().mockResolvedValue(RESULT);
   replaceCurationState(EMPTY_CURATION);
-  cat = addCategory({ label: 'Design Systems', location: '' });
+  cat = addCategory({ label: 'Design Systems' });
 });
 afterEach(() => {
   cleanup();
@@ -77,20 +79,17 @@ const renderPanel = () =>
         categoryId={cat}
         terms={['design systems']}
         boardUrls={['https://jobs.ashbyhq.com/newco']}
+        where=""
+        mode="any"
+        onWhere={() => {}}
+        onMode={() => {}}
       />
     </ToastProvider>,
   );
 
-// Evidence sits in Refine, collapsed once postings are showing.
-const openEvidence = async () => {
-  await userEvent.click(screen.getByRole('button', { name: 'Refine' }));
-  await userEvent.click(screen.getByRole('button', { name: /^Your evidence/ }));
-};
-
 const withEvidence = async () => {
   renderPanel();
   await screen.findByRole('list', { name: /live postings/i });
-  await openEvidence();
   fireEvent.change(screen.getByRole('textbox', { name: 'Your evidence' }), {
     target: { value: EVIDENCE },
   });
@@ -102,22 +101,19 @@ const row = (title: string) =>
     .find((li) => within(li).queryByRole('link', { name: new RegExp(`^${title}`) }))!;
 
 describe('Live postings with the radar engine', () => {
-  it('is one feed, no separate Radar view, reading only the tracks watched boards', async () => {
+  it('is one feed, no separate Radar view, reading watched boards plus the starter directory', async () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     expect(screen.queryByRole('radio', { name: 'Radar' })).toBeNull();
-    expect(feed.fetchFeed).toHaveBeenCalledWith(
-      expect.objectContaining({
-        term: 'design systems',
-        boardUrls: ['https://jobs.ashbyhq.com/newco'],
-      }),
-    );
+    expect(feed.fetchFeed).toHaveBeenCalledWith({
+      term: 'design systems',
+      boardUrls: ['https://jobs.ashbyhq.com/newco', ...STARTER_DIRECTORY],
+    });
   });
 
   it('without evidence, postings carry no fit and the evidence box invites one', async () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
-    await openEvidence();
     expect(screen.getByRole('textbox', { name: 'Your evidence' })).toHaveValue('');
     expect(screen.queryByText('Strong fit')).toBeNull();
   });
@@ -127,7 +123,7 @@ describe('Live postings with the radar engine', () => {
     const strong = row('Design Systems Engineer');
     expect(within(strong).getByText('Strong fit')).toBeInTheDocument();
     expect(within(row('Design Systems Designer')).getByText('Reach')).toBeInTheDocument();
-    await userEvent.click(within(strong).getByRole('button', { name: /Fit and gap \(\d+\)/ }));
+    await userEvent.click(within(strong).getByRole('button', { name: /Fit and gap/ }));
     const fit = within(strong).getByRole('list', { name: 'Fit' });
     expect(fit).toHaveTextContent('Design tokens: DTCG pipeline');
     expect(within(fit).getByRole('link', { name: /HDS/ })).toHaveAttribute(
@@ -175,7 +171,6 @@ describe('Live postings with the radar engine', () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     // Filled-in evidence starts collapsed so the postings lead.
-    await userEvent.click(screen.getByRole('button', { name: 'Refine' }));
     await userEvent.click(screen.getByRole('button', { name: 'Your evidence (4)' }));
     expect(screen.getByRole('textbox', { name: 'Your evidence' })).toHaveValue(EVIDENCE);
   });

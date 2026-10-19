@@ -1,4 +1,4 @@
-# Overnight UX pass, summary
+# Overnight UX pass — summary
 
 > **Historical record (2026-06).** This summarises one past work session. The app has moved on
 > since: MUI is gone (the UI is HDS), the AI features were removed (#54), and the boards and tabs
@@ -6,7 +6,7 @@
 
 Autonomous UX pass on Apply Board. **11 commits, each gated** (`npm run build && npm run
 typecheck && npm test`) before landing on **`main`**. Final production deploy
-`f4d773f` reached Vercel **READY** (https://job-hunt-jade.vercel.app). MUI kept throughout -
+`f4d773f` reached Vercel **READY** (https://job-hunt-jade.vercel.app). MUI kept throughout —
 no HDS components, no Tailwind, no re-platform.
 
 ## Gate status per commit (all green)
@@ -15,7 +15,7 @@ no HDS components, no Tailwind, no re-platform.
 |---|---|---|
 | 1 | `7327278` feat(nav): hash-based URL routing for the top-level tab | ✅ |
 | 2 | `f441be2` feat(nav): sync Discover sub-tab and active pillar to the URL | ✅ |
-| 3 | `075429f` feat(tracker): real Sort menu | ✅ (1 retry, see below) |
+| 3 | `075429f` feat(tracker): real Sort menu | ✅ (1 retry — see below) |
 | 4 | `52651e7` feat(tracker): Saved filter pill + scrollable filter row | ✅ |
 | 5 | `99ac5df` fix(theme): define secondary palette (Interviewing chip) | ✅ |
 | 6 | `04e80fb` feat(ux): layout-matched skeletons for lazy views | ✅ |
@@ -32,7 +32,7 @@ no revert needed.
 ## What changed, per work item
 
 ### 1) Navigation / routing
-- **New `src/route.ts`**, a lightweight `hashchange` external store (no react-router),
+- **New `src/route.ts`** — a lightweight `hashchange` external store (no react-router),
   read via `useSyncExternalStore`. Pure `parseHash`/`buildHash` with unit tests.
 - Top-level tab, Discover's nested sub-tab, and the active career pillar all serialize to the
   hash: `#/queue`, `#/discover/titles`, `#/discover/ats?pillar=<id>`.
@@ -44,11 +44,11 @@ no revert needed.
 - Sub-tabs match by **stable key** (tab counts differ per pillar); pillar is reflected only when
   non-default to keep common URLs clean.
 - `?case=<slug>` already had a visible "← Apply Board" back button (`CaseStudyView.tsx`); left
-  as-is per the hands-off-case-study decision, it returns to the board (now the Queue).
+  as-is per the hands-off-case-study decision — it returns to the board (now the Queue).
 
 ### 2) Sorting (Tracker)
 - **New `src/jobSort.ts`** (pure, unit-tested) + a Sort menu in the toolbar.
-- **Before:** no real sort, only retired-last → priority → insertion order, though FEATURES.md
+- **Before:** no real sort — only retired-last → priority → insertion order, though FEATURES.md
   marked sort done.
   **After:** Recently added (default, **newest first**), Follow-up due first, Applied date,
   Status, Salary, A–Z. Invariants in every sort: **retired last, priority floats within its
@@ -57,7 +57,7 @@ no revert needed.
 - Added a **Saved** filter pill; the filter row is now a single **horizontally-scrollable** row
   so it doesn't wrap raggedly on mobile (Sort + Export stay pinned right).
 
-### 3) Bug, Interviewing chip
+### 3) Bug — Interviewing chip
 - `palette.secondary` was never defined, so the Interviewing chip rendered MUI default purple.
   Added a deliberate **mode-aware violet** (`#a78bfa` dark / `#6d28d9` light), distinct from
   info/success/warning/error/primary, and extended `theme.contrast.test.ts` to assert it clears
@@ -81,18 +81,18 @@ no revert needed.
 
 ### 6) HDS adoption map (docs only)
 - **`docs/hds-adoption.md`** maps every MUI component in use → its HDS (Tailwind+Radix v0.6.0)
-  replacement with prop/behavior gaps, and lists what to contribute back, the **semantic
+  replacement with prop/behavior gaps, and lists what to contribute back — the **semantic
   feedback colors** (success/warning/info + the Interviewing secondary, with the app's
   AA-verified hex values) **if** HDS's badge/tag variants don't already cover the status set.
   Explicitly excludes TileGrid/EmptyState (HDS already has equivalents).
 
 ## Docs updated
-- `FEATURES.md`, corrected the sort claim (was marked done before it existed) and added a
+- `FEATURES.md` — corrected the sort claim (was marked done before it existed) and added a
   Navigation & UX section (routing, Saved filter, skeletons, empty states, autosave, a11y).
 
 ## Deferred / notes
 - **Top-level App tabs are ARIA-wired but not unit-tested.** Rendering `App` in a test mounts
-  `CloudSync`, which instantiates a Supabase client at module load, out of bounds per the
+  `CloudSync`, which instantiates a Supabase client at module load — out of bounds per the
   hands-off-Supabase decision and a flakiness risk. The safely-renderable pieces (Discover tabs,
   filter group) are unit-tested instead, and axe covers the individual views.
 - **Default landing changed Apprenticeships → Queue** per instructions; this intentionally

@@ -14,13 +14,7 @@ vi.mock('@supabase/supabase-js', () => ({
 
 import { addCategory, getCurationState, replaceCurationState } from '../curation/curationStore';
 import { EMPTY_CURATION } from '../curation/types';
-import {
-  WATCH_GROUP_LABEL,
-  addBoardTiles,
-  boardUrlsFor,
-  countUnwatched,
-  watchBoard,
-} from './watchlist';
+import { WATCH_GROUP_LABEL, boardUrlsFor, watchBoard } from './watchlist';
 
 let cat: string;
 beforeEach(() => {
@@ -103,36 +97,5 @@ describe('boardUrlsFor', () => {
     const other = addCategory({ label: 'Other' });
     watchBoard(other, 'https://jobs.lever.co/elsewhere');
     expect(boardUrlsFor(cat, getCurationState())).toEqual(['https://jobs.ashbyhq.com/ramp']);
-  });
-});
-
-describe('addBoardTiles', () => {
-  const urls = [
-    'https://jobs.ashbyhq.com/ramp',
-    'https://boards.greenhouse.io/figma',
-    'https://x.example/nope',
-  ];
-
-  it('files board urls as watched tiles in one group, skipping non-boards', () => {
-    expect(addBoardTiles(cat, urls)).toBe(2);
-    const { groups, tiles } = watchTiles();
-    expect(groups).toHaveLength(1);
-    expect(tiles.map((t) => t.url)).toEqual([
-      'https://jobs.ashbyhq.com/ramp',
-      'https://boards.greenhouse.io/figma',
-    ]);
-  });
-
-  it('is idempotent: a second call adds nothing, even for a board watched by hand', () => {
-    watchBoard(cat, 'jobs.ashbyhq.com/ramp');
-    expect(addBoardTiles(cat, urls)).toBe(1);
-    expect(addBoardTiles(cat, urls)).toBe(0);
-    expect(watchTiles().tiles).toHaveLength(2);
-  });
-
-  it('countUnwatched says how many a click would add', () => {
-    expect(countUnwatched(cat, urls)).toBe(2);
-    addBoardTiles(cat, urls);
-    expect(countUnwatched(cat, urls)).toBe(0);
   });
 });

@@ -262,16 +262,3 @@ describe('Pipeline on a desktop (#129)', () => {
     expect(screen.getByRole('button', { name: 'Sort: Recently added' })).toBeInTheDocument();
   });
 });
-
-describe('shared list state (#130 slice 4)', () => {
-  it('the filter, search and sort survive opening a job and going Back', async () => {
-    renderApp();
-    await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'Zenith');
-    await userEvent.click(screen.getByRole('link', { name: 'Zenith Product Designer' }));
-    await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(APPLIED)}`));
-    await userEvent.click(screen.getByRole('button', { name: /Back to Pipeline/ }));
-    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
-    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('Zenith');
-    expect(screen.queryByRole('link', { name: 'Design Engineer' })).toBeNull();
-  });
-});

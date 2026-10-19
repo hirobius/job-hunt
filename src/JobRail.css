@@ -1,9 +1,0 @@
-/* The rail scrolls on its own beside the job page (#130): sticky under the page top, no taller
-   than the viewport. */
-.job-rail {
-  position: sticky;
-  top: var(--primitive-space-4);
-  max-height: calc(100vh - 2 * var(--primitive-space-4));
-  overflow-y: auto;
-  padding-right: var(--primitive-space-1);
-}

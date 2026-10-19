@@ -105,45 +105,17 @@ export function markPending(table: PendingTable, id: string, op: PendingOp): num
   return v;
 }
 
-/** Record many writes about to be sent, in one storage write. Returns each one's version. */
-export function markPendingMany(table: PendingTable, ids: string[], op: PendingOp): number[] {
-  const all = read();
-  const mem = store.get();
-  const next = { ...all };
-  const vs = ids.map((id) => {
-    const k = keyOf(table, id);
-    const v = Math.max(next[k]?.v ?? 0, mem[k]?.v ?? 0) + 1;
-    next[k] = { table, id, op, v, failed: false };
-    return v;
-  });
-  write(next);
-  return vs;
-}
-
 /** The write with version `v` finished: cleared on success, kept and marked failed otherwise. */
 export function settlePending(table: PendingTable, id: string, v: number, ok: boolean) {
-  settlePendingMany(table, [{ id, v }], ok);
-}
-
-/** Settle many writes that shared one outcome (one bulk request), in one storage write. */
-export function settlePendingMany(
-  table: PendingTable,
-  writes: { id: string; v: number }[],
-  ok: boolean,
-) {
   const all = read();
-  const next = { ...all };
-  let changed = false;
-  for (const { id, v } of writes) {
-    const k = keyOf(table, id);
-    const cur = next[k];
-    // Gone (delivered or cleared, maybe by another tab) or owned by a newer write: nothing to do.
-    if (!cur || cur.v !== v) continue;
-    if (ok) delete next[k];
-    else next[k] = { ...cur, failed: true };
-    changed = true;
-  }
-  if (changed) write(next);
+  const cur = all[keyOf(table, id)];
+  // Gone (delivered or cleared, maybe by another tab) or owned by a newer write: nothing to do.
+  if (!cur || cur.v !== v) return;
+  if (ok) {
+    const rest = { ...all };
+    delete rest[keyOf(table, id)];
+    write(rest);
+  } else write({ ...all, [keyOf(table, id)]: { ...cur, failed: true } });
 }
 
 export function getPending(): PendingWrite[] {

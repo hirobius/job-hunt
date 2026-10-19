@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { addTodo, toggleTodo, deleteTodo, seedStarterTodos, STARTER_TODO_TEXTS } from './todos';
+import {
+  addTodo,
+  toggleTodo,
+  deleteTodo,
+  todoProgress,
+  seedStarterTodos,
+  STARTER_TODO_TEXTS,
+} from './todos';
 import type { Todo } from './types';
 
 // Deterministic id generator for stable assertions.
@@ -52,6 +59,17 @@ describe('deleteTodo', () => {
   });
   it('is a no-op for a missing id', () => {
     expect(deleteTodo([t('a', 'x')], 'nope')).toEqual([t('a', 'x')]);
+  });
+});
+
+describe('todoProgress', () => {
+  const cases: Array<[string, Todo[] | undefined, { done: number; total: number }]> = [
+    ['undefined → 0/0', undefined, { done: 0, total: 0 }],
+    ['empty → 0/0', [], { done: 0, total: 0 }],
+    ['mixed', [t('a', 'x', true), t('b', 'y'), t('c', 'z', true)], { done: 2, total: 3 }],
+  ];
+  it.each(cases)('%s', (_label, input, expected) => {
+    expect(todoProgress(input)).toEqual(expected);
   });
 });
 

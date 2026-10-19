@@ -2,7 +2,7 @@
 // route seam: a job link opens that job, the card links to its page, an unknown id falls back to
 // the Pipeline once sync has settled, and quick-add still lands on the Pipeline.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -48,18 +48,13 @@ afterEach(() => {
 });
 
 describe('job route (#127)', () => {
-  it('#/queue/<jobId> opens that job on its own page, with the editor open for a job without a company', async () => {
+  it('#/queue/<jobId> opens that job on its own page with its details open', async () => {
     addJob(URL_A, 'Design Engineer');
     window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
     renderApp();
     expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Design Engineer');
-    // The shell's own tab list: the job page has its own tabs now.
-    expect(
-      within(screen.getByRole('tablist', { name: 'Sections' })).getByRole('tab', {
-        selected: true,
-      }),
-    ).toHaveAccessibleName('Pipeline');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
   });
 
   it('a retired job says so on its page, without fading its text', () => {
@@ -68,8 +63,7 @@ describe('job route (#127)', () => {
     window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
     const { container: page } = renderApp();
     expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
-    // The header says Retired next to the status (it replaced the card's "Retired · Saved" eyebrow).
-    expect(screen.getByText('Retired')).toBeInTheDocument();
+    expect(screen.getByText('Retired · Saved')).toBeInTheDocument();
     expect(
       [page, ...page.querySelectorAll<HTMLElement>('*')].some(
         (e) => e.style.opacity !== '' && Number(e.style.opacity) > 0 && Number(e.style.opacity) < 1,
@@ -106,9 +100,7 @@ describe('job route (#127)', () => {
     window.location.hash = '#/queue/notsyncedyet';
     renderApp();
     act(() => h.fake!.signIn('u1'));
-    // A job that is about to sync in is never called missing: a skeleton, not 'not found'.
-    expect(await screen.findByText(/Looking for this job/)).toBeInTheDocument();
-    expect(screen.queryByText('Job not found')).toBeNull();
+    expect(await screen.findByText('Job not found')).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 50));
     expect(window.location.hash).toBe('#/queue/notsyncedyet');
   });

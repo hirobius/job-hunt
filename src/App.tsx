@@ -13,9 +13,7 @@ import {
 import TodayView from './TodayView';
 import TrackerView from './TrackerView';
 import JobPage from './JobPage';
-import ApplyMode from './ApplyMode';
-import { JobPageLiveness, PipelineLiveness } from './LivenessViews';
-import { Onboarding, ChooseTrack } from './Onboarding';
+import { Onboarding } from './Onboarding';
 import { markTodayNoticeSeen } from './todayNoticeSeen';
 import { useCloudSync } from './account/accountContext';
 import { hasCloudSession } from './demo/loadSample';
@@ -25,46 +23,47 @@ import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInDialog from './account/SignInDialog';
 import SyncNudge from './account/SyncNudge';
-import { addJob, findJobByUrl, markAppliedByUrl, setStatusByUrl, useJobs } from './store';
-import NoticeHost from './NoticeHost';
-import { notifySaved } from './saveNotice';
+import { addJob, markAppliedByUrl, setStatusByUrl, useJobs } from './store';
 import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
 import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
-import { BARE_PANEL } from './hds-gaps/barePanel';
 
 // Code-split Discover and Templates so the initial bundle carries Today and the Pipeline (home and
 // the quick-add landing); the rest load on demand (tab switch).
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 
-// Top-level tabs, in render order (Calm list, PR #208: Companies · Pipeline · Templates). The URL
-// hash carries the slug; slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline,
-// `copy-deck` Templates). `today` is a legacy route: no tab, still renders until its slice removes it.
-const TAB_SLUGS = ['discover', 'queue', 'copy-deck', 'today'] as const;
+// Top-level tabs, in render order (#115: Today · Pipeline · Discover · Templates). The URL hash
+// carries the slug (#/today …); slugs stay back-compatible (`queue`/`copy-deck`) under the new
+// labels, so old bookmarks keep working.
+// HDS TabsContent is a tinted, padded card pulled up under its tab strip — right for in-page
+// tabs, wrong for the app's top-level nav, where it indented every view 24px off the header's edge
+// and nested each page in a surface. Top-level panels are bare (HDS gap, filed under #133).
+const BARE_PANEL = {
+  background: 'transparent',
+  padding: 0,
+  marginTop: 0,
+  borderRadius: 0,
+} as const;
+
+const TAB_SLUGS = ['today', 'queue', 'discover', 'copy-deck'] as const;
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
-// Companies is home; quick-add always shows the Pipeline, where the new job is.
-const HOME_ROUTE = 'discover';
+// Today is home (#128); quick-add always shows the Pipeline, where the new job is.
+const HOME_ROUTE = 'today';
 const QUICK_ADD_LANDING = 'queue';
-const APPLY_ROUTE = 'apply';
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
 export default function App() {
   const route = useRoute();
-  // Apply mode (#/apply/<jobId>) is a Pipeline page: the Pipeline tab stays selected.
-  const applying = route.tab === APPLY_ROUTE;
-  const slugIndex = TAB_SLUGS.indexOf(
-    (applying ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
-  );
+  const slugIndex = TAB_SLUGS.indexOf(route.tab as (typeof TAB_SLUGS)[number]);
   const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
 
   // The onboarding gate (#128) lives here, not in a view. Discover can't work without a track;
   // Today asks for one only on a first run (no tracks and no jobs), so nobody lands on an empty
   // home. The Pipeline and Templates never gate: quick-add and sample data work before setup.
   const hasTracks = useCategories().length > 0;
-  const jobs = useJobs();
-  const hasJobs = jobs.length > 0;
+  const hasJobs = useJobs().length > 0;
   const firstRun = !hasTracks && !hasJobs;
 
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
@@ -75,10 +74,7 @@ export default function App() {
     const label = qp.get('t') || qp.get('title') || '';
     let acted = false;
     if (qp.get('add')) {
-      if (addJob(qp.get('add')!, label)) {
-        const job = findJobByUrl(qp.get('add')!);
-        if (job) notifySaved([job.url], job.label);
-      }
+      addJob(qp.get('add')!, label);
       acted = true;
     }
     if (qp.get('applied')) {
@@ -122,7 +118,7 @@ export default function App() {
               <Stack gap="normal">
                 {/* Slim header: name · top tabs · account. The tabs wrap under the name on mobile. */}
                 <Stack direction="row" wrap="wrap" gap="gap" align="center" justify="space-between">
-                  <Text variant="title" as="h1">
+                  <Text variant="title" as="h1" style={{ margin: 0 }}>
                     {BRAND.wordmark[0]}
                     <Box as="span" sx={{ color: 'accent' }}>
                       {BRAND.wordmark[1]}
@@ -130,42 +126,29 @@ export default function App() {
                   </Text>
                   <AccountMenu />
                 </Stack>
-                {/* The fade says more sit past the edge when the tabs overflow a narrow phone. */}
+                {/* Four tabs overflow a phone; the fade says more sit past the edge. */}
                 <TabsOverflowFade value={TAB_SLUGS[tab]}>
                   <TabsList style={{ width: '100%', marginBottom: 0 }} aria-label="Sections">
-                    <TabsTrigger value="discover">Companies</TabsTrigger>
+                    <TabsTrigger value="today">Today</TabsTrigger>
                     <TabsTrigger value="queue">Pipeline</TabsTrigger>
+                    <TabsTrigger value="discover">Discover</TabsTrigger>
                     <TabsTrigger value="copy-deck">Templates</TabsTrigger>
                   </TabsList>
                 </TabsOverflowFade>
-                {TAB_SLUGS[tab] === 'today' && !firstRun && <SyncNudge />}
+                <SyncNudge />
                 <TabsContent value="today" style={BARE_PANEL}>
                   {firstRun ? <Onboarding offerSample /> : <TodayView />}
                 </TabsContent>
                 <TabsContent value="queue" style={BARE_PANEL}>
-                  {applying ? (
-                    <ApplyMode jobId={route.sub} />
-                  ) : route.jobId ? (
-                    <>
-                      <JobPageLiveness jobId={route.jobId} />
-                      <JobPage jobId={route.jobId} />
-                    </>
-                  ) : (
-                    <>
-                      <PipelineLiveness jobs={jobs} />
-                      <TrackerView />
-                    </>
-                  )}
+                  {route.jobId ? <JobPage jobId={route.jobId} /> : <TrackerView />}
                 </TabsContent>
                 <TabsContent value="discover" style={BARE_PANEL}>
-                  {firstRun ? (
-                    <Onboarding offerSample />
-                  ) : hasTracks ? (
+                  {hasTracks ? (
                     <Suspense fallback={<DiscoverSkeleton />}>
                       <DiscoverView />
                     </Suspense>
                   ) : (
-                    <ChooseTrack />
+                    <Onboarding />
                   )}
                 </TabsContent>
                 <TabsContent value="copy-deck" style={BARE_PANEL}>
@@ -178,7 +161,6 @@ export default function App() {
           </Box>
         </Container>
         <SignInDialog />
-        <NoticeHost />
       </DataToolsProvider>
     </CloudSyncProvider>
   );

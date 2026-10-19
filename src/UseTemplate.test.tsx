@@ -7,12 +7,7 @@ import UseTemplate from './UseTemplate';
 import { replaceSnippets } from './copyDeckStore';
 import type { Job } from './types';
 
-const job = {
-  url: 'https://x.test/1',
-  label: 'Fabricator',
-  company: 'Acme Metals',
-  status: 'Saved',
-} as Job;
+const job = { url: 'https://x.test/1', label: 'Fabricator', company: 'Acme Metals', status: 'Saved' } as Job;
 
 const SNIPS = [
   { id: 'a', label: 'Plain note', body: 'Hello [Contact], about [Role] at [Company]. [Your name]' },
@@ -36,10 +31,7 @@ describe('UseTemplate', () => {
     wrap();
     await user.click(screen.getByRole('button', { name: 'Use template' }));
     // pinned first -> selected by default
-    expect(screen.getByRole('button', { name: 'Pinned note' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: 'Pinned note' })).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByRole('button', { name: 'Plain note' }));
     const preview = screen.getByLabelText('Preview') as HTMLTextAreaElement;
     expect(preview.value).toContain('about Fabricator at Acme Metals');
@@ -48,21 +40,6 @@ describe('UseTemplate', () => {
     await user.click(screen.getByRole('button', { name: 'Copy' }));
     expect(writeText).toHaveBeenCalledWith(preview.value);
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
-  });
-
-  it('links to the picked template in Templates (#132)', async () => {
-    const user = userEvent.setup();
-    wrap();
-    await user.click(screen.getByRole('button', { name: 'Use template' }));
-    expect(screen.getByRole('link', { name: 'Manage templates' })).toHaveAttribute(
-      'href',
-      '#/copy-deck/b',
-    );
-    await user.click(screen.getByRole('button', { name: 'Plain note' }));
-    expect(screen.getByRole('link', { name: 'Manage templates' })).toHaveAttribute(
-      'href',
-      '#/copy-deck/a',
-    );
   });
 
   it('has no axe violations when open', async () => {

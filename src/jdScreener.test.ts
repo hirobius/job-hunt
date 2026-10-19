@@ -5,12 +5,7 @@ describe('screenJd — blockers', () => {
   const cases: { name: string; jd: string; has: string[]; hasNot?: string[] }[] = [
     { name: 'plain SQL', jd: 'Must write SQL queries daily.', has: ['sql'] },
     { name: 'T-SQL', jd: 'Experience with T-SQL required.', has: ['sql'] },
-    {
-      name: 'PostgreSQL is not a SQL flag',
-      jd: 'PostgreSQL/JSONB a plus.',
-      has: [],
-      hasNot: ['sql'],
-    },
+    { name: 'PostgreSQL is not a SQL flag', jd: 'PostgreSQL/JSONB a plus.', has: [], hasNot: ['sql'] },
     {
       name: 'Sales Engineer title → coding_loop',
       jd: 'Sales Engineer role, client facing.',
@@ -82,24 +77,16 @@ describe('screenJd — blockers', () => {
 });
 
 describe('screenJd — mode & travel', () => {
-  it('hybrid wins when present', () =>
-    expect(screenJd('Hybrid, 3 days in office.').mode).toBe('hybrid'));
+  it('hybrid wins when present', () => expect(screenJd('Hybrid, 3 days in office.').mode).toBe('hybrid'));
   it('on-site', () => expect(screenJd('This is an on-site role in Chicago.').mode).toBe('onsite'));
   it('fully remote', () => expect(screenJd('Fully remote, US-based.').mode).toBe('remote'));
-  it('no mode signal → undefined', () =>
-    expect(screenJd('Great team, great mission.').mode).toBeUndefined());
-  it('reports travel % as evidence', () =>
-    expect(screenJd('Up to 25% travel required.').hits).toContainEqual({
-      tag: 'travel',
-      evidence: '25% travel',
-    }));
-  it('no travel → no travel hit', () =>
-    expect(screenJd('No travel.').hits.some((h) => h.tag === 'travel')).toBe(false));
+  it('no mode signal → undefined', () => expect(screenJd('Great team, great mission.').mode).toBeUndefined());
+  it('parses travel %', () => expect(screenJd('Up to 25% travel required.').travelPct).toBe(25));
+  it('no travel → undefined', () => expect(screenJd('No travel.').travelPct).toBeUndefined());
 });
 
 describe('screenJd — verdict follows blockers', () => {
-  it('no blockers → match', () =>
-    expect(screenJd('Client-facing implementation role, remote.').verdict).toBe('match'));
+  it('no blockers → match', () => expect(screenJd('Client-facing implementation role, remote.').verdict).toBe('match'));
   it('only soft blocker (cert) → stretch', () =>
     expect(screenJd('PMP certification required. Remote.').verdict).toBe('stretch'));
   it('hard blocker (sql) → reach', () => expect(screenJd('Must write SQL.').verdict).toBe('reach'));

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { SegmentedControl, Tabs, TabsList, TabsTrigger } from '@hirobius/design-system';
+import { Tabs, TabsList, TabsTrigger } from '@hirobius/design-system';
 import TabsOverflowFade from './TabsOverflowFade';
 
 // jsdom has no layout: give every element the box a 390px phone would.
@@ -65,31 +65,5 @@ describe('TabsOverflowFade (HDS gap: tab overflow cue)', () => {
     };
     render(ui('b'));
     expect(scrolled).toContain('Templates');
-  });
-
-  it('cues a SegmentedControl that overflows, and scrolls its checked option into view', () => {
-    layout({ scrollWidth: 420, clientWidth: 358 });
-    const scrolled: string[] = [];
-    HTMLElement.prototype.scrollIntoView = function (this: HTMLElement) {
-      scrolled.push(this.textContent ?? '');
-    };
-    render(
-      <TabsOverflowFade value="live">
-        <SegmentedControl
-          aria-label="Tools"
-          value="live"
-          onChange={() => {}}
-          options={[
-            { value: 'apply', label: 'Apply' },
-            { value: 'live', label: 'Live' },
-          ]}
-        />
-      </TabsOverflowFade>,
-    );
-    expect(screen.getByRole('radiogroup').parentElement!.parentElement).toHaveAttribute(
-      'data-overflow',
-      'end',
-    );
-    expect(scrolled).toContain('Live');
   });
 });

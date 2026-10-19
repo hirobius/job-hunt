@@ -31,7 +31,7 @@ The view of every saved Job, as one list with search, a Status filter and sort (
 _Avoid_: tracker, queue (in copy), board
 
 **Today**:
-The home view (`#/today`): Follow-ups due now, the next 7 days of interviews and calls, one quick-add field.
+The home view (`#/today`): Follow-ups due now, the next 7 days of interviews and calls, one quick-add field and the Insights band.
 _Avoid_: dashboard, home page, inbox
 
 **First run**:

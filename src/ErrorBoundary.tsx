@@ -1,6 +1,5 @@
 import { Component, type ReactNode } from 'react';
 import { Button, Box, Stack, Text } from '@hirobius/design-system';
-import { SECONDARY } from './hds-gaps/tone';
 
 // Top-level safety net (issue #46): a render-time crash shows a recovery UI instead of a blank
 // white screen. Offers a plain reload and a "reset local data" escape hatch for when a single bad
@@ -45,10 +44,10 @@ export class ErrorBoundary extends Component<Props, State> {
     return (
       <Box sx={{ maxWidth: 480, mx: 'auto', mt: 16, px: 'md', textAlign: 'center' }}>
         <Stack gap="tight" align="center">
-          <Text variant="title" as="h1">
+          <Text variant="body" style={{ fontSize: '1.5rem', fontWeight: 600 }}>
             Something broke
           </Text>
-          <Text variant="body" style={SECONDARY}>
+          <Text variant="body" style={{ color: 'var(--semantic-color-content-secondary)' }}>
             The app hit an unexpected error. Reloading usually fixes it. If it keeps happening, a
             bad saved record may be the cause — resetting local data clears it.
           </Text>

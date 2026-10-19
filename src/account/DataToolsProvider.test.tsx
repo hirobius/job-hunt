@@ -59,16 +59,7 @@ const backupFile = (jobs: Job[]) =>
     [
       JSON.stringify(
         buildBackup(
-          {
-            jobs,
-            copydeck: [],
-            curation: EMPTY,
-            triage: { pinned: [], dismissed: [] },
-            targets: {},
-            filters: {},
-            evidence: '',
-            modes: {},
-          },
+          { jobs, copydeck: [], curation: EMPTY, triage: { pinned: [], dismissed: [] } },
           new Date('2026-10-12T00:00:00Z'),
         ),
       ),

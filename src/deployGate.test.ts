@@ -25,7 +25,7 @@ describe('deploy gate', () => {
 
   it('each gate step runs the real tool, not a stub', () => {
     expect(pkg.scripts.typecheck).toBe('tsc --noEmit');
-    expect(pkg.scripts.lint).toBe('eslint . --max-warnings=0');
+    expect(pkg.scripts.lint).toBe('eslint .');
     expect(pkg.scripts.test).toBe('vitest run');
   });
 

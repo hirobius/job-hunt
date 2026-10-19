@@ -11,11 +11,10 @@ test('adds a pasted job URL to the queue', async ({ page }) => {
 });
 
 // Today is home: a first visit offers the sample pipeline, which lands on a working Today.
-test('opens on Companies setup; the sample pipeline lists due follow-ups', async ({ page }) => {
+test('opens on Today; the sample pipeline lists due follow-ups', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveURL(/#\/discover$/);
+  await expect(page).toHaveURL(/#\/today$/);
   await page.getByRole('button', { name: 'Try with sample data' }).click();
-  await page.goto('/#/today');
   await expect(page.getByRole('region', { name: /^Follow-ups due/ })).toBeVisible();
   await page.getByRole('button', { name: 'Log follow-up: UX Researcher' }).click();
   await expect(page.getByText('Follow-up logged', { exact: true })).toBeVisible();

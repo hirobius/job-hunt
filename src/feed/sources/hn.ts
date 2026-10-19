@@ -2,10 +2,6 @@
 // founder-written and open to contract. Read through the public Algolia HN API (keyless, CORS-open).
 // Each top-level comment is one company's post; by convention its first line is
 // "Company | Role | Location | REMOTE/ONSITE | …", which we parse best-effort.
-// The monthly "Freelancer? Seeking freelancer?" thread is read the same way (contract design-systems
-// work is posted there): only the "SEEKING FREELANCER" side is a posting, "SEEKING WORK" is a person
-// offering themselves and is skipped, and each kept post is marked as freelance for the contract
-// signal.
 import { htmlToText } from '../html';
 import { inferMode } from '../match';
 import type { Posting } from '../types';
@@ -15,8 +11,6 @@ const API = 'https://hn.algolia.com/api/v1';
 /** Threads to read — this month and last (openings stay live for weeks; DS roles are sparse). */
 const THREADS = 2;
 
-const FREELANCE_JOB_TYPE = 'Job type: Freelance (HN freelancer thread)';
-
 export interface HnThread {
   id: string;
   title: string;
@@ -24,18 +18,9 @@ export interface HnThread {
 
 /** The newest "Who is hiring?" threads from a whoishiring story listing (newest first). */
 export function pickHiringThreads(listing: unknown, n = THREADS): HnThread[] {
-  return pickThreads(listing, /^ask hn: who is hiring\?/i, n);
-}
-
-/** The newest "Freelancer? Seeking freelancer?" threads from the same listing. */
-export function pickFreelancerThreads(listing: unknown, n = THREADS): HnThread[] {
-  return pickThreads(listing, /^ask hn: freelancer\? seeking freelancer\?/i, n);
-}
-
-function pickThreads(listing: unknown, title: RegExp, n: number): HnThread[] {
   return arr(obj(listing).hits)
     .map(obj)
-    .filter((h) => title.test(str(h.title)))
+    .filter((h) => /^ask hn: who is hiring\?/i.test(str(h.title)))
     .sort((a, b) => str(b.created_at).localeCompare(str(a.created_at)))
     .slice(0, n)
     .map((h) => ({ id: str(h.objectID), title: str(h.title) }));
@@ -54,17 +39,6 @@ const PROSE_RE = /^([A-Z0-9][\w.&' -]{1,58}?)\s+(?:is|are)\s+hiring\b/;
 
 /** Parse one top-level comment into a Posting; null for replies and empty/deleted comments. */
 export function parseHnComment(hit: unknown): Posting | null {
-  return parseComment(hit, false);
-}
-
-const SEEKING_FREELANCER_RE = /^\s*seeking\s+freelancers?\b[\s|:\-–—]*/i;
-
-/** A comment from the freelancer thread: kept only when it is a SEEKING FREELANCER post. */
-export function parseFreelancerComment(hit: unknown): Posting | null {
-  return parseComment(hit, true);
-}
-
-function parseComment(hit: unknown, freelance: boolean): Posting | null {
   const h = obj(hit);
   const id = str(h.objectID);
   const html = str(h.comment_text);
@@ -72,12 +46,7 @@ function parseComment(hit: unknown, freelance: boolean): Posting | null {
   if (h.parent_id != null && h.story_id != null && String(h.parent_id) !== String(h.story_id))
     return null;
 
-  let text = htmlToText(html);
-  if (freelance) {
-    if (!SEEKING_FREELANCER_RE.test(text)) return null;
-    text = text.replace(SEEKING_FREELANCER_RE, '');
-    if (!text) return null;
-  }
+  const text = htmlToText(html);
   const lines = text.split('\n');
   const firstLine = lines[0];
 
@@ -125,7 +94,7 @@ function parseComment(hit: unknown, freelance: boolean): Posting | null {
     location,
     mode: inferMode(firstLine) ?? inferMode(location),
     postedAt: str(h.created_at) || undefined,
-    text: freelance ? `${FREELANCE_JOB_TYPE}\n${text}` : text,
+    text,
   };
 }
 
@@ -133,20 +102,16 @@ export async function fetchHn(term: string, fetchJson: FetchJson): Promise<Posti
   const listing = await fetchJson(
     `${API}/search_by_date?tags=story,author_whoishiring&hitsPerPage=10`,
   );
+  const threads = pickHiringThreads(listing);
   // Algolia's plain query is a superset of the phrase (all words, any order); match.ts then keeps
   // only real phrase hits. A quoted query would be exact but drops plurals ("design systems").
   const q = encodeURIComponent(term);
-  const read = async (threads: HnThread[], parse: (hit: unknown) => Posting | null) => {
-    const pages = await Promise.all(
-      threads.map((t) =>
-        fetchJson(`${API}/search?tags=comment,story_${t.id}&hitsPerPage=500&query=${q}`),
-      ),
-    );
-    return pages.flatMap((p) => arr(obj(p).hits).map(parse)).filter((p): p is Posting => !!p);
-  };
-  const [hiring, freelance] = await Promise.all([
-    read(pickHiringThreads(listing), parseHnComment),
-    read(pickFreelancerThreads(listing), parseFreelancerComment),
-  ]);
-  return [...hiring, ...freelance];
+  const pages = await Promise.all(
+    threads.map((t) =>
+      fetchJson(`${API}/search?tags=comment,story_${t.id}&hitsPerPage=500&query=${q}`),
+    ),
+  );
+  return pages
+    .flatMap((p) => arr(obj(p).hits).map(parseHnComment))
+    .filter((p): p is Posting => !!p);
 }

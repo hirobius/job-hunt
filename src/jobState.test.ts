@@ -156,11 +156,7 @@ describe('effectiveHistory', () => {
     ],
     [
       'stored wins',
-      {
-        status: 'Offer',
-        applied: '2026-05-01',
-        history: [{ status: 'Applied', at: '2026-05-02' }],
-      },
+      { status: 'Offer', applied: '2026-05-01', history: [{ status: 'Applied', at: '2026-05-02' }] },
       [{ status: 'Applied', at: '2026-05-02' }],
     ],
   ] as [string, Partial<Job>, unknown[]][])('%s', (_n, over, want) => {

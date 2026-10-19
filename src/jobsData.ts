@@ -131,25 +131,13 @@ export const ATS_ROLES = [
 export interface HiddenSite {
   name: string;
   domain: string;
-  /** The Google `site:` clause — a host (with an optional path), or several ORed. Empty on a
-   *  link-only row (`href`). */
+  /** The Google `site:` clause — a host, or several ORed. */
   site: string;
-  /** A plain link that bypasses Google (a members-only community, say). Such a row is never part
-   *  of "Search all". */
-  href?: string;
-  /** One line under the name; defaults to the domain. */
-  note?: string;
 }
-const site = (name: string, domain: string, path = ''): HiddenSite => ({
+const site = (name: string, domain: string): HiddenSite => ({
   name,
   domain,
-  site: `site:${domain}${path}`,
-});
-/** A row whose clause is more than one host: a site restriction plus an `inurl:` or keyword. */
-const clause = (name: string, domain: string, siteClause: string): HiddenSite => ({
-  name,
-  domain,
-  site: siteClause,
+  site: `site:${domain}`,
 });
 
 /** Companies' own hiring systems, searched through Google — far less competition than the big
@@ -174,19 +162,9 @@ export const ATS: HiddenSite[] = [
   site('Gem', 'jobs.gem.com'),
   site('Dover', 'app.dover.com'),
   site('Jobvite', 'jobs.jobvite.com'),
-  // Tenants are careers-<name>.icims.com, so the bare host.
-  clause('iCIMS', 'icims.com', 'site:icims.com inurl:jobs'),
+  site('iCIMS', 'careers.icims.com'),
   site('JazzHR', 'applytojob.com'),
   site('Personio', 'jobs.personio.com'),
-  // Large per-tenant systems (docs/specs/discovery-methods.md, method 6): Google only. Their
-  // endpoints are undocumented, POST-only or CORS-closed, so the app never fetches them.
-  clause(
-    'SuccessFactors',
-    'successfactors.com',
-    '(site:successfactors.com OR site:successfactors.eu) inurl:career',
-  ),
-  clause('Taleo', 'taleo.net', 'site:taleo.net inurl:careersection'),
-  clause('Oracle Recruiting', 'oraclecloud.com', 'site:oraclecloud.com inurl:CandidateExperience'),
 ];
 
 /** Freelance, startup and remote boards with no open API (or one this app can't call from the
@@ -201,22 +179,7 @@ export const HIDDEN_BOARDS: HiddenSite[] = [
   site('Jobicy', 'jobicy.com'),
   site('We Work Remotely', 'weworkremotely.com'),
   site('Working Not Working', 'workingnotworking.com'),
-  site('Dribbble Jobs', 'dribbble.com', '/jobs'),
-  // Design-systems community boards (method 5). None has an API; every host is unverified from
-  // the build sandbox, so check each once in a browser.
-  site('Smashing Jobs', 'smashingmagazine.com', '/jobs'),
-  clause('Design Systems Jobs', 'designsystems.com', 'site:designsystems.com jobs'),
-  site('Into Design Systems', 'intodesignsystems.com'),
-  site('Authentic Jobs', 'authenticjobs.com'),
-  site('Dynamite Jobs', 'dynamitejobs.com'),
-  {
-    // The Slack is members only and not indexed, so there is no site clause: a plain link.
-    name: 'Join Design Systems Slack',
-    domain: 'designsystems.com',
-    site: '',
-    href: 'https://www.google.com/search?q=join+design+systems+slack+community',
-    note: 'Members only; its jobs channel is not searchable',
-  },
+  site('Dribbble Jobs', 'dribbble.com'),
 ];
 
 /** "Contract only": the words contract and fractional postings use. */
@@ -224,8 +187,6 @@ export const CONTRACT_CLAUSE = '(contract OR freelance OR fractional)';
 
 export interface HiddenQuery {
   role: string;
-  /** Several roles searched at once, ORed (the wide sweep, #213). Overrides `role` when 2+. */
-  roles?: string[];
   entry?: boolean;
   where: string;
   mode: WorkMode;
@@ -233,16 +194,10 @@ export interface HiddenQuery {
   contract?: boolean;
 }
 
-/** One quoted title, or several ORed: ("a" OR "b"). */
-export function titleClause(titles: string[]): string {
-  const q = titles.map((t) => `"${t.trim()}"`);
-  return q.length > 1 ? `(${q.join(' OR ')})` : (q[0] ?? '""');
-}
-
-function queryTail({ role, roles, entry, where, mode, contract }: HiddenQuery): string {
+function queryTail({ role, entry, where, mode, contract }: HiddenQuery): string {
   const w = where.trim();
   return [
-    titleClause(roles && roles.length > 1 ? roles : [role]),
+    `"${role}"`,
     entry ? '(entry OR junior OR associate)' : '',
     mode === 'remote' ? 'remote' : w ? `"${w}"` : '',
     contract ? CONTRACT_CLAUSE : '',
@@ -262,25 +217,21 @@ const GOOGLE_MAX_WORDS = 32;
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 
 /** As many of `sites` as fit in one query, in order, ORed together. */
-function fitSites(sites: HiddenSite[], o: HiddenQuery): string[] {
+export function searchAllUrl(sites: HiddenSite[], o: HiddenQuery): string {
   const tail = queryTail(o);
   const picked: string[] = [];
   for (const s of sites) {
-    if (!s.site) continue; // a link-only row has nothing to search
     const next = `(${[...picked, s.site].join(' OR ')}) ${tail}`;
     if (words(next) > GOOGLE_MAX_WORDS) break;
     picked.push(s.site);
   }
-  return picked;
-}
-
-export function searchAllUrl(sites: HiddenSite[], o: HiddenQuery): string {
-  return googleUrl(`(${fitSites(sites, o).join(' OR ')}) ${queryTail(o)}`, o.recency);
+  return googleUrl(`(${picked.join(' OR ')}) ${tail}`, o.recency);
 }
 
 /** How many sites `searchAllUrl` fits — shown on its button. */
 export function searchAllCount(sites: HiddenSite[], o: HiddenQuery): number {
-  return fitSites(sites, o).length;
+  const q = new URL(searchAllUrl(sites, o)).searchParams.get('q') ?? '';
+  return (q.match(/site:/g) ?? []).length - (q.includes('job-boards.greenhouse.io') ? 1 : 0);
 }
 
 // ---- Curated groups ----

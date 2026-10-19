@@ -12,21 +12,15 @@ import { SUPABASE_URL } from './config';
  * fonts.css (bundled woff2), so styles and fonts load from 'self' only — no font CDN (#115 Phase 0).
  */
 
-// Every origin the live feed's sources fetch from. Adding a source means adding its origin here AND
-// in vercel.json's connect-src; a source whose origin is missing here would be silently blocked.
-const FEED_HOSTS = [
+// The live-feed sources (PR #88) fetch these from the browser. Once the feed lands on main,
+// replace this list with one derived from the feed's source modules (follow-up in #97).
+const FEED_SOURCE_HOSTS = [
   'https://hn.algolia.com',
   'https://remotive.com',
-  'https://jobicy.com',
-  'https://remoteok.com',
   'https://boards-api.greenhouse.io',
   'https://api.lever.co',
   'https://api.eu.lever.co',
   'https://api.ashbyhq.com',
-  'https://apply.workable.com',
-  'https://*.recruitee.com',
-  'https://yc-oss.github.io',
-  'https://api.github.com',
 ];
 
 type Header = { key: string; value: string };
@@ -72,7 +66,7 @@ describe('content security policy', () => {
     expect(src('style-src')).toEqual(["'self'", "'unsafe-inline'"]);
   });
 
-  it.each(FEED_HOSTS)('lets the live feed reach %s', (host) => {
+  it.each(FEED_SOURCE_HOSTS)('lets the live feed reach %s', (host) => {
     expect(src('connect-src')).toContain(host);
   });
 

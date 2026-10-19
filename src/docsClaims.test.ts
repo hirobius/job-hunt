@@ -47,19 +47,7 @@ describe('README makes no retired claims', () => {
 
 /** Every number in the docs is derived from a source or cut (hirobius/ops#681). */
 describe('README and FEATURES numbers have a source', () => {
-  const WORDS = [
-    'zero',
-    'one',
-    'two',
-    'three',
-    'four',
-    'five',
-    'six',
-    'seven',
-    'eight',
-    'nine',
-    'ten',
-  ];
+  const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 
   it('"N sorts" matches the Sort menu', () => {
     const m = README.match(/\b(\w+) sorts\b/i);

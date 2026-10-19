@@ -1,7 +1,5 @@
 # Autonomous build queue (Ralph loop) — Apply Board
 
-> **Historical.** The build loop that ran in 2026-07 and after. It is not a live backlog; open work is in GitHub Issues.
-
 The source of truth for the self-driving build loop. Each iteration: **read this file → pick the
 first unchecked item in the Ready queue whose dependencies are met → build it to its acceptance
 criteria → run the Definition of Done → commit + push → tick its boxes here.** One item per

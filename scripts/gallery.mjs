@@ -29,17 +29,7 @@ const LABEL = args.label || 'current';
 const PORT = Number(args.port || 4179);
 const WIDTHS = [1440, 390];
 const CLOUD_CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-// --pack=<regex> picks the starter track by name instead of the first (the case-study set uses it).
-const PACK = args.pack ? new RegExp(args.pack, 'i') : undefined;
-const packBox = (page) => {
-  const boxes = page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox');
-  return PACK ? boxes.filter({ hasText: PACK }).first() : boxes.first();
-};
 const THEMES = ['light', 'dark'];
-// --format=png for lossless shots (the case-study set, #199); default is small JPEGs.
-const EXT = args.format === 'png' ? 'png' : 'jpg';
-const shotOpts = (path) =>
-  EXT === 'png' ? { path, type: 'png' } : { path, type: 'jpeg', quality: 70 };
 
 async function serve() {
   // A full URL may carry a query (e.g. Vercel's ?_vercel_share= for a protected preview); it is
@@ -116,15 +106,10 @@ async function seed(page) {
   // A Discover track: first starter pack from onboarding.
   if (await clickIf(page, 'tab', /^Discover$/)) {
     await page.waitForTimeout(600);
-    // Discover with no track asks first (#132); the button opens the setup.
-    await clickIf(page, 'button', /^Choose a track$/);
-    const pack = packBox(page);
+    const pack = page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first();
     if (await pack.isVisible().catch(() => false)) {
       await pack.click();
-      // Three steps (#132): Continue, Continue, Finish.
-      await clickIf(page, 'button', /^Continue$/);
-      await clickIf(page, 'button', /^Continue$/);
-      await clickIf(page, 'button', /^Finish$/);
+      await clickIf(page, 'button', /^Start with/);
     }
   }
 }
@@ -134,34 +119,17 @@ const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'account-menu', [['button', /^(Account|More options)/]]],
   [/^(Pipeline|Tracker)$/, 'status-menu', [['button', /^Status:/]]],
   [/^(Pipeline|Tracker)$/, 'add-job-dialog', [['button', /^Add job$/]]],
-  [
-    /^(Pipeline|Tracker)$/,
-    'sign-in-dialog',
-    [
-      ['button', /^Account/],
-      ['menuitem', /^Sign in/],
-    ],
-  ],
+  [/^(Pipeline|Tracker)$/, 'sign-in-dialog', [['button', /^Sign in$/]]],
   [/^(Pipeline|Tracker)$/, 'row-menu', [['button', /^More actions/]]],
-  // Rapid apply: the To apply queue's Start applying opens Apply mode on the first job.
-  [/^(Pipeline|Tracker)$/, 'apply-mode', [['button', /^Start applying$/]]],
   // A job's details, screener and templates live on its page (#129 moved them off the list).
   [/^(Pipeline|Tracker)$/, 'job-page', [['first-job']]],
-  // The job page's tabs (#130); the screener is inline in Screening, not a dialog.
-  [/^(Pipeline|Tracker)$/, 'job-page-screening', [['first-job'], ['tab', /^Screening/]]],
   [
     /^(Pipeline|Tracker)$/,
-    'job-page-screener-open',
-    [['first-job'], ['tab', /^Screening/], ['button', /^Screen a job description$/]],
+    'screen-jd-dialog',
+    [['first-job'], ['button', /^Screen a job description$/]],
   ],
-  [/^(Pipeline|Tracker)$/, 'job-page-interviews', [['first-job'], ['tab', /^Interviews/]]],
-  [/^(Pipeline|Tracker)$/, 'job-page-todos', [['first-job'], ['tab', /^To-dos/]]],
   [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['first-job'], ['button', /^Use template$/]]],
-  // Templates: a row opens its editor (beside the list on a desktop, alone on a phone).
-  [/^Templates$/, 'template-detail', [['link', /^Cover letter/]]],
-  [/^Discover$/, 'manage-track-dialog', [['button', /^Manage track$/]]],
-  // The location and work-mode popover in the header (#131).
-  [/^Discover$/, 'discover-context-popover', [['button', /, (Any mode|Hybrid|On-site)$|^Remote$/]]],
+  [/^Discover$/, 'manage-track-dialog', [['button', /^Manage this track$/]]],
 ];
 
 async function shoot(browser, base, theme, width, manifest) {
@@ -181,60 +149,6 @@ async function shoot(browser, base, theme, width, manifest) {
       /* storage blocked */
     }
   }, theme);
-  // Discovery tools call public APIs; answer them with canned bodies so the populated screens can be
-  // shot offline (Find boards, Design-system teams). Everything else is untouched.
-  const cors = { 'access-control-allow-origin': '*', 'content-type': 'application/json' };
-  const canned = (body, status = 200, extra = {}) => ({
-    status,
-    headers: { ...cors, ...extra },
-    body: JSON.stringify(body),
-  });
-  const ghRepo = (login, stars) => ({
-    full_name: `${login}/design-system`,
-    html_url: `https://github.com/${login}/design-system`,
-    stargazers_count: stars,
-    topics: ['design-system'],
-    archived: false,
-    fork: false,
-    owner: { login, type: 'Organization' },
-  });
-  await ctx.route('https://api.github.com/**', (r) => {
-    const u = r.request().url();
-    if (u.includes('/search/repositories'))
-      return r.fulfill(
-        canned({
-          items: [ghRepo('figma', 4200), ghRepo('quietco', 900), ghRepo('acme-design-labs', 310)],
-        }),
-      );
-    if (u.endsWith('/orgs/figma')) return r.fulfill(canned({ name: 'Figma', blog: 'figma.com' }));
-    if (u.endsWith('/orgs/quietco'))
-      return r.fulfill(canned({ name: 'Quiet Company', blog: 'quiet.example' }));
-    return r.fulfill(canned({ name: 'Acme Design Labs' }));
-  });
-  await ctx.route('https://boards-api.greenhouse.io/**', (r) =>
-    r.request().url().includes('/boards/figma/')
-      ? r.fulfill(canned({ jobs: [{}, {}, {}, {}] }))
-      : r.fulfill(canned({}, 404)),
-  );
-  await ctx.route('https://api.lever.co/**', (r) =>
-    r.request().url().includes('/postings/plaid')
-      ? r.fulfill(canned([{}]))
-      : r.fulfill(canned({}, 404)),
-  );
-  await ctx.route(
-    /https:\/\/(api\.ashbyhq\.com|apply\.workable\.com|api\.eu\.lever\.co|[a-z0-9-]+\.recruitee\.com)\/.*/,
-    (r) => r.fulfill(canned({}, 404)),
-  );
-  await ctx.route('https://yc-oss.github.io/**', (r) =>
-    r.fulfill(
-      canned([
-        { name: 'Figma', status: 'Active', isHiring: true },
-        { name: 'Plaid', status: 'Active', isHiring: true },
-        { name: 'Nobody Labs', status: 'Active', isHiring: false },
-        { name: 'Flaky Inc', status: 'Active', isHiring: false },
-      ]),
-    ),
-  );
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -251,8 +165,8 @@ async function shoot(browser, base, theme, width, manifest) {
   let n = 0;
   const snap = async (name) => {
     await settle(page);
-    const file = `${String(++n).padStart(2, '0')}-${slug(name)}.${EXT}`;
-    await page.screenshot({ ...shotOpts(join(dir, file)), fullPage: true });
+    const file = `${String(++n).padStart(2, '0')}-${slug(name)}.jpg`;
+    await page.screenshot({ path: join(dir, file), fullPage: true, type: 'jpeg', quality: 70 });
     manifest.push({
       theme,
       width,
@@ -264,26 +178,13 @@ async function shoot(browser, base, theme, width, manifest) {
 
   // The landing screen before any data: what a first visit sees.
   await snap('First visit');
-  // The guided first run (#132): steps 2 and 3, then back out so seed() starts from step 1.
-  const firstPack = packBox(page);
-  if (await firstPack.isVisible().catch(() => false)) {
-    await firstPack.click();
-    if (await clickIf(page, 'button', /^Continue$/)) {
-      await snap('First run · location');
-      if (await clickIf(page, 'button', /^Continue$/)) await snap('First run · first job');
-      await clickIf(page, 'button', /^Back$/);
-      await clickIf(page, 'button', /^Back$/);
-    }
-    await firstPack.click();
-  }
   await seed(page);
 
   for (const tab of await topTabs(page)) {
     await clickIf(page, 'tab', new RegExp(`^${tab}$`));
     await snap(tab);
     if (/^Discover$/.test(tab)) {
-      // The sections (tabs under "Your sections"), then each search tool (a segmented row, #131).
-      const inner = page.getByRole('tabpanel').getByRole('tablist', { name: 'Your sections' });
+      const inner = page.getByRole('tabpanel').getByRole('tablist').first();
       const subs = (await inner.isVisible().catch(() => false))
         ? await inner.getByRole('tab').allInnerTexts()
         : [];
@@ -291,49 +192,9 @@ async function shoot(browser, base, theme, width, manifest) {
         await inner.getByRole('tab', { name: sub, exact: true }).click();
         await snap(`${tab} · ${sub}`);
       }
-      const tools = page.getByRole('radiogroup', { name: 'Search tool' });
-      const labels = (await tools.isVisible().catch(() => false))
-        ? await tools.getByRole('radio').allInnerTexts()
-        : [];
-      for (const label of labels.slice(1)) {
-        await tools.getByRole('radio', { name: label, exact: true }).click();
-        await snap(`${tab} · ${label}`);
-      }
-      // The discovery tools, populated: a YC batch through the board probe, and GitHub teams.
-      if (labels.some((l) => /^(Find boards|Boards)$/.test(l))) {
-        await tools.getByRole('radio', { name: /^(Find boards|Boards)$/ }).click();
-        if (await clickIf(page, 'button', /^Load batch$/)) {
-          await page.waitForTimeout(500);
-          if (await clickIf(page, 'button', /^Find boards$/)) {
-            await page
-              .getByText(/\d+ of \d+ checked/)
-              .first()
-              .waitFor({ timeout: 20000 })
-              .catch(() => {});
-            await page.waitForTimeout(4000);
-            await snap(`${tab} · Boards found`);
-          }
-        }
-      }
-      if (labels.some((l) => /^(Design-system teams|Teams)$/.test(l))) {
-        await tools.getByRole('radio', { name: /^(Design-system teams|Teams)$/ }).click();
-        if (await clickIf(page, 'button', /^Find design-system teams$/)) {
-          await page
-            .getByText(/\d+ teams? found/)
-            .first()
-            .waitFor({ timeout: 20000 })
-            .catch(() => {});
-          await clickIf(page, 'button', /^Save as target/);
-          await snap(`${tab} · Teams found`);
-        }
-      }
-      // Back to the default tool, so the overlays below open on Apply now.
-      if (labels[0]) await tools.getByRole('radio', { name: labels[0], exact: true }).click();
     }
   }
 
-  // Let the last toast ("Saved … as a target") expire so it isn't in every overlay shot.
-  await page.waitForTimeout(7000);
   for (const [tab, name, steps] of OVERLAYS) {
     await clickIf(page, 'tab', tab);
     let ok = true;
@@ -341,8 +202,8 @@ async function shoot(browser, base, theme, width, manifest) {
     if (ok) {
       // Overlays: viewport shot (fullPage can't see portalled dialogs past the fold).
       await settle(page);
-      const file = `${String(++n).padStart(2, '0')}-${slug(name)}.${EXT}`;
-      await page.screenshot(shotOpts(join(dir, file)));
+      const file = `${String(++n).padStart(2, '0')}-${slug(name)}.jpg`;
+      await page.screenshot({ path: join(dir, file), type: 'jpeg', quality: 70 });
       manifest.push({ theme, width, name, file: `${theme}-${width}/${file}`, overlay: true });
     }
     for (let i = 0; i < 2; i++) await page.keyboard.press('Escape');

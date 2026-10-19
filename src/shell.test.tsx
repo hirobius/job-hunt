@@ -59,7 +59,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Companies', 'Pipeline', 'Templates']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Today', 'Pipeline', 'Discover', 'Templates']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -127,10 +127,6 @@ describe('app shell (#115 Phase 1)', () => {
 });
 
 describe('sync nudge (#115 Phase 1)', () => {
-  beforeEach(() => {
-    window.location.hash = '#/today'; // legacy Today route: the nudge is Today-only
-  });
-
   // The nudge offers to sync data, so it needs some.
   beforeEach(() => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
@@ -149,14 +145,6 @@ describe('sync nudge (#115 Phase 1)', () => {
     const nudge = await screen.findByRole('region', { name: 'Sync your data' });
     expect(within(nudge).getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: /email/i })).toBeNull();
-  });
-
-  it('is a Today-only row; elsewhere the Account trigger carries a not-synced cue (#133)', async () => {
-    window.location.hash = '#/queue';
-    renderApp();
-    const account = await screen.findByRole('button', { name: /^Account/ });
-    expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
-    expect(account).toHaveAttribute('title', 'Saved on this device only');
   });
 
   it('dismissing it is remembered', async () => {
@@ -202,9 +190,10 @@ describe('sync nudge (#115 Phase 1)', () => {
 describe('routes keep working (#115 Phase 1)', () => {
   it.each([
     ['#/queue', 'Pipeline'],
-    ['#/discover', 'Companies'],
+    ['#/discover', 'Discover'],
     ['#/copy-deck', 'Templates'],
-    ['', 'Companies'],
+    ['#/today', 'Today'],
+    ['', 'Today'],
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();

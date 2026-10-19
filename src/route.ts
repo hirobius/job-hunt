@@ -115,8 +115,3 @@ export function jobHash(jobId: string): string {
 export function openJob(jobId: string | null, replace = false): void {
   navigate({ tab: JOB_TAB, jobId }, replace);
 }
-
-/** Open Apply mode on a saved job (#/apply/<jobId>, rapid apply). */
-export function openApply(jobId: string): void {
-  navigate({ tab: 'apply', sub: jobId, jobId: null });
-}

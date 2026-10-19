@@ -1,19 +1,24 @@
 // The shared location + work-mode control for every generated search in Discover (Title search,
-// ATS search, Live postings). It lives once, in the Discover header's context popover
-// (DiscoverHeader), and each tool shows a one-line `ContextCaption` of what it inherited.
+// ATS search, Live postings). Extracted from DiscoverView so the Live postings panel can reuse it.
 import { Input as HdsInput, SegmentedControl, Box, Text } from '@hirobius/design-system';
 import type { WorkMode } from './jobsData';
-import { contextLabel, useTrackContext } from './discoverContext';
-import { SECONDARY } from './hds-gaps/tone';
 
 const REMOTE_COMPETITION_HINT =
   'Remote roles draw ~5× the applicants (2024) — local & hybrid compete less.';
 
-// Location lives on the track, work mode on the device (src/discoverContext.ts).
-export default function LocationControl({ categoryId }: { categoryId: string }) {
-  const { where, mode, setWhere: onWhere, setMode: onMode } = useTrackContext(categoryId);
+export default function LocationControl({
+  where,
+  mode,
+  onWhere,
+  onMode,
+}: {
+  where: string;
+  mode: WorkMode;
+  onWhere: (v: string) => void;
+  onMode: (v: WorkMode) => void;
+}) {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'xs' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'xs', mb: 3 }}>
       <SegmentedControl
         aria-label="Work mode"
         size="sm"
@@ -26,7 +31,7 @@ export default function LocationControl({ categoryId }: { categoryId: string }) 
           { value: 'onsite', label: 'On-site' },
         ]}
       />
-      <Box sx={{ '& > *': { width: '100%' } }}>
+      <Box sx={{ maxWidth: 280, '& > *': { width: '100%' } }}>
         <HdsInput
           size="sm"
           aria-label="Location"
@@ -38,28 +43,14 @@ export default function LocationControl({ categoryId }: { categoryId: string }) 
         />
       </Box>
       {mode === 'remote' && (
-        <Text variant="caption" as="span" style={SECONDARY}>
+        <Text
+          variant="caption"
+          as="span"
+          style={{ color: 'var(--semantic-color-content-secondary)' }}
+        >
           {REMOTE_COMPETITION_HINT}
         </Text>
       )}
     </Box>
-  );
-}
-
-/** "Searching in Spokane, Hybrid" — makes the inherited setting visible where it is used. */
-export function ContextCaption({ categoryId }: { categoryId: string }) {
-  const { where, mode } = useTrackContext(categoryId);
-  return (
-    <Text
-      variant="caption"
-      as="span"
-      style={{
-        color: 'var(--semantic-color-content-secondary)',
-        display: 'block',
-        marginBottom: 'var(--semantic-space-scale-xs)',
-      }}
-    >
-      Searching in {contextLabel(where, mode)}
-    </Text>
   );
 }

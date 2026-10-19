@@ -3,11 +3,7 @@
 // reasoning lives here and is unit-testable without Supabase. Each field's merge rule lives
 // with its store (mergeJobs, mergeTriage's set-aside-wins, …); this module only composes them.
 //
-// v7 adds the wide sweep's titles per track (#213), optional on read.
-// v6 adds the Application kit (rapid apply: profile fields + saved answers), optional on read.
-// v5 (ADR 0008) adds the user-edited stores that used to live only in this browser: outreach
-// targets, saved searches, the evidence text and the work mode per track. All optional on read.
-// v4 (#99) carried jobs, snippets, and set-aside tiles. Curated
+// v4 (#99) carries only what still has a home: jobs, snippets, and set-aside tiles. Curated
 // tracks sync through their own tables (src/curation/sync.ts). Older blobs still read:
 //   v1  a bare Job[]
 //   v3  { jobs, pillars, copydeck, triage: { pinned, dismissed }, userTiles }
@@ -17,13 +13,6 @@ import { mergeJobs } from './store';
 import { mergeSnippets, type Snippet } from './copyDeckStore';
 import { mergeTriage, type Triage } from './tileTriage';
 import type { LegacyTile } from './curation/legacyTiles';
-import { mergeTargets, sanitizeTargets, type Target } from './feed/targets';
-import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFilters';
-import { capEvidence, mergeEvidence } from './radar/evidenceStore';
-import { mergeModes, sanitizeModes } from './trackModes';
-import { emptyKit, mergeKit, sanitizeKit, type ApplyKit } from './applyKit';
-import { mergeSweeps, sanitizeSweeps, type SweepTitles } from './feed/sweepTitles';
-import type { WorkMode } from './jobsData';
 import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
 
@@ -36,40 +25,13 @@ export interface SyncData {
   triage: Triage;
   /** v3-only user tiles awaiting the one-time fold into curation. Never written. */
   legacyUserTiles: LegacyTile[];
-  /** Outreach targets per track (v5). */
-  targets: Record<string, Target[]>;
-  /** Saved Live-postings searches per track (v5). */
-  filters: Record<string, SavedFilter[]>;
-  /** The user's evidence text (v5). */
-  evidence: string;
-  /** Work mode per track (v5). */
-  modes: Record<string, WorkMode>;
-  /** The Application kit (v6). */
-  kit: ApplyKit;
-  /** The wide sweep's titles and on/off per track (v7). */
-  sweeps: Record<string, SweepTitles>;
-  /** The blob version this was read from (0 = not read from a blob). A pre-v5 cloud copy says
-   *  nothing about the v5 fields, so a refresh must not let its emptiness wipe local values. */
-  sourceV: number;
 }
 
 /** Blob schema version written to the cloud. */
-export const BLOB_VERSION = 7;
+export const BLOB_VERSION = 4;
 
 export function emptyBlob(): SyncData {
-  return {
-    jobs: [],
-    copydeck: [],
-    triage: { pinned: [], dismissed: [] },
-    legacyUserTiles: [],
-    targets: {},
-    filters: {},
-    evidence: '',
-    modes: {},
-    kit: emptyKit(),
-    sweeps: {},
-    sourceV: 0,
-  };
+  return { jobs: [], copydeck: [], triage: { pinned: [], dismissed: [] }, legacyUserTiles: [] };
 }
 
 const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
@@ -78,7 +40,7 @@ const isLegacyTile = (t: unknown): t is LegacyTile =>
 
 /** Parse a stored blob of any version. Missing / non-array fields default to empty. */
 export function readBlob(data: unknown): SyncData {
-  if (Array.isArray(data)) return { ...emptyBlob(), jobs: data as Job[], sourceV: 1 };
+  if (Array.isArray(data)) return { ...emptyBlob(), jobs: data as Job[] };
   const o = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
   const tr = (o.triage && typeof o.triage === 'object' ? o.triage : {}) as { dismissed?: unknown };
   return {
@@ -91,29 +53,16 @@ export function readBlob(data: unknown): SyncData {
     legacyUserTiles: arr(o.userTiles)
       .filter(isLegacyTile)
       .map((t) => ({ name: t.name || '', meta: t.meta || '', url: t.url })),
-    targets: sanitizeTargets(o.targets),
-    filters: sanitizeFilters(o.filters),
-    evidence: typeof o.evidence === 'string' ? capEvidence(o.evidence) : '',
-    modes: sanitizeModes(o.modes),
-    kit: sanitizeKit(o.kit),
-    sweeps: sanitizeSweeps(o.sweeps),
-    sourceV: typeof o.v === 'number' ? o.v : 0,
   };
 }
 
-/** The v7 object written to the cloud. */
+/** The v4 object written to the cloud. */
 export function writeBlob(d: SyncData) {
   return {
     v: BLOB_VERSION,
     jobs: withoutSample(d.jobs), // sample data (#107) is device-local; never pushed
     copydeck: d.copydeck,
     triage: { dismissed: d.triage.dismissed },
-    targets: d.targets,
-    filters: d.filters,
-    evidence: d.evidence,
-    modes: d.modes,
-    kit: d.kit,
-    sweeps: d.sweeps,
   };
 }
 
@@ -125,24 +74,8 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
   if (!cloud) return seed ? { ...local, legacyUserTiles: [] } : local;
   if (!seed) {
     const dismissed = new Set(cloud.triage.dismissed);
-    // A pre-v5 cloud copy has no opinion on the v5 fields: keep this device's.
-    const v5 =
-      cloud.sourceV >= 5
-        ? {}
-        : {
-            targets: local.targets,
-            filters: local.filters,
-            evidence: local.evidence,
-            modes: local.modes,
-          };
-    // Likewise a pre-v6 copy says nothing about the kit.
-    const v6 = cloud.sourceV >= 6 ? {} : { kit: local.kit };
-    const v7 = cloud.sourceV >= 7 ? {} : { sweeps: local.sweeps };
     return {
       ...cloud,
-      ...v5,
-      ...v6,
-      ...v7,
       jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
       triage: {
         pinned: local.triage.pinned.filter((u) => !dismissed.has(u)),
@@ -155,12 +88,5 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     copydeck: mergeSnippets(cloud.copydeck, local.copydeck),
     triage: mergeTriage(cloud.triage, local.triage),
     legacyUserTiles: cloud.legacyUserTiles,
-    targets: mergeTargets(cloud.targets, local.targets),
-    filters: mergeFilters(cloud.filters, local.filters),
-    evidence: mergeEvidence(cloud.evidence, local.evidence),
-    modes: mergeModes(cloud.modes, local.modes),
-    kit: mergeKit(cloud.kit, local.kit),
-    sweeps: mergeSweeps(cloud.sweeps, local.sweeps),
-    sourceV: cloud.sourceV,
   };
 }

@@ -3,27 +3,14 @@
 // time; it is never stored. Saving one turns it into a tracked Job (src/types.ts) by URL.
 import type { JobMode } from '../types';
 
-export type FeedSourceId =
-  | 'hn'
-  | 'remotive'
-  | 'jobicy'
-  | 'remoteok'
-  | 'greenhouse'
-  | 'lever'
-  | 'ashby'
-  | 'workable'
-  | 'recruitee';
+export type FeedSourceId = 'hn' | 'remotive' | 'greenhouse' | 'lever' | 'ashby';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
   remotive: 'Remotive',
-  jobicy: 'Jobicy',
-  remoteok: 'Remote OK',
   greenhouse: 'Greenhouse',
   lever: 'Lever',
   ashby: 'Ashby',
-  workable: 'Workable',
-  recruitee: 'Recruitee',
 };
 
 export interface Posting {
@@ -41,11 +28,6 @@ export interface Posting {
   postedAt?: string;
   /** Plain-text body (HTML stripped) — what the matcher searches. */
   text: string;
-  /** Yearly pay as the source states it; absent when it doesn't. Never parsed from free text. */
-  salaryMin?: number;
-  salaryMax?: number;
-  /** ISO currency code ('USD'); absent when the source doesn't say. */
-  currency?: string;
 }
 
 export type SignalId = 'contract' | 'founding';

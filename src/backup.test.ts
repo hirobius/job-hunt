@@ -48,10 +48,6 @@ const state = (over: Partial<AccountState> = {}): AccountState => ({
     ],
   },
   triage: { pinned: ['https://shop.example/'], dismissed: [] },
-  targets: {},
-  filters: {},
-  evidence: '',
-  modes: {},
   ...over,
 });
 
@@ -301,73 +297,9 @@ describe('sample data (#110)', () => {
         copydeck: [],
         curation: { categories: [], groups: [], tiles: [] },
         triage: { pinned: [], dismissed: [] },
-        targets: {},
-        filters: {},
-        evidence: '',
-        modes: {},
       },
       new Date(2026, 9, 13),
     );
     expect(b.jobs).toEqual([real]);
-  });
-});
-
-describe('backup carries targets, saved searches, evidence and work modes (ADR 0008)', () => {
-  const tgt = (login: string) => ({
-    login,
-    company: login,
-    repo: `${login}/ds`,
-    repoUrl: `https://github.com/${login}/ds`,
-    stars: 1,
-    savedAt: '2026-10-01T00:00:00.000Z',
-  });
-  const srch = (name: string) => ({
-    name,
-    term: 't',
-    where: '',
-    mode: 'any' as const,
-    exclude: [],
-    seniority: 'any' as const,
-    salaryOnly: false,
-    contractOnly: false,
-  });
-  const rich = () =>
-    state({
-      targets: { t1: [tgt('acme')] },
-      filters: { t1: [srch('Austin')] },
-      evidence: 'Led HDS',
-      modes: { t1: 'remote' },
-    });
-
-  it('round-trips through build and parse', () => {
-    const r = parseBackup(JSON.stringify(buildBackup(rich(), NOW)));
-    expect(r.ok && r.backup).toMatchObject({
-      targets: { t1: [{ login: 'acme' }] },
-      filters: { t1: [{ name: 'Austin' }] },
-      evidence: 'Led HDS',
-      modes: { t1: 'remote' },
-    });
-  });
-
-  it('an older backup without them parses with the fields empty', () => {
-    const r = parseBackup(wrap({ jobs: [], copydeck: [], curation: {}, triage: {} }));
-    expect(r.ok && r.backup).toMatchObject({ targets: {}, filters: {}, evidence: '', modes: {} });
-  });
-
-  it('merge unions by key (backup wins); replace takes the backup', () => {
-    const current = state({
-      targets: { t1: [tgt('mine')] },
-      filters: { t1: [srch('Mine')] },
-      evidence: 'mine',
-      modes: { t2: 'hybrid' },
-    });
-    const merged = applyBackup(current, rich(), 'merge');
-    expect(merged.targets.t1.map((t) => t.login)).toEqual(['mine', 'acme']);
-    expect(merged.filters.t1.map((f) => f.name)).toEqual(['Mine', 'Austin']);
-    expect(merged.evidence).toBe('Led HDS\n\n--- From this device ---\n\nmine');
-    expect(merged.modes).toEqual({ t1: 'remote', t2: 'hybrid' });
-    const replaced = applyBackup(current, rich(), 'replace');
-    expect(replaced.targets.t1.map((t) => t.login)).toEqual(['acme']);
-    expect(replaced.modes).toEqual({ t1: 'remote' });
   });
 });

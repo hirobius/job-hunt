@@ -15,10 +15,6 @@ export const TRACK_WRITE_FAILED = {
 export const UNSYNCED_SIGN_OUT =
   'Some of your tracks haven’t reached the cloud yet. Signing out deletes them from this browser. Sign out anyway?';
 
-/** Asked before sign-out wipes this browser while the latest edits could not be uploaded. */
-export const UNSYNCED_CHANGES_SIGN_OUT =
-  'Your latest changes (jobs, templates, targets, saved searches, evidence) couldn’t reach the cloud. Signing out deletes them from this browser. Sign out anyway?';
-
 /** Child → parent, so erasure never depends on the FK cascade. */
 export const DELETE_ORDER = ['tiles', 'groups', 'categories', 'tracker'] as const;
 

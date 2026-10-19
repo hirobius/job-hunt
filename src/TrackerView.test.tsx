@@ -81,16 +81,6 @@ describe('Pipeline hierarchy', () => {
     expect(screen.getByRole('button', { name: 'Try with sample data' })).toBeInTheDocument();
   });
 
-  it('first use is the shared EmptyState, with its icon (#176 review)', () => {
-    const { container } = renderTracker();
-    const title = screen.getByText('Track your first job');
-    // The shared composition's HDS EmptyState, not a hand-built column.
-    expect(
-      title.closest('[class*="EmptyState"], [data-hds-component="EmptyState"]'),
-    ).not.toBeNull();
-    expect(container.querySelector('svg.lucide-briefcase')).not.toBeNull();
-  });
-
   it('with jobs: the toolbar is back and the header shows the counts', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();

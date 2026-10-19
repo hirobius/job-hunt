@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Dialog, InlineLink, Stack, Textarea, useToast } from '@hirobius/design-system';
+import { Button, Dialog, Textarea } from '@hirobius/design-system';
 import { useSnippets } from './copyDeckStore';
-import { fillSnippet, unfilledTokens } from './templateFill';
-import { useApplyKit } from './applyKit';
-import { copyFilled } from './templateCopy';
+import { fillTemplate, unfilledTokens, valuesFromJob } from './templateFill';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 // Fill a Copy Deck snippet from a job's company/role/contact/angle and copy it.
 export default function UseTemplate({ job }: { job: Job }) {
   const snippets = useSnippets();
-  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -21,8 +17,7 @@ export default function UseTemplate({ job }: { job: Job }) {
   );
   const picked = ordered.find((s) => s.id === pickedId) ?? ordered[0];
   // Every job card mounts one of these — only fill while the dialog is actually open.
-  const kitName = useApplyKit().fields.name;
-  const filled = open && picked ? fillSnippet(picked, job, kitName) : '';
+  const filled = open && picked ? fillTemplate(picked.body, valuesFromJob(job)) : '';
   const missing = open ? unfilledTokens(filled) : [];
 
   useEffect(() => {
@@ -32,9 +27,12 @@ export default function UseTemplate({ job }: { job: Job }) {
   }, [copied]);
 
   const copy = async () => {
-    const r = await copyFilled(filled);
-    if (r.ok) setCopied(true);
-    else toast({ title: "Couldn't copy", description: r.reason, tone: 'danger' });
+    try {
+      await navigator.clipboard.writeText(filled);
+      setCopied(true);
+    } catch {
+      /* clipboard unavailable */
+    }
   };
 
   return (
@@ -58,26 +56,32 @@ export default function UseTemplate({ job }: { job: Job }) {
           </Dialog.Description>
         </Dialog.Header>
         {ordered.length === 0 ? (
-          <p style={SECONDARY}>Your Copy Deck is empty. Add a snippet there first.</p>
+          <p style={{ color: 'var(--semantic-color-content-secondary)' }}>
+            Your Copy Deck is empty. Add a snippet there first.
+          </p>
         ) : (
-          <Stack gap="medium">
-            <div role="group" aria-label="Templates">
-              <Stack direction="row" gap="px8" wrap="wrap">
-                {ordered.map((s) => (
-                  <Button
-                    key={s.id}
-                    size="sm"
-                    variant={s.id === picked?.id ? 'primary' : 'secondary'}
-                    aria-pressed={s.id === picked?.id}
-                    onClick={() => {
-                      setPickedId(s.id);
-                      setCopied(false);
-                    }}
-                  >
-                    {s.label}
-                  </Button>
-                ))}
-              </Stack>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--primitive-space-3)' }}
+          >
+            <div
+              role="group"
+              aria-label="Templates"
+              style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--primitive-space-2)' }}
+            >
+              {ordered.map((s) => (
+                <Button
+                  key={s.id}
+                  size="sm"
+                  variant={s.id === picked?.id ? 'primary' : 'secondary'}
+                  aria-pressed={s.id === picked?.id}
+                  onClick={() => {
+                    setPickedId(s.id);
+                    setCopied(false);
+                  }}
+                >
+                  {s.label}
+                </Button>
+              ))}
             </div>
             <Textarea
               readOnly
@@ -87,19 +91,14 @@ export default function UseTemplate({ job }: { job: Job }) {
               style={{ width: '100%' }}
             />
             {missing.length > 0 && (
-              <p style={SECONDARY}>
+              <p style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}>
                 Still unfilled: {missing.map((t) => `[${t}]`).join(', ')}. Add them on the job, or
                 edit after pasting.
               </p>
             )}
-          </Stack>
+          </div>
         )}
         <Dialog.Footer>
-          {picked && (
-            <InlineLink href={`#/copy-deck/${encodeURIComponent(picked.id)}`}>
-              Manage templates
-            </InlineLink>
-          )}
           <Dialog.Close asChild>
             <Button variant="secondary">Close</Button>
           </Dialog.Close>

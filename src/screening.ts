@@ -5,7 +5,7 @@ import type { Job, JobMode, Verdict } from './types';
 
 export const VERDICTS: { value: Verdict; label: string; tone: 'success' | 'warning' | 'danger' }[] =
   [
-    { value: 'match', label: 'Strong fit', tone: 'success' },
+    { value: 'match', label: 'Match', tone: 'success' },
     { value: 'stretch', label: 'Stretch', tone: 'warning' },
     { value: 'reach', label: 'Reach', tone: 'danger' },
   ];
@@ -21,9 +21,6 @@ export const VERDICT_RANK: Record<Verdict, number> = { match: 0, stretch: 1, rea
 
 export const verdictTone = (v: Verdict): 'success' | 'warning' | 'danger' =>
   VERDICTS.find((x) => x.value === v)!.tone;
-
-/** The one wording for a fit, wherever it shows: Live rows, the Pipeline, the job page. */
-export const verdictLabel = (v: Verdict): string => VERDICTS.find((x) => x.value === v)!.label;
 
 export const modeLabel = (m: JobMode): string => MODES.find((x) => x.value === m)!.label;
 
@@ -65,10 +62,9 @@ export function normalizeScreening(job: Job): Job {
   const out: Job = { ...job };
   if (out.mode !== undefined && !MODE_VALUES.has(out.mode)) delete out.mode;
   if (out.verdict !== undefined && !VERDICT_VALUES.has(out.verdict)) delete out.verdict;
-  // Retired manual fields: old records may still carry them; drop them rather than migrate.
-  const legacy = out as Job & { travelPct?: unknown; applicants?: unknown };
-  delete legacy.travelPct;
-  delete legacy.applicants;
+  if (typeof out.applicants !== 'number' || !isFinite(out.applicants) || out.applicants < 0)
+    delete out.applicants;
+  if (typeof out.travelPct !== 'number' || !isFinite(out.travelPct)) delete out.travelPct;
   if (Array.isArray(out.blockers)) {
     const cleaned = out.blockers
       .filter((b): b is string => typeof b === 'string' && b.trim().length > 0)

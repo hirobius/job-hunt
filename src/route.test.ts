@@ -22,16 +22,6 @@ describe('route — parseHash', () => {
     });
   });
 
-  it('reads a template id as the sub under copy-deck (#132)', () => {
-    expect(parseHash('#/copy-deck/tpl-cover')).toEqual({
-      tab: 'copy-deck',
-      sub: 'tpl-cover',
-      pillar: null,
-      jobId: null,
-    });
-    expect(buildHash(parseHash('#/copy-deck/tpl-cover'))).toBe('#/copy-deck/tpl-cover');
-  });
-
   it('reads the pillar query param', () => {
     expect(parseHash('#/discover/ats?pillar=abc123')).toEqual({
       tab: 'discover',

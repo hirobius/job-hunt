@@ -3,9 +3,8 @@
 // directory of company boards — then phrase-matched and ranked by src/feed/match.ts. With the user's
 // evidence, each posting also gets a fit (Role Radar's engine, src/radar/). Nothing is stored until
 // the user saves a posting, which turns it into a tracked Job. Watching a board files a tile on the
-// track (src/feed/watchlist.ts). "Find more" runs the wide sweep (#213): every title that is on for
-// the track, in one search, merged and tagged by title (src/feed/sweep.ts).
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+// track (src/feed/watchlist.ts).
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   Alert,
   Badge,
@@ -13,46 +12,30 @@ import {
   Tooltip as HdsTooltip,
   Input as HdsInput,
   SegmentedControl,
-  Checkbox as HdsCheckbox,
-  Disclosure,
   Spinner,
-  Stack,
   Tag,
   useToast,
   Box,
-  Icon,
   Text,
   InlineLink,
 } from '@hirobius/design-system';
-import { X } from 'lucide-react';
 import EmptyState from './EmptyState';
 import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
-import { setTrackContext, useTrackContext } from './discoverContext';
-import { ContextCaption } from './LocationControl';
+import LocationControl from './LocationControl';
+import type { WorkMode } from './jobsData';
 import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
-import { notifySaved } from './saveNotice';
-import { fetchFeed, type FeedResult } from './feed/fetchFeed';
-import { mergeRetry } from './feed/mergeFeed';
-import AsyncState, { type AsyncStatus } from './hds-gaps/AsyncState';
+import { fetchFeed, MAX_BOARDS, type FeedResult } from './feed/fetchFeed';
 import { rankPostings } from './feed/match';
-import { applyTargeting, NO_TARGETING } from './feed/targeting';
-import type { Seniority } from './curation/types';
-import { useCategories, useGroups, useTiles } from './curation/curationStore';
 import { postedAgo } from './feed/format';
 import { boardsFromUrls } from './feed/sources/ats';
-import { deleteFilter, saveFilter, useFilters, type SavedFilter } from './feed/savedFilters';
-import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
-import { boardsForPack, packIdForLabel } from './curation/starterPacks';
+import { watchBoard } from './feed/watchlist';
 import { jobFieldsFor } from './feed/toJob';
-import { modeLabel, verdictLabel, verdictTone } from './screening';
+import { modeLabel, verdictTone } from './screening';
+import { STARTER_DIRECTORY } from './radar/directory';
 import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
 import { demandPatterns } from './radar/patterns';
-import { TIER_INFO, useEvidence, writeEvidence } from './radar/evidenceStore';
-import { SOURCE_LABEL, type SignalId } from './feed/types';
-import { SECONDARY } from './hds-gaps/tone';
-import { sweepRank, titleCounts, withoutHidden, type SweptPosting } from './feed/sweep';
-import { SweepTitlesEditor } from './SweepTitles';
-import { useActiveTitles } from './feed/sweepTitles';
+import { readEvidence, TIER_INFO, writeEvidence } from './radar/evidenceStore';
+import { SOURCE_LABEL, type RankedPosting, type SignalId } from './feed/types';
 
 type Focus = 'all' | 'strong' | SignalId;
 /** Rows rendered per page — the rest sit behind "Show more". */
@@ -64,161 +47,72 @@ interface Loaded {
   at: number;
   result?: FeedResult;
   error?: string;
-  /** Still reading boards: `result` is what has answered so far. */
-  reading?: { done: number; total: number };
 }
-
-/** How often a long board read repaints the list. */
-const PROGRESS_REPAINT_MS = 250;
 
 export default function LiveFeedPanel({
   categoryId,
   terms,
   boardUrls,
-  sweepSeed = terms,
+  where,
+  mode,
+  onWhere,
+  onMode,
 }: {
   categoryId: string;
   /** The track's search terms — offered as chips; the first is searched on open. */
   terms: string[];
-  /** The track's titles: the sweep's list until the user edits it. */
-  sweepSeed?: string[];
   /** Every tile URL on the track; the feed pulls the ones that are company boards. */
   boardUrls: string[];
+  where: string;
+  mode: WorkMode;
+  onWhere: (v: string) => void;
+  onMode: (v: WorkMode) => void;
 }) {
-  const { where, mode } = useTrackContext(categoryId);
   const { toast } = useToast();
   const [input, setInput] = useState(terms[0] ?? '');
   const [term, setTerm] = useState(terms[0] ?? '');
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  /** Bumped by Retry so the same term and boards are read again. */
-  const [attempt, setAttempt] = useState(0);
-  /** Source keys a per-source Retry is reading right now. */
-  const [retrying, setRetrying] = useState<string[]>([]);
-  const searchRef = useRef<HTMLInputElement>(null);
-  const [refineOpen, setRefineOpen] = useState(false);
   const [focus, setFocus] = useState<Focus>('all');
   const [shown, setShown] = useState(PAGE);
   const [watchUrl, setWatchUrl] = useState('');
   const [watchError, setWatchError] = useState('');
-  const evidenceText = useEvidence();
-  const track = useCategories().find((c) => c.id === categoryId);
-  const trackSeniority = track?.seniority ?? 'any';
-  const [excludeText, setExcludeText] = useState('');
-  const [seniority, setSeniority] = useState<Seniority>(trackSeniority);
-  const [floorText, setFloorText] = useState('');
-  const [salaryOnly, setSalaryOnly] = useState(false);
-  const saved = useFilters(categoryId);
-  const [saveName, setSaveName] = useState('');
+  const [evidenceText, setEvidenceText] = useState(readEvidence);
   const evidence = useMemo(() => parseEvidence(evidenceText), [evidenceText]);
-  // The wide sweep: one search across every title that is on. `hiddenTitles` only filters what is
-  // on screen (no re-fetch); the on/off list itself is per track and synced.
-  const [sweeping, setSweeping] = useState(false);
-  const [hiddenTitles, setHiddenTitles] = useState<Set<string>>(new Set());
-  const sweepTitles = useActiveTitles(categoryId, sweepSeed);
-  const sweepKey = sweepTitles.join('\n');
-  /** What the feed is reading: one term, or the sweep's titles. */
-  const query = sweeping ? `sweep:${sweepKey}` : term;
-  const queryReq = (): { term?: string; terms?: string[] } =>
-    sweeping ? { terms: sweepKey ? sweepKey.split('\n') : [] } : { term };
-  const hasQuery = sweeping ? sweepTitles.length > 0 : !!term.trim();
 
-  // The track's own watched boards, every distinct one (deduped in fetchFeed; there is no cap).
-  const boardsKey = boardUrls.join('\n');
-  // Boards suggested for this kind of track (by its label), not yet watched. A click files them.
-  const suggested = boardsForPack(packIdForLabel(track?.label ?? ''));
-  const tiles = useTiles();
-  const groups = useGroups();
-  const suggestedCount = useMemo(
-    () => countUnwatched(categoryId, suggested),
-    // Recount whenever the track's tiles or groups change (watching, removing, archiving).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [categoryId, suggested, tiles, groups],
-  );
+  // The track's own boards first, then the starter directory (deduped and capped in fetchFeed).
+  const boardsKey = [...boardUrls, ...STARTER_DIRECTORY].join('\n');
   const watchedCount = useMemo(() => boardsFromUrls(boardUrls, Infinity).length, [boardUrls]);
 
   useEffect(() => {
-    if (!hasQuery) return;
+    if (!term.trim()) return;
     let alive = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const startedAt = Date.now();
-    const term = query;
-    fetchFeed({
-      ...queryReq(),
-      boardUrls: boardsKey ? boardsKey.split('\n') : [],
-      // Show what has answered so far, repainting at most a few times a second.
-      onProgress: (p) => {
-        if (!alive || timer) return;
-        timer = setTimeout(() => {
-          timer = undefined;
-          if (!alive) return;
-          setLoaded({
-            term,
-            boardsKey,
-            at: startedAt,
-            result: { postings: p.postings, sources: p.sources },
-            reading: { done: p.boardsDone, total: p.boardsTotal },
-          });
-        }, PROGRESS_REPAINT_MS);
-      },
-    })
-      .then((result) => {
-        clearTimeout(timer);
-        timer = undefined;
-        if (alive) setLoaded({ term, boardsKey, at: Date.now(), result });
-      })
-      .catch(() => {
-        clearTimeout(timer);
-        if (alive)
+    fetchFeed({ term, boardUrls: boardsKey ? boardsKey.split('\n') : [] })
+      .then((result) => alive && setLoaded({ term, boardsKey, at: Date.now(), result }))
+      .catch(
+        () =>
+          alive &&
           setLoaded({
             term,
             boardsKey,
             at: Date.now(),
             error: 'The feed failed unexpectedly — try searching again.',
-          });
-      });
+          }),
+      );
     return () => {
       alive = false;
-      clearTimeout(timer);
     };
-    // queryReq/hasQuery derive from `query`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, boardsKey, attempt]);
+  }, [term, boardsKey]);
 
-  const current = loaded && loaded.term === query && loaded.boardsKey === boardsKey ? loaded : null;
-  const reading = current?.reading;
+  const current = loaded && loaded.term === term && loaded.boardsKey === boardsKey ? loaded : null;
+  const loading = !!term.trim() && !current;
 
-  const matched = useMemo<SweptPosting[]>(() => {
-    if (!current?.result) return [];
-    const o = { where, mode, now: current.at };
-    return sweeping
-      ? sweepRank(current.result.postings, sweepKey.split('\n'), o)
-      : rankPostings(current.result.postings, { ...o, term }).map((p) => ({ ...p, titles: [] }));
-  }, [current, term, where, mode, sweeping, sweepKey]);
-  const floor = Number(floorText.replace(/[^\d.]/g, ''));
-  const targeting = useMemo(
-    () => ({
-      ...NO_TARGETING,
-      exclude: excludeText
-        .split(/[,\n]/)
-        .map((x) => x.trim())
-        .filter(Boolean),
-      seniority,
-      salaryFloor: floor > 0 ? floor : undefined,
-      salaryOnly,
-    }),
-    [excludeText, seniority, floor, salaryOnly],
+  const ranked = useMemo(
+    () =>
+      current?.result
+        ? rankPostings(current.result.postings, { term, where, mode, now: current.at })
+        : [],
+    [current, term, where, mode],
   );
-  const { postings: ranked, hidden } = useMemo(
-    () => applyTargeting(matched, targeting),
-    [matched, targeting],
-  );
-  const hiddenNotes = [
-    hidden.exclude > 0 && `${hidden.exclude} hidden by what you left out`,
-    hidden.seniority > 0 && `${hidden.seniority} hidden by level`,
-    hidden.salary > 0 && `${hidden.salary} hidden by pay`,
-  ].filter(Boolean);
-  // Boards still being read with nothing to show yet reads as loading; once some rows exist they show.
-  const loading = hasQuery && (!current || (!!reading && ranked.length === 0));
   const counts = useMemo(
     () => ({
       contract: ranked.filter((p) => p.signals.some((s) => s.id === 'contract')).length,
@@ -236,62 +130,15 @@ export default function LiveFeedPanel({
   );
   const strongCount = ranked.filter((p) => fits.get(p.id)?.tier === 'strong').length;
   const patterns = useMemo(() => demandPatterns(ranked, evidence), [ranked, evidence]);
-  const perTitle = useMemo(
-    () => (sweeping ? titleCounts(ranked, sweepTitles) : {}),
-    [sweeping, ranked, sweepTitles],
-  );
-  const shownTitles = sweeping ? withoutHidden(ranked, hiddenTitles) : ranked;
   const visible =
     focus === 'all'
-      ? shownTitles
+      ? ranked
       : focus === 'strong'
-        ? shownTitles.filter((p) => fits.get(p.id)?.tier === 'strong')
-        : shownTitles.filter((p) => p.signals.some((s) => s.id === focus));
-  const toggleShown = (t: string) => {
-    setHiddenTitles((cur) => {
-      const next = new Set(cur);
-      if (next.has(t)) next.delete(t);
-      else next.add(t);
-      return next;
-    });
-    setShown(PAGE);
-  };
-  const startSweep = (on: boolean) => {
-    setSweeping(on);
-    setHiddenTitles(new Set());
-    setShown(PAGE);
-    setPicked(new Set());
-  };
+        ? ranked.filter((p) => fits.get(p.id)?.tier === 'strong')
+        : ranked.filter((p) => p.signals.some((s) => s.id === focus));
 
   const jobs = useJobs();
   const savedKeys = useMemo(() => new Set(jobs.map((j) => dedupKey(j.url))), [jobs]);
-
-  const saveSearch = () => {
-    const name = saveName.trim();
-    if (!name) return;
-    saveFilter(categoryId, {
-      name,
-      term,
-      where,
-      mode,
-      exclude: targeting.exclude,
-      seniority,
-      salaryFloor: targeting.salaryFloor,
-      salaryOnly,
-      contractOnly: focus === 'contract',
-    });
-    setSaveName('');
-    toast({ title: `Saved “${name}”`, tone: 'success' });
-  };
-  const applySaved = (f: SavedFilter) => {
-    setExcludeText(f.exclude.join(', '));
-    setSeniority(f.seniority);
-    setFloorText(f.salaryFloor ? String(f.salaryFloor) : '');
-    setSalaryOnly(f.salaryOnly);
-    setFocus(f.contractOnly ? 'contract' : 'all');
-    setTrackContext(categoryId, { where: f.where, mode: f.mode });
-    search(f.term);
-  };
 
   const search = (t: string) => {
     setInput(t);
@@ -319,119 +166,20 @@ export default function LiveFeedPanel({
     });
   };
 
-  // Saves one posting as a Job; the stored URL when it was new, else null.
-  const saveOne = (p: SweptPosting): string | null => {
-    const fields = jobFieldsFor(p, p.titles.length ? p.titles.join(', ') : term);
+  const save = (p: RankedPosting) => {
+    const fields = jobFieldsFor(p, term);
     const url = addJobDetailed(p.url, fields);
-    if (!url) return null;
+    if (!url) return;
     // The fit rides along, so the Pipeline's Fit column and "Best fit" sort use it.
     const fg = fits.get(p.id);
     if (fg) updateJob(url, { verdict: TIER_INFO[fg.tier].verdict });
-    return url;
+    toast({ title: 'Added to Pipeline', description: fields.label, tone: 'success' });
   };
-  const save = (p: SweptPosting) => {
-    const url = saveOne(p);
-    if (url) notifySaved([url], p.title);
-  };
-  // Wide net (rapid apply): save every picked posting, or every one on screen, in one go.
-  const [picked, setPicked] = useState<Set<string>>(new Set());
-  const saveMany = (list: SweptPosting[]) => {
-    notifySaved(list.map(saveOne).filter((u): u is string => !!u));
-    setPicked(new Set());
-  };
-  const togglePick = (id: string) =>
-    setPicked((cur) => {
-      const next = new Set(cur);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
 
   const errors = current?.result?.sources.filter((s) => s.error) ?? [];
+  const skipped = current?.result?.boardsSkipped ?? 0;
   const allFailed =
-    !reading &&
-    !!current?.result?.sources.length &&
-    current.result.postings.length === 0 &&
-    errors.length === current.result.sources.length;
-  const status: AsyncStatus = loading
-    ? 'loading'
-    : current?.error || allFailed
-      ? 'error'
-      : !hasQuery || ranked.length === 0
-        ? 'empty'
-        : 'ready';
-
-  // Retry the whole search: forget what is on screen and read every source again.
-  const retryAll = () => {
-    setLoaded(null);
-    setAttempt((n) => n + 1);
-  };
-  // Retry only the named sources and fold their answers into what is showing.
-  const retrySources = (keys: string[]) => {
-    setRetrying((r) => [...r, ...keys]);
-    const forTerm = query;
-    const forBoards = boardsKey;
-    fetchFeed({
-      ...queryReq(),
-      boardUrls: forBoards ? forBoards.split('\n') : [],
-      only: keys,
-    })
-      .then((patch) =>
-        setLoaded((prev) =>
-          prev && prev.term === forTerm && prev.boardsKey === forBoards && prev.result
-            ? { ...prev, result: mergeRetry(prev.result, patch) }
-            : prev,
-        ),
-      )
-      .catch(() => {})
-      .finally(() => setRetrying((r) => r.filter((k) => !keys.includes(k))));
-  };
-  const failedRow = (s: { key: string; label: string; error?: string }) => (
-    <Stack key={s.key} direction="row" gap="xs" align="center" wrap="wrap">
-      <Box>{s.error}</Box>
-      <Button
-        size="sm"
-        variant="tertiary"
-        disabled={retrying.includes(s.key)}
-        aria-label={`Retry ${s.label}`}
-        onClick={() => retrySources([s.key])}
-      >
-        {retrying.includes(s.key) ? 'Retrying…' : 'Retry'}
-      </Button>
-    </Stack>
-  );
-  const emptyState = !hasQuery ? (
-    <EmptyState
-      message={
-        sweeping
-          ? 'Turn on at least one title under Titles to sweep.'
-          : "Type a search term or pick one of this track's terms."
-      }
-    />
-  ) : ranked.length === 0 && matched.length > 0 ? (
-    <EmptyState
-      title="Everything is hidden by your filters"
-      message="Loosen what you left out, the level or the pay floor to see them again."
-    />
-  ) : (
-    <EmptyState
-      title={
-        sweeping
-          ? `No live openings mention any of your ${sweepTitles.length} titles right now`
-          : `No live openings mention “${term}” right now`
-      }
-      message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
-      action={
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => (sweeping ? startSweep(false) : searchRef.current?.focus())}
-        >
-          {sweeping ? 'Back to one search' : 'Try a broader term'}
-        </Button>
-      }
-    />
-  );
+    !!current?.result?.sources.length && errors.length === current.result.sources.length;
 
   return (
     <Box>
@@ -442,304 +190,145 @@ export default function LiveFeedPanel({
           marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
         }}
       >
-        Real openings from Hacker News (“Who is hiring” and the freelancer thread), Remotive,
-        Jobicy, Remote OK and the company boards you watch, ranked by relevance. Add your evidence
-        and each one gets a fit. Nothing is kept until you save one.
+        Real openings from Hacker News “Who is hiring”, Remotive, the company boards you watch and a
+        starter list of {STARTER_DIRECTORY.length} more, ranked by relevance. Add your evidence and
+        each one gets a fit. Nothing is kept until you save one.
       </Text>
-      <ContextCaption categoryId={categoryId} />
-      {sweeping ? (
-        <Stack gap="xs">
-          <Stack direction="row" gap="xs" align="center" wrap="wrap">
-            <Text variant="body" as="h3" className="rjb-semibold">
-              {`Sweeping ${sweepTitles.length} ${sweepTitles.length === 1 ? 'title' : 'titles'} at once`}
-            </Text>
-            <Button size="sm" variant="tertiary" onClick={() => startSweep(false)}>
-              Back to one search
-            </Button>
-          </Stack>
-          <Box sx={{ mb: 'xs' }}>
-            <SweepTitlesEditor
-              categoryId={categoryId}
-              seed={sweepSeed}
-              defaultOpen={sweepTitles.length === 0}
-            />
-          </Box>
-        </Stack>
-      ) : (
-        <>
-          <Box
-            as="form"
-            onSubmit={onSearch}
-            sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}
-          >
-            <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
-              <HdsInput
-                size="sm"
-                ref={searchRef}
-                label="Search term"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                style={{ width: '100%' }}
-              />
-            </Box>
-            <Button type="submit" size="sm" variant="primary">
-              Search
-            </Button>
-          </Box>
-          {terms.length > 0 && (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
-              {terms.map((t) => (
-                <Tag key={t} onClick={() => search(t)}>
-                  {t}
-                </Tag>
-              ))}
-            </Box>
-          )}
-          {/* The wide sweep is a power tool: one quiet entry, not a second search box. */}
-          <Box sx={{ mb: 'sm' }}>
-            <Button size="sm" variant="tertiary" onClick={() => startSweep(true)}>
-              {`Find more: sweep all ${sweepTitles.length} titles`}
-            </Button>
-          </Box>
-        </>
-      )}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}>
-        <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
+      <LocationControl where={where} mode={mode} onWhere={onWhere} onMode={onMode} />
+
+      <Box
+        as="form"
+        onSubmit={onSearch}
+        sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}
+      >
+        <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
           <HdsInput
             size="sm"
-            label="Leave out (words, commas between)"
-            placeholder="manager, sales"
-            value={excludeText}
-            onChange={(e) => setExcludeText(e.target.value)}
+            label="Search term"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
             style={{ width: '100%' }}
           />
         </Box>
-        <Box sx={{ width: 160 }}>
-          <HdsInput
-            size="sm"
-            label="Pay floor (USD a year)"
-            inputMode="numeric"
-            placeholder="120000"
-            value={floorText}
-            onChange={(e) => setFloorText(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </Box>
-        <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-          <SegmentedControl
-            aria-label="Level"
-            size="sm"
-            value={seniority}
-            onChange={(v) => setSeniority(v as Seniority)}
-            options={[
-              { value: 'any', label: 'Any level' },
-              { value: 'entry', label: 'Entry level' },
-              { value: 'experienced', label: 'Experienced' },
-            ]}
-          />
-        </Box>
-        <HdsCheckbox
-          label="Only show postings with a salary"
-          checked={salaryOnly}
-          onChange={() => setSalaryOnly((v) => !v)}
-        />
+        <Button type="submit" size="sm" variant="primary">
+          Search
+        </Button>
       </Box>
-      {!sweeping && (
-        <Box
-          sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}
-        >
-          <Box sx={{ width: 200 }}>
-            <HdsInput
-              size="sm"
-              label="Name this search"
-              placeholder="Austin contract"
-              value={saveName}
-              onChange={(e) => setSaveName(e.target.value)}
-              style={{ width: '100%' }}
-            />
-          </Box>
-          <Button size="sm" variant="secondary" disabled={!saveName.trim()} onClick={saveSearch}>
-            Save search
-          </Button>
-        </Box>
-      )}
-      {saved.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', mb: 'xs' }}>
-          {saved.map((f) => (
-            <Box key={f.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Tag onClick={() => applySaved(f)}>{f.name}</Tag>
-              <Button
-                size="sm"
-                variant="tertiary"
-                iconOnly
-                iconLeft={<Icon icon={X} />}
-                label={`Remove saved search ${f.name}`}
-                onClick={() => deleteFilter(categoryId, f.name)}
-              />
-            </Box>
+      {terms.length > 0 && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
+          {terms.map((t) => (
+            <Tag key={t} onClick={() => search(t)}>
+              {t}
+            </Tag>
           ))}
         </Box>
       )}
-      {hiddenNotes.length > 0 && (
+
+      <Box
+        as="form"
+        onSubmit={onWatch}
+        sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
+      >
+        <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
+          <HdsInput
+            size="sm"
+            label="Watch a company"
+            placeholder="jobs.ashbyhq.com/company"
+            value={watchUrl}
+            onChange={(e) => setWatchUrl(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </Box>
+        <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
+          Watch
+        </Button>
+      </Box>
+      <Text
+        variant="caption"
+        as="span"
+        style={{
+          color: watchError
+            ? 'var(--semantic-color-feedback-error)'
+            : 'var(--semantic-color-content-secondary)',
+          display: 'block',
+          marginBottom: 'var(--semantic-space-scale-sm)',
+        }}
+      >
+        {watchError ||
+          (watchedCount
+            ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
+            : 'Paste a Greenhouse, Lever or Ashby job-board link to pull that company’s openings in.')}
+      </Text>
+
+      <Box sx={{ mb: 'sm' }}>
+        <EvidenceEditor
+          text={evidenceText}
+          count={evidence.length}
+          onChange={(t) => {
+            setEvidenceText(t);
+            writeEvidence(t);
+          }}
+        />
+      </Box>
+
+      {errors.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Alert tone="warning" title="Some sources didn’t respond">
+            {errors.map((s) => (
+              <Box key={s.key}>{s.error}</Box>
+            ))}
+          </Alert>
+        </Box>
+      )}
+      {skipped > 0 && (
         <Text
           variant="caption"
           as="span"
-          role="status"
           style={{
             color: 'var(--semantic-color-content-secondary)',
             display: 'block',
             marginBottom: 'var(--semantic-space-scale-xs)',
           }}
         >
-          {hiddenNotes.join(' · ')}
+          {skipped} company {skipped === 1 ? 'board was' : 'boards were'} skipped — the feed reads
+          at most {MAX_BOARDS} per search.
         </Text>
       )}
 
-      {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
-      <Box sx={{ mb: 'sm' }}>
-        <Disclosure label="Refine" open={refineOpen} onOpenChange={setRefineOpen}>
-          <Stack gap="xs">
-            <Box
-              as="form"
-              onSubmit={onWatch}
-              sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
-            >
-              <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
-                <HdsInput
-                  size="sm"
-                  label="Watch a company"
-                  placeholder="jobs.ashbyhq.com/company"
-                  value={watchUrl}
-                  onChange={(e) => setWatchUrl(e.target.value)}
-                  style={{ width: '100%' }}
-                />
-              </Box>
-              <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
-                Watch
-              </Button>
-            </Box>
-            <Text
-              variant="caption"
-              as="span"
-              style={{
-                color: watchError
-                  ? 'var(--semantic-color-feedback-error)'
-                  : 'var(--semantic-color-content-secondary)',
-                display: 'block',
-                marginBottom: 'var(--semantic-space-scale-sm)',
-              }}
-            >
-              {watchError ||
-                (watchedCount
-                  ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
-                  : 'Paste a Greenhouse, Lever, Ashby, Workable or Recruitee job-board link to pull that company’s openings in.')}
-            </Text>
-
-            {suggestedCount > 0 && (
-              <Box sx={{ mb: 'xs' }}>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    const n = addBoardTiles(categoryId, suggested);
-                    toast({
-                      title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
-                      description: 'Their openings now show up here. Remove any in Manage track.',
-                      tone: 'success',
-                    });
-                  }}
-                >
-                  Add suggested companies ({suggestedCount})
-                </Button>
-              </Box>
-            )}
-
-            <Box>
-              <EvidenceEditor
-                startOpen={ranked.length === 0}
-                text={evidenceText}
-                count={evidence.length}
-                onChange={writeEvidence}
-              />
-            </Box>
-          </Stack>
-        </Disclosure>
-      </Box>
-
-      {errors.length > 0 && !allFailed && (
-        <Box sx={{ mb: 3 }}>
-          <Alert
-            tone="warning"
-            title={
-              errors.length > 2
-                ? `${errors.length} sources didn’t respond`
-                : 'Some sources didn’t respond'
-            }
-          >
-            {/* Many boards can fail at once (a blocker, an outage): keep the list behind a disclosure. */}
-            {errors.length > 2 ? (
-              <Disclosure label="Show which ones">{errors.map(failedRow)}</Disclosure>
-            ) : (
-              errors.map(failedRow)
-            )}
-          </Alert>
-        </Box>
-      )}
-      {reading && !loading && (
-        <Stack
-          direction="row"
-          gap="xs"
-          align="center"
-          style={{ marginBottom: 'var(--semantic-space-scale-xs)' }}
+      {loading ? (
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 'xs',
+            alignItems: 'center',
+            py: 'md',
+          }}
         >
-          <Spinner size="sm" label="Reading company boards" />
-          <Text variant="caption" as="span" role="status" style={SECONDARY}>
-            Read {reading.done} of {reading.total} boards. More openings may appear.
+          <Spinner size="sm" label="Loading live postings" />
+          <Text variant="ui" style={{ color: 'var(--semantic-color-content-secondary)' }}>
+            Pulling live openings for “{term}”…
           </Text>
-        </Stack>
-      )}
-
-      <AsyncState
-        status={status}
-        onRetry={retryAll}
-        loadingLabel={
-          reading
-            ? `Read ${reading.done} of ${reading.total} boards, nothing matching yet…`
-            : `Pulling live openings for “${term}”…`
-        }
-        slowNote="Still trying: slow sources are skipped after 15 s"
-        error={
-          current?.error
-            ? { title: current.error }
-            : {
-                title: "Couldn't reach any source",
-                message: 'Check your internet connection or try again later.',
-              }
-        }
-        empty={emptyState}
-      >
+        </Box>
+      ) : current?.error ? (
+        <Alert tone="danger">{current.error}</Alert>
+      ) : !term.trim() ? (
+        <EmptyState message="Type a search term or pick one of this track's terms." />
+      ) : allFailed ? (
+        <EmptyState
+          title="Couldn't reach any source"
+          message="Check your internet connection or try again later."
+        />
+      ) : ranked.length === 0 ? (
+        <EmptyState
+          title={`No live openings mention “${term}” right now`}
+          message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
+        />
+      ) : (
         <Box>
           <Box sx={{ mb: 'xs' }}>
             <PatternsSummary patterns={patterns} />
           </Box>
-          {sweeping && sweepTitles.length > 1 && (
-            <Box
-              role="group"
-              aria-label="Show titles"
-              sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 'xs' }}
-            >
-              {sweepTitles.map((t) => (
-                <Tag
-                  key={t}
-                  active={!hiddenTitles.has(t)}
-                  aria-pressed={!hiddenTitles.has(t)}
-                  onClick={() => toggleShown(t)}
-                >
-                  {`${t} (${perTitle[t] ?? 0})`}
-                </Tag>
-              ))}
-            </Box>
-          )}
           {/* Scrolls sideways on narrow screens rather than clipping (same as the tab bar). */}
           <Box sx={{ mb: 'xs', overflowX: 'auto', maxWidth: '100%', pb: 0.5 }}>
             <SegmentedControl
@@ -760,21 +349,12 @@ export default function LiveFeedPanel({
               ]}
             />
           </Box>
-          {visible.length > 0 && (
-            <BulkSaveBar
-              picked={visible.filter((p) => picked.has(p.id) && !savedKeys.has(dedupKey(p.url)))}
-              shown={visible.slice(0, shown).filter((p) => !savedKeys.has(dedupKey(p.url)))}
-              onSave={saveMany}
-            />
-          )}
           {visible.length === 0 ? (
             <EmptyState
               message={
-                shownTitles.length === 0
-                  ? 'Every title is hidden — turn one back on above.'
-                  : focus === 'strong'
-                    ? 'None is a strong fit for your evidence yet — switch back to All, or add evidence.'
-                    : 'None of these openings carry that signal — switch back to All.'
+                focus === 'strong'
+                  ? 'None is a strong fit for your evidence yet — switch back to All, or add evidence.'
+                  : 'None of these openings carry that signal — switch back to All.'
               }
             />
           ) : (
@@ -787,21 +367,8 @@ export default function LiveFeedPanel({
                   saved={savedKeys.has(dedupKey(p.url))}
                   fit={fits.get(p.id)}
                   onSave={() => save(p)}
-                  picked={picked.has(p.id)}
-                  onPick={() => togglePick(p.id)}
                 />
               ))}
-            </Box>
-          )}
-          {/* One line, once, instead of a fit badge missing from every row. */}
-          {evidence.length === 0 && visible.length > 0 && (
-            <Box sx={{ mt: 'xs' }}>
-              <Text variant="caption" as="span" style={SECONDARY}>
-                Postings get a fit once you add evidence.{' '}
-              </Text>
-              <Button size="sm" variant="tertiary" onClick={() => setRefineOpen(true)}>
-                Add evidence to see fit
-              </Button>
             </Box>
           )}
           {visible.length > shown && (
@@ -815,37 +382,8 @@ export default function LiveFeedPanel({
             </Button>
           )}
         </Box>
-      </AsyncState>
-    </Box>
-  );
-}
-
-function BulkSaveBar({
-  picked,
-  shown,
-  onSave,
-}: {
-  picked: SweptPosting[];
-  /** Unsaved postings on screen. */
-  shown: SweptPosting[];
-  onSave: (list: SweptPosting[]) => void;
-}) {
-  return (
-    <Stack direction="row" wrap="wrap" gap="tight" align="center">
-      {picked.length > 0 && (
-        <Button size="sm" variant="primary" onClick={() => onSave(picked)}>
-          {`Save ${picked.length} to Pipeline`}
-        </Button>
       )}
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={shown.length === 0}
-        onClick={() => onSave(shown)}
-      >
-        {`Save all shown (${shown.length})`}
-      </Button>
-    </Stack>
+    </Box>
   );
 }
 
@@ -855,17 +393,13 @@ function PostingRow({
   saved,
   fit,
   onSave,
-  picked,
-  onPick,
 }: {
-  p: SweptPosting;
+  p: RankedPosting;
   now: number;
   saved: boolean;
   /** Present once the user has evidence. */
   fit?: FitGap;
   onSave: () => void;
-  picked: boolean;
-  onPick: () => void;
 }) {
   const meta = [
     p.company,
@@ -875,8 +409,18 @@ function PostingRow({
     SOURCE_LABEL[p.source],
   ].filter(Boolean);
   return (
-    <Box as="li" sx={{ py: 3, borderBottom: 'thin solid', borderColor: 'border.default' }}>
-      <Box sx={{ minWidth: 0 }}>
+    <Box
+      as="li"
+      sx={{
+        py: 3,
+        borderBottom: 'thin solid',
+        borderColor: 'border.default',
+        display: 'flex',
+        gap: 3,
+        alignItems: 'flex-start',
+      }}
+    >
+      <Box sx={{ flex: 1, minWidth: 0 }}>
         <Text variant="ui" as="h3" style={{ overflowWrap: 'anywhere' }}>
           <InlineLink href={p.url} externalIcon={false}>
             {p.title}
@@ -894,36 +438,10 @@ function PostingRow({
         >
           {meta.join(' · ')}
         </Text>
-        {p.titles.length > 0 && (
-          <Text variant="caption" as="span" style={SECONDARY}>
-            {`Matched ${p.titles.map((t) => `“${t}”`).join(', ')}`}
-          </Text>
-        )}
-        {/* Under the meta, not beside it: the title keeps the full row on a phone. 40px target. */}
-        <Box sx={{ mt: 'xs' }}>
-          <Stack direction="row" gap="tight" align="center" wrap="wrap">
-            <Button
-              size="md"
-              variant={saved ? 'tertiary' : 'secondary'}
-              disabled={saved}
-              onClick={onSave}
-            >
-              {saved ? 'Saved' : 'Save'}
-            </Button>
-            {!saved && (
-              <HdsCheckbox
-                label="Pick"
-                aria-label={`Pick ${p.title}`}
-                checked={picked}
-                onChange={onPick}
-              />
-            )}
-          </Stack>
-        </Box>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
           {fit && (
             <Badge tone={verdictTone(TIER_INFO[fit.tier].verdict)}>
-              {verdictLabel(TIER_INFO[fit.tier].verdict)}
+              {TIER_INFO[fit.tier].label}
             </Badge>
           )}
           {p.signals.map((s) => (
@@ -956,6 +474,14 @@ function PostingRow({
           </Box>
         )}
       </Box>
+      <Button
+        size="sm"
+        variant={saved ? 'tertiary' : 'secondary'}
+        disabled={saved}
+        onClick={onSave}
+      >
+        {saved ? 'Saved' : 'Save'}
+      </Button>
     </Box>
   );
 }
