@@ -157,8 +157,18 @@ const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'job-page-interviews', [['first-job'], ['tab', /^Interviews/]]],
   [/^(Pipeline|Tracker)$/, 'job-page-todos', [['first-job'], ['tab', /^To-dos/]]],
   [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['first-job'], ['button', /^Use template$/]]],
-  // Templates: a row opens its editor (beside the list on a desktop, alone on a phone).
+  // Templates: a row opens its editor (beside the list on a desktop, alone on a phone). Since #240
+  // Templates has no tab; the Menu opens it (an older build's Templates tab still works).
   [/^Templates$/, 'template-detail', [['link', /^Cover letter/]]],
+  [
+    /^(Pipeline|Tracker)$/,
+    'template-detail-from-menu',
+    [
+      ['button', /^Menu$/],
+      ['menuitem', /^Templates$/],
+      ['link', /^Cover letter/],
+    ],
+  ],
   [/^(Discover|Companies)$/, 'manage-track-dialog', [['button', /^Manage track$/]]],
   // The location and work-mode popover in the header (#131).
   [
@@ -358,6 +368,12 @@ async function shoot(browser, base, theme, width, manifest) {
     }
   }
 
+  // Templates without a tab (#240): open it from the Menu and shoot the list.
+  if (!(await topTabs(page)).includes('Templates')) {
+    await clickIf(page, 'button', /^Menu$/);
+    if (await clickIf(page, 'menuitem', /^Templates$/)) await snap('Templates');
+  }
+
   // Let the last toast ("Saved … as a target") expire so it isn't in every overlay shot.
   await page.waitForTimeout(7000);
   for (const [tab, name, steps] of OVERLAYS) {
@@ -372,9 +388,10 @@ async function shoot(browser, base, theme, width, manifest) {
       manifest.push({ theme, width, name, file: `${theme}-${width}/${file}`, overlay: true });
     }
     for (let i = 0; i < 2; i++) await page.keyboard.press('Escape');
-    // Back from a job's page to the list (re-clicking the selected Pipeline tab won't leave it).
+    // Back from a job's page (or the tab-less Templates page) to the Pipeline list (re-clicking the
+    // selected Pipeline tab won't leave a job's page).
     await page.evaluate(() => {
-      if (/^#\/queue\/./.test(location.hash)) location.hash = '#/queue';
+      if (/^#\/(queue\/.|copy-deck)/.test(location.hash)) location.hash = '#/queue';
     });
     await page.waitForTimeout(200);
   }

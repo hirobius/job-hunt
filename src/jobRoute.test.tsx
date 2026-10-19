@@ -117,7 +117,7 @@ describe('job route (#127)', () => {
     addJob(URL_A, 'Design Engineer');
     window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
     renderApp();
-    await userEvent.click(screen.getByRole('tab', { name: 'Templates' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
     await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
     expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
   });

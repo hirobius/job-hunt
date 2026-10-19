@@ -32,15 +32,17 @@ import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
 import { BARE_PANEL } from './hds-gaps/barePanel';
 
 // Code-split Discover and Templates so the initial bundle carries the Pipeline (the quick-add
-// landing); the rest load on demand (tab switch).
+// landing); the rest load on demand.
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 
-// Top-level tabs, in render order (Calm list, PR #208: Companies · Pipeline · Templates). The URL
-// hash carries the slug; slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline,
-// `copy-deck` Templates). `#/today` (#128) is retired (#236): it redirects to Companies.
-const TAB_SLUGS = ['discover', 'queue', 'copy-deck'] as const;
+// Top-level tabs, in render order (Calm list: Companies · Pipeline). The URL hash carries the slug;
+// slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline). `#/today` (#128) is
+// retired (#236): it redirects to Companies. Templates lost its tab (#240): `#/copy-deck` is a
+// page with no tab selected, reached from the Apply sheet and the Menu.
+const TAB_SLUGS = ['discover', 'queue'] as const;
 const RETIRED_TODAY = 'today';
+const TEMPLATES_ROUTE = 'copy-deck';
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
 // Companies is home; quick-add always shows the Pipeline, where the new job is.
 const HOME_ROUTE = 'discover';
@@ -52,6 +54,7 @@ export default function App() {
   const route = useRoute();
   // Apply mode (#/apply/<jobId>) is a Pipeline page: the Pipeline tab stays selected.
   const applying = route.tab === APPLY_ROUTE;
+  const templates = route.tab === TEMPLATES_ROUTE;
   const slugIndex = TAB_SLUGS.indexOf(
     (applying ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
   );
@@ -115,8 +118,9 @@ export default function App() {
         <Container maxWidth="max">
           {/* Page gutter: the HDS region-gutter role (Container's own padding prop is retired). */}
           <Box sx={{ px: 'var(--semantic-space-region-gutter)', py: 'md' }}>
+            {/* On the Templates page no tab is selected (and no tab panel mounts). */}
             <HdsTabs
-              value={TAB_SLUGS[tab]}
+              value={templates ? '' : TAB_SLUGS[tab]}
               onValueChange={(v) =>
                 navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null, jobId: null })
               }
@@ -138,7 +142,6 @@ export default function App() {
                   <TabsList style={{ width: '100%', marginBottom: 0 }} aria-label="Sections">
                     <TabsTrigger value="discover">Companies</TabsTrigger>
                     <TabsTrigger value="queue">Pipeline</TabsTrigger>
-                    <TabsTrigger value="copy-deck">Templates</TabsTrigger>
                   </TabsList>
                 </TabsOverflowFade>
                 <TabsContent value="queue" style={BARE_PANEL}>
@@ -169,11 +172,11 @@ export default function App() {
                     <ChooseTrack />
                   )}
                 </TabsContent>
-                <TabsContent value="copy-deck" style={BARE_PANEL}>
+                {templates && (
                   <Suspense fallback={<CopyDeckSkeleton />}>
                     <CopyDeckView />
                   </Suspense>
-                </TabsContent>
+                )}
               </Stack>
             </HdsTabs>
           </Box>

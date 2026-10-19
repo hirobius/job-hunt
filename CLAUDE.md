@@ -92,16 +92,16 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
   pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
   **Shell (#115 Phase 1):** slim header = wordmark (the one `h1`, but `Text variant="body"` semibold, so the
-  page title is always the biggest text) · top tabs (**Companies · Pipeline ·
-  Templates**; they scroll on a phone, with the `src/hds-gaps/TabsOverflowFade` edge cue) · one
+  page title is always the biggest text) · top tabs (**Companies · Pipeline**; they scroll on a phone, with the `src/hds-gaps/TabsOverflowFade` edge cue) · one
   icon-only **Menu** button (hamburger, `aria-label="Menu"`; it holds account, data, display and feedback). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
-  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Back up,
+  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Templates, Back up,
   Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible Callout;
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
-  line as non-item labels | data | display | Sign out, Delete my data last in the danger colour).
+  line as non-item labels | data | display | Sign out, Delete my data last in the danger colour;
+  data = Templates, Back up, Restore…, Export CSV).
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
   (git-ignored). Run it before/after each redesign phase.
@@ -128,10 +128,10 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `useCloudSync().settled` before falling back to `#/queue`. Pinned in `src/jobPage.test.tsx`. `HOME_ROUTE` (`discover`) and
   `QUICK_ADD_LANDING` (`queue`) are separate in `App.tsx`. Pinned in `src/jobRoute.test.tsx`.
 - **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1):** the tabs are
-  **Companies · Pipeline · Templates**; Companies is the old Discover (slug `discover`, home, hosts the
-  first-run gate) and an empty hash lands there. "Try with sample data" lands on the Pipeline. The
-  Pipeline always ends with a secondary **Find the next company** button (→ `#/discover`, empty or
-  not; Calm list 4/7, #238, pinned in `pipeline.test.tsx`).
+  **Companies · Pipeline** (Templates lost its tab in #240); Companies is the old Discover (slug
+  `discover`, home, hosts the first-run gate) and an empty hash lands there. "Try with sample data"
+  lands on the Pipeline. The Pipeline always ends with a secondary **Find the next company** button
+  (→ `#/discover`, empty or not; Calm list 4/7, #238, pinned in `pipeline.test.tsx`).
 - **Today is gone (Calm list 2/7, #236):** `#/today` redirects to Companies (`navigate(…, true)`,
   so Back skips it); `TodayView`, `TodayNotice` and `rjb_ui_today_home_seen` are deleted. Its lists
   live at the top of the Pipeline (`ApplyQueueSummary` → `PipelineAgenda.tsx`): under To apply, one
@@ -143,7 +143,11 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   shell:** Companies shows `Onboarding` on a first run (no tracks and no jobs; it offers sample data
   there) and `ChooseTrack` whenever there are no tracks; Pipeline and Templates never gate. Pinned
   in `src/pipelineFollowUps.test.tsx`.
-- **Templates list + detail (#132):** `#/copy-deck` is the list, `#/copy-deck/<snippetId>` opens
+- **Templates list + detail (#132; no tab since #240):** `#/copy-deck` is a page with no tab selected
+  (App mounts `CopyDeckView` outside the tab panels), reached from the Apply sheet's Edit templates
+  link and the Menu's Templates item; it heads itself "Templates" with a Back to Pipeline link (a
+  phone's open template shows only its own back link). Pinned in `src/shell.test.tsx`.
+  `#/copy-deck` is the list, `#/copy-deck/<snippetId>` opens
   one (`Route.sub`; an unknown id falls back to the list once sync has settled). `CopyDeckView` picks
   the layout with `useAtLeast('lg')`: a rail (`TemplatesList`, HDS `Sidebar`) beside `TemplateDetail`,
   or one pane on a phone with a back link. The detail has token chips (`templateEditor.ts`
