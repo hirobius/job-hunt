@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import prettier from 'eslint-config-prettier';
-import hds from '@hirobius/design-system/eslint-plugin';
+import hds from '@hirobius/hds-toolkit/eslint-plugin';
 
 export default tseslint.config(
   { ignores: ['dist', 'node_modules', 'src/theme/hds-palette.generated.ts', 'verify-*.mjs', 'vrfy*.mjs'] },

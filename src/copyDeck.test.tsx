@@ -94,6 +94,7 @@ describe('Templates on a desktop (list and detail together)', () => {
       expect.stringMatching(/^Cover letter/),
       expect.stringMatching(/^Follow-up after applying/),
       expect.stringMatching(/^Thank-you after interview/),
+      expect.stringMatching(/^Intro call script/),
     ]);
     expect(label().value).toBe('Outreach note');
     expect(window.location.hash).toBe('#/copy-deck');
@@ -163,7 +164,7 @@ describe('Templates on a desktop (list and detail together)', () => {
     // The search field has its own clear button too; the empty state's comes last.
     const clears = screen.getAllByRole('button', { name: 'Clear search' });
     await userEvent.click(clears[clears.length - 1]);
-    expect(rows()).toHaveLength(4);
+    expect(rows()).toHaveLength(5);
   });
 
   it('Delete asks first: cancel keeps it, confirming removes it and returns to the list', async () => {
@@ -201,7 +202,7 @@ describe('Templates on a phone (one pane at a time)', () => {
 
   it('#/copy-deck is the list alone; a row opens its detail with a back link', async () => {
     await renderApp();
-    expect(rows()).toHaveLength(4);
+    expect(rows()).toHaveLength(5);
     expect(screen.queryByRole('textbox', { name: 'Snippet label' })).toBeNull();
     await userEvent.click(within(rows()[1]).getByRole('link'));
     await waitFor(() => expect(window.location.hash).toBe('#/copy-deck/tpl-cover'));
@@ -209,7 +210,7 @@ describe('Templates on a phone (one pane at a time)', () => {
     expect(screen.queryByRole('navigation', { name: 'Templates' })).toBeNull();
     await userEvent.click(screen.getByRole('link', { name: 'Templates' }));
     await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
-    expect(rows()).toHaveLength(4);
+    expect(rows()).toHaveLength(5);
   });
 
   it('opens a detail link directly', async () => {
@@ -226,7 +227,7 @@ describe('Templates empties', () => {
     await renderApp();
     expect(screen.getByText('No templates yet')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Restore the starter set' }));
-    expect(rows()).toHaveLength(4);
+    expect(rows()).toHaveLength(5);
   });
 
   it('restoring never overwrites an edited starter template', async () => {
@@ -235,6 +236,6 @@ describe('Templates empties', () => {
     expect(getSnippets().filter((s) => s.id === 'tpl-cover')).toEqual([
       expect.objectContaining({ label: 'My cover letter' }),
     ]);
-    expect(getSnippets()).toHaveLength(4);
+    expect(getSnippets()).toHaveLength(5);
   });
 });

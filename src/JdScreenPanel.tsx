@@ -24,7 +24,6 @@ export default function JdScreenPanel({ job }: { job: Job }) {
     const merged = Array.from(new Set([...(job.blockers ?? []), ...result.blockers]));
     updateJob(job.url, {
       mode: result.mode ?? job.mode,
-      travelPct: result.travelPct ?? job.travelPct,
       blockers: merged,
       verdict: suggestVerdict(merged),
       screenedAt: new Date().toISOString(),
@@ -56,13 +55,12 @@ export default function JdScreenPanel({ job }: { job: Job }) {
             <Stack direction="row" wrap="wrap" gap="tight" align="center">
               <Badge tone={verdictTone(result.verdict)}>{verdictLabel(result.verdict)}</Badge>
               {result.mode && <Badge tone="neutral">{modeLabel(result.mode)}</Badge>}
-              {result.travelPct != null && <Badge tone="neutral">{result.travelPct}% travel</Badge>}
               {result.blockers.map((b) => (
                 <Badge key={b} tone="danger">
                   {blockerLabel(b)}
                 </Badge>
               ))}
-              {result.blockers.length === 0 && !result.mode && result.travelPct == null && (
+              {result.blockers.length === 0 && !result.mode && (
                 <Text variant="ui" style={SECONDARY}>
                   No blockers or mode detected. Looks clean.
                 </Text>

@@ -81,18 +81,26 @@ describe('Discover inline style ceilings (#131)', () => {
 });
 
 // Design polish (#133): one global ratchet on inline `style={{` in non-test .tsx. It only goes
-// down: lower INLINE_STYLE_CEILING when you remove one; raising it means a Stack, Box sx, a
+// down: lower MAX_INLINE_STYLES when you remove one; raising it means a Stack, Box sx, a
 // token or a hds-gaps stand-in would have done.
 describe('Inline style ratchet (#133)', () => {
-  const INLINE_STYLE_CEILING = 96;
+  // equals the count on main (92); lower it as styles are burned down, never raise it
+  const MAX_INLINE_STYLES = 92;
   const tsx = sourceFiles(SRC).filter((f) => f.endsWith('.tsx'));
-  it('does not grow', () => {
-    const n = tsx.reduce(
-      (sum, f) => sum + (readFileSync(f, 'utf8').match(/style=\{\{/g) ?? []).length,
-      0,
-    );
-    expect(n).toBeLessThanOrEqual(INLINE_STYLE_CEILING);
+  const count = tsx.reduce(
+    (sum, f) => sum + (readFileSync(f, 'utf8').match(/style=\{\{/g) ?? []).length,
+    0,
+  );
+
+  it('counts style={{ in src/**/*.tsx and fails above MAX_INLINE_STYLES', () => {
+    expect(count).toBeLessThanOrEqual(MAX_INLINE_STYLES);
   });
+
+  it('fails when MAX_INLINE_STYLES is set one lower', () => {
+    // the count must equal the constant, so a removed style forces lowering it
+    expect(count).toBeGreaterThan(MAX_INLINE_STYLES - 1);
+  });
+
   it('sets no raw font size or weight inline', () => {
     const offenders = tsx.filter((f) =>
       /style=\{\{[^}]*\bfont(Size|Weight)\s*:/.test(readFileSync(f, 'utf8')),
@@ -105,7 +113,7 @@ describe('Inline style ratchet (#133)', () => {
 // a Tag/Badge, pinned is a star. No dot anywhere, the Account trigger included.
 export const ACCENT_BAR =
   /border-?left(?!-?(?:width|style)\b)|borderInlineStart|border-inline-start/i;
-export const STATUS_DOT = /StatusListItem|(?<![\w-])[\w-]*-dot\b|\bdot\b\s*[:=]/;
+export const STATUS_DOT = /StatusListItem|(?<![\w-])[\w-]*-dot\b|\bdot\b\s*[:=]|borderRadius:\s*['"]50%['"]/;
 
 function styleFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -132,6 +140,7 @@ describe('No accent bars or status dots (#193)', () => {
     expect(ACCENT_BAR.test("sx={{ border: '1px solid' }}")).toBe(false);
     expect(STATUS_DOT.test('<StatusListItem tone="warning" />')).toBe(true);
     expect(STATUS_DOT.test('<span className="row-status-dot" />')).toBe(true);
+    expect(STATUS_DOT.test("sx={{ width: 8, borderRadius: '50%', bgcolor: 'feedback.warning' }}")).toBe(true);
     expect(STATUS_DOT.test('<Badge tone="warning">Due</Badge>')).toBe(false);
   });
 });

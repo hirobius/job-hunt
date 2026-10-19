@@ -3,7 +3,8 @@
 // directory of company boards — then phrase-matched and ranked by src/feed/match.ts. With the user's
 // evidence, each posting also gets a fit (Role Radar's engine, src/radar/). Nothing is stored until
 // the user saves a posting, which turns it into a tracked Job. Watching a board files a tile on the
-// track (src/feed/watchlist.ts).
+// track (src/feed/watchlist.ts). "Find more" runs the wide sweep (#213): every title that is on for
+// the track, in one search, merged and tagged by title (src/feed/sweep.ts).
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   Alert,
@@ -29,6 +30,7 @@ import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
 import { setTrackContext, useTrackContext } from './discoverContext';
 import { ContextCaption } from './LocationControl';
 import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
+import { notifySaved } from './saveNotice';
 import { fetchFeed, type FeedResult } from './feed/fetchFeed';
 import { mergeRetry } from './feed/mergeFeed';
 import AsyncState, { type AsyncStatus } from './hds-gaps/AsyncState';
@@ -37,10 +39,7 @@ import { applyTargeting, NO_TARGETING } from './feed/targeting';
 import type { Seniority } from './curation/types';
 import { useCategories, useGroups, useTiles } from './curation/curationStore';
 import { postedAgo } from './feed/format';
-import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
-import { groupByCompany, type CompanyGroup } from './feed/byCompany';
-import { useHashView } from './hashView';
-import { SavedTargets } from './OutreachRows';
+import { boardsFromUrls } from './feed/sources/ats';
 import { deleteFilter, saveFilter, useFilters, type SavedFilter } from './feed/savedFilters';
 import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
 import { boardsForPack, packIdForLabel } from './curation/starterPacks';
@@ -49,8 +48,12 @@ import { modeLabel, verdictLabel, verdictTone } from './screening';
 import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
 import { demandPatterns } from './radar/patterns';
 import { TIER_INFO, useEvidence, writeEvidence } from './radar/evidenceStore';
-import { SOURCE_LABEL, type RankedPosting, type SignalId } from './feed/types';
+import { SOURCE_LABEL, type SignalId } from './feed/types';
 import { SECONDARY } from './hds-gaps/tone';
+import { sweepRank, titleCounts, withoutHidden, type SweptPosting } from './feed/sweep';
+import { SweepTitlesEditor } from './SweepTitles';
+import { metaLines } from './metaLines';
+import { useActiveTitles } from './feed/sweepTitles';
 
 type Focus = 'all' | 'strong' | SignalId;
 /** Rows rendered per page — the rest sit behind "Show more". */
@@ -73,10 +76,13 @@ export default function LiveFeedPanel({
   categoryId,
   terms,
   boardUrls,
+  sweepSeed = terms,
 }: {
   categoryId: string;
   /** The track's search terms — offered as chips; the first is searched on open. */
   terms: string[];
+  /** The track's titles: the sweep's list until the user edits it. */
+  sweepSeed?: string[];
   /** Every tile URL on the track; the feed pulls the ones that are company boards. */
   boardUrls: string[];
 }) {
@@ -105,6 +111,17 @@ export default function LiveFeedPanel({
   const saved = useFilters(categoryId);
   const [saveName, setSaveName] = useState('');
   const evidence = useMemo(() => parseEvidence(evidenceText), [evidenceText]);
+  // The wide sweep: one search across every title that is on. `hiddenTitles` only filters what is
+  // on screen (no re-fetch); the on/off list itself is per track and synced.
+  const [sweeping, setSweeping] = useState(false);
+  const [hiddenTitles, setHiddenTitles] = useState<Set<string>>(new Set());
+  const sweepTitles = useActiveTitles(categoryId, sweepSeed);
+  const sweepKey = sweepTitles.join('\n');
+  /** What the feed is reading: one term, or the sweep's titles. */
+  const query = sweeping ? `sweep:${sweepKey}` : term;
+  const queryReq = (): { term?: string; terms?: string[] } =>
+    sweeping ? { terms: sweepKey ? sweepKey.split('\n') : [] } : { term };
+  const hasQuery = sweeping ? sweepTitles.length > 0 : !!term.trim();
 
   // The track's own watched boards, every distinct one (deduped in fetchFeed; there is no cap).
   const boardsKey = boardUrls.join('\n');
@@ -118,18 +135,16 @@ export default function LiveFeedPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [categoryId, suggested, tiles, groups],
   );
-  const [view, setView] = useHashView();
-  const byCompany = view === 'companies';
-  const watchedBoards = useMemo(() => boardsFromUrls(boardUrls, Infinity), [boardUrls]);
   const watchedCount = useMemo(() => boardsFromUrls(boardUrls, Infinity).length, [boardUrls]);
 
   useEffect(() => {
-    if (!term.trim()) return;
+    if (!hasQuery) return;
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const startedAt = Date.now();
+    const term = query;
     fetchFeed({
-      term,
+      ...queryReq(),
       boardUrls: boardsKey ? boardsKey.split('\n') : [],
       // Show what has answered so far, repainting at most a few times a second.
       onProgress: (p) => {
@@ -166,18 +181,20 @@ export default function LiveFeedPanel({
       alive = false;
       clearTimeout(timer);
     };
-  }, [term, boardsKey, attempt]);
+    // queryReq/hasQuery derive from `query`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, boardsKey, attempt]);
 
-  const current = loaded && loaded.term === term && loaded.boardsKey === boardsKey ? loaded : null;
+  const current = loaded && loaded.term === query && loaded.boardsKey === boardsKey ? loaded : null;
   const reading = current?.reading;
 
-  const matched = useMemo(
-    () =>
-      current?.result
-        ? rankPostings(current.result.postings, { term, where, mode, now: current.at })
-        : [],
-    [current, term, where, mode],
-  );
+  const matched = useMemo<SweptPosting[]>(() => {
+    if (!current?.result) return [];
+    const o = { where, mode, now: current.at };
+    return sweeping
+      ? sweepRank(current.result.postings, sweepKey.split('\n'), o)
+      : rankPostings(current.result.postings, { ...o, term }).map((p) => ({ ...p, titles: [] }));
+  }, [current, term, where, mode, sweeping, sweepKey]);
   const floor = Number(floorText.replace(/[^\d.]/g, ''));
   const targeting = useMemo(
     () => ({
@@ -196,13 +213,13 @@ export default function LiveFeedPanel({
     () => applyTargeting(matched, targeting),
     [matched, targeting],
   );
-  const hiddenNotes = [
+  const hiddenNotes = metaLines([
     hidden.exclude > 0 && `${hidden.exclude} hidden by what you left out`,
     hidden.seniority > 0 && `${hidden.seniority} hidden by level`,
     hidden.salary > 0 && `${hidden.salary} hidden by pay`,
-  ].filter(Boolean);
+  ]);
   // Boards still being read with nothing to show yet reads as loading; once some rows exist they show.
-  const loading = !!term.trim() && (!current || (!!reading && ranked.length === 0));
+  const loading = hasQuery && (!current || (!!reading && ranked.length === 0));
   const counts = useMemo(
     () => ({
       contract: ranked.filter((p) => p.signals.some((s) => s.id === 'contract')).length,
@@ -220,14 +237,33 @@ export default function LiveFeedPanel({
   );
   const strongCount = ranked.filter((p) => fits.get(p.id)?.tier === 'strong').length;
   const patterns = useMemo(() => demandPatterns(ranked, evidence), [ranked, evidence]);
+  const perTitle = useMemo(
+    () => (sweeping ? titleCounts(ranked, sweepTitles) : {}),
+    [sweeping, ranked, sweepTitles],
+  );
+  const shownTitles = sweeping ? withoutHidden(ranked, hiddenTitles) : ranked;
   const visible =
     focus === 'all'
-      ? ranked
+      ? shownTitles
       : focus === 'strong'
-        ? ranked.filter((p) => fits.get(p.id)?.tier === 'strong')
-        : ranked.filter((p) => p.signals.some((s) => s.id === focus));
+        ? shownTitles.filter((p) => fits.get(p.id)?.tier === 'strong')
+        : shownTitles.filter((p) => p.signals.some((s) => s.id === focus));
+  const toggleShown = (t: string) => {
+    setHiddenTitles((cur) => {
+      const next = new Set(cur);
+      if (next.has(t)) next.delete(t);
+      else next.add(t);
+      return next;
+    });
+    setShown(PAGE);
+  };
+  const startSweep = (on: boolean) => {
+    setSweeping(on);
+    setHiddenTitles(new Set());
+    setShown(PAGE);
+    setPicked(new Set());
+  };
 
-  const companies = useMemo(() => (byCompany ? groupByCompany(visible) : []), [byCompany, visible]);
   const jobs = useJobs();
   const savedKeys = useMemo(() => new Set(jobs.map((j) => dedupKey(j.url))), [jobs]);
 
@@ -284,26 +320,33 @@ export default function LiveFeedPanel({
     });
   };
 
-  const watchCompany = (board: Board) => {
-    const r = watchBoard(categoryId, canonicalBoardUrl(board));
-    if (r.ok)
-      toast({
-        title: `Watching ${r.label}`,
-        description: 'Its openings now show up here.',
-        tone: 'success',
-      });
-    else toast({ title: r.error, tone: 'warning' });
-  };
-
-  const save = (p: RankedPosting) => {
-    const fields = jobFieldsFor(p, term);
+  // Saves one posting as a Job; the stored URL when it was new, else null.
+  const saveOne = (p: SweptPosting): string | null => {
+    const fields = jobFieldsFor(p, p.titles.length ? p.titles.join(', ') : term);
     const url = addJobDetailed(p.url, fields);
-    if (!url) return;
+    if (!url) return null;
     // The fit rides along, so the Pipeline's Fit column and "Best fit" sort use it.
     const fg = fits.get(p.id);
     if (fg) updateJob(url, { verdict: TIER_INFO[fg.tier].verdict });
-    toast({ title: 'Added to Pipeline', description: fields.label, tone: 'success' });
+    return url;
   };
+  const save = (p: SweptPosting) => {
+    const url = saveOne(p);
+    if (url) notifySaved([url], p.title);
+  };
+  // Wide net (rapid apply): save every picked posting, or every one on screen, in one go.
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const saveMany = (list: SweptPosting[]) => {
+    notifySaved(list.map(saveOne).filter((u): u is string => !!u));
+    setPicked(new Set());
+  };
+  const togglePick = (id: string) =>
+    setPicked((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const errors = current?.result?.sources.filter((s) => s.error) ?? [];
   const allFailed =
@@ -315,7 +358,7 @@ export default function LiveFeedPanel({
     ? 'loading'
     : current?.error || allFailed
       ? 'error'
-      : !term.trim() || ranked.length === 0
+      : !hasQuery || ranked.length === 0
         ? 'empty'
         : 'ready';
 
@@ -327,10 +370,10 @@ export default function LiveFeedPanel({
   // Retry only the named sources and fold their answers into what is showing.
   const retrySources = (keys: string[]) => {
     setRetrying((r) => [...r, ...keys]);
-    const forTerm = term;
+    const forTerm = query;
     const forBoards = boardsKey;
     fetchFeed({
-      term: forTerm,
+      ...queryReq(),
       boardUrls: forBoards ? forBoards.split('\n') : [],
       only: keys,
     })
@@ -358,8 +401,14 @@ export default function LiveFeedPanel({
       </Button>
     </Stack>
   );
-  const emptyState = !term.trim() ? (
-    <EmptyState message="Type a search term or pick one of this track's terms." />
+  const emptyState = !hasQuery ? (
+    <EmptyState
+      message={
+        sweeping
+          ? 'Turn on at least one title under Titles to sweep.'
+          : "Type a search term or pick one of this track's terms."
+      }
+    />
   ) : ranked.length === 0 && matched.length > 0 ? (
     <EmptyState
       title="Everything is hidden by your filters"
@@ -367,11 +416,19 @@ export default function LiveFeedPanel({
     />
   ) : (
     <EmptyState
-      title={`No live openings mention “${term}” right now`}
+      title={
+        sweeping
+          ? `No live openings mention any of your ${sweepTitles.length} titles right now`
+          : `No live openings mention “${term}” right now`
+      }
       message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
       action={
-        <Button variant="secondary" size="sm" onClick={() => searchRef.current?.focus()}>
-          Try a broader term
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => (sweeping ? startSweep(false) : searchRef.current?.focus())}
+        >
+          {sweeping ? 'Back to one search' : 'Try a broader term'}
         </Button>
       }
     />
@@ -391,35 +448,62 @@ export default function LiveFeedPanel({
         and each one gets a fit. Nothing is kept until you save one.
       </Text>
       <ContextCaption categoryId={categoryId} />
-      <Box
-        as="form"
-        onSubmit={onSearch}
-        sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}
-      >
-        <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
-          <HdsInput
-            size="sm"
-            ref={searchRef}
-            label="Search term"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </Box>
-        <Button type="submit" size="sm" variant="primary">
-          Search
-        </Button>
-      </Box>
-      {terms.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
-          {terms.map((t) => (
-            <Tag key={t} onClick={() => search(t)}>
-              {t}
-            </Tag>
-          ))}
-        </Box>
+      {sweeping ? (
+        <Stack gap="xs">
+          <Stack direction="row" gap="xs" align="center" wrap="wrap">
+            <Text variant="body" as="h3" className="rjb-semibold">
+              {`Sweeping ${sweepTitles.length} ${sweepTitles.length === 1 ? 'title' : 'titles'} at once`}
+            </Text>
+            <Button size="sm" variant="tertiary" onClick={() => startSweep(false)}>
+              Back to one search
+            </Button>
+          </Stack>
+          <Box sx={{ mb: 'xs' }}>
+            <SweepTitlesEditor
+              categoryId={categoryId}
+              seed={sweepSeed}
+              defaultOpen={sweepTitles.length === 0}
+            />
+          </Box>
+        </Stack>
+      ) : (
+        <>
+          <Box
+            as="form"
+            onSubmit={onSearch}
+            sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}
+          >
+            <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
+              <HdsInput
+                size="sm"
+                ref={searchRef}
+                label="Search term"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                style={{ width: '100%' }}
+              />
+            </Box>
+            <Button type="submit" size="sm" variant="primary">
+              Search
+            </Button>
+          </Box>
+          {terms.length > 0 && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
+              {terms.map((t) => (
+                <Tag key={t} onClick={() => search(t)}>
+                  {t}
+                </Tag>
+              ))}
+            </Box>
+          )}
+          {/* The wide sweep is a power tool: one quiet entry, not a second search box. */}
+          <Box sx={{ mb: 'sm' }}>
+            <Button size="sm" variant="tertiary" onClick={() => startSweep(true)}>
+              {`Find more: sweep all ${sweepTitles.length} titles`}
+            </Button>
+          </Box>
+        </>
       )}
-
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}>
         <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
           <HdsInput
@@ -461,21 +545,25 @@ export default function LiveFeedPanel({
           onChange={() => setSalaryOnly((v) => !v)}
         />
       </Box>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}>
-        <Box sx={{ width: 200 }}>
-          <HdsInput
-            size="sm"
-            label="Name this search"
-            placeholder="Austin contract"
-            value={saveName}
-            onChange={(e) => setSaveName(e.target.value)}
-            style={{ width: '100%' }}
-          />
+      {!sweeping && (
+        <Box
+          sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}
+        >
+          <Box sx={{ width: 200 }}>
+            <HdsInput
+              size="sm"
+              label="Name this search"
+              placeholder="Austin contract"
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </Box>
+          <Button size="sm" variant="secondary" disabled={!saveName.trim()} onClick={saveSearch}>
+            Save search
+          </Button>
         </Box>
-        <Button size="sm" variant="secondary" disabled={!saveName.trim()} onClick={saveSearch}>
-          Save search
-        </Button>
-      </Box>
+      )}
       {saved.length > 0 && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', mb: 'xs' }}>
           {saved.map((f) => (
@@ -494,18 +582,18 @@ export default function LiveFeedPanel({
         </Box>
       )}
       {hiddenNotes.length > 0 && (
-        <Text
-          variant="caption"
-          as="span"
-          role="status"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginBottom: 'var(--semantic-space-scale-xs)',
-          }}
-        >
-          {hiddenNotes.join(' · ')}
-        </Text>
+        <Box role="status" sx={{ mb: 'xs' }}>
+          {hiddenNotes.map((line, i) => (
+            <Text
+              key={i}
+              variant="caption"
+              as="span"
+              style={{ color: 'var(--semantic-color-content-secondary)', display: 'block' }}
+            >
+              {line}
+            </Text>
+          ))}
+        </Box>
       )}
 
       {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
@@ -635,21 +723,24 @@ export default function LiveFeedPanel({
           <Box sx={{ mb: 'xs' }}>
             <PatternsSummary patterns={patterns} />
           </Box>
-          <Box sx={{ mb: 'xs' }}>
-            <SegmentedControl
-              aria-label="View"
-              size="sm"
-              value={byCompany ? 'companies' : 'openings'}
-              onChange={(v) => {
-                setView(v === 'companies' ? 'companies' : null);
-                setShown(PAGE);
-              }}
-              options={[
-                { value: 'openings', label: 'Openings' },
-                { value: 'companies', label: 'Companies' },
-              ]}
-            />
-          </Box>
+          {sweeping && sweepTitles.length > 1 && (
+            <Box
+              role="group"
+              aria-label="Show titles"
+              sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 'xs' }}
+            >
+              {sweepTitles.map((t) => (
+                <Tag
+                  key={t}
+                  active={!hiddenTitles.has(t)}
+                  aria-pressed={!hiddenTitles.has(t)}
+                  onClick={() => toggleShown(t)}
+                >
+                  {`${t} (${perTitle[t] ?? 0})`}
+                </Tag>
+              ))}
+            </Box>
+          )}
           {/* Scrolls sideways on narrow screens rather than clipping (same as the tab bar). */}
           <Box sx={{ mb: 'xs', overflowX: 'auto', maxWidth: '100%', pb: 0.5 }}>
             <SegmentedControl
@@ -670,31 +761,23 @@ export default function LiveFeedPanel({
               ]}
             />
           </Box>
+          {visible.length > 0 && (
+            <BulkSaveBar
+              picked={visible.filter((p) => picked.has(p.id) && !savedKeys.has(dedupKey(p.url)))}
+              shown={visible.slice(0, shown).filter((p) => !savedKeys.has(dedupKey(p.url)))}
+              onSave={saveMany}
+            />
+          )}
           {visible.length === 0 ? (
             <EmptyState
               message={
-                focus === 'strong'
-                  ? 'None is a strong fit for your evidence yet — switch back to All, or add evidence.'
-                  : 'None of these openings carry that signal — switch back to All.'
+                shownTitles.length === 0
+                  ? 'Every title is hidden — turn one back on above.'
+                  : focus === 'strong'
+                    ? 'None is a strong fit for your evidence yet — switch back to All, or add evidence.'
+                    : 'None of these openings carry that signal — switch back to All.'
               }
             />
-          ) : byCompany ? (
-            <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Companies">
-              {companies.slice(0, shown).map((g) => (
-                <CompanyRow
-                  key={g.key}
-                  g={g}
-                  now={current!.at}
-                  unwatched={g.boards.find(
-                    (b) =>
-                      !watchedBoards.some(
-                        (w) => w.kind === b.kind && w.slug.toLowerCase() === b.slug.toLowerCase(),
-                      ),
-                  )}
-                  onWatch={watchCompany}
-                />
-              ))}
-            </Box>
           ) : (
             <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
               {visible.slice(0, shown).map((p) => (
@@ -705,17 +788,14 @@ export default function LiveFeedPanel({
                   saved={savedKeys.has(dedupKey(p.url))}
                   fit={fits.get(p.id)}
                   onSave={() => save(p)}
+                  picked={picked.has(p.id)}
+                  onPick={() => togglePick(p.id)}
                 />
               ))}
             </Box>
           )}
-          {byCompany && (
-            <Box sx={{ mt: 'md' }}>
-              <SavedTargets categoryId={categoryId} boardUrls={boardUrls} />
-            </Box>
-          )}
           {/* One line, once, instead of a fit badge missing from every row. */}
-          {!byCompany && evidence.length === 0 && visible.length > 0 && (
+          {evidence.length === 0 && visible.length > 0 && (
             <Box sx={{ mt: 'xs' }}>
               <Text variant="caption" as="span" style={SECONDARY}>
                 Postings get a fit once you add evidence.{' '}
@@ -725,14 +805,14 @@ export default function LiveFeedPanel({
               </Button>
             </Box>
           )}
-          {(byCompany ? companies.length : visible.length) > shown && (
+          {visible.length > shown && (
             <Button
               variant="tertiary"
               size="sm"
               onClick={() => setShown((n) => n + PAGE)}
               style={{ marginTop: 'var(--primitive-space-2)' }}
             >
-              Show more ({(byCompany ? companies.length : visible.length) - shown})
+              Show more ({visible.length - shown})
             </Button>
           )}
         </Box>
@@ -741,83 +821,32 @@ export default function LiveFeedPanel({
   );
 }
 
-function CompanyRow({
-  g,
-  now,
-  unwatched,
-  onWatch,
+function BulkSaveBar({
+  picked,
+  shown,
+  onSave,
 }: {
-  g: CompanyGroup;
-  now: number;
-  /** A board these openings sit on that the track doesn't watch yet. */
-  unwatched?: Board;
-  onWatch: (b: Board) => void;
+  picked: SweptPosting[];
+  /** Unsaved postings on screen. */
+  shown: SweptPosting[];
+  onSave: (list: SweptPosting[]) => void;
 }) {
-  const newest = postedAgo(g.newestPostedAt, now);
   return (
-    <Box
-      as="li"
-      sx={{
-        py: 3,
-        borderBottom: 'thin solid',
-        borderColor: 'border.default',
-        display: 'flex',
-        gap: 3,
-        alignItems: 'flex-start',
-      }}
-    >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Text variant="ui" as="h3" style={{ overflowWrap: 'anywhere' }}>
-          {g.company}
-        </Text>
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginTop: 'calc(var(--primitive-space-1) * 0.5)',
-          }}
-        >
-          {g.count} {g.count === 1 ? 'opening mentions' : 'openings mention'} your search
-          {newest ? ` · newest ${newest}` : ''}
-        </Text>
-        {g.signals.length > 0 && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
-            {g.signals.map((s) => (
-              <Badge key={s.id} tone={s.id === 'contract' ? 'success' : 'info'}>
-                {s.label}
-              </Badge>
-            ))}
-          </Box>
-        )}
-        <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0, mt: 1.5 }}>
-          {g.top.map((p) => (
-            <Box as="li" key={p.id}>
-              <Text variant="ui" as="span" style={{ overflowWrap: 'anywhere' }}>
-                <InlineLink href={p.url} externalIcon={false}>
-                  {p.title}
-                </InlineLink>
-              </Text>
-              <Text variant="caption" as="span" style={SECONDARY}>
-                {' '}
-                · {SOURCE_LABEL[p.source]}
-              </Text>
-            </Box>
-          ))}
-        </Box>
-      </Box>
-      {unwatched && (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => onWatch(unwatched)}
-          aria-label={`Watch ${g.company}`}
-        >
-          Watch
+    <Stack direction="row" wrap="wrap" gap="tight" align="center">
+      {picked.length > 0 && (
+        <Button size="sm" variant="primary" onClick={() => onSave(picked)}>
+          {`Save ${picked.length} to Pipeline`}
         </Button>
       )}
-    </Box>
+      <Button
+        size="sm"
+        variant="secondary"
+        disabled={shown.length === 0}
+        onClick={() => onSave(shown)}
+      >
+        {`Save all shown (${shown.length})`}
+      </Button>
+    </Stack>
   );
 }
 
@@ -827,21 +856,25 @@ function PostingRow({
   saved,
   fit,
   onSave,
+  picked,
+  onPick,
 }: {
-  p: RankedPosting;
+  p: SweptPosting;
   now: number;
   saved: boolean;
   /** Present once the user has evidence. */
   fit?: FitGap;
   onSave: () => void;
+  picked: boolean;
+  onPick: () => void;
 }) {
-  const meta = [
+  const meta = metaLines([
     p.company,
     p.location,
     p.mode && modeLabel(p.mode),
     postedAgo(p.postedAt, now),
     SOURCE_LABEL[p.source],
-  ].filter(Boolean);
+  ]);
   return (
     <Box as="li" sx={{ py: 3, borderBottom: 'thin solid', borderColor: 'border.default' }}>
       <Box sx={{ minWidth: 0 }}>
@@ -850,28 +883,46 @@ function PostingRow({
             {p.title}
           </InlineLink>
         </Text>
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginTop: 'calc(var(--primitive-space-1) * 0.5)',
-            overflowWrap: 'anywhere',
-          }}
-        >
-          {meta.join(' · ')}
-        </Text>
+        {meta.map((line, i) => (
+          <Text
+            key={i}
+            variant="caption"
+            as="span"
+            style={{
+              color: 'var(--semantic-color-content-secondary)',
+              display: 'block',
+              marginTop: i === 0 ? 'calc(var(--primitive-space-1) * 0.5)' : undefined,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {line}
+          </Text>
+        ))}
+        {p.titles.length > 0 && (
+          <Text variant="caption" as="span" style={SECONDARY}>
+            {`Matched ${p.titles.map((t) => `“${t}”`).join(', ')}`}
+          </Text>
+        )}
         {/* Under the meta, not beside it: the title keeps the full row on a phone. 40px target. */}
         <Box sx={{ mt: 'xs' }}>
-          <Button
-            size="md"
-            variant={saved ? 'tertiary' : 'secondary'}
-            disabled={saved}
-            onClick={onSave}
-          >
-            {saved ? 'Saved' : 'Save'}
-          </Button>
+          <Stack direction="row" gap="tight" align="center" wrap="wrap">
+            <Button
+              size="md"
+              variant={saved ? 'tertiary' : 'secondary'}
+              disabled={saved}
+              onClick={onSave}
+            >
+              {saved ? 'Saved' : 'Save'}
+            </Button>
+            {!saved && (
+              <HdsCheckbox
+                label="Pick"
+                aria-label={`Pick ${p.title}`}
+                checked={picked}
+                onChange={onPick}
+              />
+            )}
+          </Stack>
         </Box>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
           {fit && (

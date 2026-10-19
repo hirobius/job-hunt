@@ -69,7 +69,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Today', 'Pipeline', 'Discover', 'Templates']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Companies', 'Pipeline', 'Templates']);
     expect(screen.getByRole('button', { name: 'Menu' })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -155,6 +155,10 @@ describe('app shell (#115 Phase 1)', () => {
 });
 
 describe('sync nudge (#115 Phase 1)', () => {
+  beforeEach(() => {
+    window.location.hash = '#/today'; // legacy Today route: the nudge is Today-only
+  });
+
   // The nudge offers to sync data, so it needs some.
   beforeEach(() => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
@@ -245,10 +249,9 @@ describe('sync nudge (#115 Phase 1)', () => {
 describe('routes keep working (#115 Phase 1)', () => {
   it.each([
     ['#/queue', 'Pipeline'],
-    ['#/discover', 'Discover'],
+    ['#/discover', 'Companies'],
     ['#/copy-deck', 'Templates'],
-    ['#/today', 'Today'],
-    ['', 'Today'],
+    ['', 'Companies'],
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();

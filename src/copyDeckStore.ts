@@ -13,6 +13,8 @@ export interface Snippet {
   open?: boolean;
   pillars?: string[]; // pillar ids this snippet is tagged to; empty/undefined = global
   pinned?: boolean;
+  /** Variable values set on this template (#221), keyed by lower-case name; the body keeps its [Token]s. */
+  values?: Record<string, string>;
 }
 
 const KEY = 'rjb_copydeck_v1';
@@ -42,6 +44,11 @@ const DEFAULTS: Snippet[] = [
     id: 'tpl-thanks',
     label: 'Thank-you after interview',
     body: "Hi [Contact],\n\nThank you for taking the time to talk with me about the [Role] role at [Company]. I enjoyed learning more about the team and what you're looking for. [Angle]\n\nI'm excited about the opportunity and happy to answer any follow-up questions.\n\nWarm regards,\n[Your name]",
+  },
+  {
+    id: 'tpl-intro-call',
+    label: 'Intro call script',
+    body: "Hi [Contact], this is [Your name]. I'll be brief: I'm a designer who builds design systems and product design for teams like [Company], and I saw the [Role] opening.\n\n[Angle]\n\nIn one line: I help product teams ship a consistent, accessible UI faster by turning scattered patterns into a shared system of components and guidelines.\n\nCould I ask two quick questions?\n1. How does design and engineering work together on UI at [Company] today?\n2. Is the [Role] role still open, and who makes the call on it?\n\nIf now is a bad time, when is a better 10 minutes this week? I can also send a short note and a link to my work first.\n\nThank you, [Contact]. [Your name]",
   },
 ];
 
