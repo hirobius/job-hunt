@@ -113,7 +113,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   and the rail; `test/setup.ts` resets it per test). An unknown id shows a skeleton, then waits for
   `useCloudSync().settled` before falling back to `#/queue`. Pinned in `src/jobPage.test.tsx`. `HOME_ROUTE` (`today`) and
   `QUICK_ADD_LANDING` (`queue`) are separate in `App.tsx`. Pinned in `src/jobRoute.test.tsx`.
-- **Today is home (#128):** `#/today` = `TodayView.tsx`: due follow-ups (`dueFollowUps`) and the
+- **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1):** the tabs are
+  **Companies · Pipeline · Templates**; Companies is the old Discover (slug `discover`, home, hosts the
+  first-run gate) and an empty hash lands there. `#/today` is a legacy route with no tab, kept until the
+  Today-removal slice; "Try with sample data" lands on the Pipeline. The Today paragraph below is
+  history until then.
+- **Today is home (#128, superseded by the Calm list shell above):** `#/today` = `TodayView.tsx`: due follow-ups (`dueFollowUps`) and the
   next 7 days (`upcomingEvents`, both in `jobEvents.ts`) as `StatusListItem` rows, one quick-add
   field (stays on Today; the line under it links the saved job), and nothing else (the Insights
   metric tiles and funnel were cut, 2026-10-17).

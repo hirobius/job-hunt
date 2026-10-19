@@ -3,6 +3,7 @@
 // interviews from the sample pipeline, has one quick-add field; the
 // Pipeline keeps the list only; the shell owns the first-run gate; existing users get a one-time
 // "Today is home" notice.
+import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -43,7 +44,7 @@ beforeEach(() => {
   localStorage.clear();
   replaceCurationState({ categories: [], groups: [], tiles: [] });
   window.history.replaceState(null, '', '/');
-  window.location.hash = '';
+  window.location.hash = '#/today';
 });
 afterEach(() => {
   cleanup();
@@ -53,13 +54,22 @@ afterEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
 });
 
-describe('Today is home (#128)', () => {
-  it('an empty hash lands on Today', async () => {
+describe('Today is a legacy route (Calm list slice 1)', () => {
+  it('an empty hash lands on Companies, not Today', async () => {
     seedPack('consulting');
+    window.location.hash = '';
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
-    await waitFor(() => expect(window.location.hash).toBe('#/today'));
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
+    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    expect(screen.queryByRole('heading', { level: 2, name: 'Today' })).toBeNull();
+  });
+
+  it('#/today still renders Today, with no tab selected', () => {
+    seedPack('consulting');
+    window.location.hash = '#/today';
+    renderApp();
     expect(screen.getByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { selected: true })).toBeNull();
   });
 
   it('a ?add= quick-add link still lands on the Pipeline, not on Today', () => {
@@ -193,26 +203,41 @@ describe('Today with nothing due', () => {
 
 describe('first-run gate in the shell (#128)', () => {
   it('a first visit (no tracks, no jobs) opens on setup, with sample data on offer', () => {
+    window.location.hash = '';
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
     expect(screen.getByRole('heading', { name: 'Set up your board' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try with sample data' })).toBeInTheDocument();
   });
 
-  it('trying the sample from setup lands on a working Today', async () => {
+  it('trying the sample from setup lands on the Pipeline, and Today still works', async () => {
+    window.location.hash = '';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
+    expect(
+      await screen.findByRole('tab', { name: 'Pipeline', selected: true }),
+    ).toBeInTheDocument();
+    window.location.hash = '#/today';
     expect(await screen.findByRole('region', { name: /^Follow-ups due/ })).toBeInTheDocument();
   });
 
-  it('picking a track finishes setup and shows Today', async () => {
+  it('picking a track finishes setup and stays on Companies', async () => {
+    window.location.hash = '';
     renderApp();
     await userEvent.click(screen.getAllByRole('checkbox')[0]);
     // Three steps (#132): Continue, Continue, Finish.
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
-    expect(await screen.findByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'Set up your board' })).toBeNull(),
+    );
+    expect(
+      within(screen.getByRole('tablist', { name: 'Sections' })).getByRole('tab', {
+        selected: true,
+      }),
+    ).toHaveAccessibleName('Companies');
+    expect(window.location.hash).toBe('#/discover');
   });
 
   it('Discover needs a track even when there are jobs; the Pipeline never gates', () => {
@@ -255,8 +280,10 @@ describe('one-time "Today is home" notice (#128)', () => {
   });
 
   it('a first run never sees it', async () => {
+    window.location.hash = '';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
+    window.location.hash = '#/today';
     await screen.findByRole('region', { name: /^Follow-ups due/ });
     expect(screen.queryByRole('region', NOTICE)).toBeNull();
   });
@@ -314,5 +341,20 @@ describe('Getting started card (#132)', () => {
     unmount();
     renderApp();
     expect(card()).toBeNull();
+  });
+});
+
+describe('Today rows keep to two items per dotted line (#192)', () => {
+  it('no line in a row holds three or more " · " items', () => {
+    loadSample();
+    window.location.hash = '#/today';
+    renderApp();
+    const lines = [region(/^Follow-ups due/), region(/^Next 7 days/)].flatMap((r) =>
+      [...r.querySelectorAll('li *')]
+        .filter((e) => e.children.length === 0)
+        .map((e) => e.textContent ?? ''),
+    );
+    expect(lines.some((l) => l.includes(' · '))).toBe(true); // the scan sees real dotted lines
+    expect(lines.filter((l) => itemsInLine(l) > MAX_META_ITEMS)).toEqual([]);
   });
 });

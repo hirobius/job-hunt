@@ -3,6 +3,7 @@
 // goes in its menu. Sortable table columns map onto the existing jobSort keys, so a header click
 // and the toolbar's Sort menu are one sort.
 import { deriveJobState } from './jobState';
+import { metaLines } from './metaLines';
 import { SORTS, type SortKey } from './jobSort';
 import { prettyTitle } from './store';
 import { VERDICTS } from './screening';
@@ -78,8 +79,8 @@ export function followUpOf(
 /** Everything one Pipeline row shows, worked out once for the table and the cards. */
 export interface RowView {
   title: string;
-  /** Retired (when it is) · company · location. */
-  facts: string;
+  /** Retired (when it is), company, location: one line per two items (#192). */
+  factLines: string[];
   /** A retired job's fit drops to neutral, like its status: it no longer competes for attention. */
   verdict:
     | { value: Verdict; label: string; tone: (typeof VERDICTS)[number]['tone'] | 'neutral' }
@@ -95,7 +96,7 @@ export function rowView(job: Job, now: Date = new Date()): RowView {
   const verdict = VERDICTS.find((v) => v.value === job.verdict);
   return {
     title: titleOf(job),
-    facts: [job.archived ? 'Retired' : '', job.company, job.location].filter(Boolean).join(' · '),
+    factLines: metaLines([job.archived ? 'Retired' : '', job.company, job.location]),
     verdict: verdict && job.archived ? { ...verdict, tone: 'neutral' } : verdict,
     applied: appliedAgo(job, now),
     followUp: followUpOf(job, now),

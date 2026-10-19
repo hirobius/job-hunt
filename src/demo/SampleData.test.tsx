@@ -30,9 +30,10 @@ describe('Try with sample data (Tracker)', () => {
       expect(banner()).toHaveTextContent(/10 fictional jobs/);
       // Saved jobs + the pinned follow-ups/interviews show in the default Active view (their
       // agenda lives on Today now, #128).
-      expect(screen.getByText('Solutions Engineer')).toBeInTheDocument();
-      expect(screen.getByText('Clinical Systems Analyst')).toBeInTheDocument();
-      expect(screen.getByText('UX Researcher')).toBeInTheDocument();
+      expect(screen.getAllByText('Solutions Engineer')[0]).toBeInTheDocument();
+      // Applied jobs are also listed under Follow up, so this title appears twice.
+      expect(screen.getAllByText('Clinical Systems Analyst').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('UX Researcher')[0]).toBeInTheDocument();
       expect(tryButton()).toBeNull();
 
       await user.click(within(banner()!).getByText(/clear sample data/i));
