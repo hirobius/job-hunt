@@ -33,7 +33,7 @@ import type { Snippet } from './copyDeckStore';
 import { updateJob, useJobs } from './store';
 import type { Job } from './types';
 import { fillSnippet, ownValue, resolveVariables } from './templateFill';
-import { insertAt, templateVariables, TOKEN_CHIPS } from './templateEditor';
+import { insertToken, templateVariables, TOKEN_CHIPS } from './templateEditor';
 import { useApplyKit } from './applyKit';
 import TokenTextarea from './hds-gaps/TokenTextarea';
 import type { TokenTextareaHandle } from './hds-gaps/TokenTextarea';
@@ -88,11 +88,11 @@ export default function TemplateDetail({
   const filled = fillSnippet(snippet, job, kitName);
   const missing = names.filter((n) => !resolved[n.toLowerCase()]).map((n) => `[${n}]`);
 
-  // Chips and the Insert variable menu both go through insertAt at the field's last caret.
+  // Chips and the Insert variable menu both go through insertToken at the field's last caret.
   const area = useRef<TokenTextareaHandle>(null);
   const insert = (token: string) => {
     const sel = area.current?.selection();
-    const r = insertAt(snippet.body, sel?.start ?? null, sel?.end ?? null, token);
+    const r = insertToken(snippet.body, sel?.start ?? null, sel?.end ?? null, token);
     updateSnippet(snippet.id, { body: r.value });
     area.current?.setCaret(r.caret);
   };
