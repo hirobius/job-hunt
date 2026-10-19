@@ -87,7 +87,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     );
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     const menu = await openAccount();
-    expect(within(menu).getByText(/Synced · u1@example.test/)).toBeInTheDocument();
+    expect(within(menu).getByText('Signed in as u1@example.test')).toBeInTheDocument();
     // …and the tracker blob it pushed is v8 (no pillars / userTiles).
     expect(fake().tables.tracker[0].data).toMatchObject({ v: 8 });
     expect(fake().tables.tracker[0].data).not.toHaveProperty('pillars');

@@ -84,8 +84,8 @@ describe('Discover inline style ceilings (#131)', () => {
 // down: lower MAX_INLINE_STYLES when you remove one; raising it means a Stack, Box sx, a
 // token or a hds-gaps stand-in would have done.
 describe('Inline style ratchet (#133)', () => {
-  // equals the count on main (92); lower it as styles are burned down, never raise it
-  const MAX_INLINE_STYLES = 91;
+  // equals the count on main (90); lower it as styles are burned down, never raise it
+  const MAX_INLINE_STYLES = 90;
   const tsx = sourceFiles(SRC).filter((f) => f.endsWith('.tsx'));
   const count = tsx.reduce(
     (sum, f) => sum + (readFileSync(f, 'utf8').match(/style=\{\{/g) ?? []).length,
@@ -109,13 +109,43 @@ describe('Inline style ratchet (#133)', () => {
   });
 });
 
+// No raw letter-spacing (#191): tracking comes from HDS type tokens, never hand-set. Covers .ts,
+// .tsx and .css under src/ and e2e/, which includes inline `style` and `sx` (camelCase) and CSS.
+const RAW_LETTER_SPACING = /letter-?spacing\s*:/i;
+const hasRawLetterSpacing = (text: string) => RAW_LETTER_SPACING.test(text);
+
+function guardedFiles(dir: string): string[] {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).flatMap((name) => {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) return name === 'node_modules' ? [] : guardedFiles(p);
+    return /\.(ts|tsx|css)$/.test(name) ? [p] : [];
+  });
+}
+
+describe('No raw letter-spacing (#191)', () => {
+  it('catches camelCase, kebab-case, inline style and sx samples', () => {
+    expect(hasRawLetterSpacing(`<Box style={{ ${'letter' + 'Spacing'}: '0.05em' }} />`)).toBe(true);
+    expect(hasRawLetterSpacing(`<Box sx={{ ${'letter' + 'Spacing'}: 1 }} />`)).toBe(true);
+    expect(hasRawLetterSpacing(`h1 { ${'letter' + '-spacing'} : 0.1em; }`)).toBe(true);
+    expect(hasRawLetterSpacing('<Text variant="caption">Spacing</Text>')).toBe(false);
+  });
+
+  it('finds none in src/ or e2e/', () => {
+    const self = join(SRC, 'hdsOnly.test.ts');
+    const files = [...guardedFiles(SRC), ...guardedFiles(resolve(SRC, '..', 'e2e'))].filter(
+      (f) => f !== self,
+    );
+    const offenders = files.filter((f) => hasRawLetterSpacing(readFileSync(f, 'utf8')));
+    expect(offenders.map((f) => f.replace(resolve(SRC, '..'), ''))).toEqual([]);
+  });
+});
+
 // #193: no decoration that adds noise. Left accent bars and status dots are out; state is text or
-// a Tag/Badge, pinned is a star. The Account trigger's unsynced dot is a sync signal, not a row
-// status dot, so it is the one allowlisted dot.
+// a Tag/Badge, pinned is a star. No dot anywhere, the Account trigger included.
 export const ACCENT_BAR =
   /border-?left(?!-?(?:width|style)\b)|borderInlineStart|border-inline-start/i;
 export const STATUS_DOT = /StatusListItem|(?<![\w-])[\w-]*-dot\b|\bdot\b\s*[:=]|borderRadius:\s*['"]50%['"]/;
-const DOT_ALLOWLIST = ['account/AccountMenu.tsx', 'theme/base.css'];
 
 function styleFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -131,10 +161,8 @@ describe('No accent bars or status dots (#193)', () => {
     expect(offenders.map((f) => f.slice(SRC.length + 1))).toEqual([]);
   });
 
-  it('draws no status dot in a row (only the allowlisted sync dot)', () => {
-    const offenders = styleFiles(SRC)
-      .filter((f) => !DOT_ALLOWLIST.some((a) => f.endsWith(a)))
-      .filter((f) => STATUS_DOT.test(readFileSync(f, 'utf8')));
+  it('draws no status dot anywhere', () => {
+    const offenders = styleFiles(SRC).filter((f) => STATUS_DOT.test(readFileSync(f, 'utf8')));
     expect(offenders.map((f) => f.slice(SRC.length + 1))).toEqual([]);
   });
 
@@ -144,7 +172,9 @@ describe('No accent bars or status dots (#193)', () => {
     expect(ACCENT_BAR.test("sx={{ border: '1px solid' }}")).toBe(false);
     expect(STATUS_DOT.test('<StatusListItem tone="warning" />')).toBe(true);
     expect(STATUS_DOT.test('<span className="row-status-dot" />')).toBe(true);
-    expect(STATUS_DOT.test("sx={{ width: 8, borderRadius: '50%', bgcolor: 'feedback.warning' }}")).toBe(true);
+    expect(
+      STATUS_DOT.test("sx={{ width: 8, borderRadius: '50%', bgcolor: 'feedback.warning' }}"),
+    ).toBe(true);
     expect(STATUS_DOT.test('<Badge tone="warning">Due</Badge>')).toBe(false);
   });
 });
