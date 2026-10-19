@@ -1,6 +1,6 @@
 // Apply mode (rapid apply, #/apply/<jobId>): one job at a time from the To apply queue. A big
-// Open application button, then the Application kit as copy rows (profile, answers, filled
-// templates), then Mark applied → Next job. Works one-handed on a phone: one column, 40px controls.
+// Open application button, Mark applied → Next job, then the Apply sheet's templates (every
+// template filled for the job, #239) and the Application kit as copy rows (profile, letters, answers). Works one-handed on a phone: one column, 40px controls.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Check, Copy, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
@@ -25,6 +25,7 @@ import { followUpDate, toApplyQueue } from './applyQueue';
 import {
   KIT_FIELDS,
   addAnswer,
+  filledTemplates,
   removeAnswer,
   setKitField,
   setKitTemplate,
@@ -157,6 +158,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
           )}
         </Stack>
 
+        <ApplyTemplates job={job} />
         <ApplicationKit job={job} />
       </Stack>
     </Box>
@@ -263,6 +265,50 @@ function CopyRow({
         </Stack>
       )}
     </Box>
+  );
+}
+
+/** The Apply sheet's templates (#239): every template filled for this job, one copy row each. */
+function ApplyTemplates({ job }: { job: Job }) {
+  const kit = useApplyKit();
+  const snippets = useSnippets();
+  const rows = useMemo(
+    () => filledTemplates(snippets, job, kit.fields.name),
+    [snippets, job, kit.fields.name],
+  );
+  const edit = (label: string) => (
+    <Box>
+      <Button asChild variant="tertiary" size="md" iconLeft={<Icon icon={Pencil} />}>
+        <a href="#/copy-deck">{label}</a>
+      </Button>
+    </Box>
+  );
+  return (
+    <Stack gap="tight">
+      <Text variant="body" as="h3" className="rjb-semibold">
+        Templates
+      </Text>
+      {rows.length ? (
+        <>
+          <Text variant="caption" as="p" style={SECONDARY}>
+            Filled for this job. Copy one into the form or an email.
+          </Text>
+          <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Your templates">
+            {rows.map((r) => (
+              <CopyRow key={r.id} label={r.label} value={r.text} editable={false} multiline />
+            ))}
+          </Box>
+          {edit('Edit templates')}
+        </>
+      ) : (
+        <>
+          <Text variant="caption" as="p" style={SECONDARY}>
+            Write a note or cover letter once in Templates; it shows here filled for each job.
+          </Text>
+          {edit('Write a template')}
+        </>
+      )}
+    </Stack>
   );
 }
 

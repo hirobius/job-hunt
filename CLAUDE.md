@@ -210,7 +210,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   **Apply mode** `#/apply/<jobId>` (`ApplyMode.tsx`, `route.openApply`; the Pipeline tab stays
   selected): Open application, Mark applied (follow-up 7 days on), Next job (k of N), Skip, Not a fit
   (retire + Undo), and the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**): profile
-  fields, two template-filled letters and custom Q&A, each a copy row. The row menu sets any status.
+  fields, two template-filled letters and custom Q&A, each a copy row. **Apply sheet (#239):** above
+  the kit, "Templates" lists every template filled for the job (`applyKit.filledTemplates` →
+  `fillSnippet`, pinned first, one copy row each) with an Edit templates link. The row menu sets any status.
   Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
 - **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
   title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys

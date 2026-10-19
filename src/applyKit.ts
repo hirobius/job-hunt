@@ -4,6 +4,9 @@
 // and the cover note are picked by snippet id, so the text itself stays in Templates.
 import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
+import { fillSnippet } from './templateFill';
+import type { Snippet } from './copyDeckStore';
+import type { Job } from './types';
 
 const KIT_KEY = 'rjb_apply_kit';
 
@@ -40,6 +43,30 @@ export interface ApplyKit {
 }
 
 export const emptyKit = (): ApplyKit => ({ fields: {}, answers: [] });
+
+/** One template filled for a job, as a copy row in the Apply sheet (#239). */
+export interface FilledTemplate {
+  id: string;
+  label: string;
+  text: string;
+}
+
+/** Every template with text, filled for the job through the one fill path, pinned first. */
+export function filledTemplates(
+  snippets: Pick<Snippet, 'id' | 'label' | 'body' | 'pinned' | 'values'>[],
+  job: Job,
+  kitName?: string,
+): FilledTemplate[] {
+  return snippets
+    .filter((s) => s.body.trim())
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => Number(!!b.s.pinned) - Number(!!a.s.pinned) || a.i - b.i)
+    .map(({ s }) => ({
+      id: s.id,
+      label: s.label.trim() || 'Untitled',
+      text: fillSnippet(s, job, kitName),
+    }));
+}
 
 const FIELD_KEYS = KIT_FIELDS.map((f) => f.key) as string[];
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
