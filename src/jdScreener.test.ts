@@ -88,13 +88,8 @@ describe('screenJd — mode & travel', () => {
   it('fully remote', () => expect(screenJd('Fully remote, US-based.').mode).toBe('remote'));
   it('no mode signal → undefined', () =>
     expect(screenJd('Great team, great mission.').mode).toBeUndefined());
-  it('reports travel % as evidence', () =>
-    expect(screenJd('Up to 25% travel required.').hits).toContainEqual({
-      tag: 'travel',
-      evidence: '25% travel',
-    }));
-  it('no travel → no travel hit', () =>
-    expect(screenJd('No travel.').hits.some((h) => h.tag === 'travel')).toBe(false));
+  it('parses travel %', () => expect(screenJd('Up to 25% travel required.').travelPct).toBe(25));
+  it('no travel → undefined', () => expect(screenJd('No travel.').travelPct).toBeUndefined());
 });
 
 describe('screenJd — verdict follows blockers', () => {

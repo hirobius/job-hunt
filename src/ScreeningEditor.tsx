@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Input as HdsInput, Tag, Text, Box } from '@hirobius/design-system';
+import { Input as HdsInput, Tag, Text, Box, Switcher } from '@hirobius/design-system';
 import { updateJob } from './store';
 import { DEFAULT_BLOCKERS, MODES, VERDICTS, blockerLabel } from './screening';
 import type { Job } from './types';
 
 // Detail-panel editor for a job's screening fields (issue #60): fit (verdict), work mode, and
-// dealbreakers are toggle chips (all optional → chips, not a required SegmentedControl); angle is a note.
-// Every change writes straight through updateJob.
+// dealbreakers are toggle chips (all optional → chips, not a required SegmentedControl); travel /
+// applicants are numbers; angle is a note. Every change writes straight through updateJob.
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -28,6 +28,31 @@ function Chips({ children }: { children: React.ReactNode }) {
   return <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>{children}</Box>;
 }
 
+function NumField({
+  label,
+  value,
+  suffix,
+  onChange,
+}: {
+  label: string;
+  value?: number;
+  suffix?: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+      <HdsInput
+        size="sm"
+        label={suffix ? `${label} (${suffix})` : label}
+        inputMode="numeric"
+        value={value == null ? '' : String(value)}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ width: '100%' }}
+      />
+    </Box>
+  );
+}
+
 export function ScreeningEditor({ job }: { job: Job }) {
   const [custom, setCustom] = useState('');
   const blockers = job.blockers ?? [];
@@ -42,6 +67,10 @@ export function ScreeningEditor({ job }: { job: Job }) {
     const t = custom.trim().toLowerCase().replace(/\s+/g, '_');
     if (t && !blockers.includes(t)) updateJob(job.url, { blockers: [...blockers, t] });
     setCustom('');
+  };
+  const setNum = (key: 'travelPct' | 'applicants', v: string) => {
+    const n = v.trim() === '' ? undefined : Number(v);
+    updateJob(job.url, { [key]: n != null && isFinite(n) && n >= 0 ? n : undefined });
   };
 
   return (
@@ -109,6 +138,20 @@ export function ScreeningEditor({ job }: { job: Job }) {
           style={{ marginTop: 'var(--primitive-space-2)', maxWidth: 240 }}
         />
       </Box>
+
+      <Switcher gap="tight">
+        <NumField
+          label="Travel"
+          suffix="%"
+          value={job.travelPct}
+          onChange={(v) => setNum('travelPct', v)}
+        />
+        <NumField
+          label="Applicants"
+          value={job.applicants}
+          onChange={(v) => setNum('applicants', v)}
+        />
+      </Switcher>
 
       <Box sx={{ '& > *': { width: '100%' } }}>
         <HdsInput

@@ -43,6 +43,7 @@ for (const width of [390, 1440]) {
     });
 
     await page.goto('/#/discover');
+    await page.getByRole('button', { name: 'Choose a track' }).click();
     await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().click();
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByRole('button', { name: 'Continue' }).click();

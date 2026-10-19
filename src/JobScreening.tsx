@@ -7,9 +7,10 @@ import JdScreenPanel from './JdScreenPanel';
 import type { Job } from './types';
 import { SECONDARY } from './hds-gaps/tone';
 
-/** Verdict, work mode and dealbreakers on one line. */
+/** Verdict, work mode and travel, dealbreakers and applicant count on one line. */
 function FitLine({ job }: { job: Job }) {
-  const has = job.verdict || job.mode || (job.blockers && job.blockers.length > 0);
+  const has =
+    job.verdict || job.mode || (job.blockers && job.blockers.length > 0) || job.applicants != null;
   return (
     <Box role="group" aria-label="Fit summary">
       <Stack direction="row" wrap="wrap" gap="tight" align="center">
@@ -23,12 +24,22 @@ function FitLine({ job }: { job: Job }) {
             {verdictLabel(job.verdict)}
           </Badge>
         )}
-        {job.mode && <Badge tone="neutral">{modeLabel(job.mode)}</Badge>}
+        {job.mode && (
+          <Badge tone="neutral">
+            {modeLabel(job.mode)}
+            {job.travelPct != null ? ` · ${job.travelPct}% travel` : ''}
+          </Badge>
+        )}
         {job.blockers?.map((b) => (
           <Badge key={b} tone="danger">
             {blockerLabel(b)}
           </Badge>
         ))}
+        {job.applicants != null && (
+          <Text variant="caption" as="span" style={SECONDARY}>
+            {job.applicants} applied
+          </Text>
+        )}
         {job.screenedAt && (
           <Text variant="caption" as="span" style={SECONDARY}>
             Screened {new Date(job.screenedAt).toLocaleDateString()}

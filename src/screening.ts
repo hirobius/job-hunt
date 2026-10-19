@@ -65,10 +65,9 @@ export function normalizeScreening(job: Job): Job {
   const out: Job = { ...job };
   if (out.mode !== undefined && !MODE_VALUES.has(out.mode)) delete out.mode;
   if (out.verdict !== undefined && !VERDICT_VALUES.has(out.verdict)) delete out.verdict;
-  // Retired manual fields: old records may still carry them; drop them rather than migrate.
-  const legacy = out as Job & { travelPct?: unknown; applicants?: unknown };
-  delete legacy.travelPct;
-  delete legacy.applicants;
+  if (typeof out.applicants !== 'number' || !isFinite(out.applicants) || out.applicants < 0)
+    delete out.applicants;
+  if (typeof out.travelPct !== 'number' || !isFinite(out.travelPct)) delete out.travelPct;
   if (Array.isArray(out.blockers)) {
     const cleaned = out.blockers
       .filter((b): b is string => typeof b === 'string' && b.trim().length > 0)

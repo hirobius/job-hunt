@@ -178,13 +178,16 @@ describe('job page tabs (#130 slice 2)', () => {
     updateJob(URL_A, {
       verdict: 'match',
       mode: 'hybrid',
+      travelPct: 10,
       blockers: ['clearance'],
+      applicants: 40,
     });
     openJobPage();
     await userEvent.click(tab('Screening'));
     const fit = screen.getByRole('group', { name: 'Fit summary' });
     expect(within(fit).getByText('Strong fit')).toBeInTheDocument();
-    expect(within(fit).queryByText(/travel|applied/)).toBeNull();
+    expect(within(fit).getByText(/10% travel/)).toBeInTheDocument();
+    expect(within(fit).getByText('40 applied')).toBeInTheDocument();
     expect(screen.getByText('Work mode')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Add a custom dealbreaker' })).toBeInTheDocument();
   });
@@ -204,6 +207,7 @@ describe('job page tabs (#130 slice 2)', () => {
     const j = getAllJobs()[0];
     expect(j.verdict).toBeTruthy();
     expect(j.screenedAt).toBeTruthy();
+    expect(j.travelPct).toBe(25);
   });
 
   it('Interviews shows a teaching empty state, then the log', async () => {

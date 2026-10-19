@@ -33,7 +33,7 @@ A job seeker opens a saved job and sees one clear page, not one long inline form
 ### The job page (header, then sections)
 1. **Header** (`PageHeader level=2`): title, status `Badge`, pin toggle, one primary action (Mark applied or Log follow-up from `primaryAction`), `RowMenu` (Delete leaves the menu on this page, see 7).
 2. **Overview** (default): facts as `MetadataList` (company, location, seniority, salary, source host, applied, follow-up clock), a "Saved ✓" flash, editable in place: a single "Edit details" `Disclosure` holds the title/company/location/seniority/salary inputs; contact/referral and résumé version sit under it. Templates (`UseTemplate`) and research links sit here as secondary buttons.
-3. **Screening**: the fit line (one compact line: verdict, mode, blockers) above `ScreeningEditor`. The paste-a-JD screener (`ScreenJdDialog` logic) is inline here, not a dialog.
+3. **Screening**: the fit line (one compact line: verdict, mode and travel, blockers, applicants) above `ScreeningEditor`. The paste-a-JD screener (`ScreenJdDialog` logic) is inline here, not a dialog.
 4. **Contacts and interviews**: contact line and `InterviewLog` with the .ics export.
 5. **To-dos and notes**: `TodosNotes` and the Notes `Textarea` (today in two places).
 6. Sections 2 to 5 are `Tabs` (as #130 says). Tab count shows on the label when non-empty ("To-dos (3)"). The open tab is kept in the URL query-free local state, reset to Overview when the job changes.

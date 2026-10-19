@@ -52,7 +52,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
     setJobUrl('');
     setJobError('');
   };
-  // Seed what was picked, save the job if given, then go home (Companies, which hosts the first-run gate) or stay.
+  // Seed what was picked, save the job if given, then go home (Today's gate) or stay (Discover's).
   const finish = (withJob: boolean) => {
     const url = withJob ? jobUrl.trim() : '';
     if (url) {
@@ -65,7 +65,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
     );
     // Nothing picked and no job: the gate is still up, so start the steps over instead of idling.
     if (picked.length === 0 && !url) return reset();
-    if (offerSample) navigate({ tab: 'discover' });
+    if (offerSample) navigate({ tab: 'today' });
   };
 
   // A signed-in pull may be about to restore this user's tracks — don't offer to re-onboard

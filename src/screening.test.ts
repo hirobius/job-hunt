@@ -36,34 +36,34 @@ describe('normalizeScreening', () => {
       base({
         verdict: 'match',
         mode: 'hybrid',
+        applicants: 42,
+        travelPct: 25,
         blockers: ['sql'],
         angle: '  positioning  ',
       }),
     );
     expect(j.verdict).toBe('match');
     expect(j.mode).toBe('hybrid');
+    expect(j.applicants).toBe(42);
+    expect(j.travelPct).toBe(25);
     expect(j.blockers).toEqual(['sql']);
     expect(j.angle).toBe('positioning');
   });
 
-  it('strips the retired travelPct and applicants fields from old records', () => {
-    const old = { verdict: 'match', applicants: 42, travelPct: 25 } as unknown as Partial<Job>;
-    const j = normalizeScreening(base(old));
-    expect(j.verdict).toBe('match');
-    expect('applicants' in j).toBe(false);
-    expect('travelPct' in j).toBe(false);
-  });
-
-  it('drops invalid enums and empty strings', () => {
+  it('drops invalid enums, bad numbers, and empty strings', () => {
     const bad = {
       verdict: 'nope',
       mode: 'somewhere',
+      applicants: -3,
+      travelPct: NaN,
       blockers: ['', '   '],
       angle: '   ',
     } as unknown as Partial<Job>;
     const j = normalizeScreening(base(bad));
     expect(j.verdict).toBeUndefined();
     expect(j.mode).toBeUndefined();
+    expect(j.applicants).toBeUndefined();
+    expect(j.travelPct).toBeUndefined();
     expect(j.blockers).toBeUndefined();
     expect(j.angle).toBeUndefined();
   });

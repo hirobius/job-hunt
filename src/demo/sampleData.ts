@@ -48,6 +48,7 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       verdict: 'stretch',
       mode: 'hybrid',
       blockers: ['cert'],
+      travelPct: 40,
       history: [{ status: 'Saved', at: d(-2) }],
     }),
     job({
@@ -72,6 +73,7 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       priority: true, // pinned so the due follow-up shows in the default Active view
       verdict: 'stretch',
       mode: 'remote',
+      applicants: 310,
       history: [
         { status: 'Saved', at: d(-14) },
         { status: 'Applied', at: d(-12) },
@@ -87,6 +89,7 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       priority: true, // pinned so the due follow-up shows in the default Active view
       verdict: 'match',
       mode: 'hybrid',
+      applicants: 85,
       contact: 'Recruiter: Sam Rivera (fictional)',
       history: [
         { status: 'Saved', at: d(-11) },
@@ -102,6 +105,7 @@ export function sampleJobs(now: Date = new Date()): SampleJob[] {
       applied: d(-3),
       verdict: 'reach',
       mode: 'onsite',
+      applicants: 40,
       history: [
         { status: 'Saved', at: d(-5) },
         { status: 'Applied', at: d(-3) },

@@ -31,6 +31,8 @@ const COLUMNS: [string, (j: Job) => string][] = [
   ['salary', (j) => opt(j.salary)],
   ['verdict', (j) => opt(j.verdict)],
   ['mode', (j) => opt(j.mode)],
+  ['travel_pct', (j) => opt(j.travelPct)],
+  ['applicants', (j) => opt(j.applicants)],
   ['blockers', (j) => (j.blockers || []).join('|')],
   ['angle', (j) => opt(j.angle)],
   ['screened_at', (j) => opt(j.screenedAt)],

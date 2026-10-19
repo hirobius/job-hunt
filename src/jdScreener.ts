@@ -16,6 +16,7 @@ export interface JdHit {
 }
 export interface JdScreen {
   mode?: JobMode;
+  travelPct?: number;
   blockers: string[];
   verdict: Verdict;
   hits: JdHit[];
@@ -154,6 +155,7 @@ export function screenJd(raw: string): JdScreen {
   const { mode, evidence: modeEv } = detectMode(t);
   if (mode && modeEv) hits.push({ tag: `mode:${mode}`, evidence: modeEv });
   const travel = detectTravel(t);
-  if (travel != null) hits.push({ tag: 'travel', evidence: `${travel}% travel` });
-  return { mode, blockers, verdict: suggestVerdict(blockers), hits };
+  const travelPct = travel ?? undefined;
+  if (travelPct != null) hits.push({ tag: 'travel', evidence: `${travelPct}% travel` });
+  return { mode, travelPct, blockers, verdict: suggestVerdict(blockers), hits };
 }

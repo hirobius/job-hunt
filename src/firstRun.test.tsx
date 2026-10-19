@@ -21,7 +21,7 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, getAllJobs, removeJob } from './store';
+import { getAllJobs, removeJob } from './store';
 import { getCurationState, replaceCurationState } from './curation/curationStore';
 
 const renderApp = () =>
@@ -44,7 +44,7 @@ beforeEach(() => {
   localStorage.clear();
   replaceCurationState({ categories: [], groups: [], tiles: [] });
   window.history.replaceState(null, '', '/');
-  window.location.hash = '';
+  window.location.hash = '#/today';
 });
 afterEach(() => {
   cleanup();
@@ -82,13 +82,10 @@ describe('step 1: pick a track', () => {
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
   });
 
-  it('sample data ends the first run: the Pipeline shows the sample, no tracks yet', async () => {
+  it('sample data ends the first run: Today shows the sample pipeline, no tracks yet', async () => {
     renderApp();
     await click('Try with sample data');
-    expect(
-      await screen.findByRole('tab', { name: 'Pipeline', selected: true }),
-    ).toBeInTheDocument();
-    expect(await screen.findByRole('status', { name: 'Sample data' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: /^Follow-ups due/ })).toBeInTheDocument();
     expect(getCurationState().categories).toHaveLength(0);
   });
 });
@@ -105,7 +102,7 @@ describe('steps 2 and 3', () => {
     expect(screen.getAllByRole('checkbox')[0]).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('Finish seeds the pick with the location, saves the job and stays on Companies', async () => {
+  it('Finish seeds the pick with the location, saves the job and lands on Today', async () => {
     renderApp();
     await pickFirstPack();
     await click('Continue');
@@ -117,8 +114,8 @@ describe('steps 2 and 3', () => {
       'https://acme.example/jobs/42',
     );
     await click('Finish');
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
-    expect(screen.queryByRole('heading', { name: 'Set up your board' })).toBeNull();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/today');
     expect(getCurationState().categories.map((c) => [c.label, c.location])).toEqual([
       ['Implementation Consulting', 'Tacoma, WA'],
     ]);
@@ -142,7 +139,7 @@ describe('steps 2 and 3', () => {
     await click('Continue');
     await click('Continue');
     await click("I'll do it later");
-    await waitFor(() => expect(getCurationState().categories).toHaveLength(1));
+    expect(await screen.findByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument();
     expect(getCurationState().categories).toHaveLength(1);
     expect(getAllJobs()).toHaveLength(0);
   });
@@ -174,7 +171,6 @@ describe('Skip', () => {
 
 describe('Discover with no track', () => {
   it('Choose a track opens the same steps and Finish stays on Discover', async () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer'); // a first run (no jobs) skips the gate
     window.location.hash = '#/discover';
     renderApp();
     await click('Choose a track');
