@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useToast } from '@hirobius/design-system';
 import type { User } from '@supabase/supabase-js';
 import { supabase as supa } from '../supabase';
+import { signInErrorMessage } from './signInErrors';
 import { useJobs, getAllJobs, replaceAll } from '../store';
 import { useSnippets, getSnippets, replaceSnippets } from '../copyDeckStore';
 import { useTileTriage, getTileTriage, replaceTriage } from '../tileTriage';
@@ -272,10 +273,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       email,
       options: { emailRedirectTo: location.origin + location.pathname },
     });
-    if (!r.error) return null;
-    const why = 'Could not send link: ' + r.error.message;
-    toast({ title: 'Sign-in link not sent', description: r.error.message, tone: 'danger' });
-    return why;
+    // The dialog shows the error inline, in plain words (no vendor message).
+    return r.error ? signInErrorMessage(r.error) : null;
   };
 
   // A failed pull/push is a toast once per outage (not a banner): focus re-pulls and Retry
