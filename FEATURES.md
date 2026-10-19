@@ -18,7 +18,7 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
   days as "⏰ follow up". Most offers come from the nudge, not the first send.
 - ✅ **Active queue**: the default view shows what is still _Saved_ plus anything
   you pinned; applying drops a job out of it, so you always know what to do next.
-- ✅ **Funnel analytics**, small dashboard: applied this week, total, **reply
+- ✅ **Funnel analytics** (cut 2026-10-17, no longer in the app), small dashboard: applied this week, total, **reply
   rate**, interview conversion. Tells you if the problem is volume or resume.
 
 ## Phase 2, Tracking depth (better interviews, less re-work)

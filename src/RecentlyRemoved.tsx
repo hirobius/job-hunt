@@ -22,9 +22,11 @@ function RemovedRow({ entry }: { entry: Removed }) {
         <Text variant="ui" as="span" className="rjb-semibold">
           {title}
         </Text>
-        <Text variant="caption" as="span" style={SECONDARY}>
-          {[...metaLines([entry.job.company]), daysAgo(entry.removedAt)].join(' · ')}
-        </Text>
+        {metaLines([entry.job.company, daysAgo(entry.removedAt)]).map((line) => (
+          <Text key={line} variant="caption" as="span" style={SECONDARY}>
+            {line}
+          </Text>
+        ))}
       </Box>
       <Stack direction="row" gap="tight">
         <Button
