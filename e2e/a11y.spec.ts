@@ -71,6 +71,12 @@ for (const theme of THEMES) {
         await job.click();
         await page.waitForTimeout(500);
         for (const v of await axeViolations(page)) bad.push(`job page ${v}`);
+        // Apply mode (#/apply/<jobId>, #219): its id comes from the sample data, so start it.
+        await go(page, '#/queue');
+        await page.getByRole('button', { name: 'Start applying' }).click();
+        await expect(page).toHaveURL(/#\/apply\//);
+        await page.waitForTimeout(500);
+        for (const v of await axeViolations(page)) bad.push(`apply mode ${v}`);
         expect(bad).toEqual([]);
       });
     });

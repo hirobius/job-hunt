@@ -172,25 +172,32 @@ export function useJobs(): Job[] {
  *  `note` seeds the new Job's note (used by tile saves to carry the tile's description
  *  into the queue card — issue #57 "enriched save"). Ignored when the job already exists,
  *  so a re-save never clobbers the user's own notes. */
-export function addJob(rawUrl: string, label?: string, note?: string): boolean {
+/** What a quick save did: a new job, a set-aside one brought back, one already in the Pipeline,
+ *  or nothing for a link that isn't one (#219: callers tell the user about the first two). */
+export type AddOutcome = 'added' | 'restored' | 'exists' | 'invalid';
+
+export function addJobOutcome(rawUrl: string, label?: string, note?: string): AddOutcome {
   const jobs = store.get();
   const u = normalizeJobUrl(rawUrl);
-  if (!u || !/\./.test(u)) return false;
+  if (!u || !/\./.test(u)) return 'invalid';
   const key = dedupKey(u);
   const i = jobs.findIndex((j) => dedupKey(j.url) === key);
   if (i > -1) {
-    if (jobs[i].archived) {
-      const c = [...jobs];
-      c[i] = { ...c[i], archived: false };
-      set(c);
-    }
-    return false;
+    if (!jobs[i].archived) return 'exists';
+    const c = [...jobs];
+    c[i] = { ...c[i], archived: false };
+    set(c);
+    return 'restored';
   }
   const job: Job = { url: u, label: (label || '').trim() || prettyTitle(u), status: 'Saved' };
   if (note?.trim()) job.note = note.trim();
   set([...jobs, job]);
-  return true;
+  return 'added';
 }
+
+/** Add a job; true only when it is new (a set-aside one is brought back, but returns false). */
+export const addJob = (rawUrl: string, label?: string, note?: string): boolean =>
+  addJobOutcome(rawUrl, label, note) === 'added';
 /** Add a job with extra fields in one shot (used by Live postings save). Returns the stored
  *  (normalized) URL when newly added, or null if it already existed — in which case
  *  the existing entry is left untouched so we never clobber the user's own notes. */
