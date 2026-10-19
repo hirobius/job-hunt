@@ -39,10 +39,7 @@ import { applyTargeting, NO_TARGETING } from './feed/targeting';
 import type { Seniority } from './curation/types';
 import { useCategories, useGroups, useTiles } from './curation/curationStore';
 import { postedAgo } from './feed/format';
-import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
-import { groupByCompany, type CompanyGroup } from './feed/byCompany';
-import { useHashView } from './hashView';
-import { SavedTargets } from './OutreachRows';
+import { boardsFromUrls } from './feed/sources/ats';
 import { deleteFilter, saveFilter, useFilters, type SavedFilter } from './feed/savedFilters';
 import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
 import { boardsForPack, packIdForLabel } from './curation/starterPacks';
@@ -138,9 +135,6 @@ export default function LiveFeedPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [categoryId, suggested, tiles, groups],
   );
-  const [view, setView] = useHashView();
-  const byCompany = view === 'companies';
-  const watchedBoards = useMemo(() => boardsFromUrls(boardUrls, Infinity), [boardUrls]);
   const watchedCount = useMemo(() => boardsFromUrls(boardUrls, Infinity).length, [boardUrls]);
 
   useEffect(() => {
@@ -270,7 +264,6 @@ export default function LiveFeedPanel({
     setPicked(new Set());
   };
 
-  const companies = useMemo(() => (byCompany ? groupByCompany(visible) : []), [byCompany, visible]);
   const jobs = useJobs();
   const savedKeys = useMemo(() => new Set(jobs.map((j) => dedupKey(j.url))), [jobs]);
 
@@ -325,17 +318,6 @@ export default function LiveFeedPanel({
       description: 'Its openings now show up here.',
       tone: 'success',
     });
-  };
-
-  const watchCompany = (board: Board) => {
-    const r = watchBoard(categoryId, canonicalBoardUrl(board));
-    if (r.ok)
-      toast({
-        title: `Watching ${r.label}`,
-        description: 'Its openings now show up here.',
-        tone: 'success',
-      });
-    else toast({ title: r.error, tone: 'warning' });
   };
 
   // Saves one posting as a Job; the stored URL when it was new, else null.
@@ -741,21 +723,6 @@ export default function LiveFeedPanel({
           <Box sx={{ mb: 'xs' }}>
             <PatternsSummary patterns={patterns} />
           </Box>
-          <Box sx={{ mb: 'xs' }}>
-            <SegmentedControl
-              aria-label="View"
-              size="sm"
-              value={byCompany ? 'companies' : 'openings'}
-              onChange={(v) => {
-                setView(v === 'companies' ? 'companies' : null);
-                setShown(PAGE);
-              }}
-              options={[
-                { value: 'openings', label: 'Openings' },
-                { value: 'companies', label: 'Companies' },
-              ]}
-            />
-          </Box>
           {sweeping && sweepTitles.length > 1 && (
             <Box
               role="group"
@@ -811,23 +778,6 @@ export default function LiveFeedPanel({
                     : 'None of these openings carry that signal — switch back to All.'
               }
             />
-          ) : byCompany ? (
-            <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Companies">
-              {companies.slice(0, shown).map((g) => (
-                <CompanyRow
-                  key={g.key}
-                  g={g}
-                  now={current!.at}
-                  unwatched={g.boards.find(
-                    (b) =>
-                      !watchedBoards.some(
-                        (w) => w.kind === b.kind && w.slug.toLowerCase() === b.slug.toLowerCase(),
-                      ),
-                  )}
-                  onWatch={watchCompany}
-                />
-              ))}
-            </Box>
           ) : (
             <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
               {visible.slice(0, shown).map((p) => (
@@ -844,13 +794,8 @@ export default function LiveFeedPanel({
               ))}
             </Box>
           )}
-          {byCompany && (
-            <Box sx={{ mt: 'md' }}>
-              <SavedTargets categoryId={categoryId} boardUrls={boardUrls} />
-            </Box>
-          )}
           {/* One line, once, instead of a fit badge missing from every row. */}
-          {!byCompany && evidence.length === 0 && visible.length > 0 && (
+          {evidence.length === 0 && visible.length > 0 && (
             <Box sx={{ mt: 'xs' }}>
               <Text variant="caption" as="span" style={SECONDARY}>
                 Postings get a fit once you add evidence.{' '}
@@ -860,14 +805,14 @@ export default function LiveFeedPanel({
               </Button>
             </Box>
           )}
-          {(byCompany ? companies.length : visible.length) > shown && (
+          {visible.length > shown && (
             <Button
               variant="tertiary"
               size="sm"
               onClick={() => setShown((n) => n + PAGE)}
               style={{ marginTop: 'var(--primitive-space-2)' }}
             >
-              Show more ({(byCompany ? companies.length : visible.length) - shown})
+              Show more ({visible.length - shown})
             </Button>
           )}
         </Box>
@@ -902,86 +847,6 @@ function BulkSaveBar({
         {`Save all shown (${shown.length})`}
       </Button>
     </Stack>
-  );
-}
-
-function CompanyRow({
-  g,
-  now,
-  unwatched,
-  onWatch,
-}: {
-  g: CompanyGroup;
-  now: number;
-  /** A board these openings sit on that the track doesn't watch yet. */
-  unwatched?: Board;
-  onWatch: (b: Board) => void;
-}) {
-  const newest = postedAgo(g.newestPostedAt, now);
-  return (
-    <Box
-      as="li"
-      sx={{
-        py: 3,
-        borderBottom: 'thin solid',
-        borderColor: 'border.default',
-        display: 'flex',
-        gap: 3,
-        alignItems: 'flex-start',
-      }}
-    >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Text variant="ui" as="h3" style={{ overflowWrap: 'anywhere' }}>
-          {g.company}
-        </Text>
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginTop: 'calc(var(--primitive-space-1) * 0.5)',
-          }}
-        >
-          {g.count} {g.count === 1 ? 'opening mentions' : 'openings mention'} your search
-          {newest ? ` · newest ${newest}` : ''}
-        </Text>
-        {g.signals.length > 0 && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
-            {g.signals.map((s) => (
-              <Badge key={s.id} tone={s.id === 'contract' ? 'success' : 'info'}>
-                {s.label}
-              </Badge>
-            ))}
-          </Box>
-        )}
-        <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0, mt: 1.5 }}>
-          {g.top.map((p) => (
-            <Box as="li" key={p.id}>
-              <Text variant="ui" as="span" style={{ overflowWrap: 'anywhere' }}>
-                <InlineLink href={p.url} externalIcon={false}>
-                  {p.title}
-                </InlineLink>
-              </Text>
-              <Text variant="caption" as="span" style={SECONDARY}>
-                {' '}
-                · {SOURCE_LABEL[p.source]}
-              </Text>
-            </Box>
-          ))}
-        </Box>
-      </Box>
-      {unwatched && (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => onWatch(unwatched)}
-          aria-label={`Watch ${g.company}`}
-        >
-          Watch
-        </Button>
-      )}
-    </Box>
   );
 }
 

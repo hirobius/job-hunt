@@ -1,7 +1,6 @@
 // Today (#128), the home route `#/today`: what needs doing now. Due follow-ups and the next 7 days
 // of interviews and calls as plain rows, each with one trailing action; one quick-add
-// field; and the Insights band. The read models are pure (jobEvents.ts, metrics.ts); this view
-// only lays them out.
+// field. The read models are pure (jobEvents.ts); this view only lays them out.
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'lucide-react';
 import {
@@ -21,7 +20,6 @@ import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
 import { dueFollowUps, KIND_WORD, UPCOMING_DAYS, upcomingEvents, ymd } from './jobEvents';
 import { jobHash, navigate } from './route';
 import type { Job } from './types';
-import Insights from './Insights';
 import TodayNotice from './TodayNotice';
 import GettingStarted from './GettingStarted';
 import EmptyState from './EmptyState';
@@ -205,7 +203,7 @@ export default function TodayView() {
         />
         <TodayNotice />
         <SampleBanner jobs={jobs} />
-        {/* The day's work reads at the HDS prose measure; Insights spans the page. */}
+        {/* The day's work reads at the HDS prose measure. */}
         <Box sx={{ maxWidth: '36rem' }}>
           <Stack gap="normal">
             <QuickAdd inputRef={quickAddRef} />
@@ -301,7 +299,6 @@ export default function TodayView() {
             )}
           </Stack>
         </Box>
-        {jobs.length > 0 && <Insights jobs={jobs} />}
       </Stack>
     </Page>
   );
