@@ -31,12 +31,6 @@ export default tseslint.config(
   },
   // HDS layout/token discipline (#115 Phase 0): raw controls, raw hex, raw px spacing, sx tokens.
   ...hds.configs.recommended.map((c) => ({ ...c, files: ['src/**/*.tsx'] })),
-  // A rule new in the toolkit (synced from HDS 0.26) that these files broke on the day of the
-  // toolkit switch (hirobius/ops#691). Shrink-only: fix a file, delete its line.
-  {
-    files: ['src/ApplyQueueSummary.tsx', 'src/JobRail.tsx', 'src/OutreachRows.tsx'],
-    rules: { 'hds/max-two-meta-items': 'off' },
-  },
   // Node-context files (build scripts + config)
   {
     files: ['scripts/**/*.mjs', 'vite.config.ts', 'eslint.config.js', 'playwright.config.ts'],
