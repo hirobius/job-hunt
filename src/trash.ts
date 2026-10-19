@@ -116,9 +116,11 @@ export function purgeJob(url: string) {
 }
 
 /** Delete forever (the Recently removed button): the job and its Documents are gone. Purging
- *  after a restore goes through purgeJob and keeps them. Documents of a job that ages out of the
+ *  after a restore goes through purgeJob and keeps them. If the posting was saved again since,
+ *  its Documents belong to the saved job and stay. Documents of a job that ages out of the
  *  trash stay as harmless orphans (no sweep, like per-track data). */
 export function deleteForever(url: string) {
   purgeJob(url);
-  dropDocumentsForJob(url);
+  const key = dedupKey(url);
+  if (!getAllJobs().some((j) => dedupKey(j.url) === key)) dropDocumentsForJob(url);
 }
