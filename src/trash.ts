@@ -6,6 +6,7 @@ import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
 import { loadPersisted, savePersisted } from './persisted';
 import { addJob, dedupKey, getAllJobs, removeJob, replaceAll, sanitizeJobs } from './store';
+import { dropDocumentsForJob } from './documents';
 import type { Job } from './types';
 
 export const TRASH_KEY = 'rjb_trash';
@@ -112,4 +113,12 @@ export function restoreJob(url: string): 'restored' | 'merged' | 'missing' {
 export function purgeJob(url: string) {
   const key = dedupKey(url);
   replaceTrash(getTrash().filter((r) => dedupKey(r.job.url) !== key));
+}
+
+/** Delete forever (the Recently removed button): the job and its Documents are gone. Purging
+ *  after a restore goes through purgeJob and keeps them. Documents of a job that ages out of the
+ *  trash stay as harmless orphans (no sweep, like per-track data). */
+export function deleteForever(url: string) {
+  purgeJob(url);
+  dropDocumentsForJob(url);
 }

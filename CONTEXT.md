@@ -57,3 +57,19 @@ _Avoid_: listing, opening (in code), result
 **Watched company**:
 A company whose Greenhouse, Lever or Ashby job board is on a track (as a tile), so its openings are pulled into Live postings.
 _Avoid_: followed company, subscription
+
+**Document**:
+A Résumé, Cover letter, Note or Outreach message the user writes, linked to a Job, a Company, or neither (`src/documents.ts`). Every save adds a Version.
+_Avoid_: file, attachment, template (in code)
+
+**Version**:
+One saved text of a Document. Versions are kept in save order and never edited; a new save adds a new one.
+_Avoid_: revision, draft, history entry
+
+**Sent**:
+The one Version of a kind (say, Cover letter) that went to a Job. Locked once marked: it can't be un-sent, moved or deleted, and a Job has at most one Sent Version per kind.
+_Avoid_: submitted, final
+
+**Base document**:
+A Document not tied to a Job, kept to be copied into one. It is never Sent itself.
+_Avoid_: master, template, default

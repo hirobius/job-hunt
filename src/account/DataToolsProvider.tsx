@@ -25,6 +25,7 @@ import { readEvidence, replaceEvidence } from '../radar/evidenceStore';
 import { getTrash, replaceTrash } from '../trash';
 import { getAllModes, replaceModes } from '../trackModes';
 import { getAllDreams, replaceDreams } from '../feed/dreams';
+import { getAllDocuments, replaceDocuments } from '../documents';
 import { BRAND } from '../brand';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
@@ -44,6 +45,7 @@ function currentState(): AccountState {
     modes: getAllModes(),
     trash: getTrash(),
     dreams: getAllDreams(),
+    documents: getAllDocuments(),
   };
 }
 
@@ -63,6 +65,7 @@ function applyState(next: AccountState) {
   replaceModes(next.modes);
   replaceTrash(next.trash);
   replaceDreams(next.dreams);
+  replaceDocuments(next.documents);
 }
 
 export default function DataToolsProvider({ children }: { children: ReactNode }) {
