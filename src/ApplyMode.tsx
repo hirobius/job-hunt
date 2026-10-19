@@ -408,7 +408,7 @@ function AnswerRow({ a }: { a: KitAnswer }) {
             variant="tertiary"
             iconOnly
             iconLeft={<Icon icon={Trash2} />}
-            label={`Remove question ${a.q}`}
+            label={a.q.trim() ? `Remove question ${a.q}` : 'Remove this question'}
             onClick={() => removeAnswer(a.id)}
           />
         </Stack>

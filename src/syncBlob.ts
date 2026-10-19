@@ -5,6 +5,7 @@
 //
 // v8 (ADR 0008 addendum) adds Recently removed: jobs removed in the last 30 days (`src/trash.ts`).
 // v9 adds dream companies per track (src/feed/dreams.ts), same pattern as the v5 stores.
+// v10 adds Documents with their Versions (src/documents.ts, #226), same pattern.
 // v7 adds the wide sweep's titles per track (#213), optional on read.
 // v6 adds the Application kit (rapid apply: profile fields + saved answers), optional on read.
 // v5 (ADR 0008) adds the user-edited stores that used to live only in this browser: outreach
@@ -30,6 +31,12 @@ import type { WorkMode } from './jobsData';
 import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
 import { mergeTrash, sanitizeTrash, type Removed } from './trash';
+import {
+  mergeDocuments,
+  sanitizeDocuments,
+  withoutSampleDocuments,
+  type Document,
+} from './documents';
 
 export type { Triage };
 
@@ -56,13 +63,15 @@ export interface SyncData {
   trash: Removed[];
   /** Dream companies per track (v9). */
   dreams: Record<string, Dream[]>;
+  /** Documents and their Versions (v10). */
+  documents: Document[];
   /** The blob version this was read from (0 = not read from a blob). A pre-v5 cloud copy says
    *  nothing about the v5 fields, so a refresh must not let its emptiness wipe local values. */
   sourceV: number;
 }
 
 /** Blob schema version written to the cloud. */
-export const BLOB_VERSION = 9;
+export const BLOB_VERSION = 10;
 
 export function emptyBlob(): SyncData {
   return {
@@ -78,6 +87,7 @@ export function emptyBlob(): SyncData {
     sweeps: {},
     trash: [],
     dreams: {},
+    documents: [],
     sourceV: 0,
   };
 }
@@ -109,6 +119,7 @@ export function readBlob(data: unknown): SyncData {
     sweeps: sanitizeSweeps(o.sweeps),
     trash: sanitizeTrash(o.trash),
     dreams: sanitizeDreams(o.dreams),
+    documents: sanitizeDocuments(o.documents),
     sourceV: typeof o.v === 'number' ? o.v : 0,
   };
 }
@@ -128,6 +139,7 @@ export function writeBlob(d: SyncData) {
     sweeps: d.sweeps,
     trash: d.trash.filter((r) => !isSample(r.job)),
     dreams: d.dreams,
+    documents: withoutSampleDocuments(d.documents, d.jobs),
   };
 }
 
@@ -156,6 +168,8 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     const v8 = cloud.sourceV >= 8 ? {} : { trash: local.trash };
     // And a pre-v9 copy says nothing about dream companies.
     const v9 = cloud.sourceV >= 9 ? {} : { dreams: local.dreams };
+    // And a pre-v10 copy says nothing about Documents.
+    const v10 = cloud.sourceV >= 10 ? {} : { documents: local.documents };
     return {
       ...cloud,
       ...v5,
@@ -163,6 +177,7 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
       ...v7,
       ...v8,
       ...v9,
+      ...v10,
       jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
       triage: {
         pinned: local.triage.pinned.filter((u) => !dismissed.has(u)),
@@ -186,6 +201,7 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     // A job saved on either side is not also listed as removed.
     trash: mergeTrash(cloud.trash, local.trash).filter((r) => !saved.has(dedupKey(r.job.url))),
     dreams: mergeDreams(cloud.dreams, local.dreams),
+    documents: mergeDocuments(cloud.documents, local.documents),
     sourceV: cloud.sourceV,
   };
 }

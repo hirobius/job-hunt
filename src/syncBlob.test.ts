@@ -4,6 +4,7 @@ import { EVIDENCE_MAX } from './radar/evidenceStore';
 import type { Target } from './feed/targets';
 import type { SavedFilter } from './feed/savedFilters';
 import type { Dream } from './feed/dreams';
+import type { Document } from './documents';
 import type { Job } from './types';
 
 const job = (url: string, label = url): Job => ({ url, label, status: 'Saved' });
@@ -40,6 +41,15 @@ const dream = (company: string): Dream => ({
 });
 
 const blob = (over: Partial<SyncData> = {}): SyncData => ({ ...emptyBlob(), ...over });
+
+const document = (id: string, jobUrl?: string, text = id): Document => ({
+  id,
+  kind: 'cover',
+  title: id,
+  createdAt: '2026-10-01T00:00:00.000Z',
+  versions: [{ id: `${id}-v1`, text, savedAt: '2026-10-01T00:00:00.000Z' }],
+  ...(jobUrl ? { jobUrl } : {}),
+});
 
 describe('readBlob — tolerant of every historical shape', () => {
   it('v1: a bare array is the legacy jobs-only blob', () => {
@@ -84,9 +94,9 @@ describe('readBlob — tolerant of every historical shape', () => {
 describe('writeBlob — v4 shape', () => {
   it('writes only jobs, copydeck and set-aside (no pillars, userTiles or pins)', () => {
     const out = writeBlob(blob({ jobs: [job('a')], triage: { pinned: ['p'], dismissed: ['d'] } }));
-    expect(BLOB_VERSION).toBe(9);
+    expect(BLOB_VERSION).toBe(10);
     expect(out).toEqual({
-      v: 9,
+      v: 10,
       jobs: [job('a')],
       copydeck: [],
       triage: { dismissed: ['d'] },
@@ -98,6 +108,7 @@ describe('writeBlob — v4 shape', () => {
       sweeps: {},
       trash: [],
       dreams: {},
+      documents: [],
     });
   });
 
@@ -111,8 +122,9 @@ describe('writeBlob — v4 shape', () => {
       modes: { t1: 'hybrid' },
       trash: [removed('b')],
       dreams: { t1: [dream('Acme')] },
+      documents: [document('d1', 'https://a.example/1')],
     });
-    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 9 });
+    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 10 });
   });
 });
 
@@ -344,5 +356,43 @@ describe('blob v8 — Recently removed', () => {
   it('never pushes a removed sample job', () => {
     const sample = { ...removed('s'), job: { ...removed('s').job, demo: true } as Job };
     expect(writeBlob(blob({ trash: [sample, removed('a')] })).trash).toHaveLength(1);
+  });
+});
+
+describe('blob v10 — Documents (#226)', () => {
+  it('an older blob reads with no documents; v10 drops malformed ones', () => {
+    expect(readBlob({ v: 9, jobs: [] }).documents).toEqual([]);
+    const r = readBlob({ v: 10, documents: [document('ok'), { id: 'bad', kind: 'memo' }] });
+    expect(r.documents.map((d) => d.id)).toEqual(['ok']);
+  });
+
+  it('refresh: a pre-v10 cloud copy never wipes this device’s documents; a v10 one wins', () => {
+    const local = blob({ documents: [document('mine')] });
+    expect(mergeBlob(blob({ sourceV: 9 }), local, false).documents).toEqual(local.documents);
+    expect(mergeBlob(blob({ sourceV: 10 }), local, false).documents).toEqual([]);
+  });
+
+  it('seed: unions documents and their versions', () => {
+    const out = mergeBlob(
+      blob({ sourceV: 10, documents: [document('cloud')] }),
+      blob({ documents: [document('local')] }),
+      true,
+    );
+    expect(out.documents.map((d) => d.id).sort()).toEqual(['cloud', 'local']);
+  });
+
+  it('never pushes the documents of a sample job', () => {
+    const sample = { ...job('https://demo.example/1'), demo: true } as Job;
+    const out = writeBlob(
+      blob({
+        jobs: [sample, job('https://real.example/1')],
+        documents: [
+          document('s', 'https://demo.example/1'),
+          document('r', 'https://real.example/1'),
+          document('base'),
+        ],
+      }),
+    );
+    expect(out.documents.map((d) => d.id)).toEqual(['r', 'base']);
   });
 });

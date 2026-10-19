@@ -22,9 +22,9 @@ import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInDialog from './account/SignInDialog';
 import SyncNudge from './account/SyncNudge';
-import { addJob, findJobByUrl, markAppliedByUrl, setStatusByUrl, useJobs } from './store';
+import { markAppliedByUrl, setStatusByUrl, useJobs } from './store';
 import NoticeHost from './NoticeHost';
-import { notifySaved } from './saveNotice';
+import { saveWithNotice } from './saveNotice';
 import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
@@ -78,10 +78,7 @@ export default function App() {
     const label = qp.get('t') || qp.get('title') || '';
     let acted = false;
     if (qp.get('add')) {
-      if (addJob(qp.get('add')!, label)) {
-        const job = findJobByUrl(qp.get('add')!);
-        if (job) notifySaved([job.url], job.label);
-      }
+      saveWithNotice(qp.get('add')!, label);
       acted = true;
     }
     if (qp.get('applied')) {
