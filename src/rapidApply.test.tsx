@@ -13,7 +13,8 @@ vi.mock('@supabase/supabase-js', async () => {
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, findJobByUrl, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
-import { getApplyKit, replaceApplyKit, emptyKit } from './applyKit';
+import { getApplyKit, replaceApplyKit, emptyKit, setKitField } from './applyKit';
+import { getSnippets, replaceSnippets, type Snippet } from './copyDeckStore';
 import { notifySaved, dismissNotice } from './saveNotice';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 
@@ -107,6 +108,52 @@ describe('To apply queue and Apply mode', () => {
     await user.click(screen.getAllByRole('button', { name: /^More actions: Bolt Designer/ })[0]);
     await user.click(await screen.findByRole('menuitemradio', { name: 'Interviewing' }));
     expect(findJobByUrl(B)?.status).toBe('Interviewing');
+  });
+});
+
+describe('Apply sheet: templates inside Apply mode (#239)', () => {
+  let saved: Snippet[] = [];
+  beforeEach(() => {
+    saved = getSnippets();
+    replaceSnippets([
+      { id: 'intro', label: 'Cold intro', body: 'Hi, the [Role] role at [Company]. [Your name]' },
+      { id: 'thanks', label: 'Thank you', body: 'Thanks, [Contact].', pinned: true },
+    ]);
+  });
+  afterEach(() => replaceSnippets(saved));
+
+  it('lists each template filled for the job, one copy row each', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText');
+    setKitField('name', 'Sam Placeholder');
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const filled = 'Hi, the Acme Designer role at Acme. Sam Placeholder';
+    const list = await screen.findByRole('list', { name: 'Your templates' });
+    const rows = within(list).getAllByRole('listitem');
+    expect(rows.map((r) => r.getAttribute('aria-label'))).toEqual(['Thank you', 'Cold intro']);
+    expect(within(list).getByText(filled)).toBeInTheDocument();
+    await user.click(within(list).getByRole('button', { name: 'Copy Cold intro' }));
+    expect(writeText).toHaveBeenCalledWith(filled);
+    expect(
+      await within(list).findByRole('button', { name: 'Copied Cold intro' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Edit templates' })).toHaveAttribute(
+      'href',
+      '#/copy-deck',
+    );
+  });
+
+  it('with no templates, points to Templates instead', async () => {
+    replaceSnippets([]);
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('link', { name: 'Open application' });
+    expect(screen.queryByRole('list', { name: 'Your templates' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Write a template' })).toHaveAttribute(
+      'href',
+      '#/copy-deck',
+    );
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emptyKit, mergeKit, sanitizeKit } from './applyKit';
+import { emptyKit, filledTemplates, mergeKit, sanitizeKit } from './applyKit';
 import { followUpDate, followUpJobs, toApplyQueue } from './applyQueue';
 import { mergeBlob, readBlob, writeBlob, emptyBlob, BLOB_VERSION } from './syncBlob';
 import type { Job } from './types';
@@ -83,5 +83,29 @@ describe('application kit', () => {
     const newCloud = readBlob({ v: 6, kit: { fields: { name: 'Cloud' } } });
     expect(mergeBlob(newCloud, local, false).kit.fields.name).toBe('Cloud');
     expect(mergeBlob(newCloud, local, true).kit.fields.name).toBe('Cloud');
+  });
+});
+
+describe('Apply sheet templates (#239)', () => {
+  const snip = (id: string, body: string, extra = {}) => ({ id, label: id, body, ...extra });
+  it('fills every template for the job, pinned first, kit name for [Your name]', () => {
+    const rows = filledTemplates(
+      [
+        snip('intro', 'Hi [Contact] at [Company], [Your name]'),
+        snip('cover', 'Applying for [Role] · [Missing]', { pinned: true }),
+        snip('blank', '   '),
+      ],
+      job('https://a.com/1', { label: 'Designer', company: 'Acme' }),
+      'Sam',
+    );
+    expect(rows).toEqual([
+      { id: 'cover', label: 'cover', text: 'Applying for Designer · [Missing]' },
+      { id: 'intro', label: 'intro', text: 'Hi [Contact] at Acme, Sam' },
+    ]);
+  });
+  it('names an unlabelled template', () => {
+    expect(filledTemplates([{ id: 'x', label: ' ', body: 'b' }], job('u'))[0].label).toBe(
+      'Untitled',
+    );
   });
 });
