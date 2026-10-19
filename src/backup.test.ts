@@ -53,6 +53,7 @@ const state = (over: Partial<AccountState> = {}): AccountState => ({
   evidence: '',
   modes: {},
   trash: [],
+  dreams: {},
   ...over,
 });
 
@@ -307,6 +308,7 @@ describe('sample data (#110)', () => {
         evidence: '',
         modes: {},
         trash: [],
+        dreams: {},
       },
       new Date(2026, 9, 13),
     );

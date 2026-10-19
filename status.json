@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-17T20:00:00Z",
+  "updatedAt": "2026-10-17T21:00:00Z",
   "phase": "live",
-  "headline": "Live as Roleforge. Rapid apply (blob v6) and wide sweep (#213, blob v7) are on main. Job page fixes (PR #214) add Recently removed as blob v8.",
+  "headline": "Live as Roleforge. Rapid apply (#218) and wide sweep (#220, blob v7) are on main. Companies follows the track in review on claude/teams-first (dream companies, blob v9).",
   "next": [
-    "Review draft PR #214 (job page fixes): Star with a Starred filter, soft delete with Undo + Recently removed (blob v8), inline-editable details, one-row header. Main (incl. #220) merged in; review fixes done.",
+    "Review draft PR claude/teams-first: Companies is Discover's default tool (open roles first, Hiring now, inline Save + Undo, dream companies in blob v9; #220 took v7, #214 takes v8).",
     "Merge #181 (polish) and #187 (discovery follow-ups) after review.",
     "Persist all user-edited data across devices: outreach targets, saved searches, evidence, work mode (Adrian, 2026-10-15).",
     "Verify unverified-live sources on a preview: YC mirror, GitHub search, Jobicy, Workable/Recruitee probes, community site: clauses; Remote OK stays off until its legal notice is read.",

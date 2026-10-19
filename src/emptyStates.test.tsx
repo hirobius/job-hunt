@@ -94,7 +94,7 @@ describe('Discover empties', () => {
       location: '',
     });
     addGroup(id, { label: 'Shops', sortOrder: 0, archived: false });
-    window.location.hash = '#/discover';
+    window.location.hash = '#/discover/apply';
     renderApp();
     expect(await screen.findByText('No links here yet')).toBeInTheDocument();
     expect(

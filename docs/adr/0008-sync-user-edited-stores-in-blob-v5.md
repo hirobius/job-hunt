@@ -69,3 +69,13 @@ too (optional on restore; older backups lack it).
 Restoring a job whose posting was saved again since never drops either copy: the removed copy's
 notes, to-dos and interviews are merged into the saved one (`mergeRemovedInto`) and the user is
 told so.
+
+## Addendum (2026-10-17): blob v9, dream companies
+
+Dream companies (`rjb_dreams`, `src/feed/dreams.ts`) follow the same pattern: per track, union by
+company on the seed merge (cloud wins on a shared company), cloud wins on refresh only from a v9+
+copy (an older copy keeps this device's), dropped with their track, included in backups. Each keeps the
+posting ids seen at its last check (the best 300) so "Check dream companies" can say what is new.
+
+v6 is the Application kit (rapid apply), v7 the wide sweep's titles (#220) and v8 the trash (#214),
+so dream companies take v9.

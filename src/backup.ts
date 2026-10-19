@@ -16,6 +16,7 @@ import { mergeTargets, sanitizeTargets, type Target } from './feed/targets';
 import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFilters';
 import { capEvidence, mergeEvidence } from './radar/evidenceStore';
 import { mergeModes, sanitizeModes } from './trackModes';
+import { mergeDreams, sanitizeDreams, type Dream } from './feed/dreams';
 import type { WorkMode } from './jobsData';
 
 export interface AccountState {
@@ -30,6 +31,8 @@ export interface AccountState {
   modes: Record<string, WorkMode>;
   /** Recently removed (blob v8). Older backups lack it. */
   trash: Removed[];
+  /** Dream companies per track. Older backups lack them. */
+  dreams: Record<string, Dream[]>;
 }
 
 export interface Backup extends AccountState {
@@ -58,6 +61,7 @@ export function buildBackup(state: AccountState, now: Date): Backup {
     evidence: state.evidence,
     modes: state.modes,
     trash: state.trash.filter((r) => !isSample(r.job)),
+    dreams: state.dreams,
   };
 }
 
@@ -277,6 +281,7 @@ export function parseBackup(text: string): ParseResult {
       evidence: isStr(data.evidence) ? capEvidence(data.evidence) : '',
       modes: sanitizeModes(data.modes),
       trash: cleanTrash(data.trash),
+      dreams: sanitizeDreams(data.dreams),
     },
   };
 }
@@ -298,6 +303,7 @@ export function applyBackup(
       evidence: backup.evidence,
       modes: backup.modes,
       trash: notSaved(backup.trash, backup.jobs),
+      dreams: backup.dreams,
     };
   }
   const jobs = mergeJobs(backup.jobs, current.jobs);
@@ -311,6 +317,7 @@ export function applyBackup(
     evidence: mergeEvidence(backup.evidence, current.evidence),
     modes: mergeModes(backup.modes, current.modes),
     trash: notSaved(mergeTrash(backup.trash, current.trash), jobs),
+    dreams: mergeDreams(backup.dreams, current.dreams),
   };
 }
 

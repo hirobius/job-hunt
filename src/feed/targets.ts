@@ -25,7 +25,7 @@ export interface Target {
 }
 
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-const httpUrl = (v: unknown): string | undefined => {
+export const httpUrl = (v: unknown): string | undefined => {
   if (typeof v !== 'string') return undefined;
   try {
     const u = new URL(v);
@@ -35,21 +35,24 @@ const httpUrl = (v: unknown): string | undefined => {
   }
 };
 
+/** A stored board, or undefined when it isn't one we can read. */
+export function sanitizeBoard(v: unknown): Board | undefined {
+  const b = typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : null;
+  return b &&
+    PROBE_KINDS.includes(b.kind as Board['kind']) &&
+    typeof b.slug === 'string' &&
+    SLUG.test(b.slug)
+    ? { kind: b.kind as Board['kind'], slug: b.slug, ...(b.eu === true && { eu: true as const }) }
+    : undefined;
+}
+
 function sanitizeOne(raw: unknown): Target | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const o = raw as Record<string, unknown>;
   const login = typeof o.login === 'string' ? o.login.trim() : '';
   const repo = typeof o.repo === 'string' && o.repo ? o.repo : undefined;
   if (!login) return null;
-  const b =
-    typeof o.board === 'object' && o.board !== null ? (o.board as Record<string, unknown>) : null;
-  const board: Board | undefined =
-    b &&
-    PROBE_KINDS.includes(b.kind as Board['kind']) &&
-    typeof b.slug === 'string' &&
-    SLUG.test(b.slug)
-      ? { kind: b.kind as Board['kind'], slug: b.slug, ...(b.eu === true && { eu: true as const }) }
-      : undefined;
+  const board = sanitizeBoard(o.board);
   // A target is a GitHub org with its repo, or a company with a known board (a starter pack's).
   if (!repo && !board) return null;
   return {

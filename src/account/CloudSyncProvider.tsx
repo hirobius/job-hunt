@@ -17,6 +17,7 @@ import { getAllModes, replaceModes, useAllModes } from '../trackModes';
 import { getApplyKit, replaceApplyKit, useApplyKit } from '../applyKit';
 import { getAllSweeps, replaceSweeps, useAllSweeps } from '../feed/sweepTitles';
 import { getTrash, replaceTrash, useTrash } from '../trash';
+import { getAllDreams, replaceDreams, useAllDreams } from '../feed/dreams';
 import {
   readBlob,
   writeBlob,
@@ -68,6 +69,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const kit = useApplyKit();
   const sweeps = useAllSweeps();
   const trash = useTrash();
+  const dreams = useAllDreams();
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const [signInOpen, setSignInOpen] = useState(false);
@@ -98,6 +100,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     kit: getApplyKit(),
     sweeps: getAllSweeps(),
     trash: getTrash(),
+    dreams: getAllDreams(),
     sourceV: BLOB_VERSION,
   });
   const localJson = () => JSON.stringify(writeBlob(localBlob()));
@@ -150,6 +153,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       replaceApplyKit(next.kit);
       replaceSweeps(next.sweeps);
       replaceTrash(next.trash);
+      replaceDreams(next.dreams);
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
       pulledOk.current = true;
@@ -209,7 +213,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     pushTimer.current = setTimeout(() => pushNow(user), 500);
     // pushNow/localJson are stable enough; we intentionally fire only on data + user changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobs, snippets, triage, targets, filters, evidence, modes, kit, sweeps, trash, user]);
+  }, [jobs, snippets, triage, targets, filters, evidence, modes, kit, sweeps, trash, dreams, user]);
 
   // re-pull on focus
   useEffect(() => {

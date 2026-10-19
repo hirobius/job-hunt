@@ -3,6 +3,7 @@ import { readBlob, mergeBlob, emptyBlob, writeBlob, BLOB_VERSION, type SyncData 
 import { EVIDENCE_MAX } from './radar/evidenceStore';
 import type { Target } from './feed/targets';
 import type { SavedFilter } from './feed/savedFilters';
+import type { Dream } from './feed/dreams';
 import type { Job } from './types';
 
 const job = (url: string, label = url): Job => ({ url, label, status: 'Saved' });
@@ -29,6 +30,13 @@ const search = (name: string): SavedFilter => ({
 const removed = (url: string, label = url) => ({
   job: job(`https://${url}.example/1`, label),
   removedAt: new Date().toISOString(),
+});
+
+const dream = (company: string): Dream => ({
+  key: company.toLowerCase(),
+  company,
+  seen: [],
+  starredAt: '2026-10-01T00:00:00.000Z',
 });
 
 const blob = (over: Partial<SyncData> = {}): SyncData => ({ ...emptyBlob(), ...over });
@@ -76,9 +84,9 @@ describe('readBlob — tolerant of every historical shape', () => {
 describe('writeBlob — v4 shape', () => {
   it('writes only jobs, copydeck and set-aside (no pillars, userTiles or pins)', () => {
     const out = writeBlob(blob({ jobs: [job('a')], triage: { pinned: ['p'], dismissed: ['d'] } }));
-    expect(BLOB_VERSION).toBe(8);
+    expect(BLOB_VERSION).toBe(9);
     expect(out).toEqual({
-      v: 8,
+      v: 9,
       jobs: [job('a')],
       copydeck: [],
       triage: { dismissed: ['d'] },
@@ -89,6 +97,7 @@ describe('writeBlob — v4 shape', () => {
       kit: { fields: {}, answers: [] },
       sweeps: {},
       trash: [],
+      dreams: {},
     });
   });
 
@@ -101,8 +110,9 @@ describe('writeBlob — v4 shape', () => {
       evidence: 'Led a design system',
       modes: { t1: 'hybrid' },
       trash: [removed('b')],
+      dreams: { t1: [dream('Acme')] },
     });
-    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 8 });
+    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 9 });
   });
 });
 
@@ -278,6 +288,21 @@ describe('blob v5 — targets, saved searches, evidence, work mode', () => {
     expect(out.targets).toEqual(local.targets);
     expect(out.evidence).toBe('keep');
     expect(out.modes).toEqual(local.modes);
+  });
+
+  it('refresh: a pre-v9 cloud copy never wipes this device’s dream companies; a v9 one wins', () => {
+    const local = blob({ dreams: { t1: [dream('Acme')] } });
+    expect(mergeBlob(blob({ sourceV: 8 }), local, false).dreams).toEqual(local.dreams);
+    expect(mergeBlob(blob({ sourceV: 9 }), local, false).dreams).toEqual({});
+  });
+
+  it('seed: unions dream companies per track', () => {
+    const out = mergeBlob(
+      blob({ sourceV: 9, dreams: { t1: [dream('Cloud')] } }),
+      blob({ dreams: { t1: [dream('Local')] } }),
+      true,
+    );
+    expect(out.dreams.t1.map((d) => d.company)).toEqual(['Local', 'Cloud']);
   });
 });
 

@@ -69,6 +69,7 @@ const backupFile = (jobs: Job[]) =>
             evidence: '',
             modes: {},
             trash: [],
+            dreams: {},
           },
           new Date('2026-10-12T00:00:00Z'),
         ),

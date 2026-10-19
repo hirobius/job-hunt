@@ -45,6 +45,7 @@ const SECTION_PANEL = { ...BARE_PANEL, paddingTop: 'var(--primitive-space-4)' } 
 import { useAtLeast } from './hds-gaps/useBreakpoint';
 import { useTrackContext } from './discoverContext';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
+import { teamSearchFor } from './feed/teamTopics';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 import { SECONDARY } from './hds-gaps/tone';
 import { useActiveTitles } from './feed/sweepTitles';
@@ -359,13 +360,15 @@ function AtsPanel({
 // The tools row is data-driven: adding a tool (e.g. "By company") is one entry here. Short labels
 // on a phone, full names from the HDS `sm` breakpoint up (docs/specs/discover.md, "Tools vs sections").
 type ToolKey = 'apply' | 'titles' | 'ats' | 'live' | 'boards' | 'teams';
+// Teams (slug `teams`) leads and is the default where the track's terms give
+// its GitHub search something to find (teamTopics.ts); elsewhere it sits after Apply now.
 const TOOLS: { key: ToolKey; label: string; short: string }[] = [
+  { key: 'teams', label: 'Teams', short: 'Teams' },
   { key: 'apply', label: 'Apply now', short: 'Apply' },
   { key: 'titles', label: 'Title search', short: 'Titles' },
   { key: 'ats', label: 'ATS search', short: 'ATS' },
   { key: 'live', label: 'Live postings', short: 'Live' },
   { key: 'boards', label: 'Find boards', short: 'Boards' },
-  { key: 'teams', label: 'Design-system teams', short: 'Teams' },
 ];
 
 export default function DiscoverView() {
@@ -448,17 +451,33 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
 
   const route = useRoute();
   const wide = useAtLeast('sm');
+  const teamSearch = useMemo(
+    () => teamSearchFor([...cat.titles, ...cat.atsRoles]),
+    [cat.titles, cat.atsRoles],
+  );
+  const companiesLead = !!teamSearch && DISCOVERY_SOURCE_ENABLED.github;
+  // Apply now first where Teams doesn't lead (a stable sort keeps the rest in order).
+  const ordered = companiesLead
+    ? TOOLS
+    : [...TOOLS].sort((a, b) => Number(b.key === 'apply') - Number(a.key === 'apply'));
   // A track with no sections has no "Apply now" view to show: open on Title search instead.
-  const tools = TOOLS.filter(
+  const tools = ordered.filter(
     (t) =>
       (sections.length || t.key !== 'apply') &&
       (DISCOVERY_SOURCE_ENABLED.github || t.key !== 'teams'),
   );
   const sub = route.sub;
+  // No sub → the default tool; a section id → Apply now on that section.
+  const fallback: ToolKey = sections.length ? 'apply' : 'titles';
+  const defaultTool: ToolKey = companiesLead ? 'teams' : fallback;
   const tool: ToolKey =
     (tools.find((t) => t.key === sub)?.key as ToolKey | undefined) ??
-    (sections.length ? 'apply' : 'titles');
+    (!sub ? defaultTool : fallback);
   const section = sections.find((sc) => sc.key === sub) ?? sections[0];
+  const toolSub = (v: string) => (v === defaultTool ? null : v);
+  // The first section's own slug when Apply now isn't the default (`apply` then names it).
+  const sectionSub = (v: string) =>
+    v === sections[0].key ? (defaultTool === 'apply' ? null : 'apply') : v;
 
   return (
     <Box>
@@ -486,7 +505,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             aria-label="Search tool"
             size="sm"
             value={tool}
-            onChange={(v) => navigate({ sub: v === 'apply' ? null : v })}
+            onChange={(v) => navigate({ sub: toolSub(v) })}
             options={tools.map((t) => ({ value: t.key, label: wide ? t.label : t.short }))}
           />
         </TabsOverflowFade>
@@ -499,7 +518,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             <HdsTabs
               key={cat.id}
               value={section.key}
-              onValueChange={(v) => navigate({ sub: v === sections[0].key ? null : v })}
+              onValueChange={(v) => navigate({ sub: sectionSub(v) })}
             >
               <TabsOverflowFade value={section.key}>
                 <TabsList aria-label="Your sections" style={{ width: '100%' }}>
@@ -545,7 +564,13 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         )}
         {tool === 'teams' && (
           <Suspense fallback={null}>
-            <OutreachTargets key={cat.id} categoryId={cat.id} boardUrls={boardUrls} />
+            <OutreachTargets
+              key={cat.id}
+              categoryId={cat.id}
+              boardUrls={boardUrls}
+              terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
+              search={teamSearch}
+            />
           </Suspense>
         )}
         {tool === 'live' && (
