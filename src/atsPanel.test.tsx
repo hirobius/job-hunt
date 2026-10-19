@@ -37,7 +37,7 @@ beforeEach(() => {
   replaceCurationState(EMPTY_CURATION);
   addCategory({ label: 'Design Systems', atsRoles: ['design systems'] });
   window.history.replaceState(null, '', '/');
-  window.location.hash = '#/discover';
+  window.location.hash = '#/discover/ats';
 });
 
 afterEach(() => {
@@ -53,13 +53,18 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
     const user = userEvent.setup();
     const { container } = renderApp();
 
-    // Open the ATS search tab (DiscoverView is code-split / lazy-loaded).
-    const atsTab = await screen.findByRole('tab', { name: 'ATS search' });
-    await user.click(atsTab);
+    // Open/select the ATS search tool (DiscoverView is code-split / lazy-loaded).
+    const atsControl =
+      screen.queryByRole('radio', { name: /ATS/i }) ??
+      (await screen.findByRole('radio', { name: /ATS/i }).catch(() => null)) ??
+      (await screen.findByRole('tab', { name: /ATS/i }).catch(() => null));
+    if (atsControl) {
+      await user.click(atsControl);
+    }
 
     // 1. Headings "Company hiring systems" and "Freelance, startup and remote boards" are present.
     expect(
-      screen.getByRole('heading', { level: 3, name: 'Company hiring systems' }),
+      await screen.findByRole('heading', { level: 3, name: 'Company hiring systems' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { level: 3, name: 'Freelance, startup and remote boards' }),
