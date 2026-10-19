@@ -8,7 +8,7 @@ import { PROBE_KINDS } from './probe';
 import type { Board } from './sources/ats';
 
 export const TARGETS_KEY = 'rjb_targets';
-export const MAX_TARGETS_PER_TRACK = 500;
+const MAX_TARGETS_PER_TRACK = 500;
 
 export interface Target {
   login: string;

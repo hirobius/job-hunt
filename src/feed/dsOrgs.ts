@@ -13,11 +13,11 @@ import { probeCompanies, slugCandidates, type Limiter } from './probe';
 import type { Board } from './sources/ats';
 import { arr, obj, str, type FetchJson } from './sources/http';
 
-export const GH_API = 'https://api.github.com';
+const GH_API = 'https://api.github.com';
 export const MIN_STARS = 20;
 export const MAX_SEARCH_PAGES = 3;
 export const MAX_ORG_LOOKUPS = 30;
-export const PER_PAGE = 50;
+const PER_PAGE = 50;
 export const GH_CACHE_KEY = 'rjb_gh_cache';
 export const SEARCH_TTL_MS = 24 * 3600e3;
 export const ORG_TTL_MS = 7 * 86400e3;
@@ -72,7 +72,7 @@ const header = (res: Response, name: string): number | undefined => {
   return Number.isFinite(n) ? n : undefined;
 };
 
-export const liveGhGet: GhGet = async (url) => {
+const liveGhGet: GhGet = async (url) => {
   let res: Response;
   try {
     res = await fetch(url, {

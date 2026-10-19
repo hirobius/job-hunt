@@ -4,7 +4,7 @@
 // reported separately by `localOnlyCuration` so the sync layer can upload them (a fresh device
 // keeps everything; a returning device defers to the cloud on conflicts).
 import { mergeByKey } from '../mergeByKey';
-import { EMPTY_CURATION, type Category, type Group, type Tile, type CurationState } from './types';
+import type { Category, Group, Tile, CurationState } from './types';
 
 const id = <T extends { id: string }>(x: T) => x.id;
 
@@ -34,8 +34,6 @@ export function localOnlyCuration(
     tiles: notIn(cloud.tiles, local.tiles),
   };
 }
-
-export { EMPTY_CURATION };
 
 /**
  * Sign-in / focus reconcile (#99 review): like mergeCuration, but a row that exists ONLY locally is

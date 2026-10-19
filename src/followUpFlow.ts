@@ -5,7 +5,7 @@ import { createStore } from './createStore';
 import type { Snippet } from './copyDeckStore';
 
 /** The starter "Follow-up after applying" template. */
-export const FOLLOWUP_TEMPLATE_ID = 'tpl-followup';
+const FOLLOWUP_TEMPLATE_ID = 'tpl-followup';
 
 /** The template a follow-up starts from: the starter one, else the first whose name says
  *  follow-up (pinned first), else none. */

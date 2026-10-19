@@ -7,9 +7,8 @@
 //   - SET-ASIDE (dismissed) tiles drop into `aside`.
 //   - Legacy pins still float to the top of what remains, so nobody's old triage un-floats
 //     (the pin UI is retired — issue #13; the data path is issue #19).
-import { useMemo } from 'react';
 import type { Tile } from './jobsData';
-import { useTileTriage, type Triage } from './tileTriage';
+import type { Triage } from './tileTriage';
 
 export function partitionTiles(
   tiles: Tile[],
@@ -30,10 +29,4 @@ export function partitionTiles(
     .sort((a, b) => (pinned.has(a.url) ? 0 : 1) - (pinned.has(b.url) ? 0 : 1));
   const aside = rest.filter((t) => dismissed.has(t.url));
   return { visible, aside, saved: savedTiles };
-}
-
-/** Hook form: partition a tile list against the live triage state, memoized. */
-export function useTileState(tiles: Tile[]): { visible: Tile[]; aside: Tile[]; saved: Tile[] } {
-  const triage = useTileTriage();
-  return useMemo(() => partitionTiles(tiles, triage), [tiles, triage]);
 }

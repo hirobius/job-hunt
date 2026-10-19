@@ -13,7 +13,7 @@ import { SECONDARY } from './tone';
 export type AsyncStatus = 'loading' | 'error' | 'empty' | 'ready';
 
 /** Placeholder rows shaped like a posting: a title line, a meta line, a row of badges. */
-export function PostingSkeleton({ rows = 3 }: { rows?: number }) {
+function PostingSkeleton({ rows = 3 }: { rows?: number }) {
   return (
     <Stack gap="inset" aria-hidden>
       {Array.from({ length: rows }).map((_, i) => (

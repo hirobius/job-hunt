@@ -1,6 +1,6 @@
 import type { Job } from './types';
 
-export const TEMPLATE_TOKENS = ['Company', 'Role', 'Contact', 'Angle'] as const;
+const TEMPLATE_TOKENS = ['Company', 'Role', 'Contact', 'Angle'] as const;
 
 type Values = Partial<Record<'company' | 'role' | 'contact' | 'angle', string>>;
 

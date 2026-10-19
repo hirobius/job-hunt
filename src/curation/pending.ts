@@ -39,7 +39,7 @@ function validEntry(key: string, x: unknown): PendingWrite | null {
 
 /** Parse the stored journal, keeping only valid entries. A damaged journal never throws: bad
  *  entries are dropped with a warning (and the next write saves the cleaned copy). */
-export function parseJournal(raw: string | null): Record<string, PendingWrite> {
+function parseJournal(raw: string | null): Record<string, PendingWrite> {
   if (raw == null) return {};
   let data: unknown;
   try {

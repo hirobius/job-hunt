@@ -62,18 +62,6 @@ export function prettyTitle(u: string): string {
     return 'Saved job';
   }
 }
-/** Compact host+path for the secondary line. */
-export function shortUrl(u: string): string {
-  try {
-    const url = new URL(u);
-    const s =
-      url.hostname.replace(/^www\./, '') +
-      (url.pathname && url.pathname !== '/' ? url.pathname : '');
-    return s.length > 52 ? s.slice(0, 51) + '…' : s;
-  } catch {
-    return u;
-  }
-}
 export function cleanUrl(u: string): string {
   u = (u || '')
     .trim()

@@ -70,7 +70,7 @@ const notesOf = (j: Job) => (j.notes ?? j.note ?? '').trim();
 
 /** The removed copy's notes, to-dos and interviews folded into the copy saved since. The saved
  *  copy's own fields win; nothing either copy holds is dropped. */
-export function mergeRemovedInto(saved: Job, removed: Job): Job {
+function mergeRemovedInto(saved: Job, removed: Job): Job {
   const a = notesOf(saved);
   const b = notesOf(removed);
   const notes = !b || a === b ? a : !a ? b : `${a}\n\n--- From the removed copy ---\n\n${b}`;

@@ -9,7 +9,7 @@ export const SWEEP_KEY = 'rjb_sweep_titles';
 /** At most this many titles are on at once: each one is a request to every term source. */
 export const MAX_SWEEP_ON = 12;
 /** And at most this many in a track's list. */
-export const MAX_SWEEP_TITLES = 40;
+const MAX_SWEEP_TITLES = 40;
 
 export interface SweepTitles {
   titles: string[];
@@ -21,7 +21,7 @@ const UNSAFE = ['__proto__', 'constructor', 'prototype'];
 const norm = (s: string) => s.trim().toLowerCase();
 
 /** Trimmed, de-duplicated (ignoring case), first spelling kept. */
-export function cleanTitles(list: unknown): string[] {
+function cleanTitles(list: unknown): string[] {
   if (!Array.isArray(list)) return [];
   const seen = new Set<string>();
   const out: string[] = [];
