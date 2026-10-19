@@ -22,6 +22,8 @@ import { getAllJobs, removeJob } from './store';
 import { addCategory, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 
+vi.setConfig({ testTimeout: 20_000 });
+
 const renderApp = () =>
   render(
     <ColorModeProvider>
