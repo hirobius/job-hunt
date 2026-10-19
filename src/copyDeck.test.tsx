@@ -204,10 +204,14 @@ describe('Templates on a phone (one pane at a time)', () => {
     await renderApp();
     expect(rows()).toHaveLength(5);
     expect(screen.queryByRole('textbox', { name: 'Snippet label' })).toBeNull();
+    // The list carries the page header (#240: Templates has no tab, so it links back itself).
+    expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toBeInTheDocument();
     await userEvent.click(within(rows()[1]).getByRole('link'));
     await waitFor(() => expect(window.location.hash).toBe('#/copy-deck/tpl-cover'));
     expect(label().value).toBe('Cover letter');
     expect(screen.queryByRole('navigation', { name: 'Templates' })).toBeNull();
+    // An open template has one way back: to the list, not a second one to the Pipeline.
+    expect(screen.queryByRole('link', { name: 'Back to Pipeline' })).toBeNull();
     await userEvent.click(screen.getByRole('link', { name: 'Templates' }));
     await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
     expect(rows()).toHaveLength(5);
