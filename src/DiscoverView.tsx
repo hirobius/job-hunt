@@ -468,8 +468,8 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const search = DISCOVERY_SOURCE_ENABLED.github ? teamSearch : null;
   // The companies list leads where it has something to show: a team search, a watched company or
   // a dream company. A track with none of those opens on Apply now.
-  const companiesLead =
-    !!search || dreams.length > 0 || boardsFromUrls(boardUrls, Infinity).length > 0;
+  const watchesAny = useMemo(() => boardsFromUrls(boardUrls, Infinity).length > 0, [boardUrls]);
+  const companiesLead = !!search || dreams.length > 0 || watchesAny;
   // Apply now first where Teams doesn't lead (a stable sort keeps the rest in order).
   const ordered = companiesLead
     ? TOOLS

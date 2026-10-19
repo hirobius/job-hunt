@@ -21,7 +21,13 @@ import {
 import { SavedTargets, TargetRow, type Row } from './OutreachRows';
 import { ROWS_CLASS, rowsStyle, useWatching } from './outreachShared';
 import { SECONDARY } from './hds-gaps/tone';
-import { findDesignSystemOrgs, MIN_STARS, type OrgTarget, type RunReport } from './feed/dsOrgs';
+import {
+  findDesignSystemOrgs,
+  MAX_ORG_LOOKUPS,
+  MIN_STARS,
+  type OrgTarget,
+  type RunReport,
+} from './feed/dsOrgs';
 import { createGithubBudget } from './feed/githubBudget';
 import type { TeamSearch } from './feed/teamTopics';
 import { probeFetchJson } from './feed/probeFetch';
@@ -129,16 +135,10 @@ export default function CompaniesPanel({
     asked.current.add(k);
     setRoles((m) => ({ ...m, [k]: { state: 'loading' } }));
     void readRoles(b, terms, { fetchJson: liveFetchJson, limiter, signal }).then((r) => {
-      if (!signal.aborted) {
-        setRoles((m) => ({ ...m, [k]: r }));
-        return;
-      }
-      asked.current.delete(k);
-      setRoles((m) => {
-        const next = { ...m };
-        delete next[k];
-        return next;
-      });
+      // Cut short: forget the ask so it can be made again, but keep the "Couldn't check" answer, so
+      // a cancelled team's row stays visible (a watched board is re-read by the effect below).
+      if (signal.aborted) asked.current.delete(k);
+      setRoles((m) => ({ ...m, [k]: r }));
     });
   };
 
@@ -340,7 +340,7 @@ export default function CompaniesPanel({
                 ? `. ${hidden} with no matching role or not checked yet hidden: turn off Hiring now to see them.`
                 : ''}
               {report && !running && report.unresolved > 0 && !report.stoppedUntil
-                ? `. ${report.unresolved} not looked up yet: find more to resolve the next ${30}.`
+                ? `. ${report.unresolved} not looked up yet: find more to resolve the next ${MAX_ORG_LOOKUPS}.`
                 : ''}
             </Text>
           )}

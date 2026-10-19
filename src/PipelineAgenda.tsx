@@ -70,8 +70,8 @@ function AgendaRow({
             </Text>
             {badge}
           </Stack>
-          {notes.map((n) => (
-            <Text key={n} variant="caption" as="span" style={SECONDARY}>
+          {notes.map((n, i) => (
+            <Text key={i} variant="caption" as="span" style={SECONDARY}>
               {n}
             </Text>
           ))}
