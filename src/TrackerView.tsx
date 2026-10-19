@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react';
 import { PageHeader } from '@hirobius/design-system/patterns';
-import { ArrowUpDown, Search, Briefcase, ListFilter, Plus, X } from 'lucide-react';
+import { ArrowUpDown, Search, Briefcase, Building2, ListFilter, Plus, X } from 'lucide-react';
 import {
   Button as UiButton,
   Input as HdsInput,
@@ -33,6 +33,7 @@ import JobListCard from './JobListCard';
 import { RecentlyRemovedLink } from './RecentlyRemoved';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
 import { SECONDARY } from './hds-gaps/tone';
+import { navigate } from './route';
 
 export default function TrackerView() {
   const jobs = useJobs();
@@ -243,7 +244,7 @@ export default function TrackerView() {
           <EmptyState
             icon={Briefcase}
             title="Track your first job"
-            message="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Discover."
+            message="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
             action={
               <Stack direction="row" wrap="wrap" gap="tight" justify="center">
                 {addJobButton}
@@ -274,6 +275,20 @@ export default function TrackerView() {
       {/* Removed jobs wait here for 30 days; a quiet link, shown only when there are some. */}
       <Box sx={{ mt: 'sm' }}>
         <RecentlyRemovedLink />
+      </Box>
+      {/* The list always ends by pointing back to Companies (#238), empty or not. Secondary, so
+          Add job / Start applying stay the page's one primary. */}
+      <Box sx={{ mt: 'md' }}>
+        <Stack direction="row" justify="center">
+          <UiButton
+            variant="secondary"
+            size="sm"
+            iconLeft={<Building2 size={16} />}
+            onClick={() => navigate({ tab: 'discover', sub: null })}
+          >
+            Find the next company
+          </UiButton>
+        </Stack>
       </Box>
     </Box>
   );
