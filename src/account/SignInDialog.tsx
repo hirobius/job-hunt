@@ -1,73 +1,167 @@
-// Magic-link sign-in (#115 Phase 1), opened from the account menu or the sync nudge. Replaces
-// the email form that sat in a banner on every page.
-import { useState } from 'react';
-import { Button, Dialog, Input, Stack, Text } from '@hirobius/design-system';
+// Magic-link sign-in (#115 Phase 1; conventional passwordless pattern, 2026-10-17), opened from
+// the account menu or the sync nudge. One field and one button; validation on submit; then a
+// "Check your email" state with Resend (30 s cooldown) and Use a different email. On a phone it
+// is a sheet pinned above the iOS keyboard (SignInDialog.css); at sm and up a centred Dialog.
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Alert, Button, Dialog, Input, Stack, Text } from '@hirobius/design-system';
+import { Form } from '@hirobius/design-system/patterns';
 import { useCloudSync } from './accountContext';
+import { emailProblem } from './signInErrors';
+import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
+import { SECONDARY } from '../hds-gaps/tone';
+import './SignInDialog.css';
 
-const secondary = { color: 'var(--semantic-color-content-secondary)' };
+export const RESEND_COOLDOWN_S = 30;
 
 export default function SignInDialog() {
   const { signInOpen, setSignInOpen, sendLink } = useCloudSync();
   const [email, setEmail] = useState('');
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [resendAt, setResendAt] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const inputRef = useRef<HTMLInputElement>(null);
+  const viewportRef = useVisualViewportVars<HTMLDivElement>();
 
-  const send = async () => {
-    const e = email.trim();
-    if (!e || sending) return;
+  // Seconds left before Resend; one tick a second while the cooldown runs.
+  const cooldown = Math.max(0, Math.ceil((resendAt - now) / 1000));
+  useEffect(() => {
+    if (resendAt <= Date.now()) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [resendAt]);
+
+  const request = async (to: string): Promise<boolean> => {
     setSending(true);
-    const err = await sendLink(e);
+    setSendError(null);
+    const err = await sendLink(to);
     setSending(false);
-    if (!err) setSentTo(e);
+    if (err) {
+      setSendError(err);
+      return false;
+    }
+    const t = Date.now();
+    setNow(t);
+    setResendAt(t + RESEND_COOLDOWN_S * 1000);
+    return true;
+  };
+
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (sending) return;
+    const problem = emailProblem(email);
+    setFieldError(problem);
+    if (problem) {
+      inputRef.current?.focus();
+      return;
+    }
+    const to = email.trim();
+    if (await request(to)) {
+      setResent(false);
+      setSentTo(to);
+    }
+  };
+
+  const resend = async () => {
+    if (!sentTo || sending || cooldown > 0) return;
+    if (await request(sentTo)) setResent(true);
+  };
+
+  const differentEmail = () => {
+    setSentTo(null);
+    setSendError(null);
+    setResent(false);
   };
 
   const onOpenChange = (open: boolean) => {
     setSignInOpen(open);
-    if (!open) setSentTo(null);
+    if (!open) {
+      differentEmail();
+      setFieldError(null);
+    }
   };
 
   return (
     <Dialog open={signInOpen} onOpenChange={onOpenChange}>
-      <Dialog.Content style={{ width: '100%', maxWidth: 440 }}>
-        <Dialog.Header>
-          <Dialog.Title>Sign in to sync</Dialog.Title>
-          <Dialog.Description>
-            We'll email you a sign-in link. Your data stays in your browser and your own account —
-            nothing is shared with anyone else.
-          </Dialog.Description>
-        </Dialog.Header>
+      <Dialog.Content
+        ref={viewportRef}
+        className="sign-in-dialog"
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          inputRef.current?.focus();
+        }}
+      >
         {sentTo ? (
-          <Text variant="body" role="status">
-            Check {sentTo} for your sign-in link.
-          </Text>
-        ) : (
-          <Stack gap="tight">
-            <Input
-              type="email"
-              label="Email"
-              placeholder="you@email.com"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void send();
-              }}
-            />
-            <Text variant="caption" as="p" style={secondary}>
-              Signing in syncs jobs, templates and tracks across your devices.
+          <>
+            <Dialog.Header>
+              <Dialog.Title>Check your email</Dialog.Title>
+              <Dialog.Description>We sent a sign-in link to {sentTo}.</Dialog.Description>
+            </Dialog.Header>
+            {sendError && <Alert tone="danger">{sendError}</Alert>}
+            <Text variant="caption" as="p" role="status" style={SECONDARY}>
+              {resent ? 'Sent again.' : 'Open it on this device to finish signing in.'}
             </Text>
-          </Stack>
+            <Stack gap="tight">
+              <Button
+                className="sign-in-dialog__primary"
+                disabled={cooldown > 0}
+                loading={sending}
+                onClick={() => void resend()}
+              >
+                {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend'}
+              </Button>
+              <Button
+                className="sign-in-dialog__primary"
+                variant="tertiary"
+                onClick={differentEmail}
+              >
+                Use a different email
+              </Button>
+            </Stack>
+          </>
+        ) : (
+          <>
+            <Dialog.Header>
+              <Dialog.Title>Sign in</Dialog.Title>
+              <Dialog.Description>We'll email you a link. No password needed.</Dialog.Description>
+            </Dialog.Header>
+            <Form noValidate onSubmit={(e) => void submit(e)}>
+              <Stack gap="normal">
+                <Input
+                  ref={inputRef}
+                  type="email"
+                  label="Email"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="go"
+                  value={email}
+                  error={!!fieldError}
+                  errorMessage={fieldError ?? undefined}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldError) setFieldError(null);
+                  }}
+                />
+                {sendError && <Alert tone="danger">{sendError}</Alert>}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="sign-in-dialog__primary"
+                  loading={sending}
+                >
+                  Continue with email
+                </Button>
+              </Stack>
+            </Form>
+          </>
         )}
-        <Dialog.Footer>
-          <Dialog.Close asChild>
-            <Button variant="secondary">{sentTo ? 'Done' : 'Cancel'}</Button>
-          </Dialog.Close>
-          {!sentTo && (
-            <Button onClick={() => void send()} disabled={!email.trim() || sending}>
-              {sending ? 'Sending…' : 'Email me a link'}
-            </Button>
-          )}
-        </Dialog.Footer>
       </Dialog.Content>
     </Dialog>
   );
