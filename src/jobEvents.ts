@@ -52,7 +52,8 @@ export function followUpDate(job: Job, now: Date): string | null {
   const ref = job.followUp || job.applied;
   const m = ref ? DATE_RE.exec(ref.slice(0, 10)) : null;
   if (!m) return null;
-  return ymd(new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + FOLLOWUP_DAYS));
+  const clock = ymd(new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + FOLLOWUP_DAYS));
+  return job.snoozeUntil && job.snoozeUntil > clock ? job.snoozeUntil : clock;
 }
 
 /** Small deterministic string hash (djb2) → base36, for stable calendar UIDs. */

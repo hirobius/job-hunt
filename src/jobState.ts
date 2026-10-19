@@ -1,6 +1,6 @@
 // Job lifecycle — the model owning a Job's Status transitions and its follow-up
 // clock. Pure and DOM-free: read-side derivations for the UI (deriveJobState) and
-// write-side transitions (applyStatus, logFollowUp). The store delegates here for
+// write-side transitions (applyStatus, logFollowUp, snoozeFollowUp). The store delegates here for
 // the rules and keeps persistence; the view reads `deriveJobState` instead of
 // recomputing the rules per render. `now` is injected (defaulted) so the whole
 // module is a deterministic test surface with no clock mocking.
@@ -8,6 +8,9 @@ import { STATUSES, type Job, type Status, type StatusChange } from './types';
 
 /** Days after the last contact (apply, or last follow-up) before a follow-up falls due. */
 export const FOLLOWUP_DAYS = 7;
+
+/** How far "Snooze" pushes a due follow-up. */
+export const SNOOZE_DAYS = 3;
 
 /** Normalize any string to a known Status, defaulting to 'Saved'. */
 export function normStatus(s?: string): Status {
@@ -18,6 +21,15 @@ export function normStatus(s?: string): Status {
 function today(now: Date): string {
   const p = (n: number) => (n < 10 ? '0' : '') + n;
   return now.getFullYear() + '-' + p(now.getMonth() + 1) + '-' + p(now.getDate());
+}
+
+/** A stored snooze day, kept only when it is a real YYYY-MM-DD calendar day. */
+export function normSnooze(s: unknown): string | undefined {
+  if (typeof s !== 'string') return undefined;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return undefined;
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return d.getMonth() === +m[2] - 1 && d.getDate() === +m[3] ? s : undefined;
 }
 
 /** Whole days between an ISO-ish date string and `now`; null for missing/invalid input. */
@@ -56,7 +68,10 @@ export function deriveJobState(job: Job, now: Date = new Date()): JobState {
   const status = normStatus(job.status);
   const tracked = status === 'Applied' || status === 'Interviewing';
   const refAge = daysSince(job.followUp || job.applied, now);
-  const due = !job.archived && tracked && refAge != null && refAge >= FOLLOWUP_DAYS;
+  // A snooze holds the follow-up back until its day; it never brings one forward.
+  const snoozeLeft = job.snoozeUntil ? -(daysSince(job.snoozeUntil, now) ?? 0) : 0;
+  const due =
+    !job.archived && tracked && refAge != null && refAge >= FOLLOWUP_DAYS && snoozeLeft <= 0;
   return {
     status,
     isActive: !job.archived && (status === 'Saved' || !!job.priority),
@@ -65,7 +80,8 @@ export function deriveJobState(job: Job, now: Date = new Date()): JobState {
     followUp: {
       tracked,
       due,
-      daysUntil: tracked && !due && refAge != null ? FOLLOWUP_DAYS - refAge : null,
+      daysUntil:
+        tracked && !due && refAge != null ? Math.max(FOLLOWUP_DAYS - refAge, snoozeLeft) : null,
       loggedDaysAgo: daysSince(job.followUp, now),
     },
   };
@@ -103,7 +119,14 @@ export function applyStatus(job: Job, next: Status, now: Date = new Date()): Job
   return n;
 }
 
-/** Record a follow-up today, restarting the follow-up clock. */
+/** Record a follow-up sent today, restarting the follow-up clock (and ending any snooze). */
 export function logFollowUp(job: Job, now: Date = new Date()): Job {
-  return { ...job, followUp: today(now) };
+  const { snoozeUntil: _s, ...rest } = job;
+  return { ...rest, followUp: today(now) };
+}
+
+/** Push a due follow-up SNOOZE_DAYS out without recording one. */
+export function snoozeFollowUp(job: Job, now: Date = new Date()): Job {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + SNOOZE_DAYS);
+  return { ...job, snoozeUntil: today(d) };
 }

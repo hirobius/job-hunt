@@ -110,7 +110,7 @@ describe('Pipeline on a phone (#129)', () => {
     ).toBeInTheDocument();
     const applied = screen.getByRole('article', { name: 'Zenith Product Designer' });
     expect(
-      within(applied).getByRole('button', { name: 'Log follow-up: Zenith Product Designer' }),
+      within(applied).getByRole('button', { name: 'Follow up: Zenith Product Designer' }),
     ).toBeInTheDocument();
 
     await userEvent.click(
@@ -133,6 +133,18 @@ describe('Pipeline on a phone (#129)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Mark applied: Design Engineer' }));
     expect(getAllJobs().find((j) => j.url === SAVED)?.status).toBe('Applied');
     expect(screen.queryByRole('article', { name: 'Design Engineer' })).toBeNull();
+  });
+
+  it('Follow up opens the follow-up message; closing it leaves the job alone', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const before = getAllJobs().find((j) => j.url === APPLIED);
+    await user.click(screen.getByRole('button', { name: 'Follow up: Zenith Product Designer' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Follow up' });
+    expect(within(dialog).getByRole('textbox', { name: 'Message' })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(getAllJobs().find((j) => j.url === APPLIED)).toEqual(before);
   });
 });
 
@@ -221,7 +233,7 @@ describe('Pipeline on a desktop (#129)', () => {
     expect(within(row).getByText('10d ago')).toBeInTheDocument();
     expect(within(row).getByText('Due')).toBeInTheDocument();
     expect(
-      within(row).getByRole('button', { name: 'Log follow-up: Zenith Product Designer' }),
+      within(row).getByRole('button', { name: 'Follow up: Zenith Product Designer' }),
     ).toBeInTheDocument();
   });
 

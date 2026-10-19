@@ -3,8 +3,9 @@
 // step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
 import { EllipsisVertical, Star } from 'lucide-react';
 import { Badge, Button, Icon, Menu, useToast } from '@hirobius/design-system';
-import { hostOf, logFollowUp, setStatus, updateJob } from './store';
+import { hostOf, setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
+import { FollowUpButton } from './FollowUp';
 import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
 import { primaryAction, STATUS_TONE, titleOf } from './jobRow';
@@ -76,17 +77,7 @@ export function RowPrimaryAction({
         Mark applied
       </Button>
     );
-  if (action === 'followup')
-    return (
-      <Button
-        size={size}
-        variant={variant}
-        aria-label={`Log follow-up: ${title}`}
-        onClick={() => logFollowUp(job.url)}
-      >
-        Log follow-up
-      </Button>
-    );
+  if (action === 'followup') return <FollowUpButton job={job} size={size} variant={variant} />;
   return null;
 }
 
