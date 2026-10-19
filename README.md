@@ -12,12 +12,11 @@ and job boards. Templates keeps outreach text one click from the clipboard.
 
 Everything works signed out, in the browser. An optional email sign-in syncs it across devices.
 
-- **Today** (`#/today`): follow-ups due, the next 7 days of interviews, one quick-add field and a
-  collapsible Insights band.
+- **Today** (`#/today`): follow-ups due, the next 7 days of interviews, one quick-add field.
 - **Pipeline** (`#/queue`): every saved job, sortable. Status runs Saved, Applied, Interviewing,
   Offer, Rejected. There are seven sorts. Each job has its own page with details, to-dos, notes and
   an interview log you can add to a calendar.
-- **Screening**: fit verdict, work mode, travel, blockers and your angle. Paste a job description
+- **Screening**: fit verdict, work mode, blockers and your angle. Paste a job description
   and keyword rules suggest values. Nothing leaves the browser.
 - **Discover** (`#/discover`): tracks you can edit, plus Title, ATS and Live postings tools.
   Details are below.
