@@ -1,4 +1,5 @@
-// Discover → "Find boards" (docs/specs/discovery-methods.md, method 2): paste company names, slugs or
+// Companies → "Check a list of companies" (once the Find boards tool; a secondary view since #237;
+// docs/specs/discovery-methods.md, method 2): paste company names, slugs or
 // board URLs and the app checks which applicant-tracking systems host a public board for each, then
 // lets you watch the ones it found. Browser only: the checks go straight to each ATS's keyless board
 // API (src/feed/probe.ts), politely, and can be cancelled. "Not found" and "couldn't check" are kept
@@ -135,7 +136,7 @@ export default function FindBoardsPanel({
     if (r.ok)
       toast({
         title: `Watching ${r.label}`,
-        description: 'Its openings now show up in Live postings.',
+        description: 'Its open roles now show on Companies and in Live postings.',
         tone: 'success',
       });
     else toast({ title: r.error, tone: 'warning' });
@@ -149,7 +150,7 @@ export default function FindBoardsPanel({
     );
     toast({
       title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
-      description: 'Their openings now show up in Live postings.',
+      description: 'Their open roles now show on Companies and in Live postings.',
       tone: 'success',
     });
   };

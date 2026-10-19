@@ -1,4 +1,4 @@
-// The Teams tool's inline roles (a team's matching openings, saved in one tap) and the dream
+// Companies' inline roles (a team's matching openings, saved in one tap) and the dream
 // star, shared by the team rows and the dream companies section.
 import { Badge, Button, Icon, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { Star } from 'lucide-react';
@@ -17,10 +17,13 @@ export function RoleList({
   company,
   roles,
   newIds,
+  label = `Open roles at ${company}`,
 }: {
   company: string;
   roles: Role[];
   newIds?: Set<string>;
+  /** The list's accessible name (a second list on one row needs its own). */
+  label?: string;
 }) {
   const jobs = useJobs();
   const savedKeys = new Set(jobs.map((j) => dedupKey(j.url)));
@@ -30,7 +33,7 @@ export function RoleList({
     if (url) notifySaved([url], fields.label);
   };
   return (
-    <ul aria-label={`Open roles at ${company}`} style={listStyle}>
+    <ul aria-label={label} style={listStyle}>
       {roles.map((r) => {
         const saved = savedKeys.has(dedupKey(r.url));
         return (

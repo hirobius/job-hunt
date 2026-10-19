@@ -316,9 +316,17 @@ async function shoot(browser, base, theme, width, manifest) {
         await tools.getByRole('radio', { name: label, exact: true }).click();
         await snap(`${tab} · ${label}`);
       }
-      // The discovery tools, populated: a YC batch through the board probe, and GitHub teams.
-      if (labels.some((l) => /^(Find boards|Boards)$/.test(l))) {
-        await tools.getByRole('radio', { name: /^(Find boards|Boards)$/ }).click();
+      // The companies list's secondary views (#237): Live postings and the list checker, reached
+      // by their links; then the list checker populated with a YC batch through the board probe.
+      const companiesTool = /^(Design-system teams|Teams|Companies)$/;
+      if (labels.some((l) => companiesTool.test(l)))
+        await tools.getByRole('radio', { name: companiesTool }).click();
+      if (await clickIf(page, 'link', /^Live postings from job boards$/)) {
+        await snap(`${tab} · Live postings`);
+        await clickIf(page, 'link', /^Back to companies$/);
+      }
+      if (await clickIf(page, 'link', /^Check a list of companies$/)) {
+        await snap(`${tab} · Check a list of companies`);
         if (await clickIf(page, 'button', /^Load batch$/)) {
           await page.waitForTimeout(500);
           if (await clickIf(page, 'button', /^Find boards$/)) {
@@ -331,9 +339,10 @@ async function shoot(browser, base, theme, width, manifest) {
             await snap(`${tab} · Boards found`);
           }
         }
+        await clickIf(page, 'link', /^Back to companies$/);
       }
-      if (labels.some((l) => /^(Design-system teams|Teams|Companies)$/.test(l))) {
-        await tools.getByRole('radio', { name: /^(Design-system teams|Teams|Companies)$/ }).click();
+      if (labels.some((l) => companiesTool.test(l))) {
+        await tools.getByRole('radio', { name: companiesTool }).click();
         if (await clickIf(page, 'button', /^Find design-system teams$/)) {
           await page
             .getByText(/\d+ teams? found/)
@@ -341,7 +350,6 @@ async function shoot(browser, base, theme, width, manifest) {
             .waitFor({ timeout: 20000 })
             .catch(() => {});
           await page.waitForTimeout(4000); // the teams' boards are read after they are found
-          await clickIf(page, 'button', /^Show \d+ matching roles?$/);
           await snap(`${tab} · Teams found`);
         }
       }
