@@ -75,6 +75,13 @@ p {
   font-size: var(--primitive-typography-size-sm);
 }
 
+/* Calm list rows (#241): a company list is flat rows on the page, split by hairlines, not cards
+ * or a loose gap. */
+.rjb-rows > li {
+  padding-block: var(--primitive-space-4);
+  border-top: thin solid var(--semantic-color-border-default);
+}
+
 /* Apply mode copy rows: keep a saved answer's line breaks. */
 .rjb-prewrap {
   white-space: pre-wrap;

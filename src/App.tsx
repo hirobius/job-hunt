@@ -163,12 +163,13 @@ export default function App() {
                       <JobPage jobId={route.jobId} />
                     </>
                   ) : (
-                    <>
+                    // 24 between the notes and the page (#241); an absent note leaves no gap.
+                    <Stack gap="normal">
                       {/* The one sync nudge (#236: was on Today) sits over the Pipeline list. */}
                       <SyncNudge />
                       <PipelineLiveness jobs={jobs} />
                       <TrackerView />
-                    </>
+                    </Stack>
                   )}
                 </TabsContent>
                 <TabsContent value="discover" style={BARE_PANEL}>

@@ -8,7 +8,7 @@ import type { Board } from './feed/sources/ats';
 import { removeTarget, useTargets, type Target } from './feed/targets';
 import { SOURCE_LABEL } from './feed/types';
 import { SECONDARY } from './hds-gaps/tone';
-import { listStyle, useWatching } from './outreachShared';
+import { ROWS_CLASS, rowsStyle, useWatching } from './outreachShared';
 
 export type Row = Omit<Target, 'savedAt'>;
 
@@ -166,7 +166,7 @@ export function SavedTargets({
           )}
         </Text>
       ) : (
-        <ul aria-label="Saved targets" style={listStyle}>
+        <ul aria-label="Saved targets" style={rowsStyle} className={ROWS_CLASS}>
           {targets.map((t) => (
             <TargetRow
               key={t.login}
