@@ -312,3 +312,35 @@ describe('Pipeline rows keep to two items per dotted line (#192)', () => {
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
   });
 });
+
+describe('the Pipeline ends with "Find the next company" (#238)', () => {
+  const findNext = () => screen.getByRole('button', { name: 'Find the next company' });
+
+  it('with jobs: an action after the list opens Companies', async () => {
+    viewport(1440);
+    renderApp();
+    const btn = findNext();
+    // It follows the list: the last thing the Pipeline offers.
+    expect(
+      screen.getByRole('table').compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    await userEvent.click(btn);
+    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
+  });
+
+  it('empty: shown under the empty state, secondary beside the primary Add job', async () => {
+    getAllJobs()
+      .slice()
+      .forEach((j) => removeJob(j.url));
+    viewport(390);
+    renderApp();
+    const add = screen.getByRole('button', { name: 'Add job' });
+    const btn = findNext();
+    expect(add.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(btn.className).not.toBe(add.className);
+    await userEvent.click(btn);
+    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
+  });
+});

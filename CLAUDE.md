@@ -129,7 +129,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `QUICK_ADD_LANDING` (`queue`) are separate in `App.tsx`. Pinned in `src/jobRoute.test.tsx`.
 - **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1):** the tabs are
   **Companies · Pipeline · Templates**; Companies is the old Discover (slug `discover`, home, hosts the
-  first-run gate) and an empty hash lands there. "Try with sample data" lands on the Pipeline.
+  first-run gate) and an empty hash lands there. "Try with sample data" lands on the Pipeline. The
+  Pipeline always ends with a secondary **Find the next company** button (→ `#/discover`, empty or
+  not; Calm list 4/7, #238, pinned in `pipeline.test.tsx`).
 - **Today is gone (Calm list 2/7, #236):** `#/today` redirects to Companies (`navigate(…, true)`,
   so Back skips it); `TodayView`, `TodayNotice` and `rjb_ui_today_home_seen` are deleted. Its lists
   live at the top of the Pipeline (`ApplyQueueSummary` → `PipelineAgenda.tsx`): under To apply, one
