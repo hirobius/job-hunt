@@ -1,9 +1,9 @@
 // The Pipeline's agenda (#236, Calm list 2/7; was Today, #128): one Follow up section (the due
 // ones first, each with its one action, then the rest with the day they fall due) and the next 7
 // days of interviews and calls. The read models are pure (jobEvents.ts, applyQueue.ts); this only
-// lays them out. A section with nothing in it renders nothing.
+// lays them out. A section with nothing in it renders nothing. Flat sections, no cards (#241).
 import type { ReactNode } from 'react';
-import { Badge, Box, Button, Card, InlineLink, Stack, Text } from '@hirobius/design-system';
+import { Badge, Box, Button, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { FollowUpButton } from './FollowUp';
 import { deriveJobState } from './jobState';
 import { followUpJobs } from './applyQueue';
@@ -82,21 +82,29 @@ function AgendaRow({
   );
 }
 
-/** A titled card list: a region named by its heading. */
-function AgendaCard({ title, children }: { title: string; children: ReactNode }) {
+/** A titled flat list (#241): a region named by its heading, 24 under it, rows split by
+ *  hairlines. No card around it. */
+function AgendaSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Card bordered padding="none">
-      <Box as="section" aria-label={title} sx={{ p: 'sm' }}>
-        <Stack gap="tight">
-          <Text variant="body" as="h3" className="rjb-semibold">
-            {title}
-          </Text>
-          <Stack as="ul" gap="tight" style={LIST}>
-            {children}
-          </Stack>
-        </Stack>
-      </Box>
-    </Card>
+    <Box as="section" aria-label={title}>
+      <Stack gap="normal">
+        <Text variant="body" as="h3" className="rjb-semibold">
+          {title}
+        </Text>
+        <Box as="ul" sx={LIST}>
+          {children}
+        </Box>
+      </Stack>
+    </Box>
+  );
+}
+
+/** One flat row of a section's list. */
+function AgendaItem({ children }: { children: ReactNode }) {
+  return (
+    <Box as="li" sx={{ py: 'xs', borderTop: 'thin solid', borderColor: 'border.default' }}>
+      {children}
+    </Box>
   );
 }
 
@@ -108,9 +116,9 @@ export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
   const count = due.length + waiting.length;
   if (count === 0) return null;
   return (
-    <AgendaCard title={`Follow up (${count})`}>
+    <AgendaSection title={`Follow up (${count})`}>
       {due.map((job) => (
-        <li key={job.url}>
+        <AgendaItem key={job.url}>
           <AgendaRow
             title={
               <InlineLink href={jobHref(job.url)} externalIcon={false}>
@@ -121,12 +129,12 @@ export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
             notes={metaLines([job.company, sinceNote(job, now)])}
             trailing={<FollowUpButton job={job} />}
           />
-        </li>
+        </AgendaItem>
       ))}
       {waiting.map((job) => {
         const date = followUpDate(job, now);
         return (
-          <li key={job.url}>
+          <AgendaItem key={job.url}>
             <AgendaRow
               title={
                 <InlineLink href={jobHref(job.url)} externalIcon={false}>
@@ -138,10 +146,10 @@ export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
                 date ? `Follow up ${dayLabel(date, now)}` : '',
               ])}
             />
-          </li>
+          </AgendaItem>
         );
       })}
-    </AgendaCard>
+    </AgendaSection>
   );
 }
 
@@ -150,9 +158,9 @@ export function NextDaysSection({ jobs, now }: { jobs: Job[]; now: Date }) {
   const upcoming = upcomingEvents(jobs, now);
   if (upcoming.length === 0) return null;
   return (
-    <AgendaCard title={`Next ${UPCOMING_DAYS} days (${upcoming.length})`}>
+    <AgendaSection title={`Next ${UPCOMING_DAYS} days (${upcoming.length})`}>
       {upcoming.map((it) => (
-        <li key={`${it.jobUrl}-${it.id}`}>
+        <AgendaItem key={`${it.jobUrl}-${it.id}`}>
           <AgendaRow
             title={`${KIND_WORD[it.kind]} · ${it.label}`}
             notes={metaLines([dayLabel(it.date, now), it.time ?? 'All day', it.company, it.note])}
@@ -164,8 +172,8 @@ export function NextDaysSection({ jobs, now }: { jobs: Job[]; now: Date }) {
               </Button>
             }
           />
-        </li>
+        </AgendaItem>
       ))}
-    </AgendaCard>
+    </AgendaSection>
   );
 }

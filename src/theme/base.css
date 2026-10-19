@@ -61,6 +61,20 @@ p {
   font-weight: 600;
 }
 
+/* The phone app-bar mark (#241): the brand's first letter in a small accent square, so the app
+ * name never competes with the page title. Tokens only; HDS has no logo-mark primitive. */
+.rjb-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--primitive-space-7);
+  height: var(--primitive-space-7);
+  border-radius: var(--semantic-radius-action);
+  background: var(--semantic-accent-rest);
+  color: var(--semantic-color-content-onAccent);
+  font-size: var(--primitive-typography-size-sm);
+}
+
 /* Apply mode copy rows: keep a saved answer's line breaks. */
 .rjb-prewrap {
   white-space: pre-wrap;

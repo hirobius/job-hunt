@@ -30,6 +30,7 @@ import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
 import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
 import { BARE_PANEL } from './hds-gaps/barePanel';
+import { useAtLeast } from './hds-gaps/useBreakpoint';
 
 // Code-split Discover and Templates so the initial bundle carries the Pipeline (the quick-add
 // landing); the rest load on demand.
@@ -52,6 +53,7 @@ const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
 export default function App() {
   const route = useRoute();
+  const wide = useAtLeast('sm');
   // Apply mode (#/apply/<jobId>) is a Pipeline page: the Pipeline tab stays selected.
   const applying = route.tab === APPLY_ROUTE;
   const templates = route.tab === TEMPLATES_ROUTE;
@@ -126,14 +128,22 @@ export default function App() {
               }
             >
               <Stack gap="normal">
-                {/* Slim app bar: wordmark · Menu. The wordmark is a body-size label so each page's
-                    title stays the biggest text on screen. */}
+                {/* Slim app bar (#241): mark · Menu. The app name never competes with a page
+                    title: a small mark on a phone, a body-size (16px) wordmark from `sm` up. */}
                 <Stack direction="row" wrap="wrap" gap="gap" align="center" justify="space-between">
                   <Text variant="body" as="h1" className="rjb-semibold">
-                    {BRAND.wordmark[0]}
-                    <Box as="span" sx={{ color: 'accent' }}>
-                      {BRAND.wordmark[1]}
-                    </Box>
+                    {wide ? (
+                      <>
+                        {BRAND.wordmark[0]}
+                        <Box as="span" sx={{ color: 'accent' }}>
+                          {BRAND.wordmark[1]}
+                        </Box>
+                      </>
+                    ) : (
+                      <Box as="span" role="img" aria-label={BRAND.name} className="rjb-mark">
+                        {BRAND.name[0]}
+                      </Box>
+                    )}
                   </Text>
                   <AccountMenu />
                 </Stack>

@@ -85,7 +85,7 @@ describe('Discover inline style ceilings (#131)', () => {
 // token or a hds-gaps stand-in would have done.
 describe('Inline style ratchet (#133)', () => {
   // equals the count on main (88); lower it as styles are burned down, never raise it
-  const MAX_INLINE_STYLES = 88;
+  const MAX_INLINE_STYLES = 83;
   const tsx = sourceFiles(SRC).filter((f) => f.endsWith('.tsx'));
   const count = tsx.reduce(
     (sum, f) => sum + (readFileSync(f, 'utf8').match(/style=\{\{/g) ?? []).length,
