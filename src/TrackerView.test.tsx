@@ -54,7 +54,8 @@ describe('Pipeline toolbar', () => {
     await user.click(within(menu).getByRole('menuitemradio', { name: /^Applied\s*1$/ }));
 
     expect(screen.getByRole('button', { name: /^Status: Applied/ })).toBeInTheDocument();
-    expect(screen.getByText('Product Designer')).toBeInTheDocument();
+    // Also listed under Follow up, so more than one match.
+    expect(screen.getAllByText('Product Designer').length).toBeGreaterThan(0);
     expect(screen.queryByText('Design Engineer')).toBeNull();
   });
 });

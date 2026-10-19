@@ -1,5 +1,7 @@
 # @hirobius/design-system — downstream consumption story (send-back)
 
+> **Historical.** A 2026-10 brief to the HDS repo, closed by HDS 0.9.0.
+
 **For the HDS repo/thread.** Grounded in consuming HDS from **Apply Board** (Vite + React 18 +
 TypeScript + MUI v6/Emotion; strict `tsc`, `skipLibCheck: true`; deployed on Vercel). Baseline
 consumed: **`0.8.0`**.
