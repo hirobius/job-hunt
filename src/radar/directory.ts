@@ -4,33 +4,44 @@
 // tracks get the same list through the "Add suggested companies" action. Boards only, never one-off
 // postings, so the lists don't go stale. Every entry answered from its public API when it was added;
 // a board that later 404s shows as "board not found" in the feed and can be removed in Manage track.
-//
+
+/** A company a track starts with as an outreach target, named, with its board (#198). */
+export interface PackCompany {
+  company: string;
+  url: string;
+}
+
 // Design systems: the original 23 (the 2026-10-12 Role Radar research) first, then 94 more that
 // answered on 2026-10-15, design-forward companies before the rest. There is no cap on boards read.
+// The original 23 are also the track's target companies, seeded as outreach targets (#198).
+const DESIGN_SYSTEMS_COMPANIES: readonly PackCompany[] = [
+  { company: 'LangChain', url: 'https://jobs.ashbyhq.com/langchain' },
+  { company: 'Front', url: 'https://jobs.ashbyhq.com/frontcareers' },
+  { company: 'Perplexity', url: 'https://jobs.ashbyhq.com/perplexity' },
+  { company: 'Writer', url: 'https://jobs.ashbyhq.com/writer' },
+  { company: 'Juniper Square', url: 'https://jobs.ashbyhq.com/junipersquare' },
+  { company: 'WorkOS', url: 'https://jobs.ashbyhq.com/workos' },
+  { company: 'Ashby', url: 'https://jobs.ashbyhq.com/ashby' },
+  { company: 'Vetcove', url: 'https://jobs.ashbyhq.com/vetcove' },
+  { company: 'Ramp', url: 'https://jobs.ashbyhq.com/ramp' },
+  { company: 'Linear', url: 'https://jobs.ashbyhq.com/linear' },
+  { company: 'Baseten', url: 'https://jobs.ashbyhq.com/baseten' },
+  { company: 'Deepgram', url: 'https://jobs.ashbyhq.com/deepgram' },
+  { company: 'Mixpanel', url: 'https://boards.greenhouse.io/mixpanel' },
+  { company: 'Rocket Money', url: 'https://boards.greenhouse.io/truebill' },
+  { company: 'Celigo', url: 'https://boards.greenhouse.io/celigo' },
+  { company: 'Seed', url: 'https://boards.greenhouse.io/seed' },
+  { company: 'Reddit', url: 'https://boards.greenhouse.io/reddit' },
+  { company: 'Vercel', url: 'https://boards.greenhouse.io/vercel' },
+  { company: 'DoorDash', url: 'https://boards.greenhouse.io/doordashusa' },
+  { company: 'Gametime', url: 'https://boards.greenhouse.io/gametimeunited' },
+  { company: 'Databricks', url: 'https://boards.greenhouse.io/databricks' },
+  { company: 'Stripe', url: 'https://boards.greenhouse.io/stripe' },
+  { company: 'Virtualitics', url: 'https://jobs.lever.co/virtualitics' },
+];
+
 const DESIGN_SYSTEMS_BOARDS: readonly string[] = [
-  'https://jobs.ashbyhq.com/langchain',
-  'https://jobs.ashbyhq.com/frontcareers',
-  'https://jobs.ashbyhq.com/perplexity',
-  'https://jobs.ashbyhq.com/writer',
-  'https://jobs.ashbyhq.com/junipersquare',
-  'https://jobs.ashbyhq.com/workos',
-  'https://jobs.ashbyhq.com/ashby',
-  'https://jobs.ashbyhq.com/vetcove',
-  'https://jobs.ashbyhq.com/ramp',
-  'https://jobs.ashbyhq.com/linear',
-  'https://jobs.ashbyhq.com/baseten',
-  'https://jobs.ashbyhq.com/deepgram',
-  'https://boards.greenhouse.io/mixpanel',
-  'https://boards.greenhouse.io/truebill',
-  'https://boards.greenhouse.io/celigo',
-  'https://boards.greenhouse.io/seed',
-  'https://boards.greenhouse.io/reddit',
-  'https://boards.greenhouse.io/vercel',
-  'https://boards.greenhouse.io/doordashusa',
-  'https://boards.greenhouse.io/gametimeunited',
-  'https://boards.greenhouse.io/databricks',
-  'https://boards.greenhouse.io/stripe',
-  'https://jobs.lever.co/virtualitics',
+  ...DESIGN_SYSTEMS_COMPANIES.map((c) => c.url),
   // Added 2026-10-15, design-forward companies first.
   'https://boards.greenhouse.io/figma',
   'https://jobs.ashbyhq.com/notion',
@@ -161,6 +172,11 @@ const TRADES_BOARDS: readonly string[] = [
   'https://jobs.lever.co/shieldai',
   'https://jobs.ashbyhq.com/saronic',
 ];
+
+/** Target companies to seed as outreach rows, keyed by starter pack id; most packs have none. */
+export const TARGETS_BY_PACK: Readonly<Record<string, readonly PackCompany[]>> = {
+  designsystems: DESIGN_SYSTEMS_COMPANIES,
+};
 
 /** Board urls to seed, keyed by starter pack id (src/curation/starterPacks.ts). */
 export const DIRECTORY_BY_PACK: Readonly<Record<string, readonly string[]>> = {

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The curation store lazily creates a Supabase client; stub it so seeding stays local + offline.
 vi.mock('@supabase/supabase-js', () => ({
@@ -9,8 +9,9 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 import { getCurationState, replaceCurationState } from './curationStore';
-import { packIdForLabel, seedPack, STARTER_PACKS } from './starterPacks';
-import { DIRECTORY_BY_PACK } from '../radar/directory';
+import { packIdForLabel, seedPack, STARTER_PACKS, topUpFromPack } from './starterPacks';
+import { DIRECTORY_BY_PACK, TARGETS_BY_PACK } from '../radar/directory';
+import { readTargets, saveTarget } from '../feed/targets';
 import { parseBoardUrl } from '../feed/sources/ats';
 
 afterEach(() => replaceCurationState({ categories: [], groups: [], tiles: [] }));
@@ -100,5 +101,66 @@ describe('per-track watched boards', () => {
     ['', undefined],
   ])('packIdForLabel(%s) is %s', (label, id) => {
     expect(packIdForLabel(label)).toBe(id);
+  });
+});
+
+// #198: the design systems track carries its target companies as outreach rows too (the original 23
+// from the 2026-10-12 Role Radar research), and the Staff / Principal title searches.
+describe('design systems targets track (#198)', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('seeds the original 23 companies as outreach targets, each with its watched board', () => {
+    const id = seedPack('designsystems');
+    const targets = readTargets(id);
+    expect(targets).toHaveLength(23);
+    expect(targets.map((t) => t.company)).toEqual(
+      TARGETS_BY_PACK.designsystems.map((t) => t.company),
+    );
+    expect(targets[0]).toMatchObject({
+      login: 'langchain',
+      company: 'LangChain',
+      board: { kind: 'ashby', slug: 'langchain' },
+    });
+    expect(targets.every((t) => !t.repo)).toBe(true);
+    // Same companies as the first 23 watched boards: none invented.
+    expect(TARGETS_BY_PACK.designsystems.map((t) => t.url)).toEqual(
+      DIRECTORY_BY_PACK.designsystems.slice(0, 23),
+    );
+  });
+
+  it('other packs seed no outreach targets', () => {
+    expect(readTargets(seedPack('trades'))).toEqual([]);
+    expect(readTargets(seedPack('blank'))).toEqual([]);
+  });
+
+  it('includes the Staff and Principal design systems title searches', () => {
+    const id = seedPack('designsystems');
+    const cat = getCurationState().categories.find((c) => c.id === id)!;
+    expect(cat.titles).toEqual(
+      expect.arrayContaining([
+        'Design Systems Designer',
+        'Design Systems Engineer',
+        'Design Technologist',
+        'Staff Design Systems',
+        'Principal Design Systems',
+      ]),
+    );
+    // Live postings searches the first title on open; that stays the same.
+    expect(cat.titles[0]).toBe('Design Systems Engineer');
+  });
+
+  it('an existing track picks the targets up from the pack update, keeping its own', () => {
+    const id = seedPack('blank');
+    saveTarget(id, {
+      login: 'stripe',
+      company: 'My Stripe note',
+      board: { kind: 'greenhouse', slug: 'stripe' },
+    });
+    const r = topUpFromPack(id, 'designsystems');
+    expect(r.targets).toBe(22);
+    const list = readTargets(id);
+    expect(list).toHaveLength(23);
+    expect(list.find((t) => t.login === 'stripe')!.company).toBe('My Stripe note');
+    expect(topUpFromPack(id, 'designsystems').targets).toBe(0);
   });
 });

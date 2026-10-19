@@ -1,5 +1,5 @@
-// Rows of the Teams tool: one outreach target (a team found on GitHub,
-// with its repo, stars and open roles), the watch action, and the saved-targets section. Kept apart
+// Rows of the Teams tool: one outreach target (a team found on GitHub with its repo, stars and
+// open roles, or a starter pack's company with its board), the watch action, and the saved-targets section. Kept apart
 // from the engine so Live postings can show saved targets without loading the GitHub search code.
 import type { ReactNode } from 'react';
 import { Badge, Button, InlineLink, Stack, Text } from '@hirobius/design-system';
@@ -12,10 +12,13 @@ import { listStyle, useWatching } from './outreachShared';
 
 export type Row = Omit<Target, 'savedAt'>;
 
+// A starter pack's target has a board but no count yet; Live postings reads it once watched.
 const rolesText = (r: Row) =>
-  r.board
-    ? `Open roles: ${r.openRoles ?? 0}`
-    : 'Board not found (none on the systems we check; it may hire elsewhere)';
+  !r.board
+    ? 'Board not found (none on the systems we check; it may hire elsewhere)'
+    : r.openRoles === undefined
+      ? null
+      : `Open roles: ${r.openRoles}`;
 
 export function TargetRow({
   r,
@@ -59,15 +62,19 @@ export function TargetRow({
               </Text>
               {r.board && <Badge>{SOURCE_LABEL[r.board.kind]}</Badge>}
             </Stack>
-            <Text variant="caption" as="p" style={SECONDARY}>
-              <InlineLink href={r.repoUrl} externalIcon={false}>
-                {r.repo}
-              </InlineLink>
-              {` · ${r.stars.toLocaleString()} stars`}
-            </Text>
-            <Text variant="caption" as="p" style={SECONDARY}>
-              {rolesLine ?? rolesText(r)}
-            </Text>
+            {r.repo && r.repoUrl && (
+              <Text variant="caption" as="p" style={SECONDARY}>
+                <InlineLink href={r.repoUrl} externalIcon={false}>
+                  {r.repo}
+                </InlineLink>
+                {` · ${(r.stars ?? 0).toLocaleString()} stars`}
+              </Text>
+            )}
+            {(rolesLine ?? rolesText(r)) && (
+              <Text variant="caption" as="p" style={SECONDARY}>
+                {rolesLine ?? rolesText(r)}
+              </Text>
+            )}
           </Stack>
           <Stack direction="row" gap="xs" align="center" wrap="wrap">
             {!r.board && (

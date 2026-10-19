@@ -14,9 +14,10 @@ export interface Target {
   login: string;
   company: string;
   website?: string;
-  repo: string;
-  repoUrl: string;
-  stars: number;
+  /** The org's design-system repo; absent on a target seeded from a starter pack (#198). */
+  repo?: string;
+  repoUrl?: string;
+  stars?: number;
   board?: Board;
   openRoles?: number;
   /** ISO time of the first save. */
@@ -49,16 +50,18 @@ function sanitizeOne(raw: unknown): Target | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const o = raw as Record<string, unknown>;
   const login = typeof o.login === 'string' ? o.login.trim() : '';
-  const repo = typeof o.repo === 'string' ? o.repo : '';
-  if (!login || !repo) return null;
+  const repo = typeof o.repo === 'string' && o.repo ? o.repo : undefined;
+  if (!login) return null;
   const board = sanitizeBoard(o.board);
+  // A target is a GitHub org with its repo, or a company with a known board (a starter pack's).
+  if (!repo && !board) return null;
   return {
     login,
     company: typeof o.company === 'string' && o.company.trim() ? o.company : login,
     website: httpUrl(o.website),
     repo,
-    repoUrl: httpUrl(o.repoUrl) ?? `https://github.com/${repo}`,
-    stars: typeof o.stars === 'number' && o.stars >= 0 ? o.stars : 0,
+    repoUrl: repo ? (httpUrl(o.repoUrl) ?? `https://github.com/${repo}`) : undefined,
+    stars: !repo ? undefined : typeof o.stars === 'number' && o.stars >= 0 ? o.stars : 0,
     board,
     openRoles: typeof o.openRoles === 'number' && o.openRoles >= 0 ? o.openRoles : undefined,
     savedAt: typeof o.savedAt === 'string' ? o.savedAt : new Date(0).toISOString(),
@@ -121,6 +124,27 @@ export function saveTarget(categoryId: string, t: Omit<Target, 'savedAt'>): Targ
   all[categoryId] = list.slice(-MAX_TARGETS_PER_TRACK);
   write(all);
   return all[categoryId];
+}
+
+/** Add the targets a track lacks (by login, ignoring case), leaving its own untouched, in one write.
+ *  Returns how many were added. A starter pack's companies arrive this way (#198). */
+export function addTargets(categoryId: string, ts: readonly Omit<Target, 'savedAt'>[]): number {
+  const all = readAll();
+  const list = [...(all[categoryId] ?? [])];
+  const have = new Set(list.map((x) => x.login.toLowerCase()));
+  const savedAt = new Date().toISOString();
+  const fresh = ts.filter((t) => {
+    const k = t.login.toLowerCase();
+    if (have.has(k)) return false;
+    have.add(k);
+    return true;
+  });
+  if (fresh.length === 0) return 0;
+  all[categoryId] = [...list, ...fresh.map((t) => ({ ...t, savedAt }))].slice(
+    -MAX_TARGETS_PER_TRACK,
+  );
+  write(all);
+  return fresh.length;
 }
 
 export function removeTarget(categoryId: string, login: string): Target[] {
