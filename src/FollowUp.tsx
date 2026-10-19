@@ -16,7 +16,8 @@ import { FOLLOWUP_DAYS, SNOOZE_DAYS } from './jobState';
 import { titleOf } from './jobRow';
 import { logFollowUp, restoreFollowUp, snoozeFollowUp, useJobs } from './store';
 import { copyFilled } from './templateCopy';
-import { fillTemplate, unfilledTokens, valuesFromJob } from './templateFill';
+import { fillSnippet, unfilledTokens } from './templateFill';
+import { useApplyKit } from './applyKit';
 import type { Job } from './types';
 import { SECONDARY } from './hds-gaps/tone';
 
@@ -69,9 +70,11 @@ function FollowUpContent({ job }: { job: Job }) {
   const snippets = useSnippets();
   const { toast } = useToast();
   const template = pickFollowUpTemplate(snippets);
-  // Filled once on open; after that the text is the user's to edit.
+  const kitName = useApplyKit().fields.name;
+  // Filled once on open (the one fill path, templateFill.fillSnippet); after that the text is the
+  // user's to edit.
   const [message, setMessage] = useState(() =>
-    template ? fillTemplate(template.body, valuesFromJob(job)) : '',
+    template ? fillSnippet(template, job, kitName) : '',
   );
   const [copied, setCopied] = useState(false);
   // The job's follow-up clock before Mark as sent, for Undo. Set means "sent".

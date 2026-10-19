@@ -48,11 +48,14 @@ export function TargetRow({
             </Text>
             {r.board && <Badge>{SOURCE_LABEL[r.board.kind]}</Badge>}
           </Stack>
-          <Text variant="caption" style={SECONDARY}>
+          <Text variant="caption" as="p" style={SECONDARY}>
             <InlineLink href={r.repoUrl} externalIcon={false}>
               {r.repo}
             </InlineLink>
-            {` · ${r.stars.toLocaleString()} stars · ${rolesText(r)}`}
+            {` · ${r.stars.toLocaleString()} stars`}
+          </Text>
+          <Text variant="caption" as="p" style={SECONDARY}>
+            {rolesText(r)}
           </Text>
         </Stack>
         <Stack direction="row" gap="xs" align="center" wrap="wrap">

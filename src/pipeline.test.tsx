@@ -281,7 +281,8 @@ describe('shared list state (#130 slice 4)', () => {
   it('the filter, search and sort survive opening a job and going Back', async () => {
     renderApp();
     await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'Zenith');
-    await userEvent.click(screen.getByRole('link', { name: 'Zenith Product Designer' }));
+    // The title also links from the Follow up list; either opens the same job.
+    await userEvent.click(screen.getAllByRole('link', { name: 'Zenith Product Designer' })[0]);
     await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(APPLIED)}`));
     await userEvent.click(screen.getByRole('button', { name: /Back to Pipeline/ }));
     await waitFor(() => expect(window.location.hash).toBe('#/queue'));
@@ -300,7 +301,7 @@ describe('Pipeline rows keep to two items per dotted line (#192)', () => {
     ]);
     window.location.hash = '#/queue';
     renderApp();
-    const texts = [...document.querySelectorAll('article *, tr *')]
+    const texts = [...document.body.querySelectorAll('*')]
       .filter((e) => e.children.length === 0)
       .map((e) => e.textContent ?? '');
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);

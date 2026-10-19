@@ -60,7 +60,7 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
 });
 
 describe('a11y — Today with the sample pipeline (#128)', () => {
-  it('due follow-ups, the next 7 days and the open Insights band', async () => {
+  it('due follow-ups, and the next 7 days', async () => {
     loadSample();
     const { container } = withTheme(<TodayView />);
     await auditA11y(container);

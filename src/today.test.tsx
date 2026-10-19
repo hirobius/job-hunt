@@ -1,6 +1,6 @@
 // Phase 2b of the redesign (#128): Today is home. Tested at the route seam through App and driven
 // by role + name: the empty hash lands on Today, which lists due follow-ups and the next week's
-// interviews from the sample pipeline, has one quick-add field and the Insights band; the
+// interviews from the sample pipeline, has one quick-add field; the
 // Pipeline keeps the list only; the shell owns the first-run gate; existing users get a one-time
 // "Today is home" notice.
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
@@ -44,7 +44,7 @@ beforeEach(() => {
   localStorage.clear();
   replaceCurationState({ categories: [], groups: [], tiles: [] });
   window.history.replaceState(null, '', '/');
-  window.location.hash = '';
+  window.location.hash = '#/today';
 });
 afterEach(() => {
   cleanup();
@@ -54,13 +54,22 @@ afterEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
 });
 
-describe('Today is home (#128)', () => {
-  it('an empty hash lands on Today', async () => {
+describe('Today is a legacy route (Calm list slice 1)', () => {
+  it('an empty hash lands on Companies, not Today', async () => {
     seedPack('consulting');
+    window.location.hash = '';
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
-    await waitFor(() => expect(window.location.hash).toBe('#/today'));
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
+    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    expect(screen.queryByRole('heading', { level: 2, name: 'Today' })).toBeNull();
+  });
+
+  it('#/today still renders Today, with no tab selected', () => {
+    seedPack('consulting');
+    window.location.hash = '#/today';
+    renderApp();
     expect(screen.getByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { selected: true })).toBeNull();
   });
 
   it('a ?add= quick-add link still lands on the Pipeline, not on Today', () => {
@@ -227,30 +236,9 @@ describe('Today view (#128)', () => {
     expect(screen.getByText(/doesn't look like a link/)).toBeInTheDocument();
   });
 
-  it('Insights: metric tiles and a stage funnel in one band, open state kept per device', async () => {
-    const { unmount } = renderApp();
-    const toggle = screen.getByRole('button', { name: /^Insights/ });
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('Applied, last 7 days')).toBeInTheDocument();
-    expect(screen.getByText('Response rate')).toBeInTheDocument();
-    // The funnel: every stage as a progress row out of all saved jobs.
-    for (const stage of ['All jobs', 'Applied', 'Interviewed', 'Offer'])
-      expect(screen.getByRole('progressbar', { name: new RegExp(`^${stage}: \\d+ of 10`) }));
-    await userEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(localStorage.getItem('rjb_ui_insights_open')).toBe('0');
-    unmount();
-    renderApp();
-    expect(screen.getByRole('button', { name: /^Insights/ })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
-  });
-
-  it('the Pipeline holds the list only: no This week, stats or funnel', () => {
+  it('the Pipeline holds the list only: no This week or stats', () => {
     window.location.hash = '#/queue';
     renderApp();
-    expect(screen.queryByRole('button', { name: /^Insights/ })).toBeNull();
     expect(screen.queryByText(/^This week/)).toBeNull();
     expect(screen.queryByText('Response rate')).toBeNull();
   });
@@ -273,32 +261,47 @@ describe('Today with nothing due', () => {
     renderApp();
     expect(screen.getByRole('textbox', { name: 'Add a job' })).toBeInTheDocument();
     expect(screen.getByText('Nothing to do yet')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Insights/ })).toBeNull();
+    expect(screen.queryByText('Response rate')).toBeNull();
   });
 });
 
 describe('first-run gate in the shell (#128)', () => {
   it('a first visit (no tracks, no jobs) opens on setup, with sample data on offer', () => {
+    window.location.hash = '';
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
     expect(screen.getByRole('heading', { name: 'Set up your board' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try with sample data' })).toBeInTheDocument();
   });
 
-  it('trying the sample from setup lands on a working Today', async () => {
+  it('trying the sample from setup lands on the Pipeline, and Today still works', async () => {
+    window.location.hash = '';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
+    expect(
+      await screen.findByRole('tab', { name: 'Pipeline', selected: true }),
+    ).toBeInTheDocument();
+    window.location.hash = '#/today';
     expect(await screen.findByRole('region', { name: /^Follow-ups due/ })).toBeInTheDocument();
   });
 
-  it('picking a track finishes setup and shows Today', async () => {
+  it('picking a track finishes setup and stays on Companies', async () => {
+    window.location.hash = '';
     renderApp();
     await userEvent.click(screen.getAllByRole('checkbox')[0]);
     // Three steps (#132): Continue, Continue, Finish.
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
-    expect(await screen.findByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'Set up your board' })).toBeNull(),
+    );
+    expect(
+      within(screen.getByRole('tablist', { name: 'Sections' })).getByRole('tab', {
+        selected: true,
+      }),
+    ).toHaveAccessibleName('Companies');
+    expect(window.location.hash).toBe('#/discover');
   });
 
   it('Discover needs a track even when there are jobs; the Pipeline never gates', () => {
@@ -341,8 +344,10 @@ describe('one-time "Today is home" notice (#128)', () => {
   });
 
   it('a first run never sees it', async () => {
+    window.location.hash = '';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
+    window.location.hash = '#/today';
     await screen.findByRole('region', { name: /^Follow-ups due/ });
     expect(screen.queryByRole('region', NOTICE)).toBeNull();
   });

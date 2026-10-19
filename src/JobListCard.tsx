@@ -48,12 +48,12 @@ export default function JobListCard({ job }: { job: Job }) {
             </Text>
             <RowMenu job={job} size="md" />
           </Stack>
-          {row.factLines.map((line) => (
-            <Text key={line} variant="caption" as="p" style={SECONDARY}>
+          {row.factLines.map((line, i) => (
+            <Text key={i} variant="caption" as="p" style={SECONDARY}>
               {line}
             </Text>
           ))}
-          {/* One meta line: status · fit · when · follow-up. Short enough to stay on one row at 390. */}
+          {/* Badges, not text: status, fit, when and follow-up are chips that wrap, so no dotted line here. */}
           <Stack direction="row" wrap="wrap" gap="px8" align="center">
             <StatusBadge job={job} />
             {row.verdict && <Badge tone={row.verdict.tone}>{row.verdict.label}</Badge>}
