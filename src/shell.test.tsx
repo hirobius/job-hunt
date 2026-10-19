@@ -156,7 +156,7 @@ describe('app shell (#115 Phase 1)', () => {
 
 describe('sync nudge (#115 Phase 1)', () => {
   beforeEach(() => {
-    window.location.hash = '#/today'; // legacy Today route: the nudge is Today-only
+    window.location.hash = '#/queue'; // the nudge sits over the Pipeline list only (#236)
   });
 
   // The nudge offers to sync data, so it needs some.
@@ -179,8 +179,8 @@ describe('sync nudge (#115 Phase 1)', () => {
     expect(screen.queryByRole('textbox', { name: /email/i })).toBeNull();
   });
 
-  it('is a Today-only row; elsewhere the Account trigger carries a not-synced cue (#133)', async () => {
-    window.location.hash = '#/queue';
+  it('is a Pipeline-only row; elsewhere the Account trigger carries a not-synced cue (#133)', async () => {
+    window.location.hash = '#/copy-deck';
     renderApp();
     const account = await screen.findByRole('button', { name: 'Menu' });
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();

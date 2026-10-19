@@ -10,16 +10,12 @@ import {
   Container,
   Stack,
 } from '@hirobius/design-system';
-import TodayView from './TodayView';
 import { FollowUpHost } from './FollowUp';
 import TrackerView from './TrackerView';
 import JobPage from './JobPage';
 import ApplyMode from './ApplyMode';
 import { JobPageLiveness, PipelineLiveness } from './LivenessViews';
 import { Onboarding, ChooseTrack } from './Onboarding';
-import { markTodayNoticeSeen } from './todayNoticeSeen';
-import { useCloudSync } from './account/accountContext';
-import { hasCloudSession } from './demo/loadSample';
 import { BRAND } from './brand';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
@@ -35,15 +31,16 @@ import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
 import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
 import { BARE_PANEL } from './hds-gaps/barePanel';
 
-// Code-split Discover and Templates so the initial bundle carries Today and the Pipeline (home and
-// the quick-add landing); the rest load on demand (tab switch).
+// Code-split Discover and Templates so the initial bundle carries the Pipeline (the quick-add
+// landing); the rest load on demand (tab switch).
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 
 // Top-level tabs, in render order (Calm list, PR #208: Companies · Pipeline · Templates). The URL
 // hash carries the slug; slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline,
-// `copy-deck` Templates). `today` is a legacy route: no tab, still renders until its slice removes it.
-const TAB_SLUGS = ['discover', 'queue', 'copy-deck', 'today'] as const;
+// `copy-deck` Templates). `#/today` (#128) is retired (#236): it redirects to Companies.
+const TAB_SLUGS = ['discover', 'queue', 'copy-deck'] as const;
+const RETIRED_TODAY = 'today';
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
 // Companies is home; quick-add always shows the Pipeline, where the new job is.
 const HOME_ROUTE = 'discover';
@@ -60,9 +57,9 @@ export default function App() {
   );
   const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
 
-  // The onboarding gate (#128) lives here, not in a view. Discover can't work without a track;
-  // Today asks for one only on a first run (no tracks and no jobs), so nobody lands on an empty
-  // home. The Pipeline and Templates never gate: quick-add and sample data work before setup.
+  // The onboarding gate (#128) lives here, not in a view. Companies can't work without a track,
+  // and on a first run (no tracks and no jobs) it also offers sample data, so nobody lands on an
+  // empty home. The Pipeline and Templates never gate: quick-add and sample data work before setup.
   const hasTracks = useCategories().length > 0;
   const jobs = useJobs();
   const hasJobs = jobs.length > 0;
@@ -105,9 +102,13 @@ export default function App() {
     }
   }, []);
 
+  // An old #/today link or bookmark (#236) lands on Companies; replace, so Back skips it.
+  useEffect(() => {
+    if (route.tab === RETIRED_TODAY) navigate({ tab: HOME_ROUTE, sub: null, jobId: null }, true);
+  }, [route.tab]);
+
   return (
     <CloudSyncProvider>
-      <MarkFirstRun firstRun={firstRun} />
       <DataToolsProvider>
         {/* The HDS page width (1200): wide enough for the Pipeline table and, next, the job page's
             list rail (#129, #130). Each view sets its own inner measure where prose needs one. */}
@@ -140,10 +141,6 @@ export default function App() {
                     <TabsTrigger value="copy-deck">Templates</TabsTrigger>
                   </TabsList>
                 </TabsOverflowFade>
-                {TAB_SLUGS[tab] === 'today' && !firstRun && <SyncNudge />}
-                <TabsContent value="today" style={BARE_PANEL}>
-                  {firstRun ? <Onboarding offerSample /> : <TodayView />}
-                </TabsContent>
                 <TabsContent value="queue" style={BARE_PANEL}>
                   {applying ? (
                     <ApplyMode jobId={route.sub} />
@@ -154,6 +151,8 @@ export default function App() {
                     </>
                   ) : (
                     <>
+                      {/* The one sync nudge (#236: was on Today) sits over the Pipeline list. */}
+                      <SyncNudge />
                       <PipelineLiveness jobs={jobs} />
                       <TrackerView />
                     </>
@@ -185,16 +184,4 @@ export default function App() {
       </DataToolsProvider>
     </CloudSyncProvider>
   );
-}
-
-// A first run marks the one-time "Today is home" notice seen: it never had a Tracker to miss. Only
-// once sync has settled, since a signed-in account's jobs and tracks may still be on their way down.
-// A stored session counts as signed in before its user loads (the session check can answer first).
-function MarkFirstRun({ firstRun }: { firstRun: boolean }) {
-  const { settled, user } = useCloudSync();
-  const signedOut = !user && !hasCloudSession();
-  useEffect(() => {
-    if (firstRun && settled && (user || signedOut)) markTodayNoticeSeen();
-  }, [firstRun, settled, user, signedOut]);
-  return null;
 }

@@ -1,4 +1,4 @@
-// The follow-up flow (2026-10-17). Every "Follow up" button (Today, a Pipeline row, the job page
+// The follow-up flow (2026-10-17). Every "Follow up" button (the Follow up section, a Pipeline row, the job page
 // header) opens this one dialog: the follow-up template filled from the job, editable, with Copy
 // message → Mark as sent (undoable) and a quiet Snooze. Only Mark as sent and Snooze change the
 // job; closing changes nothing. The host is mounted once in App, so a row that leaves its list

@@ -1,7 +1,7 @@
 // Teaching empty states (#132 slice 1): one pattern (title, one sentence, one primary action),
 // tested at the route seam through App and driven by title text and the action's role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -21,7 +21,6 @@ import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, removeJob } from './store';
 import { addCategory, addGroup, replaceCurationState } from './curation/curationStore';
-import { seedPack } from './curation/starterPacks';
 
 const renderApp = () =>
   render(
@@ -45,33 +44,6 @@ afterEach(() => {
     .slice()
     .forEach((j) => removeJob(j.url));
   replaceCurationState({ categories: [], groups: [], tiles: [] });
-});
-
-describe('Today empties', () => {
-  it('no jobs: says what Today will hold; Add a job focuses quick-add; sample data is offered', async () => {
-    seedPack('consulting');
-    window.location.hash = '#/today';
-    renderApp();
-    expect(screen.getByText('Nothing to do yet')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Save a job and its follow-ups and interviews show up here/),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Try with sample data' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Add a job' }));
-    expect(screen.getByRole('textbox', { name: 'Add a job' })).toHaveFocus();
-  });
-
-  it('jobs but nothing due: "You\'re caught up", and Open Pipeline goes to the Pipeline', async () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/today';
-    renderApp();
-    expect(screen.getByText("You're caught up")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Follow-ups fall due 7 days after you apply or last follow up/),
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Open Pipeline' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
-  });
 });
 
 describe('Discover empties', () => {

@@ -28,6 +28,7 @@ import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import JobsTable from './JobsTable';
 import ApplyQueueSummary from './ApplyQueueSummary';
+import GettingStarted from './GettingStarted';
 import JobListCard from './JobListCard';
 import { RecentlyRemovedLink } from './RecentlyRemoved';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
@@ -91,7 +92,11 @@ export default function TrackerView() {
       <SampleBanner jobs={jobs} />
       {jobs.length > 0 && (
         <Box sx={{ mb: 'sm' }}>
-          <ApplyQueueSummary jobs={jobs} />
+          <Stack gap="tight">
+            {/* Shown after your first job until dismissed (#132; moved from Today in #236). */}
+            <GettingStarted jobs={jobs} />
+            <ApplyQueueSummary jobs={jobs} />
+          </Stack>
         </Box>
       )}
 
