@@ -142,12 +142,10 @@ describe('No raw letter-spacing (#191)', () => {
 });
 
 // #193: no decoration that adds noise. Left accent bars and status dots are out; state is text or
-// a Tag/Badge, pinned is a star. The Account trigger's unsynced dot is a sync signal, not a row
-// status dot, so it is the one allowlisted dot.
+// a Tag/Badge, pinned is a star. No dot anywhere, the Account trigger included.
 export const ACCENT_BAR =
   /border-?left(?!-?(?:width|style)\b)|borderInlineStart|border-inline-start/i;
 export const STATUS_DOT = /StatusListItem|(?<![\w-])[\w-]*-dot\b|\bdot\b\s*[:=]|borderRadius:\s*['"]50%['"]/;
-const DOT_ALLOWLIST = ['account/AccountMenu.tsx', 'theme/base.css'];
 
 function styleFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -163,10 +161,8 @@ describe('No accent bars or status dots (#193)', () => {
     expect(offenders.map((f) => f.slice(SRC.length + 1))).toEqual([]);
   });
 
-  it('draws no status dot in a row (only the allowlisted sync dot)', () => {
-    const offenders = styleFiles(SRC)
-      .filter((f) => !DOT_ALLOWLIST.some((a) => f.endsWith(a)))
-      .filter((f) => STATUS_DOT.test(readFileSync(f, 'utf8')));
+  it('draws no status dot anywhere', () => {
+    const offenders = styleFiles(SRC).filter((f) => STATUS_DOT.test(readFileSync(f, 'utf8')));
     expect(offenders.map((f) => f.slice(SRC.length + 1))).toEqual([]);
   });
 
