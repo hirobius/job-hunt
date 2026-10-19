@@ -95,3 +95,9 @@ p {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* A filled icon (the on state of Star). HDS Icon's `weight="fill"` only sets the stroke width, so
+ * the fill comes from here. Upstream ask: a real filled weight on HDS Icon. */
+.rjb-icon-filled {
+  fill: currentColor;
+}

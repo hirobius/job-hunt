@@ -22,6 +22,7 @@ import { getTileTriage, replaceTriage } from '../tileTriage';
 import { getAllTargets, replaceTargets } from '../feed/targets';
 import { getAllFilters, replaceFilters } from '../feed/savedFilters';
 import { readEvidence, replaceEvidence } from '../radar/evidenceStore';
+import { getTrash, replaceTrash } from '../trash';
 import { getAllModes, replaceModes } from '../trackModes';
 import { BRAND } from '../brand';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
@@ -40,6 +41,7 @@ function currentState(): AccountState {
     filters: getAllFilters(),
     evidence: readEvidence(),
     modes: getAllModes(),
+    trash: getTrash(),
   };
 }
 
@@ -57,6 +59,7 @@ function applyState(next: AccountState) {
   replaceFilters(next.filters);
   replaceEvidence(next.evidence);
   replaceModes(next.modes);
+  replaceTrash(next.trash);
 }
 
 export default function DataToolsProvider({ children }: { children: ReactNode }) {
