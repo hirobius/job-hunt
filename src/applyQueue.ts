@@ -1,7 +1,7 @@
 // The rapid-apply queue: which saved jobs are waiting to be applied to, in the order Apply mode
 // walks them, and which are waiting on a reply. Pure, so the order is a table-tested rule.
-import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
-import { followUpDate as dueDayOf } from './jobEvents';
+import { deriveJobState } from './jobState';
+import { followUpDate } from './jobEvents';
 import type { Job } from './types';
 
 /** Not yet applied and not set aside: pinned first, then newest saved (the list is append-only). */
@@ -16,18 +16,8 @@ export function toApplyQueue(jobs: Job[]): Job[] {
 /** Applied or interviewing, not set aside: the jobs whose next step is a follow-up, by the day it
  *  falls due (a snooze counts, so the order matches the day the Pipeline shows). */
 export function followUpJobs(jobs: Job[], now: Date = new Date()): Job[] {
-  const day = (j: Job) => dueDayOf(j, now) ?? '';
+  const day = (j: Job) => followUpDate(j, now) ?? '';
   return jobs
     .filter((j) => !j.archived && deriveJobState(j, now).followUp.tracked)
     .sort((a, b) => day(a).localeCompare(day(b)));
-}
-
-/** The local YYYY-MM-DD a job's follow-up falls due (FOLLOWUP_DAYS after the last contact), or ''. */
-export function followUpDate(job: Job): string {
-  const ref = job.followUp || job.applied;
-  const m = ref && /^(\d{4})-(\d{2})-(\d{2})/.exec(ref);
-  if (!m) return '';
-  const d = new Date(+m[1], +m[2] - 1, +m[3] + FOLLOWUP_DAYS);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }

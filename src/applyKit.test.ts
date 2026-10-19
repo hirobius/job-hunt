@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyKit, filledTemplates, mergeKit, sanitizeKit } from './applyKit';
-import { followUpDate, followUpJobs, toApplyQueue } from './applyQueue';
+import { followUpJobs, toApplyQueue } from './applyQueue';
+import * as applyQueue from './applyQueue';
 import { mergeBlob, readBlob, writeBlob, emptyBlob, BLOB_VERSION } from './syncBlob';
 import type { Job } from './types';
 
@@ -35,10 +36,8 @@ describe('apply queue', () => {
       job('https://a.com/4'),
     ];
     expect(followUpJobs(jobs).map((j) => j.url)).toEqual(['https://a.com/2', 'https://a.com/1']);
-    expect(followUpDate(jobs[0])).toBe('2026-10-17');
-    expect(followUpDate(job('x', { applied: '2026-10-01', followUp: '2026-10-28' }))).toBe(
-      '2026-11-04',
-    );
+    // One follow-up date rule: jobEvents.followUpDate (it counts a snooze), not a second copy here.
+    expect('followUpDate' in applyQueue).toBe(false);
   });
 });
 

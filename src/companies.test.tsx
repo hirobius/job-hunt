@@ -110,6 +110,8 @@ describe('Companies as one tool (#237)', () => {
     const roles = await screen.findByRole('list', { name: 'Open roles at Northwind' });
     expect(within(roles).getByText('Senior Welder')).toBeVisible();
     expect(within(roles).queryByText('Accountant')).toBeNull();
+    // A watched row is already watched: no disabled Watching button as noise (PR #257 review).
+    expect(within(list).queryByRole('button', { name: /Watch/ })).toBeNull();
     await userEvent.click(within(roles).getByRole('button', { name: 'Save Senior Welder' }));
     await waitFor(() =>
       expect(getAllJobs().map((j) => j.url)).toContain('https://jobs.lever.co/northwind/n1'),
@@ -157,7 +159,10 @@ describe('Companies as one tool (#237)', () => {
       window.location.hash = '#/discover/teams';
       renderApp();
       const dialog = await open();
-      await userEvent.type(within(dialog).getByLabelText('Company name or job-board link'), 'Figma');
+      await userEvent.type(
+        within(dialog).getByLabelText('Company name or job-board link'),
+        'Figma',
+      );
       await userEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
       await userEvent.click(await within(dialog).findByRole('button', { name: 'Watch Figma' }));
       await waitFor(() => expect(watchedUrls()).toContain('https://boards.greenhouse.io/figma'));

@@ -30,8 +30,11 @@ export function TargetRow({
   rolesLine,
   star,
   children,
+  showWatch = true,
 }: {
   r: Row;
+  /** False on a row that is already a watched company: its Watch button would only say so. */
+  showWatch?: boolean;
   saved: boolean;
   watching: boolean;
   onSave?: () => void;
@@ -89,7 +92,7 @@ export function TargetRow({
                 </a>
               </Button>
             )}
-            {r.board && (
+            {r.board && showWatch && (
               <Button
                 size="sm"
                 variant="secondary"

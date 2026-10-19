@@ -147,6 +147,24 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     ).not.toBeNull();
   });
 
+  it('a long template shows a short preview with Show all; Copy still copies all of it', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText');
+    const long = 'Dear [Company] team, ' + 'I build things that last. '.repeat(20) + 'The end.';
+    replaceSnippets([{ id: 'cover', label: 'Cover letter', body: long }]);
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const list = await screen.findByRole('list', { name: 'Your templates' });
+    expect(within(list).queryByText(/The end\./)).toBeNull();
+    expect(within(list).getByText(/^Dear Acme team, I build things/)).toBeInTheDocument();
+    await user.click(within(list).getByRole('button', { name: 'Copy Cover letter' }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('The end.'));
+    await user.click(within(list).getByRole('button', { name: 'Show all of Cover letter' }));
+    expect(within(list).getByText(/The end\./)).toBeInTheDocument();
+    await user.click(within(list).getByRole('button', { name: 'Show less of Cover letter' }));
+    expect(within(list).queryByText(/The end\./)).toBeNull();
+  });
+
   it('with no templates, points to Templates instead', async () => {
     replaceSnippets([]);
     window.location.hash = `#/apply/${jobIdOf(A)}`;

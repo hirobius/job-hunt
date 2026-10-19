@@ -228,6 +228,7 @@ export default function CompaniesPanel({
         r={r}
         saved={saved(r)}
         watching={isWatching(r.board)}
+        showWatch={!r.watched}
         onSave={r.watched ? undefined : () => save(r)}
         onWatch={watch}
         rolesLine={r.watched && !rs ? 'Open roles not checked yet' : ROLES_LINE[status]?.(rs)}
