@@ -25,7 +25,7 @@ export const SOURCE_ENABLED: Record<'jobicy' | 'remoteok', boolean> = {
 export const BOARD_CONCURRENCY = 6;
 /** Re-use a response for this long. Sources update a few times a day. In-memory only — board
  *  payloads are far too big for browser storage. (Remotive has its own, stricter budget below.) */
-export const CACHE_TTL_MS = 60 * 60 * 1000;
+const CACHE_TTL_MS = 60 * 60 * 1000;
 
 // ---- Remotive's request budget ----
 // Remotive's API terms: "you only need to GET Remotive job data through this API a couple of times a
@@ -34,7 +34,7 @@ export const CACHE_TTL_MS = 60 * 60 * 1000;
 // must not reset it): each term's parsed results are kept for 6 hours, and at most 4 network calls
 // go out in any rolling 24 hours. Over budget, a term with no fresh-enough copy says so instead.
 export const REMOTIVE_DAILY_MAX = 4;
-export const REMOTIVE_TTL_MS = 6 * 60 * 60 * 1000;
+const REMOTIVE_TTL_MS = 6 * 60 * 60 * 1000;
 export const FETCH_TIMEOUT_MS = 15_000;
 /** The whole of one source (a source can make several requests) gets this long, then it is marked
  *  failed and the rest carry on. Matches the per-request limit above. */

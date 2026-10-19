@@ -40,7 +40,7 @@ export const FILTER_GROUPS: { label?: string; items: Filter[] }[] = [
   { items: ['all'] },
 ];
 
-export function matchesFilter(j: Job, f: Filter): boolean {
+function matchesFilter(j: Job, f: Filter): boolean {
   const s = deriveJobState(j);
   if (f === 'active') return s.isActive;
   if (f === 'all') return true;

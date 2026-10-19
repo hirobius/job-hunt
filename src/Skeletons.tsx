@@ -3,7 +3,7 @@
 import { Card, Skeleton, Box, Grid } from '@hirobius/design-system';
 
 /** A grid of tile-card placeholders — matches TileGrid (Discover / Apprenticeships). */
-export function TileGridSkeleton({ count = 8 }: { count?: number }) {
+function TileGridSkeleton({ count = 8 }: { count?: number }) {
   return (
     <Grid layout="auto-fill" minItemWidth="160px" gap="medium" aria-hidden>
       {Array.from({ length: count }).map((_, i) => (

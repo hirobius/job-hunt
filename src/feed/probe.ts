@@ -15,11 +15,11 @@ export const PROBE_KEY = 'rjb_probe';
 export const PROBE_KINDS: BoardKind[] = ['greenhouse', 'lever', 'ashby', 'workable', 'recruitee'];
 export const MAX_IN_FLIGHT = 6;
 export const MAX_PER_HOST = 2;
-export const HOST_GAP_MS = 150;
-export const HOST_STRIKES = 3;
-export const LIVE_TTL_MS = 30 * 86400e3;
-export const NONE_TTL_MS = 14 * 86400e3;
-export const CACHE_MAX = 5000;
+const HOST_GAP_MS = 150;
+const HOST_STRIKES = 3;
+const LIVE_TTL_MS = 30 * 86400e3;
+const NONE_TTL_MS = 14 * 86400e3;
+const CACHE_MAX = 5000;
 /** Companies worked on at once; the limiter, not this, bounds the requests. */
 const COMPANY_WORKERS = 6;
 

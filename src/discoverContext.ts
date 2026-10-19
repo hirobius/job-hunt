@@ -5,7 +5,7 @@ import { updateCategory, useCategories } from './curation/curationStore';
 import type { WorkMode } from './jobsData';
 import { useMode, writeMode } from './trackModes';
 
-export { MODES, modeKey, readMode, writeMode } from './trackModes';
+export { modeKey, readMode, writeMode } from './trackModes';
 
 const MODE_LABEL: Record<WorkMode, string> = {
   any: 'Any mode',

@@ -122,5 +122,3 @@ export function createFakeSupabase() {
     },
   };
 }
-
-export type FakeSupabase = ReturnType<typeof createFakeSupabase>;

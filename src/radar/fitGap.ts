@@ -23,7 +23,7 @@ export type Tier = 'strong' | 'stretch' | 'reach';
 
 /** The asks the radar knows by default, in the order it reports them. A user's own skills that
  *  aren't here become asks too (see `asksFor`). */
-export const ASK_CATALOG: readonly Ask[] = [
+const ASK_CATALOG: readonly Ask[] = [
   {
     id: 'tokens',
     label: 'Design tokens',

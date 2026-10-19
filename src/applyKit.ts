@@ -5,7 +5,7 @@
 import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
 
-export const KIT_KEY = 'rjb_apply_kit';
+const KIT_KEY = 'rjb_apply_kit';
 
 /** The one-line profile fields, in the order Apply mode lists them. */
 export const KIT_FIELDS = [

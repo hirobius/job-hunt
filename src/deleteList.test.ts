@@ -76,4 +76,18 @@ describe('docs/delete-list.md', () => {
         ).toMatch(new RegExp(`\\b${symbol}\\b`));
     }
   });
+
+  it('every done symbol row is no longer exported from its file', () => {
+    for (const r of rows().filter((r) => r.verdict === 'done')) {
+      const { path, symbol } = parse(r.candidate);
+      if (!symbol || !fs.existsSync(path)) continue;
+      const src = fs.readFileSync(path, 'utf8');
+      const declared = new RegExp(
+        `export\\s+(?:async\\s+)?(?:const|let|function|type|interface|class)\\s+${symbol}\\b`,
+      );
+      const listed = new RegExp(`export\\s*(?:type\\s*)?\\{[^}]*\\b${symbol}\\b[^}]*\\}`);
+      expect(src, `${r.candidate} is still exported`).not.toMatch(declared);
+      expect(src, `${r.candidate} is still re-exported`).not.toMatch(listed);
+    }
+  });
 });
