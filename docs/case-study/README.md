@@ -23,3 +23,9 @@ npm run gallery -- --format=png --out=gallery/cs --pack="Design Systems"
 ```
 
 Then copy the picked files from `gallery/cs/{light,dark}-{1440,390}/`. `gallery/` stays git-ignored.
+
+## Figma
+
+The five main screens sit in the Figma file https://www.figma.com/design/mJgRxGXwbd4j9jj96qpdFI,
+one frame each, labelled with the source files that render them. Map and frame links:
+`docs/figma/README.md`.

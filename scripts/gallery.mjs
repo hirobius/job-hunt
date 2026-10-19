@@ -113,8 +113,8 @@ async function seed(page) {
   // Sample pipeline: the empty tracker's "Try with sample data".
   for (const name of [/^(Pipeline|Tracker)$/]) await clickIf(page, 'tab', name);
   await clickIf(page, 'button', /Try with sample data/);
-  // A Discover track: first starter pack from onboarding.
-  if (await clickIf(page, 'tab', /^Discover$/)) {
+  // A Discover (Companies) track: first starter pack from onboarding.
+  if (await clickIf(page, 'tab', /^(Discover|Companies)$/)) {
     await page.waitForTimeout(600);
     // Discover with no track asks first (#132); the button opens the setup.
     await clickIf(page, 'button', /^Choose a track$/);
@@ -159,9 +159,13 @@ const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['first-job'], ['button', /^Use template$/]]],
   // Templates: a row opens its editor (beside the list on a desktop, alone on a phone).
   [/^Templates$/, 'template-detail', [['link', /^Cover letter/]]],
-  [/^Discover$/, 'manage-track-dialog', [['button', /^Manage track$/]]],
+  [/^(Discover|Companies)$/, 'manage-track-dialog', [['button', /^Manage track$/]]],
   // The location and work-mode popover in the header (#131).
-  [/^Discover$/, 'discover-context-popover', [['button', /, (Any mode|Hybrid|On-site)$|^Remote$/]]],
+  [
+    /^(Discover|Companies)$/,
+    'discover-context-popover',
+    [['button', /, (Any mode|Hybrid|On-site)$|^Remote$/]],
+  ],
   // The details card in edit, and the header menu (Remove lives there).
   [/^(Pipeline|Tracker)$/, 'job-page-edit', [['first-job'], ['button', /^Edit details$/]]],
   [/^(Pipeline|Tracker)$/, 'job-page-menu', [['first-job'], ['button', /^More actions/]]],
@@ -169,7 +173,11 @@ const OVERLAYS = [
   [
     /^(Pipeline|Tracker)$/,
     'recently-removed',
-    [['button', /^More actions/], ['menuitem', /^Remove$/], ['button', /^Recently removed/]],
+    [
+      ['button', /^More actions/],
+      ['menuitem', /^Remove$/],
+      ['button', /^Recently removed/],
+    ],
   ],
 ];
 
@@ -290,7 +298,7 @@ async function shoot(browser, base, theme, width, manifest) {
   for (const tab of await topTabs(page)) {
     await clickIf(page, 'tab', new RegExp(`^${tab}$`));
     await snap(tab);
-    if (/^Discover$/.test(tab)) {
+    if (/^(Discover|Companies)$/.test(tab)) {
       // The sections (tabs under "Your sections"), then each search tool (a segmented row, #131).
       const inner = page.getByRole('tabpanel').getByRole('tablist', { name: 'Your sections' });
       const subs = (await inner.isVisible().catch(() => false))
