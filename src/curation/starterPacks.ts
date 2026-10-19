@@ -4,7 +4,10 @@
 //
 // ⚠️ v1 is provisional (owner unsure of the ideal set) — keep this list trivially editable; add or
 // remove a pack by editing STARTER_PACKS + CONTENT_FOR. "blank" seeds an empty category to build on.
+import { parseBoardUrl } from '../feed/sources/ats';
+import { addTargets, type Target } from '../feed/targets';
 import { addBoardTiles } from '../feed/watchlist';
+import type { PackCompany } from '../radar/directory';
 import { addCategory, addGroup, addTiles, getCurationState, updateCategory } from './curationStore';
 import {
   CONSULTING_PACK,
@@ -83,7 +86,18 @@ export function seedPack(
   });
   // The pack's company boards, filed as the track's own editable "Watched companies" group.
   if (content?.boards.length) addBoardTiles(categoryId, content.boards);
+  addPackTargets(categoryId, content?.targets);
   return categoryId;
+}
+
+/** File a pack's target companies as the track's outreach targets, keyed by board slug, skipping
+ *  any the track already has (#198). Returns how many were added. */
+function addPackTargets(categoryId: string, companies: readonly PackCompany[] = []): number {
+  const rows = companies.flatMap((c): Omit<Target, 'savedAt'>[] => {
+    const board = parseBoardUrl(c.url);
+    return board ? [{ login: board.slug.toLowerCase(), company: c.company, board }] : [];
+  });
+  return addTargets(categoryId, rows);
 }
 
 /** The starter pack a track's label belongs to (matching the onboarding label or the pack's own,
@@ -109,17 +123,19 @@ export interface TopUpResult {
   atsRoles: number;
   groups: number;
   tiles: number;
+  targets: number;
 }
 
 /**
  * Bring an existing track up to date with its starter pack without touching the user's edits:
  * add any pack titles / ATS terms it lacks (case-insensitive), any pack group it lacks (matched by
- * label), and any pack link whose URL the track doesn't already have. Nothing is removed or
+ * label), any pack link whose URL the track doesn't already have, and any pack outreach target it
+ * lacks. Nothing is removed or
  * renamed. Returns how many of each it added (all zero = already current).
  */
 export function topUpFromPack(categoryId: string, packId: string): TopUpResult {
   const content = CONTENT_FOR[packId];
-  const res: TopUpResult = { titles: 0, atsRoles: 0, groups: 0, tiles: 0 };
+  const res: TopUpResult = { titles: 0, atsRoles: 0, groups: 0, tiles: 0, targets: 0 };
   const state = getCurationState();
   const cat = state.categories.find((c) => c.id === categoryId);
   if (!content || !cat) return res;
@@ -157,5 +173,6 @@ export function topUpFromPack(categoryId: string, packId: string): TopUpResult {
     addTiles(groupId, fresh);
     res.tiles += fresh.length;
   });
+  res.targets = addPackTargets(categoryId, content.targets);
   return res;
 }

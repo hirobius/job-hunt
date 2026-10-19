@@ -1,5 +1,5 @@
 // Rows shared by the Teams tool and the By company view: one outreach target (a design-system team
-// with its repo, stars and open roles), the watch action, and the saved-targets section. Kept apart
+// with its repo, stars and open roles, or a starter pack's company with its board), the watch action, and the saved-targets section. Kept apart
 // from the engine so Live postings can show saved targets without loading the GitHub search code.
 import { Badge, Button, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { atsSearchUrl } from './jobsData';
@@ -11,10 +11,13 @@ import { listStyle, useWatching } from './outreachShared';
 
 export type Row = Omit<Target, 'savedAt'>;
 
+// A starter pack's target has a board but no count yet; Live postings reads it once watched.
 const rolesText = (r: Row) =>
-  r.board
-    ? `Open roles: ${r.openRoles ?? 0}`
-    : 'Open roles: none found (no public board on the five systems we check)';
+  !r.board
+    ? 'Open roles: none found (no public board on the five systems we check)'
+    : r.openRoles === undefined
+      ? null
+      : `Open roles: ${r.openRoles}`;
 
 export function TargetRow({
   r,
@@ -48,15 +51,19 @@ export function TargetRow({
             </Text>
             {r.board && <Badge>{SOURCE_LABEL[r.board.kind]}</Badge>}
           </Stack>
-          <Text variant="caption" as="p" style={SECONDARY}>
-            <InlineLink href={r.repoUrl} externalIcon={false}>
-              {r.repo}
-            </InlineLink>
-            {` · ${r.stars.toLocaleString()} stars`}
-          </Text>
-          <Text variant="caption" as="p" style={SECONDARY}>
-            {rolesText(r)}
-          </Text>
+          {r.repo && r.repoUrl && (
+            <Text variant="caption" as="p" style={SECONDARY}>
+              <InlineLink href={r.repoUrl} externalIcon={false}>
+                {r.repo}
+              </InlineLink>
+              {` · ${(r.stars ?? 0).toLocaleString()} stars`}
+            </Text>
+          )}
+          {rolesText(r) && (
+            <Text variant="caption" as="p" style={SECONDARY}>
+              {rolesText(r)}
+            </Text>
+          )}
         </Stack>
         <Stack direction="row" gap="xs" align="center" wrap="wrap">
           {!r.board && (

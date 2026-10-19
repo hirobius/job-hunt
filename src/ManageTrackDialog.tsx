@@ -318,8 +318,8 @@ export default function ManageTrackDialog({
               <Disclosure variant="nav" label="Update from a starter pack">
                 <Stack gap="tight">
                   <Text variant="caption" as="p" style={SECONDARY}>
-                    Adds the pack's newer titles, search terms and links that this track doesn't
-                    have yet. Nothing is removed.
+                    Adds the pack's newer titles, search terms, links and outreach targets that this
+                    track doesn't have yet. Nothing is removed.
                   </Text>
                   <Stack direction="row" wrap="wrap" gap="tight">
                     {STARTER_PACKS.filter((p) => p.id !== 'blank').map((p) => (
@@ -329,11 +329,11 @@ export default function ManageTrackDialog({
                         variant="secondary"
                         onClick={() => {
                           const r = topUpFromPack(cat.id, p.id);
-                          const n = r.titles + r.atsRoles + r.tiles;
+                          const n = r.titles + r.atsRoles + r.tiles + r.targets;
                           toast({
                             tone: n ? 'success' : 'info',
                             title: n
-                              ? `Added ${r.titles + r.atsRoles} terms and ${r.tiles} links from ${p.label}`
+                              ? `Added ${r.titles + r.atsRoles} terms, ${r.tiles} links and ${r.targets} outreach targets from ${p.label}`
                               : `Already up to date with ${p.label}`,
                           });
                         }}

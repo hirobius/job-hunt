@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   TARGETS_KEY,
+  addTargets,
   readTargets,
   removeTarget,
   sanitizeTargets,
@@ -85,5 +86,41 @@ describe('targets', () => {
     } finally {
       Storage.prototype.setItem = orig;
     }
+  });
+});
+
+describe('targets without a GitHub repo (#198: seeded from a starter pack)', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('keeps a target that has a board but no repo, and still drops one with neither', () => {
+    expect(
+      sanitizeTargets({
+        a: [
+          { login: 'ramp', company: 'Ramp', board: { kind: 'ashby', slug: 'ramp' } },
+          { login: 'nothing', company: 'Nothing' },
+        ],
+      }),
+    ).toEqual({
+      a: [
+        expect.objectContaining({
+          login: 'ramp',
+          company: 'Ramp',
+          board: { kind: 'ashby', slug: 'ramp' },
+          repo: undefined,
+          repoUrl: undefined,
+        }),
+      ],
+    });
+  });
+
+  it('addTargets adds only logins the track lacks and returns how many', () => {
+    saveTarget('a', { login: 'Ramp', company: 'Mine', board: { kind: 'ashby', slug: 'ramp' } });
+    const n = addTargets('a', [
+      { login: 'ramp', company: 'Ramp', board: { kind: 'ashby', slug: 'ramp' } },
+      { login: 'linear', company: 'Linear', board: { kind: 'ashby', slug: 'linear' } },
+    ]);
+    expect(n).toBe(1);
+    expect(readTargets('a').map((t) => t.company)).toEqual(['Mine', 'Linear']);
+    expect(addTargets('a', [])).toBe(0);
   });
 });
