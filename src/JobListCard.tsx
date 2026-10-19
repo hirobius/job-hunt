@@ -26,21 +26,13 @@ export default function JobListCard({ job }: { job: Job }) {
 
   return (
     <Card as="article" aria-labelledby={titleId} bordered padding="none">
-      {/* Pinned jobs keep the accent edge they had on the old card. */}
-      <Box
-        sx={{
-          p: 'sm',
-          borderLeft: row.pinned
-            ? '3px solid var(--semantic-accent-rest)'
-            : '3px solid transparent',
-        }}
-      >
+      <Box sx={{ p: 'sm' }}>
         <Stack gap="px8">
           {/* Title and menu share the first row, so a card with no next step has no empty footer. */}
           <Stack direction="row" gap="px8" align="start" justify="space-between">
             <Text variant="body" as="h3" className="rjb-semibold" style={{ minWidth: 0 }}>
               <Stack direction="row" gap="px4" align="start">
-                {/* Pinned jobs get the accent edge and a star, as in the table. */}
+                {/* Pinned jobs show a star, as in the table. */}
                 {row.pinned && (
                   <>
                     <Icon icon={Star} size="small" />
@@ -56,12 +48,12 @@ export default function JobListCard({ job }: { job: Job }) {
             </Text>
             <RowMenu job={job} size="md" />
           </Stack>
-          {row.facts && (
-            <Text variant="caption" as="p" style={SECONDARY}>
-              {row.facts}
+          {row.factLines.map((line, i) => (
+            <Text key={i} variant="caption" as="p" style={SECONDARY}>
+              {line}
             </Text>
-          )}
-          {/* One meta line: status · fit · when · follow-up. Short enough to stay on one row at 390. */}
+          ))}
+          {/* Badges, not text: status, fit, when and follow-up are chips that wrap, so no dotted line here. */}
           <Stack direction="row" wrap="wrap" gap="px8" align="center">
             <StatusBadge job={job} />
             {row.verdict && <Badge tone={row.verdict.tone}>{row.verdict.label}</Badge>}

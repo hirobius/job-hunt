@@ -1,9 +1,9 @@
+import { chunkMeta, metaLines } from './metaLines';
 import {
   Badge,
   Button,
   Card as HdsCard,
   Tooltip as HdsTooltip,
-  useToast,
   Disclosure,
   Icon,
   Box,
@@ -13,7 +13,8 @@ import {
   InlineLink,
 } from '@hirobius/design-system';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
-import { addJob, isSaved, useJobs } from './store';
+import { addJob, findJobByUrl, isSaved, useJobs } from './store';
+import { notifySaved } from './saveNotice';
 import { useTileTriage, toggleDismiss } from './tileTriage';
 import { parseMeta } from './tileMeta';
 import type { Tile } from './jobsData';
@@ -57,13 +58,10 @@ export default function TileGrid({
   useJobs(); // re-render on save
   const { dismissed } = useTileTriage();
   const dismissedSet = new Set(dismissed);
-  const { toast } = useToast();
   // Enriched save (issue #57): carry the tile name → label and its meta → note so the queue
-  // card isn't a bare URL; confirm with a toast pointing at the Queue.
+  // card isn't a bare URL; the save notice says where it went and offers Open / Undo.
   const save = (t: Tile) => {
-    if (addJob(t.url, t.name, t.meta)) {
-      toast({ title: 'Added to Queue', description: t.name, tone: 'success' });
-    }
+    if (addJob(t.url, t.name, t.meta)) notifySaved([findJobByUrl(t.url)?.url ?? t.url], t.name);
   };
   return (
     <Grid layout="auto-fill" minItemWidth="240px" gap="medium" align="stretch">
@@ -73,7 +71,7 @@ export default function TileGrid({
         const kind = kindOf(t.url);
         const meta = parseMeta(t.meta);
         // Pay and place read as chips; the first phone stays one tap from the card (every phone is
-        // in the detail). With nothing parsed, the raw meta shows as the note.
+        // in the detail). With nothing parsed, the raw meta shows as the note; the detail repeats it two items a line.
         const chips = meta.chips.filter((c) => c.kind !== 'contact' || c.text === meta.phones[0]);
         const note = meta.notes[0];
         const host = hostOf(t.url);
@@ -114,18 +112,28 @@ export default function TileGrid({
                 {kind && <Badge tone={kind.tone}>{kind.label}</Badge>}
               </Stack>
               {chips.length > 0 && (
-                <Stack direction="row" wrap="wrap" gap="tight" align="center">
-                  {chips.map((c) =>
-                    c.kind === 'contact' ? (
-                      <InlineLink key={c.text} href={telHref(c.text)}>
-                        {c.text}
-                      </InlineLink>
-                    ) : (
-                      <Badge key={c.kind + c.text} tone="neutral">
-                        {c.text}
-                      </Badge>
-                    ),
-                  )}
+                <Stack gap="px4">
+                  {/* At most two chips per row (#192). */}
+                  {chunkMeta(chips).map((row) => (
+                    // Box, not Stack: Stack drops the data-meta-row hook the tests count.
+                    <Box
+                      key={row.map((c) => c.kind + c.text).join('|')}
+                      data-meta-row=""
+                      sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'center' }}
+                    >
+                      {row.map((c) =>
+                        c.kind === 'contact' ? (
+                          <InlineLink key={c.text} href={telHref(c.text)}>
+                            {c.text}
+                          </InlineLink>
+                        ) : (
+                          <Badge key={c.kind + c.text} tone="neutral">
+                            {c.text}
+                          </Badge>
+                        ),
+                      )}
+                    </Box>
+                  ))}
                 </Stack>
               )}
               {note && (
@@ -150,15 +158,17 @@ export default function TileGrid({
                     <Text variant="ui" as="span" style={{ overflowWrap: 'anywhere' }}>
                       {t.name}
                     </Text>
-                    {meta.raw && (
+                    {metaLines(meta.raw.split(/\s+·\s+/)).map((line) => (
                       <Text
+                        key={line}
                         variant="caption"
                         as="span"
+                        data-meta-detail
                         style={{ ...SECONDARY, overflowWrap: 'anywhere' }}
                       >
-                        {meta.raw}
+                        {line}
                       </Text>
-                    )}
+                    ))}
                     {meta.phones.map((ph) => (
                       <InlineLink key={ph} href={telHref(ph)}>
                         {ph}

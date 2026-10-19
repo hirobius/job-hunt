@@ -24,6 +24,7 @@ import { DIRECTORY_BY_PACK } from './radar/directory';
 import { getAllJobs, removeJob } from './store';
 import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
+import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 
 // These render the whole panel with axe and many user events; under a loaded machine they ran
 // past vitest's 5s default (#178 review), so they get more room.
@@ -113,6 +114,19 @@ describe('LiveFeedPanel', () => {
     expect(hn).toHaveTextContent('Contract-friendly');
     expect(hn).toHaveTextContent('In description');
     expect(screen.queryByText('Backend Engineer')).not.toBeInTheDocument();
+  });
+
+  it('splits a posting row meta into lines of at most two items (#192)', async () => {
+    renderPanel(['https://jobs.ashbyhq.com/ramp']);
+    const list = await screen.findByRole('list', { name: /live postings/i });
+    const row = within(list)
+      .getAllByRole('listitem')
+      .find((r) => r.textContent?.includes('Design Systems Lead'))!;
+    // Company, location, mode and source are four items: they must land on two captions.
+    expect(within(row).getByText('Ramp · New York, NY')).toBeInTheDocument();
+    for (const e of Array.from(row.querySelectorAll('span, p'))) {
+      expect(itemsInLine(e.textContent ?? '')).toBeLessThanOrEqual(MAX_META_ITEMS);
+    }
   });
 
   it('has no WCAG A/AA violations with results and a source warning showing', async () => {

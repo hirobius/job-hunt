@@ -90,7 +90,7 @@ describe('row timing labels (#129)', () => {
 describe('retired rows (#155 review)', () => {
   it('say Retired in words and drop their colour coding to neutral', () => {
     const row = rowView(job({ archived: true, verdict: 'match', company: 'Acme' }), NOW);
-    expect(row.facts).toBe('Retired · Acme');
+    expect(row.factLines).toEqual(['Retired · Acme']);
     expect(row.verdict).toEqual({ value: 'match', label: 'Strong fit', tone: 'neutral' });
     expect(rowView(job({ verdict: 'match' }), NOW).verdict?.tone).toBe('success');
   });

@@ -489,3 +489,44 @@ describe('per-source hard timeout and single-source retry (#131)', () => {
     expect(fetchJson.mock.calls.every(([u]) => String(u).includes('remotive.com'))).toBe(true);
   });
 });
+
+describe('fetchFeed — the wide sweep (#213)', () => {
+  it('runs each term source once per term, reads each board once, and keeps a posting once', async () => {
+    const calls: string[] = [];
+    const out = await fetchFeed(
+      {
+        terms: ['design engineer', 'Design Engineer', 'design technologist'],
+        boardUrls: ['https://jobs.lever.co/acme'],
+      },
+      async (url) => {
+        calls.push(url);
+        if (url.includes('search_by_date')) return { hits: [] };
+        if (url.includes('remotive'))
+          return {
+            jobs: [
+              {
+                id: 7,
+                url: 'https://remotive.com/j/7',
+                title: 'Design Engineer',
+                company_name: 'Co',
+                description: 'design technologist',
+              },
+            ],
+          };
+        return [{ id: 'x', text: 'Engineer', hostedUrl: 'https://jobs.lever.co/acme/x' }];
+      },
+      { sources: NO_AGGREGATORS, kv: memoryKv() },
+    );
+    expect(out.sources.map((s) => s.key)).toEqual([
+      'hn|design engineer',
+      'remotive|design engineer',
+      'hn|design technologist',
+      'remotive|design technologist',
+      'lever:acme',
+    ]);
+    expect(out.sources[1].label).toBe('Remotive · “design engineer”');
+    expect(calls.filter((u) => u.includes('lever.co'))).toHaveLength(1);
+    // Remotive answered the same job for both terms: it is in the pool once.
+    expect(out.postings.filter((p) => p.source === 'remotive')).toHaveLength(1);
+  });
+});

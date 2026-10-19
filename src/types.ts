@@ -6,7 +6,7 @@ export const STATUSES: Status[] = ['Saved', 'Applied', 'Interviewing', 'Offer', 
  *  tracks pipeline stage). See docs: the "Implementation Track" deck §10.1 + issue #60. */
 export type Verdict = 'match' | 'stretch' | 'reach';
 
-/** Work mode. Kept fixed/universal; the competition signal (remote ≈ 5× applicants) hangs off it. */
+/** Work mode. Kept fixed/universal. */
 export type JobMode = 'remote' | 'hybrid' | 'onsite';
 
 /** One dated status change (spec: pipeline metrics). `at` is an ISO date or datetime. */
@@ -60,8 +60,6 @@ export interface Job {
   //     records simply lack them. `blockers` holds default-vocab ids or custom user tags. ---
   verdict?: Verdict;
   mode?: JobMode;
-  travelPct?: number;
-  applicants?: number; // self-entered at apply time — a real competition metric
   blockers?: string[]; // dealbreaker tags (default vocab + custom)
   angle?: string; // positioning note for THIS job
   screenedAt?: string; // ISO — set when the JD screener (#61) last ran

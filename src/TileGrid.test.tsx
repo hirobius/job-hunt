@@ -3,6 +3,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import TileGrid from './TileGrid';
+import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { getAllJobs, removeJob } from './store';
 import type { Tile } from './jobsData';
 
@@ -79,5 +80,25 @@ describe('TileGrid cards (#12, #131)', () => {
   it('offers no Set aside without triage', () => {
     renderGrid(false);
     expect(screen.queryByRole('button', { name: 'Set aside' })).toBeNull();
+  });
+});
+
+describe('Tile chips keep to two per row (#192)', () => {
+  it('a tile with pay, place and a phone shows them on two rows, never three together', () => {
+    renderGrid();
+    const rows = card('Travis Pattern & Foundry').querySelectorAll('[data-meta-row]');
+    expect(rows.length).toBe(2);
+    rows.forEach((r) => expect(r.children.length).toBeLessThanOrEqual(2));
+  });
+
+  it('the Details disclosure never puts more than two meta items on one line', async () => {
+    renderGrid();
+    const c = card('Travis Pattern & Foundry');
+    await userEvent.click(within(c).getByText('Details'));
+    const lines = Array.from(c.querySelectorAll('[data-meta-detail]'));
+    expect(lines.length).toBeGreaterThan(1);
+    lines.forEach((l) =>
+      expect(itemsInLine(l.textContent ?? '')).toBeLessThanOrEqual(MAX_META_ITEMS),
+    );
   });
 });
