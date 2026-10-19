@@ -41,10 +41,10 @@ const renderApp = () =>
   );
 
 describe('App top-level tab wiring', () => {
-  it('renders four tabs (Today · Pipeline · Discover · Templates), each associated with a tabpanel', () => {
+  it('renders three tabs (Companies · Pipeline · Templates), each associated with a tabpanel', () => {
     renderApp();
     const tabs = within(screen.getByRole('tablist', { name: 'Sections' })).getAllByRole('tab');
-    expect(tabs).toHaveLength(4);
+    expect(tabs).toHaveLength(3);
     for (const tab of tabs) {
       expect(tab.getAttribute('id')).toBeTruthy();
       expect(tab.getAttribute('aria-controls')).toBeTruthy();
@@ -59,8 +59,8 @@ describe('App top-level tab wiring', () => {
     expect(panel.getAttribute('aria-labelledby')).toBe(selected.getAttribute('id'));
   });
 
-  it('defaults to the Today tab when the hash carries no route', () => {
+  it('defaults to the Companies tab when the hash carries no route', () => {
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/today/i);
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
   });
 });
