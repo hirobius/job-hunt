@@ -27,6 +27,11 @@ const search = (name: string): SavedFilter => ({
   contractOnly: false,
 });
 
+const removed = (url: string, label = url) => ({
+  job: job(`https://${url}.example/1`, label),
+  removedAt: new Date().toISOString(),
+});
+
 const dream = (company: string): Dream => ({
   key: company.toLowerCase(),
   company,
@@ -91,6 +96,7 @@ describe('writeBlob — v4 shape', () => {
       modes: {},
       kit: { fields: {}, answers: [] },
       sweeps: {},
+      trash: [],
       dreams: {},
     });
   });
@@ -103,6 +109,7 @@ describe('writeBlob — v4 shape', () => {
       filters: { t1: [search('Austin')] },
       evidence: 'Led a design system',
       modes: { t1: 'hybrid' },
+      trash: [removed('b')],
       dreams: { t1: [dream('Acme')] },
     });
     expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 9 });
@@ -296,5 +303,46 @@ describe('blob v5 — targets, saved searches, evidence, work mode', () => {
       true,
     );
     expect(out.dreams.t1.map((d) => d.company)).toEqual(['Local', 'Cloud']);
+  });
+});
+
+describe('blob v8 — Recently removed', () => {
+  it('a v7 blob reads with an empty trash; v8 drops malformed entries', () => {
+    expect(readBlob({ v: 7, jobs: [] }).trash).toEqual([]);
+    const r = readBlob({ v: 8, trash: [removed('a'), { job: {} }, 'junk'] });
+    expect(r.trash.map((x) => x.job.label)).toEqual(['a']);
+  });
+
+  it('seed: unions both sides, cloud wins a shared job', () => {
+    const out = mergeBlob(
+      blob({ sourceV: 8, trash: [removed('a', 'cloud')] }),
+      blob({ trash: [removed('a', 'local'), removed('b')] }),
+      true,
+    );
+    expect(out.trash.map((x) => x.job.label).sort()).toEqual(['b', 'cloud']);
+  });
+
+  it('seed: a job saved on either side is not also listed under Recently removed', () => {
+    const job = removed('a').job;
+    const out = mergeBlob(
+      blob({ sourceV: 8, jobs: [job] }),
+      blob({ trash: [removed('a'), removed('b')] }),
+      true,
+    );
+    expect(out.jobs.map((j) => j.label)).toEqual(['a']);
+    expect(out.trash.map((x) => x.job.label)).toEqual(['b']);
+  });
+
+  it('refresh: a v8 cloud copy wins; a v7 one (production, sweeps but no trash) never wipes this device’s trash', () => {
+    const local = blob({ trash: [removed('a')] });
+    expect(mergeBlob(blob({ sourceV: 8 }), local, false).trash).toEqual([]);
+    expect(mergeBlob(blob({ sourceV: 7 }), local, false).trash).toEqual(local.trash);
+    expect(mergeBlob(blob({ sourceV: 6 }), local, false).trash).toEqual(local.trash);
+    expect(mergeBlob(blob({ sourceV: 5 }), local, false).trash).toEqual(local.trash);
+  });
+
+  it('never pushes a removed sample job', () => {
+    const sample = { ...removed('s'), job: { ...removed('s').job, demo: true } as Job };
+    expect(writeBlob(blob({ trash: [sample, removed('a')] })).trash).toHaveLength(1);
   });
 });

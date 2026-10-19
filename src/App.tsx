@@ -11,6 +11,7 @@ import {
   Stack,
 } from '@hirobius/design-system';
 import TodayView from './TodayView';
+import { FollowUpHost } from './FollowUp';
 import TrackerView from './TrackerView';
 import JobPage from './JobPage';
 import ApplyMode from './ApplyMode';
@@ -120,9 +121,10 @@ export default function App() {
               }
             >
               <Stack gap="normal">
-                {/* Slim header: name · top tabs · account. The tabs wrap under the name on mobile. */}
+                {/* Slim app bar: wordmark · Menu. The wordmark is a body-size label so each page's
+                    title stays the biggest text on screen. */}
                 <Stack direction="row" wrap="wrap" gap="gap" align="center" justify="space-between">
-                  <Text variant="title" as="h1">
+                  <Text variant="body" as="h1" className="rjb-semibold">
                     {BRAND.wordmark[0]}
                     <Box as="span" sx={{ color: 'accent' }}>
                       {BRAND.wordmark[1]}
@@ -178,6 +180,7 @@ export default function App() {
           </Box>
         </Container>
         <SignInDialog />
+        <FollowUpHost />
         <NoticeHost />
       </DataToolsProvider>
     </CloudSyncProvider>

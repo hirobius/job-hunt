@@ -7,7 +7,7 @@ import { deriveJobState } from './jobState';
 import { sortJobs, type SortKey } from './jobSort';
 import type { Job, Status } from './types';
 
-export type Filter = 'active' | 'all' | Status | 'retired';
+export type Filter = 'active' | 'starred' | 'all' | Status | 'retired';
 
 export interface PipelineView {
   filter: Filter;
@@ -20,6 +20,7 @@ export const DEFAULT_VIEW: PipelineView = { filter: 'active', sort: 'recent', q:
 // The status menu (#129): two views, then the stages grouped by where a job is.
 export const FILTER_LABEL: Record<Filter, string> = {
   active: 'Active',
+  starred: 'Starred',
   all: 'All',
   Saved: 'Saved',
   Applied: 'Applied',
@@ -32,7 +33,8 @@ export const FILTER_LABEL: Record<Filter, string> = {
 // Active first; All and Retired demoted to the end (#129). A group without a label is just a
 // separated section.
 export const FILTER_GROUPS: { label?: string; items: Filter[] }[] = [
-  { label: 'Views', items: ['active'] },
+  // Starred is where favourites live: every starred job, whatever its stage.
+  { label: 'Views', items: ['active', 'starred'] },
   { label: 'In progress', items: ['Saved', 'Applied', 'Interviewing', 'Offer'] },
   { label: 'Closed', items: ['Rejected', 'retired'] },
   { items: ['all'] },
@@ -42,6 +44,7 @@ export function matchesFilter(j: Job, f: Filter): boolean {
   const s = deriveJobState(j);
   if (f === 'active') return s.isActive;
   if (f === 'all') return true;
+  if (f === 'starred') return !!j.priority;
   if (f === 'retired') return !!j.archived;
   return !j.archived && s.status === f;
 }

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useToast } from '@hirobius/design-system';
 import type { User } from '@supabase/supabase-js';
 import { supabase as supa } from '../supabase';
+import { signInErrorMessage } from './signInErrors';
 import { useJobs, getAllJobs, replaceAll } from '../store';
 import { useSnippets, getSnippets, replaceSnippets } from '../copyDeckStore';
 import { useTileTriage, getTileTriage, replaceTriage } from '../tileTriage';
@@ -15,6 +16,7 @@ import { readEvidence, replaceEvidence, useEvidence } from '../radar/evidenceSto
 import { getAllModes, replaceModes, useAllModes } from '../trackModes';
 import { getApplyKit, replaceApplyKit, useApplyKit } from '../applyKit';
 import { getAllSweeps, replaceSweeps, useAllSweeps } from '../feed/sweepTitles';
+import { getTrash, replaceTrash, useTrash } from '../trash';
 import { getAllDreams, replaceDreams, useAllDreams } from '../feed/dreams';
 import {
   readBlob,
@@ -66,6 +68,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const modes = useAllModes();
   const kit = useApplyKit();
   const sweeps = useAllSweeps();
+  const trash = useTrash();
   const dreams = useAllDreams();
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
@@ -96,6 +99,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     modes: getAllModes(),
     kit: getApplyKit(),
     sweeps: getAllSweeps(),
+    trash: getTrash(),
     dreams: getAllDreams(),
     sourceV: BLOB_VERSION,
   });
@@ -148,6 +152,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       replaceModes(next.modes);
       replaceApplyKit(next.kit);
       replaceSweeps(next.sweeps);
+      replaceTrash(next.trash);
       replaceDreams(next.dreams);
       // Record what we just adopted so the resulting store changes don't echo a push.
       lastSynced.current = localJson();
@@ -208,7 +213,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     pushTimer.current = setTimeout(() => pushNow(user), 500);
     // pushNow/localJson are stable enough; we intentionally fire only on data + user changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobs, snippets, triage, targets, filters, evidence, modes, kit, sweeps, dreams, user]);
+  }, [jobs, snippets, triage, targets, filters, evidence, modes, kit, sweeps, trash, dreams, user]);
 
   // re-pull on focus
   useEffect(() => {
@@ -276,10 +281,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       email,
       options: { emailRedirectTo: location.origin + location.pathname },
     });
-    if (!r.error) return null;
-    const why = 'Could not send link: ' + r.error.message;
-    toast({ title: 'Sign-in link not sent', description: r.error.message, tone: 'danger' });
-    return why;
+    // The dialog shows the error inline, in plain words (no vendor message).
+    return r.error ? signInErrorMessage(r.error) : null;
   };
 
   // A failed pull/push is a toast once per outage (not a banner): focus re-pulls and Retry

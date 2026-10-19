@@ -131,14 +131,14 @@ async function seed(page) {
 
 // Dialogs and menus: [tab name, file name, steps]. Each step is [role, name]; Escape closes.
 const OVERLAYS = [
-  [/^(Pipeline|Tracker)$/, 'account-menu', [['button', /^(Account|More options)/]]],
+  [/^(Pipeline|Tracker)$/, 'account-menu', [['button', /^(Menu|Account|More options)$/]]],
   [/^(Pipeline|Tracker)$/, 'status-menu', [['button', /^Status:/]]],
   [/^(Pipeline|Tracker)$/, 'add-job-dialog', [['button', /^Add job$/]]],
   [
     /^(Pipeline|Tracker)$/,
     'sign-in-dialog',
     [
-      ['button', /^Account/],
+      ['button', /^(Menu|Account)$/],
       ['menuitem', /^Sign in/],
     ],
   ],
@@ -162,6 +162,15 @@ const OVERLAYS = [
   [/^Discover$/, 'manage-track-dialog', [['button', /^Manage track$/]]],
   // The location and work-mode popover in the header (#131).
   [/^Discover$/, 'discover-context-popover', [['button', /, (Any mode|Hybrid|On-site)$|^Remote$/]]],
+  // The details card in edit, and the header menu (Remove lives there).
+  [/^(Pipeline|Tracker)$/, 'job-page-edit', [['first-job'], ['button', /^Edit details$/]]],
+  [/^(Pipeline|Tracker)$/, 'job-page-menu', [['first-job'], ['button', /^More actions/]]],
+  // Last, as it removes a job: the Undo toast, then Recently removed.
+  [
+    /^(Pipeline|Tracker)$/,
+    'recently-removed',
+    [['button', /^More actions/], ['menuitem', /^Remove$/], ['button', /^Recently removed/]],
+  ],
 ];
 
 async function shoot(browser, base, theme, width, manifest) {

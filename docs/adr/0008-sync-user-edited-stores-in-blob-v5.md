@@ -54,6 +54,22 @@ wipes every `rjb_` key, so signing out, or opening a second device, lost them.
   older edit. Acceptable for single-user lists, and the seed merge never loses on first sign-in.
 - Entries are capped as before (500 targets and 12 saved searches per track); the blob stays small.
 
+## Addendum (2026-10-17): blob v8, Recently removed
+
+Blob v6 is the Application kit (rapid apply) and v7 the wide sweep's titles (#213), both already
+in production. Removing a job is no longer
+permanent: `src/trash.ts` keeps removed jobs (whole, with to-dos, notes and interviews) for 30 days
+in `rjb_trash`, and **blob v8** carries them as `trash` under the same rules as the v5 fields:
+optional on read, seed merge unions by job URL (cloud wins a shared job, and a job saved on either
+side is dropped from the trash), refresh lets the cloud win, and a refresh against a pre-v8 cloud
+copy (including a v7 one written by the production deploy) keeps this device's trash and re-uploads
+it. Sample jobs never go up. Entries older than 30 days drop on every read. Backups carry the trash
+too (optional on restore; older backups lack it).
+
+Restoring a job whose posting was saved again since never drops either copy: the removed copy's
+notes, to-dos and interviews are merged into the saved one (`mergeRemovedInto`) and the user is
+told so.
+
 ## Addendum (2026-10-17): blob v9, dream companies
 
 Dream companies (`rjb_dreams`, `src/feed/dreams.ts`) follow the same pattern: per track, union by

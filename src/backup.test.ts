@@ -52,6 +52,7 @@ const state = (over: Partial<AccountState> = {}): AccountState => ({
   filters: {},
   evidence: '',
   modes: {},
+  trash: [],
   dreams: {},
   ...over,
 });
@@ -306,6 +307,7 @@ describe('sample data (#110)', () => {
         filters: {},
         evidence: '',
         modes: {},
+        trash: [],
         dreams: {},
       },
       new Date(2026, 9, 13),
@@ -371,5 +373,37 @@ describe('backup carries targets, saved searches, evidence and work modes (ADR 0
     const replaced = applyBackup(current, rich(), 'replace');
     expect(replaced.targets.t1.map((t) => t.login)).toEqual(['acme']);
     expect(replaced.modes).toEqual({ t1: 'remote' });
+  });
+});
+
+describe('backup carries Recently removed (blob v8)', () => {
+  const removed = (url: string, label = 'Gone') => ({
+    job: job(url, label),
+    removedAt: new Date().toISOString(),
+  });
+
+  it('round-trips, drops sample jobs, and an older backup parses with an empty trash', () => {
+    const sample = {
+      ...removed('https://example.com/s'),
+      job: { ...job('https://example.com/s'), demo: true } as Job,
+    };
+    const b = buildBackup(state({ trash: [removed('https://example.com/r'), sample] }), NOW);
+    expect(b.trash.map((r) => r.job.url)).toEqual(['https://example.com/r']);
+    const r = parseBackup(JSON.stringify(b));
+    expect(r.ok && r.backup.trash.map((x) => x.job.url)).toEqual(['https://example.com/r']);
+    const old = parseBackup(wrap({ jobs: [], copydeck: [], curation: {}, triage: {} }));
+    expect(old.ok && old.backup.trash).toEqual([]);
+  });
+
+  it('a job saved after the restore is not also listed as removed', () => {
+    const current = state({ jobs: [], trash: [removed('https://example.com/a')] });
+    const merged = applyBackup(current, state(), 'merge');
+    expect(merged.trash).toEqual([]);
+    const replaced = applyBackup(
+      current,
+      state({ trash: [removed('https://example.com/b')] }),
+      'replace',
+    );
+    expect(replaced.trash.map((r) => r.job.url)).toEqual(['https://example.com/b']);
   });
 });

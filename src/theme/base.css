@@ -67,17 +67,6 @@ p {
   overflow-wrap: anywhere;
 }
 
-/* The "saved on this device only" cue on the Account trigger (#133), shown off Today where the
- * sync nudge is not. Accent colour, decorative (the trigger's title carries the words). */
-.rjb-unsynced-dot {
-  display: inline-block;
-  width: var(--primitive-space-2);
-  height: var(--primitive-space-2);
-  margin-inline-start: var(--primitive-space-1);
-  border-radius: 50%;
-  background: var(--semantic-accent-rest);
-}
-
 /* Phone: the four top tabs (Today · Pipeline · Discover · Templates) fit 390px with tighter
  * padding instead of cutting "Templates" mid-word (#133). Wider screens keep HDS's padding. */
 @media (max-width: 440px) {
@@ -105,4 +94,10 @@ p {
   *::after {
     transition-duration: 0.01ms !important;
   }
+}
+
+/* A filled icon (the on state of Star). HDS Icon's `weight="fill"` only sets the stroke width, so
+ * the fill comes from here. Upstream ask: a real filled weight on HDS Icon. */
+.rjb-icon-filled {
+  fill: currentColor;
 }

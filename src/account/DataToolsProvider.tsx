@@ -22,6 +22,7 @@ import { getTileTriage, replaceTriage } from '../tileTriage';
 import { getAllTargets, replaceTargets } from '../feed/targets';
 import { getAllFilters, replaceFilters } from '../feed/savedFilters';
 import { readEvidence, replaceEvidence } from '../radar/evidenceStore';
+import { getTrash, replaceTrash } from '../trash';
 import { getAllModes, replaceModes } from '../trackModes';
 import { getAllDreams, replaceDreams } from '../feed/dreams';
 import { BRAND } from '../brand';
@@ -41,6 +42,7 @@ function currentState(): AccountState {
     filters: getAllFilters(),
     evidence: readEvidence(),
     modes: getAllModes(),
+    trash: getTrash(),
     dreams: getAllDreams(),
   };
 }
@@ -59,6 +61,7 @@ function applyState(next: AccountState) {
   replaceFilters(next.filters);
   replaceEvidence(next.evidence);
   replaceModes(next.modes);
+  replaceTrash(next.trash);
   replaceDreams(next.dreams);
 }
 

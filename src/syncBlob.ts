@@ -3,8 +3,8 @@
 // reasoning lives here and is unit-testable without Supabase. Each field's merge rule lives
 // with its store (mergeJobs, mergeTriage's set-aside-wins, …); this module only composes them.
 //
+// v8 (ADR 0008 addendum) adds Recently removed: jobs removed in the last 30 days (`src/trash.ts`).
 // v9 adds dream companies per track (src/feed/dreams.ts), same pattern as the v5 stores.
-// (v8 is the trash, #214.)
 // v7 adds the wide sweep's titles per track (#213), optional on read.
 // v6 adds the Application kit (rapid apply: profile fields + saved answers), optional on read.
 // v5 (ADR 0008) adds the user-edited stores that used to live only in this browser: outreach
@@ -15,7 +15,7 @@
 //   v3  { jobs, pillars, copydeck, triage: { pinned, dismissed }, userTiles }
 //       → pillars are ignored (retired), cloud pins are ignored (pins are device-local now),
 //         userTiles surface as `legacyUserTiles` for the one-time "My links" fold.
-import { mergeJobs } from './store';
+import { dedupKey, mergeJobs } from './store';
 import { mergeSnippets, type Snippet } from './copyDeckStore';
 import { mergeTriage, type Triage } from './tileTriage';
 import type { LegacyTile } from './curation/legacyTiles';
@@ -29,6 +29,7 @@ import { mergeDreams, sanitizeDreams, type Dream } from './feed/dreams';
 import type { WorkMode } from './jobsData';
 import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
+import { mergeTrash, sanitizeTrash, type Removed } from './trash';
 
 export type { Triage };
 
@@ -51,6 +52,8 @@ export interface SyncData {
   kit: ApplyKit;
   /** The wide sweep's titles and on/off per track (v7). */
   sweeps: Record<string, SweepTitles>;
+  /** Jobs removed in the last 30 days, newest first (v8). */
+  trash: Removed[];
   /** Dream companies per track (v9). */
   dreams: Record<string, Dream[]>;
   /** The blob version this was read from (0 = not read from a blob). A pre-v5 cloud copy says
@@ -73,6 +76,7 @@ export function emptyBlob(): SyncData {
     modes: {},
     kit: emptyKit(),
     sweeps: {},
+    trash: [],
     dreams: {},
     sourceV: 0,
   };
@@ -103,6 +107,7 @@ export function readBlob(data: unknown): SyncData {
     modes: sanitizeModes(o.modes),
     kit: sanitizeKit(o.kit),
     sweeps: sanitizeSweeps(o.sweeps),
+    trash: sanitizeTrash(o.trash),
     dreams: sanitizeDreams(o.dreams),
     sourceV: typeof o.v === 'number' ? o.v : 0,
   };
@@ -121,6 +126,7 @@ export function writeBlob(d: SyncData) {
     modes: d.modes,
     kit: d.kit,
     sweeps: d.sweeps,
+    trash: d.trash.filter((r) => !isSample(r.job)),
     dreams: d.dreams,
   };
 }
@@ -146,6 +152,8 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     // Likewise a pre-v6 copy says nothing about the kit.
     const v6 = cloud.sourceV >= 6 ? {} : { kit: local.kit };
     const v7 = cloud.sourceV >= 7 ? {} : { sweeps: local.sweeps };
+    // And a pre-v8 copy says nothing about Recently removed.
+    const v8 = cloud.sourceV >= 8 ? {} : { trash: local.trash };
     // And a pre-v9 copy says nothing about dream companies.
     const v9 = cloud.sourceV >= 9 ? {} : { dreams: local.dreams };
     return {
@@ -153,6 +161,7 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
       ...v5,
       ...v6,
       ...v7,
+      ...v8,
       ...v9,
       jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
       triage: {
@@ -161,8 +170,10 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
       },
     };
   }
+  const jobs = mergeJobs(cloud.jobs, local.jobs);
+  const saved = new Set(jobs.map((j) => dedupKey(j.url)));
   return {
-    jobs: mergeJobs(cloud.jobs, local.jobs),
+    jobs,
     copydeck: mergeSnippets(cloud.copydeck, local.copydeck),
     triage: mergeTriage(cloud.triage, local.triage),
     legacyUserTiles: cloud.legacyUserTiles,
@@ -172,6 +183,8 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     modes: mergeModes(cloud.modes, local.modes),
     kit: mergeKit(cloud.kit, local.kit),
     sweeps: mergeSweeps(cloud.sweeps, local.sweeps),
+    // A job saved on either side is not also listed as removed.
+    trash: mergeTrash(cloud.trash, local.trash).filter((r) => !saved.has(dedupKey(r.job.url))),
     dreams: mergeDreams(cloud.dreams, local.dreams),
     sourceV: cloud.sourceV,
   };
