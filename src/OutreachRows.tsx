@@ -1,4 +1,4 @@
-// Rows shared by the Teams tool and the By company view: one outreach target (a team found on GitHub,
+// Rows of the Teams tool: one outreach target (a team found on GitHub,
 // with its repo, stars and open roles), the watch action, and the saved-targets section. Kept apart
 // from the engine so Live postings can show saved targets without loading the GitHub search code.
 import type { ReactNode } from 'react';
@@ -34,7 +34,7 @@ export function TargetRow({
   onSave?: () => void;
   onRemove?: () => void;
   onWatch: (b: Board) => void;
-  /** Replaces the stored open-roles count (the Companies tool reads the board live). */
+  /** Replaces the stored open-roles count (the Teams tool reads the board live). */
   rolesLine?: string;
   /** The dream-company star. */
   star?: ReactNode;
@@ -59,11 +59,14 @@ export function TargetRow({
               </Text>
               {r.board && <Badge>{SOURCE_LABEL[r.board.kind]}</Badge>}
             </Stack>
-            <Text variant="caption" style={SECONDARY}>
+            <Text variant="caption" as="p" style={SECONDARY}>
               <InlineLink href={r.repoUrl} externalIcon={false}>
                 {r.repo}
               </InlineLink>
-              {` · ${r.stars.toLocaleString()} stars · ${rolesLine ?? rolesText(r)}`}
+              {` · ${r.stars.toLocaleString()} stars`}
+            </Text>
+            <Text variant="caption" as="p" style={SECONDARY}>
+              {rolesLine ?? rolesText(r)}
             </Text>
           </Stack>
           <Stack direction="row" gap="xs" align="center" wrap="wrap">
@@ -120,7 +123,7 @@ export function TargetRow({
   );
 }
 
-/** The saved targets of a track, as a section. Used under the By company view. */
+/** The saved targets of a track, as a section. */
 export function SavedTargets({
   categoryId,
   boardUrls,
@@ -130,7 +133,7 @@ export function SavedTargets({
   categoryId: string;
   boardUrls: string[];
   heading?: boolean;
-  /** Point to the Companies tool's team search (off where there is none to point to). */
+  /** Point to the Teams tool's team search (off where there is none to point to). */
   findLink?: boolean;
 }) {
   const targets = useTargets(categoryId);
@@ -148,7 +151,7 @@ export function SavedTargets({
           {findLink && (
             <>
               {' '}
-              Find teams in the Companies tool and save the ones worth a note.{' '}
+              Find teams in the Teams tool and save the ones worth a note.{' '}
               <InlineLink href="#/discover/teams" externalIcon={false}>
                 Find teams
               </InlineLink>

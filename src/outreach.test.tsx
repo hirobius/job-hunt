@@ -1,4 +1,4 @@
-// Discover → Companies (slug `teams`; docs/specs/discovery-methods.md, method 3): design-system
+// Discover → Teams (slug `teams`; docs/specs/discovery-methods.md, method 3): design-system
 // organisations from GitHub, open roles first, quick save, dream companies and outreach targets, pinned
 // at the route seam with a stubbed `fetch` for GitHub and the ATSs.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -114,11 +114,11 @@ const find = async () => {
   return screen.findByRole('list', { name: 'Design-system teams' });
 };
 
-describe('Companies (design-system teams)', () => {
-  it('is the Companies tool in the Discover row', async () => {
+describe('Teams (design-system teams)', () => {
+  it('is the Teams tool in the Discover row', async () => {
     renderApp();
     const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
-    expect(within(tools).getByRole('radio', { name: 'Companies' })).toBeChecked();
+    expect(within(tools).getByRole('radio', { name: 'Teams' })).toBeChecked();
   });
 
   it('open roles first: Hiring now puts boards not found below, collapsed; keeps the unchecked', async () => {
@@ -161,7 +161,7 @@ describe('Companies (design-system teams)', () => {
     expect(within(roles).queryByText('Sales Lead')).toBeNull();
     await userEvent.click(within(roles).getByRole('button', { name: 'Save Design Engineer' }));
     expect(getAllJobs().map((j) => j.label)).toEqual(['Design Engineer']);
-    expect(getAllJobs()[0].note).toMatch(/Found in Companies/);
+    expect(getAllJobs()[0].note).toMatch(/Found in Teams/);
     expect(within(roles).getByRole('button', { name: 'Saved Design Engineer' })).toBeDisabled();
     const notice = (await screen.findByText('Saved to Pipeline · To apply')).closest(
       '[role="status"]',

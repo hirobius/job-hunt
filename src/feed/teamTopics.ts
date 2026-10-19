@@ -1,4 +1,4 @@
-// Which GitHub topics a track's own terms point at, for the Companies tool's team search
+// Which GitHub topics a track's own terms point at, for the Teams tool's team search
 // (src/feed/dsOrgs.ts). GitHub topics name technologies, so only a track whose terms mention one gets
 // a search: a design-systems track looks for `design-system` repositories, a ServiceNow track for
 // `servicenow` ones. A trades or consulting track gets none, and Discover then opens on Apply now

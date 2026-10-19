@@ -2,7 +2,7 @@
 // links, with the open one marked. It reads the Pipeline's shared filter and sort (pipelineView);
 // only the search is editable here, and "Change filters" goes back to the list.
 import { Search } from 'lucide-react';
-import { Box, Input, InlineLink, Stack, Text, VisuallyHidden } from '@hirobius/design-system';
+import { Badge, Input, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { useJobs, jobIdOf } from './store';
 import { jobHash } from './route';
 import { rowView } from './jobRow';
@@ -22,27 +22,12 @@ function RowBody({ job }: { job: Job }) {
           {v.title}
         </Text>
         <Stack direction="row" gap="tight" align="center">
-          {v.followUp?.due && (
-            <>
-              <Box
-                as="span"
-                aria-hidden="true"
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  bgcolor: 'feedback.warning',
-                  flexShrink: 0,
-                }}
-              />
-              <VisuallyHidden>Follow-up due</VisuallyHidden>
-            </>
-          )}
+          {v.followUp?.due && <Badge tone="warning">Due</Badge>}
           <StatusBadge job={job} />
         </Stack>
       </Stack>
-      {v.factLines.map((line) => (
-        <Text key={line} variant="caption" as="span" style={SECONDARY}>
+      {v.factLines.map((line, i) => (
+        <Text key={i} variant="caption" as="span" style={SECONDARY}>
           {line}
         </Text>
       ))}
@@ -78,7 +63,9 @@ export default function JobRail({ openId }: { openId: string }) {
           style={{ width: '100%' }}
         />
         <Text variant="caption" as="p" style={SECONDARY}>
-          {FILTER_LABEL[view.filter]} · {shown.length} {shown.length === 1 ? 'job' : 'jobs'} ·{' '}
+          {FILTER_LABEL[view.filter]} · {shown.length} {shown.length === 1 ? 'job' : 'jobs'}
+        </Text>
+        <Text variant="caption" as="p" style={SECONDARY}>
           <InlineLink href="#/queue" externalIcon={false}>
             Change filters
           </InlineLink>

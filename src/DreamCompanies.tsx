@@ -1,4 +1,4 @@
-// Dream companies (Companies tool, top section): starred companies that always show, open roles or
+// Dream companies (Teams tool, top section): starred companies that always show, open roles or
 // not. "Check dream companies" re-reads every board fresh and lists the matching openings that are new
 // since the last check (the ids seen are stored per company, src/feed/dreams.ts).
 import { useEffect, useRef, useState } from 'react';

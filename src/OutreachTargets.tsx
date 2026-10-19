@@ -1,4 +1,4 @@
-// The Companies tool (slug `teams`; docs/specs/discovery-methods.md, method 3): companies with public
+// The Teams tool (slug `teams`; docs/specs/discovery-methods.md, method 3): companies with public
 // work on GitHub in the track's own field (src/feed/teamTopics.ts picks the topics; a track with none
 // gets no search, only its dream companies and saved targets), found with the keyless GitHub search
 // (src/feed/dsOrgs.ts). Open roles first: each team's board is read live and filtered by the track's

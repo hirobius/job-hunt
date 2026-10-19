@@ -44,7 +44,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.24.1`, no auth; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`. Upgrade with
+  npm** (exact-pinned `0.24.1`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
+  `.npmrc` maps `@hirobius` there, so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`). Upgrade with
   `npx @hirobius/design-system@latest upgrade` (codemods + a to-do list; `--check` to verify).
   `main.tsx` imports `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` —
   set on `<body>` in `index.html`) and `fonts.css`, then
@@ -77,7 +79,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   groups flagged `archived: true` on the `Group` type (healthcare, remote programs, AI/expert,
   SaaS) stash under a collapsed "Archived tracks" disclosure at the bottom (board-wide search
   still spans them). Then **Queue** (`TrackerView.tsx`), **Copy Deck** (`CopyDeckView.tsx`,
-  incl. seeded call sheet + cold-call script; pillar-scoping removed — flat pinned-first list),
+  incl. five starter templates, one of them the generic "Intro call script" (`tpl-intro-call`; `restoreStarterSnippets` adds any missing `tpl-*`, never touches existing snippets); pillar-scoping removed — flat pinned-first list),
   **Discover** (`DiscoverView.tsx` + `jobsData.ts` groups and Title/ATS generators; the generators
   take a **user-set location + work-mode** (#58, no baked-in Spokane), and the trade/pillar switcher
   lives at the top of this view, not the header). `types.ts` for the Job model. Board rule: **NO
@@ -113,10 +115,15 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   and the rail; `test/setup.ts` resets it per test). An unknown id shows a skeleton, then waits for
   `useCloudSync().settled` before falling back to `#/queue`. Pinned in `src/jobPage.test.tsx`. `HOME_ROUTE` (`today`) and
   `QUICK_ADD_LANDING` (`queue`) are separate in `App.tsx`. Pinned in `src/jobRoute.test.tsx`.
-- **Today is home (#128):** `#/today` = `TodayView.tsx`: due follow-ups (`dueFollowUps`) and the
+- **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1):** the tabs are
+  **Companies · Pipeline · Templates**; Companies is the old Discover (slug `discover`, home, hosts the
+  first-run gate) and an empty hash lands there. `#/today` is a legacy route with no tab, kept until the
+  Today-removal slice; "Try with sample data" lands on the Pipeline. The Today paragraph below is
+  history until then.
+- **Today is home (#128, superseded by the Calm list shell above):** `#/today` = `TodayView.tsx`: due follow-ups (`dueFollowUps`) and the
   next 7 days (`upcomingEvents`, both in `jobEvents.ts`) as `StatusListItem` rows, one quick-add
-  field (stays on Today; the line under it links the saved job), and `Insights.tsx` (metric tiles
-  via `src/hds-gaps/MetricTilesAutoFit` + Progress-row funnel; open state `rjb_ui_insights_open`).
+  field (stays on Today; the line under it links the saved job), and nothing else (the Insights
+  metric tiles and funnel were cut, 2026-10-17).
   HDS-gap stand-ins live in `src/hds-gaps/`, each naming its upstream ask. The Pipeline holds the list only. **The onboarding gate lives in the
   shell:** Today shows `Onboarding` on a first run (no tracks and no jobs; it offers sample data
   there), Discover whenever there are no tracks; Pipeline and Templates never gate. Existing users
@@ -131,6 +138,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   an `AlertDialog`. Its `Menu` is `modal={false}` on purpose: a modal menu plus the dialog left the
   page unclickable. `restoreStarterSnippets` re-adds missing `tpl-*` defaults. Pinned in
   `src/copyDeck.test.tsx` and `src/copyDeckFill.test.tsx`.
+  **Variable chips (#221):** the text is `hds-gaps/TokenTextarea` (contenteditable; each `[Name]` is one
+  atomic chip; Backspace/Delete/arrows/Enter/paste go through `templateEditor` helpers). Insert variable
+  `Menu` + chip row share `insertAt`. A Variables panel sets values: a picked job's four fields save on
+  the job, the rest on `Snippet.values`; `[Your name]` falls back to the kit name. `templateFill.fillSnippet`
+  is the one fill path (editor, Use template, Apply mode). Body stays plain text. E2E:
+  `e2e/template-variables.spec.ts`.
 - **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
   first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the Today gate goes to
@@ -288,9 +301,9 @@ far this cycle:
   There is **no remote default** (remote roles draw ~5× the applicants); one `LocationControl`
   (`src/LocationControl.tsx`, in the Discover header's popover) drives the Title, ATS and Live postings panels.
 - **Screening pipeline on jobs (#60).** Additive `Job` fields — `verdict` (match/stretch/reach),
-  `mode`, `travelPct`, `applicants`, `blockers[]`, `angle`, `screenedAt` — normalized on read in
-  `src/screening.ts`. Edited via `ScreeningEditor`; shown as card badges; new "Best fit" sort; a
-  collapsible **Funnel** summary (`FunnelSummary` + `funnel.ts`).
+  `mode`, `blockers[]`, `angle`, `screenedAt` — normalized on read in
+  `src/screening.ts` (which also strips the retired `travelPct` / `applicants` from old records).
+  Edited via `ScreeningEditor`; shown as card badges; new "Best fit" sort.
 - **Rules-based JD screener (#61).** `src/jdScreener.ts` + `JdScreenPanel` (inline in a job's Screening tab) — paste a JD → suggested
   mode/blockers/verdict from deterministic keyword rules, one-click apply.
 - **Board↔Queue interop (#57).** Saved tiles leave the board (`partitionTiles`); enriched save
@@ -361,8 +374,8 @@ track-agnostic like everything else in Discover.
     `TILE_CHUNK` = 50 rows; a refused chunk leaves only its rows journalled as failed), and Live postings offers "Add suggested
     companies (N)" to an existing track whose label matches a pack (`packIdForLabel`). Live postings
     no longer reads a global list.
-  - **By company** (`feed/byCompany.ts`): an Openings/Companies toggle, view kept in the hash as
-    `?view=companies` (`hashView.ts`).
+  - **By company was cut (2026-10-17):** Live postings is one Openings list; an old `?view=companies`
+    link is ignored and shows Openings.
 - **Hidden-job discovery (2026-10-15, `docs/specs/discovery-methods.md`).** Discover tools **Boards** and
   **Teams** (`#/discover/boards`, `#/discover/teams`). `feed/probe.ts` asks Greenhouse / Lever / Ashby /
   Workable / Recruitee for a company's board (200 + job list = live, 404 = none, anything else =
@@ -371,22 +384,23 @@ track-agnostic like everything else in Discover.
   mirror) and offer Watch. `dsOrgs.ts` + `githubBudget.ts` find design-system orgs via keyless GitHub
   search (3 pages, 30 org lookups per run, 8 searches/min and 40 core/hour in `rjb_gh_budget`, stops with
   "wait until" on 403/429); results are outreach targets (`targets.ts`, `rjb_targets`, per track, synced in the blob,
-  shown in By company and the Teams tool). YC and GitHub sit behind `DISCOVERY_SOURCE_ENABLED`
+  shown in the Teams tool). YC and GitHub sit behind `DISCOVERY_SOURCE_ENABLED`
   (`feed/discoverySources.ts`) and are **unverified live**, as are the new community-board `site:` clauses
   in `jobsData.ts`. Big-company ATSs (Workday, SuccessFactors, Taleo, Oracle) are Google links only: never
   fetch them. New hosts `yc-oss.github.io` and `api.github.com` are in `connect-src` and `csp.test.ts`.
-- **Companies tool (2026-10-17).** The Teams tool is now **Companies** (slug still `teams`). Its GitHub
+- **Teams tool (2026-10-17).** The Discover tool is labelled **Teams** (slug `teams`; not "Companies",
+  which is the top tab since the Calm list shell). Its GitHub
   search follows the track: `feed/teamTopics.ts` `teamSearchFor` maps the track's titles/ATS roles to
-  topics (design systems → `design-system`, ServiceNow → `servicenow`); where it finds one, Companies
-  leads and `#/discover` opens it (`#/discover/apply` is Apply now), else Apply now leads, Companies
+  topics (design systems → `design-system`, ServiceNow → `servicenow`); where it finds one, Teams
+  leads and `#/discover` opens it (`#/discover/apply` is Apply now), else Apply now leads, Teams
   sits second and says there is no search for this track (PR #217 review). Open roles first: each
   team's board is read live (`feed/teamRoles.ts` `readRoles`, the probe's limiter, any failure =
   "Couldn't check") and filtered by the track's terms (`matchRoles` over `match.rankPostings`); a
   **Hiring now** Toggle (on by default) hides teams known to have no matching role (`orderTeams`).
   `dsOrgs` marks `boardCheck: 'unknown' | 'unchecked'` so unknown is never none. Roles save inline
   (`TeamRoles.tsx` `RoleList`, through `saveNotice.notifySaved`: Open + Undo). **Dream
-  companies** (`feed/dreams.ts`, `rjb_dreams`, per track, **blob v9**, ADR 0008 addendum) are starred
-  from team rows or By company (`DreamStar`), always show on top (`DreamCompanies.tsx`), and "Check
+  companies** (`feed/dreams.ts`, `rjb_dreams`, per track, **blob v9**, ADR 0008 addendum; v8 is left for #214) are starred
+  from team rows (`DreamStar`), always show on top (`DreamCompanies.tsx`), and "Check
   dream companies" re-reads boards fresh and flags openings new since the last check. Pinned in
   `src/outreach.test.tsx`, `discover.test.tsx`, `feed/teamRoles.test.ts`, `feed/dreams.test.ts`.
 - ⚠️ **CSP (#41):** when a Content-Security-Policy lands, `connect-src` must allow `hn.algolia.com`,

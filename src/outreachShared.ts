@@ -1,4 +1,4 @@
-// Shared by the Teams tool and the By company view (OutreachRows.tsx, OutreachTargets.tsx): the
+// Shared by the Teams tool's files (OutreachRows.tsx, OutreachTargets.tsx): the
 // list style and the watch action. Kept out of the .tsx so those files export components only.
 import { useMemo } from 'react';
 import { useToast } from '@hirobius/design-system';

@@ -1,4 +1,4 @@
-// Companies tool (Discover → Companies, slug `teams`): a team's open roles that match the track. A
+// Teams tool (Discover → Teams, slug `teams`): a team's open roles that match the track. A
 // team's board is read with the same parsers as Live postings (sources/ats.ts) and the same politeness
 // limiter as the board probe (probe.ts), then filtered by the track's terms with match.ts. Pure apart
 // from `readRoles`, which takes its fetcher and limiter so tests never hit the network.

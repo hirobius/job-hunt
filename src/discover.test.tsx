@@ -155,28 +155,28 @@ describe('Discover header and tools (slice 2)', () => {
       within(tools)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Apply', 'Companies', 'Titles', 'ATS', 'Live', 'Boards']);
+    ).toEqual(['Apply', 'Teams', 'Titles', 'ATS', 'Live', 'Boards']);
     expect(within(tools).getByRole('radio', { name: 'Apply' })).toBeChecked();
     await userEvent.click(within(tools).getByRole('radio', { name: 'ATS' }));
     expect(window.location.hash).toBe('#/discover/ats');
-    await userEvent.click(within(tools).getByRole('radio', { name: 'Companies' }));
+    await userEvent.click(within(tools).getByRole('radio', { name: 'Teams' }));
     expect(window.location.hash).toBe('#/discover/teams');
     await userEvent.click(within(tools).getByRole('radio', { name: 'Apply' }));
     expect(window.location.hash).toBe('#/discover');
   });
 
-  it('follows the track: a welding track opens on Apply now and its Companies tool says why there is no search', async () => {
+  it('follows the track: a welding track opens on Apply now and its Teams tool says why there is no search', async () => {
     addGroup(cat, { label: 'First picks' });
     window.location.hash = '#/discover';
     renderApp();
     const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
     expect(within(tools).getByRole('radio', { name: 'Apply' })).toBeChecked();
-    await userEvent.click(within(tools).getByRole('radio', { name: 'Companies' }));
+    await userEvent.click(within(tools).getByRole('radio', { name: 'Teams' }));
     expect(await screen.findByText(/titles don't name anything GitHub tracks/)).toBeVisible();
     expect(screen.queryByRole('button', { name: /^Find .* teams$/ })).toBeNull();
   });
 
-  it('a design-systems track opens on Companies and searches its own field; the old teams slug still works', async () => {
+  it('a design-systems track opens on Teams and searches its own field; the old teams slug still works', async () => {
     const ds = addCategory({ label: 'Design systems', titles: ['Design Systems Engineer'] });
     addGroup(ds, { label: 'First picks' });
     localStorage.setItem('rjb_active_category', ds);
@@ -187,15 +187,15 @@ describe('Discover header and tools (slice 2)', () => {
       within(tools)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Companies', 'Apply', 'Titles', 'ATS', 'Live', 'Boards']);
-    expect(within(tools).getByRole('radio', { name: 'Companies' })).toBeChecked();
+    ).toEqual(['Teams', 'Apply', 'Titles', 'ATS', 'Live', 'Boards']);
+    expect(within(tools).getByRole('radio', { name: 'Teams' })).toBeChecked();
     expect(await screen.findByRole('button', { name: 'Find design-system teams' })).toBeVisible();
     cleanup();
     window.location.hash = '#/discover/teams';
     renderApp();
     expect(
       within(await screen.findByRole('radiogroup', { name: 'Search tool' })).getByRole('radio', {
-        name: 'Companies',
+        name: 'Teams',
       }),
     ).toBeChecked();
   });

@@ -360,10 +360,10 @@ function AtsPanel({
 // The tools row is data-driven: adding a tool (e.g. "By company") is one entry here. Short labels
 // on a phone, full names from the HDS `sm` breakpoint up (docs/specs/discover.md, "Tools vs sections").
 type ToolKey = 'apply' | 'titles' | 'ats' | 'live' | 'boards' | 'teams';
-// Companies (slug `teams`, kept for old links) leads and is the default where the track's terms give
+// Teams (slug `teams`) leads and is the default where the track's terms give
 // its GitHub search something to find (teamTopics.ts); elsewhere it sits after Apply now.
 const TOOLS: { key: ToolKey; label: string; short: string }[] = [
-  { key: 'teams', label: 'Companies', short: 'Companies' },
+  { key: 'teams', label: 'Teams', short: 'Teams' },
   { key: 'apply', label: 'Apply now', short: 'Apply' },
   { key: 'titles', label: 'Title search', short: 'Titles' },
   { key: 'ats', label: 'ATS search', short: 'ATS' },
@@ -456,7 +456,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
     [cat.titles, cat.atsRoles],
   );
   const companiesLead = !!teamSearch && DISCOVERY_SOURCE_ENABLED.github;
-  // Apply now first where Companies doesn't lead (a stable sort keeps the rest in order).
+  // Apply now first where Teams doesn't lead (a stable sort keeps the rest in order).
   const ordered = companiesLead
     ? TOOLS
     : [...TOOLS].sort((a, b) => Number(b.key === 'apply') - Number(a.key === 'apply'));

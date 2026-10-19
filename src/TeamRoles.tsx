@@ -1,5 +1,5 @@
-// The Companies tool's inline roles (a team's matching openings, saved in one tap) and the dream
-// star, shared by the team rows, the dream companies section and the By company view.
+// The Teams tool's inline roles (a team's matching openings, saved in one tap) and the dream
+// star, shared by the team rows and the dream companies section.
 import { Badge, Button, Icon, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { Star } from 'lucide-react';
 import { addJobDetailed, dedupKey, useJobs } from './store';
@@ -25,7 +25,7 @@ export function RoleList({
   const jobs = useJobs();
   const savedKeys = new Set(jobs.map((j) => dedupKey(j.url)));
   const save = (r: Role) => {
-    const fields = jobFieldsFor(r, r.term, 'Companies');
+    const fields = jobFieldsFor(r, r.term, 'Teams');
     const url = addJobDetailed(r.url, fields);
     if (url) notifySaved([url], fields.label);
   };
