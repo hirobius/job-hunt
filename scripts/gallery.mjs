@@ -161,7 +161,11 @@ const OVERLAYS = [
   [/^Templates$/, 'template-detail', [['link', /^Cover letter/]]],
   [/^(Discover|Companies)$/, 'manage-track-dialog', [['button', /^Manage track$/]]],
   // The location and work-mode popover in the header (#131).
-  [/^(Discover|Companies)$/, 'discover-context-popover', [['button', /, (Any mode|Hybrid|On-site)$|^Remote$/]]],
+  [
+    /^(Discover|Companies)$/,
+    'discover-context-popover',
+    [['button', /, (Any mode|Hybrid|On-site)$|^Remote$/]],
+  ],
   // The details card in edit, and the header menu (Remove lives there).
   [/^(Pipeline|Tracker)$/, 'job-page-edit', [['first-job'], ['button', /^Edit details$/]]],
   [/^(Pipeline|Tracker)$/, 'job-page-menu', [['first-job'], ['button', /^More actions/]]],
@@ -169,7 +173,11 @@ const OVERLAYS = [
   [
     /^(Pipeline|Tracker)$/,
     'recently-removed',
-    [['button', /^More actions/], ['menuitem', /^Remove$/], ['button', /^Recently removed/]],
+    [
+      ['button', /^More actions/],
+      ['menuitem', /^Remove$/],
+      ['button', /^Recently removed/],
+    ],
   ],
 ];
 
