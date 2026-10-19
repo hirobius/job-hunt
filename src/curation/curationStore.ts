@@ -18,7 +18,14 @@ import {
 } from './map';
 
 import { reportCurationWriteFailed } from './syncStatus';
-import { markPending, settlePending, type PendingOp } from './pending';
+import {
+  markPending,
+  markPendingMany,
+  settlePending,
+  settlePendingMany,
+  type PendingOp,
+} from './pending';
+import { dropTrackData } from '../trackData';
 import { hasPersistedSession } from '../supabase';
 
 const KEY = 'rjb_curation';
@@ -87,6 +94,41 @@ function upsert<T extends CurationTable>(
 ) {
   mirror(table, id, 'upsert', (uid) => curationClient.from(table).upsert(buildRow(uid)));
 }
+/** Rows per bulk upsert: a starter pack's ~120 board tiles go up as three requests, not 120. */
+export const TILE_CHUNK = 50;
+
+// The bulk form of `mirror` for upserts: every row is journalled at once (before any await), the
+// rows go up in chunks, and each chunk's rows settle together on that chunk's result. A refused
+// chunk leaves exactly its own rows journalled as failed (the next sync replays them); one report
+// covers the whole batch.
+function upsertMany<T extends CurationTable>(
+  table: T,
+  ids: string[],
+  buildRows: (uid: string) => RowForTable<T>[],
+) {
+  if (ids.length === 0) return;
+  const vs = markPendingMany(table, ids, 'upsert');
+  const writes = ids.map((id, i) => ({ id, v: vs[i] }));
+  void (async () => {
+    const uid = await currentUserId(); // never throws: a failed session read is "no user"
+    if (!uid && !hasPersistedSession()) return settlePendingMany(table, writes, true);
+    const rows = uid ? buildRows(uid) : [];
+    let failed = false;
+    for (let i = 0; i < writes.length; i += TILE_CHUNK) {
+      const chunk = writes.slice(i, i + TILE_CHUNK);
+      let ok = false;
+      try {
+        if (uid)
+          ok = !(await curationClient.from(table).upsert(rows.slice(i, i + TILE_CHUNK))).error;
+      } catch {
+        ok = false;
+      }
+      settlePendingMany(table, chunk, ok);
+      if (!ok) failed = true;
+    }
+    if (failed) reportCurationWriteFailed();
+  })();
+}
 function remove(table: CurationTable, rowId: string) {
   mirror(table, rowId, 'delete', () => curationClient.from(table).delete().eq('id', rowId));
 }
@@ -105,7 +147,8 @@ export function addCategory(partial: Partial<Category> = {}): string {
     titles: [],
     atsRoles: [],
     seniority: 'any',
-    location: 'Remote',
+    // No remote default (#58): an unset place searches anywhere.
+    location: '',
     tailorRole: null,
     sortOrder: nextSort(s.categories),
     archived: false,
@@ -137,6 +180,7 @@ export function removeCategory(id: string) {
   if (!s.categories.some((c) => c.id === id)) return;
   store.set({ ...s, categories: s.categories.filter((c) => c.id !== id) });
   remove('categories', id);
+  dropTrackData(id); // its targets, saved searches and work mode go with it
 }
 
 // ---- groups ----
@@ -196,6 +240,32 @@ export function addTile(groupId: string, partial: Partial<Tile> = {}): string {
   store.set({ ...s, tiles: [...s.tiles, t] });
   upsert('tiles', t.id, (uid) => tileToRow(t, uid));
   return t.id;
+}
+
+/** Add many tiles to one group in one store write and a few bulk cloud upserts (a starter pack's
+ *  boards). Returns the new ids in order. */
+export function addTiles(groupId: string, partials: Partial<Tile>[]): string[] {
+  if (partials.length === 0) return [];
+  const s = store.get();
+  let sort = nextSort(s.tiles.filter((x) => x.groupId === groupId));
+  const now = new Date().toISOString();
+  const added: Tile[] = partials.map((partial) => ({
+    id: newId(),
+    name: '',
+    url: '',
+    meta: '',
+    sortOrder: sort++,
+    createdAt: now,
+    ...partial,
+    groupId,
+  }));
+  store.set({ ...s, tiles: [...s.tiles, ...added] });
+  upsertMany(
+    'tiles',
+    added.map((t) => t.id),
+    (uid) => added.map((t) => tileToRow(t, uid)),
+  );
+  return added.map((t) => t.id);
 }
 
 export function updateTile(id: string, patch: Partial<Tile>) {

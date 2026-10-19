@@ -58,7 +58,13 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
-  publishable + RLS-protected). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
+  publishable + RLS-protected). **Blob v5 (ADR 0008)** carries jobs, snippets, set-aside tiles **and the
+  user-edited per-browser stores: outreach targets (`rjb_targets`), saved searches (`rjb_feed_filters`),
+  the evidence text (`rjb_radar_evidence`) and work mode per track (`rjb_ui_mode:<id>`, `src/trackModes.ts`)**
+  — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
+  Caches and device UI prefs (`rjb_liveness`, `rjb_probe`, `rjb_gh_*`, `rjb_feed_remotive`, `rjb_ui_*`, pins)
+  stay local. Sign-out flushes the blob first (confirms if the push fails); evidence is capped at 20,000
+  chars; per-track data is dropped when its track is deleted (`src/trackData.ts`; no sweep after sync, orphans are harmless). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
   content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
   `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`.
 - **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Trades** (tab label; slug
@@ -69,7 +75,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   groups flagged `archived: true` on the `Group` type (healthcare, remote programs, AI/expert,
   SaaS) stash under a collapsed "Archived tracks" disclosure at the bottom (board-wide search
   still spans them). Then **Queue** (`TrackerView.tsx`), **Copy Deck** (`CopyDeckView.tsx`,
-  incl. seeded call sheet + cold-call script; pillar-scoping removed — flat pinned-first list),
+  incl. five starter templates, one of them the generic "Intro call script" (`tpl-intro-call`; `restoreStarterSnippets` adds any missing `tpl-*`, never touches existing snippets); pillar-scoping removed — flat pinned-first list),
   **Discover** (`DiscoverView.tsx` + `jobsData.ts` groups and Title/ATS generators; the generators
   take a **user-set location + work-mode** (#58, no baked-in Spokane), and the trade/pillar switcher
   lives at the top of this view, not the header). `types.ts` for the Job model. Board rule: **NO
@@ -93,18 +99,56 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **Job routes (#127):** every saved job has a page at `#/queue/<jobId>` (`Route.jobId`; the second
   segment is a job under `queue`, a sub-tab elsewhere). `store.jobIdOf(url)` derives the id (hash
   of `dedupKey`, never stored); `findJobById` resolves it; `route.openJob(id | null)` navigates.
-  `JobPage.tsx` shows the full `JobCard.tsx` (the list uses compact rows, #129); an unknown id waits for
-  `useCloudSync().settled` before falling back to `#/queue`. `HOME_ROUTE` (`today`) and
+  **Job page (#130):** `JobPage.tsx` = `JobHeader` (title, status, pin, the one primary next step,
+  menu; Remove is not in this menu) over `Tabs` Overview (`JobOverview`: facts via `jobFacts` in an
+  HDS `MetadataList`, an "Edit details" `Disclosure` open only for a job without title and company,
+  templates, research links, then `DestructiveSection` Remove with confirm + toast) · Screening
+  (`JobScreening`: fit line, inline `JdScreenPanel`, `ScreeningEditor`) · Interviews · To-dos
+  (`TodosNotes`, holds the one Notes field: `notes`, else the older `note`). The open tab is local
+  state keyed by job, not in the URL. At ≥ `lg` an HDS `Sidebar` puts `JobRail` (links with
+  `aria-current`, `hds-gaps/RailList`) beside the job; below it the job is alone with a Back link.
+  The Pipeline's filter/search/sort live in `pipelineView.ts` (in memory, shared by `TrackerView`
+  and the rail; `test/setup.ts` resets it per test). An unknown id shows a skeleton, then waits for
+  `useCloudSync().settled` before falling back to `#/queue`. Pinned in `src/jobPage.test.tsx`. `HOME_ROUTE` (`today`) and
   `QUICK_ADD_LANDING` (`queue`) are separate in `App.tsx`. Pinned in `src/jobRoute.test.tsx`.
-- **Today is home (#128):** `#/today` = `TodayView.tsx`: due follow-ups (`dueFollowUps`) and the
+- **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1):** the tabs are
+  **Companies · Pipeline · Templates**; Companies is the old Discover (slug `discover`, home, hosts the
+  first-run gate) and an empty hash lands there. `#/today` is a legacy route with no tab, kept until the
+  Today-removal slice; "Try with sample data" lands on the Pipeline. The Today paragraph below is
+  history until then.
+- **Today is home (#128, superseded by the Calm list shell above):** `#/today` = `TodayView.tsx`: due follow-ups (`dueFollowUps`) and the
   next 7 days (`upcomingEvents`, both in `jobEvents.ts`) as `StatusListItem` rows, one quick-add
-  field (stays on Today; the line under it links the saved job), and `Insights.tsx` (metric tiles
-  via `src/hds-gaps/MetricTilesAutoFit` + Progress-row funnel; open state `rjb_ui_insights_open`).
+  field (stays on Today; the line under it links the saved job), and nothing else (the Insights
+  metric tiles and funnel were cut, 2026-10-17).
   HDS-gap stand-ins live in `src/hds-gaps/`, each naming its upstream ask. The Pipeline holds the list only. **The onboarding gate lives in the
   shell:** Today shows `Onboarding` on a first run (no tracks and no jobs; it offers sample data
   there), Discover whenever there are no tracks; Pipeline and Templates never gate. Existing users
   get a one-time `TodayNotice` (`rjb_ui_today_home_seen`; a first run marks it seen). Pinned in
   `src/today.test.tsx`.
+- **Templates list + detail (#132):** `#/copy-deck` is the list, `#/copy-deck/<snippetId>` opens
+  one (`Route.sub`; an unknown id falls back to the list once sync has settled). `CopyDeckView` picks
+  the layout with `useAtLeast('lg')`: a rail (`TemplatesList`, HDS `Sidebar`) beside `TemplateDetail`,
+  or one pane on a phone with a back link. The detail has token chips (`templateEditor.ts`
+  `insertAt`), a preview filled from a job picked in a `Select` (no job = `[Token]` text), Write /
+  Preview `Tabs` below `lg`, `templateCopy.copyFilled` (shared with `UseTemplate`), and Delete behind
+  an `AlertDialog`. Its `Menu` is `modal={false}` on purpose: a modal menu plus the dialog left the
+  page unclickable. `restoreStarterSnippets` re-adds missing `tpl-*` defaults. Pinned in
+  `src/copyDeck.test.tsx` and `src/copyDeckFill.test.tsx`.
+  **Variable chips (#221):** the text is `hds-gaps/TokenTextarea` (contenteditable; each `[Name]` is one
+  atomic chip; Backspace/Delete/arrows/Enter/paste go through `templateEditor` helpers). Insert variable
+  `Menu` + chip row share `insertAt`. A Variables panel sets values: a picked job's four fields save on
+  the job, the rest on `Snippet.values`; `[Your name]` falls back to the kit name. `templateFill.fillSnippet`
+  is the one fill path (editor, Use template, Apply mode). Body stays plain text. E2E:
+  `e2e/template-variables.spec.ts`.
+- **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
+  first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
+  Finish / the last Skip (which seeds the picked packs, saves the job, and on the Today gate goes to
+  `#/today`). Sample data is a step 1 offer on Today. Discover with no track shows `ChooseTrack`
+  first. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in Today,
+  Discover, Templates and the Pipeline (`TrackerView`, with the Briefcase icon). Today
+  gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
+  `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
+  `today.test.tsx`.
 - **Pipeline rows (#129):** the shell is HDS page width (`Container maxWidth="max"`, 1200). The
   Pipeline table and Discover's tile grid use it; Today's lists, the job page and Templates sit at
   the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders
@@ -112,10 +156,54 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   toolbar) at ≥ the HDS `lg` breakpoint and `JobListCard` (title on its own row) below it, chosen
   by `src/hds-gaps/useBreakpoint.ts` (no `matchMedia` → cards). Both render `jobRow.rowView` with
   `JobRowParts.tsx`: one next step per row (Mark applied / Log follow-up, secondary so Add job stays
-  the page's one primary) + the row `Menu` (also on the job page's `JobCard`); 40px controls on
+  the page's one primary) + the row `Menu` (also on the job page's header, minus Remove); 40px controls on
   cards. A non-default status filter shows as a `Tag` chip that clears it.
   Titles link to `#/queue/<jobId>`; details, to-dos, the screener and templates live on the job
-  page (`JobCard`, until #130). Pinned in `src/pipeline.test.tsx`.
+  page (tabs, #130). The filter/search/sort survive opening a job and Back (`pipelineView.ts`).
+  Pinned in `src/pipeline.test.tsx`.
+- **Discover (#131, `docs/specs/discover.md`):** `DiscoverHeader` = `PageHeader` (track name, Manage
+  track, New track `Menu`) + the track `Combobox` + one context `Popover` button ("Spokane, Hybrid")
+  holding the only `LocationControl`. **Location is `Category.location`; work mode is per track and syncs,
+  `rjb_ui_mode:<categoryId>`** (`src/discoverContext.ts`, `useTrackContext`; panels read it, they take
+  no location props). Tools are one `SegmentedControl` (Apply / Titles / ATS / Live on a phone, full
+  names from `sm`), wrapped in `hds-gaps/TabsOverflowFade`; the track's sections are `Tabs` under
+  "Your sections", shown only for Apply now; slugs unchanged (`#/discover/<tool | groupId>`).
+  `TileGrid` cards are equal-height (240px min), with chips parsed from the meta string by
+  `tileMeta.parseMeta` (raw text is the fallback; no data migration), a `Details` disclosure with
+  tap-to-call for every phone, and a labelled Set aside. Live postings states go through
+  `hds-gaps/AsyncState` (skeleton + "still trying" at 10 s; `fetchFeed` has a 15 s per-source cap and
+  `only: [keys]` for the per-source Retry, merged by `feed/mergeFeed`); Watch a company, suggested
+  companies and Your evidence sit in a collapsed **Refine** disclosure under the search. Fit wording
+  is `screening.verdictLabel` everywhere (Strong fit / Stretch / Reach). Pinned in
+  `src/discover.test.tsx`, `TileGrid.test.tsx`, `LiveFeed*.test.tsx`.
+- **Design polish (#133, `docs/specs/design-polish.md`, `docs/redesign-2026.md`):** banners are not page
+  furniture: `SyncNudge` is one line, Today only (`useUnsynced` also drives the dot on the Account
+  trigger elsewhere), and `SampleBanner` is a one-line note under the page header. Section heads are
+  `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
+  host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 40px phone buttons,
+  reduced motion); shared secondary colour is `hds-gaps/tone` `SECONDARY`. Guards: inline `style={{`
+  ceiling and no inline font size/weight in `hdsOnly.test.ts` (only lower the ceiling), lint is
+  `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a
+  held HDS gap, hds#748; also tracked upstream: active-tab underline hds#749, touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
+  targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.12.1).
+- **Rapid apply (2026-10-17):** every save (Discover tiles, Live postings incl. "Save N to Pipeline"
+  / "Save all shown", quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
+  Open + Undo (`NoticeHost` in the shell; `hds-gaps/ActionToast` because HDS Toast has no action slot).
+  The Pipeline opens on `ApplyQueueSummary`: **To apply (N)** + the one primary **Start applying**, and
+  **Follow up (M)** with dates (`applyQueue.ts`: Saved & not set aside, pinned first then newest).
+  **Apply mode** `#/apply/<jobId>` (`ApplyMode.tsx`, `route.openApply`; the Pipeline tab stays
+  selected): Open application, Mark applied (follow-up 7 days on), Next job (k of N), Skip, Not a fit
+  (retire + Undo), and the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**): profile
+  fields, two template-filled letters and custom Q&A, each a copy row. The row menu sets any status.
+  Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
+- **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
+  title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys
+  `hn|<term>`), merged/deduped/tagged by `feed/sweep.ts` `sweepRank` ("Matched …" on each row). Per-title
+  `Tag` chips with counts hide rows with no re-fetch. The list and on/off live in `feed/sweepTitles.ts`
+  (`rjb_sweep_titles`, seeded from the track's titles, max 12 on, synced in blob **v7**, dropped with its
+  track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
+  "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
+  apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
@@ -206,13 +294,13 @@ far this cycle:
 
 - **Search is location-agnostic (#58).** `BOARDS` in `jobsData.ts` no longer hard-code Spokane —
   `build(term, { where, mode })` takes a user-set location + work-mode (Any/Remote/Hybrid/On-site).
-  There is **no remote default** (remote roles draw ~5× the applicants); a shared `LocationControl`
-  (`src/LocationControl.tsx`) drives the Title, ATS and Live postings panels.
+  There is **no remote default** (remote roles draw ~5× the applicants); one `LocationControl`
+  (`src/LocationControl.tsx`, in the Discover header's popover) drives the Title, ATS and Live postings panels.
 - **Screening pipeline on jobs (#60).** Additive `Job` fields — `verdict` (match/stretch/reach),
-  `mode`, `travelPct`, `applicants`, `blockers[]`, `angle`, `screenedAt` — normalized on read in
-  `src/screening.ts`. Edited via `ScreeningEditor`; shown as card badges; new "Best fit" sort; a
-  collapsible **Funnel** summary (`FunnelSummary` + `funnel.ts`).
-- **Rules-based JD screener (#61).** `src/jdScreener.ts` + `ScreenJdDialog` — paste a JD → suggested
+  `mode`, `blockers[]`, `angle`, `screenedAt` — normalized on read in
+  `src/screening.ts` (which also strips the retired `travelPct` / `applicants` from old records).
+  Edited via `ScreeningEditor`; shown as card badges; new "Best fit" sort.
+- **Rules-based JD screener (#61).** `src/jdScreener.ts` + `JdScreenPanel` (inline in a job's Screening tab) — paste a JD → suggested
   mode/blockers/verdict from deterministic keyword rules, one-click apply.
 - **Board↔Queue interop (#57).** Saved tiles leave the board (`partitionTiles`); enriched save
   carries a tile's meta into the job; a save toast; "Find more like this" seeds Discover.
@@ -245,7 +333,8 @@ track-agnostic like everything else in Discover.
   `match.ts` (phrase matching — "system design" is NOT "design system" — filters, signals
   `contract` + `founding`, scoring, dedupe), `fetchFeed.ts` (parallel sources, per-source failure
   isolation with actionable messages, 1h **in-memory** cache — board payloads are 2–3 MB, far too big
-  for browser storage), `toJob.ts` (Posting → saved Job fields), `watchlist.ts`, `html.ts`, `format.ts`.
+  for browser storage; an LRU capped at `CACHE_BUDGET_CHARS` ≈ 16 MB, and liveness reads pass
+  `{ fresh: true }` to skip it), `toJob.ts` (Posting → saved Job fields), `watchlist.ts`, `html.ts`, `format.ts`.
   Domain words: a **Posting** is the live, unsaved opening; saving one makes a **Job** (CONTEXT.md).
 - **Sources** (`src/feed/sources/`): HN "Who is hiring?" via Algolia (latest 2 monthly threads),
   Remotive (its terms: link to the Remotive URL + credit it — the row's source label does — and
@@ -259,6 +348,42 @@ track-agnostic like everything else in Discover.
   "Apply Now" tab. This keeps the board rule: durable portals in, fresh openings out.
 - Key-backed aggregators (Adzuna, TheirStack) would need a serverless function for the secret —
   deliberately not built yet.
+- **Job sources slice (2026-10-15, `docs/specs/job-sources.md`).**
+  - **No board cap.** `fetchFeed` reads every distinct watched board, 6 at a time (`BOARD_CONCURRENCY`),
+    and calls `onProgress` as each answers; the panel repaints every 250ms with "Read N of M boards".
+  - **More sources.** HN also reads the monthly "Freelancer? Seeking freelancer?" thread (only
+    SEEKING FREELANCER posts, marked contract). Jobicy and Remote OK sit behind `SOURCE_ENABLED` in
+    `fetchFeed.ts` (Jobicy on; Remote OK off until its live legal notice is read and checked), and Workable and Recruitee are watchable boards. All four are
+    **unverified live** (built from documented shapes); turn one off there if its first deployed check
+    is blocked. Remote OK attribution is a hard rule (their link as given, "Remote OK" on the row).
+    Himalayas is skipped (its OpenAPI could not be read). Every new host goes in `vercel.json` and
+    `FEED_HOSTS` in `csp.test.ts`.
+  - **Targeting** (`feed/targeting.ts`): leave-out terms, level from the title only, a pay floor
+    (only where a source states pay), each with a "hidden by" count. **Saved searches**
+    (`feed/savedFilters.ts`, `rjb_feed_filters`, per track, synced in the blob).
+  - **Liveness** (`feed/liveness.ts`, `livenessStore.ts`, `LivenessViews.tsx`): re-reads a saved
+    Saved/Applied board job's board (once per board), flags "Closed on the board", never changes
+    status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. Shown above the
+    Pipeline and the job page from `App.tsx`.
+  - **Per-track boards.** `radar/directory.ts` is `DIRECTORY_BY_PACK`; `seedPack` files a pack's
+    boards into the track's `Watched companies` group (one `addTiles` bulk write, sent as upserts of
+    `TILE_CHUNK` = 50 rows; a refused chunk leaves only its rows journalled as failed), and Live postings offers "Add suggested
+    companies (N)" to an existing track whose label matches a pack (`packIdForLabel`). Live postings
+    no longer reads a global list.
+  - **By company was cut (2026-10-17):** Live postings is one Openings list; an old `?view=companies`
+    link is ignored and shows Openings.
+- **Hidden-job discovery (2026-10-15, `docs/specs/discovery-methods.md`).** Discover tools **Boards** and
+  **Teams** (`#/discover/boards`, `#/discover/teams`). `feed/probe.ts` asks Greenhouse / Lever / Ashby /
+  Workable / Recruitee for a company's board (200 + job list = live, 404 = none, anything else =
+  **unknown, never none**; 6 in flight, 2 per host, 150 ms gap, 3×429 stops a host, cache `rjb_probe`);
+  `discoverBoards.ts` + `FindBoardsPanel` take a pasted list (500 max) or a YC batch (`yc.ts`, community
+  mirror) and offer Watch. `dsOrgs.ts` + `githubBudget.ts` find design-system orgs via keyless GitHub
+  search (3 pages, 30 org lookups per run, 8 searches/min and 40 core/hour in `rjb_gh_budget`, stops with
+  "wait until" on 403/429); results are outreach targets (`targets.ts`, `rjb_targets`, per track, synced in the blob,
+  shown in the Teams tool). YC and GitHub sit behind `DISCOVERY_SOURCE_ENABLED`
+  (`feed/discoverySources.ts`) and are **unverified live**, as are the new community-board `site:` clauses
+  in `jobsData.ts`. Big-company ATSs (Workday, SuccessFactors, Taleo, Oracle) are Google links only: never
+  fetch them. New hosts `yc-oss.github.io` and `api.github.com` are in `connect-src` and `csp.test.ts`.
 - ⚠️ **CSP (#41):** when a Content-Security-Policy lands, `connect-src` must allow `hn.algolia.com`,
   `remotive.com`, `boards-api.greenhouse.io`, `api.lever.co`, `api.eu.lever.co`, `api.ashbyhq.com`
   or the feed goes silent (each source would report "couldn't connect").

@@ -1,6 +1,7 @@
 // The one network seam every source goes through. Sources take a `FetchJson` so tests inject canned
 // payloads and the app injects the cached, error-mapping implementation (src/feed/fetchFeed.ts).
-export type FetchJson = (url: string) => Promise<unknown>;
+/** `fresh` skips any cache (a liveness check must see the board as it is now). */
+export type FetchJson = (url: string, opts?: { fresh?: boolean }) => Promise<unknown>;
 
 /** A fetch failure carrying the HTTP status (0 = never reached the server). */
 export class FetchError extends Error {
@@ -25,3 +26,9 @@ export const prettySlug = (slug: string) =>
     .filter(Boolean)
     .map((w) => w[0].toUpperCase() + w.slice(1))
     .join(' ');
+
+/** A positive finite number from a number or numeric string; undefined otherwise (0 = "not stated"). */
+export const num = (v: unknown): number | undefined => {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v.trim()) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+};

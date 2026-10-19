@@ -3,21 +3,26 @@ import {
   Button,
   Card as HdsCard,
   Tooltip as HdsTooltip,
-  useToast,
+  Disclosure,
   Icon,
   Box,
+  Stack,
   Text,
   Grid,
   InlineLink,
 } from '@hirobius/design-system';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
-import { addJob, isSaved, useJobs } from './store';
+import { addJob, findJobByUrl, isSaved, useJobs } from './store';
+import { notifySaved } from './saveNotice';
 import { useTileTriage, toggleDismiss } from './tileTriage';
+import { parseMeta } from './tileMeta';
 import type { Tile } from './jobsData';
+import { SECONDARY } from './hds-gaps/tone';
 
 // Tile kind, derived from the URL (issue #12): aggregator queries are "Search", Google
 // fallback leads are "Lead" (verify before relying), everything else is a direct
 // employer/program page and gets no badge — absence of a badge = the strongest kind.
+// Structured `kind` (Portal, Employer, Live) arrives with the meta migration.
 const kindOf = (url: string): { label: string; tone: 'info' | 'warning' } | null =>
   /google\.com\/search/.test(url)
     ? { label: 'Lead', tone: 'warning' }
@@ -25,19 +30,15 @@ const kindOf = (url: string): { label: string; tone: 'info' | 'warning' } | null
       ? { label: 'Search', tone: 'info' }
       : null;
 
-// First phone number in the meta becomes tap-to-call (issue #12).
-const PHONE = /\b(\d{3}-\d{3}-\d{4})\b/;
-function metaWithTel(meta: string) {
-  const m = meta.match(PHONE);
-  if (!m || m.index == null) return meta;
-  return (
-    <>
-      {meta.slice(0, m.index)}
-      <InlineLink href={`tel:${m[1].replace(/-/g, '')}`}>{m[1]}</InlineLink>
-      {meta.slice(m.index + m[1].length)}
-    </>
-  );
-}
+const hostOf = (url: string): string => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
+};
+
+const telHref = (phone: string) => `tel:${phone.replace(/-/g, '')}`;
 
 /** Shared grid of link tiles with an Open + Save-to-queue action. Used by Discover and
  *  Apprenticeships. Saving floats the tile in its group (issue #13 — pin is retired);
@@ -56,19 +57,23 @@ export default function TileGrid({
   useJobs(); // re-render on save
   const { dismissed } = useTileTriage();
   const dismissedSet = new Set(dismissed);
-  const { toast } = useToast();
   // Enriched save (issue #57): carry the tile name → label and its meta → note so the queue
-  // card isn't a bare URL; confirm with a toast pointing at the Queue.
+  // card isn't a bare URL; the save notice says where it went and offers Open / Undo.
   const save = (t: Tile) => {
-    if (addJob(t.url, t.name, t.meta)) {
-      toast({ title: 'Added to Queue', description: t.name, tone: 'success' });
-    }
+    if (addJob(t.url, t.name, t.meta)) notifySaved([findJobByUrl(t.url)?.url ?? t.url], t.name);
   };
   return (
-    <Grid layout="auto-fill" minItemWidth="160px" gap="medium">
+    <Grid layout="auto-fill" minItemWidth="240px" gap="medium" align="stretch">
       {tiles.map((t) => {
         const saved = isSaved(t.url);
         const isAside = dismissedSet.has(t.url);
+        const kind = kindOf(t.url);
+        const meta = parseMeta(t.meta);
+        // Pay and place read as chips; the first phone stays one tap from the card (every phone is
+        // in the detail). With nothing parsed, the raw meta shows as the note.
+        const chips = meta.chips.filter((c) => c.kind !== 'contact' || c.text === meta.phones[0]);
+        const note = meta.notes[0];
+        const host = hostOf(t.url);
         return (
           <HdsCard
             key={t.url + t.name}
@@ -76,45 +81,100 @@ export default function TileGrid({
             padding="none"
             style={{
               height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
               opacity: isAside ? 0.6 : 1,
             }}
           >
-            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', flex: 1 }}>
-              <Text
-                variant="body"
-                style={{ fontWeight: 600, lineHeight: 1.2, overflowWrap: 'anywhere' }}
-              >
-                {t.name}
-              </Text>
-              <Text
-                variant="caption"
-                as="span"
-                style={{
-                  color: 'var(--semantic-color-content-secondary)',
-                  marginTop: 'calc(var(--primitive-space-1) * 0.5)',
-                  marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
-                  flex: 1,
-                }}
-              >
-                {metaWithTel(t.meta)}
-              </Text>
-              {kindOf(t.url) && (
-                <Box sx={{ mb: 1.5 }}>
-                  <Badge tone={kindOf(t.url)!.tone}>{kindOf(t.url)!.label}</Badge>
-                </Box>
+            <Box
+              as="article"
+              aria-label={t.name}
+              sx={{ p: 'sm', display: 'flex', flexDirection: 'column', gap: 'xs', height: '100%' }}
+            >
+              <Stack direction="row" gap="xs" align="center" justify="space-between">
+                <Text
+                  variant="body"
+                  as="h3"
+                  className="rjb-semibold"
+                  title={t.name}
+                  style={{
+                    lineHeight: 1.2,
+                    minWidth: 0,
+                    // Two lines, then an ellipsis: one line cut most names at 1440. Full name in Details.
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {t.name}
+                </Text>
+                {kind && <Badge tone={kind.tone}>{kind.label}</Badge>}
+              </Stack>
+              {chips.length > 0 && (
+                <Stack direction="row" wrap="wrap" gap="tight" align="center">
+                  {chips.map((c) =>
+                    c.kind === 'contact' ? (
+                      <InlineLink key={c.text} href={telHref(c.text)}>
+                        {c.text}
+                      </InlineLink>
+                    ) : (
+                      <Badge key={c.kind + c.text} tone="neutral">
+                        {c.text}
+                      </Badge>
+                    ),
+                  )}
+                </Stack>
               )}
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  gap: 1,
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  mt: 'auto',
-                }}
-              >
+              {note && (
+                <Text
+                  variant="caption"
+                  as="span"
+                  style={{
+                    ...SECONDARY,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {note}
+                </Text>
+              )}
+              <Box sx={{ flex: 1 }}>
+                <Disclosure label="Details">
+                  <Stack gap="tight">
+                    <Text variant="ui" as="span" style={{ overflowWrap: 'anywhere' }}>
+                      {t.name}
+                    </Text>
+                    {meta.raw && (
+                      <Text
+                        variant="caption"
+                        as="span"
+                        style={{ ...SECONDARY, overflowWrap: 'anywhere' }}
+                      >
+                        {meta.raw}
+                      </Text>
+                    )}
+                    {meta.phones.map((ph) => (
+                      <InlineLink key={ph} href={telHref(ph)}>
+                        {ph}
+                      </InlineLink>
+                    ))}
+                    {meta.emails.map((em) => (
+                      <InlineLink key={em} href={`mailto:${em}`}>
+                        {em}
+                      </InlineLink>
+                    ))}
+                    {host && (
+                      <Text variant="caption" as="span" style={SECONDARY}>
+                        {host}
+                      </Text>
+                    )}
+                  </Stack>
+                </Disclosure>
+              </Box>
+              <Stack direction="row" wrap="wrap" gap="tight" align="center">
                 <Button size="sm" variant="tertiary" asChild>
                   <a href={t.url} target="_blank" rel="noopener noreferrer">
                     {cta}
@@ -128,42 +188,33 @@ export default function TileGrid({
                 >
                   {saved ? 'Saved' : 'Save'}
                 </Button>
-                {(triage || onRemove) && (
-                  <Box sx={{ display: 'flex', flexDirection: 'row', gap: 0, ml: 'auto' }}>
-                    {triage && (
-                      <HdsTooltip>
-                        <HdsTooltip.Trigger asChild>
-                          <Button
-                            size="sm"
-                            variant="tertiary"
-                            iconOnly
-                            iconLeft={<Icon icon={isAside ? ArchiveRestore : Archive} />}
-                            onClick={() => toggleDismiss(t.url)}
-                            label={isAside ? 'Restore tile' : 'Set tile aside'}
-                          />
-                        </HdsTooltip.Trigger>
-                        <HdsTooltip.Content>{isAside ? 'Restore' : 'Set aside'}</HdsTooltip.Content>
-                      </HdsTooltip>
-                    )}
-                    {onRemove && (
-                      <HdsTooltip>
-                        <HdsTooltip.Trigger asChild>
-                          <Button
-                            size="sm"
-                            variant="tertiary"
-                            tone="danger"
-                            iconOnly
-                            iconLeft={<Icon icon={Trash2} />}
-                            onClick={() => onRemove(t.url)}
-                            label="Remove tile"
-                          />
-                        </HdsTooltip.Trigger>
-                        <HdsTooltip.Content>Remove</HdsTooltip.Content>
-                      </HdsTooltip>
-                    )}
-                  </Box>
+                {triage && (
+                  <Button
+                    size="sm"
+                    variant="tertiary"
+                    iconLeft={<Icon icon={isAside ? ArchiveRestore : Archive} />}
+                    onClick={() => toggleDismiss(t.url)}
+                  >
+                    {isAside ? 'Restore' : 'Set aside'}
+                  </Button>
                 )}
-              </Box>
+                {onRemove && (
+                  <HdsTooltip>
+                    <HdsTooltip.Trigger asChild>
+                      <Button
+                        size="sm"
+                        variant="tertiary"
+                        tone="danger"
+                        iconOnly
+                        iconLeft={<Icon icon={Trash2} />}
+                        onClick={() => onRemove(t.url)}
+                        label="Remove tile"
+                      />
+                    </HdsTooltip.Trigger>
+                    <HdsTooltip.Content>Remove</HdsTooltip.Content>
+                  </HdsTooltip>
+                )}
+              </Stack>
             </Box>
           </HdsCard>
         );

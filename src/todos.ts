@@ -32,11 +32,6 @@ export function deleteTodo(todos: readonly Todo[], id: string): Todo[] {
   return todos.filter((t) => t.id !== id);
 }
 
-/** Done / total counts for the summary chip. */
-export function todoProgress(todos: readonly Todo[] = []): { done: number; total: number } {
-  return { done: todos.filter((t) => t.done).length, total: todos.length };
-}
-
 /** Build the starter checklist as real Todo objects (so it persists). */
 export function seedStarterTodos(genId: IdGen = uuid): Todo[] {
   return STARTER_TODO_TEXTS.map((text) => ({ id: genId(), text, done: false }));

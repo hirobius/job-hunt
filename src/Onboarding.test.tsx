@@ -34,16 +34,19 @@ describe('Onboarding pack picker a11y (#104)', () => {
     card.focus();
     await user.keyboard(' ');
     expect(card).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('button', { name: 'Start with 1 track' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
   });
 
   it('"Build your own" requires a first job title, and seeds the track with it', async () => {
     const user = userEvent.setup();
     render(<Onboarding />);
     await user.click(screen.getByRole('checkbox', { name: 'Build your own' }));
-    expect(screen.getByRole('button', { name: 'Add a first job title' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
     await user.type(screen.getByLabelText(/First job title/), 'Design Engineer');
-    await user.click(screen.getByRole('button', { name: 'Start with 1 track' }));
+    // Three steps now (#132): Continue to location, Continue to the first job, Finish seeds.
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Finish' }));
     expect(getCurationState().categories.map((c) => [c.label, c.titles])).toEqual([
       ['Build your own', ['Design Engineer']],
     ]);

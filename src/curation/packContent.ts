@@ -2,6 +2,7 @@
 // Owned by the curation layer (moved out of the retired pillars module, #98/#99): a pack is just
 // data that `seedPack` forks into the user's own editable Category/Group/Tile rows.
 import { GROUPS, TITLES, ATS_ROLES, type Group } from '../jobsData';
+import { DIRECTORY_BY_PACK } from '../radar/directory';
 import type { Seniority } from './types';
 
 export interface PackContent {
@@ -16,6 +17,8 @@ export interface PackContent {
   location: string;
   /** Curated groups seeded into the new track, in order. */
   groups: Group[];
+  /** Company board urls seeded as the track's "Watched companies" (src/radar/directory.ts). */
+  boards: readonly string[];
 }
 
 const byId: Record<string, Group> = Object.fromEntries(GROUPS.map((g) => [g.id, g]));
@@ -30,6 +33,7 @@ export const TRADES_PACK: PackContent = {
   seniority: 'entry',
   location: '',
   groups: pick('sm-brief', 'smshops', 'machineshops'),
+  boards: DIRECTORY_BY_PACK.trades,
 };
 
 // Titles first: the Live postings feed searches the first title on open. The token / design-
@@ -78,6 +82,7 @@ export const DESIGN_SYSTEMS_PACK: PackContent = {
   seniority: 'experienced',
   location: 'Remote',
   groups: pick('ds-brief', 'ds-watch'),
+  boards: DIRECTORY_BY_PACK.designsystems,
 };
 
 const CONSULTING_TITLES = [
@@ -110,6 +115,7 @@ export const CONSULTING_PACK: PackContent = {
   seniority: 'experienced',
   location: 'Remote',
   groups: pick('ic-brief'),
+  boards: DIRECTORY_BY_PACK.consulting,
 };
 
 const SERVICENOW_TITLES = [
@@ -142,4 +148,5 @@ export const SERVICENOW_PACK: PackContent = {
   seniority: 'any',
   location: 'Remote',
   groups: pick('sn-brief'),
+  boards: DIRECTORY_BY_PACK.servicenow,
 };

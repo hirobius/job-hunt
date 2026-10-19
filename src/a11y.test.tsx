@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render } from '@testing-library/react';
+import { act, cleanup, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
@@ -7,7 +8,7 @@ import TodayView from './TodayView';
 import CopyDeckView from './CopyDeckView';
 import DiscoverView from './DiscoverView';
 import { Onboarding } from './Onboarding';
-import { getAllJobs, removeJob } from './store';
+import { addJob, getAllJobs, removeJob } from './store';
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
@@ -59,7 +60,7 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
 });
 
 describe('a11y — Today with the sample pipeline (#128)', () => {
-  it('due follow-ups, the next 7 days and the open Insights band', async () => {
+  it('due follow-ups, and the next 7 days', async () => {
     loadSample();
     const { container } = withTheme(<TodayView />);
     await auditA11y(container);
@@ -95,6 +96,65 @@ describe('a11y — first-run Onboarding (#104)', () => {
     const { container, getByRole } = withTheme(<Onboarding />);
     getByRole('checkbox', { name: 'ServiceNow' }).click();
     getByRole('checkbox', { name: 'Build your own' }).click();
+    await auditA11y(container);
+  });
+});
+
+describe('a11y — Templates (#132)', () => {
+  const viewport = (width: number) =>
+    (window.matchMedia = vi.fn().mockImplementation((query: string) => {
+      const min = /min-width:\s*(\d+)px/.exec(query);
+      return {
+        matches: min ? width >= Number(min[1]) : false,
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      };
+    }));
+  afterEach(() => {
+    // @ts-expect-error -- jsdom has no matchMedia; restore that
+    delete window.matchMedia;
+    window.location.hash = '';
+  });
+
+  it.each([
+    ['the desktop list beside a template', 1440, '#/copy-deck'],
+    ['a desktop template opened by id', 1440, '#/copy-deck/tpl-cover'],
+    ['the phone list', 390, '#/copy-deck'],
+    ['a phone template (Write tab)', 390, '#/copy-deck/tpl-cover'],
+  ])('%s', async (_name, width, hash) => {
+    viewport(width);
+    window.location.hash = hash;
+    const { container } = withTheme(<CopyDeckView />);
+    await auditA11y(container);
+  });
+
+  it('the Delete confirmation', async () => {
+    viewport(1440);
+    window.location.hash = '#/copy-deck/tpl-cover';
+    const { getByRole, findByRole } = withTheme(<CopyDeckView />);
+    await userEvent.click(getByRole('button', { name: 'More actions' }));
+    await userEvent.click(await findByRole('menuitem', { name: 'Delete' }));
+    await findByRole('alertdialog');
+    await auditA11y(document.body);
+  });
+});
+
+describe('a11y — the three first-run steps and Getting started (#132)', () => {
+  it('each step of the guided first run', async () => {
+    const { container, getByRole } = withTheme(<Onboarding offerSample />);
+    await auditA11y(container);
+    getByRole('checkbox', { name: 'ServiceNow' }).click();
+    await act(async () => getByRole('button', { name: 'Continue' }).click());
+    await auditA11y(container);
+    await act(async () => getByRole('button', { name: 'Continue' }).click());
+    await auditA11y(container);
+  });
+
+  it('the Getting started card on Today', async () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    const { container, getByRole } = withTheme(<TodayView />);
+    expect(getByRole('region', { name: 'Getting started' })).toBeInTheDocument();
     await auditA11y(container);
   });
 });

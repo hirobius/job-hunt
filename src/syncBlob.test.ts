@@ -1,8 +1,30 @@
 import { describe, expect, it } from 'vitest';
 import { readBlob, mergeBlob, emptyBlob, writeBlob, BLOB_VERSION, type SyncData } from './syncBlob';
+import { EVIDENCE_MAX } from './radar/evidenceStore';
+import type { Target } from './feed/targets';
+import type { SavedFilter } from './feed/savedFilters';
 import type { Job } from './types';
 
 const job = (url: string, label = url): Job => ({ url, label, status: 'Saved' });
+
+const target = (login: string): Target => ({
+  login,
+  company: login,
+  repo: `${login}/ds`,
+  repoUrl: `https://github.com/${login}/ds`,
+  stars: 5,
+  savedAt: '2026-10-01T00:00:00.000Z',
+});
+const search = (name: string): SavedFilter => ({
+  name,
+  term: 'design systems',
+  where: '',
+  mode: 'any',
+  exclude: [],
+  seniority: 'any',
+  salaryOnly: false,
+  contractOnly: false,
+});
 
 const blob = (over: Partial<SyncData> = {}): SyncData => ({ ...emptyBlob(), ...over });
 
@@ -49,13 +71,31 @@ describe('readBlob — tolerant of every historical shape', () => {
 describe('writeBlob — v4 shape', () => {
   it('writes only jobs, copydeck and set-aside (no pillars, userTiles or pins)', () => {
     const out = writeBlob(blob({ jobs: [job('a')], triage: { pinned: ['p'], dismissed: ['d'] } }));
-    expect(BLOB_VERSION).toBe(4);
-    expect(out).toEqual({ v: 4, jobs: [job('a')], copydeck: [], triage: { dismissed: ['d'] } });
+    expect(BLOB_VERSION).toBe(7);
+    expect(out).toEqual({
+      v: 7,
+      jobs: [job('a')],
+      copydeck: [],
+      triage: { dismissed: ['d'] },
+      targets: {},
+      filters: {},
+      evidence: '',
+      modes: {},
+      kit: { fields: {}, answers: [] },
+      sweeps: {},
+    });
   });
 
   it('round-trips through readBlob', () => {
-    const data = blob({ jobs: [job('a')], triage: { pinned: [], dismissed: ['d'] } });
-    expect(readBlob(writeBlob(data))).toEqual(data);
+    const data = blob({
+      jobs: [job('a')],
+      triage: { pinned: [], dismissed: ['d'] },
+      targets: { t1: [target('acme')] },
+      filters: { t1: [search('Austin')] },
+      evidence: 'Led a design system',
+      modes: { t1: 'hybrid' },
+    });
+    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 7 });
   });
 });
 
@@ -129,5 +169,107 @@ describe('sample data (#110) never reaches the cloud', () => {
   it('a refresh keeps this device’s sample instead of wiping it with the cloud copy', () => {
     const merged = mergeBlob(blob({ jobs: [real] }), blob({ jobs: [sample] }), false);
     expect(merged.jobs).toEqual([real, sample]);
+  });
+});
+
+describe('blob v5 — targets, saved searches, evidence, work mode', () => {
+  it.each([
+    ['a bare v1 array', [job('a')]],
+    ['a v3 blob', { v: 3, jobs: [], copydeck: [], triage: { dismissed: [] } }],
+    ['a v4 blob', { v: 4, jobs: [], copydeck: [], triage: { dismissed: [] } }],
+  ])('%s reads with the new fields empty', (_n, data) => {
+    const r = readBlob(data);
+    expect(r.targets).toEqual({});
+    expect(r.filters).toEqual({});
+    expect(r.evidence).toBe('');
+    expect(r.modes).toEqual({});
+  });
+
+  it('reads the v5 fields and drops malformed entries', () => {
+    const r = readBlob({
+      v: 5,
+      targets: { t1: [target('acme'), { nope: 1 }], t2: 'junk' },
+      filters: { t1: [search('A'), { name: '' }] },
+      evidence: 42,
+      modes: { t1: 'remote', t2: 'sideways', __proto__: 'remote' },
+    });
+    expect(r.targets.t1.map((t) => t.login)).toEqual(['acme']);
+    expect(r.targets.t2).toBeUndefined();
+    expect(r.filters.t1.map((f) => f.name)).toEqual(['A']);
+    expect(r.evidence).toBe('');
+    expect(r.modes).toEqual({ t1: 'remote' });
+  });
+
+  it('seed: unions targets by login and searches by name per track; cloud wins on a shared key', () => {
+    const local = blob({
+      targets: { t1: [target('acme'), target('local-only')], t2: [target('other')] },
+      filters: { t1: [search('Austin'), search('Mine')] },
+      modes: { t1: 'remote', t3: 'onsite' },
+    });
+    const cloud = blob({
+      targets: { t1: [{ ...target('ACME'), stars: 99 }, target('cloud-only')] },
+      filters: { t1: [{ ...search('austin'), term: 'cloud term' }] },
+      modes: { t1: 'hybrid', t2: 'any' },
+    });
+    const out = mergeBlob(cloud, local, true);
+    expect(out.targets.t1.map((t) => t.login)).toEqual(['ACME', 'local-only', 'cloud-only']);
+    expect(out.targets.t1[0].stars).toBe(99);
+    expect(out.targets.t2.map((t) => t.login)).toEqual(['other']);
+    expect(out.filters.t1.map((f) => f.name)).toEqual(['austin', 'Mine']);
+    expect(out.filters.t1[0].term).toBe('cloud term');
+    expect(out.modes).toEqual({ t1: 'hybrid', t2: 'any', t3: 'onsite' });
+  });
+
+  it.each([
+    ['cloud only', 'cloud text', '', 'cloud text'],
+    ['same text', 'same', 'same', 'same'],
+    ['local already contains cloud', 'short', 'short and more', 'short and more'],
+    [
+      'both differ: keep both',
+      'cloud text',
+      'local text',
+      'cloud text\n\n--- From this device ---\n\nlocal text',
+    ],
+    ['cloud is empty', '', 'local text', 'local text'],
+    ['both empty', '', '', ''],
+  ])('seed evidence: %s', (_n, c, l, want) => {
+    expect(mergeBlob(blob({ evidence: c }), blob({ evidence: l }), true).evidence).toBe(want);
+  });
+
+  it('reads evidence capped at EVIDENCE_MAX', () => {
+    expect(readBlob({ v: 5, evidence: 'y'.repeat(EVIDENCE_MAX + 5) }).evidence).toHaveLength(
+      EVIDENCE_MAX,
+    );
+  });
+
+  it('seed with a null cloud keeps every local v5 field', () => {
+    const local = blob({ targets: { t1: [target('a')] }, evidence: 'e', modes: { t1: 'remote' } });
+    const out = mergeBlob(null, local, true);
+    expect(out).toMatchObject({ targets: local.targets, evidence: 'e', modes: local.modes });
+  });
+
+  it('refresh: a v5 cloud copy wins, including an emptied evidence box', () => {
+    const local = blob({
+      targets: { t1: [target('a')] },
+      evidence: 'old',
+      modes: { t1: 'remote' },
+    });
+    const cloud = blob({ sourceV: 5, targets: { t1: [target('b')] }, evidence: '', modes: {} });
+    const out = mergeBlob(cloud, local, false);
+    expect(out.targets.t1.map((t) => t.login)).toEqual(['b']);
+    expect(out.evidence).toBe('');
+    expect(out.modes).toEqual({});
+  });
+
+  it('refresh: a pre-v5 cloud copy never wipes this device’s v5 fields', () => {
+    const local = blob({
+      targets: { t1: [target('a')] },
+      evidence: 'keep',
+      modes: { t1: 'remote' },
+    });
+    const out = mergeBlob(blob({ sourceV: 4 }), local, false);
+    expect(out.targets).toEqual(local.targets);
+    expect(out.evidence).toBe('keep');
+    expect(out.modes).toEqual(local.modes);
   });
 });

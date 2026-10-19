@@ -1,15 +1,12 @@
-import { lazy, Suspense, useState } from 'react';
-import { Button, Input as HdsInput, Tag, Text, Box, Switcher } from '@hirobius/design-system';
-import { ScanText } from 'lucide-react';
+import { useState } from 'react';
+import { Input as HdsInput, Tag, Text, Box } from '@hirobius/design-system';
 import { updateJob } from './store';
 import { DEFAULT_BLOCKERS, MODES, VERDICTS, blockerLabel } from './screening';
 import type { Job } from './types';
 
-const ScreenJdDialog = lazy(() => import('./ScreenJdDialog'));
-
 // Detail-panel editor for a job's screening fields (issue #60): fit (verdict), work mode, and
-// dealbreakers are toggle chips (all optional → chips, not a required SegmentedControl); travel /
-// applicants are numbers; angle is a note. Every change writes straight through updateJob.
+// dealbreakers are toggle chips (all optional → chips, not a required SegmentedControl); angle is a note.
+// Every change writes straight through updateJob.
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -31,34 +28,8 @@ function Chips({ children }: { children: React.ReactNode }) {
   return <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>{children}</Box>;
 }
 
-function NumField({
-  label,
-  value,
-  suffix,
-  onChange,
-}: {
-  label: string;
-  value?: number;
-  suffix?: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-      <HdsInput
-        size="sm"
-        label={suffix ? `${label} (${suffix})` : label}
-        inputMode="numeric"
-        value={value == null ? '' : String(value)}
-        onChange={(e) => onChange(e.target.value)}
-        style={{ width: '100%' }}
-      />
-    </Box>
-  );
-}
-
 export function ScreeningEditor({ job }: { job: Job }) {
   const [custom, setCustom] = useState('');
-  const [screenOpen, setScreenOpen] = useState(false);
   const blockers = job.blockers ?? [];
   const defaultIds = new Set(DEFAULT_BLOCKERS.map((b) => b.id));
   const customTags = blockers.filter((b) => !defaultIds.has(b));
@@ -72,42 +43,9 @@ export function ScreeningEditor({ job }: { job: Job }) {
     if (t && !blockers.includes(t)) updateJob(job.url, { blockers: [...blockers, t] });
     setCustom('');
   };
-  const setNum = (key: 'travelPct' | 'applicants', v: string) => {
-    const n = v.trim() === '' ? undefined : Number(v);
-    updateJob(job.url, { [key]: n != null && isFinite(n) && n >= 0 ? n : undefined });
-  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box>
-        <Button
-          variant="secondary"
-          size="sm"
-          iconLeft={<ScanText size={15} />}
-          onClick={() => setScreenOpen(true)}
-        >
-          Screen a job description
-        </Button>
-        {job.screenedAt && (
-          <Text
-            variant="caption"
-            as="span"
-            style={{
-              color: 'var(--semantic-color-content-secondary)',
-              display: 'block',
-              marginTop: 'var(--primitive-space-1)',
-            }}
-          >
-            Screened {new Date(job.screenedAt).toLocaleDateString()}
-          </Text>
-        )}
-      </Box>
-      {screenOpen && (
-        <Suspense fallback={null}>
-          <ScreenJdDialog job={job} open onClose={() => setScreenOpen(false)} />
-        </Suspense>
-      )}
-
       <Box>
         <FieldLabel>Fit</FieldLabel>
         <Chips>
@@ -171,20 +109,6 @@ export function ScreeningEditor({ job }: { job: Job }) {
           style={{ marginTop: 'var(--primitive-space-2)', maxWidth: 240 }}
         />
       </Box>
-
-      <Switcher gap="tight">
-        <NumField
-          label="Travel"
-          suffix="%"
-          value={job.travelPct}
-          onChange={(v) => setNum('travelPct', v)}
-        />
-        <NumField
-          label="Applicants"
-          value={job.applicants}
-          onChange={(v) => setNum('applicants', v)}
-        />
-      </Switcher>
 
       <Box sx={{ '& > *': { width: '100%' } }}>
         <HdsInput

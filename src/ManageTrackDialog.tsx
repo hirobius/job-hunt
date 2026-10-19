@@ -13,6 +13,7 @@ import {
   Disclosure,
   useToast,
 } from '@hirobius/design-system';
+import { DestructiveSection } from '@hirobius/design-system/patterns';
 import { Trash2, X } from 'lucide-react';
 import {
   updateCategory,
@@ -28,6 +29,7 @@ import {
 } from './curation/curationStore';
 import type { Seniority } from './curation/types';
 import { STARTER_PACKS, topUpFromPack } from './curation/starterPacks';
+import { SECONDARY } from './hds-gaps/tone';
 
 // In-app curation controls (issue #37 / B4): edit a track's search terms + seniority + location,
 // and add/remove its sections (groups) and links (tiles) — all through the curation store, which
@@ -64,16 +66,12 @@ function ChipEditor({
       </Text>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
         {values.map((v) => (
-          <Tag key={v} active onClick={() => onChange(values.filter((x) => x !== v))}>
+          <Tag key={v} onClick={() => onChange(values.filter((x) => x !== v))}>
             {v} ✕
           </Tag>
         ))}
         {values.length === 0 && (
-          <Text
-            variant="caption"
-            as="span"
-            style={{ color: 'var(--semantic-color-content-secondary)' }}
-          >
+          <Text variant="caption" as="span" style={SECONDARY}>
             none yet
           </Text>
         )}
@@ -194,21 +192,12 @@ export default function ManageTrackDialog({
     .sort((a, b) => a.sortOrder - b.sortOrder);
   if (!cat) return null;
 
-  const del = () => {
-    if (
-      window.confirm(`Delete the “${cat.label}” track and all its content? This can't be undone.`)
-    ) {
-      removeCategory(cat.id);
-      onDeleted();
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Content
         style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
+        <Stack gap="px8" style={{ maxHeight: '85vh' }}>
           <Dialog.Header>
             <Dialog.Title>Manage track</Dialog.Title>
           </Dialog.Header>
@@ -218,7 +207,6 @@ export default function ManageTrackDialog({
               padding: '16px 4px',
               borderTop: '1px solid var(--semantic-color-border-default)',
               borderBottom: '1px solid var(--semantic-color-border-default)',
-              margin: '8px 0',
             }}
           >
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
@@ -278,10 +266,7 @@ export default function ManageTrackDialog({
               />
 
               <Box sx={{ borderTop: 'thin solid', borderColor: 'border.default', pt: 3 }}>
-                <Text
-                  variant="body"
-                  style={{ fontWeight: 600, marginBottom: 'var(--semantic-space-scale-xs)' }}
-                >
+                <Text variant="body" className="rjb-semibold">
                   Sections & links
                 </Text>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -332,11 +317,7 @@ export default function ManageTrackDialog({
                   (curation/starterPacks.ts topUpFromPack). */}
               <Disclosure variant="nav" label="Update from a starter pack">
                 <Stack gap="tight">
-                  <Text
-                    variant="caption"
-                    as="p"
-                    style={{ margin: 0, color: 'var(--semantic-color-content-secondary)' }}
-                  >
+                  <Text variant="caption" as="p" style={SECONDARY}>
                     Adds the pack's newer titles, search terms and links that this track doesn't
                     have yet. Nothing is removed.
                   </Text>
@@ -363,17 +344,27 @@ export default function ManageTrackDialog({
                   </Stack>
                 </Stack>
               </Disclosure>
+              {/* Delete sits at the end of the body, not beside Done, so the two can't overlap on a phone. */}
+              <DestructiveSection
+                level={3}
+                title="Delete this track"
+                description="Deletes the track, all its sections and links, and its outreach targets and saved searches. Jobs you saved stay in your Pipeline."
+                actionLabel="Delete track"
+                confirmLabel="Delete track"
+                confirmBody={`“${cat.label}”, all its content, and its outreach targets and saved searches will be gone for good.`}
+                onConfirm={() => {
+                  removeCategory(cat.id);
+                  onDeleted();
+                }}
+              />
             </Box>
           </div>
           <Dialog.Footer>
-            <Button variant="tertiary" tone="danger" onClick={del}>
-              Delete track
-            </Button>
             <Button variant="primary" onClick={onClose}>
               Done
             </Button>
           </Dialog.Footer>
-        </div>
+        </Stack>
       </Dialog.Content>
     </Dialog>
   );

@@ -1,31 +1,31 @@
 // Today (#128), the home route `#/today`: what needs doing now. Due follow-ups and the next 7 days
-// of interviews and calls as StatusListItem rows, each with one trailing action; one quick-add
-// field; and the Insights band. The read models are pure (jobEvents.ts, metrics.ts); this view
-// only lays them out.
-import { useState, type FormEvent, type ReactNode } from 'react';
+// of interviews and calls as plain rows, each with one trailing action; one quick-add
+// field. The read models are pure (jobEvents.ts); this view only lays them out.
+import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'lucide-react';
 import {
+  Badge,
   Box,
   Button,
   InlineLink,
   Input as HdsInput,
   Stack,
-  StatusListItem,
   Text,
   useToast,
 } from '@hirobius/design-system';
 import { Form, Page, PageHeader } from '@hirobius/design-system/patterns';
+import { notifySaved } from './saveNotice';
 import { addJob, findJobByUrl, jobIdOf, logFollowUp, useJobs } from './store';
 import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
 import { dueFollowUps, KIND_WORD, UPCOMING_DAYS, upcomingEvents, ymd } from './jobEvents';
-import { jobHash } from './route';
+import { jobHash, navigate } from './route';
 import type { Job } from './types';
-import Insights from './Insights';
 import TodayNotice from './TodayNotice';
+import GettingStarted from './GettingStarted';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
+import { SECONDARY } from './hds-gaps/tone';
 
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 
 const jobHref = (url: string) => jobHash(jobIdOf(url));
@@ -51,6 +51,41 @@ function sinceNote(job: Job, now: Date) {
   return s.appliedDaysAgo != null ? `Applied ${days(s.appliedDaysAgo)} ago` : '';
 }
 
+/** One Today row: title, up to a few note lines, a trailing action. State is text (a Badge or the
+ * title's own words); HDS has a row primitive that draws a status marker; #193 removed it. */
+function TodayRow({
+  title,
+  badge,
+  notes,
+  trailing,
+}: {
+  title: ReactNode;
+  badge?: ReactNode;
+  notes: string[];
+  trailing: ReactNode;
+}) {
+  return (
+    <Stack direction="row" gap="px8" align="center" justify="space-between">
+      <Box sx={{ minWidth: 0 }}>
+        <Stack gap="px4">
+          <Stack direction="row" gap="px8" align="center" wrap="wrap">
+            <Text variant="body" as="span">
+              {title}
+            </Text>
+            {badge}
+          </Stack>
+          {notes.map((n) => (
+            <Text key={n} variant="caption" as="span" style={SECONDARY}>
+              {n}
+            </Text>
+          ))}
+        </Stack>
+      </Box>
+      {trailing}
+    </Stack>
+  );
+}
+
 /** A titled list: a region named by its heading, rows or one line saying it's empty. */
 function Section({
   id,
@@ -68,25 +103,26 @@ function Section({
   // A native <section>: Stack doesn't pass aria-* through.
   return (
     <section aria-labelledby={id}>
-      <Stack gap="tight">
-        <Text variant="ui" as="h3" id={id} style={{ margin: 0, fontWeight: 600 }}>
-          {count > 0 ? `${title} · ${count}` : title}
-        </Text>
-        {count > 0 ? (
+      {count > 0 ? (
+        <Stack gap="tight">
+          <Text variant="ui" as="h3" id={id} className="rjb-semibold">
+            {`${title} · ${count}`}
+          </Text>
           <Stack as="ul" gap="tight" style={LIST}>
             {children}
           </Stack>
-        ) : (
-          <Text variant="caption" as="p" style={{ ...SECONDARY, margin: 0 }}>
-            {empty}
-          </Text>
-        )}
-      </Stack>
+        </Stack>
+      ) : (
+        // No heading over a lone supporting line: the label sits with its value (#193).
+        <Text variant="caption" as="p" id={id} style={SECONDARY}>
+          {`${title}: ${empty}`}
+        </Text>
+      )}
     </section>
   );
 }
 
-function QuickAdd() {
+function QuickAdd({ inputRef }: { inputRef: React.Ref<HTMLInputElement> }) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   // The last add, with a link to its job. A toast can't carry one (HDS Toast has no action slot),
@@ -100,6 +136,7 @@ function QuickAdd() {
     const job = findJobByUrl(u);
     if (!job) return setError("That doesn't look like a link. Paste the job's web address.");
     setLast({ job, added });
+    if (added) notifySaved([job.url], job.label);
     setUrl('');
   };
   return (
@@ -114,6 +151,7 @@ function QuickAdd() {
           }}
         >
           <HdsInput
+            ref={inputRef}
             aria-label="Add a job"
             type="url"
             placeholder="Paste a job link to save it"
@@ -133,13 +171,7 @@ function QuickAdd() {
         </Button>
       </Stack>
       {last && (
-        <Text
-          variant="caption"
-          as="p"
-          role="status"
-          aria-label="Quick add"
-          style={{ ...SECONDARY, margin: 0 }}
-        >
+        <Text variant="caption" as="p" role="status" aria-label="Quick add" style={SECONDARY}>
           {last.added ? 'Saved to your Pipeline: ' : 'Already in your Pipeline: '}
           <InlineLink href={jobHref(last.job.url)}>{last.job.label}</InlineLink>
         </Text>
@@ -154,6 +186,7 @@ export default function TodayView() {
   const now = new Date();
   const due = dueFollowUps(jobs, now);
   const upcoming = upcomingEvents(jobs, now);
+  const quickAddRef = useRef<HTMLInputElement>(null);
 
   return (
     <Page paddingY="none">
@@ -169,15 +202,36 @@ export default function TodayView() {
         />
         <TodayNotice />
         <SampleBanner jobs={jobs} />
-        {/* The day's work reads at the HDS prose measure; Insights spans the page. */}
-        <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
+        {/* The day's work reads at the HDS prose measure. */}
+        <Box sx={{ maxWidth: '36rem' }}>
           <Stack gap="normal">
-            <QuickAdd />
+            <QuickAdd inputRef={quickAddRef} />
+            <GettingStarted jobs={jobs} />
             {jobs.length === 0 ? (
               <EmptyState
-                title="Nothing to follow up yet"
-                message="Save a job above or from Discover. Follow-ups, interviews and calls you log will show up here."
-                action={<TrySampleButton />}
+                title="Nothing to do yet"
+                message="Save a job and its follow-ups and interviews show up here."
+                action={
+                  <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+                    <Button variant="primary" onClick={() => quickAddRef.current?.focus()}>
+                      Add a job
+                    </Button>
+                    <TrySampleButton />
+                  </Stack>
+                }
+              />
+            ) : due.length === 0 && upcoming.length === 0 ? (
+              <EmptyState
+                title="You're caught up"
+                message={`Follow-ups fall due ${days(FOLLOWUP_DAYS)} after you apply or last follow up.`}
+                action={
+                  <Button
+                    variant="secondary"
+                    onClick={() => navigate({ tab: 'queue', jobId: null })}
+                  >
+                    Open Pipeline
+                  </Button>
+                }
               />
             ) : (
               <>
@@ -185,13 +239,13 @@ export default function TodayView() {
                   id="today-due"
                   title="Follow-ups due"
                   count={due.length}
-                  empty={`Nothing due. Follow-ups fall due ${days(FOLLOWUP_DAYS)} after you apply or last follow up.`}
+                  empty={`none. Follow-ups fall due ${days(FOLLOWUP_DAYS)} after you apply or last follow up.`}
                 >
                   {due.map(({ job }) => (
                     <li key={job.url}>
-                      <StatusListItem
-                        tone="warning"
+                      <TodayRow
                         title={<InlineLink href={jobHref(job.url)}>{job.label}</InlineLink>}
+                        badge={<Badge tone="warning">Due</Badge>}
                         notes={[[job.company, sinceNote(job, now)].filter(Boolean).join(' · ')]}
                         trailing={
                           <Button
@@ -217,19 +271,18 @@ export default function TodayView() {
                   id="today-next"
                   title={`Next ${UPCOMING_DAYS} days`}
                   count={upcoming.length}
-                  empty="Nothing scheduled. Log interviews and calls on a job's page."
+                  empty="nothing scheduled. Log interviews and calls on a job's page."
                 >
                   {upcoming.map((it) => (
                     <li key={`${it.jobUrl}-${it.id}`}>
-                      <StatusListItem
-                        tone={it.kind === 'interview' ? 'info' : 'neutral'}
+                      <TodayRow
                         title={`${KIND_WORD[it.kind]} · ${it.label}`}
                         notes={[
                           `${dayLabel(it.date, now)} · ${it.time ?? 'All day'}`,
                           [it.company, it.note].filter(Boolean).join(' · '),
                         ].filter(Boolean)}
                         trailing={
-                          <Button asChild variant="tertiary">
+                          <Button asChild variant="secondary">
                             <a href={jobHref(it.jobUrl)} aria-label={`Open job: ${it.label}`}>
                               Open job
                             </a>
@@ -243,7 +296,6 @@ export default function TodayView() {
             )}
           </Stack>
         </Box>
-        {jobs.length > 0 && <Insights jobs={jobs} />}
       </Stack>
     </Page>
   );

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { fetchHn, parseHnComment, pickHiringThreads } from './hn';
+import {
+  fetchHn,
+  parseFreelancerComment,
+  parseHnComment,
+  pickFreelancerThreads,
+  pickHiringThreads,
+} from './hn';
 
 // Synthetic fixtures in the Algolia HN shape — no real posters' contact details.
 const comment = (over: Record<string, unknown>) => ({
@@ -148,5 +154,115 @@ describe('fetchHn', () => {
     expect(out).toHaveLength(1);
     expect(calls[1]).toContain('tags=comment,story_7');
     expect(calls[1]).toContain('query=design%20systems');
+  });
+});
+
+describe('Freelancer? Seeking freelancer? thread', () => {
+  const listing = {
+    hits: [
+      { objectID: '5', title: 'Ask HN: Who is hiring? (October 2026)', created_at: '2026-10-01' },
+      {
+        objectID: '6',
+        title: 'Ask HN: Freelancer? Seeking freelancer? (October 2026)',
+        created_at: '2026-10-01',
+      },
+      {
+        objectID: '2',
+        title: 'Ask HN: Freelancer? Seeking freelancer? (September 2026)',
+        created_at: '2026-09-01',
+      },
+      {
+        objectID: '1',
+        title: 'Ask HN: Freelancer? Seeking freelancer? (August 2026)',
+        created_at: '2026-08-01',
+      },
+    ],
+  };
+
+  it('picks the newest freelancer threads, never a hiring thread', () => {
+    expect(pickFreelancerThreads(listing).map((t) => t.id)).toEqual(['6', '2']);
+    expect(pickHiringThreads(listing).map((t) => t.id)).toEqual(['5']);
+    expect(pickFreelancerThreads(null)).toEqual([]);
+  });
+
+  it('keeps SEEKING FREELANCER posts, marks them freelance, and parses the rest of the line', () => {
+    const p = parseFreelancerComment(
+      comment({
+        comment_text:
+          'SEEKING FREELANCER | Acme Labs | Design Systems Engineer | Remote (US)<p>Need tokens in Figma and code.',
+      }),
+    )!;
+    expect(p).toMatchObject({
+      id: 'hn:100',
+      source: 'hn',
+      company: 'Acme Labs',
+      title: 'Design Systems Engineer',
+      mode: 'remote',
+    });
+    expect(p.text.split('\n')[0]).toBe('Job type: Freelance (HN freelancer thread)');
+    expect(p.text).toContain('Need tokens in Figma and code.');
+  });
+
+  it('skips SEEKING WORK posts, in any case, and posts that are neither', () => {
+    expect(
+      parseFreelancerComment(
+        comment({ comment_text: 'SEEKING WORK | Berlin | Remote | Design systems' }),
+      ),
+    ).toBeNull();
+    expect(
+      parseFreelancerComment(comment({ comment_text: 'seeking work: tokens, Figma' })),
+    ).toBeNull();
+    expect(parseFreelancerComment(comment({ comment_text: 'Great thread, thanks' }))).toBeNull();
+    expect(
+      parseFreelancerComment(comment({ parent_id: 9, comment_text: 'SEEKING FREELANCER | A' })),
+    ).toBeNull();
+  });
+
+  it('a freelance post gets the contract signal', async () => {
+    const { detectSignals } = await import('../match');
+    const p = parseFreelancerComment(
+      comment({ comment_text: 'SEEKING FREELANCER | Acme | UI Engineer' }),
+    )!;
+    expect(detectSignals(`${p.title}\n${p.text}`).map((s) => s.id)).toContain('contract');
+  });
+
+  it('fetchHn reads both thread kinds from one listing and keeps only the seeking-freelancer side', async () => {
+    const calls: string[] = [];
+    const fetchJson = async (url: string) => {
+      calls.push(url);
+      if (url.includes('search_by_date')) return listing;
+      if (url.includes('story_6'))
+        return {
+          hits: [
+            comment({
+              objectID: '61',
+              story_id: 6,
+              parent_id: 6,
+              comment_text: 'SEEKING FREELANCER | Zed | Design Systems Lead | Remote',
+            }),
+            comment({
+              objectID: '62',
+              story_id: 6,
+              parent_id: 6,
+              comment_text: 'SEEKING WORK | Remote | Design systems',
+            }),
+          ],
+        };
+      if (url.includes('story_2')) return { hits: [] };
+      return {
+        hits: [
+          comment({
+            objectID: '51',
+            story_id: 5,
+            parent_id: 5,
+            comment_text: 'Acme | UI Engineer | Remote',
+          }),
+        ],
+      };
+    };
+    const out = await fetchHn('design systems', fetchJson);
+    expect(out.map((p) => p.id).sort()).toEqual(['hn:51', 'hn:61']);
+    expect(calls.filter((c) => c.includes('search_by_date'))).toHaveLength(1);
+    expect(calls.some((c) => c.includes('story_6'))).toBe(true);
   });
 });

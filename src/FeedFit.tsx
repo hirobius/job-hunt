@@ -3,27 +3,31 @@
 // src/radar/ (rules only, no AI); these only render it.
 import { useId } from 'react';
 import { Disclosure, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
+import { EVIDENCE_MAX } from './radar/evidenceStore';
 import type { FitGap } from './radar/fitGap';
 import type { Patterns } from './radar/patterns';
-
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
+import { SECONDARY } from './hds-gaps/tone';
 
 export function EvidenceEditor({
   text,
   count,
+  startOpen = false,
   onChange,
 }: {
   text: string;
   count: number;
+  /** Open on first show — Live postings passes true only while no postings are showing. */
+  startOpen?: boolean;
   onChange: (text: string) => void;
 }) {
   return (
-    // Starts open while empty (it's the ask); collapsed once filled, so the postings lead.
-    <Disclosure label={`Your evidence (${count})`} variant="panel" defaultOpen={!text}>
+    // Open on first show only while empty and nothing else is on screen (it's the ask); collapsed
+    // otherwise, so the postings lead. Same trigger style as Fit and gap and the patterns roll-up.
+    <Disclosure label={`Your evidence (${count})`} defaultOpen={!text && startOpen}>
       <Stack gap="xs">
         <Text variant="caption" style={SECONDARY}>
           One skill per line, as “Skill: what shows it (link)”. Each posting then gets a fit, and
-          Fit notes only ever cite these. Kept on this device.
+          Fit notes only ever cite these. Saved with your account.
         </Text>
         <Textarea
           aria-label="Your evidence"
@@ -34,6 +38,12 @@ export function EvidenceEditor({
           }
           onChange={(e) => onChange(e.target.value)}
         />
+        {text.length >= EVIDENCE_MAX && (
+          <Text variant="caption" role="status" style={SECONDARY}>
+            Trimmed to the {EVIDENCE_MAX.toLocaleString('en-US')} character limit; anything past it
+            is not kept.
+          </Text>
+        )}
       </Stack>
     </Disclosure>
   );
@@ -41,13 +51,13 @@ export function EvidenceEditor({
 
 export function FitGapDetails({ fg }: { fg: FitGap }) {
   return (
-    <Disclosure label={`Fit and gap (${fg.fit.length} · ${fg.gap.length})`}>
+    <Disclosure label={`Fit and gap (${fg.fit.length + fg.gap.length})`}>
       <Stack gap="xs">
         <Text variant="caption" style={SECONDARY}>
           Fit
         </Text>
         {fg.fit.length ? (
-          <ul aria-label="Fit" style={{ margin: 0 }}>
+          <ul aria-label="Fit">
             {fg.fit.map((f) => (
               <li key={f.ask.id}>
                 <Text variant="ui" as="span">
@@ -65,7 +75,7 @@ export function FitGapDetails({ fg }: { fg: FitGap }) {
           Gap
         </Text>
         {fg.gap.length ? (
-          <ul aria-label="Gap" style={{ margin: 0 }}>
+          <ul aria-label="Gap">
             {fg.gap.map((a) => (
               <li key={a.id}>
                 <Text variant="ui" as="span">
@@ -86,11 +96,11 @@ export function PatternsSummary({ patterns }: { patterns: Patterns }) {
   const id = useId();
   const list = (name: string, items: { label: string; count: number }[]) => (
     <Stack gap="xs" style={{ minWidth: 0 }}>
-      <Text variant="ui" as="h4" id={`${id}-${name}`} style={{ margin: 0 }}>
+      <Text variant="ui" as="h4" id={`${id}-${name}`}>
         {name}
       </Text>
       {items.length ? (
-        <ul aria-label={name} style={{ margin: 0 }}>
+        <ul aria-label={name}>
           {items.map((d) => (
             <li key={d.label}>
               <Text variant="ui" as="span">
@@ -107,7 +117,7 @@ export function PatternsSummary({ patterns }: { patterns: Patterns }) {
     </Stack>
   );
   return (
-    <Disclosure label={`What these postings ask for (${patterns.total})`} variant="panel">
+    <Disclosure label={`What these postings ask for (${patterns.total})`}>
       <Stack gap="px16">
         {list('Covered by your evidence', patterns.covered)}
         {list('Thin or not shown', patterns.thin)}

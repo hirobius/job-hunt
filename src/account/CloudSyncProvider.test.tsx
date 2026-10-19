@@ -31,7 +31,11 @@ import { clearAllPending } from '../curation/pending';
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
 import { OFFLINE_MSG } from '../cloudMessages';
-import { writeBlob } from '../syncBlob';
+import { saveTarget, readTargets } from '../feed/targets';
+import { saveFilter, readFilters } from '../feed/savedFilters';
+import { readEvidence, writeEvidence } from '../radar/evidenceStore';
+import { readMode, writeMode } from '../trackModes';
+import { emptyBlob, writeBlob } from '../syncBlob';
 
 const fake = () => h.fake!;
 const NOW = '2026-10-01T00:00:00.000Z';
@@ -82,8 +86,8 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     const menu = await openAccount();
     expect(within(menu).getByText(/Synced · u1@example.test/)).toBeInTheDocument();
-    // …and the tracker blob it pushed is v4 (no pillars / userTiles).
-    expect(fake().tables.tracker[0].data).toMatchObject({ v: 4 });
+    // …and the tracker blob it pushed is v5 (no pillars / userTiles).
+    expect(fake().tables.tracker[0].data).toMatchObject({ v: 7 });
     expect(fake().tables.tracker[0].data).not.toHaveProperty('pillars');
   });
 
@@ -126,10 +130,8 @@ describe('CloudSyncProvider (via the account menu)', () => {
     // Cloud holds a job that only lives there; this device holds a different one.
     addJob('https://cloud.example/jobs/1', 'Cloud only');
     const cloudData = writeBlob({
+      ...emptyBlob(),
       jobs: getAllJobs(),
-      copydeck: [],
-      triage: { pinned: [], dismissed: [] },
-      legacyUserTiles: [],
     });
     removeJob('https://cloud.example/jobs/1');
     fake().tables.tracker = [{ user_id: 'u1', data: cloudData, updated_at: NOW }];
@@ -331,5 +333,320 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       addCategory({ label: 'After expiry' });
     });
     expect(await screen.findByText('Track changes didn’t reach the cloud')).toBeInTheDocument();
+  });
+
+  // ADR 0008: what the user edits (targets, saved searches, evidence, work mode) follows the account.
+  describe('user-edited stores follow the account', () => {
+    beforeEach(() => {
+      localStorage.clear();
+      // The edits below belong to track 'trk', which must exist or they are pruned as orphans.
+      replaceCurationState({
+        categories: [
+          {
+            id: 'trk',
+            label: 'Design Systems',
+            titles: [],
+            atsRoles: [],
+            seniority: 'any',
+            location: '',
+            tailorRole: null,
+            sortOrder: 0,
+            archived: false,
+            createdAt: NOW,
+            updatedAt: NOW,
+          },
+        ],
+        groups: [],
+        tiles: [],
+      });
+    });
+    const target = {
+      login: 'acme',
+      company: 'Acme',
+      repo: 'acme/ds',
+      repoUrl: 'https://github.com/acme/ds',
+      stars: 3,
+    };
+    const search = {
+      name: 'Austin hybrid',
+      term: 'design systems',
+      where: 'Austin, TX',
+      mode: 'hybrid' as const,
+      exclude: ['manager'],
+      seniority: 'any' as const,
+      salaryOnly: false,
+      contractOnly: false,
+    };
+    const edit = () => {
+      saveTarget('trk', target);
+      saveFilter('trk', search);
+      writeEvidence('Led a design system');
+      writeMode('trk', 'hybrid');
+    };
+
+    it('survives sign-out and comes back on a fresh device', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(edit);
+      await waitFor(() =>
+        expect(fake().tables.tracker[0].data).toMatchObject({
+          v: 7,
+          targets: { trk: [{ login: 'acme' }] },
+          filters: { trk: [{ name: 'Austin hybrid' }] },
+          evidence: 'Led a design system',
+          modes: { trk: 'hybrid' },
+        }),
+      );
+
+      // Sign out wipes this browser…
+      await chooseAccountItem('Sign out');
+      await waitFor(() => expect(readTargets('trk')).toEqual([]));
+      expect(readFilters('trk')).toEqual([]);
+      expect(readEvidence()).toBe('');
+      expect(readMode('trk')).toBe('any');
+
+      // …and a fresh device signing in gets it all back.
+      cleanup();
+      localStorage.clear();
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(readTargets('trk').map((t) => t.login)).toEqual(['acme']));
+      expect(readFilters('trk').map((f) => f.name)).toEqual(['Austin hybrid']);
+      expect(readEvidence()).toBe('Led a design system');
+      expect(readMode('trk')).toBe('hybrid');
+    });
+
+    it('first sign-in keeps this device’s entries and unions them with the cloud’s', async () => {
+      fake().tables.tracker = [
+        {
+          user_id: 'u1',
+          updated_at: NOW,
+          data: {
+            v: 5,
+            jobs: [],
+            copydeck: [],
+            triage: { dismissed: [] },
+            targets: { trk: [{ ...target, login: 'cloudco', repo: 'cloudco/ds', savedAt: NOW }] },
+            filters: {},
+            evidence: 'cloud evidence',
+            modes: {},
+          },
+        },
+      ];
+      edit(); // this device was used signed out
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() =>
+        expect(
+          readTargets('trk')
+            .map((t) => t.login)
+            .sort(),
+        ).toEqual(['acme', 'cloudco']),
+      );
+      expect(readFilters('trk')).toHaveLength(1);
+      expect(readEvidence()).toBe(
+        'cloud evidence\n\n--- From this device ---\n\nLed a design system',
+      ); // both kept when they differ
+      expect(readMode('trk')).toBe('hybrid');
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets.trk).toHaveLength(2));
+    });
+
+    it('first sign-in says so when combining evidence from two devices passes the cap', async () => {
+      fake().tables.tracker = [
+        {
+          user_id: 'u1',
+          updated_at: NOW,
+          data: {
+            v: 5,
+            jobs: [],
+            copydeck: [],
+            triage: { dismissed: [] },
+            evidence: 'c'.repeat(15_000),
+          },
+        },
+      ];
+      writeEvidence('l'.repeat(10_000));
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      expect(await screen.findByText('Evidence was trimmed')).toBeInTheDocument();
+      expect(readEvidence().length).toBe(20_000);
+    });
+
+    it('an old-deploy tab that strips the v5 fields gets them re-uploaded on the next refresh', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(edit);
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
+      // An old client rewrites the row without the new fields.
+      fake().tables.tracker[0].data = { v: 4, jobs: [], copydeck: [], triage: { dismissed: [] } };
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
+      expect(fake().tables.tracker[0].data).toMatchObject({
+        v: 7,
+        evidence: 'Led a design system',
+        modes: { trk: 'hybrid' },
+      });
+    });
+
+    it('sign-out inside the push debounce still uploads the edit before wiping', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(edit);
+      await chooseAccountItem('Sign out'); // well inside the 500 ms debounce
+      await waitFor(() => expect(readTargets('trk')).toEqual([]));
+      expect(fake().tables.tracker[0].data).toMatchObject({
+        targets: { trk: [{ login: 'acme' }] },
+        evidence: 'Led a design system',
+        modes: { trk: 'hybrid' },
+      });
+    });
+
+    it('a failed push at sign-out asks before wiping; cancel keeps everything', async () => {
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      fake().failNext('tracker', 'upsert');
+      act(edit);
+      await chooseAccountItem('Sign out');
+      await waitFor(() =>
+        expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/latest changes/)),
+      );
+      expect(readTargets('trk')).toHaveLength(1);
+      expect(readEvidence()).toBe('Led a design system');
+    });
+
+    it('a failed push is retried (the edit is still dirty), so a later sign-out uploads it', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      fake().failNext('tracker', 'upsert');
+      act(edit);
+      await screen.findByText(OFFLINE_MSG);
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await chooseAccountItem('Sign out');
+      await waitFor(() => expect(readTargets('trk')).toEqual([]));
+      expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1);
+    });
+
+    it('a track whose upload is still pending never loses its data to another device’s sync', async () => {
+      // Device A: the track write is refused while the blob push (with its target) succeeds.
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      const release = fake().holdNext('categories', 'upsert');
+      let id = '';
+      act(() => {
+        id = addCategory({ label: 'Pending track' });
+      });
+      act(() => {
+        saveTarget(id, target);
+      });
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.[id]).toHaveLength(1));
+      expect((fake().tables.categories ?? []).some((r) => r.id === id)).toBe(false);
+
+      // Device B (fresh) signs in and syncs: it cannot see the track, but must not prune its data.
+      cleanup();
+      localStorage.clear();
+      replaceCurationState({ categories: [], groups: [], tiles: [] });
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(readTargets(id)).toHaveLength(1));
+      await new Promise((r) => setTimeout(r, 100));
+      expect(fake().tables.tracker[0].data.targets?.[id]).toHaveLength(1);
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await new Promise((r) => setTimeout(r, 100));
+      expect(fake().tables.tracker[0].data.targets?.[id]).toHaveLength(1);
+      expect(readTargets(id)).toHaveLength(1);
+      release();
+    });
+
+    it('an old-deploy tab that strips the v5 fields gets them re-uploaded on the next refresh', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(edit);
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
+      // An old client rewrites the row without the new fields.
+      fake().tables.tracker[0].data = { v: 4, jobs: [], copydeck: [], triage: { dismissed: [] } };
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
+      expect(fake().tables.tracker[0].data).toMatchObject({
+        v: 7,
+        evidence: 'Led a design system',
+        modes: { trk: 'hybrid' },
+      });
+    });
+
+    it('sign-out inside the push debounce still uploads the edit before wiping', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(edit);
+      await chooseAccountItem('Sign out'); // well inside the 500 ms debounce
+      await waitFor(() => expect(readTargets('trk')).toEqual([]));
+      expect(fake().tables.tracker[0].data).toMatchObject({
+        targets: { trk: [{ login: 'acme' }] },
+        evidence: 'Led a design system',
+        modes: { trk: 'hybrid' },
+      });
+    });
+
+    it('a failed push at sign-out asks before wiping; cancel keeps everything', async () => {
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      fake().failNext('tracker', 'upsert');
+      act(edit);
+      await chooseAccountItem('Sign out');
+      await waitFor(() =>
+        expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/latest changes/)),
+      );
+      expect(readTargets('trk')).toHaveLength(1);
+      expect(readEvidence()).toBe('Led a design system');
+    });
+
+    it('a failed push is retried (the edit is still dirty), so a later sign-out uploads it', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      fake().failNext('tracker', 'upsert');
+      act(edit);
+      await screen.findByText(OFFLINE_MSG);
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await chooseAccountItem('Sign out');
+      await waitFor(() => expect(readTargets('trk')).toEqual([]));
+      expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1);
+    });
+
+    it('a v4 cloud blob (no new fields) never wipes this device on sign-in or refresh', async () => {
+      fake().tables.tracker = [
+        {
+          user_id: 'u1',
+          updated_at: NOW,
+          data: { v: 4, jobs: [], copydeck: [], triage: { dismissed: [] } },
+        },
+      ];
+      edit();
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(7));
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await new Promise((r) => setTimeout(r, 50));
+      expect(readTargets('trk')).toHaveLength(1);
+      expect(readEvidence()).toBe('Led a design system');
+    });
   });
 });

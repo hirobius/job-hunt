@@ -36,10 +36,73 @@ a:focus-visible,
   border-radius: 6px;
 }
 
-/* HDS 0.24.1 bug (upstream ask in #133): the active tab's `data-[state=active]:border-foreground`
+/* HDS 0.24.1 bug (hds#749): the active tab's `data-[state=active]:border-foreground`
  * sits in a cascade layer while `.border-transparent` is unlayered, so the unlayered rule wins and
  * the selected tab shows no underline — the "selected state is invisible" audit finding. Restore
  * HDS's intended indicator until the fix ships. */
 [role='tab'][data-state='active'] {
   border-bottom-color: var(--role-foreground);
+}
+
+/* Host type resets for HDS `Text` (#133). Reset-free styles.css leaves heading/paragraph margins to
+ * the browser, so rhythm comes from parent Stack gaps only. `.rjb-semibold` is the one weight
+ * step the app uses on `ui` headings and names; upstream ask: a `weight` prop on HDS Text (hds#655). */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+}
+
+.rjb-semibold {
+  font-weight: 600;
+}
+
+/* Apply mode copy rows: keep a saved answer's line breaks. */
+.rjb-prewrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The "saved on this device only" cue on the Account trigger (#133), shown off Today where the
+ * sync nudge is not. Accent colour, decorative (the trigger's title carries the words). */
+.rjb-unsynced-dot {
+  display: inline-block;
+  width: var(--primitive-space-2);
+  height: var(--primitive-space-2);
+  margin-inline-start: var(--primitive-space-1);
+  border-radius: 50%;
+  background: var(--semantic-accent-rest);
+}
+
+/* Phone: the four top tabs (Today · Pipeline · Discover · Templates) fit 390px with tighter
+ * padding instead of cutting "Templates" mid-word (#133). Wider screens keep HDS's padding. */
+@media (max-width: 440px) {
+  [role='tablist'][aria-label='Sections'] [role='tab'] {
+    padding-inline: var(--primitive-space-1);
+  }
+}
+
+/* Phone touch targets (#133): HDS's sm controls (segmented tool strip, tabs, chips, disclosure
+ * triggers) are 18-39px tall. Raise every button to 40px on a phone; the e2e probe holds it.
+ * Upstream ask: a touch size for these controls (hds#750). */
+@media (max-width: 600px) {
+  [data-hds] button,
+  [data-hds] [role='tab'],
+  [data-hds] [role='radio'] {
+    min-height: var(--primitive-space-10);
+  }
+}
+
+/* Reduced motion (#133): the app's own transitions and HDS's settle at once; Spinner and Skeleton
+ * keep their loop (the e2e probe allows only those to run). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -12,88 +12,56 @@ import {
   Stack,
   Text,
 } from '@hirobius/design-system';
-import { useJobs, addJob } from './store';
-import { deriveJobState } from './jobState';
-import { sortJobs, SORTS, type SortKey } from './jobSort';
+import { useJobs, addJob, findJobByUrl } from './store';
+import { notifySaved } from './saveNotice';
+import { SORTS, type SortKey } from './jobSort';
+import {
+  FILTER_GROUPS,
+  FILTER_LABEL,
+  filterCounts,
+  setPipelineView,
+  usePipelineView,
+  visibleJobs,
+  type Filter,
+} from './pipelineView';
 import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
-import type { Job, Status } from './types';
 import JobsTable from './JobsTable';
+import ApplyQueueSummary from './ApplyQueueSummary';
 import JobListCard from './JobListCard';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
-
-type Filter = 'active' | 'all' | Status | 'retired';
-
-// The status menu (#129): two views, then the stages grouped by where a job is.
-const FILTER_LABEL: Record<Filter, string> = {
-  active: 'Active',
-  all: 'All',
-  Saved: 'Saved',
-  Applied: 'Applied',
-  Interviewing: 'Interviewing',
-  Offer: 'Offer',
-  Rejected: 'Rejected',
-  retired: 'Retired',
-};
-const SECONDARY = { color: 'var(--semantic-color-content-secondary)' } as const;
-
-// Active first; All and Retired demoted to the end (#129). A group without a label is just a
-// separated section.
-const FILTER_GROUPS: { label?: string; items: Filter[] }[] = [
-  { label: 'Views', items: ['active'] },
-  { label: 'In progress', items: ['Saved', 'Applied', 'Interviewing', 'Offer'] },
-  { label: 'Closed', items: ['Rejected', 'retired'] },
-  { items: ['all'] },
-];
-function matches(j: Job, f: Filter): boolean {
-  const s = deriveJobState(j);
-  if (f === 'active') return s.isActive;
-  if (f === 'all') return true;
-  if (f === 'retired') return !!j.archived;
-  return !j.archived && s.status === f;
-}
+import { SECONDARY } from './hds-gaps/tone';
 
 export default function TrackerView() {
   const jobs = useJobs();
-  const [filter, setFilter] = useState<Filter>('active');
-  const [sort, setSort] = useState<SortKey>('recent');
-  const [q, setQ] = useState('');
+  const view = usePipelineView();
+  const { filter, sort, q } = view;
+  const setFilter = (filter: Filter) => setPipelineView({ filter });
+  const setSort = (sort: SortKey) => setPipelineView({ sort });
+  const setQ = (q: string) => setPipelineView({ q });
   const [url, setUrl] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   // A sortable table where there's room for its six columns; compact cards below that (#129).
   const wide = useAtLeast('lg');
 
-  const shown = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    const textMatch = (j: Job) =>
-      !needle ||
-      [j.label, j.company, j.location, j.note, j.contact, j.url].some((f) =>
-        (f || '').toLowerCase().includes(needle),
-      );
-    return sortJobs(jobs, sort).filter((j) => matches(j, filter) && textMatch(j));
-  }, [jobs, filter, sort, q]);
+  const shown = useMemo(() => visibleJobs(jobs, view), [jobs, view]);
   const sortLabel = SORTS.find((s) => s.key === sort)?.label ?? '';
-  const counts = useMemo(
-    () =>
-      Object.fromEntries(
-        FILTER_GROUPS.flatMap((g) => g.items).map((f) => [
-          f,
-          jobs.filter((j) => matches(j, f)).length,
-        ]),
-      ) as Record<Filter, number>,
-    [jobs],
-  );
+  const counts = useMemo(() => filterCounts(jobs), [jobs]);
 
   const submit = () => {
     if (!url.trim()) return;
-    addJob(url.trim());
+    if (addJob(url.trim())) {
+      const job = findJobByUrl(url.trim());
+      if (job) notifySaved([job.url], job.label);
+    }
     setUrl('');
     setAddOpen(false);
   };
 
+  // Start applying is the page's one primary once there are jobs; Add job steps down.
   const addJobButton = (
     <UiButton
-      variant="primary"
+      variant={jobs.length > 0 ? 'secondary' : 'primary'}
       size="sm"
       iconLeft={<Plus size={16} />}
       onClick={() => setAddOpen(true)}
@@ -119,6 +87,12 @@ export default function TrackerView() {
         actions={jobs.length > 0 ? addJobButton : undefined}
         style={{ marginBottom: 'var(--primitive-space-4)' }}
       />
+      <SampleBanner jobs={jobs} />
+      {jobs.length > 0 && (
+        <Box sx={{ mb: 'sm' }}>
+          <ApplyQueueSummary jobs={jobs} />
+        </Box>
+      )}
 
       {/* One toolbar (#115 / #129): search grows; status and sort sit beside it and wrap under it
           on phones. Status is a grouped menu, not an 8-option strip. No toolbar until there is
@@ -180,9 +154,7 @@ export default function TrackerView() {
                             }}
                           >
                             <span>{FILTER_LABEL[f]}</span>
-                            <span style={{ color: 'var(--semantic-color-content-secondary)' }}>
-                              {counts[f]}
-                            </span>
+                            <span style={SECONDARY}>{counts[f]}</span>
                           </Box>
                         </HdsMenu.RadioItem>
                       ))}
@@ -258,48 +230,22 @@ export default function TrackerView() {
         </Dialog.Content>
       </Dialog>
 
-      <SampleBanner jobs={jobs} />
       {jobs.length === 0 ? (
-        // First use (21st.dev empty-state references): say what the screen will hold, one
-        // primary action, one way to see it working — all on one centred axis. HDS EmptyState is
-        // left-aligned with an italic title and no action slot (hds#654), so this composes Text.
-        <Stack
-          gap="normal"
-          align="center"
-          style={{
-            paddingBlock: 'var(--primitive-space-8)',
-            textAlign: 'center',
-            maxWidth: '28rem',
-            marginInline: 'auto',
-          }}
-        >
-          <Box
-            sx={{
-              display: 'grid',
-              placeItems: 'center',
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              bgcolor: 'surface.raised',
-              color: 'accent',
-            }}
-          >
-            <Icon icon={Briefcase} />
-          </Box>
-          <Stack gap="tight" align="center">
-            <Text variant="title" as="h3" style={{ margin: 0 }}>
-              Track your first job
-            </Text>
-            <Text variant="body" as="p" style={{ ...SECONDARY, margin: 0 }}>
-              Paste a job link to save it here, then screen it, apply and follow up. You can also
-              save jobs from Discover.
-            </Text>
-          </Stack>
-          <Stack direction="row" wrap="wrap" gap="tight" justify="center">
-            {addJobButton}
-            <TrySampleButton />
-          </Stack>
-        </Stack>
+        // First use: the shared teaching empty (#132): what this will hold, one primary action,
+        // one way to see it working.
+        <Box sx={{ paddingBlock: 'xl' }}>
+          <EmptyState
+            icon={Briefcase}
+            title="Track your first job"
+            message="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Discover."
+            action={
+              <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+                {addJobButton}
+                <TrySampleButton />
+              </Stack>
+            }
+          />
+        </Box>
       ) : shown.length === 0 ? (
         <EmptyState
           message={
