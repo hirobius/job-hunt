@@ -1,5 +1,5 @@
 // Interview / call log on a Job, plus the calendar views derived from it: .ics export events and
-// Today's lists (due follow-ups, the next 7 days). Pure and DOM-free; `now` is always injected (local time).
+// the Pipeline's agenda (due follow-ups, the next 7 days; Today's until #236). Pure and DOM-free; `now` is always injected (local time).
 import type { IcsEvent } from './ics';
 import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
 import type { Job, JobEvent, JobEventKind } from './types';
@@ -100,10 +100,10 @@ export function jobIcsEvents(job: Job, now: Date): IcsEvent[] {
   return out;
 }
 
-/** How many days ahead Today's agenda looks, today included. */
+/** How many days ahead the Pipeline's agenda looks, today included. */
 export const UPCOMING_DAYS = 7;
 
-/** One interview / call / other event on Today's "Next N days" list. */
+/** One interview / call / other event on the Pipeline's "Next N days" list. */
 export interface AgendaItem {
   /** The event's id (unique within its job). */
   id: string;

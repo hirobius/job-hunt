@@ -106,7 +106,7 @@ describe('Pipeline hierarchy', () => {
   });
 });
 
-// The Pipeline holds the list only (#128): the agenda, stats and funnel moved to Today.
+// The Pipeline holds no stats or funnel (#128); its agenda is the Follow up section (#236).
 describe('Pipeline holds the list only', () => {
   it('has no This week agenda or Insights band', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');

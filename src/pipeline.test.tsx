@@ -139,7 +139,11 @@ describe('Pipeline on a phone (#129)', () => {
     const user = userEvent.setup();
     renderApp();
     const before = getAllJobs().find((j) => j.url === APPLIED);
-    await user.click(screen.getByRole('button', { name: 'Follow up: Zenith Product Designer' }));
+    // The card's own Follow up (the Follow up section above the list has one too, #236).
+    const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    await user.click(
+      within(card).getByRole('button', { name: 'Follow up: Zenith Product Designer' }),
+    );
     const dialog = await screen.findByRole('dialog', { name: 'Follow up' });
     expect(within(dialog).getByRole('textbox', { name: 'Message' })).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Close' }));

@@ -1,19 +1,18 @@
 // The top of the Pipeline (rapid apply): "To apply (N)" with the one primary Start applying, then
-// "Follow up (M)": every applied or interviewing job with the date its follow-up falls due.
+// the agenda (#236, was Today): "Follow up (M)", due ones first, and the next 7 days of interviews
+// and calls. Sections with nothing in them render nothing.
 import { useMemo } from 'react';
-import { Box, Button, Card, InlineLink, Stack, Text } from '@hirobius/design-system';
-import { followUpDate, followUpJobs, toApplyQueue } from './applyQueue';
-import { deriveJobState } from './jobState';
+import { Box, Button, Card, Stack, Text } from '@hirobius/design-system';
+import { toApplyQueue } from './applyQueue';
 import { jobIdOf } from './store';
-import { jobHash, openApply } from './route';
-import { titleOf } from './jobRow';
-import { metaLines } from './metaLines';
+import { openApply } from './route';
+import { FollowUpSection, NextDaysSection } from './PipelineAgenda';
 import { SECONDARY } from './hds-gaps/tone';
 import type { Job } from './types';
 
 export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
   const queue = useMemo(() => toApplyQueue(jobs), [jobs]);
-  const waiting = useMemo(() => followUpJobs(jobs), [jobs]);
+  const now = new Date();
   return (
     <Stack gap="tight">
       <Card bordered padding="none">
@@ -39,37 +38,8 @@ export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
           </Stack>
         </Box>
       </Card>
-      {waiting.length > 0 && (
-        <Card bordered padding="none">
-          <Box as="section" aria-label={`Follow up (${waiting.length})`} sx={{ p: 'sm' }}>
-            <Text variant="body" as="h3" className="rjb-semibold">
-              {`Follow up (${waiting.length})`}
-            </Text>
-            <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
-              {waiting.map((j) => {
-                const s = deriveJobState(j);
-                return (
-                  <Box as="li" key={j.url} sx={{ pt: 'xs' }}>
-                    <Text variant="ui" as="span">
-                      <InlineLink href={jobHash(jobIdOf(j.url))} externalIcon={false}>
-                        {titleOf(j)}
-                      </InlineLink>
-                    </Text>
-                    {metaLines([
-                      s.status,
-                      s.followUp.due ? 'follow up now' : `follow up ${followUpDate(j)}`,
-                    ]).map((line, i) => (
-                      <Text key={i} variant="caption" as="p" style={SECONDARY}>
-                        {line}
-                      </Text>
-                    ))}
-                  </Box>
-                );
-              })}
-            </Box>
-          </Box>
-        </Card>
-      )}
+      <FollowUpSection jobs={jobs} now={now} />
+      <NextDaysSection jobs={jobs} now={now} />
     </Stack>
   );
 }

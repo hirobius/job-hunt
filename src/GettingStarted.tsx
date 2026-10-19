@@ -1,5 +1,6 @@
-// The "Getting started" card on Today (#132): three steps with checkboxes that show what is
-// already true. Shown once there is a job of your own, until it is dismissed on this device.
+// The "Getting started" card over the Pipeline's agenda (#132; on Today until #236): three steps
+// with checkboxes that show what is already true. Shown once there is a job of your own, until it
+// is dismissed on this device.
 import { useContext, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button, Card, Checkbox, Icon, Stack, Text } from '@hirobius/design-system';

@@ -68,7 +68,7 @@ const label = () => screen.getByRole('textbox', { name: 'Snippet label' }) as HT
 beforeEach(() => {
   h.fake?.reset();
   localStorage.clear();
-  seedPack('consulting'); // a track, so Today isn't the first-run gate
+  seedPack('consulting'); // a track, so Companies isn't the first-run gate
   replaceSnippets([]);
   restoreStarterSnippets();
   window.history.replaceState(null, '', '/');
