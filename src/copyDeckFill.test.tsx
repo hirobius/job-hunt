@@ -112,7 +112,7 @@ describe('token chips', () => {
     body().focus();
     caretAt(body().firstChild!, 5);
     await userEvent.click(screen.getByRole('button', { name: '[Role]' }));
-    expect(getSnippets()[0].body).toBe('Hello[Role] world');
+    expect(getSnippets()[0].body).toBe('Hello [Role] world');
     await waitFor(() => expect(body()).toHaveFocus());
     // The caret lands after the chip, at the start of " world".
     const sel = window.getSelection()!;
@@ -178,7 +178,7 @@ describe('variable chips (#221)', () => {
     caretAt(body().firstChild!, 3);
     await userEvent.click(screen.getByRole('button', { name: 'Insert variable' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Role' }));
-    expect(getSnippets()[0].body).toBe('Hi [Role][Contact], at [Company]');
+    expect(getSnippets()[0].body).toBe('Hi [Role] [Contact], at [Company]');
   });
 });
 
