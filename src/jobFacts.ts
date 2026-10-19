@@ -19,9 +19,11 @@ export function jobFacts(job: Job, now: Date = new Date()): Fact[] {
   };
   add('Company', job.company);
   add('Location', job.location);
-  add('Seniority', job.seniority);
-  add('Salary', job.salary);
+  add('Pay', job.salary);
   add('Source', hostOf(job.url));
+  add('Contact', job.contact);
+  add('Seniority', job.seniority);
+  add('Résumé', job.resume);
   add('Applied', s.appliedDaysAgo != null ? ago(s.appliedDaysAgo) : null);
   if (!job.archived) {
     if (s.followUp.due) add('Follow-up', 'Due now');

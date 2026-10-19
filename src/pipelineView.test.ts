@@ -26,6 +26,7 @@ describe('pipelineView', () => {
 
   it.each([
     ['active', ['Alpha welder', 'Gamma']],
+    ['starred', ['Gamma']],
     ['Applied', ['Beta fitter', 'Gamma']],
     ['retired', ['Delta']],
     ['all', ['Alpha welder', 'Beta fitter', 'Delta', 'Gamma']],
@@ -57,7 +58,13 @@ describe('pipelineView', () => {
   });
 
   it('counts every filter', () => {
-    expect(filterCounts(all)).toMatchObject({ active: 2, all: 4, Applied: 2, retired: 1 });
+    expect(filterCounts(all)).toMatchObject({
+      active: 2,
+      starred: 1,
+      all: 4,
+      Applied: 2,
+      retired: 1,
+    });
   });
 
   it('set merges into the shared state and reset restores the default', () => {

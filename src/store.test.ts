@@ -12,6 +12,11 @@ import {
   jobIdOf,
   findJobById,
   findJobByUrl,
+  sanitizeJobs,
+  snoozeFollowUp,
+  logFollowUp,
+  restoreFollowUp,
+  setJobUrl,
 } from './store';
 
 afterEach(() => {
@@ -119,5 +124,48 @@ describe('findJobByUrl (#128)', () => {
       'Design Engineer',
     );
     expect(findJobByUrl('https://acme.example/jobs/8')).toBeUndefined();
+  });
+});
+
+describe('follow-up snooze + undo', () => {
+  const U = 'https://acme.example/jobs/1';
+
+  it('normalizes snoozeUntil on read: a real day stays, junk is dropped', () => {
+    const [ok, bad] = sanitizeJobs([
+      { url: U, label: 'A', status: 'Applied', snoozeUntil: '2026-10-20' },
+      { url: 'https://acme.example/jobs/2', label: 'B', status: 'Applied', snoozeUntil: 'later' },
+    ]);
+    expect(ok.snoozeUntil).toBe('2026-10-20');
+    expect('snoozeUntil' in bad).toBe(false);
+  });
+
+  it('snooze sets a day; restore puts the old follow-up clock back exactly', () => {
+    addJob(U, 'A');
+    const before = findJobByUrl(U)!;
+    snoozeFollowUp(U);
+    expect(findJobByUrl(U)!.snoozeUntil).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    restoreFollowUp(U, before);
+    logFollowUp(U);
+    expect(findJobByUrl(U)!.followUp).toBeTruthy();
+    restoreFollowUp(U, before);
+    const after = findJobByUrl(U)!;
+    expect(after.followUp).toBeUndefined();
+    expect(after.snoozeUntil).toBeUndefined();
+  });
+});
+
+describe('setJobUrl', () => {
+  it('moves the job to a cleaned link and keeps everything else', () => {
+    addJob('https://a.example/1', 'Welder');
+    expect(setJobUrl('https://a.example/1', ' b.example/2 ')).toBe('https://b.example/2');
+    expect(getAllJobs().map((j) => [j.url, j.label])).toEqual([['https://b.example/2', 'Welder']]);
+  });
+
+  it('refuses a non-link or another saved job’s link', () => {
+    addJob('https://a.example/1');
+    addJob('https://b.example/2');
+    expect(setJobUrl('https://a.example/1', 'nope')).toBeNull();
+    expect(setJobUrl('https://a.example/1', 'https://www.b.example/2/')).toBeNull();
+    expect(getAllJobs()[0].url).toBe('https://a.example/1');
   });
 });

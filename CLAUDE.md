@@ -60,7 +60,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
-  publishable + RLS-protected). **Blob v5 (ADR 0008)** carries jobs, snippets, set-aside tiles **and the
+  publishable + RLS-protected). **Blob v8 (ADR 0008 + addendum)** adds Recently removed (`src/trash.ts`,
+  `rjb_trash`, 30 days; also in backups) on top of v7's wide-sweep titles and v6's Application kit; v5 carries jobs, snippets, set-aside tiles **and the
   user-edited per-browser stores: outreach targets (`rjb_targets`), saved searches (`rjb_feed_filters`),
   the evidence text (`rjb_radar_evidence`) and work mode per track (`rjb_ui_mode:<id>`, `src/trackModes.ts`)**
   — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
@@ -87,26 +88,36 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
   terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
   pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
-  **Shell (#115 Phase 1):** slim header = name · top tabs (**Today · Pipeline · Discover ·
+  **Shell (#115 Phase 1):** slim header = wordmark (the one `h1`, but `Text variant="body"` semibold, so the
+  page title is always the biggest text) · top tabs (**Today · Pipeline · Discover ·
   Templates**; they scroll on a phone, with the `src/hds-gaps/TabsOverflowFade` edge cue) · one
-  **Account** menu. `src/account/` is the account
+  icon-only **Menu** button (hamburger, `aria-label="Menu"`; it holds account, data, display and feedback). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Back up,
   Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible Callout;
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
-  tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`.
+  tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
+  (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
+  line as non-item labels | data | display | Sign out, Delete my data last in the danger colour).
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
   (git-ignored). Run it before/after each redesign phase.
 - **Job routes (#127):** every saved job has a page at `#/queue/<jobId>` (`Route.jobId`; the second
   segment is a job under `queue`, a sub-tab elsewhere). `store.jobIdOf(url)` derives the id (hash
   of `dedupKey`, never stored); `findJobById` resolves it; `route.openJob(id | null)` navigates.
-  **Job page (#130):** `JobPage.tsx` = `JobHeader` (title, status, pin, the one primary next step,
-  menu; Remove is not in this menu) over `Tabs` Overview (`JobOverview`: facts via `jobFacts` in an
-  HDS `MetadataList`, an "Edit details" `Disclosure` open only for a job without title and company,
-  templates, research links, then `DestructiveSection` Remove with confirm + toast) · Screening
-  (`JobScreening`: fit line, inline `JdScreenPanel`, `ScreeningEditor`) · Interviews · To-dos
-  (`TodosNotes`, holds the one Notes field: `notes`, else the older `note`). The open tab is local
+  **Job page (#130):** `JobPage.tsx` = `JobHeader` (title + status; Star (filled when on, "Starred"),
+  the one primary next step and the menu, which holds Remove; one row on desktop, actions in one row
+  under the title on a phone) over `Tabs` Overview (`JobOverview`: a Details card that is the
+  `jobFacts` `MetadataList`, and turns into its fields on Edit: title, company, location, pay, link
+  (saves on blur, the page follows the new id), contact, with seniority and résumé under More
+  fields; starts in edit for a job without title and company; then templates and research links) ·
+  Screening (`JobScreening`: fit line, inline `JdScreenPanel`, `ScreeningEditor`) · Interviews ·
+  To-dos (`TodosNotes`, holds the one Notes field: `notes`, else the older `note`). **Remove is soft
+  (`trash.ts`):** the job goes to Recently removed (link under the Pipeline list, Restore / Delete
+  forever) with an Undo notice (`saveNotice.removeWithUndo`, shown by the one `NoticeHost`, so it
+  never stacks with a save notice). Restoring a posting saved again since merges the removed copy's
+  notes, to-dos and interviews into the saved one. Starred jobs
+  have their own Pipeline filter. The open tab is local
   state keyed by job, not in the URL. At ≥ `lg` an HDS `Sidebar` puts `JobRail` (links with
   `aria-current`, `hds-gaps/RailList`) beside the job; below it the job is alone with a Back link.
   The Pipeline's filter/search/sort live in `pipelineView.ts` (in memory, shared by `TrackerView`
@@ -157,7 +168,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `JobsTable` (HDS `Table`, sortable headers through `jobRow.nextSort` → the same `SortKey` as the
   toolbar) at ≥ the HDS `lg` breakpoint and `JobListCard` (title on its own row) below it, chosen
   by `src/hds-gaps/useBreakpoint.ts` (no `matchMedia` → cards). Both render `jobRow.rowView` with
-  `JobRowParts.tsx`: one next step per row (Mark applied / Log follow-up, secondary so Add job stays
+  `JobRowParts.tsx`: one next step per row (Mark applied / Follow up, secondary so Add job stays
   the page's one primary) + the row `Menu` (also on the job page's header, minus Remove); 40px controls on
   cards. A non-default status filter shows as a `Tag` chip that clears it.
   Titles link to `#/queue/<jobId>`; details, to-dos, the screener and templates live on the job
@@ -179,8 +190,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   is `screening.verdictLabel` everywhere (Strong fit / Stretch / Reach). Pinned in
   `src/discover.test.tsx`, `TileGrid.test.tsx`, `LiveFeed*.test.tsx`.
 - **Design polish (#133, `docs/specs/design-polish.md`, `docs/redesign-2026.md`):** banners are not page
-  furniture: `SyncNudge` is one line, Today only (`useUnsynced` also drives the dot on the Account
-  trigger elsewhere), and `SampleBanner` is a one-line note under the page header. Section heads are
+  furniture: `SyncNudge` is one line, Today only (no dot on the Menu trigger; its title says
+  "Saved on this device only"), and `SampleBanner` is a one-line note under the page header. Section heads are
   `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
   host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 40px phone buttons,
   reduced motion); shared secondary colour is `hds-gaps/tone` `SECONDARY`. Guards: inline `style={{`
@@ -210,8 +221,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
 - **Tracker model:** default "Active" filter = not-yet-applied (Saved) + pinned;
-  applying drops a job out of the active queue. Follow-up loop: "Follow up in Nd" →
-  "Follow up now" → "Log follow-up" resets the clock. Weak titles auto-derive from
+  applying drops a job out of the active queue. Follow-up loop: due 7 days after applying or the
+  last follow-up. Every "Follow up" button (Today, Pipeline row, job header) opens the one
+  `FollowUpHost` dialog (`FollowUp.tsx`, mounted in `App`; open job in `followUpFlow.ts`): the
+  follow-up template filled via `templateFill.fillSnippet`, Copy message → Mark as sent (resets the clock; Undo in
+  the dialog, since HDS Toast has no action slot) or Snooze 3 days (`Job.snoozeUntil`, normalized
+  on read, syncs with the job). Closing changes nothing. Weak titles auto-derive from
   the URL. Board triage (pin / set-aside) lives in `tileTriage.ts` + `tileState.ts`;
   planned consolidation: saving also floats the tile (issue #13).
 

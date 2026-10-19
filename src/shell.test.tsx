@@ -35,8 +35,18 @@ const renderApp = () =>
     </ColorModeProvider>,
   );
 
+// The open menu top to bottom: header lines (labels, not focusable), items and separators.
+const menuOutline = (menu: HTMLElement) =>
+  Array.from(
+    menu.querySelectorAll('[role="menuitem"], [role="separator"], [data-account-line]'),
+  ).map((el) =>
+    el.getAttribute('role') === 'separator'
+      ? '---'
+      : `${el.getAttribute('role') === 'menuitem' ? 'item' : 'label'}:${el.textContent?.trim()}`,
+  );
+
 const openAccount = async () => {
-  await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
   return screen.findByRole('menu');
 };
 
@@ -60,27 +70,45 @@ describe('app shell (#115 Phase 1)', () => {
     expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
     expect(tabs.map((t) => t.textContent)).toEqual(['Companies', 'Pipeline', 'Templates']);
-    expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Menu' })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'More options' })).toBeNull();
   });
 
-  it('the account menu holds sign-in, back up, restore, export, theme and feedback', async () => {
+  it('the wordmark is an app-bar label, smaller than any page title', () => {
+    renderApp();
+    const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
+    expect(wordmark.className).not.toMatch(/hds-type-(title|display)/);
+    expect(wordmark.className).toMatch(/hds-type-(body|ui)/);
+  });
+
+  it('signed out, the account menu reads: device-only line, sign in | data | display', async () => {
     renderApp();
     const menu = await openAccount();
-    const items = within(menu)
-      .getAllByRole('menuitem')
-      .map((i) => i.textContent?.trim());
-    expect(items).toEqual([
-      'Sign in to sync…',
-      'Back up',
-      'Restore…',
-      'Export CSV',
-      expect.stringMatching(/^(Dark|Light) theme$/),
-      expect.stringMatching(/^(Compact|Comfortable) spacing$/),
-      'Send feedback',
+    expect(menuOutline(menu)).toEqual([
+      'label:Saved on this device only',
+      'item:Sign in to sync…',
+      '---',
+      'item:Back up',
+      'item:Restore…',
+      'item:Export CSV',
+      '---',
+      expect.stringMatching(/^item:(Dark|Light) theme$/),
+      expect.stringMatching(/^item:(Compact|Comfortable) spacing$/),
+      'item:Send feedback',
     ]);
+  });
+
+  it('the trigger is an icon-only "Menu" button: no word, no unsynced dot', async () => {
+    addJob('https://acme.example/jobs/dot', 'Design Engineer');
+    window.location.hash = '#/queue';
+    renderApp();
+    const account = await screen.findByRole('button', { name: 'Menu' });
+    expect(account).toHaveAttribute('aria-label', 'Menu');
+    expect(account.textContent?.trim()).toBe('');
+    expect(account.querySelector('svg')).not.toBeNull();
+    expect(account.querySelector('[class*="dot"]')).toBeNull();
   });
 
   it('data controls left the Pipeline toolbar', () => {
@@ -139,7 +167,7 @@ describe('sync nudge (#115 Phase 1)', () => {
   it('is not shown on a first visit with nothing to sync', async () => {
     removeJob('https://acme.example/jobs/1');
     renderApp();
-    await screen.findByRole('button', { name: /^Account/ });
+    await screen.findByRole('button', { name: 'Menu' });
     await new Promise((r) => setTimeout(r, 0)); // let the session check settle
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
   });
@@ -154,7 +182,7 @@ describe('sync nudge (#115 Phase 1)', () => {
   it('is a Today-only row; elsewhere the Account trigger carries a not-synced cue (#133)', async () => {
     window.location.hash = '#/queue';
     renderApp();
-    const account = await screen.findByRole('button', { name: /^Account/ });
+    const account = await screen.findByRole('button', { name: 'Menu' });
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
     expect(account).toHaveAttribute('title', 'Saved on this device only');
   });
@@ -166,7 +194,7 @@ describe('sync nudge (#115 Phase 1)', () => {
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
     unmount();
     renderApp();
-    await screen.findByRole('button', { name: /^Account/ });
+    await screen.findByRole('button', { name: 'Menu' });
     await new Promise((r) => setTimeout(r, 0)); // let the session check settle
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
   });
@@ -174,7 +202,7 @@ describe('sync nudge (#115 Phase 1)', () => {
   it('Sign in opens a dialog with the email field', async () => {
     renderApp();
     await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Sign in to sync' });
+    const dialog = await screen.findByRole('dialog', { name: 'Sign in' });
     expect(within(dialog).getByRole('textbox', { name: /email/i })).toBeInTheDocument();
   });
 
@@ -185,8 +213,27 @@ describe('sync nudge (#115 Phase 1)', () => {
       expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull(),
     );
     const menu = await openAccount();
-    expect(await within(menu).findByText(/Synced · u1@example.test/)).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: 'Sign out' })).toBeInTheDocument();
+    await within(menu).findByText('Synced');
+    expect(menuOutline(menu)).toEqual([
+      'label:Signed in as u1@example.test',
+      'label:Synced',
+      '---',
+      'item:Back up',
+      'item:Restore…',
+      'item:Export CSV',
+      '---',
+      expect.stringMatching(/^item:(Dark|Light) theme$/),
+      expect.stringMatching(/^item:(Compact|Comfortable) spacing$/),
+      'item:Send feedback',
+      '---',
+      'item:Sign out',
+      'item:Delete my data',
+    ]);
+    // The email is plain text: not a link, not a menu item, not focusable.
+    expect(within(menu).queryAllByRole('link')).toEqual([]);
+    const email = within(menu).getByText('Signed in as u1@example.test');
+    expect(email.closest('a, [role="menuitem"]')).toBeNull();
+    expect(email).not.toHaveAttribute('tabindex');
   });
 
   it('a failed sync is a toast, with Retry in the account menu', async () => {

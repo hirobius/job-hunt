@@ -1,8 +1,12 @@
 // "Where did my save go?" (rapid apply): every save says it landed in the Pipeline's To apply
-// queue, with Open and Undo. One notice at a time; any view raises it through `notifySaved` /
-// `showNotice`, and the shell renders it once (NoticeHost.tsx).
+// queue, with Open and Undo. A Remove says so too, with Undo (Recently removed, trash.ts). One
+// notice at a time, so they never stack; any view raises it through `notifySaved` /
+// `removeWithUndo` / `showNotice`, and the shell renders it once (NoticeHost.tsx).
 import { createStore } from './createStore';
 import { jobIdOf, removeJob } from './store';
+import { restoreJob, trashJob } from './trash';
+import { titleOf } from './jobRow';
+import type { Job } from './types';
 import { navigate, openJob } from './route';
 
 export interface NoticeAction {
@@ -41,5 +45,27 @@ export function notifySaved(urls: string[], label?: string) {
       },
       { label: 'Undo', run: () => urls.forEach(removeJob) },
     ],
+  });
+}
+
+/** Put a removed job back and say what happened: back in the Pipeline, or folded into the copy
+ *  saved since (restoreJob never drops either copy). */
+export function restoreWithNotice(url: string) {
+  const outcome = restoreJob(url);
+  if (outcome === 'merged')
+    showNotice({
+      title: 'Merged into the saved copy',
+      description:
+        'This posting was saved again, so its notes, to-dos and interviews were added there.',
+      actions: [{ label: 'Open', run: () => openJob(jobIdOf(url)) }],
+    });
+}
+
+/** Remove a job to Recently removed, with Undo. */
+export function removeWithUndo(job: Job) {
+  trashJob(job.url);
+  showNotice({
+    title: `Removed “${titleOf(job)}”`,
+    actions: [{ label: 'Undo', run: () => restoreWithNotice(job.url) }],
   });
 }

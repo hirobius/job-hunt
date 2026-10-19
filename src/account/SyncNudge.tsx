@@ -1,5 +1,5 @@
 // Sync nudge (#115 Phase 1, slimmed in #133): signed out, one dismissible one-line Callout on Today
-// offers sync (the other routes get a dot on the Account trigger, not a banner). Once
+// offers sync (the other routes get no banner; the Account trigger's title says it). Once
 // dismissed it never comes back on this device (sign-in stays in the account menu). Sign-out
 // clears rjb_* keys, so the next person on a shared browser sees it again.
 import { useState } from 'react';
