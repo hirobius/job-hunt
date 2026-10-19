@@ -39,14 +39,13 @@ import { BARE_PANEL } from './hds-gaps/barePanel';
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const CopyDeckView = lazy(() => import('./CopyDeckView'));
 
-// Top-level tabs, in render order (#115: Today · Pipeline · Discover · Templates). The URL hash
-// carries the slug (#/today …); slugs stay back-compatible (`queue`/`copy-deck`) under the new
-// labels, so old bookmarks keep working.
-
-const TAB_SLUGS = ['today', 'queue', 'discover', 'copy-deck'] as const;
+// Top-level tabs, in render order (Calm list, PR #208: Companies · Pipeline · Templates). The URL
+// hash carries the slug; slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline,
+// `copy-deck` Templates). `today` is a legacy route: no tab, still renders until its slice removes it.
+const TAB_SLUGS = ['discover', 'queue', 'copy-deck', 'today'] as const;
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
-// Today is home (#128); quick-add always shows the Pipeline, where the new job is.
-const HOME_ROUTE = 'today';
+// Companies is home; quick-add always shows the Pipeline, where the new job is.
+const HOME_ROUTE = 'discover';
 const QUICK_ADD_LANDING = 'queue';
 const APPLY_ROUTE = 'apply';
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
@@ -131,12 +130,11 @@ export default function App() {
                   </Text>
                   <AccountMenu />
                 </Stack>
-                {/* Four tabs overflow a phone; the fade says more sit past the edge. */}
+                {/* The fade says more sit past the edge when the tabs overflow a narrow phone. */}
                 <TabsOverflowFade value={TAB_SLUGS[tab]}>
                   <TabsList style={{ width: '100%', marginBottom: 0 }} aria-label="Sections">
-                    <TabsTrigger value="today">Today</TabsTrigger>
+                    <TabsTrigger value="discover">Companies</TabsTrigger>
                     <TabsTrigger value="queue">Pipeline</TabsTrigger>
-                    <TabsTrigger value="discover">Discover</TabsTrigger>
                     <TabsTrigger value="copy-deck">Templates</TabsTrigger>
                   </TabsList>
                 </TabsOverflowFade>
@@ -160,7 +158,9 @@ export default function App() {
                   )}
                 </TabsContent>
                 <TabsContent value="discover" style={BARE_PANEL}>
-                  {hasTracks ? (
+                  {firstRun ? (
+                    <Onboarding offerSample />
+                  ) : hasTracks ? (
                     <Suspense fallback={<DiscoverSkeleton />}>
                       <DiscoverView />
                     </Suspense>

@@ -25,7 +25,7 @@ const ROUTES = [
 async function seed(page: Page) {
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
-  await page.getByRole('tab', { name: 'Discover' }).click();
+  await page.getByRole('tab', { name: 'Companies' }).click();
   await page.getByRole('button', { name: 'Choose a track' }).click();
   await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().click();
   for (const name of ['Continue', 'Continue', 'Finish'])
