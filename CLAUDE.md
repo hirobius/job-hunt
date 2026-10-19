@@ -181,7 +181,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   track, New track `Menu`) + the track `Combobox` + one context `Popover` button ("Spokane, Hybrid")
   holding the only `LocationControl`. **Location is `Category.location`; work mode is per track and syncs,
   `rjb_ui_mode:<categoryId>`** (`src/discoverContext.ts`, `useTrackContext`; panels read it, they take
-  no location props). Tools are one `SegmentedControl` (Apply / Titles / ATS / Live on a phone, full
+  no location props). Tools are one `SegmentedControl` (Teams / Apply / Titles / ATS since #237, full
   names from `sm`), wrapped in `hds-gaps/TabsOverflowFade`; the track's sections are `Tabs` under
   "Your sections", shown only for Apply now; slugs unchanged (`#/discover/<tool | groupId>`).
   `TileGrid` cards are equal-height (240px min), with chips parsed from the meta string by
@@ -404,6 +404,16 @@ track-agnostic like everything else in Discover.
   (`feed/discoverySources.ts`) and are **unverified live**, as are the new community-board `site:` clauses
   in `jobsData.ts`. Big-company ATSs (Workday, SuccessFactors, Taleo, Oracle) are Google links only: never
   fetch them. New hosts `yc-oss.github.io` and `api.github.com` are in `connect-src` and `csp.test.ts`.
+- **Companies as one tool (#237, Calm list 3/7).** The Teams tool (slug `teams`, label kept) is the
+  companies list, `CompaniesPanel.tsx` (was `OutreachTargets.tsx`): one list of company rows (watched
+  board tiles + GitHub teams, one row per board) with matching roles inline (first 3, then "Show N
+  more"); the first 10 watched boards are read on arrival, the rest on "Check open roles at N
+  companies". **Add a company** (`AddCompany.tsx`, a Dialog) is the one way on: a board link is watched
+  at once, a name goes through `discoverBoards` (watch what it finds, or star it if there is no board).
+  Dream companies + "Check dream companies" sit on top. It leads `#/discover` when it has a team search,
+  a watched or a dream company; else Apply now leads. **Live postings and Find boards are not tools**:
+  `#/discover/live` and `#/discover/boards` open them as secondary views (Teams selected, "Back to
+  companies"), linked under "More ways to find companies". Pinned in `src/companies.test.tsx`.
 - **Teams tool (2026-10-17).** The Discover tool is labelled **Teams** (slug `teams`; not "Companies",
   which is the top tab since the Calm list shell). Its GitHub
   search follows the track: `feed/teamTopics.ts` `teamSearchFor` maps the track's titles/ATS roles to

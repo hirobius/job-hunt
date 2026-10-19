@@ -155,7 +155,7 @@ describe('Discover header and tools (slice 2)', () => {
       within(tools)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Apply', 'Teams', 'Titles', 'ATS', 'Live', 'Boards']);
+    ).toEqual(['Apply', 'Teams', 'Titles', 'ATS']);
     expect(within(tools).getByRole('radio', { name: 'Apply' })).toBeChecked();
     await userEvent.click(within(tools).getByRole('radio', { name: 'ATS' }));
     expect(window.location.hash).toBe('#/discover/ats');
@@ -173,6 +173,7 @@ describe('Discover header and tools (slice 2)', () => {
     expect(within(tools).getByRole('radio', { name: 'Apply' })).toBeChecked();
     await userEvent.click(within(tools).getByRole('radio', { name: 'Teams' }));
     expect(await screen.findByText(/titles don't name anything GitHub tracks/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Add a company' })).toBeVisible();
     expect(screen.queryByRole('button', { name: /^Find .* teams$/ })).toBeNull();
   });
 
@@ -187,7 +188,7 @@ describe('Discover header and tools (slice 2)', () => {
       within(tools)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Teams', 'Apply', 'Titles', 'ATS', 'Live', 'Boards']);
+    ).toEqual(['Teams', 'Apply', 'Titles', 'ATS']);
     expect(within(tools).getByRole('radio', { name: 'Teams' })).toBeChecked();
     expect(await screen.findByRole('button', { name: 'Find design-system teams' })).toBeVisible();
     cleanup();

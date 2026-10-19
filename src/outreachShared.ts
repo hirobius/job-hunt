@@ -1,4 +1,4 @@
-// Shared by the Teams tool's files (OutreachRows.tsx, OutreachTargets.tsx): the
+// Shared by the companies list's files (OutreachRows.tsx, CompaniesPanel.tsx, AddCompany.tsx): the
 // list style and the watch action. Kept out of the .tsx so those files export components only.
 import { useMemo } from 'react';
 import { useToast } from '@hirobius/design-system';
@@ -24,7 +24,7 @@ export function useWatching(categoryId: string, boardUrls: string[]) {
     if (r.ok)
       toast({
         title: `Watching ${r.label}`,
-        description: 'Its openings now show up in Live postings.',
+        description: 'Its open roles now show on Companies and in Live postings.',
         tone: 'success',
       });
     else toast({ title: r.error, tone: 'warning' });
