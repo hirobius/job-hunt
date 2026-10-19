@@ -25,7 +25,7 @@ import UseTemplate from './UseTemplate';
 import type { Job } from './types';
 
 /** A text field that writes straight through to the job and tells the page it saved. */
-export function JobField({
+function JobField({
   job,
   field,
   label,

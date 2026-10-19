@@ -4,7 +4,7 @@
 import { useMemo, useSyncExternalStore } from 'react';
 import type { WorkMode } from './jobsData';
 
-export const MODES: readonly WorkMode[] = ['any', 'remote', 'hybrid', 'onsite'];
+const MODES: readonly WorkMode[] = ['any', 'remote', 'hybrid', 'onsite'];
 const PREFIX = 'rjb_ui_mode:';
 export const modeKey = (categoryId: string) => `${PREFIX}${categoryId}`;
 

@@ -2,7 +2,7 @@
 // "Acme Cloud · Remote · Applied 3 days ago" is the bad case. Local stand-in until HDS ships a
 // meta-line primitive (hds is filing it), then delete this and adopt that.
 export const MAX_META_ITEMS = 2;
-export const META_SEPARATOR = ' · ';
+const META_SEPARATOR = ' · ';
 
 /** Split items into rows of at most MAX_META_ITEMS, dropping empties. */
 export function chunkMeta<T>(items: ReadonlyArray<T | null | undefined | false | ''>): T[][] {

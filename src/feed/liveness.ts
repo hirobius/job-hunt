@@ -21,9 +21,9 @@ export interface LiveCheck {
   hint?: string;
 }
 
-export const LIVENESS_KEY = 'rjb_liveness';
+const LIVENESS_KEY = 'rjb_liveness';
 /** A job checked less recently than this is checked again; fresher ones are left alone. */
-export const LIVENESS_TTL_MS = 6 * 60 * 60 * 1000;
+const LIVENESS_TTL_MS = 6 * 60 * 60 * 1000;
 
 /** The board a job URL belongs to and the posting ref inside it; null for any other site, or for
  *  the board's own page (a link with no posting in it). */

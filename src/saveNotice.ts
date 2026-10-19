@@ -27,7 +27,6 @@ export function showNotice(n: Omit<Notice, 'id'>) {
   store.set({ ...n, id: ++seq });
 }
 export const dismissNotice = () => store.set(null);
-export const getNotice = store.get;
 export const useNotice = store.use;
 
 /** Say where newly saved jobs went: "Saved to Pipeline · To apply", Open, Undo. `urls` are the

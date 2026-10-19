@@ -23,7 +23,7 @@ export interface Route {
 }
 
 /** The tab whose second segment is a job id: #/queue/<jobId>. */
-export const JOB_TAB = 'queue';
+const JOB_TAB = 'queue';
 
 /** Parse a raw `location.hash` string into a Route. Pure — exported for tests. */
 export function parseHash(hash: string): Route {

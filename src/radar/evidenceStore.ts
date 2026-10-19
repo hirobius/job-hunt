@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 import type { Verdict } from '../types';
 import type { Tier } from './fitGap';
 
-export const EVIDENCE_KEY = 'rjb_radar_evidence';
+const EVIDENCE_KEY = 'rjb_radar_evidence';
 
 /** The longest evidence text kept (and synced); longer input is trimmed. */
 export const EVIDENCE_MAX = 20_000;
@@ -39,7 +39,7 @@ export function writeEvidence(raw: string) {
 /** Replace from a pull or restore (same as a write; named for the sync seam). */
 export const replaceEvidence = writeEvidence;
 
-export const EVIDENCE_SEPARATOR = '--- From this device ---';
+const EVIDENCE_SEPARATOR = '--- From this device ---';
 
 /** True when merging these two texts would keep both and pass EVIDENCE_MAX, so the merge cuts
  *  the end off. Callers tell the user instead of trimming silently (#189 follow-up). */

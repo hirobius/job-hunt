@@ -19,7 +19,7 @@ import {
   type GroupRow,
   type TileRow,
 } from './map';
-import { EMPTY_CURATION, type CurationState } from './types';
+import type { CurationState } from './types';
 
 type Res = { data?: unknown; error?: { message: string } | null };
 const check = <T extends Res>(r: T): T => {
@@ -28,7 +28,7 @@ const check = <T extends Res>(r: T): T => {
 };
 
 /** Read every curation row for a user (RLS also scopes this). Throws on any `{ error }`. */
-export async function pullAll(userId: string): Promise<CurationState> {
+async function pullAll(userId: string): Promise<CurationState> {
   const [cats, groups, tiles] = await Promise.all([
     curationClient.from('categories').select('*').eq('user_id', userId),
     curationClient.from('groups').select('*').eq('user_id', userId),
@@ -144,5 +144,3 @@ export async function pushRestoredCuration(mode: 'merge' | 'replace'): Promise<b
     return false;
   }
 }
-
-export { EMPTY_CURATION };

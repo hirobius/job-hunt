@@ -5,7 +5,7 @@ import { deriveJobState } from './jobState';
 import { isSample } from './demo/isSample';
 import type { Job } from './types';
 
-export const DISMISSED_KEY = 'rjb_ui_getting_started_done';
+const DISMISSED_KEY = 'rjb_ui_getting_started_done';
 
 export interface GettingStartedItem {
   id: 'save' | 'follow-up' | 'sync';
