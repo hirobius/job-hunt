@@ -50,7 +50,7 @@ describe('topUpFromPack', () => {
     const id = seedPack('designsystems');
     const before = getCurationState();
     const added = topUpFromPack(id, 'designsystems');
-    expect(added).toEqual({ titles: 0, atsRoles: 0, groups: 0, tiles: 0 });
+    expect(added).toEqual({ titles: 0, atsRoles: 0, groups: 0, tiles: 0, targets: 0 });
     expect(getCurationState().tiles).toHaveLength(before.tiles.length);
     expect(DESIGN_SYSTEMS_PACK.titles.length).toBeGreaterThan(0);
   });

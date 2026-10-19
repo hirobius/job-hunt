@@ -35,6 +35,8 @@ describe('ManageTrackDialog · starter-pack update', () => {
     const cat = getCurationState().categories.find((c) => c.id === id)!;
     expect(cat.titles[0]).toBe('My own title');
     expect(cat.titles.length).toBeGreaterThan(1);
-    expect(await screen.findByText(/Added \d+ terms and \d+ links/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Added \d+ terms, \d+ links and \d+ outreach targets/),
+    ).toBeInTheDocument();
   });
 });

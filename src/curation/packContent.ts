@@ -2,7 +2,7 @@
 // Owned by the curation layer (moved out of the retired pillars module, #98/#99): a pack is just
 // data that `seedPack` forks into the user's own editable Category/Group/Tile rows.
 import { GROUPS, TITLES, ATS_ROLES, type Group } from '../jobsData';
-import { DIRECTORY_BY_PACK } from '../radar/directory';
+import { DIRECTORY_BY_PACK, TARGETS_BY_PACK, type PackCompany } from '../radar/directory';
 import type { Seniority } from './types';
 
 export interface PackContent {
@@ -19,6 +19,8 @@ export interface PackContent {
   groups: Group[];
   /** Company board urls seeded as the track's "Watched companies" (src/radar/directory.ts). */
   boards: readonly string[];
+  /** Target companies seeded as the track's outreach targets (#198); most packs have none. */
+  targets?: readonly PackCompany[];
 }
 
 const byId: Record<string, Group> = Object.fromEntries(GROUPS.map((g) => [g.id, g]));
@@ -57,6 +59,9 @@ const DESIGN_SYSTEMS_TITLES = [
   'Frontend Engineer',
   'Staff Frontend Engineer',
   'Product Designer',
+  // #198: the senior searches, phrase-matched so they catch designer and engineer titles alike.
+  'Staff Design Systems',
+  'Principal Design Systems',
 ];
 const DESIGN_SYSTEMS_ATS_ROLES = [
   'design systems',
@@ -83,6 +88,7 @@ export const DESIGN_SYSTEMS_PACK: PackContent = {
   location: 'Remote',
   groups: pick('ds-brief', 'ds-watch'),
   boards: DIRECTORY_BY_PACK.designsystems,
+  targets: TARGETS_BY_PACK.designsystems,
 };
 
 const CONSULTING_TITLES = [
