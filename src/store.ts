@@ -270,6 +270,18 @@ export function setStatus(url: string, status: Status) {
   const jobs = store.get();
   set(jobs.map((j) => (j.url === url ? applyStatus(j, status) : j)));
 }
+/** Point a job at a new link. Returns the stored URL, or null when the link is not a URL or
+ *  another saved job already has it (the job keeps its old link). */
+export function setJobUrl(url: string, rawNext: string): string | null {
+  const next = normalizeJobUrl(rawNext);
+  if (!next || !/\./.test(next)) return null;
+  const key = dedupKey(next);
+  const jobs = store.get();
+  if (jobs.some((j) => j.url !== url && dedupKey(j.url) === key)) return null;
+  set(jobs.map((j) => (j.url === url ? { ...j, url: next } : j)));
+  return next;
+}
+/** Delete a job outright. The UI removes through trash.ts (Recently removed) instead. */
 export function removeJob(url: string) {
   const jobs = store.get();
   set(jobs.filter((j) => j.url !== url));

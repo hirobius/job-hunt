@@ -1,16 +1,17 @@
 // Full-account backup + validated restore (#100). Pure: build a JSON backup of everything the
-// account holds (jobs, copy deck, curation board, tile triage), parse + sanitize an untrusted
+// account holds (jobs, copy deck, curation board, tile triage, Recently removed), parse + sanitize an untrusted
 // file back into that shape, and apply it onto current state as a merge or a replace.
 // Parsing never trusts the input: known fields are copied into fresh objects, URLs must be
 // http(s), and prototype-pollution keys are dropped.
 import { BRAND } from './brand';
-import { mergeJobs, sanitizeJobs } from './store';
+import { dedupKey, mergeJobs, sanitizeJobs } from './store';
 import { mergeSnippets, type Snippet } from './copyDeckStore';
 import { mergeCuration } from './curation/merge';
 import type { CurationState } from './curation/types';
 import { mergeTriage, type Triage } from './tileTriage';
 import { STATUSES, type Job } from './types';
-import { withoutSample } from './demo/isSample';
+import { isSample, withoutSample } from './demo/isSample';
+import { mergeTrash, sanitizeTrash, type Removed } from './trash';
 import { mergeTargets, sanitizeTargets, type Target } from './feed/targets';
 import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFilters';
 import { capEvidence, mergeEvidence } from './radar/evidenceStore';
@@ -27,6 +28,8 @@ export interface AccountState {
   filters: Record<string, SavedFilter[]>;
   evidence: string;
   modes: Record<string, WorkMode>;
+  /** Recently removed (blob v8). Older backups lack it. */
+  trash: Removed[];
 }
 
 export interface Backup extends AccountState {
@@ -54,6 +57,7 @@ export function buildBackup(state: AccountState, now: Date): Backup {
     filters: state.filters,
     evidence: state.evidence,
     modes: state.modes,
+    trash: state.trash.filter((r) => !isSample(r.job)),
   };
 }
 
@@ -150,6 +154,23 @@ function cleanJobs(raw: unknown): Job[] {
     .map(scrub)
     .map(cleanJobFields);
 }
+
+/** Removed jobs get the same field-by-field cleaning as live ones. */
+function cleanTrash(raw: unknown): Removed[] {
+  const out: Removed[] = [];
+  for (const r of arr(raw)) {
+    if (!isRec(r)) continue;
+    const [job] = cleanJobs([r.job]);
+    if (job) out.push({ job, removedAt: str(r.removedAt) });
+  }
+  return sanitizeTrash(out);
+}
+
+/** A job that is saved is not also listed as removed. */
+const notSaved = (trash: Removed[], jobs: Job[]) => {
+  const saved = new Set(jobs.map((j) => dedupKey(j.url)));
+  return trash.filter((r) => !saved.has(dedupKey(r.job.url)));
+};
 
 function cleanSnippets(raw: unknown): Snippet[] {
   const out: Snippet[] = [];
@@ -255,6 +276,7 @@ export function parseBackup(text: string): ParseResult {
       filters: sanitizeFilters(data.filters),
       evidence: isStr(data.evidence) ? capEvidence(data.evidence) : '',
       modes: sanitizeModes(data.modes),
+      trash: cleanTrash(data.trash),
     },
   };
 }
@@ -275,10 +297,12 @@ export function applyBackup(
       filters: backup.filters,
       evidence: backup.evidence,
       modes: backup.modes,
+      trash: notSaved(backup.trash, backup.jobs),
     };
   }
+  const jobs = mergeJobs(backup.jobs, current.jobs);
   return {
-    jobs: mergeJobs(backup.jobs, current.jobs),
+    jobs,
     copydeck: mergeSnippets(backup.copydeck, current.copydeck),
     curation: mergeCuration(backup.curation, current.curation),
     triage: mergeTriage(backup.triage, current.triage),
@@ -286,6 +310,7 @@ export function applyBackup(
     filters: mergeFilters(backup.filters, current.filters),
     evidence: mergeEvidence(backup.evidence, current.evidence),
     modes: mergeModes(backup.modes, current.modes),
+    trash: notSaved(mergeTrash(backup.trash, current.trash), jobs),
   };
 }
 

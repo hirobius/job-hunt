@@ -16,6 +16,7 @@ import {
   snoozeFollowUp,
   logFollowUp,
   restoreFollowUp,
+  setJobUrl,
 } from './store';
 
 afterEach(() => {
@@ -150,5 +151,21 @@ describe('follow-up snooze + undo', () => {
     const after = findJobByUrl(U)!;
     expect(after.followUp).toBeUndefined();
     expect(after.snoozeUntil).toBeUndefined();
+  });
+});
+
+describe('setJobUrl', () => {
+  it('moves the job to a cleaned link and keeps everything else', () => {
+    addJob('https://a.example/1', 'Welder');
+    expect(setJobUrl('https://a.example/1', ' b.example/2 ')).toBe('https://b.example/2');
+    expect(getAllJobs().map((j) => [j.url, j.label])).toEqual([['https://b.example/2', 'Welder']]);
+  });
+
+  it('refuses a non-link or another saved job’s link', () => {
+    addJob('https://a.example/1');
+    addJob('https://b.example/2');
+    expect(setJobUrl('https://a.example/1', 'nope')).toBeNull();
+    expect(setJobUrl('https://a.example/1', 'https://www.b.example/2/')).toBeNull();
+    expect(getAllJobs()[0].url).toBe('https://a.example/1');
   });
 });

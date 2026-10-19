@@ -29,6 +29,7 @@ import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import JobsTable from './JobsTable';
 import ApplyQueueSummary from './ApplyQueueSummary';
 import JobListCard from './JobListCard';
+import { RecentlyRemovedLink } from './RecentlyRemoved';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
 import { SECONDARY } from './hds-gaps/tone';
 
@@ -265,6 +266,10 @@ export default function TrackerView() {
           ))}
         </Stack>
       )}
+      {/* Removed jobs wait here for 30 days; a quiet link, shown only when there are some. */}
+      <Box sx={{ mt: 'sm' }}>
+        <RecentlyRemovedLink />
+      </Box>
     </Box>
   );
 }

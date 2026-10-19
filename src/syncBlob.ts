@@ -3,6 +3,7 @@
 // reasoning lives here and is unit-testable without Supabase. Each field's merge rule lives
 // with its store (mergeJobs, mergeTriage's set-aside-wins, …); this module only composes them.
 //
+// v8 (ADR 0008 addendum) adds Recently removed: jobs removed in the last 30 days (`src/trash.ts`).
 // v7 adds the wide sweep's titles per track (#213), optional on read.
 // v6 adds the Application kit (rapid apply: profile fields + saved answers), optional on read.
 // v5 (ADR 0008) adds the user-edited stores that used to live only in this browser: outreach
@@ -13,7 +14,7 @@
 //   v3  { jobs, pillars, copydeck, triage: { pinned, dismissed }, userTiles }
 //       → pillars are ignored (retired), cloud pins are ignored (pins are device-local now),
 //         userTiles surface as `legacyUserTiles` for the one-time "My links" fold.
-import { mergeJobs } from './store';
+import { dedupKey, mergeJobs } from './store';
 import { mergeSnippets, type Snippet } from './copyDeckStore';
 import { mergeTriage, type Triage } from './tileTriage';
 import type { LegacyTile } from './curation/legacyTiles';
@@ -26,6 +27,7 @@ import { mergeSweeps, sanitizeSweeps, type SweepTitles } from './feed/sweepTitle
 import type { WorkMode } from './jobsData';
 import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
+import { mergeTrash, sanitizeTrash, type Removed } from './trash';
 
 export type { Triage };
 
@@ -48,13 +50,15 @@ export interface SyncData {
   kit: ApplyKit;
   /** The wide sweep's titles and on/off per track (v7). */
   sweeps: Record<string, SweepTitles>;
+  /** Jobs removed in the last 30 days, newest first (v8). */
+  trash: Removed[];
   /** The blob version this was read from (0 = not read from a blob). A pre-v5 cloud copy says
    *  nothing about the v5 fields, so a refresh must not let its emptiness wipe local values. */
   sourceV: number;
 }
 
 /** Blob schema version written to the cloud. */
-export const BLOB_VERSION = 7;
+export const BLOB_VERSION = 8;
 
 export function emptyBlob(): SyncData {
   return {
@@ -68,6 +72,7 @@ export function emptyBlob(): SyncData {
     modes: {},
     kit: emptyKit(),
     sweeps: {},
+    trash: [],
     sourceV: 0,
   };
 }
@@ -97,11 +102,12 @@ export function readBlob(data: unknown): SyncData {
     modes: sanitizeModes(o.modes),
     kit: sanitizeKit(o.kit),
     sweeps: sanitizeSweeps(o.sweeps),
+    trash: sanitizeTrash(o.trash),
     sourceV: typeof o.v === 'number' ? o.v : 0,
   };
 }
 
-/** The v7 object written to the cloud. */
+/** The v8 object written to the cloud. */
 export function writeBlob(d: SyncData) {
   return {
     v: BLOB_VERSION,
@@ -114,6 +120,7 @@ export function writeBlob(d: SyncData) {
     modes: d.modes,
     kit: d.kit,
     sweeps: d.sweeps,
+    trash: d.trash.filter((r) => !isSample(r.job)),
   };
 }
 
@@ -125,7 +132,7 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
   if (!cloud) return seed ? { ...local, legacyUserTiles: [] } : local;
   if (!seed) {
     const dismissed = new Set(cloud.triage.dismissed);
-    // A pre-v5 cloud copy has no opinion on the v5 fields: keep this device's.
+    // An older cloud copy has no opinion on the fields added since: keep this device's.
     const v5 =
       cloud.sourceV >= 5
         ? {}
@@ -138,11 +145,14 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     // Likewise a pre-v6 copy says nothing about the kit.
     const v6 = cloud.sourceV >= 6 ? {} : { kit: local.kit };
     const v7 = cloud.sourceV >= 7 ? {} : { sweeps: local.sweeps };
+    // And a pre-v8 copy says nothing about Recently removed.
+    const v8 = cloud.sourceV >= 8 ? {} : { trash: local.trash };
     return {
       ...cloud,
       ...v5,
       ...v6,
       ...v7,
+      ...v8,
       jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
       triage: {
         pinned: local.triage.pinned.filter((u) => !dismissed.has(u)),
@@ -150,8 +160,10 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
       },
     };
   }
+  const jobs = mergeJobs(cloud.jobs, local.jobs);
+  const saved = new Set(jobs.map((j) => dedupKey(j.url)));
   return {
-    jobs: mergeJobs(cloud.jobs, local.jobs),
+    jobs,
     copydeck: mergeSnippets(cloud.copydeck, local.copydeck),
     triage: mergeTriage(cloud.triage, local.triage),
     legacyUserTiles: cloud.legacyUserTiles,
@@ -161,6 +173,8 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     modes: mergeModes(cloud.modes, local.modes),
     kit: mergeKit(cloud.kit, local.kit),
     sweeps: mergeSweeps(cloud.sweeps, local.sweeps),
+    // A job saved on either side is not also listed as removed.
+    trash: mergeTrash(cloud.trash, local.trash).filter((r) => !saved.has(dedupKey(r.job.url))),
     sourceV: cloud.sourceV,
   };
 }

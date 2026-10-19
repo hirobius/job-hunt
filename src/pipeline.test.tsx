@@ -121,7 +121,7 @@ describe('Pipeline on a phone (#129)', () => {
       .map((i) => i.textContent?.trim());
     expect(items).toEqual([
       'Open on acme.example',
-      'Pin as priority',
+      'Star',
       'Retire',
       'Find more like this',
       'Remove',
@@ -202,6 +202,7 @@ describe('Pipeline filter (#129)', () => {
       .map((i) => i.textContent?.replace(/\d+$/, '').trim());
     expect(names).toEqual([
       'Active',
+      'Starred',
       'Saved',
       'Applied',
       'Interviewing',
@@ -236,12 +237,12 @@ describe('Pipeline on a desktop (#129)', () => {
     ).toBeInTheDocument();
   });
 
-  it('marks pinned rows (they float in every sort) and retired ones', async () => {
+  it('marks starred rows (they float in every sort) and retired ones', async () => {
     updateJob(SAVED, { archived: true });
     renderApp();
     const table = screen.getByRole('table', { name: 'Saved jobs' });
     expect(
-      within(within(table).getByRole('row', { name: /Zenith/ })).getByText('Pinned'),
+      within(within(table).getByRole('row', { name: /Zenith/ })).getByText('Starred'),
     ).toBeInTheDocument();
     // Retired jobs show under the Retired view, with their real status and a Retired note.
     await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
