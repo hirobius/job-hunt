@@ -4,7 +4,7 @@
 // job; closing changes nothing. The host is mounted once in App, so a row that leaves its list
 // once the follow-up is sent doesn't take the dialog with it.
 import { useState } from 'react';
-import { Alert, Button, Dialog, Stack, Textarea, useToast } from '@hirobius/design-system';
+import { Alert, Button, Dialog, Stack, Text, Textarea, useToast } from '@hirobius/design-system';
 import { useSnippets } from './copyDeckStore';
 import {
   closeFollowUp,
@@ -131,12 +131,14 @@ function FollowUpContent({ job }: { job: Job }) {
             }}
           />
           {!template && (
-            <p style={SECONDARY}>
+            <Text variant="caption" style={SECONDARY}>
               No follow-up template yet. Write it here, or add one in Templates.
-            </p>
+            </Text>
           )}
           {missing.length > 0 && (
-            <p style={SECONDARY}>Still to fill in: {missing.map((t) => `[${t}]`).join(', ')}.</p>
+            <Text variant="caption" style={SECONDARY}>
+              Still to fill in: {missing.map((t) => `[${t}]`).join(', ')}.
+            </Text>
           )}
           <div>
             <Button asChild variant="tertiary" size="sm">
