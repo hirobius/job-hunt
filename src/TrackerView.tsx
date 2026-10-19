@@ -12,8 +12,8 @@ import {
   Stack,
   Text,
 } from '@hirobius/design-system';
-import { useJobs, addJob, findJobByUrl } from './store';
-import { notifySaved } from './saveNotice';
+import { useJobs } from './store';
+import { saveWithNotice } from './saveNotice';
 import { SORTS, type SortKey } from './jobSort';
 import {
   FILTER_GROUPS,
@@ -51,10 +51,7 @@ export default function TrackerView() {
 
   const submit = () => {
     if (!url.trim()) return;
-    if (addJob(url.trim())) {
-      const job = findJobByUrl(url.trim());
-      if (job) notifySaved([job.url], job.label);
-    }
+    saveWithNotice(url.trim());
     setUrl('');
     setAddOpen(false);
   };

@@ -13,8 +13,8 @@ import {
   InlineLink,
 } from '@hirobius/design-system';
 import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
-import { addJob, findJobByUrl, isSaved, useJobs } from './store';
-import { notifySaved } from './saveNotice';
+import { isSaved, useJobs } from './store';
+import { saveWithNotice } from './saveNotice';
 import { useTileTriage, toggleDismiss } from './tileTriage';
 import { parseMeta } from './tileMeta';
 import type { Tile } from './jobsData';
@@ -61,7 +61,7 @@ export default function TileGrid({
   // Enriched save (issue #57): carry the tile name → label and its meta → note so the queue
   // card isn't a bare URL; the save notice says where it went and offers Open / Undo.
   const save = (t: Tile) => {
-    if (addJob(t.url, t.name, t.meta)) notifySaved([findJobByUrl(t.url)?.url ?? t.url], t.name);
+    saveWithNotice(t.url, t.name, t.meta);
   };
   return (
     <Grid layout="auto-fill" minItemWidth="240px" gap="medium" align="stretch">

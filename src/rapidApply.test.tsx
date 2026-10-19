@@ -14,7 +14,7 @@ import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, findJobByUrl, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { getApplyKit, replaceApplyKit, emptyKit } from './applyKit';
-import { notifySaved, dismissNotice } from './saveNotice';
+import { notifySaved, dismissNotice, saveWithNotice } from './saveNotice';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 
 const A = 'https://acme.example/jobs/1';
@@ -121,5 +121,49 @@ describe('Apply mode header keeps to two items per dotted line (#192)', () => {
     expect(texts).toContain('Acme · To apply');
     expect(texts).toContain('1 of 3');
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
+  });
+});
+
+// #219: follow-ups from the rapid apply review.
+describe('rapid apply follow-ups (#219)', () => {
+  it('Undo on a bulk save keeps any job applied to since', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    act(() => notifySaved([B, C]));
+    updateJob(B, { status: 'Applied' });
+    const notice = await screen.findByRole('status', { name: '' });
+    await user.click(within(notice).getByRole('button', { name: 'Undo' }));
+    expect(findJobByUrl(B)?.status).toBe('Applied');
+    expect(findJobByUrl(C)).toBeUndefined();
+  });
+
+  it('saving a set-aside job brings it back with the notice, and Undo sets it aside again', async () => {
+    const user = userEvent.setup();
+    updateJob(C, { archived: true, notes: 'kept' });
+    renderApp();
+    act(() => {
+      expect(saveWithNotice(C, 'Cask Designer')).toBe('restored');
+    });
+    expect(findJobByUrl(C)?.archived).toBe(false);
+    const notice = await screen.findByRole('status', { name: '' });
+    expect(within(notice).getByText('Saved to Pipeline · To apply')).toBeInTheDocument();
+    await user.click(within(notice).getByRole('button', { name: 'Undo' }));
+    expect(findJobByUrl(C)).toMatchObject({ archived: true, notes: 'kept' });
+  });
+
+  it('saveWithNotice says nothing for a job that is already in the Pipeline', () => {
+    renderApp();
+    act(() => {
+      expect(saveWithNotice(A)).toBe('exists');
+    });
+    expect(screen.queryByText('Saved to Pipeline · To apply')).not.toBeInTheDocument();
+  });
+
+  it('an unnamed question’s remove button still says what it removes', async () => {
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'Add a question' }));
+    expect(screen.getByRole('button', { name: 'Remove this question' })).toBeInTheDocument();
   });
 });

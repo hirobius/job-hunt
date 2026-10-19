@@ -13,8 +13,8 @@ import {
   Text,
 } from '@hirobius/design-system';
 import { Form, Page, PageHeader } from '@hirobius/design-system/patterns';
-import { notifySaved } from './saveNotice';
-import { addJob, findJobByUrl, jobIdOf, useJobs } from './store';
+import { saveWithNotice } from './saveNotice';
+import { findJobByUrl, jobIdOf, useJobs } from './store';
 import { FollowUpButton } from './FollowUp';
 import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
 import { dueFollowUps, KIND_WORD, UPCOMING_DAYS, upcomingEvents, ymd } from './jobEvents';
@@ -133,11 +133,10 @@ function QuickAdd({ inputRef }: { inputRef: React.Ref<HTMLInputElement> }) {
     e.preventDefault();
     const u = url.trim();
     if (!u) return;
-    const added = addJob(u);
+    const added = saveWithNotice(u) === 'added';
     const job = findJobByUrl(u);
     if (!job) return setError("That doesn't look like a link. Paste the job's web address.");
     setLast({ job, added });
-    if (added) notifySaved([job.url], job.label);
     setUrl('');
   };
   return (
