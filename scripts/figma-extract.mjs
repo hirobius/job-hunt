@@ -5,6 +5,8 @@
 // HDS library. Pure read: it changes nothing in the app.
 //
 //   node scripts/figma-extract.mjs --url=http://localhost:4180 --out=<dir> [--only=pipeline]
+//   node scripts/figma-extract.mjs --app=ops --url=http://127.0.0.1:4190 --info=http://127.0.0.1:4191 --out=<dir>
+// --app=ops captures hirobius/ops (its preview build: VITE_OPS_PREVIEW=1, pages by hash token).
 import { chromium } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -147,6 +149,17 @@ const SCREENS = [
     true,
   ],
 ];
+// hirobius/ops core pages (no client dashboards). Links and Pitch need live APIs the preview
+// build doesn't stub, and the Clients index names client contacts, so they are left out.
+const OPS = args.app === 'ops';
+const OPS_SCREENS = [
+  ['Ops home', '/'],
+  ['Demos', '/#demos'],
+  ['Tools', '/#tools'],
+  ['Leads', '/#clients.leads'],
+  ['Info', 'INFO/info'],
+];
+
 const FIRST_RUN = [
   ['First run – Track', async () => {}],
   [
@@ -718,16 +731,36 @@ for (const width of WIDTHS) {
     await ctx.addInitScript((t) => {
       try {
         localStorage.setItem('rjb_color_mode', t);
+        localStorage.setItem('hds-theme-mode', t);
       } catch {
         /* */
       }
     }, THEME);
     const p = await ctx.newPage();
-    await p.goto(BASE + '/#/discover');
+    await p.goto(BASE + (OPS ? '/' : '/#/discover'));
     await p.evaluate(() => document.fonts.ready);
     await wait(p, 600);
     return { ctx, p };
   };
+  if (OPS) {
+    const { ctx, p } = await mk();
+    for (const [name, path] of OPS_SCREENS) {
+      if (only && !only.test(name)) continue;
+      // the preview build reads its page from the hash on load only: load it fresh
+      await p.goto('about:blank');
+      await p.goto(path.startsWith('INFO') ? args.info + path.slice(4) : BASE + path);
+      await p.evaluate(() => document.fonts.ready);
+      await wait(p, 1200);
+      const data = await p.evaluate(extract, false);
+      const file = `${width}-${slug(name)}.json`;
+      writeFileSync(join(OUT, file), JSON.stringify(data));
+      await p.screenshot({ path: join(OUT, `${width}-${slug(name)}.png`), fullPage: true });
+      manifest.push({ name, width, file, h: data.h });
+      console.log(width, name, data.h, JSON.stringify(data).length);
+    }
+    await ctx.close();
+    continue;
+  }
   // first run, fresh each
   for (const [name, setup] of FIRST_RUN) {
     if (only && !only.test(name)) continue;
