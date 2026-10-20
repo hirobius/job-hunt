@@ -26,6 +26,8 @@ import { getTrash, replaceTrash } from '../trash';
 import { getAllModes, replaceModes } from '../trackModes';
 import { getAllDreams, replaceDreams } from '../feed/dreams';
 import { getAllDocuments, replaceDocuments } from '../documents';
+import { getApplyKit, replaceApplyKit } from '../applyKit';
+import { getAllSweeps, replaceSweeps } from '../feed/sweepTitles';
 import { BRAND } from '../brand';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
@@ -46,6 +48,8 @@ function currentState(): AccountState {
     trash: getTrash(),
     dreams: getAllDreams(),
     documents: getAllDocuments(),
+    kit: getApplyKit(),
+    sweeps: getAllSweeps(),
   };
 }
 
@@ -66,6 +70,8 @@ function applyState(next: AccountState) {
   replaceTrash(next.trash);
   replaceDreams(next.dreams);
   replaceDocuments(next.documents);
+  replaceApplyKit(next.kit);
+  replaceSweeps(next.sweeps);
 }
 
 export default function DataToolsProvider({ children }: { children: ReactNode }) {
