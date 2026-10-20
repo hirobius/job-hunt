@@ -2,7 +2,8 @@
 // it and the source files that render it. Plain links, not Code Connect (that needs a Figma
 // Organization plan). Docs: docs/figma/README.md. Shots: docs/figma/<shot>-{1440,390}.png.
 
-export const FIGMA_FILE_URL = 'https://www.figma.com/design/mJgRxGXwbd4j9jj96qpdFI';
+// "HDS Apps", page Job Hunt: frames built 1:1 from code with HDS library instances.
+export const FIGMA_FILE_URL = 'https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr';
 
 export interface FigmaScreen {
   id: string;
@@ -12,8 +13,9 @@ export interface FigmaScreen {
   tab: string;
   /** Repo-relative file + its default-exported component. */
   sources: { file: string; component: string }[];
-  /** Frame in the Figma file, "page:node". */
+  /** Frames in the Figma file, "page:node": desktop (1440) and phone (390). */
   nodeId: string;
+  phoneNodeId: string;
   /** Shot basename under docs/figma/. */
   shot: string;
 }
@@ -29,7 +31,8 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
       { file: 'src/JobsTable.tsx', component: 'JobsTable' },
       { file: 'src/JobListCard.tsx', component: 'JobListCard' },
     ],
-    nodeId: '1:10',
+    nodeId: '23:4039',
+    phoneNodeId: '23:4122',
     shot: 'pipeline',
   },
   {
@@ -38,7 +41,8 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
     route: '#/queue/sample',
     tab: 'queue',
     sources: [{ file: 'src/JobPage.tsx', component: 'JobPage' }],
-    nodeId: '1:18',
+    nodeId: '26:4057',
+    phoneNodeId: '20:3868',
     shot: 'job-page',
   },
   {
@@ -50,7 +54,8 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
       { file: 'src/DiscoverView.tsx', component: 'DiscoverView' },
       { file: 'src/TileGrid.tsx', component: 'TileGrid' },
     ],
-    nodeId: '1:26',
+    nodeId: '26:5210',
+    phoneNodeId: '26:5353',
     shot: 'discover',
   },
   {
@@ -64,7 +69,8 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
       { file: 'src/DocumentsLibrary.tsx', component: 'DocumentsLibrary' },
       { file: 'src/DocumentEditor.tsx', component: 'DocumentEditor' },
     ],
-    nodeId: '1:34',
+    nodeId: '23:6494',
+    phoneNodeId: '23:6267',
     shot: 'templates',
   },
 ];
@@ -72,5 +78,5 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
 export const figmaFileKey = (url: string): string | undefined =>
   /figma\.com\/(?:design|file)\/([0-9a-zA-Z]+)/.exec(url)?.[1];
 
-export const frameUrl = (screen: FigmaScreen): string =>
-  `${FIGMA_FILE_URL}?node-id=${screen.nodeId.replace(':', '-')}`;
+export const frameUrl = (screen: FigmaScreen, nodeId = screen.nodeId): string =>
+  `${FIGMA_FILE_URL}?node-id=${nodeId.replace(':', '-')}`;
