@@ -20,6 +20,8 @@ const ROUTES = [
   '#/discover/teams',
   '#/copy-deck',
   '#/copy-deck/tpl-outreach',
+  '#/legal/privacy',
+  '#/legal/terms',
   // A Company's page (#230), named by a sample job's company.
   '#/company/larkspur-analytics',
 ];

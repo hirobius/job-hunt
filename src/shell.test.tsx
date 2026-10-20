@@ -98,6 +98,7 @@ describe('app shell (#115 Phase 1)', () => {
       expect.stringMatching(/^item:(Dark|Light) theme$/),
       expect.stringMatching(/^item:(Compact|Comfortable) spacing$/),
       'item:Send feedback',
+      'item:Privacy and terms',
     ]);
   });
 
@@ -227,6 +228,7 @@ describe('sync nudge (#115 Phase 1)', () => {
       expect.stringMatching(/^item:(Dark|Light) theme$/),
       expect.stringMatching(/^item:(Compact|Comfortable) spacing$/),
       'item:Send feedback',
+      'item:Privacy and terms',
       '---',
       'item:Sign out',
       'item:Delete my data',
@@ -285,6 +287,40 @@ describe('routes keep working (#115 Phase 1)', () => {
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
     expect(window.location.hash).toBe('#/copy-deck');
     expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
+  });
+
+  it('the Menu opens Privacy and terms: a page with no tab selected (#43)', async () => {
+    renderApp();
+    const menu = await openAccount();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Privacy and terms' }));
+    expect(window.location.hash).toBe('#/legal/privacy');
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Privacy Policy' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { selected: true })).toBeNull();
+  });
+
+  it('#/legal/terms shows the Terms, links to the policy and back to the app (#43)', async () => {
+    window.location.hash = '#/legal/terms';
+    renderApp();
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Terms of Use' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
+      'href',
+      '#/legal/privacy',
+    );
+    expect(screen.getByRole('link', { name: 'Back to Companies' })).toHaveAttribute(
+      'href',
+      '#/discover',
+    );
+    // The wording is approved (2026-10-20): the page carries its date and no draft notice.
+    expect(screen.getByText(/^Last updated/)).toBeInTheDocument();
+    expect(screen.queryByText(/This is a draft under review/)).toBeNull();
+    expect(screen.getByRole('link', { name: 'hello@hirobius.com' })).toHaveAttribute(
+      'href',
+      'mailto:hello@hirobius.com',
+    );
   });
 
   it('a ?add= quick-add link lands on the Pipeline with the job saved', async () => {
