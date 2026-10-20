@@ -22,3 +22,13 @@ the PNGs here and the image fills in the matching frames.
 
 Today (`#/today`, frame `1-2`) was retired in #236: the route redirects to Companies and its
 follow-ups live in the Pipeline. The frame stays in the Figma file as history; it is not mapped.
+
+## References
+
+Start every design thread at the **References** page of the HDS Figma file:
+https://www.figma.com/design/2VgBbVpKiDnu0aftJEVyBQ/HDS-Tokens-Components?node-id=2190-2
+
+20 annotated shots of calm list and job tracker apps, grouped by the screen they inform (Pipeline,
+Job page, Companies, Templates). Each card says what to take and what to leave. The shots are from
+open-source apps (Planify for Things, JobSync for Teal, Twenty, Actual and others); paste shots of
+closed apps such as Linear or Teal into the matching section as new cards.
