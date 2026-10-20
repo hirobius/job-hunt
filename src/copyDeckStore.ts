@@ -52,6 +52,9 @@ const DEFAULTS: Snippet[] = [
   },
 ];
 
+/** The starter templates, read-only, for the snippets → Outreach messages migration (#227). */
+export const STARTER_SNIPPETS: readonly Snippet[] = DEFAULTS;
+
 function load(): Snippet[] {
   let arr: Snippet[] = DEFAULTS;
   try {
