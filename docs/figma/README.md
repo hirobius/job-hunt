@@ -11,11 +11,11 @@ component that no longer exists, or if this page drifts from the map.
 | Screen                    | Frame (1440)                                                        | Phone frame (390)                                                   | Route                      | Source                                                                         |
 | ------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------ |
 | Pipeline                  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=23-4039 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=23-4122 | `#/queue`                  | `src/TrackerView.tsx`, `src/JobsTable.tsx` (1440), `src/JobListCard.tsx` (390) |
-| Job page                  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=18-5008 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=20-3868 | `#/queue/<jobId>`          | `src/JobPage.tsx`                                                              |
-| Discover (Companies tab)  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=18-2683 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=18-2819 | `#/discover`               | `src/DiscoverView.tsx`, `src/TileGrid.tsx`                                     |
+| Job page                  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=26-4057 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=20-3868 | `#/queue/<jobId>`          | `src/JobPage.tsx`                                                              |
+| Discover (Companies tab)  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=26-5210 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=26-5353 | `#/discover`               | `src/DiscoverView.tsx`, `src/TileGrid.tsx`                                     |
 | Documents (was Templates) | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=23-6494 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=23-6267 | `#/copy-deck/<documentId>` | `src/DocumentsView.tsx`, `src/DocumentsLibrary.tsx`, `src/DocumentEditor.tsx`  |
 
-Shots: `docs/figma/<screen>-1440.png` and `-390.png`, taken on HDS `0.24.1` (the exact pin). Re-take
+Shots: `docs/figma/<screen>-1440.png` and `-390.png`, taken on HDS `0.24.1` (the pin is now `0.26.2`). Re-take
 them after an HDS upgrade or a layout change: seed sample data plus the Design Systems track (as
 `npm run gallery -- --format=png --pack="Design Systems"` does), open each route above, then replace
 the PNGs here. They are the code-side reference for checking the Figma frames.
