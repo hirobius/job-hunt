@@ -411,7 +411,11 @@ function extract(overlay) {
     }
     if (cs.textAlign === 'center') n.al = 'C';
     else if (cs.textAlign === 'right' || cs.textAlign === 'end') n.al = 'R';
-    if (cs.textOverflow === 'ellipsis' && cs.overflow === 'hidden') n.ell = 1;
+    if (cs.textOverflow === 'ellipsis' && cs.overflow === 'hidden') {
+      n.ell = 1;
+      // the text's own range runs past the clip: cut it at the element's right edge
+      n.w = rnd(Math.min(n.w, el.getBoundingClientRect().right - box.x - n.x));
+    }
     return n;
   };
 
