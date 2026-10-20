@@ -62,6 +62,18 @@ type RowForTable<T extends CurationTable> = T extends 'categories'
     ? GroupRow
     : TileRow;
 
+// Signed in during this page view, and not signed out by this tab since (#169). Another tab's
+// sign-out (or a lost stored session) leaves this tab's board on screen with no session; an edit
+// then belongs to the account, so it is journalled as failed and the next sign-in sends it,
+// instead of counting as local-only and losing to the cloud copy. This tab's own sign-out clears
+// it first (and then wipes and reloads).
+let accountInTab = false;
+export function setCurationAccount(signedIn: boolean) {
+  accountInTab = signedIn;
+}
+/** No session and none stored, and this tab never held one: purely local, nothing to send. */
+const purelyLocal = (uid: string | null) => !uid && !hasPersistedSession() && !accountInTab;
+
 // supabase-js reports a refused write (RLS, constraint, network) as `{ error }`, not a throw, so
 // both count as a failure. So does a stored session the client no longer honours (a token that
 // expired mid-session): the write is journalled and reported, never silently skipped.
@@ -77,8 +89,9 @@ function mirror(
     let ok = false;
     try {
       const uid = await currentUserId();
-      // No session at all: signed out, purely local, nothing to send.
-      if (!uid && !hasPersistedSession()) return settlePending(table, id, v, true);
+      if (purelyLocal(uid)) return settlePending(table, id, v, true);
+      // Signed out elsewhere: kept for the next sign-in, quietly (the menu already says sign in).
+      if (!uid && !hasPersistedSession()) return settlePending(table, id, v, false);
       if (uid) ok = !(await write(uid)).error;
     } catch {
       ok = false;
@@ -111,7 +124,8 @@ function upsertMany<T extends CurationTable>(
   const writes = ids.map((id, i) => ({ id, v: vs[i] }));
   void (async () => {
     const uid = await currentUserId(); // never throws: a failed session read is "no user"
-    if (!uid && !hasPersistedSession()) return settlePendingMany(table, writes, true);
+    if (purelyLocal(uid)) return settlePendingMany(table, writes, true);
+    if (!uid && !hasPersistedSession()) return settlePendingMany(table, writes, false);
     const rows = uid ? buildRows(uid) : [];
     let failed = false;
     for (let i = 0; i < writes.length; i += TILE_CHUNK) {
