@@ -2,7 +2,9 @@
 // dedupes text-run styles, drops raw SVG where the HDS library has the icon, and splits big
 // screens into jobs that fill a named frame ("#ref-N") left by an earlier job.
 //
-//   node scripts/figma-pack.mjs --in=<extract dir> --out=<code dir> --page="job-hunt · light"
+//   node scripts/figma-pack.mjs --in=<extract dir> --out=<code dir> --page="job-hunt · light" [--limit=8000]
+//
+// --limit caps each script's size; small scripts are safer for an agent to pass on verbatim.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,7 +27,7 @@ const min = transformSync(`async function __b(){${source}}`, {
 }).code;
 const builder = min.slice(min.indexOf('{') + 1, min.lastIndexOf('}'));
 const LOADER = `const AF=Object.getPrototypeOf(async function(){}).constructor;const B=figma.root.getSharedPluginData('f2f','builder');if(!B)throw new Error('Run 000-install.js first');return await new AF('D','S','P','META',B)(D,S,P,META);`;
-const LIMIT = 49000 - LOADER.length - 400;
+const LIMIT = Number(args.limit || 49000) - LOADER.length - 400;
 const manifest = JSON.parse(readFileSync(join(args.in, 'manifest.json'), 'utf8'));
 mkdirSync(args.out, { recursive: true });
 // installs the builder into the file once; every screen script then only carries its data
