@@ -314,8 +314,9 @@ describe('routes keep working (#115 Phase 1)', () => {
       'href',
       '#/discover',
     );
-    // While the wording is unapproved, the page says it is a draft.
-    expect(screen.getByText(/This is a draft under review/)).toBeInTheDocument();
+    // The wording is approved (2026-10-20): the page carries its date and no draft notice.
+    expect(screen.getByText(/^Last updated/)).toBeInTheDocument();
+    expect(screen.queryByText(/This is a draft under review/)).toBeNull();
     expect(screen.getByRole('link', { name: 'hello@hirobius.com' })).toHaveAttribute(
       'href',
       'mailto:hello@hirobius.com',

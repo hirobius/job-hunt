@@ -1,11 +1,12 @@
 // The Privacy Policy and Terms (#43), as data: `LegalPage` renders them at `#/legal/privacy` and
 // `#/legal/terms`, and `legal.test.ts` checks the disclosures against the code (every host the CSP
 // lets the browser reach is named in `THIRD_PARTIES`). Starting templates for review, not legal
-// advice: while `LEGAL_DRAFT` is true the page says so. Adrian approves the wording before it ships.
+// advice: while `LEGAL_DRAFT` is true the page says so. Adrian approves any wording before it ships.
 import { BRAND } from './brand';
 
-/** True until Adrian has approved the wording; the page shows a draft notice while it is. */
-export const LEGAL_DRAFT = true;
+/** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
+ *  on 2026-10-20; set it back to true while a revision is under review. */
+export const LEGAL_DRAFT = false;
 export const LEGAL_UPDATED = '20 October 2026';
 export const OPERATOR = 'Hirobius';
 export const CONTACT_EMAIL = 'hello@hirobius.com';

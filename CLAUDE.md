@@ -246,8 +246,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **Privacy and terms (#43, #47):** `#/legal/privacy` and `#/legal/terms` (`LegalPage.tsx`, no tab,
   like Documents; Menu item "Privacy and terms", last before Sign out). The text is data in
   `legal.ts`; `THIRD_PARTIES` must list exactly the CSP `connect-src` hosts (`legal.test.ts` fails
-  otherwise, so a new fetch host also goes there). `LEGAL_DRAFT` shows a draft notice until Adrian
-  approves the wording. Back up is the full "download all my data" export: it carries every synced
+  otherwise, so a new fetch host also goes there). Wording approved by Adrian 2026-10-20 (`LEGAL_DRAFT`
+  false); set it true while a revision is under review. Back up is the full "download all my data" export: it carries every synced
   store, incl. the Application kit and sweep titles. Meta/OG/Twitter tags pinned in `meta.test.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
