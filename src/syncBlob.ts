@@ -31,6 +31,7 @@ import type { WorkMode } from './jobsData';
 import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
 import { mergeTrash, sanitizeTrash, type Removed } from './trash';
+import { withoutDeleted, type SyncKeys } from './syncBase';
 import {
   mergeDocuments,
   sanitizeDocuments,
@@ -141,9 +142,16 @@ export function writeBlob(d: SyncData) {
 }
 
 /** Resolve cloud vs local into the blob to adopt.
- *  - seed (first sign-in): merge each field, so nothing on this device is lost.
+ *  - seed (sign-in, incl. every page load with a session): merge each field, so nothing on this
+ *    device is lost. With this device's sync `base` (#219) an entry deleted on either side since
+ *    the last sync stays deleted; without one it is the plain union.
  *  - refresh (focus re-pull): cloud is the source of truth if present, else keep local. */
-export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean): SyncData {
+export function mergeBlob(
+  cloud: SyncData | null,
+  local: SyncData,
+  seed: boolean,
+  base: SyncKeys | null = null,
+): SyncData {
   if (!cloud) return seed ? { ...local, legacyUserTiles: [] } : local;
   if (!seed) {
     // A cloud copy older than a field has no opinion on it: keep this device's.
@@ -177,10 +185,8 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
       triage: { dismissed: cloud.triage.dismissed },
     };
   }
-  const jobs = mergeJobs(cloud.jobs, local.jobs);
-  const saved = new Set(jobs.map((j) => dedupKey(j.url)));
-  return {
-    jobs,
+  const union: SyncData = {
+    jobs: mergeJobs(cloud.jobs, local.jobs),
     copydeck: mergeSnippets(cloud.copydeck, local.copydeck),
     triage: mergeTriage(cloud.triage, local.triage),
     legacyUserTiles: cloud.legacyUserTiles,
@@ -190,10 +196,13 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     modes: mergeModes(cloud.modes, local.modes),
     kit: mergeKit(cloud.kit, local.kit),
     sweeps: mergeSweeps(cloud.sweeps, local.sweeps),
-    // A job saved on either side is not also listed as removed.
-    trash: mergeTrash(cloud.trash, local.trash).filter((r) => !saved.has(dedupKey(r.job.url))),
+    trash: mergeTrash(cloud.trash, local.trash),
     dreams: mergeDreams(cloud.dreams, local.dreams),
     documents: mergeDocuments(cloud.documents, local.documents),
     sourceV: cloud.sourceV,
   };
+  const merged = base ? withoutDeleted(union, cloud, local, base) : union;
+  // A job saved on either side is not also listed as removed.
+  const saved = new Set(merged.jobs.map((j) => dedupKey(j.url)));
+  return { ...merged, trash: merged.trash.filter((r) => !saved.has(dedupKey(r.job.url))) };
 }

@@ -71,7 +71,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   (`rjb_dreams`, v9)**
   — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
   Caches and device UI prefs (`rjb_liveness`, `rjb_probe`, `rjb_gh_*`, `rjb_feed_remotive`, `rjb_ui_*`, pins)
-  stay local. Sign-out flushes the blob first (confirms if the push fails); evidence is capped at 20,000
+  stay local. Deletes stay deleted across devices: the seed merge runs on every load and is three-way against the device-local `rjb_sync_base` (`src/syncBase.ts`, #219). Sign-out flushes the blob first (confirms if the push fails); evidence is capped at 20,000
   chars; per-track data is dropped when its track is deleted (`src/trackData.ts`; no sweep after sync, orphans are harmless). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
   content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
   `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`.

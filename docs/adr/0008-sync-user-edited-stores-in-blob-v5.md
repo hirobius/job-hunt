@@ -89,3 +89,18 @@ older copy keeps this device's), included in backups. A sample job's Documents n
 a backup. Normalizing on read keeps at most one Sent Version per kind per Job (the earliest sent).
 Delete forever in Recently removed drops a job's Documents; a job that ages out of the trash leaves
 its Documents as harmless orphans (no sweep).
+
+## Addendum (2026-10-20): deletes stay deleted (#219)
+
+The seed merge runs on every page load with a session, not only on a first sign-in, so a plain
+union brought back whatever another device deleted (a removed job, a Q&A answer, a target, a saved
+search, a dream company, a document) and anything this device deleted before its push landed.
+Each device now keeps a **sync base** (`src/syncBase.ts`, `rjb_sync_base`, per account, never
+synced, wiped on sign-out): the keys of every keyed entry it last knew to be in the cloud, written
+after each pull and each successful push. With a base the seed merge is three-way: an entry the
+base knew that is missing on either side was deleted there and is dropped; entries new on either
+side are kept. Without a base (first sign-in on this device) it is the old union, so data made
+while signed out is never lost. The blob format is unchanged (no version bump, no tombstones).
+Covered: jobs, Recently removed, snippets, set-aside tiles, kit answers, targets, saved searches,
+dream companies and Documents. Known limit: re-adding on a stale device the very same entry that
+another device deleted (same job URL, same answer id) loses the re-add.
