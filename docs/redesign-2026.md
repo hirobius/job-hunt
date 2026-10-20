@@ -1,7 +1,7 @@
 # Roleforge redesign, 2026: case study
 
 From a tracker that had accreted features to a set of screens that read as one designed product.
-Pure HDS (0.24.1, graphite accent), no local UI layer, held by tests rather than by memory.
+Pure HDS (0.26.2, graphite accent), no local UI layer, held by tests rather than by memory.
 
 ## Problem
 
@@ -69,34 +69,35 @@ New in round 2:
 ## What the product taught HDS
 
 Every place HDS fell short has a stand-in in `src/hds-gaps/` or `src/theme/base.css` that names
-its ask and is deleted when HDS ships the fix. Fixed upstream so far: the dark pressed-accent
-contrast (hds#748; the app holds a 3.0:1 floor until it upgrades from 0.24.1) and the tabs overflow
-cue (hds#723).
+its ask and is deleted when HDS ships the fix. Shipped in HDS 0.26 and retired in the app: the `Text`
+tone prop (hds#655), the active-tab underline (hds#749) and the TabsList overflow cue (hds#723).
+Merged upstream and waiting on the next HDS release: Toast actions (hds#816), `AsyncState`
+(hds#831), the Menu height cap and danger tone (hds#834) and the dark pressed-accent contrast
+(hds#748; the app holds a 3.0:1 floor until then).
 
 | Stand-in | What HDS lacks | Ask |
 |---|---|---|
-| `ActionToast` | Toast with action buttons (Open, Undo) | Toast `actions` |
-| `AsyncState` | One component for loading, error with Retry, empty, ready | `AsyncState` pattern |
-| `RailList` | A list of links with one marked current | `NavList` / selectable `ListItem` |
-| `TokenTextarea` | A text field whose `[Variable]` tokens are atomic chips | `TokenField` |
-| `TabsOverflowFade` | An edge cue on overflowing Tabs and SegmentedControl | hds#723 (closed; drop on upgrade) |
-| `useBreakpoint` | A hook to read an HDS breakpoint in JS | `useBreakpoint` |
+| `ActionToast` | Toast with action buttons (Open, Undo) | Toast `actions` (merged, hds#816) |
+| `AsyncState` | One component for loading, error with Retry, empty, ready | `AsyncState` pattern (merged, hds#831) |
+| `RailList` | A list of links with one marked current | `NavList` (hds#832) |
+| `TokenTextarea` | A text field whose `[Variable]` tokens are atomic chips | `TokenField` (hds#826) |
+| `TabsOverflowFade` | An edge cue on overflowing SegmentedControl; keep the selected tab in view | hds#823 (Tabs fade shipped, hds#723) |
+| `useBreakpoint` | A hook to read an HDS breakpoint in JS | `useAtLeast` / `useBreakpoint` (hds#824) |
 | `useVisualViewportVars` | A Dialog or Sheet that stays above the phone keyboard | hds#690 (Sheet) |
-| `barePanel` | A bare `TabsContent` for top-level navigation | `TabsContent variant="bare"` |
-| `tone.SECONDARY` | A tone prop on `Text`; a danger tone on `Menu.Item` | hds#655 |
-| `base.css` active tab | The active tab's underline never shows | hds#749 |
+| `barePanel` | A bare `TabsContent` for top-level navigation | `TabsContent variant="bare"` (hds#833) |
+| `tone.SECONDARY` | A secondary tone for plain spans; a danger tone on `Menu.Item` | `Text` tone shipped (hds#655); Menu danger merged (hds#834) |
 | `base.css` 40px controls | A touch size for small controls on coarse pointers | hds#750 |
 | nested `&` in `sx` | A base breakpoint in `sx` | hds#652 |
 | `EmptyState.tsx` | An action slot on `EmptyState` | hds#654 |
 
 ## Measurements
 
-- Inline `style={{` in non-test `.tsx`: 130 (audit), 96 (round 1), 83 now; the ratchet in
+- Inline `style={{` in non-test `.tsx`: 130 (audit), 96 (round 1), 79 now; the ratchet in
   `hdsOnly.test.ts` fails if the count rises or drops without lowering the ceiling.
 - Lint warnings: 7 (audit) to 0; `npm run lint` fails on any.
 - axe (WCAG A and AA): zero violations on every route, Apply mode included, light and dark, 1440
   and 390 (`e2e/a11y.spec.ts`).
 - Phone touch targets under 40px: 120+ on the first run, 0 now.
-- Bundle (gzip, `npm run build`, 2026-10-20): index 68.8 kB, react 45.6 kB, vendor 137.9 kB,
-  supabase 57.5 kB, vendor CSS 20.5 kB. Discover, Companies, Live postings and Templates are lazy
-  chunks of 6 to 9 kB each.
+- Bundle (gzip, `npm run build`, 2026-10-20, HDS 0.26.2): index 83.9 kB, react 45.6 kB, vendor
+  139.6 kB, supabase 57.5 kB, vendor CSS 22.2 kB. Discover, Companies and Live postings are lazy
+  chunks of 7 to 9 kB each.
