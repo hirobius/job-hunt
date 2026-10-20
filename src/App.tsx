@@ -18,6 +18,7 @@ import CompanyPage from './CompanyPage';
 import { JobPageLiveness, PipelineLiveness } from './LivenessViews';
 import { Onboarding, ChooseTrack } from './Onboarding';
 import { BRAND } from './brand';
+import { LEGAL_ROUTE } from './legal';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
@@ -40,6 +41,7 @@ import { useAtLeast } from './hds-gaps/useBreakpoint';
 // landing); the rest load on demand.
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const DocumentsView = lazy(() => import('./DocumentsView'));
+const LegalPage = lazy(() => import('./LegalPage'));
 
 // Top-level tabs, in render order (Calm list: Companies · Pipeline). The URL hash carries the slug;
 // slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline). `#/today` (#128) is
@@ -75,6 +77,8 @@ export default function App() {
   const applying = route.tab === APPLY_ROUTE;
   const company = route.tab === COMPANY_TAB;
   const documents = route.tab === DOCUMENTS_ROUTE;
+  // The Privacy Policy and Terms (#43): pages with no tab, like Documents.
+  const legal = route.tab === LEGAL_ROUTE;
   const slugIndex = TAB_SLUGS.indexOf(
     (applying || company ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
   );
@@ -138,7 +142,7 @@ export default function App() {
           <Box sx={{ px: 'var(--semantic-space-region-gutter)', py: 'md' }}>
             {/* On the Documents page no tab is selected (and no tab panel mounts). */}
             <HdsTabs
-              value={documents ? '' : TAB_SLUGS[tab]}
+              value={documents || legal ? '' : TAB_SLUGS[tab]}
               onValueChange={(v) =>
                 navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null, jobId: null })
               }
@@ -204,6 +208,11 @@ export default function App() {
                 {documents && (
                   <Suspense fallback={<CopyDeckSkeleton />}>
                     <DocumentsView />
+                  </Suspense>
+                )}
+                {legal && (
+                  <Suspense fallback={null}>
+                    <LegalPage />
                   </Suspense>
                 )}
               </Stack>
