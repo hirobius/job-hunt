@@ -182,7 +182,8 @@ function VersionRow({
 }) {
   return (
     <Stack as="li" gap="tight">
-      <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
+      {/* The actions always sit under the label, so rows with and without a Sent badge match. */}
+      <Stack gap="tight" align="start">
         <Stack direction="row" gap="tight" align="center" wrap="wrap">
           <Text variant="ui" as="span">
             {`Version ${number} · ${when(version.savedAt)}`}
