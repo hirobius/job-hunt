@@ -302,8 +302,8 @@ async function build(d, parent) {
         (n) =>
           n.type === 'INSTANCE' &&
           n.visible &&
-          n.name.startsWith('Icon') &&
-          (idx === 0 ? true : n.parent !== null),
+          n.name.includes('Icon') &&
+          (idx === 0 ? !n.name.includes('Trail') : n.name.includes('Trail')),
       );
       if (slot) slot.opacity = 0;
       if (svg && slot) {
@@ -340,6 +340,14 @@ async function build(d, parent) {
     if (show) p[show] = false;
     if (val) p[val] = d.val || ' ';
     inst.setProperties(p);
+    // the library does not wire Show label / Value to its text layers yet: set them directly
+    for (const t of inst.findAll((n) => n.type === 'TEXT')) {
+      if (/label/i.test(t.name)) t.visible = false;
+      else if (t.name === 'Value' || /placeholder|value/i.test(t.characters)) {
+        await figma.loadFontAsync(t.fontName);
+        t.characters = d.val || ' ';
+      }
+    }
     inst.name = (d.k === 'input' ? 'Input – ' : 'Textarea – ') + d.n;
     inst.resize(Math.max(1, d.w), d.k === 'textarea' ? Math.max(1, d.h) : inst.height);
     place(inst, d, parent);
