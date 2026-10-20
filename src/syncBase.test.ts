@@ -115,6 +115,33 @@ describe('seed merge with a sync base (#219: deletes stay deleted)', () => {
     expect(out.documents.map((d) => d.id)).toEqual(['keep']);
   });
 
+  it('a cloud copy older than a field (an old-deploy tab pushed it) never counts as deleting it', () => {
+    const dreams = { trk: [{ key: 'x', company: 'x', seen: [], starredAt: '' }] };
+    const documents = [
+      {
+        id: 'd',
+        kind: 'note' as const,
+        title: 'd',
+        createdAt: '2026-10-01T00:00:00.000Z',
+        versions: [{ id: 'd-v1', text: 'd', savedAt: '2026-10-01T00:00:00.000Z' }],
+      },
+    ];
+    const kit = { fields: {}, answers: [answer('q1')] };
+    const local = blob({ jobs: [job(u('a'))], dreams, documents, kit, trash: [removed('r')] });
+    const base = keysOf(local);
+    const v5 = blob({ sourceV: 5, jobs: [job(u('a'))] }); // no kit, trash, dreams or documents
+    const out = mergeBlob(v5, local, true, base);
+    expect(out.dreams).toEqual(dreams);
+    expect(out.documents.map((d) => d.id)).toEqual(['d']);
+    expect(out.kit.answers.map((a) => a.id)).toEqual(['q1']);
+    expect(out.trash.map((r) => r.job.url)).toEqual([u('r')]);
+    // …while a field the old copy does carry still loses what it dropped.
+    expect(urls(mergeBlob(blob({ sourceV: 9 }), local, true, base))).toEqual([]);
+    // A deletion made here still holds against an old copy.
+    const deletedHere = blob({ jobs: [job(u('a'))], dreams: {} });
+    expect(mergeBlob(blob({ sourceV: 8, dreams }), deletedHere, true, base).dreams).toEqual({});
+  });
+
   it('a track left with nothing drops out of the per-track maps', () => {
     const base = keysOf(
       blob({ dreams: { trk: [{ key: 'x', company: 'x', seen: [], starredAt: '' }] } }),

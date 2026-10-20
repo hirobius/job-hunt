@@ -32,6 +32,7 @@ import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
 import { mergeTrash, sanitizeTrash, type Removed } from './trash';
 import { withoutDeleted, type SyncKeys } from './syncBase';
+import { carries, FIELD_SINCE, type VersionedField } from './blobFields';
 import {
   mergeDocuments,
   sanitizeDocuments,
@@ -40,6 +41,11 @@ import {
 } from './documents';
 
 export type { Triage };
+
+/** The fields added from v5 on: an older cloud copy says nothing about them (FIELD_SINCE). */
+const OPTIONAL_FIELDS = (Object.keys(FIELD_SINCE) as VersionedField[]).filter(
+  (f) => FIELD_SINCE[f] >= 5,
+);
 
 export interface SyncData {
   jobs: Job[];
@@ -154,33 +160,13 @@ export function mergeBlob(
 ): SyncData {
   if (!cloud) return seed ? { ...local, legacyUserTiles: [] } : local;
   if (!seed) {
-    // A cloud copy older than a field has no opinion on it: keep this device's.
-    const v5 =
-      cloud.sourceV >= 5
-        ? {}
-        : {
-            targets: local.targets,
-            filters: local.filters,
-            evidence: local.evidence,
-            modes: local.modes,
-          };
-    // Likewise a pre-v6 copy says nothing about the kit.
-    const v6 = cloud.sourceV >= 6 ? {} : { kit: local.kit };
-    const v7 = cloud.sourceV >= 7 ? {} : { sweeps: local.sweeps };
-    // And a pre-v8 copy says nothing about Recently removed.
-    const v8 = cloud.sourceV >= 8 ? {} : { trash: local.trash };
-    // And a pre-v9 copy says nothing about dream companies.
-    const v9 = cloud.sourceV >= 9 ? {} : { dreams: local.dreams };
-    // And a pre-v10 copy says nothing about Documents.
-    const v10 = cloud.sourceV >= 10 ? {} : { documents: local.documents };
+    // A cloud copy older than a field has no opinion on it: keep this device's (FIELD_SINCE).
+    // (jobs, snippets and set-aside predate every cloud copy still around: cloud wins on those.)
+    const keep = OPTIONAL_FIELDS.filter((f) => !carries(cloud.sourceV, f));
+    const older = Object.fromEntries(keep.map((f) => [f, local[f]])) as Partial<SyncData>;
     return {
       ...cloud,
-      ...v5,
-      ...v6,
-      ...v7,
-      ...v8,
-      ...v9,
-      ...v10,
+      ...older,
       jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
       triage: { dismissed: cloud.triage.dismissed },
     };

@@ -102,5 +102,9 @@ base knew that is missing on either side was deleted there and is dropped; entri
 side are kept. Without a base (first sign-in on this device) it is the old union, so data made
 while signed out is never lost. The blob format is unchanged (no version bump, no tombstones).
 Covered: jobs, Recently removed, snippets, set-aside tiles, kit answers, targets, saved searches,
-dream companies and Documents. Known limit: re-adding on a stale device the very same entry that
-another device deleted (same job URL, same answer id) loses the re-add.
+dream companies and Documents. A cloud copy older than a field (an old-deploy tab pushed it) says
+nothing about that field, so it never counts as deleting there (`src/blobFields.ts` `FIELD_SINCE`,
+shared with the refresh merge). Known limits: a delete beats an edit made elsewhere to the same
+entry; re-adding on a stale device the very same entry another device deleted (same job URL, same
+answer id) loses the re-add; and the base is written after a pull even if this device then fails
+to store the merged copy, so a later load can treat entries it never stored as deleted here.

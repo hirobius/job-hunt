@@ -7,6 +7,7 @@
 //
 // Device-local, per account, never synced (`rjb_sync_base`; sign-out wipes it with the rest).
 import { dedupKey } from './store';
+import { carries, type VersionedField } from './blobFields';
 import type { SyncData } from './syncBlob';
 
 /** The keys of each keyed collection in the blob. */
@@ -30,13 +31,27 @@ const KEYS: Record<string, (d: SyncData) => string[]> = {
   documents: (d) => d.documents.map((x) => x.id),
 };
 
+/** The blob field each collection lives in (for the version that first carried it). */
+const FIELD: Record<string, VersionedField> = {
+  jobs: 'jobs',
+  trash: 'trash',
+  copydeck: 'copydeck',
+  dismissed: 'triage',
+  answers: 'kit',
+  targets: 'targets',
+  filters: 'filters',
+  dreams: 'dreams',
+  documents: 'documents',
+};
+
 export function keysOf(d: SyncData): SyncKeys {
   const out: SyncKeys = {};
   for (const [name, keys] of Object.entries(KEYS)) out[name] = keys(d);
   return out;
 }
 
-/** Drop from the merged blob each entry the base knew that is now missing in the cloud or here. */
+/** Drop from the merged blob each entry the base knew that is now missing in the cloud or here.
+ *  A cloud copy older than a field says nothing about it, so only this device's deletes count. */
 export function withoutDeleted(
   merged: SyncData,
   cloud: SyncData,
@@ -46,9 +61,9 @@ export function withoutDeleted(
   const gone: Record<string, Set<string>> = {};
   for (const [name, keys] of Object.entries(KEYS)) {
     const known = new Set(base[name] ?? []);
-    const inCloud = new Set(keys(cloud));
+    const inCloud = carries(cloud.sourceV, FIELD[name]) ? new Set(keys(cloud)) : null;
     const inLocal = new Set(keys(local));
-    gone[name] = new Set([...known].filter((k) => !inCloud.has(k) || !inLocal.has(k)));
+    gone[name] = new Set([...known].filter((k) => !inLocal.has(k) || (inCloud && !inCloud.has(k))));
   }
   const keep =
     <T>(name: string, key: (x: T) => string) =>
