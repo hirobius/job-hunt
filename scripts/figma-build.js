@@ -314,6 +314,11 @@ async function build(d, parent) {
       if (svg && slot) {
         const g = await svgNode(svg, { w: slot.width, h: slot.height }, null);
         g.name = 'Icon/' + (idx === 0 ? lead : d.ti) + ' (code SVG)';
+        // take the hidden library glyph's stroke, which is bound to a colour variable (dark mode)
+        const ref = slot.findOne((n) => 'strokes' in n && n.strokes.length);
+        if (ref)
+          for (const v of g.findAll((n) => 'strokes' in n && n.strokes.length))
+            v.strokes = ref.strokes;
         parent.appendChild(g);
         g.x = d.x + slot.absoluteTransform[0][2] - inst.absoluteTransform[0][2];
         g.y = d.y + slot.absoluteTransform[1][2] - inst.absoluteTransform[1][2];
