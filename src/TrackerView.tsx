@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@hirobius/design-system/patterns';
 import { ArrowUpDown, Search, Briefcase, Building2, ListFilter, Plus, X } from 'lucide-react';
 import {
@@ -44,6 +44,9 @@ export default function TrackerView() {
   const setQ = (q: string) => setPipelineView({ q });
   const [url, setUrl] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  // The dialog opens from the header or the empty state, outside its Root, so it has no Trigger:
+  // remember which button opened it and give focus back there on close (a11y pass).
+  const addOpener = useRef<HTMLElement | null>(null);
   // A sortable table where there's room for its six columns; compact cards below that (#129).
   const wide = useAtLeast('lg');
 
@@ -64,7 +67,10 @@ export default function TrackerView() {
       variant={jobs.length > 0 ? 'secondary' : 'primary'}
       size="sm"
       iconLeft={<Plus size={16} />}
-      onClick={() => setAddOpen(true)}
+      onClick={(e) => {
+        addOpener.current = e.currentTarget;
+        setAddOpen(true);
+      }}
     >
       Add job
     </UiButton>
@@ -202,7 +208,14 @@ export default function TrackerView() {
           )}
 
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <Dialog.Content style={{ width: '100%', maxWidth: 480 }}>
+            <Dialog.Content
+              style={{ width: '100%', maxWidth: 480 }}
+              onCloseAutoFocus={(e) => {
+                if (!addOpener.current?.isConnected) return;
+                e.preventDefault();
+                addOpener.current.focus();
+              }}
+            >
               <Dialog.Header>
                 <Dialog.Title>Add a job</Dialog.Title>
                 <Dialog.Description>

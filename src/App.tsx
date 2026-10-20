@@ -140,9 +140,12 @@ export default function App() {
         <Container maxWidth="max">
           {/* Page gutter: the HDS region-gutter role (Container's own padding prop is retired). */}
           <Box sx={{ px: 'var(--semantic-space-region-gutter)', py: 'md' }}>
-            {/* On the Documents page no tab is selected (and no tab panel mounts). */}
+            {/* On the Documents and legal pages no tab is selected (and no tab panel mounts).
+                Manual activation there: Tab past the Menu focuses the first tab, which would
+                otherwise select it and leave the page before a keyboard user reaches it. */}
             <HdsTabs
               value={documents || legal ? '' : TAB_SLUGS[tab]}
+              activationMode={documents || legal ? 'manual' : 'automatic'}
               onValueChange={(v) =>
                 navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null, jobId: null })
               }
