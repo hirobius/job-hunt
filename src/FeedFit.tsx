@@ -2,7 +2,7 @@
 // one posting's Fit and gap, and the roll-up of what the postings ask for. The logic lives in
 // src/radar/ (rules only, no AI); these only render it.
 import { useId } from 'react';
-import { Disclosure, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
+import { Box, Disclosure, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
 import { EVIDENCE_MAX } from './radar/evidenceStore';
 import type { FitGap } from './radar/fitGap';
 import type { Patterns } from './radar/patterns';
@@ -94,26 +94,28 @@ export function FitGapDetails({ fg }: { fg: FitGap }) {
 export function PatternsSummary({ patterns }: { patterns: Patterns }) {
   const id = useId();
   const list = (name: string, items: { label: string; count: number }[]) => (
-    <Stack gap="xs" style={{ minWidth: 0 }}>
-      <Text variant="ui" as="h4" id={`${id}-${name}`}>
-        {name}
-      </Text>
-      {items.length ? (
-        <ul aria-label={name}>
-          {items.map((d) => (
-            <li key={d.label}>
-              <Text variant="ui" as="span">
-                {d.label} · {d.count} of {patterns.total}
-              </Text>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <Text variant="caption" tone="secondary">
-          None yet.
+    <Box sx={{ minWidth: 0 }}>
+      <Stack gap="xs">
+        <Text variant="ui" as="h4" id={`${id}-${name}`}>
+          {name}
         </Text>
-      )}
-    </Stack>
+        {items.length ? (
+          <ul aria-label={name}>
+            {items.map((d) => (
+              <li key={d.label}>
+                <Text variant="ui" as="span">
+                  {d.label} · {d.count} of {patterns.total}
+                </Text>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Text variant="caption" tone="secondary">
+            None yet.
+          </Text>
+        )}
+      </Stack>
+    </Box>
   );
   return (
     <Disclosure label={`What these postings ask for (${patterns.total})`}>

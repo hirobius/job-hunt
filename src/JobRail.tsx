@@ -2,7 +2,7 @@
 // links, with the open one marked. It reads the Pipeline's shared filter and sort (pipelineView);
 // only the search is editable here, and "Change filters" goes back to the list.
 import { Search } from 'lucide-react';
-import { Badge, Input, InlineLink, Stack, Text } from '@hirobius/design-system';
+import { Badge, Box, Input, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { useJobs, jobIdOf } from './store';
 import { jobHash } from './route';
 import { rowView } from './jobRow';
@@ -17,9 +17,11 @@ function RowBody({ job }: { job: Job }) {
   return (
     <Stack gap="tight">
       <Stack direction="row" gap="tight" align="start" justify="space-between">
-        <Text variant="ui" as="span" className="rjb-semibold" style={{ overflowWrap: 'anywhere' }}>
-          {v.title}
-        </Text>
+        <Box sx={{ overflowWrap: 'anywhere' }}>
+          <Text variant="ui" as="div" className="rjb-semibold">
+            {v.title}
+          </Text>
+        </Box>
         <Stack direction="row" gap="tight" align="center">
           {v.followUp?.due && <Badge tone="warning">Due</Badge>}
           <StatusBadge job={job} />
@@ -59,7 +61,6 @@ export default function JobRail({ openId }: { openId: string }) {
           value={view.q}
           onChange={(e) => setPipelineView({ q: e.target.value })}
           leadingVisual={<Search size={16} />}
-          style={{ width: '100%' }}
         />
         <Text variant="caption" as="p" tone="secondary">
           {FILTER_LABEL[view.filter]} · {shown.length} {shown.length === 1 ? 'job' : 'jobs'}

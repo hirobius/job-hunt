@@ -71,16 +71,12 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
   // over it (that wrote duplicate tracks). The status always settles within a few seconds.
   if (syncStatus === 'syncing')
     return (
-      <Stack
-        direction="row"
-        gap="normal"
-        align="center"
-        justify="center"
-        style={{ padding: 'var(--primitive-space-12)' }}
-      >
-        <Spinner size="sm" />
-        <Text variant="body">Restoring your tracks…</Text>
-      </Stack>
+      <Box sx={{ p: 12 }}>
+        <Stack direction="row" gap="normal" align="center" justify="center">
+          <Spinner size="sm" />
+          <Text variant="body">Restoring your tracks…</Text>
+        </Stack>
+      </Box>
     );
 
   const next = () => setStep((s) => s + 1);
@@ -119,14 +115,15 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
               <Text variant="ui" as="h3" className="rjb-semibold">
                 Where do you want to work?
               </Text>
-              <HdsInput
-                aria-label="Location"
-                placeholder="City, State or Remote"
-                helperText="Leave it blank to search anywhere. You can set work mode (remote, hybrid, on-site) in Discover."
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                style={{ maxWidth: 320 }}
-              />
+              <Box sx={{ display: 'contents', '& input': { maxWidth: 320 } }}>
+                <HdsInput
+                  aria-label="Location"
+                  placeholder="City, State or Remote"
+                  helperText="Leave it blank to search anywhere. You can set work mode (remote, hybrid, on-site) in Discover."
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </Box>
             </Stack>
           )}
           {step === 3 && (
@@ -240,40 +237,32 @@ function PickTrack({
                 style={{ textAlign: 'left' }}
               >
                 <Stack direction="row" gap="tight" align="center">
-                  <Text
-                    variant="ui"
-                    as="span"
-                    id={`pack-${p.id}`}
-                    className="rjb-semibold"
-                    style={{ color: 'inherit' }}
-                  >
+                  <Text variant="ui" as="span" id={`pack-${p.id}`} className="rjb-semibold">
                     {p.label}
                   </Text>
                   {/* The lead pack (#59): the grid follows STARTER_PACKS order, consulting first. */}
                   {i === 0 && <Badge tone="info">Suggested</Badge>}
                 </Stack>
-                <Text
-                  variant="caption"
-                  as="span"
-                  id={`pack-${p.id}-blurb`}
-                  style={{ display: 'block', color: 'inherit', opacity: 0.8 }}
-                >
-                  {p.blurb}
-                </Text>
+                <Box sx={{ opacity: 0.8 }}>
+                  <Text variant="caption" as="div" id={`pack-${p.id}-blurb`}>
+                    {p.blurb}
+                  </Text>
+                </Box>
               </Card>
             );
           })}
         </Stack>
       </div>
       {picked.includes('blank') && (
-        <HdsInput
-          label="First job title for your own track"
-          required
-          placeholder="e.g. Design Engineer"
-          value={firstTitle}
-          onChange={(e) => onFirstTitle(e.target.value)}
-          style={{ maxWidth: 320 }}
-        />
+        <Box sx={{ display: 'contents', '& input': { maxWidth: 320 } }}>
+          <HdsInput
+            label="First job title for your own track"
+            required
+            placeholder="e.g. Design Engineer"
+            value={firstTitle}
+            onChange={(e) => onFirstTitle(e.target.value)}
+          />
+        </Box>
       )}
     </Stack>
   );

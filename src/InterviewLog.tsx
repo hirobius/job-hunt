@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { Button, Grid, Icon, Input, SegmentedControl, Stack, Text } from '@hirobius/design-system';
+import {
+  Box,
+  Button,
+  Grid,
+  Icon,
+  Input,
+  SegmentedControl,
+  Stack,
+  Text,
+} from '@hirobius/design-system';
 import { CalendarPlus, X } from 'lucide-react';
 import { buildIcs } from './ics';
 import { download } from './download';
@@ -68,7 +77,17 @@ export default function InterviewLog({ job }: { job: Job }) {
         </Button>
       </Stack>
       {events.length > 0 && (
-        <Stack gap="tight" as="ul" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <Box
+          as="ul"
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'sm',
+            listStyle: 'none',
+            m: 0,
+            p: 0,
+          }}
+        >
           {events.map((e) => (
             <li key={e.id}>
               <Stack direction="row" wrap="wrap" gap="tight" align="center">
@@ -91,7 +110,7 @@ export default function InterviewLog({ job }: { job: Job }) {
               </Stack>
             </li>
           ))}
-        </Stack>
+        </Box>
       )}
 
       <Grid layout="auto-fit" minItemWidth="150px" gap="medium" align="end">
@@ -125,14 +144,14 @@ export default function InterviewLog({ job }: { job: Job }) {
         </Stack>
       </Grid>
       <Stack direction="row" wrap="wrap" gap="tight" align="center">
-        <div style={{ flex: 1, minWidth: 160 }}>
+        <Box sx={{ flex: 1, minWidth: 160 }}>
           <Input
             aria-label="Event note"
             placeholder="Note (optional)"
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
-        </div>
+        </Box>
         <Button size="sm" variant="secondary" disabled={!date} onClick={add}>
           Add event
         </Button>

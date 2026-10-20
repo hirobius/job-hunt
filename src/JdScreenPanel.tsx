@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Badge, Button, Disclosure, Stack, Text, Textarea } from '@hirobius/design-system';
+import { Badge, Box, Button, Disclosure, Stack, Text, Textarea } from '@hirobius/design-system';
 import { screenJd, MAX_JD, type JdScreen } from './jdScreener';
 import { suggestVerdict, verdictTone, verdictLabel, modeLabel, blockerLabel } from './screening';
 import { updateJob } from './store';
@@ -43,7 +43,6 @@ export default function JdScreenPanel({ job }: { job: Job }) {
           value={text}
           placeholder="Paste the full job description…"
           onChange={(e) => setText(e.target.value.slice(0, MAX_JD))}
-          style={{ width: '100%' }}
         />
 
         {result && (
@@ -66,7 +65,17 @@ export default function JdScreenPanel({ job }: { job: Job }) {
               )}
             </Stack>
             {result.hits.length > 0 && (
-              <Stack gap="tight" as="ul" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              <Box
+                as="ul"
+                sx={{
+                  listStyle: 'none',
+                  m: 0,
+                  p: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'sm',
+                }}
+              >
                 {result.hits.map((h, i) => (
                   <li key={i}>
                     <Text variant="caption" as="span" tone="secondary">
@@ -74,7 +83,7 @@ export default function JdScreenPanel({ job }: { job: Job }) {
                     </Text>
                   </li>
                 ))}
-              </Stack>
+              </Box>
             )}
             <Text variant="caption" as="span" tone="secondary">
               Applying merges these with any tags you’ve set; you can edit everything after.
