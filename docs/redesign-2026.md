@@ -51,7 +51,7 @@ that Today and the Pipeline answered the same question ("what do I do next?") in
 ## Before and after
 
 Before is the 2026-10-13 audit; after is `main` at the calm list, fictional sample data. The full
-set (98 shots, light and dark, 1440 and 390) comes from `npm run gallery`.
+set (about 100 shots, light and dark, 1440 and 390) comes from `npm run gallery`.
 
 | | Before | After |
 |---|---|---|
@@ -69,8 +69,9 @@ New in round 2:
 ## What the product taught HDS
 
 Every place HDS fell short has a stand-in in `src/hds-gaps/` or `src/theme/base.css` that names
-its ask and is deleted when HDS ships the fix. Shipped upstream so far: the dark pressed-accent
-contrast (hds#748, in HDS 0.27) and the tabs overflow cue (hds#723).
+its ask and is deleted when HDS ships the fix. Fixed upstream so far: the dark pressed-accent
+contrast (hds#748; the app holds a 3.0:1 floor until it upgrades from 0.24.1) and the tabs overflow
+cue (hds#723).
 
 | Stand-in | What HDS lacks | Ask |
 |---|---|---|
