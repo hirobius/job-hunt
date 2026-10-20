@@ -71,6 +71,8 @@ const backupFile = (jobs: Job[]) =>
             trash: [],
             dreams: {},
             documents: [],
+            kit: { fields: {}, answers: [] },
+            sweeps: {},
           },
           new Date('2026-10-12T00:00:00Z'),
         ),
