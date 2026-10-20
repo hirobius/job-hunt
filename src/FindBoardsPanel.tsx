@@ -29,7 +29,6 @@ import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/at
 import { SOURCE_LABEL } from './feed/types';
 import { addBoardTiles, watchBoard } from './feed/watchlist';
 import { batchLabel, fetchBatch, recentBatches, ycLines, YC_CREDIT } from './feed/yc';
-import { SECONDARY } from './hds-gaps/tone';
 
 const EMPTY: DiscoverResult = {
   found: [],
@@ -158,7 +157,7 @@ export default function FindBoardsPanel({
   const checked = result?.done ?? 0;
   return (
     <Stack gap="inset">
-      <Text variant="ui" style={SECONDARY}>
+      <Text variant="ui" tone="secondary">
         Paste company names, slugs or job-board links, one per line. We check Greenhouse, Lever,
         Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio for a public board, so
         you can watch the ones that exist.
@@ -193,7 +192,7 @@ export default function FindBoardsPanel({
             />
           </Stack>
           {batchNote && (
-            <Text variant="caption" as="p" style={SECONDARY}>
+            <Text variant="caption" as="p" tone="secondary">
               {batchNote}
             </Text>
           )}
@@ -210,7 +209,7 @@ export default function FindBoardsPanel({
         style={{ width: '100%' }}
       />
       {(parsed.trimmed > 0 || parsed.ignored.length > 0) && (
-        <Text variant="caption" as="p" style={SECONDARY}>
+        <Text variant="caption" as="p" tone="secondary">
           {parsed.trimmed > 0 &&
             `Only the first ${MAX_LIST} are checked in one run; ${parsed.trimmed} left out. `}
           {parsed.ignored.length > 0 &&
@@ -278,7 +277,7 @@ export default function FindBoardsPanel({
                       <Badge>{SOURCE_LABEL[f.board.kind]}</Badge>
                     </Stack>
                     {f.jobs !== undefined && (
-                      <Text variant="caption" style={SECONDARY}>
+                      <Text variant="caption" tone="secondary">
                         {roles(f.jobs)}
                       </Text>
                     )}
@@ -300,7 +299,7 @@ export default function FindBoardsPanel({
       )}
 
       {result && result.alreadyWatched.length > 0 && (
-        <Text variant="caption" as="p" style={SECONDARY}>
+        <Text variant="caption" as="p" tone="secondary">
           {`Already watching: ${result.alreadyWatched.join(', ')}.`}
         </Text>
       )}
@@ -308,7 +307,7 @@ export default function FindBoardsPanel({
       {result && result.missed.length > 0 && (
         <Disclosure label={`Not found (${result.missed.length})`}>
           <Stack gap="xs">
-            <Text variant="caption" as="p" style={SECONDARY}>
+            <Text variant="caption" as="p" tone="secondary">
               No public board on any of the five systems under the names we tried. They may use
               another system or a different spelling; paste the board link if you have it.
             </Text>
@@ -322,7 +321,7 @@ export default function FindBoardsPanel({
       {result && result.unknown.length > 0 && (
         <Disclosure label={`Couldn't check (${result.unknown.length})`}>
           <Stack gap="xs">
-            <Text variant="caption" as="p" style={SECONDARY}>
+            <Text variant="caption" as="p" tone="secondary">
               These didn't get an answer (rate-limited, offline or blocked), so we can't say whether
               a board exists.
             </Text>

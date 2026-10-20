@@ -45,7 +45,7 @@ import TokenTextarea from './hds-gaps/TokenTextarea';
 import type { TokenTextareaHandle } from './hds-gaps/TokenTextarea';
 import { copyFilled } from './templateCopy';
 import { metaLines } from './metaLines';
-import { DANGER, SECONDARY } from './hds-gaps/tone';
+import { DANGER } from './hds-gaps/tone';
 
 const NO_JOB = 'none';
 const FULL = { width: '100%' } as const;
@@ -148,7 +148,7 @@ export default function DocumentEditor({
           All documents
         </Button>
       </Stack>
-      <Text variant="caption" as="p" style={SECONDARY}>
+      <Text variant="caption" as="p" tone="secondary">
         {label} · Base document
       </Text>
       <HdsInput
@@ -326,7 +326,7 @@ function OutreachText({
           placeholder="Paste or write your message…"
           onChange={onChange}
         />
-        <Text variant="caption" as="p" style={SECONDARY}>
+        <Text variant="caption" as="p" tone="secondary">
           Type a name in square brackets, like [Hiring manager], to make your own variable.
         </Text>
       </Stack>
@@ -343,7 +343,7 @@ function OutreachText({
             <Text variant="body" as="h3" id={`vars-${docId}`} className="rjb-semibold">
               Variables
             </Text>
-            <Text variant="caption" as="p" style={SECONDARY}>
+            <Text variant="caption" as="p" tone="secondary">
               {job
                 ? 'Company, Role, Contact and Angle are saved on this job; the rest on this message.'
                 : 'Saved on this message. Pick a job to fill its company, role, contact and angle.'}
@@ -358,7 +358,7 @@ function OutreachText({
         </Text>
       </Surface>
       {missing.length > 0 && (
-        <Text variant="caption" as="p" style={SECONDARY}>
+        <Text variant="caption" as="p" tone="secondary">
           {job
             ? `Still unfilled for this job: ${missing.join(', ')}. Set them under Variables, or edit after pasting.`
             : `Not set yet: ${missing.join(', ')}. Set them under Variables, or pick a job.`}

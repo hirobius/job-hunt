@@ -5,7 +5,6 @@ import { verdictTone, verdictLabel, modeLabel, blockerLabel } from './screening'
 import { ScreeningEditor } from './ScreeningEditor';
 import JdScreenPanel from './JdScreenPanel';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 /** Verdict, work mode and dealbreakers on one line. */
 function FitLine({ job }: { job: Job }) {
@@ -14,7 +13,7 @@ function FitLine({ job }: { job: Job }) {
     <Box role="group" aria-label="Fit summary">
       <Stack direction="row" wrap="wrap" gap="tight" align="center">
         {!has && (
-          <Text variant="ui" style={SECONDARY}>
+          <Text variant="ui" tone="secondary">
             Not screened yet. Paste the job description below, or set the fit yourself.
           </Text>
         )}
@@ -30,7 +29,7 @@ function FitLine({ job }: { job: Job }) {
           </Badge>
         ))}
         {job.screenedAt && (
-          <Text variant="caption" as="span" style={SECONDARY}>
+          <Text variant="caption" as="span" tone="secondary">
             Screened {new Date(job.screenedAt).toLocaleDateString()}
           </Text>
         )}

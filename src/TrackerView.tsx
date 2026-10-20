@@ -79,7 +79,7 @@ export default function TrackerView() {
         title="Pipeline"
         status={
           jobs.length > 0 ? (
-            <Text variant="caption" as="span" style={SECONDARY}>
+            <Text variant="caption" as="span" tone="secondary">
               {`${counts.active} active · ${counts.all} total`}
             </Text>
           ) : undefined

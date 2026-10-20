@@ -20,15 +20,14 @@ import type { SortKey } from './jobSort';
 import { nextSort, rowView, sortDirectionOf, type SortableColumn } from './jobRow';
 import { RowMenu, RowPrimaryAction, StarIcon, StatusBadge } from './JobRowParts';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 const NONE = (
-  <Text variant="caption" as="span" style={SECONDARY}>
+  <Text variant="caption" as="span" tone="secondary">
     —
   </Text>
 );
 // HDS Table is a CSS grid: the job column takes the room, the rest size to their content.
-const HUG = 'max-content';
+const HUG: TableColumn['width'] = 'max-content';
 
 export default function JobsTable({
   jobs,
@@ -40,7 +39,11 @@ export default function JobsTable({
   onSort: (next: SortKey) => void;
 }) {
   const labelId = useId();
-  const sortable = (key: SortableColumn, label: string, width = HUG): TableColumn => ({
+  const sortable = (
+    key: SortableColumn,
+    label: string,
+    width: TableColumn['width'] = HUG,
+  ): TableColumn => ({
     key,
     label,
     width,
@@ -79,7 +82,7 @@ export default function JobsTable({
                 </InlineLink>
               </Stack>
               {row.factLines.map((line, i) => (
-                <Text key={i} variant="caption" as="span" style={SECONDARY}>
+                <Text key={i} variant="caption" as="span" tone="secondary">
                   {line}
                 </Text>
               ))}
@@ -99,7 +102,7 @@ export default function JobsTable({
           ) : row.followUp.due ? (
             <Badge tone="warning">Due</Badge>
           ) : (
-            <Text variant="caption" as="span" style={SECONDARY}>
+            <Text variant="caption" as="span" tone="secondary">
               In {row.followUp.inDays}d
             </Text>
           ),

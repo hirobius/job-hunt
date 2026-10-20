@@ -28,6 +28,7 @@ import {
   type SyncData,
 } from '../syncBlob';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
+import { setCurationAccount } from '../curation/curationStore';
 import {
   getCurationSyncStatus,
   onCurationWriteFailed,
@@ -194,6 +195,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     const { data } = supa.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null;
       setUser(u);
+      if (u) setCurationAccount(true); // only this tab's own sign-out clears it (#169)
       setAuthResolved(true);
       if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
       pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
@@ -256,6 +258,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }
     // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
     if (getPending().length > 0 && !window.confirm(UNSYNCED_SIGN_OUT)) return;
+    setCurationAccount(false);
     await supa.auth.signOut();
     clearLocalData();
     location.reload();
@@ -291,6 +294,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       return;
     }
     clearLocalData();
+    setCurationAccount(false);
     await supa.auth.signOut();
     location.reload();
   };

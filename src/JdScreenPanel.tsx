@@ -4,7 +4,6 @@ import { screenJd, MAX_JD, type JdScreen } from './jdScreener';
 import { suggestVerdict, verdictTone, verdictLabel, modeLabel, blockerLabel } from './screening';
 import { updateJob } from './store';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 // Paste a job description → deterministic rules screen → one-click apply onto the job (issue #61),
 // inline in the job's Screening tab (#130). No AI. The screen SUGGESTS; applying merges blockers
@@ -35,7 +34,7 @@ export default function JdScreenPanel({ job }: { job: Job }) {
   return (
     <Disclosure label="Screen a job description" variant="nav" open={open} onOpenChange={setOpen}>
       <Stack gap="normal">
-        <Text variant="ui" style={SECONDARY}>
+        <Text variant="ui" tone="secondary">
           Paste the posting. This runs local keyword rules: nothing leaves your browser, no AI.
         </Text>
         <Textarea
@@ -49,7 +48,7 @@ export default function JdScreenPanel({ job }: { job: Job }) {
 
         {result && (
           <Stack gap="tight">
-            <Text variant="caption" as="span" style={SECONDARY}>
+            <Text variant="caption" as="span" tone="secondary">
               Suggested
             </Text>
             <Stack direction="row" wrap="wrap" gap="tight" align="center">
@@ -61,7 +60,7 @@ export default function JdScreenPanel({ job }: { job: Job }) {
                 </Badge>
               ))}
               {result.blockers.length === 0 && !result.mode && (
-                <Text variant="ui" style={SECONDARY}>
+                <Text variant="ui" tone="secondary">
                   No blockers or mode detected. Looks clean.
                 </Text>
               )}
@@ -70,14 +69,14 @@ export default function JdScreenPanel({ job }: { job: Job }) {
               <Stack gap="tight" as="ul" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {result.hits.map((h, i) => (
                   <li key={i}>
-                    <Text variant="caption" as="span" style={SECONDARY}>
+                    <Text variant="caption" as="span" tone="secondary">
                       {h.tag}: “{h.evidence}”
                     </Text>
                   </li>
                 ))}
               </Stack>
             )}
-            <Text variant="caption" as="span" style={SECONDARY}>
+            <Text variant="caption" as="span" tone="secondary">
               Applying merges these with any tags you’ve set; you can edit everything after.
             </Text>
           </Stack>

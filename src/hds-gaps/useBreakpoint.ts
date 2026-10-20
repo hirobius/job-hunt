@@ -1,7 +1,7 @@
 // HDS gap (#115): HDS lays out with CSS only (Sidebar, Switcher, Grid wrap by width), but the
 // Pipeline renders different markup per viewport: a Table at desktop, cards on a phone. This reads
 // an HDS breakpoint through matchMedia. With no matchMedia (jsdom, old browsers) it reports the
-// narrow layout, which works at every width. Filed with the Phase 7 asks (#133).
+// narrow layout, which works at every width. Upstream ask: hds#824.
 import { useCallback, useSyncExternalStore } from 'react';
 import hds from '@hirobius/design-system/tokens';
 

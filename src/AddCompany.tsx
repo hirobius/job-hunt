@@ -24,7 +24,6 @@ import { boardsFromUrls, canonicalBoardUrl, parseBoardUrl, type Board } from './
 import { SOURCE_LABEL } from './feed/types';
 import { watchBoard } from './feed/watchlist';
 import { starDream } from './feed/dreams';
-import { SECONDARY } from './hds-gaps/tone';
 import { listStyle } from './outreachShared';
 
 export default function AddCompany({
@@ -197,7 +196,7 @@ function AddCompanyContent({
             </Alert>
           )}
           {!result && !running && (
-            <Text variant="caption" as="p" style={SECONDARY}>
+            <Text variant="caption" as="p" tone="secondary">
               Watched companies show on Companies with their open roles.
             </Text>
           )}
