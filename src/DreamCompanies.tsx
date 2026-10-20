@@ -10,7 +10,7 @@ import type { Limiter } from './feed/probe';
 import { newSince, readRoles, type Role } from './feed/teamRoles';
 import { SOURCE_LABEL } from './feed/types';
 import { SECONDARY } from './hds-gaps/tone';
-import { listStyle } from './outreachShared';
+import { ROWS_CLASS, rowsStyle } from './outreachShared';
 import { DreamStar, RoleList } from './TeamRoles';
 
 type Checked = { roles: Role[]; fresh: Set<string> } | 'unknown';
@@ -101,7 +101,7 @@ export default function DreamCompanies({
           Star a company to keep it here, open roles or not.
         </Text>
       ) : (
-        <ul aria-label="Dream companies" style={listStyle}>
+        <ul aria-label="Dream companies" style={rowsStyle} className={ROWS_CLASS}>
           {dreams.map((d) => (
             <DreamRow key={d.key} d={d} categoryId={categoryId} checked={checked[d.key]} />
           ))}

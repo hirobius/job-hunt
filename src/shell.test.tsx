@@ -69,7 +69,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Companies', 'Pipeline', 'Templates']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Companies', 'Pipeline']);
     expect(screen.getByRole('button', { name: 'Menu' })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -90,6 +90,7 @@ describe('app shell (#115 Phase 1)', () => {
       'label:Saved on this device only',
       'item:Sign in to sync…',
       '---',
+      'item:Templates',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',
@@ -156,7 +157,7 @@ describe('app shell (#115 Phase 1)', () => {
 
 describe('sync nudge (#115 Phase 1)', () => {
   beforeEach(() => {
-    window.location.hash = '#/today'; // legacy Today route: the nudge is Today-only
+    window.location.hash = '#/queue'; // the nudge sits over the Pipeline list only (#236)
   });
 
   // The nudge offers to sync data, so it needs some.
@@ -179,8 +180,8 @@ describe('sync nudge (#115 Phase 1)', () => {
     expect(screen.queryByRole('textbox', { name: /email/i })).toBeNull();
   });
 
-  it('is a Today-only row; elsewhere the Account trigger carries a not-synced cue (#133)', async () => {
-    window.location.hash = '#/queue';
+  it('is a Pipeline-only row; elsewhere the Account trigger carries a not-synced cue (#133)', async () => {
+    window.location.hash = '#/copy-deck';
     renderApp();
     const account = await screen.findByRole('button', { name: 'Menu' });
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
@@ -218,6 +219,7 @@ describe('sync nudge (#115 Phase 1)', () => {
       'label:Signed in as u1@example.test',
       'label:Synced',
       '---',
+      'item:Templates',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',
@@ -250,12 +252,41 @@ describe('routes keep working (#115 Phase 1)', () => {
   it.each([
     ['#/queue', 'Pipeline'],
     ['#/discover', 'Companies'],
-    ['#/copy-deck', 'Templates'],
     ['', 'Companies'],
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(tab);
+  });
+
+  it('#/copy-deck is a page with no tab selected: a Templates heading and a way back (#240)', async () => {
+    window.location.hash = '#/copy-deck';
+    renderApp();
+    expect(screen.queryByRole('tab', { name: 'Templates' })).toBeNull();
+    expect(screen.queryByRole('tab', { selected: true })).toBeNull();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Templates' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveAttribute(
+      'href',
+      '#/queue',
+    );
+  });
+
+  it('#/copy-deck/<id> still opens that template (#240)', async () => {
+    window.location.hash = '#/copy-deck/tpl-cover';
+    renderApp();
+    expect(await screen.findByRole('textbox', { name: 'Snippet label' })).toHaveValue(
+      'Cover letter',
+    );
+    const sections = screen.getByRole('tablist', { name: 'Sections' });
+    expect(within(sections).queryByRole('tab', { selected: true })).toBeNull();
+  });
+
+  it('the Menu opens Templates (#240)', async () => {
+    renderApp();
+    const menu = await openAccount();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Templates' }));
+    expect(window.location.hash).toBe('#/copy-deck');
+    expect(await screen.findByRole('heading', { level: 2, name: 'Templates' })).toBeInTheDocument();
   });
 
   it('a ?add= quick-add link lands on the Pipeline with the job saved', async () => {

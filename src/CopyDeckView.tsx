@@ -3,8 +3,12 @@
 // breakpoint the list is a rail beside the editor (the first template shows when the route names
 // none); below it a phone sees one pane at a time, the detail with a way back. An unknown id goes
 // back to the list once sync has settled (the snippet may not have arrived on this device yet).
-import { useContext, useEffect, useMemo, useState } from 'react';
-import { Box, Button, Sidebar, Stack } from '@hirobius/design-system';
+// Templates has no tab since #240: the page names itself and links back to the Pipeline (whose
+// Apply sheet links here), so it is never orphaned.
+import { useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { Box, Button, Icon, Sidebar, Stack } from '@hirobius/design-system';
+import { PageHeader } from '@hirobius/design-system/patterns';
 import EmptyState from './EmptyState';
 import TemplatesList from './TemplatesList';
 import TemplateDetail from './TemplateDetail';
@@ -20,6 +24,30 @@ import { useAtLeast } from './hds-gaps/useBreakpoint';
 import { CloudSyncContext } from './account/accountContext';
 
 const LIST_HASH = '#/copy-deck';
+
+const header = (
+  <PageHeader
+    level={2}
+    breadcrumb={
+      // HDS Button asChild drops iconLeft, so the arrow is the link's own child.
+      <Button asChild variant="tertiary" size="sm">
+        <a href="#/queue">
+          <Icon icon={ArrowLeft} />
+          Back to Pipeline
+        </a>
+      </Button>
+    }
+    title="Templates"
+  />
+);
+
+// A phone's open template already links back to the list, so it skips the page header.
+const page = (body: ReactNode, withHeader = true) => (
+  <Stack gap="normal">
+    {withHeader && header}
+    {body}
+  </Stack>
+);
 
 export default function CopyDeckView() {
   const items = useSnippets();
@@ -58,7 +86,7 @@ export default function CopyDeckView() {
   };
 
   if (items.length === 0)
-    return (
+    return page(
       <Box sx={{ py: 'lg' }}>
         <EmptyState
           title="No templates yet"
@@ -74,7 +102,7 @@ export default function CopyDeckView() {
             </Stack>
           }
         />
-      </Box>
+      </Box>,
     );
 
   // On a phone the detail is its own pane; on a desktop the first template shows beside the list.
@@ -102,11 +130,11 @@ export default function CopyDeckView() {
   );
 
   if (wide)
-    return (
+    return page(
       <Sidebar side="start" sideWidth="20rem" gap="normal">
         {list}
         {detail ?? <Box />}
-      </Sidebar>
+      </Sidebar>,
     );
-  return named ? detail : list;
+  return named ? detail : page(list);
 }

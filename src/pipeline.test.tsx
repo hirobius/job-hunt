@@ -139,7 +139,11 @@ describe('Pipeline on a phone (#129)', () => {
     const user = userEvent.setup();
     renderApp();
     const before = getAllJobs().find((j) => j.url === APPLIED);
-    await user.click(screen.getByRole('button', { name: 'Follow up: Zenith Product Designer' }));
+    // The card's own Follow up (the Follow up section above the list has one too, #236).
+    const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    await user.click(
+      within(card).getByRole('button', { name: 'Follow up: Zenith Product Designer' }),
+    );
     const dialog = await screen.findByRole('dialog', { name: 'Follow up' });
     expect(within(dialog).getByRole('textbox', { name: 'Message' })).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Close' }));
@@ -306,5 +310,37 @@ describe('Pipeline rows keep to two items per dotted line (#192)', () => {
       .filter((e) => e.children.length === 0)
       .map((e) => e.textContent ?? '');
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
+  });
+});
+
+describe('the Pipeline ends with "Find the next company" (#238)', () => {
+  const findNext = () => screen.getByRole('button', { name: 'Find the next company' });
+
+  it('with jobs: an action after the list opens Companies', async () => {
+    viewport(1440);
+    renderApp();
+    const btn = findNext();
+    // It follows the list: the last thing the Pipeline offers.
+    expect(
+      screen.getByRole('table').compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    await userEvent.click(btn);
+    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
+  });
+
+  it('empty: shown under the empty state, secondary beside the primary Add job', async () => {
+    getAllJobs()
+      .slice()
+      .forEach((j) => removeJob(j.url));
+    viewport(390);
+    renderApp();
+    const add = screen.getByRole('button', { name: 'Add job' });
+    const btn = findNext();
+    expect(add.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(btn.className).not.toBe(add.className);
+    await userEvent.click(btn);
+    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
   });
 });

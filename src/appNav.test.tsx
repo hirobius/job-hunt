@@ -41,10 +41,10 @@ const renderApp = () =>
   );
 
 describe('App top-level tab wiring', () => {
-  it('renders three tabs (Companies · Pipeline · Templates), each associated with a tabpanel', () => {
+  it('renders two tabs (Companies · Pipeline), each associated with a tabpanel', () => {
     renderApp();
     const tabs = within(screen.getByRole('tablist', { name: 'Sections' })).getAllByRole('tab');
-    expect(tabs).toHaveLength(3);
+    expect(tabs).toHaveLength(2);
     for (const tab of tabs) {
       expect(tab.getAttribute('id')).toBeTruthy();
       expect(tab.getAttribute('aria-controls')).toBeTruthy();

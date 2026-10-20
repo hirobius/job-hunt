@@ -9,9 +9,9 @@ import { parseHash } from './route';
 const ROOT = resolve(__dirname, '..');
 
 describe('Figma screen map (#197)', () => {
-  it('covers the five main screens once each', () => {
+  // Today was retired (#236); its Figma frame is history.
+  it('covers the four main screens once each', () => {
     expect(FIGMA_SCREENS.map((s) => s.id)).toEqual([
-      'today',
       'pipeline',
       'job-page',
       'discover',

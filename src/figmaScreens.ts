@@ -20,15 +20,6 @@ export interface FigmaScreen {
 
 export const FIGMA_SCREENS: FigmaScreen[] = [
   {
-    id: 'today',
-    title: 'Today',
-    route: '#/today',
-    tab: 'today',
-    sources: [{ file: 'src/TodayView.tsx', component: 'TodayView' }],
-    nodeId: '1:2',
-    shot: 'today',
-  },
-  {
     id: 'pipeline',
     title: 'Pipeline',
     route: '#/queue',

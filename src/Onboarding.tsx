@@ -21,12 +21,12 @@ import { navigate } from './route';
 import { SECONDARY } from './hds-gaps/tone';
 
 // The guided first run (#132; started as #59 / B1, decision D1). The shell's gate (App.tsx, #128)
-// shows it on Today for a first run and, behind "Choose a track", on Discover with no tracks.
+// shows it on Companies for a first run and, behind "Choose a track", on Discover with no tracks.
 // Three short steps in one narrow column: pick a track, say where you want to work, add a first
 // job. Back and Skip are on every step (at the last, Skip reads "I'll do it later"). Nothing is
 // written until the end: Finish (or the last Skip) seeds the picked packs (fork-on-pick) with the
 // location and saves the job if one was given. Skipping everything seeds nothing, so the gate
-// stays and the steps start over. On Today it also offers the sample pipeline (#107), which ends
+// stays and the steps start over. On a first run it also offers the sample pipeline (#107), which ends
 // the first run by filling the Pipeline. Step state is component state only.
 const STEPS = 3;
 
@@ -139,7 +139,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
                 aria-label="Job link"
                 type="url"
                 placeholder="Paste a job link"
-                helperText="Optional. It lands in your Pipeline and on Today."
+                helperText="Optional. It lands in your Pipeline."
                 value={jobUrl}
                 onChange={(e) => {
                   setJobUrl(e.target.value);
