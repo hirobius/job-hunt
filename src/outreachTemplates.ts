@@ -11,7 +11,12 @@
 import { useMemo } from 'react';
 import { getSnippets, replaceSnippets, type Snippet } from './copyDeckStore';
 import { getAllDocuments, replaceDocuments, useDocuments, type Document } from './documents';
-import { documentIdForSnippet, migrateSnippets, snippetIdOf } from './snippetMigration';
+import {
+  documentIdForSnippet,
+  fileStarterCover,
+  migrateSnippets,
+  snippetIdOf,
+} from './snippetMigration';
 
 export interface OutreachTemplate extends Pick<Snippet, 'id' | 'label' | 'body' | 'values'> {
   pinned?: boolean;
@@ -19,12 +24,16 @@ export interface OutreachTemplate extends Pick<Snippet, 'id' | 'label' | 'body' 
   documentId: string;
 }
 
-const isOutreachBase = (d: Document) =>
-  d.kind === 'outreach' && !!d.base && !d.versions.some((v) => v.file);
+// The starter cover letter is a Cover letter (#260) but the kit's letters and the Apply sheet fill
+// it, so a Base Cover letter moved from a snippet stays a template; other cover letters do not.
+const isTemplate = (d: Document) =>
+  !!d.base &&
+  !d.versions.some((v) => v.file) &&
+  (d.kind === 'outreach' || (d.kind === 'cover' && snippetIdOf(d.id) !== null));
 
-/** Base Outreach messages as templates: latest Version's text, pinned first, else saved order. */
+/** Base Outreach messages (and the moved starter cover letter) as templates: latest Version's text, pinned first, else saved order. */
 export function outreachTemplates(docs: readonly Document[]): OutreachTemplate[] {
-  const list = docs.filter(isOutreachBase).map((d): OutreachTemplate => ({
+  const list = docs.filter(isTemplate).map((d): OutreachTemplate => ({
     id: snippetIdOf(d.id) ?? d.id,
     documentId: d.id,
     label: d.title,
@@ -55,6 +64,8 @@ export function resolveDocumentId(id: string, docs: readonly Document[]): string
 /** Move every snippet not moved yet into the library and mark it. Returns how many messages were
  *  added. Run once sync has settled, so the cloud's marks (and messages) are already here. */
 export function migrateSnippetStore(now: string = new Date().toISOString()): number {
+  const filed = fileStarterCover(getAllDocuments());
+  if (filed !== getAllDocuments()) replaceDocuments(filed);
   const snippets = getSnippets();
   const pending = snippets.filter((s) => s?.id && !s.migrated);
   if (!pending.length) return 0;

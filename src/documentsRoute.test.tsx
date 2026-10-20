@@ -43,6 +43,7 @@ const renderApp = async () => {
   return r;
 };
 const outreach = () => screen.getByRole('region', { name: 'Outreach messages' });
+const covers = () => screen.getByRole('region', { name: 'Cover letters' });
 const ids = () => getAllDocuments().map((d) => d.id);
 
 beforeEach(() => {
@@ -128,7 +129,7 @@ describe('the Documents page', () => {
     expect(screen.getByRole('region', { name: 'Outreach messages' })).toBeInTheDocument();
   });
 
-  it('a deleted message stays deleted; Restore starter messages brings a starter back', async () => {
+  it('a deleted starter stays deleted; Restore brings it back under its own kind', async () => {
     window.location.hash = '#/copy-deck/snippet-tpl-cover';
     const r = await renderApp();
     await screen.findByRole('textbox', { name: 'Title' });
@@ -144,12 +145,16 @@ describe('the Documents page', () => {
     await renderApp();
     await screen.findByRole('region', { name: 'Outreach messages' });
     expect(ids()).not.toContain('snippet-tpl-cover');
-    await userEvent.click(
-      within(outreach()).getByRole('button', { name: 'Restore starter messages' }),
-    );
-    expect(ids()).toContain('snippet-tpl-cover');
+    // The starter cover letter is a Cover letter (#260): it is offered back there, not under messages.
     expect(
       within(outreach()).queryByRole('button', { name: 'Restore starter messages' }),
+    ).toBeNull();
+    await userEvent.click(
+      within(covers()).getByRole('button', { name: 'Restore starter cover letter' }),
+    );
+    expect(getAllDocuments().find((d) => d.id === 'snippet-tpl-cover')?.kind).toBe('cover');
+    expect(
+      within(covers()).queryByRole('button', { name: 'Restore starter cover letter' }),
     ).toBeNull();
   });
 });
