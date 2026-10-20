@@ -215,6 +215,20 @@ describe('boardOfJobUrl: Workable and Recruitee', () => {
       ref: 'ui-engineer',
     });
     expect(boardOfJobUrl('https://apply.workable.com/acme')).toBeNull();
+    // #216: the numeric id, not the title slug after it.
+    expect(
+      boardOfJobUrl('https://jobs.smartrecruiters.com/Acme/744000012345678-design-engineer'),
+    ).toMatchObject({ board: { kind: 'smartrecruiters', slug: 'Acme' }, ref: '744000012345678' });
+    expect(boardOfJobUrl('https://acme.teamtailor.com/jobs/123-ui-engineer')).toMatchObject({
+      board: { kind: 'teamtailor', slug: 'acme' },
+      ref: '123',
+    });
+    expect(boardOfJobUrl('https://acme.jobs.personio.de/job/42?language=en')).toMatchObject({
+      board: { kind: 'personio', slug: 'acme' },
+      ref: '42',
+    });
+    expect(boardOfJobUrl('https://acme.teamtailor.com/jobs')).toBeNull();
+    expect(boardOfJobUrl('https://acme.jobs.personio.de')).toBeNull();
     expect(boardOfJobUrl('https://acme.recruitee.com')).toBeNull();
   });
 

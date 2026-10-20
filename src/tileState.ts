@@ -4,9 +4,7 @@
 //     you're pursuing a posting, the browse surface's job for it is done. Returned as `saved`
 //     so callers can show a "N saved → in your Queue" note. This also gives cross-track dedup
 //     for free — a job saved under one track can't resurface under another.
-//   - SET-ASIDE (dismissed) tiles drop into `aside`.
-//   - Legacy pins still float to the top of what remains, so nobody's old triage un-floats
-//     (the pin UI is retired — issue #13; the data path is issue #19).
+//   - SET-ASIDE (dismissed) tiles drop into `aside`; the rest keep their order.
 import type { Tile } from './jobsData';
 import type { Triage } from './tileTriage';
 
@@ -15,7 +13,6 @@ export function partitionTiles(
   triage: Triage,
   saved?: ReadonlySet<string>,
 ): { visible: Tile[]; aside: Tile[]; saved: Tile[] } {
-  const pinned = new Set(triage.pinned);
   const dismissed = new Set(triage.dismissed);
   const savedTiles: Tile[] = [];
   const rest: Tile[] = [];
@@ -23,10 +20,7 @@ export function partitionTiles(
     if (saved?.has(t.url)) savedTiles.push(t);
     else rest.push(t);
   }
-  const visible = rest
-    .filter((t) => !dismissed.has(t.url))
-    .slice()
-    .sort((a, b) => (pinned.has(a.url) ? 0 : 1) - (pinned.has(b.url) ? 0 : 1));
+  const visible = rest.filter((t) => !dismissed.has(t.url));
   const aside = rest.filter((t) => dismissed.has(t.url));
   return { visible, aside, saved: savedTiles };
 }
