@@ -56,25 +56,25 @@ export function RecentlyRemovedLink() {
   const [open, setOpen] = useState(false);
   if (trash.length === 0) return null;
   return (
-    <>
-      <Button size="sm" variant="tertiary" onClick={() => setOpen(true)}>
-        {`Recently removed (${trash.length})`}
-      </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>Recently removed</Dialog.Title>
-            <Dialog.Description>
-              {`Removed jobs stay here for ${TRASH_DAYS} days, with their notes, to-dos and interviews.`}
-            </Dialog.Description>
-          </Dialog.Header>
-          <Stack gap="normal">
-            {trash.map((r) => (
-              <RemovedRow key={r.job.url} entry={r} />
-            ))}
-          </Stack>
-        </Dialog.Content>
-      </Dialog>
-    </>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog.Trigger asChild>
+        <Button size="sm" variant="tertiary">
+          {`Recently removed (${trash.length})`}
+        </Button>
+      </Dialog.Trigger>
+      <Dialog.Content>
+        <Dialog.Header>
+          <Dialog.Title>Recently removed</Dialog.Title>
+          <Dialog.Description>
+            {`Removed jobs stay here for ${TRASH_DAYS} days, with their notes, to-dos and interviews.`}
+          </Dialog.Description>
+        </Dialog.Header>
+        <Stack gap="normal">
+          {trash.map((r) => (
+            <RemovedRow key={r.job.url} entry={r} />
+          ))}
+        </Stack>
+      </Dialog.Content>
+    </Dialog>
   );
 }

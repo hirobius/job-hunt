@@ -44,9 +44,11 @@ export default function UseTemplate({ job }: { job: Job }) {
         if (!o) setCopied(false);
       }}
     >
-      <Button size="sm" variant="tertiary" onClick={() => setOpen(true)}>
-        Use template
-      </Button>
+      <Dialog.Trigger asChild>
+        <Button size="sm" variant="tertiary">
+          Use template
+        </Button>
+      </Dialog.Trigger>
       <Dialog.Content
         style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflowY: 'auto' }}
       >

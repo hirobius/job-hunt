@@ -36,9 +36,12 @@ export default function AddCompany({
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button size="sm" iconLeft={<Icon icon={Plus} />} onClick={() => setOpen(true)}>
-        Add a company
-      </Button>
+      {/* A Trigger, so closing the dialog returns focus here (a11y pass). */}
+      <Dialog.Trigger asChild>
+        <Button size="sm" iconLeft={<Icon icon={Plus} />}>
+          Add a company
+        </Button>
+      </Dialog.Trigger>
       {open && (
         <AddCompanyContent
           categoryId={categoryId}

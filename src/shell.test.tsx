@@ -273,6 +273,23 @@ describe('routes keep working (#115 Phase 1)', () => {
     );
   });
 
+  it.each(['#/copy-deck', '#/legal/privacy'])(
+    'on %s, tabbing past the Menu onto a tab does not leave the page (a11y pass)',
+    async (hash) => {
+      window.location.hash = hash;
+      renderApp();
+      await screen.findByRole('heading', { level: 2 });
+      const user = userEvent.setup();
+      screen.getByRole('button', { name: 'Menu' }).focus();
+      await user.tab();
+      expect(screen.getByRole('tab', { name: 'Companies' })).toHaveFocus();
+      expect(window.location.hash).toBe(hash);
+      // Enter still opens it.
+      await user.keyboard('{Enter}');
+      await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    },
+  );
+
   it('#/copy-deck/<id> still opens that template, now an Outreach message (#240, #227)', async () => {
     window.location.hash = '#/copy-deck/tpl-cover';
     renderApp();
