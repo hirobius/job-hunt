@@ -39,7 +39,7 @@ export const THIRD_PARTIES: ThirdParty[] = [
   {
     name: 'Supabase',
     purpose:
-      'Sign-in and cloud sync. If you sign in, it stores your email address and a copy of your data so it can sync between your devices.',
+      'Sign-in, cloud sync and crash reports. If you sign in, it stores your email address and a copy of your data so it can sync between your devices. It also stores the anonymous crash reports described above.',
     hosts: ['https://nelrcmbkimjjmfmgnixj.supabase.co', 'wss://nelrcmbkimjjmfmgnixj.supabase.co'],
   },
   {
@@ -107,6 +107,12 @@ export const PRIVACY: LegalDoc = {
       ],
     },
     {
+      heading: 'Crash reports',
+      paragraphs: [
+        `When ${name} breaks, it sends us a short crash report so we can fix it: the error message and where in the code it happened, which page you were on (for example Pipeline, not which job), and your browser name and version. It never includes your email, account, jobs, notes or documents, and it is not linked to you.`,
+      ],
+    },
+    {
       heading: 'Who else sees your data',
       paragraphs: [
         'We do not sell your data or use it for advertising. These services help run the app:',
@@ -124,7 +130,7 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'How long we keep it',
       paragraphs: [
-        'We keep your synced data until you delete it or ask us to. Page-view counts are kept as totals and are not tied to you.',
+        'We keep your synced data until you delete it or ask us to. Crash reports are deleted after 90 days. Page-view counts are kept as totals and are not tied to you.',
       ],
     },
     {

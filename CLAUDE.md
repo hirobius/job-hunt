@@ -250,6 +250,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   otherwise, so a new fetch host also goes there). Wording approved by Adrian 2026-10-20 (`LEGAL_DRAFT`
   false); set it true while a revision is under review. Back up is the full "download all my data" export: it carries every synced
   store, incl. the Application kit and sweep titles. Meta/OG/Twitter tags pinned in `meta.test.ts`.
+  **Crash reports (#47):** `src/errorReport.ts` sends a scrubbed report (kind, message, stack, tab,
+  browser; no user id, email, job text, URL query or job id; 5 per page load) to the insert-only
+  Supabase table `client_errors` (`supabase/migrations/20261020_client_errors.sql`, 90-day pg_cron
+  sweep) from `ErrorBoundary` and window error/rejection handlers. `installErrorReporting` in
+  `main.tsx` skips localhost, so dev, E2E and the gallery never report. Read reports in the
+  Supabase dashboard (Table editor → client_errors).
   **Installable + share image (#47):** `public/manifest.webmanifest` (name = BRAND, standalone, no
   service worker), PNG icons (192, 512, maskable 512, 180 touch icon) and the 1200x630
   `og-image.png` are rendered by `npm run icons` (`scripts/make-icons.mjs`, headless Chromium);
