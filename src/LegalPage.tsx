@@ -14,7 +14,6 @@ import {
   TERMS,
 } from './legal';
 import { useRoute } from './route';
-import { SECONDARY } from './hds-gaps/tone';
 
 export default function LegalPage() {
   const doc = legalDocFor(useRoute().sub);
@@ -37,7 +36,7 @@ export default function LegalPage() {
             }
             title={doc.title}
           />
-          <Text variant="caption" style={SECONDARY}>
+          <Text variant="caption" tone="secondary">
             {LEGAL_DRAFT ? 'Draft of' : 'Last updated'} {LEGAL_UPDATED}
           </Text>
           {LEGAL_DRAFT && (
