@@ -268,14 +268,13 @@ function AtsPanel({
         Search companies' hiring systems straight through Google — far less competition.
       </Text>
       <ContextCaption categoryId={categoryId} />
-      {/* Mobile-first: a column that becomes a row from sm. HDS sx has no base breakpoint (hds#652), so the base value sits on the key and the override nests under '&'. */}
+      {/* Mobile-first: a column that becomes a row from sm. */}
       <Box
         sx={{
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: { base: 'column', sm: 'row' },
           gap: 3,
           mb: 3,
-          '&': { flexDirection: { sm: 'row' } },
         }}
       >
         <HdsInput

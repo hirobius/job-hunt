@@ -128,14 +128,13 @@ function GroupEditor({ groupId }: { groupId: string }) {
           />
         </Box>
       ))}
-      {/* Mobile-first: a column that becomes a row from sm. HDS sx has no base breakpoint (hds#652), so the base value sits on the key and the override nests under '&'. */}
+      {/* Mobile-first: a column that becomes a row from sm. */}
       <Box
         sx={{
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: { base: 'column', sm: 'row' },
           gap: 1,
           mt: 0.5,
-          '&': { flexDirection: { sm: 'row' } },
         }}
       >
         <HdsInput

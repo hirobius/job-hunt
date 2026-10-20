@@ -189,19 +189,17 @@ export default function TemplateDetail({
         onChange={(v) => onFillFor(v === NO_JOB ? null : v)}
       />
       {names.length > 0 && (
-        <section aria-labelledby={`vars-${snippet.id}`}>
-          <Stack gap="tight">
-            <Text variant="body" as="h3" id={`vars-${snippet.id}`} className="rjb-semibold">
-              Variables
-            </Text>
-            <Text variant="caption" as="p" tone="secondary">
-              {job
-                ? 'Company, Role, Contact and Angle are saved on this job; the rest on this template.'
-                : 'Saved on this template. Pick a job to fill its company, role, contact and angle.'}
-            </Text>
-            {names.map(variableField)}
-          </Stack>
-        </section>
+        <Stack gap="tight" as="section" aria-labelledby={`vars-${snippet.id}`}>
+          <Text variant="body" as="h3" id={`vars-${snippet.id}`} className="rjb-semibold">
+            Variables
+          </Text>
+          <Text variant="caption" as="p" tone="secondary">
+            {job
+              ? 'Company, Role, Contact and Angle are saved on this job; the rest on this template.'
+              : 'Saved on this template. Pick a job to fill its company, role, contact and angle.'}
+          </Text>
+          {names.map(variableField)}
+        </Stack>
       )}
       <Surface padding="px16" role="region" aria-label="Preview">
         <Text variant="body" as="p" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>

@@ -145,7 +145,8 @@ describe('No raw letter-spacing (#191)', () => {
 // a Tag/Badge, pinned is a star. No dot anywhere, the Account trigger included.
 export const ACCENT_BAR =
   /border-?left(?!-?(?:width|style)\b)|borderInlineStart|border-inline-start/i;
-export const STATUS_DOT = /StatusListItem|(?<![\w-])[\w-]*-dot\b|\bdot\b\s*[:=]|borderRadius:\s*['"]50%['"]/;
+export const STATUS_DOT =
+  /StatusListItem|(?<![\w-])[\w-]*-dot\b|\bdot\b\s*[:=]|borderRadius:\s*['"]50%['"]/;
 
 function styleFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -176,5 +177,16 @@ describe('No accent bars or status dots (#193)', () => {
       STATUS_DOT.test("sx={{ width: 8, borderRadius: '50%', bgcolor: 'feedback.warning' }}"),
     ).toBe(true);
     expect(STATUS_DOT.test('<Badge tone="warning">Due</Badge>')).toBe(false);
+  });
+});
+
+// #146: a workaround goes when its HDS fix ships. 0.26.2 gave `sx` a `base` key (hds#652), so the
+// old "base on the key, override nested under '&'" pattern must not come back.
+describe('Retired HDS workarounds (#146)', () => {
+  it("uses sx's base key, not a nested '&' breakpoint override (hds#652)", () => {
+    const offenders = sourceFiles(SRC).filter((f) =>
+      /'&':\s*\{[^}]*\{\s*(?:xs|sm|md|lg|xl):/.test(readFileSync(f, 'utf8')),
+    );
+    expect(offenders).toEqual([]);
   });
 });

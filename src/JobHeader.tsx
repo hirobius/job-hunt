@@ -23,18 +23,14 @@ export default function JobHeader({ job, showBack = true }: { job: Job; showBack
           </Button>
         </Box>
       )}
-      {/* HDS sx has no base breakpoint (hds#652): the column base sits on the key and the row
-          override nests under '&'. */}
+      {/* Mobile-first: a column that becomes a row from sm. */}
       <Box
         sx={{
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: { base: 'column', sm: 'row' },
+          alignItems: { base: 'stretch', sm: 'center' },
+          justifyContent: { base: 'flex-start', sm: 'space-between' },
           gap: 'xs',
-          '&': {
-            flexDirection: { sm: 'row' },
-            alignItems: { sm: 'center' },
-            justifyContent: { sm: 'space-between' },
-          },
         }}
       >
         <Box

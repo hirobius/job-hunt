@@ -1,3 +1,44 @@
+# HDS gap registry (live, #146)
+
+Every local stand-in for something HDS doesn't do yet, with its upstream ask. Rule: when an HDS
+release ships the fix, the upgrade PR deletes the workaround and moves its row to "Retired". HDS is
+pinned at **0.26.2**. "Not filed" means the ask still needs an issue in hirobius/hds.
+
+## Open
+
+| Workaround | Where | What HDS lacks | Upstream |
+|---|---|---|---|
+| Action toast (Open, Undo) | `src/hds-gaps/ActionToast.tsx` | `useToast` has no action slot | hds#815, fix in hds#816 (unreleased) |
+| Async list states | `src/hds-gaps/AsyncState.tsx` | one component for loading / slow / error / empty / ready | not filed (#133 asks) |
+| Selectable link list | `src/hds-gaps/RailList.tsx` + `.css` | `NavList` or a list item with `aria-current` | not filed (#133 asks) |
+| Tab scroll-into-view | `src/hds-gaps/TabsOverflowFade.tsx` | TabsList fades (0.26.1) but doesn't scroll the selected tab into view | not filed |
+| SegmentedControl overflow fade | `src/hds-gaps/TabsOverflowFade.tsx` | the TabsList edge fade, on SegmentedControl | not filed |
+| Token chips in a text field | `src/hds-gaps/TokenTextarea.tsx` + `.css` | a `TokenField` with atomic tokens and a caret API | not filed (#221) |
+| Bare top-level tab panels | `src/hds-gaps/barePanel.ts` | a `TabsContent` variant with no surface or inset | not filed (#133 asks) |
+| Danger menu item | `src/hds-gaps/tone.ts` `DANGER` | `Menu.Item tone="danger"` | not filed |
+| Secondary colour on a plain span or p | `src/hds-gaps/tone.ts` `SECONDARY` | nothing for non-`Text` elements (by design; `Text tone` covers the rest) | none needed |
+| Markup per breakpoint | `src/hds-gaps/useBreakpoint.ts` | a `useBreakpoint` / `useMediaQuery` hook on HDS breakpoints | not filed (#133 asks) |
+| Keyboard-aware dialog | `src/hds-gaps/useVisualViewportVars.ts` | a top-anchored, keyboard-aware Dialog or Sheet | related: hds#690 |
+| Empty state icon | `src/EmptyState.tsx` | an `icon` slot on `EmptyState` (`action` shipped in 0.25) | not filed |
+| `Text` weight | `.rjb-semibold` in `src/theme/base.css` | a `weight` prop on `Text` | not filed (was hds#655's follow-up) |
+| Phone touch size | 40px rule in `src/theme/base.css` | a touch size on sm controls | hds#750 |
+| Dark pressed accent contrast | held pair in `src/theme.contrast.test.ts` | AA on the dark pressed accent | hds#748 (lands in 0.27, unpublished) |
+
+## Retired
+
+| Workaround | Retired in | Upstream |
+|---|---|---|
+| Nested `'&'` breakpoint override in `sx` | 0.26.2 upgrade (`base` key) | hds#652 |
+| `EmptyState` action composed outside HDS | 0.26.2 upgrade (`action` prop, 0.25) | hds#654 |
+| `Text` + inline secondary colour | 0.26.2 upgrade (`tone="secondary"`, 0.26) | hds#655 |
+| Active-tab underline patch in `base.css` | 0.26.2 upgrade (bug bash, 0.26) | hds#749 |
+| Wrapper fade on TabsList | 0.26.2 upgrade (TabsList fades, 0.26.1) | hds#723 |
+| `<section>` around a `Stack` for `aria-*` | 0.26.2 upgrade (Stack forwards `aria-*`, 0.26.1) | 0.26.1 |
+| Auto-fit `Grid` instead of MetricTiles | Insights view removed; MetricTiles caps at 2 columns on a phone in 0.26.1 | 0.26.1 |
+| `Sheet` / `SheetMenu`, `.app-sheet*`, `body { overflow-x: clip }` | removed with the v1 redesign (#149) | hds#690 |
+
+---
+
 # @hirobius/design-system 0.9.0 — field report + remaining asks (Apply Board cutover)
 
 > **Superseded (2026-10-12, epic #89).** HDS shipped these asks — `Box` with a token-only `sx`,

@@ -30,14 +30,16 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
     (`content.secondary`, `surface.raised`, `border.default`, `feedback.error`, `accent`);
     `border` needs a style (`'1px solid'`). Prefer named primitives (Stack/Switcher/Grid) over
     `Box sx`, and parent gaps over child margins.
-  - ⚠️ **No base breakpoint in HDS `sx` (hds#652):** `{ xs, sm }` compiles to min-width 375/640, so
-    a mobile-first map drops its base under 375px. For a row of peer fields use `Switcher`;
-    otherwise put the base on the key and nest the override: `{ flexDirection: 'column', '&': {
-    flexDirection: { sm: 'row' } } }` (commented where used).
+  - **Responsive `sx` takes a `base` key (HDS 0.26.2, hds#652):** `{ flexDirection: { base:
+    'column', sm: 'row' } }`; `xs` means min-width 375, so never use it as the base. For a row of
+    peer fields prefer `Switcher`. The old nested `'&'` override is gone (`hdsOnly.test.ts`).
   - **Secondary text** is `<Text variant="caption" tone="secondary">` (HDS 0.26, hds#655);
     `hds-gaps/tone` `SECONDARY` is only for a plain span or p.
-  - **`EmptyState.tsx`** is a composition (HDS `EmptyState` + an optional action), because HDS's
-    has no action slot yet (hds#654); collapse it into HDS when that lands.
+  - **`EmptyState.tsx`** is a composition (HDS `EmptyState`, whose `action` it passes through,
+    hds#654, + an optional icon HDS has no slot for yet); collapse it into HDS when that lands.
+  - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, `EmptyState.tsx`, the
+    `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
+    a workaround in the HDS upgrade PR that ships its fix, and update the table.
 - **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
   (`fonts.css`, Plus Jakarta Sans, the HDS type ramp), surfaces and the default **graphite
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
