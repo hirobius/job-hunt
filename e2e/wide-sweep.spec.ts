@@ -70,9 +70,9 @@ for (const width of [390, 1440]) {
     await expect(list.getByRole('listitem').first()).toBeVisible();
     expect(reads).toBe(readsBefore);
 
-    // The Titles editor sits behind its disclosure.
-    await page.getByRole('button', { name: /^Titles \(\d+\)$/ }).click();
-    await expect(page.getByRole('list', { name: 'Sweep titles' })).toBeVisible();
+    // The title filter sits in Calibrate (#223).
+    await page.getByRole('button', { name: 'Calibrate' }).click();
+    await expect(page.getByRole('list', { name: 'Titles' })).toBeVisible();
     await page.screenshot({ path: `test-results/wide-sweep-titles-${width}.png`, fullPage: true });
 
     await list.getByRole('button', { name: 'Save' }).first().click();

@@ -48,7 +48,7 @@ const state = (over: Partial<AccountState> = {}): AccountState => ({
       },
     ],
   },
-  triage: { pinned: ['https://shop.example/'], dismissed: [] },
+  triage: { dismissed: [] },
   targets: {},
   filters: {},
   evidence: '',
@@ -154,7 +154,7 @@ describe('buildBackup / parseBackup', () => {
       expect(r.backup.curation.categories.map((c) => c.id)).toEqual(['c2']);
       expect(r.backup.curation.groups.map((g) => g.id)).toEqual(['g2']);
       expect(r.backup.curation.tiles).toEqual([]);
-      expect(r.backup.triage).toEqual({ pinned: ['u'], dismissed: [] });
+      expect(r.backup.triage).toEqual({ dismissed: [] }); // old pins are dropped (#19)
     }
   });
 
@@ -195,7 +195,7 @@ describe('applyBackup', () => {
     jobs: [job('https://example.com/b', 'B')],
     copydeck: [{ id: 's2', label: 'Other', body: 'x' }],
     curation: { categories: [], groups: [], tiles: [] },
-    triage: { pinned: [], dismissed: ['https://shop.example/'] },
+    triage: { dismissed: ['https://shop.example/'] },
   });
 
   it('replace yields exactly the backup data', () => {
@@ -215,7 +215,7 @@ describe('applyBackup', () => {
     expect(m.jobs.find((j) => j.url === 'https://example.com/a')?.label).toBe('From backup');
     expect(m.copydeck.map((s) => s.id).sort()).toEqual(['s1', 's2']);
     expect(m.curation.categories.map((c) => c.id)).toEqual(['c1']);
-    expect(m.triage).toEqual({ pinned: [], dismissed: ['https://shop.example/'] });
+    expect(m.triage).toEqual({ dismissed: ['https://shop.example/'] });
   });
 });
 
@@ -306,7 +306,7 @@ describe('sample data (#110)', () => {
         jobs: [sample, real],
         copydeck: [],
         curation: { categories: [], groups: [], tiles: [] },
-        triage: { pinned: [], dismissed: [] },
+        triage: { dismissed: [] },
         targets: {},
         filters: {},
         evidence: '',

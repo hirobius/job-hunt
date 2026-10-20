@@ -46,6 +46,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+// Targeting sits in Calibrate (#223); open it so its fields are on screen.
 const renderPanel = () =>
   render(
     <ToastProvider>
@@ -53,6 +54,7 @@ const renderPanel = () =>
         categoryId={cat}
         terms={['design systems', 'design engineer']}
         boardUrls={[]}
+        calibrate
       />
     </ToastProvider>,
   );

@@ -310,7 +310,9 @@ describe('LiveFeedPanel', () => {
     await user.type(input, 'https://www.linkedin.com/company/ramp');
     await user.click(screen.getByRole('button', { name: 'Watch' }));
     expect(
-      screen.getByText(/isn't a Greenhouse, Lever, Ashby, Workable or Recruitee job board/),
+      screen.getByText(
+        /isn't a Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor or Personio job board/,
+      ),
     ).toBeInTheDocument();
 
     await user.clear(input);

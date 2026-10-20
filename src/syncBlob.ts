@@ -14,7 +14,7 @@
 // tracks sync through their own tables (src/curation/sync.ts). Older blobs still read:
 //   v1  a bare Job[]
 //   v3  { jobs, pillars, copydeck, triage: { pinned, dismissed }, userTiles }
-//       → pillars are ignored (retired), cloud pins are ignored (pins are device-local now),
+//       → pillars are ignored (retired), cloud pins are ignored (pins are retired, #19),
 //         userTiles surface as `legacyUserTiles` for the one-time "My links" fold.
 import { dedupKey, mergeJobs } from './store';
 import { mergeSnippets, type Snippet } from './copyDeckStore';
@@ -43,7 +43,7 @@ export type { Triage };
 export interface SyncData {
   jobs: Job[];
   copydeck: Snippet[];
-  /** `pinned` is device-local (never written); `dismissed` (set aside) syncs. */
+  /** Set-aside tiles. */
   triage: Triage;
   /** v3-only user tiles awaiting the one-time fold into curation. Never written. */
   legacyUserTiles: LegacyTile[];
@@ -77,7 +77,7 @@ export function emptyBlob(): SyncData {
   return {
     jobs: [],
     copydeck: [],
-    triage: { pinned: [], dismissed: [] },
+    triage: { dismissed: [] },
     legacyUserTiles: [],
     targets: {},
     filters: {},
@@ -104,10 +104,7 @@ export function readBlob(data: unknown): SyncData {
   return {
     jobs: arr(o.jobs) as Job[],
     copydeck: arr(o.copydeck) as Snippet[],
-    triage: {
-      pinned: [],
-      dismissed: arr(tr.dismissed).filter((u) => typeof u === 'string') as string[],
-    },
+    triage: { dismissed: arr(tr.dismissed).filter((u) => typeof u === 'string') as string[] },
     legacyUserTiles: arr(o.userTiles)
       .filter(isLegacyTile)
       .map((t) => ({ name: t.name || '', meta: t.meta || '', url: t.url })),
@@ -145,12 +142,10 @@ export function writeBlob(d: SyncData) {
 
 /** Resolve cloud vs local into the blob to adopt.
  *  - seed (first sign-in): merge each field, so nothing on this device is lost.
- *  - refresh (focus re-pull): cloud is the source of truth if present, else keep local.
- *  Either way, this device's pins are kept (minus anything set aside). */
+ *  - refresh (focus re-pull): cloud is the source of truth if present, else keep local. */
 export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean): SyncData {
   if (!cloud) return seed ? { ...local, legacyUserTiles: [] } : local;
   if (!seed) {
-    const dismissed = new Set(cloud.triage.dismissed);
     // A cloud copy older than a field has no opinion on it: keep this device's.
     const v5 =
       cloud.sourceV >= 5
@@ -179,10 +174,7 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
       ...v9,
       ...v10,
       jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
-      triage: {
-        pinned: local.triage.pinned.filter((u) => !dismissed.has(u)),
-        dismissed: cloud.triage.dismissed,
-      },
+      triage: { dismissed: cloud.triage.dismissed },
     };
   }
   const jobs = mergeJobs(cloud.jobs, local.jobs);

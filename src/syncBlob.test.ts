@@ -55,7 +55,7 @@ describe('readBlob — tolerant of every historical shape', () => {
   it('v1: a bare array is the legacy jobs-only blob', () => {
     const r = readBlob([job('a')]);
     expect(r.jobs).toHaveLength(1);
-    expect(r.triage).toEqual({ pinned: [], dismissed: [] });
+    expect(r.triage).toEqual({ dismissed: [] });
     expect(r.legacyUserTiles).toEqual([]);
   });
 
@@ -70,7 +70,7 @@ describe('readBlob — tolerant of every historical shape', () => {
     });
     expect(r).not.toHaveProperty('pillars');
     expect(r.copydeck).toHaveLength(1);
-    expect(r.triage).toEqual({ pinned: [], dismissed: ['y'] });
+    expect(r.triage).toEqual({ dismissed: ['y'] });
     expect(r.legacyUserTiles).toEqual([
       { name: 'Mine', meta: 'Added by you', url: 'https://mine.example' },
     ]);
@@ -93,7 +93,7 @@ describe('readBlob — tolerant of every historical shape', () => {
 
 describe('writeBlob — v4 shape', () => {
   it('writes only jobs, copydeck and set-aside (no pillars, userTiles or pins)', () => {
-    const out = writeBlob(blob({ jobs: [job('a')], triage: { pinned: ['p'], dismissed: ['d'] } }));
+    const out = writeBlob(blob({ jobs: [job('a')], triage: { dismissed: ['d'] } }));
     expect(BLOB_VERSION).toBe(10);
     expect(out).toEqual({
       v: 10,
@@ -115,7 +115,7 @@ describe('writeBlob — v4 shape', () => {
   it('round-trips through readBlob', () => {
     const data = blob({
       jobs: [job('a')],
-      triage: { pinned: [], dismissed: ['d'] },
+      triage: { dismissed: ['d'] },
       targets: { t1: [target('acme')] },
       filters: { t1: [search('Austin')] },
       evidence: 'Led a design system',
@@ -137,12 +137,10 @@ describe('mergeBlob — seed (first sign-in)', () => {
     expect(out.jobs.find((j) => j.url === 'a')!.label).toBe('cloud-a'); // cloud wins
   });
 
-  it('set-aside from either side wins over a device-local pin', () => {
-    const local = blob({ triage: { pinned: ['x', 'keep'], dismissed: [] } });
-    const cloud = blob({ triage: { pinned: [], dismissed: ['x'] } });
-    const out = mergeBlob(cloud, local, true);
-    expect(out.triage.dismissed).toContain('x');
-    expect(out.triage.pinned).toEqual(['keep']);
+  it('set-aside from either side is kept', () => {
+    const local = blob({ triage: { dismissed: ['l'] } });
+    const cloud = blob({ triage: { dismissed: ['x'] } });
+    expect(mergeBlob(cloud, local, true).triage).toEqual({ dismissed: ['l', 'x'] });
   });
 
   it('handles a null cloud (nothing in the cloud yet)', () => {
@@ -165,10 +163,10 @@ describe('mergeBlob — refresh (focus re-pull)', () => {
     expect(mergeBlob(cloud, local, false).jobs.map((j) => j.url)).toEqual(['z']);
   });
 
-  it('keeps device-local pins (pins are no longer synced)', () => {
-    const local = blob({ triage: { pinned: ['p'], dismissed: [] } });
-    const cloud = blob({ triage: { pinned: [], dismissed: ['d'] } });
-    expect(mergeBlob(cloud, local, false).triage).toEqual({ pinned: ['p'], dismissed: ['d'] });
+  it('takes set-aside from the cloud', () => {
+    const local = blob({ triage: { dismissed: ['l'] } });
+    const cloud = blob({ triage: { dismissed: ['d'] } });
+    expect(mergeBlob(cloud, local, false).triage).toEqual({ dismissed: ['d'] });
   });
 
   it('keeps local when the cloud is empty', () => {

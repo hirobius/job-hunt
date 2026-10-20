@@ -12,7 +12,10 @@ export type FeedSourceId =
   | 'lever'
   | 'ashby'
   | 'workable'
-  | 'recruitee';
+  | 'recruitee'
+  | 'smartrecruiters'
+  | 'teamtailor'
+  | 'personio';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
@@ -24,6 +27,9 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   ashby: 'Ashby',
   workable: 'Workable',
   recruitee: 'Recruitee',
+  smartrecruiters: 'SmartRecruiters',
+  teamtailor: 'Teamtailor',
+  personio: 'Personio',
 };
 
 export interface Posting {

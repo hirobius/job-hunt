@@ -107,7 +107,7 @@ describe('wide sweep', () => {
 
   it('turning a title off is saved per track and drops it from the next sweep', async () => {
     const user = await startSweep();
-    await user.click(screen.getByRole('button', { name: 'Titles (3)' }));
+    await user.click(screen.getByRole('button', { name: 'Calibrate' }));
     await user.click(screen.getByRole('checkbox', { name: 'design technologist' }));
     expect(getAllSweeps()[cat].off).toEqual(['design technologist']);
     await screen.findByRole('heading', { name: 'Sweeping 2 titles at once' });
@@ -118,7 +118,7 @@ describe('wide sweep', () => {
 
   it('adds and removes titles from the sweep list', async () => {
     const user = await startSweep();
-    await user.click(screen.getByRole('button', { name: 'Titles (3)' }));
+    await user.click(screen.getByRole('button', { name: 'Calibrate' }));
     await user.type(screen.getByRole('textbox', { name: 'Add a title' }), 'UX engineer');
     await user.click(screen.getByRole('button', { name: 'Add' }));
     await user.click(screen.getByRole('button', { name: 'Remove title design system' }));
@@ -150,12 +150,11 @@ describe('wide sweep', () => {
   });
 });
 
-describe('Title and ATS search: All selected', () => {
-  it('Title search ORs every title that is on into each board link', async () => {
-    window.location.hash = '#/discover/titles';
-    const user = userEvent.setup();
+describe('ATS search: All selected', () => {
+  it('the big-board links OR every title that is on, from the start', async () => {
+    window.location.hash = '#/discover/ats';
     renderApp();
-    await user.click(await screen.findByRole('button', { name: 'All selected (3)' }));
+    await screen.findByRole('heading', { name: 'Big job boards' });
     const href = screen.getAllByRole('link', { name: /search/i })[0].getAttribute('href') ?? '';
     expect(decodeURIComponent(href)).toContain(
       '("design engineer" OR "design technologist" OR "design system")',

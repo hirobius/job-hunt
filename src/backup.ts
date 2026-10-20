@@ -264,7 +264,7 @@ function cleanCuration(raw: unknown): CurationState {
 
 function cleanTriage(raw: unknown): Triage {
   const t = isRec(raw) ? raw : {};
-  return { pinned: strList(t.pinned), dismissed: strList(t.dismissed) };
+  return { dismissed: strList(t.dismissed) }; // an old backup's pins are dropped (#19)
 }
 
 export function parseBackup(text: string): ParseResult {

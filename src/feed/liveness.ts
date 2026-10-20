@@ -54,6 +54,16 @@ export function boardOfJobUrl(url: string): { board: Board; ref: string } | null
     case 'recruitee':
       ref = seg[0] === 'o' ? seg[1] : undefined;
       break;
+    // These three put the posting's numeric id in front of a title slug that may change.
+    case 'smartrecruiters':
+      ref = seg[1]?.match(/^\d+/)?.[0];
+      break;
+    case 'teamtailor':
+      ref = seg[0] === 'jobs' ? seg[1]?.match(/^\d+/)?.[0] : undefined;
+      break;
+    case 'personio':
+      ref = seg[0] === 'job' ? seg[1]?.match(/^\d+/)?.[0] : undefined;
+      break;
   }
   return ref ? { board, ref } : null;
 }
