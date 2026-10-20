@@ -250,6 +250,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   otherwise, so a new fetch host also goes there). Wording approved by Adrian 2026-10-20 (`LEGAL_DRAFT`
   false); set it true while a revision is under review. Back up is the full "download all my data" export: it carries every synced
   store, incl. the Application kit and sweep titles. Meta/OG/Twitter tags pinned in `meta.test.ts`.
+  **Installable + share image (#47):** `public/manifest.webmanifest` (name = BRAND, standalone, no
+  service worker), PNG icons (192, 512, maskable 512, 180 touch icon) and the 1200x630
+  `og-image.png` are rendered by `npm run icons` (`scripts/make-icons.mjs`, headless Chromium);
+  re-run it after a brand change and commit the PNGs. Pinned in `pwa.test.ts`. `npm run audit` =
+  `npm audit --omit=dev --audit-level=high`; run it by hand (it is not in `verify`: the Vercel build
+  must not fail on a new advisory upstream).
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
