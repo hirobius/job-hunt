@@ -19,7 +19,6 @@ import { copyFilled } from './templateCopy';
 import { fillSnippet, unfilledTokens } from './templateFill';
 import { useApplyKit } from './applyKit';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 type Size = 'sm' | 'md';
 
@@ -131,12 +130,12 @@ function FollowUpContent({ job }: { job: Job }) {
             }}
           />
           {!template && (
-            <Text variant="caption" style={SECONDARY}>
+            <Text variant="caption" tone="secondary">
               No follow-up template yet. Write it here, or add one in Templates.
             </Text>
           )}
           {missing.length > 0 && (
-            <Text variant="caption" style={SECONDARY}>
+            <Text variant="caption" tone="secondary">
               Still to fill in: {missing.map((t) => `[${t}]`).join(', ')}.
             </Text>
           )}

@@ -48,7 +48,6 @@ import { useTrackContext } from './discoverContext';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
 import { teamSearchFor } from './feed/teamTopics';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
-import { SECONDARY } from './hds-gaps/tone';
 import { useActiveTitles } from './feed/sweepTitles';
 import { useDreams } from './feed/dreams';
 import { boardsFromUrls } from './feed/sources/ats';
@@ -351,7 +350,7 @@ function AtsPanel({
       >
         Freelance, startup and remote boards
       </Text>
-      <Text variant="caption" style={SECONDARY}>
+      <Text variant="caption" tone="secondary">
         Boards with no open feed (Upwork, Contra, Wellfound…), reached through Google instead.
       </Text>
       {allButton(HIDDEN_BOARDS, 'boards')}

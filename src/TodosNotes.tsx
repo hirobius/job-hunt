@@ -12,7 +12,6 @@ import { X, Plus } from 'lucide-react';
 import { updateJob } from './store';
 import { addTodo, toggleTodo, deleteTodo, seedStarterTodos } from './todos';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 /** The job's one Notes field — kept in local state and committed on blur so every keystroke
  *  doesn't thrash the store/Supabase sync. Keyed by job url upstream so it re-seeds when the job
@@ -54,7 +53,7 @@ export function TodosNotes({ job }: { job: Job }) {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* TO-DOS */}
       <Box>
-        <Text variant="caption" as="span" style={SECONDARY}>
+        <Text variant="caption" as="span" tone="secondary">
           To-dos
         </Text>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1.5 }}>

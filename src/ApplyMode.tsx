@@ -38,7 +38,6 @@ import { useSnippets } from './copyDeckStore';
 import { fillSnippet } from './templateFill';
 import { copyFilled } from './templateCopy';
 import { showNotice } from './saveNotice';
-import { SECONDARY } from './hds-gaps/tone';
 import type { Job } from './types';
 
 export default function ApplyMode({ jobId }: { jobId: string | null }) {
@@ -115,7 +114,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
                 idx >= 0 ? 'To apply' : job.status,
                 idx >= 0 && `${idx + 1} of ${queue.length}`,
               ]).map((line, i) => (
-                <Text key={i} variant="caption" as="span" style={SECONDARY}>
+                <Text key={i} variant="caption" as="span" tone="secondary">
                   {line}
                 </Text>
               ))}
@@ -242,7 +241,7 @@ function CopyRow({
       ) : (
         <Stack direction="row" gap="tight" align="center" justify="space-between">
           <Box sx={{ minWidth: 0, flex: '1 1 0%' }}>
-            <Text variant="caption" as="p" style={SECONDARY}>
+            <Text variant="caption" as="p" tone="secondary">
               {label}
             </Text>
             <Text variant="ui" as="p" className="rjb-prewrap">
@@ -317,7 +316,7 @@ function ApplyTemplates({ job }: { job: Job }) {
       </Text>
       {rows.length ? (
         <>
-          <Text variant="caption" as="p" style={SECONDARY}>
+          <Text variant="caption" as="p" tone="secondary">
             Filled for this job. Copy one into the form or an email.
           </Text>
           <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Your templates">
@@ -336,7 +335,7 @@ function ApplyTemplates({ job }: { job: Job }) {
         </>
       ) : (
         <>
-          <Text variant="caption" as="p" style={SECONDARY}>
+          <Text variant="caption" as="p" tone="secondary">
             Write a note or cover letter once in Templates; it shows here filled for each job.
           </Text>
           {edit('Write a template')}
@@ -362,7 +361,7 @@ function ApplicationKit({ job }: { job: Job }) {
       <Text variant="body" as="h3" className="rjb-semibold">
         Application kit
       </Text>
-      <Text variant="caption" as="p" style={SECONDARY}>
+      <Text variant="caption" as="p" tone="secondary">
         Enter these once; they follow your account. Copy each into the form.
       </Text>
       <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Profile">
@@ -402,7 +401,7 @@ function ApplicationKit({ job }: { job: Job }) {
         Your answers
       </Text>
       {kit.answers.length === 0 && (
-        <Text variant="caption" as="p" style={SECONDARY}>
+        <Text variant="caption" as="p" tone="secondary">
           Save answers to questions forms keep asking (visa, relocation, how you heard).
         </Text>
       )}

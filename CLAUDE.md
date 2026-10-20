@@ -34,9 +34,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
     a mobile-first map drops its base under 375px. For a row of peer fields use `Switcher`;
     otherwise put the base on the key and nest the override: `{ flexDirection: 'column', '&': {
     flexDirection: { sm: 'row' } } }` (commented where used).
-  - **Secondary text** is `<Text variant="caption">` + `style={{ color:
-    'var(--semantic-color-content-secondary)' }}` — HDS's documented idiom until `Text` grows a
-    tone prop (hds#655).
+  - **Secondary text** is `<Text variant="caption" tone="secondary">` (HDS 0.26, hds#655);
+    `hds-gaps/tone` `SECONDARY` is only for a plain span or p.
   - **`EmptyState.tsx`** is a composition (HDS `EmptyState` + an optional action), because HDS's
     has no action slot yet (hds#654); collapse it into HDS when that lands.
 - **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
@@ -44,7 +43,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.24.1`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.26.2`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
   `.npmrc` maps `@hirobius` there, so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`). Upgrade with
   `npx @hirobius/design-system@latest upgrade` (codemods + a to-do list; `--check` to verify).
@@ -215,7 +214,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   reduced motion); shared secondary colour is `hds-gaps/tone` `SECONDARY`. Guards: inline `style={{`
   ceiling and no inline font size/weight in `hdsOnly.test.ts` (only lower the ceiling), lint is
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a
-  held HDS gap, hds#748; also tracked upstream: active-tab underline hds#749, touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
+  held HDS gap, hds#748; also tracked upstream: touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
   targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.14.0).
 - **Rapid apply (2026-10-17):** every save (Discover tiles, Live postings incl. "Save N to Pipeline"
   / "Save all shown", quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with

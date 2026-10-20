@@ -29,7 +29,6 @@ import {
 } from './curation/curationStore';
 import type { Seniority } from './curation/types';
 import { STARTER_PACKS, topUpFromPack } from './curation/starterPacks';
-import { SECONDARY } from './hds-gaps/tone';
 
 // In-app curation controls (issue #37 / B4): edit a track's search terms + seniority + location,
 // and add/remove its sections (groups) and links (tiles) — all through the curation store, which
@@ -71,7 +70,7 @@ function ChipEditor({
           </Tag>
         ))}
         {values.length === 0 && (
-          <Text variant="caption" as="span" style={SECONDARY}>
+          <Text variant="caption" as="span" tone="secondary">
             none yet
           </Text>
         )}
@@ -317,7 +316,7 @@ export default function ManageTrackDialog({
                   (curation/starterPacks.ts topUpFromPack). */}
               <Disclosure variant="nav" label="Update from a starter pack">
                 <Stack gap="tight">
-                  <Text variant="caption" as="p" style={SECONDARY}>
+                  <Text variant="caption" as="p" tone="secondary">
                     Adds the pack's newer titles, search terms, links and outreach targets that this
                     track doesn't have yet. Nothing is removed.
                   </Text>

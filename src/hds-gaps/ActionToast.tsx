@@ -5,7 +5,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { Box, Button, Card, Icon, Stack, Text } from '@hirobius/design-system';
 import { X } from 'lucide-react';
-import { SECONDARY } from './tone';
 
 export default function ActionToast({
   title,
@@ -50,7 +49,7 @@ export default function ActionToast({
                   {title}
                 </Text>
                 {description && (
-                  <Text variant="caption" as="p" style={SECONDARY}>
+                  <Text variant="caption" as="p" tone="secondary">
                     {description}
                   </Text>
                 )}

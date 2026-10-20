@@ -8,7 +8,6 @@ import { toApplyQueue } from './applyQueue';
 import { jobIdOf } from './store';
 import { openApply } from './route';
 import { FollowUpSection, NextDaysSection } from './PipelineAgenda';
-import { SECONDARY } from './hds-gaps/tone';
 import type { Job } from './types';
 
 export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
@@ -22,7 +21,7 @@ export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
             <Text variant="body" as="h3" className="rjb-semibold">
               {`To apply (${queue.length})`}
             </Text>
-            <Text variant="caption" as="p" style={SECONDARY}>
+            <Text variant="caption" as="p" tone="secondary">
               {queue.length
                 ? 'Pinned first, then newest. Open each, paste from your kit, mark applied.'
                 : 'Nothing waiting. Save jobs from Companies to fill it.'}
