@@ -73,7 +73,12 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
     ).toBeInTheDocument();
 
     // 2. Toggling Contract only adds the (contract OR freelance OR fractional) clause to a tile's href.
-    const initialSearchLinks = screen.getAllByRole('link', { name: 'Search' });
+    // Hiring-system tiles are Google `site:` searches; the big boards (#223) sit above them.
+    const atsLinks = () =>
+      screen
+        .getAllByRole('link', { name: 'Search' })
+        .filter((a) => (a.getAttribute('href') ?? '').includes('site%3A'));
+    const initialSearchLinks = atsLinks();
     expect(initialSearchLinks.length).toBeGreaterThan(0);
     const initialQuery =
       new URL(initialSearchLinks[0].getAttribute('href')!).searchParams.get('q') ?? '';
@@ -83,7 +88,7 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
     await user.click(contractOption);
 
     // Re-query tile search links after state change (key changes re-mount the tile cards).
-    const updatedSearchLinks = screen.getAllByRole('link', { name: 'Search' });
+    const updatedSearchLinks = atsLinks();
     const updatedQuery =
       new URL(updatedSearchLinks[0].getAttribute('href')!).searchParams.get('q') ?? '';
     expect(updatedQuery).toContain('(contract OR freelance OR fractional)');

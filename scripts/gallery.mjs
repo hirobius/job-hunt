@@ -157,16 +157,16 @@ const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'job-page-interviews', [['first-job'], ['tab', /^Interviews/]]],
   [/^(Pipeline|Tracker)$/, 'job-page-todos', [['first-job'], ['tab', /^To-dos/]]],
   [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['first-job'], ['button', /^Use template$/]]],
-  // Templates: a row opens its editor (beside the list on a desktop, alone on a phone). Since #240
-  // Templates has no tab; the Menu opens it (an older build's Templates tab still works).
+  // Documents (was Templates, #227): an item opens its editor. It has no tab (#240); the Menu
+  // opens it (an older build's Templates tab, and its rows as links, still work).
   [/^Templates$/, 'template-detail', [['link', /^Cover letter/]]],
   [
     /^(Pipeline|Tracker)$/,
     'template-detail-from-menu',
     [
       ['button', /^Menu$/],
-      ['menuitem', /^Templates$/],
-      ['link', /^Cover letter/],
+      ['menuitem', /^(Documents|Templates)$/],
+      ['button', /^Cover letter/],
     ],
   ],
   [/^(Discover|Companies)$/, 'manage-track-dialog', [['button', /^Manage track$/]]],
@@ -368,10 +368,10 @@ async function shoot(browser, base, theme, width, manifest) {
     }
   }
 
-  // Templates without a tab (#240): open it from the Menu and shoot the list.
+  // Documents (Templates before #227) without a tab (#240): open it from the Menu, shoot the list.
   if (!(await topTabs(page)).includes('Templates')) {
     await clickIf(page, 'button', /^Menu$/);
-    if (await clickIf(page, 'menuitem', /^Templates$/)) await snap('Templates');
+    if (await clickIf(page, 'menuitem', /^(Documents|Templates)$/)) await snap('Documents');
   }
 
   // Let the last toast ("Saved … as a target") expire so it isn't in every overlay shot.

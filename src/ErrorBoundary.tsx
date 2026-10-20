@@ -1,10 +1,11 @@
 import { Component, type ReactNode } from 'react';
 import { Button, Box, Stack, Text } from '@hirobius/design-system';
-import { SECONDARY } from './hds-gaps/tone';
+import { reportError } from './errorReport';
 
 // Top-level safety net (issue #46): a render-time crash shows a recovery UI instead of a blank
 // white screen. Offers a plain reload and a "reset local data" escape hatch for when a single bad
-// localStorage record is the cause. No external error reporting (privacy) — logs to the console.
+// localStorage record is the cause. The crash is logged and, on the live site, sent as a scrubbed
+// report with no personal data (`errorReport.ts`).
 interface Props {
   children: ReactNode;
 }
@@ -38,6 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error) {
     console.error('App crashed:', error);
+    reportError('render', error);
   }
 
   render() {
@@ -48,7 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <Text variant="title" as="h1">
             Something broke
           </Text>
-          <Text variant="body" style={SECONDARY}>
+          <Text variant="body" tone="secondary">
             The app hit an unexpected error. Reloading usually fixes it. If it keeps happening, a
             bad saved record may be the cause — resetting local data clears it.
           </Text>

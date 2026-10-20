@@ -180,7 +180,7 @@ export default function TileGrid({
                       </InlineLink>
                     ))}
                     {host && (
-                      <Text variant="caption" as="span" style={SECONDARY}>
+                      <Text variant="caption" as="span" tone="secondary">
                         {host}
                       </Text>
                     )}

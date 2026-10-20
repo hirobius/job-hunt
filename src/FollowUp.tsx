@@ -5,7 +5,7 @@
 // once the follow-up is sent doesn't take the dialog with it.
 import { useState } from 'react';
 import { Alert, Button, Dialog, Stack, Text, Textarea, useToast } from '@hirobius/design-system';
-import { useSnippets } from './copyDeckStore';
+import { useOutreachTemplates } from './outreachTemplates';
 import {
   closeFollowUp,
   openFollowUp,
@@ -19,7 +19,6 @@ import { copyFilled } from './templateCopy';
 import { fillSnippet, unfilledTokens } from './templateFill';
 import { useApplyKit } from './applyKit';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 type Size = 'sm' | 'md';
 
@@ -67,9 +66,9 @@ export function FollowUpHost() {
 }
 
 function FollowUpContent({ job }: { job: Job }) {
-  const snippets = useSnippets();
+  const templates = useOutreachTemplates();
   const { toast } = useToast();
-  const template = pickFollowUpTemplate(snippets);
+  const template = pickFollowUpTemplate(templates);
   const kitName = useApplyKit().fields.name;
   // Filled once on open (the one fill path, templateFill.fillSnippet); after that the text is the
   // user's to edit.
@@ -131,12 +130,12 @@ function FollowUpContent({ job }: { job: Job }) {
             }}
           />
           {!template && (
-            <Text variant="caption" style={SECONDARY}>
-              No follow-up template yet. Write it here, or add one in Templates.
+            <Text variant="caption" tone="secondary">
+              No follow-up message yet. Write it here, or add one in Documents.
             </Text>
           )}
           {missing.length > 0 && (
-            <Text variant="caption" style={SECONDARY}>
+            <Text variant="caption" tone="secondary">
               Still to fill in: {missing.map((t) => `[${t}]`).join(', ')}.
             </Text>
           )}

@@ -1,73 +1,50 @@
-// Board-level triage for Discover / Apprenticeship tiles. Two lightweight states keyed by
-// tile URL: PIN (float to the top of its group) and SET ASIDE (drop out of the group into a
-// collapsible "set aside" section), so you can comb through a long board and keep track of
-// what you've already processed. Built on the shared createStore factory; persisted per-device
-// (two keys), not cloud-synced yet (triage is device-local for now).
+// Board-level triage for Discover tiles: SET ASIDE drops a tile out of its group into a
+// collapsible "set aside" section, so you can comb through a long board and keep track of what
+// you've already processed. Keyed by tile URL, persisted per device and synced in the blob. The
+// old PIN state is gone (#19; its UI went in #13): any pin data left in storage, a cloud blob or
+// a backup is ignored, and this device's retired key is removed on load.
 import { createStore } from './createStore';
 import { loadPersisted, savePersisted } from './persisted';
 
-const PINNED_KEY = 'rjb_tile_pinned';
 const DISMISSED_KEY = 'rjb_tile_dismissed';
+const RETIRED_PINNED_KEY = 'rjb_tile_pinned';
 
-export type Triage = { pinned: string[]; dismissed: string[] };
-type State = Triage;
+export type Triage = { dismissed: string[] };
 
-const store = createStore<State>(
-  {
-    pinned: loadPersisted<string[]>(PINNED_KEY, []),
-    dismissed: loadPersisted<string[]>(DISMISSED_KEY, []),
-  },
-  {
-    onSet: (next) => {
-      savePersisted(PINNED_KEY, next.pinned);
-      savePersisted(DISMISSED_KEY, next.dismissed);
-    },
-  },
+try {
+  localStorage.removeItem(RETIRED_PINNED_KEY);
+} catch {
+  /* storage unavailable */
+}
+
+const store = createStore<Triage>(
+  { dismissed: loadPersisted<string[]>(DISMISSED_KEY, []) },
+  { onSet: (next) => savePersisted(DISMISSED_KEY, next.dismissed) },
 );
 
-const toggle = (list: string[], url: string) =>
-  list.includes(url) ? list.filter((u) => u !== url) : [...list, url];
-
-/** Pin / unpin a tile. Pinning a set-aside tile also brings it back into view. */
-export function togglePin(url: string) {
-  const s = store.get();
-  store.set({
-    pinned: toggle(s.pinned, url),
-    dismissed: s.dismissed.filter((u) => u !== url),
-  });
-}
-
-/** Set aside / restore a tile. Setting aside also clears any pin (mutually exclusive). */
+/** Set aside / restore a tile. */
 export function toggleDismiss(url: string) {
-  const s = store.get();
+  const { dismissed } = store.get();
   store.set({
-    dismissed: toggle(s.dismissed, url),
-    pinned: s.pinned.filter((u) => u !== url),
+    dismissed: dismissed.includes(url) ? dismissed.filter((u) => u !== url) : [...dismissed, url],
   });
 }
 
-/** Replace the whole triage state (cloud sync). Missing arrays default to empty. */
-export function replaceTriage(next: { pinned?: string[]; dismissed?: string[] }) {
-  store.set({
-    pinned: Array.isArray(next.pinned) ? next.pinned : [],
-    dismissed: Array.isArray(next.dismissed) ? next.dismissed : [],
-  });
+/** Replace the whole triage state (cloud sync, restore). A missing list defaults to empty. */
+export function replaceTriage(next: { dismissed?: string[] }) {
+  store.set({ dismissed: Array.isArray(next.dismissed) ? next.dismissed : [] });
 }
 
-export function useTileTriage(): State {
+export function useTileTriage(): Triage {
   return store.use();
 }
 
 // Non-hook getter for tests / non-component callers.
-export function getTileTriage(): State {
+export function getTileTriage(): Triage {
   return store.get();
 }
 
-/** Merge cloud + local triage. pin and set-aside are mutually exclusive; set-aside wins a
- *  conflict. This rule lives here, with the concept it governs. For the sync layer. */
+/** Merge cloud + local triage: a tile set aside on either side stays set aside. */
 export function mergeTriage(cloud: Triage | null, local: Triage): Triage {
-  const union = (a: string[] = [], b: string[] = []) => Array.from(new Set([...a, ...b]));
-  const dismissed = new Set(union(local.dismissed, cloud?.dismissed));
-  const pinned = union(local.pinned, cloud?.pinned).filter((u) => !dismissed.has(u));
-  return { pinned, dismissed: [...dismissed] };
+  return { dismissed: Array.from(new Set([...local.dismissed, ...(cloud?.dismissed ?? [])])) };
 }

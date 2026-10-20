@@ -7,7 +7,6 @@ import { eligibleJobs, type LiveCheck } from './feed/liveness';
 import { autoLivenessCheck, checkFor, runLivenessCheck, useLiveness } from './livenessStore';
 import { findJobById, jobIdOf, useJobs } from './store';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 const checkedOn = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -54,7 +53,7 @@ export function PipelineLiveness({ jobs }: { jobs: Job[] }) {
           Check which are still open
         </Button>
         {busy && <Spinner size="sm" label="Checking company boards" />}
-        <Text variant="caption" as="span" style={SECONDARY} role="status">
+        <Text variant="caption" as="span" tone="secondary" role="status">
           {note ||
             [
               when && `Checked live ${when}`,
@@ -94,7 +93,7 @@ export function JobLivenessNote({ url }: { url: string }) {
       style={{ marginBottom: 'var(--semantic-space-scale-xs)' }}
     >
       {check.state === 'closed' && <Badge tone="warning">Closed on the board</Badge>}
-      <Text variant="caption" as="span" style={SECONDARY}>
+      <Text variant="caption" as="span" tone="secondary">
         Checked live {checkedOn(check.checkedAt)}
       </Text>
     </Stack>

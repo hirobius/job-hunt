@@ -8,7 +8,6 @@ import { jobFieldsFor } from './feed/toJob';
 import type { Role } from './feed/teamRoles';
 import { dreamKey, starDream, unstarDream, useDreams } from './feed/dreams';
 import type { Board } from './feed/sources/ats';
-import { SECONDARY } from './hds-gaps/tone';
 import { listStyle } from './outreachShared';
 
 /** A team's matching roles. Save adds one to the Pipeline and raises the shared save notice
@@ -50,7 +49,7 @@ export function RoleList({
                     {newIds?.has(r.id) && <Badge tone="info">New</Badge>}
                   </Stack>
                   {r.location && (
-                    <Text variant="caption" style={SECONDARY}>
+                    <Text variant="caption" tone="secondary">
                       {r.location}
                     </Text>
                   )}

@@ -1,0 +1,213 @@
+// The Privacy Policy and Terms (#43), as data: `LegalPage` renders them at `#/legal/privacy` and
+// `#/legal/terms`, and `legal.test.ts` checks the disclosures against the code (every host the CSP
+// lets the browser reach is named in `THIRD_PARTIES`). Starting templates for review, not legal
+// advice: while `LEGAL_DRAFT` is true the page says so. Adrian approves any wording before it ships.
+import { BRAND } from './brand';
+
+/** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
+ *  on 2026-10-20; set it back to true while a revision is under review. */
+export const LEGAL_DRAFT = false;
+export const LEGAL_UPDATED = '20 October 2026';
+export const OPERATOR = 'Hirobius';
+export const CONTACT_EMAIL = 'hello@hirobius.com';
+
+export type LegalSlug = 'privacy' | 'terms';
+
+export interface LegalSection {
+  heading: string;
+  paragraphs: string[];
+  /** An optional bullet list after the paragraphs. */
+  list?: string[];
+}
+
+export interface LegalDoc {
+  slug: LegalSlug;
+  title: string;
+  sections: LegalSection[];
+}
+
+export interface ThirdParty {
+  name: string;
+  /** What it does for the app and what it receives. */
+  purpose: string;
+  /** The origins the browser contacts for it (vercel.json connect-src); empty = same origin. */
+  hosts: string[];
+}
+
+/** Everyone the app shares data with or contacts on the user's behalf (#43's subprocessor list). */
+export const THIRD_PARTIES: ThirdParty[] = [
+  {
+    name: 'Supabase',
+    purpose:
+      'Sign-in, cloud sync and crash reports. If you sign in, it stores your email address and a copy of your data so it can sync between your devices. It also stores the anonymous crash reports described above.',
+    hosts: ['https://nelrcmbkimjjmfmgnixj.supabase.co', 'wss://nelrcmbkimjjmfmgnixj.supabase.co'],
+  },
+  {
+    name: 'Vercel',
+    purpose:
+      'Hosting, and Web Analytics that counts page views without cookies. Like any web host, it sees your IP address and browser details when you load the app.',
+    hosts: [],
+  },
+  {
+    name: 'Public job sources',
+    purpose:
+      'When you search for openings, check a company or check whether a saved job is still open, your browser may ask these services directly: Hacker News (via Algolia), Remotive, Jobicy, Remote OK, and the Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio job boards. They receive your IP address and which search or company board the app is checking, never your notes, documents or account.',
+    hosts: [
+      'https://hn.algolia.com',
+      'https://remotive.com',
+      'https://jobicy.com',
+      'https://remoteok.com',
+      'https://boards-api.greenhouse.io',
+      'https://api.lever.co',
+      'https://api.eu.lever.co',
+      'https://api.ashbyhq.com',
+      'https://apply.workable.com',
+      'https://*.recruitee.com',
+      'https://api.smartrecruiters.com',
+      'https://*.teamtailor.com',
+      'https://*.jobs.personio.de',
+    ],
+  },
+  {
+    name: 'Company directories',
+    purpose:
+      'Finding companies: a public mirror of the Y Combinator company list and GitHub’s public search. They receive your IP address and what you searched for.',
+    hosts: ['https://yc-oss.github.io', 'https://api.github.com'],
+  },
+];
+
+const name = BRAND.name;
+
+export const PRIVACY: LegalDoc = {
+  slug: 'privacy',
+  title: 'Privacy Policy',
+  sections: [
+    {
+      heading: 'Who we are',
+      paragraphs: [
+        `${name} is run by ${OPERATOR}. Questions about your data go to ${CONTACT_EMAIL}.`,
+      ],
+    },
+    {
+      heading: 'What we store',
+      paragraphs: [
+        `${name} works without an account. Until you sign in, everything you enter stays in your browser’s local storage on this device.`,
+        'If you sign in, we store your email address and a copy of what you enter, so it syncs between your devices:',
+      ],
+      list: [
+        'Jobs you save, with their notes, to-dos, interviews and status history',
+        'Documents and templates you write',
+        'Files you upload, such as final copies of your résumé',
+        'Evidence text you paste in to rank openings',
+        'Your Application kit: the name, contact details, links and answers you choose to fill in',
+        'Your tracks, saved companies, searches and settings',
+      ],
+    },
+    {
+      heading: 'Local storage and cookies',
+      paragraphs: [
+        `${name} keeps your data, your sign-in session and a few display settings in your browser’s local storage. It also keeps short-lived caches there, such as which job boards it has already checked. We do not use cookies, and we do not track you across other sites.`,
+      ],
+    },
+    {
+      heading: 'Crash reports',
+      paragraphs: [
+        `When ${name} breaks, it sends us a short crash report so we can fix it: the error message and where in the code it happened, which page you were on (for example Pipeline, not which job), and your browser name and version. It never includes your email, account, jobs, notes or documents, and it is not linked to you.`,
+      ],
+    },
+    {
+      heading: 'Who else sees your data',
+      paragraphs: [
+        'We do not sell your data or use it for advertising. These services help run the app:',
+      ],
+      list: THIRD_PARTIES.map((t) => `${t.name}: ${t.purpose}`),
+    },
+    {
+      heading: 'Your choices',
+      paragraphs: [
+        'Export: Back up in the Menu downloads everything as one file, and Export CSV downloads your jobs as a spreadsheet.',
+        'Erasure: when signed in, Delete my data in the Menu removes your synced data from the cloud and from this device. Your sign-in email stays with Supabase until you ask us to remove it; email us and we will.',
+        'Signed out, clearing this site’s data in your browser removes everything.',
+      ],
+    },
+    {
+      heading: 'How long we keep it',
+      paragraphs: [
+        'We keep your synced data until you delete it or ask us to. Crash reports are deleted after 90 days. Page-view counts are kept as totals and are not tied to you.',
+      ],
+    },
+    {
+      heading: 'Children',
+      paragraphs: [`${name} is not meant for children under 16.`],
+    },
+    {
+      heading: 'Changes',
+      paragraphs: [
+        'If this policy changes, we will update the date at the top of this page. For a change that affects data you have already given us, we will tell you in the app first.',
+      ],
+    },
+  ],
+};
+
+export const TERMS: LegalDoc = {
+  slug: 'terms',
+  title: 'Terms of Use',
+  sections: [
+    {
+      heading: 'The service',
+      paragraphs: [
+        `${name} is a free tool for finding and tracking job applications, run by ${OPERATOR}. By using it you agree to these terms.`,
+      ],
+    },
+    {
+      heading: 'Your content',
+      paragraphs: [
+        'What you enter stays yours. You let us store it and sync it between your devices, only so the app works for you.',
+      ],
+    },
+    {
+      heading: 'Job listings and other sites',
+      paragraphs: [
+        `Openings and company pages come from other sites. We don’t write or check them, and we can’t promise they are accurate, current or still open. Applying happens on the employer’s site, under its terms.`,
+      ],
+    },
+    {
+      heading: 'Fair use',
+      paragraphs: [
+        `Use ${name} for your own job search. Don’t use it to overload, scrape or get around the limits of the job sources it reads, or to break the law.`,
+      ],
+    },
+    {
+      heading: 'No warranty',
+      paragraphs: [
+        `${name} is provided as is. We work to keep your data safe and the app running, but we can’t promise it will always be available or free of errors. Keep a backup of anything you can’t afford to lose.`,
+      ],
+    },
+    {
+      heading: 'Liability',
+      paragraphs: [
+        `As far as the law allows, ${OPERATOR} is not liable for lost data, missed applications or other indirect losses from using ${name}.`,
+      ],
+    },
+    {
+      heading: 'Ending use',
+      paragraphs: [
+        'You can stop using the app and delete your data at any time. We may suspend access that breaks these terms.',
+      ],
+    },
+    {
+      heading: 'Changes and contact',
+      paragraphs: [
+        `If these terms change, we will update the date at the top of this page. Questions go to ${CONTACT_EMAIL}.`,
+      ],
+    },
+  ],
+};
+
+export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = { privacy: PRIVACY, terms: TERMS };
+
+/** The route slug for the legal pages: `#/legal/privacy`, `#/legal/terms`. */
+export const LEGAL_ROUTE = 'legal';
+
+/** An unknown or missing sub-slug shows the Privacy Policy. */
+export const legalDocFor = (sub: string | null): LegalDoc => (sub === 'terms' ? TERMS : PRIVACY);

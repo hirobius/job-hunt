@@ -12,9 +12,15 @@ export function loadPersisted<T>(key: string, fallback: T): T {
 }
 
 export function savePersisted<T>(key: string, value: T): void {
+  trySavePersisted(key, value);
+}
+
+/** savePersisted that says whether the write landed (false on a full or blocked store). */
+export function trySavePersisted<T>(key: string, value: T): boolean {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    /* ignore quota / unavailable storage */
+    return false;
   }
 }

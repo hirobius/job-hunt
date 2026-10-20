@@ -14,7 +14,7 @@
 // tracks sync through their own tables (src/curation/sync.ts). Older blobs still read:
 //   v1  a bare Job[]
 //   v3  { jobs, pillars, copydeck, triage: { pinned, dismissed }, userTiles }
-//       → pillars are ignored (retired), cloud pins are ignored (pins are device-local now),
+//       → pillars are ignored (retired), cloud pins are ignored (pins are retired, #19),
 //         userTiles surface as `legacyUserTiles` for the one-time "My links" fold.
 import { dedupKey, mergeJobs } from './store';
 import { mergeSnippets, type Snippet } from './copyDeckStore';
@@ -31,6 +31,8 @@ import type { WorkMode } from './jobsData';
 import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
 import { mergeTrash, sanitizeTrash, type Removed } from './trash';
+import { withoutDeleted, type SyncKeys } from './syncBase';
+import { carries, FIELD_SINCE, type VersionedField } from './blobFields';
 import {
   mergeDocuments,
   sanitizeDocuments,
@@ -40,10 +42,15 @@ import {
 
 export type { Triage };
 
+/** The fields added from v5 on: an older cloud copy says nothing about them (FIELD_SINCE). */
+const OPTIONAL_FIELDS = (Object.keys(FIELD_SINCE) as VersionedField[]).filter(
+  (f) => FIELD_SINCE[f] >= 5,
+);
+
 export interface SyncData {
   jobs: Job[];
   copydeck: Snippet[];
-  /** `pinned` is device-local (never written); `dismissed` (set aside) syncs. */
+  /** Set-aside tiles. */
   triage: Triage;
   /** v3-only user tiles awaiting the one-time fold into curation. Never written. */
   legacyUserTiles: LegacyTile[];
@@ -77,7 +84,7 @@ export function emptyBlob(): SyncData {
   return {
     jobs: [],
     copydeck: [],
-    triage: { pinned: [], dismissed: [] },
+    triage: { dismissed: [] },
     legacyUserTiles: [],
     targets: {},
     filters: {},
@@ -104,10 +111,7 @@ export function readBlob(data: unknown): SyncData {
   return {
     jobs: arr(o.jobs) as Job[],
     copydeck: arr(o.copydeck) as Snippet[],
-    triage: {
-      pinned: [],
-      dismissed: arr(tr.dismissed).filter((u) => typeof u === 'string') as string[],
-    },
+    triage: { dismissed: arr(tr.dismissed).filter((u) => typeof u === 'string') as string[] },
     legacyUserTiles: arr(o.userTiles)
       .filter(isLegacyTile)
       .map((t) => ({ name: t.name || '', meta: t.meta || '', url: t.url })),
@@ -144,51 +148,31 @@ export function writeBlob(d: SyncData) {
 }
 
 /** Resolve cloud vs local into the blob to adopt.
- *  - seed (first sign-in): merge each field, so nothing on this device is lost.
- *  - refresh (focus re-pull): cloud is the source of truth if present, else keep local.
- *  Either way, this device's pins are kept (minus anything set aside). */
-export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean): SyncData {
+ *  - seed (sign-in, incl. every page load with a session): merge each field, so nothing on this
+ *    device is lost. With this device's sync `base` (#219) an entry deleted on either side since
+ *    the last sync stays deleted; without one it is the plain union.
+ *  - refresh (focus re-pull): cloud is the source of truth if present, else keep local. */
+export function mergeBlob(
+  cloud: SyncData | null,
+  local: SyncData,
+  seed: boolean,
+  base: SyncKeys | null = null,
+): SyncData {
   if (!cloud) return seed ? { ...local, legacyUserTiles: [] } : local;
   if (!seed) {
-    const dismissed = new Set(cloud.triage.dismissed);
-    // A cloud copy older than a field has no opinion on it: keep this device's.
-    const v5 =
-      cloud.sourceV >= 5
-        ? {}
-        : {
-            targets: local.targets,
-            filters: local.filters,
-            evidence: local.evidence,
-            modes: local.modes,
-          };
-    // Likewise a pre-v6 copy says nothing about the kit.
-    const v6 = cloud.sourceV >= 6 ? {} : { kit: local.kit };
-    const v7 = cloud.sourceV >= 7 ? {} : { sweeps: local.sweeps };
-    // And a pre-v8 copy says nothing about Recently removed.
-    const v8 = cloud.sourceV >= 8 ? {} : { trash: local.trash };
-    // And a pre-v9 copy says nothing about dream companies.
-    const v9 = cloud.sourceV >= 9 ? {} : { dreams: local.dreams };
-    // And a pre-v10 copy says nothing about Documents.
-    const v10 = cloud.sourceV >= 10 ? {} : { documents: local.documents };
+    // A cloud copy older than a field has no opinion on it: keep this device's (FIELD_SINCE).
+    // (jobs, snippets and set-aside predate every cloud copy still around: cloud wins on those.)
+    const keep = OPTIONAL_FIELDS.filter((f) => !carries(cloud.sourceV, f));
+    const older = Object.fromEntries(keep.map((f) => [f, local[f]])) as Partial<SyncData>;
     return {
       ...cloud,
-      ...v5,
-      ...v6,
-      ...v7,
-      ...v8,
-      ...v9,
-      ...v10,
+      ...older,
       jobs: [...cloud.jobs, ...local.jobs.filter(isSample)], // keep this device's sample
-      triage: {
-        pinned: local.triage.pinned.filter((u) => !dismissed.has(u)),
-        dismissed: cloud.triage.dismissed,
-      },
+      triage: { dismissed: cloud.triage.dismissed },
     };
   }
-  const jobs = mergeJobs(cloud.jobs, local.jobs);
-  const saved = new Set(jobs.map((j) => dedupKey(j.url)));
-  return {
-    jobs,
+  const union: SyncData = {
+    jobs: mergeJobs(cloud.jobs, local.jobs),
     copydeck: mergeSnippets(cloud.copydeck, local.copydeck),
     triage: mergeTriage(cloud.triage, local.triage),
     legacyUserTiles: cloud.legacyUserTiles,
@@ -198,10 +182,13 @@ export function mergeBlob(cloud: SyncData | null, local: SyncData, seed: boolean
     modes: mergeModes(cloud.modes, local.modes),
     kit: mergeKit(cloud.kit, local.kit),
     sweeps: mergeSweeps(cloud.sweeps, local.sweeps),
-    // A job saved on either side is not also listed as removed.
-    trash: mergeTrash(cloud.trash, local.trash).filter((r) => !saved.has(dedupKey(r.job.url))),
+    trash: mergeTrash(cloud.trash, local.trash),
     dreams: mergeDreams(cloud.dreams, local.dreams),
     documents: mergeDocuments(cloud.documents, local.documents),
     sourceV: cloud.sourceV,
   };
+  const merged = base ? withoutDeleted(union, cloud, local, base) : union;
+  // A job saved on either side is not also listed as removed.
+  const saved = new Set(merged.jobs.map((j) => dedupKey(j.url)));
+  return { ...merged, trash: merged.trash.filter((r) => !saved.has(dedupKey(r.job.url))) };
 }

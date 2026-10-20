@@ -27,7 +27,9 @@ import {
   BLOB_VERSION,
   type SyncData,
 } from '../syncBlob';
+import { keysOf, readSyncBase, writeSyncBase } from '../syncBase';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
+import { setCurationAccount } from '../curation/curationStore';
 import {
   getCurationSyncStatus,
   onCurationWriteFailed,
@@ -44,6 +46,7 @@ import {
 import { getPending, useFailedCount } from '../curation/pending';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { CloudSyncContext, type CloudSyncApi } from './accountContext';
+import { magicLinkRedirect } from './authRedirect';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
 // delete so a shared browser can't carry one person's jobs/pillars/résumé to the next.
@@ -118,18 +121,22 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   async function pushNow(u: User): Promise<boolean> {
     if (!pulledOk.current) return false;
     const sent = localJson();
+    const data = writeBlob(localBlob());
     let ok: boolean;
     try {
       const r = await supa.from('tracker').upsert({
         user_id: u.id,
-        data: writeBlob(localBlob()),
+        data,
         updated_at: new Date().toISOString(),
       });
       ok = !r.error;
     } catch {
       ok = false;
     }
-    if (ok) lastSynced.current = sent;
+    if (ok) {
+      lastSynced.current = sent;
+      writeSyncBase(u.id, keysOf(readBlob(data))); // what the cloud now holds (#219)
+    }
     setMsg(ok ? `Synced · ${u.email}` : OFFLINE_MSG);
     return ok;
   }
@@ -142,7 +149,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       if (!seed && pulledOk.current && dirty() && !(await pushNow(u))) return;
       const cloud = await pull(u.id);
       const local = localBlob();
-      const next = mergeBlob(cloud, local, seed);
+      const next = mergeBlob(cloud, local, seed, readSyncBase(u.id));
+      writeSyncBase(u.id, keysOf(cloud ?? emptyBlob()));
       // A first-sign-in merge that keeps both evidence texts can pass the cap: say so, don't cut silently.
       if (seed && cloud && evidenceMergeOverflows(cloud.evidence, local.evidence))
         toast({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });
@@ -193,6 +201,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     const { data } = supa.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null;
       setUser(u);
+      if (u) setCurationAccount(true); // only this tab's own sign-out clears it (#169)
       setAuthResolved(true);
       if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
       pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
@@ -255,6 +264,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }
     // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
     if (getPending().length > 0 && !window.confirm(UNSYNCED_SIGN_OUT)) return;
+    setCurationAccount(false);
     await supa.auth.signOut();
     clearLocalData();
     location.reload();
@@ -290,6 +300,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       return;
     }
     clearLocalData();
+    setCurationAccount(false);
     await supa.auth.signOut();
     location.reload();
   };
@@ -297,7 +308,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const sendLink = async (email: string): Promise<string | null> => {
     const r = await supa.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: location.origin + location.pathname },
+      // Only this app's own origins, at the root (#44). The real gate is the Supabase dashboard's
+      // Redirect URLs allow-list (server side, Adrian's to keep); this keeps the ask honest.
+      options: { emailRedirectTo: magicLinkRedirect(location) },
     });
     // The dialog shows the error inline, in plain words (no vendor message).
     return r.error ? signInErrorMessage(r.error) : null;

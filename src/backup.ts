@@ -1,5 +1,6 @@
 // Full-account backup + validated restore (#100). Pure: build a JSON backup of everything the
-// account holds (jobs, copy deck, curation board, tile triage, Recently removed, Documents), parse + sanitize an untrusted
+// account holds (jobs, copy deck, curation board, tile triage, Recently removed, Documents, the
+// Application kit and sweep titles: every synced store, so it is the "download all my data" export, #47), parse + sanitize an untrusted
 // file back into that shape, and apply it onto current state as a merge or a replace.
 // Parsing never trusts the input: known fields are copied into fresh objects, URLs must be
 // http(s), and prototype-pollution keys are dropped.
@@ -24,6 +25,8 @@ import {
   withoutSampleDocuments,
   type Document,
 } from './documents';
+import { mergeKit, sanitizeKit, type ApplyKit } from './applyKit';
+import { mergeSweeps, sanitizeSweeps, type SweepTitles } from './feed/sweepTitles';
 
 export interface AccountState {
   jobs: Job[];
@@ -41,6 +44,9 @@ export interface AccountState {
   dreams: Record<string, Dream[]>;
   /** Documents and their Versions (#226). Older backups lack them. */
   documents: Document[];
+  /** The Application kit (blob v6) and wide-sweep titles (v7) (#47). Older backups lack them. */
+  kit: ApplyKit;
+  sweeps: Record<string, SweepTitles>;
 }
 
 export interface Backup extends AccountState {
@@ -71,6 +77,8 @@ export function buildBackup(state: AccountState, now: Date): Backup {
     trash: state.trash.filter((r) => !isSample(r.job)),
     dreams: state.dreams,
     documents: withoutSampleDocuments(state.documents, state.jobs),
+    kit: state.kit,
+    sweeps: state.sweeps,
   };
 }
 
@@ -193,6 +201,7 @@ function cleanSnippets(raw: unknown): Snippet[] {
     if (typeof s.open === 'boolean') snip.open = s.open;
     if (typeof s.pinned === 'boolean') snip.pinned = s.pinned;
     if (Array.isArray(s.pillars)) snip.pillars = s.pillars.filter(isStr);
+    if (s.migrated === true) snip.migrated = true;
     out.push(snip);
   }
   return out;
@@ -255,7 +264,7 @@ function cleanCuration(raw: unknown): CurationState {
 
 function cleanTriage(raw: unknown): Triage {
   const t = isRec(raw) ? raw : {};
-  return { pinned: strList(t.pinned), dismissed: strList(t.dismissed) };
+  return { dismissed: strList(t.dismissed) }; // an old backup's pins are dropped (#19)
 }
 
 export function parseBackup(text: string): ParseResult {
@@ -292,6 +301,8 @@ export function parseBackup(text: string): ParseResult {
       trash: cleanTrash(data.trash),
       dreams: sanitizeDreams(data.dreams),
       documents: sanitizeDocuments(data.documents),
+      kit: sanitizeKit(data.kit),
+      sweeps: sanitizeSweeps(data.sweeps),
     },
   };
 }
@@ -315,6 +326,8 @@ export function applyBackup(
       trash: notSaved(backup.trash, backup.jobs),
       dreams: backup.dreams,
       documents: backup.documents,
+      kit: backup.kit,
+      sweeps: backup.sweeps,
     };
   }
   const jobs = mergeJobs(backup.jobs, current.jobs);
@@ -330,6 +343,8 @@ export function applyBackup(
     trash: notSaved(mergeTrash(backup.trash, current.trash), jobs),
     dreams: mergeDreams(backup.dreams, current.dreams),
     documents: mergeDocuments(backup.documents, current.documents),
+    kit: mergeKit(backup.kit, current.kit),
+    sweeps: mergeSweeps(backup.sweeps, current.sweeps),
   };
 }
 

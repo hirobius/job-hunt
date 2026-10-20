@@ -21,7 +21,7 @@ knip found its entry points from the Vite, Vitest, Playwright and ESLint configs
 ## Delete PRs (one theme each)
 
 - [x] **dead exports**: delete the 7 dead symbols, drop `export` from the 30 file-local ones (plus 2 found on the re-run at main 6773ca7). knip now reports no unused exports.
-- [ ] **duplicate helpers**: one localStorage live-store helper for `feed/savedFilters`, `feed/sweepTitles`, `feed/targets`.
+- [x] **duplicate helpers**: one localStorage live-store helper for `feed/savedFilters`, `feed/sweepTitles`, `feed/targets`. Now `src/liveStorage.ts`.
 - **unused deps / orphan files**: none found (both hits are false positives).
 
 ## Candidates
@@ -122,8 +122,8 @@ Candidate is `path#Symbol`, or `path:start-end` for a clone. Verdict is keep, de
 | `package.json#axe-core`                             | knip  | keep    |                   | False positive: `e2e/a11y.spec.ts` loads it with `createRequire().resolve`, which knip does not trace. Exact pin is documented in CLAUDE.md.                                         |
 | `package.json#lucide-react`                         | knip  | keep    |                   | Unlisted, not unused: 22 files import it and it arrives through HDS. Listing it is a dependency change, out of scope here.                                                           |
 | `e2e/rapid-apply.spec.ts:9-28`                      | jscpd | keep    |                   | Test setup shared with `e2e/wide-sweep.spec.ts:10-29`. Tests stay self-contained; extracting fixtures is a refactor (out of scope).                                                  |
-| `src/feed/sweepTitles.ts:138-152`                   | jscpd | delete  | duplicate helpers | Same localStorage `rawNow` + `subscribe` pair as `src/feed/targets.ts:136-150` (also in `radar/evidenceStore.ts`, `curation/pending.ts`). Keep one shared helper, delete the copies. |
-| `src/feed/savedFilters.ts:122-136`                  | jscpd | delete  | duplicate helpers | Same localStorage `rawNow` + `subscribe` pair as `src/feed/targets.ts:136-150` (also in `radar/evidenceStore.ts`, `curation/pending.ts`). Keep one shared helper, delete the copies. |
+| `src/feed/sweepTitles.ts:138-152`                   | jscpd | done    | duplicate helpers | Same localStorage `rawNow` + `subscribe` pair as `src/feed/targets.ts:136-150` (also in `radar/evidenceStore.ts`, `curation/pending.ts`). Keep one shared helper, delete the copies. |
+| `src/feed/savedFilters.ts:122-136`                  | jscpd | done    | duplicate helpers | Same localStorage `rawNow` + `subscribe` pair as `src/feed/targets.ts:136-150` (also in `radar/evidenceStore.ts`, `curation/pending.ts`). Keep one shared helper, delete the copies. |
 | `src/account/CloudSyncProvider.test.tsx:568-632`    | jscpd | keep    |                   | Test setup shared with `src/account/CloudSyncProvider.test.tsx:473-537`. Tests stay self-contained; extracting fixtures is a refactor (out of scope).                                |
 | `src/shell.test.tsx:4-23`                           | jscpd | keep    |                   | Test setup shared with `src/today.test.tsx:7-26`. Tests stay self-contained; extracting fixtures is a refactor (out of scope).                                                       |
 | `src/pipeline.test.tsx:8-26`                        | jscpd | keep    |                   | Test setup shared with `src/today.test.tsx:8-26`. Tests stay self-contained; extracting fixtures is a refactor (out of scope).                                                       |

@@ -1,0 +1,78 @@
+/* global document -- page callbacks run in the browser */
+// App icons and the share image (#47): renders public/favicon.svg and a brand card to PNG with
+// headless Chromium, so the installable-app icons and the Open Graph image are reproducible.
+// Re-run after a brand change and commit the PNGs:
+//
+//   npm run icons
+//
+// Chromium: PW_CHROMIUM_PATH (cloud sessions: /opt/pw-browsers/chromium-1194/chrome-linux/chrome),
+// else Playwright's own. The name and description come from src/brand.ts (Node strips its types).
+import { chromium } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { BRAND } from '../src/brand.ts';
+
+const svg = readFileSync('public/favicon.svg', 'utf8');
+const svgUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+// HDS's own face, inlined: a page set with setContent can't load file:// fonts.
+const font = (weight) =>
+  `data:font/woff2;base64,${readFileSync(
+    `node_modules/@hirobius/design-system/dist/fonts/plus-jakarta-sans-${weight}.woff2`,
+  ).toString('base64')}`;
+// The icon's own colours (favicon.svg): graphite tile, light face.
+const GRAPHITE = '#2a2428';
+const FACE = '#d4d0d2';
+
+const page = (body, w, h) => `<!doctype html><html><head><style>
+  @font-face { font-family: Brand; src: url(${font(400)}) format('woff2'); font-weight: 400; }
+  @font-face { font-family: Brand; src: url(${font(700)}) format('woff2'); font-weight: 700; }
+  html, body { margin: 0; width: ${w}px; height: ${h}px; overflow: hidden; }
+  body { background: ${GRAPHITE}; font-family: Brand, sans-serif; }
+</style></head><body>${body}</body></html>`;
+
+// Plain icons are the SVG edge to edge; the maskable one keeps the mark inside the 80% safe zone
+// on a full graphite square, so a launcher's circle or squircle never clips it. iOS rounds the
+// touch icon itself and paints transparency black, so it gets the full square too.
+const ICONS = [
+  { file: 'icon-192.png', size: 192, inset: 0 },
+  { file: 'icon-512.png', size: 512, inset: 0 },
+  { file: 'icon-maskable-512.png', size: 512, inset: 0.12 },
+  { file: 'apple-touch-icon.png', size: 180, inset: 0.08 },
+];
+
+const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH });
+try {
+  for (const { file, size, inset } of ICONS) {
+    const p = await browser.newPage({ viewport: { width: size, height: size } });
+    const pad = Math.round(size * inset);
+    const bg = inset ? GRAPHITE : 'transparent';
+    await p.setContent(
+      page(
+        `<div style="width:${size}px;height:${size}px;background:${bg};box-sizing:border-box;padding:${pad}px">` +
+          `<img src="${svgUrl}" style="width:100%;height:100%;display:block"></div>`,
+        size,
+        size,
+      ),
+    );
+    await p.screenshot({ path: `public/${file}`, omitBackground: !inset });
+    await p.close();
+    console.log(`public/${file}`);
+  }
+
+  const p = await browser.newPage({ viewport: { width: 1200, height: 630 } });
+  await p.setContent(
+    page(
+      `<div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding:0 96px;box-sizing:border-box;color:${FACE}">
+        <img src="${svgUrl}" style="width:128px;height:128px;margin-bottom:48px">
+        <div style="font-size:88px;font-weight:700;line-height:1.1;color:#fff">${BRAND.name}</div>
+        <div style="font-size:36px;line-height:1.35;margin-top:24px;max-width:960px">${BRAND.description}</div>
+      </div>`,
+      1200,
+      630,
+    ),
+  );
+  await p.evaluate(() => document.fonts.ready);
+  await p.screenshot({ path: 'public/og-image.png' });
+  console.log('public/og-image.png');
+} finally {
+  await browser.close();
+}

@@ -1,7 +1,7 @@
 // The Application kit (rapid apply): the profile fields and saved answers a user pastes into every
 // application form, entered once and copied per job in Apply mode. It follows the account in the
 // sync blob (ADR 0008, blob v6), like evidence and saved searches. Templates for "Why this company"
-// and the cover note are picked by snippet id, so the text itself stays in Templates.
+// and the cover note are picked by snippet id, so the text itself stays in Documents (an Outreach message, #227).
 import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
 import { fillSnippet } from './templateFill';

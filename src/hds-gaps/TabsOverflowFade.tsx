@@ -1,9 +1,9 @@
-// HDS gap (#115, hds#723, closed upstream: recheck and drop on the next HDS upgrade): TabsList scrolls sideways when its tabs don't fit, with the scrollbar hidden and
-// no cue that more tabs sit past the edge (the four top tabs overflow a 390px phone). This wrapper
-// fades whichever edge has more to scroll past, and keeps the selected tab in view
-// (Radix doesn't scroll to it). Filed upstream with the Phase 7 asks (#133); delete this when
-// TabsList grows an overflow cue. Also wraps a SegmentedControl (its radiogroup scrolls the same
-// way, e.g. Discover's four tools on a phone): the ask is an `overflow` prop on both.
+// HDS gap (#115): a strip of options that scrolls sideways on a phone needs an edge cue and keeps
+// the selected option in view. HDS 0.26.1 fades TabsList's hidden edge itself (hds#723), so for a
+// tab list this wrapper only scrolls the selected tab into view (Radix doesn't). A SegmentedControl
+// (Discover's tools on a phone) scrolls the same way with no cue, so there it also fades whichever
+// edge has more to scroll past. Ask (hds#823): TabsList scrolls its
+// selected tab into view, and SegmentedControl gets the same overflow fade. Delete this when both land.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 // Mask alpha only: currentColor is opaque, so an edge fades to transparent without a colour.
@@ -15,6 +15,8 @@ const mask = (start: boolean, end: boolean) =>
 
 const SCROLLER = '[role="tablist"],[role="radiogroup"]';
 const tablistIn = (root: HTMLElement | null) => root?.querySelector<HTMLElement>(SCROLLER) ?? null;
+/** Only a radiogroup needs our fade: HDS TabsList draws its own. */
+const fadesHere = (list: HTMLElement | null) => list?.getAttribute('role') === 'radiogroup';
 
 export default function TabsOverflowFade({
   value,
@@ -29,8 +31,9 @@ export default function TabsOverflowFade({
 
   const measure = useCallback(() => {
     const list = tablistIn(ref.current);
-    const start = !!list && list.scrollLeft > 1;
-    const end = !!list && list.scrollLeft + list.clientWidth < list.scrollWidth - 1;
+    const own = !!list && fadesHere(list);
+    const start = own && list.scrollLeft > 1;
+    const end = own && list.scrollLeft + list.clientWidth < list.scrollWidth - 1;
     setEdges((e) => (e.start === start && e.end === end ? e : { start, end }));
   }, []);
   const fade = edges.start || edges.end ? mask(edges.start, edges.end) : undefined;

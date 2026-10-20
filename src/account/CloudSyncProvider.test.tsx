@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Button, ToastProvider } from '@hirobius/design-system';
 import { createFakeSupabase } from '../test/fakeSupabase';
 
 // Count every createClient call app-wide: the app must build exactly ONE Supabase client (#99).
@@ -19,6 +21,8 @@ vi.mock('@supabase/supabase-js', async () => {
 });
 
 import { renderAccount, openAccount, chooseAccountItem } from '../test/renderAccount';
+import CloudSyncProvider from './CloudSyncProvider';
+import { useCloudSync } from './accountContext';
 import {
   addCategory,
   getCurationState,
@@ -27,7 +31,7 @@ import {
   updateCategory,
 } from '../curation/curationStore';
 import { setCurationSyncedAt } from '../curation/syncStatus';
-import { clearAllPending } from '../curation/pending';
+import { clearAllPending, getPending } from '../curation/pending';
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
 import { OFFLINE_MSG } from '../cloudMessages';
@@ -39,6 +43,7 @@ import { readMode, writeMode } from '../trackModes';
 import { emptyBlob, writeBlob } from '../syncBlob';
 import { getTrash, replaceTrash, trashJob } from '../trash';
 import { createDocument, getAllDocuments, replaceDocuments } from '../documents';
+import type { Job } from '../types';
 
 const fake = () => h.fake!;
 const NOW = '2026-10-01T00:00:00.000Z';
@@ -55,6 +60,35 @@ afterEach(() => {
     .slice()
     .forEach((j) => removeJob(j.url));
   vi.restoreAllMocks();
+});
+
+describe('CloudSyncProvider sendLink (#44)', () => {
+  function SendButton() {
+    const { sendLink } = useCloudSync();
+    return <Button onClick={() => void sendLink('me@example.com')}>Send</Button>;
+  }
+
+  it('asks Supabase to redirect to an allow-listed origin at the root, never the current path', async () => {
+    const otp = vi.spyOn(fake().client.auth, 'signInWithOtp');
+    history.pushState(null, '', '/deep/path?next=https://evil.example#/queue');
+    try {
+      render(
+        <ToastProvider>
+          <CloudSyncProvider>
+            <SendButton />
+          </CloudSyncProvider>
+        </ToastProvider>,
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+      await waitFor(() => expect(otp).toHaveBeenCalledTimes(1));
+      expect(otp).toHaveBeenCalledWith({
+        email: 'me@example.com',
+        options: { emailRedirectTo: `${location.origin}/` },
+      });
+    } finally {
+      history.pushState(null, '', '/');
+    }
+  });
 });
 
 describe('CloudSyncProvider (via the account menu)', () => {
@@ -338,6 +372,55 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       addCategory({ label: 'After expiry' });
     });
     expect(await screen.findByText('Track changes didn’t reach the cloud')).toBeInTheDocument();
+  });
+
+  it('an edit made after another tab signed out is kept and sent at the next sign-in (#169)', async () => {
+    const id = await signedInWithSyncedTrack();
+    // Another tab signs out: the stored session is gone and this tab hears SIGNED_OUT, but this
+    // tab never ran its own sign-out (no wipe, no reload), so its board is still on screen.
+    await act(async () => {
+      await fake().client.auth.signOut();
+    });
+    act(() => updateCategory(id, { label: 'Design Engineering' }));
+    await waitFor(() =>
+      expect(getPending()).toEqual([
+        expect.objectContaining({ table: 'categories', id, op: 'upsert', failed: true }),
+      ]),
+    );
+    expect(cloudLabels()).toEqual(['Design Systems']);
+    act(() => fake().signIn('u1'));
+    await waitFor(() => expect(cloudLabels()).toEqual(['Design Engineering']));
+    expect(label()).toEqual(['Design Engineering']);
+    expect(getPending()).toEqual([]);
+  });
+
+  it('a job removed on another device stays removed when this one reloads (#219)', async () => {
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    act(() => {
+      addJob('https://a.example/1');
+      addJob('https://b.example/1');
+    });
+    await waitFor(() => expect(fake().tables.tracker?.[0]?.data.jobs).toHaveLength(2));
+
+    // Another device removes A: the cloud now lists it under Recently removed.
+    const data = fake().tables.tracker[0].data;
+    const [a, b] = [...data.jobs].sort((x: Job, y: Job) => x.url.localeCompare(y.url));
+    fake().tables.tracker[0].data = {
+      ...data,
+      jobs: [b],
+      trash: [{ job: a, removedAt: new Date().toISOString() }],
+    };
+
+    // This device reloads with its old copy still in storage and signs in again.
+    cleanup();
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await waitFor(() => expect(getTrash().map((r) => r.job.url)).toEqual([a.url]));
+    expect(getAllJobs().map((j) => j.url)).toEqual([b.url]);
+    await waitFor(() =>
+      expect(fake().tables.tracker[0].data.jobs.map((j: Job) => j.url)).toEqual([b.url]),
+    );
   });
 
   // ADR 0008: what the user edits (targets, saved searches, evidence, work mode) follows the account.

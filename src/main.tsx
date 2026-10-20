@@ -12,10 +12,13 @@ import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
 import { DensityProvider } from './Density';
 import { ErrorBoundary } from './ErrorBoundary';
+import { installErrorReporting } from './errorReport';
 import App from './App';
 
 // Vercel Web Analytics (page counts only; needs the dashboard toggle — see issue #16).
 inject();
+// Scrubbed crash reports to Supabase on the live site only (#47; never from localhost).
+installErrorReporting();
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

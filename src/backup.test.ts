@@ -48,7 +48,7 @@ const state = (over: Partial<AccountState> = {}): AccountState => ({
       },
     ],
   },
-  triage: { pinned: ['https://shop.example/'], dismissed: [] },
+  triage: { dismissed: [] },
   targets: {},
   filters: {},
   evidence: '',
@@ -56,6 +56,8 @@ const state = (over: Partial<AccountState> = {}): AccountState => ({
   trash: [],
   dreams: {},
   documents: [],
+  kit: { fields: {}, answers: [] },
+  sweeps: {},
   ...over,
 });
 
@@ -152,7 +154,7 @@ describe('buildBackup / parseBackup', () => {
       expect(r.backup.curation.categories.map((c) => c.id)).toEqual(['c2']);
       expect(r.backup.curation.groups.map((g) => g.id)).toEqual(['g2']);
       expect(r.backup.curation.tiles).toEqual([]);
-      expect(r.backup.triage).toEqual({ pinned: ['u'], dismissed: [] });
+      expect(r.backup.triage).toEqual({ dismissed: [] }); // old pins are dropped (#19)
     }
   });
 
@@ -193,7 +195,7 @@ describe('applyBackup', () => {
     jobs: [job('https://example.com/b', 'B')],
     copydeck: [{ id: 's2', label: 'Other', body: 'x' }],
     curation: { categories: [], groups: [], tiles: [] },
-    triage: { pinned: [], dismissed: ['https://shop.example/'] },
+    triage: { dismissed: ['https://shop.example/'] },
   });
 
   it('replace yields exactly the backup data', () => {
@@ -213,7 +215,7 @@ describe('applyBackup', () => {
     expect(m.jobs.find((j) => j.url === 'https://example.com/a')?.label).toBe('From backup');
     expect(m.copydeck.map((s) => s.id).sort()).toEqual(['s1', 's2']);
     expect(m.curation.categories.map((c) => c.id)).toEqual(['c1']);
-    expect(m.triage).toEqual({ pinned: [], dismissed: ['https://shop.example/'] });
+    expect(m.triage).toEqual({ dismissed: ['https://shop.example/'] });
   });
 });
 
@@ -304,7 +306,7 @@ describe('sample data (#110)', () => {
         jobs: [sample, real],
         copydeck: [],
         curation: { categories: [], groups: [], tiles: [] },
-        triage: { pinned: [], dismissed: [] },
+        triage: { dismissed: [] },
         targets: {},
         filters: {},
         evidence: '',
@@ -312,6 +314,8 @@ describe('sample data (#110)', () => {
         trash: [],
         dreams: {},
         documents: [],
+        kit: { fields: {}, answers: [] },
+        sweeps: {},
       },
       new Date(2026, 9, 13),
     );
@@ -448,5 +452,52 @@ describe('backup carries Documents (#226)', () => {
         .sort(),
     ).toEqual(['mine', 'theirs']);
     expect(applyBackup(cur, bak, 'replace').documents.map((d) => d.id)).toEqual(['theirs']);
+  });
+});
+
+// "Download all my data" (#47): the backup carries every synced store, the Application kit (its
+// profile fields are personal data) and the wide-sweep titles included.
+describe('backup covers the Application kit and sweep titles (#47)', () => {
+  const kit = {
+    fields: { name: 'Sam Doe', email: 'sam@example.test' },
+    answers: [{ id: 'a1', q: 'Why us?', a: 'Because.' }],
+  };
+  const sweeps = { c1: { titles: ['Welder', 'Fitter'], off: ['Fitter'] } };
+
+  it('round-trips both', () => {
+    const r = parseBackup(JSON.stringify(buildBackup(state({ kit, sweeps }), NOW)));
+    expect(r.ok && r.backup.kit).toEqual(kit);
+    expect(r.ok && r.backup.sweeps).toEqual(sweeps);
+  });
+
+  it('reads an older backup without them as empty', () => {
+    const r = parseBackup(wrap({}));
+    expect(r.ok && r.backup.kit).toEqual({ fields: {}, answers: [] });
+    expect(r.ok && r.backup.sweeps).toEqual({});
+  });
+
+  it('sanitizes them', () => {
+    const r = parseBackup(
+      wrap({
+        kit: { fields: { name: 'ok', nope: 'x' }, answers: [{ q: 'no id' }] },
+        sweeps: { __proto__: { titles: ['x'] }, c2: { titles: 'nope' } },
+      }),
+    );
+    expect(r.ok && r.backup.kit).toEqual({ fields: { name: 'ok' }, answers: [] });
+    expect(r.ok && r.backup.sweeps).toEqual({});
+  });
+
+  it('replace takes the backup’s; merge lets the backup win on shared keys', () => {
+    const current = state({
+      kit: { fields: { name: 'Old', phone: '555' }, answers: [] },
+      sweeps: { c9: { titles: ['Local'], off: [] } },
+    });
+    const backup = state({ kit, sweeps });
+    const replaced = applyBackup(current, backup, 'replace');
+    expect(replaced.kit).toEqual(kit);
+    expect(replaced.sweeps).toEqual(sweeps);
+    const merged = applyBackup(current, backup, 'merge');
+    expect(merged.kit.fields).toEqual({ name: 'Sam Doe', email: 'sam@example.test', phone: '555' });
+    expect(Object.keys(merged.sweeps).sort()).toEqual(['c1', 'c9']);
   });
 });

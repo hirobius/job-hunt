@@ -2,7 +2,8 @@
 // of them are on. Kept in `rjb_sweep_titles` and synced in the blob (v7, ADR 0008). A track with no
 // entry uses its own titles, all on; the first edit stores the list. Storage is untrusted: anything
 // malformed reads as "no entry".
-import { useMemo, useSyncExternalStore } from 'react';
+import { useMemo } from 'react';
+import { liveStorage } from '../liveStorage';
 import { loadPersisted, savePersisted } from '../persisted';
 
 export const SWEEP_KEY = 'rjb_sweep_titles';
@@ -33,13 +34,25 @@ function cleanTitles(list: unknown): string[] {
   return out.slice(0, MAX_SWEEP_TITLES);
 }
 
+/** Titles past MAX_SWEEP_ON that are on read as off: store them as off, so the list shows what is
+ * searched and unticking one never switches a later title on (#223). */
+function capOn(titles: string[], off: string[]): SweepTitles {
+  const offSet = new Set(off.map(norm));
+  let on = 0;
+  const extra = titles.filter((t) => !offSet.has(norm(t)) && ++on > MAX_SWEEP_ON);
+  return { titles, off: [...off, ...extra] };
+}
+
 function sanitizeOne(raw: unknown): SweepTitles | null {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
   const o = raw as Record<string, unknown>;
   const titles = cleanTitles(o.titles);
   if (!titles.length) return null;
   const known = new Set(titles.map(norm));
-  return { titles, off: cleanTitles(o.off).filter((t) => known.has(norm(t))) };
+  return capOn(
+    titles,
+    cleanTitles(o.off).filter((t) => known.has(norm(t))),
+  );
 }
 
 export function sanitizeSweeps(raw: unknown): Record<string, SweepTitles> {
@@ -53,10 +66,10 @@ export function sanitizeSweeps(raw: unknown): Record<string, SweepTitles> {
 }
 
 const readAll = () => sanitizeSweeps(loadPersisted<unknown>(SWEEP_KEY, {}));
-const listeners = new Set<() => void>();
+const live = liveStorage(SWEEP_KEY);
 const write = (all: Record<string, SweepTitles>) => {
   savePersisted(SWEEP_KEY, all);
-  listeners.forEach((l) => l());
+  live.notify();
 };
 
 /** Every track's sweep titles (for the sync blob). */
@@ -81,7 +94,7 @@ export function sweepFor(
   categoryId: string,
   seed: string[],
 ): SweepTitles {
-  return all[categoryId] ?? { titles: cleanTitles(seed), off: [] };
+  return all[categoryId] ?? capOn(cleanTitles(seed), []);
 }
 
 /** The titles a sweep searches: on, in list order, at most MAX_SWEEP_ON. */
@@ -133,25 +146,9 @@ export function removeTitle(categoryId: string, seed: string[], title: string): 
   }));
 }
 
-const rawNow = () => {
-  try {
-    return localStorage.getItem(SWEEP_KEY) ?? '';
-  } catch {
-    return '';
-  }
-};
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  window.addEventListener('storage', l);
-  return () => {
-    listeners.delete(l);
-    window.removeEventListener('storage', l);
-  };
-};
-
 /** Every track's sweep titles, live. */
 export function useAllSweeps(): Record<string, SweepTitles> {
-  const raw = useSyncExternalStore(subscribe, rawNow, rawNow);
+  const raw = live.useRaw();
   return useMemo(() => {
     try {
       return sanitizeSweeps(raw ? JSON.parse(raw) : {});
