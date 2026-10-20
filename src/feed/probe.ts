@@ -8,11 +8,29 @@
 // the caller can abort. Answers are cached in local storage (`rjb_probe`, not synced) so a second
 // scan of the same list is nearly free. Tests inject `fetchJson`, never the network.
 import { browserKv, type KeyValue } from './fetchFeed';
-import { boardApiUrl, boardJobs, parseBoardUrl, type Board, type BoardKind } from './sources/ats';
+import {
+  EMPTY_MEANS_NONE,
+  boardApiUrl,
+  boardJobs,
+  parseBoardUrl,
+  type Board,
+  type BoardKind,
+} from './sources/ats';
 import { FetchError, prettySlug, type FetchJson } from './sources/http';
 
 export const PROBE_KEY = 'rjb_probe';
-export const PROBE_KINDS: BoardKind[] = ['greenhouse', 'lever', 'ashby', 'workable', 'recruitee'];
+export const PROBE_KINDS: BoardKind[] = [
+  'greenhouse',
+  'lever',
+  'ashby',
+  'workable',
+  'recruitee',
+  'smartrecruiters',
+  'teamtailor',
+  'personio',
+];
+/** Boards that live on a company subdomain: a company without one fails DNS (status 0), not 404. */
+const SUBDOMAIN_KINDS: ReadonlySet<BoardKind> = new Set(['recruitee', 'teamtailor', 'personio']);
 export const MAX_IN_FLIGHT = 6;
 export const MAX_PER_HOST = 2;
 const HOST_GAP_MS = 150;
@@ -25,23 +43,33 @@ const COMPANY_WORKERS = 6;
 
 // ---- names to slugs ----
 
-const HARD_SUFFIX = /^(inc|llc|co|corp|ltd)$/;
-const SOFT_SUFFIX = /^(labs|hq)$/;
+const HARD_SUFFIX =
+  /^(inc|incorporated|llc|co|corp|corporation|ltd|limited|plc|gmbh|ag|sa|bv|oy|ab)$/;
+const SOFT_SUFFIX = /^(labs|hq|technologies|technology|software|studio|studios)$/;
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+export const MAX_CANDIDATES = 4;
 
-/** Up to 3 slugs a company's board might use: `acme-labs`, `acmelabs`, `acme` for "Acme Labs, Inc.". */
+/** Up to 4 slugs a company's board might use, likeliest first: the name hyphenated and run
+ *  together, then the same without a leading "The" or a trailing "Labs"/"Software"-like word.
+ *  "Acme Labs, Inc." → `acme-labs`, `acmelabs`, `acme`; "The Browser Company" →
+ *  `the-browser-company`, `thebrowsercompany`, `browser-company`, `browsercompany`. Accents fold
+ *  ("Société" → `societe`) and "&" reads "and". */
 export function slugCandidates(name: string): string[] {
   let words = name
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/['’]/g, '')
+    .replace(/&/g, ' and ')
     .split(/[^a-z0-9]+/)
     .filter(Boolean);
   while (words.length > 1 && HARD_SUFFIX.test(words[words.length - 1])) words = words.slice(0, -1);
   if (!words.length) return [];
-  const bare =
-    words.length > 1 && SOFT_SUFFIX.test(words[words.length - 1]) ? words.slice(0, -1) : words;
-  const out = [words.join('-'), words.join(''), bare.join('-')];
-  return [...new Set(out)].slice(0, 3);
+  let bare = words;
+  if (bare.length > 1 && bare[0] === 'the') bare = bare.slice(1);
+  if (bare.length > 1 && SOFT_SUFFIX.test(bare[bare.length - 1])) bare = bare.slice(0, -1);
+  const out = [words.join('-'), words.join(''), bare.join('-'), bare.join('')];
+  return [...new Set(out)].slice(0, MAX_CANDIDATES);
 }
 
 export interface CompanyTarget {
@@ -92,7 +120,10 @@ export async function probeBoard(b: Board, fetchJson: FetchJson): Promise<ProbeO
     return { result: 'unknown', status: 0 };
   }
   const list = boardJobs(b, body);
-  return list ? { result: 'live', jobs: list.length } : { result: 'unknown' };
+  if (!list) return { result: 'unknown' };
+  // SmartRecruiters answers an empty list for any name, board or not.
+  if (!list.length && EMPTY_MEANS_NONE.has(b.kind)) return { result: 'none' };
+  return { result: 'live', jobs: list.length };
 }
 
 // ---- politeness ----
@@ -307,13 +338,14 @@ export async function* probeCompanies(
     for (const group of groups) {
       if (halt()) return null;
       const outs = await Promise.all(group.map((b) => check(b)));
-      // A Recruitee board is a subdomain, so a company without one fails DNS (status 0), not 404.
-      // When another ATS in the same round answered, the network is up: read that as none.
+      // A Recruitee, Teamtailor or Personio board is a subdomain, so a company without one fails
+      // DNS (status 0), not 404. When another ATS in the same round answered, the network is up:
+      // read that as none.
       const reached = outs.some((o) => o.result !== 'unknown');
       group.forEach((b, i) => {
         if (
           reached &&
-          b.kind === 'recruitee' &&
+          SUBDOMAIN_KINDS.has(b.kind) &&
           outs[i].result === 'unknown' &&
           outs[i].status === 0
         )
