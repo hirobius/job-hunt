@@ -300,6 +300,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   / `lint` / `test` / `build` + headless Chromium) **plus the Vercel deploy**. Never add or rely on
   an Actions workflow; don't treat Actions checks as a merge gate.
 - `npm install`, `npm run dev`, `npm run build`, `npm run typecheck`.
+- **Cloud sessions:** `.claude/hooks/session-start.sh` (SessionStart hook) runs `npm ci` on a fresh clone when
+  `node_modules` is missing or older than the lockfile; it needs `HDS_PACKAGES_TOKEN` and says so when unset.
 - **Deploy gate (#95):** `vercel.json`'s `buildCommand` is `npm run verify` (typecheck → lint →
   vitest → build), so a red check fails the Vercel build and the previous deploy stays live.
   **`main` is the live production site** — run `npm run verify` before pushing. Branch pushes only
