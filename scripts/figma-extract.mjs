@@ -81,6 +81,24 @@ const SCREENS = [
     },
   ],
   [
+    'Job – Documents',
+    async (p) => {
+      await go(p, '#/queue');
+      await click(p, 'first-job');
+      await click(p, 'tab', /^Documents/);
+    },
+  ],
+  [
+    'Company page',
+    async (p) => {
+      await go(p, '#/queue');
+      await click(p, 'first-job');
+      const a = p.locator('a[href^="#/company/"]').first();
+      if (await a.isVisible().catch(() => false)) await a.click();
+      await wait(p, 600);
+    },
+  ],
+  [
     'Apply mode',
     async (p) => {
       await go(p, '#/queue');
