@@ -157,7 +157,7 @@ export default function JobOverview({ job }: { job: Job }) {
     <Stack gap="normal">
       <Stack gap="tight">
         <Stack direction="row" gap="tight" align="center" justify="space-between">
-          <Text variant="body" as="h3" className="rjb-semibold">
+          <Text variant="body" as="h3" weight="bold">
             Details
           </Text>
           {!editing && (

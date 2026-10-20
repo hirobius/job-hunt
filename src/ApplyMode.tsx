@@ -7,6 +7,7 @@ import {
   Alert,
   Box,
   Button,
+  EmptyState,
   Icon,
   Input as HdsInput,
   Select,
@@ -16,7 +17,6 @@ import {
   useToast,
 } from '@hirobius/design-system';
 import { PageHeader } from '@hirobius/design-system/patterns';
-import EmptyState from './EmptyState';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
 import { openApply, openJob } from './route';
 import { metaLines } from './metaLines';
@@ -63,7 +63,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
         <Box>{back}</Box>
         <EmptyState
           title={queue.length ? 'Pick up where you left off' : 'To apply is empty'}
-          message={
+          description={
             queue.length
               ? `${queue.length} ${queue.length === 1 ? 'job is' : 'jobs are'} waiting to be applied to.`
               : 'Save jobs from Discover or paste a link, then come back here to apply.'
@@ -311,7 +311,7 @@ function ApplyTemplates({ job }: { job: Job }) {
   );
   return (
     <Stack gap="tight">
-      <Text variant="body" as="h3" className="rjb-semibold">
+      <Text variant="body" as="h3" weight="bold">
         Templates
       </Text>
       {rows.length ? (
@@ -358,7 +358,7 @@ function ApplicationKit({ job }: { job: Job }) {
   };
   return (
     <Stack gap="normal">
-      <Text variant="body" as="h3" className="rjb-semibold">
+      <Text variant="body" as="h3" weight="bold">
         Application kit
       </Text>
       <Text variant="caption" as="p" tone="secondary">
@@ -375,7 +375,7 @@ function ApplicationKit({ job }: { job: Job }) {
         ))}
       </Box>
 
-      <Text variant="body" as="h3" className="rjb-semibold">
+      <Text variant="body" as="h3" weight="bold">
         Letters
       </Text>
       {(
@@ -397,7 +397,7 @@ function ApplicationKit({ job }: { job: Job }) {
         </Stack>
       ))}
 
-      <Text variant="body" as="h3" className="rjb-semibold">
+      <Text variant="body" as="h3" weight="bold">
         Your answers
       </Text>
       {kit.answers.length === 0 && (

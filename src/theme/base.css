@@ -37,8 +37,7 @@ a:focus-visible,
 }
 
 /* Host type resets for HDS `Text` (#133). Reset-free styles.css leaves heading/paragraph margins to
- * the browser, so rhythm comes from parent Stack gaps only. `.rjb-semibold` is the one weight
- * step the app uses on `ui` headings and names; upstream ask: a `weight` prop on HDS Text (hds#825). */
+ * the browser, so rhythm comes from parent Stack gaps only. Weight is HDS `Text weight` (hds#825). */
 h1,
 h2,
 h3,
@@ -47,10 +46,6 @@ h5,
 h6,
 p {
   margin: 0;
-}
-
-.rjb-semibold {
-  font-weight: 600;
 }
 
 /* The phone app-bar mark (#241): the brand's first letter in a small accent square, so the app

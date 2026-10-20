@@ -22,7 +22,7 @@ export default function GettingStarted({ jobs }: { jobs: Job[] }) {
     <Box as="section" aria-label="Getting started">
       <Stack gap="tight">
         <Stack direction="row" gap="tight" align="center" justify="space-between">
-          <Text variant="ui" as="h3" className="rjb-semibold">
+          <Text variant="ui" as="h3" weight="bold">
             Getting started
           </Text>
           <Button

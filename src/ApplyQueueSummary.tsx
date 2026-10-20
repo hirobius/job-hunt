@@ -18,7 +18,7 @@ export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
       <Box as="section" aria-label={`To apply (${queue.length})`}>
         <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
           <Box>
-            <Text variant="body" as="h3" className="rjb-semibold">
+            <Text variant="body" as="h3" weight="bold">
               {`To apply (${queue.length})`}
             </Text>
             <Text variant="caption" as="p" tone="secondary">

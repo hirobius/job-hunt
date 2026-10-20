@@ -7,8 +7,7 @@
 // (outreachTemplates.ts); the starter set can be restored here when one is missing.
 import { useState, type ReactNode } from 'react';
 import { Star } from 'lucide-react';
-import { Box, Button, Icon, Stack, Text } from '@hirobius/design-system';
-import EmptyState from './EmptyState';
+import { Box, Button, EmptyState, Icon, Stack, Text } from '@hirobius/design-system';
 import DocumentEditor from './DocumentEditor';
 import { DOCUMENT_KINDS, getAllDocuments, replaceDocuments, useDocuments } from './documents';
 import { documentIdForSnippet, kindForSnippet, restoreStarterOutreach } from './snippetMigration';
@@ -126,7 +125,7 @@ export default function DocumentsLibrary({
           <section key={kind} aria-labelledby={headId}>
             <Stack gap="tight">
               <Stack direction="row" gap="tight" align="center" justify="space-between">
-                <Text variant="body" as="h3" id={headId} className="rjb-semibold">
+                <Text variant="body" as="h3" id={headId} weight="bold">
                   {PLURAL[kind]}
                 </Text>
                 {items.length > 0 && (
@@ -138,7 +137,7 @@ export default function DocumentsLibrary({
               {items.length === 0 ? (
                 <EmptyState
                   title={`No ${lower(PLURAL[kind])} yet`}
-                  message={EMPTY_HINT[kind]}
+                  description={EMPTY_HINT[kind]}
                   action={
                     <Button variant="secondary" size="sm" onClick={create}>
                       {newLabel}

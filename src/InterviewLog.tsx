@@ -63,7 +63,7 @@ export default function InterviewLog({ job }: { job: Job }) {
   return (
     <Stack gap="normal">
       <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
-        <Text variant="ui" as="h4" className="rjb-semibold">
+        <Text variant="ui" as="h4" weight="bold">
           Interviews & calls
         </Text>
         <Button

@@ -2,14 +2,15 @@ import { Fragment, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@hirobius/design-system/patterns';
 import { ArrowUpDown, Search, Briefcase, Building2, ListFilter, Plus, X } from 'lucide-react';
 import {
+  Box,
   Button as UiButton,
+  Dialog,
+  EmptyState,
+  Icon,
   Input as HdsInput,
   Menu as HdsMenu,
-  Dialog,
-  Icon,
-  Tag,
-  Box,
   Stack,
+  Tag,
   Text,
 } from '@hirobius/design-system';
 import { useJobs } from './store';
@@ -24,7 +25,6 @@ import {
   visibleJobs,
   type Filter,
 } from './pipelineView';
-import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import JobsTable from './JobsTable';
 import ApplyQueueSummary from './ApplyQueueSummary';
@@ -250,7 +250,7 @@ export default function TrackerView() {
               <EmptyState
                 icon={Briefcase}
                 title="Track your first job"
-                message="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
+                description="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
                 action={
                   <Stack direction="row" wrap="wrap" gap="tight" justify="center">
                     {addJobButton}
@@ -261,7 +261,7 @@ export default function TrackerView() {
             </Box>
           ) : shown.length === 0 ? (
             <EmptyState
-              message={
+              title={
                 q.trim()
                   ? `No saved jobs match “${q.trim()}”.`
                   : filter === 'active'

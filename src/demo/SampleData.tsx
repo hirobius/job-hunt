@@ -34,7 +34,7 @@ export function SampleBanner({ jobs }: { jobs: Job[] }) {
     <Box role="status" aria-label="Sample data">
       <Stack direction="row" wrap="wrap" gap="px8" align="center">
         <Text variant="caption" as="span" tone="secondary">
-          <span className="rjb-semibold">Sample data</span> · {n} fictional{' '}
+          <strong>Sample data</strong> · {n} fictional{' '}
           {n === 1 ? 'job' : 'jobs'}. Clearing removes them and any edits to them.
         </Text>
         <Button variant="tertiary" size="sm" onClick={() => clearSample()}>

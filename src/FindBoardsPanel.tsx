@@ -164,7 +164,7 @@ export default function FindBoardsPanel({
       </Text>
       {DISCOVERY_SOURCE_ENABLED.yc && (
         <Stack gap="xs">
-          <Text variant="body" as="h3" className="rjb-semibold">
+          <Text variant="body" as="h3" weight="bold">
             Start from a YC batch
           </Text>
           <TabsOverflowFade value={batch}>
@@ -249,7 +249,7 @@ export default function FindBoardsPanel({
       {result && result.found.length > 0 && (
         <Stack gap="xs">
           <Stack direction="row" justify="space-between" align="center">
-            <Text variant="body" as="h3" className="rjb-semibold">
+            <Text variant="body" as="h3" weight="bold">
               Boards found
             </Text>
             {unwatchedFound.length > 1 && (

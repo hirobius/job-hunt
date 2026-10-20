@@ -154,7 +154,7 @@ export default function App() {
                 {/* Slim app bar (#241): mark · Menu. The app name never competes with a page
                     title: a small mark on a phone, a body-size (16px) wordmark from `sm` up. */}
                 <Stack direction="row" wrap="wrap" gap="gap" align="center" justify="space-between">
-                  <Text variant="body" as="h1" className="rjb-semibold">
+                  <Text variant="body" as="h1" weight="bold">
                     {wide ? (
                       <>
                         {BRAND.wordmark[0]}

@@ -18,7 +18,7 @@ function RemovedRow({ entry }: { entry: Removed }) {
   return (
     <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
       <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <Text variant="ui" as="span" className="rjb-semibold">
+        <Text variant="ui" as="span" weight="bold">
           {title}
         </Text>
         {metaLines([entry.job.company, daysAgo(entry.removedAt)]).map((line) => (

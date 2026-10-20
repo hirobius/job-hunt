@@ -253,7 +253,7 @@ export default function ManageTrackDialog({
               />
 
               <Box sx={{ borderTop: 'thin solid', borderColor: 'border.default', pt: 3 }}>
-                <Text variant="body" className="rjb-semibold">
+                <Text variant="body" weight="bold">
                   Sections & links
                 </Text>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>

@@ -47,7 +47,7 @@ export default function SyncNudge() {
                   <Icon icon={Cloud} />
                 </Box>
                 <Text variant="ui" as="p">
-                  <span className="rjb-semibold">Saved in this browser only.</span> Sign in to keep
+                  <strong>Saved in this browser only.</strong> Sign in to keep
                   your jobs on every device.
                 </Text>
               </Stack>

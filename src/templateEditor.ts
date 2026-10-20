@@ -1,6 +1,6 @@
-// Editing helpers for the Templates editor (#132, #221). The body is stored as plain text with
-// `[Variable]` tokens; the editor shows each token as one chip and edits through these helpers, so
-// a chip is inserted, stepped over and deleted as a unit and can never be half-edited.
+// Helpers for the Templates editor (#132, #221). The body is stored as plain text with
+// `[Variable]` tokens; the editor is HDS `TokenField` (hds#826), which draws each token as one chip
+// and steps over and deletes it as a unit. These find the variables and put one at the caret.
 
 /** The five tokens the editor offers: the four a job fills, and the user's own name. */
 export const TOKEN_CHIPS = [
@@ -46,8 +46,9 @@ export function insertToken(
 
 export type Segment = { kind: 'text'; text: string } | { kind: 'var'; token: string; name: string };
 
-// A variable is any short bracketed name on one line: `[Company]`, `[Hiring manager]`.
-const VARIABLE = /\[([^[\]\n]{1,40})\]/g;
+// A variable is any short bracketed name on one line: `[Company]`, `[Hiring manager]`. Also the
+// editor's HDS `TokenField` `tokenPattern`, so what shows as a chip is what fills.
+export const VARIABLE = /\[([^[\]\n]{1,40})\]/g;
 
 /** The body as text runs and variable chips; joining them back gives the body exactly. */
 export function splitVariables(value: string): Segment[] {
@@ -77,39 +78,4 @@ export function templateVariables(value: string): string[] {
     if (!seen.has(key)) seen.set(key, CANONICAL.get(key) ?? s.name);
   }
   return [...seen.values()];
-}
-
-/** Where each chip sits in the body, as [start, end) offsets. */
-function chipSpans(value: string): [number, number][] {
-  const spans: [number, number][] = [];
-  let at = 0;
-  for (const s of splitVariables(value)) {
-    const len = s.kind === 'text' ? s.text.length : s.token.length;
-    if (s.kind === 'var') spans.push([at, at + len]);
-    at += len;
-  }
-  return spans;
-}
-
-/** Backspace just after (or Delete just before) a chip removes the whole chip; else null. */
-export function removeChipAt(
-  value: string,
-  caret: number,
-  dir: 'back' | 'forward',
-): { value: string; caret: number } | null {
-  const span = chipSpans(value).find(([a, b]) => (dir === 'back' ? b === caret : a === caret));
-  if (!span) return null;
-  return { value: value.slice(0, span[0]) + value.slice(span[1]), caret: span[0] };
-}
-
-/** An arrow key beside a chip moves past all of it; else null. */
-export function stepOver(value: string, caret: number, dir: 'back' | 'forward'): number | null {
-  const span = chipSpans(value).find(([a, b]) => (dir === 'back' ? b === caret : a === caret));
-  return span ? (dir === 'back' ? span[0] : span[1]) : null;
-}
-
-/** A caret can't sit inside a chip: one that lands there moves to the chip's end. */
-export function snapOutOfChip(value: string, caret: number): number {
-  const span = chipSpans(value).find(([a, b]) => caret > a && caret < b);
-  return span ? span[1] : caret;
 }

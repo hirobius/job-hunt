@@ -150,7 +150,7 @@ export function SavedTargets({
   return (
     <Stack gap="xs" as="section" aria-label="Outreach targets">
       {heading && (
-        <Text variant="body" as="h3" className="rjb-semibold">
+        <Text variant="body" as="h3" weight="bold">
           Outreach targets
         </Text>
       )}

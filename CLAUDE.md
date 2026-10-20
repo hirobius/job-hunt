@@ -35,17 +35,17 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
     peer fields prefer `Switcher`. The old nested `'&'` override is gone (`hdsOnly.test.ts`).
   - **Secondary text** is `<Text variant="caption" tone="secondary">` (HDS 0.26, hds#655);
     `hds-gaps/tone` `SECONDARY` is only for a plain span or p.
-  - **`EmptyState.tsx`** is a composition (HDS `EmptyState`, whose `action` it passes through,
-    hds#654, + an optional icon HDS has no slot for yet); collapse it into HDS when that lands.
-  - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, `EmptyState.tsx`, the
-    `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
+  - **Empty states and weight are HDS (0.28.0):** `EmptyState` takes `icon` and `action`;
+    `Text weight="bold"` is the section-head step (`<strong>` inside a sentence). No local wrapper.
+  - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the `base.css`
+    patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
 - **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
   (`fonts.css`, Plus Jakarta Sans, the HDS type ramp), surfaces and the default **graphite
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.26.2`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.28.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
   `.npmrc` maps `@hirobius` there, so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`). Upgrade with
   `npx @hirobius/design-system@latest upgrade` (codemods + a to-do list; `--check` to verify).
@@ -93,7 +93,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
   terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
   pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
-  **Shell (#115 Phase 1):** slim header = mark on a phone, wordmark from `sm` (the one `h1`, `Text variant="body"` semibold, so the
+  **Shell (#115 Phase 1):** slim header = mark on a phone, wordmark from `sm` (the one `h1`, `Text variant="body" weight="bold"`, so the
   page title is always the biggest text) · top tabs (**Companies · Pipeline**; they scroll on a phone, with the `src/hds-gaps/TabsOverflowFade` edge cue) · one
   icon-only **Menu** button (hamburger, `aria-label="Menu"`; it holds account, data, display and feedback). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
@@ -157,8 +157,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   is a page with no tab selected (App mounts `DocumentsView` outside the tab panels), reached from the
   Menu's Documents item and the Apply sheet's Edit documents link, headed "Documents" with Back to
   Pipeline. `DocumentsLibrary` lists Base documents per kind (flat rows, #241); `DocumentEditor` saves
-  each change as a Version. Outreach messages keep the Templates tools: `hds-gaps/TokenTextarea`
-  (contenteditable; each `[Name]` one atomic chip; keys go through `templateEditor` helpers), the chip
+  each change as a Version. Outreach messages keep the Templates tools: HDS `TokenField`
+  (each `[Name]` one atomic chip; `tokenPattern` is `templateEditor.VARIABLE`), the chip
   row + Insert variable `Menu` (`insertToken`), a Fill for preview, and the #221 **Variables panel** (a
   picked job's four fields save on the job, the rest on `Document.values`, not a Version; `[Your name]`
   falls back to the kit name). `#/copy-deck/<id>` opens one; an old `#/copy-deck/<snippetId>` resolves
@@ -217,8 +217,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **Design polish (#133, `docs/specs/design-polish.md`, `docs/redesign-2026.md`):** banners are not page
   furniture: `SyncNudge` is one line, over the Pipeline list only (#236; no dot on the Menu trigger; its title says
   "Saved on this device only"), and `SampleBanner` is a one-line note under the page header. Section heads are
-  `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
-  host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 40px phone buttons,
+  `Text variant="body" weight="bold"`; `title` is the page head only. `base.css` holds the
+  host resets (heading/paragraph margin 0, phone tab padding, 40px phone buttons,
   reduced motion); shared secondary colour is `hds-gaps/tone` `SECONDARY`. Guards: inline `style={{`
   ceiling and no inline font size/weight in `hdsOnly.test.ts` (only lower the ceiling), lint is
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a

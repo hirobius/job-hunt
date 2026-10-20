@@ -93,7 +93,7 @@ export function UploadFinalCopy({
     <Stack gap="normal">
       <Stack gap="tight">
         {heading && (
-          <Text variant="body" className="rjb-semibold">
+          <Text variant="body" weight="bold">
             Upload a final copy
           </Text>
         )}

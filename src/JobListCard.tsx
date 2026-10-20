@@ -24,7 +24,7 @@ export default function JobListCard({ job }: { job: Job }) {
         {/* Title and menu share the first row, so a card with no next step has no empty footer. */}
         <Stack direction="row" gap="px8" align="start" justify="space-between">
           <Box sx={{ minWidth: 0 }}>
-            <Text variant="body" as="h3" className="rjb-semibold">
+            <Text variant="body" as="h3" weight="bold">
               <Stack direction="row" gap="px4" align="start">
                 {/* Starred jobs show a filled star, as in the table. */}
                 {row.pinned && (

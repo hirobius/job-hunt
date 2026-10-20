@@ -93,7 +93,7 @@ export default function TileGrid({
                 <Text
                   variant="body"
                   as="h3"
-                  className="rjb-semibold"
+                  weight="bold"
                   title={t.name}
                   style={{
                     lineHeight: 1.2,

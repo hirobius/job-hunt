@@ -280,7 +280,7 @@ export default function CompaniesPanel({
 
       <Stack gap="normal" as="section" aria-label="Open roles by company">
         <Stack gap="xs">
-          <Text variant="body" as="h3" className="rjb-semibold">
+          <Text variant="body" as="h3" weight="bold">
             Open roles by company
           </Text>
           <Text variant="ui" as="p" tone="secondary">
@@ -364,7 +364,7 @@ export default function CompaniesPanel({
       <SavedTargets categoryId={categoryId} boardUrls={boardUrls} findLink={false} />
 
       <Stack gap="normal" as="section" aria-label="More ways to find companies">
-        <Text variant="body" as="h3" className="rjb-semibold">
+        <Text variant="body" as="h3" weight="bold">
           More ways to find companies
         </Text>
         <Stack gap="xs">

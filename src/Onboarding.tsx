@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import {
   Badge,
+  Box,
   Button,
+  Card,
+  EmptyState,
   Input as HdsInput,
   Progress,
   Spinner,
-  Box,
   Stack,
   Text,
-  Card,
 } from '@hirobius/design-system';
 import { Form, FormActions } from '@hirobius/design-system/patterns';
-import EmptyState from './EmptyState';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import { useCurationSyncStatus } from './curation/syncStatus';
 import { TrySampleButton } from './demo/SampleData';
@@ -112,7 +112,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
           )}
           {step === 2 && (
             <Stack gap="tight">
-              <Text variant="ui" as="h3" className="rjb-semibold">
+              <Text variant="ui" as="h3" weight="bold">
                 Where do you want to work?
               </Text>
               <Box sx={{ display: 'contents', '& input': { maxWidth: 320 } }}>
@@ -128,7 +128,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
           )}
           {step === 3 && (
             <Stack gap="tight">
-              <Text variant="ui" as="h3" className="rjb-semibold">
+              <Text variant="ui" as="h3" weight="bold">
                 Add your first job
               </Text>
               <HdsInput
@@ -199,7 +199,7 @@ function PickTrack({
 }) {
   return (
     <Stack gap="tight">
-      <Text variant="ui" as="h3" className="rjb-semibold">
+      <Text variant="ui" as="h3" weight="bold">
         Pick a track
       </Text>
       <Text variant="body" tone="secondary">
@@ -237,7 +237,7 @@ function PickTrack({
                 style={{ textAlign: 'left' }}
               >
                 <Stack direction="row" gap="tight" align="center">
-                  <Text variant="ui" as="span" id={`pack-${p.id}`} className="rjb-semibold">
+                  <Text variant="ui" as="span" id={`pack-${p.id}`} weight="bold">
                     {p.label}
                   </Text>
                   {/* The lead pack (#59): the grid follows STARTER_PACKS order, consulting first. */}
@@ -277,7 +277,7 @@ export function ChooseTrack() {
     <Box sx={{ py: 'lg' }}>
       <EmptyState
         title="Pick a track to search"
-        message="A track holds your job titles, location and saved links."
+        description="A track holds your job titles, location and saved links."
         action={
           <Button variant="primary" onClick={() => setOpen(true)}>
             Choose a track

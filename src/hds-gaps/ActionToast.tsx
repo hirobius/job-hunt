@@ -45,7 +45,7 @@ export default function ActionToast({
           <Box sx={{ p: 'sm' }}>
             <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
               <Box sx={{ minWidth: 0, flex: '1 1 10rem' }}>
-                <Text variant="ui" as="p" className="rjb-semibold">
+                <Text variant="ui" as="p" weight="bold">
                   {title}
                 </Text>
                 {description && (

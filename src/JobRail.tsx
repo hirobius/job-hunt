@@ -18,7 +18,7 @@ function RowBody({ job }: { job: Job }) {
     <Stack gap="tight">
       <Stack direction="row" gap="tight" align="start" justify="space-between">
         <Box sx={{ overflowWrap: 'anywhere' }}>
-          <Text variant="ui" as="div" className="rjb-semibold">
+          <Text variant="ui" as="div" weight="bold">
             {v.title}
           </Text>
         </Box>

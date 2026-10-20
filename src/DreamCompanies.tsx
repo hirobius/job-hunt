@@ -81,7 +81,7 @@ export default function DreamCompanies({
   return (
     <Stack gap="xs" as="section" aria-label="Dream companies">
       <Stack direction="row" gap="xs" align="center" justify="space-between" wrap="wrap">
-        <Text variant="body" as="h3" className="rjb-semibold">
+        <Text variant="body" as="h3" weight="bold">
           Dream companies
         </Text>
         {dreams.some((d) => d.board) && (

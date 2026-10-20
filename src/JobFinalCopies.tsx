@@ -8,7 +8,7 @@ export default function JobFinalCopies({ jobUrl }: { jobUrl: string }) {
   return (
     <section aria-labelledby="job-final-copies">
       <Stack gap="tight">
-        <Text variant="body" as="h3" id="job-final-copies" className="rjb-semibold">
+        <Text variant="body" as="h3" id="job-final-copies" weight="bold">
           Final copies
         </Text>
         <FinalCopies jobUrl={jobUrl} />

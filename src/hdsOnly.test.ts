@@ -200,4 +200,17 @@ describe('Retired HDS workarounds (#146)', () => {
     );
     expect(offenders).toEqual([]);
   });
+
+  it('uses HDS EmptyState, Text weight and TokenField, not their 0.26 stand-ins (hds#825, hds#826)', () => {
+    expect(existsSync(join(SRC, 'EmptyState.tsx'))).toBe(false);
+    expect(existsSync(join(SRC, 'hds-gaps', 'TokenTextarea.tsx'))).toBe(false);
+    const css = readFileSync(join(SRC, 'theme', 'base.css'), 'utf8');
+    expect(css).not.toMatch(/\.rjb-semibold\b/);
+    const offenders = sourceFiles(SRC).filter((f) =>
+      /rjb-semibold|from '\.{1,2}\/(?:.*\/)?EmptyState'|TokenTextarea/.test(
+        readFileSync(f, 'utf8'),
+      ),
+    );
+    expect(offenders).toEqual([]);
+  });
 });

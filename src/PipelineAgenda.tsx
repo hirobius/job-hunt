@@ -87,7 +87,7 @@ function AgendaSection({ title, children }: { title: string; children: ReactNode
   return (
     <Box as="section" aria-label={title}>
       <Stack gap="normal">
-        <Text variant="body" as="h3" className="rjb-semibold">
+        <Text variant="body" as="h3" weight="bold">
           {title}
         </Text>
         <Box as="ul" sx={LIST}>

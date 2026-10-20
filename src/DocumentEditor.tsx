@@ -2,7 +2,7 @@
 // is a draft until Save, and each Save adds a Version (documents.saveVersion), so earlier text
 // stays readable and can be brought back into the draft. A new document has no id until its first
 // Save creates it. Outreach messages keep the Templates editor's tools: token chips and the Insert
-// variable menu over the chip field (hds-gaps/TokenTextarea), and a preview filled for a picked
+// variable menu over the chip field (HDS `TokenField`), and a preview filled for a picked
 // job through templateFill.fillSnippet (job fields, then the message's own values, then the kit
 // name), and the Variables panel (#221): a picked job's four fields are saved on the job, every
 // other value on the message (`Document.values`, not a Version). Delete sits in a menu and asks
@@ -22,9 +22,11 @@ import {
   Tag,
   Text,
   Textarea,
+  TokenField,
   Tooltip as HdsTooltip,
   useToast,
 } from '@hirobius/design-system';
+import type { TokenFieldHandle } from '@hirobius/design-system';
 import {
   createDocument,
   DOCUMENT_KINDS,
@@ -40,9 +42,7 @@ import { updateJob, useJobs } from './store';
 import type { Job } from './types';
 import { useApplyKit } from './applyKit';
 import { fillSnippet, ownValue, resolveVariables } from './templateFill';
-import { insertToken, templateVariables, TOKEN_CHIPS } from './templateEditor';
-import TokenTextarea from './hds-gaps/TokenTextarea';
-import type { TokenTextareaHandle } from './hds-gaps/TokenTextarea';
+import { insertToken, templateVariables, TOKEN_CHIPS, VARIABLE } from './templateEditor';
 import { copyFilled } from './templateCopy';
 import { metaLines } from './metaLines';
 import { DANGER } from './hds-gaps/tone';
@@ -272,12 +272,16 @@ function OutreachText({
     );
   };
 
-  const area = useRef<TokenTextareaHandle>(null);
+  const area = useRef<TokenFieldHandle>(null);
   const insert = (token: string) => {
-    const sel = area.current?.selection();
-    const r = insertToken(value, sel?.start ?? null, sel?.end ?? null, token);
-    onChange(r.value);
-    area.current?.setCaret(r.caret);
+    const sel = area.current?.getSelection() ?? null;
+    const from = sel?.start ?? value.length;
+    const to = sel?.end ?? from;
+    // insertToken adds the spaces a chip needs beside a word; the field inserts that text, so the
+    // caret lands after it and the insert is one undo step.
+    const r = insertToken(value, from, to, token);
+    if (area.current) area.current.insertAt(r.value.slice(from, r.caret), { start: from, end: to });
+    else onChange(r.value);
   };
   const copy = async () => {
     const r = await copyFilled(filled);
@@ -319,8 +323,9 @@ function OutreachText({
             </Menu.Content>
           </Menu>
         </Stack>
-        <TokenTextarea
+        <TokenField
           ref={area}
+          tokenPattern={VARIABLE}
           aria-label="Message text"
           value={value}
           placeholder="Paste or write your message…"
@@ -340,7 +345,7 @@ function OutreachText({
       {docId && names.length > 0 && (
         <section aria-labelledby={`vars-${docId}`}>
           <Stack gap="tight">
-            <Text variant="body" as="h3" id={`vars-${docId}`} className="rjb-semibold">
+            <Text variant="body" as="h3" id={`vars-${docId}`} weight="bold">
               Variables
             </Text>
             <Text variant="caption" as="p" tone="secondary">

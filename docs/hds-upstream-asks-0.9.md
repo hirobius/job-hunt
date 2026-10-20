@@ -2,33 +2,33 @@
 
 Every local stand-in for something HDS doesn't do yet, with its upstream ask. Rule: when an HDS
 release ships the fix, the upgrade PR deletes the workaround and moves its row to "Retired". HDS is
-pinned at **0.26.2**.
+pinned at **0.28.0**. Rows marked "in 0.28.0" have their fix shipped and are next to retire.
 
 ## Open
 
 | Workaround | Where | What HDS lacks | Upstream |
 |---|---|---|---|
-| Action toast (Open, Undo) | `src/hds-gaps/ActionToast.tsx` | `useToast` has no action slot | hds#815, fix in hds#816 (unreleased) |
-| Async list states | `src/hds-gaps/AsyncState.tsx` | one component for loading / slow / error / empty / ready | hds#818 |
-| Selectable link list | `src/hds-gaps/RailList.tsx` + `.css` | `NavList` or a list item with `aria-current` | hds#817 |
-| Tab scroll-into-view | `src/hds-gaps/TabsOverflowFade.tsx` | TabsList fades (0.26.1) but doesn't scroll the selected tab into view | hds#823 |
-| SegmentedControl overflow fade | `src/hds-gaps/TabsOverflowFade.tsx` | the TabsList edge fade, on SegmentedControl | hds#823 |
-| Token chips in a text field | `src/hds-gaps/TokenTextarea.tsx` + `.css` | a `TokenField` with atomic tokens and a caret API | hds#826 |
-| Bare top-level tab panels | `src/hds-gaps/barePanel.ts` | a `TabsContent` variant with no surface or inset | hds#819 |
-| Danger menu item | `src/hds-gaps/tone.ts` `DANGER` | `Menu.Item tone="danger"` | hds#822 |
+| Action toast (Open, Undo) | `src/hds-gaps/ActionToast.tsx` | `useToast` has no action slot | hds#815, in 0.28.0 (hds#816) |
+| Async list states | `src/hds-gaps/AsyncState.tsx` | one component for loading / slow / error / empty / ready | hds#818, in 0.28.0 |
+| Selectable link list | `src/hds-gaps/RailList.tsx` + `.css` | `NavList` or a list item with `aria-current` | hds#817, in 0.28.0 |
+| Tab scroll-into-view | `src/hds-gaps/TabsOverflowFade.tsx` | TabsList fades (0.26.1) but doesn't scroll the selected tab into view | hds#823, in 0.28.0 |
+| SegmentedControl overflow fade | `src/hds-gaps/TabsOverflowFade.tsx` | the TabsList edge fade, on SegmentedControl | hds#823, in 0.28.0 |
+| Bare top-level tab panels | `src/hds-gaps/barePanel.ts` | a `TabsContent` variant with no surface or inset | hds#819, in 0.28.0 |
+| Danger menu item | `src/hds-gaps/tone.ts` `DANGER` | `Menu.Item tone="danger"` | hds#822, in 0.28.0 |
 | Secondary colour on a plain span or p | `src/hds-gaps/tone.ts` `SECONDARY` | nothing for non-`Text` elements (by design; `Text tone` covers the rest) | none needed |
-| Markup per breakpoint | `src/hds-gaps/useBreakpoint.ts` | a `useBreakpoint` / `useMediaQuery` hook on HDS breakpoints | hds#824 |
+| Markup per breakpoint | `src/hds-gaps/useBreakpoint.ts` | a `useBreakpoint` / `useMediaQuery` hook on HDS breakpoints | hds#824, in 0.28.0 |
 | Keyboard-aware dialog | `src/hds-gaps/useVisualViewportVars.ts` | a top-anchored, keyboard-aware Dialog or Sheet | related: hds#690 |
-| Empty state icon | `src/EmptyState.tsx` | an `icon` slot on `EmptyState` (`action` shipped in 0.25) | hds#825 |
-| `Text` weight | `.rjb-semibold` in `src/theme/base.css` | a `weight` prop on `Text` | hds#825 |
-| Menu height cap | `[role='menu']` rule in `src/theme/base.css` | Menu caps its height to the space Radix measures and scrolls (44px phone items in 0.26 made long menus run off screen) | hds#821 |
+| Menu height cap | `[role='menu']` rule in `src/theme/base.css` | Menu caps its height to the space Radix measures and scrolls (44px phone items in 0.26 made long menus run off screen) | hds#821, in 0.28.0 |
 | Phone touch size | 40px rule in `src/theme/base.css` | a touch size on sm controls | hds#750 |
-| Dark pressed accent contrast | held pair in `src/theme.contrast.test.ts` | AA on the dark pressed accent | hds#748 (lands in 0.27, unpublished) |
+| Dark pressed accent contrast | held pair in `src/theme.contrast.test.ts` | AA on the dark pressed accent | hds#748, in 0.28.0 |
 
 ## Retired
 
 | Workaround | Retired in | Upstream |
 |---|---|---|
+| `src/EmptyState.tsx` (icon above HDS `EmptyState`) | 0.28.0 upgrade (`EmptyState icon`) | hds#825 |
+| `.rjb-semibold` in `base.css` | 0.28.0 upgrade (`Text weight="bold"`; `<strong>` inside a sentence) | hds#825 |
+| `src/hds-gaps/TokenTextarea.tsx` + `.css` | 0.28.0 upgrade (`TokenField`) | hds#826 |
 | Nested `'&'` breakpoint override in `sx` | 0.26.2 upgrade (`base` key) | hds#652 |
 | `EmptyState` action composed outside HDS | 0.26.2 upgrade (`action` prop, 0.25) | hds#654 |
 | `Text` + inline secondary colour | 0.26.2 upgrade (`tone="secondary"`, 0.26) | hds#655 |

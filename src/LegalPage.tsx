@@ -49,7 +49,7 @@ export default function LegalPage() {
         </Stack>
         {doc.sections.map((s) => (
           <Stack key={s.heading} gap="normal" as="section" aria-label={s.heading}>
-            <Text variant="body" as="h3" className="rjb-semibold">
+            <Text variant="body" as="h3" weight="bold">
               {s.heading}
             </Text>
             {s.paragraphs.map((p) => (

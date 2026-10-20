@@ -1,21 +1,21 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import {
+  Box,
   Button,
+  Disclosure,
+  EmptyState,
+  InlineLink,
   Input as HdsInput,
   SegmentedControl,
+  Stack,
   Tabs as HdsTabs,
+  TabsContent,
   TabsList,
   TabsTrigger,
-  TabsContent,
   Tag,
-  Box,
   Text,
-  Disclosure,
-  InlineLink,
-  Stack,
 } from '@hirobius/design-system';
 import TileGrid from './TileGrid';
-import EmptyState from './EmptyState';
 import { useRoute, navigate } from './route';
 import {
   BOARDS,
@@ -89,11 +89,11 @@ function GroupPanel({
       {visible.length > 0 ? (
         <TileGrid tiles={visible} triage />
       ) : saved.length > 0 ? (
-        <EmptyState message="All saved — check your Tracker for these." />
+        <EmptyState title="All saved — check your Tracker for these." />
       ) : (
         <EmptyState
           title="No links here yet"
-          message="Add links you trust, or use Title and ATS search for live ones."
+          description="Add links you trust, or use Title and ATS search for live ones."
           action={
             <Button variant="secondary" size="sm" onClick={onManage}>
               Manage this track
@@ -141,7 +141,7 @@ function AtsPanel({
     return (
       <EmptyState
         title="No titles yet"
-        message="Add a few job titles to this track and we'll search the big boards and companies' hiring systems (Greenhouse, Lever, Ashby…) for them."
+        description="Add a few job titles to this track and we'll search the big boards and companies' hiring systems (Greenhouse, Lever, Ashby…) for them."
         action={
           <Button variant="secondary" size="sm" onClick={onManage}>
             Add titles
@@ -255,20 +255,20 @@ function AtsPanel({
         <SweepTitlesEditor categoryId={categoryId} seed={titles} />
       </Box>
       <Box sx={{ mt: 4 }}>
-        <Text variant="body" as="h3" className="rjb-semibold">
+        <Text variant="body" as="h3" weight="bold">
           Big job boards
         </Text>
       </Box>
       <TileGrid tiles={boardTiles} cta="Search" />
       <Box sx={{ mt: 4 }}>
-        <Text variant="body" as="h3" className="rjb-semibold">
+        <Text variant="body" as="h3" weight="bold">
           Company hiring systems
         </Text>
       </Box>
       {allButton(ATS, 'hiring systems')}
       <TileGrid tiles={tilesFor(ATS)} cta="Search" />
       <Box sx={{ mt: 6 }}>
-        <Text variant="body" as="h3" className="rjb-semibold">
+        <Text variant="body" as="h3" weight="bold">
           Freelance, startup and remote boards
         </Text>
       </Box>
@@ -454,7 +454,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         </TabsOverflowFade>
         {tool === 'apply' && section && (
           <Stack gap="xs">
-            <Text variant="body" as="h3" className="rjb-semibold">
+            <Text variant="body" as="h3" weight="bold">
               Your sections
             </Text>
             {/* Key the tabs by track so switching tracks resets to the first section. */}
@@ -501,7 +501,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
                 Back to companies
               </InlineLink>
             </Text>
-            <Text variant="body" as="h3" className="rjb-semibold">
+            <Text variant="body" as="h3" weight="bold">
               {SECONDARY_VIEWS[secondary]}
             </Text>
           </Stack>

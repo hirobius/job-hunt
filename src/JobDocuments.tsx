@@ -17,6 +17,7 @@ import {
   Button,
   Card,
   Disclosure,
+  EmptyState,
   Input,
   Select,
   Stack,
@@ -47,7 +48,6 @@ import {
   sentByKind,
   type SentVersion,
 } from './jobDocuments';
-import EmptyState from './EmptyState';
 import type { Job } from './types';
 
 export interface JobDocumentsProps {
@@ -245,7 +245,7 @@ function DocumentCard({
         <Stack gap="normal">
           <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
             <Stack direction="row" gap="tight" align="center" wrap="wrap">
-              <Text variant="ui" as="h4" id={headingId} className="rjb-semibold">
+              <Text variant="ui" as="h4" id={headingId} weight="bold">
                 {doc.title || label}
               </Text>
               {sentHere && <Badge tone="success">{`Sent v${kindSent.number}`}</Badge>}
@@ -413,7 +413,7 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
         <EmptyState
           icon={FileText}
           title="No documents yet"
-          message="Keep the résumé, cover letter and messages you write for this job here, with every version."
+          description="Keep the résumé, cover letter and messages you write for this job here, with every version."
           action={
             <Stack direction="row" gap="tight" justify="center" wrap="wrap">
               {newButton('primary')}
@@ -424,7 +424,7 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
       )}
       {documentsByKind(docs).map((g) => (
         <Stack key={g.kind} gap="tight">
-          <Text variant="body" as="h3" className="rjb-semibold">
+          <Text variant="body" as="h3" weight="bold">
             {g.label}
           </Text>
           {g.docs.map((d) => (
