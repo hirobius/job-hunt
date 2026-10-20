@@ -65,10 +65,11 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+// Targeting sits in Calibrate (#223); open it so its fields are on screen.
 const renderPanel = () =>
   render(
     <ToastProvider>
-      <LiveFeedPanel categoryId={cat} terms={['design systems']} boardUrls={[]} />
+      <LiveFeedPanel categoryId={cat} terms={['design systems']} boardUrls={[]} calibrate />
     </ToastProvider>,
   );
 

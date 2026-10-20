@@ -1,0 +1,118 @@
+// The title filter (#223), pinned at the route seam: the Titles tool is gone; each track keeps one
+// ticked list of titles (src/feed/sweepTitles.ts, synced) that Live postings, the ATS tool and the
+// big-board links all read. It is edited in Live postings' Calibrate control.
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { ToastProvider } from '@hirobius/design-system';
+
+vi.mock('@supabase/supabase-js', async () => {
+  const { createFakeSupabase } = await import('./test/fakeSupabase');
+  return { createClient: () => createFakeSupabase().client };
+});
+const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
+vi.mock('./feed/fetchFeed', () => feed);
+
+import { ColorModeProvider } from './ColorMode';
+import App from './App';
+import { addCategory, replaceCurationState } from './curation/curationStore';
+import { EMPTY_CURATION } from './curation/types';
+import { getAllSweeps, setTitleOn } from './feed/sweepTitles';
+import type { Posting } from './feed/types';
+
+const post = (id: string, title: string): Posting => ({
+  id,
+  source: 'ashby',
+  title,
+  company: `Co ${id}`,
+  url: `https://jobs.ashbyhq.com/co/${id}`,
+  location: '',
+  text: 'Work on the design system.',
+});
+const POSTINGS = [post('1', 'Design Engineer'), post('2', 'Product Designer')];
+const TITLES = ['product designer', 'design system', 'design engineer'];
+
+const renderApp = () =>
+  render(
+    <ColorModeProvider>
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    </ColorModeProvider>,
+  );
+
+let cat: string;
+beforeEach(() => {
+  localStorage.clear();
+  feed.fetchFeed.mockReset().mockResolvedValue({ postings: POSTINGS, sources: [] });
+  replaceCurationState(EMPTY_CURATION);
+  cat = addCategory({ label: 'Design Systems', titles: TITLES, atsRoles: ['design system'] });
+  window.history.replaceState(null, '', '/');
+});
+afterEach(cleanup);
+
+const hrefs = () =>
+  screen
+    .getAllByRole('link', { name: /search/i })
+    .map((a) => decodeURIComponent((a.getAttribute('href') ?? '').replace(/\+/g, ' ')));
+
+describe('the Titles tool is gone', () => {
+  it('is not in the tools row', async () => {
+    window.location.hash = '#/discover/ats';
+    renderApp();
+    const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
+    expect(within(tools).queryByRole('radio', { name: /Titles|Title search/ })).toBeNull();
+  });
+
+  it('#/discover/titles lands on Live postings with Calibrate open on the titles', async () => {
+    window.location.hash = '#/discover/titles';
+    renderApp();
+    expect(await screen.findByRole('list', { name: 'Titles' })).toBeVisible();
+    expect(window.location.hash).toBe('#/discover/live');
+    expect(screen.getByRole('checkbox', { name: 'design engineer' })).toBeChecked();
+  });
+});
+
+describe('Calibrate: the ticked titles', () => {
+  it('unticking a title is saved for the track and hides postings titled only by it', async () => {
+    window.location.hash = '#/discover/live';
+    const user = userEvent.setup();
+    renderApp();
+    expect(await screen.findByRole('heading', { name: /^Design Engineer/ })).toBeVisible();
+    const list = screen.getByRole('list', { name: 'Live postings' });
+    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
+    await user.click(screen.getByRole('checkbox', { name: 'design engineer' }));
+    expect(getAllSweeps()[cat].off).toEqual(['design engineer']);
+    expect(within(list).queryByRole('heading', { name: /^Design Engineer/ })).toBeNull();
+    expect(within(list).getByRole('heading', { name: /^Product Designer/ })).toBeVisible();
+    expect(screen.getByText('1 hidden by titles')).toBeInTheDocument();
+  });
+
+  it('the ATS tool and the big-board links search only the ticked titles', async () => {
+    setTitleOn(cat, TITLES, 'design engineer', false);
+    window.location.hash = '#/discover/ats';
+    renderApp();
+    await screen.findByRole('heading', { name: 'Big job boards' });
+    const all = hrefs();
+    expect(all.length).toBeGreaterThan(0);
+    for (const u of all.filter((x) => x.includes('designer'))) {
+      expect(u).toContain('"product designer" OR "design system"');
+      expect(u).not.toContain('design engineer');
+    }
+    // Every generated board and ATS link carries the ticked titles.
+    expect(all.filter((u) => u.includes('"product designer" OR "design system"')).length).toBe(
+      all.filter((u) => u.includes('designer')).length,
+    );
+  });
+
+  it('with every title ticked, the links search all of them', async () => {
+    window.location.hash = '#/discover/ats';
+    renderApp();
+    await screen.findByRole('heading', { name: 'Big job boards' });
+    expect(
+      hrefs().some((u) =>
+        u.includes('("product designer" OR "design system" OR "design engineer")'),
+      ),
+    ).toBe(true);
+  });
+});

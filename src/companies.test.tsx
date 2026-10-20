@@ -89,7 +89,7 @@ afterEach(() => {
 });
 
 describe('Companies as one tool (#237)', () => {
-  it('the tool row is Companies, Apply now, Titles and ATS: Live postings and Boards are not tools', async () => {
+  it('the tool row is Companies, Apply now and ATS: Live postings and Boards are not tools', async () => {
     watch('https://jobs.lever.co/northwind');
     renderApp();
     const row = await tools();
@@ -97,7 +97,7 @@ describe('Companies as one tool (#237)', () => {
       within(row)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Teams', 'Apply', 'Titles', 'ATS']);
+    ).toEqual(['Teams', 'Apply', 'ATS']);
   });
 
   it('a track that watches a company opens on its company rows, open roles inline, saved in one tap', async () => {
@@ -189,7 +189,7 @@ describe('Companies as one tool (#237)', () => {
       ['boards', 'Teams', 'Check a list of companies'],
       ['teams', 'Teams', null],
       ['apply', 'Apply', null],
-      ['titles', 'Titles', null],
+      ['titles', 'Teams', 'Live postings'],
       ['ats', 'ATS', null],
       ['nonsense', 'Apply', null],
     ])('#/discover/%s', async (slug, radio, heading) => {

@@ -44,7 +44,7 @@ describe('applyTargeting', () => {
     const list = [rp(), rp({ id: 'x:2', title: 'Senior Engineer' })];
     const r = applyTargeting(list, NO_TARGETING);
     expect(r.postings).toHaveLength(2);
-    expect(r.hidden).toEqual({ exclude: 0, seniority: 0, salary: 0 });
+    expect(r.hidden).toEqual({ exclude: 0, seniority: 0, salary: 0, titles: 0 });
   });
 
   describe('exclusions', () => {
@@ -134,6 +134,42 @@ describe('applyTargeting', () => {
       [rp({ title: 'Senior Manager', salaryMax: 10 })],
       t({ exclude: ['manager'], seniority: 'entry', salaryFloor: 100 }),
     );
-    expect(r.hidden).toEqual({ exclude: 1, seniority: 0, salary: 0 });
+    expect(r.hidden).toEqual({ exclude: 1, seniority: 0, salary: 0, titles: 0 });
+  });
+});
+
+// The title filter (#223): the track's ticked titles lead, an unticked one hides a posting whose
+// title names it and no ticked one.
+describe('applyTargeting: titles', () => {
+  const titles = { on: ['product designer', 'design system'], off: ['design engineer'] };
+  const posts = [
+    rp({ id: 'a', title: 'Design Engineer' }),
+    rp({ id: 'b', title: 'Senior Product Designer' }),
+    rp({ id: 'c', title: 'Design Engineer, Design Systems' }),
+    rp({ id: 'd', title: 'Frontend Engineer', text: 'You will work with our design engineer.' }),
+  ];
+
+  it('hides a posting titled only by an unticked title, and counts it', () => {
+    const { postings, hidden } = applyTargeting(posts, t({ titles }));
+    expect(postings.map((p) => p.id)).not.toContain('a');
+    expect(hidden.titles).toBe(1);
+  });
+
+  it('keeps a posting whose title also names a ticked title, and one that names it only in the body', () => {
+    const ids = applyTargeting(posts, t({ titles })).postings.map((p) => p.id);
+    expect(ids).toContain('c');
+    expect(ids).toContain('d');
+  });
+
+  it('ranks postings titled by a ticked title first, in their order', () => {
+    const ids = applyTargeting(posts, t({ titles })).postings.map((p) => p.id);
+    expect(ids).toEqual(['b', 'c', 'd']);
+  });
+
+  it('with the title turned back on nothing is hidden by titles', () => {
+    const on = { on: [...titles.on, 'design engineer'], off: [] };
+    const { postings, hidden } = applyTargeting(posts, t({ titles: on }));
+    expect(postings).toHaveLength(4);
+    expect(hidden.titles).toBe(0);
   });
 });

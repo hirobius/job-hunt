@@ -53,7 +53,7 @@ import { SECONDARY } from './hds-gaps/tone';
 import { sweepRank, titleCounts, withoutHidden, type SweptPosting } from './feed/sweep';
 import { SweepTitlesEditor } from './SweepTitles';
 import { metaLines } from './metaLines';
-import { useActiveTitles } from './feed/sweepTitles';
+import { activeTitles, useSweep } from './feed/sweepTitles';
 
 type Focus = 'all' | 'strong' | SignalId;
 /** Rows rendered per page — the rest sit behind "Show more". */
@@ -77,6 +77,7 @@ export default function LiveFeedPanel({
   terms,
   boardUrls,
   sweepSeed = terms,
+  calibrate = false,
 }: {
   categoryId: string;
   /** The track's search terms — offered as chips; the first is searched on open. */
@@ -85,6 +86,8 @@ export default function LiveFeedPanel({
   sweepSeed?: string[];
   /** Every tile URL on the track; the feed pulls the ones that are company boards. */
   boardUrls: string[];
+  /** Open with Calibrate expanded (the old Titles tool's link lands here, #223). */
+  calibrate?: boolean;
 }) {
   const { where, mode } = useTrackContext(categoryId);
   const { toast } = useToast();
@@ -97,6 +100,13 @@ export default function LiveFeedPanel({
   const [retrying, setRetrying] = useState<string[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
   const [refineOpen, setRefineOpen] = useState(false);
+  const [calibrateOpen, setCalibrateOpen] = useState(calibrate);
+  // Arriving through the old Titles link opens Calibrate, also when this panel is already up.
+  const [calibrateSeen, setCalibrateSeen] = useState(calibrate);
+  if (calibrate !== calibrateSeen) {
+    setCalibrateSeen(calibrate);
+    if (calibrate) setCalibrateOpen(true);
+  }
   const [focus, setFocus] = useState<Focus>('all');
   const [shown, setShown] = useState(PAGE);
   const [watchUrl, setWatchUrl] = useState('');
@@ -115,7 +125,10 @@ export default function LiveFeedPanel({
   // on screen (no re-fetch); the on/off list itself is per track and synced.
   const [sweeping, setSweeping] = useState(false);
   const [hiddenTitles, setHiddenTitles] = useState<Set<string>>(new Set());
-  const sweepTitles = useActiveTitles(categoryId, sweepSeed);
+  // The track's title filter (#223) is the sweep's list: what it searches, and what ranks and
+  // filters every result.
+  const titleFilter = useSweep(categoryId, sweepSeed);
+  const sweepTitles = useMemo(() => activeTitles(titleFilter), [titleFilter]);
   const sweepKey = sweepTitles.join('\n');
   /** What the feed is reading: one term, or the sweep's titles. */
   const query = sweeping ? `sweep:${sweepKey}` : term;
@@ -206,8 +219,9 @@ export default function LiveFeedPanel({
       seniority,
       salaryFloor: floor > 0 ? floor : undefined,
       salaryOnly,
+      titles: { on: sweepTitles, off: titleFilter.off },
     }),
-    [excludeText, seniority, floor, salaryOnly],
+    [excludeText, seniority, floor, salaryOnly, sweepTitles, titleFilter.off],
   );
   const { postings: ranked, hidden } = useMemo(
     () => applyTargeting(matched, targeting),
@@ -217,6 +231,7 @@ export default function LiveFeedPanel({
     hidden.exclude > 0 && `${hidden.exclude} hidden by what you left out`,
     hidden.seniority > 0 && `${hidden.seniority} hidden by level`,
     hidden.salary > 0 && `${hidden.salary} hidden by pay`,
+    hidden.titles > 0 && `${hidden.titles} hidden by titles`,
   ]);
   // Boards still being read with nothing to show yet reads as loading; once some rows exist they show.
   const loading = hasQuery && (!current || (!!reading && ranked.length === 0));
@@ -259,6 +274,7 @@ export default function LiveFeedPanel({
   };
   const startSweep = (on: boolean) => {
     setSweeping(on);
+    if (on && sweepTitles.length === 0) setCalibrateOpen(true);
     setHiddenTitles(new Set());
     setShown(PAGE);
     setPicked(new Set());
@@ -405,7 +421,7 @@ export default function LiveFeedPanel({
     <EmptyState
       message={
         sweeping
-          ? 'Turn on at least one title under Titles to sweep.'
+          ? 'Tick at least one title under Calibrate to sweep.'
           : "Type a search term or pick one of this track's terms."
       }
     />
@@ -458,13 +474,6 @@ export default function LiveFeedPanel({
               Back to one search
             </Button>
           </Stack>
-          <Box sx={{ mb: 'xs' }}>
-            <SweepTitlesEditor
-              categoryId={categoryId}
-              seed={sweepSeed}
-              defaultOpen={sweepTitles.length === 0}
-            />
-          </Box>
         </Stack>
       ) : (
         <>
@@ -504,46 +513,62 @@ export default function LiveFeedPanel({
           </Box>
         </>
       )}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}>
-        <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
-          <HdsInput
-            size="sm"
-            label="Leave out (words, commas between)"
-            placeholder="manager, sales"
-            value={excludeText}
-            onChange={(e) => setExcludeText(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </Box>
-        <Box sx={{ width: 160 }}>
-          <HdsInput
-            size="sm"
-            label="Pay floor (USD a year)"
-            inputMode="numeric"
-            placeholder="120000"
-            value={floorText}
-            onChange={(e) => setFloorText(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </Box>
-        <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-          <SegmentedControl
-            aria-label="Level"
-            size="sm"
-            value={seniority}
-            onChange={(v) => setSeniority(v as Seniority)}
-            options={[
-              { value: 'any', label: 'Any level' },
-              { value: 'entry', label: 'Entry level' },
-              { value: 'experienced', label: 'Experienced' },
-            ]}
-          />
-        </Box>
-        <HdsCheckbox
-          label="Only show postings with a salary"
-          checked={salaryOnly}
-          onChange={() => setSalaryOnly((v) => !v)}
-        />
+      {/* Calibrate (#223): the track's ticked titles beside the other targeting. */}
+      <Box sx={{ mb: 'xs' }}>
+        <Disclosure label="Calibrate" open={calibrateOpen} onOpenChange={setCalibrateOpen}>
+          <Stack gap="normal">
+            <SweepTitlesEditor categoryId={categoryId} seed={sweepSeed} bare />
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'xs',
+                alignItems: 'flex-end',
+                mb: 'xs',
+              }}
+            >
+              <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
+                <HdsInput
+                  size="sm"
+                  label="Leave out (words, commas between)"
+                  placeholder="manager, sales"
+                  value={excludeText}
+                  onChange={(e) => setExcludeText(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </Box>
+              <Box sx={{ width: 160 }}>
+                <HdsInput
+                  size="sm"
+                  label="Pay floor (USD a year)"
+                  inputMode="numeric"
+                  placeholder="120000"
+                  value={floorText}
+                  onChange={(e) => setFloorText(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </Box>
+              <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                <SegmentedControl
+                  aria-label="Level"
+                  size="sm"
+                  value={seniority}
+                  onChange={(v) => setSeniority(v as Seniority)}
+                  options={[
+                    { value: 'any', label: 'Any level' },
+                    { value: 'entry', label: 'Entry level' },
+                    { value: 'experienced', label: 'Experienced' },
+                  ]}
+                />
+              </Box>
+              <HdsCheckbox
+                label="Only show postings with a salary"
+                checked={salaryOnly}
+                onChange={() => setSalaryOnly((v) => !v)}
+              />
+            </Box>
+          </Stack>
+        </Disclosure>
       </Box>
       {!sweeping && (
         <Box
