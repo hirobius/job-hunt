@@ -415,7 +415,7 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
           title="No documents yet"
           description="Keep the résumé, cover letter and messages you write for this job here, with every version."
           action={
-            <Stack direction="row" gap="tight" justify="center" wrap="wrap">
+            <Stack direction="row" gap="tight" wrap="wrap">
               {newButton('primary')}
               {baseButton}
             </Stack>

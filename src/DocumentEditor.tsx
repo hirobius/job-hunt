@@ -282,6 +282,16 @@ function OutreachText({
     const r = insertToken(value, from, to, token);
     if (area.current) area.current.insertAt(r.value.slice(from, r.caret), { start: from, end: to });
     else onChange(r.value);
+    caretAfterInsert.current = r.caret;
+  };
+  // The Insert variable menu closes after the field took focus; hand focus back with the caret
+  // after the new chip, so typing carries on where the token went.
+  const caretAfterInsert = useRef<number | null>(null);
+  const refocusField = (e: Event) => {
+    e.preventDefault();
+    const caret = caretAfterInsert.current;
+    caretAfterInsert.current = null;
+    if (caret !== null) area.current?.setSelection(caret);
   };
   const copy = async () => {
     const r = await copyFilled(filled);
@@ -314,7 +324,7 @@ function OutreachText({
                 Insert variable
               </Button>
             </Menu.Trigger>
-            <Menu.Content align="start" onCloseAutoFocus={(e) => e.preventDefault()}>
+            <Menu.Content align="start" onCloseAutoFocus={refocusField}>
               {TOKEN_CHIPS.map((c) => (
                 <Menu.Item key={c.token} onSelect={() => insert(c.token)}>
                   {c.token.slice(1, -1)}

@@ -252,7 +252,7 @@ export default function TrackerView() {
                 title="Track your first job"
                 description="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
                 action={
-                  <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+                  <Stack direction="row" wrap="wrap" gap="tight">
                     {addJobButton}
                     <TrySampleButton />
                   </Stack>
