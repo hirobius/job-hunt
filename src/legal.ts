@@ -50,7 +50,7 @@ export const THIRD_PARTIES: ThirdParty[] = [
   {
     name: 'Public job sources',
     purpose:
-      'When you search for openings or check a company, your browser asks these services directly: Hacker News (via Algolia), Remotive, Jobicy, Remote OK, and the Greenhouse, Lever, Ashby, Workable and Recruitee job boards. They receive your IP address and what you searched for, never your saved jobs or account.',
+      'When you search for openings, check a company or check whether a saved job is still open, your browser may ask these services directly: Hacker News (via Algolia), Remotive, Jobicy, Remote OK, and the Greenhouse, Lever, Ashby, Workable and Recruitee job boards. They receive your IP address and which search or company board the app is checking, never your notes, documents or account.',
     hosts: [
       'https://hn.algolia.com',
       'https://remotive.com',
@@ -93,6 +93,8 @@ export const PRIVACY: LegalDoc = {
       list: [
         'Jobs you save, with their notes, to-dos, interviews and status history',
         'Documents and templates you write',
+        'Files you upload, such as final copies of your résumé',
+        'Evidence text you paste in to rank openings',
         'Your Application kit: the name, contact details, links and answers you choose to fill in',
         'Your tracks, saved companies, searches and settings',
       ],

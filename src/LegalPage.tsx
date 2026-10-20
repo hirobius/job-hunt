@@ -4,7 +4,15 @@
 import { ArrowLeft } from 'lucide-react';
 import { Alert, Box, Button, Icon, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { PageHeader } from '@hirobius/design-system/patterns';
-import { LEGAL_DRAFT, LEGAL_ROUTE, LEGAL_UPDATED, legalDocFor, PRIVACY, TERMS } from './legal';
+import {
+  CONTACT_EMAIL,
+  LEGAL_DRAFT,
+  LEGAL_ROUTE,
+  LEGAL_UPDATED,
+  legalDocFor,
+  PRIVACY,
+  TERMS,
+} from './legal';
 import { useRoute } from './route';
 import { SECONDARY } from './hds-gaps/tone';
 
@@ -47,7 +55,7 @@ export default function LegalPage() {
             </Text>
             {s.paragraphs.map((p) => (
               <Text key={p} variant="body" as="p">
-                {p}
+                {withEmailLink(p)}
               </Text>
             ))}
             {s.list && (
@@ -63,5 +71,18 @@ export default function LegalPage() {
         ))}
       </Stack>
     </Box>
+  );
+}
+
+/** The contact address reads as a mailto link wherever the text names it. */
+function withEmailLink(text: string) {
+  const [before, ...rest] = text.split(CONTACT_EMAIL);
+  if (!rest.length) return text;
+  return (
+    <>
+      {before}
+      <InlineLink href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</InlineLink>
+      {rest.join(CONTACT_EMAIL)}
+    </>
   );
 }

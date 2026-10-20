@@ -316,6 +316,10 @@ describe('routes keep working (#115 Phase 1)', () => {
     );
     // While the wording is unapproved, the page says it is a draft.
     expect(screen.getByText(/This is a draft under review/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'hello@hirobius.com' })).toHaveAttribute(
+      'href',
+      'mailto:hello@hirobius.com',
+    );
   });
 
   it('a ?add= quick-add link lands on the Pipeline with the job saved', async () => {
