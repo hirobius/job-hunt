@@ -31,8 +31,8 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
       { file: 'src/JobsTable.tsx', component: 'JobsTable' },
       { file: 'src/JobListCard.tsx', component: 'JobListCard' },
     ],
-    nodeId: '18:1316',
-    phoneNodeId: '19:4282',
+    nodeId: '23:4039',
+    phoneNodeId: '23:4122',
     shot: 'pipeline',
   },
   {
@@ -69,8 +69,8 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
       { file: 'src/DocumentsLibrary.tsx', component: 'DocumentsLibrary' },
       { file: 'src/DocumentEditor.tsx', component: 'DocumentEditor' },
     ],
-    nodeId: '19:4000',
-    phoneNodeId: '18:3868',
+    nodeId: '23:6494',
+    phoneNodeId: '23:6267',
     shot: 'templates',
   },
 ];
