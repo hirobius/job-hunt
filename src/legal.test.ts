@@ -64,6 +64,13 @@ describe('legal pages (#43)', () => {
     expect(p).toMatch(/do not sell/);
   });
 
+  it('privacy discloses crash reports, what they leave out and how long they are kept', () => {
+    const p = text(PRIVACY);
+    expect(p).toMatch(/crash report/);
+    expect(p).toMatch(/never includes your email/);
+    expect(p).toMatch(/deleted after 90 days/);
+  });
+
   it('both name the operator and the contact address', () => {
     for (const doc of [PRIVACY, TERMS]) {
       expect(text(doc)).toContain(OPERATOR);
