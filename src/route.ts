@@ -120,3 +120,16 @@ export function openJob(jobId: string | null, replace = false): void {
 export function openApply(jobId: string): void {
   navigate({ tab: 'apply', sub: jobId, jobId: null });
 }
+
+/** The tab whose second segment is a Company slug: #/company/<slug> (#230). */
+export const COMPANY_TAB = 'company';
+
+/** The hash of a Company's page, for links (its slug is URL-safe, but escaped all the same). */
+export function companyHash(slug: string): string {
+  return buildHash({ tab: COMPANY_TAB, sub: encodeURIComponent(slug), pillar: null, jobId: null });
+}
+
+/** Open a Company's page (#/company/<slug>). */
+export function openCompany(slug: string): void {
+  navigate({ tab: COMPANY_TAB, sub: encodeURIComponent(slug), jobId: null });
+}

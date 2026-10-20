@@ -70,6 +70,10 @@ _Avoid_: revision, draft, history entry
 The one Version of a kind (say, Cover letter) that went to a Job. Locked once marked: it can't be un-sent, moved or deleted, and a Job has at most one Sent Version per kind.
 _Avoid_: submitted, final
 
+**Company**:
+An employer, derived from the company name on the user's Jobs (and on Documents that name one); spellings that differ only in case, punctuation or a suffix like Inc are one Company. Never created by hand. Its page holds its Jobs, Documents and Notes (`src/companies.ts`).
+_Avoid_: employer, organization, account
+
 **Base document**:
 A Document not tied to a Job, kept to be copied into one. It is never Sent itself.
 _Avoid_: master, template, default
