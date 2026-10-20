@@ -6,7 +6,7 @@ import { Box, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import { SECONDARY } from './hds-gaps/tone';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
-import { purgeJob, TRASH_DAYS, useTrash, type Removed } from './trash';
+import { deleteForever, TRASH_DAYS, useTrash, type Removed } from './trash';
 import { restoreWithNotice } from './saveNotice';
 
 const daysAgo = (iso: string, now = Date.now()) => {
@@ -42,7 +42,7 @@ function RemovedRow({ entry }: { entry: Removed }) {
           variant="tertiary"
           tone="danger"
           aria-label={`Delete forever: ${title}`}
-          onClick={() => purgeJob(entry.job.url)}
+          onClick={() => deleteForever(entry.job.url)}
         >
           Delete forever
         </Button>

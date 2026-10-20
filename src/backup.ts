@@ -1,5 +1,5 @@
 // Full-account backup + validated restore (#100). Pure: build a JSON backup of everything the
-// account holds (jobs, copy deck, curation board, tile triage, Recently removed), parse + sanitize an untrusted
+// account holds (jobs, copy deck, curation board, tile triage, Recently removed, Documents), parse + sanitize an untrusted
 // file back into that shape, and apply it onto current state as a merge or a replace.
 // Parsing never trusts the input: known fields are copied into fresh objects, URLs must be
 // http(s), and prototype-pollution keys are dropped.
@@ -16,7 +16,14 @@ import { mergeTargets, sanitizeTargets, type Target } from './feed/targets';
 import { mergeFilters, sanitizeFilters, type SavedFilter } from './feed/savedFilters';
 import { capEvidence, mergeEvidence } from './radar/evidenceStore';
 import { mergeModes, sanitizeModes } from './trackModes';
+import { mergeDreams, sanitizeDreams, type Dream } from './feed/dreams';
 import type { WorkMode } from './jobsData';
+import {
+  mergeDocuments,
+  sanitizeDocuments,
+  withoutSampleDocuments,
+  type Document,
+} from './documents';
 
 export interface AccountState {
   jobs: Job[];
@@ -30,6 +37,10 @@ export interface AccountState {
   modes: Record<string, WorkMode>;
   /** Recently removed (blob v8). Older backups lack it. */
   trash: Removed[];
+  /** Dream companies per track. Older backups lack them. */
+  dreams: Record<string, Dream[]>;
+  /** Documents and their Versions (#226). Older backups lack them. */
+  documents: Document[];
 }
 
 export interface Backup extends AccountState {
@@ -58,6 +69,8 @@ export function buildBackup(state: AccountState, now: Date): Backup {
     evidence: state.evidence,
     modes: state.modes,
     trash: state.trash.filter((r) => !isSample(r.job)),
+    dreams: state.dreams,
+    documents: withoutSampleDocuments(state.documents, state.jobs),
   };
 }
 
@@ -180,6 +193,7 @@ function cleanSnippets(raw: unknown): Snippet[] {
     if (typeof s.open === 'boolean') snip.open = s.open;
     if (typeof s.pinned === 'boolean') snip.pinned = s.pinned;
     if (Array.isArray(s.pillars)) snip.pillars = s.pillars.filter(isStr);
+    if (s.migrated === true) snip.migrated = true;
     out.push(snip);
   }
   return out;
@@ -277,6 +291,8 @@ export function parseBackup(text: string): ParseResult {
       evidence: isStr(data.evidence) ? capEvidence(data.evidence) : '',
       modes: sanitizeModes(data.modes),
       trash: cleanTrash(data.trash),
+      dreams: sanitizeDreams(data.dreams),
+      documents: sanitizeDocuments(data.documents),
     },
   };
 }
@@ -298,6 +314,8 @@ export function applyBackup(
       evidence: backup.evidence,
       modes: backup.modes,
       trash: notSaved(backup.trash, backup.jobs),
+      dreams: backup.dreams,
+      documents: backup.documents,
     };
   }
   const jobs = mergeJobs(backup.jobs, current.jobs);
@@ -311,6 +329,8 @@ export function applyBackup(
     evidence: mergeEvidence(backup.evidence, current.evidence),
     modes: mergeModes(backup.modes, current.modes),
     trash: notSaved(mergeTrash(backup.trash, current.trash), jobs),
+    dreams: mergeDreams(backup.dreams, current.dreams),
+    documents: mergeDocuments(backup.documents, current.documents),
   };
 }
 

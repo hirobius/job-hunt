@@ -9,6 +9,7 @@ import {
   type AccountState,
 } from './backup';
 import type { Job } from './types';
+import type { Document } from './documents';
 
 const NOW = new Date('2026-10-12T10:00:00.000Z');
 const job = (url: string, label = 'A job'): Job => ({ url, label, status: 'Saved' }) as Job;
@@ -53,6 +54,8 @@ const state = (over: Partial<AccountState> = {}): AccountState => ({
   evidence: '',
   modes: {},
   trash: [],
+  dreams: {},
+  documents: [],
   ...over,
 });
 
@@ -307,6 +310,8 @@ describe('sample data (#110)', () => {
         evidence: '',
         modes: {},
         trash: [],
+        dreams: {},
+        documents: [],
       },
       new Date(2026, 9, 13),
     );
@@ -403,5 +408,45 @@ describe('backup carries Recently removed (blob v8)', () => {
       'replace',
     );
     expect(replaced.trash.map((r) => r.job.url)).toEqual(['https://example.com/b']);
+  });
+});
+
+describe('backup carries Documents (#226)', () => {
+  const at = '2026-10-01T00:00:00.000Z';
+  const doc = (id: string, jobUrl?: string): Document => ({
+    id,
+    kind: 'cover',
+    title: id,
+    createdAt: at,
+    versions: [{ id: `${id}v`, text: id, savedAt: at }],
+    ...(jobUrl ? { jobUrl } : {}),
+  });
+
+  it('round-trips, leaves out a sample job’s documents, and an older backup parses with none', () => {
+    const sample = {
+      url: 'https://demo.example/1',
+      label: 'x',
+      status: 'Saved',
+      demo: true,
+    } as Job;
+    const b = buildBackup(
+      state({ jobs: [sample], documents: [doc('real'), doc('s', 'https://demo.example/1')] }),
+      NOW,
+    );
+    const parsed = parseBackup(JSON.stringify(b));
+    expect(parsed.ok && parsed.backup.documents.map((d) => d.id)).toEqual(['real']);
+    const old = parseBackup(wrap({ jobs: [] }));
+    expect(old.ok && old.backup.documents).toEqual([]);
+  });
+
+  it('merge unions by id; replace takes the backup', () => {
+    const cur = state({ documents: [doc('mine')] });
+    const bak = state({ documents: [doc('theirs')] });
+    expect(
+      applyBackup(cur, bak, 'merge')
+        .documents.map((d) => d.id)
+        .sort(),
+    ).toEqual(['mine', 'theirs']);
+    expect(applyBackup(cur, bak, 'replace').documents.map((d) => d.id)).toEqual(['theirs']);
   });
 });

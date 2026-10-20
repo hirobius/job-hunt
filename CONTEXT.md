@@ -57,3 +57,31 @@ _Avoid_: listing, opening (in code), result
 **Watched company**:
 A company whose Greenhouse, Lever or Ashby job board is on a track (as a tile), so its openings are pulled into Live postings.
 _Avoid_: followed company, subscription
+
+**Document**:
+A Résumé, Cover letter, Note or Outreach message the user writes, linked to a Job, a Company, or neither (`src/documents.ts`). Every save adds a Version.
+_Avoid_: file, attachment, template (in code)
+
+**Version**:
+One saved text of a Document. Versions are kept in save order and never edited; a new save adds a new one.
+_Avoid_: revision, draft, history entry
+
+**Sent**:
+The one Version of a kind (say, Cover letter) that went to a Job. Locked once marked: it can't be un-sent, moved or deleted, and a Job has at most one Sent Version per kind.
+_Avoid_: submitted, final
+
+**Company**:
+An employer, derived from the company name on the user's Jobs (and on Documents that name one); spellings that differ only in case, punctuation or a suffix like Inc are one Company. Never created by hand. Its page holds its Jobs, Documents and Notes (`src/companies.ts`).
+_Avoid_: employer, organization, account
+
+**Base document**:
+A Document not tied to a Job, kept to be copied into one. It is never Sent itself.
+_Avoid_: master, template, default
+
+**Outreach message**:
+A Base document of the Outreach-message kind: the text Use template, the follow-up dialog and the Apply sheet fill for a Job, with `[Variable]`s and its own variable values. It replaced the Copy Deck snippet (`src/outreachTemplates.ts`); each snippet became one, once.
+_Avoid_: snippet, template (in code)
+
+**Final copy**:
+A PDF or Word file uploaded to a Job as a Document of a kind: its one Version holds the file, not text, and it takes no new Versions. It can be marked Sent like any Version, and can be downloaded back.
+_Avoid_: attachment, upload (as a noun in code)

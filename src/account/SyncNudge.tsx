@@ -1,9 +1,10 @@
-// Sync nudge (#115 Phase 1, slimmed in #133): signed out, one dismissible one-line Callout on Today
-// offers sync (the other routes get no banner; the Account trigger's title says it). Once
+// Sync nudge (#115 Phase 1, slimmed in #133): signed out, one dismissible one-line note over the
+// Pipeline list offers sync (#236, was on Today; the other routes get no banner; the Account
+// trigger's title says it). Once
 // dismissed it never comes back on this device (sign-in stays in the account menu). Sign-out
 // clears rjb_* keys, so the next person on a shared browser sees it again.
 import { useState } from 'react';
-import { Box, Button, Callout, Icon, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, Icon, Stack, Text } from '@hirobius/design-system';
 import { Cloud, X } from 'lucide-react';
 import { useCloudSync } from './accountContext';
 import { useUnsynced } from './useUnsynced';
@@ -36,7 +37,7 @@ export default function SyncNudge() {
 
   // One line: icon · message · Sign in · dismiss. It wraps under the message on a phone.
   return (
-    <Callout tone="accent" role="region" aria-label="Sync your data">
+    <Box as="section" aria-label="Sync your data">
       <Stack direction="row" gap="px8" align="center" justify="space-between">
         <Stack
           direction="row"
@@ -67,6 +68,6 @@ export default function SyncNudge() {
           onClick={dismiss}
         />
       </Stack>
-    </Callout>
+    </Box>
   );
 }

@@ -8,6 +8,7 @@ import {
   pruneGhCache,
   MAX_SEARCH_PAGES,
   companyFromOrg,
+  isEmployer,
   findDesignSystemOrgs,
   keepRepo,
   parseRepo,
@@ -64,9 +65,19 @@ describe('parseRepo and keepRepo', () => {
     ['a fork', repo('a', 50, { fork: true }), false],
     ['too few stars', repo('a', 19), false],
     ['exactly 20 stars', repo('a', 20), true],
+    ['an awesome-* list', repo('a', 900, { full_name: 'a/awesome-design-md' }), false],
   ])('%s', (_n, raw, want) => {
     expect(keepRepo(parseRepo(raw)!, 20)).toBe(want);
   });
+});
+
+describe('isEmployer', () => {
+  it.each([
+    ['a company with a website', { name: 'Acme' }, 'https://acme.com', true],
+    ['no website', { name: 'Acme' }, undefined, false],
+    ['a community group', { name: 'Design Tokens Community Group' }, 'https://w3.org', false],
+    ['a foundation', { name: 'X', description: 'The X Foundation' }, 'https://x.org', false],
+  ])('%s', (_n, info, website, want) => expect(isEmployer(info, website)).toBe(want));
 });
 
 describe('companyFromOrg', () => {
@@ -166,10 +177,25 @@ describe('findDesignSystemOrgs', () => {
     const gh: GhGet = async (url) =>
       url.includes('/search/repositories')
         ? page([repo('acme', 900)])
-        : { status: 200, body: { name: 'Totally Different Name' } };
+        : { status: 200, body: { name: 'Totally Different Name', blog: 'tdn.example' } };
     const { out } = await run({ ghGet: gh, fetchJson });
     expect(out[0].board).toEqual({ kind: 'ashby', slug: 'acme' });
     expect(out[0].openRoles).toBe(0);
+  });
+
+  it.each([
+    ['every board answered 404', 404, undefined],
+    ['a board check got no answer (never read as none)', 503, 'unknown'],
+  ])('board check: %s', async (_n, status, want) => {
+    const fetchJson: FetchJson = async (u) => {
+      throw new FetchError(u.includes('lever') ? status : 404, u);
+    };
+    const { out } = await run({ ghGet: standard, fetchJson });
+    const acme = out.find((o) => o.login === 'acme')!;
+    expect(acme.board).toBeUndefined();
+    expect(acme.boardCheck).toBe(want);
+    // An organisation that was never looked up was never checked either.
+    expect(out.find((o) => o.login === 'nocorp')!.boardCheck).toBe('unchecked');
   });
 
   it('reads at most 3 search pages (150 repos) and 30 org lookups per run', async () => {
@@ -182,7 +208,7 @@ describe('findDesignSystemOrgs', () => {
         return page(Array.from({ length: 50 }, (_, i) => repo(`org${p}x${i}`, 1000 - p * 50 - i)));
       }
       lookups++;
-      return { status: 200, body: { name: 'N' } };
+      return { status: 200, body: { name: 'N', blog: 'n.example' } };
     };
     const { out, report } = await run({ ghGet: gh });
     expect(searches).toBe(MAX_SEARCH_PAGES);

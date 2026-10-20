@@ -15,7 +15,11 @@ vi.mock('@supabase/supabase-js', async () => {
     },
   };
 });
-const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
+const feed = vi.hoisted(() => ({
+  fetchFeed: vi.fn(),
+  liveFetchJson: vi.fn(),
+  createFetchJson: () => vi.fn(),
+}));
 vi.mock('./feed/fetchFeed', () => feed);
 
 import { createFakeSupabase } from './test/fakeSupabase';
@@ -52,7 +56,7 @@ beforeEach(() => {
     location: 'Spokane',
   });
   window.history.replaceState(null, '', '/');
-  window.location.hash = '#/discover';
+  window.location.hash = '#/discover/apply';
 });
 afterEach(cleanup);
 
@@ -151,12 +155,50 @@ describe('Discover header and tools (slice 2)', () => {
       within(tools)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Apply', 'Titles', 'ATS', 'Live', 'Boards', 'Teams']);
+    ).toEqual(['Apply', 'Teams', 'Titles', 'ATS']);
     expect(within(tools).getByRole('radio', { name: 'Apply' })).toBeChecked();
     await userEvent.click(within(tools).getByRole('radio', { name: 'ATS' }));
     expect(window.location.hash).toBe('#/discover/ats');
+    await userEvent.click(within(tools).getByRole('radio', { name: 'Teams' }));
+    expect(window.location.hash).toBe('#/discover/teams');
     await userEvent.click(within(tools).getByRole('radio', { name: 'Apply' }));
     expect(window.location.hash).toBe('#/discover');
+  });
+
+  it('follows the track: a welding track opens on Apply now and its Teams tool says why there is no search', async () => {
+    addGroup(cat, { label: 'First picks' });
+    window.location.hash = '#/discover';
+    renderApp();
+    const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
+    expect(within(tools).getByRole('radio', { name: 'Apply' })).toBeChecked();
+    await userEvent.click(within(tools).getByRole('radio', { name: 'Teams' }));
+    expect(await screen.findByText(/titles don't name anything GitHub tracks/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Add a company' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /^Find .* teams$/ })).toBeNull();
+  });
+
+  it('a design-systems track opens on Teams and searches its own field; the old teams slug still works', async () => {
+    const ds = addCategory({ label: 'Design systems', titles: ['Design Systems Engineer'] });
+    addGroup(ds, { label: 'First picks' });
+    localStorage.setItem('rjb_active_category', ds);
+    window.location.hash = '#/discover';
+    renderApp();
+    const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
+    expect(
+      within(tools)
+        .getAllByRole('radio')
+        .map((r) => r.textContent),
+    ).toEqual(['Teams', 'Apply', 'Titles', 'ATS']);
+    expect(within(tools).getByRole('radio', { name: 'Teams' })).toBeChecked();
+    expect(await screen.findByRole('button', { name: 'Find design-system teams' })).toBeVisible();
+    cleanup();
+    window.location.hash = '#/discover/teams';
+    renderApp();
+    expect(
+      within(await screen.findByRole('radiogroup', { name: 'Search tool' })).getByRole('radio', {
+        name: 'Teams',
+      }),
+    ).toBeChecked();
   });
 
   it('lists the community boards and big-company systems on ATS search; the Slack row is a plain link', async () => {
@@ -216,7 +258,8 @@ describe('Discover header and tools (slice 2)', () => {
 
 describe('Discover accessibility', () => {
   it.each([
-    ['apply', '#/discover'],
+    ['apply', '#/discover/apply'],
+    ['companies', '#/discover/teams'],
     ['titles', '#/discover/titles'],
     ['ats', '#/discover/ats'],
     ['live', '#/discover/live'],

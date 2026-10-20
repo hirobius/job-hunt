@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { useRoute, navigate, getRoute } from './route';
+import { useRoute, navigate, getRoute, COMPANY_TAB } from './route';
 import {
   Tabs as HdsTabs,
   TabsList,
@@ -10,40 +10,45 @@ import {
   Container,
   Stack,
 } from '@hirobius/design-system';
-import TodayView from './TodayView';
 import { FollowUpHost } from './FollowUp';
 import TrackerView from './TrackerView';
 import JobPage from './JobPage';
 import ApplyMode from './ApplyMode';
+import CompanyPage from './CompanyPage';
 import { JobPageLiveness, PipelineLiveness } from './LivenessViews';
 import { Onboarding, ChooseTrack } from './Onboarding';
-import { markTodayNoticeSeen } from './todayNoticeSeen';
-import { useCloudSync } from './account/accountContext';
-import { hasCloudSession } from './demo/loadSample';
 import { BRAND } from './brand';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInDialog from './account/SignInDialog';
 import SyncNudge from './account/SyncNudge';
-import { addJob, findJobByUrl, markAppliedByUrl, setStatusByUrl, useJobs } from './store';
+import { markAppliedByUrl, setStatusByUrl, useJobs } from './store';
+import { useSnippets } from './copyDeckStore';
+import { migrateSnippetStore } from './outreachTemplates';
+import { useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
-import { notifySaved } from './saveNotice';
+import { saveWithNotice } from './saveNotice';
 import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
 import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
 import { BARE_PANEL } from './hds-gaps/barePanel';
+import { useAtLeast } from './hds-gaps/useBreakpoint';
 
-// Code-split Discover and Templates so the initial bundle carries Today and the Pipeline (home and
-// the quick-add landing); the rest load on demand (tab switch).
+// Code-split Discover and Documents so the initial bundle carries the Pipeline (the quick-add
+// landing); the rest load on demand.
 const DiscoverView = lazy(() => import('./DiscoverView'));
-const CopyDeckView = lazy(() => import('./CopyDeckView'));
+const DocumentsView = lazy(() => import('./DocumentsView'));
 
-// Top-level tabs, in render order (Calm list, PR #208: Companies · Pipeline · Templates). The URL
-// hash carries the slug; slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline,
-// `copy-deck` Templates). `today` is a legacy route: no tab, still renders until its slice removes it.
-const TAB_SLUGS = ['discover', 'queue', 'copy-deck', 'today'] as const;
+// Top-level tabs, in render order (Calm list: Companies · Pipeline). The URL hash carries the slug;
+// slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline). `#/today` (#128) is
+// retired (#236): it redirects to Companies. Templates lost its tab (#240) and became the
+// Documents library (#227): `#/copy-deck` (slug kept) is a page with no tab selected, reached
+// from the Apply sheet and the Menu.
+const TAB_SLUGS = ['discover', 'queue'] as const;
+const RETIRED_TODAY = 'today';
+const DOCUMENTS_ROUTE = 'copy-deck';
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
 // Companies is home; quick-add always shows the Pipeline, where the new job is.
 const HOME_ROUTE = 'discover';
@@ -51,18 +56,33 @@ const QUICK_ADD_LANDING = 'queue';
 const APPLY_ROUTE = 'apply';
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
+/** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
+ *  after sync has settled so the cloud's copy (already moved on another device) is here first. */
+function SnippetMigration() {
+  const { settled } = useCloudSync();
+  const snippets = useSnippets();
+  useEffect(() => {
+    if (settled) migrateSnippetStore();
+  }, [settled, snippets]);
+  return null;
+}
+
 export default function App() {
   const route = useRoute();
-  // Apply mode (#/apply/<jobId>) is a Pipeline page: the Pipeline tab stays selected.
+  const wide = useAtLeast('sm');
+  // Apply mode (#/apply/<jobId>) and a Company's page (#/company/<slug>, #230) are Pipeline
+  // pages: the Pipeline tab stays selected.
   const applying = route.tab === APPLY_ROUTE;
+  const company = route.tab === COMPANY_TAB;
+  const documents = route.tab === DOCUMENTS_ROUTE;
   const slugIndex = TAB_SLUGS.indexOf(
-    (applying ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
+    (applying || company ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
   );
   const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
 
-  // The onboarding gate (#128) lives here, not in a view. Discover can't work without a track;
-  // Today asks for one only on a first run (no tracks and no jobs), so nobody lands on an empty
-  // home. The Pipeline and Templates never gate: quick-add and sample data work before setup.
+  // The onboarding gate (#128) lives here, not in a view. Companies can't work without a track,
+  // and on a first run (no tracks and no jobs) it also offers sample data, so nobody lands on an
+  // empty home. The Pipeline and Documents never gate: quick-add and sample data work before setup.
   const hasTracks = useCategories().length > 0;
   const jobs = useJobs();
   const hasJobs = jobs.length > 0;
@@ -76,10 +96,7 @@ export default function App() {
     const label = qp.get('t') || qp.get('title') || '';
     let acted = false;
     if (qp.get('add')) {
-      if (addJob(qp.get('add')!, label)) {
-        const job = findJobByUrl(qp.get('add')!);
-        if (job) notifySaved([job.url], job.label);
-      }
+      saveWithNotice(qp.get('add')!, label);
       acted = true;
     }
     if (qp.get('applied')) {
@@ -105,30 +122,44 @@ export default function App() {
     }
   }, []);
 
+  // An old #/today link or bookmark (#236) lands on Companies; replace, so Back skips it.
+  useEffect(() => {
+    if (route.tab === RETIRED_TODAY) navigate({ tab: HOME_ROUTE, sub: null, jobId: null }, true);
+  }, [route.tab]);
+
   return (
     <CloudSyncProvider>
-      <MarkFirstRun firstRun={firstRun} />
+      <SnippetMigration />
       <DataToolsProvider>
         {/* The HDS page width (1200): wide enough for the Pipeline table and, next, the job page's
             list rail (#129, #130). Each view sets its own inner measure where prose needs one. */}
         <Container maxWidth="max">
           {/* Page gutter: the HDS region-gutter role (Container's own padding prop is retired). */}
           <Box sx={{ px: 'var(--semantic-space-region-gutter)', py: 'md' }}>
+            {/* On the Documents page no tab is selected (and no tab panel mounts). */}
             <HdsTabs
-              value={TAB_SLUGS[tab]}
+              value={documents ? '' : TAB_SLUGS[tab]}
               onValueChange={(v) =>
                 navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null, jobId: null })
               }
             >
               <Stack gap="normal">
-                {/* Slim app bar: wordmark · Menu. The wordmark is a body-size label so each page's
-                    title stays the biggest text on screen. */}
+                {/* Slim app bar (#241): mark · Menu. The app name never competes with a page
+                    title: a small mark on a phone, a body-size (16px) wordmark from `sm` up. */}
                 <Stack direction="row" wrap="wrap" gap="gap" align="center" justify="space-between">
                   <Text variant="body" as="h1" className="rjb-semibold">
-                    {BRAND.wordmark[0]}
-                    <Box as="span" sx={{ color: 'accent' }}>
-                      {BRAND.wordmark[1]}
-                    </Box>
+                    {wide ? (
+                      <>
+                        {BRAND.wordmark[0]}
+                        <Box as="span" sx={{ color: 'accent' }}>
+                          {BRAND.wordmark[1]}
+                        </Box>
+                      </>
+                    ) : (
+                      <Box as="span" role="img" aria-label={BRAND.name} className="rjb-mark">
+                        {BRAND.name[0]}
+                      </Box>
+                    )}
                   </Text>
                   <AccountMenu />
                 </Stack>
@@ -137,26 +168,26 @@ export default function App() {
                   <TabsList style={{ width: '100%', marginBottom: 0 }} aria-label="Sections">
                     <TabsTrigger value="discover">Companies</TabsTrigger>
                     <TabsTrigger value="queue">Pipeline</TabsTrigger>
-                    <TabsTrigger value="copy-deck">Templates</TabsTrigger>
                   </TabsList>
                 </TabsOverflowFade>
-                {TAB_SLUGS[tab] === 'today' && !firstRun && <SyncNudge />}
-                <TabsContent value="today" style={BARE_PANEL}>
-                  {firstRun ? <Onboarding offerSample /> : <TodayView />}
-                </TabsContent>
                 <TabsContent value="queue" style={BARE_PANEL}>
                   {applying ? (
                     <ApplyMode jobId={route.sub} />
+                  ) : company ? (
+                    <CompanyPage slug={route.sub ?? ''} />
                   ) : route.jobId ? (
                     <>
                       <JobPageLiveness jobId={route.jobId} />
                       <JobPage jobId={route.jobId} />
                     </>
                   ) : (
-                    <>
+                    // 24 between the notes and the page (#241); an absent note leaves no gap.
+                    <Stack gap="normal">
+                      {/* The one sync nudge (#236: was on Today) sits over the Pipeline list. */}
+                      <SyncNudge />
                       <PipelineLiveness jobs={jobs} />
                       <TrackerView />
-                    </>
+                    </Stack>
                   )}
                 </TabsContent>
                 <TabsContent value="discover" style={BARE_PANEL}>
@@ -170,11 +201,11 @@ export default function App() {
                     <ChooseTrack />
                   )}
                 </TabsContent>
-                <TabsContent value="copy-deck" style={BARE_PANEL}>
+                {documents && (
                   <Suspense fallback={<CopyDeckSkeleton />}>
-                    <CopyDeckView />
+                    <DocumentsView />
                   </Suspense>
-                </TabsContent>
+                )}
               </Stack>
             </HdsTabs>
           </Box>
@@ -185,16 +216,4 @@ export default function App() {
       </DataToolsProvider>
     </CloudSyncProvider>
   );
-}
-
-// A first run marks the one-time "Today is home" notice seen: it never had a Tracker to miss. Only
-// once sync has settled, since a signed-in account's jobs and tracks may still be on their way down.
-// A stored session counts as signed in before its user loads (the session check can answer first).
-function MarkFirstRun({ firstRun }: { firstRun: boolean }) {
-  const { settled, user } = useCloudSync();
-  const signedOut = !user && !hasCloudSession();
-  useEffect(() => {
-    if (firstRun && settled && (user || signedOut)) markTodayNoticeSeen();
-  }, [firstRun, settled, user, signedOut]);
-  return null;
 }

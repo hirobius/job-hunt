@@ -1,6 +1,6 @@
 // The guided first run (#132 slice 4): three steps (pick a track, where, first job) in one narrow
 // column, with Back and Skip on every step. Tested at the route seam through App: the shell's gate
-// shows it on Today for a first run, and Finish lands on Today.
+// shows it on Companies for a first run, and Finish lands on Companies.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -179,7 +179,7 @@ describe('Discover with no track', () => {
     renderApp();
     await click('Choose a track');
     step(1);
-    expect(screen.queryByText('Just looking?')).toBeNull(); // sample data is a Today offer
+    expect(screen.queryByText('Just looking?')).toBeNull(); // sample data is a first-run offer
     await pickFirstPack();
     await click('Continue');
     await click('Continue');

@@ -23,6 +23,27 @@ export function insertAt(
   return { value: value.slice(0, from) + text + value.slice(to), caret: from + text.length };
 }
 
+// A chip's neighbours that need a space between them and it: a word, a closing chip, or (before it)
+// the end of a sentence clause; an opening chip after it. A line edge or a space needs none.
+const SPACE_BEFORE = /[\p{L}\p{N}\],.;:!?]/u;
+const SPACE_AFTER = /[\p{L}\p{N}[]/u;
+
+/** Put a variable token at the caret like `insertAt`, with a space on any side where it would
+ *  otherwise touch a word, so a chip at the start of a line never reads "[Company]Hi" (#207). The
+ *  caret lands after what was put in. */
+export function insertToken(
+  value: string,
+  start: number | null,
+  end: number | null,
+  token: string,
+): { value: string; caret: number } {
+  const from = start ?? value.length;
+  const to = end ?? from;
+  const before = from > 0 && SPACE_BEFORE.test(value[from - 1]) ? ' ' : '';
+  const after = to < value.length && SPACE_AFTER.test(value[to]) ? ' ' : '';
+  return insertAt(value, from, to, before + token + after);
+}
+
 export type Segment = { kind: 'text'; text: string } | { kind: 'var'; token: string; name: string };
 
 // A variable is any short bracketed name on one line: `[Company]`, `[Hiring manager]`.

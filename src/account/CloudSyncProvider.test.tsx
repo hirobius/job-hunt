@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Button, ToastProvider } from '@hirobius/design-system';
 import { createFakeSupabase } from '../test/fakeSupabase';
 
 // Count every createClient call app-wide: the app must build exactly ONE Supabase client (#99).
@@ -19,6 +21,8 @@ vi.mock('@supabase/supabase-js', async () => {
 });
 
 import { renderAccount, openAccount, chooseAccountItem } from '../test/renderAccount';
+import CloudSyncProvider from './CloudSyncProvider';
+import { useCloudSync } from './accountContext';
 import {
   addCategory,
   getCurationState,
@@ -32,11 +36,13 @@ import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
 import { OFFLINE_MSG } from '../cloudMessages';
 import { saveTarget, readTargets } from '../feed/targets';
+import { readDreams, starDream } from '../feed/dreams';
 import { saveFilter, readFilters } from '../feed/savedFilters';
 import { readEvidence, writeEvidence } from '../radar/evidenceStore';
 import { readMode, writeMode } from '../trackModes';
 import { emptyBlob, writeBlob } from '../syncBlob';
 import { getTrash, replaceTrash, trashJob } from '../trash';
+import { createDocument, getAllDocuments, replaceDocuments } from '../documents';
 
 const fake = () => h.fake!;
 const NOW = '2026-10-01T00:00:00.000Z';
@@ -48,10 +54,40 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   replaceTrash([]);
+  replaceDocuments([]);
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
   vi.restoreAllMocks();
+});
+
+describe('CloudSyncProvider sendLink (#44)', () => {
+  function SendButton() {
+    const { sendLink } = useCloudSync();
+    return <Button onClick={() => void sendLink('me@example.com')}>Send</Button>;
+  }
+
+  it('asks Supabase to redirect to an allow-listed origin at the root, never the current path', async () => {
+    const otp = vi.spyOn(fake().client.auth, 'signInWithOtp');
+    history.pushState(null, '', '/deep/path?next=https://evil.example#/queue');
+    try {
+      render(
+        <ToastProvider>
+          <CloudSyncProvider>
+            <SendButton />
+          </CloudSyncProvider>
+        </ToastProvider>,
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+      await waitFor(() => expect(otp).toHaveBeenCalledTimes(1));
+      expect(otp).toHaveBeenCalledWith({
+        email: 'me@example.com',
+        options: { emailRedirectTo: `${location.origin}/` },
+      });
+    } finally {
+      history.pushState(null, '', '/');
+    }
+  });
 });
 
 describe('CloudSyncProvider (via the account menu)', () => {
@@ -88,8 +124,8 @@ describe('CloudSyncProvider (via the account menu)', () => {
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     const menu = await openAccount();
     expect(within(menu).getByText('Signed in as u1@example.test')).toBeInTheDocument();
-    // …and the tracker blob it pushed is v8 (no pillars / userTiles).
-    expect(fake().tables.tracker[0].data).toMatchObject({ v: 8 });
+    // …and the tracker blob it pushed is v9 (no pillars / userTiles).
+    expect(fake().tables.tracker[0].data).toMatchObject({ v: 10 });
     expect(fake().tables.tracker[0].data).not.toHaveProperty('pillars');
   });
 
@@ -384,6 +420,8 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       saveFilter('trk', search);
       writeEvidence('Led a design system');
       writeMode('trk', 'hybrid');
+      starDream('trk', { company: 'Dreamco' });
+      createDocument({ kind: 'resume', title: 'Base résumé', base: true, text: 'cv' });
     };
 
     it('survives sign-out and comes back on a fresh device', async () => {
@@ -393,11 +431,13 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       act(edit);
       await waitFor(() =>
         expect(fake().tables.tracker[0].data).toMatchObject({
-          v: 8,
+          v: 10,
           targets: { trk: [{ login: 'acme' }] },
           filters: { trk: [{ name: 'Austin hybrid' }] },
           evidence: 'Led a design system',
           modes: { trk: 'hybrid' },
+          dreams: { trk: [{ company: 'Dreamco' }] },
+          documents: [{ title: 'Base résumé', base: true }],
         }),
       );
 
@@ -407,16 +447,20 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       expect(readFilters('trk')).toEqual([]);
       expect(readEvidence()).toBe('');
       expect(readMode('trk')).toBe('any');
+      expect(readDreams('trk')).toEqual([]);
 
       // …and a fresh device signing in gets it all back.
       cleanup();
       localStorage.clear();
+      act(() => replaceDocuments([])); // a fresh device's in-memory store
       renderAccount();
       act(() => fake().signIn('u1'));
       await waitFor(() => expect(readTargets('trk').map((t) => t.login)).toEqual(['acme']));
       expect(readFilters('trk').map((f) => f.name)).toEqual(['Austin hybrid']);
       expect(readEvidence()).toBe('Led a design system');
       expect(readMode('trk')).toBe('hybrid');
+      expect(readDreams('trk').map((d) => d.company)).toEqual(['Dreamco']);
+      expect(getAllDocuments().map((d) => d.title)).toEqual(['Base résumé']);
     });
 
     it('first sign-in keeps this device’s entries and unions them with the cloud’s', async () => {
@@ -488,7 +532,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       });
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
       expect(fake().tables.tracker[0].data).toMatchObject({
-        v: 8,
+        v: 10,
         evidence: 'Led a design system',
         modes: { trk: 'hybrid' },
       });
@@ -515,7 +559,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       act(() => {
         window.dispatchEvent(new Event('focus'));
       });
-      await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 8 }));
+      await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 10 }));
       expect(fake().tables.tracker[0].data.trash).toHaveLength(1);
       expect(getTrash().map((r) => r.job.url)).toEqual(['https://example.test/removed']);
     });
@@ -609,7 +653,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       });
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
       expect(fake().tables.tracker[0].data).toMatchObject({
-        v: 8,
+        v: 10,
         evidence: 'Led a design system',
         modes: { trk: 'hybrid' },
       });
@@ -668,7 +712,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       edit();
       renderAccount();
       act(() => fake().signIn('u1'));
-      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(8));
+      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(10));
       act(() => {
         window.dispatchEvent(new Event('focus'));
       });

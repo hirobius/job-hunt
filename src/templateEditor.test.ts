@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   insertAt,
+  insertToken,
   removeChipAt,
   snapOutOfChip,
   splitVariables,
@@ -24,6 +25,35 @@ describe('insertAt', () => {
       value: 'Dear[Contact]',
       caret: 13,
     });
+  });
+});
+
+// #207: a variable put in from the chips or the menu never glues onto the words beside it, so a
+// template never reads "[Company]Hi [Contact],". Typed and pasted text still go in as they are.
+describe('insertToken', () => {
+  it.each([
+    ['start of a line', 'Hi [Contact],', 0, 0, '[Company]', '[Company] Hi [Contact],', 10],
+    [
+      'start of a later line',
+      'Hello\nHi there',
+      6,
+      6,
+      '[Company]',
+      'Hello\n[Company] Hi there',
+      16,
+    ],
+    ['end of a line', 'Hi there\nBye', 8, 8, '[Role]', 'Hi there [Role]\nBye', 15],
+    ['mid-word', 'Helloworld', 5, 5, '[Role]', 'Hello [Role] world', 13],
+    ['before a space', 'Hello world', 5, 5, '[Role]', 'Hello [Role] world', 12],
+    ['after a space', 'Hello world', 6, 6, '[Role]', 'Hello [Role] world', 13],
+    ['after punctuation', 'Hi,', 3, 3, '[Role]', 'Hi, [Role]', 10],
+    ['before punctuation', 'Hi ,', 3, 3, '[Role]', 'Hi [Role],', 9],
+    ['between two chips', '[Company][Role]', 9, 9, '[Contact]', '[Company] [Contact] [Role]', 20],
+    ['an empty body', '', 0, 0, '[Role]', '[Role]', 6],
+    ['no caret: on the end', 'Dear', null, null, '[Contact]', 'Dear [Contact]', 14],
+    ['over a selection', 'Hi NAME,', 3, 7, '[Contact]', 'Hi [Contact],', 12],
+  ])('%s', (_case, value, start, end, token, want, caret) => {
+    expect(insertToken(value, start, end, token)).toEqual({ value: want, caret });
   });
 });
 

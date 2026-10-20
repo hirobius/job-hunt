@@ -78,3 +78,35 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
   await expect(page.getByRole('region', { name: 'To apply (0)' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Follow up (3)' })).toBeVisible();
 });
+
+// The Apply sheet (#239): the starter templates show filled for the job, one copy row each, and the
+// sheet fits a 390 phone with no sideways scroll and 40px copy targets.
+test('Apply sheet: templates filled for the job, copyable at 390', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+  await page.goto(
+    '/?add=' + encodeURIComponent('https://acme.example/jobs/1') + '&t=Acme+Designer',
+  );
+  await expect(page.getByRole('region', { name: 'To apply (1)' })).toBeVisible();
+  await page.getByRole('button', { name: 'Start applying' }).click();
+  await expect(page).toHaveURL(/#\/apply\//);
+
+  const list = page.getByRole('list', { name: 'Your templates' });
+  await expect(list.getByRole('listitem').first()).toBeVisible();
+  const intro = list.getByRole('listitem', { name: 'Outreach note' });
+  await expect(intro).toContainText('Acme Designer');
+  await intro.getByRole('button', { name: 'Copy Outreach note' }).click();
+  await expect(intro.getByRole('button', { name: 'Copied Outreach note' })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('Acme Designer');
+
+  const sideways = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(sideways).toBe(false);
+  for (const box of await list
+    .getByRole('button')
+    .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height)))
+    expect(box).toBeGreaterThanOrEqual(40);
+  const edit = await page.getByRole('link', { name: 'Edit documents' }).boundingBox();
+  expect(edit?.height).toBeGreaterThanOrEqual(40);
+});

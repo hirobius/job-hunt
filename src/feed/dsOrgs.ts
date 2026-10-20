@@ -1,7 +1,8 @@
-// Method 3: companies with a public design system on GitHub (docs/specs/discovery-methods.md). Keyless
-// GitHub REST search finds repositories tagged `design-system`; the owning organisations are the
-// companies, each looked up once for a display name and website, then probed for a job board. An
-// organisation with no board is still returned: that is an outreach target, not a dead end.
+// Method 3: companies with public work on GitHub (docs/specs/discovery-methods.md). Keyless GitHub
+// REST search finds repositories tagged with the track's topics (teamTopics.ts; `design-system` by
+// default); the owning organisations are the companies, each looked up once for a display name and
+// website, then probed for a job board. An organisation with no board is still returned: that is an
+// outreach target, not a dead end.
 //
 // UNVERIFIED LIVE from the build sandbox (a search call was refused by its proxy); see
 // DISCOVERY_SOURCE_ENABLED.github. Rate limits are respected, not worked around: `githubBudget.ts`
@@ -11,6 +12,7 @@ import { browserKv, type KeyValue } from './fetchFeed';
 import type { GithubBudget } from './githubBudget';
 import { probeCompanies, slugCandidates, type Limiter } from './probe';
 import type { Board } from './sources/ats';
+import { DESIGN_SYSTEM_SEARCH } from './teamTopics';
 import { arr, obj, str, type FetchJson } from './sources/http';
 
 const GH_API = 'https://api.github.com';
@@ -39,7 +41,8 @@ export function pruneGhCache<E extends { at: number }>(
   return Object.fromEntries(live.slice(0, GH_CACHE_MAX));
 }
 const GH_TIMEOUT_MS = 15_000;
-const QUERIES: string[][] = [['design-system', 'design-tokens'], ['design-system']];
+/** The design-systems search, used when a caller names no other (teamTopics.ts picks per track). */
+export const DS_QUERIES = DESIGN_SYSTEM_SEARCH.queries;
 
 export function searchUrl(topics: string[], page: number): string {
   const q = topics.map((t) => `topic:${t}`).join(' ');
@@ -128,8 +131,23 @@ export function parseRepo(raw: unknown): DsRepo | null {
   };
 }
 
+/** awesome-* lists are link collections, not a team's design system. */
+const LIST_REPO = /\/awesome[-_.]/i;
+
 export const keepRepo = (r: DsRepo, minStars: number) =>
-  r.ownerType === 'Organization' && !r.archived && !r.fork && r.stars >= minStars;
+  r.ownerType === 'Organization' &&
+  !r.archived &&
+  !r.fork &&
+  r.stars >= minStars &&
+  !LIST_REPO.test(r.repo);
+
+/** Names and descriptions of groups that publish a design system but don't hire for it. */
+const NOT_EMPLOYER =
+  /\b(community|working|interest) group\b|\bfoundation\b|\bW3C\b|\bopen[- ]source (collective|community)\b|\bawesome\b/i;
+
+/** An organisation that looks like a company: it names a website and isn't a community group. */
+export const isEmployer = (info: OrgInfo, website?: string) =>
+  !!website && !NOT_EMPLOYER.test(`${info.name ?? ''} ${info.description ?? ''}`);
 
 // ---- organisations ----
 
@@ -169,6 +187,9 @@ export interface OrgTarget {
   board?: Board;
   /** Open roles on `board` at the time of the check. */
   openRoles?: number;
+  /** Why there is no `board`, when it isn't "none": a board check that got no answer (rate-limited,
+   *  offline: never read as none), or an organisation not looked up yet. */
+  boardCheck?: 'unknown' | 'unchecked';
 }
 
 /** What a run did, filled in as it goes (a generator cannot also return a summary to `for await`). */
@@ -194,6 +215,8 @@ export interface DsOrgOptions {
   limiter?: Limiter;
   signal?: AbortSignal;
   minStars?: number;
+  /** GitHub topic queries, narrowest first (teamTopics.ts). Defaults to DS_QUERIES. */
+  queries?: string[][];
   report: RunReport;
 }
 
@@ -218,14 +241,22 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
   delete report.error;
 
   const cache = readCache(kv);
-  let dirty = false;
   const fromCache = <T>(key: string, ttl: number): T | undefined => {
     const e = cache[key];
     return e && typeof e.at === 'number' && now() - e.at < ttl ? (e.v as T) : undefined;
   };
+  // Written through, not at the end: a run cancelled mid-way (the tool closed) keeps what it paid
+  // for, and never writes to storage after it is gone.
+  const persist = () => {
+    try {
+      kv.set(GH_CACHE_KEY, JSON.stringify(pruneGhCache(cache, now())));
+    } catch {
+      /* storage full: the next run just asks again */
+    }
+  };
   const toCache = (key: string, v: unknown) => {
     cache[key] = { at: now(), v };
-    dirty = true;
+    persist();
   };
   const halt = () => !!signal?.aborted;
 
@@ -237,6 +268,7 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
       return null;
     }
     const res = await ghGet(url);
+    if (halt()) return null;
     const limited =
       (res.status === 403 || res.status === 429) && (res.remaining === 0 || res.retryAfter != null);
     if (limited) {
@@ -259,7 +291,7 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
     // 1. repositories, the narrower query first, at most MAX_SEARCH_PAGES pages in all
     const repos: DsRepo[] = [];
     let stop = false;
-    for (const topics of QUERIES) {
+    for (const topics of opts.queries ?? DS_QUERIES) {
       for (let page = 1; !stop && !halt() && report.searchPages < MAX_SEARCH_PAGES; page++) {
         const url = searchUrl(topics, page);
         let entry = fromCache<{ list: DsRepo[]; n: number }>(`s:${url}`, SEARCH_TTL_MS);
@@ -318,6 +350,8 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
       const resolved = !!info;
       if (!resolved) report.unresolved++;
       const { company, website } = companyFromOrg(r.login, info);
+      // Projects and community groups are not employers: leave them out.
+      if (info && !isEmployer(info, website)) continue;
       const target: OrgTarget = {
         login: r.login,
         company,
@@ -329,34 +363,31 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
       };
       if (resolved) {
         const hit = await findBoard(company, r.login, opts, kv, now);
-        if (hit) {
+        if (hit === 'unknown') target.boardCheck = 'unknown';
+        else if (hit) {
           target.board = hit.board;
           target.openRoles = hit.jobs;
         }
-      }
+      } else target.boardCheck = 'unchecked';
       if (halt()) return;
       yield target;
     }
   } finally {
-    const pruned = pruneGhCache(cache, now());
-    if (dirty || Object.keys(pruned).length !== Object.keys(cache).length) {
-      try {
-        kv.set(GH_CACHE_KEY, JSON.stringify(pruned));
-      } catch {
-        /* storage full: the next run just asks again */
-      }
-    }
+    // Expired entries go even when nothing new was cached.
+    if (Object.keys(pruneGhCache(cache, now())).length !== Object.keys(cache).length) persist();
   }
 }
 
-/** The company's board by its name, else by the organisation's login. */
+/** The company's board by its name, else by the organisation's login. 'unknown' when no board was
+ *  found and some check got no answer: that is not "none". */
 async function findBoard(
   company: string,
   login: string,
   o: DsOrgOptions,
   kv: KeyValue,
   now: () => number,
-): Promise<{ board: Board; jobs?: number } | null> {
+): Promise<{ board: Board; jobs?: number } | 'unknown' | null> {
+  let unknown = false;
   const lines = [company];
   const l = login.toLowerCase();
   if (!slugCandidates(company).includes(l)) lines.push(login);
@@ -369,7 +400,8 @@ async function findBoard(
       limiter: o.limiter,
     })) {
       if (r.state === 'found') return { board: r.hits[0].board, jobs: r.hits[0].jobs };
+      if (r.state === 'unknown') unknown = true;
     }
   }
-  return null;
+  return unknown ? 'unknown' : null;
 }

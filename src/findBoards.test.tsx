@@ -1,4 +1,5 @@
-// Discover → Find boards (docs/specs/discovery-methods.md, method 2), pinned at the route seam:
+// Companies → Check a list of companies (once the Find boards tool; docs/specs/discovery-methods.md,
+// method 2), pinned at the route seam:
 // App at #/discover/boards with a stubbed `fetch` standing in for the ATS board APIs.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -89,10 +90,16 @@ const paste = async (text: string) => {
 const watchedUrls = () => getCurationState().tiles.map((t) => t.url);
 
 describe('Find boards', () => {
-  it('is a tool in the Discover row', async () => {
+  it('is a secondary view of the companies list, not a tool of its own (#237)', async () => {
     renderApp();
     const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
-    expect(within(tools).getByRole('radio', { name: 'Boards' })).toBeChecked();
+    expect(within(tools).queryByRole('radio', { name: 'Boards' })).toBeNull();
+    expect(within(tools).getByRole('radio', { name: 'Teams' })).toBeChecked();
+    expect(screen.getByRole('heading', { name: 'Check a list of companies' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Back to companies' })).toHaveAttribute(
+      'href',
+      '#/discover',
+    );
   });
 
   it('sorts a pasted list into found, not found and could not check, with a progress line', async () => {

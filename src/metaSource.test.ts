@@ -16,7 +16,6 @@ const ALLOWED = [
   'src/store.ts', // job title built from title + ats
   'src/feed/toJob.ts', // saved-note text, not a meta line
   'src/feed/sources/hn.ts', // location data
-  'src/TemplateDetail.tsx', // label + company
   'src/LivenessViews.tsx', // two items
 ];
 

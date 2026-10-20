@@ -1,20 +1,21 @@
-// Rows shared by the Teams tool and the By company view: one outreach target (a design-system team
-// with its repo, stars and open roles, or a starter pack's company with its board), the watch action, and the saved-targets section. Kept apart
+// Rows of the Teams tool: one outreach target (a team found on GitHub with its repo, stars and
+// open roles, or a starter pack's company with its board), the watch action, and the saved-targets section. Kept apart
 // from the engine so Live postings can show saved targets without loading the GitHub search code.
+import type { ReactNode } from 'react';
 import { Badge, Button, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { atsSearchUrl } from './jobsData';
 import type { Board } from './feed/sources/ats';
 import { removeTarget, useTargets, type Target } from './feed/targets';
 import { SOURCE_LABEL } from './feed/types';
 import { SECONDARY } from './hds-gaps/tone';
-import { listStyle, useWatching } from './outreachShared';
+import { ROWS_CLASS, rowsStyle, useWatching } from './outreachShared';
 
 export type Row = Omit<Target, 'savedAt'>;
 
 // A starter pack's target has a board but no count yet; Live postings reads it once watched.
 const rolesText = (r: Row) =>
   !r.board
-    ? 'Open roles: none found (no public board on the five systems we check)'
+    ? 'Board not found (none on the systems we check; it may hire elsewhere)'
     : r.openRoles === undefined
       ? null
       : `Open roles: ${r.openRoles}`;
@@ -26,105 +27,124 @@ export function TargetRow({
   onSave,
   onRemove,
   onWatch,
+  rolesLine,
+  star,
+  children,
+  showWatch = true,
 }: {
   r: Row;
+  /** False on a row that is already a watched company: its Watch button would only say so. */
+  showWatch?: boolean;
   saved: boolean;
   watching: boolean;
   onSave?: () => void;
   onRemove?: () => void;
   onWatch: (b: Board) => void;
+  /** Replaces the stored open-roles count (the Teams tool reads the board live). */
+  rolesLine?: string;
+  /** The dream-company star. */
+  star?: ReactNode;
+  /** Shown under the row: the team's matching roles. */
+  children?: ReactNode;
 }) {
   const careers = atsSearchUrl(`"${r.company}"`, { role: 'careers', where: '', mode: 'any' });
   return (
     <li>
-      <Stack direction="row" gap="xs" align="center" justify="space-between" wrap="wrap">
-        <Stack gap="px4">
-          <Stack direction="row" gap="xs" align="center" wrap="wrap">
-            <Text variant="ui" as="span">
-              {r.website ? (
-                <InlineLink href={r.website} externalIcon={false}>
-                  {r.company}
+      <Stack gap="xs">
+        <Stack direction="row" gap="xs" align="center" justify="space-between" wrap="wrap">
+          <Stack gap="px4">
+            <Stack direction="row" gap="xs" align="center" wrap="wrap">
+              <Text variant="ui" as="span">
+                {r.website ? (
+                  <InlineLink href={r.website} externalIcon={false}>
+                    {r.company}
+                  </InlineLink>
+                ) : (
+                  r.company
+                )}
+              </Text>
+              {r.board && <Badge>{SOURCE_LABEL[r.board.kind]}</Badge>}
+            </Stack>
+            {r.repo && r.repoUrl && (
+              <Text variant="caption" as="p" style={SECONDARY}>
+                <InlineLink href={r.repoUrl} externalIcon={false}>
+                  {r.repo}
                 </InlineLink>
-              ) : (
-                r.company
-              )}
-            </Text>
-            {r.board && <Badge>{SOURCE_LABEL[r.board.kind]}</Badge>}
+                {` · ${(r.stars ?? 0).toLocaleString()} stars`}
+              </Text>
+            )}
+            {(rolesLine ?? rolesText(r)) && (
+              <Text variant="caption" as="p" style={SECONDARY}>
+                {rolesLine ?? rolesText(r)}
+              </Text>
+            )}
           </Stack>
-          {r.repo && r.repoUrl && (
-            <Text variant="caption" as="p" style={SECONDARY}>
-              <InlineLink href={r.repoUrl} externalIcon={false}>
-                {r.repo}
-              </InlineLink>
-              {` · ${(r.stars ?? 0).toLocaleString()} stars`}
-            </Text>
-          )}
-          {rolesText(r) && (
-            <Text variant="caption" as="p" style={SECONDARY}>
-              {rolesText(r)}
-            </Text>
-          )}
-        </Stack>
-        <Stack direction="row" gap="xs" align="center" wrap="wrap">
-          {!r.board && (
-            <Button size="sm" variant="tertiary" asChild>
-              <a
-                href={careers}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Search careers for ${r.company}`}
+          <Stack direction="row" gap="xs" align="center" wrap="wrap">
+            {!r.board && (
+              <Button size="sm" variant="tertiary" asChild>
+                <a
+                  href={careers}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Search careers for ${r.company}`}
+                >
+                  Search careers
+                </a>
+              </Button>
+            )}
+            {r.board && showWatch && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={watching}
+                aria-label={`${watching ? 'Watching' : 'Watch board for'} ${r.company}`}
+                onClick={() => onWatch(r.board!)}
               >
-                Search careers
-              </a>
-            </Button>
-          )}
-          {r.board && (
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={watching}
-              aria-label={`${watching ? 'Watching' : 'Watch board for'} ${r.company}`}
-              onClick={() => onWatch(r.board!)}
-            >
-              {watching ? 'Watching' : 'Watch board'}
-            </Button>
-          )}
-          {onSave && (
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={saved}
-              aria-label={`${saved ? 'Saved' : 'Save as target:'} ${r.company}`}
-              onClick={onSave}
-            >
-              {saved ? 'Saved' : 'Save as target'}
-            </Button>
-          )}
-          {onRemove && (
-            <Button
-              size="sm"
-              variant="tertiary"
-              aria-label={`Remove ${r.company}`}
-              onClick={onRemove}
-            >
-              Remove
-            </Button>
-          )}
+                {watching ? 'Watching' : 'Watch board'}
+              </Button>
+            )}
+            {onSave && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={saved}
+                aria-label={`${saved ? 'Saved' : 'Save as target:'} ${r.company}`}
+                onClick={onSave}
+              >
+                {saved ? 'Saved' : 'Save as target'}
+              </Button>
+            )}
+            {onRemove && (
+              <Button
+                size="sm"
+                variant="tertiary"
+                aria-label={`Remove ${r.company}`}
+                onClick={onRemove}
+              >
+                Remove
+              </Button>
+            )}
+            {star}
+          </Stack>
         </Stack>
+        {children}
       </Stack>
     </li>
   );
 }
 
-/** The saved targets of a track, as a section. Used under the By company view. */
+/** The saved targets of a track, as a section. */
 export function SavedTargets({
   categoryId,
   boardUrls,
   heading = true,
+  findLink = true,
 }: {
   categoryId: string;
   boardUrls: string[];
   heading?: boolean;
+  /** Point to the Teams tool's team search (off where there is none to point to). */
+  findLink?: boolean;
 }) {
   const targets = useTargets(categoryId);
   const { isWatching, watch } = useWatching(categoryId, boardUrls);
@@ -137,14 +157,19 @@ export function SavedTargets({
       )}
       {targets.length === 0 ? (
         <Text variant="caption" as="p" style={SECONDARY}>
-          Companies with no opening yet that you want to write to. Find design-system teams in the
-          Teams tool and save the ones worth a note.{' '}
-          <InlineLink href="#/discover/teams" externalIcon={false}>
-            Find design-system teams
-          </InlineLink>
+          Companies with no opening yet that you want to write to.
+          {findLink && (
+            <>
+              {' '}
+              Find teams in the Teams tool and save the ones worth a note.{' '}
+              <InlineLink href="#/discover/teams" externalIcon={false}>
+                Find teams
+              </InlineLink>
+            </>
+          )}
         </Text>
       ) : (
-        <ul aria-label="Saved targets" style={listStyle}>
+        <ul aria-label="Saved targets" style={rowsStyle} className={ROWS_CLASS}>
           {targets.map((t) => (
             <TargetRow
               key={t.login}

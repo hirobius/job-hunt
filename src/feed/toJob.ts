@@ -12,7 +12,7 @@ export interface JobFields {
   note: string;
 }
 
-export function jobFieldsFor(p: RankedPosting, term: string): JobFields {
+export function jobFieldsFor(p: RankedPosting, term: string, from = 'Live postings'): JobFields {
   const label =
     p.source === 'hn' && p.title === HN_NO_ROLE
       ? p.company
@@ -21,7 +21,7 @@ export function jobFieldsFor(p: RankedPosting, term: string): JobFields {
       : p.title;
   // The signals ride along so the Tracker keeps why this one was worth saving.
   const signals = p.signals.map((s) => s.label).join(', ');
-  const note = [`Found in Live postings · ${SOURCE_LABEL[p.source]} · “${term}”`, signals]
+  const note = [`Found in ${from} · ${SOURCE_LABEL[p.source]} · “${term}”`, signals]
     .filter(Boolean)
     .join(' · ');
   return { label, company: p.company, location: p.location, mode: p.mode, note };

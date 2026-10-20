@@ -10,9 +10,9 @@ const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [1440, 390] as const;
 // Hash routes reached once a track and the sample pipeline exist. The job page is added below.
 const ROUTES = [
-  '#/today',
   '#/queue',
   '#/discover',
+  '#/discover/apply',
   '#/discover/titles',
   '#/discover/ats',
   '#/discover/live',
@@ -20,6 +20,8 @@ const ROUTES = [
   '#/discover/teams',
   '#/copy-deck',
   '#/copy-deck/tpl-outreach',
+  // A Company's page (#230), named by a sample job's company.
+  '#/company/larkspur-analytics',
 ];
 
 async function seed(page: Page) {
@@ -30,6 +32,8 @@ async function seed(page: Page) {
   await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().click();
   for (const name of ['Continue', 'Continue', 'Finish'])
     await page.getByRole('button', { name, exact: true }).click();
+  // Apply now by name: which tool `#/discover` opens on depends on the track (teamTopics.ts).
+  await go(page, '#/discover/apply');
   await expect(page.getByRole('tablist', { name: 'Your sections' })).toBeVisible();
 }
 
@@ -71,6 +75,12 @@ for (const theme of THEMES) {
         await job.click();
         await page.waitForTimeout(500);
         for (const v of await axeViolations(page)) bad.push(`job page ${v}`);
+        // Apply mode (#/apply/<jobId>, #219): its id comes from the sample data, so start it.
+        await go(page, '#/queue');
+        await page.getByRole('button', { name: 'Start applying' }).click();
+        await expect(page).toHaveURL(/#\/apply\//);
+        await page.waitForTimeout(500);
+        for (const v of await axeViolations(page)) bad.push(`apply mode ${v}`);
         expect(bad).toEqual([]);
       });
     });
