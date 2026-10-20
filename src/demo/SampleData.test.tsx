@@ -37,7 +37,7 @@ describe('Try with sample data (Tracker)', () => {
       await user.click(tryButton()!);
       expect(banner()).toHaveTextContent(/10 fictional jobs/);
       // Saved jobs + the pinned follow-ups/interviews show in the default Active view (their
-      // agenda lives on Today now, #128).
+      // agenda sits above the list, #236).
       expect(screen.getAllByText('Solutions Engineer')[0]).toBeInTheDocument();
       // Applied jobs are also listed under Follow up, so this title appears twice.
       expect(screen.getAllByText('Clinical Systems Analyst').length).toBeGreaterThan(0);

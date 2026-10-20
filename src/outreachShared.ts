@@ -1,4 +1,4 @@
-// Shared by the Teams tool's files (OutreachRows.tsx, OutreachTargets.tsx): the
+// Shared by the companies list's files (OutreachRows.tsx, CompaniesPanel.tsx, AddCompany.tsx): the
 // list style and the watch action. Kept out of the .tsx so those files export components only.
 import { useMemo } from 'react';
 import { useToast } from '@hirobius/design-system';
@@ -13,6 +13,11 @@ export const listStyle = {
   gap: 'var(--primitive-space-3)',
 } as const;
 
+/** A list of companies (#241, Calm list): flat rows split by hairlines (`.rjb-rows` in base.css)
+ *  instead of a gap. Pair with `className={ROWS_CLASS}`. */
+export const rowsStyle = { ...listStyle, gap: 0 } as const;
+export const ROWS_CLASS = 'rjb-rows';
+
 /** Hook: what the track already watches and the watch action, shared by both surfaces. */
 export function useWatching(categoryId: string, boardUrls: string[]) {
   const { toast } = useToast();
@@ -24,7 +29,7 @@ export function useWatching(categoryId: string, boardUrls: string[]) {
     if (r.ok)
       toast({
         title: `Watching ${r.label}`,
-        description: 'Its openings now show up in Live postings.',
+        description: 'Its open roles now show on Companies and in Live postings.',
         tone: 'success',
       });
     else toast({ title: r.error, tone: 'warning' });

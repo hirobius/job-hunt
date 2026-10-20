@@ -1,0 +1,222 @@
+// Companies as one tool (#237, Calm list 3/7), pinned at the route seam: App at #/discover/*, with a
+// stubbed `fetch` standing in for the ATS board APIs. Watched companies and GitHub teams are one list
+// of company rows with their open roles inline; one "Add a company" action replaces the Boards and
+// Teams entry points; Live postings and the list checker stay reachable as secondary views; every old
+// #/discover/* slug still lands somewhere.
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { ToastProvider } from '@hirobius/design-system';
+
+const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));
+vi.mock('@supabase/supabase-js', async () => {
+  const { createFakeSupabase } = await import('./test/fakeSupabase');
+  return {
+    createClient: () => {
+      h.fake = createFakeSupabase();
+      return h.fake.client;
+    },
+  };
+});
+
+import { createFakeSupabase } from './test/fakeSupabase';
+import { ColorModeProvider } from './ColorMode';
+import App from './App';
+import {
+  addCategory,
+  addGroup,
+  addTile,
+  getCurationState,
+  replaceCurationState,
+} from './curation/curationStore';
+import { EMPTY_CURATION } from './curation/types';
+import { readDreams, starDream } from './feed/dreams';
+import { getAllJobs } from './store';
+
+const renderApp = () =>
+  render(
+    <ColorModeProvider>
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    </ColorModeProvider>,
+  );
+
+const leverJob = (slug: string, id: string, text: string) => ({
+  id,
+  text,
+  hostedUrl: `https://jobs.lever.co/${slug}/${id}`,
+  categories: { location: 'Remote' },
+});
+/** Board APIs by URL: northwind (Lever) has a welding role, figma (Greenhouse) a board; the rest 404. */
+const LIVE: Record<string, unknown> = {
+  'https://api.lever.co/v0/postings/northwind?mode=json': [
+    leverJob('northwind', 'n1', 'Senior Welder'),
+    leverJob('northwind', 'n2', 'Accountant'),
+  ],
+  'https://boards-api.greenhouse.io/v1/boards/figma/jobs': { jobs: [] },
+};
+const fakeFetch = vi.fn(async (url: string) => {
+  const hit = Object.keys(LIVE).find((k) => url.startsWith(k));
+  if (hit) return new Response(JSON.stringify(LIVE[hit]), { status: 200 });
+  return new Response('{}', { status: 404 });
+});
+
+let cat: string;
+const watch = (url: string) => {
+  const g =
+    getCurationState().groups.find((x) => x.label === 'Watched companies')?.id ??
+    addGroup(cat, { label: 'Watched companies' });
+  addTile(g, { name: 'Board', url, meta: '' });
+};
+const watchedUrls = () => getCurationState().tiles.map((t) => t.url);
+const tools = () => screen.findByRole('radiogroup', { name: 'Search tool' });
+
+beforeEach(() => {
+  h.fake?.reset();
+  localStorage.clear();
+  fakeFetch.mockClear();
+  vi.stubGlobal('fetch', fakeFetch);
+  replaceCurationState(EMPTY_CURATION);
+  cat = addCategory({ label: 'Welding', titles: ['Welder'], atsRoles: ['welder'] });
+  addGroup(cat, { label: 'First picks' });
+  window.history.replaceState(null, '', '/');
+  window.location.hash = '#/discover';
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+describe('Companies as one tool (#237)', () => {
+  it('the tool row is Companies, Apply now, Titles and ATS: Live postings and Boards are not tools', async () => {
+    watch('https://jobs.lever.co/northwind');
+    renderApp();
+    const row = await tools();
+    expect(
+      within(row)
+        .getAllByRole('radio')
+        .map((r) => r.textContent),
+    ).toEqual(['Teams', 'Apply', 'Titles', 'ATS']);
+  });
+
+  it('a track that watches a company opens on its company rows, open roles inline, saved in one tap', async () => {
+    watch('https://jobs.lever.co/northwind');
+    renderApp();
+    expect(within(await tools()).getByRole('radio', { name: 'Teams' })).toBeChecked();
+    const list = await screen.findByRole('list', { name: 'Companies' });
+    expect(within(list).getByText('Northwind')).toBeVisible();
+    expect(await within(list).findByText(/1 matching role · 2 open in all/)).toBeVisible();
+    const roles = await screen.findByRole('list', { name: 'Open roles at Northwind' });
+    expect(within(roles).getByText('Senior Welder')).toBeVisible();
+    expect(within(roles).queryByText('Accountant')).toBeNull();
+    // A watched row is already watched: no disabled Watching button as noise (PR #257 review).
+    expect(within(list).queryByRole('button', { name: /Watch/ })).toBeNull();
+    await userEvent.click(within(roles).getByRole('button', { name: 'Save Senior Welder' }));
+    await waitFor(() =>
+      expect(getAllJobs().map((j) => j.url)).toContain('https://jobs.lever.co/northwind/n1'),
+    );
+  });
+
+  it('starred companies and the one-button check sit on the Companies home', async () => {
+    starDream(cat, {
+      company: 'Northwind',
+      board: { kind: 'lever', slug: 'northwind' },
+    });
+    renderApp();
+    expect(within(await tools()).getByRole('radio', { name: 'Teams' })).toBeChecked();
+    expect(await screen.findByRole('list', { name: 'Dream companies' })).toHaveTextContent(
+      'Northwind',
+    );
+    expect(screen.getByRole('button', { name: 'Check dream companies' })).toBeVisible();
+  });
+
+  it('a track with nothing to show on Companies still opens on Apply now', async () => {
+    renderApp();
+    expect(within(await tools()).getByRole('radio', { name: 'Apply' })).toBeChecked();
+  });
+
+  describe('Add a company', () => {
+    const open = async () => {
+      await userEvent.click(await screen.findByRole('button', { name: 'Add a company' }));
+      return screen.findByRole('dialog', { name: 'Add a company' });
+    };
+
+    it('a pasted board link is watched at once and shows as a company row', async () => {
+      window.location.hash = '#/discover/teams';
+      renderApp();
+      const dialog = await open();
+      await userEvent.type(
+        within(dialog).getByLabelText('Company name or job-board link'),
+        'https://jobs.lever.co/northwind',
+      );
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
+      await waitFor(() => expect(watchedUrls()).toContain('https://jobs.lever.co/northwind'));
+      expect(await screen.findByRole('list', { name: 'Companies' })).toHaveTextContent('Northwind');
+    });
+
+    it('a name is looked up on the five systems, and a board found is one Watch away', async () => {
+      window.location.hash = '#/discover/teams';
+      renderApp();
+      const dialog = await open();
+      await userEvent.type(
+        within(dialog).getByLabelText('Company name or job-board link'),
+        'Figma',
+      );
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
+      await userEvent.click(await within(dialog).findByRole('button', { name: 'Watch Figma' }));
+      await waitFor(() => expect(watchedUrls()).toContain('https://boards.greenhouse.io/figma'));
+    });
+
+    it('a company with no public board can be starred instead', async () => {
+      window.location.hash = '#/discover/teams';
+      renderApp();
+      const dialog = await open();
+      await userEvent.type(
+        within(dialog).getByLabelText('Company name or job-board link'),
+        'Nobody Inc',
+      );
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
+      expect(await within(dialog).findByText(/No public board found/)).toBeVisible();
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Star Nobody Inc' }));
+      expect(readDreams(cat).map((d) => d.company)).toEqual(['Nobody Inc']);
+    });
+  });
+
+  describe('old #/discover/* links still land', () => {
+    it.each([
+      ['live', 'Teams', 'Live postings'],
+      ['boards', 'Teams', 'Check a list of companies'],
+      ['teams', 'Teams', null],
+      ['apply', 'Apply', null],
+      ['titles', 'Titles', null],
+      ['ats', 'ATS', null],
+      ['nonsense', 'Apply', null],
+    ])('#/discover/%s', async (slug, radio, heading) => {
+      window.location.hash = `#/discover/${slug}`;
+      renderApp();
+      expect(within(await tools()).getByRole('radio', { name: radio })).toBeChecked();
+      if (heading) {
+        expect(await screen.findByRole('heading', { name: heading })).toBeVisible();
+        expect(screen.getByRole('link', { name: 'Back to companies' })).toBeVisible();
+      }
+    });
+
+    it('a section id opens Apply now on that section', async () => {
+      const g = addGroup(cat, { label: 'Union halls' });
+      window.location.hash = `#/discover/${g}`;
+      renderApp();
+      expect(await screen.findByRole('tab', { name: 'Union halls', selected: true })).toBeVisible();
+    });
+
+    it('Companies links to Live postings and the list checker as more ways to find companies', async () => {
+      window.location.hash = '#/discover/teams';
+      renderApp();
+      await userEvent.click(
+        await screen.findByRole('link', { name: 'Live postings from job boards' }),
+      );
+      expect(window.location.hash).toBe('#/discover/live');
+      expect(await screen.findByRole('heading', { name: 'Live postings' })).toBeVisible();
+    });
+  });
+});

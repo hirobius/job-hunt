@@ -10,7 +10,6 @@ component that no longer exists, or if this page drifts from the map.
 
 | Screen                   | Frame                                                            | Route                     | Source                                                                         |
 | ------------------------ | ---------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------ |
-| Today                    | https://www.figma.com/design/mJgRxGXwbd4j9jj96qpdFI?node-id=1-2  | `#/today`                 | `src/TodayView.tsx`                                                            |
 | Pipeline                 | https://www.figma.com/design/mJgRxGXwbd4j9jj96qpdFI?node-id=1-10 | `#/queue`                 | `src/TrackerView.tsx`, `src/JobsTable.tsx` (1440), `src/JobListCard.tsx` (390) |
 | Job page                 | https://www.figma.com/design/mJgRxGXwbd4j9jj96qpdFI?node-id=1-18 | `#/queue/<jobId>`         | `src/JobPage.tsx`                                                              |
 | Discover (Companies tab) | https://www.figma.com/design/mJgRxGXwbd4j9jj96qpdFI?node-id=1-26 | `#/discover`              | `src/DiscoverView.tsx`, `src/TileGrid.tsx`                                     |
@@ -20,3 +19,6 @@ Shots: `docs/figma/<screen>-1440.png` and `-390.png`, taken on HDS `0.24.1` (the
 them after an HDS upgrade or a layout change: seed sample data plus the Design Systems track (as
 `npm run gallery -- --format=png --pack="Design Systems"` does), open each route above, then replace
 the PNGs here and the image fills in the matching frames.
+
+Today (`#/today`, frame `1-2`) was retired in #236: the route redirects to Companies and its
+follow-ups live in the Pipeline. The frame stays in the Figma file as history; it is not mapped.

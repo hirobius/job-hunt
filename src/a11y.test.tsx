@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
-import TodayView from './TodayView';
 import CopyDeckView from './CopyDeckView';
 import DiscoverView from './DiscoverView';
 import { Onboarding } from './Onboarding';
@@ -59,10 +58,12 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
   });
 });
 
-describe('a11y — Today with the sample pipeline (#128)', () => {
-  it('due follow-ups, and the next 7 days', async () => {
+describe('a11y — the Pipeline agenda with the sample pipeline (#236, was Today)', () => {
+  it('To apply, Follow up (due first) and the next 7 days', async () => {
     loadSample();
-    const { container } = withTheme(<TodayView />);
+    const { container, getByRole } = withTheme(<TrackerView />);
+    expect(getByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
+    expect(getByRole('region', { name: /^Next 7 days/ })).toBeInTheDocument();
     await auditA11y(container);
   });
 });
@@ -151,9 +152,9 @@ describe('a11y — the three first-run steps and Getting started (#132)', () => 
     await auditA11y(container);
   });
 
-  it('the Getting started card on Today', async () => {
+  it('the Getting started card on the Pipeline', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    const { container, getByRole } = withTheme(<TodayView />);
+    const { container, getByRole } = withTheme(<TrackerView />);
     expect(getByRole('region', { name: 'Getting started' })).toBeInTheDocument();
     await auditA11y(container);
   });

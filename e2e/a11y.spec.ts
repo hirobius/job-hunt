@@ -10,7 +10,6 @@ const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [1440, 390] as const;
 // Hash routes reached once a track and the sample pipeline exist. The job page is added below.
 const ROUTES = [
-  '#/today',
   '#/queue',
   '#/discover',
   '#/discover/apply',

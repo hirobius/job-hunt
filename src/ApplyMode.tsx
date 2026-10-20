@@ -1,6 +1,6 @@
 // Apply mode (rapid apply, #/apply/<jobId>): one job at a time from the To apply queue. A big
-// Open application button, then the Application kit as copy rows (profile, answers, filled
-// templates), then Mark applied → Next job. Works one-handed on a phone: one column, 40px controls.
+// Open application button, Mark applied → Next job, then the Apply sheet's templates (every
+// template filled for the job, #239) and the Application kit as copy rows (profile, letters, answers). Works one-handed on a phone: one column, 40px controls.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Check, Copy, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
@@ -21,10 +21,12 @@ import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
 import { openApply, openJob } from './route';
 import { metaLines } from './metaLines';
 import { titleOf } from './jobRow';
-import { followUpDate, toApplyQueue } from './applyQueue';
+import { toApplyQueue } from './applyQueue';
+import { followUpDate } from './jobEvents';
 import {
   KIT_FIELDS,
   addAnswer,
+  filledTemplates,
   removeAnswer,
   setKitField,
   setKitTemplate,
@@ -98,6 +100,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   };
 
   const company = job.company?.trim();
+  const dueOn = followUpDate(job, new Date());
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal">
@@ -127,8 +130,8 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
 
         {job.status !== 'Saved' ? (
           <Alert tone="success" title={`Applied${company ? ` to ${company}` : ''}`}>
-            {followUpDate(job)
-              ? `It's under Follow up in the Pipeline. Follow up on ${followUpDate(job)}.`
+            {dueOn
+              ? `It's under Follow up in the Pipeline. Follow up on ${dueOn}.`
               : "It's under Follow up in the Pipeline."}
           </Alert>
         ) : null}
@@ -157,6 +160,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
           )}
         </Stack>
 
+        <ApplyTemplates job={job} />
         <ApplicationKit job={job} />
       </Stack>
     </Box>
@@ -164,15 +168,22 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
 }
 
 /** One label + value with one-tap Copy and inline edit. Empty: a prompt to add it. */
+// Template bodies in the Apply sheet are cut to this many characters until Show all, so the
+// Application kit below them stays in reach on a phone (PR #257 review).
+const PREVIEW_CHARS = 160;
+
 function CopyRow({
   label,
   value,
   onSave,
   multiline = false,
   editable = true,
+  preview = false,
   as = 'li',
 }: {
   as?: 'li' | 'div';
+  /** Show a long value as a short preview with Show all (the Apply sheet's template bodies). */
+  preview?: boolean;
   label: string;
   value: string;
   onSave?: (v: string) => void;
@@ -183,6 +194,9 @@ function CopyRow({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const long = preview && value.length > PREVIEW_CHARS;
+  const shown = long && !expanded ? `${value.slice(0, PREVIEW_CHARS).trimEnd()}…` : value;
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
   const copy = async () => {
@@ -232,8 +246,19 @@ function CopyRow({
               {label}
             </Text>
             <Text variant="ui" as="p" className="rjb-prewrap">
-              {value || (editable ? `Add your ${label.toLowerCase()}` : 'Nothing to fill yet')}
+              {shown || (editable ? `Add your ${label.toLowerCase()}` : 'Nothing to fill yet')}
             </Text>
+            {long && (
+              <Button
+                size="md"
+                variant="tertiary"
+                aria-label={`${expanded ? 'Show less' : 'Show all'} of ${label}`}
+                aria-expanded={expanded}
+                onClick={() => setExpanded((v) => !v)}
+              >
+                {expanded ? 'Show less' : 'Show all'}
+              </Button>
+            )}
           </Box>
           <Stack direction="row" gap="tight" align="center">
             {editable && (
@@ -263,6 +288,61 @@ function CopyRow({
         </Stack>
       )}
     </Box>
+  );
+}
+
+/** The Apply sheet's templates (#239): every template filled for this job, one copy row each. */
+function ApplyTemplates({ job }: { job: Job }) {
+  const kit = useApplyKit();
+  const snippets = useSnippets();
+  const rows = useMemo(
+    () => filledTemplates(snippets, job, kit.fields.name),
+    [snippets, job, kit.fields.name],
+  );
+  const edit = (label: string) => (
+    <Box>
+      {/* HDS Button asChild drops iconLeft, so the pencil is the link's own child. */}
+      <Button asChild variant="tertiary" size="md">
+        <a href="#/copy-deck">
+          <Icon icon={Pencil} />
+          {label}
+        </a>
+      </Button>
+    </Box>
+  );
+  return (
+    <Stack gap="tight">
+      <Text variant="body" as="h3" className="rjb-semibold">
+        Templates
+      </Text>
+      {rows.length ? (
+        <>
+          <Text variant="caption" as="p" style={SECONDARY}>
+            Filled for this job. Copy one into the form or an email.
+          </Text>
+          <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Your templates">
+            {rows.map((r) => (
+              <CopyRow
+                key={r.id}
+                label={r.label}
+                value={r.text}
+                editable={false}
+                multiline
+                preview
+              />
+            ))}
+          </Box>
+          {edit('Edit templates')}
+        </>
+      ) : (
+        <>
+          <Text variant="caption" as="p" style={SECONDARY}>
+            Write a note or cover letter once in Templates; it shows here filled for each job.
+          </Text>
+          {edit('Write a template')}
+        </>
+      )}
+    </Stack>
   );
 }
 
