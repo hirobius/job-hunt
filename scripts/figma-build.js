@@ -353,6 +353,11 @@ async function build(d, parent) {
         t.characters = d.val || ' ';
       }
     }
+    // a long value scrolls inside the field in code: clip it rather than spill over what follows
+    if (d.k === 'textarea') {
+      inst.clipsContent = true;
+      for (const f of inst.findAll((n) => n.type === 'FRAME')) f.clipsContent = true;
+    }
     inst.name = (d.k === 'input' ? 'Input – ' : 'Textarea – ') + d.n;
     inst.resize(Math.max(1, d.w), d.k === 'textarea' ? Math.max(1, d.h) : inst.height);
     place(inst, d, parent);
@@ -393,8 +398,9 @@ page.name = META.page;
 await figma.setCurrentPageAsync(page);
 let root = page.children.find((n) => n.name === META.name);
 if (META.first) {
-  if (root) root.remove();
-  root = figma.createFrame();
+  // rebuild in place so the frame keeps its node id (Code Connect and docs link to it)
+  if (root) for (const c of [...root.children]) c.remove();
+  else root = figma.createFrame();
   root.name = META.name;
   root.resize(D.w, D.h);
   root.fills = [await paint(D.bg)];
