@@ -2,26 +2,26 @@
 
 Every local stand-in for something HDS doesn't do yet, with its upstream ask. Rule: when an HDS
 release ships the fix, the upgrade PR deletes the workaround and moves its row to "Retired". HDS is
-pinned at **0.26.2**. "Not filed" means the ask still needs an issue in hirobius/hds.
+pinned at **0.26.2**.
 
 ## Open
 
 | Workaround | Where | What HDS lacks | Upstream |
 |---|---|---|---|
 | Action toast (Open, Undo) | `src/hds-gaps/ActionToast.tsx` | `useToast` has no action slot | hds#815, fix in hds#816 (unreleased) |
-| Async list states | `src/hds-gaps/AsyncState.tsx` | one component for loading / slow / error / empty / ready | not filed (#133 asks) |
-| Selectable link list | `src/hds-gaps/RailList.tsx` + `.css` | `NavList` or a list item with `aria-current` | not filed (#133 asks) |
-| Tab scroll-into-view | `src/hds-gaps/TabsOverflowFade.tsx` | TabsList fades (0.26.1) but doesn't scroll the selected tab into view | not filed |
-| SegmentedControl overflow fade | `src/hds-gaps/TabsOverflowFade.tsx` | the TabsList edge fade, on SegmentedControl | not filed |
-| Token chips in a text field | `src/hds-gaps/TokenTextarea.tsx` + `.css` | a `TokenField` with atomic tokens and a caret API | not filed (#221) |
-| Bare top-level tab panels | `src/hds-gaps/barePanel.ts` | a `TabsContent` variant with no surface or inset | not filed (#133 asks) |
-| Danger menu item | `src/hds-gaps/tone.ts` `DANGER` | `Menu.Item tone="danger"` | not filed |
+| Async list states | `src/hds-gaps/AsyncState.tsx` | one component for loading / slow / error / empty / ready | hds#818 |
+| Selectable link list | `src/hds-gaps/RailList.tsx` + `.css` | `NavList` or a list item with `aria-current` | hds#817 |
+| Tab scroll-into-view | `src/hds-gaps/TabsOverflowFade.tsx` | TabsList fades (0.26.1) but doesn't scroll the selected tab into view | hds#823 |
+| SegmentedControl overflow fade | `src/hds-gaps/TabsOverflowFade.tsx` | the TabsList edge fade, on SegmentedControl | hds#823 |
+| Token chips in a text field | `src/hds-gaps/TokenTextarea.tsx` + `.css` | a `TokenField` with atomic tokens and a caret API | hds#826 |
+| Bare top-level tab panels | `src/hds-gaps/barePanel.ts` | a `TabsContent` variant with no surface or inset | hds#819 |
+| Danger menu item | `src/hds-gaps/tone.ts` `DANGER` | `Menu.Item tone="danger"` | hds#822 |
 | Secondary colour on a plain span or p | `src/hds-gaps/tone.ts` `SECONDARY` | nothing for non-`Text` elements (by design; `Text tone` covers the rest) | none needed |
-| Markup per breakpoint | `src/hds-gaps/useBreakpoint.ts` | a `useBreakpoint` / `useMediaQuery` hook on HDS breakpoints | not filed (#133 asks) |
+| Markup per breakpoint | `src/hds-gaps/useBreakpoint.ts` | a `useBreakpoint` / `useMediaQuery` hook on HDS breakpoints | hds#824 |
 | Keyboard-aware dialog | `src/hds-gaps/useVisualViewportVars.ts` | a top-anchored, keyboard-aware Dialog or Sheet | related: hds#690 |
-| Empty state icon | `src/EmptyState.tsx` | an `icon` slot on `EmptyState` (`action` shipped in 0.25) | not filed |
-| `Text` weight | `.rjb-semibold` in `src/theme/base.css` | a `weight` prop on `Text` | not filed (was hds#655's follow-up) |
-| Menu height cap | `[role='menu']` rule in `src/theme/base.css` | Menu caps its height to the space Radix measures and scrolls (44px phone items in 0.26 made long menus run off screen) | not filed |
+| Empty state icon | `src/EmptyState.tsx` | an `icon` slot on `EmptyState` (`action` shipped in 0.25) | hds#825 |
+| `Text` weight | `.rjb-semibold` in `src/theme/base.css` | a `weight` prop on `Text` | hds#825 |
+| Menu height cap | `[role='menu']` rule in `src/theme/base.css` | Menu caps its height to the space Radix measures and scrolls (44px phone items in 0.26 made long menus run off screen) | hds#821 |
 | Phone touch size | 40px rule in `src/theme/base.css` | a touch size on sm controls | hds#750 |
 | Dark pressed accent contrast | held pair in `src/theme.contrast.test.ts` | AA on the dark pressed accent | hds#748 (lands in 0.27, unpublished) |
 

@@ -4,12 +4,14 @@
 import { createStore } from './createStore';
 import type { Snippet } from './copyDeckStore';
 
+type Template = Pick<Snippet, 'id' | 'label' | 'body' | 'values'> & { pinned?: boolean };
+
 /** The starter "Follow-up after applying" template. */
 const FOLLOWUP_TEMPLATE_ID = 'tpl-followup';
 
 /** The template a follow-up starts from: the starter one, else the first whose name says
  *  follow-up (pinned first), else none. */
-export function pickFollowUpTemplate(snippets: readonly Snippet[]): Snippet | undefined {
+export function pickFollowUpTemplate<T extends Template>(snippets: readonly T[]): T | undefined {
   const starter = snippets.find((s) => s.id === FOLLOWUP_TEMPLATE_ID);
   if (starter) return starter;
   const named = snippets.filter((s) => /follow[\s-]?up/i.test(s.label));

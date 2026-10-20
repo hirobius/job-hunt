@@ -34,7 +34,7 @@ import {
   useApplyKit,
   type KitAnswer,
 } from './applyKit';
-import { useSnippets } from './copyDeckStore';
+import { useOutreachTemplates } from './outreachTemplates';
 import { fillSnippet } from './templateFill';
 import { copyFilled } from './templateCopy';
 import { showNotice } from './saveNotice';
@@ -293,7 +293,7 @@ function CopyRow({
 /** The Apply sheet's templates (#239): every template filled for this job, one copy row each. */
 function ApplyTemplates({ job }: { job: Job }) {
   const kit = useApplyKit();
-  const snippets = useSnippets();
+  const snippets = useOutreachTemplates();
   const rows = useMemo(
     () => filledTemplates(snippets, job, kit.fields.name),
     [snippets, job, kit.fields.name],
@@ -331,14 +331,14 @@ function ApplyTemplates({ job }: { job: Job }) {
               />
             ))}
           </Box>
-          {edit('Edit templates')}
+          {edit('Edit documents')}
         </>
       ) : (
         <>
           <Text variant="caption" as="p" tone="secondary">
-            Write a note or cover letter once in Templates; it shows here filled for each job.
+            Write an outreach message once in Documents; it shows here filled for each job.
           </Text>
-          {edit('Write a template')}
+          {edit('Write a message')}
         </>
       )}
     </Stack>
@@ -347,7 +347,7 @@ function ApplyTemplates({ job }: { job: Job }) {
 
 function ApplicationKit({ job }: { job: Job }) {
   const kit = useApplyKit();
-  const snippets = useSnippets();
+  const snippets = useOutreachTemplates();
   const options = [
     { value: '', label: 'No template' },
     ...snippets.map((s) => ({ value: s.id, label: s.label || 'Untitled' })),

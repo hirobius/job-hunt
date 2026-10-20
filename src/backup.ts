@@ -193,6 +193,7 @@ function cleanSnippets(raw: unknown): Snippet[] {
     if (typeof s.open === 'boolean') snip.open = s.open;
     if (typeof s.pinned === 'boolean') snip.pinned = s.pinned;
     if (Array.isArray(s.pillars)) snip.pillars = s.pillars.filter(isStr);
+    if (s.migrated === true) snip.migrated = true;
     out.push(snip);
   }
   return out;

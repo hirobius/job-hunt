@@ -5,7 +5,7 @@
 //   error    a danger Alert with a Retry (and an offline wording when the browser says so)
 //   empty    the caller's own empty state
 //   ready    the children
-// Filed upstream with the Phase 7 asks (#133) as an `AsyncState` pattern; delete this when it lands.
+// Upstream ask: hds#818 (an `AsyncState` pattern); delete this when it lands.
 import { useEffect, useState, type ReactNode } from 'react';
 import { Alert, Box, Button, Skeleton, Stack, Text } from '@hirobius/design-system';
 

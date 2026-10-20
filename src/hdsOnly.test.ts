@@ -85,7 +85,7 @@ describe('Discover inline style ceilings (#131)', () => {
 // token or a hds-gaps stand-in would have done.
 describe('Inline style ratchet (#133)', () => {
   // equals the count on main (88); lower it as styles are burned down, never raise it
-  const MAX_INLINE_STYLES = 83;
+  const MAX_INLINE_STYLES = 79;
   const tsx = sourceFiles(SRC).filter((f) => f.endsWith('.tsx'));
   const count = tsx.reduce(
     (sum, f) => sum + (readFileSync(f, 'utf8').match(/style=\{\{/g) ?? []).length,
@@ -186,6 +186,13 @@ describe('Retired HDS workarounds (#146)', () => {
   it("uses sx's base key, not a nested '&' breakpoint override (hds#652)", () => {
     const offenders = sourceFiles(SRC).filter((f) =>
       /'&':\s*\{[^}]*\{\s*(?:xs|sm|md|lg|xl):/.test(readFileSync(f, 'utf8')),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('colours secondary Text with tone, not style={SECONDARY} (hds#655)', () => {
+    const offenders = sourceFiles(SRC).filter((f) =>
+      /<Text\b[^>]*style=\{SECONDARY\}/.test(readFileSync(f, 'utf8')),
     );
     expect(offenders).toEqual([]);
   });

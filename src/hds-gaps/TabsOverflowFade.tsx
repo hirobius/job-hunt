@@ -2,7 +2,7 @@
 // the selected option in view. HDS 0.26.1 fades TabsList's hidden edge itself (hds#723), so for a
 // tab list this wrapper only scrolls the selected tab into view (Radix doesn't). A SegmentedControl
 // (Discover's tools on a phone) scrolls the same way with no cue, so there it also fades whichever
-// edge has more to scroll past. Asks (docs/hds-upstream-asks-0.9.md): TabsList scrolls its
+// edge has more to scroll past. Ask (hds#823): TabsList scrolls its
 // selected tab into view, and SegmentedControl gets the same overflow fade. Delete this when both land.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 

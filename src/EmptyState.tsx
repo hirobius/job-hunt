@@ -3,7 +3,7 @@
 // One pattern for every teaching empty (#132): icon (optional), title (what this will hold), one
 // sentence (what to do), one primary action, at most one quiet secondary. Kept as a composition,
 // not a local primitive, so it collapses into the HDS component once that grows an icon slot
-// (ask in docs/hds-upstream-asks-0.9.md).
+// (hds#825).
 import { EmptyState as HdsEmptyState, Icon, Stack } from '@hirobius/design-system';
 import type { ComponentProps, ReactNode } from 'react';
 

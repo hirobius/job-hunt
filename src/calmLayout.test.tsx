@@ -5,7 +5,7 @@
 //   (no bordered cards, no tinted banner boxes).
 // - HDS docs-site rhythm: the Pipeline's sections stack 48 apart (Stack gap `spacious`).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
 
 vi.mock('@supabase/supabase-js', async () => {
@@ -110,11 +110,14 @@ describe('no old card patterns (#241)', () => {
     expect(page).not.toBeNull();
   });
 
-  it('the Templates list is flat rows, not a card per template', async () => {
+  it('the Documents library is flat rows, not a card per document (#227)', async () => {
     viewport(1440);
     window.location.hash = '#/copy-deck';
     renderApp();
-    const nav = await screen.findByRole('navigation', { name: 'Templates' });
-    expect(cardsIn(nav)).toHaveLength(0);
+    const outreach = await screen.findByRole('region', { name: 'Outreach messages' });
+    await waitFor(() =>
+      expect(within(outreach).getAllByRole('listitem').length).toBeGreaterThan(0),
+    );
+    expect(cardsIn(outreach)).toHaveLength(0);
   });
 });
