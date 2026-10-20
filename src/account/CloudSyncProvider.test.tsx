@@ -43,6 +43,7 @@ import { readMode, writeMode } from '../trackModes';
 import { emptyBlob, writeBlob } from '../syncBlob';
 import { getTrash, replaceTrash, trashJob } from '../trash';
 import { createDocument, getAllDocuments, replaceDocuments } from '../documents';
+import type { Job } from '../types';
 
 const fake = () => h.fake!;
 const NOW = '2026-10-01T00:00:00.000Z';
@@ -391,6 +392,35 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     await waitFor(() => expect(cloudLabels()).toEqual(['Design Engineering']));
     expect(label()).toEqual(['Design Engineering']);
     expect(getPending()).toEqual([]);
+  });
+
+  it('a job removed on another device stays removed when this one reloads (#219)', async () => {
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    act(() => {
+      addJob('https://a.example/1');
+      addJob('https://b.example/1');
+    });
+    await waitFor(() => expect(fake().tables.tracker?.[0]?.data.jobs).toHaveLength(2));
+
+    // Another device removes A: the cloud now lists it under Recently removed.
+    const data = fake().tables.tracker[0].data;
+    const [a, b] = [...data.jobs].sort((x: Job, y: Job) => x.url.localeCompare(y.url));
+    fake().tables.tracker[0].data = {
+      ...data,
+      jobs: [b],
+      trash: [{ job: a, removedAt: new Date().toISOString() }],
+    };
+
+    // This device reloads with its old copy still in storage and signs in again.
+    cleanup();
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await waitFor(() => expect(getTrash().map((r) => r.job.url)).toEqual([a.url]));
+    expect(getAllJobs().map((j) => j.url)).toEqual([b.url]);
+    await waitFor(() =>
+      expect(fake().tables.tracker[0].data.jobs.map((j: Job) => j.url)).toEqual([b.url]),
+    );
   });
 
   // ADR 0008: what the user edits (targets, saved searches, evidence, work mode) follows the account.
