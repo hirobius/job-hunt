@@ -33,7 +33,6 @@ export default function LocationControl({ categoryId }: { categoryId: string }) 
           value={mode === 'remote' ? '' : where}
           disabled={mode === 'remote'}
           onChange={(e) => onWhere(e.target.value)}
-          style={{ width: '100%' }}
         />
       </Box>
       {mode === 'remote' && (
@@ -49,16 +48,10 @@ export default function LocationControl({ categoryId }: { categoryId: string }) 
 export function ContextCaption({ categoryId }: { categoryId: string }) {
   const { where, mode } = useTrackContext(categoryId);
   return (
-    <Text
-      variant="caption"
-      as="span"
-      style={{
-        color: 'var(--semantic-color-content-secondary)',
-        display: 'block',
-        marginBottom: 'var(--semantic-space-scale-xs)',
-      }}
-    >
-      Searching in {contextLabel(where, mode)}
-    </Text>
+    <Box sx={{ mb: 'xs' }}>
+      <Text variant="caption" as="div" tone="secondary">
+        Searching in {contextLabel(where, mode)}
+      </Text>
+    </Box>
   );
 }

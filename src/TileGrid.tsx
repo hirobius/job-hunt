@@ -18,7 +18,6 @@ import { saveWithNotice } from './saveNotice';
 import { useTileTriage, toggleDismiss } from './tileTriage';
 import { parseMeta } from './tileMeta';
 import type { Tile } from './jobsData';
-import { SECONDARY } from './hds-gaps/tone';
 
 // Tile kind, derived from the URL (issue #12): aggregator queries are "Search", Google
 // fallback leads are "Lead" (verify before relying), everything else is a direct
@@ -140,8 +139,8 @@ export default function TileGrid({
                 <Text
                   variant="caption"
                   as="span"
+                  tone="secondary"
                   style={{
-                    ...SECONDARY,
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
@@ -154,37 +153,39 @@ export default function TileGrid({
               )}
               <Box sx={{ flex: 1 }}>
                 <Disclosure label="Details">
-                  <Stack gap="tight">
-                    <Text variant="ui" as="span" style={{ overflowWrap: 'anywhere' }}>
-                      {t.name}
-                    </Text>
-                    {metaLines(meta.raw.split(/\s+·\s+/)).map((line) => (
-                      <Text
-                        key={line}
-                        variant="caption"
-                        as="span"
-                        data-meta-detail
-                        style={{ ...SECONDARY, overflowWrap: 'anywhere' }}
-                      >
-                        {line}
+                  <Box sx={{ overflowWrap: 'anywhere' }}>
+                    <Stack gap="tight">
+                      <Text variant="ui" as="span">
+                        {t.name}
                       </Text>
-                    ))}
-                    {meta.phones.map((ph) => (
-                      <InlineLink key={ph} href={telHref(ph)}>
-                        {ph}
-                      </InlineLink>
-                    ))}
-                    {meta.emails.map((em) => (
-                      <InlineLink key={em} href={`mailto:${em}`}>
-                        {em}
-                      </InlineLink>
-                    ))}
-                    {host && (
-                      <Text variant="caption" as="span" tone="secondary">
-                        {host}
-                      </Text>
-                    )}
-                  </Stack>
+                      {metaLines(meta.raw.split(/\s+·\s+/)).map((line) => (
+                        <Text
+                          key={line}
+                          variant="caption"
+                          as="span"
+                          data-meta-detail
+                          tone="secondary"
+                        >
+                          {line}
+                        </Text>
+                      ))}
+                      {meta.phones.map((ph) => (
+                        <InlineLink key={ph} href={telHref(ph)}>
+                          {ph}
+                        </InlineLink>
+                      ))}
+                      {meta.emails.map((em) => (
+                        <InlineLink key={em} href={`mailto:${em}`}>
+                          {em}
+                        </InlineLink>
+                      ))}
+                      {host && (
+                        <Text variant="caption" as="span" tone="secondary">
+                          {host}
+                        </Text>
+                      )}
+                    </Stack>
+                  </Box>
                 </Disclosure>
               </Box>
               <Stack direction="row" wrap="wrap" gap="tight" align="center">

@@ -57,7 +57,6 @@ function JobField({
           updateJob(job.url, { [field]: e.target.value });
           onSaved();
         }}
-        style={{ width: '100%' }}
       />
     </Box>
   );
@@ -119,9 +118,9 @@ function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
           <Text
             variant="caption"
             as="span"
+            tone="success"
             aria-hidden={!saved}
             style={{
-              color: 'var(--semantic-color-feedback-success)',
               opacity: saved ? 1 : 0,
               transition:
                 'opacity var(--hds-motion-productive-duration) var(--hds-motion-productive-easing)',

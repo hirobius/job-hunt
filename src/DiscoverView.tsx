@@ -80,17 +80,11 @@ function GroupPanel({
   return (
     <Box>
       {saved.length > 0 && (
-        <Text
-          variant="caption"
-          as="span"
-          style={{
-            color: 'var(--semantic-color-content-secondary)',
-            display: 'block',
-            marginBottom: 'var(--semantic-space-scale-xs)',
-          }}
-        >
-          {saved.length} saved — in your Queue
-        </Text>
+        <Box sx={{ mb: 'xs' }}>
+          <Text variant="caption" as="div" tone="secondary">
+            {saved.length} saved — in your Queue
+          </Text>
+        </Box>
       )}
       {visible.length > 0 ? (
         <TileGrid tiles={visible} triage />
@@ -177,30 +171,23 @@ function AtsPanel({
       url: a.href ?? atsSearchUrl(a.site, query),
     }));
   const allButton = (sites: HiddenSite[], what: string) => (
-    <Button
-      variant="secondary"
-      size="sm"
-      style={{ marginTop: 'var(--primitive-space-3)', marginBottom: 'var(--primitive-space-3)' }}
-      asChild
-    >
-      <a href={searchAllUrl(sites, query)} target="_blank" rel="noopener noreferrer">
-        {`Search the top ${searchAllCount(sites, query)} ${what} at once`}
-      </a>
-    </Button>
+    <Box sx={{ mt: 3, mb: 3 }}>
+      <Button variant="secondary" size="sm" asChild>
+        <a href={searchAllUrl(sites, query)} target="_blank" rel="noopener noreferrer">
+          {`Search the top ${searchAllCount(sites, query)} ${what} at once`}
+        </a>
+      </Button>
+    </Box>
   );
   return (
     <Box>
-      <Text
-        variant="ui"
-        style={{
-          color: 'var(--semantic-color-content-secondary)',
-          marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
-        }}
-      >
-        Search the big boards and companies' hiring systems for your ticked titles
-        {entry ? ', entry-level filtered' : ''}. Hiring systems reached through Google draw far less
-        competition.
-      </Text>
+      <Box sx={{ mb: 2.5 }}>
+        <Text variant="ui" tone="secondary">
+          Search the big boards and companies' hiring systems for your ticked titles
+          {entry ? ', entry-level filtered' : ''}. Hiring systems reached through Google draw far
+          less competition.
+        </Text>
+      </Box>
       <ContextCaption categoryId={categoryId} />
       {/* Mobile-first: a column that becomes a row from sm. */}
       <Box
@@ -211,17 +198,18 @@ function AtsPanel({
           mb: 3,
         }}
       >
-        <HdsInput
-          size="sm"
-          label="Role / title"
-          value={many ? '' : role}
-          placeholder={many ? `All selected (${active.length})` : undefined}
-          onChange={(e) => {
-            setRole(e.target.value);
-            setAll(false);
-          }}
-          style={{ minWidth: 180 }}
-        />
+        <Box sx={{ display: 'contents', '& input': { minWidth: 180 } }}>
+          <HdsInput
+            size="sm"
+            label="Role / title"
+            value={many ? '' : role}
+            placeholder={many ? `All selected (${active.length})` : undefined}
+            onChange={(e) => {
+              setRole(e.target.value);
+              setAll(false);
+            }}
+          />
+        </Box>
         <SegmentedControl
           aria-label="Recency"
           size="sm"
@@ -266,33 +254,24 @@ function AtsPanel({
       <Box sx={{ mb: 'xs' }}>
         <SweepTitlesEditor categoryId={categoryId} seed={titles} />
       </Box>
-      <Text
-        variant="body"
-        as="h3"
-        className="rjb-semibold"
-        style={{ marginTop: 'var(--primitive-space-4)' }}
-      >
-        Big job boards
-      </Text>
+      <Box sx={{ mt: 4 }}>
+        <Text variant="body" as="h3" className="rjb-semibold">
+          Big job boards
+        </Text>
+      </Box>
       <TileGrid tiles={boardTiles} cta="Search" />
-      <Text
-        variant="body"
-        as="h3"
-        className="rjb-semibold"
-        style={{ marginTop: 'var(--primitive-space-4)' }}
-      >
-        Company hiring systems
-      </Text>
+      <Box sx={{ mt: 4 }}>
+        <Text variant="body" as="h3" className="rjb-semibold">
+          Company hiring systems
+        </Text>
+      </Box>
       {allButton(ATS, 'hiring systems')}
       <TileGrid tiles={tilesFor(ATS)} cta="Search" />
-      <Text
-        variant="body"
-        as="h3"
-        className="rjb-semibold"
-        style={{ marginTop: 'var(--primitive-space-6)' }}
-      >
-        Freelance, startup and remote boards
-      </Text>
+      <Box sx={{ mt: 6 }}>
+        <Text variant="body" as="h3" className="rjb-semibold">
+          Freelance, startup and remote boards
+        </Text>
+      </Box>
       <Text variant="caption" tone="secondary">
         Boards with no open feed (Upwork, Contra, Wellfound…), reached through Google instead.
       </Text>
@@ -485,7 +464,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               onValueChange={(v) => navigate({ sub: sectionSub(v) })}
             >
               <TabsOverflowFade value={section.key}>
-                <TabsList aria-label="Your sections" style={{ width: '100%' }}>
+                <TabsList aria-label="Your sections">
                   {sections.map((sc) => (
                     <TabsTrigger key={sc.key} value={sc.key}>
                       {sc.label}

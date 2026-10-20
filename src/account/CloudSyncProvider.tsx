@@ -27,6 +27,7 @@ import {
   BLOB_VERSION,
   type SyncData,
 } from '../syncBlob';
+import { keysOf, readSyncBase, writeSyncBase } from '../syncBase';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
 import { setCurationAccount } from '../curation/curationStore';
 import {
@@ -120,18 +121,22 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   async function pushNow(u: User): Promise<boolean> {
     if (!pulledOk.current) return false;
     const sent = localJson();
+    const data = writeBlob(localBlob());
     let ok: boolean;
     try {
       const r = await supa.from('tracker').upsert({
         user_id: u.id,
-        data: writeBlob(localBlob()),
+        data,
         updated_at: new Date().toISOString(),
       });
       ok = !r.error;
     } catch {
       ok = false;
     }
-    if (ok) lastSynced.current = sent;
+    if (ok) {
+      lastSynced.current = sent;
+      writeSyncBase(u.id, keysOf(readBlob(data))); // what the cloud now holds (#219)
+    }
     setMsg(ok ? `Synced · ${u.email}` : OFFLINE_MSG);
     return ok;
   }
@@ -144,7 +149,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       if (!seed && pulledOk.current && dirty() && !(await pushNow(u))) return;
       const cloud = await pull(u.id);
       const local = localBlob();
-      const next = mergeBlob(cloud, local, seed);
+      const next = mergeBlob(cloud, local, seed, readSyncBase(u.id));
+      writeSyncBase(u.id, keysOf(cloud ?? emptyBlob()));
       // A first-sign-in merge that keeps both evidence texts can pass the cap: say so, don't cut silently.
       if (seed && cloud && evidenceMergeOverflows(cloud.evidence, local.evidence))
         toast({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });

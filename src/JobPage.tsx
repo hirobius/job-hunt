@@ -49,7 +49,7 @@ function JobSections({ job }: { job: Job }) {
     <Tabs value={tab} onValueChange={setTab}>
       {/* Five tabs can outrun a 390px phone: the fade says more sit past the edge. */}
       <TabsOverflowFade value={tab}>
-        <TabsList aria-label="Job sections" style={{ width: '100%', marginBottom: 0 }}>
+        <TabsList aria-label="Job sections" style={{ marginBottom: 0 }}>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="screening">Screening</TabsTrigger>
           <TabsTrigger value="interviews">

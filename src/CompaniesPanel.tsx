@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Box,
   Button,
   Disclosure,
   Input as HdsInput,
@@ -312,7 +313,7 @@ export default function CompaniesPanel({
         )}
         {search && (
           <Disclosure label="Refine">
-            <div style={{ width: 'calc(var(--primitive-space-1) * 36)' }}>
+            <Box sx={{ width: 144 }}>
               <HdsInput
                 size="sm"
                 label="Minimum stars"
@@ -323,7 +324,7 @@ export default function CompaniesPanel({
                 value={minStars}
                 onChange={(e) => setMinStars(e.target.value)}
               />
-            </div>
+            </Box>
           </Disclosure>
         )}
 

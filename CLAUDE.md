@@ -71,7 +71,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   (`rjb_dreams`, v9)**
   — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
   Caches and device UI prefs (`rjb_liveness`, `rjb_probe`, `rjb_gh_*`, `rjb_feed_remotive`, `rjb_ui_*`, pins)
-  stay local. Sign-out flushes the blob first (confirms if the push fails); evidence is capped at 20,000
+  stay local. Deletes stay deleted across devices: the seed merge runs on every load and is three-way against the device-local `rjb_sync_base` (`src/syncBase.ts`, #219). Sign-out flushes the blob first (confirms if the push fails); evidence is capped at 20,000
   chars; per-track data is dropped when its track is deleted (`src/trackData.ts`; no sweep after sync, orphans are harmless). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
   content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
   `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`.
@@ -256,6 +256,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   otherwise, so a new fetch host also goes there). Wording approved by Adrian 2026-10-20 (`LEGAL_DRAFT`
   false); set it true while a revision is under review. Back up is the full "download all my data" export: it carries every synced
   store, incl. the Application kit and sweep titles. Meta/OG/Twitter tags pinned in `meta.test.ts`.
+  **Crash reports (#47):** `src/errorReport.ts` sends a scrubbed report (kind, message, stack, tab,
+  browser; no user id, email, job text, URL query or job id; 5 per page load) to the insert-only
+  Supabase table `client_errors` (`supabase/migrations/20261020_client_errors.sql`, 90-day pg_cron
+  sweep) from `ErrorBoundary` and window error/rejection handlers. `installErrorReporting` in
+  `main.tsx` skips localhost, so dev, E2E and the gallery never report. Read reports in the
+  Supabase dashboard (Table editor → client_errors).
   **Installable + share image (#47):** `public/manifest.webmanifest` (name = BRAND, standalone, no
   service worker), PNG icons (192, 512, maskable 512, 180 touch icon) and the 1200x630
   `og-image.png` are rendered by `npm run icons` (`scripts/make-icons.mjs`, headless Chromium);
