@@ -401,6 +401,11 @@ track-agnostic like everything else in Discover.
     is blocked. Remote OK attribution is a hard rule (their link as given, "Remote OK" on the row).
     Himalayas is skipped (its OpenAPI could not be read). Every new host goes in `vercel.json` and
     `FEED_HOSTS` in `csp.test.ts`.
+  - **More boards (#216).** SmartRecruiters (`api.smartrecruiters.com`), Teamtailor (`*.teamtailor.com/jobs.json`)
+    and Personio (`*.jobs.personio.de/search.json`) are board kinds the probe tries too, all **unverified live**.
+    SmartRecruiters answers an empty list for any name, so the probe reads empty there as none
+    (`EMPTY_MEANS_NONE`). `slugCandidates` gives up to 4 slugs (folds accents, `&` → and, drops a
+    leading "The" and a trailing Labs/Software-like word in its bare forms).
   - **Targeting** (`feed/targeting.ts`): leave-out terms, level from the title only, a pay floor
     (only where a source states pay), each with a "hidden by" count. **Saved searches**
     (`feed/savedFilters.ts`, `rjb_feed_filters`, per track, synced in the blob).

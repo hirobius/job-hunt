@@ -160,7 +160,8 @@ export default function FindBoardsPanel({
     <Stack gap="inset">
       <Text variant="ui" style={SECONDARY}>
         Paste company names, slugs or job-board links, one per line. We check Greenhouse, Lever,
-        Ashby, Workable and Recruitee for a public board, so you can watch the ones that exist.
+        Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio for a public board, so
+        you can watch the ones that exist.
       </Text>
       {DISCOVERY_SOURCE_ENABLED.yc && (
         <Stack gap="xs">
