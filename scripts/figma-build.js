@@ -251,6 +251,11 @@ async function build(d, parent) {
     // rescale, not resize: lucide strokes thin out with the glyph in code (2px at 24 → 1.33px at 16)
     if (comp) n.rescale(d.w / n.width);
     await recolor(n, d.col);
+    if (d.fl) {
+      const f = await paint(d.fl);
+      for (const v of n.findAll((v) => 'fills' in v && !/FRAME|INSTANCE|GROUP/.test(v.type)))
+        v.fills = [f];
+    }
     place(n, d, parent);
     return;
   }
@@ -351,6 +356,17 @@ async function build(d, parent) {
     inst.name = (d.k === 'input' ? 'Input – ' : 'Textarea – ') + d.n;
     inst.resize(Math.max(1, d.w), d.k === 'textarea' ? Math.max(1, d.h) : inst.height);
     place(inst, d, parent);
+    // a leading icon drawn before the field (search) sits inside it: bring it back on top
+    for (const c of [...parent.children])
+      if (
+        c !== inst &&
+        c.name.startsWith('Icon') &&
+        c.x >= inst.x &&
+        c.y >= inst.y &&
+        c.x + c.width <= inst.x + inst.width &&
+        c.y + c.height <= inst.y + inst.height
+      )
+        parent.appendChild(c);
     // match the code's inner padding (e.g. room for a leading search icon)
     const field = inst.findOne(
       (n) => n.type === 'FRAME' && 'paddingLeft' in n && n.strokes && n.strokes.length,

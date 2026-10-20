@@ -87,12 +87,12 @@ const SCREENS = [
       await click(p, 'button', /^Start applying$/);
     },
   ],
-  ['Templates', (p) => go(p, '#/copy-deck')],
+  ['Documents', (p) => go(p, '#/copy-deck')],
   [
-    'Template detail',
+    'Document detail',
     async (p) => {
       await go(p, '#/copy-deck');
-      await click(p, 'link', /^Cover letter/);
+      await click(p, 'button', /^Cover letter$/);
     },
   ],
   [
@@ -353,7 +353,9 @@ function extract(overlay) {
   const runs = (el, out = []) => {
     for (const c of el.childNodes) {
       if (c.nodeType === Node.TEXT_NODE) {
-        const t = c.textContent.replace(/\s+/g, ' ');
+        // pre-wrap / pre-line text keeps its line breaks (template previews, letters)
+        const pre = /^pre/.test(getComputedStyle(el).whiteSpace);
+        const t = pre ? c.textContent.replace(/[ \t]+/g, ' ') : c.textContent.replace(/\s+/g, ' ');
         if (t) out.push([t, runStyle(el)]);
       } else if (c.tagName === 'BR') out.push(['\n', runStyle(el)]);
       else if (c.nodeType === Node.ELEMENT_NODE && getComputedStyle(c).display !== 'none')
@@ -492,6 +494,12 @@ function extract(overlay) {
         ...geo,
         ic: lucide(el),
         col: col(cs.color, 'text') || col(cs.stroke, 'text'),
+        // filled glyphs (a starred job) fill their shapes through CSS, not the svg attribute
+        fl: (() => {
+          const shape = el.querySelector('path, polygon, circle, rect');
+          const f = shape && getComputedStyle(shape).fill;
+          return f && f !== 'none' && !/rgba\(0, 0, 0, 0\)/.test(f) ? col(f, 'text') : undefined;
+        })(),
         svg: svgOf(el),
       });
       return;
