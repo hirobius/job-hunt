@@ -1,20 +1,21 @@
 # Roleforge screenshots for the HDS case study (#199)
 
 PNGs at 1440 and 390 px wide (`NN-name-1440.png`, `NN-name-390.png`), fictional sample data only.
-Taken on `main` at `9e3f857` (plus the gallery script changes in this PR).
+Taken on `main` at `3e1b05b` (the calm list layout, #234, on HDS 0.26.2), 2026-10-20. Story and decisions:
+[`docs/redesign-2026.md`](../redesign-2026.md).
 
-> **Provisional.** Re-take after the design-feedback PRs (#191–#193) land, then update the SHA here.
+| Shot | What it shows | HDS features |
+| --- | --- | --- |
+| 01-companies | Companies (home): the track, tools, dream companies, open roles by company | Combobox, Popover, SegmentedControl, Toggle, Disclosure, flat rows |
+| 02-pipeline | Pipeline: To apply, Follow up, Next 7 days, then the jobs (table at 1440, rows at 390) | Table with sortable headers, Badge, Menu, Button tones, Stack rhythm |
+| 03-job-page | A job in edit: details form with 0.26 field sizing, tabs, rail of other jobs at 1440 | Tabs, Card, Input, Sidebar, Badge, Menu |
+| 04-apply-mode | Apply mode: open, mark applied, skip, and every template filled for the job | Button hierarchy, copy rows, Disclosure |
+| 05-documents | The Documents editor: a cover letter's title and text, Save, version history | Input, Textarea, Button, Menu, Disclosure |
+| 06-account-menu | The Menu: sync status, Documents, back up, restore, export, theme, spacing, feedback, privacy and terms | Menu, Button |
+| 07-pipeline-dark | The Pipeline in dark mode (pair with 02) | Same components, dark token set via `data-theme` |
+| 08-apply-mode-dark | Apply mode in dark mode (pair with 04) | Primary button and copy rows on dark surfaces |
 
-| Shot                  | What it shows                                           | HDS features                                                                                      |
-| --------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| 01-today              | Today: follow-ups due, next 7 days, quick add, Insights | StatusListItem rows, Input, Button, metric tiles, Progress, Disclosure, Callout                   |
-| 02-pipeline           | Pipeline: table at 1440, cards at 390                   | Table with sortable headers, Badge/Tag status, Menu, SegmentedControl-style filters, Button tones |
-| 03-job-page           | A job: facts, tabs, rail of other jobs at 1440          | Tabs, MetadataList, Sidebar, Button, Badge, Menu                                                  |
-| 04-discover           | Discover with the Design Systems track                  | Combobox, Popover, SegmentedControl, Tabs, Card grid, Tag                                         |
-| 05-templates          | Templates list and editor                               | Sidebar list, Tabs, Textarea, token chips                                                         |
-| 06-account-menu       | Account menu (sync, backup, theme)                      | Menu, Button, Toast host                                                                          |
-| 07-today-dark         | Today in dark mode (pair with 01)                       | Same components, dark token set via `data-theme`                                                  |
-| 08-job-screening-dark | Job Screening tab in dark mode                          | Tabs, Card, Badge, form controls on dark surfaces                                                 |
+Live company boards read as "Couldn't check" in these shots: the gallery runs offline.
 
 ## Re-shoot
 
