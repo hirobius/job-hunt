@@ -2,8 +2,8 @@
 // Base documents grouped by kind, an empty state per kind, create, edit (each save is a new
 // Version, with a Version history), delete behind an AlertDialog, and for Outreach messages the
 // token chips and the preview filled for a picked job.
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import DocumentsLibrary from './DocumentsLibrary';
@@ -193,5 +193,157 @@ describe('Outreach messages', () => {
     renderLib();
     await userEvent.click(screen.getByRole('button', { name: /Pet note/ }));
     expect(screen.getByRole('region', { name: 'Preview' })).toHaveTextContent('Hello Rex');
+  });
+});
+
+// #221's Variables panel, carried over from the Templates editor: each variable the message uses,
+// a picked job's four fields saved on the job, every other value saved on the message.
+describe('Variables panel', () => {
+  const open = async (text: string) => {
+    const id = createDocument({ kind: 'outreach', title: 'Vars', base: true, text });
+    renderLib();
+    await userEvent.click(screen.getByRole('button', { name: /Vars/ }));
+    return id;
+  };
+  const vars = () => screen.getByRole('region', { name: 'Variables' });
+  const preview = () => screen.getByRole('region', { name: 'Preview' });
+
+  it('lists every variable the message uses', async () => {
+    await open('Hi [Contact] at [Company]. [Pet]');
+    for (const n of ['Contact', 'Company', 'Pet'])
+      expect(within(vars()).getByRole('textbox', { name: n })).toBeInTheDocument();
+  });
+
+  it('a value set there fills the preview and is kept on the message, not in its text', async () => {
+    const id = await open('Hi [Contact] at [Company]. [Pet]');
+    await userEvent.type(within(vars()).getByRole('textbox', { name: 'Pet' }), 'Rex');
+    expect(preview()).toHaveTextContent('Hi [Contact] at [Company]. Rex');
+    expect(doc(id).values).toEqual({ pet: 'Rex' });
+    expect(doc(id).versions.map((v) => v.text)).toEqual(['Hi [Contact] at [Company]. [Pet]']);
+    expect(screen.getByText(/Not set yet: \[Contact\], \[Company\]/)).toBeInTheDocument();
+  });
+
+  it('with a job picked, its fields fill and edits are saved on the job', async () => {
+    addJob(JOB, 'Fabricator');
+    updateJob(JOB, { company: 'Acme Metals' });
+    await open('Hi [Contact] at [Company]. [Pet]');
+    await userEvent.click(screen.getByRole('combobox', { name: /^Fill for/ }));
+    await userEvent.click(await screen.findByRole('option', { name: /Fabricator/ }));
+    expect(within(vars()).getByRole('textbox', { name: 'Company' })).toHaveValue('Acme Metals');
+    await userEvent.type(within(vars()).getByRole('textbox', { name: 'Contact' }), 'Jo');
+    expect(getAllJobs()[0].contact).toBe('Jo');
+    expect(preview()).toHaveTextContent('Hi Jo at Acme Metals. [Pet]');
+  });
+
+  it('a variable named [constructor] or [__proto__] renders and can be set', async () => {
+    const id = await open('[constructor] [__proto__]');
+    await userEvent.type(within(vars()).getByRole('textbox', { name: '__proto__' }), 'P');
+    expect(preview()).toHaveTextContent('[constructor] P');
+    expect(Object.prototype.hasOwnProperty.call(doc(id).values, '__proto__')).toBe(true);
+  });
+
+  it('a new message has no Variables panel until it is saved', async () => {
+    renderLib();
+    await userEvent.click(
+      within(section('Outreach messages')).getByRole('button', { name: 'New outreach message' }),
+    );
+    expect(screen.queryByRole('region', { name: 'Variables' })).toBeNull();
+  });
+});
+
+// The chip field and the copy, carried over from the Templates editor (#132, #221).
+describe('message text', () => {
+  const body = () => screen.getByRole('textbox', { name: 'Message text' });
+  const preview = () => screen.getByRole('region', { name: 'Preview' });
+  /** Put the caret in the chip editor `at` characters into a text node. */
+  function caretAt(node: Node, at: number) {
+    const r = document.createRange();
+    r.setStart(node, at);
+    r.collapse(true);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(r);
+    document.dispatchEvent(new Event('selectionchange'));
+  }
+  const open = async (text: string) => {
+    createDocument({ kind: 'outreach', title: 'Chips', base: true, text });
+    renderLib();
+    await userEvent.click(screen.getByRole('button', { name: /Chips/ }));
+  };
+
+  it('shows each variable as one named chip that cannot be edited inside', async () => {
+    await open('Hi [Contact], at [Company]');
+    expect(screen.getByRole('img', { name: 'Contact variable' })).toHaveAttribute(
+      'contenteditable',
+      'false',
+    );
+    expect(body()).toHaveTextContent('Hi Contact, at Company');
+  });
+
+  it('a chip inserts its token at the cursor, and the caret lands after it', async () => {
+    await open('Hello world');
+    body().focus();
+    caretAt(body().firstChild!, 5);
+    await userEvent.click(screen.getByRole('button', { name: '[Role]' }));
+    expect(preview()).toHaveTextContent('Hello [Role] world');
+    await waitFor(() => expect(body()).toHaveFocus());
+    const sel = window.getSelection()!;
+    expect(sel.anchorNode?.textContent).toBe(' world');
+    expect(sel.anchorOffset).toBe(0);
+  });
+
+  it('a chip says which job field fills it', async () => {
+    await open('Hi');
+    screen.getByRole('button', { name: '[Company]' }).focus();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(/company/i);
+  });
+
+  it('Backspace right after a chip removes the whole chip', async () => {
+    await open('Hi [Contact], at [Company]');
+    const after = screen.getByRole('img', { name: 'Contact variable' }).nextSibling!;
+    body().focus();
+    caretAt(after, 0);
+    await userEvent.keyboard('{Backspace}');
+    expect(preview()).toHaveTextContent('Hi , at [Company]');
+    expect(screen.queryByRole('img', { name: 'Contact variable' })).toBeNull();
+  });
+
+  it('Delete right before a chip removes the whole chip', async () => {
+    await open('Hi [Contact], at [Company]');
+    body().focus();
+    caretAt(body().firstChild!, 3);
+    await userEvent.keyboard('{Delete}');
+    expect(preview()).toHaveTextContent('Hi , at [Company]');
+  });
+
+  it('a [Name] typed by hand becomes a chip', async () => {
+    await open('Hi [Contact]');
+    const last = body().lastChild!;
+    body().append(document.createTextNode(' [Pet]'));
+    caretAt(last, 0);
+    fireEvent.input(body());
+    expect(preview()).toHaveTextContent('Hi [Contact] [Pet]');
+    expect(screen.getByRole('img', { name: 'Pet variable' })).toBeInTheDocument();
+  });
+
+  it('Insert variable puts the chip at the cursor', async () => {
+    await open('Hi [Contact], at [Company]');
+    body().focus();
+    caretAt(body().firstChild!, 3);
+    await userEvent.click(screen.getByRole('button', { name: 'Insert variable' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Role' }));
+    expect(preview()).toHaveTextContent('Hi [Role] [Contact], at [Company]');
+  });
+
+  it('Copy filled text copies the preview', async () => {
+    userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText');
+    addJob(JOB, 'Fabricator');
+    updateJob(JOB, { company: 'Acme Metals' });
+    await open('At [Company], [Contact]');
+    await userEvent.click(screen.getByRole('combobox', { name: /^Fill for/ }));
+    await userEvent.click(await screen.findByRole('option', { name: /Fabricator/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Copy filled text' }));
+    expect(writeText.mock.calls[0][0]).toBe('At Acme Metals, [Contact]');
   });
 });

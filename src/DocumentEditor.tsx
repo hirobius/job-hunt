@@ -4,8 +4,10 @@
 // Save creates it. Outreach messages keep the Templates editor's tools: token chips and the Insert
 // variable menu over the chip field (hds-gaps/TokenTextarea), and a preview filled for a picked
 // job through templateFill.fillSnippet (job fields, then the message's own values, then the kit
-// name). Delete sits in a menu and asks first.
-import { useRef, useState } from 'react';
+// name), and the Variables panel (#221): a picked job's four fields are saved on the job, every
+// other value on the message (`Document.values`, not a Version). Delete sits in a menu and asks
+// first.
+import { useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, EllipsisVertical, Plus } from 'lucide-react';
 import {
   AlertDialog,
@@ -30,13 +32,15 @@ import {
   renameDocument,
   saveVersion,
   setDocumentPinned,
+  setDocumentValues,
 } from './documents';
 import type { Document, DocumentKind } from './documents';
 import { DocumentDownload } from './DocumentDownload';
-import { useJobs } from './store';
+import { updateJob, useJobs } from './store';
+import type { Job } from './types';
 import { useApplyKit } from './applyKit';
-import { fillSnippet } from './templateFill';
-import { insertToken, TOKEN_CHIPS } from './templateEditor';
+import { fillSnippet, ownValue, resolveVariables } from './templateFill';
+import { insertToken, templateVariables, TOKEN_CHIPS } from './templateEditor';
 import TokenTextarea from './hds-gaps/TokenTextarea';
 import type { TokenTextareaHandle } from './hds-gaps/TokenTextarea';
 import { copyFilled } from './templateCopy';
@@ -47,6 +51,13 @@ const NO_JOB = 'none';
 const FULL = { width: '100%' } as const;
 const PRE = { margin: 0, whiteSpace: 'pre-wrap' } as const;
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
+// The variables a picked job fills, and the job field each one is saved to.
+const JOB_FIELD: Record<string, 'company' | 'label' | 'contact' | 'angle'> = {
+  company: 'company',
+  role: 'label',
+  contact: 'contact',
+  angle: 'angle',
+};
 
 const labelOf = (kind: DocumentKind) =>
   DOCUMENT_KINDS.find((k) => k.kind === kind)?.label ?? 'Document';
@@ -98,6 +109,38 @@ export default function DocumentEditor({
     if (doc && title.trim() !== doc.title) renameDocument(doc.id, title);
   };
 
+  // Save sits right under the text (an Outreach message's preview and Variables come after it).
+  const actions = (
+    <Stack direction="row" gap="tight" align="center">
+      <Button variant="primary" onClick={save} disabled={!dirty}>
+        Save
+      </Button>
+      {doc && (
+        // Not modal: a modal menu and the confirm dialog both lock body pointer events (#132).
+        <Menu modal={false}>
+          <Menu.Trigger asChild>
+            <Button
+              variant="tertiary"
+              iconOnly
+              iconLeft={<Icon icon={EllipsisVertical} />}
+              label="More actions"
+            />
+          </Menu.Trigger>
+          <Menu.Content align="start">
+            <Menu.Item onSelect={() => setDocumentPinned(doc.id, !doc.pinned)}>
+              {doc.pinned ? 'Unpin' : 'Pin'}
+            </Menu.Item>
+            <Menu.Separator />
+            {/* HDS Menu.Item has no danger tone; the feedback token marks the destructive item. */}
+            <Menu.Item onSelect={() => setConfirming(true)} style={DANGER}>
+              Delete
+            </Menu.Item>
+          </Menu.Content>
+        </Menu>
+      )}
+    </Stack>
+  );
+
   return (
     <Stack gap="normal">
       <Stack direction="row" gap="tight" align="center">
@@ -116,7 +159,13 @@ export default function DocumentEditor({
         onBlur={commitTitle}
       />
       {outreach ? (
-        <OutreachText value={draft} onChange={setDraft} values={doc?.values} />
+        <OutreachText
+          value={draft}
+          onChange={setDraft}
+          docId={doc?.id}
+          values={doc?.values}
+          actions={actions}
+        />
       ) : (
         <Textarea
           label="Text"
@@ -126,34 +175,7 @@ export default function DocumentEditor({
           style={FULL}
         />
       )}
-      <Stack direction="row" gap="tight" align="center">
-        <Button variant="primary" onClick={save} disabled={!dirty}>
-          Save
-        </Button>
-        {doc && (
-          // Not modal: a modal menu and the confirm dialog both lock body pointer events (#132).
-          <Menu modal={false}>
-            <Menu.Trigger asChild>
-              <Button
-                variant="tertiary"
-                iconOnly
-                iconLeft={<Icon icon={EllipsisVertical} />}
-                label="More actions"
-              />
-            </Menu.Trigger>
-            <Menu.Content align="start">
-              <Menu.Item onSelect={() => setDocumentPinned(doc.id, !doc.pinned)}>
-                {doc.pinned ? 'Unpin' : 'Pin'}
-              </Menu.Item>
-              <Menu.Separator />
-              {/* HDS Menu.Item has no danger tone; the feedback token marks the destructive item. */}
-              <Menu.Item onSelect={() => setConfirming(true)} style={DANGER}>
-                Delete
-              </Menu.Item>
-            </Menu.Content>
-          </Menu>
-        )}
-      </Stack>
+      {!outreach && actions}
       {doc && <VersionHistory doc={doc} onUse={setDraft} />}
       {doc && (
         <AlertDialog open={confirming} onOpenChange={setConfirming}>
@@ -197,10 +219,16 @@ export default function DocumentEditor({
 function OutreachText({
   value,
   onChange,
+  docId,
   values,
+  actions,
 }: {
   value: string;
   onChange: (v: string) => void;
+  /** Save and the menu, right under the text. */
+  actions: ReactNode;
+  /** Set once the message exists: its variable values are saved on it. */
+  docId?: string;
   values?: Record<string, string>;
 }) {
   const { toast } = useToast();
@@ -209,6 +237,40 @@ function OutreachText({
   const [fillFor, setFillFor] = useState<string | null>(null);
   const job = jobs.find((j) => j.url === fillFor);
   const filled = fillSnippet({ body: value, values }, job, kitName);
+  const names = templateVariables(value);
+  const resolved = resolveVariables(names, values, job, kitName);
+  const missing = names.filter((n) => !resolved[n.toLowerCase()]).map((n) => `[${n}]`);
+  // fromEntries makes own keys, so even a variable named `__proto__` is kept as a plain value.
+  const setValue = (key: string, v: string) => {
+    if (!docId) return;
+    const rest = Object.entries(values ?? {}).filter(([k]) => k !== key);
+    setDocumentValues(docId, Object.fromEntries(v ? [...rest, [key, v]] : rest));
+  };
+  const variableField = (n: string) => {
+    const key = n.toLowerCase();
+    const field = job && (ownValue(JOB_FIELD, key) as (typeof JOB_FIELD)[string] | undefined);
+    if (job && field)
+      return (
+        <HdsInput
+          key={key}
+          label={n}
+          value={job[field] ?? ''}
+          placeholder={ownValue(values, key) || 'Not set'}
+          onChange={(e) => updateJob(job.url, { [field]: e.target.value } as Partial<Job>)}
+        />
+      );
+    const kit = key === 'your name' && kitName ? kitName : '';
+    return (
+      <HdsInput
+        key={key}
+        label={n}
+        value={ownValue(values, key) ?? ''}
+        placeholder={kit || 'Not set'}
+        helperText={kit ? 'Empty uses your Application kit name' : undefined}
+        onChange={(e) => setValue(key, e.target.value)}
+      />
+    );
+  };
 
   const area = useRef<TokenTextareaHandle>(null);
   const insert = (token: string) => {
@@ -268,17 +330,40 @@ function OutreachText({
           Type a name in square brackets, like [Hiring manager], to make your own variable.
         </Text>
       </Stack>
+      {actions}
       <Select
         label="Fill for"
         options={options}
         value={job ? job.url : NO_JOB}
         onChange={(v) => setFillFor(v === NO_JOB ? null : v)}
       />
+      {docId && names.length > 0 && (
+        <section aria-labelledby={`vars-${docId}`}>
+          <Stack gap="tight">
+            <Text variant="body" as="h3" id={`vars-${docId}`} className="rjb-semibold">
+              Variables
+            </Text>
+            <Text variant="caption" as="p" style={SECONDARY}>
+              {job
+                ? 'Company, Role, Contact and Angle are saved on this job; the rest on this message.'
+                : 'Saved on this message. Pick a job to fill its company, role, contact and angle.'}
+            </Text>
+            {names.map(variableField)}
+          </Stack>
+        </section>
+      )}
       <Surface padding="px16" role="region" aria-label="Preview">
         <Text variant="body" as="p" style={PRE}>
           {filled || 'Nothing to preview yet.'}
         </Text>
       </Surface>
+      {missing.length > 0 && (
+        <Text variant="caption" as="p" style={SECONDARY}>
+          {job
+            ? `Still unfilled for this job: ${missing.join(', ')}. Set them under Variables, or edit after pasting.`
+            : `Not set yet: ${missing.join(', ')}. Set them under Variables, or pick a job.`}
+        </Text>
+      )}
       <Stack direction="row" gap="tight">
         <Button variant="secondary" onClick={copy}>
           Copy filled text

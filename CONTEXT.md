@@ -78,6 +78,10 @@ _Avoid_: employer, organization, account
 A Document not tied to a Job, kept to be copied into one. It is never Sent itself.
 _Avoid_: master, template, default
 
+**Outreach message**:
+A Base document of the Outreach-message kind: the text Use template, the follow-up dialog and the Apply sheet fill for a Job, with `[Variable]`s and its own variable values. It replaced the Copy Deck snippet (`src/outreachTemplates.ts`); each snippet became one, once.
+_Avoid_: snippet, template (in code)
+
 **Final copy**:
 A PDF or Word file uploaded to a Job as a Document of a kind: its one Version holds the file, not text, and it takes no new Versions. It can be marked Sent like any Version, and can be downloaded back.
 _Avoid_: attachment, upload (as a noun in code)

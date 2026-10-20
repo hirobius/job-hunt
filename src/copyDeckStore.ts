@@ -15,6 +15,8 @@ export interface Snippet {
   pinned?: boolean;
   /** Variable values set on this template (#221), keyed by lower-case name; the body keeps its [Token]s. */
   values?: Record<string, string>;
+  /** Moved into the Documents library as an Outreach message (#227); never moved again. */
+  migrated?: boolean;
 }
 
 const KEY = 'rjb_copydeck_v1';

@@ -55,12 +55,14 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
   },
   {
     id: 'templates',
-    title: 'Templates',
+    // Templates became the Documents library (#227); the frame id and shot keep their names.
+    title: 'Documents',
     route: '#/copy-deck/tpl-outreach',
     tab: 'copy-deck',
     sources: [
-      { file: 'src/CopyDeckView.tsx', component: 'CopyDeckView' },
-      { file: 'src/TemplateDetail.tsx', component: 'TemplateDetail' },
+      { file: 'src/DocumentsView.tsx', component: 'DocumentsView' },
+      { file: 'src/DocumentsLibrary.tsx', component: 'DocumentsLibrary' },
+      { file: 'src/DocumentEditor.tsx', component: 'DocumentEditor' },
     ],
     nodeId: '1:34',
     shot: 'templates',

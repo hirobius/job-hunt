@@ -2,7 +2,7 @@
 // links). The card reads as a facts list; Edit turns the same card into its fields (title,
 // company, location, pay, link, contact, with seniority and résumé version under More fields).
 // A job saved from a bare link has nothing to read yet, so its card starts in edit. Remove lives
-// in the header's menu.
+// in the header's menu. The company links to its Company page (#230, `#/company/<slug>`).
 import { useRef, useState } from 'react';
 import { Pencil } from 'lucide-react';
 import {
@@ -11,6 +11,7 @@ import {
   Card,
   Disclosure,
   Icon,
+  InlineLink,
   Input,
   MetadataList,
   Stack,
@@ -18,8 +19,8 @@ import {
   Text,
 } from '@hirobius/design-system';
 import { jobIdOf, setJobUrl, updateJob } from './store';
-import { openJob } from './route';
-import { relinkCompanyNotes } from './companies';
+import { companyHash, openJob } from './route';
+import { companySlug, relinkCompanyNotes } from './companies';
 import { jobFacts, researchLinks } from './jobFacts';
 import { useSavedFlash } from './useSavedFlash';
 import UseTemplate from './UseTemplate';
@@ -137,6 +138,18 @@ function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
   );
 }
 
+/** A company name as a link to its Company page; the bare name when it has no page (no slug). */
+function companyLink(name: string) {
+  const slug = companySlug(name);
+  return slug ? (
+    <InlineLink href={companyHash(slug)} externalIcon={false}>
+      {name}
+    </InlineLink>
+  ) : (
+    name
+  );
+}
+
 export default function JobOverview({ job }: { job: Job }) {
   const [editing, setEditing] = useState(!(job.label && job.company));
   const facts = jobFacts(job);
@@ -165,7 +178,10 @@ export default function JobOverview({ job }: { job: Job }) {
         ) : (
           <MetadataList
             variant="divided"
-            items={facts.map((f) => ({ term: f.term, description: f.description }))}
+            items={facts.map((f) => ({
+              term: f.term,
+              description: f.term === 'Company' ? companyLink(f.description) : f.description,
+            }))}
           />
         )}
       </Stack>

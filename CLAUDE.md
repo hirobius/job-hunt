@@ -96,13 +96,13 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   page title is always the biggest text) · top tabs (**Companies · Pipeline**; they scroll on a phone, with the `src/hds-gaps/TabsOverflowFade` edge cue) · one
   icon-only **Menu** button (hamburger, `aria-label="Menu"`; it holds account, data, display and feedback). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
-  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Templates, Back up,
+  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Back up,
   Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible one-line note (flat, #241);
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
   line as non-item labels | data | display | Sign out, Delete my data last in the danger colour;
-  data = Templates, Back up, Restore…, Export CSV).
+  data = Documents, Back up, Restore…, Export CSV).
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
   (git-ignored). Run it before/after each redesign phase.
@@ -137,7 +137,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `role="img"` named by BRAND, `.rjb-mark` in `base.css`) below `sm` and the body-size wordmark from
   `sm` up (`useAtLeast('sm')`). Rhythm is HDS Stack gaps, no margins: 24 under a heading (`normal`),
   48 between sections (`spacious`) on the Pipeline and Companies. No card patterns: the Pipeline's
-  To apply / Follow up / Next 7 days / Getting started, the sync note, phone job rows, the Templates
+  To apply / Follow up / Next 7 days / Getting started, the sync note, phone job rows, the Documents
   list, company lists (`rowsStyle` + `.rjb-rows` hairlines) and the loading skeletons are flat rows
   on the page. Cards stay only where they hold a form or a choice (job Details, Onboarding picks).
   Pinned in `src/calmLayout.test.tsx`.
@@ -150,38 +150,44 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `SyncNudge` over the Pipeline list. Quick-add is the Pipeline's Add job dialog. HDS-gap stand-ins
   live in `src/hds-gaps/`, each naming its upstream ask. **The onboarding gate lives in the
   shell:** Companies shows `Onboarding` on a first run (no tracks and no jobs; it offers sample data
-  there) and `ChooseTrack` whenever there are no tracks; Pipeline and Templates never gate. Pinned
+  there) and `ChooseTrack` whenever there are no tracks; Pipeline and Documents never gate. Pinned
   in `src/pipelineFollowUps.test.tsx`.
-- **Templates list + detail (#132; no tab since #240):** `#/copy-deck` is a page with no tab selected
-  (App mounts `CopyDeckView` outside the tab panels), reached from the Apply sheet's Edit templates
-  link and the Menu's Templates item; it heads itself "Templates" with a Back to Pipeline link (a
-  phone's open template shows only its own back link). Pinned in `src/shell.test.tsx`.
-  `#/copy-deck` is the list, `#/copy-deck/<snippetId>` opens
-  one (`Route.sub`; an unknown id falls back to the list once sync has settled). `CopyDeckView` picks
-  the layout with `useAtLeast('lg')`: a rail (`TemplatesList`, HDS `Sidebar`) beside `TemplateDetail`,
-  or one pane on a phone with a back link. The detail has token chips (`templateEditor.ts`
-  `insertAt`), a preview filled from a job picked in a `Select` (no job = `[Token]` text), Write /
-  Preview `Tabs` below `lg`, `templateCopy.copyFilled` (shared with `UseTemplate`), and Delete behind
-  an `AlertDialog`. Its `Menu` is `modal={false}` on purpose: a modal menu plus the dialog left the
-  page unclickable. `restoreStarterSnippets` re-adds missing `tpl-*` defaults. Pinned in
-  `src/copyDeck.test.tsx` and `src/copyDeckFill.test.tsx`.
-  **Variable chips (#221):** the text is `hds-gaps/TokenTextarea` (contenteditable; each `[Name]` is one
-  atomic chip; Backspace/Delete/arrows/Enter/paste go through `templateEditor` helpers). Insert variable
-  `Menu` + chip row share `insertAt`. A Variables panel sets values: a picked job's four fields save on
-  the job, the rest on `Snippet.values`; `[Your name]` falls back to the kit name. `templateFill.fillSnippet`
-  is the one fill path (editor, Use template, Apply mode). Body stays plain text. E2E:
-  `e2e/template-variables.spec.ts`.
+- **Documents library (#227; replaced Templates #132, no tab since #240):** `#/copy-deck` (slug kept)
+  is a page with no tab selected (App mounts `DocumentsView` outside the tab panels), reached from the
+  Menu's Documents item and the Apply sheet's Edit documents link, headed "Documents" with Back to
+  Pipeline. `DocumentsLibrary` lists Base documents per kind (flat rows, #241); `DocumentEditor` saves
+  each change as a Version. Outreach messages keep the Templates tools: `hds-gaps/TokenTextarea`
+  (contenteditable; each `[Name]` one atomic chip; keys go through `templateEditor` helpers), the chip
+  row + Insert variable `Menu` (`insertToken`), a Fill for preview, and the #221 **Variables panel** (a
+  picked job's four fields save on the job, the rest on `Document.values`, not a Version; `[Your name]`
+  falls back to the kit name). `#/copy-deck/<id>` opens one; an old `#/copy-deck/<snippetId>` resolves
+  to `snippet-<id>` (`outreachTemplates.resolveDocumentId`, hash rewritten); unknown → the library once
+  sync has settled and the move below has run. **Snippets are legacy data** (store + blob sync kept):
+  `App`'s `SnippetMigration` runs `migrateSnippetStore` after sync settles: each snippet not yet
+  `migrated` becomes a Base Outreach message (`snippetMigration.ts`) and is marked `migrated` in the
+  synced snippet store, so a deleted message never comes back and a second device adds nothing.
+  "Restore starter messages" re-adds missing `tpl-*` (`restoreStarterOutreach`). **Every fill path reads
+  `useOutreachTemplates()`** (latest Version text, values, pinned first; a moved message keeps its
+  snippet id, so `tpl-followup` and the kit's picks still match): Use template, `FollowUp`, the Apply
+  sheet and the kit's letters, all through `templateFill.fillSnippet`. Editor menus are
+  `modal={false}` (a modal menu plus the dialog left the page unclickable). Pinned in
+  `documentsRoute.test.tsx`, `documentsLibrary.test.tsx`, `outreachTemplates.test.ts`; E2E
+  `e2e/documents.spec.ts`, `e2e/template-variables.spec.ts`. Final copies (#231, uploaded PDF/Word)
+  live in the synced blob, capped at 500 KB per file and 1 MB per account.
+- **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
+  `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
+  Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).
 - **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
   first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the first-run gate goes
   to `#/discover`). Sample data is a step 1 offer on a first run. Discover with no track shows
   `ChooseTrack` first. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in
-  Discover, Templates and the Pipeline (`TrackerView`, with the Briefcase icon). The Pipeline
+  Discover, Documents and the Pipeline (`TrackerView`, with the Briefcase icon). The Pipeline
   gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
   `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
   `pipelineFollowUps.test.tsx`.
 - **Pipeline rows (#129):** the shell is HDS page width (`Container maxWidth="max"`, 1200). The
-  Pipeline table and Discover's tile grid use it; the job page and Templates sit at
+  Pipeline table and Discover's tile grid use it; the job page and Documents sit at
   the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders
   `JobsTable` (HDS `Table`, sortable headers through `jobRow.nextSort` → the same `SortKey` as the
   toolbar) at ≥ the HDS `lg` breakpoint and `JobListCard` (title on its own row) below it, chosen
@@ -226,8 +232,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   selected): Open application, Mark applied (follow-up 7 days on), Next job (k of N), Skip, Not a fit
   (retire + Undo), and the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**): profile
   fields, two template-filled letters and custom Q&A, each a copy row. **Apply sheet (#239):** above
-  the kit, "Templates" lists every template filled for the job (`applyKit.filledTemplates` →
-  `fillSnippet`, pinned first, one copy row each) with an Edit templates link. The row menu sets any status.
+  the kit, "Templates" lists every Outreach message filled for the job (`applyKit.filledTemplates` →
+  `fillSnippet`, pinned first, one copy row each) with an Edit documents link. The row menu sets any status.
   Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
 - **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
   title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys

@@ -2,18 +2,20 @@
 // (Résumé, Cover letter, Note, Outreach message), each with its own empty state and a New button.
 // Opening one shows DocumentEditor; New opens an empty editor that creates the document on its
 // first save, so an abandoned New leaves nothing behind. Which document is open can be held by the
-// caller (a route) through `openId` / `onOpen`, or kept here when they are left out.
-// Built standalone; wiring it into the Templates tab (`#/copy-deck`) waits for #234 to land.
-import { useState } from 'react';
+// caller (a route) through `openId` / `onOpen`, or kept here when they are left out. The route is
+// `#/copy-deck` (DocumentsView). Outreach messages are the templates the fill paths use
+// (outreachTemplates.ts); the starter set can be restored here when one is missing.
+import { useState, type ReactNode } from 'react';
 import { Star } from 'lucide-react';
-import { Box, Button, Card, Icon, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, Icon, Stack, Text } from '@hirobius/design-system';
 import EmptyState from './EmptyState';
 import DocumentEditor from './DocumentEditor';
-import { DOCUMENT_KINDS, useDocuments } from './documents';
+import { DOCUMENT_KINDS, getAllDocuments, replaceDocuments, useDocuments } from './documents';
+import { documentIdForSnippet, restoreStarterOutreach } from './snippetMigration';
+import { STARTER_SNIPPETS } from './copyDeckStore';
 import type { Document, DocumentKind } from './documents';
 import { SECONDARY } from './hds-gaps/tone';
 
-const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 const ONE_LINE = {
   ...SECONDARY,
   overflow: 'hidden',
@@ -53,13 +55,21 @@ function libraryItems(docs: Document[], kind: DocumentKind): Document[] {
 
 type Open = { id: string } | { kind: DocumentKind } | null;
 
+const starterMissing = (docs: Document[]) =>
+  STARTER_SNIPPETS.some((s) => !docs.some((d) => d.id === documentIdForSnippet(s.id)));
+const restoreStarters = () =>
+  replaceDocuments(restoreStarterOutreach(getAllDocuments(), new Date().toISOString()));
+
 export default function DocumentsLibrary({
   openId,
   onOpen,
+  header,
 }: {
   /** The open document's id, when a route holds it. */
   openId?: string | null;
   onOpen?: (id: string | null) => void;
+  /** The library's page head; a plain "Documents" heading when left out. */
+  header?: ReactNode;
 } = {}) {
   const docs = useDocuments();
   const [local, setLocal] = useState<Open>(null);
@@ -95,9 +105,11 @@ export default function DocumentsLibrary({
 
   return (
     <Stack gap="spacious">
-      <Text variant="title" as="h2">
-        Documents
-      </Text>
+      {header ?? (
+        <Text variant="title" as="h2">
+          Documents
+        </Text>
+      )}
       {DOCUMENT_KINDS.map(({ kind, label }) => {
         const items = libraryItems(docs, kind);
         const headId = `docs-${kind}`;
@@ -127,37 +139,51 @@ export default function DocumentsLibrary({
                   }
                 />
               ) : (
-                <Stack as="ul" gap="tight" style={LIST}>
+                // Flat rows with a hairline, not a card per document (#241's calm list).
+                <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
                   {items.map((d) => (
-                    <li key={d.id}>
-                      <Card bordered padding="item">
-                        <Stack gap="tight">
-                          <Stack direction="row" gap="tight" align="center">
-                            {d.pinned && (
-                              <Box
-                                as="span"
-                                role="img"
-                                aria-label="Pinned"
-                                sx={{ display: 'inline-flex' }}
-                              >
-                                <Icon icon={Star} weight="fill" />
-                              </Box>
-                            )}
-                            <Button variant="tertiary" onClick={() => go({ id: d.id })}>
-                              {d.title || 'Untitled'}
-                            </Button>
-                          </Stack>
+                    <Box
+                      as="li"
+                      key={d.id}
+                      sx={{ py: 'xs', borderBottom: 'thin solid', borderColor: 'border.default' }}
+                    >
+                      <Stack gap="px2">
+                        <Stack direction="row" gap="tight" align="center">
+                          {d.pinned && (
+                            <Box
+                              as="span"
+                              role="img"
+                              aria-label="Pinned"
+                              sx={{ display: 'inline-flex' }}
+                            >
+                              <Icon icon={Star} weight="fill" />
+                            </Box>
+                          )}
+                          <Button variant="tertiary" onClick={() => go({ id: d.id })}>
+                            {d.title || 'Untitled'}
+                          </Button>
+                        </Stack>
+                        {/* Indented by the tertiary button's own inline padding, so it lines up
+                            under the title. */}
+                        <Box sx={{ pl: 'sm', minWidth: 0 }}>
                           <Text variant="caption" as="span" style={ONE_LINE}>
                             {firstLine(latest(d)) || 'Empty'} ·{' '}
                             {d.versions.length === 1
                               ? '1 version'
                               : `${d.versions.length} versions`}
                           </Text>
-                        </Stack>
-                      </Card>
-                    </li>
+                        </Box>
+                      </Stack>
+                    </Box>
                   ))}
-                </Stack>
+                </Box>
+              )}
+              {kind === 'outreach' && starterMissing(docs) && (
+                <Box>
+                  <Button variant="tertiary" size="sm" onClick={restoreStarters}>
+                    Restore starter messages
+                  </Button>
+                </Box>
               )}
             </Stack>
           </section>

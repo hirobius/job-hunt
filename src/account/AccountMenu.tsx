@@ -1,4 +1,4 @@
-// The header's account menu (#115 Phase 1): sync status + sign-in/out, Templates (#240: it has no
+// The header's account menu (#115 Phase 1): sync status + sign-in/out, Documents (#240, #227: no
 // tab), the data controls that used to crowd the Tracker toolbar (back up, restore, export), the
 // theme and feedback — one home for everything about "my account and my data".
 import { Button, Icon, Menu } from '@hirobius/design-system';
@@ -49,9 +49,9 @@ export default function AccountMenu() {
           </>
         )}
         <Menu.Separator />
-        {/* Templates has no tab (#240); it opens from here and from the Apply sheet. */}
+        {/* Documents (was Templates, #227) has no tab (#240); it opens from here and the Apply sheet. */}
         <Menu.Item onSelect={() => navigate({ tab: 'copy-deck', sub: null, jobId: null })}>
-          Templates
+          Documents
         </Menu.Item>
         <Menu.Item onSelect={data.backup}>Back up</Menu.Item>
         <Menu.Item onSelect={data.chooseRestore}>Restore…</Menu.Item>
