@@ -27,6 +27,6 @@ Then copy the picked files from `gallery/cs/{light,dark}-{1440,390}/`. `gallery/
 
 ## Figma
 
-The five main screens sit in the Figma file https://www.figma.com/design/mJgRxGXwbd4j9jj96qpdFI,
-one frame each, labelled with the source files that render them. Map and frame links:
+The main screens are live HDS layers in the Figma file https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr
+("HDS Apps", page Job Hunt), built 1:1 from the code. Map and frame links:
 `docs/figma/README.md`.

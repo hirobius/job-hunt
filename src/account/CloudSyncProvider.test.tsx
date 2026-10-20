@@ -44,6 +44,8 @@ import { emptyBlob, writeBlob } from '../syncBlob';
 import { getTrash, replaceTrash, trashJob } from '../trash';
 import { createDocument, getAllDocuments, replaceDocuments } from '../documents';
 import type { Job } from '../types';
+import { loadSample } from '../demo/loadSample';
+import { getAllSweeps, setTitleOn } from '../feed/sweepTitles';
 
 const fake = () => h.fake!;
 const NOW = '2026-10-01T00:00:00.000Z';
@@ -423,6 +425,52 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     );
   });
 
+  it('a job removed here while the push failed stays removed after a reload (#219)', async () => {
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    act(() => {
+      addJob('https://a.example/1');
+      addJob('https://b.example/1');
+    });
+    await waitFor(() => expect(fake().tables.tracker?.[0]?.data.jobs).toHaveLength(2));
+    const a = getAllJobs().find((j) => j.url.startsWith('https://a.'))!.url;
+
+    // Offline: the removal never reaches the cloud, which still lists A.
+    fake().failNext('tracker', 'upsert');
+    act(() => trashJob(a));
+    await act(() => new Promise((r) => setTimeout(r, 700))); // past the push debounce
+    expect(fake().tables.tracker[0].data.jobs).toHaveLength(2);
+
+    cleanup();
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await waitFor(() =>
+      expect(fake().tables.tracker[0].data.jobs.map((j: Job) => j.url)).not.toContain(a),
+    );
+    expect(getAllJobs().map((j) => j.url)).not.toContain(a);
+    expect(getTrash().map((r) => r.job.url)).toEqual([a]);
+  });
+
+  it('sample data is kept on this device across reloads while signed in, and never uploaded', async () => {
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    act(() => {
+      loadSample();
+      addJob('https://real.example/1');
+    });
+    const sample = getAllJobs().filter((j) => (j as { demo?: boolean }).demo).length;
+    expect(sample).toBeGreaterThan(0);
+    await waitFor(() => expect(fake().tables.tracker[0].data.jobs).toHaveLength(1));
+
+    cleanup();
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await waitFor(() => expect(fake().tables.tracker[0].data.jobs).toHaveLength(1));
+    expect(getAllJobs().filter((j) => (j as { demo?: boolean }).demo)).toHaveLength(sample);
+    expect(getAllJobs().map((j) => j.url)).toContain('https://real.example/1');
+  });
+
   // ADR 0008: what the user edits (targets, saved searches, evidence, work mode) follows the account.
   describe('user-edited stores follow the account', () => {
     beforeEach(() => {
@@ -511,6 +559,33 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       expect(readMode('trk')).toBe('hybrid');
       expect(readDreams('trk').map((d) => d.company)).toEqual(['Dreamco']);
       expect(getAllDocuments().map((d) => d.title)).toEqual(['Base résumé']);
+    });
+
+    it('the title filter (#223) follows the account to another device', async () => {
+      const seed = ['Design Systems Engineer', 'Design Engineer', 'UX Engineer'];
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(() => {
+        setTitleOn('trk', seed, 'UX Engineer', false);
+      });
+      await waitFor(() =>
+        expect(fake().tables.tracker[0].data.sweeps).toEqual({
+          trk: { titles: seed, off: ['UX Engineer'] },
+        }),
+      );
+
+      // Sign out wipes this browser; a fresh device signing in gets the same ticks back.
+      await chooseAccountItem('Sign out');
+      await waitFor(() => expect(getAllSweeps()).toEqual({}));
+      cleanup();
+      localStorage.clear();
+      act(() => replaceDocuments([]));
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() =>
+        expect(getAllSweeps()).toEqual({ trk: { titles: seed, off: ['UX Engineer'] } }),
+      );
     });
 
     it('first sign-in keeps this device’s entries and unions them with the cloud’s', async () => {
@@ -612,6 +687,27 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 10 }));
       expect(fake().tables.tracker[0].data.trash).toHaveLength(1);
       expect(getTrash().map((r) => r.job.url)).toEqual(['https://example.test/removed']);
+    });
+
+    it('a reload after an old-deploy tab rewrote the row keeps the fields that tab did not know (#219 review)', async () => {
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+      act(edit);
+      await waitFor(() => expect(fake().tables.tracker[0].data.documents).toHaveLength(1));
+      // A tab on the v8 deploy (no dream companies, no Documents) rewrites the row.
+      const { dreams: _d, documents: _docs, ...v8 } = fake().tables.tracker[0].data;
+      fake().tables.tracker[0].data = { ...v8, v: 8 };
+
+      // This device reloads: its sync base knows the dream company and the document, but a v8
+      // copy says nothing about them, so they are kept and re-uploaded.
+      cleanup();
+      renderAccount();
+      act(() => fake().signIn('u1'));
+      await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 10 }));
+      expect(readDreams('trk').map((d) => d.company)).toEqual(['Dreamco']);
+      expect(getAllDocuments().map((d) => d.title)).toEqual(['Base résumé']);
+      expect(fake().tables.tracker[0].data.documents).toHaveLength(1);
     });
 
     it('sign-out inside the push debounce still uploads the edit before wiping', async () => {

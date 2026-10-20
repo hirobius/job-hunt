@@ -48,6 +48,7 @@ describe('Figma screen map (#197)', () => {
     expect(key).toMatch(/^[0-9a-zA-Z]{22,128}$/);
     for (const screen of FIGMA_SCREENS) {
       expect(screen.nodeId, screen.id).toMatch(/^\d+:\d+$/);
+      expect(screen.phoneNodeId, screen.id).toMatch(/^\d+:\d+$/);
       const url = frameUrl(screen);
       expect(figmaFileKey(url)).toBe(key);
       expect(url).toContain(`node-id=${screen.nodeId.replace(':', '-')}`);
@@ -59,6 +60,7 @@ describe('Figma screen map (#197)', () => {
     expect(doc).toContain(FIGMA_FILE_URL);
     for (const screen of FIGMA_SCREENS) {
       expect(doc).toContain(frameUrl(screen));
+      expect(doc).toContain(frameUrl(screen, screen.phoneNodeId));
       for (const { file } of screen.sources) expect(doc).toContain(file);
     }
   });
