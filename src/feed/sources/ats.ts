@@ -1,5 +1,6 @@
-// Company job boards on five applicant-tracking systems — Greenhouse, Lever, Ashby, Workable and
-// Recruitee (the last two UNVERIFIED LIVE: written from their documented response shapes). Each exposes a public,
+// Company job boards on eight applicant-tracking systems — Greenhouse, Lever, Ashby, Workable,
+// Recruitee, SmartRecruiters, Teamtailor and Personio (the last five UNVERIFIED LIVE: written from
+// their documented or commonly reported response shapes, #216). Each exposes a public,
 // keyless, CORS-open JSON API per company. Which companies to watch comes from the track itself: any
 // tile whose URL is a board (e.g. https://jobs.ashbyhq.com/ramp) is pulled live. Durable portal in,
 // fresh openings out — so the board never holds a stale one-off posting.
@@ -9,7 +10,15 @@ import type { JobMode } from '../../types';
 import type { Posting } from '../types';
 import { arr, obj, prettySlug, str, type FetchJson } from './http';
 
-export type BoardKind = 'greenhouse' | 'lever' | 'ashby' | 'workable' | 'recruitee';
+export type BoardKind =
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'workable'
+  | 'recruitee'
+  | 'smartrecruiters'
+  | 'teamtailor'
+  | 'personio';
 export interface Board {
   kind: BoardKind;
   slug: string;
@@ -53,6 +62,19 @@ export function parseBoardUrl(raw: string): Board | null {
       ? { kind: 'recruitee', slug: sub }
       : null;
   }
+  if (host === 'jobs.smartrecruiters.com' || host === 'careers.smartrecruiters.com')
+    return ok(seg[0]) ? { kind: 'smartrecruiters', slug: seg[0] } : null;
+  const sub = (suffix: string) => {
+    if (!host.endsWith(suffix)) return null;
+    const label = host.slice(0, -suffix.length);
+    return ok(label) && !label.includes('.') && !['www', 'api', 'app'].includes(label)
+      ? label
+      : null;
+  };
+  const tt = sub('.teamtailor.com');
+  if (tt) return { kind: 'teamtailor', slug: tt };
+  const pe = sub('.jobs.personio.de') ?? sub('.jobs.personio.com');
+  if (pe) return { kind: 'personio', slug: pe };
   return null;
 }
 
@@ -85,6 +107,12 @@ export function boardApiUrl(b: Board): string {
       return `https://apply.workable.com/api/v1/widget/accounts/${slug}?details=true`;
     case 'recruitee':
       return `https://${slug}.recruitee.com/api/offers/`;
+    case 'smartrecruiters':
+      return `https://api.smartrecruiters.com/v1/companies/${slug}/postings?limit=100`;
+    case 'teamtailor':
+      return `https://${slug}.teamtailor.com/jobs.json`;
+    case 'personio':
+      return `https://${slug}.jobs.personio.de/search.json`;
   }
 }
 
@@ -103,6 +131,12 @@ export function canonicalBoardUrl(b: Board): string {
       return `https://apply.workable.com/${b.slug}`;
     case 'recruitee':
       return `https://${b.slug}.recruitee.com`;
+    case 'smartrecruiters':
+      return `https://jobs.smartrecruiters.com/${b.slug}`;
+    case 'teamtailor':
+      return `https://${b.slug}.teamtailor.com/jobs`;
+    case 'personio':
+      return `https://${b.slug}.jobs.personio.de`;
   }
 }
 
@@ -234,20 +268,124 @@ export function parseRecruiteeJob(j: unknown, slug: string): Posting | null {
   };
 }
 
+/** SmartRecruiters' Posting API lists postings without bodies; the matcher gets the facets. */
+export function parseSmartRecruitersJob(j: unknown, slug: string): Posting | null {
+  const o = obj(j);
+  const id = String(o.id ?? '');
+  if (!id) return null;
+  const loc = obj(o.location);
+  const location =
+    str(loc.fullLocation) ||
+    [str(loc.city), str(loc.region), str(loc.country).toUpperCase()].filter(Boolean).join(', ');
+  const employment = str(obj(o.typeOfEmployment).label);
+  return {
+    id: `smartrecruiters:${slug}:${id}`,
+    source: 'smartrecruiters',
+    title: str(o.name),
+    company: str(obj(o.company).name) || prettySlug(slug),
+    url: `https://jobs.smartrecruiters.com/${encodeURIComponent(slug)}/${encodeURIComponent(id)}`,
+    location,
+    mode: loc.remote === true ? 'remote' : loc.hybrid === true ? 'hybrid' : inferMode(location),
+    postedAt: str(o.releasedDate) || undefined,
+    text: joinText(
+      employment && `Employment: ${employment}`,
+      str(obj(o.department).label),
+      str(obj(o.experienceLevel).label),
+    ),
+  };
+}
+
+/** Teamtailor's `remote-status`. */
+const TEAMTAILOR_MODE: Record<string, JobMode> = {
+  fully: 'remote',
+  hybrid: 'hybrid',
+  none: 'onsite',
+};
+
+/** A Teamtailor career site's `jobs.json`: a flat job, or a JSON:API resource (`attributes`, `links`). */
+export function parseTeamtailorJob(j: unknown, slug: string): Posting | null {
+  const o = obj(j);
+  const a = { ...o, ...obj(o.attributes) };
+  const id = String(o.id ?? '');
+  const url = str(a.url) || str(obj(o.links)['careersite-job-url']);
+  if (!id || !url) return null;
+  const location = str(a.location) || str(obj(arr(a.locations)[0]).name);
+  const remote = str(a['remote-status'] ?? a.remote_status).toLowerCase();
+  return {
+    id: `teamtailor:${slug}:${id}`,
+    source: 'teamtailor',
+    title: str(a.title),
+    company: prettySlug(slug),
+    url,
+    location,
+    mode: TEAMTAILOR_MODE[remote] ?? inferMode(location),
+    postedAt: str(a['created-at'] ?? a.created_at ?? a.published_at) || undefined,
+    text: htmlToText(str(a.body)),
+  };
+}
+
+/** A Personio career page's `search.json` position (no body; the facets go to the matcher). */
+export function parsePersonioJob(j: unknown, slug: string): Posting | null {
+  const o = obj(j);
+  const id = String(o.id ?? '');
+  if (!id) return null;
+  const location = str(o.office);
+  const employment = str(o.employment_type);
+  return {
+    id: `personio:${slug}:${id}`,
+    source: 'personio',
+    title: str(o.name),
+    company: prettySlug(slug),
+    url: `https://${slug}.jobs.personio.de/job/${encodeURIComponent(id)}`,
+    location,
+    mode: inferMode(location),
+    postedAt: str(o.created_at) || undefined,
+    text: joinText(
+      employment && `Employment: ${employment}`,
+      str(o.schedule),
+      str(o.department),
+      str(o.seniority),
+      str(o.keywords),
+    ),
+  };
+}
+
+/** Boards whose API answers 200 with an empty list for a company that has no board at all, so the
+ *  probe reads "no jobs" there as none rather than as a live board. */
+export const EMPTY_MEANS_NONE: ReadonlySet<BoardKind> = new Set(['smartrecruiters']);
+
+/** Endpoints written from reported, not official, shapes: a body without a list is an error. */
+const UNOFFICIAL: ReadonlySet<BoardKind> = new Set([
+  'workable',
+  'recruitee',
+  'smartrecruiters',
+  'teamtailor',
+  'personio',
+]);
+
 /** The raw job list inside a board payload; null when the payload isn't shaped like that board's
  *  (so a caller can tell "no openings" from "not a board response"). */
 export function boardJobs(b: Board, body: unknown): unknown[] | null {
   const list =
-    b.kind === 'lever' ? body : b.kind === 'recruitee' ? obj(body).offers : obj(body).jobs;
+    b.kind === 'lever' || b.kind === 'personio'
+      ? body
+      : b.kind === 'recruitee'
+        ? obj(body).offers
+        : b.kind === 'smartrecruiters'
+          ? obj(body).content
+          : b.kind === 'teamtailor'
+            ? Array.isArray(body)
+              ? body
+              : (obj(body).jobs ?? obj(body).data)
+            : obj(body).jobs;
   return Array.isArray(list) ? list : null;
 }
 
 export async function fetchBoard(b: Board, fetchJson: FetchJson): Promise<Posting[]> {
   const body = await fetchJson(boardApiUrl(b));
   const found = boardJobs(b, body);
-  // The two unofficial endpoints may change shape: say so rather than show an empty board.
-  if (!found && (b.kind === 'workable' || b.kind === 'recruitee'))
-    throw new Error(`${b.kind} board response had no job list`);
+  // The unofficial endpoints may change shape: say so rather than show an empty board.
+  if (!found && UNOFFICIAL.has(b.kind)) throw new Error(`${b.kind} board response had no job list`);
   const jobs = found ?? [];
   const parse = {
     greenhouse: parseGreenhouseJob,
@@ -255,6 +393,9 @@ export async function fetchBoard(b: Board, fetchJson: FetchJson): Promise<Postin
     ashby: parseAshbyJob,
     workable: parseWorkableJob,
     recruitee: parseRecruiteeJob,
+    smartrecruiters: parseSmartRecruitersJob,
+    teamtailor: parseTeamtailorJob,
+    personio: parsePersonioJob,
   }[b.kind];
   return jobs.map((j) => parse(j, b.slug)).filter((p): p is Posting => !!p);
 }

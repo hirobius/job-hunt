@@ -35,6 +35,7 @@ import {
   removeTile,
   getCurationState,
   replaceCurationState,
+  setCurationAccount,
 } from './curationStore';
 import { EMPTY_CURATION } from './types';
 import { clearAllPending, getPending } from './pending';
@@ -45,6 +46,8 @@ import { onCurationWriteFailed } from './syncStatus';
 afterEach(() => {
   replaceCurationState(EMPTY_CURATION);
   cloud.session = null;
+  setCurationAccount(false);
+  clearAllPending();
   cloud.upsertSpy.mockClear();
   cloud.deleteEqSpy.mockClear();
 });
@@ -171,6 +174,52 @@ describe('cloud sync seam', () => {
     removeCategory(id);
     await vi.waitFor(() => expect(cloud.deleteEqSpy).toHaveBeenCalledTimes(1));
     expect(cloud.deleteEqSpy).toHaveBeenCalledWith('id', id);
+  });
+});
+
+// Another tab signed out (#169): no session here and none stored, but this tab was signed in, so
+// an edit belongs to the account. It stays journalled (failed) for the next sign-in, quietly.
+describe('signed out elsewhere while this tab was signed in', () => {
+  it.each([
+    ['an edit', (id: string) => updateCategory(id, { label: 'Edited' }), 'categories'],
+    ['a bulk add', () => addTiles('g1', [{ name: 'Co', url: 'https://x.test/1' }]), 'tiles'],
+  ])('%s is kept as failed, sends nothing and raises no toast', async (_, edit, table) => {
+    const id = addCategory({ label: 'X' }); // made while purely local
+    await vi.waitFor(() => expect(getPending()).toEqual([]));
+    const reported = vi.fn();
+    const off = onCurationWriteFailed(reported);
+    setCurationAccount(true);
+    edit(id);
+    await vi.waitFor(() =>
+      expect(getPending()).toEqual([expect.objectContaining({ table, failed: true })]),
+    );
+    expect(cloud.upsertSpy).not.toHaveBeenCalled();
+    expect(reported).not.toHaveBeenCalled();
+    off();
+  });
+
+  it('a row already waiting for the next sign-in stays waiting after a reload and another edit', async () => {
+    const id = addCategory({ label: 'X' });
+    await vi.waitFor(() => expect(getPending()).toEqual([]));
+    setCurationAccount(true);
+    updateCategory(id, { label: 'First' });
+    await vi.waitFor(() =>
+      expect(getPending()).toEqual([expect.objectContaining({ id, failed: true })]),
+    );
+    setCurationAccount(false); // a reload: the in-tab flag is gone, the journal is not
+    updateCategory(id, { label: 'Second' });
+    addTiles('g1', [{ name: 'Co', url: 'https://x.test/1' }]); // an unrelated row stays local
+    await new Promise((r) => setTimeout(r, 20));
+    expect(getPending()).toEqual([
+      expect.objectContaining({ table: 'categories', id, failed: true }),
+    ]);
+  });
+
+  it("after this tab's own sign-out, edits are purely local again", async () => {
+    setCurationAccount(true);
+    setCurationAccount(false);
+    addCategory({ label: 'Local' });
+    await vi.waitFor(() => expect(getPending()).toEqual([]));
   });
 });
 

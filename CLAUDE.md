@@ -203,7 +203,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   track, New track `Menu`) + the track `Combobox` + one context `Popover` button ("Spokane, Hybrid")
   holding the only `LocationControl`. **Location is `Category.location`; work mode is per track and syncs,
   `rjb_ui_mode:<categoryId>`** (`src/discoverContext.ts`, `useTrackContext`; panels read it, they take
-  no location props). Tools are one `SegmentedControl` (Teams / Apply / Titles / ATS since #237, full
+  no location props). Tools are one `SegmentedControl` (Teams / Apply / ATS since #223, full
   names from `sm`), wrapped in `hds-gaps/TabsOverflowFade`; the track's sections are `Tabs` under
   "Your sections", shown only for Apply now; slugs unchanged (`#/discover/<tool | groupId>`).
   `TileGrid` cards are equal-height (240px min), with chips parsed from the meta string by
@@ -244,12 +244,24 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
   "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
   apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
+- **Title filter (#223):** the sweep's list *is* the track's title filter (seed: the track's titles, else
+  its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
+  titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**
+  disclosure beside leave-out / pay / level. The Titles tool is gone: its big-board links sit on the ATS
+  tool ("Big job boards"), and every link there reads the ticked titles (All selected by default).
+  `#/discover/titles` → `#/discover/live` with Calibrate open (hash replaced). Pinned in `titleFilter.test.tsx`.
 - **Privacy and terms (#43, #47):** `#/legal/privacy` and `#/legal/terms` (`LegalPage.tsx`, no tab,
   like Documents; Menu item "Privacy and terms", last before Sign out). The text is data in
   `legal.ts`; `THIRD_PARTIES` must list exactly the CSP `connect-src` hosts (`legal.test.ts` fails
   otherwise, so a new fetch host also goes there). Wording approved by Adrian 2026-10-20 (`LEGAL_DRAFT`
   false); set it true while a revision is under review. Back up is the full "download all my data" export: it carries every synced
   store, incl. the Application kit and sweep titles. Meta/OG/Twitter tags pinned in `meta.test.ts`.
+  **Installable + share image (#47):** `public/manifest.webmanifest` (name = BRAND, standalone, no
+  service worker), PNG icons (192, 512, maskable 512, 180 touch icon) and the 1200x630
+  `og-image.png` are rendered by `npm run icons` (`scripts/make-icons.mjs`, headless Chromium);
+  re-run it after a brand change and commit the PNGs. Pinned in `pwa.test.ts`. `npm run audit` =
+  `npm audit --omit=dev --audit-level=high`; run it by hand (it is not in `verify`: the Vercel build
+  must not fail on a new advisory upstream).
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
@@ -408,6 +420,11 @@ track-agnostic like everything else in Discover.
     is blocked. Remote OK attribution is a hard rule (their link as given, "Remote OK" on the row).
     Himalayas is skipped (its OpenAPI could not be read). Every new host goes in `vercel.json` and
     `FEED_HOSTS` in `csp.test.ts`.
+  - **More boards (#216).** SmartRecruiters (`api.smartrecruiters.com`), Teamtailor (`*.teamtailor.com/jobs.json`)
+    and Personio (`*.jobs.personio.de/search.json`) are board kinds the probe tries too, all **unverified live**.
+    SmartRecruiters answers an empty list for any name, so the probe reads empty there as none
+    (`EMPTY_MEANS_NONE`). `slugCandidates` gives up to 4 slugs (folds accents, `&` → and, drops a
+    leading "The" and a trailing Labs/Software-like word in its bare forms).
   - **Targeting** (`feed/targeting.ts`): leave-out terms, level from the title only, a pay floor
     (only where a source states pay), each with a "hidden by" count. **Saved searches**
     (`feed/savedFilters.ts`, `rjb_feed_filters`, per track, synced in the blob).

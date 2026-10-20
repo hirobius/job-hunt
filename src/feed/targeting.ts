@@ -14,6 +14,9 @@ export interface Targeting {
   salaryFloor?: number;
   /** Also hide postings that state no pay. */
   salaryOnly: boolean;
+  /** The track's title filter (#223): ticked titles lead; an unticked one hides a posting whose
+   * title names it and no ticked one. Titles only, never the body. */
+  titles?: { on: string[]; off: string[] };
 }
 
 export const NO_TARGETING: Targeting = { exclude: [], seniority: 'any', salaryOnly: false };
@@ -22,6 +25,7 @@ export interface HiddenCounts {
   exclude: number;
   seniority: number;
   salary: number;
+  titles: number;
 }
 
 export type TitleLevel = 'junior' | 'mid' | 'senior';
@@ -47,9 +51,16 @@ export function applyTargeting<P extends RankedPosting>(
   postings: P[],
   t: Targeting,
 ): { postings: P[]; hidden: HiddenCounts } {
-  const hidden: HiddenCounts = { exclude: 0, seniority: 0, salary: 0 };
+  const hidden: HiddenCounts = { exclude: 0, seniority: 0, salary: 0, titles: 0 };
   const excludes = excludeRegexes(t.exclude);
+  const onRes = excludeRegexes(t.titles?.on ?? []);
+  const offRes = excludeRegexes(t.titles?.off ?? []);
+  const ticked = (p: P) => onRes.some((re) => re.test(p.title));
   const kept = postings.filter((p) => {
+    if (offRes.some((re) => re.test(p.title)) && !ticked(p)) {
+      hidden.titles++;
+      return false;
+    }
     if (excludes.some((re) => re.test(p.title) || re.test(p.text))) {
       hidden.exclude++;
       return false;
@@ -77,5 +88,9 @@ export function applyTargeting<P extends RankedPosting>(
     hidden.salary++;
     return false;
   });
-  return { postings: kept, hidden };
+  // Ticked titles lead; each half keeps its ranked order.
+  const ordered = onRes.length
+    ? [...kept.filter(ticked), ...kept.filter((p) => !ticked(p))]
+    : kept;
+  return { postings: ordered, hidden };
 }

@@ -25,6 +25,9 @@ const FEED_HOSTS = [
   'https://api.ashbyhq.com',
   'https://apply.workable.com',
   'https://*.recruitee.com',
+  'https://api.smartrecruiters.com',
+  'https://*.teamtailor.com',
+  'https://*.jobs.personio.de',
   'https://yc-oss.github.io',
   'https://api.github.com',
 ];

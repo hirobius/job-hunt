@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Input as HdsInput,
@@ -112,30 +112,36 @@ function GroupPanel({
   );
 }
 
-function TitlesPanel({
+// Search links built from the track's ticked titles (#223): every one is on by default ("All
+// selected"); a chip or the input narrows to one. The big boards and companies' hiring systems
+// both read them (the Titles tool folded in here).
+function AtsPanel({
   titles,
-  applyEntry,
-  initialTitle,
+  seniority,
   categoryId,
+  initialTitle,
   onManage,
 }: {
+  /** The track's titles: the title filter's list until edited (#213, #223). */
   titles: string[];
-  applyEntry: boolean;
-  initialTitle?: string | null;
+  seniority: Seniority;
   categoryId: string;
+  /** A title "Find more like this" seeded (#57). */
+  initialTitle?: string | null;
   onManage: () => void;
 }) {
   const { where, mode } = useTrackContext(categoryId);
-  const [title, setTitle] = useState(initialTitle || titles[0] || '');
-  // "All selected" searches every title that is on for the track at once (the wide sweep, #213).
   const active = useActiveTitles(categoryId, titles);
-  const [all, setAll] = useState(false);
+  const [role, setRole] = useState(initialTitle || active[0] || '');
+  const [all, setAll] = useState(!initialTitle);
   const many = all && active.length > 1;
+  const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
+  const [contract, setContract] = useState(false);
   if (titles.length === 0)
     return (
       <EmptyState
-        title="No title-search terms yet"
-        message="Add a few job titles to this track and we'll fan them out across every job board."
+        title="No titles yet"
+        message="Add a few job titles to this track and we'll search the big boards and companies' hiring systems (Greenhouse, Lever, Ashby…) for them."
         action={
           <Button variant="secondary" size="sm" onClick={onManage}>
             Add titles
@@ -143,86 +149,16 @@ function TitlesPanel({
         }
       />
     );
-  const term = titleClause(many ? active : [title]);
-  const loc = { where, mode };
-  const tiles: Tile[] = BOARDS.map((b) => ({
-    name: b.name,
-    meta: b.tag,
-    url: applyEntry ? entryLevelize(b.build(term, loc)) : b.build(term, loc),
-  }));
-  return (
-    <Box>
-      <Box sx={{ mb: 'xs' }}>
-        <Text variant="ui" tone="secondary">
-          Pick a title, or All selected for every title at once — searches fire{' '}
-          {applyEntry ? 'entry-level filtered ' : ''}across every board.
-        </Text>
-      </Box>
-      <ContextCaption categoryId={categoryId} />
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 'sm' }}>
-        {active.length > 1 && (
-          <Tag active={many} onClick={() => setAll(true)}>
-            {`All selected (${active.length})`}
-          </Tag>
-        )}
-        {titles.map((tt) => (
-          <Tag
-            key={tt}
-            active={!many && tt === title}
-            onClick={() => {
-              setTitle(tt);
-              setAll(false);
-            }}
-          >
-            {tt}
-          </Tag>
-        ))}
-      </Box>
-      <Box sx={{ mb: 'sm' }}>
-        <SweepTitlesEditor categoryId={categoryId} seed={titles} />
-      </Box>
-      <TileGrid tiles={tiles} cta="Search" />
-    </Box>
-  );
-}
-
-function AtsPanel({
-  roles,
-  titles,
-  seniority,
-  categoryId,
-  onManage,
-}: {
-  roles: string[];
-  /** The track's titles: the wide sweep's list until edited (#213). */
-  titles: string[];
-  seniority: Seniority;
-  categoryId: string;
-  onManage: () => void;
-}) {
-  const { where, mode } = useTrackContext(categoryId);
-  const [role, setRole] = useState(roles[0] ?? '');
-  const active = useActiveTitles(categoryId, titles);
-  const [all, setAll] = useState(false);
-  const many = all && active.length > 1;
-  const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
-  const [contract, setContract] = useState(false);
-  if (roles.length === 0)
-    return (
-      <EmptyState
-        title="No ATS role terms yet"
-        message="Add role keywords and we'll search companies' hiring systems (Greenhouse, Lever, Ashby…) straight through Google — far less competition."
-        action={
-          <Button variant="secondary" size="sm" onClick={onManage}>
-            Add roles
-          </Button>
-        }
-      />
-    );
+  const entry = seniority === 'entry';
+  const term = titleClause(many ? active : [role]);
+  const boardTiles: Tile[] = BOARDS.map((b) => {
+    const url = b.build(term, { where, mode });
+    return { name: b.name, meta: b.tag, url: entry ? entryLevelize(url) : url };
+  });
   const query: HiddenQuery = {
     role,
     roles: many ? active : undefined,
-    entry: seniority === 'entry',
+    entry,
     where,
     mode,
     recency,
@@ -247,7 +183,9 @@ function AtsPanel({
     <Box>
       <Box sx={{ mb: 2.5 }}>
         <Text variant="ui" tone="secondary">
-          Search companies' hiring systems straight through Google — far less competition.
+          Search the big boards and companies' hiring systems for your ticked titles
+          {entry ? ', entry-level filtered' : ''}. Hiring systems reached through Google draw far
+          less competition.
         </Text>
       </Box>
       <ContextCaption categoryId={categoryId} />
@@ -300,9 +238,10 @@ function AtsPanel({
             {`All selected (${active.length})`}
           </Tag>
         )}
-        {roles.map((r) => (
+        {active.map((r) => (
           <Tag
             key={r}
+            active={!many && r === role}
             onClick={() => {
               setRole(r);
               setAll(false);
@@ -315,6 +254,12 @@ function AtsPanel({
       <Box sx={{ mb: 'xs' }}>
         <SweepTitlesEditor categoryId={categoryId} seed={titles} />
       </Box>
+      <Box sx={{ mt: 4 }}>
+        <Text variant="body" as="h3" className="rjb-semibold">
+          Big job boards
+        </Text>
+      </Box>
+      <TileGrid tiles={boardTiles} cta="Search" />
       <Box sx={{ mt: 4 }}>
         <Text variant="body" as="h3" className="rjb-semibold">
           Company hiring systems
@@ -338,18 +283,18 @@ function AtsPanel({
 
 // The tools row is data-driven: adding a tool is one entry here. Short labels on a phone, full
 // names from the HDS `sm` breakpoint up (docs/specs/discover.md, "Tools vs sections").
-type ToolKey = 'apply' | 'titles' | 'ats' | 'teams';
+type ToolKey = 'apply' | 'ats' | 'teams';
 // Teams (slug `teams`) is the companies list (CompaniesPanel, #237): watched companies and GitHub
 // teams with their open roles, dream companies and "Add a company". It leads and is the default
 // where it has something to show; elsewhere it sits after Apply now.
 const TOOLS: { key: ToolKey; label: string; short: string }[] = [
   { key: 'teams', label: 'Teams', short: 'Teams' },
   { key: 'apply', label: 'Apply now', short: 'Apply' },
-  { key: 'titles', label: 'Title search', short: 'Titles' },
   { key: 'ats', label: 'ATS search', short: 'ATS' },
 ];
 // Live postings and the list checker (Find boards) stopped being tools (#237): they are secondary
-// views of the companies list, one link away, and their old slugs still open them.
+// views of the companies list, one link away, and their old slugs still open them. The Titles tool
+// became the title filter (#223): `titles` opens Live postings with Calibrate open.
 type Secondary = 'live' | 'boards';
 const SECONDARY_VIEWS: Record<Secondary, string> = {
   live: 'Live postings',
@@ -435,6 +380,8 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   ];
 
   const route = useRoute();
+  // The title filter's seed (#223): the track's titles, else its ATS roles. One list per track.
+  const titleSeed = cat.titles.length ? cat.titles : cat.atsRoles;
   const wide = useAtLeast('sm');
   const teamSearch = useMemo(
     () => teamSearchFor([...cat.titles, ...cat.atsRoles]),
@@ -450,12 +397,20 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const ordered = companiesLead
     ? TOOLS
     : [...TOOLS].sort((a, b) => Number(b.key === 'apply') - Number(a.key === 'apply'));
-  // A track with no sections has no "Apply now" view to show: open on Title search instead.
+  // A track with no sections has no "Apply now" view to show: open on ATS search instead.
   const tools = ordered.filter((t) => sections.length || t.key !== 'apply');
-  const sub = route.sub;
+  // The old Titles tool's slug lands on Live postings with Calibrate open (#223); the hash is
+  // rewritten so Back skips it.
+  const fromTitles = route.sub === 'titles';
+  const [calibrate, setCalibrate] = useState(false);
+  if (fromTitles && !calibrate) setCalibrate(true);
+  useEffect(() => {
+    if (fromTitles) navigate({ sub: 'live' }, true);
+  }, [fromTitles]);
+  const sub = fromTitles ? 'live' : route.sub;
   const secondary = sub === 'live' || sub === 'boards' ? (sub as Secondary) : null;
   // No sub → the default tool; a section id → Apply now on that section.
-  const fallback: ToolKey = sections.length ? 'apply' : 'titles';
+  const fallback: ToolKey = sections.length ? 'apply' : 'ats';
   const defaultTool: ToolKey = companiesLead ? 'teams' : fallback;
   const tool: ToolKey = secondary
     ? 'teams'
@@ -527,19 +482,10 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             </HdsTabs>
           </Stack>
         )}
-        {tool === 'titles' && (
-          <TitlesPanel
-            titles={cat.titles}
-            applyEntry={cat.seniority === 'entry'}
-            initialTitle={seed}
-            categoryId={cat.id}
-            onManage={() => setManageOpen(true)}
-          />
-        )}
         {tool === 'ats' && (
           <AtsPanel
-            roles={cat.atsRoles}
-            titles={cat.titles}
+            titles={titleSeed}
+            initialTitle={seed}
             seniority={cat.seniority}
             categoryId={cat.id}
             onManage={() => setManageOpen(true)}
@@ -582,8 +528,9 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               key={cat.id}
               categoryId={cat.id}
               terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
-              sweepSeed={cat.titles.length ? cat.titles : cat.atsRoles}
+              sweepSeed={titleSeed}
               boardUrls={boardUrls}
+              calibrate={calibrate}
             />
           </Suspense>
         )}
