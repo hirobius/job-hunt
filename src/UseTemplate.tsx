@@ -78,13 +78,7 @@ export default function UseTemplate({ job }: { job: Job }) {
                 ))}
               </Stack>
             </div>
-            <Textarea
-              readOnly
-              rows={12}
-              aria-label="Preview"
-              value={filled}
-              style={{ width: '100%' }}
-            />
+            <Textarea readOnly rows={12} aria-label="Preview" value={filled} />
             {missing.length > 0 && (
               <p style={SECONDARY}>
                 Still unfilled: {missing.map((t) => `[${t}]`).join(', ')}. Add them on the job, or

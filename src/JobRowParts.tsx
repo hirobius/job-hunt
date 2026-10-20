@@ -11,6 +11,7 @@ import { setDiscoverSeed } from './discoverSeed';
 import { primaryAction, STATUS_TONE, titleOf } from './jobRow';
 import { normStatus } from './jobState';
 import { STATUSES, type Job, type Status } from './types';
+import { DANGER } from './hds-gaps/tone';
 
 /** Controls on a phone card are 40px tap targets; the denser table uses the small size. */
 type Size = 'sm' | 'md';
@@ -146,7 +147,7 @@ export function RowMenu({
             removeWithUndo(job);
             onRemoved?.();
           }}
-          style={{ color: 'var(--semantic-color-feedback-error)' }}
+          style={DANGER}
         >
           Remove
         </Menu.Item>

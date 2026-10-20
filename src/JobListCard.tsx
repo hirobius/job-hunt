@@ -23,22 +23,24 @@ export default function JobListCard({ job }: { job: Job }) {
       <Stack gap="px8">
         {/* Title and menu share the first row, so a card with no next step has no empty footer. */}
         <Stack direction="row" gap="px8" align="start" justify="space-between">
-          <Text variant="body" as="h3" className="rjb-semibold" style={{ minWidth: 0 }}>
-            <Stack direction="row" gap="px4" align="start">
-              {/* Starred jobs show a filled star, as in the table. */}
-              {row.pinned && (
-                <>
-                  <StarIcon on />
-                  <VisuallyHidden>Starred</VisuallyHidden>
-                </>
-              )}
-              <Box as="span" id={titleId} sx={{ overflowWrap: 'anywhere', minWidth: 0 }}>
-                <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
-                  {row.title}
-                </InlineLink>
-              </Box>
-            </Stack>
-          </Text>
+          <Box sx={{ minWidth: 0 }}>
+            <Text variant="body" as="h3" className="rjb-semibold">
+              <Stack direction="row" gap="px4" align="start">
+                {/* Starred jobs show a filled star, as in the table. */}
+                {row.pinned && (
+                  <>
+                    <StarIcon on />
+                    <VisuallyHidden>Starred</VisuallyHidden>
+                  </>
+                )}
+                <Box as="span" id={titleId} sx={{ overflowWrap: 'anywhere', minWidth: 0 }}>
+                  <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
+                    {row.title}
+                  </InlineLink>
+                </Box>
+              </Stack>
+            </Text>
+          </Box>
           <RowMenu job={job} size="md" />
         </Stack>
         {row.factLines.map((line, i) => (

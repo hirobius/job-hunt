@@ -37,60 +37,64 @@ export default function DiscoverHeader({
   // so an existing user can add e.g. the ServiceNow track any time, not only at first run.
   const packs = STARTER_PACKS.filter((p) => p.id !== 'blank');
   return (
-    <Stack gap="xs" style={{ marginBottom: 'var(--primitive-space-4)' }}>
-      <PageHeader
-        level={2}
-        title={cat.label}
-        actions={
-          <Stack direction="row" gap="xs" align="center">
-            <Button size="sm" variant="secondary" onClick={onManage}>
-              Manage track
-            </Button>
-            <HdsMenu>
-              <HdsMenu.Trigger asChild>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  iconOnly
-                  iconLeft={<Icon icon={Plus} />}
-                  label="New track"
-                />
-              </HdsMenu.Trigger>
-              <HdsMenu.Content align="end">
-                <HdsMenu.Label>Start from a pack</HdsMenu.Label>
-                {packs.map((p) => (
-                  <HdsMenu.Item key={p.id} onSelect={() => onSeedPack(p.id)}>
-                    {p.label}
-                  </HdsMenu.Item>
-                ))}
-                <HdsMenu.Separator />
-                <HdsMenu.Item onSelect={onBlank}>Blank track</HdsMenu.Item>
-              </HdsMenu.Content>
-            </HdsMenu>
-          </Stack>
-        }
-      />
-      <Stack direction="row" wrap="wrap" gap="xs" align="center">
-        <Box sx={{ flex: '1 1 16rem', maxWidth: '24rem', minWidth: 0, '& > *': { width: '100%' } }}>
-          <Combobox
-            aria-label="Track to search"
-            options={categories.map((c) => ({ value: c.id, label: c.label }))}
-            value={cat.id}
-            onChange={onChange}
-            placeholder="Pick a track"
-          />
-        </Box>
-        <Popover>
-          <Popover.Trigger asChild>
-            <Button size="sm" variant="secondary" iconLeft={<Icon icon={MapPin} />}>
-              {contextLabel(where, mode)}
-            </Button>
-          </Popover.Trigger>
-          <Popover.Content align="start" aria-label="Where and how you want to work">
-            <LocationControl categoryId={cat.id} />
-          </Popover.Content>
-        </Popover>
+    <Box sx={{ mb: 4 }}>
+      <Stack gap="xs">
+        <PageHeader
+          level={2}
+          title={cat.label}
+          actions={
+            <Stack direction="row" gap="xs" align="center">
+              <Button size="sm" variant="secondary" onClick={onManage}>
+                Manage track
+              </Button>
+              <HdsMenu>
+                <HdsMenu.Trigger asChild>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    iconOnly
+                    iconLeft={<Icon icon={Plus} />}
+                    label="New track"
+                  />
+                </HdsMenu.Trigger>
+                <HdsMenu.Content align="end">
+                  <HdsMenu.Label>Start from a pack</HdsMenu.Label>
+                  {packs.map((p) => (
+                    <HdsMenu.Item key={p.id} onSelect={() => onSeedPack(p.id)}>
+                      {p.label}
+                    </HdsMenu.Item>
+                  ))}
+                  <HdsMenu.Separator />
+                  <HdsMenu.Item onSelect={onBlank}>Blank track</HdsMenu.Item>
+                </HdsMenu.Content>
+              </HdsMenu>
+            </Stack>
+          }
+        />
+        <Stack direction="row" wrap="wrap" gap="xs" align="center">
+          <Box
+            sx={{ flex: '1 1 16rem', maxWidth: '24rem', minWidth: 0, '& > *': { width: '100%' } }}
+          >
+            <Combobox
+              aria-label="Track to search"
+              options={categories.map((c) => ({ value: c.id, label: c.label }))}
+              value={cat.id}
+              onChange={onChange}
+              placeholder="Pick a track"
+            />
+          </Box>
+          <Popover>
+            <Popover.Trigger asChild>
+              <Button size="sm" variant="secondary" iconLeft={<Icon icon={MapPin} />}>
+                {contextLabel(where, mode)}
+              </Button>
+            </Popover.Trigger>
+            <Popover.Content align="start" aria-label="Where and how you want to work">
+              <LocationControl categoryId={cat.id} />
+            </Popover.Content>
+          </Popover>
+        </Stack>
       </Stack>
-    </Stack>
+    </Box>
   );
 }
