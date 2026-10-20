@@ -3,7 +3,7 @@
 // company, location, pay, link, contact, with seniority and résumé version under More fields).
 // A job saved from a bare link has nothing to read yet, so its card starts in edit. Remove lives
 // in the header's menu.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pencil } from 'lucide-react';
 import {
   Box,
@@ -19,6 +19,7 @@ import {
 } from '@hirobius/design-system';
 import { jobIdOf, setJobUrl, updateJob } from './store';
 import { openJob } from './route';
+import { relinkCompanyNotes } from './companies';
 import { jobFacts, researchLinks } from './jobFacts';
 import { useSavedFlash } from './useSavedFlash';
 import UseTemplate from './UseTemplate';
@@ -36,12 +37,21 @@ function JobField({
   label: string;
   onSaved: () => void;
 }) {
+  // The company name as it was when the field was entered: on leaving it, that name's company
+  // Notes follow the rename when no other job keeps it (#230, companies.ts).
+  const before = useRef('');
   return (
     <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
       <Input
         size="sm"
         label={label}
         value={(job[field] as string) || ''}
+        onFocus={(e) => {
+          before.current = e.target.value;
+        }}
+        onBlur={(e) => {
+          if (field === 'company') relinkCompanyNotes(before.current, e.target.value);
+        }}
         onChange={(e) => {
           updateJob(job.url, { [field]: e.target.value });
           onSaved();
