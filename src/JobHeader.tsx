@@ -6,9 +6,14 @@ import { Badge, Box, Button, Icon, Text } from '@hirobius/design-system';
 import { titleOf } from './jobRow';
 import { openJob } from './route';
 import { RowMenu, RowPrimaryAction, StarButton, StatusBadge } from './JobRowParts';
+import { useDocuments } from './documents';
+import { documentsForJob, sentSummary } from './jobDocuments';
+import { SECONDARY } from './hds-gaps/tone';
 import type { Job } from './types';
 
 export default function JobHeader({ job, showBack = true }: { job: Job; showBack?: boolean }) {
+  // What went out to this job (#228): one quiet line, only once something was marked Sent.
+  const sent = sentSummary(documentsForJob(useDocuments(), job.url));
   return (
     <Box as="header" sx={{ display: 'flex', flexDirection: 'column', gap: 'xs', mb: 'sm' }}>
       {showBack && (
@@ -52,6 +57,11 @@ export default function JobHeader({ job, showBack = true }: { job: Job; showBack
           <RowMenu job={job} onRemoved={() => openJob(null, true)} />
         </Box>
       </Box>
+      {sent && (
+        <Text variant="caption" as="p" style={SECONDARY}>
+          {`Sent: ${sent}`}
+        </Text>
+      )}
     </Box>
   );
 }

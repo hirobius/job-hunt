@@ -90,7 +90,7 @@ describe('app shell (#115 Phase 1)', () => {
       'label:Saved on this device only',
       'item:Sign in to sync…',
       '---',
-      'item:Templates',
+      'item:Documents',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',
@@ -219,7 +219,7 @@ describe('sync nudge (#115 Phase 1)', () => {
       'label:Signed in as u1@example.test',
       'label:Synced',
       '---',
-      'item:Templates',
+      'item:Documents',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',
@@ -259,34 +259,32 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(tab);
   });
 
-  it('#/copy-deck is a page with no tab selected: a Templates heading and a way back (#240)', async () => {
+  it('#/copy-deck is a page with no tab selected: a Documents heading and a way back (#240, #227)', async () => {
     window.location.hash = '#/copy-deck';
     renderApp();
     expect(screen.queryByRole('tab', { name: 'Templates' })).toBeNull();
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
-    expect(await screen.findByRole('heading', { level: 2, name: 'Templates' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveAttribute(
       'href',
       '#/queue',
     );
   });
 
-  it('#/copy-deck/<id> still opens that template (#240)', async () => {
+  it('#/copy-deck/<id> still opens that template, now an Outreach message (#240, #227)', async () => {
     window.location.hash = '#/copy-deck/tpl-cover';
     renderApp();
-    expect(await screen.findByRole('textbox', { name: 'Snippet label' })).toHaveValue(
-      'Cover letter',
-    );
+    expect(await screen.findByRole('textbox', { name: 'Title' })).toHaveValue('Cover letter');
     const sections = screen.getByRole('tablist', { name: 'Sections' });
     expect(within(sections).queryByRole('tab', { selected: true })).toBeNull();
   });
 
-  it('the Menu opens Templates (#240)', async () => {
+  it('the Menu opens Documents (#240, #227)', async () => {
     renderApp();
     const menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Templates' }));
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
     expect(window.location.hash).toBe('#/copy-deck');
-    expect(await screen.findByRole('heading', { level: 2, name: 'Templates' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
   });
 
   it('a ?add= quick-add link lands on the Pipeline with the job saved', async () => {

@@ -15,6 +15,8 @@ export interface Snippet {
   pinned?: boolean;
   /** Variable values set on this template (#221), keyed by lower-case name; the body keeps its [Token]s. */
   values?: Record<string, string>;
+  /** Moved into the Documents library as an Outreach message (#227); never moved again. */
+  migrated?: boolean;
 }
 
 const KEY = 'rjb_copydeck_v1';
@@ -51,6 +53,9 @@ const DEFAULTS: Snippet[] = [
     body: "Hi [Contact], this is [Your name]. I'll be brief: I'm a designer who builds design systems and product design for teams like [Company], and I saw the [Role] opening.\n\n[Angle]\n\nIn one line: I help product teams ship a consistent, accessible UI faster by turning scattered patterns into a shared system of components and guidelines.\n\nCould I ask two quick questions?\n1. How does design and engineering work together on UI at [Company] today?\n2. Is the [Role] role still open, and who makes the call on it?\n\nIf now is a bad time, when is a better 10 minutes this week? I can also send a short note and a link to my work first.\n\nThank you, [Contact]. [Your name]",
   },
 ];
+
+/** The starter templates, read-only, for the snippets → Outreach messages migration (#227). */
+export const STARTER_SNIPPETS: readonly Snippet[] = DEFAULTS;
 
 function load(): Snippet[] {
   let arr: Snippet[] = DEFAULTS;
