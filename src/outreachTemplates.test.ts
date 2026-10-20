@@ -51,6 +51,14 @@ describe('outreachTemplates', () => {
     expect(out[1].values).toEqual({ pet: 'Rex' });
   });
 
+  it('the starter cover letter, filed as a Cover letter, is still a template (#260)', () => {
+    const out = outreachTemplates([
+      d({ id: 'snippet-tpl-cover', kind: 'cover', title: 'Cover letter' }),
+      d({ id: 'snippet-mine', kind: 'cover', base: undefined, title: 'Job copy' }),
+    ]);
+    expect(out.map((t) => [t.id, t.label])).toEqual([['tpl-cover', 'Cover letter']]);
+  });
+
   it('a migrated message keeps its snippet id (kit picks and the follow-up template find it)', () => {
     const [t] = outreachTemplates([d({ id: 'snippet-tpl-followup', title: 'Follow-up' })]);
     expect(t.id).toBe('tpl-followup');
@@ -112,6 +120,20 @@ describe('migrateSnippetStore', () => {
     createDocument({ kind: 'resume', title: 'CV', base: true, text: 'r' });
     replaceSnippets(snips);
     migrateSnippetStore(NOW);
-    expect(getAllDocuments().map((x) => x.kind)).toEqual(['resume', 'outreach', 'outreach']);
+    expect(getAllDocuments().map((x) => x.kind)).toEqual(['resume', 'cover', 'outreach']);
+  });
+
+  it('files a starter cover letter already moved as an Outreach message under Cover letters, once', () => {
+    replaceSnippets(snips.map((s) => ({ ...s, migrated: true })));
+    replaceDocuments([d({ id: 'snippet-tpl-cover', title: 'Cover letter' })]);
+    saveVersion('snippet-tpl-cover', 'edited');
+    expect(migrateSnippetStore(NOW)).toBe(0);
+    const [cover] = getAllDocuments();
+    expect(getAllDocuments()).toHaveLength(1);
+    expect(cover.kind).toBe('cover');
+    expect(cover.versions[cover.versions.length - 1].text).toBe('edited');
+    const after = getAllDocuments();
+    migrateSnippetStore(NOW);
+    expect(getAllDocuments()).toBe(after);
   });
 });
