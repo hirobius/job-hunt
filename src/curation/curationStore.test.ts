@@ -198,6 +198,23 @@ describe('signed out elsewhere while this tab was signed in', () => {
     off();
   });
 
+  it('a row already waiting for the next sign-in stays waiting after a reload and another edit', async () => {
+    const id = addCategory({ label: 'X' });
+    await vi.waitFor(() => expect(getPending()).toEqual([]));
+    setCurationAccount(true);
+    updateCategory(id, { label: 'First' });
+    await vi.waitFor(() =>
+      expect(getPending()).toEqual([expect.objectContaining({ id, failed: true })]),
+    );
+    setCurationAccount(false); // a reload: the in-tab flag is gone, the journal is not
+    updateCategory(id, { label: 'Second' });
+    addTiles('g1', [{ name: 'Co', url: 'https://x.test/1' }]); // an unrelated row stays local
+    await new Promise((r) => setTimeout(r, 20));
+    expect(getPending()).toEqual([
+      expect.objectContaining({ table: 'categories', id, failed: true }),
+    ]);
+  });
+
   it("after this tab's own sign-out, edits are purely local again", async () => {
     setCurationAccount(true);
     setCurationAccount(false);

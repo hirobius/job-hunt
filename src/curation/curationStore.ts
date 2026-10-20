@@ -23,6 +23,7 @@ import {
   markPendingMany,
   settlePending,
   settlePendingMany,
+  getPending,
   type PendingOp,
 } from './pending';
 import { dropTrackData } from '../trackData';
@@ -73,6 +74,15 @@ export function setCurationAccount(signedIn: boolean) {
 }
 /** No session and none stored, and this tab never held one: purely local, nothing to send. */
 const purelyLocal = (uid: string | null) => !uid && !hasPersistedSession() && !accountInTab;
+/** Rows already waiting for the next sign-in. The journal outlives a reload (the flag above does
+ *  not), so a later edit to one of them stays waiting instead of settling as local. Read before
+ *  a write re-journals the row. */
+const waiting = (table: CurationTable) =>
+  new Set(
+    getPending()
+      .filter((p) => p.table === table && p.failed)
+      .map((p) => p.id),
+  );
 
 // supabase-js reports a refused write (RLS, constraint, network) as `{ error }`, not a throw, so
 // both count as a failure. So does a stored session the client no longer honours (a token that
@@ -83,13 +93,14 @@ function mirror(
   op: PendingOp,
   write: (uid: string) => PromiseLike<{ error: unknown }>,
 ) {
+  const held = waiting(table).has(id);
   // Journalled before any await, so a write still in flight counts as unsynced (sign-out asks).
   const v = markPending(table, id, op);
   void (async () => {
     let ok = false;
     try {
       const uid = await currentUserId();
-      if (purelyLocal(uid)) return settlePending(table, id, v, true);
+      if (purelyLocal(uid) && !held) return settlePending(table, id, v, true);
       // Signed out elsewhere: kept for the next sign-in, quietly (the menu already says sign in).
       if (!uid && !hasPersistedSession()) return settlePending(table, id, v, false);
       if (uid) ok = !(await write(uid)).error;
@@ -120,11 +131,23 @@ function upsertMany<T extends CurationTable>(
   buildRows: (uid: string) => RowForTable<T>[],
 ) {
   if (ids.length === 0) return;
+  const held = waiting(table);
   const vs = markPendingMany(table, ids, 'upsert');
   const writes = ids.map((id, i) => ({ id, v: vs[i] }));
   void (async () => {
     const uid = await currentUserId(); // never throws: a failed session read is "no user"
-    if (purelyLocal(uid)) return settlePendingMany(table, writes, true);
+    if (purelyLocal(uid)) {
+      settlePendingMany(
+        table,
+        writes.filter((w) => !held.has(w.id)),
+        true,
+      );
+      return settlePendingMany(
+        table,
+        writes.filter((w) => held.has(w.id)),
+        false,
+      );
+    }
     if (!uid && !hasPersistedSession()) return settlePendingMany(table, writes, false);
     const rows = uid ? buildRows(uid) : [];
     let failed = false;
