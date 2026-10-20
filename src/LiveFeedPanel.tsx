@@ -49,7 +49,6 @@ import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
 import { demandPatterns } from './radar/patterns';
 import { TIER_INFO, useEvidence, writeEvidence } from './radar/evidenceStore';
 import { SOURCE_LABEL, type SignalId } from './feed/types';
-import { SECONDARY } from './hds-gaps/tone';
 import { sweepRank, titleCounts, withoutHidden, type SweptPosting } from './feed/sweep';
 import { SweepTitlesEditor } from './SweepTitles';
 import { metaLines } from './metaLines';
@@ -694,7 +693,7 @@ export default function LiveFeedPanel({
           style={{ marginBottom: 'var(--semantic-space-scale-xs)' }}
         >
           <Spinner size="sm" label="Reading company boards" />
-          <Text variant="caption" as="span" role="status" style={SECONDARY}>
+          <Text variant="caption" as="span" role="status" tone="secondary">
             Read {reading.done} of {reading.total} boards. More openings may appear.
           </Text>
         </Stack>
@@ -797,7 +796,7 @@ export default function LiveFeedPanel({
           {/* One line, once, instead of a fit badge missing from every row. */}
           {evidence.length === 0 && visible.length > 0 && (
             <Box sx={{ mt: 'xs' }}>
-              <Text variant="caption" as="span" style={SECONDARY}>
+              <Text variant="caption" as="span" tone="secondary">
                 Postings get a fit once you add evidence.{' '}
               </Text>
               <Button size="sm" variant="tertiary" onClick={() => setRefineOpen(true)}>
@@ -899,7 +898,7 @@ function PostingRow({
           </Text>
         ))}
         {p.titles.length > 0 && (
-          <Text variant="caption" as="span" style={SECONDARY}>
+          <Text variant="caption" as="span" tone="secondary">
             {`Matched ${p.titles.map((t) => `“${t}”`).join(', ')}`}
           </Text>
         )}

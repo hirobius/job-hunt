@@ -30,21 +30,22 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
     (`content.secondary`, `surface.raised`, `border.default`, `feedback.error`, `accent`);
     `border` needs a style (`'1px solid'`). Prefer named primitives (Stack/Switcher/Grid) over
     `Box sx`, and parent gaps over child margins.
-  - ⚠️ **No base breakpoint in HDS `sx` (hds#652):** `{ xs, sm }` compiles to min-width 375/640, so
-    a mobile-first map drops its base under 375px. For a row of peer fields use `Switcher`;
-    otherwise put the base on the key and nest the override: `{ flexDirection: 'column', '&': {
-    flexDirection: { sm: 'row' } } }` (commented where used).
-  - **Secondary text** is `<Text variant="caption">` + `style={{ color:
-    'var(--semantic-color-content-secondary)' }}` — HDS's documented idiom until `Text` grows a
-    tone prop (hds#655).
-  - **`EmptyState.tsx`** is a composition (HDS `EmptyState` + an optional action), because HDS's
-    has no action slot yet (hds#654); collapse it into HDS when that lands.
+  - **Responsive `sx` takes a `base` key (HDS 0.26.2, hds#652):** `{ flexDirection: { base:
+    'column', sm: 'row' } }`; `xs` means min-width 375, so never use it as the base. For a row of
+    peer fields prefer `Switcher`. The old nested `'&'` override is gone (`hdsOnly.test.ts`).
+  - **Secondary text** is `<Text variant="caption" tone="secondary">` (HDS 0.26, hds#655);
+    `hds-gaps/tone` `SECONDARY` is only for a plain span or p.
+  - **`EmptyState.tsx`** is a composition (HDS `EmptyState`, whose `action` it passes through,
+    hds#654, + an optional icon HDS has no slot for yet); collapse it into HDS when that lands.
+  - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, `EmptyState.tsx`, the
+    `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
+    a workaround in the HDS upgrade PR that ships its fix, and update the table.
 - **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
   (`fonts.css`, Plus Jakarta Sans, the HDS type ramp), surfaces and the default **graphite
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.24.1`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.26.2`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
   `.npmrc` maps `@hirobius` there, so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`). Upgrade with
   `npx @hirobius/design-system@latest upgrade` (codemods + a to-do list; `--check` to verify).
@@ -96,13 +97,13 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   page title is always the biggest text) · top tabs (**Companies · Pipeline**; they scroll on a phone, with the `src/hds-gaps/TabsOverflowFade` edge cue) · one
   icon-only **Menu** button (hamburger, `aria-label="Menu"`; it holds account, data, display and feedback). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
-  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Templates, Back up,
+  `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Back up,
   Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible one-line note (flat, #241);
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
   line as non-item labels | data | display | Sign out, Delete my data last in the danger colour;
-  data = Templates, Back up, Restore…, Export CSV).
+  data = Documents, Back up, Restore…, Export CSV).
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
   (git-ignored). Run it before/after each redesign phase.
@@ -137,7 +138,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `role="img"` named by BRAND, `.rjb-mark` in `base.css`) below `sm` and the body-size wordmark from
   `sm` up (`useAtLeast('sm')`). Rhythm is HDS Stack gaps, no margins: 24 under a heading (`normal`),
   48 between sections (`spacious`) on the Pipeline and Companies. No card patterns: the Pipeline's
-  To apply / Follow up / Next 7 days / Getting started, the sync note, phone job rows, the Templates
+  To apply / Follow up / Next 7 days / Getting started, the sync note, phone job rows, the Documents
   list, company lists (`rowsStyle` + `.rjb-rows` hairlines) and the loading skeletons are flat rows
   on the page. Cards stay only where they hold a form or a choice (job Details, Onboarding picks).
   Pinned in `src/calmLayout.test.tsx`.
@@ -150,38 +151,44 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `SyncNudge` over the Pipeline list. Quick-add is the Pipeline's Add job dialog. HDS-gap stand-ins
   live in `src/hds-gaps/`, each naming its upstream ask. **The onboarding gate lives in the
   shell:** Companies shows `Onboarding` on a first run (no tracks and no jobs; it offers sample data
-  there) and `ChooseTrack` whenever there are no tracks; Pipeline and Templates never gate. Pinned
+  there) and `ChooseTrack` whenever there are no tracks; Pipeline and Documents never gate. Pinned
   in `src/pipelineFollowUps.test.tsx`.
-- **Templates list + detail (#132; no tab since #240):** `#/copy-deck` is a page with no tab selected
-  (App mounts `CopyDeckView` outside the tab panels), reached from the Apply sheet's Edit templates
-  link and the Menu's Templates item; it heads itself "Templates" with a Back to Pipeline link (a
-  phone's open template shows only its own back link). Pinned in `src/shell.test.tsx`.
-  `#/copy-deck` is the list, `#/copy-deck/<snippetId>` opens
-  one (`Route.sub`; an unknown id falls back to the list once sync has settled). `CopyDeckView` picks
-  the layout with `useAtLeast('lg')`: a rail (`TemplatesList`, HDS `Sidebar`) beside `TemplateDetail`,
-  or one pane on a phone with a back link. The detail has token chips (`templateEditor.ts`
-  `insertAt`), a preview filled from a job picked in a `Select` (no job = `[Token]` text), Write /
-  Preview `Tabs` below `lg`, `templateCopy.copyFilled` (shared with `UseTemplate`), and Delete behind
-  an `AlertDialog`. Its `Menu` is `modal={false}` on purpose: a modal menu plus the dialog left the
-  page unclickable. `restoreStarterSnippets` re-adds missing `tpl-*` defaults. Pinned in
-  `src/copyDeck.test.tsx` and `src/copyDeckFill.test.tsx`.
-  **Variable chips (#221):** the text is `hds-gaps/TokenTextarea` (contenteditable; each `[Name]` is one
-  atomic chip; Backspace/Delete/arrows/Enter/paste go through `templateEditor` helpers). Insert variable
-  `Menu` + chip row share `insertAt`. A Variables panel sets values: a picked job's four fields save on
-  the job, the rest on `Snippet.values`; `[Your name]` falls back to the kit name. `templateFill.fillSnippet`
-  is the one fill path (editor, Use template, Apply mode). Body stays plain text. E2E:
-  `e2e/template-variables.spec.ts`.
+- **Documents library (#227; replaced Templates #132, no tab since #240):** `#/copy-deck` (slug kept)
+  is a page with no tab selected (App mounts `DocumentsView` outside the tab panels), reached from the
+  Menu's Documents item and the Apply sheet's Edit documents link, headed "Documents" with Back to
+  Pipeline. `DocumentsLibrary` lists Base documents per kind (flat rows, #241); `DocumentEditor` saves
+  each change as a Version. Outreach messages keep the Templates tools: `hds-gaps/TokenTextarea`
+  (contenteditable; each `[Name]` one atomic chip; keys go through `templateEditor` helpers), the chip
+  row + Insert variable `Menu` (`insertToken`), a Fill for preview, and the #221 **Variables panel** (a
+  picked job's four fields save on the job, the rest on `Document.values`, not a Version; `[Your name]`
+  falls back to the kit name). `#/copy-deck/<id>` opens one; an old `#/copy-deck/<snippetId>` resolves
+  to `snippet-<id>` (`outreachTemplates.resolveDocumentId`, hash rewritten); unknown → the library once
+  sync has settled and the move below has run. **Snippets are legacy data** (store + blob sync kept):
+  `App`'s `SnippetMigration` runs `migrateSnippetStore` after sync settles: each snippet not yet
+  `migrated` becomes a Base Outreach message (`snippetMigration.ts`) and is marked `migrated` in the
+  synced snippet store, so a deleted message never comes back and a second device adds nothing.
+  "Restore starter messages" re-adds missing `tpl-*` (`restoreStarterOutreach`). **Every fill path reads
+  `useOutreachTemplates()`** (latest Version text, values, pinned first; a moved message keeps its
+  snippet id, so `tpl-followup` and the kit's picks still match): Use template, `FollowUp`, the Apply
+  sheet and the kit's letters, all through `templateFill.fillSnippet`. Editor menus are
+  `modal={false}` (a modal menu plus the dialog left the page unclickable). Pinned in
+  `documentsRoute.test.tsx`, `documentsLibrary.test.tsx`, `outreachTemplates.test.ts`; E2E
+  `e2e/documents.spec.ts`, `e2e/template-variables.spec.ts`. Final copies (#231, uploaded PDF/Word)
+  live in the synced blob, capped at 500 KB per file and 1 MB per account.
+- **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
+  `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
+  Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).
 - **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
   first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the first-run gate goes
   to `#/discover`). Sample data is a step 1 offer on a first run. Discover with no track shows
   `ChooseTrack` first. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in
-  Discover, Templates and the Pipeline (`TrackerView`, with the Briefcase icon). The Pipeline
+  Discover, Documents and the Pipeline (`TrackerView`, with the Briefcase icon). The Pipeline
   gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
   `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
   `pipelineFollowUps.test.tsx`.
 - **Pipeline rows (#129):** the shell is HDS page width (`Container maxWidth="max"`, 1200). The
-  Pipeline table and Discover's tile grid use it; the job page and Templates sit at
+  Pipeline table and Discover's tile grid use it; the job page and Documents sit at
   the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders
   `JobsTable` (HDS `Table`, sortable headers through `jobRow.nextSort` → the same `SortKey` as the
   toolbar) at ≥ the HDS `lg` breakpoint and `JobListCard` (title on its own row) below it, chosen
@@ -215,7 +222,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   reduced motion); shared secondary colour is `hds-gaps/tone` `SECONDARY`. Guards: inline `style={{`
   ceiling and no inline font size/weight in `hdsOnly.test.ts` (only lower the ceiling), lint is
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a
-  held HDS gap, hds#748; also tracked upstream: active-tab underline hds#749, touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
+  held HDS gap, hds#748; also tracked upstream: touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
   targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.14.0).
 - **Rapid apply (2026-10-17):** every save (Discover tiles, Live postings incl. "Save N to Pipeline"
   / "Save all shown", quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
@@ -226,8 +233,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   selected): Open application, Mark applied (follow-up 7 days on), Next job (k of N), Skip, Not a fit
   (retire + Undo), and the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**): profile
   fields, two template-filled letters and custom Q&A, each a copy row. **Apply sheet (#239):** above
-  the kit, "Templates" lists every template filled for the job (`applyKit.filledTemplates` →
-  `fillSnippet`, pinned first, one copy row each) with an Edit templates link. The row menu sets any status.
+  the kit, "Templates" lists every Outreach message filled for the job (`applyKit.filledTemplates` →
+  `fillSnippet`, pinned first, one copy row each) with an Edit documents link. The row menu sets any status.
   Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
 - **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
   title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys
@@ -237,6 +244,18 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
   "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
   apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
+- **Privacy and terms (#43, #47):** `#/legal/privacy` and `#/legal/terms` (`LegalPage.tsx`, no tab,
+  like Documents; Menu item "Privacy and terms", last before Sign out). The text is data in
+  `legal.ts`; `THIRD_PARTIES` must list exactly the CSP `connect-src` hosts (`legal.test.ts` fails
+  otherwise, so a new fetch host also goes there). Wording approved by Adrian 2026-10-20 (`LEGAL_DRAFT`
+  false); set it true while a revision is under review. Back up is the full "download all my data" export: it carries every synced
+  store, incl. the Application kit and sweep titles. Meta/OG/Twitter tags pinned in `meta.test.ts`.
+  **Installable + share image (#47):** `public/manifest.webmanifest` (name = BRAND, standalone, no
+  service worker), PNG icons (192, 512, maskable 512, 180 touch icon) and the 1200x630
+  `og-image.png` are rendered by `npm run icons` (`scripts/make-icons.mjs`, headless Chromium);
+  re-run it after a brand change and commit the PNGs. Pinned in `pwa.test.ts`. `npm run audit` =
+  `npm audit --omit=dev --audit-level=high`; run it by hand (it is not in `verify`: the Vercel build
+  must not fail on a new advisory upstream).
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
@@ -275,7 +294,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   build a preview when the commit message contains `[preview]`. E2E in cloud sessions:
   `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
 - **CSP (#97 → enforcing in #106):** `Content-Security-Policy` in `vercel.json`, pinned by
-  `src/csp.test.ts`. **Any new fetch host must go in `connect-src` and the test, or it's blocked.**
+  `src/csp.test.ts`. **Any new fetch host must go in `connect-src`, the test and `legal.ts` `THIRD_PARTIES`, or it's blocked.**
   Fonts are HDS's self-hosted `fonts.css`, so `font-src`/`style-src` are `'self'` only — no font CDN (#115).
 - **HDS ESLint (`hds/recommended`)** runs on `src/**/*.tsx` via `eslint.config.js`: raw controls, hex, px spacing
   and px-in-`sx` are errors (use `var(--primitive-space-N)` / t-shirt steps; `thin solid` for hairlines).

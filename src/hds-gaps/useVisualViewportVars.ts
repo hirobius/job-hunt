@@ -1,4 +1,4 @@
-// HDS gap (sign-in, 2026-10-17): HDS has no Sheet, and its Dialog centres on the layout viewport,
+// HDS gap (sign-in, 2026-10-17; related: hds#690): HDS has no Sheet, and its Dialog centres on the layout viewport,
 // so on iOS the on-screen keyboard covers its lower half. This mirrors `window.visualViewport`
 // (the part of the page the keyboard leaves visible) into two CSS variables on an element:
 // `--rjb-vv-top` (px from the layout viewport's top) and `--rjb-vv-height` (px). CSS then pins

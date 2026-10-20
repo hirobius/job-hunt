@@ -19,7 +19,6 @@ import { jobIdOf } from './store';
 import { jobHash } from './route';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
-import { SECONDARY } from './hds-gaps/tone';
 import type { Job } from './types';
 
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
@@ -71,7 +70,7 @@ function AgendaRow({
             {badge}
           </Stack>
           {notes.map((n, i) => (
-            <Text key={i} variant="caption" as="span" style={SECONDARY}>
+            <Text key={i} variant="caption" as="span" tone="secondary">
               {n}
             </Text>
           ))}

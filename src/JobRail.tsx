@@ -10,7 +10,6 @@ import { StatusBadge } from './JobRowParts';
 import { FILTER_LABEL, setPipelineView, usePipelineView, visibleJobs } from './pipelineView';
 import RailList, { type RailItem } from './hds-gaps/RailList';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 import './JobRail.css';
 
 function RowBody({ job }: { job: Job }) {
@@ -27,7 +26,7 @@ function RowBody({ job }: { job: Job }) {
         </Stack>
       </Stack>
       {v.factLines.map((line, i) => (
-        <Text key={i} variant="caption" as="span" style={SECONDARY}>
+        <Text key={i} variant="caption" as="span" tone="secondary">
           {line}
         </Text>
       ))}
@@ -62,10 +61,10 @@ export default function JobRail({ openId }: { openId: string }) {
           leadingVisual={<Search size={16} />}
           style={{ width: '100%' }}
         />
-        <Text variant="caption" as="p" style={SECONDARY}>
+        <Text variant="caption" as="p" tone="secondary">
           {FILTER_LABEL[view.filter]} · {shown.length} {shown.length === 1 ? 'job' : 'jobs'}
         </Text>
-        <Text variant="caption" as="p" style={SECONDARY}>
+        <Text variant="caption" as="p" tone="secondary">
           <InlineLink href="#/queue" externalIcon={false}>
             Change filters
           </InlineLink>
@@ -73,13 +72,13 @@ export default function JobRail({ openId }: { openId: string }) {
         {hidden && open && (
           <Stack gap="tight">
             <RailList items={[item(open)]} />
-            <Text variant="caption" as="p" style={SECONDARY}>
+            <Text variant="caption" as="p" tone="secondary">
               Not in this filter
             </Text>
           </Stack>
         )}
         {shown.length === 0 && !hidden ? (
-          <Text variant="ui" as="p" style={SECONDARY}>
+          <Text variant="ui" as="p" tone="secondary">
             No jobs match.
           </Text>
         ) : (

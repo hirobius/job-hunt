@@ -1,6 +1,6 @@
-// The header's account menu (#115 Phase 1): sync status + sign-in/out, Templates (#240: it has no
+// The header's account menu (#115 Phase 1): sync status + sign-in/out, Documents (#240, #227: no
 // tab), the data controls that used to crowd the Tracker toolbar (back up, restore, export), the
-// theme and feedback — one home for everything about "my account and my data".
+// theme, feedback and the Privacy and terms pages (#43) — one home for everything about "my account and my data".
 import { Button, Icon, Menu } from '@hirobius/design-system';
 import { Menu as MenuIcon } from 'lucide-react';
 import { useColorMode } from '../ColorMode';
@@ -9,6 +9,7 @@ import { useCloudSync, useDataTools } from './accountContext';
 import { useUnsynced } from './useUnsynced';
 import { DANGER } from '../hds-gaps/tone';
 import { navigate } from '../route';
+import { LEGAL_ROUTE } from '../legal';
 
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
@@ -49,9 +50,9 @@ export default function AccountMenu() {
           </>
         )}
         <Menu.Separator />
-        {/* Templates has no tab (#240); it opens from here and from the Apply sheet. */}
+        {/* Documents (was Templates, #227) has no tab (#240); it opens from here and the Apply sheet. */}
         <Menu.Item onSelect={() => navigate({ tab: 'copy-deck', sub: null, jobId: null })}>
-          Templates
+          Documents
         </Menu.Item>
         <Menu.Item onSelect={data.backup}>Back up</Menu.Item>
         <Menu.Item onSelect={data.chooseRestore}>Restore…</Menu.Item>
@@ -65,6 +66,9 @@ export default function AccountMenu() {
         </Menu.Item>
         <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>
           Send feedback
+        </Menu.Item>
+        <Menu.Item onSelect={() => navigate({ tab: LEGAL_ROUTE, sub: 'privacy', jobId: null })}>
+          Privacy and terms
         </Menu.Item>
         {sync.user && (
           <>

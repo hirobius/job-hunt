@@ -9,9 +9,12 @@ import {
   markSent,
   mergeDocuments,
   removeDocument,
+  renameDocument,
   replaceDocuments,
   sanitizeDocuments,
   saveVersion,
+  setDocumentPinned,
+  setDocumentValues,
   type Document,
 } from './documents';
 
@@ -186,5 +189,34 @@ describe('mergeDocuments', () => {
     ];
     const out = mergeDocuments([doc({ jobUrl: JOB })], sentLocal);
     expect(out[0].versions[0].sentAt).toBe(at);
+  });
+});
+
+describe('values, pin and title (#227)', () => {
+  it('keeps string variable values and a pin; drops anything else', () => {
+    const [d] = sanitizeDocuments([
+      doc({
+        values: { company: 'Acme', bad: 3 as unknown as string },
+        pinned: 'yes' as unknown as true,
+      }),
+    ]);
+    expect(d.values).toEqual({ company: 'Acme' });
+    expect(d).not.toHaveProperty('pinned');
+    expect(sanitizeDocuments([doc({ pinned: true, values: {} })])[0]).toMatchObject({
+      pinned: true,
+    });
+    expect(sanitizeDocuments([doc({ values: {} })])[0]).not.toHaveProperty('values');
+  });
+
+  it('renames, pins and sets values without adding a version', () => {
+    const id = createDocument({ kind: 'outreach', title: 'Hi', base: true, text: 't' });
+    renameDocument(id, '  Hello  ');
+    setDocumentPinned(id, true);
+    setDocumentValues(id, { company: 'Acme' });
+    const d = getAllDocuments().find((x) => x.id === id)!;
+    expect(d).toMatchObject({ title: 'Hello', pinned: true, values: { company: 'Acme' } });
+    expect(d.versions).toHaveLength(1);
+    setDocumentPinned(id, false);
+    expect(getAllDocuments()[0]).not.toHaveProperty('pinned');
   });
 });

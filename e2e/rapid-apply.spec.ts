@@ -107,6 +107,6 @@ test('Apply sheet: templates filled for the job, copyable at 390', async ({ page
     .getByRole('button')
     .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height)))
     expect(box).toBeGreaterThanOrEqual(40);
-  const edit = await page.getByRole('link', { name: 'Edit templates' }).boundingBox();
+  const edit = await page.getByRole('link', { name: 'Edit documents' }).boundingBox();
   expect(edit?.height).toBeGreaterThanOrEqual(40);
 });
