@@ -3,7 +3,6 @@
 // adds nothing to the src/ui retirement (#92) or the brand move (#91).
 import { Box, Button, Stack, Text } from '@hirobius/design-system';
 import { navigate } from '../route';
-import { SECONDARY } from '../hds-gaps/tone';
 import type { Job } from '../types';
 import { clearSample, hasCloudSession, loadSample } from './loadSample';
 import { isSample } from './sampleData';
@@ -34,7 +33,7 @@ export function SampleBanner({ jobs }: { jobs: Job[] }) {
   return (
     <Box role="status" aria-label="Sample data">
       <Stack direction="row" wrap="wrap" gap="px8" align="center">
-        <Text variant="caption" as="span" style={SECONDARY}>
+        <Text variant="caption" as="span" tone="secondary">
           <span className="rjb-semibold">Sample data</span> · {n} fictional{' '}
           {n === 1 ? 'job' : 'jobs'}. Clearing removes them and any edits to them.
         </Text>

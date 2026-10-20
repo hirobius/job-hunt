@@ -8,7 +8,6 @@ import { Form } from '@hirobius/design-system/patterns';
 import { useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
 import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
-import { SECONDARY } from '../hds-gaps/tone';
 import './SignInDialog.css';
 
 export const RESEND_COOLDOWN_S = 30;
@@ -101,7 +100,7 @@ export default function SignInDialog() {
               <Dialog.Description>We sent a sign-in link to {sentTo}.</Dialog.Description>
             </Dialog.Header>
             {sendError && <Alert tone="danger">{sendError}</Alert>}
-            <Text variant="caption" as="p" role="status" style={SECONDARY}>
+            <Text variant="caption" as="p" role="status" tone="secondary">
               {resent ? 'Sent again.' : 'Open it on this device to finish signing in.'}
             </Text>
             <Stack gap="tight">

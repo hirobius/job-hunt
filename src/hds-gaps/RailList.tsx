@@ -1,6 +1,6 @@
 // HDS gap (#130): a list of links where one is the current selection. HDS has no selectable list,
 // no NavList and no list item with `aria-current`, so this is a `ul` of anchors with the current
-// one marked, styled with HDS tokens in RailList.css. Ask (filed with the Phase 7 asks, #133): a
+// one marked, styled with HDS tokens in RailList.css. Ask (hds#817): a
 // `NavList` or a selectable `ListItem`. Delete this when it lands.
 import type { ReactNode } from 'react';
 import './RailList.css';

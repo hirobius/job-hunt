@@ -32,27 +32,26 @@ const wrapper = () => screen.getByRole('tablist').parentElement!;
 
 afterEach(cleanup);
 
+const tools = () => (
+  <TabsOverflowFade value="apply">
+    <SegmentedControl
+      aria-label="Tools"
+      value="apply"
+      onChange={() => {}}
+      options={[
+        { value: 'apply', label: 'Apply' },
+        { value: 'live', label: 'Live' },
+      ]}
+    />
+  </TabsOverflowFade>
+);
+const toolsFade = () => screen.getByRole('radiogroup').parentElement!.parentElement!;
+
 describe('TabsOverflowFade (HDS gap: tab overflow cue)', () => {
-  it('fades the trailing edge while more tabs sit past it', () => {
+  it('leaves the TabsList fade to HDS (0.26.1, hds#723): no second mask on the wrapper', () => {
     layout({ scrollWidth: 420, clientWidth: 358 });
     render(ui());
-    expect(wrapper()).toHaveAttribute('data-overflow', 'end');
-    expect(wrapper().style.maskImage).toMatch(/linear-gradient/);
-  });
-
-  it('fades the leading edge once scrolled, and both edges in the middle', () => {
-    layout({ scrollWidth: 420, clientWidth: 358, scrollLeft: 62 });
-    const { unmount } = render(ui());
-    expect(wrapper()).toHaveAttribute('data-overflow', 'start');
-    unmount();
-    layout({ scrollWidth: 420, clientWidth: 358, scrollLeft: 30 });
-    render(ui());
-    expect(wrapper()).toHaveAttribute('data-overflow', 'both');
-  });
-
-  it('shows no fade when the tabs fit', () => {
-    layout({ scrollWidth: 358, clientWidth: 358 });
-    render(ui());
+    expect(screen.getByRole('tablist')).toHaveAttribute('data-overflow', 'end');
     expect(wrapper()).not.toHaveAttribute('data-overflow');
     expect(wrapper().style.maskImage).toBe('');
   });
@@ -67,7 +66,7 @@ describe('TabsOverflowFade (HDS gap: tab overflow cue)', () => {
     expect(scrolled).toContain('Templates');
   });
 
-  it('cues a SegmentedControl that overflows, and scrolls its checked option into view', () => {
+  it('fades a SegmentedControl that overflows (HDS has no cue there yet), and scrolls its checked option into view', () => {
     layout({ scrollWidth: 420, clientWidth: 358 });
     const scrolled: string[] = [];
     HTMLElement.prototype.scrollIntoView = function (this: HTMLElement) {
@@ -86,10 +85,24 @@ describe('TabsOverflowFade (HDS gap: tab overflow cue)', () => {
         />
       </TabsOverflowFade>,
     );
-    expect(screen.getByRole('radiogroup').parentElement!.parentElement).toHaveAttribute(
-      'data-overflow',
-      'end',
-    );
+    const fade = screen.getByRole('radiogroup').parentElement!.parentElement!;
+    expect(fade).toHaveAttribute('data-overflow', 'end');
+    expect(fade.style.maskImage).toMatch(/linear-gradient/);
     expect(scrolled).toContain('Live');
+  });
+
+  it('fades the leading edge of a SegmentedControl once scrolled, both in the middle, none when it fits', () => {
+    layout({ scrollWidth: 420, clientWidth: 358, scrollLeft: 62 });
+    const first = render(tools());
+    expect(toolsFade()).toHaveAttribute('data-overflow', 'start');
+    first.unmount();
+    layout({ scrollWidth: 420, clientWidth: 358, scrollLeft: 30 });
+    const second = render(tools());
+    expect(toolsFade()).toHaveAttribute('data-overflow', 'both');
+    second.unmount();
+    layout({ scrollWidth: 358, clientWidth: 358 });
+    render(tools());
+    expect(toolsFade()).not.toHaveAttribute('data-overflow');
+    expect(toolsFade().style.maskImage).toBe('');
   });
 });

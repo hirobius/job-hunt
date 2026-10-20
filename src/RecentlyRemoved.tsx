@@ -3,7 +3,6 @@
 // save notice (saveNotice.removeWithUndo), so it never stacks with another notice.
 import { useState } from 'react';
 import { Box, Button, Dialog, Stack, Text } from '@hirobius/design-system';
-import { SECONDARY } from './hds-gaps/tone';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
 import { deleteForever, TRASH_DAYS, useTrash, type Removed } from './trash';
@@ -23,7 +22,7 @@ function RemovedRow({ entry }: { entry: Removed }) {
           {title}
         </Text>
         {metaLines([entry.job.company, daysAgo(entry.removedAt)]).map((line) => (
-          <Text key={line} variant="caption" as="span" style={SECONDARY}>
+          <Text key={line} variant="caption" as="span" tone="secondary">
             {line}
           </Text>
         ))}
