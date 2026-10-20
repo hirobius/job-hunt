@@ -16,6 +16,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "gallery": "node scripts/gallery.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "audit": "npm audit --omit=dev --audit-level=high",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
