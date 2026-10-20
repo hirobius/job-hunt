@@ -243,6 +243,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
   "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
   apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
+- **Privacy and terms (#43, #47):** `#/legal/privacy` and `#/legal/terms` (`LegalPage.tsx`, no tab,
+  like Documents; Menu item "Privacy and terms", last before Sign out). The text is data in
+  `legal.ts`; `THIRD_PARTIES` must list exactly the CSP `connect-src` hosts (`legal.test.ts` fails
+  otherwise, so a new fetch host also goes there). Wording approved by Adrian 2026-10-20 (`LEGAL_DRAFT`
+  false); set it true while a revision is under review. Back up is the full "download all my data" export: it carries every synced
+  store, incl. the Application kit and sweep titles. Meta/OG/Twitter tags pinned in `meta.test.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
@@ -281,7 +287,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   build a preview when the commit message contains `[preview]`. E2E in cloud sessions:
   `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
 - **CSP (#97 → enforcing in #106):** `Content-Security-Policy` in `vercel.json`, pinned by
-  `src/csp.test.ts`. **Any new fetch host must go in `connect-src` and the test, or it's blocked.**
+  `src/csp.test.ts`. **Any new fetch host must go in `connect-src`, the test and `legal.ts` `THIRD_PARTIES`, or it's blocked.**
   Fonts are HDS's self-hosted `fonts.css`, so `font-src`/`style-src` are `'self'` only — no font CDN (#115).
 - **HDS ESLint (`hds/recommended`)** runs on `src/**/*.tsx` via `eslint.config.js`: raw controls, hex, px spacing
   and px-in-`sx` are errors (use `var(--primitive-space-N)` / t-shirt steps; `thin solid` for hairlines).
