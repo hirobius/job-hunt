@@ -40,6 +40,11 @@ export interface Document {
   company?: string;
   /** A Base document: copied into a Job, never sent itself. */
   base?: true;
+  /** Shown first in the library (#227; a snippet's pin carries over). */
+  pinned?: true;
+  /** Variable values set on an Outreach message (#227, from `Snippet.values`), keyed by lower-case
+   *  name; the text keeps its `[Token]`s. */
+  values?: Record<string, string>;
   createdAt: string;
   /** Oldest first. Never empty. */
   versions: Version[];
@@ -73,6 +78,15 @@ function cleanVersion(raw: unknown): Version | null {
   return v;
 }
 
+/** Own string values only (a key like `__proto__` stays a plain key); none → undefined. */
+function cleanValues(raw: unknown): Record<string, string> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const entries = Object.entries(raw as Record<string, unknown>).filter(
+    (e): e is [string, string] => typeof e[1] === 'string',
+  );
+  return entries.length ? Object.fromEntries(entries) : undefined;
+}
+
 function cleanDocument(raw: unknown): Document | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const o = raw as Record<string, unknown>;
@@ -94,6 +108,9 @@ function cleanDocument(raw: unknown): Document | null {
   if (jobUrl) d.jobUrl = jobUrl;
   if (str(o.company).trim()) d.company = str(o.company).trim();
   if (o.base === true) d.base = true;
+  if (o.pinned === true) d.pinned = true;
+  const values = cleanValues(o.values);
+  if (values) d.values = values;
   // A Base document is never sent, and only a job's document can be.
   if (d.base || !d.jobUrl) d.versions = versions.map(({ sentAt: _sent, ...v }) => v);
   return d;
@@ -194,6 +211,22 @@ export function saveVersion(id: string, text: string): string | null {
   const v: Version = { id: newId(), text, savedAt: new Date().toISOString() };
   update(id, (x) => ({ ...x, versions: [...x.versions, v] }));
   return v.id;
+}
+
+/** Rename a document. Not a save: the title has no Versions. */
+export function renameDocument(id: string, title: string) {
+  update(id, (x) => ({ ...x, title: title.trim() }));
+}
+
+/** Pin or unpin a document in the library. */
+export function setDocumentPinned(id: string, pinned: boolean) {
+  update(id, ({ pinned: _p, ...x }) => (pinned ? { ...x, pinned: true } : x));
+}
+
+/** Set an Outreach message's variable values (keyed by lower-case name); empty ones are dropped. */
+export function setDocumentValues(id: string, values: Record<string, string>) {
+  const clean = cleanValues(Object.fromEntries(Object.entries(values).filter(([, v]) => v)));
+  update(id, ({ values: _v, ...x }) => (clean ? { ...x, values: clean } : x));
 }
 
 /** Mark one Version Sent. Refused for a Base or unlinked document, or when this Job already has a
