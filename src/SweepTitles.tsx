@@ -24,7 +24,6 @@ import {
   setTitleOn,
   useSweep,
 } from './feed/sweepTitles';
-import { SECONDARY } from './hds-gaps/tone';
 
 export function SweepTitlesEditor({
   categoryId,
@@ -58,12 +57,12 @@ export function SweepTitlesEditor({
 
   const body = (
     <Stack gap="xs">
-      <Text variant="caption" as="span" style={SECONDARY}>
+      <Text variant="caption" as="span" tone="secondary">
         Postings and searches follow the titles you tick. Up to {MAX_SWEEP_ON} at once; saved for
         this track.
       </Text>
       {sweep.titles.length === 0 && (
-        <Text variant="caption" as="span" style={SECONDARY}>
+        <Text variant="caption" as="span" tone="secondary">
           No titles yet. Add one below.
         </Text>
       )}

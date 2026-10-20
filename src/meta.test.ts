@@ -20,7 +20,7 @@ describe('meta tags (#47)', () => {
     expect(meta('property', 'og:site_name')).toBe(BRAND.name);
     expect(meta('property', 'og:title')).toBe(BRAND.name);
     expect(meta('property', 'og:description')).toBe(BRAND.description);
-    expect(meta('name', 'twitter:card')).toBe('summary');
+    expect(meta('name', 'twitter:card')).toBe('summary_large_image');
     expect(meta('name', 'twitter:title')).toBe(BRAND.name);
     expect(meta('name', 'twitter:description')).toBe(BRAND.description);
   });

@@ -7,7 +7,6 @@ import { atsSearchUrl } from './jobsData';
 import type { Board } from './feed/sources/ats';
 import { removeTarget, useTargets, type Target } from './feed/targets';
 import { SOURCE_LABEL } from './feed/types';
-import { SECONDARY } from './hds-gaps/tone';
 import { ROWS_CLASS, rowsStyle, useWatching } from './outreachShared';
 
 export type Row = Omit<Target, 'savedAt'>;
@@ -66,7 +65,7 @@ export function TargetRow({
               {r.board && <Badge>{SOURCE_LABEL[r.board.kind]}</Badge>}
             </Stack>
             {r.repo && r.repoUrl && (
-              <Text variant="caption" as="p" style={SECONDARY}>
+              <Text variant="caption" as="p" tone="secondary">
                 <InlineLink href={r.repoUrl} externalIcon={false}>
                   {r.repo}
                 </InlineLink>
@@ -74,7 +73,7 @@ export function TargetRow({
               </Text>
             )}
             {(rolesLine ?? rolesText(r)) && (
-              <Text variant="caption" as="p" style={SECONDARY}>
+              <Text variant="caption" as="p" tone="secondary">
                 {rolesLine ?? rolesText(r)}
               </Text>
             )}
@@ -156,7 +155,7 @@ export function SavedTargets({
         </Text>
       )}
       {targets.length === 0 ? (
-        <Text variant="caption" as="p" style={SECONDARY}>
+        <Text variant="caption" as="p" tone="secondary">
           Companies with no opening yet that you want to write to.
           {findLink && (
             <>

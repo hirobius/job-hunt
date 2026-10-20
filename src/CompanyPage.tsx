@@ -10,7 +10,6 @@ import { DOCUMENT_KINDS, saveVersion, type Document } from './documents';
 import { jobHash } from './route';
 import { jobIdOf } from './store';
 import { StatusBadge } from './JobRowParts';
-import { SECONDARY } from './hds-gaps/tone';
 
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 // Fields fill the column (a Box sx, not an inline style: the #133 ratchet).
@@ -40,7 +39,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
 }
 
 const Quiet = ({ children }: { children: ReactNode }) => (
-  <Text variant="caption" as="p" style={SECONDARY}>
+  <Text variant="caption" as="p" tone="secondary">
     {children}
   </Text>
 );
@@ -167,7 +166,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
                     <Text variant="ui" as="span">
                       {d.title || kindLabel(d)}
                     </Text>
-                    <Text variant="caption" as="span" style={SECONDARY}>
+                    <Text variant="caption" as="span" tone="secondary">
                       {`${kindLabel(d)} · ${versions(d.versions.length)}`}
                     </Text>
                   </Stack>

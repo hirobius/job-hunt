@@ -9,7 +9,6 @@ import { jobHash } from './route';
 import { rowView } from './jobRow';
 import { RowMenu, RowPrimaryAction, StarIcon, StatusBadge } from './JobRowParts';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 export default function JobListCard({ job }: { job: Job }) {
   const titleId = useId();
@@ -43,7 +42,7 @@ export default function JobListCard({ job }: { job: Job }) {
           <RowMenu job={job} size="md" />
         </Stack>
         {row.factLines.map((line, i) => (
-          <Text key={i} variant="caption" as="p" style={SECONDARY}>
+          <Text key={i} variant="caption" as="p" tone="secondary">
             {line}
           </Text>
         ))}
@@ -52,7 +51,7 @@ export default function JobListCard({ job }: { job: Job }) {
           <StatusBadge job={job} />
           {row.verdict && <Badge tone={row.verdict.tone}>{row.verdict.label}</Badge>}
           {row.applied && (
-            <Text variant="caption" as="span" style={SECONDARY}>
+            <Text variant="caption" as="span" tone="secondary">
               Applied {row.applied.toLowerCase()}
             </Text>
           )}
@@ -60,7 +59,7 @@ export default function JobListCard({ job }: { job: Job }) {
             (row.followUp.due ? (
               <Badge tone="warning">Due</Badge>
             ) : (
-              <Text variant="caption" as="span" style={SECONDARY}>
+              <Text variant="caption" as="span" tone="secondary">
                 Follow up in {row.followUp.inDays}d
               </Text>
             ))}

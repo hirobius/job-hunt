@@ -31,7 +31,7 @@ import {
   updateCategory,
 } from '../curation/curationStore';
 import { setCurationSyncedAt } from '../curation/syncStatus';
-import { clearAllPending } from '../curation/pending';
+import { clearAllPending, getPending } from '../curation/pending';
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
 import { OFFLINE_MSG } from '../cloudMessages';
@@ -371,6 +371,26 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       addCategory({ label: 'After expiry' });
     });
     expect(await screen.findByText('Track changes didn’t reach the cloud')).toBeInTheDocument();
+  });
+
+  it('an edit made after another tab signed out is kept and sent at the next sign-in (#169)', async () => {
+    const id = await signedInWithSyncedTrack();
+    // Another tab signs out: the stored session is gone and this tab hears SIGNED_OUT, but this
+    // tab never ran its own sign-out (no wipe, no reload), so its board is still on screen.
+    await act(async () => {
+      await fake().client.auth.signOut();
+    });
+    act(() => updateCategory(id, { label: 'Design Engineering' }));
+    await waitFor(() =>
+      expect(getPending()).toEqual([
+        expect.objectContaining({ table: 'categories', id, op: 'upsert', failed: true }),
+      ]),
+    );
+    expect(cloudLabels()).toEqual(['Design Systems']);
+    act(() => fake().signIn('u1'));
+    await waitFor(() => expect(cloudLabels()).toEqual(['Design Engineering']));
+    expect(label()).toEqual(['Design Engineering']);
+    expect(getPending()).toEqual([]);
   });
 
   // ADR 0008: what the user edits (targets, saved searches, evidence, work mode) follows the account.

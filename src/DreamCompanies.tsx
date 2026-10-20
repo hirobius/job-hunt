@@ -9,7 +9,6 @@ import { liveFetchJson } from './feed/fetchFeed';
 import type { Limiter } from './feed/probe';
 import { newSince, readRoles, type Role } from './feed/teamRoles';
 import { SOURCE_LABEL } from './feed/types';
-import { SECONDARY } from './hds-gaps/tone';
 import { ROWS_CLASS, rowsStyle } from './outreachShared';
 import { DreamStar, RoleList } from './TeamRoles';
 
@@ -97,7 +96,7 @@ export default function DreamCompanies({
         </Text>
       )}
       {dreams.length === 0 ? (
-        <Text variant="caption" as="p" style={SECONDARY}>
+        <Text variant="caption" as="p" tone="secondary">
           Star a company to keep it here, open roles or not.
         </Text>
       ) : (
@@ -139,7 +138,7 @@ function DreamRow({ d, categoryId, checked }: { d: Dream; categoryId: string; ch
               </Text>
               {d.board && <Badge>{SOURCE_LABEL[d.board.kind]}</Badge>}
             </Stack>
-            <Text variant="caption" style={SECONDARY}>
+            <Text variant="caption" tone="secondary">
               {statusLine(d, checked)}
             </Text>
           </Stack>

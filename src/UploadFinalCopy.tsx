@@ -97,7 +97,7 @@ export function UploadFinalCopy({
             Upload a final copy
           </Text>
         )}
-        <Text variant="caption" style={SECONDARY}>
+        <Text variant="caption" tone="secondary">
           PDF or Word, up to {formatBytes(UPLOAD_MAX_BYTES)}. Kept with your saved data, never
           behind a public link.
         </Text>
@@ -162,7 +162,7 @@ export function FinalCopies({ jobUrl }: { jobUrl: string }) {
               <Stack direction="row" gap="tight" align="center" wrap="wrap">
                 <Stack gap="hairline">
                   <Text variant="ui">{file.name}</Text>
-                  <Text variant="caption" style={SECONDARY}>
+                  <Text variant="caption" tone="secondary">
                     {kindLabel(d.kind)} · {formatBytes(file.size)}
                   </Text>
                 </Stack>

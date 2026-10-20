@@ -30,21 +30,22 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
     (`content.secondary`, `surface.raised`, `border.default`, `feedback.error`, `accent`);
     `border` needs a style (`'1px solid'`). Prefer named primitives (Stack/Switcher/Grid) over
     `Box sx`, and parent gaps over child margins.
-  - ⚠️ **No base breakpoint in HDS `sx` (hds#652):** `{ xs, sm }` compiles to min-width 375/640, so
-    a mobile-first map drops its base under 375px. For a row of peer fields use `Switcher`;
-    otherwise put the base on the key and nest the override: `{ flexDirection: 'column', '&': {
-    flexDirection: { sm: 'row' } } }` (commented where used).
-  - **Secondary text** is `<Text variant="caption">` + `style={{ color:
-    'var(--semantic-color-content-secondary)' }}` — HDS's documented idiom until `Text` grows a
-    tone prop (hds#655).
-  - **`EmptyState.tsx`** is a composition (HDS `EmptyState` + an optional action), because HDS's
-    has no action slot yet (hds#654); collapse it into HDS when that lands.
+  - **Responsive `sx` takes a `base` key (HDS 0.26.2, hds#652):** `{ flexDirection: { base:
+    'column', sm: 'row' } }`; `xs` means min-width 375, so never use it as the base. For a row of
+    peer fields prefer `Switcher`. The old nested `'&'` override is gone (`hdsOnly.test.ts`).
+  - **Secondary text** is `<Text variant="caption" tone="secondary">` (HDS 0.26, hds#655);
+    `hds-gaps/tone` `SECONDARY` is only for a plain span or p.
+  - **`EmptyState.tsx`** is a composition (HDS `EmptyState`, whose `action` it passes through,
+    hds#654, + an optional icon HDS has no slot for yet); collapse it into HDS when that lands.
+  - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, `EmptyState.tsx`, the
+    `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
+    a workaround in the HDS upgrade PR that ships its fix, and update the table.
 - **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
   (`fonts.css`, Plus Jakarta Sans, the HDS type ramp), surfaces and the default **graphite
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.24.1`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.26.2`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
   `.npmrc` maps `@hirobius` there, so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`). Upgrade with
   `npx @hirobius/design-system@latest upgrade` (codemods + a to-do list; `--check` to verify).
@@ -221,7 +222,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   reduced motion); shared secondary colour is `hds-gaps/tone` `SECONDARY`. Guards: inline `style={{`
   ceiling and no inline font size/weight in `hdsOnly.test.ts` (only lower the ceiling), lint is
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a
-  held HDS gap, hds#748; also tracked upstream: active-tab underline hds#749, touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
+  held HDS gap, hds#748; also tracked upstream: touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
   targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.14.0).
 - **Rapid apply (2026-10-17):** every save (Discover tiles, Live postings incl. "Save N to Pipeline"
   / "Save all shown", quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
@@ -255,6 +256,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   otherwise, so a new fetch host also goes there). Wording approved by Adrian 2026-10-20 (`LEGAL_DRAFT`
   false); set it true while a revision is under review. Back up is the full "download all my data" export: it carries every synced
   store, incl. the Application kit and sweep titles. Meta/OG/Twitter tags pinned in `meta.test.ts`.
+  **Installable + share image (#47):** `public/manifest.webmanifest` (name = BRAND, standalone, no
+  service worker), PNG icons (192, 512, maskable 512, 180 touch icon) and the 1200x630
+  `og-image.png` are rendered by `npm run icons` (`scripts/make-icons.mjs`, headless Chromium);
+  re-run it after a brand change and commit the PNGs. Pinned in `pwa.test.ts`. `npm run audit` =
+  `npm audit --omit=dev --audit-level=high`; run it by hand (it is not in `verify`: the Vercel build
+  must not fail on a new advisory upstream).
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
