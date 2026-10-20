@@ -35,11 +35,12 @@ store, sync, route or CSP changes in the polish pass. Verification is local; no 
 Living with round 1 showed that four tabs was one decision too many before any work started, and
 that Today and the Pipeline answered the same question ("what do I do next?") in two places.
 
-- Two tabs, **Companies** and **Pipeline**. Companies is home; Templates left the tab bar and opens
-  from the Apply sheet and the Menu.
+- Two tabs, **Companies** and **Pipeline**. Companies is home; Templates left the tab bar. It has
+  since become **Documents** (#227), which opens from the Apply sheet's Edit documents link and the
+  Menu.
 - **Today is gone.** Its follow-ups and next 7 days head the Pipeline, under To apply, so the one
   list a person returns to holds every next step. `#/today` redirects.
-- **Flat rows, not cards.** Agenda sections, phone job rows, company lists, Templates and loading
+- **Flat rows, not cards.** Agenda sections, phone job rows, company lists, the Documents list and loading
   skeletons are rows on the page with hairlines between them. Cards stay only where they hold a form
   or a choice (job details, onboarding picks).
 - **Rhythm from Stack gaps, never margins:** 24 under a heading, 48 between sections.
@@ -50,7 +51,8 @@ that Today and the Pipeline answered the same question ("what do I do next?") in
 
 ## Before and after
 
-Before is the 2026-10-13 audit; after is `main` at the calm list, fictional sample data. The full
+Before is the 2026-10-13 audit; after is `main` at `3e1b05b` (the calm list on HDS 0.26.2),
+fictional sample data. The full
 set (about 100 shots, light and dark, 1440 and 390) comes from `npm run gallery`.
 
 | | Before | After |
@@ -70,7 +72,9 @@ New in round 2:
 
 Every place HDS fell short has a stand-in in `src/hds-gaps/` or `src/theme/base.css` that names
 its ask and is deleted when HDS ships the fix. Shipped in HDS 0.26 and retired in the app: the `Text`
-tone prop (hds#655), the active-tab underline (hds#749) and the TabsList overflow cue (hds#723).
+tone prop (hds#655), the active-tab underline (hds#749), the TabsList overflow cue (hds#723), a base
+breakpoint in `sx` that replaced the nested `&` override (hds#652) and the `EmptyState` action slot
+(hds#654).
 Merged upstream and waiting on the next HDS release: Toast actions (hds#816), `AsyncState`
 (hds#831), the Menu height cap and danger tone (hds#834) and the dark pressed-accent contrast
 (hds#748; the app holds a 3.0:1 floor until then).
@@ -79,7 +83,7 @@ Merged upstream and waiting on the next HDS release: Toast actions (hds#816), `A
 |---|---|---|
 | `ActionToast` | Toast with action buttons (Open, Undo) | Toast `actions` (merged, hds#816) |
 | `AsyncState` | One component for loading, error with Retry, empty, ready | `AsyncState` pattern (merged, hds#831) |
-| `RailList` | A list of links with one marked current | `NavList` (hds#832) |
+| `RailList` | A list of links with one marked current | `NavList` (merged, hds#832) |
 | `TokenTextarea` | A text field whose `[Variable]` tokens are atomic chips | `TokenField` (hds#826) |
 | `TabsOverflowFade` | An edge cue on overflowing SegmentedControl; keep the selected tab in view | hds#823 (Tabs fade shipped, hds#723) |
 | `useBreakpoint` | A hook to read an HDS breakpoint in JS | `useAtLeast` / `useBreakpoint` (hds#824) |
@@ -87,8 +91,8 @@ Merged upstream and waiting on the next HDS release: Toast actions (hds#816), `A
 | `barePanel` | A bare `TabsContent` for top-level navigation | `TabsContent variant="bare"` (hds#833) |
 | `tone.SECONDARY` | A secondary tone for plain spans; a danger tone on `Menu.Item` | `Text` tone shipped (hds#655); Menu danger merged (hds#834) |
 | `base.css` 40px controls | A touch size for small controls on coarse pointers | hds#750 |
-| nested `&` in `sx` | A base breakpoint in `sx` | hds#652 |
-| `EmptyState.tsx` | An action slot on `EmptyState` | hds#654 |
+| `EmptyState.tsx` | An icon slot on `EmptyState` (the action slot shipped) | hds#825 |
+| `.rjb-semibold` in `base.css` | A `weight` prop on `Text` | hds#825 |
 
 ## Measurements
 
@@ -99,5 +103,5 @@ Merged upstream and waiting on the next HDS release: Toast actions (hds#816), `A
   and 390 (`e2e/a11y.spec.ts`).
 - Phone touch targets under 40px: 120+ on the first run, 0 now.
 - Bundle (gzip, `npm run build`, 2026-10-20, HDS 0.26.2): about 84 kB index, 46 kB react,
-  140 kB vendor, 57 kB supabase and 22 kB vendor CSS. Discover, Companies and Live postings are lazy
-  chunks of 7 to 9 kB each.
+  140 kB vendor, 57 kB supabase and 22 kB vendor CSS. Discover, Documents, Companies and Live postings
+  are lazy chunks of 6 to 9 kB each.
