@@ -86,3 +86,27 @@ describe('sweep titles in the sync blob (v7)', () => {
     expect(Object.keys(getAllSweeps())).toEqual(['t2']);
   });
 });
+
+// #223 review: titles past the cap read as unticked, so they must be stored as off too, or
+// unticking one ticks the 13th and they never hide postings.
+describe('titles past the cap', () => {
+  const many = Array.from({ length: MAX_SWEEP_ON + 2 }, (_, i) => `title ${i + 1}`);
+
+  it('a seed past the cap starts with the overflow off', () => {
+    const s = sweepFor({}, 'c1', many);
+    expect(activeTitles(s)).toHaveLength(MAX_SWEEP_ON);
+    expect(s.off).toEqual(many.slice(MAX_SWEEP_ON));
+  });
+
+  it('unticking one does not tick a title past the cap', () => {
+    setTitleOn('c1', many, 'title 1', false);
+    const s = sweepFor(getAllSweeps(), 'c1', many);
+    expect(activeTitles(s)).toEqual(many.slice(1, MAX_SWEEP_ON));
+    expect(s.off).toEqual(expect.arrayContaining([...many.slice(MAX_SWEEP_ON), 'title 1']));
+  });
+
+  it('a stored list past the cap reads with the overflow off', () => {
+    replaceSweeps({ c1: { titles: many, off: [] } });
+    expect(getAllSweeps().c1.off).toEqual(many.slice(MAX_SWEEP_ON));
+  });
+});

@@ -129,11 +129,11 @@ export function RowMenu({
           {job.archived ? 'Unretire' : 'Retire'}
         </Menu.Item>
         <Menu.Separator />
-        {/* Reverse interop (#57): seed Discover's Title search with this job's title. */}
+        {/* Reverse interop (#57): seed Discover's search links (ATS tool) with this job's title. */}
         <Menu.Item
           onSelect={() => {
             setDiscoverSeed(title);
-            navigate({ tab: 'discover', sub: 'titles' });
+            navigate({ tab: 'discover', sub: 'ats' });
           }}
         >
           Find more like this
