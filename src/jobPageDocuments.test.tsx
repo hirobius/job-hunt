@@ -26,7 +26,13 @@ import JobDocuments from './JobDocuments';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { replaceTrash } from './trash';
 import { dismissNotice } from './saveNotice';
-import { createDocument, getAllDocuments, markSent, replaceDocuments } from './documents';
+import {
+  addFinalCopy,
+  createDocument,
+  getAllDocuments,
+  markSent,
+  replaceDocuments,
+} from './documents';
 
 const URL_A = 'https://acme.example/jobs/7';
 
@@ -118,7 +124,7 @@ describe('Documents tab (#228)', () => {
     const heads = within(panel)
       .getAllByRole('heading', { level: 3 })
       .map((x) => x.textContent);
-    expect(heads).toEqual(['Résumé', 'Cover letter']);
+    expect(heads).toEqual(['Résumé', 'Cover letter', 'Final copies']);
     const letter = screen.getByRole('region', { name: 'Letter' });
     const text = within(letter).getByRole('textbox', { name: 'Text' });
     expect(within(letter).getByRole('button', { name: 'Save version' })).toBeDisabled();
@@ -240,5 +246,52 @@ describe('JobDocuments slots for the integrator', () => {
     expect(screen.getByRole('button', { name: 'Upload a final copy' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Versions \(1\)/ }));
     expect(screen.getByRole('button', { name: 'Download Letter true' })).toBeInTheDocument();
+  });
+});
+
+describe('Documents tab wiring (#229, #231)', () => {
+  const finalFile = { name: 'cover.pdf', type: 'application/pdf', size: 3, data: 'AAAA' };
+
+  it('offers Download PDF / Word on every Version row', async () => {
+    const id = createDocument({ kind: 'cover', title: 'Letter', jobUrl: URL_A, text: 'one' });
+    openJobPage();
+    const panel = await openDocuments();
+    await userEvent.click(within(panel).getByRole('button', { name: /Versions \(1\)/ }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Download version 1' }));
+    expect(await screen.findByRole('menuitem', { name: 'Download PDF' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Download Word' })).toBeInTheDocument();
+    expect(id).toBeTruthy();
+  });
+
+  it('has an Upload a final copy form, even with no documents yet', async () => {
+    openJobPage();
+    const panel = await openDocuments();
+    expect(within(panel).getByText('No documents yet')).toBeInTheDocument();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Upload a final copy' }));
+    expect(within(panel).getByRole('button', { name: 'Choose file' })).toBeInTheDocument();
+  });
+
+  it('lists a final copy under Final copies, not as a text document', async () => {
+    const r = addFinalCopy({ kind: 'cover', jobUrl: URL_A, file: finalFile });
+    expect(r.ok).toBe(true);
+    openJobPage();
+    const panel = await openDocuments();
+    const finals = within(panel).getByRole('region', { name: 'Final copies' });
+    expect(within(finals).getByRole('button', { name: 'Download cover.pdf' })).toBeInTheDocument();
+    expect(within(finals).getByRole('button', { name: 'Remove cover.pdf' })).toBeInTheDocument();
+    // No text editor for the uploaded file, and the empty state still teaches New document.
+    expect(within(panel).queryByRole('region', { name: 'cover.pdf' })).toBeNull();
+    expect(within(panel).getByText('No documents yet')).toBeInTheDocument();
+  });
+
+  it('a Sent final copy locks Mark as Sent for that kind', async () => {
+    const r = addFinalCopy({ kind: 'cover', jobUrl: URL_A, file: finalFile });
+    if (r.ok) markSent(r.id, r.versionId);
+    createDocument({ kind: 'cover', title: 'Letter', jobUrl: URL_A, text: 'one' });
+    openJobPage();
+    const panel = await openDocuments();
+    await userEvent.click(within(panel).getByRole('button', { name: /Versions \(1\)/ }));
+    expect(within(panel).queryByRole('button', { name: 'Mark as Sent' })).toBeNull();
+    expect(within(panel).queryByRole('button', { name: 'Remove cover.pdf' })).toBeNull();
   });
 });

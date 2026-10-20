@@ -25,6 +25,8 @@ import JobScreening from './JobScreening';
 import JobInterviews from './JobInterviews';
 import { TodosNotes } from './TodosNotes';
 import JobDocuments from './JobDocuments';
+import JobFinalCopies from './JobFinalCopies';
+import { DocumentDownload } from './DocumentDownload';
 import { useDocuments } from './documents';
 import { documentsForJob } from './jobDocuments';
 import type { Job } from './types';
@@ -71,7 +73,13 @@ function JobSections({ job }: { job: Job }) {
         <TodosNotes key={job.url} job={job} />
       </TabsContent>
       <TabsContent value="documents" style={panel}>
-        <JobDocuments job={job} />
+        <JobDocuments
+          job={job}
+          versionActions={(doc, version) => (
+            <DocumentDownload doc={doc} version={version} job={job} />
+          )}
+          uploadSlot={<JobFinalCopies jobUrl={job.url} />}
+        />
       </TabsContent>
     </Tabs>
   );

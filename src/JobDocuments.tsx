@@ -4,8 +4,9 @@
 // independent document. One Version per kind per Job can be marked Sent: it asks first, then that
 // Version is locked and labelled, and the document can no longer be deleted. A refused mark (the
 // kind was sent from another device meanwhile) is said in an Alert. The integrator adds a
-// per-Version control (Download PDF / Word) through `versionActions` and an upload control
-// through `uploadSlot`.
+// per-Version control (Download PDF / Word) through `versionActions` and the final copies (#231)
+// through `uploadSlot`, shown at the foot of the tab. A final copy (an uploaded file) is never a
+// text card here, but it counts for the one-Sent-per-kind lock.
 import { useState, type ReactNode } from 'react';
 import { FileText } from 'lucide-react';
 import {
@@ -26,6 +27,7 @@ import {
 import {
   createDocument,
   DOCUMENT_KINDS,
+  isFinalCopy,
   markSent,
   removeDocument,
   saveVersion,
@@ -53,7 +55,7 @@ export interface JobDocumentsProps {
   job: Job;
   /** A control for one Version (the integrator's Download PDF / Word), shown on its row. */
   versionActions?: (doc: Document, version: Version) => ReactNode;
-  /** A control for the whole tab (the integrator's "Upload a final copy"), beside New document. */
+  /** A section for the whole tab (the final copies and their upload), at the foot of the tab. */
   uploadSlot?: ReactNode;
 }
 
@@ -348,9 +350,10 @@ function DocumentCard({
 
 export default function JobDocuments({ job, versionActions, uploadSlot }: JobDocumentsProps) {
   const all = useDocuments();
-  const docs = documentsForJob(all, job.url);
+  const jobDocs = documentsForJob(all, job.url);
+  const docs = jobDocs.filter((d) => !isFinalCopy(d));
   const bases = baseDocuments(all);
-  const sent = sentByKind(docs);
+  const sent = sentByKind(jobDocs);
   const [form, setForm] = useState<'none' | 'new' | 'base'>('none');
   const [message, setMessage] = useState<string | null>(null);
   const close = () => setForm('none');
@@ -386,26 +389,22 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
         <Stack direction="row" gap="tight" align="center" wrap="wrap">
           {newButton('secondary')}
           {baseButton}
-          {uploadSlot}
         </Stack>
       )}
       {form === 'new' && <NewDocumentForm job={job} onDone={close} />}
       {form === 'base' && <UseBaseForm job={job} bases={bases} onDone={close} />}
       {docs.length === 0 && form === 'none' && (
-        <Stack gap="normal">
-          <EmptyState
-            icon={FileText}
-            title="No documents yet"
-            message="Keep the résumé, cover letter and messages you write for this job here, with every version."
-            action={
-              <Stack direction="row" gap="tight" justify="center" wrap="wrap">
-                {newButton('primary')}
-                {baseButton}
-              </Stack>
-            }
-          />
-          {uploadSlot && <Box>{uploadSlot}</Box>}
-        </Stack>
+        <EmptyState
+          icon={FileText}
+          title="No documents yet"
+          message="Keep the résumé, cover letter and messages you write for this job here, with every version."
+          action={
+            <Stack direction="row" gap="tight" justify="center" wrap="wrap">
+              {newButton('primary')}
+              {baseButton}
+            </Stack>
+          }
+        />
       )}
       {documentsByKind(docs).map((g) => (
         <Stack key={g.kind} gap="tight">
@@ -423,6 +422,7 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
           ))}
         </Stack>
       ))}
+      {uploadSlot}
     </Stack>
   );
 }

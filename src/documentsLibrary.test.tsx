@@ -112,6 +112,8 @@ describe('create, edit, delete', () => {
     ]);
     await userEvent.click(versions[1]);
     expect(screen.getByRole('region', { name: 'Version 1' })).toHaveTextContent('first');
+    // The picked Version can be downloaded as a PDF or Word file (#229).
+    expect(screen.getByRole('button', { name: 'Download version 1' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Use this text' }));
     expect(text).toHaveValue('first');
   });

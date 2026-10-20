@@ -31,7 +31,8 @@ import {
   saveVersion,
   setDocumentPinned,
 } from './documents';
-import type { Document, DocumentKind, Version } from './documents';
+import type { Document, DocumentKind } from './documents';
+import { DocumentDownload } from './DocumentDownload';
 import { useJobs } from './store';
 import { useApplyKit } from './applyKit';
 import { fillSnippet } from './templateFill';
@@ -147,7 +148,7 @@ export default function DocumentEditor({
           </Menu>
         )}
       </Stack>
-      {doc && <VersionHistory versions={doc.versions} onUse={setDraft} />}
+      {doc && <VersionHistory doc={doc} onUse={setDraft} />}
       {doc && (
         <AlertDialog open={confirming} onOpenChange={setConfirming}>
           <AlertDialog.Content>
@@ -282,13 +283,8 @@ function OutreachText({
 }
 
 /** Every saved Version, newest first; one can be read and brought back into the draft. */
-function VersionHistory({
-  versions,
-  onUse,
-}: {
-  versions: Version[];
-  onUse: (text: string) => void;
-}) {
+function VersionHistory({ doc, onUse }: { doc: Document; onUse: (text: string) => void }) {
+  const versions = doc.versions;
   const [shown, setShown] = useState<string | null>(null);
   const numbered = versions.map((v, i) => ({ v, n: i + 1 })).reverse();
   const pick = numbered.find((x) => x.v.id === shown);
@@ -319,6 +315,7 @@ function VersionHistory({
                 <Button variant="secondary" size="sm" onClick={() => onUse(pick.v.text)}>
                   Use this text
                 </Button>
+                <DocumentDownload doc={doc} version={pick.v} />
               </Stack>
             </Stack>
           </Surface>

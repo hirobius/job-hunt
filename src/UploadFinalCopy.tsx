@@ -1,7 +1,7 @@
 // Final copies (#231): upload the PDF/Word file that actually went out for a Job, optionally marked
 // Sent, then download it back or remove it (refused once Sent, like every Sent Document). The file
 // is kept in the synced blob (see the storage note in documents.ts), so the caps are small and the
-// errors name them. Not wired into the job page yet: that waits for the job page work in #234.
+// errors name them. Mounted on the job page's Documents tab by JobFinalCopies.tsx.
 import { useRef, useState, type ChangeEvent } from 'react';
 import { Alert, Badge, Button, Checkbox, Select, Stack, Text } from '@hirobius/design-system';
 import {
@@ -30,7 +30,14 @@ const ACCEPT =
   '.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const LIST_RESET = { listStyle: 'none', margin: 0, padding: 0 } as const;
 
-export function UploadFinalCopy({ jobUrl }: { jobUrl: string }) {
+export function UploadFinalCopy({
+  jobUrl,
+  heading = true,
+}: {
+  jobUrl: string;
+  /** Show the "Upload a final copy" head; off where a disclosure already says it. */
+  heading?: boolean;
+}) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [kind, setKind] = useState<DocumentKind>('cover');
   const [picked, setPicked] = useState<File | null>(null);
@@ -76,9 +83,11 @@ export function UploadFinalCopy({ jobUrl }: { jobUrl: string }) {
   return (
     <Stack gap="normal">
       <Stack gap="tight">
-        <Text variant="body" className="rjb-semibold">
-          Upload a final copy
-        </Text>
+        {heading && (
+          <Text variant="body" className="rjb-semibold">
+            Upload a final copy
+          </Text>
+        )}
         <Text variant="caption" style={SECONDARY}>
           PDF or Word, up to {formatBytes(UPLOAD_MAX_BYTES)}. Kept with your saved data, never
           behind a public link.
