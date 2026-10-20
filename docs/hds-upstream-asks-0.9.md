@@ -21,6 +21,7 @@ pinned at **0.26.2**. "Not filed" means the ask still needs an issue in hirobius
 | Keyboard-aware dialog | `src/hds-gaps/useVisualViewportVars.ts` | a top-anchored, keyboard-aware Dialog or Sheet | related: hds#690 |
 | Empty state icon | `src/EmptyState.tsx` | an `icon` slot on `EmptyState` (`action` shipped in 0.25) | not filed |
 | `Text` weight | `.rjb-semibold` in `src/theme/base.css` | a `weight` prop on `Text` | not filed (was hds#655's follow-up) |
+| Menu height cap | `[role='menu']` rule in `src/theme/base.css` | Menu caps its height to the space Radix measures and scrolls (44px phone items in 0.26 made long menus run off screen) | not filed |
 | Phone touch size | 40px rule in `src/theme/base.css` | a touch size on sm controls | hds#750 |
 | Dark pressed accent contrast | held pair in `src/theme.contrast.test.ts` | AA on the dark pressed accent | hds#748 (lands in 0.27, unpublished) |
 
