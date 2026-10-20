@@ -73,3 +73,7 @@ _Avoid_: submitted, final
 **Base document**:
 A Document not tied to a Job, kept to be copied into one. It is never Sent itself.
 _Avoid_: master, template, default
+
+**Final copy**:
+A PDF or Word file uploaded to a Job as a Document of a kind: its one Version holds the file, not text, and it takes no new Versions. It can be marked Sent like any Version, and can be downloaded back.
+_Avoid_: attachment, upload (as a noun in code)
