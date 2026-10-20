@@ -44,6 +44,7 @@ import {
 import { getPending, useFailedCount } from '../curation/pending';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { CloudSyncContext, type CloudSyncApi } from './accountContext';
+import { magicLinkRedirect } from './authRedirect';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
 // delete so a shared browser can't carry one person's jobs/pillars/résumé to the next.
@@ -297,7 +298,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const sendLink = async (email: string): Promise<string | null> => {
     const r = await supa.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: location.origin + location.pathname },
+      // Only this app's own origins, at the root (#44). The real gate is the Supabase dashboard's
+      // Redirect URLs allow-list (server side, Adrian's to keep); this keeps the ask honest.
+      options: { emailRedirectTo: magicLinkRedirect(location) },
     });
     // The dialog shows the error inline, in plain words (no vendor message).
     return r.error ? signInErrorMessage(r.error) : null;

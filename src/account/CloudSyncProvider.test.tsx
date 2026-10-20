@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Button, ToastProvider } from '@hirobius/design-system';
 import { createFakeSupabase } from '../test/fakeSupabase';
 
 // Count every createClient call app-wide: the app must build exactly ONE Supabase client (#99).
@@ -19,6 +21,8 @@ vi.mock('@supabase/supabase-js', async () => {
 });
 
 import { renderAccount, openAccount, chooseAccountItem } from '../test/renderAccount';
+import CloudSyncProvider from './CloudSyncProvider';
+import { useCloudSync } from './accountContext';
 import {
   addCategory,
   getCurationState,
@@ -55,6 +59,35 @@ afterEach(() => {
     .slice()
     .forEach((j) => removeJob(j.url));
   vi.restoreAllMocks();
+});
+
+describe('CloudSyncProvider sendLink (#44)', () => {
+  function SendButton() {
+    const { sendLink } = useCloudSync();
+    return <Button onClick={() => void sendLink('me@example.com')}>Send</Button>;
+  }
+
+  it('asks Supabase to redirect to an allow-listed origin at the root, never the current path', async () => {
+    const otp = vi.spyOn(fake().client.auth, 'signInWithOtp');
+    history.pushState(null, '', '/deep/path?next=https://evil.example#/queue');
+    try {
+      render(
+        <ToastProvider>
+          <CloudSyncProvider>
+            <SendButton />
+          </CloudSyncProvider>
+        </ToastProvider>,
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+      await waitFor(() => expect(otp).toHaveBeenCalledTimes(1));
+      expect(otp).toHaveBeenCalledWith({
+        email: 'me@example.com',
+        options: { emailRedirectTo: `${location.origin}/` },
+      });
+    } finally {
+      history.pushState(null, '', '/');
+    }
+  });
 });
 
 describe('CloudSyncProvider (via the account menu)', () => {
