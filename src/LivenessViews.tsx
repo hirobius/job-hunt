@@ -47,36 +47,38 @@ export function PipelineLiveness({ jobs }: { jobs: Job[] }) {
   };
 
   return (
-    <Stack gap="xs" style={{ marginBottom: 'var(--semantic-space-scale-sm)' }}>
-      <Stack direction="row" wrap="wrap" gap="xs" align="center">
-        <Button size="sm" variant="tertiary" onClick={onCheck} disabled={busy}>
-          Check which are still open
-        </Button>
-        {busy && <Spinner size="sm" label="Checking company boards" />}
-        <Text variant="caption" as="span" tone="secondary" role="status">
-          {note ||
-            [
-              when && `Checked live ${when}`,
-              closed.length > 0 && `${closed.length} closed on the board`,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-        </Text>
+    <Box sx={{ mb: 'sm' }}>
+      <Stack gap="xs">
+        <Stack direction="row" wrap="wrap" gap="xs" align="center">
+          <Button size="sm" variant="tertiary" onClick={onCheck} disabled={busy}>
+            Check which are still open
+          </Button>
+          {busy && <Spinner size="sm" label="Checking company boards" />}
+          <Text variant="caption" as="span" tone="secondary" role="status">
+            {note ||
+              [
+                when && `Checked live ${when}`,
+                closed.length > 0 && `${closed.length} closed on the board`,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+          </Text>
+        </Stack>
+        {closed.length > 0 && (
+          <Box as="ul" aria-label="Closed on the board" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+            {closed.map((j) => (
+              <Box as="li" key={j.url}>
+                <Text variant="ui" as="span">
+                  <InlineLink href={`#/queue/${jobIdOf(j.url)}`} externalIcon={false}>
+                    {j.label}
+                  </InlineLink>
+                </Text>
+              </Box>
+            ))}
+          </Box>
+        )}
       </Stack>
-      {closed.length > 0 && (
-        <Box as="ul" aria-label="Closed on the board" sx={{ listStyle: 'none', m: 0, p: 0 }}>
-          {closed.map((j) => (
-            <Box as="li" key={j.url}>
-              <Text variant="ui" as="span">
-                <InlineLink href={`#/queue/${jobIdOf(j.url)}`} externalIcon={false}>
-                  {j.label}
-                </InlineLink>
-              </Text>
-            </Box>
-          ))}
-        </Box>
-      )}
-    </Stack>
+    </Box>
   );
 }
 
@@ -85,18 +87,14 @@ export function JobLivenessNote({ url }: { url: string }) {
   const check = checkFor(useLiveness(), url);
   if (!check || check.state === 'unknown') return null;
   return (
-    <Stack
-      direction="row"
-      wrap="wrap"
-      gap="xs"
-      align="center"
-      style={{ marginBottom: 'var(--semantic-space-scale-xs)' }}
-    >
-      {check.state === 'closed' && <Badge tone="warning">Closed on the board</Badge>}
-      <Text variant="caption" as="span" tone="secondary">
-        Checked live {checkedOn(check.checkedAt)}
-      </Text>
-    </Stack>
+    <Box sx={{ mb: 'xs' }}>
+      <Stack direction="row" wrap="wrap" gap="xs" align="center">
+        {check.state === 'closed' && <Badge tone="warning">Closed on the board</Badge>}
+        <Text variant="caption" as="span" tone="secondary">
+          Checked live {checkedOn(check.checkedAt)}
+        </Text>
+      </Stack>
+    </Box>
   );
 }
 

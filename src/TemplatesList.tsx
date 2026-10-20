@@ -5,7 +5,6 @@ import { Star } from 'lucide-react';
 import { Box, Button, Icon, Input as HdsInput, Stack, Text } from '@hirobius/design-system';
 import EmptyState from './EmptyState';
 import type { Snippet } from './copyDeckStore';
-import { SECONDARY } from './hds-gaps/tone';
 
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 
@@ -63,14 +62,11 @@ export default function TemplatesList({
                     py: 'sm',
                     borderBottom: 'thin solid',
                     borderColor: 'border.default',
+                    '& > a': { display: 'block', color: 'inherit', textDecoration: 'none' },
                     ...(current ? { bg: 'surface.raised' } : {}),
                   }}
                 >
-                  <a
-                    href={snippetHash(s.id)}
-                    aria-current={current ? 'page' : undefined}
-                    style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}
-                  >
+                  <a href={snippetHash(s.id)} aria-current={current ? 'page' : undefined}>
                     <Stack gap="tight">
                       <Stack direction="row" gap="tight" align="center">
                         {s.pinned && (
@@ -87,19 +83,19 @@ export default function TemplatesList({
                           {s.label.trim() || 'Untitled'}
                         </Text>
                       </Stack>
-                      <Text
-                        variant="caption"
-                        as="span"
-                        style={{
-                          ...SECONDARY,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          display: 'block',
+                      <Box
+                        sx={{
+                          '& > p': {
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          },
                         }}
                       >
-                        {firstLine(s.body) || 'Empty'}
-                      </Text>
+                        <Text variant="caption" tone="secondary">
+                          {firstLine(s.body) || 'Empty'}
+                        </Text>
+                      </Box>
                     </Stack>
                   </a>
                 </Box>

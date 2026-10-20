@@ -119,7 +119,6 @@ export default function TrackerView() {
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   leadingVisual={<Search size={16} />}
-                  style={{ width: '100%' }}
                 />
               </Box>
               <Stack direction="row" wrap="wrap" gap="tight" align="center">

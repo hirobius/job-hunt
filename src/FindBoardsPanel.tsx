@@ -205,7 +205,6 @@ export default function FindBoardsPanel({
         placeholder={'Acme Labs\nstripe\nhttps://jobs.lever.co/plaid'}
         onChange={(e) => setText(e.target.value)}
         disabled={running}
-        style={{ width: '100%' }}
       />
       {(parsed.trimmed > 0 || parsed.ignored.length > 0) && (
         <Text variant="caption" as="p" tone="secondary">

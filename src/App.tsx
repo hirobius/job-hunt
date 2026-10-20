@@ -146,7 +146,7 @@ export default function App() {
                 </Stack>
                 {/* The fade says more sit past the edge when the tabs overflow a narrow phone. */}
                 <TabsOverflowFade value={TAB_SLUGS[tab]}>
-                  <TabsList style={{ width: '100%', marginBottom: 0 }} aria-label="Sections">
+                  <TabsList style={{ marginBottom: 0 }} aria-label="Sections">
                     <TabsTrigger value="discover">Companies</TabsTrigger>
                     <TabsTrigger value="queue">Pipeline</TabsTrigger>
                   </TabsList>

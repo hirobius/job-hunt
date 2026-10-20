@@ -93,7 +93,8 @@ async function clickIf(page, role, name) {
       ? page.locator('[role="table"] a[href^="#/queue/"], article a[href^="#/queue/"]').first()
       : page.getByRole(role, { name }).first();
   if (!(await el.isVisible().catch(() => false))) return false;
-  await el.click();
+  // A menu item past the bottom of a phone viewport never counts as in view; fire the click.
+  await el.click({ timeout: 5000 }).catch(() => el.dispatchEvent('click'));
   await page.waitForTimeout(350);
   return true;
 }

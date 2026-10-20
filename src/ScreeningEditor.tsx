@@ -10,17 +10,11 @@ import type { Job } from './types';
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Text
-      variant="caption"
-      as="span"
-      style={{
-        color: 'var(--semantic-color-content-secondary)',
-        display: 'block',
-        marginBottom: 'var(--primitive-space-1)',
-      }}
-    >
-      {children}
-    </Text>
+    <Box sx={{ mb: 1 }}>
+      <Text variant="caption" as="div" tone="secondary">
+        {children}
+      </Text>
+    </Box>
   );
 }
 
@@ -94,20 +88,21 @@ export function ScreeningEditor({ job }: { job: Job }) {
             </Tag>
           ))}
         </Chips>
-        <HdsInput
-          size="sm"
-          aria-label="Add a custom dealbreaker"
-          placeholder="Add a dealbreaker…"
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              addCustom();
-            }
-          }}
-          style={{ marginTop: 'var(--primitive-space-2)', maxWidth: 240 }}
-        />
+        <Box sx={{ display: 'contents', '& input': { mt: 2, maxWidth: 240 } }}>
+          <HdsInput
+            size="sm"
+            aria-label="Add a custom dealbreaker"
+            placeholder="Add a dealbreaker…"
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustom();
+              }
+            }}
+          />
+        </Box>
       </Box>
 
       <Box sx={{ '& > *': { width: '100%' } }}>
@@ -116,7 +111,6 @@ export function ScreeningEditor({ job }: { job: Job }) {
           label="Angle (positioning for this role)"
           value={job.angle ?? ''}
           onChange={(e) => updateJob(job.url, { angle: e.target.value })}
-          style={{ width: '100%' }}
         />
       </Box>
     </Box>

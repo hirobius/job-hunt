@@ -30,7 +30,6 @@ function NotesField({ job }: { job: Job }) {
       onBlur={() => {
         if (draft !== shown) updateJob(job.url, { notes: draft });
       }}
-      style={{ width: '100%' }}
     />
   );
 }
@@ -93,17 +92,11 @@ export function TodosNotes({ job }: { job: Job }) {
 
           {todos.length === 0 && (
             <Box>
-              <Text
-                variant="ui"
-                as="p"
-                style={{
-                  color: 'var(--semantic-color-content-secondary)',
-                  margin: 0,
-                  marginBottom: 'var(--primitive-space-2)',
-                }}
-              >
-                No to-dos yet. Add your own below, or start from a short checklist.
-              </Text>
+              <Box sx={{ mb: 2 }}>
+                <Text variant="ui" as="p" tone="secondary">
+                  No to-dos yet. Add your own below, or start from a short checklist.
+                </Text>
+              </Box>
               <UiButton
                 size="sm"
                 variant="secondary"
@@ -135,7 +128,6 @@ export function TodosNotes({ job }: { job: Job }) {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') commitAdd();
               }}
-              style={{ width: '100%' }}
             />
           </Box>
           <UiButton
@@ -153,18 +145,11 @@ export function TodosNotes({ job }: { job: Job }) {
       {/* NOTES: the textarea carries its own label */}
       <Box sx={{ mt: 1.5 }}>
         {job.notes && job.note && job.note !== job.notes && (
-          <Text
-            variant="caption"
-            as="p"
-            style={{
-              color: 'var(--semantic-color-content-secondary)',
-              margin: 0,
-              marginBottom: 'var(--primitive-space-2)',
-              overflowWrap: 'anywhere',
-            }}
-          >
-            From when you saved it: {job.note}
-          </Text>
+          <Box sx={{ mb: 2, overflowWrap: 'anywhere' }}>
+            <Text variant="caption" as="p" tone="secondary">
+              From when you saved it: {job.note}
+            </Text>
+          </Box>
         )}
         <NotesField key={job.url} job={job} />
       </Box>

@@ -16,6 +16,7 @@ import {
   Input as HdsInput,
   Menu,
   Select,
+  Box,
   Stack,
   Surface,
   Switcher,
@@ -39,6 +40,7 @@ import TokenTextarea from './hds-gaps/TokenTextarea';
 import type { TokenTextareaHandle } from './hds-gaps/TokenTextarea';
 import { copyFilled } from './templateCopy';
 import { useAtLeast } from './hds-gaps/useBreakpoint';
+import { DANGER } from './hds-gaps/tone';
 
 const NO_JOB = 'none';
 // The variables a picked job fills, and the job field each one is saved to.
@@ -204,9 +206,11 @@ export default function TemplateDetail({
         </section>
       )}
       <Surface padding="px16" role="region" aria-label="Preview">
-        <Text variant="body" as="p" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-          {filled || 'Nothing to preview yet.'}
-        </Text>
+        <Box sx={{ whiteSpace: 'pre-wrap' }}>
+          <Text variant="body" as="p">
+            {filled || 'Nothing to preview yet.'}
+          </Text>
+        </Box>
       </Surface>
       {missing.length > 0 && (
         <Text variant="caption" as="p" tone="secondary">
@@ -276,10 +280,7 @@ export default function TemplateDetail({
             <Menu.Item onSelect={onDuplicate}>Duplicate</Menu.Item>
             <Menu.Separator />
             {/* HDS Menu.Item has no danger tone; the feedback token marks the destructive item. */}
-            <Menu.Item
-              onSelect={() => setConfirming(true)}
-              style={{ color: 'var(--semantic-color-feedback-error)' }}
-            >
+            <Menu.Item onSelect={() => setConfirming(true)} style={DANGER}>
               Delete
             </Menu.Item>
           </Menu.Content>

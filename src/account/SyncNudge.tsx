@@ -39,26 +39,24 @@ export default function SyncNudge() {
   return (
     <Box as="section" aria-label="Sync your data">
       <Stack direction="row" gap="px8" align="center" justify="space-between">
-        <Stack
-          direction="row"
-          gap="px8"
-          align="center"
-          wrap="wrap"
-          style={{ flex: 1, minWidth: 0 }}
-        >
-          <Stack direction="row" gap="px8" align="start" style={{ flex: '1 1 16rem', minWidth: 0 }}>
-            <Box as="span" sx={{ display: 'inline-flex', pt: 1 }}>
-              <Icon icon={Cloud} />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Stack direction="row" gap="px8" align="center" wrap="wrap">
+            <Box sx={{ flex: '1 1 16rem', minWidth: 0 }}>
+              <Stack direction="row" gap="px8" align="start">
+                <Box as="span" sx={{ display: 'inline-flex', pt: 1 }}>
+                  <Icon icon={Cloud} />
+                </Box>
+                <Text variant="ui" as="p">
+                  <span className="rjb-semibold">Saved in this browser only.</span> Sign in to keep
+                  your jobs on every device.
+                </Text>
+              </Stack>
             </Box>
-            <Text variant="ui" as="p">
-              <span className="rjb-semibold">Saved in this browser only.</span> Sign in to keep your
-              jobs on every device.
-            </Text>
+            <Button size="sm" variant="secondary" onClick={() => setSignInOpen(true)}>
+              Sign in
+            </Button>
           </Stack>
-          <Button size="sm" variant="secondary" onClick={() => setSignInOpen(true)}>
-            Sign in
-          </Button>
-        </Stack>
+        </Box>
         <Button
           size="sm"
           variant="tertiary"

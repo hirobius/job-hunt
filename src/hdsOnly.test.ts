@@ -61,44 +61,48 @@ describe('HDS version pin (#115 Phase 0)', () => {
   });
 });
 
-// Discover redesign (#131): the new Discover parts add no inline `style={{` beyond what they have
-// today (HDS gaps and one-off type tweaks only). Lower a ceiling when you remove one; raising it
-// means a Stack, Box sx or token would have done.
-describe('Discover inline style ceilings (#131)', () => {
-  const CEILINGS: Record<string, number> = {
-    'DiscoverView.tsx': 9,
-    'DiscoverHeader.tsx': 1,
-    'LocationControl.tsx': 3,
-    'TileGrid.tsx': 5,
-    'LiveFeedPanel.tsx': 19,
-    'FeedFit.tsx': 5,
-    'hds-gaps/AsyncState.tsx': 0,
+// Inline styles (#93, #133): every `style={{` in non-test src/**/*.tsx is on this allowlist, each
+// count with the reason HDS can't express it yet. Anything else is an HDS prop, a layout primitive
+// or `Box sx` with token keys. Lower a count when you remove one; never add a file or raise one.
+// Named style constants (`style={SECONDARY}`, `style={DANGER}`) are the hds-gaps idiom, not counted.
+describe('Inline style allowlist (#93)', () => {
+  const ALLOWED: Record<string, number> = {
+    // HDS TabsList hard-codes mb-6 and has no prop to drop it
+    'App.tsx': 1,
+    'JobPage.tsx': 1,
+    // HDS Dialog.Content has no size prop; portalled, so a wrapper can't size it
+    'ManageTrackDialog.tsx': 1,
+    'UseTemplate.tsx': 1,
+    'account/DataToolsProvider.tsx': 1,
+    // TrackerView: the Add job Dialog.Content (as above) + Button has no nowrap prop
+    'TrackerView.tsx': 2,
+    // "Saved" fade: opacity follows state at runtime
+    'JobOverview.tsx': 1,
+    // TileGrid: set-aside opacity (runtime) + two -webkit-line-clamp boxes (no HDS clamp prop)
+    'TileGrid.tsx': 3,
+    // Card has no sx or text-align prop
+    'Onboarding.tsx': 1,
   };
-  it.each(Object.entries(CEILINGS))('%s stays at or under %i', (file, max) => {
-    const n = (readFileSync(join(SRC, file), 'utf8').match(/style=\{\{/g) ?? []).length;
-    expect(n).toBeLessThanOrEqual(max);
-  });
-});
-
-// Design polish (#133): one global ratchet on inline `style={{` in non-test .tsx. It only goes
-// down: lower MAX_INLINE_STYLES when you remove one; raising it means a Stack, Box sx, a
-// token or a hds-gaps stand-in would have done.
-describe('Inline style ratchet (#133)', () => {
-  // equals the count on main (88); lower it as styles are burned down, never raise it
-  const MAX_INLINE_STYLES = 83;
   const tsx = sourceFiles(SRC).filter((f) => f.endsWith('.tsx'));
-  const count = tsx.reduce(
-    (sum, f) => sum + (readFileSync(f, 'utf8').match(/style=\{\{/g) ?? []).length,
-    0,
+  const counts = Object.fromEntries(
+    tsx
+      .map(
+        (f) =>
+          [
+            f.slice(SRC.length + 1),
+            (readFileSync(f, 'utf8').match(/style=\{\{/g) ?? []).length,
+          ] as const,
+      )
+      .filter(([, n]) => n > 0),
   );
 
-  it('counts style={{ in src/**/*.tsx and fails above MAX_INLINE_STYLES', () => {
-    expect(count).toBeLessThanOrEqual(MAX_INLINE_STYLES);
+  it('has no inline style outside the allowlist, and none above its count', () => {
+    for (const [file, n] of Object.entries(counts))
+      expect([file, n]).toEqual([file, Math.min(n, ALLOWED[file] ?? 0)]);
   });
 
-  it('fails when MAX_INLINE_STYLES is set one lower', () => {
-    // the count must equal the constant, so a removed style forces lowering it
-    expect(count).toBeGreaterThan(MAX_INLINE_STYLES - 1);
+  it('lists each file at its exact count, so a removed style forces lowering it', () => {
+    expect(counts).toEqual(ALLOWED);
   });
 
   it('sets no raw font size or weight inline', () => {
@@ -145,7 +149,8 @@ describe('No raw letter-spacing (#191)', () => {
 // a Tag/Badge, pinned is a star. No dot anywhere, the Account trigger included.
 export const ACCENT_BAR =
   /border-?left(?!-?(?:width|style)\b)|borderInlineStart|border-inline-start/i;
-export const STATUS_DOT = /StatusListItem|(?<![\w-])[\w-]*-dot\b|\bdot\b\s*[:=]|borderRadius:\s*['"]50%['"]/;
+export const STATUS_DOT =
+  /StatusListItem|(?<![\w-])[\w-]*-dot\b|\bdot\b\s*[:=]|borderRadius:\s*['"]50%['"]/;
 
 function styleFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

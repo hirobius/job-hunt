@@ -435,17 +435,13 @@ export default function LiveFeedPanel({
 
   return (
     <Box>
-      <Text
-        variant="ui"
-        style={{
-          color: 'var(--semantic-color-content-secondary)',
-          marginBottom: 'calc(var(--primitive-space-1) * 2.5)',
-        }}
-      >
-        Real openings from Hacker News (“Who is hiring” and the freelancer thread), Remotive,
-        Jobicy, Remote OK and the company boards you watch, ranked by relevance. Add your evidence
-        and each one gets a fit. Nothing is kept until you save one.
-      </Text>
+      <Box sx={{ mb: 2.5 }}>
+        <Text variant="ui" tone="secondary">
+          Real openings from Hacker News (“Who is hiring” and the freelancer thread), Remotive,
+          Jobicy, Remote OK and the company boards you watch, ranked by relevance. Add your evidence
+          and each one gets a fit. Nothing is kept until you save one.
+        </Text>
+      </Box>
       <ContextCaption categoryId={categoryId} />
       {sweeping ? (
         <Stack gap="xs">
@@ -479,7 +475,6 @@ export default function LiveFeedPanel({
                 label="Search term"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                style={{ width: '100%' }}
               />
             </Box>
             <Button type="submit" size="sm" variant="primary">
@@ -511,7 +506,6 @@ export default function LiveFeedPanel({
             placeholder="manager, sales"
             value={excludeText}
             onChange={(e) => setExcludeText(e.target.value)}
-            style={{ width: '100%' }}
           />
         </Box>
         <Box sx={{ width: 160 }}>
@@ -522,7 +516,6 @@ export default function LiveFeedPanel({
             placeholder="120000"
             value={floorText}
             onChange={(e) => setFloorText(e.target.value)}
-            style={{ width: '100%' }}
           />
         </Box>
         <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
@@ -555,7 +548,6 @@ export default function LiveFeedPanel({
               placeholder="Austin contract"
               value={saveName}
               onChange={(e) => setSaveName(e.target.value)}
-              style={{ width: '100%' }}
             />
           </Box>
           <Button size="sm" variant="secondary" disabled={!saveName.trim()} onClick={saveSearch}>
@@ -583,12 +575,7 @@ export default function LiveFeedPanel({
       {hiddenNotes.length > 0 && (
         <Box role="status" sx={{ mb: 'xs' }}>
           {hiddenNotes.map((line, i) => (
-            <Text
-              key={i}
-              variant="caption"
-              as="span"
-              style={{ color: 'var(--semantic-color-content-secondary)', display: 'block' }}
-            >
+            <Text key={i} variant="caption" as="div" tone="secondary">
               {line}
             </Text>
           ))}
@@ -611,29 +598,20 @@ export default function LiveFeedPanel({
                   placeholder="jobs.ashbyhq.com/company"
                   value={watchUrl}
                   onChange={(e) => setWatchUrl(e.target.value)}
-                  style={{ width: '100%' }}
                 />
               </Box>
               <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
                 Watch
               </Button>
             </Box>
-            <Text
-              variant="caption"
-              as="span"
-              style={{
-                color: watchError
-                  ? 'var(--semantic-color-feedback-error)'
-                  : 'var(--semantic-color-content-secondary)',
-                display: 'block',
-                marginBottom: 'var(--semantic-space-scale-sm)',
-              }}
-            >
-              {watchError ||
-                (watchedCount
-                  ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
-                  : 'Paste a Greenhouse, Lever, Ashby, Workable or Recruitee job-board link to pull that company’s openings in.')}
-            </Text>
+            <Box sx={{ mb: 'sm' }}>
+              <Text variant="caption" as="div" tone={watchError ? 'danger' : 'secondary'}>
+                {watchError ||
+                  (watchedCount
+                    ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
+                    : 'Paste a Greenhouse, Lever, Ashby, Workable or Recruitee job-board link to pull that company’s openings in.')}
+              </Text>
+            </Box>
 
             {suggestedCount > 0 && (
               <Box sx={{ mb: 'xs' }}>
@@ -686,17 +664,14 @@ export default function LiveFeedPanel({
         </Box>
       )}
       {reading && !loading && (
-        <Stack
-          direction="row"
-          gap="xs"
-          align="center"
-          style={{ marginBottom: 'var(--semantic-space-scale-xs)' }}
-        >
-          <Spinner size="sm" label="Reading company boards" />
-          <Text variant="caption" as="span" role="status" tone="secondary">
-            Read {reading.done} of {reading.total} boards. More openings may appear.
-          </Text>
-        </Stack>
+        <Box sx={{ mb: 'xs' }}>
+          <Stack direction="row" gap="xs" align="center">
+            <Spinner size="sm" label="Reading company boards" />
+            <Text variant="caption" as="span" role="status" tone="secondary">
+              Read {reading.done} of {reading.total} boards. More openings may appear.
+            </Text>
+          </Stack>
+        </Box>
       )}
 
       <AsyncState
@@ -796,7 +771,7 @@ export default function LiveFeedPanel({
           {/* One line, once, instead of a fit badge missing from every row. */}
           {evidence.length === 0 && visible.length > 0 && (
             <Box sx={{ mt: 'xs' }}>
-              <Text variant="caption" as="span" tone="secondary">
+              <Text variant="caption" as="div" tone="secondary">
                 Postings get a fit once you add evidence.{' '}
               </Text>
               <Button size="sm" variant="tertiary" onClick={() => setRefineOpen(true)}>
@@ -805,14 +780,11 @@ export default function LiveFeedPanel({
             </Box>
           )}
           {visible.length > shown && (
-            <Button
-              variant="tertiary"
-              size="sm"
-              onClick={() => setShown((n) => n + PAGE)}
-              style={{ marginTop: 'var(--primitive-space-2)' }}
-            >
-              Show more ({visible.length - shown})
-            </Button>
+            <Box sx={{ mt: 2 }}>
+              <Button variant="tertiary" size="sm" onClick={() => setShown((n) => n + PAGE)}>
+                Show more ({visible.length - shown})
+              </Button>
+            </Box>
           )}
         </Box>
       </AsyncState>
@@ -876,27 +848,21 @@ function PostingRow({
   ]);
   return (
     <Box as="li" sx={{ py: 3, borderBottom: 'thin solid', borderColor: 'border.default' }}>
-      <Box sx={{ minWidth: 0 }}>
-        <Text variant="ui" as="h3" style={{ overflowWrap: 'anywhere' }}>
+      <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+        <Text variant="ui" as="h3">
           <InlineLink href={p.url} externalIcon={false}>
             {p.title}
           </InlineLink>
         </Text>
-        {meta.map((line, i) => (
-          <Text
-            key={i}
-            variant="caption"
-            as="span"
-            style={{
-              color: 'var(--semantic-color-content-secondary)',
-              display: 'block',
-              marginTop: i === 0 ? 'calc(var(--primitive-space-1) * 0.5)' : undefined,
-              overflowWrap: 'anywhere',
-            }}
-          >
-            {line}
-          </Text>
-        ))}
+        {meta.length > 0 && (
+          <Box sx={{ mt: 0.5 }}>
+            {meta.map((line, i) => (
+              <Text key={i} variant="caption" as="div" tone="secondary">
+                {line}
+              </Text>
+            ))}
+          </Box>
+        )}
         {p.titles.length > 0 && (
           <Text variant="caption" as="span" tone="secondary">
             {`Matched ${p.titles.map((t) => `“${t}”`).join(', ')}`}
@@ -942,16 +908,11 @@ function PostingRow({
           <Badge tone="neutral">{p.hit === 'title' ? 'In title' : 'In description'}</Badge>
         </Box>
         {p.snippet && (
-          <Text
-            variant="ui"
-            style={{
-              color: 'var(--semantic-color-content-secondary)',
-              marginTop: 'calc(var(--primitive-space-1) * 1.5)',
-              overflowWrap: 'anywhere',
-            }}
-          >
-            {p.snippet}
-          </Text>
+          <Box sx={{ mt: 1.5 }}>
+            <Text variant="ui" tone="secondary">
+              {p.snippet}
+            </Text>
+          </Box>
         )}
         {fit && (
           <Box sx={{ mt: 'xs' }}>

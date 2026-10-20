@@ -52,17 +52,11 @@ function ChipEditor({
   };
   return (
     <Box>
-      <Text
-        variant="caption"
-        as="span"
-        style={{
-          color: 'var(--semantic-color-content-secondary)',
-          display: 'block',
-          marginBottom: 'var(--primitive-space-1)',
-        }}
-      >
-        {label}
-      </Text>
+      <Box sx={{ mb: 1 }}>
+        <Text variant="caption" as="div" tone="secondary">
+          {label}
+        </Text>
+      </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
         {values.map((v) => (
           <Tag key={v} onClick={() => onChange(values.filter((x) => x !== v))}>
@@ -75,20 +69,21 @@ function ChipEditor({
           </Text>
         )}
       </Box>
-      <HdsInput
-        size="sm"
-        aria-label={`Add ${label}`}
-        placeholder={`Add ${label.toLowerCase()}…`}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            add();
-          }
-        }}
-        style={{ maxWidth: 260 }}
-      />
+      <Box sx={{ display: 'contents', '& input': { maxWidth: 260 } }}>
+        <HdsInput
+          size="sm"
+          aria-label={`Add ${label}`}
+          placeholder={`Add ${label.toLowerCase()}…`}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              add();
+            }
+          }}
+        />
+      </Box>
     </Box>
   );
 }
@@ -110,13 +105,11 @@ function GroupEditor({ groupId }: { groupId: string }) {
           sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center' }}
           key={t.id}
         >
-          <Text
-            variant="caption"
-            as="span"
-            style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}
-          >
-            {t.name}
-          </Text>
+          <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+            <Text variant="caption" as="div">
+              {t.name}
+            </Text>
+          </Box>
           <Button
             size="sm"
             variant="tertiary"
@@ -138,28 +131,30 @@ function GroupEditor({ groupId }: { groupId: string }) {
           '&': { flexDirection: { sm: 'row' } },
         }}
       >
-        <HdsInput
-          size="sm"
-          aria-label="Link name"
-          placeholder="Link name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={{ flex: 1, minWidth: 0 }}
-        />
-        <HdsInput
-          size="sm"
-          aria-label="Link URL"
-          placeholder="https://…"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              addLink();
-            }
-          }}
-          style={{ flex: 1, minWidth: 0 }}
-        />
+        <Box sx={{ display: 'contents', '& input': { flex: 1, minWidth: 0 } }}>
+          <HdsInput
+            size="sm"
+            aria-label="Link name"
+            placeholder="Link name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Box>
+        <Box sx={{ display: 'contents', '& input': { flex: 1, minWidth: 0 } }}>
+          <HdsInput
+            size="sm"
+            aria-label="Link URL"
+            placeholder="https://…"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addLink();
+              }
+            }}
+          />
+        </Box>
         <Button
           variant="secondary"
           size="sm"
@@ -196,16 +191,18 @@ export default function ManageTrackDialog({
       <Dialog.Content
         style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflow: 'hidden' }}
       >
-        <Stack gap="px8" style={{ maxHeight: '85vh' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: '85vh' }}>
           <Dialog.Header>
             <Dialog.Title>Manage track</Dialog.Title>
           </Dialog.Header>
-          <div
-            style={{
+          <Box
+            sx={{
               overflowY: 'auto',
-              padding: '16px 4px',
-              borderTop: '1px solid var(--semantic-color-border-default)',
-              borderBottom: '1px solid var(--semantic-color-border-default)',
+              py: 4,
+              px: 1,
+              borderTop: 'thin solid',
+              borderBottom: 'thin solid',
+              borderColor: 'border.default',
             }}
           >
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
@@ -215,7 +212,6 @@ export default function ManageTrackDialog({
                   label="Track name"
                   value={cat.label}
                   onChange={(e) => updateCategory(cat.id, { label: e.target.value })}
-                  style={{ width: '100%' }}
                 />
               </Box>
               <Switcher gap="tight">
@@ -225,21 +221,14 @@ export default function ManageTrackDialog({
                     label="Location"
                     value={cat.location}
                     onChange={(e) => updateCategory(cat.id, { location: e.target.value })}
-                    style={{ width: '100%' }}
                   />
                 </Box>
                 <Box>
-                  <Text
-                    variant="caption"
-                    as="span"
-                    style={{
-                      color: 'var(--semantic-color-content-secondary)',
-                      display: 'block',
-                      marginBottom: 'var(--primitive-space-1)',
-                    }}
-                  >
-                    Seniority
-                  </Text>
+                  <Box sx={{ mb: 1 }}>
+                    <Text variant="caption" as="div" tone="secondary">
+                      Seniority
+                    </Text>
+                  </Box>
                   <SegmentedControl
                     aria-label="Seniority"
                     size="sm"
@@ -286,7 +275,6 @@ export default function ManageTrackDialog({
                             aria-label="Section name"
                             value={g.label}
                             onChange={(e) => updateGroup(g.id, { label: e.target.value })}
-                            style={{ width: '100%' }}
                           />
                         </Box>
                         <Button
@@ -357,13 +345,13 @@ export default function ManageTrackDialog({
                 }}
               />
             </Box>
-          </div>
+          </Box>
           <Dialog.Footer>
             <Button variant="primary" onClick={onClose}>
               Done
             </Button>
           </Dialog.Footer>
-        </Stack>
+        </Box>
       </Dialog.Content>
     </Dialog>
   );
