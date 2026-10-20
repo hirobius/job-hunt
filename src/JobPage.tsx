@@ -24,6 +24,9 @@ import { useAtLeast } from './hds-gaps/useBreakpoint';
 import JobScreening from './JobScreening';
 import JobInterviews from './JobInterviews';
 import { TodosNotes } from './TodosNotes';
+import JobDocuments from './JobDocuments';
+import { useDocuments } from './documents';
+import { documentsForJob } from './jobDocuments';
 import type { Job } from './types';
 import { SECONDARY } from './hds-gaps/tone';
 
@@ -32,6 +35,7 @@ const withCount = (label: string, n: number) => (n > 0 ? `${label} (${n})` : lab
 function JobSections({ job }: { job: Job }) {
   const [tab, setTab] = useState('overview');
   const openTodos = (job.todos ?? []).filter((t) => !t.done).length;
+  const docCount = documentsForJob(useDocuments(), job.url).length;
   // HDS TabsContent is a padded surface (as for the shell's tabs, see App.tsx BARE_PANEL): make
   // it bare so the section sits on the page, a step under the tab rule.
   const panel = {
@@ -42,7 +46,7 @@ function JobSections({ job }: { job: Job }) {
   } as const;
   return (
     <Tabs value={tab} onValueChange={setTab}>
-      {/* Four tabs can outrun a 390px phone: the fade says more sit past the edge. */}
+      {/* Five tabs can outrun a 390px phone: the fade says more sit past the edge. */}
       <TabsOverflowFade value={tab}>
         <TabsList aria-label="Job sections" style={{ width: '100%', marginBottom: 0 }}>
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -51,6 +55,7 @@ function JobSections({ job }: { job: Job }) {
             {withCount('Interviews', job.events?.length ?? 0)}
           </TabsTrigger>
           <TabsTrigger value="todos">{withCount('To-dos', openTodos)}</TabsTrigger>
+          <TabsTrigger value="documents">{withCount('Documents', docCount)}</TabsTrigger>
         </TabsList>
       </TabsOverflowFade>
       <TabsContent value="overview" style={panel}>
@@ -64,6 +69,9 @@ function JobSections({ job }: { job: Job }) {
       </TabsContent>
       <TabsContent value="todos" style={panel}>
         <TodosNotes key={job.url} job={job} />
+      </TabsContent>
+      <TabsContent value="documents" style={panel}>
+        <JobDocuments job={job} />
       </TabsContent>
     </Tabs>
   );

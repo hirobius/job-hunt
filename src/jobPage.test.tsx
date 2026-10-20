@@ -171,13 +171,13 @@ const sectionTabs = () => screen.getByRole('tablist', { name: 'Job sections' });
 const tab = (name: string | RegExp) => within(sectionTabs()).getByRole('tab', { name });
 
 describe('job page tabs (#130 slice 2)', () => {
-  it('has four tabs, Overview first and selected', () => {
+  it('has five tabs, Overview first and selected', () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
     const names = within(sectionTabs())
       .getAllByRole('tab')
       .map((t) => t.textContent);
-    expect(names).toEqual(['Overview', 'Screening', 'Interviews', 'To-dos']);
+    expect(names).toEqual(['Overview', 'Screening', 'Interviews', 'To-dos', 'Documents']);
     expect(tab('Overview')).toHaveAttribute('aria-selected', 'true');
   });
 
@@ -436,7 +436,7 @@ describe('job page polish and guards (#130 slice 6)', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.getByRole('tablist', { name: 'Job sections' })).toBeInTheDocument();
     if (width >= 1024) expect(rail()).toBeInTheDocument();
-    for (const name of ['Overview', 'Screening', 'Interviews', /To-dos/]) {
+    for (const name of ['Overview', 'Screening', 'Interviews', /To-dos/, /Documents/]) {
       await userEvent.click(tab(name));
       await audit(container);
     }
