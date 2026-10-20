@@ -51,7 +51,7 @@ export const THIRD_PARTIES: ThirdParty[] = [
   {
     name: 'Public job sources',
     purpose:
-      'When you search for openings, check a company or check whether a saved job is still open, your browser may ask these services directly: Hacker News (via Algolia), Remotive, Jobicy, Remote OK, and the Greenhouse, Lever, Ashby, Workable and Recruitee job boards. They receive your IP address and which search or company board the app is checking, never your notes, documents or account.',
+      'When you search for openings, check a company or check whether a saved job is still open, your browser may ask these services directly: Hacker News (via Algolia), Remotive, Jobicy, Remote OK, and the Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio job boards. They receive your IP address and which search or company board the app is checking, never your notes, documents or account.',
     hosts: [
       'https://hn.algolia.com',
       'https://remotive.com',
@@ -63,6 +63,9 @@ export const THIRD_PARTIES: ThirdParty[] = [
       'https://api.ashbyhq.com',
       'https://apply.workable.com',
       'https://*.recruitee.com',
+      'https://api.smartrecruiters.com',
+      'https://*.teamtailor.com',
+      'https://*.jobs.personio.de',
     ],
   },
   {

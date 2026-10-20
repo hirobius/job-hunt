@@ -12,11 +12,10 @@ import {
   slugCandidates,
   type CompanyProbe,
 } from './probe';
-import { boardApiUrl } from './sources/ats';
+import { boardApiUrl, type BoardKind } from './sources/ats';
 import { FetchError, type FetchJson } from './sources/http';
 
-const board = (kind: 'greenhouse' | 'lever' | 'ashby' | 'workable' | 'recruitee', slug: string) =>
-  ({ kind, slug }) as const;
+const board = (kind: BoardKind, slug: string) => ({ kind, slug }) as const;
 
 describe('slugCandidates', () => {
   it.each([
@@ -28,12 +27,26 @@ describe('slugCandidates', () => {
     ['Foo HQ', ['foo-hq', 'foohq', 'foo']],
     ['', []],
     ['Inc', ['inc']],
+    // #216: more variants.
+    [
+      'The Browser Company',
+      ['the-browser-company', 'thebrowsercompany', 'browser-company', 'browsercompany'],
+    ],
+    ['Acme Software', ['acme-software', 'acmesoftware', 'acme']],
+    ['Acme Technologies GmbH', ['acme-technologies', 'acmetechnologies', 'acme']],
+    ['Acme Data Labs', ['acme-data-labs', 'acmedatalabs', 'acme-data', 'acmedata']],
+    ['Société Générale', ['societe-generale', 'societegenerale']],
+    ['Ben & Jerry’s', ['ben-and-jerrys', 'benandjerrys']],
+    ['Personio SE AB', ['personio-se', 'personiose']],
+    ['Acme Corporation', ['acme']],
+    ['The', ['the']],
+    ['linear.app', ['linear-app', 'linearapp']],
   ])('%s', (name, want) => {
     expect(slugCandidates(name)).toEqual(want);
   });
 
-  it('never returns more than 3', () => {
-    expect(slugCandidates('One Two Three Four Labs').length).toBeLessThanOrEqual(3);
+  it('never returns more than 4', () => {
+    expect(slugCandidates('The One Two Three Four Labs').length).toBeLessThanOrEqual(4);
   });
 });
 
@@ -92,6 +105,16 @@ describe('probeBoard', () => {
   });
   it('404 is none', async () => {
     expect((await probeBoard(board('ashby', 'a'), fail(404))).result).toBe('none');
+  });
+  // #216: SmartRecruiters answers an empty list for any name, so empty is no board there.
+  it('an empty SmartRecruiters list is none; a non-empty one is live', async () => {
+    const sr = board('smartrecruiters', 'Acme');
+    expect((await probeBoard(sr, ok({ totalFound: 0, content: [] }))).result).toBe('none');
+    expect(await probeBoard(sr, ok({ content: [{ id: '1' }] }))).toMatchObject({
+      result: 'live',
+      jobs: 1,
+    });
+    expect((await probeBoard(sr, ok({ error: 'x' }))).result).toBe('unknown');
   });
   it.each([
     ['429', fail(429)],
@@ -216,7 +239,7 @@ describe('probeCompanies', () => {
     return out;
   };
 
-  it('tries all five kinds for the first candidate and stops there on a hit', async () => {
+  it('tries all eight kinds for the first candidate and stops there on a hit', async () => {
     const urls: string[] = [];
     const f = world({ [boardApiUrl(board('lever', 'acme-labs'))]: [{}] }, (u) => urls.push(u));
     const [r] = await collect(probeCompanies(['Acme Labs'], { fetchJson: f, kv: memoryKv() }));
@@ -224,16 +247,16 @@ describe('probeCompanies', () => {
       state: 'found',
       hits: [{ board: { kind: 'lever', slug: 'acme-labs' }, jobs: 1 }],
     });
-    expect(urls).toHaveLength(5);
+    expect(urls).toHaveLength(8);
     expect(urls.every((u) => u.includes('acme-labs'))).toBe(true);
   });
 
-  it('moves to later candidates only when nothing hit, 15 requests worst case', async () => {
+  it('moves to later candidates only when nothing hit, 24 requests for 3 candidates', async () => {
     const urls: string[] = [];
     const out = await collect(
       probeCompanies(['Acme Labs'], { fetchJson: world({}, (u) => urls.push(u)), kv: memoryKv() }),
     );
-    expect(urls).toHaveLength(15);
+    expect(urls).toHaveLength(24);
     expect(out[0]).toMatchObject({ state: 'missed', hits: [] });
   });
 
@@ -262,6 +285,25 @@ describe('probeCompanies', () => {
     const [r] = await collect(probeCompanies(['Acme Labs'], { fetchJson: f, kv: memoryKv() }));
     expect(r.state).toBe('missed');
     expect(r.unknown).toEqual([]);
+  });
+
+  it.each(['teamtailor', 'personio'])(
+    'counts a %s connection failure as none when the other ATSs answered',
+    async (host) => {
+      const f: FetchJson = async (url) => {
+        throw new FetchError(url.includes(host) || url.includes('recruitee') ? 0 : 404, url);
+      };
+      const [r] = await collect(probeCompanies(['Acme Labs'], { fetchJson: f, kv: memoryKv() }));
+      expect(r.state).toBe('missed');
+    },
+  );
+
+  it('finds a SmartRecruiters board with openings', async () => {
+    const f = world({
+      [boardApiUrl(board('smartrecruiters', 'acme-labs'))]: { content: [{ id: '1' }, { id: '2' }] },
+    });
+    const [r] = await collect(probeCompanies(['Acme Labs'], { fetchJson: f, kv: memoryKv() }));
+    expect(r.hits).toEqual([{ board: { kind: 'smartrecruiters', slug: 'acme-labs' }, jobs: 2 }]);
   });
 
   it('still reports unknown when nothing could be reached (offline)', async () => {
@@ -296,16 +338,16 @@ describe('probeCompanies', () => {
     const f = world({ ['https://boards-api.greenhouse.io/v1/boards/acme/jobs']: { jobs: [{}] } });
     await collect(probeCompanies(['acme'], { fetchJson: f, kv, now }));
     const first = (f as ReturnType<typeof vi.fn>).mock.calls.length;
-    expect(first).toBe(5);
+    expect(first).toBe(8);
     const [again] = await collect(probeCompanies(['acme'], { fetchJson: f, kv, now }));
     expect((f as ReturnType<typeof vi.fn>).mock.calls.length).toBe(first);
     expect(again).toMatchObject({ state: 'found', hits: [{ jobs: 1 }] });
     t += 15 * 86400e3; // none (14 d) expired, live (30 d) kept
     await collect(probeCompanies(['acme'], { fetchJson: f, kv, now }));
-    expect((f as ReturnType<typeof vi.fn>).mock.calls.length).toBe(first + 4);
+    expect((f as ReturnType<typeof vi.fn>).mock.calls.length).toBe(first + 7);
     t += 20 * 86400e3; // live expired too
     await collect(probeCompanies(['acme'], { fetchJson: f, kv, now }));
-    expect((f as ReturnType<typeof vi.fn>).mock.calls.length).toBe(first + 4 + 5);
+    expect((f as ReturnType<typeof vi.fn>).mock.calls.length).toBe(first + 7 + 8);
   });
 
   it('never caches unknown', async () => {

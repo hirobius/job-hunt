@@ -121,8 +121,8 @@ function AddCompanyContent({
       <Dialog.Header>
         <Dialog.Title>Add a company</Dialog.Title>
         <Dialog.Description>
-          Type a company name and we look for its board on Greenhouse, Lever, Ashby, Workable and
-          Recruitee, or paste the board link.
+          Type a company name and we look for its board on Greenhouse, Lever, Ashby, Workable,
+          Recruitee, SmartRecruiters, Teamtailor and Personio, or paste the board link.
         </Dialog.Description>
       </Dialog.Header>
       <Form noValidate onSubmit={(e) => void submit(e)}>
