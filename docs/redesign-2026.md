@@ -26,7 +26,7 @@ store, sync, route or CSP changes in the polish pass. Verification is local; no 
 - Banners are not page furniture: the sync nudge became one line and the sample-data notice a
   one-line note under the page header.
 - Section heads use the body step; the title step is for the page.
-- Ratcheting guards: an inline-style ceiling, no inline font size or weight, zero lint warnings,
+- Ratcheting guards: an inline-style allowlist, no inline font size or weight, zero lint warnings,
   composed contrast pairs, axe on every route, a 40px touch probe, no uppercase, no running motion
   under reduced motion.
 
@@ -92,12 +92,12 @@ Merged upstream and waiting on the next HDS release: Toast actions (hds#816), `A
 
 ## Measurements
 
-- Inline `style={{` in non-test `.tsx`: 130 (audit), 96 (round 1), 79 now; the ratchet in
-  `hdsOnly.test.ts` fails if the count rises or drops without lowering the ceiling.
+- Inline `style={{` in non-test `.tsx`: 130 (audit), 96 (round 1), 12 now. Each of the 12 is on a
+  per-file allowlist in `hdsOnly.test.ts` with the HDS gap it covers, and any new one fails the test.
 - Lint warnings: 7 (audit) to 0; `npm run lint` fails on any.
 - axe (WCAG A and AA): zero violations on every route, Apply mode included, light and dark, 1440
   and 390 (`e2e/a11y.spec.ts`).
 - Phone touch targets under 40px: 120+ on the first run, 0 now.
-- Bundle (gzip, `npm run build`, 2026-10-20, HDS 0.26.2): index 83.9 kB, react 45.6 kB, vendor
-  139.6 kB, supabase 57.5 kB, vendor CSS 22.2 kB. Discover, Companies and Live postings are lazy
+- Bundle (gzip, `npm run build`, 2026-10-20, HDS 0.26.2): about 84 kB index, 46 kB react,
+  140 kB vendor, 57 kB supabase and 22 kB vendor CSS. Discover, Companies and Live postings are lazy
   chunks of 7 to 9 kB each.
