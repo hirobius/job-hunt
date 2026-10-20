@@ -3,7 +3,14 @@
 // notice at a time, so they never stack; any view raises it through `notifySaved` /
 // `removeWithUndo` / `showNotice`, and the shell renders it once (NoticeHost.tsx).
 import { createStore } from './createStore';
-import { jobIdOf, removeJob } from './store';
+import {
+  addJobOutcome,
+  findJobByUrl,
+  jobIdOf,
+  removeJob,
+  updateJob,
+  type AddOutcome,
+} from './store';
 import { restoreJob, trashJob } from './trash';
 import { titleOf } from './jobRow';
 import type { Job } from './types';
@@ -30,8 +37,10 @@ export const dismissNotice = () => store.set(null);
 export const useNotice = store.use;
 
 /** Say where newly saved jobs went: "Saved to Pipeline · To apply", Open, Undo. `urls` are the
- *  stored URLs of jobs this save added (already-saved ones are left out by the caller). */
-export function notifySaved(urls: string[], label?: string) {
+ *  stored URLs of jobs this save added (already-saved ones are left out by the caller); those in
+ *  `restored` were set aside before, so Undo sets them aside again instead of removing them. Undo
+ *  never removes a job the user has moved past Saved since (#219). */
+export function notifySaved(urls: string[], label?: string, restored: string[] = []) {
   if (!urls.length) return;
   const one = urls.length === 1;
   showNotice({
@@ -42,9 +51,25 @@ export function notifySaved(urls: string[], label?: string) {
         label: 'Open',
         run: () => (one ? openJob(jobIdOf(urls[0])) : navigate({ tab: 'queue', sub: null })),
       },
-      { label: 'Undo', run: () => urls.forEach(removeJob) },
+      {
+        label: 'Undo',
+        run: () =>
+          urls.forEach((u) => {
+            if (restored.includes(u)) updateJob(u, { archived: true });
+            else if (findJobByUrl(u)?.status === 'Saved') removeJob(u);
+          }),
+      },
     ],
   });
+}
+
+/** Quick-save a link and say so when it landed in To apply: a new job or a set-aside one brought
+ *  back (#219). Returns what the save did. */
+export function saveWithNotice(rawUrl: string, label?: string, note?: string): AddOutcome {
+  const out = addJobOutcome(rawUrl, label, note);
+  const job = out === 'added' || out === 'restored' ? findJobByUrl(rawUrl) : undefined;
+  if (job) notifySaved([job.url], label || job.label, out === 'restored' ? [job.url] : []);
+  return out;
 }
 
 /** Put a removed job back and say what happened: back in the Pipeline, or folded into the copy

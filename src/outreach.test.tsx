@@ -111,7 +111,7 @@ afterEach(() => {
 
 const find = async () => {
   await userEvent.click(await screen.findByRole('button', { name: 'Find design-system teams' }));
-  return screen.findByRole('list', { name: 'Design-system teams' });
+  return screen.findByRole('list', { name: 'Companies' });
 };
 
 describe('Teams (design-system teams)', () => {
@@ -127,7 +127,7 @@ describe('Teams (design-system teams)', () => {
     await screen.findByText(/3 teams found · 1 hiring now/);
     await within(list).findByText(/1 matching role · 2 open in all/);
     const names = () =>
-      within(screen.getByRole('list', { name: 'Design-system teams' }))
+      within(screen.getByRole('list', { name: 'Companies' }))
         .getAllByText(/^(Acme Design|Flaky|Quiet Co)( \(opens in new tab\))?$/)
         .map((n) => n.textContent?.replace(' (opens in new tab)', ''));
     expect(names()).toEqual(['Acme Design', 'Flaky']);
@@ -140,7 +140,7 @@ describe('Teams (design-system teams)', () => {
 
     await userEvent.click(screen.getByRole('switch', { name: 'Hiring now' }));
     expect(names()).toEqual(['Acme Design', 'Flaky', 'Quiet Co']);
-    const rows = within(screen.getByRole('list', { name: 'Design-system teams' })).getAllByRole(
+    const rows = within(screen.getByRole('list', { name: 'Companies' })).getAllByRole(
       'listitem',
     );
     const quiet = rows.find((r) => r.textContent?.includes('Quiet Co'))!;
@@ -156,7 +156,6 @@ describe('Teams (design-system teams)', () => {
   it('saves a matching role to the Pipeline in one tap; the shared save notice offers Undo', async () => {
     renderApp();
     await find();
-    await userEvent.click(await screen.findByRole('button', { name: /Show 1 matching role/ }));
     const roles = await screen.findByRole('list', { name: 'Open roles at Acme Design' });
     expect(within(roles).queryByText('Sales Lead')).toBeNull();
     await userEvent.click(within(roles).getByRole('button', { name: 'Save Design Engineer' }));
@@ -253,7 +252,7 @@ describe('Teams (design-system teams)', () => {
     const { container } = renderApp();
     await find();
     await screen.findByText(/3 teams found · 1 hiring now/);
-    await userEvent.click(await screen.findByRole('button', { name: /Show \d+ matching roles?/ }));
+    await screen.findByRole('list', { name: 'Open roles at Acme Design' });
     const results = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });

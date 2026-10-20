@@ -42,6 +42,7 @@ import { readEvidence, writeEvidence } from '../radar/evidenceStore';
 import { readMode, writeMode } from '../trackModes';
 import { emptyBlob, writeBlob } from '../syncBlob';
 import { getTrash, replaceTrash, trashJob } from '../trash';
+import { createDocument, getAllDocuments, replaceDocuments } from '../documents';
 
 const fake = () => h.fake!;
 const NOW = '2026-10-01T00:00:00.000Z';
@@ -53,6 +54,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   replaceTrash([]);
+  replaceDocuments([]);
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
@@ -123,7 +125,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     const menu = await openAccount();
     expect(within(menu).getByText('Signed in as u1@example.test')).toBeInTheDocument();
     // …and the tracker blob it pushed is v9 (no pillars / userTiles).
-    expect(fake().tables.tracker[0].data).toMatchObject({ v: 9 });
+    expect(fake().tables.tracker[0].data).toMatchObject({ v: 10 });
     expect(fake().tables.tracker[0].data).not.toHaveProperty('pillars');
   });
 
@@ -419,6 +421,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       writeEvidence('Led a design system');
       writeMode('trk', 'hybrid');
       starDream('trk', { company: 'Dreamco' });
+      createDocument({ kind: 'resume', title: 'Base résumé', base: true, text: 'cv' });
     };
 
     it('survives sign-out and comes back on a fresh device', async () => {
@@ -428,12 +431,13 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       act(edit);
       await waitFor(() =>
         expect(fake().tables.tracker[0].data).toMatchObject({
-          v: 9,
+          v: 10,
           targets: { trk: [{ login: 'acme' }] },
           filters: { trk: [{ name: 'Austin hybrid' }] },
           evidence: 'Led a design system',
           modes: { trk: 'hybrid' },
           dreams: { trk: [{ company: 'Dreamco' }] },
+          documents: [{ title: 'Base résumé', base: true }],
         }),
       );
 
@@ -448,6 +452,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       // …and a fresh device signing in gets it all back.
       cleanup();
       localStorage.clear();
+      act(() => replaceDocuments([])); // a fresh device's in-memory store
       renderAccount();
       act(() => fake().signIn('u1'));
       await waitFor(() => expect(readTargets('trk').map((t) => t.login)).toEqual(['acme']));
@@ -455,6 +460,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       expect(readEvidence()).toBe('Led a design system');
       expect(readMode('trk')).toBe('hybrid');
       expect(readDreams('trk').map((d) => d.company)).toEqual(['Dreamco']);
+      expect(getAllDocuments().map((d) => d.title)).toEqual(['Base résumé']);
     });
 
     it('first sign-in keeps this device’s entries and unions them with the cloud’s', async () => {
@@ -526,7 +532,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       });
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
       expect(fake().tables.tracker[0].data).toMatchObject({
-        v: 9,
+        v: 10,
         evidence: 'Led a design system',
         modes: { trk: 'hybrid' },
       });
@@ -553,7 +559,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       act(() => {
         window.dispatchEvent(new Event('focus'));
       });
-      await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 9 }));
+      await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 10 }));
       expect(fake().tables.tracker[0].data.trash).toHaveLength(1);
       expect(getTrash().map((r) => r.job.url)).toEqual(['https://example.test/removed']);
     });
@@ -647,7 +653,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       });
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
       expect(fake().tables.tracker[0].data).toMatchObject({
-        v: 9,
+        v: 10,
         evidence: 'Led a design system',
         modes: { trk: 'hybrid' },
       });
@@ -706,7 +712,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       edit();
       renderAccount();
       act(() => fake().signIn('u1'));
-      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(9));
+      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(10));
       act(() => {
         window.dispatchEvent(new Event('focus'));
       });

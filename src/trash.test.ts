@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { addJob, getAllJobs, removeJob, updateJob } from './store';
+import { createDocument, getAllDocuments, replaceDocuments } from './documents';
 import {
   getTrash,
   mergeTrash,
+  deleteForever,
   purgeJob,
   replaceTrash,
   restoreJob,
@@ -103,6 +105,32 @@ describe('trash (Recently removed)', () => {
     purgeJob(A);
     expect(getTrash()).toHaveLength(0);
     expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('Delete forever takes the job’s documents with it; Restore keeps them (#226)', () => {
+    replaceDocuments([]);
+    addJob(A);
+    addJob(B);
+    createDocument({ kind: 'cover', title: 'For A', jobUrl: A, text: 'x' });
+    createDocument({ kind: 'cover', title: 'For B', jobUrl: B, text: 'y' });
+    trashJob(B);
+    restoreJob(B);
+    trashJob(A);
+    deleteForever(A);
+    expect(getTrash()).toHaveLength(0);
+    expect(getAllDocuments().map((d) => d.title)).toEqual(['For B']);
+  });
+
+  it('Delete forever keeps the documents of the same posting saved again since (#226)', () => {
+    replaceDocuments([]);
+    addJob(A);
+    trashJob(A);
+    addJob(A);
+    createDocument({ kind: 'cover', title: 'Cover', jobUrl: A, text: 'hi' });
+    deleteForever(A);
+    expect(getTrash()).toHaveLength(0);
+    expect(getAllJobs()).toHaveLength(1);
+    expect(getAllDocuments().map((d) => d.title)).toEqual(['Cover']);
   });
 
   it('newest first, one entry per job', () => {

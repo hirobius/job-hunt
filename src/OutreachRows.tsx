@@ -8,7 +8,7 @@ import type { Board } from './feed/sources/ats';
 import { removeTarget, useTargets, type Target } from './feed/targets';
 import { SOURCE_LABEL } from './feed/types';
 import { SECONDARY } from './hds-gaps/tone';
-import { listStyle, useWatching } from './outreachShared';
+import { ROWS_CLASS, rowsStyle, useWatching } from './outreachShared';
 
 export type Row = Omit<Target, 'savedAt'>;
 
@@ -30,8 +30,11 @@ export function TargetRow({
   rolesLine,
   star,
   children,
+  showWatch = true,
 }: {
   r: Row;
+  /** False on a row that is already a watched company: its Watch button would only say so. */
+  showWatch?: boolean;
   saved: boolean;
   watching: boolean;
   onSave?: () => void;
@@ -89,7 +92,7 @@ export function TargetRow({
                 </a>
               </Button>
             )}
-            {r.board && (
+            {r.board && showWatch && (
               <Button
                 size="sm"
                 variant="secondary"
@@ -166,7 +169,7 @@ export function SavedTargets({
           )}
         </Text>
       ) : (
-        <ul aria-label="Saved targets" style={listStyle}>
+        <ul aria-label="Saved targets" style={rowsStyle} className={ROWS_CLASS}>
           {targets.map((t) => (
             <TargetRow
               key={t.login}

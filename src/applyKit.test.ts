@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { emptyKit, mergeKit, sanitizeKit } from './applyKit';
-import { followUpDate, followUpJobs, toApplyQueue } from './applyQueue';
+import { emptyKit, filledTemplates, mergeKit, sanitizeKit } from './applyKit';
+import { followUpJobs, toApplyQueue } from './applyQueue';
+import * as applyQueue from './applyQueue';
 import { mergeBlob, readBlob, writeBlob, emptyBlob, BLOB_VERSION } from './syncBlob';
 import type { Job } from './types';
 
@@ -35,10 +36,8 @@ describe('apply queue', () => {
       job('https://a.com/4'),
     ];
     expect(followUpJobs(jobs).map((j) => j.url)).toEqual(['https://a.com/2', 'https://a.com/1']);
-    expect(followUpDate(jobs[0])).toBe('2026-10-17');
-    expect(followUpDate(job('x', { applied: '2026-10-01', followUp: '2026-10-28' }))).toBe(
-      '2026-11-04',
-    );
+    // One follow-up date rule: jobEvents.followUpDate (it counts a snooze), not a second copy here.
+    expect('followUpDate' in applyQueue).toBe(false);
   });
 });
 
@@ -73,15 +72,39 @@ describe('application kit', () => {
   });
 
   it('rides in the sync blob (since v6); an older cloud copy keeps this device kit on refresh', () => {
-    expect(BLOB_VERSION).toBe(9);
+    expect(BLOB_VERSION).toBe(10);
     const local = { ...emptyBlob(), kit: { fields: { name: 'Sam' }, answers: [] } };
     const written = writeBlob(local);
-    expect(written.v).toBe(9);
+    expect(written.v).toBe(10);
     expect(readBlob(written).kit.fields.name).toBe('Sam');
     const oldCloud = readBlob({ v: 5, jobs: [] });
     expect(mergeBlob(oldCloud, local, false).kit.fields.name).toBe('Sam');
     const newCloud = readBlob({ v: 6, kit: { fields: { name: 'Cloud' } } });
     expect(mergeBlob(newCloud, local, false).kit.fields.name).toBe('Cloud');
     expect(mergeBlob(newCloud, local, true).kit.fields.name).toBe('Cloud');
+  });
+});
+
+describe('Apply sheet templates (#239)', () => {
+  const snip = (id: string, body: string, extra = {}) => ({ id, label: id, body, ...extra });
+  it('fills every template for the job, pinned first, kit name for [Your name]', () => {
+    const rows = filledTemplates(
+      [
+        snip('intro', 'Hi [Contact] at [Company], [Your name]'),
+        snip('cover', 'Applying for [Role] · [Missing]', { pinned: true }),
+        snip('blank', '   '),
+      ],
+      job('https://a.com/1', { label: 'Designer', company: 'Acme' }),
+      'Sam',
+    );
+    expect(rows).toEqual([
+      { id: 'cover', label: 'cover', text: 'Applying for Designer · [Missing]' },
+      { id: 'intro', label: 'intro', text: 'Hi [Contact] at Acme, Sam' },
+    ]);
+  });
+  it('names an unlabelled template', () => {
+    expect(filledTemplates([{ id: 'x', label: ' ', body: 'b' }], job('u'))[0].label).toBe(
+      'Untitled',
+    );
   });
 });

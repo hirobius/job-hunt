@@ -79,3 +79,13 @@ posting ids seen at its last check (the best 300) so "Check dream companies" can
 
 v6 is the Application kit (rapid apply), v7 the wide sweep's titles (#220) and v8 the trash (#214),
 so dream companies take v9.
+
+## Addendum (2026-10-19): blob v10, Documents
+
+Documents (`rjb_documents`, `src/documents.ts`, #226) follow the same pattern: optional on read
+(older blobs load with none), seed merge unions documents by id and each shared document's
+Versions by id (a Sent mark on either side stays), cloud wins on refresh only from a v10+ copy (an
+older copy keeps this device's), included in backups. A sample job's Documents never go up or into
+a backup. Normalizing on read keeps at most one Sent Version per kind per Job (the earliest sent).
+Delete forever in Recently removed drops a job's Documents; a job that ages out of the trash leaves
+its Documents as harmless orphans (no sweep).

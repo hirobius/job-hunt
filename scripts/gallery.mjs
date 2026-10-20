@@ -157,8 +157,18 @@ const OVERLAYS = [
   [/^(Pipeline|Tracker)$/, 'job-page-interviews', [['first-job'], ['tab', /^Interviews/]]],
   [/^(Pipeline|Tracker)$/, 'job-page-todos', [['first-job'], ['tab', /^To-dos/]]],
   [/^(Pipeline|Tracker)$/, 'use-template-dialog', [['first-job'], ['button', /^Use template$/]]],
-  // Templates: a row opens its editor (beside the list on a desktop, alone on a phone).
+  // Documents (was Templates, #227): an item opens its editor. It has no tab (#240); the Menu
+  // opens it (an older build's Templates tab, and its rows as links, still work).
   [/^Templates$/, 'template-detail', [['link', /^Cover letter/]]],
+  [
+    /^(Pipeline|Tracker)$/,
+    'template-detail-from-menu',
+    [
+      ['button', /^Menu$/],
+      ['menuitem', /^(Documents|Templates)$/],
+      ['button', /^Cover letter/],
+    ],
+  ],
   [/^(Discover|Companies)$/, 'manage-track-dialog', [['button', /^Manage track$/]]],
   // The location and work-mode popover in the header (#131).
   [
@@ -316,9 +326,17 @@ async function shoot(browser, base, theme, width, manifest) {
         await tools.getByRole('radio', { name: label, exact: true }).click();
         await snap(`${tab} · ${label}`);
       }
-      // The discovery tools, populated: a YC batch through the board probe, and GitHub teams.
-      if (labels.some((l) => /^(Find boards|Boards)$/.test(l))) {
-        await tools.getByRole('radio', { name: /^(Find boards|Boards)$/ }).click();
+      // The companies list's secondary views (#237): Live postings and the list checker, reached
+      // by their links; then the list checker populated with a YC batch through the board probe.
+      const companiesTool = /^(Design-system teams|Teams|Companies)$/;
+      if (labels.some((l) => companiesTool.test(l)))
+        await tools.getByRole('radio', { name: companiesTool }).click();
+      if (await clickIf(page, 'link', /^Live postings from job boards$/)) {
+        await snap(`${tab} · Live postings`);
+        await clickIf(page, 'link', /^Back to companies$/);
+      }
+      if (await clickIf(page, 'link', /^Check a list of companies$/)) {
+        await snap(`${tab} · Check a list of companies`);
         if (await clickIf(page, 'button', /^Load batch$/)) {
           await page.waitForTimeout(500);
           if (await clickIf(page, 'button', /^Find boards$/)) {
@@ -331,9 +349,10 @@ async function shoot(browser, base, theme, width, manifest) {
             await snap(`${tab} · Boards found`);
           }
         }
+        await clickIf(page, 'link', /^Back to companies$/);
       }
-      if (labels.some((l) => /^(Design-system teams|Teams|Companies)$/.test(l))) {
-        await tools.getByRole('radio', { name: /^(Design-system teams|Teams|Companies)$/ }).click();
+      if (labels.some((l) => companiesTool.test(l))) {
+        await tools.getByRole('radio', { name: companiesTool }).click();
         if (await clickIf(page, 'button', /^Find design-system teams$/)) {
           await page
             .getByText(/\d+ teams? found/)
@@ -341,13 +360,18 @@ async function shoot(browser, base, theme, width, manifest) {
             .waitFor({ timeout: 20000 })
             .catch(() => {});
           await page.waitForTimeout(4000); // the teams' boards are read after they are found
-          await clickIf(page, 'button', /^Show \d+ matching roles?$/);
           await snap(`${tab} · Teams found`);
         }
       }
       // Back to the default tool before the overlays below.
       if (labels[0]) await tools.getByRole('radio', { name: labels[0], exact: true }).click();
     }
+  }
+
+  // Documents (Templates before #227) without a tab (#240): open it from the Menu, shoot the list.
+  if (!(await topTabs(page)).includes('Templates')) {
+    await clickIf(page, 'button', /^Menu$/);
+    if (await clickIf(page, 'menuitem', /^(Documents|Templates)$/)) await snap('Documents');
   }
 
   // Let the last toast ("Saved … as a target") expire so it isn't in every overlay shot.
@@ -364,9 +388,10 @@ async function shoot(browser, base, theme, width, manifest) {
       manifest.push({ theme, width, name, file: `${theme}-${width}/${file}`, overlay: true });
     }
     for (let i = 0; i < 2; i++) await page.keyboard.press('Escape');
-    // Back from a job's page to the list (re-clicking the selected Pipeline tab won't leave it).
+    // Back from a job's page (or the tab-less Templates page) to the Pipeline list (re-clicking the
+    // selected Pipeline tab won't leave a job's page).
     await page.evaluate(() => {
-      if (/^#\/queue\/./.test(location.hash)) location.hash = '#/queue';
+      if (/^#\/(queue\/.|copy-deck)/.test(location.hash)) location.hash = '#/queue';
     });
     await page.waitForTimeout(200);
   }
