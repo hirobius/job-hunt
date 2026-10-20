@@ -203,7 +203,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   track, New track `Menu`) + the track `Combobox` + one context `Popover` button ("Spokane, Hybrid")
   holding the only `LocationControl`. **Location is `Category.location`; work mode is per track and syncs,
   `rjb_ui_mode:<categoryId>`** (`src/discoverContext.ts`, `useTrackContext`; panels read it, they take
-  no location props). Tools are one `SegmentedControl` (Teams / Apply / Titles / ATS since #237, full
+  no location props). Tools are one `SegmentedControl` (Teams / Apply / ATS since #223, full
   names from `sm`), wrapped in `hds-gaps/TabsOverflowFade`; the track's sections are `Tabs` under
   "Your sections", shown only for Apply now; slugs unchanged (`#/discover/<tool | groupId>`).
   `TileGrid` cards are equal-height (240px min), with chips parsed from the meta string by
@@ -244,6 +244,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
   "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
   apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
+- **Title filter (#223):** the sweep's list *is* the track's title filter (seed: the track's titles, else
+  its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
+  titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**
+  disclosure beside leave-out / pay / level. The Titles tool is gone: its big-board links sit on the ATS
+  tool ("Big job boards"), and every link there reads the ticked titles (All selected by default).
+  `#/discover/titles` → `#/discover/live` with Calibrate open (hash replaced). Pinned in `titleFilter.test.tsx`.
 - **Privacy and terms (#43, #47):** `#/legal/privacy` and `#/legal/terms` (`LegalPage.tsx`, no tab,
   like Documents; Menu item "Privacy and terms", last before Sign out). The text is data in
   `legal.ts`; `THIRD_PARTIES` must list exactly the CSP `connect-src` hosts (`legal.test.ts` fails

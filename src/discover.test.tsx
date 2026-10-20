@@ -69,7 +69,7 @@ const hrefs = () =>
 
 describe('Discover track context (slice 1)', () => {
   it('reads location from the track and shows one location control for every tool', async () => {
-    window.location.hash = '#/discover/titles';
+    window.location.hash = '#/discover/ats';
     renderApp();
     await openContext();
     expect(await screen.findByLabelText('Location')).toHaveValue('Spokane');
@@ -77,8 +77,8 @@ describe('Discover track context (slice 1)', () => {
     expect(hrefs().some((u) => u.includes('l=Spokane'))).toBe(true);
   });
 
-  it('changing the mode changes the Title search links', async () => {
-    window.location.hash = '#/discover/titles';
+  it('changing the mode changes the big-board search links', async () => {
+    window.location.hash = '#/discover/ats';
     renderApp();
     await openContext();
     await userEvent.click(await screen.findByRole('radio', { name: 'Remote' }));
@@ -101,7 +101,7 @@ describe('Discover track context (slice 1)', () => {
   });
 
   it('typing a location writes it to the track, and the mode survives a remount', async () => {
-    window.location.hash = '#/discover/titles';
+    window.location.hash = '#/discover/ats';
     const first = renderApp();
     await openContext();
     const box = await screen.findByLabelText('Location');
@@ -121,7 +121,7 @@ describe('Discover track context (slice 1)', () => {
     window.location.hash = `#/discover/${g}`;
     renderApp();
     expect(await screen.findByRole('tab', { name: 'Union halls', selected: true })).toBeVisible();
-    expect(within(document.body).queryByText(/Pick a title/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Big job boards' })).not.toBeInTheDocument();
   });
 });
 
@@ -155,7 +155,7 @@ describe('Discover header and tools (slice 2)', () => {
       within(tools)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Apply', 'Teams', 'Titles', 'ATS']);
+    ).toEqual(['Apply', 'Teams', 'ATS']);
     expect(within(tools).getByRole('radio', { name: 'Apply' })).toBeChecked();
     await userEvent.click(within(tools).getByRole('radio', { name: 'ATS' }));
     expect(window.location.hash).toBe('#/discover/ats');
@@ -188,7 +188,7 @@ describe('Discover header and tools (slice 2)', () => {
       within(tools)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Teams', 'Apply', 'Titles', 'ATS']);
+    ).toEqual(['Teams', 'Apply', 'ATS']);
     expect(within(tools).getByRole('radio', { name: 'Teams' })).toBeChecked();
     expect(await screen.findByRole('button', { name: 'Find design-system teams' })).toBeVisible();
     cleanup();
@@ -222,13 +222,13 @@ describe('Discover header and tools (slice 2)', () => {
         .getAllByRole('tab')
         .map((t) => t.textContent),
     ).toEqual(['Apply now', 'Union halls']);
-    await userEvent.click(screen.getByRole('radio', { name: 'Titles' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'ATS' }));
     expect(screen.queryByRole('tablist', { name: 'Your sections' })).toBeNull();
   });
 
-  it('a track with no sections opens on Title search', async () => {
+  it('a track with no sections opens on ATS search', async () => {
     renderApp();
-    expect(await screen.findByRole('radio', { name: 'Titles' })).toBeChecked();
+    expect(await screen.findByRole('radio', { name: 'ATS' })).toBeChecked();
     expect(screen.queryByRole('radio', { name: 'Apply' })).toBeNull();
   });
 
@@ -260,7 +260,6 @@ describe('Discover accessibility', () => {
   it.each([
     ['apply', '#/discover/apply'],
     ['companies', '#/discover/teams'],
-    ['titles', '#/discover/titles'],
     ['ats', '#/discover/ats'],
     ['live', '#/discover/live'],
   ])('has no WCAG A/AA violations on the %s tool', async (_name, hash) => {
