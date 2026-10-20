@@ -11,7 +11,7 @@ import { Box, Button, Icon, Stack, Text } from '@hirobius/design-system';
 import EmptyState from './EmptyState';
 import DocumentEditor from './DocumentEditor';
 import { DOCUMENT_KINDS, getAllDocuments, replaceDocuments, useDocuments } from './documents';
-import { documentIdForSnippet, restoreStarterOutreach } from './snippetMigration';
+import { documentIdForSnippet, kindForSnippet, restoreStarterOutreach } from './snippetMigration';
 import { STARTER_SNIPPETS } from './copyDeckStore';
 import type { Document, DocumentKind } from './documents';
 import { SECONDARY } from './hds-gaps/tone';
@@ -55,10 +55,17 @@ function libraryItems(docs: Document[], kind: DocumentKind): Document[] {
 
 type Open = { id: string } | { kind: DocumentKind } | null;
 
-const starterMissing = (docs: Document[]) =>
-  STARTER_SNIPPETS.some((s) => !docs.some((d) => d.id === documentIdForSnippet(s.id)));
-const restoreStarters = () =>
-  replaceDocuments(restoreStarterOutreach(getAllDocuments(), new Date().toISOString()));
+/** The kinds that hold a starter, and the restore button's label in each. */
+const RESTORE_LABEL: Partial<Record<DocumentKind, string>> = {
+  outreach: 'Restore starter messages',
+  cover: 'Restore starter cover letter',
+};
+const starterMissing = (docs: Document[], kind: DocumentKind) =>
+  STARTER_SNIPPETS.some(
+    (s) => kindForSnippet(s.id) === kind && !docs.some((d) => d.id === documentIdForSnippet(s.id)),
+  );
+const restoreStarters = (kind: DocumentKind) =>
+  replaceDocuments(restoreStarterOutreach(getAllDocuments(), new Date().toISOString(), kind));
 
 export default function DocumentsLibrary({
   openId,
@@ -178,10 +185,10 @@ export default function DocumentsLibrary({
                   ))}
                 </Box>
               )}
-              {kind === 'outreach' && starterMissing(docs) && (
+              {RESTORE_LABEL[kind] && starterMissing(docs, kind) && (
                 <Box>
-                  <Button variant="tertiary" size="sm" onClick={restoreStarters}>
-                    Restore starter messages
+                  <Button variant="tertiary" size="sm" onClick={() => restoreStarters(kind)}>
+                    {RESTORE_LABEL[kind]}
                   </Button>
                 </Box>
               )}

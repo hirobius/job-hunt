@@ -1,7 +1,8 @@
 // Outreach targets (method 3): companies worth writing to, with or without an opening. A saved
 // company entry, not a Job (docs/specs/discovery-methods.md): it lives in local storage per track
 // (`rjb_targets`) and syncs with the account in the blob (ADR 0008). Storage is untrusted.
-import { useMemo, useSyncExternalStore } from 'react';
+import { useMemo } from 'react';
+import { liveStorage } from '../liveStorage';
 import { mergeByKey } from '../mergeByKey';
 import { loadPersisted, savePersisted } from '../persisted';
 import { PROBE_KINDS } from './probe';
@@ -80,10 +81,10 @@ export function sanitizeTargets(raw: unknown): Record<string, Target[]> {
 }
 
 const readAll = () => sanitizeTargets(loadPersisted<unknown>(TARGETS_KEY, {}));
-const listeners = new Set<() => void>();
+const live = liveStorage(TARGETS_KEY);
 const write = (all: Record<string, Target[]>) => {
   savePersisted(TARGETS_KEY, all);
-  listeners.forEach((l) => l());
+  live.notify();
 };
 
 /** Every track's targets (for the sync blob and backup). */
@@ -156,27 +157,9 @@ export function removeTarget(categoryId: string, login: string): Target[] {
   return list;
 }
 
-// The snapshot is the raw stored string: stable between changes, so nothing here caches state that
-// a test (or another tab) could change under it.
-const rawNow = () => {
-  try {
-    return localStorage.getItem(TARGETS_KEY) ?? '';
-  } catch {
-    return '';
-  }
-};
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  window.addEventListener('storage', l);
-  return () => {
-    listeners.delete(l);
-    window.removeEventListener('storage', l);
-  };
-};
-
 /** A track's saved targets, live. */
 export function useTargets(categoryId: string): Target[] {
-  const raw = useSyncExternalStore(subscribe, rawNow, rawNow);
+  const raw = live.useRaw();
   return useMemo(() => {
     try {
       return sanitizeTargets(raw ? JSON.parse(raw) : {})[categoryId] ?? [];
@@ -188,7 +171,7 @@ export function useTargets(categoryId: string): Target[] {
 
 /** Every track's targets, live (the sync provider pushes when this changes). */
 export function useAllTargets(): Record<string, Target[]> {
-  const raw = useSyncExternalStore(subscribe, rawNow, rawNow);
+  const raw = live.useRaw();
   return useMemo(() => {
     try {
       return sanitizeTargets(raw ? JSON.parse(raw) : {});

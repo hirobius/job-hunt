@@ -3,7 +3,8 @@
 // Storage is untrusted: anything malformed reads as "none saved" rather than breaking the panel.
 import type { WorkMode } from '../jobsData';
 import type { Seniority } from '../curation/types';
-import { useMemo, useSyncExternalStore } from 'react';
+import { useMemo } from 'react';
+import { liveStorage } from '../liveStorage';
 import { mergeByKey } from '../mergeByKey';
 import { loadPersisted, savePersisted } from '../persisted';
 
@@ -59,10 +60,10 @@ export function sanitizeFilters(raw: unknown): Record<string, SavedFilter[]> {
 }
 
 const readAll = () => sanitizeFilters(loadPersisted<unknown>(FILTERS_KEY, {}));
-const listeners = new Set<() => void>();
+const live = liveStorage(FILTERS_KEY);
 const write = (all: Record<string, SavedFilter[]>) => {
   savePersisted(FILTERS_KEY, all);
-  listeners.forEach((l) => l());
+  live.notify();
 };
 
 /** Every track's saved searches (for the sync blob and backup). */
@@ -117,25 +118,9 @@ export function deleteFilter(categoryId: string, name: string): SavedFilter[] {
   return list;
 }
 
-const rawNow = () => {
-  try {
-    return localStorage.getItem(FILTERS_KEY) ?? '';
-  } catch {
-    return '';
-  }
-};
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  window.addEventListener('storage', l);
-  return () => {
-    listeners.delete(l);
-    window.removeEventListener('storage', l);
-  };
-};
-
 /** Every track's saved searches, live. */
 export function useAllFilters(): Record<string, SavedFilter[]> {
-  const raw = useSyncExternalStore(subscribe, rawNow, rawNow);
+  const raw = live.useRaw();
   return useMemo(() => {
     try {
       return sanitizeFilters(raw ? JSON.parse(raw) : {});

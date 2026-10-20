@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   documentIdForSnippet,
   migrateSnippets,
+  fileStarterCover,
   restoreStarterOutreach,
   snippetIdOf,
   snippetToDocument,
@@ -103,4 +104,55 @@ describe('restoreStarterOutreach', () => {
     expect(back.map((d) => d.id).sort()).toEqual(all.map((d) => d.id).sort());
     expect(restoreStarterOutreach(all, NOW)).toBe(all);
   });
+
+  it('restores the starter cover letter as a Cover letter', () => {
+    const back = restoreStarterOutreach([], NOW);
+    expect(back.find((d) => d.id === documentIdForSnippet('tpl-cover'))?.kind).toBe('cover');
+  });
+
+  it('restores only the starters of the kind asked for', () => {
+    expect(restoreStarterOutreach([], NOW, 'cover').map((d) => d.id)).toEqual([
+      documentIdForSnippet('tpl-cover'),
+    ]);
+    expect(restoreStarterOutreach([], NOW, 'outreach').map((d) => d.kind)).not.toContain('cover');
+  });
+});
+
+describe('starter cover letter (#260)', () => {
+  it.each([
+    ['tpl-cover', 'cover'],
+    ['tpl-outreach', 'outreach'],
+    ['tpl-followup', 'outreach'],
+    ['mine', 'outreach'],
+  ])('snippet %s migrates as %s', (id, kind) =>
+    expect(snippetToDocument(s({ id }), NOW).kind).toBe(kind),
+  );
+
+  const moved = (over: Partial<Document> = {}): Document => ({
+    id: documentIdForSnippet('tpl-cover'),
+    kind: 'outreach',
+    title: 'My cover',
+    base: true,
+    createdAt: NOW,
+    versions: [
+      { id: 'v1', text: 'old', savedAt: NOW },
+      { id: 'v2', text: 'edited', savedAt: NOW },
+    ],
+    ...over,
+  });
+
+  it('a copy already moved as an Outreach message becomes a Cover letter, same id and text', () => {
+    const out = fileStarterCover([userDoc, moved()]);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toBe(userDoc);
+    expect(out[1]).toEqual({ ...moved(), kind: 'cover' });
+  });
+
+  it.each([
+    ['already a Cover letter', [moved({ kind: 'cover' })]],
+    ['a job copy, not Base', [moved({ base: undefined })]],
+    ['no starter cover at all', [userDoc]],
+  ])('nothing to move when %s: same array back', (_, docs) =>
+    expect(fileStarterCover(docs)).toBe(docs),
+  );
 });
