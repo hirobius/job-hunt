@@ -1,9 +1,9 @@
 // Crash reports (#47): when the app breaks for a real user, a scrubbed report lands in the
 // Supabase table `client_errors` (supabase/migrations/20261020_client_errors.sql), so a bug can be
 // found without the user writing in. No new vendor or key: it is the same Supabase project and
-// public key that sync uses, and the table only accepts inserts (nobody can read it with that key).
+// public key that sync uses (never a user's session), and the table only accepts inserts (nobody can read it with that key).
 // A report never carries personal data: no user id or email, no job text, no URL query or job id.
-import { supabase } from './supabase';
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
 
 export type ErrorKind = 'render' | 'error' | 'rejection';
 
@@ -75,7 +75,26 @@ export function buildReport(
 
 export type SendReport = (report: ErrorReport) => PromiseLike<unknown>;
 
-const sendToSupabase: SendReport = (report) => supabase.from('client_errors').insert(report);
+/** Posts straight to Supabase's REST endpoint with the public key only. The shared client would
+ *  attach a signed-in user's session token, and Supabase's request logs would then tie the report
+ *  to their account; this way a report is anonymous for everyone. */
+export const supabaseSender =
+  (fetchImpl: typeof fetch = fetch): SendReport =>
+  (report) =>
+    fetchImpl(`${SUPABASE_URL}/rest/v1/client_errors`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify(report),
+      credentials: 'omit',
+      keepalive: true,
+    });
+
+const sendToSupabase: SendReport = (report) => supabaseSender()(report);
 
 /** A reporter with its own per-page budget and de-duplication. Sending never throws. */
 export function createReporter(send: SendReport = sendToSupabase) {
@@ -89,7 +108,7 @@ export function createReporter(send: SendReport = sendToSupabase) {
     const key = `${report.message}\n${report.stack?.split('\n')[1] ?? ''}`;
     if (seen.has(key)) return;
     seen.add(key);
-    // Supabase's query builder is only a thenable, and a report must never become a second error.
+    // A report must never become a second error, even if the sender throws synchronously.
     Promise.resolve()
       .then(() => send(report))
       .catch(() => undefined);

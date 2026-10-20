@@ -1,5 +1,6 @@
 // Crash reports (#47) carry no personal data and can't flood the table.
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { SUPABASE_ANON_KEY } from './config';
 import {
   browserOf,
   buildReport,
@@ -10,6 +11,7 @@ import {
   MAX_STACK,
   routeOf,
   scrubText,
+  supabaseSender,
   type ErrorReport,
 } from './errorReport';
 
@@ -76,5 +78,18 @@ describe('error reports (#47)', () => {
   it('never reports from localhost (dev, E2E, gallery)', () => {
     expect(window.location.hostname).toBe('localhost');
     expect(installErrorReporting(async () => undefined)).toBe(false);
+  });
+
+  it('sends with the public key only, never a signed-in session token', async () => {
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 201 }));
+    const report = buildReport('error', new Error('x'), where);
+    await supabaseSender(fetchImpl as unknown as typeof fetch)(report);
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toMatch(/\/rest\/v1\/client_errors$/);
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe(`Bearer ${SUPABASE_ANON_KEY}`);
+    expect(headers.apikey).toBe(SUPABASE_ANON_KEY);
+    expect(init.credentials).toBe('omit');
+    expect(JSON.parse(init.body as string)).toEqual(report);
   });
 });
