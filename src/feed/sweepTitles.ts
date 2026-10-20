@@ -2,7 +2,8 @@
 // of them are on. Kept in `rjb_sweep_titles` and synced in the blob (v7, ADR 0008). A track with no
 // entry uses its own titles, all on; the first edit stores the list. Storage is untrusted: anything
 // malformed reads as "no entry".
-import { useMemo, useSyncExternalStore } from 'react';
+import { useMemo } from 'react';
+import { liveStorage } from '../liveStorage';
 import { loadPersisted, savePersisted } from '../persisted';
 
 export const SWEEP_KEY = 'rjb_sweep_titles';
@@ -53,10 +54,10 @@ export function sanitizeSweeps(raw: unknown): Record<string, SweepTitles> {
 }
 
 const readAll = () => sanitizeSweeps(loadPersisted<unknown>(SWEEP_KEY, {}));
-const listeners = new Set<() => void>();
+const live = liveStorage(SWEEP_KEY);
 const write = (all: Record<string, SweepTitles>) => {
   savePersisted(SWEEP_KEY, all);
-  listeners.forEach((l) => l());
+  live.notify();
 };
 
 /** Every track's sweep titles (for the sync blob). */
@@ -133,25 +134,9 @@ export function removeTitle(categoryId: string, seed: string[], title: string): 
   }));
 }
 
-const rawNow = () => {
-  try {
-    return localStorage.getItem(SWEEP_KEY) ?? '';
-  } catch {
-    return '';
-  }
-};
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  window.addEventListener('storage', l);
-  return () => {
-    listeners.delete(l);
-    window.removeEventListener('storage', l);
-  };
-};
-
 /** Every track's sweep titles, live. */
 export function useAllSweeps(): Record<string, SweepTitles> {
-  const raw = useSyncExternalStore(subscribe, rawNow, rawNow);
+  const raw = live.useRaw();
   return useMemo(() => {
     try {
       return sanitizeSweeps(raw ? JSON.parse(raw) : {});
