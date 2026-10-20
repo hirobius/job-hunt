@@ -13,8 +13,9 @@ export interface FigmaScreen {
   tab: string;
   /** Repo-relative file + its default-exported component. */
   sources: { file: string; component: string }[];
-  /** Frame in the Figma file, "page:node". */
+  /** Frames in the Figma file, "page:node": desktop (1440) and phone (390). */
   nodeId: string;
+  phoneNodeId: string;
   /** Shot basename under docs/figma/. */
   shot: string;
 }
@@ -31,6 +32,7 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
       { file: 'src/JobListCard.tsx', component: 'JobListCard' },
     ],
     nodeId: '18:1316',
+    phoneNodeId: '19:4282',
     shot: 'pipeline',
   },
   {
@@ -40,6 +42,7 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
     tab: 'queue',
     sources: [{ file: 'src/JobPage.tsx', component: 'JobPage' }],
     nodeId: '18:5008',
+    phoneNodeId: '20:3868',
     shot: 'job-page',
   },
   {
@@ -52,6 +55,7 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
       { file: 'src/TileGrid.tsx', component: 'TileGrid' },
     ],
     nodeId: '18:2683',
+    phoneNodeId: '18:2819',
     shot: 'discover',
   },
   {
@@ -66,6 +70,7 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
       { file: 'src/DocumentEditor.tsx', component: 'DocumentEditor' },
     ],
     nodeId: '19:4000',
+    phoneNodeId: '18:3868',
     shot: 'templates',
   },
 ];
@@ -73,5 +78,5 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
 export const figmaFileKey = (url: string): string | undefined =>
   /figma\.com\/(?:design|file)\/([0-9a-zA-Z]+)/.exec(url)?.[1];
 
-export const frameUrl = (screen: FigmaScreen): string =>
-  `${FIGMA_FILE_URL}?node-id=${screen.nodeId.replace(':', '-')}`;
+export const frameUrl = (screen: FigmaScreen, nodeId = screen.nodeId): string =>
+  `${FIGMA_FILE_URL}?node-id=${nodeId.replace(':', '-')}`;

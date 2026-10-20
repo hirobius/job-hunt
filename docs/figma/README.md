@@ -8,12 +8,12 @@ needs a Figma Organization or Enterprise plan and the team is on Professional (d
 The map lives in `src/figmaScreens.ts`; `src/figmaScreens.test.ts` fails if a frame names a file or
 component that no longer exists, or if this page drifts from the map.
 
-| Screen                    | Frame                                                               | Route                      | Source                                                                         |
-| ------------------------- | ------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------ |
-| Pipeline                  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=18-1316 | `#/queue`                  | `src/TrackerView.tsx`, `src/JobsTable.tsx` (1440), `src/JobListCard.tsx` (390) |
-| Job page                  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=18-5008 | `#/queue/<jobId>`          | `src/JobPage.tsx`                                                              |
-| Discover (Companies tab)  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=18-2683 | `#/discover`               | `src/DiscoverView.tsx`, `src/TileGrid.tsx`                                     |
-| Documents (was Templates) | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=19-4000 | `#/copy-deck/<documentId>` | `src/DocumentsView.tsx`, `src/DocumentsLibrary.tsx`, `src/DocumentEditor.tsx`  |
+| Screen                    | Frame (1440)                                                        | Phone frame (390)                                                   | Route                      | Source                                                                         |
+| ------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------ |
+| Pipeline                  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=18-1316 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=19-4282 | `#/queue`                  | `src/TrackerView.tsx`, `src/JobsTable.tsx` (1440), `src/JobListCard.tsx` (390) |
+| Job page                  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=18-5008 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=20-3868 | `#/queue/<jobId>`          | `src/JobPage.tsx`                                                              |
+| Discover (Companies tab)  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=18-2683 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=18-2819 | `#/discover`               | `src/DiscoverView.tsx`, `src/TileGrid.tsx`                                     |
+| Documents (was Templates) | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=19-4000 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=18-3868 | `#/copy-deck/<documentId>` | `src/DocumentsView.tsx`, `src/DocumentsLibrary.tsx`, `src/DocumentEditor.tsx`  |
 
 Shots: `docs/figma/<screen>-1440.png` and `-390.png`, taken on HDS `0.24.1` (the exact pin). Re-take
 them after an HDS upgrade or a layout change: seed sample data plus the Design Systems track (as
