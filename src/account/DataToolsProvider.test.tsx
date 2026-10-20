@@ -63,7 +63,7 @@ const backupFile = (jobs: Job[]) =>
             jobs,
             copydeck: [],
             curation: EMPTY,
-            triage: { pinned: [], dismissed: [] },
+            triage: { dismissed: [] },
             targets: {},
             filters: {},
             evidence: '',
