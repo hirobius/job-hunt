@@ -22,7 +22,6 @@ import {
   setTitleOn,
   useSweep,
 } from './feed/sweepTitles';
-import { SECONDARY } from './hds-gaps/tone';
 
 export function SweepTitlesEditor({
   categoryId,
@@ -54,12 +53,12 @@ export function SweepTitlesEditor({
   return (
     <Disclosure label={`Titles (${active.length})`} defaultOpen={defaultOpen}>
       <Stack gap="xs">
-        <Text variant="caption" as="span" style={SECONDARY}>
+        <Text variant="caption" as="span" tone="secondary">
           Each title that is on is searched in one go. Up to {MAX_SWEEP_ON} at once; saved for this
           track.
         </Text>
         {sweep.titles.length === 0 && (
-          <Text variant="caption" as="span" style={SECONDARY}>
+          <Text variant="caption" as="span" tone="secondary">
             No titles yet. Add one below.
           </Text>
         )}

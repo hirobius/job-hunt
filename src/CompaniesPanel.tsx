@@ -20,7 +20,6 @@ import {
 } from '@hirobius/design-system';
 import { SavedTargets, TargetRow, type Row } from './OutreachRows';
 import { ROWS_CLASS, rowsStyle, useWatching } from './outreachShared';
-import { SECONDARY } from './hds-gaps/tone';
 import {
   findDesignSystemOrgs,
   MAX_ORG_LOOKUPS,
@@ -271,7 +270,7 @@ export default function CompaniesPanel({
     // HDS docs-site rhythm (#241): 48 between sections, 24 under each heading.
     <Stack gap="spacious">
       <Stack direction="row" gap="xs" align="center" justify="space-between" wrap="wrap">
-        <Text variant="ui" style={SECONDARY}>
+        <Text variant="ui" tone="secondary">
           Companies you watch or star, with their open roles.
         </Text>
         <AddCompany categoryId={categoryId} boardUrls={boardUrls} />
@@ -283,7 +282,7 @@ export default function CompaniesPanel({
           <Text variant="body" as="h3" className="rjb-semibold">
             Open roles by company
           </Text>
-          <Text variant="ui" as="p" style={SECONDARY}>
+          <Text variant="ui" as="p" tone="secondary">
             {search
               ? `Companies you watch and companies with public ${search.noun} work on GitHub, the ones with roles that match this track first. Source: GitHub search and the companies' own job boards, no sign-in.`
               : rows.length

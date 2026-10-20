@@ -30,7 +30,6 @@ import { DocumentDownload } from './DocumentDownload';
 import { useDocuments } from './documents';
 import { documentsForJob } from './jobDocuments';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 const withCount = (label: string, n: number) => (n > 0 ? `${label} (${n})` : label);
 
@@ -88,7 +87,7 @@ function JobSections({ job }: { job: Job }) {
 function JobPageSkeleton() {
   return (
     <Box aria-busy="true" sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
-      <Text variant="ui" as="p" role="status" style={SECONDARY}>
+      <Text variant="ui" as="p" role="status" tone="secondary">
         Looking for this job. It may still be syncing to this device.
       </Text>
       <Stack gap="normal" aria-hidden="true">

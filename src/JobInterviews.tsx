@@ -15,7 +15,7 @@ export default function JobInterviews({ job }: { job: Job }) {
         </Text>
       )}
       {!job.events?.length && (
-        <Text variant="ui" as="p" style={SECONDARY}>
+        <Text variant="ui" as="p" tone="secondary">
           No interviews or calls yet. Add the date when one is booked and export it to your
           calendar.
         </Text>

@@ -18,7 +18,6 @@ import { TrySampleButton } from './demo/SampleData';
 import { hasCloudSession } from './demo/loadSample';
 import { addJob, findJobByUrl } from './store';
 import { navigate } from './route';
-import { SECONDARY } from './hds-gaps/tone';
 
 // The guided first run (#132; started as #59 / B1, decision D1). The shell's gate (App.tsx, #128)
 // shows it on Companies for a first run and, behind "Choose a track", on Discover with no tracks.
@@ -102,7 +101,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
               Set up your board
             </Text>
             <Progress value={step} max={STEPS} label={`Step ${step} of ${STEPS}`} />
-            <Text variant="caption" as="p" style={SECONDARY}>
+            <Text variant="caption" as="p" tone="secondary">
               Step {step} of {STEPS}
             </Text>
           </Stack>
@@ -206,7 +205,7 @@ function PickTrack({
       <Text variant="ui" as="h3" className="rjb-semibold">
         Pick a track
       </Text>
-      <Text variant="body" style={SECONDARY}>
+      <Text variant="body" tone="secondary">
         Pick one or more tracks to start with. Each pre-fills search terms and a few links. You can
         edit or add more later.
       </Text>
@@ -214,7 +213,7 @@ function PickTrack({
           offered signed in (a signed-in tracker syncs), so neither is its caption. */}
       {offerSample && !hasCloudSession() && (
         <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="start">
-          <Text variant="caption" as="span" style={SECONDARY}>
+          <Text variant="caption" as="span" tone="secondary">
             Just looking?
           </Text>
           <TrySampleButton />

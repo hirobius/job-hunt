@@ -48,7 +48,6 @@ import {
   type SentVersion,
 } from './jobDocuments';
 import EmptyState from './EmptyState';
-import { SECONDARY } from './hds-gaps/tone';
 import type { Job } from './types';
 
 export interface JobDocumentsProps {
@@ -140,7 +139,7 @@ function UseBaseForm({ job, bases, onDone }: { job: Job; bases: Document[]; onDo
             onChange={setId}
           />
         </Box>
-        <Text variant="caption" as="p" style={SECONDARY}>
+        <Text variant="caption" as="p" tone="secondary">
           The copy is this job’s own: editing it never changes the Base document, and the other way
           round.
         </Text>
@@ -190,7 +189,7 @@ function VersionRow({
           </Text>
           {version.sentAt && <Badge tone="success">Sent</Badge>}
           {version.sentAt && (
-            <Text variant="caption" as="span" style={SECONDARY}>
+            <Text variant="caption" as="span" tone="secondary">
               {`Locked, sent ${when(version.sentAt)}`}
             </Text>
           )}
@@ -205,7 +204,7 @@ function VersionRow({
         </Stack>
       </Stack>
       <Box sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-        <Text variant="caption" as="p" style={SECONDARY}>
+        <Text variant="caption" as="p" tone="secondary">
           {version.text || `(empty ${kindLabel(doc.kind).toLowerCase()})`}
         </Text>
       </Box>
@@ -267,7 +266,7 @@ function DocumentCard({
           </Box>
           <Stack direction="row" gap="tight" align="center" justify="end" wrap="wrap">
             {sentHere && (
-              <Text variant="caption" as="span" style={SECONDARY}>
+              <Text variant="caption" as="span" tone="secondary">
                 Saving adds a new Version; the Sent one stays as it was.
               </Text>
             )}
@@ -283,7 +282,7 @@ function DocumentCard({
           <Disclosure label={`Versions (${doc.versions.length})`} variant="nav">
             <Stack gap="normal">
               {kindSent && !sentHere && (
-                <Text variant="caption" as="p" style={SECONDARY}>
+                <Text variant="caption" as="p" tone="secondary">
                   {`This job already has a Sent ${label} (“${kindSent.doc.title || label}”, v${kindSent.number}).`}
                 </Text>
               )}

@@ -6,7 +6,6 @@ import { Disclosure, InlineLink, Stack, Text, Textarea } from '@hirobius/design-
 import { EVIDENCE_MAX } from './radar/evidenceStore';
 import type { FitGap } from './radar/fitGap';
 import type { Patterns } from './radar/patterns';
-import { SECONDARY } from './hds-gaps/tone';
 
 export function EvidenceEditor({
   text,
@@ -25,7 +24,7 @@ export function EvidenceEditor({
     // otherwise, so the postings lead. Same trigger style as Fit and gap and the patterns roll-up.
     <Disclosure label={`Your evidence (${count})`} defaultOpen={!text && startOpen}>
       <Stack gap="xs">
-        <Text variant="caption" style={SECONDARY}>
+        <Text variant="caption" tone="secondary">
           One skill per line, as “Skill: what shows it (link)”. Each posting then gets a fit, and
           Fit notes only ever cite these. Saved with your account.
         </Text>
@@ -39,7 +38,7 @@ export function EvidenceEditor({
           onChange={(e) => onChange(e.target.value)}
         />
         {text.length >= EVIDENCE_MAX && (
-          <Text variant="caption" role="status" style={SECONDARY}>
+          <Text variant="caption" role="status" tone="secondary">
             Trimmed to the {EVIDENCE_MAX.toLocaleString('en-US')} character limit; anything past it
             is not kept.
           </Text>
@@ -53,7 +52,7 @@ export function FitGapDetails({ fg }: { fg: FitGap }) {
   return (
     <Disclosure label={`Fit and gap (${fg.fit.length + fg.gap.length})`}>
       <Stack gap="xs">
-        <Text variant="caption" style={SECONDARY}>
+        <Text variant="caption" tone="secondary">
           Fit
         </Text>
         {fg.fit.length ? (
@@ -71,7 +70,7 @@ export function FitGapDetails({ fg }: { fg: FitGap }) {
         ) : (
           <Text variant="ui">Nothing it asks for is in your evidence yet.</Text>
         )}
-        <Text variant="caption" style={SECONDARY}>
+        <Text variant="caption" tone="secondary">
           Gap
         </Text>
         {fg.gap.length ? (
@@ -110,7 +109,7 @@ export function PatternsSummary({ patterns }: { patterns: Patterns }) {
           ))}
         </ul>
       ) : (
-        <Text variant="caption" style={SECONDARY}>
+        <Text variant="caption" tone="secondary">
           None yet.
         </Text>
       )}
