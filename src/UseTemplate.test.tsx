@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 import UseTemplate from './UseTemplate';
-import { replaceSnippets } from './copyDeckStore';
+import { setOutreachMessages } from './test/outreach';
 import type { Job } from './types';
 
 const job = {
@@ -26,7 +26,8 @@ const wrap = () =>
     </ToastProvider>,
   );
 
-beforeEach(() => replaceSnippets(SNIPS));
+// The templates are the library's Outreach messages (#227).
+beforeEach(() => setOutreachMessages(SNIPS));
 afterEach(cleanup);
 
 describe('UseTemplate', () => {
@@ -50,18 +51,18 @@ describe('UseTemplate', () => {
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
   });
 
-  it('links to the picked template in Templates (#132)', async () => {
+  it('links to the picked message in Documents (#132, #227)', async () => {
     const user = userEvent.setup();
     wrap();
     await user.click(screen.getByRole('button', { name: 'Use template' }));
-    expect(screen.getByRole('link', { name: 'Manage templates' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Edit in Documents' })).toHaveAttribute(
       'href',
-      '#/copy-deck/b',
+      '#/copy-deck/snippet-b',
     );
     await user.click(screen.getByRole('button', { name: 'Plain note' }));
-    expect(screen.getByRole('link', { name: 'Manage templates' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Edit in Documents' })).toHaveAttribute(
       'href',
-      '#/copy-deck/a',
+      '#/copy-deck/snippet-a',
     );
   });
 

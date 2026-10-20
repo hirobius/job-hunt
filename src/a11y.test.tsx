@@ -4,7 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
-import CopyDeckView from './CopyDeckView';
+import DocumentsView from './DocumentsView';
+import { setOutreachMessages } from './test/outreach';
+import { STARTER_SNIPPETS } from './copyDeckStore';
 import DiscoverView from './DiscoverView';
 import { Onboarding } from './Onboarding';
 import { addJob, getAllJobs, removeJob } from './store';
@@ -48,7 +50,7 @@ afterEach(() => {
 describe('a11y — primary views (no WCAG A/AA violations)', () => {
   const views: [string, React.ReactNode][] = [
     ['TrackerView', <TrackerView />],
-    ['CopyDeckView', <CopyDeckView />],
+    ['DocumentsView', <DocumentsView />],
     ['DiscoverView', <DiscoverView />],
   ];
 
@@ -101,39 +103,24 @@ describe('a11y — first-run Onboarding (#104)', () => {
   });
 });
 
-describe('a11y — Templates (#132)', () => {
-  const viewport = (width: number) =>
-    (window.matchMedia = vi.fn().mockImplementation((query: string) => {
-      const min = /min-width:\s*(\d+)px/.exec(query);
-      return {
-        matches: min ? width >= Number(min[1]) : false,
-        media: query,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-      };
-    }));
+describe('a11y — Documents (#227)', () => {
+  beforeEach(() => setOutreachMessages([...STARTER_SNIPPETS]));
   afterEach(() => {
-    // @ts-expect-error -- jsdom has no matchMedia; restore that
-    delete window.matchMedia;
     window.location.hash = '';
   });
 
   it.each([
-    ['the desktop list beside a template', 1440, '#/copy-deck'],
-    ['a desktop template opened by id', 1440, '#/copy-deck/tpl-cover'],
-    ['the phone list', 390, '#/copy-deck'],
-    ['a phone template (Write tab)', 390, '#/copy-deck/tpl-cover'],
-  ])('%s', async (_name, width, hash) => {
-    viewport(width);
+    ['the library', '#/copy-deck'],
+    ['an Outreach message opened by id', '#/copy-deck/snippet-tpl-cover'],
+  ])('%s', async (_name, hash) => {
     window.location.hash = hash;
-    const { container } = withTheme(<CopyDeckView />);
+    const { container } = withTheme(<DocumentsView />);
     await auditA11y(container);
   });
 
   it('the Delete confirmation', async () => {
-    viewport(1440);
-    window.location.hash = '#/copy-deck/tpl-cover';
-    const { getByRole, findByRole } = withTheme(<CopyDeckView />);
+    window.location.hash = '#/copy-deck/snippet-tpl-cover';
+    const { getByRole, findByRole } = withTheme(<DocumentsView />);
     await userEvent.click(getByRole('button', { name: 'More actions' }));
     await userEvent.click(await findByRole('menuitem', { name: 'Delete' }));
     await findByRole('alertdialog');

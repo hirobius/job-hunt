@@ -1,5 +1,5 @@
 // A toast with action buttons (Open, Undo). HDS `useToast` takes only title/description/tone — no
-// action slot yet (upstream ask: Toast `actions`). Built from HDS Card + Text + Button, pinned to
+// action slot yet (hds#815, fix in hds#816). Built from HDS Card + Text + Button, pinned to
 // the bottom of the viewport, announced politely, and dismissed after `duration` ms. Collapse into
 // HDS Toast when it grows actions.
 import { useEffect, type ReactNode } from 'react';

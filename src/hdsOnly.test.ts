@@ -183,3 +183,21 @@ describe('No accent bars or status dots (#193)', () => {
     expect(STATUS_DOT.test('<Badge tone="warning">Due</Badge>')).toBe(false);
   });
 });
+
+// #146: a workaround goes when its HDS fix ships. 0.26.2 gave `sx` a `base` key (hds#652), so the
+// old "base on the key, override nested under '&'" pattern must not come back.
+describe('Retired HDS workarounds (#146)', () => {
+  it("uses sx's base key, not a nested '&' breakpoint override (hds#652)", () => {
+    const offenders = sourceFiles(SRC).filter((f) =>
+      /'&':\s*\{[^}]*\{\s*(?:xs|sm|md|lg|xl):/.test(readFileSync(f, 'utf8')),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('colours secondary Text with tone, not style={SECONDARY} (hds#655)', () => {
+    const offenders = sourceFiles(SRC).filter((f) =>
+      /<Text\b[^>]*style=\{SECONDARY\}/.test(readFileSync(f, 'utf8')),
+    );
+    expect(offenders).toEqual([]);
+  });
+});

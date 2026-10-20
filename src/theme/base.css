@@ -38,7 +38,7 @@ a:focus-visible,
 
 /* Host type resets for HDS `Text` (#133). Reset-free styles.css leaves heading/paragraph margins to
  * the browser, so rhythm comes from parent Stack gaps only. `.rjb-semibold` is the one weight
- * step the app uses on `ui` headings and names; upstream ask: a `weight` prop on HDS Text (hds#655). */
+ * step the app uses on `ui` headings and names; upstream ask: a `weight` prop on HDS Text (hds#825). */
 h1,
 h2,
 h3,
@@ -113,4 +113,13 @@ p {
  * the fill comes from here. Upstream ask: a real filled weight on HDS Icon. */
 .rjb-icon-filled {
   fill: currentColor;
+}
+
+/* HDS gap (#146): Menu content is overflow-hidden with no height cap, and since 0.26 its items are
+ * 44px on a phone, so a long row menu ran off a 390px screen while the page was scroll-locked.
+ * Cap it to the space Radix measures and let it scroll. Ask: Menu caps its own height
+ * (hds#821). Pinned by e2e/phone-menu.spec.ts. */
+[data-hds] [role='menu'] {
+  max-height: var(--radix-dropdown-menu-content-available-height, none);
+  overflow-y: auto;
 }

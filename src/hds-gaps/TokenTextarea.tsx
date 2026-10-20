@@ -2,7 +2,7 @@
 // `Textarea` is a plain <textarea> and HDS has no token or rich-text field, so this is a
 // contenteditable `role="textbox"` styled with HDS tokens in TokenTextarea.css. The value stays a
 // plain string; every edit that could split a chip (Backspace / Delete beside one, arrows, Enter,
-// paste) goes through the pure helpers in templateEditor.ts. Ask (#221 upstream): a `TokenField`
+// paste) goes through the pure helpers in templateEditor.ts. Ask (hds#826): a `TokenField`
 // / `Textarea` with inline atomic tokens and a caret API. Delete this when it lands.
 import {
   forwardRef,
