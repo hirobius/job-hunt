@@ -49,6 +49,12 @@ const Quiet = ({ children }: { children: ReactNode }) => (
 function NoteEditor({ note }: { note: Document }) {
   const text = latest(note).text;
   const [draft, setDraft] = useState(text);
+  // A newer Version synced in: an untouched draft follows it, so Save never re-saves older text.
+  const [seen, setSeen] = useState(text);
+  if (seen !== text) {
+    if (draft === seen) setDraft(text);
+    setSeen(text);
+  }
   return (
     <Stack gap="tight">
       <Box sx={FULL}>

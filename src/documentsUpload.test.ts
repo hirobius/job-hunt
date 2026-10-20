@@ -1,6 +1,6 @@
 // Final copies (#231): a PDF/Word file attached to a Job as a Document whose one Version carries
 // the file (base64) instead of text. It lives in the synced blob, so the caps keep it small.
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addFinalCopy,
   createDocument,
@@ -85,10 +85,10 @@ describe('uploadError', () => {
       'That file is 600 KB. Uploads can be up to 500 KB.',
     ],
     [
-      'one that would pass the 2 MB total',
+      'one that would pass the 1 MB total',
       { name: 'a.pdf', type: PDF, size: 400 * KB },
       UPLOAD_TOTAL_BYTES - 100 * KB,
-      'Uploads are full (2 MB). Remove one first.',
+      'Uploads are full (1 MB). Remove one first.',
     ],
   ])('%s', (_name, f, used, want) => {
     expect(uploadError(f, used)).toBe(want);
@@ -121,19 +121,35 @@ describe('addFinalCopy', () => {
     expect(getAllDocuments()).toEqual([]);
   });
 
+  it('a full device store refuses loudly and keeps nothing', () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    try {
+      const before = getAllDocuments();
+      expect(addFinalCopy({ kind: 'cover', jobUrl: JOB, file: file() })).toEqual({
+        ok: false,
+        error: "This device's storage is full, so the file wasn't saved. Remove a final copy first.",
+      });
+      expect(getAllDocuments()).toEqual(before);
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
   it('needs a job', () => {
     const r = addFinalCopy({ kind: 'cover', jobUrl: '', file: file() });
     expect(r.ok).toBe(false);
   });
 
-  it('counts what is already uploaded against the 2 MB total', () => {
+  it('counts what is already uploaded against the 1 MB total', () => {
     const big = (n: string) => file({ name: n, size: 500 * KB, data: b64(500 * KB) });
-    for (const n of ['1.pdf', '2.pdf', '3.pdf', '4.pdf'])
+    for (const n of ['1.pdf', '2.pdf'])
       expect(addFinalCopy({ kind: 'note', jobUrl: JOB, file: big(n) }).ok).toBe(true);
-    expect(uploadedBytes(getAllDocuments())).toBe(2000 * KB);
-    expect(addFinalCopy({ kind: 'note', jobUrl: JOB, file: big('5.pdf') })).toEqual({
+    expect(uploadedBytes(getAllDocuments())).toBe(1000 * KB);
+    expect(addFinalCopy({ kind: 'note', jobUrl: JOB, file: big('3.pdf') })).toEqual({
       ok: false,
-      error: 'Uploads are full (2 MB). Remove one first.',
+      error: 'Uploads are full (1 MB). Remove one first.',
     });
   });
 

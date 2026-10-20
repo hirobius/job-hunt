@@ -74,6 +74,12 @@ export default function DocumentEditor({
   const saved = doc ? doc.versions[doc.versions.length - 1].text : '';
   const [title, setTitle] = useState(doc ? doc.title : label);
   const [draft, setDraft] = useState(saved);
+  // A newer Version synced in: an untouched draft follows it, so Save never re-saves older text.
+  const [seen, setSeen] = useState(saved);
+  if (seen !== saved) {
+    if (draft === seen) setDraft(saved);
+    setSeen(saved);
+  }
   const [confirming, setConfirming] = useState(false);
   const outreach = kind === 'outreach';
   const dirty = doc ? draft !== saved : true;

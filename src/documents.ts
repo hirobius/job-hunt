@@ -9,9 +9,9 @@
 // (base64) and no text. Storage choice: the file lives in this synced blob, not Supabase Storage
 // (no storage bucket is set up, and settings are not ours to change). That reuses the Sent lock,
 // sync, backup and drop-with-job, and keeps the file inside the user's RLS-protected row with no
-// public link. The cost is size, so uploads are capped: 500 KB per file, 2 MB per account.
+// public link. The cost is size, so uploads are capped: 500 KB per file, 1 MB per account.
 import { createStore } from './createStore';
-import { loadPersisted, savePersisted } from './persisted';
+import { loadPersisted, savePersisted, trySavePersisted } from './persisted';
 import { dedupKey } from './store';
 import { isSample } from './demo/isSample';
 import type { Job } from './types';
@@ -91,7 +91,9 @@ const jobKey = (d: Document) => (d.jobUrl ? dedupKey(d.jobUrl) : '');
 // --- Final copies (#231) ---
 
 export const UPLOAD_MAX_BYTES = 500 * 1024;
-export const UPLOAD_TOTAL_BYTES = 2 * 1024 * 1024;
+// 1 MB of files is about 1.4M base64 characters: it has to fit in this device's localStorage
+// (about 5 MB) beside every other store, so the total stays well under half of it.
+export const UPLOAD_TOTAL_BYTES = 1024 * 1024;
 const MIME_BY_EXT: Record<string, string> = {
   pdf: 'application/pdf',
   doc: 'application/msword',
@@ -340,7 +342,7 @@ export function setDocumentValues(id: string, values: Record<string, string>) {
 }
 
 /** Attach an uploaded file to a Job as a final copy of a kind: a new Document (titled with the
- *  file name) whose one Version holds the file. The 2 MB total counts every upload already kept.
+ *  file name) whose one Version holds the file. The 1 MB total counts every upload already kept.
  *  The total is checked here, not in sanitizeDocuments, so a merge never silently drops a file. */
 export function addFinalCopy(input: {
   kind: DocumentKind;
@@ -361,7 +363,15 @@ export function addFinalCopy(input: {
     createdAt: now,
     versions: [{ id: newId(), text: '', savedAt: now, file }],
   };
-  replaceDocuments([...store.get(), d]);
+  // savePersisted swallows a full store, which would lose the file (and every later edit) on
+  // reload: write first, and refuse loudly when the device has no room.
+  const next = sanitizeDocuments([...store.get(), d]);
+  if (!trySavePersisted(DOCUMENTS_KEY, next))
+    return {
+      ok: false,
+      error: "This device's storage is full, so the file wasn't saved. Remove a final copy first.",
+    };
+  store.set(next);
   return { ok: true, id: d.id, versionId: d.versions[0].id };
 }
 

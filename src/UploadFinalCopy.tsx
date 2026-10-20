@@ -3,7 +3,16 @@
 // is kept in the synced blob (see the storage note in documents.ts), so the caps are small and the
 // errors name them. Mounted on the job page's Documents tab by JobFinalCopies.tsx.
 import { useRef, useState, type ChangeEvent } from 'react';
-import { Alert, Badge, Button, Checkbox, Select, Stack, Text } from '@hirobius/design-system';
+import {
+  Alert,
+  AlertDialog,
+  Badge,
+  Button,
+  Checkbox,
+  Select,
+  Stack,
+  Text,
+} from '@hirobius/design-system';
 import {
   addFinalCopy,
   DOCUMENT_KINDS,
@@ -18,14 +27,14 @@ import {
   uploadError,
   UPLOAD_MAX_BYTES,
   useDocuments,
+  type Document,
   type DocumentKind,
 } from './documents';
-import { dedupKey } from './store';
+import { documentsForJob, kindLabel } from './jobDocuments';
 import { download } from './download';
 import { SECONDARY } from './hds-gaps/tone';
 
 const KIND_OPTIONS = DOCUMENT_KINDS.map((k) => ({ value: k.kind, label: k.label }));
-const kindLabel = (k: DocumentKind) => DOCUMENT_KINDS.find((x) => x.kind === k)?.label ?? k;
 const ACCEPT =
   '.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const LIST_RESET = { listStyle: 'none', margin: 0, padding: 0 } as const;
@@ -136,51 +145,78 @@ export function UploadFinalCopy({
 
 /** This job's final copies: download each back; remove one that is not Sent. */
 export function FinalCopies({ jobUrl }: { jobUrl: string }) {
-  const key = dedupKey(jobUrl);
-  const copies = useDocuments().filter(
-    (d) => isFinalCopy(d) && d.jobUrl && dedupKey(d.jobUrl) === key,
-  );
+  const copies = documentsForJob(useDocuments(), jobUrl).filter(isFinalCopy);
+  // Removing a file can't be undone: it asks first.
+  const [removing, setRemoving] = useState<Document | null>(null);
   if (!copies.length) return null;
 
   return (
-    <Stack gap="tight" as="ul" style={LIST_RESET}>
-      {copies.map((d) => {
-        const v = d.versions.find((x) => x.file)!;
-        const file = v.file!;
-        const isSent = d.versions.some((x) => x.sentAt);
-        return (
-          <li key={d.id}>
-            <Stack direction="row" gap="tight" align="center" wrap="wrap">
-              <Stack gap="hairline">
-                <Text variant="ui">{file.name}</Text>
-                <Text variant="caption" style={SECONDARY}>
-                  {kindLabel(d.kind)} · {formatBytes(file.size)}
-                </Text>
-              </Stack>
-              {isSent && <Badge tone="success">Sent</Badge>}
-              <Button
-                variant="tertiary"
-                size="sm"
-                aria-label={`Download ${file.name}`}
-                onClick={() => download(file.name, finalFileBlob(file))}
-              >
-                Download
-              </Button>
-              {!isSent && (
+    <>
+      <Stack gap="tight" as="ul" style={LIST_RESET}>
+        {copies.map((d) => {
+          const v = d.versions.find((x) => x.file)!;
+          const file = v.file!;
+          const isSent = d.versions.some((x) => x.sentAt);
+          return (
+            <li key={d.id}>
+              <Stack direction="row" gap="tight" align="center" wrap="wrap">
+                <Stack gap="hairline">
+                  <Text variant="ui">{file.name}</Text>
+                  <Text variant="caption" style={SECONDARY}>
+                    {kindLabel(d.kind)} · {formatBytes(file.size)}
+                  </Text>
+                </Stack>
+                {isSent && <Badge tone="success">Sent</Badge>}
                 <Button
                   variant="tertiary"
                   size="sm"
-                  tone="danger"
-                  aria-label={`Remove ${file.name}`}
-                  onClick={() => removeDocument(d.id)}
+                  aria-label={`Download ${file.name}`}
+                  onClick={() => download(file.name, finalFileBlob(file))}
                 >
-                  Remove
+                  Download
                 </Button>
-              )}
-            </Stack>
-          </li>
-        );
-      })}
-    </Stack>
+                {!isSent && (
+                  <Button
+                    variant="tertiary"
+                    size="sm"
+                    tone="danger"
+                    aria-label={`Remove ${file.name}`}
+                    onClick={() => setRemoving(d)}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </Stack>
+            </li>
+          );
+        })}
+      </Stack>
+      <AlertDialog open={removing !== null} onOpenChange={(o) => !o && setRemoving(null)}>
+        <AlertDialog.Content>
+          <AlertDialog.Header>
+            <AlertDialog.Title>{`Remove “${removing?.title ?? ''}”?`}</AlertDialog.Title>
+            <AlertDialog.Description>
+              The file is deleted. This can't be undone.
+            </AlertDialog.Description>
+          </AlertDialog.Header>
+          <AlertDialog.Footer>
+            <AlertDialog.Cancel asChild>
+              <Button variant="secondary">Cancel</Button>
+            </AlertDialog.Cancel>
+            <AlertDialog.Action asChild>
+              <Button
+                tone="danger"
+                onClick={() => {
+                  if (removing) removeDocument(removing.id);
+                  setRemoving(null);
+                }}
+              >
+                Remove
+              </Button>
+            </AlertDialog.Action>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog>
+    </>
   );
 }

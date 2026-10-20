@@ -40,7 +40,8 @@ export function documentFilename(
 ): string {
   const at = doc.versions.findIndex((v) => v.id === versionId);
   const n = at >= 0 ? at + 1 : doc.versions.length;
-  const who = slug(doc.company ?? '') || slug(job?.company ?? '') || slug(job?.label ?? '');
+  // The job's company first: the document's copy goes stale when the job's company is renamed.
+  const who = slug(job?.company ?? '') || slug(doc.company ?? '') || slug(job?.label ?? '');
   return [BRAND.slug, who, slug(kindLabel(doc)), `v${n}`].filter(Boolean).join('-') + '.' + format;
 }
 

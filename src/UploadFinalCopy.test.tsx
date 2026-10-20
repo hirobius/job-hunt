@@ -124,6 +124,8 @@ describe('FinalCopies', () => {
     expect(within(sentRow).queryByRole('button', { name: /Remove/ })).toBeNull();
     expect(within(sentRow).getByText('Sent')).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Remove draft.pdf' }));
+    const confirm = screen.getByRole('alertdialog', { name: 'Remove “draft.pdf”?' });
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Remove' }));
     expect(getAllDocuments().map((d) => d.title)).toEqual(['sent.pdf']);
     expect(screen.queryByText('draft.pdf')).toBeNull();
   });

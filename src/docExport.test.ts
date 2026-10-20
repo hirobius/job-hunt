@@ -33,12 +33,12 @@ describe('documentFilename', () => {
       `${S}-acme-corp-cover-letter-v2.pdf`,
     ],
     [
-      'company on the document wins',
+      "the job's current company wins over the one stored on the document",
       doc({ company: 'Globex' }),
       'v1',
       job({ company: 'Acme' }),
       'docx',
-      `${S}-globex-cover-letter-v1.docx`,
+      `${S}-acme-cover-letter-v1.docx`,
     ],
     [
       'no company: job title',

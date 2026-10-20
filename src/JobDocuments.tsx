@@ -62,6 +62,9 @@ export interface JobDocumentsProps {
 const when = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
+/** A refused action, said in the tab's Alert. */
+type Message = { title: string; text: string };
+
 /** Fill the column: HDS fields size to their content otherwise. */
 const FULL = { flex: 1, minWidth: 0, '& > *': { width: '100%' } } as const;
 
@@ -219,10 +222,17 @@ function DocumentCard({
   /** The Sent Version of this kind for the Job, if any (on this document or another). */
   kindSent?: SentVersion;
   versionActions?: JobDocumentsProps['versionActions'];
-  onMessage: (msg: string | null) => void;
+  onMessage: (msg: Message | null) => void;
 }) {
   const latest = latestVersion(doc);
   const [draft, setDraft] = useState(latest.text);
+  // A newer Version can arrive from another device: an untouched draft follows it, so Save never
+  // re-saves the older text over it.
+  const [seen, setSeen] = useState(latest.text);
+  if (seen !== latest.text) {
+    if (draft === seen) setDraft(latest.text);
+    setSeen(latest.text);
+  }
   const [sending, setSending] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const headingId = `doc-${doc.id}`;
@@ -308,7 +318,10 @@ function DocumentCard({
             <AlertDialog.Action asChild>
               <Button
                 onClick={() => {
-                  if (sending) onMessage(markSentMessage(markSent(doc.id, sending), doc.kind));
+                  if (sending) {
+                    const text = markSentMessage(markSent(doc.id, sending), doc.kind);
+                    onMessage(text ? { title: 'Not marked as Sent', text } : null);
+                  }
                   setSending(null);
                 }}
               >
@@ -335,7 +348,10 @@ function DocumentCard({
                 tone="danger"
                 onClick={() => {
                   if (!removeDocument(doc.id))
-                    onMessage('A document with a Sent version is locked and can’t be deleted.');
+                    onMessage({
+                      title: 'Not deleted',
+                      text: 'A document with a Sent version is locked and can’t be deleted.',
+                    });
                 }}
               >
                 Delete
@@ -355,7 +371,7 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
   const bases = baseDocuments(all);
   const sent = sentByKind(jobDocs);
   const [form, setForm] = useState<'none' | 'new' | 'base'>('none');
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<Message | null>(null);
   const close = () => setForm('none');
 
   const newButton = (variant: 'primary' | 'secondary') => (
@@ -372,10 +388,10 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
   return (
     <Stack gap="normal">
       {message && (
-        <Alert tone="warning" title="Not marked as Sent">
+        <Alert tone="warning" title={message.title}>
           <Stack gap="tight">
             <Text variant="ui" as="p">
-              {message}
+              {message.text}
             </Text>
             <Box>
               <Button size="sm" variant="tertiary" onClick={() => setMessage(null)}>
