@@ -345,6 +345,7 @@ function DocumentCard({
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
               <Button
+                variant="secondary"
                 tone="danger"
                 onClick={() => {
                   if (!removeDocument(doc.id))

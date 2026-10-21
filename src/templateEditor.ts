@@ -79,3 +79,15 @@ export function templateVariables(value: string): string[] {
   }
   return [...seen.values()];
 }
+
+const CHIP_RANK = new Map<string, number>(TOKEN_CHIPS.map((c, i) => [c.token.slice(1, -1), i]));
+
+/** A Documents row's chips: the known variables in TOKEN_CHIPS order (Company, Role, Contact,
+ *  Angle, Your name), custom ones after in text order; `max` shown and a count of the rest, so a
+ *  row's chips stay on one line on a phone. */
+export function rowChips(names: string[], max = 3): { shown: string[]; more: number } {
+  const rank = (n: string) => CHIP_RANK.get(n) ?? TOKEN_CHIPS.length;
+  const sorted = names.map((n, i) => ({ n, i })).sort((a, b) => rank(a.n) - rank(b.n) || a.i - b.i);
+  const shown = sorted.slice(0, max).map((x) => x.n);
+  return { shown, more: names.length - shown.length };
+}

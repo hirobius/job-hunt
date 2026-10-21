@@ -5,6 +5,7 @@ import {
   splitVariables,
   templateVariables,
   TOKEN_CHIPS,
+  rowChips,
 } from './templateEditor';
 
 describe('insertAt', () => {
@@ -102,5 +103,23 @@ describe('templateVariables', () => {
       'Your name',
       'Pet',
     ]);
+  });
+});
+
+describe('rowChips', () => {
+  it('orders known variables like TOKEN_CHIPS, custom ones after, in text order', () => {
+    expect(rowChips(['Contact', 'Pet', 'Role', 'Company'], 9)).toEqual({
+      shown: ['Company', 'Role', 'Contact', 'Pet'],
+      more: 0,
+    });
+  });
+  it('shows three and counts the rest', () => {
+    expect(rowChips(['Contact', 'Role', 'Company', 'Angle', 'Your name'])).toEqual({
+      shown: ['Company', 'Role', 'Contact'],
+      more: 2,
+    });
+  });
+  it('shows nothing for no variables', () => {
+    expect(rowChips([])).toEqual({ shown: [], more: 0 });
   });
 });

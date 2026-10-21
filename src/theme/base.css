@@ -412,3 +412,26 @@ p {
 .rjb-disclosure-vertical button[aria-expanded='true'] > span[aria-hidden='true'] {
   transform: rotate(180deg) !important;
 }
+
+/* Select trigger text (HDS gap, registry: "Select trigger text centred and wrapping"): HDS Select
+ * centres its value and lets it wrap, so a long job label in "Fill for" on a phone breaks onto two
+ * centred lines and the trigger grows past the 40px fields under it. One start-aligned line with an
+ * ellipsis, like a native select. */
+[data-hds] button[role='combobox'] > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: start;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Bordered danger button in a confirm dialog (HDS gap, registry: "Bordered danger button"; rev-3
+ * mock .btn.danger): HDS draws Button variant="secondary" tone="danger" as a pale tinted fill with a
+ * transparent border, which barely shows on the light dialog and is a maroon block in dark. The
+ * mock's danger confirm has no fill at rest, red text and the neutral edge Cancel has (the secondary
+ * rest border, border.interactive; tone="danger" re-scopes the component border var to red). */
+[data-hds] [role='alertdialog'] button[data-variant='secondary'][data-tone='danger']:not(:hover) {
+  background-color: transparent;
+  border-color: var(--semantic-color-border-interactive);
+}
