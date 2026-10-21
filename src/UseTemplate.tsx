@@ -93,19 +93,22 @@ export default function UseTemplate({ job }: { job: Job }) {
             </div>
             {/* The filled message with its blanks as chips that fill in place (rev-3 A), then
                 "N blanks left"; Copy still works. */}
-            <Card bordered padding="px16" role="region" aria-label="Preview">
-              <BlankText text={filled} job={job} documentId={picked?.documentId} />
-            </Card>
+            <Stack gap="px8">
+              <Card bordered padding="px16" role="region" aria-label="Preview">
+                <BlankText text={filled} job={job} documentId={picked?.documentId} />
+              </Card>
+              {/* A caption row under the Preview, out of the footer so the sheet never clips it. */}
+              {picked && (
+                <Text variant="caption" as="p">
+                  <InlineLink href={documentHref(picked.documentId)}>Edit in Documents</InlineLink>
+                </Text>
+              )}
+            </Stack>
           </Stack>
         )}
+        {/* One primary (rev-3 A); the header X closes the sheet. */}
         <Dialog.Footer>
-          {picked && (
-            <InlineLink href={documentHref(picked.documentId)}>Edit in Documents</InlineLink>
-          )}
-          <Dialog.Close asChild>
-            <Button variant="secondary">Close</Button>
-          </Dialog.Close>
-          <Button onClick={copy} disabled={!picked}>
+          <Button variant="primary" onClick={copy} disabled={!picked}>
             {copied ? 'Copied' : 'Copy'}
           </Button>
         </Dialog.Footer>

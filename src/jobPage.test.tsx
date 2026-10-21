@@ -221,7 +221,21 @@ describe('job page tabs (#130 slice 2)', () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
     await userEvent.click(tab('Screening'));
-    await userEvent.click(screen.getByRole('button', { name: /Screen a job description/ }));
+    // A panel like the others (rev-3): bold heading, a full helper line, an Open button.
+    const jd = screen.getByRole('region', { name: 'Screen a job description' });
+    expect(
+      within(jd).getByRole('heading', { name: 'Screen a job description' }),
+    ).toBeInTheDocument();
+    expect(
+      within(jd).getByText('Paste the posting to get a suggested fit, mode and dealbreakers.'),
+    ).toBeInTheDocument();
+    const toggle = within(jd).getByRole('button', { name: 'Open' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(toggle);
+    expect(within(jd).getByRole('button', { name: 'Close' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
     expect(screen.queryByRole('dialog')).toBeNull();
     await userEvent.type(
       screen.getByRole('textbox', { name: 'Job description' }),

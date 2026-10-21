@@ -1,6 +1,6 @@
 // The job page's Interviews tab (#130): who the contact is, and the interview and call log with
 // its .ics export, in one panel.
-import { Stack, Text } from '@hirobius/design-system';
+import { Box, Stack, Text } from '@hirobius/design-system';
 import InterviewLog, { AddToCalendar } from './InterviewLog';
 import { Panel, PanelBody } from './PipelinePanel';
 import type { Job } from './types';
@@ -13,10 +13,13 @@ export default function JobInterviews({ job }: { job: Job }) {
       title="Interviews and calls"
       count={n}
       countLabel={`${n} booked`}
-      trailing={<AddToCalendar job={job} />}
     >
       <PanelBody>
         <Stack gap="normal">
+          {/* A secondary under the header (rev-3 s-job-interviews), so the title stays on one line. */}
+          <Box>
+            <AddToCalendar job={job} />
+          </Box>
           {job.contact && (
             <Text variant="ui" as="p">
               <Text variant="ui" as="span" tone="secondary">

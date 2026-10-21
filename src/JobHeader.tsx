@@ -14,8 +14,10 @@ import type { Job } from './types';
 /** "← Pipeline": a quiet link-like button back to the list. Its name says where it goes. */
 export function BackToPipeline() {
   return (
+    // No inline-start padding, so the arrow sits on the page gutter like the title (rev-3).
     <Box>
       <Button
+        className="rjb-flush-start"
         variant="tertiary"
         size="md"
         iconLeft={<Icon icon={ArrowLeft} />}
@@ -31,7 +33,7 @@ export function BackToPipeline() {
 export default function JobHeader({ job, showBack = true }: { job: Job; showBack?: boolean }) {
   const applied = job.applied ? shortDate(job.applied) : '';
   return (
-    <Box as="header" sx={{ mb: 'sm' }}>
+    <Box as="header" sx={{ mb: 'lg' }}>
       <Stack gap="normal">
         {showBack && <BackToPipeline />}
         <Stack gap="tight">

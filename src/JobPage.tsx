@@ -33,7 +33,7 @@ function JobSections({ job }: { job: Job }) {
   const [tab, setTab] = useState('overview');
   return (
     <Tabs value={tab} onValueChange={setTab}>
-      <TabsList aria-label="Job sections">
+      <TabsList aria-label="Job sections" className="rjb-job-tabs">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="screening">Screening</TabsTrigger>
         <TabsTrigger value="interviews">
