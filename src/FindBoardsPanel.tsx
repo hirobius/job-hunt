@@ -331,7 +331,10 @@ export default function FindBoardsPanel({
                   showLabel={false}
                   value={batch}
                   onChange={setBatch}
-                  options={recentBatches(new Date()).map((b) => ({ value: b, label: batchLabel(b) }))}
+                  options={recentBatches(new Date()).map((b) => ({
+                    value: b,
+                    label: batchLabel(b),
+                  }))}
                 />
                 <Stack direction="row" gap="inset" align="center" wrap="wrap">
                   <Button
