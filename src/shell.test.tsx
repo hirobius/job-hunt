@@ -46,7 +46,7 @@ const menuOutline = (menu: HTMLElement) =>
   );
 
 const openAccount = async () => {
-  await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
   return screen.findByRole('menu');
 };
 
@@ -70,7 +70,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
     expect(tabs.map((t) => t.textContent)).toEqual(['Companies', 'Pipeline']);
-    expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Menu' })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'More options' })).toBeNull();
@@ -83,7 +83,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(wordmark.className).toMatch(/hds-type-(body|ui)/);
   });
 
-  it('signed out, the account menu reads: device-only line, sign in | data | display | troubleshooting', async () => {
+  it('signed out, the account menu reads: device-only line, sign in | data | display', async () => {
     renderApp();
     const menu = await openAccount();
     expect(menuOutline(menu)).toEqual([
@@ -96,31 +96,21 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Export CSV',
       '---',
       expect.stringMatching(/^item:(Dark|Light) theme$/),
+      expect.stringMatching(/^item:(Compact|Comfortable) spacing$/),
       'item:Send feedback',
       'item:Privacy and terms',
-      '---',
-      'item:Reload app',
-      'item:Reset local data…',
     ]);
   });
 
-  it('Reset local data asks first and says what goes; Cancel keeps everything (rev-3 O)', async () => {
-    addJob('https://acme.example/jobs/9', 'Welder');
+  it('the trigger is an icon-only "Menu" button: no word, no unsynced dot', async () => {
+    addJob('https://acme.example/jobs/dot', 'Design Engineer');
+    window.location.hash = '#/queue';
     renderApp();
-    const menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Reset local data…' }));
-    const dialog = await screen.findByRole('alertdialog', { name: 'Reset local data?' });
-    expect(dialog).toHaveTextContent(/This deletes everything in this browser: 1 job/);
-    expect(within(dialog).getByRole('button', { name: 'Back up first' })).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
-    expect(getAllJobs().map((j) => j.label)).toContain('Welder');
-  });
-
-  it('the trigger is the HDS Avatar (rev-3 P): a person icon signed out, no dot with nothing to sync', async () => {
-    renderApp();
-    const account = await screen.findByRole('button', { name: 'Account' });
+    const account = await screen.findByRole('button', { name: 'Menu' });
+    expect(account).toHaveAttribute('aria-label', 'Menu');
     expect(account.textContent?.trim()).toBe('');
     expect(account.querySelector('svg')).not.toBeNull();
+    expect(account.querySelector('[class*="dot"]')).toBeNull();
   });
 
   it('data controls left the Pipeline toolbar', () => {
@@ -166,12 +156,12 @@ describe('app shell (#115 Phase 1)', () => {
   });
 });
 
-describe('not-synced cue (rev-3 P)', () => {
+describe('sync nudge (#115 Phase 1)', () => {
   beforeEach(() => {
-    window.location.hash = '#/queue';
+    window.location.hash = '#/queue'; // the nudge sits over the Pipeline list only (#236)
   });
 
-  // The cue says jobs live only here, so it needs some.
+  // The nudge offers to sync data, so it needs some.
   beforeEach(() => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
   });
@@ -179,35 +169,51 @@ describe('not-synced cue (rev-3 P)', () => {
   it('is not shown on a first visit with nothing to sync', async () => {
     removeJob('https://acme.example/jobs/1');
     renderApp();
-    await screen.findByRole('button', { name: 'Account' });
+    await screen.findByRole('button', { name: 'Menu' });
     await new Promise((r) => setTimeout(r, 0)); // let the session check settle
-    expect(screen.queryByRole('button', { name: 'Account, not synced' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
   });
 
-  it('signed out with jobs, the Account avatar carries it on every route; no banner', async () => {
-    for (const hash of ['#/queue', '#/copy-deck']) {
-      window.location.hash = hash;
-      const { unmount } = renderApp();
-      const account = await screen.findByRole('button', { name: 'Account, not synced' });
-      expect(account).toHaveAttribute('title', 'Saved on this device only');
-      expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
-      unmount();
-    }
-  });
-
-  it('Sign in to sync in the menu opens a dialog with the email field', async () => {
+  it('signed out, a one-time callout offers sync instead of a sign-in form', async () => {
     renderApp();
-    const menu = await openAccount();
-    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Sign in to sync…' }));
+    const nudge = await screen.findByRole('region', { name: 'Sync your data' });
+    expect(within(nudge).getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /email/i })).toBeNull();
+  });
+
+  it('is a Pipeline-only row; elsewhere the Account trigger carries a not-synced cue (#133)', async () => {
+    window.location.hash = '#/copy-deck';
+    renderApp();
+    const account = await screen.findByRole('button', { name: 'Menu' });
+    expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
+    expect(account).toHaveAttribute('title', 'Saved on this device only');
+  });
+
+  it('dismissing it is remembered', async () => {
+    const { unmount } = renderApp();
+    const nudge = await screen.findByRole('region', { name: 'Sync your data' });
+    await userEvent.click(within(nudge).getByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
+    unmount();
+    renderApp();
+    await screen.findByRole('button', { name: 'Menu' });
+    await new Promise((r) => setTimeout(r, 0)); // let the session check settle
+    expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
+  });
+
+  it('Sign in opens a dialog with the email field', async () => {
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
     const dialog = await screen.findByRole('dialog', { name: 'Sign in' });
     expect(within(dialog).getByRole('textbox', { name: /email/i })).toBeInTheDocument();
   });
 
-  it('signed in, the avatar shows your initial with no dot, and the menu the sync status', async () => {
+  it('signed in, the nudge is gone and the menu shows the sync status', async () => {
     renderApp();
     act(() => fake().signIn('u1'));
-    const account = await screen.findByRole('button', { name: 'Account' });
-    await waitFor(() => expect(account.textContent).toBe('U'));
+    await waitFor(() =>
+      expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull(),
+    );
     const menu = await openAccount();
     await within(menu).findByText('Synced');
     expect(menuOutline(menu)).toEqual([
@@ -220,11 +226,9 @@ describe('not-synced cue (rev-3 P)', () => {
       'item:Export CSV',
       '---',
       expect.stringMatching(/^item:(Dark|Light) theme$/),
+      expect.stringMatching(/^item:(Compact|Comfortable) spacing$/),
       'item:Send feedback',
       'item:Privacy and terms',
-      '---',
-      'item:Reload app',
-      'item:Reset local data…',
       '---',
       'item:Sign out',
       'item:Delete my data',
@@ -276,7 +280,7 @@ describe('routes keep working (#115 Phase 1)', () => {
       renderApp();
       await screen.findByRole('heading', { level: 2 });
       const user = userEvent.setup();
-      screen.getByRole('button', { name: /^Account/ }).focus();
+      screen.getByRole('button', { name: 'Menu' }).focus();
       await user.tab();
       expect(screen.getByRole('tab', { name: 'Companies' })).toHaveFocus();
       expect(window.location.hash).toBe(hash);

@@ -103,13 +103,6 @@ export function effectiveHistory(job: Job): StatusChange[] {
   return out;
 }
 
-/** "Saved 5 days ago" from the job's first Saved entry; empty when it has no saved date. */
-export function savedAgo(job: Job, now: Date = new Date()): string {
-  const d = daysSince(job.history?.find((h) => h.status === 'Saved')?.at, now);
-  if (d == null) return '';
-  return d <= 0 ? 'Saved today' : `Saved ${d} ${d === 1 ? 'day' : 'days'} ago`;
-}
-
 /**
  * Apply a status transition. Stamps `applied` on first entry to Applied, and appends a dated
  * entry to `history` only when the status actually changes.

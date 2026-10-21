@@ -21,7 +21,7 @@ test('opens on Companies setup; the sample pipeline lists due follow-ups', async
   await expect(followUps).toBeVisible();
   await followUps.getByRole('button', { name: 'Follow up: UX Researcher' }).click();
   const dialog = page.getByRole('dialog', { name: 'Follow up' });
-  await expect(dialog).toContainText('UX Researcher role');
+  await expect(dialog.getByRole('textbox', { name: 'Message' })).toHaveValue(/UX Researcher/);
   await dialog.getByRole('button', { name: 'Copy message' }).click();
   await dialog.getByRole('button', { name: 'Mark as sent' }).click();
   await expect(dialog.getByText('Follow-up sent. Next one due in 7 days.')).toBeVisible();

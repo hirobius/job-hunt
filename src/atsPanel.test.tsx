@@ -34,10 +34,6 @@ const renderApp = () =>
   );
 
 beforeEach(() => {
-  // Radix Select measures and scrolls; jsdom has neither.
-  Element.prototype.hasPointerCapture ??= () => false;
-  Element.prototype.releasePointerCapture ??= () => {};
-  Element.prototype.scrollIntoView ??= () => {};
   h.fake?.reset();
   localStorage.clear();
   replaceCurationState(EMPTY_CURATION);
@@ -88,8 +84,8 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
       new URL(initialSearchLinks[0].getAttribute('href')!).searchParams.get('q') ?? '';
     expect(initialQuery).not.toContain('(contract OR freelance OR fractional)');
 
-    await user.click(screen.getByRole('combobox', { name: /^Engagement/ }));
-    await user.click(await screen.findByRole('option', { name: 'Contract only' }));
+    const contractOption = screen.getByRole('radio', { name: 'Contract only' });
+    await user.click(contractOption);
 
     // Re-query tile search links after state change (key changes re-mount the tile cards).
     const updatedSearchLinks = atsLinks();
@@ -97,8 +93,8 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
       new URL(updatedSearchLinks[0].getAttribute('href')!).searchParams.get('q') ?? '';
     expect(updatedQuery).toContain('(contract OR freelance OR fractional)');
 
-    // 3. The one-query links (Search all boards, Search the top N) have 32 words or fewer.
-    const topNLinks = screen.getAllByRole('link', { name: /Search the top|Search all boards/i });
+    // 3. Each "Search the top N" href has 32 words or fewer.
+    const topNLinks = screen.getAllByRole('link', { name: /Search the top/i });
     expect(topNLinks.length).toBeGreaterThanOrEqual(2);
     for (const link of topNLinks) {
       const href = link.getAttribute('href')!;

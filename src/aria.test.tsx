@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import DiscoverView from './DiscoverView';
@@ -31,12 +31,12 @@ describe('aria wiring', () => {
     expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
   });
 
-  it('Discover sections are one named region with the open section under its heading', () => {
-    window.location.hash = '#/discover/apply'; // the sections live under Apply now
+  it('Discover tab is associated with its tabpanel both ways', () => {
+    window.location.hash = '#/discover/apply'; // the section tabs live under Apply now
     withTheme(<DiscoverView />);
-    // Stacked, not tabs (rev-3 G): no tab without its panel.
-    expect(screen.queryByRole('tab')).toBeNull();
-    const region = screen.getByRole('region', { name: 'Your sections' });
-    expect(within(region).getAllByRole('heading', { level: 3 }).length).toBeGreaterThan(0);
+    const selected = screen.getByRole('tab', { selected: true });
+    const panel = screen.getByRole('tabpanel');
+    expect(selected.getAttribute('aria-controls')).toBe(panel.getAttribute('id'));
+    expect(panel.getAttribute('aria-labelledby')).toBe(selected.getAttribute('id'));
   });
 });

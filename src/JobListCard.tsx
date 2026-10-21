@@ -1,64 +1,77 @@
-// One job in the Pipeline's Jobs panel on a phone or tablet (#129; rev-3 H anatomy): a badge row
-// above the title (fit first, then status, then a due follow-up), the title on its own line, the
-// company, the facts with icons (HDS Card.Facts), then the row's one next step and its menu as
-// 40px tap targets. The title links to the job's page, where everything else lives.
+// One job in the Pipeline on a phone or tablet (#129): a flat row split by a hairline (no card,
+// #241) whose title owns its line (no 1–2-letter breaks at 390px), a facts line, a status line,
+// then the row's one next step
+// and its menu as 40px tap targets. The title links to the job's page, where everything else lives.
 import { useId } from 'react';
-import { Calendar, MapPin } from 'lucide-react';
-import { Box, Card, InlineLink, Stack, Text } from '@hirobius/design-system';
+import { Badge, Box, InlineLink, Stack, Text, VisuallyHidden } from '@hirobius/design-system';
 import { jobIdOf } from './store';
 import { jobHash } from './route';
 import { rowView } from './jobRow';
-import { JobBadges, RowMenu, RowPrimaryAction } from './JobRowParts';
-import { PanelRow } from './PipelinePanel';
-import { shortDate } from './metaLines';
-import { savedAgo } from './jobState';
+import { RowMenu, RowPrimaryAction, StarIcon, StatusBadge } from './JobRowParts';
 import type { Job } from './types';
 
 export default function JobListCard({ job }: { job: Job }) {
   const titleId = useId();
   const row = rowView(job);
-  const applied = job.applied ? shortDate(job.applied) : '';
-  const saved = savedAgo(job);
-  const facts = [
-    job.location ? { icon: MapPin, label: job.location } : null,
-    applied
-      ? { icon: Calendar, label: `Applied ${applied}` }
-      : saved
-        ? { icon: Calendar, label: saved }
-        : null,
-  ].filter((f) => f !== null);
 
   return (
-    // HDS entity card anatomy (0.30): Header (badges above the title), the company, Facts, then
-    // Footer with the actions. Flat inside the Jobs panel: no border of its own, a hairline above.
-    <PanelRow as="div" flush>
-      <Card as="article" aria-labelledby={titleId} padding="none" className="border-0">
-        <Card.Header metadata={<JobBadges job={job} star />}>
-          {/* Body size, not Card.Title's title size: the page title stays the biggest text. */}
-          <Stack gap="px4">
-            <Text variant="body" as="h3" weight="bold" className="rjb-card-title" id={titleId}>
-              <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
-                {row.title}
-              </InlineLink>
+    <Box
+      as="article"
+      aria-labelledby={titleId}
+      sx={{ py: 'sm', borderBottom: 'thin solid', borderColor: 'border.default' }}
+    >
+      <Stack gap="px8">
+        {/* Title and menu share the first row, so a card with no next step has no empty footer. */}
+        <Stack direction="row" gap="px8" align="start" justify="space-between">
+          <Box sx={{ minWidth: 0 }}>
+            <Text variant="body" as="h3" className="rjb-semibold">
+              <Stack direction="row" gap="px4" align="start">
+                {/* Starred jobs show a filled star, as in the table. */}
+                {row.pinned && (
+                  <>
+                    <StarIcon on />
+                    <VisuallyHidden>Starred</VisuallyHidden>
+                  </>
+                )}
+                <Box as="span" id={titleId} sx={{ overflowWrap: 'anywhere', minWidth: 0 }}>
+                  <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
+                    {row.title}
+                  </InlineLink>
+                </Box>
+              </Stack>
             </Text>
-            {job.company && (
-              <Text variant="ui" as="p">
-                {job.company}
-              </Text>
-            )}
-          </Stack>
-        </Card.Header>
-        {facts.length > 0 && <Card.Facts items={facts} />}
-        {/* The one next step on the left, the menu on the right, on one centre line. */}
-        <Card.Footer>
-          <Box sx={{ flex: '1 1 auto' }}>
-            <Stack direction="row" gap="px8" align="center" justify="space-between">
-              {row.next ? <RowPrimaryAction job={job} size="md" /> : <span />}
-              <RowMenu job={job} size="md" />
-            </Stack>
           </Box>
-        </Card.Footer>
-      </Card>
-    </PanelRow>
+          <RowMenu job={job} size="md" />
+        </Stack>
+        {row.factLines.map((line, i) => (
+          <Text key={i} variant="caption" as="p" tone="secondary">
+            {line}
+          </Text>
+        ))}
+        {/* Badges, not text: status, fit, when and follow-up are chips that wrap, so no dotted line here. */}
+        <Stack direction="row" wrap="wrap" gap="px8" align="center">
+          <StatusBadge job={job} />
+          {row.verdict && <Badge tone={row.verdict.tone}>{row.verdict.label}</Badge>}
+          {row.applied && (
+            <Text variant="caption" as="span" tone="secondary">
+              Applied {row.applied.toLowerCase()}
+            </Text>
+          )}
+          {row.followUp &&
+            (row.followUp.due ? (
+              <Badge tone="warning">Due</Badge>
+            ) : (
+              <Text variant="caption" as="span" tone="secondary">
+                Follow up in {row.followUp.inDays}d
+              </Text>
+            ))}
+        </Stack>
+        {row.next && (
+          <div>
+            <RowPrimaryAction job={job} size="md" />
+          </div>
+        )}
+      </Stack>
+    </Box>
   );
 }

@@ -23,6 +23,7 @@ import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInDialog from './account/SignInDialog';
+import SyncNudge from './account/SyncNudge';
 import { markAppliedByUrl, setStatusByUrl, useJobs } from './store';
 import { useSnippets } from './copyDeckStore';
 import { migrateSnippetStore } from './outreachTemplates';
@@ -32,6 +33,9 @@ import { saveWithNotice } from './saveNotice';
 import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
+import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
+import { BARE_PANEL } from './hds-gaps/barePanel';
+import { useAtLeast } from './hds-gaps/useBreakpoint';
 
 // Code-split Discover and Documents so the initial bundle carries the Pipeline (the quick-add
 // landing); the rest load on demand.
@@ -67,6 +71,7 @@ function SnippetMigration() {
 
 export default function App() {
   const route = useRoute();
+  const wide = useAtLeast('sm');
   // Apply mode (#/apply/<jobId>) and a Company's page (#/company/<slug>, #230) are Pipeline
   // pages: the Pipeline tab stays selected.
   const applying = route.tab === APPLY_ROUTE;
@@ -133,20 +138,11 @@ export default function App() {
         {/* The HDS page width (1200): wide enough for the Pipeline table and, next, the job page's
             list rail (#129, #130). Each view sets its own inner measure where prose needs one. */}
         <Container maxWidth="max">
-          {/* Page gutter: 16 on a phone (rev-3 mock; HDS's compact region gutter is 12 there),
-              HDS's region gutter from sm up. */}
-          <Box
-            sx={{
-              px: {
-                base: 'var(--semantic-space-fixed-sm)',
-                sm: 'var(--semantic-space-region-gutter)',
-              },
-              py: 'md',
-            }}
-          >
+          {/* Page gutter: the HDS region-gutter role (Container's own padding prop is retired). */}
+          <Box sx={{ px: 'var(--semantic-space-region-gutter)', py: 'md' }}>
             {/* On the Documents and legal pages no tab is selected (and no tab panel mounts).
-                Manual activation there: Tab past the Account button focuses the first tab, which
-                would otherwise select it and leave the page before a keyboard user reaches it. */}
+                Manual activation there: Tab past the Menu focuses the first tab, which would
+                otherwise select it and leave the page before a keyboard user reaches it. */}
             <HdsTabs
               value={documents || legal ? '' : TAB_SLUGS[tab]}
               activationMode={documents || legal ? 'manual' : 'automatic'}
@@ -155,19 +151,33 @@ export default function App() {
               }
             >
               <Stack gap="normal">
-                {/* Slim app bar (rev-3): the wordmark at body size (so a page title is always the
-                    biggest text) · the Account avatar. */}
-                <Stack direction="row" gap="gap" align="center" justify="space-between">
+                {/* Slim app bar (#241): mark · Menu. The app name never competes with a page
+                    title: a small mark on a phone, a body-size (16px) wordmark from `sm` up. */}
+                <Stack direction="row" wrap="wrap" gap="gap" align="center" justify="space-between">
                   <Text variant="body" as="h1" className="rjb-semibold">
-                    {BRAND.name}
+                    {wide ? (
+                      <>
+                        {BRAND.wordmark[0]}
+                        <Box as="span" sx={{ color: 'accent' }}>
+                          {BRAND.wordmark[1]}
+                        </Box>
+                      </>
+                    ) : (
+                      <Box as="span" role="img" aria-label={BRAND.name} className="rjb-mark">
+                        {BRAND.name[0]}
+                      </Box>
+                    )}
                   </Text>
                   <AccountMenu />
                 </Stack>
-                <TabsList style={{ marginBottom: 0 }} aria-label="Sections">
-                  <TabsTrigger value="discover">Companies</TabsTrigger>
-                  <TabsTrigger value="queue">Pipeline</TabsTrigger>
-                </TabsList>
-                <TabsContent value="queue" variant="bare">
+                {/* The fade says more sit past the edge when the tabs overflow a narrow phone. */}
+                <TabsOverflowFade value={TAB_SLUGS[tab]}>
+                  <TabsList style={{ marginBottom: 0 }} aria-label="Sections">
+                    <TabsTrigger value="discover">Companies</TabsTrigger>
+                    <TabsTrigger value="queue">Pipeline</TabsTrigger>
+                  </TabsList>
+                </TabsOverflowFade>
+                <TabsContent value="queue" style={BARE_PANEL}>
                   {applying ? (
                     <ApplyMode jobId={route.sub} />
                   ) : company ? (
@@ -178,14 +188,16 @@ export default function App() {
                       <JobPage jobId={route.jobId} />
                     </>
                   ) : (
-                    // Unsynced shows as the Account avatar's dot (rev-3 P): no banner here.
+                    // 24 between the notes and the page (#241); an absent note leaves no gap.
                     <Stack gap="normal">
+                      {/* The one sync nudge (#236: was on Today) sits over the Pipeline list. */}
+                      <SyncNudge />
                       <PipelineLiveness jobs={jobs} />
                       <TrackerView />
                     </Stack>
                   )}
                 </TabsContent>
-                <TabsContent value="discover" variant="bare">
+                <TabsContent value="discover" style={BARE_PANEL}>
                   {firstRun ? (
                     <Onboarding offerSample />
                   ) : hasTracks ? (

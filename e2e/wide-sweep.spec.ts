@@ -71,15 +71,12 @@ for (const width of [390, 1440]) {
     expect(reads).toBe(readsBefore);
 
     // The title filter sits in Calibrate (#223).
-    await page.getByRole('button', { name: /^Calibrate/ }).click();
+    await page.getByRole('button', { name: 'Calibrate' }).click();
     await expect(page.getByRole('list', { name: 'Titles' })).toBeVisible();
     await page.screenshot({ path: `test-results/wide-sweep-titles-${width}.png`, fullPage: true });
 
     await list.getByRole('button', { name: 'Save' }).first().click();
-    const notice = page
-      .getByRole('region', { name: /^Notifications/ })
-      .getByRole('listitem')
-      .filter({ hasText: 'Saved to Pipeline · To apply' });
+    const notice = page.getByRole('status').filter({ hasText: 'Saved to Pipeline · To apply' });
     await expect(notice).toBeVisible();
     await page.goto('/#/queue');
     await expect(page.getByRole('region', { name: 'To apply (1)' })).toBeVisible();

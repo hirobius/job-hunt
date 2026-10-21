@@ -53,6 +53,20 @@ p {
   font-weight: 600;
 }
 
+/* The phone app-bar mark (#241): the brand's first letter in a small accent square, so the app
+ * name never competes with the page title. Tokens only; HDS has no logo-mark primitive. */
+.rjb-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--primitive-space-7);
+  height: var(--primitive-space-7);
+  border-radius: var(--semantic-radius-action);
+  background: var(--semantic-accent-rest);
+  color: var(--semantic-color-content-onAccent);
+  font-size: var(--primitive-typography-size-sm);
+}
+
 /* Calm list rows (#241): a company list is flat rows on the page, split by hairlines, not cards
  * or a loose gap. */
 .rjb-rows > li {
@@ -64,6 +78,14 @@ p {
 .rjb-prewrap {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* Phone: the four top tabs (Today · Pipeline · Discover · Templates) fit 390px with tighter
+ * padding instead of cutting "Templates" mid-word (#133). Wider screens keep HDS's padding. */
+@media (max-width: 440px) {
+  [role='tablist'][aria-label='Sections'] [role='tab'] {
+    padding-inline: var(--primitive-space-1);
+  }
 }
 
 /* Phone touch targets (#133): HDS's sm controls (segmented tool strip, tabs, chips, disclosure
@@ -93,94 +115,11 @@ p {
   fill: currentColor;
 }
 
-/* Template blanks (rev-3 A, N): a read-only blank in a filled text is the template editor's chip
- * (HDS TokenField's look, from the same tokens). A blank that fills in place is an HDS Tag set in
- * the line (`.rjb-blank`): its component tokens take the chip's shape, and on a phone its 40px hit
- * area overhangs the line instead of pushing the lines apart. Upstream ask: an inline, tappable
- * token chip (HDS gap registry, "Inline fillable blank"). */
-.rjb-chip {
-  display: inline-block;
-  margin-inline: 1px;
-  padding-inline: var(--semantic-space-subgrid-gap);
-  border: thin solid var(--semantic-color-border-default);
-  border-radius: var(--semantic-radius-control);
-  background: var(--semantic-color-surface-raised);
-  color: var(--semantic-color-content-primary);
-  font-size: var(--semantic-typography-caption-font-size);
-  line-height: var(--semantic-typography-caption-line-height);
-  white-space: nowrap;
-}
-
-.rjb-blank {
-  --component-tag-minHeight: 0;
-  --component-tag-minWidth: 0;
-  --component-tag-radius: var(--semantic-radius-control);
-  --component-tag-paddingX: var(--semantic-space-subgrid-gap);
-  --component-tag-paddingY: 0;
-  --component-tag-border: var(--semantic-color-border-default);
-  --component-tag-background: var(--semantic-color-surface-raised);
-  --component-tag-text: var(--semantic-color-content-primary);
-  min-width: 0;
-  margin-inline: 1px;
-  vertical-align: middle;
-}
-
-@media (max-width: 600px) {
-  .rjb-blank {
-    margin-block: calc((1lh - var(--primitive-space-10)) / 2);
-  }
-}
-
-/* A job's title on a card or agenda row (rev-3 review; HDS Text weight="bold"): primary colour, two lines at most.
- * Its link is quiet (no underline until hover), so the title reads as a title, not a link. The
- * size stays on the compact ramp (body); the mock's 16px is not an HDS compact size. */
-.rjb-card-title {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-}
-
-.rjb-card-title a {
-  color: var(--semantic-color-content-primary);
-  text-decoration: none;
-}
-
-.rjb-card-title a:hover {
-  text-decoration: underline;
-}
-
-/* One line, cut with an ellipsis (a long domain in a facts list). */
-.rjb-truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* A text preview, three lines at most (Apply mode's template rows). */
-.rjb-clamp-3 {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-}
-
-/* A note under a card's facts, two lines at most. */
-.rjb-clamp-2 {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-}
-
-/* A long free-text field the user can make taller (Your evidence, rev-3 J). */
-.rjb-resize,
-.rjb-resize textarea {
-  resize: vertical;
+/* HDS gap (#146): Menu content is overflow-hidden with no height cap, and since 0.26 its items are
+ * 44px on a phone, so a long row menu ran off a 390px screen while the page was scroll-locked.
+ * Cap it to the space Radix measures and let it scroll. Ask: Menu caps its own height
+ * (hds#821). Pinned by e2e/phone-menu.spec.ts. */
+[data-hds] [role='menu'] {
+  max-height: var(--radix-dropdown-menu-content-available-height, none);
+  overflow-y: auto;
 }

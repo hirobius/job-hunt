@@ -5,11 +5,10 @@
 // the user saves a posting, which turns it into a tracked Job. Watching a board files a tile on the
 // track (src/feed/watchlist.ts). "Find more" runs the wide sweep (#213): every title that is on for
 // the track, in one search, merged and tagged by title (src/feed/sweep.ts).
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   Alert,
   Badge,
-  Card,
   Button,
   Tooltip as HdsTooltip,
   Input as HdsInput,
@@ -24,10 +23,9 @@ import {
   Icon,
   Text,
   InlineLink,
-  EmptyState,
-  VisuallyHidden,
 } from '@hirobius/design-system';
-import { Banknote, Calendar, MapPin, X } from 'lucide-react';
+import { X } from 'lucide-react';
+import EmptyState from './EmptyState';
 import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
 import { setTrackContext, useTrackContext } from './discoverContext';
 import { ContextCaption } from './LocationControl';
@@ -35,7 +33,7 @@ import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
 import { notifySaved } from './saveNotice';
 import { fetchFeed, type FeedResult } from './feed/fetchFeed';
 import { mergeRetry } from './feed/mergeFeed';
-import { AsyncState, type AsyncStatus } from '@hirobius/design-system/patterns';
+import AsyncState, { type AsyncStatus } from './hds-gaps/AsyncState';
 import { rankPostings } from './feed/match';
 import { applyTargeting, NO_TARGETING } from './feed/targeting';
 import type { Seniority } from './curation/types';
@@ -46,7 +44,7 @@ import { deleteFilter, saveFilter, useFilters, type SavedFilter } from './feed/s
 import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
 import { boardsForPack, packIdForLabel } from './curation/starterPacks';
 import { jobFieldsFor } from './feed/toJob';
-import { modeLabel, verdictLabel } from './screening';
+import { modeLabel, verdictLabel, verdictTone } from './screening';
 import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
 import { demandPatterns } from './radar/patterns';
 import { TIER_INFO, useEvidence, writeEvidence } from './radar/evidenceStore';
@@ -101,7 +99,6 @@ export default function LiveFeedPanel({
   const [retrying, setRetrying] = useState<string[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
   const [refineOpen, setRefineOpen] = useState(false);
-  const watchId = useId();
   const [calibrateOpen, setCalibrateOpen] = useState(calibrate);
   // Arriving through the old Titles link opens Calibrate, also when this panel is already up.
   const [calibrateSeen, setCalibrateSeen] = useState(calibrate);
@@ -380,15 +377,6 @@ export default function LiveFeedPanel({
         ? 'empty'
         : 'ready';
 
-  // Evidence is the ask while nothing is showing: Refine opens by itself once, then the user
-  // decides (it was the evidence box's own default before Refine held it inline, rev-3 J).
-  const refineAutoOpened = useRef(false);
-  useEffect(() => {
-    if (refineAutoOpened.current || status !== 'empty' || !hasQuery || evidenceText) return;
-    refineAutoOpened.current = true;
-    setRefineOpen(true);
-  }, [status, hasQuery, evidenceText]);
-
   // Retry the whole search: forget what is on screen and read every source again.
   const retryAll = () => {
     setLoaded(null);
@@ -430,7 +418,7 @@ export default function LiveFeedPanel({
   );
   const emptyState = !hasQuery ? (
     <EmptyState
-      title={
+      message={
         sweeping
           ? 'Tick at least one title under Calibrate to sweep.'
           : "Type a search term or pick one of this track's terms."
@@ -439,7 +427,7 @@ export default function LiveFeedPanel({
   ) : ranked.length === 0 && matched.length > 0 ? (
     <EmptyState
       title="Everything is hidden by your filters"
-      description="Loosen what you left out, the level or the pay floor to see them again."
+      message="Loosen what you left out, the level or the pay floor to see them again."
     />
   ) : (
     <EmptyState
@@ -448,7 +436,7 @@ export default function LiveFeedPanel({
           ? `No live openings mention any of your ${sweepTitles.length} titles right now`
           : `No live openings mention “${term}” right now`
       }
-      description="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
+      message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
       action={
         <Button
           variant="secondary"
@@ -519,71 +507,60 @@ export default function LiveFeedPanel({
           </Box>
         </>
       )}
-      {/* Calibrate (#223): the track's ticked titles beside the other targeting. A bordered row
-          with what it holds under its name (rev-3 J), like Refine. */}
+      {/* Calibrate (#223): the track's ticked titles beside the other targeting. */}
       <Box sx={{ mb: 'xs' }}>
-        <Card bordered padding="none">
-          <Box sx={{ px: 'sm' }}>
-            <Disclosure
-              variant="row"
-              label="Calibrate"
-              preview="Titles, leave-out words, pay floor, level"
-              open={calibrateOpen}
-              onOpenChange={setCalibrateOpen}
+        <Disclosure label="Calibrate" open={calibrateOpen} onOpenChange={setCalibrateOpen}>
+          <Stack gap="normal">
+            <SweepTitlesEditor categoryId={categoryId} seed={sweepSeed} bare />
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'xs',
+                alignItems: 'flex-end',
+                mb: 'xs',
+              }}
             >
-              <Stack gap="normal">
-                <SweepTitlesEditor categoryId={categoryId} seed={sweepSeed} bare />
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 'xs',
-                    alignItems: 'flex-end',
-                    mb: 'xs',
-                  }}
-                >
-                  <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
-                    <HdsInput
-                      size="sm"
-                      label="Leave out (words, commas between)"
-                      placeholder="manager, sales"
-                      value={excludeText}
-                      onChange={(e) => setExcludeText(e.target.value)}
-                    />
-                  </Box>
-                  <Box sx={{ width: 160 }}>
-                    <HdsInput
-                      size="sm"
-                      label="Pay floor (USD a year)"
-                      inputMode="numeric"
-                      placeholder="120000"
-                      value={floorText}
-                      onChange={(e) => setFloorText(e.target.value)}
-                    />
-                  </Box>
-                  <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-                    <SegmentedControl
-                      aria-label="Level"
-                      size="sm"
-                      value={seniority}
-                      onChange={(v) => setSeniority(v as Seniority)}
-                      options={[
-                        { value: 'any', label: 'Any level' },
-                        { value: 'entry', label: 'Entry level' },
-                        { value: 'experienced', label: 'Experienced' },
-                      ]}
-                    />
-                  </Box>
-                  <HdsCheckbox
-                    label="Only show postings with a salary"
-                    checked={salaryOnly}
-                    onChange={() => setSalaryOnly((v) => !v)}
-                  />
-                </Box>
-              </Stack>
-            </Disclosure>
-          </Box>
-        </Card>
+              <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
+                <HdsInput
+                  size="sm"
+                  label="Leave out (words, commas between)"
+                  placeholder="manager, sales"
+                  value={excludeText}
+                  onChange={(e) => setExcludeText(e.target.value)}
+                />
+              </Box>
+              <Box sx={{ width: 160 }}>
+                <HdsInput
+                  size="sm"
+                  label="Pay floor (USD a year)"
+                  inputMode="numeric"
+                  placeholder="120000"
+                  value={floorText}
+                  onChange={(e) => setFloorText(e.target.value)}
+                />
+              </Box>
+              <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                <SegmentedControl
+                  aria-label="Level"
+                  size="sm"
+                  value={seniority}
+                  onChange={(v) => setSeniority(v as Seniority)}
+                  options={[
+                    { value: 'any', label: 'Any level' },
+                    { value: 'entry', label: 'Entry level' },
+                    { value: 'experienced', label: 'Experienced' },
+                  ]}
+                />
+              </Box>
+              <HdsCheckbox
+                label="Only show postings with a salary"
+                checked={salaryOnly}
+                onChange={() => setSalaryOnly((v) => !v)}
+              />
+            </Box>
+          </Stack>
+        </Disclosure>
       </Box>
       {!sweeping && (
         <Box
@@ -632,76 +609,64 @@ export default function LiveFeedPanel({
 
       {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
       <Box sx={{ mb: 'sm' }}>
-        <Card bordered padding="none">
-          <Box sx={{ px: 'sm' }}>
-            <Disclosure
-              variant="row"
-              label="Refine"
-              preview="Watch a company, your evidence"
-              open={refineOpen}
-              onOpenChange={setRefineOpen}
+        <Disclosure label="Refine" open={refineOpen} onOpenChange={setRefineOpen}>
+          <Stack gap="xs">
+            <Box
+              as="form"
+              onSubmit={onWatch}
+              sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
             >
-              {/* One label style (UI 14/500) and one gap between label, field and helper. */}
-              <Stack gap="normal">
-                <Box as="form" onSubmit={onWatch}>
-                  <Stack gap="px8">
-                    <Text variant="ui" as="span" id={watchId}>
-                      Watch a company
-                    </Text>
-                    <Stack direction="row" gap="px8" align="center">
-                      <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%' } }}>
-                        <HdsInput
-                          aria-labelledby={watchId}
-                          placeholder="Board link"
-                          value={watchUrl}
-                          onChange={(e) => setWatchUrl(e.target.value)}
-                        />
-                      </Box>
-                      <Button
-                        type="submit"
-                        size="md"
-                        variant="secondary"
-                        disabled={!watchUrl.trim()}
-                      >
-                        Watch
-                      </Button>
-                    </Stack>
-                    <Text variant="caption" as="p" tone={watchError ? 'danger' : 'secondary'}>
-                      {watchError ||
-                        (watchedCount
-                          ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'}. Manage them in Manage track.`
-                          : 'Paste a job-board link (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor or Personio) to pull that company’s openings in.')}
-                    </Text>
-                  </Stack>
-                </Box>
-                {suggestedCount > 0 && (
-                  <Box>
-                    <Button
-                      size="md"
-                      variant="secondary"
-                      onClick={() => {
-                        const n = addBoardTiles(categoryId, suggested);
-                        toast({
-                          title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
-                          description:
-                            'Their openings now show up here. Remove any in Manage track.',
-                          tone: 'success',
-                        });
-                      }}
-                    >
-                      Add suggested companies ({suggestedCount})
-                    </Button>
-                  </Box>
-                )}
-                <EvidenceEditor
-                  text={evidenceText}
-                  count={evidence.length}
-                  onChange={writeEvidence}
+              <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
+                <HdsInput
+                  size="sm"
+                  label="Watch a company"
+                  placeholder="jobs.ashbyhq.com/company"
+                  value={watchUrl}
+                  onChange={(e) => setWatchUrl(e.target.value)}
                 />
-              </Stack>
-            </Disclosure>
-          </Box>
-        </Card>
+              </Box>
+              <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
+                Watch
+              </Button>
+            </Box>
+            <Box sx={{ mb: 'sm' }}>
+              <Text variant="caption" as="div" tone={watchError ? 'danger' : 'secondary'}>
+                {watchError ||
+                  (watchedCount
+                    ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
+                    : 'Paste a job-board link (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor or Personio) to pull that company’s openings in.')}
+              </Text>
+            </Box>
+
+            {suggestedCount > 0 && (
+              <Box sx={{ mb: 'xs' }}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    const n = addBoardTiles(categoryId, suggested);
+                    toast({
+                      title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
+                      description: 'Their openings now show up here. Remove any in Manage track.',
+                      tone: 'success',
+                    });
+                  }}
+                >
+                  Add suggested companies ({suggestedCount})
+                </Button>
+              </Box>
+            )}
+
+            <Box>
+              <EvidenceEditor
+                startOpen={ranked.length === 0}
+                text={evidenceText}
+                count={evidence.length}
+                onChange={writeEvidence}
+              />
+            </Box>
+          </Stack>
+        </Disclosure>
       </Box>
 
       {errors.length > 0 && !allFailed && (
@@ -736,7 +701,6 @@ export default function LiveFeedPanel({
 
       <AsyncState
         status={status}
-        label="Live openings"
         onRetry={retryAll}
         loadingLabel={
           reading
@@ -744,8 +708,14 @@ export default function LiveFeedPanel({
             : `Pulling live openings for “${term}”…`
         }
         slowNote="Still trying: slow sources are skipped after 15 s"
-        errorTitle={current?.error ?? "Couldn't reach any source"}
-        error={current?.error ? undefined : 'Check your internet connection or try again later.'}
+        error={
+          current?.error
+            ? { title: current.error }
+            : {
+                title: "Couldn't reach any source",
+                message: 'Check your internet connection or try again later.',
+              }
+        }
         empty={emptyState}
       >
         <Box>
@@ -799,7 +769,7 @@ export default function LiveFeedPanel({
           )}
           {visible.length === 0 ? (
             <EmptyState
-              title={
+              message={
                 shownTitles.length === 0
                   ? 'Every title is hidden — turn one back on above.'
                   : focus === 'strong'
@@ -819,7 +789,6 @@ export default function LiveFeedPanel({
                   onSave={() => save(p)}
                   picked={picked.has(p.id)}
                   onPick={() => togglePick(p.id)}
-                  sweepTitles={sweeping ? sweepTitles.length : 0}
                 />
               ))}
             </Box>
@@ -877,19 +846,6 @@ function BulkSaveBar({
   );
 }
 
-/** "$95k to $120k" from a source's stated yearly pay; '' when it states none. */
-function payLabel(p: SweptPosting): string {
-  const k = (n: number) => `$${Math.round(n / 1000)}k`;
-  if (p.salaryMin && p.salaryMax && p.salaryMin !== p.salaryMax)
-    return `${k(p.salaryMin)} to ${k(p.salaryMax)}`;
-  const one = p.salaryMax ?? p.salaryMin;
-  return one ? k(one) : '';
-}
-
-/** One opening (rev-3 K, H anatomy): the fit and the signals with the source as a small label on
- *  top, the title on its own line, the company (the "who") in UI 14/500, then the facts with
- *  icons; Save sits on the right, centred on the row. A swept row names the titles it matched
- *  as chips, only when the sweep covers several titles and the match isn't the row's own title. */
 function PostingRow({
   p,
   now,
@@ -898,7 +854,6 @@ function PostingRow({
   onSave,
   picked,
   onPick,
-  sweepTitles,
 }: {
   p: SweptPosting;
   now: number;
@@ -908,72 +863,47 @@ function PostingRow({
   onSave: () => void;
   picked: boolean;
   onPick: () => void;
-  /** How many titles the sweep covers (0 outside a sweep). */
-  sweepTitles: number;
 }) {
-  const place = p.location || (p.mode ? modeLabel(p.mode) : '');
-  const posted = postedAgo(p.postedAt, now);
-  const pay = payLabel(p);
-  const facts = [
-    place && { icon: MapPin, text: place },
-    pay && { icon: Banknote, text: pay },
-    posted && { icon: Calendar, text: posted === 'today' ? 'Posted today' : `Posted ${posted}` },
-  ].filter((f): f is { icon: typeof MapPin; text: string } => !!f);
-  const matched =
-    sweepTitles > 1 ? p.titles.filter((t) => t.toLowerCase() !== p.title.trim().toLowerCase()) : [];
+  const meta = metaLines([
+    p.company,
+    p.location,
+    p.mode && modeLabel(p.mode),
+    postedAgo(p.postedAt, now),
+    SOURCE_LABEL[p.source],
+  ]);
   return (
-    <Box as="li" sx={{ py: 'sm', borderBottom: 'thin solid', borderColor: 'border.default' }}>
-      <Stack direction="row" gap="tight" align="center" justify="space-between">
-        <Box sx={{ minWidth: 0, flex: '1 1 0%', overflowWrap: 'anywhere' }}>
-          <Stack gap="px4">
-            <Stack direction="row" wrap="wrap" gap="px8" align="center">
-              {fit && <Badge tone="neutral">{verdictLabel(TIER_INFO[fit.tier].verdict)}</Badge>}
-              {p.signals.map((sig) => (
-                <HdsTooltip key={sig.id}>
-                  <HdsTooltip.Trigger asChild>
-                    <span tabIndex={0}>
-                      <Badge tone="neutral">{sig.label}</Badge>
-                    </span>
-                  </HdsTooltip.Trigger>
-                  <HdsTooltip.Content>Says “{sig.evidence}”</HdsTooltip.Content>
-                </HdsTooltip>
-              ))}
-              <Text variant="caption" as="span" tone="secondary">
-                {SOURCE_LABEL[p.source]}
+    <Box as="li" sx={{ py: 3, borderBottom: 'thin solid', borderColor: 'border.default' }}>
+      <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+        <Text variant="ui" as="h3">
+          <InlineLink href={p.url} externalIcon={false}>
+            {p.title}
+          </InlineLink>
+        </Text>
+        {meta.length > 0 && (
+          <Box sx={{ mt: 0.5 }}>
+            {meta.map((line, i) => (
+              <Text key={i} variant="caption" as="div" tone="secondary">
+                {line}
               </Text>
-            </Stack>
-            <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
-              <InlineLink href={p.url} externalIcon={false}>
-                {p.title}
-              </InlineLink>
-            </Text>
-            {p.company && (
-              <Text variant="ui" as="p">
-                {p.company}
-              </Text>
-            )}
-            {facts.length > 0 && (
-              <Stack direction="row" wrap="wrap" gap="tight" align="center">
-                {facts.map((f) => (
-                  <Stack key={f.text} direction="row" gap="px4" align="center">
-                    <Icon icon={f.icon} size="small" />
-                    <Text variant="caption" as="span" tone="secondary">
-                      {f.text}
-                    </Text>
-                  </Stack>
-                ))}
-              </Stack>
-            )}
-            {matched.length > 0 && (
-              <Stack direction="row" wrap="wrap" gap="px4" align="center">
-                <VisuallyHidden>Matched</VisuallyHidden>
-                {matched.map((t) => (
-                  <span key={t} className="rjb-chip">
-                    {t}
-                  </span>
-                ))}
-              </Stack>
-            )}
+            ))}
+          </Box>
+        )}
+        {p.titles.length > 0 && (
+          <Text variant="caption" as="span" tone="secondary">
+            {`Matched ${p.titles.map((t) => `“${t}”`).join(', ')}`}
+          </Text>
+        )}
+        {/* Under the meta, not beside it: the title keeps the full row on a phone. 40px target. */}
+        <Box sx={{ mt: 'xs' }}>
+          <Stack direction="row" gap="tight" align="center" wrap="wrap">
+            <Button
+              size="md"
+              variant={saved ? 'tertiary' : 'secondary'}
+              disabled={saved}
+              onClick={onSave}
+            >
+              {saved ? 'Saved' : 'Save'}
+            </Button>
             {!saved && (
               <HdsCheckbox
                 label="Pick"
@@ -982,18 +912,39 @@ function PostingRow({
                 onChange={onPick}
               />
             )}
-            {fit && <FitGapDetails fg={fit} />}
           </Stack>
         </Box>
-        <Button
-          size="sm"
-          variant={saved ? 'tertiary' : 'secondary'}
-          disabled={saved}
-          onClick={onSave}
-        >
-          {saved ? 'Saved' : 'Save'}
-        </Button>
-      </Stack>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
+          {fit && (
+            <Badge tone={verdictTone(TIER_INFO[fit.tier].verdict)}>
+              {verdictLabel(TIER_INFO[fit.tier].verdict)}
+            </Badge>
+          )}
+          {p.signals.map((s) => (
+            <HdsTooltip key={s.id}>
+              <HdsTooltip.Trigger asChild>
+                <span tabIndex={0}>
+                  <Badge tone={s.id === 'contract' ? 'success' : 'info'}>{s.label}</Badge>
+                </span>
+              </HdsTooltip.Trigger>
+              <HdsTooltip.Content>Says “{s.evidence}”</HdsTooltip.Content>
+            </HdsTooltip>
+          ))}
+          <Badge tone="neutral">{p.hit === 'title' ? 'In title' : 'In description'}</Badge>
+        </Box>
+        {p.snippet && (
+          <Box sx={{ mt: 1.5 }}>
+            <Text variant="ui" tone="secondary">
+              {p.snippet}
+            </Text>
+          </Box>
+        )}
+        {fit && (
+          <Box sx={{ mt: 'xs' }}>
+            <FitGapDetails fg={fit} />
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 }

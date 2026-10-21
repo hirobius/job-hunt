@@ -22,6 +22,7 @@ import {
 } from '@hirobius/design-system';
 import { discoverBoards, MAX_LIST, parseList, type DiscoverResult } from './feed/discoverBoards';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
+import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
 import { liveFetchJson } from './feed/fetchFeed';
 import { probeFetchJson } from './feed/probeFetch';
 import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
@@ -166,13 +167,15 @@ export default function FindBoardsPanel({
           <Text variant="body" as="h3" className="rjb-semibold">
             Start from a YC batch
           </Text>
-          <SegmentedControl
-            aria-label="YC batch"
-            size="sm"
-            value={batch}
-            onChange={setBatch}
-            options={recentBatches(new Date()).map((b) => ({ value: b, label: batchLabel(b) }))}
-          />
+          <TabsOverflowFade value={batch}>
+            <SegmentedControl
+              aria-label="YC batch"
+              size="sm"
+              value={batch}
+              onChange={setBatch}
+              options={recentBatches(new Date()).map((b) => ({ value: b, label: batchLabel(b) }))}
+            />
+          </TabsOverflowFade>
           <Stack direction="row" gap="inset" align="center" wrap="wrap">
             <Button
               size="sm"

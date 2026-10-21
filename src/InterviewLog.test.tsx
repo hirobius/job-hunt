@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
-import InterviewLog, { AddToCalendar } from './InterviewLog';
+import InterviewLog from './InterviewLog';
 import { addJob, getAllJobs, removeJob, updateJob } from './store';
 
 const URL_ = 'https://example.com/jobs/welder';
@@ -14,7 +14,6 @@ function Harness() {
   const job = current();
   return (
     <ToastProvider>
-      <AddToCalendar job={job} />
       <InterviewLog job={job} />
     </ToastProvider>
   );
@@ -39,11 +38,11 @@ describe('InterviewLog', () => {
   it('adds an interview, persists it, and removes it', async () => {
     const user = userEvent.setup();
     const { rerender } = render(<Harness />);
-    expect(screen.getByRole('button', { name: 'Add interview' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add event' })).toBeDisabled();
 
     await user.type(screen.getByLabelText('Event date'), '2026-10-20');
     await user.type(screen.getByLabelText('Event note'), 'Panel round');
-    await user.click(screen.getByRole('button', { name: 'Add interview' }));
+    await user.click(screen.getByRole('button', { name: 'Add event' }));
 
     expect(current().events).toEqual([
       expect.objectContaining({ kind: 'interview', date: '2026-10-20', note: 'Panel round' }),

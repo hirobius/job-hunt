@@ -140,7 +140,9 @@ describe('Teams (design-system teams)', () => {
 
     await userEvent.click(screen.getByRole('switch', { name: 'Hiring now' }));
     expect(names()).toEqual(['Acme Design', 'Flaky', 'Quiet Co']);
-    const rows = within(screen.getByRole('list', { name: 'Companies' })).getAllByRole('listitem');
+    const rows = within(screen.getByRole('list', { name: 'Companies' })).getAllByRole(
+      'listitem',
+    );
     const quiet = rows.find((r) => r.textContent?.includes('Quiet Co'))!;
     expect(quiet).toHaveTextContent('Board not found');
     // An organisation without a board still gets a careers search, not a dead end.
@@ -160,9 +162,8 @@ describe('Teams (design-system teams)', () => {
     expect(getAllJobs().map((j) => j.label)).toEqual(['Design Engineer']);
     expect(getAllJobs()[0].note).toMatch(/Found in Teams/);
     expect(within(roles).getByRole('button', { name: 'Saved Design Engineer' })).toBeDisabled();
-    // The notice is an HDS Toast: one list item in the Notifications region.
     const notice = (await screen.findByText('Saved to Pipeline · To apply')).closest(
-      'li',
+      '[role="status"]',
     ) as HTMLElement;
     await userEvent.click(within(notice).getByRole('button', { name: 'Undo' }));
     expect(getAllJobs()).toEqual([]);

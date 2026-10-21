@@ -10,8 +10,6 @@ const DISMISSED_KEY = 'rjb_ui_getting_started_done';
 export interface GettingStartedItem {
   id: 'save' | 'follow-up' | 'sync';
   label: string;
-  /** Where to do it, under the label: "Done" once it is. */
-  note: string;
   done: boolean;
 }
 
@@ -22,20 +20,10 @@ export function gettingStartedItems(jobs: Job[], signedIn: boolean): GettingStar
     return s.appliedDaysAgo != null || s.followUp.loggedDaysAgo != null;
   });
   return [
-    { id: 'save', label: 'Save a job', note: 'From Companies or Add job', done: mine.length > 0 },
-    {
-      id: 'follow-up',
-      label: 'Log a follow-up or mark a job applied',
-      note: 'From any row in your Pipeline',
-      done: worked,
-    },
-    {
-      id: 'sync',
-      label: 'Sign in to sync, or back up',
-      note: 'From the account menu',
-      done: signedIn,
-    },
-  ].map((it) => (it.done ? { ...it, note: 'Done' } : it)) as GettingStartedItem[];
+    { id: 'save', label: 'Save a job', done: mine.length > 0 },
+    { id: 'follow-up', label: 'Log a follow-up date or mark a job applied', done: worked },
+    { id: 'sync', label: 'Sign in to sync, or back up from the Account menu', done: signedIn },
+  ];
 }
 
 export function isGettingStartedDismissed(): boolean {

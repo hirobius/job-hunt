@@ -18,14 +18,10 @@
     "gallery": "node scripts/gallery.mjs",
     "icons": "node scripts/make-icons.mjs",
     "audit": "npm audit --omit=dev --audit-level=high",
-    "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
-    "hds:check": "node scripts/hds-check.mjs",
-    "test:layout": "playwright test e2e/layout-rules.spec.ts",
-    "test:visual": "playwright test e2e/visual.spec.ts",
-    "verify:ui": "npm run hds:check && playwright test e2e/layout-rules.spec.ts e2e/visual.spec.ts"
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
-    "@hirobius/design-system": "0.30.0",
+    "@hirobius/design-system": "0.26.2",
     "@supabase/supabase-js": "^2.117.3",
     "@vercel/analytics": "^2.0.1",
     "react": "^18.3.1",

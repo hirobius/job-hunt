@@ -88,8 +88,7 @@ describe('wide sweep', () => {
         terms: ['design engineer', 'design technologist', 'design system'],
       }),
     );
-    // A row names the other titles it matched as chips (rev-3 K), not its own.
-    await screen.findByText('design system', { selector: '.rjb-chip' });
+    await screen.findByText('Matched “design engineer”, “design system”');
     expect(rows()).toHaveLength(3);
     const chips = screen.getByRole('group', { name: 'Show titles' });
     expect(within(chips).getByRole('button', { name: 'design engineer (2)' })).toBeInTheDocument();
@@ -98,7 +97,7 @@ describe('wide sweep', () => {
 
   it('a title chip hides its results without a re-fetch', async () => {
     const user = await startSweep();
-    await screen.findByText('design system', { selector: '.rjb-chip' });
+    await screen.findByText('Matched “design engineer”, “design system”');
     const calls = feed.fetchFeed.mock.calls.length;
     await user.click(screen.getByRole('button', { name: 'design engineer (2)' }));
     // Row 1 still matched "design system", which is showing.
@@ -108,7 +107,7 @@ describe('wide sweep', () => {
 
   it('turning a title off is saved per track and drops it from the next sweep', async () => {
     const user = await startSweep();
-    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
+    await user.click(screen.getByRole('button', { name: 'Calibrate' }));
     await user.click(screen.getByRole('checkbox', { name: 'design technologist' }));
     expect(getAllSweeps()[cat].off).toEqual(['design technologist']);
     await screen.findByRole('heading', { name: 'Sweeping 2 titles at once' });
@@ -119,7 +118,7 @@ describe('wide sweep', () => {
 
   it('adds and removes titles from the sweep list', async () => {
     const user = await startSweep();
-    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
+    await user.click(screen.getByRole('button', { name: 'Calibrate' }));
     await user.type(screen.getByRole('textbox', { name: 'Add a title' }), 'UX engineer');
     await user.click(screen.getByRole('button', { name: 'Add' }));
     await user.click(screen.getByRole('button', { name: 'Remove title design system' }));
@@ -132,7 +131,7 @@ describe('wide sweep', () => {
 
   it('saving a swept posting lands it in the Pipeline To apply queue', async () => {
     const user = await startSweep();
-    await screen.findByText('design system', { selector: '.rjb-chip' });
+    await screen.findByText('Matched “design engineer”, “design system”');
     const list = screen.getByRole('list', { name: 'Live postings' });
     await user.click(within(list).getAllByRole('button', { name: 'Save' })[0]);
     expect(await screen.findByText('Saved to Pipeline · To apply')).toBeInTheDocument();

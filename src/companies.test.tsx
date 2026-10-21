@@ -97,7 +97,7 @@ describe('Companies as one tool (#237)', () => {
       within(row)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Teams', 'Apply now', 'ATS search']);
+    ).toEqual(['Teams', 'Apply', 'ATS']);
   });
 
   it('a track that watches a company opens on its company rows, open roles inline, saved in one tap', async () => {
@@ -133,7 +133,7 @@ describe('Companies as one tool (#237)', () => {
 
   it('a track with nothing to show on Companies still opens on Apply now', async () => {
     renderApp();
-    expect(within(await tools()).getByRole('radio', { name: 'Apply now' })).toBeChecked();
+    expect(within(await tools()).getByRole('radio', { name: 'Apply' })).toBeChecked();
   });
 
   describe('Add a company', () => {
@@ -178,9 +178,7 @@ describe('Companies as one tool (#237)', () => {
       );
       await userEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
       expect(await within(dialog).findByText(/No public board found/)).toBeVisible();
-      await userEvent.click(
-        within(dialog).getByRole('button', { name: 'Keep Nobody Inc as a target' }),
-      );
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Star Nobody Inc' }));
       expect(readDreams(cat).map((d) => d.company)).toEqual(['Nobody Inc']);
     });
   });
@@ -190,10 +188,10 @@ describe('Companies as one tool (#237)', () => {
       ['live', 'Teams', 'Live postings'],
       ['boards', 'Teams', 'Check a list of companies'],
       ['teams', 'Teams', null],
-      ['apply', 'Apply now', null],
+      ['apply', 'Apply', null],
       ['titles', 'Teams', 'Live postings'],
-      ['ats', 'ATS search', null],
-      ['nonsense', 'Apply now', null],
+      ['ats', 'ATS', null],
+      ['nonsense', 'Apply', null],
     ])('#/discover/%s', async (slug, radio, heading) => {
       window.location.hash = `#/discover/${slug}`;
       renderApp();
@@ -208,7 +206,7 @@ describe('Companies as one tool (#237)', () => {
       const g = addGroup(cat, { label: 'Union halls' });
       window.location.hash = `#/discover/${g}`;
       renderApp();
-      expect(await screen.findByRole('heading', { level: 3, name: 'Union halls' })).toBeVisible();
+      expect(await screen.findByRole('tab', { name: 'Union halls', selected: true })).toBeVisible();
     });
 
     it('Companies links to Live postings and the list checker as more ways to find companies', async () => {

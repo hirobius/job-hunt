@@ -1,58 +1,25 @@
 // The pieces one job row is made of (#129), shared by the desktop table (JobsTable), the phone
 // cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
 // step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
-import { Ellipsis, Star } from 'lucide-react';
-import {
-  Badge,
-  Button,
-  Icon,
-  Menu,
-  Stack,
-  VisuallyHidden,
-  useToast,
-} from '@hirobius/design-system';
+import { EllipsisVertical, Star } from 'lucide-react';
+import { Badge, Button, Icon, Menu, useToast } from '@hirobius/design-system';
 import { hostOf, setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
-import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
 import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
-import { primaryAction, rowView, STATUS_TONE, titleOf } from './jobRow';
+import { primaryAction, STATUS_TONE, titleOf } from './jobRow';
 import { normStatus } from './jobState';
-import { researchLinks } from './jobFacts';
 import { STATUSES, type Job, type Status } from './types';
+import { DANGER } from './hds-gaps/tone';
 
 /** Controls on a phone card are 40px tap targets; the denser table uses the small size. */
 type Size = 'sm' | 'md';
 
-/** The job's Status. Neutral everywhere (rev-3 B): the badge row reserves colour for what needs
- *  attention (a due follow-up). The table and the rail keep the toned badge (`toned`). */
-export function StatusBadge({ job, toned = true }: { job: Job; toned?: boolean }) {
+/** The job's Status. A retired job keeps its status, greyed (Retired is not a Status). */
+export function StatusBadge({ job }: { job: Job }) {
   const status = normStatus(job.status);
-  return <Badge tone={job.archived || !toned ? 'neutral' : STATUS_TONE[status]}>{status}</Badge>;
-}
-
-/** One badge row above a job's title (rev-3 B order): status, Retired, a due follow-up, Closed on
- *  the board, then fit, and the star on a card. Status and fit are neutral; only what needs
- *  attention is a warning. Pipeline cards, the job page and Apply mode share it. */
-export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
-  const row = rowView(job);
-  const closed = checkFor(useLiveness(), job.url)?.state === 'closed';
-  return (
-    <Stack direction="row" wrap="wrap" gap="px8" align="center">
-      <StatusBadge job={job} toned={false} />
-      {row.retired && <Badge>Retired</Badge>}
-      {row.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
-      {closed && <Badge tone="warning">Closed on the board</Badge>}
-      {row.verdict && <Badge tone="neutral">{row.verdict.label}</Badge>}
-      {star && row.pinned && (
-        <>
-          <StarIcon on />
-          <VisuallyHidden>Starred</VisuallyHidden>
-        </>
-      )}
-    </Stack>
-  );
+  return <Badge tone={job.archived ? 'neutral' : STATUS_TONE[status]}>{status}</Badge>;
 }
 
 /** The star: outline when off, filled when on. */
@@ -69,21 +36,20 @@ function useToggleStar() {
   };
 }
 
-/** The job page's star toggle: a 40px icon button named Star or Starred, so the state reads
- *  from its name and the filled icon. The name carries the state, so there is no aria-pressed
- *  (both would announce it twice). */
+/** The job page's star toggle: says Star or Starred, so the state reads without the icon. The
+ *  text carries the state, so there is no aria-pressed (both would announce it twice). */
 export function StarButton({ job }: { job: Job }) {
   const toggle = useToggleStar();
   const on = !!job.priority;
   return (
     <Button
-      size="md"
-      variant="secondary"
-      iconOnly
+      size="sm"
+      variant="tertiary"
       iconLeft={<StarIcon on={on} />}
-      label={on ? 'Starred' : 'Star'}
       onClick={() => toggle(job)}
-    />
+    >
+      {on ? 'Starred' : 'Star'}
+    </Button>
   );
 }
 
@@ -121,26 +87,22 @@ export function RowMenu({
   job,
   size = 'sm',
   onRemoved,
-  research = false,
 }: {
   job: Job;
   size?: Size;
   /** Runs after Remove (the job page goes back to the Pipeline). */
   onRemoved?: () => void;
-  /** The job page's menu also holds the research links (rev-3 review: off the Details panel). */
-  research?: boolean;
 }) {
   const title = titleOf(job);
   const toggleStar = useToggleStar();
   return (
     <Menu>
       <Menu.Trigger asChild>
-        {/* A bordered 40px button on a phone card (rev-3 mock); quiet in the dense table. */}
         <Button
           size={size}
-          variant={size === 'md' ? 'secondary' : 'tertiary'}
+          variant="tertiary"
           iconOnly
-          iconLeft={<Icon icon={Ellipsis} />}
+          iconLeft={<Icon icon={EllipsisVertical} />}
           label={`More actions: ${title}`}
         />
       </Menu.Trigger>
@@ -177,27 +139,15 @@ export function RowMenu({
         >
           Find more like this
         </Menu.Item>
-        {research && (
-          <>
-            <Menu.Separator />
-            <Menu.Label>Research</Menu.Label>
-            {researchLinks(job.label).map(([name, href]) => (
-              <Menu.Item key={name} asChild>
-                <a href={href} target="_blank" rel="noopener noreferrer">
-                  {name}
-                </a>
-              </Menu.Item>
-            ))}
-          </>
-        )}
         <Menu.Separator />
-        {/* Remove goes to Recently removed, with Undo, so it needs no confirm. */}
+        {/* Remove goes to Recently removed, with Undo, so it needs no confirm. HDS Menu.Item has
+            no danger tone; the feedback token marks the destructive item. */}
         <Menu.Item
           onSelect={() => {
             removeWithUndo(job);
             onRemoved?.();
           }}
-          tone="danger"
+          style={DANGER}
         >
           Remove
         </Menu.Item>

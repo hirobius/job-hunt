@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -10,10 +9,9 @@ import {
   Stack,
   Text,
   Card,
-  EmptyState,
 } from '@hirobius/design-system';
-import { Form } from '@hirobius/design-system/patterns';
-import { Panel, PanelBody, PanelRow } from './PipelinePanel';
+import { Form, FormActions } from '@hirobius/design-system/patterns';
+import EmptyState from './EmptyState';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import { useCurationSyncStatus } from './curation/syncStatus';
 import { TrySampleButton } from './demo/SampleData';
@@ -83,11 +81,8 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
 
   const next = () => setStep((s) => s + 1);
   const lastStep = step === STEPS;
-  const heading = ['Pick a track', 'Where do you want to work?', 'Add your first job'][step - 1];
   return (
-    // rev-3 mock: the title and "Step N of 3" over the progress bar, then one panel per step
-    // whose footer holds Back (not on step 1), Skip and the one primary, then "Just looking?".
-    <Box sx={{ maxWidth: 560, mx: 'auto', py: 'md' }}>
+    <Box sx={{ maxWidth: 560, mx: 'auto', py: 'lg' }}>
       <Form
         onSubmit={(e) => {
           e.preventDefault();
@@ -98,86 +93,91 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
       >
         <Stack gap="normal">
           <Stack gap="tight">
-            <Stack gap="px4">
-              <Text variant="title" as="h2">
-                Set up your board
-              </Text>
-              <Text variant="caption" as="p" tone="secondary">
-                Step {step} of {STEPS}
-              </Text>
-            </Stack>
+            <Text variant="title" as="h2">
+              Set up your board
+            </Text>
             <Progress value={step} max={STEPS} label={`Step ${step} of ${STEPS}`} />
+            <Text variant="caption" as="p" tone="secondary">
+              Step {step} of {STEPS}
+            </Text>
           </Stack>
-          <Panel label={heading} title={heading}>
-            <PanelBody>
-              {step === 1 && (
-                <PickTrack
-                  picked={picked}
-                  onToggle={toggle}
-                  firstTitle={firstTitle}
-                  onFirstTitle={setFirstTitle}
-                />
-              )}
-              {step === 2 && (
+          {step === 1 && (
+            <PickTrack
+              picked={picked}
+              onToggle={toggle}
+              firstTitle={firstTitle}
+              onFirstTitle={setFirstTitle}
+              offerSample={offerSample}
+            />
+          )}
+          {step === 2 && (
+            <Stack gap="tight">
+              <Text variant="ui" as="h3" className="rjb-semibold">
+                Where do you want to work?
+              </Text>
+              <Box sx={{ display: 'contents', '& input': { maxWidth: 320 } }}>
                 <HdsInput
                   aria-label="Location"
-                  placeholder="City, state or Remote"
-                  helperText="Leave it blank to search anywhere. Work mode is set later in Companies."
+                  placeholder="City, State or Remote"
+                  helperText="Leave it blank to search anywhere. You can set work mode (remote, hybrid, on-site) in Discover."
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />
-              )}
-              {step === 3 && (
-                <HdsInput
-                  aria-label="Job link"
-                  type="url"
-                  placeholder="Paste a job link"
-                  helperText="Optional. It lands in your Pipeline."
-                  value={jobUrl}
-                  onChange={(e) => {
-                    setJobUrl(e.target.value);
-                    setJobError('');
-                  }}
-                  error={!!jobError}
-                  errorMessage={jobError}
-                />
-              )}
-            </PanelBody>
-            <PanelRow as="div">
-              <Stack direction="row" gap="tight" align="center">
-                {step > 1 && (
-                  <Button type="button" variant="tertiary" onClick={() => setStep(step - 1)}>
-                    Back
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  variant={step === 1 ? 'tertiary' : 'secondary'}
-                  onClick={() => (lastStep ? finish(false) : next())}
-                >
-                  {lastStep ? "I'll do it later" : 'Skip'}
-                </Button>
-                {lastStep ? (
-                  <Button type="submit" variant="primary">
-                    Finish
-                  </Button>
-                ) : (
-                  <Button type="submit" variant="primary" disabled={step === 1 && !ready}>
-                    Continue
-                  </Button>
-                )}
-              </Stack>
-            </PanelRow>
-          </Panel>
-          {/* Never offered signed in (a signed-in tracker syncs), so neither is its caption. */}
-          {step === 1 && offerSample && !hasCloudSession() && (
-            <Stack direction="row" wrap="wrap" gap="tight" align="center">
-              <Text variant="caption" as="span" tone="secondary">
-                Just looking?
-              </Text>
-              <TrySampleButton />
+              </Box>
             </Stack>
           )}
+          {step === 3 && (
+            <Stack gap="tight">
+              <Text variant="ui" as="h3" className="rjb-semibold">
+                Add your first job
+              </Text>
+              <HdsInput
+                aria-label="Job link"
+                type="url"
+                placeholder="Paste a job link"
+                helperText="Optional. It lands in your Pipeline."
+                value={jobUrl}
+                onChange={(e) => {
+                  setJobUrl(e.target.value);
+                  setJobError('');
+                }}
+                error={!!jobError}
+                errorMessage={jobError}
+              />
+            </Stack>
+          )}
+          <FormActions
+            secondary={
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={step === 1}
+                onClick={() => setStep(step - 1)}
+              >
+                Back
+              </Button>
+            }
+            primary={
+              lastStep ? (
+                <Button type="submit" variant="primary">
+                  Finish
+                </Button>
+              ) : (
+                <Button type="submit" variant="primary" disabled={step === 1 && !ready}>
+                  Continue
+                </Button>
+              )
+            }
+          />
+          <Stack direction="row" justify="end">
+            <Button
+              type="button"
+              variant="tertiary"
+              onClick={() => (lastStep ? finish(false) : next())}
+            >
+              {lastStep ? "I'll do it later" : 'Skip'}
+            </Button>
+          </Stack>
         </Stack>
       </Form>
     </Box>
@@ -189,17 +189,33 @@ function PickTrack({
   onToggle,
   firstTitle,
   onFirstTitle,
+  offerSample,
 }: {
   picked: string[];
   onToggle: (id: string) => void;
   firstTitle: string;
   onFirstTitle: (v: string) => void;
+  offerSample: boolean;
 }) {
   return (
     <Stack gap="tight">
-      <Text variant="caption" as="p" tone="secondary">
-        One or more. Each fills in search terms and a few links; edit them any time.
+      <Text variant="ui" as="h3" className="rjb-semibold">
+        Pick a track
       </Text>
+      <Text variant="body" tone="secondary">
+        Pick one or more tracks to start with. Each pre-fills search terms and a few links. You can
+        edit or add more later.
+      </Text>
+      {/* Up top, so a visitor sees it without scrolling past the packs (#154 review). Never
+          offered signed in (a signed-in tracker syncs), so neither is its caption. */}
+      {offerSample && !hasCloudSession() && (
+        <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="start">
+          <Text variant="caption" as="span" tone="secondary">
+            Just looking?
+          </Text>
+          <TrySampleButton />
+        </Stack>
+      )}
       <div role="group" aria-label="Starter tracks">
         <Stack gap="tight">
           {STARTER_PACKS.map((p, i) => {
@@ -225,11 +241,13 @@ function PickTrack({
                     {p.label}
                   </Text>
                   {/* The lead pack (#59): the grid follows STARTER_PACKS order, consulting first. */}
-                  {i === 0 && <Badge tone="neutral">Suggested</Badge>}
+                  {i === 0 && <Badge tone="info">Suggested</Badge>}
                 </Stack>
-                <Text variant="caption" as="div" tone="secondary" id={`pack-${p.id}-blurb`}>
-                  {p.blurb}
-                </Text>
+                <Box sx={{ opacity: 0.8 }}>
+                  <Text variant="caption" as="div" id={`pack-${p.id}-blurb`}>
+                    {p.blurb}
+                  </Text>
+                </Box>
               </Card>
             );
           })}
@@ -256,25 +274,16 @@ export function ChooseTrack() {
   const [open, setOpen] = useState(false);
   if (open) return <Onboarding />;
   return (
-    // rev-3 mock: the page's title over one bordered empty state.
-    <Box sx={{ py: 'md' }}>
-      <Stack gap="normal">
-        <Text variant="title" as="h2">
-          Companies
-        </Text>
-        <Card bordered>
-          <EmptyState
-            icon={Search}
-            title="Pick a track to search"
-            description="A track holds your job titles, location and saved links."
-            action={
-              <Button variant="primary" onClick={() => setOpen(true)}>
-                Choose a track
-              </Button>
-            }
-          />
-        </Card>
-      </Stack>
+    <Box sx={{ py: 'lg' }}>
+      <EmptyState
+        title="Pick a track to search"
+        message="A track holds your job titles, location and saved links."
+        action={
+          <Button variant="primary" onClick={() => setOpen(true)}>
+            Choose a track
+          </Button>
+        }
+      />
     </Box>
   );
 }

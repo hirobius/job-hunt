@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -42,13 +42,12 @@ describe('UseTemplate', () => {
       'true',
     );
     await user.click(screen.getByRole('button', { name: 'Plain note' }));
-    const preview = screen.getByRole('region', { name: 'Preview' });
-    expect(preview).toHaveTextContent('about Fabricator at Acme Metals');
-    // The blank is a chip that fills in place (rev-3 A), counted under the text.
-    expect(within(preview).getByRole('button', { name: 'Fill Contact' })).toBeInTheDocument();
-    expect(within(preview).getByText(/^\d+ blanks? left$/)).toBeInTheDocument();
+    const preview = screen.getByLabelText('Preview') as HTMLTextAreaElement;
+    expect(preview.value).toContain('about Fabricator at Acme Metals');
+    expect(preview.value).toContain('[Contact]');
+    expect(screen.getByText(/Still unfilled: \[Contact\]/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Copy' }));
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('[Contact]'));
+    expect(writeText).toHaveBeenCalledWith(preview.value);
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
   });
 

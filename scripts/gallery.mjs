@@ -165,7 +165,7 @@ const OVERLAYS = [
     /^(Pipeline|Tracker)$/,
     'template-detail-from-menu',
     [
-      ['button', /^Account/],
+      ['button', /^Menu$/],
       ['menuitem', /^(Documents|Templates)$/],
       ['button', /^Cover letter/],
     ],
@@ -371,7 +371,7 @@ async function shoot(browser, base, theme, width, manifest) {
 
   // Documents (Templates before #227) without a tab (#240): open it from the Menu, shoot the list.
   if (!(await topTabs(page)).includes('Templates')) {
-    await clickIf(page, 'button', /^Account/);
+    await clickIf(page, 'button', /^Menu$/);
     if (await clickIf(page, 'menuitem', /^(Documents|Templates)$/)) await snap('Documents');
   }
 

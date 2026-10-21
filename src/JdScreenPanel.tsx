@@ -1,14 +1,5 @@
 import { useState } from 'react';
-import {
-  Badge,
-  Box,
-  Button,
-  Card,
-  Disclosure,
-  Stack,
-  Text,
-  Textarea,
-} from '@hirobius/design-system';
+import { Badge, Box, Button, Disclosure, Stack, Text, Textarea } from '@hirobius/design-system';
 import { screenJd, MAX_JD, type JdScreen } from './jdScreener';
 import { suggestVerdict, verdictTone, verdictLabel, modeLabel, blockerLabel } from './screening';
 import { updateJob } from './store';
@@ -41,92 +32,81 @@ export default function JdScreenPanel({ job }: { job: Job }) {
   };
 
   return (
-    // A panel of its own under Fit (rev-3 mock), closed by default: one expandable row.
-    <Card as="section" aria-label="Screen a job description" bordered padding="none">
-      <Box sx={{ px: 'md', py: 'xs' }}>
-        <Disclosure
-          label="Screen a job description"
-          variant="row"
-          preview="Paste the posting to get a suggested fit, mode and dealbreakers."
-          open={open}
-          onOpenChange={setOpen}
-        >
-          <Stack gap="normal">
-            <Text variant="caption" as="p" tone="secondary">
-              This runs local keyword rules: nothing leaves your browser, no AI.
-            </Text>
-            <Textarea
-              label="Job description"
-              rows={8}
-              value={text}
-              placeholder="Paste the full job description…"
-              onChange={(e) => setText(e.target.value.slice(0, MAX_JD))}
-            />
+    <Disclosure label="Screen a job description" variant="nav" open={open} onOpenChange={setOpen}>
+      <Stack gap="normal">
+        <Text variant="ui" tone="secondary">
+          Paste the posting. This runs local keyword rules: nothing leaves your browser, no AI.
+        </Text>
+        <Textarea
+          label="Job description"
+          rows={8}
+          value={text}
+          placeholder="Paste the full job description…"
+          onChange={(e) => setText(e.target.value.slice(0, MAX_JD))}
+        />
 
-            {result && (
-              <Stack gap="tight">
-                <Text variant="caption" as="span" tone="secondary">
-                  Suggested
+        {result && (
+          <Stack gap="tight">
+            <Text variant="caption" as="span" tone="secondary">
+              Suggested
+            </Text>
+            <Stack direction="row" wrap="wrap" gap="tight" align="center">
+              <Badge tone={verdictTone(result.verdict)}>{verdictLabel(result.verdict)}</Badge>
+              {result.mode && <Badge tone="neutral">{modeLabel(result.mode)}</Badge>}
+              {result.blockers.map((b) => (
+                <Badge key={b} tone="danger">
+                  {blockerLabel(b)}
+                </Badge>
+              ))}
+              {result.blockers.length === 0 && !result.mode && (
+                <Text variant="ui" tone="secondary">
+                  No blockers or mode detected. Looks clean.
                 </Text>
-                <Stack direction="row" wrap="wrap" gap="tight" align="center">
-                  <Badge tone={verdictTone(result.verdict)}>{verdictLabel(result.verdict)}</Badge>
-                  {result.mode && <Badge tone="neutral">{modeLabel(result.mode)}</Badge>}
-                  {result.blockers.map((b) => (
-                    <Badge key={b} tone="danger">
-                      {blockerLabel(b)}
-                    </Badge>
-                  ))}
-                  {result.blockers.length === 0 && !result.mode && (
-                    <Text variant="ui" tone="secondary">
-                      No blockers or mode detected. Looks clean.
-                    </Text>
-                  )}
-                </Stack>
-                {result.hits.length > 0 && (
-                  <Box
-                    as="ul"
-                    sx={{
-                      listStyle: 'none',
-                      m: 0,
-                      p: 0,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 'sm',
-                    }}
-                  >
-                    {result.hits.map((h, i) => (
-                      <li key={i}>
-                        <Text variant="caption" as="span" tone="secondary">
-                          {h.tag}: “{h.evidence}”
-                        </Text>
-                      </li>
-                    ))}
-                  </Box>
-                )}
-                <Text variant="caption" as="span" tone="secondary">
-                  Applying merges these with any tags you’ve set; you can edit everything after.
-                </Text>
-              </Stack>
-            )}
-            <Stack direction="row" gap="tight">
-              {result ? (
-                <Button variant="primary" size="md" onClick={apply}>
-                  Apply to this job
-                </Button>
-              ) : (
-                <Button variant="secondary" size="md" onClick={run} disabled={!text.trim()}>
-                  Screen
-                </Button>
-              )}
-              {(text || result) && (
-                <Button variant="tertiary" size="md" onClick={reset}>
-                  Clear
-                </Button>
               )}
             </Stack>
+            {result.hits.length > 0 && (
+              <Box
+                as="ul"
+                sx={{
+                  listStyle: 'none',
+                  m: 0,
+                  p: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'sm',
+                }}
+              >
+                {result.hits.map((h, i) => (
+                  <li key={i}>
+                    <Text variant="caption" as="span" tone="secondary">
+                      {h.tag}: “{h.evidence}”
+                    </Text>
+                  </li>
+                ))}
+              </Box>
+            )}
+            <Text variant="caption" as="span" tone="secondary">
+              Applying merges these with any tags you’ve set; you can edit everything after.
+            </Text>
           </Stack>
-        </Disclosure>
-      </Box>
-    </Card>
+        )}
+        <Stack direction="row" gap="tight">
+          {result ? (
+            <Button variant="primary" size="sm" onClick={apply}>
+              Apply to this job
+            </Button>
+          ) : (
+            <Button variant="secondary" size="sm" onClick={run} disabled={!text.trim()}>
+              Screen
+            </Button>
+          )}
+          {(text || result) && (
+            <Button variant="tertiary" size="sm" onClick={reset}>
+              Clear
+            </Button>
+          )}
+        </Stack>
+      </Stack>
+    </Disclosure>
   );
 }

@@ -23,7 +23,6 @@ import {
   Switcher,
   Text,
   Textarea,
-  EmptyState,
 } from '@hirobius/design-system';
 import {
   createDocument,
@@ -48,6 +47,7 @@ import {
   sentByKind,
   type SentVersion,
 } from './jobDocuments';
+import EmptyState from './EmptyState';
 import type { Job } from './types';
 
 export interface JobDocumentsProps {
@@ -413,7 +413,7 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
         <EmptyState
           icon={FileText}
           title="No documents yet"
-          description="Keep the résumé, cover letter and messages you write for this job here, with every version."
+          message="Keep the résumé, cover letter and messages you write for this job here, with every version."
           action={
             <Stack direction="row" gap="tight" justify="center" wrap="wrap">
               {newButton('primary')}

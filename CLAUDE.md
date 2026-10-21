@@ -31,14 +31,13 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
     `border` needs a style (`'1px solid'`). Prefer named primitives (Stack/Switcher/Grid) over
     `Box sx`, and parent gaps over child margins.
   - **Responsive `sx` takes a `base` key (HDS 0.26.2, hds#652):** `{ flexDirection: { base:
-'column', sm: 'row' } }`; `xs` means min-width 375, so never use it as the base. For a row of
+    'column', sm: 'row' } }`; `xs` means min-width 375, so never use it as the base. For a row of
     peer fields prefer `Switcher`. The old nested `'&'` override is gone (`hdsOnly.test.ts`).
   - **Secondary text** is `<Text variant="caption" tone="secondary">` (HDS 0.26, hds#655);
-    `hds-gaps/tone` is gone (slice 4): use `Text tone`, never an inline colour. Bold is
-    `Text weight="bold"` (HDS 0.28).
-  - **Empty states** are HDS `EmptyState` directly (title, description, `icon`, `action`; the
-    local composition was retired in redesign slice 2).
-  - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
+    `hds-gaps/tone` `SECONDARY` is only for a plain span or p.
+  - **`EmptyState.tsx`** is a composition (HDS `EmptyState`, whose `action` it passes through,
+    hds#654, + an optional icon HDS has no slot for yet); collapse it into HDS when that lands.
+  - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, `EmptyState.tsx`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
 - **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
@@ -46,13 +45,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.30.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.26.2`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
-  `.npmrc` maps `@hirobius` there, so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`). GitHub
-  Packages stops at design-system 0.26.2, so the lockfile resolves it from registry.npmjs.org and `.npmrc` sets
-  `replace-registry-host=never` to keep that URL (install a new HDS with `--@hirobius:registry=https://registry.npmjs.org`).
-  **Compact density is the app's only density** (`data-density="compact"` on `<html>` in `index.html` and
-  `theme-init.js`; HDS 0.30: space 4/8/12/16/24/32, body 15, caption 13, ui 14, title 24; no toggle). Upgrade with
+  `.npmrc` maps `@hirobius` there, so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`). Upgrade with
   `npx @hirobius/design-system@latest upgrade` (codemods + a to-do list; `--check` to verify).
   `main.tsx` imports `@hirobius/design-system/styles.css` (reset-free, scoped to `[data-hds]` —
   set on `<body>` in `index.html`) and `fonts.css`, then
@@ -98,42 +93,38 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   **Welding & Machining**, **Construction Trades** — each drives Discover's title/ATS search
   terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
   pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
-  **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (the one `h1`, `Text variant="body"` semibold, so the
-  page title is always the biggest text) · top tabs (**Companies · Pipeline**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
-  **Account** button: an HDS `Avatar` (initial signed in, person icon signed out, a warning dot while jobs are unsynced; named "Account" / "Account, not synced"; it holds account, data, display and feedback). Phone page gutter is 16 (`--semantic-space-fixed-sm`), HDS's region gutter from `sm`. `src/account/` is the account
+  **Shell (#115 Phase 1):** slim header = mark on a phone, wordmark from `sm` (the one `h1`, `Text variant="body"` semibold, so the
+  page title is always the biggest text) · top tabs (**Companies · Pipeline**; they scroll on a phone, with the `src/hds-gaps/TabsOverflowFade` edge cue) · one
+  icon-only **Menu** button (hamburger, `aria-label="Menu"`; it holds account, data, display and feedback). `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Back up,
-  Restore…, Export CSV, theme and feedback; there is no sync banner (the Avatar dot says it, rev-3 P);
+  Restore…, Export CSV, theme and feedback; `SyncNudge` is the one-time dismissible one-line note (flat, #241);
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
   line as non-item labels | data | display | Sign out, Delete my data last in the danger colour;
   data = Documents, Back up, Restore…, Export CSV).
-- **Guardrails (redesign-mobile, `docs/guardrails.md`):** HDS freshness (≤ 1 minor behind `hds-version.json`) runs in `verify`; layout rules + screenshot baselines run in `npm run verify:ui` (local, needs Chromium; update baselines with `npm run test:visual -- --update-snapshots`).
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
   (git-ignored). Run it before/after each redesign phase.
 - **Job routes (#127):** every saved job has a page at `#/queue/<jobId>` (`Route.jobId`; the second
   segment is a job under `queue`, a sub-tab elsewhere). `store.jobIdOf(url)` derives the id (hash
   of `dedupKey`, never stored); `findJobById` resolves it; `route.openJob(id | null)` navigates.
-  **Job page (#130; rev-3 mobile slice 2):** `JobPage.tsx` = `JobHeader` ("← Pipeline", one
-  `JobBadges` row above the title (fit first, status, Follow-up due), company · location, then one
-  row: 40px icon Star ("Star"/"Starred"), the one primary next step, the menu, which holds Remove)
-  over **three** `Tabs` (rev-3 F): Overview (`JobOverview`: `PipelinePanel` panels — Details, the
-  `jobFacts` `MetadataList` that turns into its fields on Edit: title, company, location, pay, link
+  **Job page (#130):** `JobPage.tsx` = `JobHeader` (title + status; Star (filled when on, "Starred"),
+  the one primary next step and the menu, which holds Remove; one row on desktop, actions in one row
+  under the title on a phone) over `Tabs` Overview (`JobOverview`: a Details card that is the
+  `jobFacts` `MetadataList`, and turns into its fields on Edit: title, company, location, pay, link
   (saves on blur, the page follows the new id), contact, with seniority and résumé under More
-  fields; starts in edit for a job without title and company; research links under the facts ·
-  To-dos (a quiet "Add a to-do" line opens the field; "Add starter tasks" while empty) and Notes (`TodosNotes`; the one Notes field: `notes`, else the older `note`) · Documents
-  (count, Sent line, Use template, every document behind one "All documents" Disclosure row)) ·
-  Screening (`JobScreening`: Fit panel with `ScreeningEditor`, `JdScreenPanel` as a closed row) ·
-  Interviews. **Remove is soft
+  fields; starts in edit for a job without title and company; then templates and research links) ·
+  Screening (`JobScreening`: fit line, inline `JdScreenPanel`, `ScreeningEditor`) · Interviews ·
+  To-dos (`TodosNotes`, holds the one Notes field: `notes`, else the older `note`). **Remove is soft
   (`trash.ts`):** the job goes to Recently removed (link under the Pipeline list, Restore / Delete
   forever) with an Undo notice (`saveNotice.removeWithUndo`, shown by the one `NoticeHost`, so it
   never stacks with a save notice). Restoring a posting saved again since merges the removed copy's
   notes, to-dos and interviews into the saved one. Starred jobs
   have their own Pipeline filter. The open tab is local
   state keyed by job, not in the URL. At ≥ `lg` an HDS `Sidebar` puts `JobRail` (links with
-  HDS `NavList` link rows, badges above the title) beside the job; below it the job is alone with a Back link.
+  `aria-current`, `hds-gaps/RailList`) beside the job; below it the job is alone with a Back link.
   The Pipeline's filter/search/sort live in `pipelineView.ts` (in memory, shared by `TrackerView`
   and the rail; `test/setup.ts` resets it per test). An unknown id shows a skeleton, then waits for
   `useCloudSync().settled` before falling back to `#/queue`. Pinned in `src/jobPage.test.tsx`. `HOME_ROUTE` (`discover`) and
@@ -143,13 +134,11 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `discover`, home, hosts the first-run gate) and an empty hash lands there. "Try with sample data"
   lands on the Pipeline. The Pipeline always ends with a secondary **Find the next company** button
   (→ `#/discover`, empty or not; Calm list 4/7, #238, pinned in `pipeline.test.tsx`).
-- **Pipeline panels (rev-3 mobile slice 1, `docs/staging/all-states.html` on `claude/staging-states`):**
-  Getting started, To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
-  `Badge count`), 24 apart. The Jobs panel holds the full-width search, Status and Sort as select-style
-  menus and a quiet **Clear filters** when non-default; phone rows are HDS entity cards (`Card.Header`
-  metadata = badge row above the title, fit first, then status, then Follow-up due; `Card.Facts` with
-  location and applied date; `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
-  margins. Elsewhere still no card patterns: the Documents
+- **Header and spacing (Calm list 7/7, #241):** the `h1` is a small accent mark (`BRAND.name[0]`,
+  `role="img"` named by BRAND, `.rjb-mark` in `base.css`) below `sm` and the body-size wordmark from
+  `sm` up (`useAtLeast('sm')`). Rhythm is HDS Stack gaps, no margins: 24 under a heading (`normal`),
+  48 between sections (`spacious`) on the Pipeline and Companies. No card patterns: the Pipeline's
+  To apply / Follow up / Next 7 days / Getting started, the sync note, phone job rows, the Documents
   list, company lists (`rowsStyle` + `.rjb-rows` hairlines) and the loading skeletons are flat rows
   on the page. Cards stay only where they hold a form or a choice (job Details, Onboarding picks).
   Pinned in `src/calmLayout.test.tsx`.
@@ -158,7 +147,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   live at the top of the Pipeline (`ApplyQueueSummary` → `PipelineAgenda.tsx`): under To apply, one
   **Follow up (M)** section (due first from `dueFollowUps`, Due badge + the one Follow up button,
   then the rest of `followUpJobs` with their day) and **Next 7 days (N)** (`upcomingEvents`); a
-  section with nothing in it renders nothing. `GettingStarted` sits over them. Quick-add is the Pipeline's Add job dialog. HDS-gap stand-ins
+  section with nothing in it renders nothing. `GettingStarted` sits over them and the one
+  `SyncNudge` over the Pipeline list. Quick-add is the Pipeline's Add job dialog. HDS-gap stand-ins
   live in `src/hds-gaps/`, each naming its upstream ask. **The onboarding gate lives in the
   shell:** Companies shows `Onboarding` on a first run (no tracks and no jobs; it offers sample data
   there) and `ChooseTrack` whenever there are no tracks; Pipeline and Documents never gate. Pinned
@@ -166,14 +156,10 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **Documents library (#227; replaced Templates #132, no tab since #240):** `#/copy-deck` (slug kept)
   is a page with no tab selected (App mounts `DocumentsView` outside the tab panels), reached from the
   Menu's Documents item and the Apply sheet's Edit documents link, headed "Documents" with Back to
-  Pipeline. `DocumentsLibrary` is a `Panel` per kind (count, "New" in the header) of HDS Disclosure
-  rows, one open at a time (redesign slice 3, rev-3 M): closed, the title and its variables as chips;
-  open, the first lines (`templateFill.previewText`, cut on a word or blank boundary) with Copy, Open
-  (the editor) and a menu (Pin, Duplicate, Delete). `DocumentEditor` (rev-3 N: the document's title as
-  the page head; Save, Version history and the menu in one row) saves each change as a Version.
-  Outreach messages use HDS `TokenField` (each `[Name]` one atomic chip), the chip row + Insert
-  variable `Menu` (`insertToken`), and the #221 **Variables panel** (Fill for, then each variable, then the
-  filled Preview with Copy; a
+  Pipeline. `DocumentsLibrary` lists Base documents per kind (flat rows, #241); `DocumentEditor` saves
+  each change as a Version. Outreach messages keep the Templates tools: `hds-gaps/TokenTextarea`
+  (contenteditable; each `[Name]` one atomic chip; keys go through `templateEditor` helpers), the chip
+  row + Insert variable `Menu` (`insertToken`), a Fill for preview, and the #221 **Variables panel** (a
   picked job's four fields save on the job, the rest on `Document.values`, not a Version; `[Your name]`
   falls back to the kit name). `#/copy-deck/<id>` opens one; an old `#/copy-deck/<snippetId>` resolves
   to `snippet-<id>` (`outreachTemplates.resolveDocumentId`, hash rewritten); unknown → the library once
@@ -206,10 +192,10 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders
   `JobsTable` (HDS `Table`, sortable headers through `jobRow.nextSort` → the same `SortKey` as the
   toolbar) at ≥ the HDS `lg` breakpoint and `JobListCard` (title on its own row) below it, chosen
-  by HDS `useAtLeast` (no `matchMedia` → cards). Both render `jobRow.rowView` with
+  by `src/hds-gaps/useBreakpoint.ts` (no `matchMedia` → cards). Both render `jobRow.rowView` with
   `JobRowParts.tsx`: one next step per row (Mark applied / Follow up, secondary so Add job stays
   the page's one primary) + the row `Menu` (also on the job page's header, minus Remove); 40px controls on
-  cards. A non-default filter or search shows a quiet Clear filters button.
+  cards. A non-default status filter shows as a `Tag` chip that clears it.
   Titles link to `#/queue/<jobId>`; details, to-dos, the screener and templates live on the job
   page (tabs, #130). The filter/search/sort survive opening a job and Back (`pipelineView.ts`).
   Pinned in `src/pipeline.test.tsx`.
@@ -218,42 +204,37 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   holding the only `LocationControl`. **Location is `Category.location`; work mode is per track and syncs,
   `rjb_ui_mode:<categoryId>`** (`src/discoverContext.ts`, `useTrackContext`; panels read it, they take
   no location props). Tools are one `SegmentedControl` (Teams / Apply / ATS since #223, full
-  names from `sm`; HDS fades its overflow edge); the track's sections are `Tabs` under
+  names from `sm`), wrapped in `hds-gaps/TabsOverflowFade`; the track's sections are `Tabs` under
   "Your sections", shown only for Apply now; slugs unchanged (`#/discover/<tool | groupId>`).
   `TileGrid` cards are equal-height (240px min), with chips parsed from the meta string by
   `tileMeta.parseMeta` (raw text is the fallback; no data migration), a `Details` disclosure with
   tap-to-call for every phone, and a labelled Set aside. Live postings states go through
-  HDS `AsyncState` (skeleton + "still trying" at 10 s; `fetchFeed` has a 15 s per-source cap and
+  `hds-gaps/AsyncState` (skeleton + "still trying" at 10 s; `fetchFeed` has a 15 s per-source cap and
   `only: [keys]` for the per-source Retry, merged by `feed/mergeFeed`); Watch a company, suggested
   companies and Your evidence sit in a collapsed **Refine** disclosure under the search. Fit wording
   is `screening.verdictLabel` everywhere (Strong fit / Stretch / Reach). Pinned in
   `src/discover.test.tsx`, `TileGrid.test.tsx`, `LiveFeed*.test.tsx`.
 - **Design polish (#133, `docs/specs/design-polish.md`, `docs/redesign-2026.md`):** banners are not page
-  furniture: unsynced is the Account Avatar's dot (its title says "Saved on this device only"), and `SampleBanner` is a one-line note under the page header. Section heads are
+  furniture: `SyncNudge` is one line, over the Pipeline list only (#236; no dot on the Menu trigger; its title says
+  "Saved on this device only"), and `SampleBanner` is a one-line note under the page header. Section heads are
   `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
   host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 40px phone buttons,
-  reduced motion); secondary colour is `Text tone="secondary"`. Guards: inline `style={{`
+  reduced motion); shared secondary colour is `hds-gaps/tone` `SECONDARY`. Guards: inline `style={{`
   ceiling and no inline font size/weight in `hdsOnly.test.ts` (only lower the ceiling), lint is
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a
   held HDS gap, hds#748; also tracked upstream: touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
   targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.14.0).
 - **Rapid apply (2026-10-17):** every save (Discover tiles, Live postings incl. "Save N to Pipeline"
   / "Save all shown", quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
-  Open + Undo (`NoticeHost` in the shell: an HDS Toast with `actions`, one at a time).
+  Open + Undo (`NoticeHost` in the shell; `hds-gaps/ActionToast` because HDS Toast has no action slot).
   The Pipeline opens on `ApplyQueueSummary`: **To apply (N)** + the one primary **Start applying**, and
   **Follow up (M)** with dates (`applyQueue.ts`: Saved & not set aside, pinned first then newest).
   **Apply mode** `#/apply/<jobId>` (`ApplyMode.tsx`, `route.openApply`; the Pipeline tab stays
-  selected; rev-3 E): one top row "← Pipeline" + HDS `Pagination variant="compact"` ("‹ 1 of N ›",
-  the applied job holds its place in the walk), badges above the title, Open application (the one
-  primary), then Mark applied (follow-up 7 days on) and Not a fit (retire + Undo) as one row of two;
-  no Skip or Next job. Then panels of HDS `Disclosure variant="row"` rows (preview, Copy beside it,
-  blanks as chips with "N blanks left" when open; tap a blank to fill it in place, `BlankText` →
-  `fillBlank`: the job's four fields save on the job, any other on the message's values, rev-3 A,
-  slice 3): **Apply sheet (#239)** "Templates" lists every
-  Outreach message filled for the job (`applyKit.filledTemplates` → `fillSnippet`, pinned first) with
-  an Edit documents link; the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**):
-  filled profile fields as copy rows, the empty ones folded into one "Fill in N more" row, the two
-  template-filled letters and Custom answers. The row menu sets any status.
+  selected): Open application, Mark applied (follow-up 7 days on), Next job (k of N), Skip, Not a fit
+  (retire + Undo), and the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**): profile
+  fields, two template-filled letters and custom Q&A, each a copy row. **Apply sheet (#239):** above
+  the kit, "Templates" lists every Outreach message filled for the job (`applyKit.filledTemplates` →
+  `fillSnippet`, pinned first, one copy row each) with an Edit documents link. The row menu sets any status.
   Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
 - **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
   title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys
@@ -263,7 +244,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
   "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
   apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
-- **Title filter (#223):** the sweep's list _is_ the track's title filter (seed: the track's titles, else
+- **Title filter (#223):** the sweep's list *is* the track's title filter (seed: the track's titles, else
   its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
   titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**
   disclosure beside leave-out / pay / level. The Titles tool is gone: its big-board links sit on the ATS
@@ -397,7 +378,7 @@ far this cycle:
   RLS (the DB had been empty — cloud sync never had a backing table until now).
 - **#30 IA/curation chain COMPLETE (B1→B5), live on `main`.** Discover now reads the per-account
   **curation store** (`useCategories`/`useGroups`/`useTiles`), not hardcoded pillars — a `Category`
-  _is_ a track. Shipped via per-area PRs: **#75 B1** (wire Discover→curationStore + first-run
+  *is* a track. Shipped via per-area PRs: **#75 B1** (wire Discover→curationStore + first-run
   `Onboarding` picking starter packs, D1) · **#76 B2/B3** (strip hardcoded content, retire the Trades
   tab, tabs → Discover/Tracker/Templates, slugs kept for back-compat) · **#78 B4** (in-app curation
   controls — `ManageTrackDialog` creates/edits/deletes tracks + sections + links; D2 pin/set-aside

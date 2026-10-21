@@ -2,17 +2,9 @@
 // names on Jobs (src/companies.ts), so this page lists what it holds: its Jobs, the Documents on
 // them or naming it, and its own Notes, which can be added and edited here (each save a Version).
 import { useState, type ReactNode } from 'react';
-import {
-  Box,
-  Button,
-  Icon,
-  InlineLink,
-  Stack,
-  Text,
-  Textarea,
-  EmptyState,
-} from '@hirobius/design-system';
+import { Box, Button, Icon, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
 import { ArrowLeft, Building2 } from 'lucide-react';
+import EmptyState from './EmptyState';
 import { addCompanyNote, useCompany } from './companies';
 import { DOCUMENT_KINDS, saveVersion, type Document } from './documents';
 import { jobHash } from './route';
@@ -118,7 +110,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
       <EmptyState
         icon={Building2}
         title="No company here"
-        description="Companies come from the company name on a job. This one may have been renamed."
+        message="Companies come from the company name on a job. This one may have been renamed."
         action={
           <InlineLink href="#/queue" externalIcon={false}>
             Go to the Pipeline

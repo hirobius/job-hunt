@@ -10,6 +10,7 @@ import './theme/base.css';
 import { inject } from '@vercel/analytics';
 import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
+import { DensityProvider } from './Density';
 import { ErrorBoundary } from './ErrorBoundary';
 import { installErrorReporting } from './errorReport';
 import App from './App';
@@ -23,9 +24,11 @@ createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <ColorModeProvider>
-        <ToastProvider>
-          <App />
-        </ToastProvider>
+        <DensityProvider>
+          <ToastProvider>
+            <App />
+          </ToastProvider>
+        </DensityProvider>
       </ColorModeProvider>
     </ErrorBoundary>
   </React.StrictMode>,

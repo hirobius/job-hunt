@@ -32,6 +32,7 @@ import {
 } from './documents';
 import { documentsForJob, kindLabel } from './jobDocuments';
 import { download } from './download';
+import { SECONDARY } from './hds-gaps/tone';
 
 const KIND_OPTIONS = DOCUMENT_KINDS.map((k) => ({ value: k.kind, label: k.label }));
 const ACCEPT =
@@ -111,7 +112,7 @@ export function UploadFinalCopy({
         <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
           Choose file
         </Button>
-        <Text variant="ui" tone={picked ? undefined : 'secondary'}>
+        <Text variant="ui" style={picked ? undefined : SECONDARY}>
           {picked ? `${picked.name} · ${formatBytes(picked.size)}` : 'No file chosen'}
         </Text>
       </Stack>

@@ -2,7 +2,7 @@
 // one posting's Fit and gap, and the roll-up of what the postings ask for. The logic lives in
 // src/radar/ (rules only, no AI); these only render it.
 import { useId } from 'react';
-import { Badge, Box, Disclosure, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
+import { Box, Disclosure, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
 import { EVIDENCE_MAX } from './radar/evidenceStore';
 import type { FitGap } from './radar/fitGap';
 import type { Patterns } from './radar/patterns';
@@ -10,42 +10,41 @@ import type { Patterns } from './radar/patterns';
 export function EvidenceEditor({
   text,
   count,
+  startOpen = false,
   onChange,
 }: {
   text: string;
   count: number;
+  /** Open on first show — Live postings passes true only while no postings are showing. */
+  startOpen?: boolean;
   onChange: (text: string) => void;
 }) {
   return (
-    // Inline in Refine (rev-3 J): the label with its count, a helper line, then a 5-row field
-    // that grows by hand. No placeholder: the helper says what goes in.
-    <Stack gap="px8">
-      <Stack gap="px4">
-        <Stack direction="row" gap="px8" align="center">
-          <Text variant="ui" as="span">
-            Your evidence
+    // Open on first show only while empty and nothing else is on screen (it's the ask); collapsed
+    // otherwise, so the postings lead. Same trigger style as Fit and gap and the patterns roll-up.
+    <Disclosure label={`Your evidence (${count})`} defaultOpen={!text && startOpen}>
+      <Stack gap="xs">
+        <Text variant="caption" tone="secondary">
+          One skill per line, as “Skill: what shows it (link)”. Each posting then gets a fit, and
+          Fit notes only ever cite these. Saved with your account.
+        </Text>
+        <Textarea
+          aria-label="Your evidence"
+          rows={5}
+          value={text}
+          placeholder={
+            'Design tokens: token pipeline with generated outputs (https://…)\nAccessibility: automated contrast and axe checks'
+          }
+          onChange={(e) => onChange(e.target.value)}
+        />
+        {text.length >= EVIDENCE_MAX && (
+          <Text variant="caption" role="status" tone="secondary">
+            Trimmed to the {EVIDENCE_MAX.toLocaleString('en-US')} character limit; anything past it
+            is not kept.
           </Text>
-          <Badge count={count} label={`${count} skills`} />
-        </Stack>
-        <Text variant="caption" as="p" tone="secondary">
-          One skill per line, like Design tokens: token pipeline (link). Each posting then gets a
-          fit, and Fit notes only ever cite these.
-        </Text>
+        )}
       </Stack>
-      <Textarea
-        aria-label="Your evidence"
-        rows={5}
-        className="rjb-resize"
-        value={text}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      {text.length >= EVIDENCE_MAX && (
-        <Text variant="caption" role="status" tone="secondary">
-          Trimmed to the {EVIDENCE_MAX.toLocaleString('en-US')} character limit; anything past it is
-          not kept.
-        </Text>
-      )}
-    </Stack>
+    </Disclosure>
   );
 }
 

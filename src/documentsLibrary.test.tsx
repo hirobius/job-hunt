@@ -20,11 +20,6 @@ const renderLib = () =>
   );
 const section = (name: string) => screen.getByRole('region', { name });
 const doc = (id: string) => getAllDocuments().find((d) => d.id === id)!;
-/** A row expands (rev-3 M); its Open button opens the editor. */
-async function openDoc(title: string) {
-  await userEvent.click(screen.getByRole('button', { name: new RegExp(title) }));
-  await userEvent.click(screen.getByRole('button', { name: `Open ${title}` }));
-}
 
 // Radix Select measures and scrolls; jsdom has neither.
 beforeEach(() => {
@@ -56,7 +51,7 @@ describe('library', () => {
       ['Outreach messages', 'No outreach messages yet', 'New outreach message'],
     ]) {
       const s = section(name);
-      expect(within(s).getByText(new RegExp(`^${empty}\\.`))).toBeInTheDocument();
+      expect(within(s).getByText(empty)).toBeInTheDocument();
       expect(within(s).getByRole('button', { name: button })).toBeInTheDocument();
     }
   });
@@ -69,14 +64,14 @@ describe('library', () => {
     createDocument({ kind: 'resume', title: 'Main résumé', base: true, text: 'r' });
     renderLib();
     const list = within(section('Cover letters')).getByRole('list');
-    const covers = within(list).getAllByRole('button', { expanded: false });
+    const covers = within(list).getAllByRole('button');
     expect(covers.map((b) => b.textContent)).toEqual([
       expect.stringContaining('Zulu letter'),
       expect.stringContaining('Bravo letter'),
     ]);
     expect(screen.queryByText('For Acme')).not.toBeInTheDocument();
     expect(within(section('Résumés')).getByText('Main résumé')).toBeInTheDocument();
-    expect(within(section('Notes')).getByText(/^No notes yet\./)).toBeInTheDocument();
+    expect(within(section('Notes')).getByText('No notes yet')).toBeInTheDocument();
   });
 });
 
@@ -100,7 +95,7 @@ describe('create, edit, delete', () => {
   it('each save adds a Version; the history shows them and an earlier one can be read', async () => {
     const id = createDocument({ kind: 'note', title: 'Prep', base: true, text: 'first' });
     renderLib();
-    await openDoc('Prep');
+    await userEvent.click(screen.getByRole('button', { name: /Prep/ }));
     const text = screen.getByRole('textbox', { name: 'Text' });
     expect(text).toHaveValue('first');
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -126,7 +121,7 @@ describe('create, edit, delete', () => {
   it('renames on blur without adding a Version', async () => {
     const id = createDocument({ kind: 'resume', title: 'CV', base: true, text: 't' });
     renderLib();
-    await openDoc('CV');
+    await userEvent.click(screen.getByRole('button', { name: /CV/ }));
     const title = screen.getByRole('textbox', { name: 'Title' });
     await userEvent.type(title, ' 2026');
     await userEvent.tab();
@@ -137,7 +132,7 @@ describe('create, edit, delete', () => {
   it('delete asks first, then removes the document and returns to the library', async () => {
     createDocument({ kind: 'resume', title: 'Old CV', base: true, text: 't' });
     renderLib();
-    await openDoc('Old CV');
+    await userEvent.click(screen.getByRole('button', { name: /Old CV/ }));
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
     const dialog = await screen.findByRole('alertdialog');
@@ -155,7 +150,7 @@ describe('create, edit, delete', () => {
   it('Back returns to the library without saving', async () => {
     const id = createDocument({ kind: 'note', title: 'Prep', base: true, text: 'a' });
     renderLib();
-    await openDoc('Prep');
+    await userEvent.click(screen.getByRole('button', { name: /Prep/ }));
     await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), 'bc');
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
     expect(section('Notes')).toBeInTheDocument();
@@ -169,10 +164,10 @@ describe('Outreach messages', () => {
     updateJob(JOB, { company: 'Acme Metals' });
     const id = createDocument({ kind: 'outreach', title: 'Hello', base: true, text: 'Hi at' });
     renderLib();
-    await openDoc('Hello');
-    for (const t of ['Company', 'Role', 'Contact', 'Angle', 'Your name'])
+    await userEvent.click(screen.getByRole('button', { name: /Hello/ }));
+    for (const t of ['[Company]', '[Role]', '[Contact]', '[Angle]', '[Your name]'])
       expect(screen.getByRole('button', { name: t })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Company' }));
+    await userEvent.click(screen.getByRole('button', { name: '[Company]' }));
     expect(screen.getByRole('textbox', { name: 'Message text' })).toHaveTextContent('Company');
     const preview = screen.getByRole('region', { name: 'Preview' });
     expect(preview).toHaveTextContent('Hi at [Company]');
@@ -196,7 +191,7 @@ describe('Outreach messages', () => {
       },
     ]);
     renderLib();
-    await openDoc('Pet note');
+    await userEvent.click(screen.getByRole('button', { name: /Pet note/ }));
     expect(screen.getByRole('region', { name: 'Preview' })).toHaveTextContent('Hello Rex');
   });
 });
@@ -207,7 +202,7 @@ describe('Variables panel', () => {
   const open = async (text: string) => {
     const id = createDocument({ kind: 'outreach', title: 'Vars', base: true, text });
     renderLib();
-    await openDoc('Vars');
+    await userEvent.click(screen.getByRole('button', { name: /Vars/ }));
     return id;
   };
   const vars = () => screen.getByRole('region', { name: 'Variables' });
@@ -273,7 +268,7 @@ describe('message text', () => {
   const open = async (text: string) => {
     createDocument({ kind: 'outreach', title: 'Chips', base: true, text });
     renderLib();
-    await openDoc('Chips');
+    await userEvent.click(screen.getByRole('button', { name: /Chips/ }));
   };
 
   it('shows each variable as one named chip that cannot be edited inside', async () => {
@@ -289,7 +284,7 @@ describe('message text', () => {
     await open('Hello world');
     body().focus();
     caretAt(body().firstChild!, 5);
-    await userEvent.click(screen.getByRole('button', { name: 'Role' }));
+    await userEvent.click(screen.getByRole('button', { name: '[Role]' }));
     expect(preview()).toHaveTextContent('Hello [Role] world');
     await waitFor(() => expect(body()).toHaveFocus());
     const sel = window.getSelection()!;
@@ -299,7 +294,7 @@ describe('message text', () => {
 
   it('a chip says which job field fills it', async () => {
     await open('Hi');
-    screen.getByRole('button', { name: 'Company' }).focus();
+    screen.getByRole('button', { name: '[Company]' }).focus();
     expect(await screen.findByRole('tooltip')).toHaveTextContent(/company/i);
   });
 
@@ -350,36 +345,5 @@ describe('message text', () => {
     await userEvent.click(await screen.findByRole('option', { name: /Fabricator/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Copy filled text' }));
     expect(writeText.mock.calls[0][0]).toBe('At Acme Metals, [Contact]');
-  });
-});
-
-// rev-3 M (slice 3): each row expands in place, one at a time, with Copy, Open and a menu.
-describe('expandable rows', () => {
-  it('a row opens with its first lines and variables as chips; one row is open at a time', async () => {
-    createDocument({ kind: 'outreach', title: 'Alpha', base: true, text: 'Hi [Contact], hello' });
-    createDocument({ kind: 'outreach', title: 'Bravo', base: true, text: 'Second' });
-    renderLib();
-    const alpha = screen.getByRole('button', { name: /Alpha/ });
-    await userEvent.click(alpha);
-    expect(alpha).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('button', { name: 'Open Alpha' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /Bravo/ }));
-    expect(alpha).toHaveAttribute('aria-expanded', 'false');
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Open Alpha' })).toBeNull());
-  });
-
-  it('the row menu duplicates and deletes (after asking)', async () => {
-    createDocument({ kind: 'note', title: 'Story', base: true, text: 'Once' });
-    renderLib();
-    await userEvent.click(screen.getByRole('button', { name: /Story/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'More actions for Story' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Duplicate' }));
-    expect(getAllDocuments().map((d) => d.title)).toEqual(['Story', 'Story (copy)']);
-    await userEvent.click(screen.getByRole('button', { name: 'More actions for Story' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    await userEvent.click(
-      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
-    );
-    expect(getAllDocuments().map((d) => d.title)).toEqual(['Story (copy)']);
   });
 });
