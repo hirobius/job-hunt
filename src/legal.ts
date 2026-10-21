@@ -71,8 +71,8 @@ export const THIRD_PARTIES: ThirdParty[] = [
   {
     name: 'Company directories',
     purpose:
-      'Finding companies: a public mirror of the Y Combinator company list, Wikidata’s public search (company name suggestions as you type) and GitHub’s public search. They receive your IP address and what you searched for.',
-    hosts: ['https://yc-oss.github.io', 'https://www.wikidata.org', 'https://api.github.com'],
+      'Finding companies: a public mirror of the Y Combinator company list and GitHub’s public search. They receive your IP address and what you searched for.',
+    hosts: ['https://yc-oss.github.io', 'https://api.github.com'],
   },
 ];
 

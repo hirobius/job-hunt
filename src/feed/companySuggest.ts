@@ -1,18 +1,17 @@
 // Company type-ahead for "Check a list of companies" (rev-3 L). As a name is typed, suggestions come
-// from three free, keyless places, merged in this order:
+// from two free, keyless places, merged in this order:
 //   1. the user's own companies (watched boards on any track, saved jobs, dream companies, targets),
-//   2. the YC directory's community mirror (yc-oss.github.io, its "hiring now" list, read once),
-//   3. Wikidata's entity search (wbsearchentities, CORS-open with `origin=*`), company-like only.
-// Each network source is failure-isolated: one that times out (5 s) or is blocked just drops out, and
-// the typed text can always be added as it is. Answers are cached in memory for the session.
-// Both network sources are UNVERIFIED LIVE from the build sandbox (its proxy blocks them).
+//   2. the YC directory's community mirror (yc-oss.github.io, its "hiring now" list, read once).
+// The YC source is failure-isolated: if it times out (5 s) or is blocked it just drops out, and the
+// typed text can always be added as it is. Answers are cached in memory for the session.
+// The YC source is UNVERIFIED LIVE from the build sandbox (its proxy blocks it).
 import { createFetchJson } from './fetchFeed';
 import { arr, obj, str, type FetchJson } from './sources/http';
 import { boardsFromUrls } from './sources/ats';
 import { SOURCE_LABEL } from './types';
 import { YC_BASE } from './yc';
 
-export type SuggestSource = 'tracks' | 'yc' | 'wikidata';
+export type SuggestSource = 'tracks' | 'yc';
 
 export interface CompanySuggestion {
   name: string;
@@ -116,34 +115,6 @@ export function parseYcSuggestions(body: unknown, query: string): CompanySuggest
     }));
 }
 
-export const wikidataUrl = (query: string) =>
-  `https://www.wikidata.org/w/api.php?${new URLSearchParams({
-    action: 'wbsearchentities',
-    search: query,
-    language: 'en',
-    uselang: 'en',
-    type: 'item',
-    limit: '10',
-    format: 'json',
-    origin: '*',
-  })}`;
-
-// An entity is a company when its short description says so ("American software company").
-const COMPANY_WORDS =
-  /\b(company|companies|business|corporation|enterprise|startup|start-up|firm|manufacturer|developer|publisher|retailer|brand|bank|agency|conglomerate|subsidiary|employer|organi[sz]ation|studio|consultancy|provider)\b/i;
-
-/** Company-like hits of a wbsearchentities answer, named by their description. */
-export function parseWikidata(body: unknown): CompanySuggestion[] {
-  return arr(obj(body).search)
-    .map((raw) => {
-      const o = obj(raw);
-      return { name: str(o.label).trim(), description: str(o.description).trim() };
-    })
-    .filter((e) => e.name && COMPANY_WORDS.test(e.description))
-    .slice(0, PER_SOURCE)
-    .map((e) => ({ name: e.name, detail: `Wikidata, ${e.description}`, source: 'wikidata' }));
-}
-
 /** One list, the first of each name kept (earlier lists win), at most `limit`. */
 export function mergeSuggestions(lists: CompanySuggestion[][], limit = 8): CompanySuggestion[] {
   const seen = new Set<string>();
@@ -158,8 +129,8 @@ export function mergeSuggestions(lists: CompanySuggestion[][], limit = 8): Compa
   return out;
 }
 
-/** The network half of the type-ahead: YC (its list read once) then Wikidata, each on its own,
- *  answers cached by query. A source that fails gives nothing; it never fails the whole answer. */
+/** The network half of the type-ahead: YC (its list read once), answers cached by query. A failed
+ *  read gives nothing; it never fails the whole answer. */
 export function createCompanySuggester(
   fetchJson: FetchJson,
 ): (query: string) => Promise<CompanySuggestion[]> {
@@ -181,7 +152,6 @@ export function createCompanySuggester(
     if (!hit) {
       hit = Promise.all([
         quiet(ycList().then((b) => parseYcSuggestions(b, q))),
-        quiet(fetchJson(wikidataUrl(q)).then(parseWikidata)),
       ]).then((lists) => mergeSuggestions(lists));
       answers.set(q, hit);
     }
