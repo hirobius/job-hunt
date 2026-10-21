@@ -17,3 +17,5 @@ beforeEach(closeFollowUp);
 Element.prototype.hasPointerCapture ??= () => false;
 Element.prototype.setPointerCapture ??= () => {};
 Element.prototype.releasePointerCapture ??= () => {};
+// HDS Select (Radix) scrolls the picked option into view when it opens; jsdom has no layout.
+Element.prototype.scrollIntoView ??= () => {};

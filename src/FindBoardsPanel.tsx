@@ -11,7 +11,7 @@ import {
   Button,
   Checkbox,
   Disclosure,
-  SegmentedControl,
+  Select,
   InlineLink,
   Progress,
   Stack,
@@ -166,9 +166,11 @@ export default function FindBoardsPanel({
           <Text variant="body" as="h3" className="rjb-semibold">
             Start from a YC batch
           </Text>
-          <SegmentedControl
-            aria-label="YC batch"
-            size="sm"
+          {/* A Select, not a segmented row: four batch names ran past a 390 phone's content box
+              and clipped mid-word with no cue (rev-3 C). */}
+          <Select
+            label="YC batch"
+            showLabel={false}
             value={batch}
             onChange={setBatch}
             options={recentBatches(new Date()).map((b) => ({ value: b, label: batchLabel(b) }))}

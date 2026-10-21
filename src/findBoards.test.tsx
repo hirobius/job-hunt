@@ -185,8 +185,10 @@ describe('Find boards', () => {
 
     it('offers the last four batches and loads the active companies into the box', async () => {
       renderApp();
-      const batches = await screen.findByRole('radiogroup', { name: 'YC batch' });
-      expect(within(batches).getAllByRole('radio')).toHaveLength(4);
+      // A Select, not a segmented row: four batch names overflowed a 390 phone (rev-3 C).
+      await userEvent.click(await screen.findByRole('combobox', { name: /^YC batch/ }));
+      expect(await screen.findAllByRole('option')).toHaveLength(4);
+      await userEvent.keyboard('{Escape}');
       await userEvent.click(screen.getByRole('button', { name: 'Load batch' }));
       await waitFor(async () => expect(await box()).toHaveValue('Figma\nNobody'));
       expect(screen.getByText(/Loaded 2 active companies/)).toBeVisible();
@@ -207,8 +209,8 @@ describe('Find boards', () => {
       yc.down = true;
       renderApp();
       // The shared fetcher caches an hour; an earlier test loaded the newest batch, so use another.
-      const batches = await screen.findByRole('radiogroup', { name: 'YC batch' });
-      await userEvent.click(within(batches).getAllByRole('radio')[3]);
+      await userEvent.click(await screen.findByRole('combobox', { name: /^YC batch/ }));
+      await userEvent.click((await screen.findAllByRole('option'))[3]);
       await userEvent.click(screen.getByRole('button', { name: 'Load batch' }));
       expect(await screen.findByRole('alert')).toHaveTextContent(
         /YC directory \(community mirror\) didn't answer/,

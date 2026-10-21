@@ -11,9 +11,9 @@ import {
   Alert,
   Box,
   Button,
+  Card,
   Disclosure,
   Input as HdsInput,
-  InlineLink,
   Stack,
   Text,
   Toggle,
@@ -363,23 +363,57 @@ export default function CompaniesPanel({
 
       <SavedTargets categoryId={categoryId} boardUrls={boardUrls} findLink={false} />
 
-      <Stack gap="normal" as="section" aria-label="More ways to find companies">
-        <Text variant="body" as="h3" className="rjb-semibold">
+      <MoreWays />
+    </Stack>
+  );
+}
+
+// "More ways to find companies" (rev-3 mock): a bordered panel of rows, each a title, a caption and
+// an Open button (a 40px target), not two bare text links.
+const MORE_WAYS = [
+  {
+    title: 'Live postings from job boards',
+    caption: 'HN, Remotive, Jobicy and your watched boards',
+    href: '#/discover/live',
+  },
+  {
+    title: 'Check a list of companies',
+    caption: 'Paste names or a YC batch, see who has a board',
+    href: '#/discover/boards',
+  },
+] as const;
+
+function MoreWays() {
+  return (
+    <Card bordered padding="none" as="section" aria-labelledby="rjb-more-ways">
+      <Box sx={{ px: 'sm', pt: 'sm' }}>
+        <Text variant="body" as="h3" className="rjb-semibold" id="rjb-more-ways">
           More ways to find companies
         </Text>
-        <Stack gap="xs">
-          <Text variant="ui" as="p">
-            <InlineLink href="#/discover/live" externalIcon={false}>
-              Live postings from job boards
-            </InlineLink>
-          </Text>
-          <Text variant="ui" as="p">
-            <InlineLink href="#/discover/boards" externalIcon={false}>
-              Check a list of companies
-            </InlineLink>
-          </Text>
-        </Stack>
-      </Stack>
-    </Stack>
+      </Box>
+      <Box sx={{ px: 'sm' }}>
+        <ul style={rowsStyle} className={ROWS_CLASS}>
+          {MORE_WAYS.map((w) => (
+            <li key={w.href}>
+              <Stack direction="row" gap="xs" align="center" justify="space-between">
+                <Stack gap="px4">
+                  <Text variant="ui" as="span">
+                    {w.title}
+                  </Text>
+                  <Text variant="caption" tone="secondary">
+                    {w.caption}
+                  </Text>
+                </Stack>
+                <Button size="sm" variant="secondary" asChild>
+                  <a href={w.href} aria-label={`Open ${w.title}`}>
+                    Open
+                  </a>
+                </Button>
+              </Stack>
+            </li>
+          ))}
+        </ul>
+      </Box>
+    </Card>
   );
 }

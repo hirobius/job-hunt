@@ -31,6 +31,8 @@ Every route (`e2e/routes.ts`, plus the job page and Apply mode) at 390 and 1440,
 
 - no horizontal page overflow
 - every interactive target at least 40px tall on a phone (icon-only: 40 wide too)
+- stacked bare links (two or more lines that are each just a link) are tap targets: 40px tall too
+- a segmented control (radio row) fits the phone's content box; past it, use a Select or a faded scroller
 - no text below the HDS caption size
 - one status rule: never two status badges on a title's line
 - headings on the HDS type ramp, and no inline font size other than an HDS ramp token

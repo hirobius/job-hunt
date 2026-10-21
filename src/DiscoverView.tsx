@@ -47,6 +47,7 @@ import { useActiveTitles } from './feed/sweepTitles';
 import { useDreams } from './feed/dreams';
 import { boardsFromUrls } from './feed/sources/ats';
 import { SweepTitlesEditor } from './SweepTitles';
+import { displayGroupLabel } from './curation/groupLabel';
 
 const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
 const LiveFeedPanel = lazy(() => import('./LiveFeedPanel'));
@@ -435,9 +436,15 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   // feed's watch list); the rest keep their own names.
   const sections = [
     ...(featured
-      ? [{ key: featured.id, label: featured.label, tiles: tilesFor(featured.id) }]
+      ? [
+          {
+            key: featured.id,
+            label: displayGroupLabel(featured.label),
+            tiles: tilesFor(featured.id),
+          },
+        ]
       : []),
-    ...rest.map((g) => ({ key: g.id, label: g.label, tiles: tilesFor(g.id) })),
+    ...rest.map((g) => ({ key: g.id, label: displayGroupLabel(g.label), tiles: tilesFor(g.id) })),
   ];
 
   const route = useRoute();

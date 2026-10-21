@@ -29,6 +29,7 @@ import {
 } from './curation/curationStore';
 import type { Seniority } from './curation/types';
 import { STARTER_PACKS, topUpFromPack } from './curation/starterPacks';
+import { displayGroupLabel } from './curation/groupLabel';
 
 // In-app curation controls (issue #37 / B4): edit a track's search terms + seniority + location,
 // and add/remove its sections (groups) and links (tiles) — all through the curation store, which
@@ -277,7 +278,7 @@ export default function ManageTrackDialog({
                           <HdsInput
                             size="sm"
                             aria-label="Section name"
-                            value={g.label}
+                            value={displayGroupLabel(g.label)}
                             onChange={(e) => updateGroup(g.id, { label: e.target.value })}
                           />
                         </Box>
@@ -287,7 +288,7 @@ export default function ManageTrackDialog({
                           tone="danger"
                           iconOnly
                           iconLeft={<Icon icon={Trash2} />}
-                          label={`Delete ${g.label} section`}
+                          label={`Delete ${displayGroupLabel(g.label)} section`}
                           onClick={() => removeGroup(g.id)}
                         />
                       </Box>

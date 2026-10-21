@@ -1,7 +1,8 @@
 // Layout rules (redesign-mobile guardrail, docs/guardrails.md): every route at 390 and 1440,
 // light and dark, holds the mobile-first rules the rev-3 mock was approved on:
 //   - no horizontal page overflow
-//   - every interactive target at least 40px tall on a phone
+//   - every interactive target at least 40px tall on a phone (stacked bare links too)
+//   - a segmented control fits the phone content box (no clipped options)
 //   - no text below the HDS caption size
 //   - one status rule: never two status badges beside a title
 //   - headings sit on the HDS type ramp, and no inline font size anywhere
@@ -81,6 +82,51 @@ function probe(page: Page) {
             if (r.height < 39.5 || (iconOnly && r.width < 39.5))
               out.push(`target: ${label(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
           });
+      // 2b. Stacked bare links are a tap list, not prose: WCAG's inline exemption covers a link
+      // inside a sentence, not two or more lines that are each just a link ("More ways to find
+      // companies" once shipped two 18px links 5px apart). Each must be 40px tall on a phone. A
+      // lone title link (a job card's title, a fact) is left to its row's own targets.
+      if (isPhone) {
+        const loneLine = (a: Element): Element | null => {
+          const text = (a.textContent || '').trim();
+          if (!text) return null;
+          let line = a.parentElement;
+          while (line && getComputedStyle(line).display.startsWith('inline'))
+            line = line.parentElement;
+          return line && (line.textContent || '').trim() === text ? line : null;
+        };
+        const lines = new Map<Element, Element>();
+        document.querySelectorAll('a[href]').forEach((a) => {
+          if (!visible(a) || a.closest('[role="dialog"], [role="menu"]')) return;
+          const line = loneLine(a);
+          if (line) lines.set(line, a);
+        });
+        lines.forEach((a, line) => {
+          const stacked = [line.previousElementSibling, line.nextElementSibling].some(
+            (s) => s && lines.has(s),
+          );
+          const r = a.getBoundingClientRect();
+          if (stacked && r.height < 39.5)
+            out.push(
+              `target: ${label(a)} ${Math.round(r.width)}x${Math.round(r.height)} (stacked bare links)`,
+            );
+        });
+      }
+
+      // 2c. A segmented control (radio row) fits the phone's content box: past the gutter its last
+      // options clip mid-word with no cue ("Wint", the YC batch row once). Use a Select, or a
+      // scroller with a fade (rev-3 C).
+      if (isPhone)
+        document.querySelectorAll('[role="radiogroup"]').forEach((g) => {
+          if (!visible(g) || g.closest('[role="dialog"], [role="menu"]')) return;
+          const over = [...g.querySelectorAll('[role="radio"]')].filter(
+            (r) => visible(r) && r.getBoundingClientRect().right > W - gutter + 0.5,
+          );
+          if (over.length)
+            out.push(
+              `clipped: ${label(g)} runs to x=${Math.round(Math.max(...over.map((r) => r.getBoundingClientRect().right)))} past the ${W - gutter}px content edge`,
+            );
+        });
 
       // 3–6. Per element: text size, inline font size, heading ramp, gutter.
       document.querySelectorAll('body *').forEach((el) => {

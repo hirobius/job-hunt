@@ -214,11 +214,32 @@ describe('Companies as one tool (#237)', () => {
       expect(await screen.findByRole('heading', { level: 3, name: 'Union halls' })).toBeVisible();
     });
 
+    it('shows an older synced "Apply Now" section in sentence case', async () => {
+      const g = addGroup(cat, { label: 'Apply Now' });
+      window.location.hash = `#/discover/${g}`;
+      renderApp();
+      expect(await screen.findByRole('heading', { level: 3, name: 'Apply now' })).toBeVisible();
+      expect(screen.queryByText('Apply Now')).toBeNull();
+    });
+
     it('Companies links to Live postings and the list checker as more ways to find companies', async () => {
       window.location.hash = '#/discover/teams';
       renderApp();
+      // Rows in a panel (rev-3 mock): a title, a caption and an Open button each, not bare links.
+      const more = await screen.findByRole('region', { name: 'More ways to find companies' });
+      const rows = within(more).getAllByRole('listitem');
+      expect(rows).toHaveLength(2);
+      expect(within(rows[0]).getByText('Live postings from job boards')).toBeVisible();
+      expect(
+        within(rows[0]).getByText(/HN, Remotive, Jobicy and your watched boards/),
+      ).toBeVisible();
+      expect(within(rows[1]).getByText('Check a list of companies')).toBeVisible();
+      expect(within(rows[1]).getByText(/Paste names or a YC batch/)).toBeVisible();
+      expect(
+        within(rows[1]).getByRole('link', { name: 'Open Check a list of companies' }),
+      ).toHaveAttribute('href', '#/discover/boards');
       await userEvent.click(
-        await screen.findByRole('link', { name: 'Live postings from job boards' }),
+        within(rows[0]).getByRole('link', { name: 'Open Live postings from job boards' }),
       );
       expect(window.location.hash).toBe('#/discover/live');
       expect(await screen.findByRole('heading', { name: 'Live postings' })).toBeVisible();
