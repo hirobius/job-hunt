@@ -2,11 +2,11 @@
 // links, with the open one marked. It reads the Pipeline's shared filter and sort (pipelineView);
 // only the search is editable here, and "Change filters" goes back to the list.
 import { Search } from 'lucide-react';
-import { Badge, Box, Input, InlineLink, NavList, Stack, Text } from '@hirobius/design-system';
+import { Box, Input, InlineLink, NavList, Stack, Text } from '@hirobius/design-system';
 import { useJobs, jobIdOf } from './store';
 import { jobHash } from './route';
 import { rowView } from './jobRow';
-import { StatusBadge } from './JobRowParts';
+import { JobBadges } from './JobRowParts';
 import { FILTER_LABEL, setPipelineView, usePipelineView, visibleJobs } from './pipelineView';
 import type { Job } from './types';
 import './JobRail.css';
@@ -16,10 +16,7 @@ function RowBody({ job }: { job: Job }) {
   return (
     <Stack gap="tight">
       {/* One badge row above the title (rev-3 B), as on the Pipeline cards. */}
-      <Stack direction="row" wrap="wrap" gap="tight" align="center">
-        <StatusBadge job={job} />
-        {v.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
-      </Stack>
+      <JobBadges job={job} />
       <Box sx={{ overflowWrap: 'anywhere' }}>
         <Text variant="ui" as="div" className="rjb-semibold">
           {v.title}

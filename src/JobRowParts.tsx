@@ -18,7 +18,7 @@ import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
 import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
-import { primaryAction, rowView, STATUS_TONE, titleOf } from './jobRow';
+import { primaryAction, rowView, titleOf } from './jobRow';
 import { normStatus } from './jobState';
 import { researchLinks } from './jobFacts';
 import { STATUSES, type Job, type Status } from './types';
@@ -26,11 +26,10 @@ import { STATUSES, type Job, type Status } from './types';
 /** Controls on a phone card are 40px tap targets; the denser table uses the small size. */
 type Size = 'sm' | 'md';
 
-/** The job's Status. Neutral everywhere (rev-3 B): the badge row reserves colour for what needs
- *  attention (a due follow-up). The table and the rail keep the toned badge (`toned`). */
-export function StatusBadge({ job, toned = true }: { job: Job; toned?: boolean }) {
-  const status = normStatus(job.status);
-  return <Badge tone={job.archived || !toned ? 'neutral' : STATUS_TONE[status]}>{status}</Badge>;
+/** The job's Status. Neutral everywhere (rev-3 B): the table, the rail, the Company page and the
+ *  badge row all reserve colour for what needs attention (a due follow-up). */
+export function StatusBadge({ job }: { job: Job }) {
+  return <Badge tone="neutral">{normStatus(job.status)}</Badge>;
 }
 
 /** One badge row above a job's title (rev-3 B order): status, Retired, a due follow-up, Closed on
@@ -41,7 +40,7 @@ export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
   const closed = checkFor(useLiveness(), job.url)?.state === 'closed';
   return (
     <Stack direction="row" wrap="wrap" gap="px8" align="center">
-      <StatusBadge job={job} toned={false} />
+      <StatusBadge job={job} />
       {row.retired && <Badge>Retired</Badge>}
       {row.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
       {closed && <Badge tone="warning">Closed on the board</Badge>}

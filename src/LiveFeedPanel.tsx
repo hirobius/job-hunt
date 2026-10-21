@@ -857,7 +857,7 @@ export default function LiveFeedPanel({
                 Openings come from Hacker News, Remotive, Jobicy and the company boards you watch.
                 Nothing is kept until you save one.
               </Text>
-              <Box as="form" onSubmit={onWatch}>
+              <Box as="form" className="rjb-form-full" onSubmit={onWatch}>
                 <Stack gap="px8">
                   <Text variant="ui" as="span" id={watchId}>
                     Watch a company

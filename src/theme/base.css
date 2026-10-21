@@ -75,6 +75,13 @@ p {
   font-weight: 600;
 }
 
+/* A form whose fields share one edge (job Details, Screening, Interviews, the Pipeline toolbar):
+   lift HDS's 40rem form-control cap, so a single field lines up with a paired Switcher row and
+   with the panel it sits in. Upstream ask: a full-width prop on HDS form controls. */
+.rjb-form-full {
+  --hds-form-control-max-width: none;
+}
+
 /* Calm list rows (#241): a company list is flat rows on the page, split by hairlines, not cards
  * or a loose gap. */
 .rjb-rows > li {

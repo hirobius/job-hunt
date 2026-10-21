@@ -40,7 +40,7 @@ export function ScreeningEditor({ job, fitLabel = true }: { job: Job; fitLabel?:
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box className="rjb-form-full" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Under a panel already headed "Fit", the row needs no second label (rev-3 review). */}
       <Box role="group" aria-label="Fit">
         {fitLabel && <FieldLabel>Fit</FieldLabel>}
