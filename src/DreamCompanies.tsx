@@ -1,29 +1,34 @@
 // Dream companies (Teams tool, top section): starred companies that always show, open roles or
 // not. "Check dream companies" re-reads every board fresh and lists the matching openings that are new
-// since the last check (the ids seen are stored per company, src/feed/dreams.ts).
+// since the last check (the ids seen are stored per company, src/feed/dreams.ts). Rev-3 mock: a panel
+// with a count badge; a board the companies list has already read shows its matching roles.
 import { useEffect, useRef, useState } from 'react';
-import { Badge, Button, InlineLink, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { atsSearchUrl } from './jobsData';
 import { markDreamChecked, useDreams, type Dream } from './feed/dreams';
 import { liveFetchJson } from './feed/fetchFeed';
 import type { Limiter } from './feed/probe';
-import { newSince, readRoles, type Role } from './feed/teamRoles';
+import { boardKey, newSince, readRoles, type Role, type RolesState } from './feed/teamRoles';
 import { SOURCE_LABEL } from './feed/types';
-import { ROWS_CLASS, rowsStyle } from './outreachShared';
+import { Panel, PanelBody, PanelRow } from './PipelinePanel';
 import { DreamStar, RoleList } from './TeamRoles';
 
 type Checked = { roles: Role[]; fresh: Set<string> } | 'unknown';
 
+const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 export default function DreamCompanies({
   categoryId,
   terms,
   limiter,
+  roles = {},
 }: {
   categoryId: string;
   terms: string[];
   limiter: Limiter;
+  /** Boards the companies list has read this visit, by boardKey: a starred one shows its count. */
+  roles?: Record<string, RolesState>;
 }) {
   const dreams = useDreams(categoryId);
   const [checked, setChecked] = useState<Record<string, Checked>>({});
@@ -78,68 +83,100 @@ export default function DreamCompanies({
     );
   };
 
+  const n = dreams.length;
+  const canCheck = dreams.some((d) => d.board);
   return (
-    <Stack gap="xs" as="section" aria-label="Dream companies">
-      <Stack direction="row" gap="xs" align="center" justify="space-between" wrap="wrap">
-        <Text variant="body" as="h3" className="rjb-semibold">
-          Dream companies
-        </Text>
-        {dreams.some((d) => d.board) && (
-          <Button size="sm" variant="secondary" disabled={running} onClick={() => void check()}>
-            {running ? 'Checking…' : 'Check dream companies'}
-          </Button>
-        )}
-      </Stack>
-      {summary && (
-        <Text variant="ui" as="p" role="status">
-          {summary}
-        </Text>
+    <Panel
+      label="Dream companies"
+      title="Dream companies"
+      count={n}
+      countLabel={plural(n, 'company', 'companies')}
+    >
+      {/* The check sits under the head, not beside it: at 390 a header button wraps the title. */}
+      {(n === 0 || summary || canCheck) && (
+        <PanelBody>
+          <Stack gap="tight">
+            {(n === 0 || summary) && (
+              <Text variant="caption" as="p" tone="secondary" role={summary ? 'status' : undefined}>
+                {summary || 'Star a company to keep it here, with new openings flagged.'}
+              </Text>
+            )}
+            {canCheck && (
+              <Box>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={running}
+                  onClick={() => void check()}
+                >
+                  {running ? 'Checking…' : 'Check dream companies'}
+                </Button>
+              </Box>
+            )}
+          </Stack>
+        </PanelBody>
       )}
-      {dreams.length === 0 ? (
-        <Text variant="caption" as="p" tone="secondary">
-          Star a company to keep it here, open roles or not.
-        </Text>
-      ) : (
-        <ul aria-label="Dream companies" style={rowsStyle} className={ROWS_CLASS}>
+      {n > 0 && (
+        <ul aria-label="Dream companies" style={LIST}>
           {dreams.map((d) => (
-            <DreamRow key={d.key} d={d} categoryId={categoryId} checked={checked[d.key]} />
+            <DreamRow
+              key={d.key}
+              d={d}
+              categoryId={categoryId}
+              checked={checked[d.key]}
+              read={d.board ? roles[boardKey(d.board)] : undefined}
+            />
           ))}
         </ul>
       )}
-    </Stack>
+    </Panel>
   );
 }
 
-function statusLine(d: Dream, c?: Checked): string {
+const lower = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
+
+function statusLine(d: Dream, c?: Checked, read?: RolesState): string {
   if (!d.board) return 'No public board to check';
   if (c === 'unknown') return "Couldn't check";
   if (c) return `${plural(c.roles.length, 'matching role')} · ${c.fresh.size} new`;
+  // Read by the companies list below this visit: its count, not "Not checked yet".
+  if (read?.state === 'ok') return plural(read.roles.length, 'matching role');
   if (d.checkedAt)
     return `Last checked ${new Date(d.checkedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
   return 'Not checked yet';
 }
 
-function DreamRow({ d, categoryId, checked }: { d: Dream; categoryId: string; checked?: Checked }) {
+function DreamRow({
+  d,
+  categoryId,
+  checked,
+  read,
+}: {
+  d: Dream;
+  categoryId: string;
+  checked?: Checked;
+  read?: RolesState;
+}) {
   const careers = atsSearchUrl(`"${d.company}"`, { role: 'careers', where: '', mode: 'any' });
   return (
-    <li>
+    <PanelRow>
       <Stack gap="xs">
         <Stack direction="row" gap="xs" align="center" justify="space-between" wrap="wrap">
           <Stack gap="px4">
-            <Stack direction="row" gap="xs" align="center" wrap="wrap">
-              <Text variant="ui" as="span">
-                {d.website ? (
-                  <InlineLink href={d.website} externalIcon={false}>
-                    {d.company}
-                  </InlineLink>
-                ) : (
-                  d.company
-                )}
-              </Text>
-              {d.board && <Badge>{SOURCE_LABEL[d.board.kind]}</Badge>}
-            </Stack>
+            <Text variant="ui" as="span">
+              {d.website ? (
+                <InlineLink href={d.website} externalIcon={false}>
+                  {d.company}
+                </InlineLink>
+              ) : (
+                d.company
+              )}
+            </Text>
+            {/* The companies list's caption: "Greenhouse · 3 matching roles". */}
             <Text variant="caption" tone="secondary">
-              {statusLine(d, checked)}
+              {d.board
+                ? `${SOURCE_LABEL[d.board.kind]} · ${lower(statusLine(d, checked, read))}`
+                : statusLine(d, checked, read)}
             </Text>
           </Stack>
           <Stack direction="row" gap="xs" align="center">
@@ -162,6 +199,6 @@ function DreamRow({ d, categoryId, checked }: { d: Dream; categoryId: string; ch
           <RoleList company={d.company} roles={checked.roles} newIds={checked.fresh} />
         )}
       </Stack>
-    </li>
+    </PanelRow>
   );
 }

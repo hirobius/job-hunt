@@ -49,12 +49,37 @@ describe('Company page (#230)', () => {
     expect(within(docs).getByText(/Cover letter/)).toBeInTheDocument();
   });
 
+  it('rev-3 panels: Jobs and Documents with count badges, job rows like Pipeline cards, Back on the edge', async () => {
+    seedAcme();
+    render(<CompanyPage slug="acme" />);
+    expect(screen.getByRole('button', { name: 'Back to Pipeline' })).toHaveTextContent('Pipeline');
+    const jobs = screen.getByRole('region', { name: 'Jobs' });
+    expect(within(jobs).getByText('2')).toBeInTheDocument();
+    const rows = within(jobs).getAllByRole('listitem');
+    expect(rows).toHaveLength(2);
+    // Each row: its status badge above the title, and the one next step.
+    expect(within(rows[0]).getByText('Saved')).toBeInTheDocument();
+    expect(within(rows[0]).getByRole('button', { name: /^Mark applied: / })).toBeInTheDocument();
+    const docs = screen.getByRole('region', { name: 'Documents' });
+    expect(within(docs).getByText('1')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Notes' })).toBeInTheDocument();
+  });
+
+  it('an empty Documents panel says so in one line', () => {
+    addCompanyNote('Bolt', 'Keep in touch');
+    render(<CompanyPage slug="bolt" />);
+    expect(
+      within(screen.getByRole('region', { name: 'Documents' })).getByText('None sent yet.'),
+    ).toBeInTheDocument();
+  });
+
   it('adds a company note: a note Document on the company, with no job', async () => {
     seedAcme();
     render(<CompanyPage slug="acme" />);
     const notes = screen.getByRole('region', { name: 'Notes' });
-    expect(within(notes).getByText(/No notes yet/)).toBeInTheDocument();
-    const add = within(notes).getByRole('button', { name: 'Add note' });
+    // Rev-3 mock: the field and a Save note, no "No notes yet" or label line above it.
+    expect(within(notes).queryByText(/No notes yet|New note/)).toBeNull();
+    const add = within(notes).getByRole('button', { name: 'Save note' });
     expect(add).toBeDisabled();
     await userEvent.type(within(notes).getByLabelText('New note'), 'Hiring manager is Sam');
     await userEvent.click(add);

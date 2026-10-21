@@ -106,7 +106,8 @@ describe('Companies as one tool (#237)', () => {
     expect(within(await tools()).getByRole('radio', { name: 'Watched' })).toBeChecked();
     const list = await screen.findByRole('list', { name: 'Companies' });
     expect(within(list).getByText('Northwind')).toBeVisible();
-    expect(await within(list).findByText(/1 matching role · 2 open in all/)).toBeVisible();
+    expect(await within(list).findByText('Lever · 1 matching role')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Roles at Northwind' }));
     const roles = await screen.findByRole('list', { name: 'Open roles at Northwind' });
     expect(within(roles).getByText('Senior Welder')).toBeVisible();
     expect(within(roles).queryByText('Accountant')).toBeNull();
@@ -116,6 +117,26 @@ describe('Companies as one tool (#237)', () => {
     await waitFor(() =>
       expect(getAllJobs().map((j) => j.url)).toContain('https://jobs.lever.co/northwind/n1'),
     );
+  });
+
+  it('one Watched panel: count badge, caption, Hiring now | All; All counts what Hiring now hides', async () => {
+    watch('https://jobs.lever.co/northwind');
+    watch('https://boards.greenhouse.io/figma');
+    renderApp();
+    const panel = await screen.findByRole('region', { name: 'Watched' });
+    expect(within(panel).getByRole('heading', { name: 'Watched' })).toBeVisible();
+    expect(
+      await within(panel).findByText(
+        '2 companies, 1 hiring now. Open roles that match this track show first.',
+      ),
+    ).toBeVisible();
+    expect(within(panel).getByRole('button', { name: 'Add a company' })).toBeVisible();
+    const list = within(panel).getByRole('list', { name: 'Companies' });
+    expect(within(list).queryByText('Figma')).toBeNull();
+    await userEvent.click(within(panel).getByRole('radio', { name: 'All (1 more)' }));
+    expect(within(list).getByText('Greenhouse · no matching roles')).toBeVisible();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Roles at Figma' }));
+    expect(within(list).getByText('No open role matches this track right now.')).toBeVisible();
   });
 
   it('starred companies and the one-button check sit on the Companies home', async () => {
