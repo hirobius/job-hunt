@@ -9,6 +9,8 @@ import {
   snoozeFollowUp as applySnooze,
 } from './jobState';
 import { normalizeScreening } from './screening';
+import { parseBoardUrl } from './feed/sources/ats';
+import { prettySlug } from './feed/sources/http';
 
 const KEY = 'rjb_shortlist'; // same key as the legacy app
 const RETIRED: Record<string, 1> = {
@@ -61,6 +63,12 @@ export function prettyTitle(u: string): string {
   } catch {
     return 'Saved job';
   }
+}
+/** The employer behind a company-board link (any ATS `parseBoardUrl` knows), title-cased from
+ *  the board slug: boards.greenhouse.io/acme/jobs/77 → "Acme". Empty for any other link. */
+export function companyFromUrl(u: string): string {
+  const b = parseBoardUrl(u);
+  return b ? prettySlug(b.slug) : '';
 }
 export function cleanUrl(u: string): string {
   u = (u || '')
@@ -164,6 +172,9 @@ const store = createStore<Job[]>(load(), {
 });
 const set = store.set;
 
+/** Listen for job changes outside React. */
+export const subscribeJobs = (cb: () => void) => store.subscribe(cb);
+
 export function useJobs(): Job[] {
   return store.use();
 }
@@ -190,6 +201,8 @@ export function addJobOutcome(rawUrl: string, label?: string, note?: string): Ad
     return 'restored';
   }
   const job: Job = { url: u, label: (label || '').trim() || prettyTitle(u), status: 'Saved' };
+  const company = companyFromUrl(u);
+  if (company) job.company = company;
   if (note?.trim()) job.note = note.trim();
   set([...jobs, job]);
   return 'added';
@@ -225,7 +238,8 @@ export function addJobDetailed(
   };
   if (fields.salary?.trim()) job.salary = fields.salary.trim();
   if (fields.note?.trim()) job.note = fields.note.trim();
-  if (fields.company?.trim()) job.company = fields.company.trim();
+  const company = fields.company?.trim() || companyFromUrl(u);
+  if (company) job.company = company;
   if (fields.location?.trim()) job.location = fields.location.trim();
   if (fields.seniority?.trim()) job.seniority = fields.seniority.trim();
   if (fields.mode) job.mode = fields.mode;

@@ -30,6 +30,7 @@ import ApplyQueueSummary from './ApplyQueueSummary';
 import GettingStarted from './GettingStarted';
 import JobListCard from './JobListCard';
 import { Panel, PanelBody } from './PipelinePanel';
+import { PipelineLiveness } from './LivenessViews';
 import { RecentlyRemovedLink } from './RecentlyRemoved';
 import { navigate } from './route';
 
@@ -215,6 +216,9 @@ export default function TrackerView() {
                       </UiButton>
                     )}
                   </Stack>
+                  {/* Liveness sits with the list it checks: one caption-sized row under the
+                      toolbar, never above the page title. */}
+                  <PipelineLiveness jobs={jobs} />
                 </Stack>
               </Box>
             </PanelBody>

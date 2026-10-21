@@ -260,13 +260,16 @@ describe('first-run gate in the shell', () => {
 // state; Dismiss is remembered per device (rjb_ui_getting_started_done).
 describe('Getting started card on the Pipeline', () => {
   const card = () => screen.queryByRole('region', { name: 'Getting started' });
+  // Display-only rows (no disabled checkbox, which greyed the text below AA): the state is
+  // spoken as "done" / "not done" after the label.
   const ticks = () =>
     within(card()!)
-      .getAllByRole('checkbox')
-      .map((c) => [
-        c.getAttribute('aria-label') ?? c.parentElement?.textContent,
-        (c as HTMLInputElement).checked,
-      ]);
+      .getAllByRole('listitem')
+      .map((li) => {
+        expect(within(li).queryByRole('checkbox')).toBeNull();
+        const text = li.textContent ?? '';
+        return [text, text.includes(', done')];
+      });
 
   it('is not shown before there is a job of your own, nor for sample data alone', () => {
     seedPack('consulting');

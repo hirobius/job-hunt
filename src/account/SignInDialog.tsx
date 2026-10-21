@@ -9,6 +9,7 @@ import { useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
 import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
 import './SignInDialog.css';
+import { returnFocus } from './returnFocus';
 
 export const RESEND_COOLDOWN_S = 30;
 
@@ -92,6 +93,7 @@ export default function SignInDialog() {
           e.preventDefault();
           inputRef.current?.focus();
         }}
+        onCloseAutoFocus={returnFocus}
       >
         {sentTo ? (
           <>

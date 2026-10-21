@@ -15,7 +15,7 @@ import TrackerView from './TrackerView';
 import JobPage from './JobPage';
 import ApplyMode from './ApplyMode';
 import CompanyPage from './CompanyPage';
-import { JobPageLiveness, PipelineLiveness } from './LivenessViews';
+import { JobPageLiveness } from './LivenessViews';
 import { Onboarding, ChooseTrack } from './Onboarding';
 import { BRAND } from './brand';
 import { LEGAL_ROUTE } from './legal';
@@ -179,10 +179,7 @@ export default function App() {
                     </>
                   ) : (
                     // Unsynced shows as the Account avatar's dot (rev-3 P): no banner here.
-                    <Stack gap="normal">
-                      <PipelineLiveness jobs={jobs} />
-                      <TrackerView />
-                    </Stack>
+                    <TrackerView />
                   )}
                 </TabsContent>
                 <TabsContent value="discover" variant="bare">

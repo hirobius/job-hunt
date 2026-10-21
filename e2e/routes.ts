@@ -18,10 +18,18 @@ export const ROUTES = [
   '#/company/larkspur-analytics',
 ];
 
+/** A Greenhouse posting the seed adds on top of the sample data. */
+export const BOARD_JOB = 'https://boards.greenhouse.io/acme/jobs/77';
+
 /** Sample data + the first starter track, landing on Apply now. */
 export async function seed(page: Page) {
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
+  // One job on a company board, so the Jobs panel's liveness row ("Check which are still
+  // open") is in every Pipeline shot (QA). External requests are refused, so it never says closed.
+  await page.getByRole('button', { name: 'Add job' }).click();
+  await page.getByLabel('Job URL').fill(BOARD_JOB);
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
   await page.getByRole('tab', { name: 'Companies' }).click();
   await page.getByRole('button', { name: 'Choose a track' }).click();
   await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().click();

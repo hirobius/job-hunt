@@ -40,6 +40,7 @@ import {
   orderTeams,
   readRoles,
   teamStatus,
+  type Role,
   type RolesState,
   type TeamStatus,
 } from './feed/teamRoles';
@@ -52,6 +53,25 @@ import { DreamStar, RoleList } from './TeamRoles';
 const AUTO_READ = 10;
 /** Roles shown on a row before "Show more". */
 const INLINE_ROLES = 3;
+
+/** A company's matching roles: the first few, then "Show N more" appends the rest to the same
+ *  list, so every role shares one left edge and one Save column (no inset disclosure box, QA). */
+function RolesWithMore({ company, roles }: { company: string; roles: Role[] }) {
+  const [all, setAll] = useState(false);
+  const rest = roles.length - INLINE_ROLES;
+  return (
+    <Stack gap="xs" align="start">
+      <Box sx={{ width: '100%' }}>
+        <RoleList company={company} roles={all ? roles : roles.slice(0, INLINE_ROLES)} />
+      </Box>
+      {!all && rest > 0 && (
+        <Button size="sm" variant="tertiary" onClick={() => setAll(true)}>
+          {`Show ${rest} more`}
+        </Button>
+      )}
+    </Stack>
+  );
+}
 
 type CompanyRow = Row & { boardCheck?: OrgTarget['boardCheck']; watched?: boolean };
 
@@ -241,18 +261,7 @@ export default function CompaniesPanel({
           />
         }
       >
-        {matching.length > 0 && (
-          <RoleList company={r.company} roles={matching.slice(0, INLINE_ROLES)} />
-        )}
-        {matching.length > INLINE_ROLES && (
-          <Disclosure label={`Show ${matching.length - INLINE_ROLES} more`}>
-            <RoleList
-              company={r.company}
-              label={`More open roles at ${r.company}`}
-              roles={matching.slice(INLINE_ROLES)}
-            />
-          </Disclosure>
-        )}
+        {matching.length > 0 && <RolesWithMore company={r.company} roles={matching} />}
       </TargetRow>
     );
   };

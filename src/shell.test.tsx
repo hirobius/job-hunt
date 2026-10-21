@@ -114,6 +114,23 @@ describe('app shell (#115 Phase 1)', () => {
     expect(within(dialog).getByRole('button', { name: 'Back up first' })).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(getAllJobs().map((j) => j.label)).toContain('Welder');
+    // Focus goes back to the Account button, not <body> (QA: the menu is non-modal and the
+    // confirm has no trigger of its own).
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
+  });
+
+  it('Escape on Reset, and closing Sign in, both hand focus back to the Account button', async () => {
+    renderApp();
+    let menu = await openAccount();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Reset local data…' }));
+    await screen.findByRole('alertdialog', { name: 'Reset local data?' });
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
+    menu = await openAccount();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Sign in to sync…' }));
+    await screen.findByRole('dialog', { name: 'Sign in' });
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
   });
 
   it('the trigger is the HDS Avatar (rev-3 P): a person icon signed out, no dot with nothing to sync', async () => {

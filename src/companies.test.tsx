@@ -55,6 +55,9 @@ const LIVE: Record<string, unknown> = {
     leverJob('northwind', 'n2', 'Accountant'),
   ],
   'https://boards-api.greenhouse.io/v1/boards/figma/jobs': { jobs: [] },
+  'https://api.lever.co/v0/postings/eastgate?mode=json': [1, 2, 3, 4].map((n) =>
+    leverJob('eastgate', `e${n}`, `Welder ${n}`),
+  ),
 };
 const fakeFetch = vi.fn(async (url: string) => {
   const hit = Object.keys(LIVE).find((k) => url.startsWith(k));
@@ -116,6 +119,17 @@ describe('Companies as one tool (#237)', () => {
     await waitFor(() =>
       expect(getAllJobs().map((j) => j.url)).toContain('https://jobs.lever.co/northwind/n1'),
     );
+  });
+
+  it('"Show N more" adds the rest to the same list, one left edge and one Save column (QA)', async () => {
+    watch('https://jobs.lever.co/eastgate');
+    renderApp();
+    const roles = await screen.findByRole('list', { name: 'Open roles at Eastgate' });
+    expect(within(roles).getAllByRole('listitem')).toHaveLength(3);
+    await userEvent.click(screen.getByRole('button', { name: 'Show 1 more' }));
+    expect(within(roles).getAllByRole('listitem')).toHaveLength(4);
+    expect(within(roles).getByRole('button', { name: 'Save Welder 4' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Show 1 more' })).toBeNull();
   });
 
   it('starred companies and the one-button check sit on the Companies home', async () => {
