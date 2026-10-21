@@ -1,0 +1,192 @@
+<title>Roleforge Staging Preview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@700&family=Plus+Jakarta+Sans:wght@400;500;700&display=swap">
+<style>
+/* HDS 0.29.0 tokens (values copied from the published variables.css) + proposed compact density */
+:root{
+  --page:#ffffff;--raised:#fafafa;--muted:#f5f5f5;--hover:#f5f5f5;
+  --fg:#111111;--fg2:#525252;--fg3:#737373;
+  --line:#e5e5e5;--line2:#d4d4d4;
+  --inv-bg:#111111;--inv-fg:#ffffff;
+  --warn-bg:#fffbeb;--warn-fg:#92400e;
+  --doc-bg:#eeebe6;--doc-card:#f7f5f1;
+  /* compact density: 4px base, steps 4/8/12/16/24/32 (0.29 default is 20/28/40/64) */
+  --c-2xs:4px;--c-xs:8px;--c-sm:12px;--c-md:16px;--c-lg:24px;--c-xl:32px;
+  --body:15px;--caption:13px;--ui:14px;--title:24px;
+  --r-sm:8px;--r-md:12px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#000000;--raised:#1a1a1a;--muted:#262626;--hover:#262626;
+  --fg:#f5f5f5;--fg2:#b4b4b4;--fg3:#909090;
+  --line:#262626;--line2:#404040;
+  --inv-bg:#f5f5f5;--inv-fg:#111111;
+  --warn-bg:#451a03;--warn-fg:#fbbf24;
+  --doc-bg:#141210;--doc-card:#1c1a17;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --page:#000000;--raised:#1a1a1a;--muted:#262626;--hover:#262626;
+  --fg:#f5f5f5;--fg2:#b4b4b4;--fg3:#909090;
+  --line:#262626;--line2:#404040;
+  --inv-bg:#f5f5f5;--inv-fg:#111111;
+  --warn-bg:#451a03;--warn-fg:#fbbf24;
+  --doc-bg:#141210;--doc-card:#1c1a17;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--doc-bg);color:var(--fg);font-family:"Plus Jakarta Sans",system-ui,sans-serif;line-height:1.5;padding-block:32px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.doc{max-width:1240px;margin:0 auto;display:grid;gap:28px}
+h1,h2,h3{font-family:Sora,"Plus Jakarta Sans",sans-serif;font-weight:700;margin:0;text-wrap:balance}
+.doc>header h1{font-size:30px}
+.doc>header p{margin:6px 0 0;color:var(--fg2);max-width:70ch}
+.doc h2{font-size:20px}
+.card{background:var(--doc-card);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:12px;min-width:0}
+ol,ul{margin:0;padding-left:20px;display:grid;gap:6px}
+li b{font-weight:700}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:10px;padding:3px;gap:2px;width:max-content}
+.seg button{font:500 14px "Plus Jakarta Sans",sans-serif;border:0;background:none;color:var(--fg2);padding:6px 14px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--inv-bg);color:var(--inv-fg)}
+.compare{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:start}
+.compare.wide{grid-template-columns:1fr}
+@media (max-width:900px){.compare{grid-template-columns:1fr}}
+.col{display:grid;gap:8px;min-width:0}
+.lbl{font-size:13px;font-weight:500;color:var(--fg2)}
+.shot{border:1px solid var(--line2);border-radius:18px;overflow:hidden;background:#000;max-width:100%}
+.shot img{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto;max-width:100%}
+
+/* ---------- the app (after) ---------- */
+.app{background:var(--page);color:var(--fg);border:1px solid var(--line2);border-radius:18px;overflow:hidden;font-size:var(--body);line-height:1.45}
+.app.phone{width:390px;max-width:100%}
+.app.desk{width:1200px}
+.app .wrap{padding:var(--c-md) var(--c-md) var(--c-xl);display:grid;gap:var(--c-lg)}
+.app.desk .wrap{padding:var(--c-lg) 48px var(--c-xl);gap:var(--c-lg)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:var(--c-md)}
+.brand{font:700 17px Sora,sans-serif}
+.acct{position:relative;width:40px;height:40px;border-radius:var(--r-sm);display:grid;place-items:center;border:1px solid var(--line2);background:none;color:var(--fg)}
+.acct .dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--warn-fg)}
+.tabs{display:flex;gap:var(--c-lg);border-bottom:1px solid var(--line)}
+.tabs span{font-size:var(--ui);font-weight:500;color:var(--fg2);padding:var(--c-xs) 0 var(--c-sm);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs span.on{color:var(--fg);border-color:var(--fg)}
+.desk .tabs-row{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--c-lg);border-bottom:1px solid var(--line)}
+.desk .tabs-row .tabs{border:0}
+.head{display:flex;align-items:center;justify-content:space-between;gap:var(--c-md);flex-wrap:wrap}
+.head h3{font-size:var(--title);line-height:1.2}
+.head .meta{font-size:var(--caption);color:var(--fg2);margin-top:var(--c-2xs)}
+.note{font-size:var(--caption);color:var(--fg2);margin-top:calc(-1 * var(--c-sm))}
+.note a{color:var(--fg);font-weight:500;text-decoration:underline;text-underline-offset:3px}
+.btn{font:500 var(--ui)/1 "Plus Jakarta Sans",sans-serif;height:40px;padding:0 var(--c-md);border-radius:var(--r-sm);display:inline-flex;align-items:center;gap:var(--c-xs);white-space:nowrap;cursor:default}
+.btn.primary{background:var(--inv-bg);color:var(--inv-fg);border:1px solid var(--inv-bg);font-weight:700}
+.btn.secondary{background:none;color:var(--fg);border:1px solid var(--line2)}
+.btn.sm{height:36px;padding:0 var(--c-sm)}
+.panel{background:var(--raised);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.panel-h{display:flex;align-items:center;justify-content:space-between;gap:var(--c-md);padding:var(--c-md)}
+.panel-h h4{margin:0;font:700 16px "Plus Jakarta Sans",sans-serif}
+.panel-h p{margin:var(--c-2xs) 0 0;font-size:var(--caption);color:var(--fg2)}
+.count{font-weight:500;color:var(--fg2)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:var(--c-md);padding:var(--c-sm) var(--c-md);border-top:1px solid var(--line);min-height:60px}
+.row .t{font-weight:500;color:var(--fg);display:flex;align-items:center;gap:var(--c-xs);flex-wrap:wrap}
+.row .s{font-size:var(--caption);color:var(--fg2);margin-top:2px}
+.badge{font-size:12px;font-weight:500;line-height:1;padding:4px 8px;border-radius:999px;background:var(--warn-bg);color:var(--warn-fg)}
+.desk .grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--c-lg);align-items:start}
+.phone .grid2{display:grid;gap:var(--c-lg)}
+.guard{display:grid;gap:12px}
+.guard li{line-height:1.5}
+.guard code{font-size:13px;background:var(--muted);padding:1px 6px;border-radius:5px}
+.foot{color:var(--fg2);font-size:14px;margin:0}
+</style>
+
+<div class="doc">
+<header>
+  <h1>Roleforge staging preview</h1>
+  <p>Pipeline, with the exact fixes I'm proposing. Left: live today (HDS 0.26.2). Right: after (HDS 0.29 type and colors, plus the compact spacing for apps). It follows your light or dark setting. Nothing is changed in the app yet.</p>
+</header>
+
+<div class="seg" role="group" aria-label="Width">
+  <button type="button" aria-pressed="true" data-v="phone">Phone 390</button>
+  <button type="button" aria-pressed="false" data-v="desk">Desktop 1200</button>
+</div>
+
+<section class="compare" id="cmp">
+  <div class="col"><div class="lbl">Live now</div>
+    <div class="shot" id="before" style="width:390px"><img id="bimg" alt="Live Pipeline on a phone, dark" src=""></div>
+  </div>
+  <div class="col"><div class="lbl">After</div>
+    <div class="scroll"><div class="app phone" id="app">
+      <div class="wrap">
+        <div class="tabs-row-wrap" id="topzone">
+          <div class="top"><span class="brand">Roleforge</span>
+            <span class="acct" aria-label="Account, not synced"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg><span class="dot"></span></span></div>
+        </div>
+        <div class="tabs"><span>Companies</span><span class="on">Pipeline</span></div>
+        <div class="head">
+          <div><h3>Pipeline</h3><div class="meta">8 active · 10 total</div></div>
+          <span class="btn secondary">+ Add job</span>
+        </div>
+        <div class="note">Sample data, 10 fictional jobs. <a>Clear</a></div>
+        <div class="grid2">
+          <div style="display:grid;gap:var(--c-lg)">
+            <div class="panel"><div class="panel-h"><div><h4>To apply <span class="count">3</span></h4><p>Pinned first, then newest.</p></div><span class="btn primary">Start applying</span></div></div>
+            <div class="panel">
+              <div class="panel-h"><h4>Follow up <span class="count">5</span></h4></div>
+              <div class="row"><div><div class="t">UX Researcher <span class="badge">Due</span></div><div class="s">Bramble &amp; Finch · Applied 12 days ago</div></div><span class="btn secondary sm">Follow up</span></div>
+              <div class="row"><div><div class="t">Design Systems Lead <span class="badge">Due</span></div><div class="s">Copperline Systems · Applied 10 days ago</div></div><span class="btn secondary sm">Follow up</span></div>
+              <div class="row"><div><div class="t">Senior UX Designer</div><div class="s">Interviewing · Follow up Fri, Oct 23</div></div></div>
+              <div class="row"><div><div class="t">Clinical Systems Analyst</div><div class="s">Interviewing · Follow up Sat, Oct 24</div></div></div>
+              <div class="row"><div><div class="t">Product Operations Manager</div><div class="s">Applied · Follow up Sun, Oct 25</div></div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-h"><h4>Next 7 days <span class="count">2</span></h4></div>
+            <div class="row"><div><div class="t">Interview · Clinical Systems Analyst</div><div class="s">Fri, Oct 23, 2:00 PM · Meridian Oak Health</div></div><span class="btn secondary sm">Open</span></div>
+            <div class="row"><div><div class="t">Interview · Senior UX Designer</div><div class="s">Mon, Oct 26, 10:30 AM · Copperline Systems</div></div><span class="btn secondary sm">Open</span></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>The exact changes</h2>
+  <ol>
+    <li><b>Upgrade to HDS 0.29.</b> Sora 700 headings, weights only 700 and 500, no italic anywhere. The empty-state titles are italic today.</li>
+    <li><b>Compact spacing for apps.</b> Steps of 4, 8, 12, 16, 24 and 32, body 15, captions 13. 0.29's airier scale stays for sites. This is new in HDS as a density setting (<code>data-density="compact"</code>) so Ops can use it too.</li>
+    <li><b>A primary that looks like one.</b> Solid light fill in dark mode (dark fill in light mode), bold label. Today it's a grey that reads as disabled.</li>
+    <li><b>One banner at most.</b> "Saved in this browser only" becomes a dot on the account button, with Sign in inside the menu. Sample data becomes one muted line with a Clear link.</li>
+    <li><b>Panels, not floating text.</b> To apply, Follow up and Next 7 days each sit on a raised surface with a header and rows. On desktop they go two columns, so the page isn't one long black strip.</li>
+    <li><b>Rows read as content.</b> Titles are white and medium weight, without underlines. Each row has one 36px secondary action on the right, and every button on a page is the same height.</li>
+    <li><b>One left edge.</b> No indented ghost buttons or floating close buttons. Every block starts on the same line.</li>
+  </ol>
+</section>
+
+<section class="card guard">
+  <h2>Guardrails so it doesn't drift again</h2>
+  <ul>
+    <li><b>HDS freshness test.</b> Roleforge fails its build if it falls more than one minor version behind the latest HDS. It fell three behind without anyone noticing.</li>
+    <li><b>Screenshot baselines.</b> Today, Pipeline, Discover and Templates at 390 and 1440, light and dark, with sample data. Any change to the pixels has to be approved in the PR, so a layout break can't slip through on green tests.</li>
+    <li><b>Layout rules as tests</b> (e2e, every route):
+      <ul>
+        <li>at most one primary button and one banner above the page head</li>
+        <li>every top-level block shares the same left edge</li>
+        <li>buttons on one page share one height</li>
+        <li>no italic, no underlined titles</li>
+      </ul>
+    </li>
+    <li><b>Spec before code for UI.</b> Any change to a page's layout starts as a staging preview like this one. The reviewer checks the screenshots against it before approving.</li>
+  </ul>
+</section>
+
+<p class="foot">Reply "go" to build it. One builder adds the compact density to HDS, the next upgrades Roleforge and adds the guardrails. You get a preview link to check before anything goes live.</p>
+</div>
+
+<script>
+const P="", D="";
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  const desk=b.dataset.v==='desk';
+  const app=document.getElementById('app'), cmp=document.getElementById('cmp'), before=document.getElementById('before'), img=document.getElementById('bimg');
+  app.className='app '+(desk?'desk':'phone');
+  cmp.classList.toggle('wide',desk);
+  before.style.width=desk?'960px':'390px';
+  img.src=desk?D:P; img.alt=desk?'Live Pipeline on desktop, dark':'Live Pipeline on a phone, dark';
+}));
+</script>
