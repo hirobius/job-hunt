@@ -20,6 +20,7 @@ import { jobIdOf } from './store';
 import { jobHash } from './route';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
+import { timeLabel } from './agendaTime';
 import type { Job } from './types';
 
 const jobHref = (url: string) => jobHash(jobIdOf(url));
@@ -144,7 +145,7 @@ export function NextDaysSection({ jobs, now }: { jobs: Job[]; now: Date }) {
             <AgendaRow
               title={`${KIND_WORD[it.kind]} · ${it.label}`}
               notes={metaLines([
-                `${dayLabel(it.date, now)}, ${it.time ?? 'all day'}`,
+                `${dayLabel(it.date, now)}, ${timeLabel(it.time)}`,
                 it.company,
                 it.note,
               ])}

@@ -12,6 +12,7 @@ import {
   useAtLeast,
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
+import { MetaCaption } from './MetaCaption';
 import { useJobs } from './store';
 import { saveWithNotice } from './saveNotice';
 import { SORTS, type SortKey } from './jobSort';
@@ -31,11 +32,25 @@ import GettingStarted from './GettingStarted';
 import JobListCard from './JobListCard';
 import { Panel, PanelBody } from './PipelinePanel';
 import { RecentlyRemovedLink } from './RecentlyRemoved';
+import { useTrash } from './trash';
 import { navigate } from './route';
 
 // The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
 // chevron right. HDS Button has no stretch or alignment prop.
-const SELECT_LIKE = { flex: '1 1 0', minWidth: 0, justifyContent: 'space-between' } as const;
+// They show only the value ("Active ⌄"): the "Status" / "Sort" prefix lives in the name, so
+// with Clear beside them the chevron still fits, and a long value truncates (rev-3 chip states).
+const SELECT_LIKE = {
+  flex: '1 1 0',
+  minWidth: 0,
+  overflow: 'hidden',
+  justifyContent: 'space-between',
+} as const;
+const SELECT_VALUE = {
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+} as const;
 
 export default function TrackerView() {
   const jobs = useJobs();
@@ -57,6 +72,9 @@ export default function TrackerView() {
   // The trigger shows the short form; its name says the same words (WCAG label in name).
   const sortLabel = sortDef?.short ?? sortDef?.label ?? '';
   const counts = useMemo(() => filterCounts(jobs), [jobs]);
+  // Recently removed's link is the only thing under the list besides the first-run empty; no
+  // empty wrapper (and no extra gap) when neither shows.
+  const removedCount = useTrash().length;
 
   const submit = () => {
     if (!url.trim()) return;
@@ -86,12 +104,14 @@ export default function TrackerView() {
       <PageHeader
         level={2}
         title="Pipeline"
-        status={
-          jobs.length > 0 ? (
-            <Text variant="caption" as="span" tone="secondary">
-              {`${counts.active} active · ${counts.all} total`}
-            </Text>
-          ) : undefined
+        // The counts on their own line under the title (rev-3 mock), not beside it.
+        description={
+          <MetaCaption
+            as="span"
+            items={
+              jobs.length > 0 ? [`${counts.active} active`, `${counts.all} total`] : ['0 jobs']
+            }
+          />
         }
         // One primary action per state: on first use it lives in the empty state instead.
         actions={jobs.length > 0 ? addJobButton : undefined}
@@ -135,12 +155,7 @@ export default function TrackerView() {
                           label={`Status: ${FILTER_LABEL[filter]}`}
                           style={SELECT_LIKE}
                         >
-                          <span>
-                            <Text variant="ui" as="span" tone="secondary">
-                              Status
-                            </Text>{' '}
-                            {FILTER_LABEL[filter]}
-                          </span>
+                          <span style={SELECT_VALUE}>{FILTER_LABEL[filter]}</span>
                         </UiButton>
                       </HdsMenu.Trigger>
                       <HdsMenu.Content align="start">
@@ -183,12 +198,7 @@ export default function TrackerView() {
                           label={`Sort: ${sortLabel}`}
                           style={SELECT_LIKE}
                         >
-                          <span>
-                            <Text variant="ui" as="span" tone="secondary">
-                              Sort
-                            </Text>{' '}
-                            {sortLabel}
-                          </span>
+                          <span style={SELECT_VALUE}>{sortLabel}</span>
                         </UiButton>
                       </HdsMenu.Trigger>
                       <HdsMenu.Content align="end">
@@ -219,19 +229,43 @@ export default function TrackerView() {
               </Box>
             </PanelBody>
             {shown.length === 0 ? (
-              <PanelBody>
-                <EmptyState
-                  centered
-                  icon={Search}
-                  title={
-                    q.trim()
-                      ? `No saved jobs match “${q.trim()}”.`
-                      : filter === 'active'
-                        ? 'Nothing left to apply to right now — nice. Check Applied or add more jobs.'
-                        : `Nothing under “${FILTER_LABEL[filter]}”.`
-                  }
-                />
-              </PanelBody>
+              // Its own section under the toolbar, a hairline above (rev-3 filtered-empty).
+              <Box sx={{ borderTop: 'thin solid', borderColor: 'border.default', py: 'lg' }}>
+                <PanelBody>
+                  {q.trim() ? (
+                    <EmptyState
+                      centered
+                      icon={Search}
+                      title={`No jobs match "${q.trim()}"`}
+                      description="Try a shorter word, or clear the search."
+                      action={
+                        <UiButton variant="secondary" onClick={() => setQ('')}>
+                          Clear search
+                        </UiButton>
+                      }
+                    />
+                  ) : filter === 'active' ? (
+                    <EmptyState
+                      centered
+                      icon={Search}
+                      title="Nothing left to apply to"
+                      description="Check Applied, or add more jobs."
+                    />
+                  ) : (
+                    <EmptyState
+                      centered
+                      icon={Search}
+                      title={`Nothing under “${FILTER_LABEL[filter]}”`}
+                      description="Try another status."
+                      action={
+                        <UiButton variant="secondary" onClick={() => setFilter('active')}>
+                          Show active
+                        </UiButton>
+                      }
+                    />
+                  )}
+                </PanelBody>
+              </Box>
             ) : wide ? (
               <PanelBody>
                 <JobsTable jobs={shown} sort={sort} onSort={setSort} />
@@ -241,64 +275,30 @@ export default function TrackerView() {
             )}
           </Panel>
         )}
-        <Stack gap="normal">
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <Dialog.Content
-              style={{ width: '100%', maxWidth: 480 }}
-              onCloseAutoFocus={(e) => {
-                if (!addOpener.current?.isConnected) return;
-                e.preventDefault();
-                addOpener.current.focus();
-              }}
-            >
-              <Dialog.Header>
-                <Dialog.Title>Add a job</Dialog.Title>
-                <Dialog.Description>
-                  Paste the posting's link. The title fills in from the URL; you can edit it after.
-                </Dialog.Description>
-              </Dialog.Header>
-              <HdsInput
-                label="Job URL"
-                type="url"
-                placeholder="https://…"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') submit();
-                }}
+        {(jobs.length === 0 || removedCount > 0) && (
+          <Stack gap="normal">
+            {jobs.length === 0 && (
+              // First use: the shared teaching empty (#132): what this will hold, one primary action,
+              // one way to see it working.
+              // rev-3 "Pipeline, empty": one bordered, centred panel (icon tile, title, sentence,
+              // Add job + sample data); Find the next company stays below it.
+              <EmptyState
+                framed
+                icon={Briefcase}
+                title="Track your first job"
+                description="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
+                action={
+                  <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+                    {addJobButton}
+                    <TrySampleButton />
+                  </Stack>
+                }
               />
-              <Dialog.Footer>
-                <Dialog.Close asChild>
-                  <UiButton variant="secondary">Cancel</UiButton>
-                </Dialog.Close>
-                <UiButton variant="primary" disabled={!url.trim()} onClick={submit}>
-                  Add
-                </UiButton>
-              </Dialog.Footer>
-            </Dialog.Content>
-          </Dialog>
-
-          {jobs.length === 0 && (
-            // First use: the shared teaching empty (#132): what this will hold, one primary action,
-            // one way to see it working.
-            // rev-3 "Pipeline, empty": one bordered, centred panel (icon tile, title, sentence,
-            // Add job + sample data); Find the next company stays below it.
-            <EmptyState
-              framed
-              icon={Briefcase}
-              title="Track your first job"
-              description="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
-              action={
-                <Stack direction="row" wrap="wrap" gap="tight" justify="center">
-                  {addJobButton}
-                  <TrySampleButton />
-                </Stack>
-              }
-            />
-          )}
-          {/* Removed jobs wait here for 30 days; a quiet link, shown only when there are some. */}
-          <RecentlyRemovedLink />
-        </Stack>
+            )}
+            {/* Removed jobs wait here for 30 days; a quiet link, shown only when there are some. */}
+            <RecentlyRemovedLink />
+          </Stack>
+        )}
         {/* The list always ends by pointing back to Companies (#238), empty or not. Secondary, so
           Add job / Start applying stay the page's one primary. */}
         <Stack direction="row">
@@ -307,6 +307,42 @@ export default function TrackerView() {
           </UiButton>
         </Stack>
       </Stack>
+      {/* Portals out, so it takes no slot in the page's rhythm. */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <Dialog.Content
+          style={{ width: '100%', maxWidth: 480 }}
+          onCloseAutoFocus={(e) => {
+            if (!addOpener.current?.isConnected) return;
+            e.preventDefault();
+            addOpener.current.focus();
+          }}
+        >
+          <Dialog.Header>
+            <Dialog.Title>Add a job</Dialog.Title>
+            <Dialog.Description>
+              Paste the posting's link. The title fills in from the URL; you can edit it after.
+            </Dialog.Description>
+          </Dialog.Header>
+          <HdsInput
+            label="Job URL"
+            type="url"
+            placeholder="https://…"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submit();
+            }}
+          />
+          <Dialog.Footer>
+            <Dialog.Close asChild>
+              <UiButton variant="secondary">Cancel</UiButton>
+            </Dialog.Close>
+            <UiButton variant="primary" disabled={!url.trim()} onClick={submit}>
+              Add
+            </UiButton>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog>
     </Stack>
   );
 }

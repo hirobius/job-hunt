@@ -119,13 +119,13 @@ describe('Pipeline on a phone (#129)', () => {
     const items = within(await screen.findByRole('menu'))
       .getAllByRole('menuitem')
       .map((i) => i.textContent?.trim());
-    expect(items).toEqual([
-      'Open on acme.example',
-      'Star',
-      'Retire',
-      'Find more like this',
-      'Remove',
-    ]);
+    expect(items).toEqual(['Open posting', 'Star', 'Retire', 'Find more like this', 'Remove']);
+    // One inset for every item: the stages are plain items marked by a trailing check, still
+    // radio items for assistive tech (rev-3 mock).
+    const stages = within(screen.getByRole('menu')).getAllByRole('menuitemradio');
+    expect(
+      stages.filter((i) => i.getAttribute('aria-checked') === 'true').map((i) => i.textContent),
+    ).toEqual(['Saved']);
   });
 
   it('Mark applied moves the job out of the Active view', async () => {

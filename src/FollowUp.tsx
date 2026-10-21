@@ -37,6 +37,11 @@ import type { Job } from './types';
 type Size = 'sm' | 'md';
 
 /** The button that opens the follow-up dialog for a job. */
+// Open posting is a link in Button's dress. HDS holds a button-like link to its 44px touch minimum,
+// while base.css sets phone buttons to 40, so beside Snooze it stood 4px taller. Same 40 here, so
+// the row of two lines up (rev-3 A).
+const LINK_AS_BUTTON = { minHeight: 'var(--primitive-space-10)' } as const;
+
 export function FollowUpButton({
   job,
   size,
@@ -194,7 +199,7 @@ function FollowUpContent({ job }: { job: Job }) {
                     Copy again
                   </Button>
                 ) : (
-                  <Button asChild variant="secondary">
+                  <Button asChild size="md" variant="secondary" style={LINK_AS_BUTTON}>
                     <a href={job.url} target="_blank" rel="noopener noreferrer">
                       <Icon icon={ExternalLink} />
                       Open posting
