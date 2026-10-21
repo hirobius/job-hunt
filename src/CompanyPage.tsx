@@ -9,7 +9,7 @@ import { EmptyState } from './hds-gaps/EmptyState';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import { addCompanyNote, useCompany } from './companies';
 import { DOCUMENT_KINDS, saveVersion, type Document } from './documents';
-import { jobHash, openJob } from './route';
+import { jobHash } from './route';
 import { jobIdOf } from './store';
 import { JobBadges, RowPrimaryAction } from './JobRowParts';
 import { titleOf } from './jobRow';
@@ -161,15 +161,13 @@ export default function CompanyPage({ slug }: { slug: string }) {
           {/* "← Pipeline", the job page's Back, with no leading padding so the arrow sits on the
               page gutter with the title (`.rjb-back-link`; its box stays inside the gutter). */}
           <Box>
-            <Button
-              className="rjb-back-link"
-              variant="tertiary"
-              size="md"
-              iconLeft={<Icon icon={ArrowLeft} />}
-              aria-label="Back to Pipeline"
-              onClick={() => openJob(null)}
-            >
-              Pipeline
+            {/* A link (it navigates). HDS Button asChild drops iconLeft, so the arrow is the
+                link's own child. */}
+            <Button asChild className="rjb-back-link" variant="tertiary" size="md">
+              <a href="#/queue" aria-label="Back to Pipeline">
+                <Icon icon={ArrowLeft} />
+                Pipeline
+              </a>
             </Button>
           </Box>
           <Text variant="title" as="h2">

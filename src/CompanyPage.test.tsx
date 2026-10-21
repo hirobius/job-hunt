@@ -52,7 +52,11 @@ describe('Company page (#230)', () => {
   it('rev-3 panels: Jobs and Documents with count badges, job rows like Pipeline cards, Back on the edge', async () => {
     seedAcme();
     render(<CompanyPage slug="acme" />);
-    expect(screen.getByRole('button', { name: 'Back to Pipeline' })).toHaveTextContent('Pipeline');
+    expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveAttribute(
+      'href',
+      '#/queue',
+    );
+    expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveTextContent(/^Pipeline$/);
     const jobs = screen.getByRole('region', { name: 'Jobs' });
     expect(within(jobs).getByText('2')).toBeInTheDocument();
     const rows = within(jobs).getAllByRole('listitem');
