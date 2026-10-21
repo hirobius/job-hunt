@@ -1,19 +1,20 @@
 // Magic-link sign-in (#115 Phase 1; conventional passwordless pattern, 2026-10-17), opened from
 // the account menu or the sync nudge. One field and one button; validation on submit; then a
 // "Check your email" state with Resend (30 s cooldown) and Use a different email. On a phone it
-// is a sheet pinned above the iOS keyboard (SignInDialog.css); at sm and up a centred Dialog.
+// is a sheet pinned above the iOS keyboard (sheet.css, shared with Reset); at sm and up a centred Dialog.
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Alert, Button, Dialog, Input, Stack, Text } from '@hirobius/design-system';
 import { Form } from '@hirobius/design-system/patterns';
-import { useCloudSync } from './accountContext';
+import { refocusAccount, useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
 import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
+import './sheet.css';
 import './SignInDialog.css';
 
 export const RESEND_COOLDOWN_S = 30;
 
 export default function SignInDialog() {
-  const { signInOpen, setSignInOpen, sendLink } = useCloudSync();
+  const { signInOpen, setSignInOpen, sendLink, accountTrigger } = useCloudSync();
   const [email, setEmail] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -87,7 +88,8 @@ export default function SignInDialog() {
     <Dialog open={signInOpen} onOpenChange={onOpenChange}>
       <Dialog.Content
         ref={viewportRef}
-        className="sign-in-dialog"
+        className="rjb-sheet"
+        onCloseAutoFocus={refocusAccount(accountTrigger)}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           inputRef.current?.focus();

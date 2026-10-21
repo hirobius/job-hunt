@@ -67,14 +67,14 @@ afterEach(() => {
 });
 
 describe('app bar (rev-3)', () => {
-  it('the app name is the body-size wordmark on a phone and on desktop, never title-size', () => {
+  it('the app name is the titleSm wordmark (rev-3 .brand) on a phone and on desktop, never title-size', () => {
     for (const width of [390, 1440]) {
       viewport(width);
       renderApp();
       const h1 = screen.getByRole('heading', { level: 1, name: BRAND.name });
       expect(h1.textContent).toBe(BRAND.name);
-      expect(h1.className).toMatch(/hds-type-body/);
-      expect(h1.className).not.toMatch(/hds-type-(title|display)/);
+      expect(h1.className).toMatch(/hds-type-title-sm/);
+      expect(h1.className).not.toMatch(/hds-type-(title|display)(?!-sm)\b/);
       cleanup();
     }
   });

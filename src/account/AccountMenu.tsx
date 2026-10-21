@@ -5,20 +5,22 @@
 // behind a confirm that says exactly what goes. Reset is never a loose button on a page.
 import { useState } from 'react';
 import { Download } from 'lucide-react';
-import { AlertDialog, Avatar, Button, Icon, Menu } from '@hirobius/design-system';
+import { AlertDialog, Avatar, Button, Icon, Menu, Stack } from '@hirobius/design-system';
 import { useJobs } from '../store';
 import { useDocuments } from '../documents';
 import { clearLocalData } from '../localReset';
 import { useColorMode } from '../ColorMode';
-import { useCloudSync, useDataTools } from './accountContext';
+import { refocusAccount, useCloudSync, useDataTools } from './accountContext';
 import { useUnsynced } from './useUnsynced';
 import { navigate } from '../route';
 import { LEGAL_ROUTE } from '../legal';
+import './sheet.css';
 
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
 export default function AccountMenu() {
   const sync = useCloudSync();
+  const { accountTrigger, setAccountTrigger } = sync;
   const data = useDataTools();
   const unsynced = useUnsynced();
   const { mode, toggle } = useColorMode();
@@ -36,6 +38,7 @@ export default function AccountMenu() {
       <Menu modal={false}>
         <Menu.Trigger asChild>
           <Button
+            ref={setAccountTrigger}
             variant="tertiary"
             iconOnly
             iconLeft={
@@ -45,9 +48,11 @@ export default function AccountMenu() {
                 initials={initial}
                 fallback={initial ? 'initials' : 'icon'}
                 status={unsynced ? 'warning' : undefined}
+                className="rjb-avatar"
               />
             }
             label={name}
+            className="rjb-account"
             title={unsynced ? 'Saved on this device only' : undefined}
           />
         </Menu.Trigger>
@@ -104,6 +109,7 @@ export default function AccountMenu() {
         onOpenChange={setResetting}
         signedIn={!!sync.user}
         onBackup={data.backup}
+        returnFocus={accountTrigger}
       />
     </>
   );
@@ -117,17 +123,20 @@ function ResetLocalData({
   onOpenChange,
   signedIn,
   onBackup,
+  returnFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   signedIn: boolean;
   onBackup: () => void;
+  returnFocus?: HTMLButtonElement | null;
 }) {
   const jobs = useJobs().length;
   const docs = useDocuments().length;
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialog.Content>
+      {/* Placed like the sign-in dialog (`.rjb-sheet`): every shell dialog sits in one place. */}
+      <AlertDialog.Content className="rjb-sheet" onCloseAutoFocus={refocusAccount(returnFocus)}>
         <AlertDialog.Header>
           <AlertDialog.Title>Reset local data?</AlertDialog.Title>
           <AlertDialog.Description>
@@ -135,12 +144,21 @@ function ResetLocalData({
               ? 'This clears jobs, documents and settings from this browser only. Your synced jobs come back after you sign in.'
               : `This deletes everything in this browser: ${plural(jobs, 'job')}, ${plural(docs, 'document')}, your tracks and your kit. You are not signed in, so nothing comes back.`}
           </AlertDialog.Description>
+          {/* rev-3 #s-reset-signed-out: Back up first sits under the text, on its left edge, not
+              as a centred button between the text and the actions. */}
+          {!signedIn && (
+            <Stack align="start">
+              <Button
+                variant="tertiary"
+                size="sm"
+                iconLeft={<Icon icon={Download} />}
+                onClick={onBackup}
+              >
+                Back up first
+              </Button>
+            </Stack>
+          )}
         </AlertDialog.Header>
-        {!signedIn && (
-          <Button variant="tertiary" iconLeft={<Icon icon={Download} />} onClick={onBackup}>
-            Back up first
-          </Button>
-        )}
         <AlertDialog.Footer>
           <AlertDialog.Cancel asChild>
             <Button variant="secondary">Cancel</Button>

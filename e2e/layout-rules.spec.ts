@@ -7,6 +7,7 @@
 //   - one status rule: never two status badges beside a title
 //   - headings sit on the HDS type ramp, and no inline font size anywhere
 //   - a page side gutter of at least 16px on a phone
+//   - the page starts 24 under the tab row on every route (the shell owns that space)
 //   - no italic text (HDS 0.30's EmptyState title is italic; hds-gaps/EmptyState resets it)
 // Local only: `npm run verify:ui` (or `npm run test:e2e`).
 import { test, expect, type Page } from '@playwright/test';
@@ -16,6 +17,7 @@ const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [390, 1440] as const;
 const PHONE = 600;
 const GUTTER = 16;
+const RHYTHM = 24;
 // KNOWN_DEBT: none. The redesign cleared the last two (slice 1): the 12px phone gutter (now 16,
 // rev-3 mock) and the job rail's "Due" beside a status badge (now one badge row above the
 // title, rev-3 B). A new debt needs a reason here and an exact-form check in probe().
@@ -23,7 +25,7 @@ const GUTTER = 16;
 /** Run every rule in the page; returns one line per offence. */
 function probe(page: Page) {
   return page.evaluate(
-    ({ phone, gutter }) => {
+    ({ phone, gutter, rhythm }) => {
       const out: string[] = [];
       const W = document.documentElement.clientWidth;
       const isPhone = W < phone;
@@ -128,6 +130,21 @@ function probe(page: Page) {
             );
         });
 
+      // 2d. Page rhythm (rev-3 .wrap): the shell owns the space under the tabs. The first thing on
+      // every page (its back link or its title) sits 24 under the tab row, never a per-view gap.
+      const tabs = document.querySelector('[role="tablist"][aria-label="Sections"]');
+      if (tabs?.parentElement) {
+        let top = Infinity;
+        for (let page = tabs.parentElement.nextElementSibling; page; page = page.nextElementSibling)
+          if (visible(page))
+            page.querySelectorAll('*').forEach((el) => {
+              if (visible(el)) top = Math.min(top, el.getBoundingClientRect().top);
+            });
+        const gap = Math.round(top - tabs.getBoundingClientRect().bottom);
+        if (top !== Infinity && gap !== rhythm)
+          out.push(`rhythm: the page starts ${gap}px under the tabs, not ${rhythm}`);
+      }
+
       // 3–6. Per element: text size, inline font size, heading ramp, gutter.
       document.querySelectorAll('body *').forEach((el) => {
         if (!(el instanceof HTMLElement) || !visible(el)) return;
@@ -198,7 +215,7 @@ function probe(page: Page) {
       });
       return [...new Set(out)];
     },
-    { phone: PHONE, gutter: GUTTER },
+    { phone: PHONE, gutter: GUTTER, rhythm: RHYTHM },
   );
 }
 

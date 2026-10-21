@@ -24,6 +24,8 @@ export interface Notice {
   id: number;
   title: string;
   description?: string;
+  /** The toast's icon tone; a save is a success (a check, not the info glyph). */
+  tone?: 'success';
   actions: NoticeAction[];
 }
 
@@ -36,16 +38,17 @@ export function showNotice(n: Omit<Notice, 'id'>) {
 export const dismissNotice = () => store.set(null);
 export const useNotice = store.use;
 
-/** Say where newly saved jobs went: "Saved to Pipeline · To apply", Open, Undo. `urls` are the
+/** Say where newly saved jobs went: "Saved to Pipeline · To apply", Open, Undo: one line, with no
+ *  job name under it (rev-3 #s-save-notice; Open is one tap away). `urls` are the
  *  stored URLs of jobs this save added (already-saved ones are left out by the caller); those in
  *  `restored` were set aside before, so Undo sets them aside again instead of removing them. Undo
  *  never removes a job the user has moved past Saved since (#219). */
-export function notifySaved(urls: string[], label?: string, restored: string[] = []) {
+export function notifySaved(urls: string[], _label?: string, restored: string[] = []) {
   if (!urls.length) return;
   const one = urls.length === 1;
   showNotice({
     title: one ? 'Saved to Pipeline · To apply' : `Saved ${urls.length} to Pipeline · To apply`,
-    description: one ? label : undefined,
+    tone: 'success',
     actions: [
       {
         label: 'Open',

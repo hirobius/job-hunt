@@ -37,6 +37,7 @@ Every route (`e2e/routes.ts`, plus the job page and Apply mode) at 390 and 1440,
 - one status rule: never two status badges on a title's line
 - headings on the HDS type ramp, and no inline font size other than an HDS ramp token
 - a 16px page side gutter on a phone
+- the page starts 24 under the tab row on every route (the shell owns that space; no per-view top margin)
 
 **Known debt:** none. Slice 1 cleared both entries (the 12px phone gutter is now 16; the job
 rail's "Due" moved into one badge row above the title, rev-3 B). The heading ramp includes HDS

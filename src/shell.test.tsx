@@ -79,8 +79,9 @@ describe('app shell (#115 Phase 1)', () => {
   it('the wordmark is an app-bar label, smaller than any page title', () => {
     renderApp();
     const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
-    expect(wordmark.className).not.toMatch(/hds-type-(title|display)/);
-    expect(wordmark.className).toMatch(/hds-type-(body|ui)/);
+    // rev-3 .brand: the display family on the titleSm step, under the title step a page head uses.
+    expect(wordmark.className).not.toMatch(/hds-type-(title|display)(?!-sm)\b/);
+    expect(wordmark.className).toMatch(/hds-type-title-sm/);
   });
 
   it('signed out, the account menu reads: device-only line, sign in | data | display | troubleshooting', async () => {
@@ -308,7 +309,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Privacy and terms' }));
     expect(window.location.hash).toBe('#/legal/privacy');
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Privacy Policy' }),
+      await screen.findByRole('heading', { level: 2, name: 'Privacy policy' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
   });
@@ -317,9 +318,9 @@ describe('routes keep working (#115 Phase 1)', () => {
     window.location.hash = '#/legal/terms';
     renderApp();
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Terms of Use' }),
+      await screen.findByRole('heading', { level: 2, name: 'Terms of use' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute(
       'href',
       '#/legal/privacy',
     );

@@ -63,6 +63,8 @@ describe('save notice', () => {
     act(() => notifySaved([C], 'Cask Designer'));
     const notice = await findNotice();
     expect(within(notice).getByText('Saved to Pipeline · To apply')).toBeInTheDocument();
+    // rev-3 #s-save-notice: one line, no job name under it (Open is one tap away).
+    expect(within(notice).queryByText('Cask Designer')).toBeNull();
     await user.click(within(notice).getByRole('button', { name: 'Undo' }));
     expect(findJobByUrl(C)).toBeUndefined();
   });

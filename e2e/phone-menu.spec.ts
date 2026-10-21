@@ -22,3 +22,26 @@ test('a row menu on a phone fits the screen and its last item can be clicked', a
   await menu.getByRole('menuitem', { name: /^Remove$/ }).click();
   await expect(page.getByRole('button', { name: /^Recently removed/ })).toBeVisible();
 });
+
+// A dialog opened from an Account menu item hands focus back to the Account button on close: the
+// item that opened it is gone (the Menu is non-modal), so focus would otherwise fall to the body.
+test('closing Reset or Sign in returns focus to the Account button', async ({ page }) => {
+  await page.goto('/#/queue');
+  const account = page.getByRole('button', { name: /^Account/ });
+
+  await account.click();
+  await page.getByRole('menuitem', { name: /^Reset local data/ }).click();
+  const reset = page.getByRole('alertdialog');
+  await expect(reset).toBeVisible();
+  await reset.getByRole('button', { name: 'Cancel' }).click();
+  await expect(reset).toBeHidden();
+  await expect(account).toBeFocused();
+
+  await account.click();
+  await page.getByRole('menuitem', { name: /^Sign in/ }).click();
+  const signIn = page.getByRole('dialog');
+  await expect(signIn).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(signIn).toBeHidden();
+  await expect(account).toBeFocused();
+});

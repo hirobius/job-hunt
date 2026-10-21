@@ -1,17 +1,5 @@
-/* Sign-in dialog layout. HDS Dialog centres its panel; on a phone the iOS keyboard then covers
-   the field and the button. Below the HDS sm breakpoint (640) the panel is a sheet pinned to the
-   top of the visual viewport (vars from hds-gaps/useVisualViewportVars), capped to the height the
-   keyboard leaves, so it never jumps when the keyboard opens. At sm and up it stays centred. */
-.sign-in-dialog {
-  max-width: 440px;
-}
-@media (max-width: 639.98px) {
-  .sign-in-dialog {
-    top: calc(var(--rjb-vv-top, 0px) + var(--semantic-space-scale-sm));
-    translate: -50% 0;
-    max-height: calc(var(--rjb-vv-height, 100dvh) - 2 * var(--semantic-space-scale-sm));
-  }
-}
+/* Sign-in dialog: its placement is the shared shell sheet (sheet.css, `.rjb-sheet`); its buttons
+   fill the width. */
 .sign-in-dialog__primary {
   width: 100%;
 }
