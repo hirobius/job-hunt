@@ -1,14 +1,13 @@
-// The job page's Overview (#130): the details card, then the secondary tools (templates, research
-// links). The card reads as a facts list; Edit turns the same card into its fields (title,
+// The job page's Overview (#130; rev-3 F, three tabs): Details, To-dos, Notes and Documents as
+// panels. Details reads as a facts list; Edit turns the same panel into its fields (title,
 // company, location, pay, link, contact, with seniority and résumé version under More fields).
 // A job saved from a bare link has nothing to read yet, so its card starts in edit. Remove lives
 // in the header's menu. The company links to its Company page (#230, `#/company/<slug>`).
 import { useRef, useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { ExternalLink, Pencil } from 'lucide-react';
 import {
   Box,
   Button,
-  Card,
   Disclosure,
   Icon,
   InlineLink,
@@ -21,9 +20,16 @@ import {
 import { jobIdOf, setJobUrl, updateJob } from './store';
 import { companyHash, openJob } from './route';
 import { companySlug, relinkCompanyNotes } from './companies';
-import { jobFacts, researchLinks } from './jobFacts';
+import { jobFacts } from './jobFacts';
 import { useSavedFlash } from './useSavedFlash';
 import UseTemplate from './UseTemplate';
+import { Panel, PanelBody } from './PipelinePanel';
+import { NotesPanel, TodosPanel } from './TodosNotes';
+import JobDocuments from './JobDocuments';
+import JobFinalCopies from './JobFinalCopies';
+import { DocumentDownload } from './DocumentDownload';
+import { useDocuments } from './documents';
+import { documentsForJob, sentSummary } from './jobDocuments';
 import type { Job } from './types';
 
 /** A text field that writes straight through to the job and tells the page it saved. */
@@ -95,8 +101,9 @@ function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
   const field = (key: keyof Job, label: string) => (
     <JobField job={job} field={key} label={label} onSaved={flash} />
   );
+  // No form-control cap: the single fields (Title, Link) line up with the paired rows.
   return (
-    <Card bordered padding="component">
+    <Box className="rjb-form-full">
       <Stack gap="normal">
         {field('label', 'Title')}
         <Switcher gap="tight">
@@ -128,12 +135,12 @@ function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
           >
             Saved ✓
           </Text>
-          <Button size="sm" variant="secondary" onClick={onDone}>
+          <Button size="md" variant="secondary" onClick={onDone}>
             Done
           </Button>
         </Stack>
       </Stack>
-    </Card>
+    </Box>
   );
 }
 
@@ -149,51 +156,108 @@ function companyLink(name: string) {
   );
 }
 
-export default function JobOverview({ job }: { job: Job }) {
+/** The posting link as the domain alone (rev-3 C): an external-link icon, then the domain cut
+ *  with an ellipsis when it is long. It opens the posting in a new tab. */
+function postingLink(job: Job, domain: string) {
+  return (
+    <Stack direction="row" gap="px4" align="center">
+      <Icon icon={ExternalLink} size="small" />
+      <Box className="rjb-truncate" sx={{ minWidth: 0 }}>
+        <InlineLink href={job.url} externalIcon={false}>
+          {domain}
+        </InlineLink>
+      </Box>
+    </Stack>
+  );
+}
+
+/** The Details panel: the facts as a two-column list, Edit in its header. Research links sit in
+ *  the header's menu (rev-3 review). */
+function DetailsPanel({ job }: { job: Job }) {
   const [editing, setEditing] = useState(!(job.label && job.company));
   const facts = jobFacts(job);
-
   return (
-    <Stack gap="normal">
-      <Stack gap="tight">
-        <Stack direction="row" gap="tight" align="center" justify="space-between">
-          <Text variant="body" as="h3" className="rjb-semibold">
-            Details
-          </Text>
-          {!editing && (
-            <Button
-              size="sm"
-              variant="tertiary"
-              iconLeft={<Icon icon={Pencil} />}
-              aria-label="Edit details"
-              onClick={() => setEditing(true)}
-            >
-              Edit
-            </Button>
-          )}
-        </Stack>
+    <Panel
+      label="Details"
+      title="Details"
+      trailing={
+        !editing && (
+          <Button
+            size="md"
+            variant="secondary"
+            iconLeft={<Icon icon={Pencil} />}
+            aria-label="Edit details"
+            onClick={() => setEditing(true)}
+          >
+            Edit
+          </Button>
+        )
+      }
+    >
+      <PanelBody>
         {editing ? (
           <DetailsEditor job={job} onDone={() => setEditing(false)} />
         ) : (
           <MetadataList
-            variant="divided"
+            orientation="horizontal"
             items={facts.map((f) => ({
               term: f.term,
-              description: f.term === 'Company' ? companyLink(f.description) : f.description,
+              description:
+                f.term === 'Company'
+                  ? companyLink(f.description)
+                  : f.term === 'Link'
+                    ? postingLink(job, f.description)
+                    : f.description,
             }))}
           />
         )}
-      </Stack>
-      <Stack direction="row" wrap="wrap" gap="tight" align="center">
-        <UseTemplate job={job} />
-        {researchLinks(job.label).map(([name, href]) => (
-          <Button key={name} size="sm" variant="secondary" asChild>
-            <a href={href} target="_blank" rel="noopener noreferrer">
-              {name}
-            </a>
-          </Button>
-        ))}
-      </Stack>
+      </PanelBody>
+    </Panel>
+  );
+}
+
+/** The job's documents (#228): what went out, Use template, and every document with its
+ *  Versions and final copies behind one row, so the Overview stays short on a phone. */
+function DocumentsPanel({ job }: { job: Job }) {
+  const docs = documentsForJob(useDocuments(), job.url);
+  const sent = sentSummary(docs);
+  return (
+    <Panel
+      label="Documents"
+      title="Documents"
+      count={docs.length}
+      countLabel={`${docs.length} documents`}
+      trailing={<UseTemplate job={job} />}
+      description={sent ? `Sent: ${sent}` : undefined}
+    >
+      <PanelBody>
+        {/* Every document behind one row. With none yet there is no "None yet" filler: a quiet
+            line opens New document, Use a Base document and Upload a final copy (rev-3 review). */}
+        <Disclosure
+          variant={docs.length ? 'row' : 'nav'}
+          label={docs.length ? 'All documents' : 'Add a document'}
+          preview={docs.length ? 'Versions, Sent copies and final files' : undefined}
+        >
+          <JobDocuments
+            job={job}
+            versionActions={(doc, version) => (
+              <DocumentDownload doc={doc} version={version} job={job} />
+            )}
+            uploadSlot={<JobFinalCopies jobUrl={job.url} />}
+          />
+        </Disclosure>
+      </PanelBody>
+    </Panel>
+  );
+}
+
+export default function JobOverview({ job }: { job: Job }) {
+  return (
+    <Stack gap="normal">
+      <DetailsPanel job={job} />
+      <TodosPanel job={job} />
+      <NotesPanel job={job} />
+      <DocumentsPanel job={job} />
     </Stack>
   );
 }

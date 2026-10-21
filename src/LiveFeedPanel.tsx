@@ -5,17 +5,22 @@
 // the user saves a posting, which turns it into a tracked Job. Watching a board files a tile on the
 // track (src/feed/watchlist.ts). "Find more" runs the wide sweep (#213): every title that is on for
 // the track, in one search, merged and tagged by title (src/feed/sweep.ts).
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+// Layout (rev-3 mock, K/H): the search row, then Calibrate → Refine → Openings, 24 apart. Openings
+// is one bordered panel: a header (count, how it is sorted and what is hidden, Find more, a menu
+// with the Show filter and Save all), a Partial row when sources failed, then hairline rows.
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
-  Alert,
   Badge,
+  Card,
   Button,
+  Dialog,
   Tooltip as HdsTooltip,
   Input as HdsInput,
+  Menu,
   SegmentedControl,
   Checkbox as HdsCheckbox,
   Disclosure,
-  Spinner,
+  Skeleton,
   Stack,
   Tag,
   useToast,
@@ -23,17 +28,28 @@ import {
   Icon,
   Text,
   InlineLink,
+  VisuallyHidden,
 } from '@hirobius/design-system';
-import { X } from 'lucide-react';
-import EmptyState from './EmptyState';
-import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
+import { EmptyState } from './hds-gaps/EmptyState';
+import {
+  Banknote,
+  Calendar,
+  Ellipsis,
+  FileSignature,
+  MapPin,
+  Rocket,
+  Search,
+  SearchX,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
+import { EvidenceEditor, FitGapBody, PatternsSummary } from './FeedFit';
 import { setTrackContext, useTrackContext } from './discoverContext';
-import { ContextCaption } from './LocationControl';
 import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
 import { notifySaved } from './saveNotice';
 import { fetchFeed, type FeedResult } from './feed/fetchFeed';
 import { mergeRetry } from './feed/mergeFeed';
-import AsyncState, { type AsyncStatus } from './hds-gaps/AsyncState';
+import { AsyncState, type AsyncStatus } from '@hirobius/design-system/patterns';
 import { rankPostings } from './feed/match';
 import { applyTargeting, NO_TARGETING } from './feed/targeting';
 import type { Seniority } from './curation/types';
@@ -44,19 +60,23 @@ import { deleteFilter, saveFilter, useFilters, type SavedFilter } from './feed/s
 import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
 import { boardsForPack, packIdForLabel } from './curation/starterPacks';
 import { jobFieldsFor } from './feed/toJob';
-import { modeLabel, verdictLabel, verdictTone } from './screening';
+import { modeLabel, verdictLabel } from './screening';
 import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
 import { demandPatterns } from './radar/patterns';
 import { TIER_INFO, useEvidence, writeEvidence } from './radar/evidenceStore';
-import { SOURCE_LABEL, type SignalId } from './feed/types';
+import { SOURCE_LABEL, type Signal, type SignalId } from './feed/types';
 import { sweepRank, titleCounts, withoutHidden, type SweptPosting } from './feed/sweep';
 import { SweepTitlesEditor } from './SweepTitles';
-import { metaLines } from './metaLines';
 import { activeTitles, useSweep } from './feed/sweepTitles';
+import { metaLines } from './metaLines';
 
 type Focus = 'all' | 'strong' | SignalId;
 /** Rows rendered per page — the rest sit behind "Show more". */
 const PAGE = 40;
+/** After this long with nothing to show, the loading caption says slow sources are skipped. */
+const SLOW_MS = 10_000;
+/** Skeleton rows while the first answers come in, so nothing jumps when results land. */
+const SKELETON_ROWS = 4;
 
 interface Loaded {
   term: string;
@@ -70,6 +90,8 @@ interface Loaded {
 
 /** How often a long board read repaints the list. */
 const PROGRESS_REPAINT_MS = 250;
+/** Fit order for "Sorted by fit". */
+const TIER_RANK: Record<FitGap['tier'], number> = { strong: 0, stretch: 1, reach: 2 };
 
 export default function LiveFeedPanel({
   categoryId,
@@ -79,7 +101,7 @@ export default function LiveFeedPanel({
   calibrate = false,
 }: {
   categoryId: string;
-  /** The track's search terms — offered as chips; the first is searched on open. */
+  /** The track's search terms: the first is searched on open; all sit under Calibrate's "Search for". */
   terms: string[];
   /** The track's titles: the sweep's list until the user edits it. */
   sweepSeed?: string[];
@@ -99,6 +121,8 @@ export default function LiveFeedPanel({
   const [retrying, setRetrying] = useState<string[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
   const [refineOpen, setRefineOpen] = useState(false);
+  const watchId = useId();
+  const savedId = useId();
   const [calibrateOpen, setCalibrateOpen] = useState(calibrate);
   // Arriving through the old Titles link opens Calibrate, also when this panel is already up.
   const [calibrateSeen, setCalibrateSeen] = useState(calibrate);
@@ -120,10 +144,11 @@ export default function LiveFeedPanel({
   const saved = useFilters(categoryId);
   const [saveName, setSaveName] = useState('');
   const evidence = useMemo(() => parseEvidence(evidenceText), [evidenceText]);
-  // The wide sweep: one search across every title that is on. `hiddenTitles` only filters what is
-  // on screen (no re-fetch); the on/off list itself is per track and synced.
+  // The wide sweep: one search across every title that is on. `onlyTitle` (a title chip) only
+  // filters what is on screen (no re-fetch); the on/off list itself is per track and synced.
   const [sweeping, setSweeping] = useState(false);
-  const [hiddenTitles, setHiddenTitles] = useState<Set<string>>(new Set());
+  const [onlyTitle, setOnlyTitle] = useState<string | null>(null);
+  const [zeroTitlesShown, setZeroTitlesShown] = useState(false);
   // The track's title filter (#223) is the sweep's list: what it searches, and what ranks and
   // filters every result.
   const titleFilter = useSweep(categoryId, sweepSeed);
@@ -226,12 +251,12 @@ export default function LiveFeedPanel({
     () => applyTargeting(matched, targeting),
     [matched, targeting],
   );
-  const hiddenNotes = metaLines([
+  const hiddenNotes = [
     hidden.exclude > 0 && `${hidden.exclude} hidden by what you left out`,
     hidden.seniority > 0 && `${hidden.seniority} hidden by level`,
     hidden.salary > 0 && `${hidden.salary} hidden by pay`,
     hidden.titles > 0 && `${hidden.titles} hidden by titles`,
-  ]);
+  ].filter((n): n is string => !!n);
   // Boards still being read with nothing to show yet reads as loading; once some rows exist they show.
   const loading = hasQuery && (!current || (!!reading && ranked.length === 0));
   const counts = useMemo(
@@ -255,29 +280,47 @@ export default function LiveFeedPanel({
     () => (sweeping ? titleCounts(ranked, sweepTitles) : {}),
     [sweeping, ranked, sweepTitles],
   );
-  const shownTitles = sweeping ? withoutHidden(ranked, hiddenTitles) : ranked;
+  // With evidence the list leads with the best fits (stable: relevance breaks ties).
+  const byFit = useMemo(
+    () =>
+      fits.size
+        ? [...ranked].sort(
+            (a, b) => TIER_RANK[fits.get(a.id)!.tier] - TIER_RANK[fits.get(b.id)!.tier],
+          )
+        : ranked,
+    [ranked, fits],
+  );
+  const shownTitles =
+    sweeping && onlyTitle
+      ? withoutHidden(byFit, new Set(sweepTitles.filter((t) => t !== onlyTitle)))
+      : byFit;
   const visible =
     focus === 'all'
       ? shownTitles
       : focus === 'strong'
         ? shownTitles.filter((p) => fits.get(p.id)?.tier === 'strong')
         : shownTitles.filter((p) => p.signals.some((s) => s.id === focus));
-  const toggleShown = (t: string) => {
-    setHiddenTitles((cur) => {
-      const next = new Set(cur);
-      if (next.has(t)) next.delete(t);
-      else next.add(t);
-      return next;
-    });
+  /** A title chip shows only that title's rows; the active one again (or All) shows every row. */
+  const showOnly = (t: string | null) => {
+    setOnlyTitle((cur) => (t === cur ? null : t));
     setShown(PAGE);
   };
   const startSweep = (on: boolean) => {
     setSweeping(on);
     if (on && sweepTitles.length === 0) setCalibrateOpen(true);
-    setHiddenTitles(new Set());
+    setOnlyTitle(null);
+    setZeroTitlesShown(false);
     setShown(PAGE);
-    setPicked(new Set());
   };
+  // The slow note is for this read only: a new search or Retry starts the clock again.
+  const loadKey = `${query}|${boardsKey}|${attempt}`;
+  const [slowFor, setSlowFor] = useState('');
+  const slow = loading && slowFor === loadKey;
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => setSlowFor(loadKey), SLOW_MS);
+    return () => clearTimeout(t);
+  }, [loading, loadKey]);
 
   const jobs = useJobs();
   const savedKeys = useMemo(() => new Set(jobs.map((j) => dedupKey(j.url))), [jobs]);
@@ -349,19 +392,9 @@ export default function LiveFeedPanel({
     const url = saveOne(p);
     if (url) notifySaved([url], p.title);
   };
-  // Wide net (rapid apply): save every picked posting, or every one on screen, in one go.
-  const [picked, setPicked] = useState<Set<string>>(new Set());
-  const saveMany = (list: SweptPosting[]) => {
+  // Wide net (rapid apply): save every unsaved posting on screen in one go (the Openings menu).
+  const saveMany = (list: SweptPosting[]) =>
     notifySaved(list.map(saveOne).filter((u): u is string => !!u));
-    setPicked(new Set());
-  };
-  const togglePick = (id: string) =>
-    setPicked((cur) => {
-      const next = new Set(cur);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
 
   const errors = current?.result?.sources.filter((s) => s.error) ?? [];
   const allFailed =
@@ -376,6 +409,15 @@ export default function LiveFeedPanel({
       : !hasQuery || ranked.length === 0
         ? 'empty'
         : 'ready';
+
+  // Evidence is the ask while nothing is showing: Refine opens by itself once, then the user
+  // decides (it was the evidence box's own default before Refine held it inline, rev-3 J).
+  const refineAutoOpened = useRef(false);
+  useEffect(() => {
+    if (refineAutoOpened.current || status !== 'empty' || !hasQuery || evidenceText) return;
+    refineAutoOpened.current = true;
+    setRefineOpen(true);
+  }, [status, hasQuery, evidenceText]);
 
   // Retry the whole search: forget what is on screen and read every source again.
   const retryAll = () => {
@@ -402,41 +444,34 @@ export default function LiveFeedPanel({
       .catch(() => {})
       .finally(() => setRetrying((r) => r.filter((k) => !keys.includes(k))));
   };
-  const failedRow = (s: { key: string; label: string; error?: string }) => (
-    <Stack key={s.key} direction="row" gap="xs" align="center" wrap="wrap">
-      <Box>{s.error}</Box>
-      <Button
-        size="sm"
-        variant="tertiary"
-        disabled={retrying.includes(s.key)}
-        aria-label={`Retry ${s.label}`}
-        onClick={() => retrySources([s.key])}
-      >
-        {retrying.includes(s.key) ? 'Retrying…' : 'Retry'}
-      </Button>
-    </Stack>
-  );
   const emptyState = !hasQuery ? (
     <EmptyState
-      message={
+      centered
+      icon={SearchX}
+      title={sweeping ? 'No titles ticked' : 'Nothing to search yet'}
+      description={
         sweeping
           ? 'Tick at least one title under Calibrate to sweep.'
-          : "Type a search term or pick one of this track's terms."
+          : 'Type a search term, or pick one under Calibrate.'
       }
     />
   ) : ranked.length === 0 && matched.length > 0 ? (
     <EmptyState
+      centered
+      icon={SearchX}
       title="Everything is hidden by your filters"
-      message="Loosen what you left out, the level or the pay floor to see them again."
+      description="Loosen what you left out, the level or the pay floor to see them again."
     />
   ) : (
     <EmptyState
+      centered
+      icon={SearchX}
       title={
         sweeping
           ? `No live openings mention any of your ${sweepTitles.length} titles right now`
-          : `No live openings mention “${term}” right now`
+          : `No live openings mention "${term}" right now`
       }
-      message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
+      description="Hacker News posts a fresh thread monthly and boards change daily. Try a broader term, or watch more company boards."
       action={
         <Button
           variant="secondary"
@@ -449,411 +484,680 @@ export default function LiveFeedPanel({
     />
   );
 
-  return (
-    <Box>
-      <Box sx={{ mb: 2.5 }}>
-        <Text variant="ui" tone="secondary">
-          Real openings from Hacker News (“Who is hiring” and the freelancer thread), Remotive,
-          Jobicy, Remote OK and the company boards you watch, ranked by relevance. Add your evidence
-          and each one gets a fit. Nothing is kept until you save one.
-        </Text>
-      </Box>
-      <ContextCaption categoryId={categoryId} />
-      {sweeping ? (
-        <Stack gap="xs">
-          <Stack direction="row" gap="xs" align="center" wrap="wrap">
-            <Text variant="body" as="h3" className="rjb-semibold">
-              {`Sweeping ${sweepTitles.length} ${sweepTitles.length === 1 ? 'title' : 'titles'} at once`}
-            </Text>
-            <Button size="sm" variant="tertiary" onClick={() => startSweep(false)}>
-              Back to one search
+  const partial =
+    errors.length > 0 && !allFailed ? (
+      <PartialRow
+        errors={errors}
+        retrying={errors.some((e) => retrying.includes(e.key))}
+        onRetry={() => retrySources(errors.map((e) => e.key))}
+      />
+    ) : null;
+
+  const focusOptions: { value: Focus; label: string; count: number }[] = [
+    { value: 'all', label: 'All', count: ranked.length },
+    ...(evidence.length
+      ? [{ value: 'strong' as Focus, label: 'Strong fit', count: strongCount }]
+      : []),
+    { value: 'contract', label: 'Contract-friendly', count: counts.contract },
+    { value: 'founding', label: 'First hire', count: counts.founding },
+  ];
+  // A filter with nothing in it is not offered; the one in use always is, so it can be left.
+  const offered = focusOptions.filter((o) => o.value === 'all' || o.count > 0 || o.value === focus);
+  const focusLabel = focusOptions.find((o) => o.value === focus)?.label ?? 'All';
+  const unsaved = visible.filter((p) => !savedKeys.has(dedupKey(p.url)));
+  const captionItems = [
+    reading
+      ? `Read ${reading.done} of ${reading.total} boards…`
+      : fits.size
+        ? 'Sorted by fit'
+        : 'Sorted by relevance',
+    focus !== 'all' && `Showing ${focusLabel.toLowerCase()}`,
+    ...hiddenNotes,
+  ];
+
+  const openingsMenu = (
+    <Menu modal={false}>
+      <Menu.Trigger asChild>
+        <Button
+          size="sm"
+          variant="secondary"
+          iconOnly
+          iconLeft={<Icon icon={Ellipsis} />}
+          label="Openings options"
+        />
+      </Menu.Trigger>
+      <Menu.Content align="end">
+        <Menu.Label>Show</Menu.Label>
+        <Menu.RadioGroup
+          value={focus}
+          onValueChange={(v) => {
+            setFocus(v as Focus);
+            setShown(PAGE);
+          }}
+        >
+          {offered.map((o) => (
+            <Menu.RadioItem key={o.value} value={o.value}>
+              {`${o.label} (${o.count})`}
+            </Menu.RadioItem>
+          ))}
+        </Menu.RadioGroup>
+        <Menu.Separator />
+        <Menu.Item disabled={unsaved.length === 0} onSelect={() => saveMany(unsaved)}>
+          {`Save all (${unsaved.length})`}
+        </Menu.Item>
+      </Menu.Content>
+    </Menu>
+  );
+
+  const readyPanel = (
+    <OpeningsPanel
+      count={ranked.length}
+      caption={captionItems}
+      trailing={
+        <Stack direction="row" gap="px8" align="center">
+          {!sweeping && (
+            <Button size="sm" variant="secondary" onClick={() => startSweep(true)}>
+              Find more
             </Button>
+          )}
+          {openingsMenu}
+        </Stack>
+      }
+    >
+      {partial}
+      {visible.length === 0 ? (
+        <PanelRowBox>
+          <EmptyState
+            title={
+              shownTitles.length === 0
+                ? 'No openings match this title. Pick All to see every title.'
+                : focus === 'strong'
+                  ? 'None is a strong fit for your evidence yet. Show all, or add evidence.'
+                  : 'None of these openings carry that signal. Show all from the menu.'
+            }
+          />
+        </PanelRowBox>
+      ) : (
+        <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
+          {visible.slice(0, shown).map((p) => (
+            <PostingRow
+              key={p.id}
+              p={p}
+              now={current!.at}
+              saved={savedKeys.has(dedupKey(p.url))}
+              fit={fits.get(p.id)}
+              onSave={() => save(p)}
+              sweepTitles={sweeping ? sweepTitles.length : 0}
+            />
+          ))}
+        </Box>
+      )}
+      {visible.length > shown && (
+        <PanelRowBox>
+          <Button variant="tertiary" size="sm" onClick={() => setShown((n) => n + PAGE)}>
+            Show more ({visible.length - shown})
+          </Button>
+        </PanelRowBox>
+      )}
+    </OpeningsPanel>
+  );
+
+  const loadingPanel = (
+    <OpeningsPanel
+      busy
+      caption={[
+        reading ? `Read ${reading.done} of ${reading.total} boards…` : 'Pulling live openings…',
+        slow && 'Still trying: slow sources are skipped after 15 s',
+      ]}
+    >
+      <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-hidden="true">
+        {Array.from({ length: SKELETON_ROWS }, (_, i) => (
+          <PanelRowBox key={i} as="li">
+            <Stack gap="px8">
+              <Skeleton variant="text" width="60%" />
+              <Skeleton variant="text" width="30%" />
+            </Stack>
+          </PanelRowBox>
+        ))}
+      </Box>
+    </OpeningsPanel>
+  );
+
+  // Empty with a query: the Openings panel still frames it (and any Partial row), so the page
+  // keeps one shape; with no query there is nothing to frame.
+  const emptyBlock = hasQuery ? (
+    <OpeningsPanel count={0} caption={hiddenNotes}>
+      {partial}
+      <PanelRowBox>{emptyState}</PanelRowBox>
+    </OpeningsPanel>
+  ) : (
+    emptyState
+  );
+
+  const sweepChips = sweeping && sweepTitles.length > 1 && status === 'ready' && (
+    <SweepChips
+      titles={sweepTitles}
+      counts={perTitle}
+      total={ranked.length}
+      only={onlyTitle}
+      showZero={zeroTitlesShown}
+      onShowZero={() => setZeroTitlesShown(true)}
+      onPick={showOnly}
+    />
+  );
+
+  return (
+    // Panels stack 24 apart (rev-3): the search (or the sweep's head), Calibrate, Refine, Openings.
+    <Stack gap="normal">
+      {sweeping ? (
+        <Stack gap="normal">
+          <Stack gap="px8">
+            <Text variant="title" as="h3">
+              {`Sweeping ${sweepTitles.length} ${sweepTitles.length === 1 ? 'title' : 'titles'}`}
+            </Text>
+            <Text variant="caption" as="p" tone="secondary">
+              Matched postings, deduped
+            </Text>
+            <Box>
+              <Button size="md" variant="secondary" onClick={() => startSweep(false)}>
+                Back to one search
+              </Button>
+            </Box>
           </Stack>
+          {sweepChips}
         </Stack>
       ) : (
-        <>
-          <Box
-            as="form"
-            onSubmit={onSearch}
-            sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}
-          >
-            <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
-              <HdsInput
-                size="sm"
-                ref={searchRef}
-                label="Search term"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-              />
-            </Box>
-            <Button type="submit" size="sm" variant="primary">
-              Search
-            </Button>
-          </Box>
-          {terms.length > 0 && (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
-              {terms.map((t) => (
-                <Tag key={t} onClick={() => search(t)}>
-                  {t}
-                </Tag>
-              ))}
-            </Box>
-          )}
-          {/* The wide sweep is a power tool: one quiet entry, not a second search box. */}
-          <Box sx={{ mb: 'sm' }}>
-            <Button size="sm" variant="tertiary" onClick={() => startSweep(true)}>
-              {`Find more: sweep all ${sweepTitles.length} titles`}
-            </Button>
-          </Box>
-        </>
-      )}
-      {/* Calibrate (#223): the track's ticked titles beside the other targeting. */}
-      <Box sx={{ mb: 'xs' }}>
-        <Disclosure label="Calibrate" open={calibrateOpen} onOpenChange={setCalibrateOpen}>
-          <Stack gap="normal">
-            <SweepTitlesEditor categoryId={categoryId} seed={sweepSeed} bare />
-            <Box
-              sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 'xs',
-                alignItems: 'flex-end',
-                mb: 'xs',
-              }}
-            >
-              <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
-                <HdsInput
-                  size="sm"
-                  label="Leave out (words, commas between)"
-                  placeholder="manager, sales"
-                  value={excludeText}
-                  onChange={(e) => setExcludeText(e.target.value)}
-                />
-              </Box>
-              <Box sx={{ width: 160 }}>
-                <HdsInput
-                  size="sm"
-                  label="Pay floor (USD a year)"
-                  inputMode="numeric"
-                  placeholder="120000"
-                  value={floorText}
-                  onChange={(e) => setFloorText(e.target.value)}
-                />
-              </Box>
-              <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-                <SegmentedControl
-                  aria-label="Level"
-                  size="sm"
-                  value={seniority}
-                  onChange={(v) => setSeniority(v as Seniority)}
-                  options={[
-                    { value: 'any', label: 'Any level' },
-                    { value: 'entry', label: 'Entry level' },
-                    { value: 'experienced', label: 'Experienced' },
-                  ]}
-                />
-              </Box>
-              <HdsCheckbox
-                label="Only show postings with a salary"
-                checked={salaryOnly}
-                onChange={() => setSalaryOnly((v) => !v)}
-              />
-            </Box>
-          </Stack>
-        </Disclosure>
-      </Box>
-      {!sweeping && (
         <Box
-          sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}
+          as="form"
+          onSubmit={onSearch}
+          sx={{
+            display: 'flex',
+            gap: 'xs',
+            alignItems: 'center',
+            maxWidth: 'var(--semantic-layout-width-content)',
+          }}
         >
-          <Box sx={{ width: 200 }}>
+          <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%', maxWidth: 'none' } }}>
             <HdsInput
-              size="sm"
-              label="Name this search"
-              placeholder="Austin contract"
-              value={saveName}
-              onChange={(e) => setSaveName(e.target.value)}
+              size="md"
+              ref={searchRef}
+              aria-label="Search term"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
             />
           </Box>
-          <Button size="sm" variant="secondary" disabled={!saveName.trim()} onClick={saveSearch}>
-            Save search
+          {/* Secondary: Live postings has no primary action (rev-3); the mock's only fill is a
+              selected state. */}
+          <Button type="submit" size="md" variant="secondary">
+            Search
           </Button>
         </Box>
       )}
-      {saved.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', mb: 'xs' }}>
-          {saved.map((f) => (
-            <Box key={f.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Tag onClick={() => applySaved(f)}>{f.name}</Tag>
-              <Button
-                size="sm"
-                variant="tertiary"
-                iconOnly
-                iconLeft={<Icon icon={X} />}
-                label={`Remove saved search ${f.name}`}
-                onClick={() => deleteFilter(categoryId, f.name)}
-              />
-            </Box>
-          ))}
-        </Box>
-      )}
-      {hiddenNotes.length > 0 && (
-        <Box role="status" sx={{ mb: 'xs' }}>
-          {hiddenNotes.map((line, i) => (
-            <Text key={i} variant="caption" as="div" tone="secondary">
-              {line}
-            </Text>
-          ))}
-        </Box>
-      )}
-
-      {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
-      <Box sx={{ mb: 'sm' }}>
-        <Disclosure label="Refine" open={refineOpen} onOpenChange={setRefineOpen}>
-          <Stack gap="xs">
-            <Box
-              as="form"
-              onSubmit={onWatch}
-              sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end', mb: 1 }}
-            >
-              <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
-                <HdsInput
-                  size="sm"
-                  label="Watch a company"
-                  placeholder="jobs.ashbyhq.com/company"
-                  value={watchUrl}
-                  onChange={(e) => setWatchUrl(e.target.value)}
+      {/* Calibrate (#223): the track's ticked titles beside the other targeting, then the saved
+          searches. A bordered row with what it holds under its name (rev-3 J), like Refine. */}
+      <Card bordered padding="none" className="rjb-disclosure-vertical">
+        <Box sx={{ px: 'sm', pb: calibrateOpen ? 'sm' : 0 }}>
+          <Disclosure
+            variant="row"
+            label={
+              <Text variant="body" as="span" weight="bold">
+                Calibrate
+              </Text>
+            }
+            preview="Titles, leave-out words, pay floor, level"
+            open={calibrateOpen}
+            onOpenChange={setCalibrateOpen}
+          >
+            <Stack gap="normal">
+              <SweepTitlesEditor categoryId={categoryId} seed={sweepSeed} bare />
+              {terms.length > 0 && (
+                <Stack gap="px8">
+                  <Text variant="ui" as="span">
+                    Search for
+                  </Text>
+                  <Stack direction="row" wrap="wrap" gap="px8" align="center">
+                    {terms.map((t) => (
+                      <Tag
+                        key={t}
+                        active={!sweeping && t === term}
+                        onClick={() => {
+                          if (sweeping) startSweep(false);
+                          search(t);
+                        }}
+                      >
+                        {t}
+                      </Tag>
+                    ))}
+                  </Stack>
+                </Stack>
+              )}
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 'xs',
+                  alignItems: 'flex-end',
+                }}
+              >
+                <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
+                  <HdsInput
+                    size="sm"
+                    label="Leave out (words, commas between)"
+                    placeholder="manager, sales"
+                    value={excludeText}
+                    onChange={(e) => setExcludeText(e.target.value)}
+                  />
+                </Box>
+                <Box sx={{ width: 160 }}>
+                  <HdsInput
+                    size="sm"
+                    label="Pay floor (USD a year)"
+                    inputMode="numeric"
+                    placeholder="120000"
+                    value={floorText}
+                    onChange={(e) => setFloorText(e.target.value)}
+                  />
+                </Box>
+                <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                  <SegmentedControl
+                    aria-label="Level"
+                    size="sm"
+                    value={seniority}
+                    onChange={(v) => setSeniority(v as Seniority)}
+                    options={[
+                      { value: 'any', label: 'Any level' },
+                      { value: 'entry', label: 'Entry level' },
+                      { value: 'experienced', label: 'Experienced' },
+                    ]}
+                  />
+                </Box>
+                <HdsCheckbox
+                  label="Only show postings with a salary"
+                  checked={salaryOnly}
+                  onChange={() => setSalaryOnly((v) => !v)}
                 />
               </Box>
-              <Button type="submit" size="sm" variant="secondary" disabled={!watchUrl.trim()}>
-                Watch
-              </Button>
-            </Box>
-            <Box sx={{ mb: 'sm' }}>
-              <Text variant="caption" as="div" tone={watchError ? 'danger' : 'secondary'}>
-                {watchError ||
-                  (watchedCount
-                    ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'} — manage them in this track's “Watched companies” tab.`
-                    : 'Paste a job-board link (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor or Personio) to pull that company’s openings in.')}
+              {/* Saved searches (rev-3): the last group, one UI 14/500 label over the name field
+                  and its button on one row, then the saved ones as chips. */}
+              <Stack gap="px8">
+                <Text variant="ui" as="span" id={savedId}>
+                  Saved searches
+                </Text>
+                {!sweeping && (
+                  <Stack direction="row" gap="px8" align="center">
+                    <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%' } }}>
+                      <HdsInput
+                        size="md"
+                        aria-label="Name this search"
+                        value={saveName}
+                        onChange={(e) => setSaveName(e.target.value)}
+                      />
+                    </Box>
+                    <Button
+                      size="md"
+                      variant="secondary"
+                      disabled={!saveName.trim()}
+                      onClick={saveSearch}
+                    >
+                      Save search
+                    </Button>
+                  </Stack>
+                )}
+                {saved.length > 0 ? (
+                  <Stack
+                    direction="row"
+                    wrap="wrap"
+                    gap="px8"
+                    align="center"
+                    role="group"
+                    aria-labelledby={savedId}
+                  >
+                    {saved.map((f) => (
+                      <Stack key={f.name} direction="row" gap="px4" align="center">
+                        <Tag onClick={() => applySaved(f)}>{f.name}</Tag>
+                        <Button
+                          size="sm"
+                          variant="tertiary"
+                          iconOnly
+                          iconLeft={<Icon icon={X} />}
+                          label={`Remove saved search ${f.name}`}
+                          onClick={() => deleteFilter(categoryId, f.name)}
+                        />
+                      </Stack>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Text variant="caption" as="p" tone="secondary">
+                    Name this search to keep its term, place and filters for later.
+                  </Text>
+                )}
+              </Stack>
+            </Stack>
+          </Disclosure>
+        </Box>
+      </Card>
+
+      {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
+      <Card bordered padding="none" className="rjb-disclosure-vertical">
+        <Box sx={{ px: 'sm', pb: refineOpen ? 'sm' : 0 }}>
+          <Disclosure
+            variant="row"
+            label={
+              <Text variant="body" as="span" weight="bold">
+                Refine
               </Text>
-            </Box>
-
-            {suggestedCount > 0 && (
-              <Box sx={{ mb: 'xs' }}>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    const n = addBoardTiles(categoryId, suggested);
-                    toast({
-                      title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
-                      description: 'Their openings now show up here. Remove any in Manage track.',
-                      tone: 'success',
-                    });
-                  }}
-                >
-                  Add suggested companies ({suggestedCount})
-                </Button>
+            }
+            preview="Watch a company, your evidence"
+            open={refineOpen}
+            onOpenChange={setRefineOpen}
+          >
+            {/* One label style (UI 14/500) and one gap between label, field and helper. */}
+            <Stack gap="normal">
+              <Text variant="caption" as="p" tone="secondary">
+                Openings come from Hacker News, Remotive, Jobicy and the company boards you watch.
+                Nothing is kept until you save one.
+              </Text>
+              <Box as="form" className="rjb-form-full" onSubmit={onWatch}>
+                <Stack gap="px8">
+                  <Text variant="ui" as="span" id={watchId}>
+                    Watch a company
+                  </Text>
+                  <Stack direction="row" gap="px8" align="center">
+                    <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%' } }}>
+                      <HdsInput
+                        aria-labelledby={watchId}
+                        placeholder="Board link"
+                        value={watchUrl}
+                        onChange={(e) => setWatchUrl(e.target.value)}
+                      />
+                    </Box>
+                    <Button type="submit" size="md" variant="secondary" disabled={!watchUrl.trim()}>
+                      Watch
+                    </Button>
+                  </Stack>
+                  <Text variant="caption" as="p" tone={watchError ? 'danger' : 'secondary'}>
+                    {watchError ||
+                      (watchedCount
+                        ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'}. Manage them in Manage track.`
+                        : 'Paste a job-board link (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor or Personio) to pull that company’s openings in.')}
+                  </Text>
+                </Stack>
               </Box>
-            )}
-
-            <Box>
+              {suggestedCount > 0 && (
+                <Box>
+                  <Button
+                    size="md"
+                    variant="secondary"
+                    onClick={() => {
+                      const n = addBoardTiles(categoryId, suggested);
+                      toast({
+                        title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
+                        description: 'Their openings now show up here. Remove any in Manage track.',
+                        tone: 'success',
+                      });
+                    }}
+                  >
+                    Add suggested companies ({suggestedCount})
+                  </Button>
+                </Box>
+              )}
               <EvidenceEditor
-                startOpen={ranked.length === 0}
                 text={evidenceText}
                 count={evidence.length}
                 onChange={writeEvidence}
               />
-            </Box>
-          </Stack>
-        </Disclosure>
+            </Stack>
+          </Disclosure>
+        </Box>
+      </Card>
+
+      {status === 'ready' && evidence.length > 0 && <PatternsSummary patterns={patterns} />}
+
+      {/* rjb-inline-alerts: the all-failed Alert's title reads at body size, not as a page head. */}
+      <Box className="rjb-inline-alerts">
+        <AsyncState
+          status={loading ? 'ready' : status}
+          label="Live openings"
+          onRetry={retryAll}
+          errorTitle={current?.error ?? "Couldn't reach any source"}
+          error={current?.error ? undefined : 'Check your internet connection or try again later.'}
+          empty={emptyBlock}
+        >
+          {loading ? loadingPanel : readyPanel}
+        </AsyncState>
       </Box>
-
-      {errors.length > 0 && !allFailed && (
-        <Box sx={{ mb: 3 }}>
-          <Alert
-            tone="warning"
-            title={
-              errors.length > 2
-                ? `${errors.length} sources didn’t respond`
-                : 'Some sources didn’t respond'
-            }
-          >
-            {/* Many boards can fail at once (a blocker, an outage): keep the list behind a disclosure. */}
-            {errors.length > 2 ? (
-              <Disclosure label="Show which ones">{errors.map(failedRow)}</Disclosure>
-            ) : (
-              errors.map(failedRow)
-            )}
-          </Alert>
-        </Box>
+      {/* One line, once, instead of a fit badge missing from every row. */}
+      {status === 'ready' && evidence.length === 0 && visible.length > 0 && (
+        <Stack direction="row" wrap="wrap" gap="px8" align="center">
+          <Text variant="caption" as="p" tone="secondary">
+            Postings get a fit once you add evidence.
+          </Text>
+          <Button size="sm" variant="tertiary" onClick={() => setRefineOpen(true)}>
+            Add evidence to see fit
+          </Button>
+        </Stack>
       )}
-      {reading && !loading && (
-        <Box sx={{ mb: 'xs' }}>
-          <Stack direction="row" gap="xs" align="center">
-            <Spinner size="sm" label="Reading company boards" />
-            <Text variant="caption" as="span" role="status" tone="secondary">
-              Read {reading.done} of {reading.total} boards. More openings may appear.
-            </Text>
-          </Stack>
-        </Box>
-      )}
-
-      <AsyncState
-        status={status}
-        onRetry={retryAll}
-        loadingLabel={
-          reading
-            ? `Read ${reading.done} of ${reading.total} boards, nothing matching yet…`
-            : `Pulling live openings for “${term}”…`
-        }
-        slowNote="Still trying: slow sources are skipped after 15 s"
-        error={
-          current?.error
-            ? { title: current.error }
-            : {
-                title: "Couldn't reach any source",
-                message: 'Check your internet connection or try again later.',
-              }
-        }
-        empty={emptyState}
-      >
-        <Box>
-          <Box sx={{ mb: 'xs' }}>
-            <PatternsSummary patterns={patterns} />
-          </Box>
-          {sweeping && sweepTitles.length > 1 && (
-            <Box
-              role="group"
-              aria-label="Show titles"
-              sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 'xs' }}
-            >
-              {sweepTitles.map((t) => (
-                <Tag
-                  key={t}
-                  active={!hiddenTitles.has(t)}
-                  aria-pressed={!hiddenTitles.has(t)}
-                  onClick={() => toggleShown(t)}
-                >
-                  {`${t} (${perTitle[t] ?? 0})`}
-                </Tag>
-              ))}
-            </Box>
-          )}
-          {/* Scrolls sideways on narrow screens rather than clipping (same as the tab bar). */}
-          <Box sx={{ mb: 'xs', overflowX: 'auto', maxWidth: '100%', pb: 0.5 }}>
-            <SegmentedControl
-              aria-label="Show"
-              size="sm"
-              value={focus}
-              onChange={(v) => {
-                setFocus(v as Focus);
-                setShown(PAGE);
-              }}
-              options={[
-                { value: 'all', label: `All (${ranked.length})` },
-                ...(evidence.length
-                  ? [{ value: 'strong', label: `Strong fit (${strongCount})` }]
-                  : []),
-                { value: 'contract', label: `Contract-friendly (${counts.contract})` },
-                { value: 'founding', label: `First hire (${counts.founding})` },
-              ]}
-            />
-          </Box>
-          {visible.length > 0 && (
-            <BulkSaveBar
-              picked={visible.filter((p) => picked.has(p.id) && !savedKeys.has(dedupKey(p.url)))}
-              shown={visible.slice(0, shown).filter((p) => !savedKeys.has(dedupKey(p.url)))}
-              onSave={saveMany}
-            />
-          )}
-          {visible.length === 0 ? (
-            <EmptyState
-              message={
-                shownTitles.length === 0
-                  ? 'Every title is hidden — turn one back on above.'
-                  : focus === 'strong'
-                    ? 'None is a strong fit for your evidence yet — switch back to All, or add evidence.'
-                    : 'None of these openings carry that signal — switch back to All.'
-              }
-            />
-          ) : (
-            <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
-              {visible.slice(0, shown).map((p) => (
-                <PostingRow
-                  key={p.id}
-                  p={p}
-                  now={current!.at}
-                  saved={savedKeys.has(dedupKey(p.url))}
-                  fit={fits.get(p.id)}
-                  onSave={() => save(p)}
-                  picked={picked.has(p.id)}
-                  onPick={() => togglePick(p.id)}
-                />
-              ))}
-            </Box>
-          )}
-          {/* One line, once, instead of a fit badge missing from every row. */}
-          {evidence.length === 0 && visible.length > 0 && (
-            <Box sx={{ mt: 'xs' }}>
-              <Text variant="caption" as="div" tone="secondary">
-                Postings get a fit once you add evidence.{' '}
-              </Text>
-              <Button size="sm" variant="tertiary" onClick={() => setRefineOpen(true)}>
-                Add evidence to see fit
-              </Button>
-            </Box>
-          )}
-          {visible.length > shown && (
-            <Box sx={{ mt: 2 }}>
-              <Button variant="tertiary" size="sm" onClick={() => setShown((n) => n + PAGE)}>
-                Show more ({visible.length - shown})
-              </Button>
-            </Box>
-          )}
-        </Box>
-      </AsyncState>
-    </Box>
-  );
-}
-
-function BulkSaveBar({
-  picked,
-  shown,
-  onSave,
-}: {
-  picked: SweptPosting[];
-  /** Unsaved postings on screen. */
-  shown: SweptPosting[];
-  onSave: (list: SweptPosting[]) => void;
-}) {
-  return (
-    <Stack direction="row" wrap="wrap" gap="tight" align="center">
-      {picked.length > 0 && (
-        <Button size="sm" variant="primary" onClick={() => onSave(picked)}>
-          {`Save ${picked.length} to Pipeline`}
-        </Button>
-      )}
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={shown.length === 0}
-        onClick={() => onSave(shown)}
-      >
-        {`Save all shown (${shown.length})`}
-      </Button>
     </Stack>
   );
 }
 
+/** The Openings panel (rev-3 K): the Pipeline's bordered Card, a header with the count, a caption
+ *  of how it is sorted and what is hidden (two items a line, #192) and trailing controls, then
+ *  rows split by hairlines. */
+function OpeningsPanel({
+  count,
+  caption,
+  trailing,
+  busy = false,
+  children,
+}: {
+  count?: number;
+  caption: ReadonlyArray<string | false | null | undefined>;
+  trailing?: ReactNode;
+  busy?: boolean;
+  children?: ReactNode;
+}) {
+  const lines = metaLines(caption);
+  return (
+    <Card as="section" aria-label="Openings" aria-busy={busy || undefined} padding="none" bordered>
+      <Box sx={{ px: 'sm', py: 'sm' }}>
+        <Stack direction="row" gap="px8" align="center" justify="space-between">
+          <Box sx={{ minWidth: 0 }}>
+            <Stack gap="px4">
+              <Stack direction="row" gap="px8" align="center">
+                <Text variant="body" as="h3" weight="bold">
+                  Openings
+                </Text>
+                {count != null && <Badge count={count} label={`${count} openings`} />}
+              </Stack>
+              {lines.length > 0 && (
+                <Box role="status">
+                  {lines.map((l) => (
+                    <Text key={l} variant="caption" as="p" tone="secondary">
+                      {l}
+                    </Text>
+                  ))}
+                </Box>
+              )}
+            </Stack>
+          </Box>
+          {trailing}
+        </Stack>
+      </Box>
+      {children}
+    </Card>
+  );
+}
+
+/** One padded row of the Openings panel, with the hairline above it (none below the last). */
+function PanelRowBox({ children, as = 'div' }: { children: ReactNode; as?: 'div' | 'li' }) {
+  return (
+    <Box
+      as={as}
+      sx={{ px: 'sm', py: 'sm', borderTop: 'thin solid', borderColor: 'border.default' }}
+    >
+      {children}
+    </Box>
+  );
+}
+
+/** "Remotive and Jobicy", "A, B and C", "A, B +4 more". */
+function namesOf(labels: string[]): string {
+  if (labels.length > 3) return `${labels.slice(0, 2).join(', ')} +${labels.length - 2} more`;
+  if (labels.length === 1) return labels[0];
+  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+}
+
+/** The first row of Openings when some sources failed (rev-3 mock "Partial"): one line of what
+ *  failed and one Retry for all of them. A single failure says why, in the source's own words. */
+function PartialRow({
+  errors,
+  retrying,
+  onRetry,
+}: {
+  errors: { key: string; label: string; error?: string }[];
+  retrying: boolean;
+  onRetry: () => void;
+}) {
+  const n = errors.length;
+  const detail =
+    n === 1 && errors[0].error
+      ? errors[0].error
+      : // A sweep reads a source once per title ("Remotive · “Designer”"): name each source once.
+        `${namesOf([...new Set(errors.map((e) => e.label.split(' · ')[0]))])}.`;
+  return (
+    <PanelRowBox>
+      <Stack direction="row" gap="tight" align="center" justify="space-between">
+        <Box sx={{ minWidth: 0, flex: '1 1 0%' }}>
+          <Stack gap="px4" align="start">
+            <Badge tone="warning">Partial</Badge>
+            <Text variant="body" as="p" weight="bold">
+              {`${n} ${n === 1 ? 'source' : 'sources'} didn’t answer`}
+            </Text>
+            <Text variant="caption" as="p" tone="secondary">
+              {`${detail} Results below are from the rest.`}
+            </Text>
+          </Stack>
+        </Box>
+        <Button size="sm" variant="secondary" disabled={retrying} onClick={onRetry}>
+          {retrying ? 'Retrying…' : 'Retry'}
+        </Button>
+      </Stack>
+    </PanelRowBox>
+  );
+}
+
+/** The sweep's title filter (rev-3 mock): All with the total first, then one chip per title with
+ *  its count. One chip is selected at a time, and only the selected one is filled (rev-3 D).
+ *  Titles with no match wait behind "+N more". */
+function SweepChips({
+  titles,
+  counts,
+  total,
+  only,
+  showZero,
+  onShowZero,
+  onPick,
+}: {
+  titles: string[];
+  counts: Record<string, number>;
+  total: number;
+  only: string | null;
+  showZero: boolean;
+  onShowZero: () => void;
+  onPick: (t: string | null) => void;
+}) {
+  const zero = titles.filter((t) => !counts[t] && t !== only);
+  const shown = showZero ? titles : titles.filter((t) => !zero.includes(t));
+  return (
+    <Stack
+      direction="row"
+      wrap="wrap"
+      gap="px8"
+      align="center"
+      role="group"
+      aria-label="Show titles"
+    >
+      <Tag active={only === null} aria-label={`All, ${total}`} onClick={() => onPick(null)}>
+        <Stack as="span" direction="row" gap="px8" align="center">
+          All
+          <Badge count={total} />
+        </Stack>
+      </Tag>
+      {shown.map((t) => (
+        <Tag
+          key={t}
+          active={only === t}
+          aria-label={`${t}, ${counts[t] ?? 0}`}
+          onClick={() => onPick(t)}
+        >
+          <Stack as="span" direction="row" gap="px8" align="center">
+            {t}
+            <Badge count={counts[t] ?? 0} />
+          </Stack>
+        </Tag>
+      ))}
+      {!showZero && zero.length > 0 && (
+        <Tag onClick={onShowZero} aria-label={`Show ${zero.length} more titles with no openings`}>
+          {`+${zero.length} more`}
+        </Tag>
+      )}
+    </Stack>
+  );
+}
+
+/** "$95k to $120k" from a source's stated yearly pay; '' when it states none. */
+function payLabel(p: SweptPosting): string {
+  const k = (n: number) => `$${Math.round(n / 1000)}k`;
+  if (p.salaryMin && p.salaryMax && p.salaryMin !== p.salaryMax)
+    return `${k(p.salaryMin)} to ${k(p.salaryMax)}`;
+  const one = p.salaryMax ?? p.salaryMin;
+  return one ? k(one) : '';
+}
+
+/** A signal as a fact: a short word with an icon, its evidence in a tooltip. */
+const SIGNAL_FACT: Record<SignalId, { icon: LucideIcon; text: string }> = {
+  contract: { icon: FileSignature, text: 'Contract' },
+  founding: { icon: Rocket, text: 'First hire' },
+};
+
+function Fact({ icon, text }: { icon: LucideIcon; text: string }) {
+  return (
+    <Stack direction="row" gap="px4" align="center">
+      <Icon icon={icon} size="small" />
+      <Text variant="caption" as="span" tone="secondary">
+        {text}
+      </Text>
+    </Stack>
+  );
+}
+
+function SignalFact({ sig }: { sig: Signal }) {
+  const f = SIGNAL_FACT[sig.id];
+  return (
+    <HdsTooltip>
+      <HdsTooltip.Trigger asChild>
+        <span tabIndex={0} aria-label={`${f.text}: says “${sig.evidence}”`}>
+          <Fact icon={f.icon} text={f.text} />
+        </span>
+      </HdsTooltip.Trigger>
+      <HdsTooltip.Content>Says “{sig.evidence}”</HdsTooltip.Content>
+    </HdsTooltip>
+  );
+}
+
+/** One opening (rev-3 K, H anatomy): the fit badge then the source as a small label on top, the
+ *  title on its own line, the company (the "who") in UI 14/500, then the facts with icons (place,
+ *  pay, posted, and the contract / first-hire signals); Save sits on the right, centred on the
+ *  row. A swept row names one other title it matched as a chip, only when the sweep covers
+ *  several titles. With a fit, a menu beside Save says why ("Why this fit"). */
 function PostingRow({
   p,
   now,
   saved,
   fit,
   onSave,
-  picked,
-  onPick,
+  sweepTitles,
 }: {
   p: SweptPosting;
   now: number;
@@ -861,90 +1165,109 @@ function PostingRow({
   /** Present once the user has evidence. */
   fit?: FitGap;
   onSave: () => void;
-  picked: boolean;
-  onPick: () => void;
+  /** How many titles the sweep covers (0 outside a sweep). */
+  sweepTitles: number;
 }) {
-  const meta = metaLines([
-    p.company,
-    p.location,
-    p.mode && modeLabel(p.mode),
-    postedAgo(p.postedAt, now),
-    SOURCE_LABEL[p.source],
-  ]);
+  const [why, setWhy] = useState(false);
+  const place = p.location || (p.mode ? modeLabel(p.mode) : '');
+  const posted = postedAgo(p.postedAt, now);
+  const pay = payLabel(p);
+  const facts = [
+    place && { icon: MapPin, text: place },
+    pay && { icon: Banknote, text: pay },
+    posted && { icon: Calendar, text: posted === 'today' ? 'Posted today' : `Posted ${posted}` },
+  ].filter((f): f is { icon: LucideIcon; text: string } => !!f);
+  const matched =
+    sweepTitles > 1 ? p.titles.filter((t) => t.toLowerCase() !== p.title.trim().toLowerCase()) : [];
   return (
-    <Box as="li" sx={{ py: 3, borderBottom: 'thin solid', borderColor: 'border.default' }}>
-      <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-        <Text variant="ui" as="h3">
-          <InlineLink href={p.url} externalIcon={false}>
-            {p.title}
-          </InlineLink>
-        </Text>
-        {meta.length > 0 && (
-          <Box sx={{ mt: 0.5 }}>
-            {meta.map((line, i) => (
-              <Text key={i} variant="caption" as="div" tone="secondary">
-                {line}
+    <PanelRowBox as="li">
+      <Stack direction="row" gap="tight" align="center" justify="space-between">
+        <Box sx={{ minWidth: 0, flex: '1 1 0%', overflowWrap: 'anywhere' }}>
+          <Stack gap="px4">
+            <Stack direction="row" wrap="wrap" gap="px8" align="center">
+              {fit && <Badge tone="neutral">{verdictLabel(TIER_INFO[fit.tier].verdict)}</Badge>}
+              <Text variant="caption" as="span" tone="secondary">
+                {SOURCE_LABEL[p.source]}
               </Text>
-            ))}
-          </Box>
-        )}
-        {p.titles.length > 0 && (
-          <Text variant="caption" as="span" tone="secondary">
-            {`Matched ${p.titles.map((t) => `“${t}”`).join(', ')}`}
-          </Text>
-        )}
-        {/* Under the meta, not beside it: the title keeps the full row on a phone. 40px target. */}
-        <Box sx={{ mt: 'xs' }}>
-          <Stack direction="row" gap="tight" align="center" wrap="wrap">
-            <Button
-              size="md"
-              variant={saved ? 'tertiary' : 'secondary'}
-              disabled={saved}
-              onClick={onSave}
-            >
-              {saved ? 'Saved' : 'Save'}
-            </Button>
-            {!saved && (
-              <HdsCheckbox
-                label="Pick"
-                aria-label={`Pick ${p.title}`}
-                checked={picked}
-                onChange={onPick}
-              />
+            </Stack>
+            <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
+              <InlineLink href={p.url} externalIcon={false}>
+                {p.title}
+              </InlineLink>
+            </Text>
+            {p.company && (
+              <Text variant="ui" as="p">
+                {p.company}
+              </Text>
+            )}
+            {(facts.length > 0 || p.signals.length > 0) && (
+              <Stack direction="row" wrap="wrap" gap="tight" align="center">
+                {facts.map((f) => (
+                  <Fact key={f.text} icon={f.icon} text={f.text} />
+                ))}
+                {p.signals.map((sig) => (
+                  <SignalFact key={sig.id} sig={sig} />
+                ))}
+              </Stack>
+            )}
+            {matched.length > 0 && (
+              <Stack direction="row" gap="px4" align="center">
+                <VisuallyHidden>Matched</VisuallyHidden>
+                <span className="rjb-chip rjb-chip-icon">
+                  <Icon icon={Search} size="small" />
+                  {matched[0]}
+                </span>
+                {matched.length > 1 && (
+                  <Text variant="caption" as="span" tone="secondary">
+                    {`+${matched.length - 1}`}
+                  </Text>
+                )}
+              </Stack>
             )}
           </Stack>
         </Box>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
+        <Stack direction="row" gap="px8" align="center">
+          <Button
+            size="sm"
+            variant={saved ? 'tertiary' : 'secondary'}
+            disabled={saved}
+            onClick={onSave}
+          >
+            {saved ? 'Saved' : 'Save'}
+          </Button>
           {fit && (
-            <Badge tone={verdictTone(TIER_INFO[fit.tier].verdict)}>
-              {verdictLabel(TIER_INFO[fit.tier].verdict)}
-            </Badge>
+            <Menu modal={false}>
+              <Menu.Trigger asChild>
+                <Button
+                  size="sm"
+                  variant="tertiary"
+                  iconOnly
+                  iconLeft={<Icon icon={Ellipsis} />}
+                  label={`More for ${p.title}`}
+                />
+              </Menu.Trigger>
+              <Menu.Content align="end">
+                <Menu.Item onSelect={() => setWhy(true)}>Why this fit</Menu.Item>
+              </Menu.Content>
+            </Menu>
           )}
-          {p.signals.map((s) => (
-            <HdsTooltip key={s.id}>
-              <HdsTooltip.Trigger asChild>
-                <span tabIndex={0}>
-                  <Badge tone={s.id === 'contract' ? 'success' : 'info'}>{s.label}</Badge>
-                </span>
-              </HdsTooltip.Trigger>
-              <HdsTooltip.Content>Says “{s.evidence}”</HdsTooltip.Content>
-            </HdsTooltip>
-          ))}
-          <Badge tone="neutral">{p.hit === 'title' ? 'In title' : 'In description'}</Badge>
-        </Box>
-        {p.snippet && (
-          <Box sx={{ mt: 1.5 }}>
-            <Text variant="ui" tone="secondary">
-              {p.snippet}
-            </Text>
-          </Box>
-        )}
-        {fit && (
-          <Box sx={{ mt: 'xs' }}>
-            <FitGapDetails fg={fit} />
-          </Box>
-        )}
-      </Box>
-    </Box>
+        </Stack>
+      </Stack>
+      {fit && (
+        <Dialog open={why} onOpenChange={setWhy}>
+          {why && (
+            <Dialog.Content>
+              <Dialog.Header>
+                <Dialog.Title>{`${verdictLabel(TIER_INFO[fit.tier].verdict)}: ${p.title}`}</Dialog.Title>
+                <Dialog.Description>
+                  What this posting asks for that your evidence covers, and what it doesn’t.
+                </Dialog.Description>
+              </Dialog.Header>
+              <FitGapBody fg={fit} />
+            </Dialog.Content>
+          )}
+        </Dialog>
+      )}
+    </PanelRowBox>
   );
 }

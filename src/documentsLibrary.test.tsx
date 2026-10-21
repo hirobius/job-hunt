@@ -20,6 +20,11 @@ const renderLib = () =>
   );
 const section = (name: string) => screen.getByRole('region', { name });
 const doc = (id: string) => getAllDocuments().find((d) => d.id === id)!;
+/** A row expands (rev-3 M); its Open button opens the editor. */
+async function openDoc(title: string) {
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(title) }));
+  await userEvent.click(screen.getByRole('button', { name: `Open ${title}` }));
+}
 
 // Radix Select measures and scrolls; jsdom has neither.
 beforeEach(() => {
@@ -51,7 +56,7 @@ describe('library', () => {
       ['Outreach messages', 'No outreach messages yet', 'New outreach message'],
     ]) {
       const s = section(name);
-      expect(within(s).getByText(empty)).toBeInTheDocument();
+      expect(within(s).getByText(new RegExp(`^${empty}\\.`))).toBeInTheDocument();
       expect(within(s).getByRole('button', { name: button })).toBeInTheDocument();
     }
   });
@@ -64,14 +69,14 @@ describe('library', () => {
     createDocument({ kind: 'resume', title: 'Main résumé', base: true, text: 'r' });
     renderLib();
     const list = within(section('Cover letters')).getByRole('list');
-    const covers = within(list).getAllByRole('button');
+    const covers = within(list).getAllByRole('button', { expanded: false });
     expect(covers.map((b) => b.textContent)).toEqual([
       expect.stringContaining('Zulu letter'),
       expect.stringContaining('Bravo letter'),
     ]);
     expect(screen.queryByText('For Acme')).not.toBeInTheDocument();
     expect(within(section('Résumés')).getByText('Main résumé')).toBeInTheDocument();
-    expect(within(section('Notes')).getByText('No notes yet')).toBeInTheDocument();
+    expect(within(section('Notes')).getByText(/^No notes yet\./)).toBeInTheDocument();
   });
 });
 
@@ -95,7 +100,7 @@ describe('create, edit, delete', () => {
   it('each save adds a Version; the history shows them and an earlier one can be read', async () => {
     const id = createDocument({ kind: 'note', title: 'Prep', base: true, text: 'first' });
     renderLib();
-    await userEvent.click(screen.getByRole('button', { name: /Prep/ }));
+    await openDoc('Prep');
     const text = screen.getByRole('textbox', { name: 'Text' });
     expect(text).toHaveValue('first');
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -121,7 +126,7 @@ describe('create, edit, delete', () => {
   it('renames on blur without adding a Version', async () => {
     const id = createDocument({ kind: 'resume', title: 'CV', base: true, text: 't' });
     renderLib();
-    await userEvent.click(screen.getByRole('button', { name: /CV/ }));
+    await openDoc('CV');
     const title = screen.getByRole('textbox', { name: 'Title' });
     await userEvent.type(title, ' 2026');
     await userEvent.tab();
@@ -132,7 +137,7 @@ describe('create, edit, delete', () => {
   it('delete asks first, then removes the document and returns to the library', async () => {
     createDocument({ kind: 'resume', title: 'Old CV', base: true, text: 't' });
     renderLib();
-    await userEvent.click(screen.getByRole('button', { name: /Old CV/ }));
+    await openDoc('Old CV');
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
     const dialog = await screen.findByRole('alertdialog');
@@ -150,7 +155,7 @@ describe('create, edit, delete', () => {
   it('Back returns to the library without saving', async () => {
     const id = createDocument({ kind: 'note', title: 'Prep', base: true, text: 'a' });
     renderLib();
-    await userEvent.click(screen.getByRole('button', { name: /Prep/ }));
+    await openDoc('Prep');
     await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), 'bc');
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
     expect(section('Notes')).toBeInTheDocument();
@@ -164,13 +169,13 @@ describe('Outreach messages', () => {
     updateJob(JOB, { company: 'Acme Metals' });
     const id = createDocument({ kind: 'outreach', title: 'Hello', base: true, text: 'Hi at' });
     renderLib();
-    await userEvent.click(screen.getByRole('button', { name: /Hello/ }));
-    for (const t of ['[Company]', '[Role]', '[Contact]', '[Angle]', '[Your name]'])
+    await openDoc('Hello');
+    for (const t of ['Company', 'Role', 'Contact', 'Angle', 'Your name'])
       expect(screen.getByRole('button', { name: t })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: '[Company]' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Company' }));
     expect(screen.getByRole('textbox', { name: 'Message text' })).toHaveTextContent('Company');
     const preview = screen.getByRole('region', { name: 'Preview' });
-    expect(preview).toHaveTextContent('Hi at [Company]');
+    expect(preview).toHaveTextContent('Hi at Company');
     await userEvent.click(screen.getByRole('combobox', { name: /^Fill for/ }));
     await userEvent.click(await screen.findByRole('option', { name: /Fabricator/ }));
     expect(preview).toHaveTextContent('Hi at Acme Metals');
@@ -191,7 +196,7 @@ describe('Outreach messages', () => {
       },
     ]);
     renderLib();
-    await userEvent.click(screen.getByRole('button', { name: /Pet note/ }));
+    await openDoc('Pet note');
     expect(screen.getByRole('region', { name: 'Preview' })).toHaveTextContent('Hello Rex');
   });
 });
@@ -202,7 +207,7 @@ describe('Variables panel', () => {
   const open = async (text: string) => {
     const id = createDocument({ kind: 'outreach', title: 'Vars', base: true, text });
     renderLib();
-    await userEvent.click(screen.getByRole('button', { name: /Vars/ }));
+    await openDoc('Vars');
     return id;
   };
   const vars = () => screen.getByRole('region', { name: 'Variables' });
@@ -217,10 +222,33 @@ describe('Variables panel', () => {
   it('a value set there fills the preview and is kept on the message, not in its text', async () => {
     const id = await open('Hi [Contact] at [Company]. [Pet]');
     await userEvent.type(within(vars()).getByRole('textbox', { name: 'Pet' }), 'Rex');
-    expect(preview()).toHaveTextContent('Hi [Contact] at [Company]. Rex');
+    expect(preview()).toHaveTextContent('Hi Contact at Company. Rex');
     expect(doc(id).values).toEqual({ pet: 'Rex' });
     expect(doc(id).versions.map((v) => v.text)).toEqual(['Hi [Contact] at [Company]. [Pet]']);
-    expect(screen.getByText(/Not set yet: \[Contact\], \[Company\]/)).toBeInTheDocument();
+  });
+
+  // rev-3 A: the preview's open blanks are chips with "N blanks left", never raw [Brackets].
+  it('the preview shows open blanks as chips and counts them, with no bracket text', async () => {
+    await open('Hi [Contact] at [Company]. [Pet]');
+    await userEvent.type(within(vars()).getByRole('textbox', { name: 'Pet' }), 'Rex');
+    expect(within(preview()).getByText('Contact')).toHaveClass('rjb-chip');
+    expect(within(preview()).getByText('Company')).toHaveClass('rjb-chip');
+    expect(preview().textContent).not.toMatch(/\[/);
+    expect(within(vars()).getByText('2 blanks left')).toBeInTheDocument();
+    expect(screen.queryByText(/Not set yet/)).toBeNull();
+    expect(within(vars()).getByText('Preview')).toBeInTheDocument();
+  });
+
+  it('opening a document from a scrolled list starts the editor at its head', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    await open('Hi [Contact]');
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
+    scrollTo.mockRestore();
+  });
+
+  it('the Fill for default reads "No job", with no bracket syntax', async () => {
+    await open('Hi [Contact]');
+    expect(screen.getByRole('combobox', { name: /^Fill for/ })).toHaveTextContent(/^No job$/);
   });
 
   it('with a job picked, its fields fill and edits are saved on the job', async () => {
@@ -232,13 +260,13 @@ describe('Variables panel', () => {
     expect(within(vars()).getByRole('textbox', { name: 'Company' })).toHaveValue('Acme Metals');
     await userEvent.type(within(vars()).getByRole('textbox', { name: 'Contact' }), 'Jo');
     expect(getAllJobs()[0].contact).toBe('Jo');
-    expect(preview()).toHaveTextContent('Hi Jo at Acme Metals. [Pet]');
+    expect(preview()).toHaveTextContent('Hi Jo at Acme Metals. Pet');
   });
 
   it('a variable named [constructor] or [__proto__] renders and can be set', async () => {
     const id = await open('[constructor] [__proto__]');
     await userEvent.type(within(vars()).getByRole('textbox', { name: '__proto__' }), 'P');
-    expect(preview()).toHaveTextContent('[constructor] P');
+    expect(preview()).toHaveTextContent('constructor P');
     expect(Object.prototype.hasOwnProperty.call(doc(id).values, '__proto__')).toBe(true);
   });
 
@@ -268,7 +296,7 @@ describe('message text', () => {
   const open = async (text: string) => {
     createDocument({ kind: 'outreach', title: 'Chips', base: true, text });
     renderLib();
-    await userEvent.click(screen.getByRole('button', { name: /Chips/ }));
+    await openDoc('Chips');
   };
 
   it('shows each variable as one named chip that cannot be edited inside', async () => {
@@ -284,8 +312,8 @@ describe('message text', () => {
     await open('Hello world');
     body().focus();
     caretAt(body().firstChild!, 5);
-    await userEvent.click(screen.getByRole('button', { name: '[Role]' }));
-    expect(preview()).toHaveTextContent('Hello [Role] world');
+    await userEvent.click(screen.getByRole('button', { name: 'Role' }));
+    expect(preview()).toHaveTextContent('Hello Role world');
     await waitFor(() => expect(body()).toHaveFocus());
     const sel = window.getSelection()!;
     expect(sel.anchorNode?.textContent).toBe(' world');
@@ -294,7 +322,7 @@ describe('message text', () => {
 
   it('a chip says which job field fills it', async () => {
     await open('Hi');
-    screen.getByRole('button', { name: '[Company]' }).focus();
+    screen.getByRole('button', { name: 'Company' }).focus();
     expect(await screen.findByRole('tooltip')).toHaveTextContent(/company/i);
   });
 
@@ -304,7 +332,7 @@ describe('message text', () => {
     body().focus();
     caretAt(after, 0);
     await userEvent.keyboard('{Backspace}');
-    expect(preview()).toHaveTextContent('Hi , at [Company]');
+    expect(preview()).toHaveTextContent('Hi , at Company');
     expect(screen.queryByRole('img', { name: 'Contact variable' })).toBeNull();
   });
 
@@ -313,7 +341,7 @@ describe('message text', () => {
     body().focus();
     caretAt(body().firstChild!, 3);
     await userEvent.keyboard('{Delete}');
-    expect(preview()).toHaveTextContent('Hi , at [Company]');
+    expect(preview()).toHaveTextContent('Hi , at Company');
   });
 
   it('a [Name] typed by hand becomes a chip', async () => {
@@ -322,7 +350,7 @@ describe('message text', () => {
     body().append(document.createTextNode(' [Pet]'));
     caretAt(last, 0);
     fireEvent.input(body());
-    expect(preview()).toHaveTextContent('Hi [Contact] [Pet]');
+    expect(preview()).toHaveTextContent('Hi Contact Pet');
     expect(screen.getByRole('img', { name: 'Pet variable' })).toBeInTheDocument();
   });
 
@@ -332,7 +360,7 @@ describe('message text', () => {
     caretAt(body().firstChild!, 3);
     await userEvent.click(screen.getByRole('button', { name: 'Insert variable' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Role' }));
-    expect(preview()).toHaveTextContent('Hi [Role] [Contact], at [Company]');
+    expect(preview()).toHaveTextContent('Hi Role Contact, at Company');
   });
 
   it('Copy filled text copies the preview', async () => {
@@ -345,5 +373,83 @@ describe('message text', () => {
     await userEvent.click(await screen.findByRole('option', { name: /Fabricator/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Copy filled text' }));
     expect(writeText.mock.calls[0][0]).toBe('At Acme Metals, [Contact]');
+  });
+});
+
+// rev-3 M (slice 3): each row expands in place, one at a time, with Copy, Open and a menu.
+describe('expandable rows', () => {
+  it('a row opens with its first lines and variables as chips; one row is open at a time', async () => {
+    createDocument({ kind: 'outreach', title: 'Alpha', base: true, text: 'Hi [Contact], hello' });
+    createDocument({ kind: 'outreach', title: 'Bravo', base: true, text: 'Second' });
+    renderLib();
+    const alpha = screen.getByRole('button', { name: /Alpha/ });
+    await userEvent.click(alpha);
+    expect(alpha).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Open Alpha' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Bravo/ }));
+    expect(alpha).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Open Alpha' })).toBeNull());
+  });
+
+  it('lists Outreach messages before Notes (rev-3 M mock order)', () => {
+    renderLib();
+    const heads = screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'));
+    expect(heads.indexOf('Outreach messages')).toBeLessThan(heads.indexOf('Notes'));
+  });
+
+  it('a row names every variable as a chip, no brackets, and keeps them when open', async () => {
+    const id = createDocument({
+      kind: 'outreach',
+      title: 'Many',
+      base: true,
+      text: 'Hi [Contact], [Role] at [Company]. [Angle] from [Your name]',
+    });
+    setDocumentPinned(id, true);
+    renderLib();
+    const row = screen.getByRole('listitem', { name: 'Many' });
+    const chips = () => [...row.querySelectorAll('.rjb-chip')].map((c) => c.textContent);
+    expect(chips()).toEqual(['Contact', 'Role', 'Company', 'Angle', 'Your name']);
+    expect(row).not.toHaveTextContent('[');
+    expect(row).not.toHaveTextContent('…');
+    // Pinned is a badge on the row's top line, above the title.
+    const trigger = within(row).getByRole('button', { name: /Many/ });
+    expect(trigger.textContent?.indexOf('Pinned')).toBeLessThan(
+      trigger.textContent!.indexOf('Many'),
+    );
+    await userEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    // The meta chips stay on the trigger while it is open.
+    expect(trigger.querySelectorAll('.rjb-chip')).toHaveLength(5);
+  });
+
+  it('a document without variables shows its versions and last edit in the meta line', () => {
+    createDocument({ kind: 'cover', title: 'Plain', base: true, text: 'Dear team' });
+    renderLib();
+    const row = screen.getByRole('listitem', { name: 'Plain' });
+    expect(row).toHaveTextContent(/1 version · edited today/);
+  });
+
+  it('an open row keeps the text’s line breaks', async () => {
+    createDocument({ kind: 'note', title: 'Lines', base: true, text: 'One\nTwo' });
+    renderLib();
+    await userEvent.click(screen.getByRole('button', { name: /Lines/ }));
+    const prev = screen.getByRole('listitem', { name: 'Lines' }).querySelector('.rjb-doc-preview');
+    expect(prev).not.toBeNull();
+    expect(prev!.textContent).toBe('One\nTwo');
+  });
+
+  it('the row menu duplicates and deletes (after asking)', async () => {
+    createDocument({ kind: 'note', title: 'Story', base: true, text: 'Once' });
+    renderLib();
+    await userEvent.click(screen.getByRole('button', { name: /Story/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Story' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Duplicate' }));
+    expect(getAllDocuments().map((d) => d.title)).toEqual(['Story', 'Story (copy)']);
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Story' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+    await userEvent.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
+    );
+    expect(getAllDocuments().map((d) => d.title)).toEqual(['Story (copy)']);
   });
 });

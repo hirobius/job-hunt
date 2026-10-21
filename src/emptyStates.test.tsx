@@ -19,7 +19,7 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, getAllJobs, removeJob } from './store';
+import { addJob, getAllJobs, removeJob, setStatusByUrl } from './store';
 import { addCategory, addGroup, replaceCurationState } from './curation/curationStore';
 
 const renderApp = () =>
@@ -70,10 +70,34 @@ describe('Discover empties', () => {
     renderApp();
     expect(await screen.findByText('No links here yet')).toBeInTheDocument();
     expect(
-      screen.getByText(/Add links you trust, or use Title and ATS search for live ones/),
+      screen.getByText(/Add links you trust, or use ATS search for live ones/),
     ).toBeInTheDocument();
     // The empty state's own action, beside the header's Manage track (#131).
     expect(screen.getAllByRole('button', { name: 'Manage this track' })).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Manage track' })).toBeInTheDocument();
+  });
+});
+
+// rev-3 "filtered to nothing": a short title (straight quotes, no period), one sentence, and the
+// way back out as the empty's own action.
+describe('Pipeline filtered to nothing', () => {
+  it('a search with no match: No jobs match "q", a sentence, and Clear search', async () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    window.location.hash = '#/queue';
+    renderApp();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zzz nothing');
+    expect(screen.getByText('No jobs match "zzz nothing"')).toBeInTheDocument();
+    expect(screen.getByText('Try a shorter word, or clear the search.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('');
+    expect(screen.queryByText(/No jobs match/)).toBeNull();
+  });
+
+  it('nothing left to apply to: a short title and where to look', async () => {
+    setStatusByUrl('https://acme.example/jobs/1', 'Applied', 'Design Engineer');
+    window.location.hash = '#/queue';
+    renderApp();
+    expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
+    expect(screen.getByText('Check Applied, or add more jobs.')).toBeInTheDocument();
   });
 });

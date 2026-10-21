@@ -1,4 +1,4 @@
-// The Privacy Policy and Terms (#43), as data: `LegalPage` renders them at `#/legal/privacy` and
+// The Privacy policy and Terms (#43), as data: `LegalPage` renders them at `#/legal/privacy` and
 // `#/legal/terms`, and `legal.test.ts` checks the disclosures against the code (every host the CSP
 // lets the browser reach is named in `THIRD_PARTIES`). Starting templates for review, not legal
 // advice: while `LEGAL_DRAFT` is true the page says so. Adrian approves any wording before it ships.
@@ -80,7 +80,7 @@ const name = BRAND.name;
 
 export const PRIVACY: LegalDoc = {
   slug: 'privacy',
-  title: 'Privacy Policy',
+  title: 'Privacy policy',
   sections: [
     {
       heading: 'Who we are',
@@ -151,7 +151,7 @@ export const PRIVACY: LegalDoc = {
 
 export const TERMS: LegalDoc = {
   slug: 'terms',
-  title: 'Terms of Use',
+  title: 'Terms of use',
   sections: [
     {
       heading: 'The service',
@@ -209,5 +209,5 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = { privacy: PRIVACY, terms
 /** The route slug for the legal pages: `#/legal/privacy`, `#/legal/terms`. */
 export const LEGAL_ROUTE = 'legal';
 
-/** An unknown or missing sub-slug shows the Privacy Policy. */
+/** An unknown or missing sub-slug shows the Privacy policy. */
 export const legalDocFor = (sub: string | null): LegalDoc => (sub === 'terms' ? TERMS : PRIVACY);

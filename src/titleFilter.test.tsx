@@ -56,6 +56,17 @@ const hrefs = () =>
     .getAllByRole('link', { name: /search/i })
     .map((a) => decodeURIComponent((a.getAttribute('href') ?? '').replace(/\+/g, ' ')));
 
+/** ATS search's board lists start closed and its hiring systems show three (rev-3 mock): open
+ *  them all, so every generated link is on the page. */
+const openAllBoards = async () => {
+  for (const name of [
+    /^Big job boards/,
+    /^Freelance, startup and remote boards/,
+    /^Show \d+ more$/,
+  ])
+    await userEvent.click(await screen.findByRole('button', { name }));
+};
+
 describe('the Titles tool is gone', () => {
   it('is not in the tools row', async () => {
     window.location.hash = '#/discover/ats';
@@ -85,14 +96,14 @@ describe('Calibrate: the ticked titles', () => {
     expect(getAllSweeps()[cat].off).toEqual(['design engineer']);
     expect(within(list).queryByRole('heading', { name: /^Design Engineer/ })).toBeNull();
     expect(within(list).getByRole('heading', { name: /^Product Designer/ })).toBeVisible();
-    expect(screen.getByText('1 hidden by titles')).toBeInTheDocument();
+    expect(screen.getByText(/1 hidden by titles/)).toBeInTheDocument();
   });
 
   it('the ATS tool and the big-board links search only the ticked titles', async () => {
     setTitleOn(cat, TITLES, 'design engineer', false);
     window.location.hash = '#/discover/ats';
     renderApp();
-    await screen.findByRole('heading', { name: 'Big job boards' });
+    await openAllBoards();
     const all = hrefs();
     expect(all.length).toBeGreaterThan(0);
     for (const u of all.filter((x) => x.includes('designer'))) {
@@ -108,7 +119,7 @@ describe('Calibrate: the ticked titles', () => {
   it('with every title ticked, the links search all of them', async () => {
     window.location.hash = '#/discover/ats';
     renderApp();
-    await screen.findByRole('heading', { name: 'Big job boards' });
+    await openAllBoards();
     expect(
       hrefs().some((u) =>
         u.includes('("product designer" OR "design system" OR "design engineer")'),

@@ -2,10 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   insertAt,
   insertToken,
-  removeChipAt,
-  snapOutOfChip,
   splitVariables,
-  stepOver,
   templateVariables,
   TOKEN_CHIPS,
 } from './templateEditor';
@@ -105,28 +102,5 @@ describe('templateVariables', () => {
       'Your name',
       'Pet',
     ]);
-  });
-});
-
-describe('chip-aware editing', () => {
-  const v = 'Hi [Contact], ok';
-  it('Backspace right after a chip removes the whole chip', () => {
-    expect(removeChipAt(v, 12, 'back')).toEqual({ value: 'Hi , ok', caret: 3 });
-  });
-  it('Delete right before a chip removes the whole chip', () => {
-    expect(removeChipAt(v, 3, 'forward')).toEqual({ value: 'Hi , ok', caret: 3 });
-  });
-  it('away from a chip it leaves editing to the browser', () => {
-    expect(removeChipAt(v, 2, 'back')).toBeNull();
-    expect(removeChipAt(v, 13, 'forward')).toBeNull();
-  });
-  it('arrow keys step over a chip in one press', () => {
-    expect(stepOver(v, 3, 'forward')).toBe(12);
-    expect(stepOver(v, 12, 'back')).toBe(3);
-    expect(stepOver(v, 2, 'forward')).toBeNull();
-  });
-  it('a caret inside a chip snaps to its end', () => {
-    expect(snapOutOfChip(v, 6)).toBe(12);
-    expect(snapOutOfChip(v, 3)).toBe(3);
   });
 });

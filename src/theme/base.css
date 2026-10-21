@@ -49,22 +49,37 @@ p {
   margin: 0;
 }
 
+/* The reset above is unlayered, so it beats HDS's dialog header `space-y-1.5`: a confirm's title
+ * and description touched. Give the description its gap back (HDS gap, docs/hds-upstream-asks-0.9.md). */
+[role='alertdialog'] h2 + p,
+[role='dialog'] h2 + p {
+  margin-block-start: var(--semantic-space-fixed-xs);
+}
+
+/* Back links ("← Pipeline", "← All documents"): drop the tertiary Button's leading inline padding
+ * so the arrow lines up with the page heading (rev-3 mock) while the box stays inside the gutter. */
+.rjb-back {
+  padding-inline-start: 0;
+}
+
+/* Documents rows (rev-3 M): the whole row is tappable, so it shows hover and press like a list
+ * row. HDS Disclosure variant="row" has no row state of its own (HDS gap, see the registry). */
+.rjb-doc-row:has(> * > * > button[aria-expanded]:hover) {
+  background: var(--semantic-color-surface-hover);
+}
+.rjb-doc-row:has(> * > * > button[aria-expanded]:active) {
+  background: var(--semantic-color-surface-pressed);
+}
+
 .rjb-semibold {
   font-weight: 600;
 }
 
-/* The phone app-bar mark (#241): the brand's first letter in a small accent square, so the app
- * name never competes with the page title. Tokens only; HDS has no logo-mark primitive. */
-.rjb-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--primitive-space-7);
-  height: var(--primitive-space-7);
-  border-radius: var(--semantic-radius-action);
-  background: var(--semantic-accent-rest);
-  color: var(--semantic-color-content-onAccent);
-  font-size: var(--primitive-typography-size-sm);
+/* A form whose fields share one edge (job Details, Screening, Interviews, the Pipeline toolbar):
+   lift HDS's 40rem form-control cap, so a single field lines up with a paired Switcher row and
+   with the panel it sits in. Upstream ask: a full-width prop on HDS form controls. */
+.rjb-form-full {
+  --hds-form-control-max-width: none;
 }
 
 /* Calm list rows (#241): a company list is flat rows on the page, split by hairlines, not cards
@@ -80,23 +95,47 @@ p {
   overflow-wrap: anywhere;
 }
 
-/* Phone: the four top tabs (Today · Pipeline · Discover · Templates) fit 390px with tighter
- * padding instead of cutting "Templates" mid-word (#133). Wider screens keep HDS's padding. */
-@media (max-width: 440px) {
-  [role='tablist'][aria-label='Sections'] [role='tab'] {
-    padding-inline: var(--primitive-space-1);
-  }
-}
-
 /* Phone touch targets (#133): HDS's sm controls (segmented tool strip, tabs, chips, disclosure
  * triggers) are 18-39px tall. Raise every button to 40px on a phone; the e2e probe holds it.
  * Upstream ask: a touch size for these controls (hds#750). */
-@media (max-width: 600px) {
+@media (max-width: 639px) {
+  /* HDS raises .h-10/.h-9/.h-8 to 44px under 639px: button-styled links (Button asChild) and
+   * inputs come down to 40 with the buttons, so a row of actions or a field + Fill line up. */
   [data-hds] button,
+  [data-hds] a.h-10,
+  [data-hds] a.h-9,
+  [data-hds] a.h-8,
+  [data-hds] input,
   [data-hds] [role='tab'],
   [data-hds] [role='radio'] {
     min-height: var(--primitive-space-10);
   }
+}
+
+/* Apply mode pager (rev-3 E): HDS Pagination compact draws borderless 44x40 tertiaries, and its
+ * disabled tertiary picks up the primary's disabled fill (a grey tile). Mock: bordered 40x40 icon
+ * buttons both sides of "1 of N", disabled just faded. Upstream ask: docs/hds-upstream-asks-0.9.md. */
+[data-hds] nav[aria-label='Jobs to apply'] button {
+  min-width: var(--primitive-space-10);
+  min-height: var(--primitive-space-10);
+  border: thin solid var(--semantic-color-border-default);
+}
+[data-hds] nav[aria-label='Jobs to apply'] button:disabled {
+  background: transparent;
+  opacity: 0.5;
+}
+
+/* The blank's fill field (rev-3 A): on the page surface, the input's own surface, as in the mock,
+ * so in dark the input doesn't read as a hole in a raised card. */
+.rjb-fillbox {
+  background: var(--semantic-color-surface-page);
+}
+
+/* "N blanks left": the warning icon inside the toned text, 4px from the words. */
+.rjb-blanks-left {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--primitive-space-1);
 }
 
 /* Reduced motion (#133): the app's own transitions and HDS's settle at once; Spinner and Skeleton
@@ -115,11 +154,261 @@ p {
   fill: currentColor;
 }
 
-/* HDS gap (#146): Menu content is overflow-hidden with no height cap, and since 0.26 its items are
- * 44px on a phone, so a long row menu ran off a 390px screen while the page was scroll-locked.
- * Cap it to the space Radix measures and let it scroll. Ask: Menu caps its own height
- * (hds#821). Pinned by e2e/phone-menu.spec.ts. */
-[data-hds] [role='menu'] {
-  max-height: var(--radix-dropdown-menu-content-available-height, none);
-  overflow-y: auto;
+/* Template blanks (rev-3 A, N): a read-only blank in a filled text is the template editor's chip
+ * (HDS TokenField's look, from the same tokens). A blank that fills in place is an HDS Tag set in
+ * the line (`.rjb-blank`): its component tokens take the chip's shape, and on a phone its 40px hit
+ * area overhangs the line instead of pushing the lines apart. Upstream ask: an inline, tappable
+ * token chip (HDS gap registry, "Inline fillable blank"). */
+.rjb-chip {
+  display: inline-block;
+  margin-inline: 1px;
+  padding-inline: var(--semantic-space-subgrid-gap);
+  border: thin solid var(--semantic-color-border-default);
+  border-radius: var(--semantic-radius-control);
+  background: var(--semantic-color-surface-raised);
+  color: var(--semantic-color-content-primary);
+  font-size: var(--semantic-typography-caption-font-size);
+  line-height: var(--semantic-typography-caption-line-height);
+  white-space: nowrap;
+}
+
+.rjb-blank {
+  --component-tag-minHeight: 0;
+  --component-tag-minWidth: 0;
+  --component-tag-radius: var(--semantic-radius-control);
+  --component-tag-paddingX: var(--semantic-space-subgrid-gap);
+  --component-tag-paddingY: 0;
+  --component-tag-border: var(--semantic-color-border-default);
+  --component-tag-background: var(--semantic-color-surface-raised);
+  --component-tag-text: var(--semantic-color-content-primary);
+  min-width: 0;
+  margin-inline: 1px;
+  vertical-align: middle;
+}
+
+@media (max-width: 639px) {
+  .rjb-blank {
+    margin-block: calc((1lh - var(--primitive-space-10)) / 2);
+  }
+}
+
+/* A job's title on a card or agenda row (rev-3 review; HDS Text weight="bold"): primary colour, two lines at most.
+ * Its link is quiet (no underline until hover), so the title reads as a title, not a link. The
+ * size stays on the compact ramp (body); the mock's 16px is not an HDS compact size. */
+.rjb-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.rjb-card-title a {
+  color: var(--semantic-color-content-primary);
+  text-decoration: none;
+}
+
+.rjb-card-title a:hover {
+  text-decoration: underline;
+}
+
+/* A list row's title link (the company page's jobs, rev-3 mock): the Pipeline card title's quiet
+ * link, grown to a 40px tap target without spreading a wrapped title's lines. */
+.rjb-row-title a {
+  display: inline-block;
+  padding-block: calc((var(--primitive-space-10) - 1lh) / 2);
+  color: var(--semantic-color-content-primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.rjb-row-title a:hover {
+  text-decoration: underline;
+}
+
+/* A Back link ("← Pipeline" on a company page, "← Back to companies"): a quiet tertiary whose
+ * arrow sits on the page gutter with the title below it. Only the leading padding goes, so the
+ * box stays inside the gutter (layout rule). */
+[data-hds] .rjb-back-link {
+  padding-inline-start: 0;
+}
+
+/* One line, cut with an ellipsis (a long domain in a facts list). */
+.rjb-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A text preview, three lines at most (Apply mode's template rows). */
+.rjb-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* A note under a card's facts, two lines at most. */
+.rjb-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* An open Documents row's text (rev-3 M): its line breaks kept; four lines on a phone, all of it
+ * from 600px up. */
+.rjb-doc-preview {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .rjb-doc-preview {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow: hidden;
+  }
+}
+
+/* A long free-text field the user can make taller (Your evidence, rev-3 J). */
+.rjb-resize,
+.rjb-resize textarea {
+  resize: vertical;
+}
+
+/* A status alert inside a panel (Live postings' "Some sources didn't respond" / "Couldn't reach any
+   source"): HDS Alert sets its title on the titleSm step (20px+), which reads as a page heading and
+   wraps at 390. Inside `.rjb-inline-alerts` the title takes the body step, bold, by re-pointing the
+   titleSm tokens Alert reads (HDS Alert has no size; docs/hds-upstream-asks-0.9.md). */
+.rjb-inline-alerts {
+  --semantic-typography-titleSm-font-size: var(--semantic-typography-body-font-size);
+  --semantic-typography-titleSm-line-height: var(--semantic-typography-body-line-height);
+}
+
+/* The Account avatar (rev-3 P, mock #s-account-menu): a 32px circle with a hairline, and the
+ * unsynced Badge sitting on its rim with a page-colour ring. HDS's phone touch-size rule
+ * (`.h-8 { min-height }`, `.w-8[class*=h-8] { min-width }` below 640) also hits the Avatar span,
+ * which is not a control, inflating it to 44px inside its 40px button and pushing the badge off
+ * the circle. Upstream ask: the touch-size rule must not target Avatar (docs/hds-upstream-asks-0.9.md). */
+/* The same rule widens the 40px icon button to 44: hold it at the app's 40px phone target. */
+[data-hds] .rjb-account {
+  min-width: var(--primitive-space-10);
+}
+
+[data-hds] .rjb-avatar {
+  min-width: 0;
+  min-height: 0;
+  border: thin solid var(--semantic-color-border-default);
+}
+
+[data-hds] .rjb-avatar > .absolute {
+  top: 1px;
+  right: 1px;
+  width: var(--primitive-space-px10);
+  height: var(--primitive-space-px10);
+  min-width: 0;
+  min-height: 0;
+  box-shadow: 0 0 0 2px var(--semantic-color-surface-page);
+}
+
+/* The shell's top tabs (rev-3 .tabs): text flush with the page gutter, 24 apart, the underline as
+ * wide as the label, and no tinted box on the selected tab. The 40px phone height stays. */
+.rjb-top-tabs {
+  gap: var(--semantic-space-fixed-md);
+}
+
+.rjb-top-tabs [role='tab'] {
+  padding-inline: 0;
+  background: transparent;
+}
+
+/* Phone form fields at 16px: compact density sets them to 13px and iOS Safari zooms the page on
+   focus below 16px. HDS gap (docs/hds-upstream-asks-0.9.md, "16px phone form fields"). */
+@media (max-width: 639.98px) {
+  [data-hds] input,
+  [data-hds] textarea,
+  [data-hds] select {
+    font-size: 16px;
+  }
+}
+
+/* The job page's tab row starts on the page gutter, like the badges and title above it (rev-3).
+   HDS gap (docs/hds-upstream-asks-0.9.md, "Tab row flush with the gutter"). */
+.rjb-job-tabs > [role='tab']:first-child {
+  padding-inline-start: 0;
+}
+
+/* A quiet tertiary (the job page's "← Pipeline") whose icon sits on the page gutter: its box
+   stays inside the gutter (layout rule), only the leading padding goes. */
+[data-hds] .rjb-flush-start {
+  padding-inline-start: 0;
+}
+
+/* An inline text action in a sentence (Discover's "Remote, any mode · Change", rev-3 mock): an HDS
+ * Button set as an underlined link (HDS InlineLink renders only an <a href>, so it can't be a
+ * Popover trigger). Primary colour, medium weight, no inline padding; on a phone its 40px hit area
+ * overhangs the line instead of pushing the lines apart. */
+[data-hds] .rjb-inline-link {
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  gap: 0;
+  vertical-align: baseline;
+  background: transparent;
+  color: var(--semantic-color-content-primary);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  [data-hds] .rjb-inline-link {
+    min-height: var(--primitive-space-10);
+    margin-block: calc((1lh - var(--primitive-space-10)) / 2);
+    vertical-align: middle;
+  }
+}
+
+/* A 40x40 icon button beside a 40px text button (Discover's New track, a tile's Open; rev-3 mock):
+ * HDS lifts icon-only buttons to its 44px touch minimum, which leaves them 4px off the row's
+ * centre line and not square. 40 is the app's phone target (the rule above). */
+[data-hds] .rjb-icon-40 {
+  min-width: var(--primitive-space-10);
+  min-height: var(--primitive-space-10);
+  width: var(--primitive-space-10);
+  height: var(--primitive-space-10);
+}
+
+/* The location popover (rev-3 mock): md (16) padding around its field and segmented control, and
+ * wide enough for the four modes at that padding. HDS Popover.Content has no padding or size prop. */
+[data-hds] .rjb-popover-md {
+  width: min(22rem, calc(100vw - 2 * var(--primitive-space-4)));
+  padding: var(--primitive-space-4);
+}
+
+/* A chip with a leading icon (the sweep's matched title on an opening row, rev-3 K). */
+.rjb-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--semantic-space-subgrid-gap);
+}
+
+/* A row Disclosure that opens downward (rev-3 mock: Calibrate, Refine): the chevron points down
+ * when closed and up when open. HDS's row variant turns it right (-90deg) when closed, set inline,
+ * so this has to win over the inline transform. Upstream ask: a chevron direction on Disclosure
+ * variant="row" (HDS gap registry, "Vertical row chevron"). */
+.rjb-disclosure-vertical button[aria-expanded] > span[aria-hidden='true'] {
+  transform: rotate(0deg) !important;
+}
+.rjb-disclosure-vertical button[aria-expanded='true'] > span[aria-hidden='true'] {
+  transform: rotate(180deg) !important;
 }

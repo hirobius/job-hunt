@@ -31,12 +31,15 @@ async function seed(page: Page) {
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   await page.getByRole('tab', { name: 'Companies' }).click();
   await page.getByRole('button', { name: 'Choose a track' }).click();
-  await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().click();
+  // The Suggested (first) pack starts ticked (rev-3).
+  await expect(
+    page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first(),
+  ).toBeChecked();
   for (const name of ['Continue', 'Continue', 'Finish'])
     await page.getByRole('button', { name, exact: true }).click();
   // Apply now by name: which tool `#/discover` opens on depends on the track (teamTopics.ts).
   await go(page, '#/discover/apply');
-  await expect(page.getByRole('tablist', { name: 'Your sections' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();
 }
 
 async function go(page: Page, hash: string) {

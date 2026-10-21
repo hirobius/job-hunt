@@ -1,9 +1,9 @@
 // Calm list 7/7 (#241): the header and spacing pass. Tested at the route seam through App.
-// - The app name never competes with a page title: a small mark on a phone, a body-size (16px)
-//   wordmark from `sm` up; both are the one h1, named by BRAND.
-// - None of the old card patterns: the Pipeline and the Templates list are flat rows on the page
-//   (no bordered cards, no tinted banner boxes).
-// - HDS docs-site rhythm: the Pipeline's sections stack 48 apart (Stack gap `spacious`).
+// - The app name never competes with a page title: a body-size wordmark at every width (rev-3
+//   mock), the one h1, named by BRAND.
+// - The Pipeline is panels (rev-3 mock): To apply, Follow up and Jobs are HDS Cards with a count
+//   Badge; no tinted banner boxes. The Documents list stays flat rows.
+// - Rev-3 rhythm: the Pipeline's panels stack 24 apart.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
@@ -66,48 +66,44 @@ afterEach(() => {
   }
 });
 
-describe('app bar (#241)', () => {
-  it('on a phone the app name is a small mark: one letter, still named by the brand', () => {
-    renderApp();
-    const h1 = screen.getByRole('heading', { level: 1, name: BRAND.name });
-    expect(h1.textContent).toBe(BRAND.name[0]);
-  });
-
-  it('from sm up it is the 16px (body) wordmark, never title-size', () => {
-    viewport(1440);
-    renderApp();
-    const h1 = screen.getByRole('heading', { level: 1, name: BRAND.name });
-    expect(h1.textContent).toBe(BRAND.name);
-    expect(h1.className).toMatch(/hds-type-body/);
-    expect(h1.className).not.toMatch(/hds-type-(title|display)/);
+describe('app bar (rev-3)', () => {
+  it('the app name is the titleSm wordmark (rev-3 .brand) on a phone and on desktop, never title-size', () => {
+    for (const width of [390, 1440]) {
+      viewport(width);
+      renderApp();
+      const h1 = screen.getByRole('heading', { level: 1, name: BRAND.name });
+      expect(h1.textContent).toBe(BRAND.name);
+      expect(h1.className).toMatch(/hds-type-title-sm/);
+      expect(h1.className).not.toMatch(/hds-type-(title|display)(?!-sm)\b/);
+      cleanup();
+    }
   });
 });
 
-describe('no old card patterns (#241)', () => {
-  it('the Pipeline is flat rows: no bordered cards, no tinted banners', async () => {
+describe('Pipeline panels (rev-3)', () => {
+  it('To apply, Follow up and Jobs are HDS Cards with a count Badge; no tinted banners', async () => {
     loadSample();
     window.location.hash = '#/queue';
     renderApp();
     const toApply = await screen.findByRole('region', { name: /^To apply/ });
     const panel = toApply.closest('[role="tabpanel"]')!;
-    expect(screen.getByRole('region', { name: 'Sync your data' })).toBeInTheDocument();
+    for (const name of [/^To apply/, /^Follow up/, /^Jobs$/]) {
+      const region = screen.getByRole('region', { name });
+      expect(region).toHaveAttribute('data-padding');
+    }
+    expect(within(toApply).getByText('3')).toBeInTheDocument();
     expect(screen.getAllByRole('article').length).toBeGreaterThan(0);
-    expect(cardsIn(panel)).toHaveLength(0);
     expect(tintedBoxesIn(panel)).toHaveLength(0);
+    // No sync banner: the Account avatar's dot says it.
+    expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
   });
 
-  it('the Pipeline sections stack 48 apart (HDS spacious)', async () => {
+  it('the Pipeline panels stack 24 apart', async () => {
     loadSample();
     window.location.hash = '#/queue';
     renderApp();
     const toApply = await screen.findByRole('region', { name: /^To apply/ });
-    const sections = toApply.parentElement!;
-    expect(sections).toHaveAttribute('data-hds-metrics', 'gap:spacious');
-    // ...and the page header sits 24 over them (HDS normal).
-    const page = screen
-      .getByRole('heading', { name: 'Pipeline' })
-      .closest('[data-hds-metrics="gap:normal"]');
-    expect(page).not.toBeNull();
+    expect(toApply.parentElement).toHaveAttribute('data-hds-metrics', 'gap:px24');
   });
 
   it('the Documents library is flat rows, not a card per document (#227)', async () => {

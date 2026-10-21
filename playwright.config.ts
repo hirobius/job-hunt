@@ -12,6 +12,16 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: 'list',
+  // Screenshot baselines (e2e/visual.spec.ts, docs/guardrails.md): tight enough that a 4px
+  // spacing shift fails, loose enough for anti-aliasing noise between runs.
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.001,
+      threshold: 0.2,
+      animations: 'disabled',
+      caret: 'hide',
+    },
+  },
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',

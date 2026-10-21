@@ -9,9 +9,10 @@ import {
   Menu as HdsMenu,
   Popover,
   Stack,
+  Text,
 } from '@hirobius/design-system';
 import { PageHeader } from '@hirobius/design-system/patterns';
-import { MapPin, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { STARTER_PACKS } from './curation/starterPacks';
 import type { Category } from './curation/types';
 import { contextLabel, useTrackContext } from './discoverContext';
@@ -37,62 +38,85 @@ export default function DiscoverHeader({
   // so an existing user can add e.g. the ServiceNow track any time, not only at first run.
   const packs = STARTER_PACKS.filter((p) => p.id !== 'blank');
   return (
-    <Box sx={{ mb: 4 }}>
-      <Stack gap="xs">
+    <Box sx={{ mb: 'sm' }}>
+      {/* tight: room for the Change link's 40px hit area, which overhangs its line. */}
+      <Stack gap="tight">
+        {/* rev-3 G: the track's name, then where and how you search as one caption line with a
+            quiet Change (the popover holds the only LocationControl), then Manage track and the
+            New track icon button. The track switcher shows only when there is a track to switch
+            to, so a one-track user sees two nav levels at most. */}
         <PageHeader
           level={2}
           title={cat.label}
-          actions={
-            <Stack direction="row" gap="xs" align="center">
-              <Button size="sm" variant="secondary" onClick={onManage}>
-                Manage track
-              </Button>
-              <HdsMenu>
-                <HdsMenu.Trigger asChild>
+          description={
+            // PageHeader wraps the description in a <p>, so this row is inline content only (a
+            // span, not a Stack div): "where · Change".
+            <Text variant="caption" as="span" tone="secondary">
+              {`${contextLabel(where, mode)} · `}
+              <Popover>
+                <Popover.Trigger asChild>
+                  {/* An inline underlined link in the sentence (rev-3 mock), not a padded button:
+                      `.rjb-inline-link` in base.css. Its 40px hit area overhangs the line. */}
                   <Button
                     size="sm"
-                    variant="secondary"
-                    iconOnly
-                    iconLeft={<Icon icon={Plus} />}
-                    label="New track"
-                  />
-                </HdsMenu.Trigger>
-                <HdsMenu.Content align="end">
-                  <HdsMenu.Label>Start from a pack</HdsMenu.Label>
-                  {packs.map((p) => (
-                    <HdsMenu.Item key={p.id} onSelect={() => onSeedPack(p.id)}>
-                      {p.label}
-                    </HdsMenu.Item>
-                  ))}
-                  <HdsMenu.Separator />
-                  <HdsMenu.Item onSelect={onBlank}>Blank track</HdsMenu.Item>
-                </HdsMenu.Content>
-              </HdsMenu>
-            </Stack>
+                    variant="tertiary"
+                    className="rjb-inline-link"
+                    aria-label={`Change where: ${contextLabel(where, mode)}`}
+                  >
+                    Change
+                  </Button>
+                </Popover.Trigger>
+                <Popover.Content
+                  align="start"
+                  aria-label="Where and how you want to work"
+                  className="rjb-popover-md"
+                >
+                  <LocationControl categoryId={cat.id} />
+                </Popover.Content>
+              </Popover>
+            </Text>
           }
         />
-        <Stack direction="row" wrap="wrap" gap="xs" align="center">
-          <Box
-            sx={{ flex: '1 1 16rem', maxWidth: '24rem', minWidth: 0, '& > *': { width: '100%' } }}
-          >
-            <Combobox
-              aria-label="Track to search"
-              options={categories.map((c) => ({ value: c.id, label: c.label }))}
-              value={cat.id}
-              onChange={onChange}
-              placeholder="Pick a track"
-            />
-          </Box>
-          <Popover>
-            <Popover.Trigger asChild>
-              <Button size="sm" variant="secondary" iconLeft={<Icon icon={MapPin} />}>
-                {contextLabel(where, mode)}
-              </Button>
-            </Popover.Trigger>
-            <Popover.Content align="start" aria-label="Where and how you want to work">
-              <LocationControl categoryId={cat.id} />
-            </Popover.Content>
-          </Popover>
+        {/* px8 between Manage track and New track (Stack's xs is the 2px subgrid). */}
+        <Stack direction="row" wrap="wrap" gap="px8" align="center">
+          <Button size="md" variant="secondary" onClick={onManage}>
+            Manage track
+          </Button>
+          <HdsMenu>
+            <HdsMenu.Trigger asChild>
+              <Button
+                size="md"
+                variant="secondary"
+                iconOnly
+                iconLeft={<Icon icon={Plus} />}
+                label="New track"
+                className="rjb-icon-40"
+              />
+            </HdsMenu.Trigger>
+            <HdsMenu.Content align="start">
+              <HdsMenu.Label>Start from a pack</HdsMenu.Label>
+              {packs.map((p) => (
+                <HdsMenu.Item key={p.id} onSelect={() => onSeedPack(p.id)}>
+                  {p.label}
+                </HdsMenu.Item>
+              ))}
+              <HdsMenu.Separator />
+              <HdsMenu.Item onSelect={onBlank}>Blank track</HdsMenu.Item>
+            </HdsMenu.Content>
+          </HdsMenu>
+          {categories.length > 1 && (
+            <Box
+              sx={{ flex: '1 1 12rem', maxWidth: '24rem', minWidth: 0, '& > *': { width: '100%' } }}
+            >
+              <Combobox
+                aria-label="Track to search"
+                options={categories.map((c) => ({ value: c.id, label: c.label }))}
+                value={cat.id}
+                onChange={onChange}
+                placeholder="Pick a track"
+              />
+            </Box>
+          )}
         </Stack>
       </Stack>
     </Box>

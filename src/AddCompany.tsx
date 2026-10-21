@@ -15,8 +15,8 @@ import {
   Text,
   useToast,
 } from '@hirobius/design-system';
-import { Form } from '@hirobius/design-system/patterns';
-import { Plus } from 'lucide-react';
+import { Form, FormActions } from '@hirobius/design-system/patterns';
+import { Plus, Star } from 'lucide-react';
 import { discoverBoards, type DiscoverResult } from './feed/discoverBoards';
 import { probeFetchJson } from './feed/probeFetch';
 import { parseCompanyLine } from './feed/probe';
@@ -184,11 +184,17 @@ function AddCompanyContent({
           {result && result.missed.length > 0 && (
             <Stack gap="xs">
               <Text variant="ui" as="p">
-                {`No public board found for ${asked} on the five systems we check. It may hire elsewhere; star it to keep it on your list.`}
+                {`No public board found for ${asked} on the five systems we check. It may hire elsewhere; keep it as a target to stay on your list.`}
               </Text>
               <div>
-                <Button size="sm" variant="secondary" onClick={star}>
-                  {`Star ${asked}`}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  iconLeft={<Icon icon={Star} />}
+                  aria-label={`Keep ${asked} as a target`}
+                  onClick={star}
+                >
+                  Keep as a target
                 </Button>
               </div>
             </Stack>
@@ -205,14 +211,20 @@ function AddCompanyContent({
           )}
         </Stack>
       </Form>
-      <Dialog.Footer>
-        <Dialog.Close asChild>
-          <Button variant="secondary">{result ? 'Done' : 'Cancel'}</Button>
-        </Dialog.Close>
-        <Button disabled={running} onClick={() => void submit()}>
-          Add
-        </Button>
-      </Dialog.Footer>
+      {/* rev-3 mock: "Cancel | Add" on one row at every width, Add the one primary (HDS
+          FormActions; Dialog.Footer stacks them full width on a phone). */}
+      <FormActions
+        secondary={
+          <Dialog.Close asChild>
+            <Button variant="secondary">{result ? 'Done' : 'Cancel'}</Button>
+          </Dialog.Close>
+        }
+        primary={
+          <Button variant="primary" disabled={running} onClick={() => void submit()}>
+            Add
+          </Button>
+        }
+      />
     </Dialog.Content>
   );
 }

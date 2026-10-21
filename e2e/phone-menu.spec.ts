@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-// HDS gap (#146): HDS Menu doesn't cap its height to the space Radix measures, and since 0.26 its
-// items are 44px on a phone, so a long row menu ran past the bottom of a 390px screen with the page
-// scroll-locked: Remove, the last item, could not be reached. base.css caps it; this holds it.
+// A long row menu on a phone (44px items) must fit a 390px screen with the page scroll-locked, so
+// Remove, the last item, can be reached. HDS Menu caps its own height since 0.28 (hds#821; the
+// base.css stand-in is gone); this holds it.
 test.use({ viewport: { width: 390, height: 844 } });
 
 test('a row menu on a phone fits the screen and its last item can be clicked', async ({ page }) => {
@@ -21,4 +21,27 @@ test('a row menu on a phone fits the screen and its last item can be clicked', a
   expect(box!.y + box!.height).toBeLessThanOrEqual(844);
   await menu.getByRole('menuitem', { name: /^Remove$/ }).click();
   await expect(page.getByRole('button', { name: /^Recently removed/ })).toBeVisible();
+});
+
+// A dialog opened from an Account menu item hands focus back to the Account button on close: the
+// item that opened it is gone (the Menu is non-modal), so focus would otherwise fall to the body.
+test('closing Reset or Sign in returns focus to the Account button', async ({ page }) => {
+  await page.goto('/#/queue');
+  const account = page.getByRole('button', { name: /^Account/ });
+
+  await account.click();
+  await page.getByRole('menuitem', { name: /^Reset local data/ }).click();
+  const reset = page.getByRole('alertdialog');
+  await expect(reset).toBeVisible();
+  await reset.getByRole('button', { name: 'Cancel' }).click();
+  await expect(reset).toBeHidden();
+  await expect(account).toBeFocused();
+
+  await account.click();
+  await page.getByRole('menuitem', { name: /^Sign in/ }).click();
+  const signIn = page.getByRole('dialog');
+  await expect(signIn).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(signIn).toBeHidden();
+  await expect(account).toBeFocused();
 });

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -42,12 +42,15 @@ describe('UseTemplate', () => {
       'true',
     );
     await user.click(screen.getByRole('button', { name: 'Plain note' }));
-    const preview = screen.getByLabelText('Preview') as HTMLTextAreaElement;
-    expect(preview.value).toContain('about Fabricator at Acme Metals');
-    expect(preview.value).toContain('[Contact]');
-    expect(screen.getByText(/Still unfilled: \[Contact\]/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Copy' }));
-    expect(writeText).toHaveBeenCalledWith(preview.value);
+    const preview = screen.getByRole('region', { name: 'Preview' });
+    expect(preview).toHaveTextContent('about Fabricator at Acme Metals');
+    // The blank is a chip that fills in place (rev-3 A), counted under the text.
+    expect(within(preview).getByRole('button', { name: 'Fill Contact' })).toBeInTheDocument();
+    expect(within(preview).getByText(/^\d+ blanks? left$/)).toBeInTheDocument();
+    // One Close (the dialog's X), and Copy message is the one primary (rule A, like Follow up).
+    expect(screen.getAllByRole('button', { name: /close/i })).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Copy message' }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('[Contact]'));
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
   });
 
@@ -59,11 +62,32 @@ describe('UseTemplate', () => {
       'href',
       '#/copy-deck/snippet-b',
     );
+    // A 40px tertiary button with a pencil, not a 24px inline link.
+    expect(
+      screen.getByRole('link', { name: 'Edit in Documents' }).querySelector('svg'),
+    ).not.toBeNull();
     await user.click(screen.getByRole('button', { name: 'Plain note' }));
     expect(screen.getByRole('link', { name: 'Edit in Documents' })).toHaveAttribute(
       'href',
       '#/copy-deck/snippet-a',
     );
+  });
+
+  it('Copy is the one primary; Edit in Documents sits under the Preview, not in the footer (rev-3 A)', async () => {
+    const user = userEvent.setup();
+    wrap();
+    await user.click(screen.getByRole('button', { name: 'Use template' }));
+    const copy = screen.getByRole('button', { name: 'Copy message' });
+    expect(copy).toHaveAttribute('data-variant', 'primary');
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).queryAllByRole('button', { name: 'Close' }).length).toBeLessThanOrEqual(
+      1,
+    );
+    const link = screen.getByRole('link', { name: 'Edit in Documents' });
+    expect(link.parentElement?.contains(copy)).toBe(false);
+    const preview = screen.getByRole('region', { name: 'Preview' });
+    expect(preview.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(link.compareDocumentPosition(copy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('has no axe violations when open', async () => {

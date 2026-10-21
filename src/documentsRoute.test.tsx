@@ -86,7 +86,7 @@ describe('the Documents page', () => {
   it('the Menu opens Documents', async () => {
     window.location.hash = '#/queue';
     await renderApp();
-    await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
     const menu = await screen.findByRole('menu');
     expect(within(menu).queryByRole('menuitem', { name: 'Templates' })).toBeNull();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
@@ -109,6 +109,8 @@ describe('the Documents page', () => {
     await userEvent.click(
       await within(outreach()).findByRole('button', { name: /Thank-you after interview/ }),
     );
+    // The row expands first (rev-3 M); Open goes to the editor.
+    await userEvent.click(screen.getByRole('button', { name: 'Open Thank-you after interview' }));
     await waitFor(() => expect(window.location.hash).toBe('#/copy-deck/snippet-tpl-thanks'));
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Thank-you after interview');
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
@@ -188,9 +190,7 @@ describe('editing a message changes what the fill paths use', () => {
     await renderApp();
     openFollowUp(JOB);
     const dialog = await screen.findByRole('dialog');
-    expect(
-      (within(dialog).getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement).value,
-    ).toContain('P.S. Acme Metals rocks.');
+    expect(dialog).toHaveTextContent('P.S. Acme Metals rocks.');
   });
 
   it('Use template on the job page', async () => {
@@ -199,7 +199,7 @@ describe('editing a message changes what the fill paths use', () => {
     await renderApp();
     await userEvent.click(await screen.findByRole('button', { name: 'Use template' }));
     await userEvent.click(screen.getByRole('button', { name: 'Follow-up after applying' }));
-    expect((screen.getByLabelText('Preview') as HTMLTextAreaElement).value).toContain(
+    expect(screen.getByRole('region', { name: 'Preview' })).toHaveTextContent(
       'P.S. Acme Metals rocks.',
     );
   });
@@ -209,10 +209,11 @@ describe('editing a message changes what the fill paths use', () => {
     window.location.hash = `#/apply/${jobIdOf(JOB)}`;
     await renderApp();
     const list = await screen.findByRole('list', { name: 'Your templates' });
-    await userEvent.click(
-      within(list).getByRole('button', { name: 'Show all of Follow-up after applying' }),
-    );
-    expect(within(list).getByText(/P\.S\. Acme Metals rocks\./)).toBeInTheDocument();
+    // The row previews the edited text; Copy copies all of it.
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText');
+    await user.click(within(list).getByRole('button', { name: 'Copy Follow-up after applying' }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('P.S. Acme Metals rocks.'));
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
       'href',
       '#/copy-deck',

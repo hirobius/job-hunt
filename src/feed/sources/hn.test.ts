@@ -56,7 +56,7 @@ describe('parseHnComment', () => {
       source: 'hn',
       company: 'Acme Labs',
       title: 'Founding Design Engineer',
-      location: 'San Francisco, CA · ONSITE',
+      location: 'San Francisco, CA',
       mode: 'onsite',
       url: 'https://news.ycombinator.com/item?id=100',
       postedAt: '2026-10-02T10:00:00Z',
@@ -83,7 +83,7 @@ describe('parseHnComment', () => {
       }),
     )!;
     expect(p.title).toBe('Staff Frontend Engineer');
-    expect(p.location).toBe('REMOTE (US)');
+    expect(p.location).toBe('Remote (US)');
     expect(p.mode).toBe('remote');
   });
 
@@ -119,7 +119,33 @@ describe('parseHnComment', () => {
     )!;
     expect(p.company).toBe('Cardog');
     expect(p.title).toBe('Roles listed in post');
-    expect(p.location).toBe('Toronto, Ontario · ONSITE');
+    expect(p.location).toBe('Toronto, Ontario');
+  });
+
+  // The facts line never repeats the mode or shouts (no ALL CAPS, rev-3 polish).
+  it.each([
+    ['Acme | Designer | Remote (US) | REMOTE', 'Remote (US)'],
+    ['Acme | Designer | REMOTE', 'Remote'],
+    ['Acme | Designer | ONSITE', 'Onsite'],
+    ['Acme | Designer | HYBRID | Austin, TX', 'Austin, TX'],
+    ['Acme | Designer | SAN FRANCISCO, CA | ONSITE', 'San Francisco, CA'],
+    ['Acme | Designer | NYC | On-site', 'NYC'],
+    ['Acme | Designer | REMOTE (US) | REMOTE', 'Remote (US)'],
+  ])('location of "%s" is "%s"', (line, location) => {
+    expect(parseHnComment(comment({ comment_text: line }))!.location).toBe(location);
+  });
+
+  // Implementation-consulting and support tracks post these; they are roles, not "Roles listed".
+  it.each([
+    'Senior Implementation Consultant',
+    'Solutions Consultant',
+    'Onboarding Specialist',
+    'Customer Success Manager',
+    'Data Analyst',
+    'Technical Support',
+  ])('reads "%s" as the title', (role) => {
+    const p = parseHnComment(comment({ comment_text: `Acme | ${role} | Remote | Full-time` }))!;
+    expect(p.title).toBe(role);
   });
 
   it.each([

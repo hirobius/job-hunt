@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -26,22 +26,31 @@ describe('Onboarding sync gate (#99)', () => {
 });
 
 describe('Onboarding pack picker a11y (#104)', () => {
-  it('each pack is a keyboard-operable checkbox-like button named by its pack', async () => {
+  it('each pack is a keyboard-operable checkbox in a "Starter tracks" group, the Suggested one ticked', async () => {
     const user = userEvent.setup();
     render(<Onboarding />);
-    const card = screen.getByRole('checkbox', { name: 'Design Systems / Design Eng' });
-    expect(card).toHaveAttribute('aria-checked', 'false');
-    card.focus();
+    const group = screen.getByRole('group', { name: 'Starter tracks' });
+    expect(
+      within(group).getByRole('checkbox', { name: 'Implementation Consulting' }),
+    ).toBeChecked();
+    const box = within(group).getByRole('checkbox', { name: 'Design Systems / Design Eng' });
+    expect(box).not.toBeChecked();
+    expect(box).toHaveAccessibleDescription(/design-systems/i);
+    box.focus();
     await user.keyboard(' ');
-    expect(card).toHaveAttribute('aria-checked', 'true');
+    expect(box).toBeChecked();
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
   });
 
   it('"Build your own" requires a first job title, and seeds the track with it', async () => {
     const user = userEvent.setup();
     render(<Onboarding />);
+    await user.click(screen.getByRole('checkbox', { name: 'Implementation Consulting' }));
     await user.click(screen.getByRole('checkbox', { name: 'Build your own' }));
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    // Never disabled: pressing Continue without the title says what is missing and stays put.
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(screen.getByText('Add a first job title for your own track.')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Step 1 of 3' })).toBeInTheDocument();
     await user.type(screen.getByLabelText(/First job title/), 'Design Engineer');
     // Three steps now (#132): Continue to location, Continue to the first job, Finish seeds.
     await user.click(screen.getByRole('button', { name: 'Continue' }));
@@ -50,6 +59,19 @@ describe('Onboarding pack picker a11y (#104)', () => {
     expect(getCurationState().categories.map((c) => [c.label, c.titles])).toEqual([
       ['Build your own', ['Design Engineer']],
     ]);
+  });
+
+  it('with nothing ticked, Continue says "Pick at least one track" instead of being disabled', async () => {
+    const user = userEvent.setup();
+    render(<Onboarding />);
+    await user.click(screen.getByRole('checkbox', { name: 'Implementation Consulting' }));
+    const cont = screen.getByRole('button', { name: 'Continue' });
+    expect(cont).toBeEnabled();
+    await user.click(cont);
+    expect(screen.getByRole('alert')).toHaveTextContent('Pick at least one track');
+    expect(screen.getByRole('progressbar', { name: 'Step 1 of 3' })).toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: 'ServiceNow' }));
+    expect(screen.queryByText('Pick at least one track')).toBeNull();
   });
 
   it('has no WCAG A/AA violations', async () => {

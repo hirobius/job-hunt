@@ -1,4 +1,4 @@
-// The Privacy Policy and Terms (#43) are checked against the code they describe: every host the
+// The Privacy policy and Terms (#43) are checked against the code they describe: every host the
 // CSP lets the browser reach is disclosed, and the required disclosures are present.
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';

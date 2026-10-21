@@ -1,25 +1,58 @@
 // The pieces one job row is made of (#129), shared by the desktop table (JobsTable), the phone
 // cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
 // step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
-import { EllipsisVertical, Star } from 'lucide-react';
-import { Badge, Button, Icon, Menu, useToast } from '@hirobius/design-system';
-import { hostOf, setStatus, updateJob } from './store';
+import { Check, Ellipsis, Star } from 'lucide-react';
+import {
+  Badge,
+  Box,
+  Button,
+  Icon,
+  Menu,
+  Stack,
+  VisuallyHidden,
+  useToast,
+} from '@hirobius/design-system';
+import { setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
+import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
 import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
-import { primaryAction, STATUS_TONE, titleOf } from './jobRow';
+import { primaryAction, rowView, titleOf } from './jobRow';
 import { normStatus } from './jobState';
+import { researchLinks } from './jobFacts';
 import { STATUSES, type Job, type Status } from './types';
-import { DANGER } from './hds-gaps/tone';
 
 /** Controls on a phone card are 40px tap targets; the denser table uses the small size. */
 type Size = 'sm' | 'md';
 
-/** The job's Status. A retired job keeps its status, greyed (Retired is not a Status). */
+/** The job's Status. Neutral everywhere (rev-3 B): the table, the rail, the Company page and the
+ *  badge row all reserve colour for what needs attention (a due follow-up). */
 export function StatusBadge({ job }: { job: Job }) {
-  const status = normStatus(job.status);
-  return <Badge tone={job.archived ? 'neutral' : STATUS_TONE[status]}>{status}</Badge>;
+  return <Badge tone="neutral">{normStatus(job.status)}</Badge>;
+}
+
+/** One badge row above a job's title (rev-3 B order): status, Retired, a due follow-up, Closed on
+ *  the board, then fit, and the star on a card. Status and fit are neutral; only what needs
+ *  attention is a warning. Pipeline cards, the job page and Apply mode share it. */
+export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
+  const row = rowView(job);
+  const closed = checkFor(useLiveness(), job.url)?.state === 'closed';
+  return (
+    <Stack direction="row" wrap="wrap" gap="px8" align="center">
+      <StatusBadge job={job} />
+      {row.retired && <Badge>Retired</Badge>}
+      {row.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
+      {closed && <Badge tone="warning">Closed on the board</Badge>}
+      {row.verdict && <Badge tone="neutral">{row.verdict.label}</Badge>}
+      {star && row.pinned && (
+        <>
+          <StarIcon on />
+          <VisuallyHidden>Starred</VisuallyHidden>
+        </>
+      )}
+    </Stack>
+  );
 }
 
 /** The star: outline when off, filled when on. */
@@ -36,20 +69,21 @@ function useToggleStar() {
   };
 }
 
-/** The job page's star toggle: says Star or Starred, so the state reads without the icon. The
- *  text carries the state, so there is no aria-pressed (both would announce it twice). */
+/** The job page's star toggle: a 40px icon button named Star or Starred, so the state reads
+ *  from its name and the filled icon. The name carries the state, so there is no aria-pressed
+ *  (both would announce it twice). */
 export function StarButton({ job }: { job: Job }) {
   const toggle = useToggleStar();
   const on = !!job.priority;
   return (
     <Button
-      size="sm"
-      variant="tertiary"
+      size="md"
+      variant="secondary"
+      iconOnly
       iconLeft={<StarIcon on={on} />}
+      label={on ? 'Starred' : 'Star'}
       onClick={() => toggle(job)}
-    >
-      {on ? 'Starred' : 'Star'}
-    </Button>
+    />
   );
 }
 
@@ -87,43 +121,61 @@ export function RowMenu({
   job,
   size = 'sm',
   onRemoved,
+  research = false,
 }: {
   job: Job;
   size?: Size;
   /** Runs after Remove (the job page goes back to the Pipeline). */
   onRemoved?: () => void;
+  /** The job page's menu also holds the research links (rev-3 review: off the Details panel). */
+  research?: boolean;
 }) {
   const title = titleOf(job);
   const toggleStar = useToggleStar();
   return (
     <Menu>
       <Menu.Trigger asChild>
+        {/* A bordered 40px button on a phone card (rev-3 mock); quiet in the dense table. */}
         <Button
           size={size}
-          variant="tertiary"
+          variant={size === 'md' ? 'secondary' : 'tertiary'}
           iconOnly
-          iconLeft={<Icon icon={EllipsisVertical} />}
+          iconLeft={<Icon icon={Ellipsis} />}
           label={`More actions: ${title}`}
         />
       </Menu.Trigger>
       <Menu.Content align="end">
+        {/* "Open posting", not the host: a long domain would widen the menu (rev-3 mock). */}
         <Menu.Item asChild>
           <a href={job.url} target="_blank" rel="noopener noreferrer">
-            Open on {hostOf(job.url) || 'the original site'}
+            Open posting
           </a>
         </Menu.Item>
-        {/* Every stage is one tap from the row: Interviewing, Offer and Rejected included. */}
+        {/* Every stage is one tap from the row: Interviewing, Offer and Rejected included. Plain
+            items on the menu's one inset (rev-3 mock): HDS RadioItem keeps a left gutter for its
+            dot, which left the menu with two left edges. The current stage gets a trailing
+            check, and the items keep the radio semantics (menuitemradio + aria-checked). */}
         <Menu.Label>Status</Menu.Label>
-        <Menu.RadioGroup
-          value={normStatus(job.status)}
-          onValueChange={(v) => setStatus(job.url, v as Status)}
-        >
-          {STATUSES.map((st) => (
-            <Menu.RadioItem key={st} value={st}>
-              {st}
-            </Menu.RadioItem>
-          ))}
-        </Menu.RadioGroup>
+        <Menu.Group role="group" aria-label="Status">
+          {STATUSES.map((st) => {
+            const on = normStatus(job.status) === st;
+            return (
+              <Menu.Item
+                key={st}
+                role="menuitemradio"
+                aria-checked={on}
+                onSelect={() => {
+                  if (!on) setStatus(job.url, st as Status);
+                }}
+              >
+                <Box as="span" sx={{ flex: '1 1 auto' }}>
+                  {st}
+                </Box>
+                {on && <Icon icon={Check} size={16} aria-hidden />}
+              </Menu.Item>
+            );
+          })}
+        </Menu.Group>
         <Menu.Separator />
         <Menu.Item onSelect={() => toggleStar(job)}>{job.priority ? 'Unstar' : 'Star'}</Menu.Item>
         <Menu.Item onSelect={() => updateJob(job.url, { archived: !job.archived })}>
@@ -139,15 +191,27 @@ export function RowMenu({
         >
           Find more like this
         </Menu.Item>
+        {research && (
+          <>
+            <Menu.Separator />
+            <Menu.Label>Research</Menu.Label>
+            {researchLinks(job.label).map(([name, href]) => (
+              <Menu.Item key={name} asChild>
+                <a href={href} target="_blank" rel="noopener noreferrer">
+                  {name}
+                </a>
+              </Menu.Item>
+            ))}
+          </>
+        )}
         <Menu.Separator />
-        {/* Remove goes to Recently removed, with Undo, so it needs no confirm. HDS Menu.Item has
-            no danger tone; the feedback token marks the destructive item. */}
+        {/* Remove goes to Recently removed, with Undo, so it needs no confirm. */}
         <Menu.Item
           onSelect={() => {
             removeWithUndo(job);
             onRemoved?.();
           }}
-          style={DANGER}
+          tone="danger"
         >
           Remove
         </Menu.Item>

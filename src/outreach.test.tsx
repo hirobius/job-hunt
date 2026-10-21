@@ -109,23 +109,31 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Hiring now | All: an HDS SegmentedControl (rev-3 mock), not a switch. */
+const showAll = () => userEvent.click(screen.getByRole('radio', { name: /^All/ }));
+/** A company row's Roles button opens its roles (and actions) in place. */
+const openRoles = async (company: string) => {
+  const b = await screen.findByRole('button', { name: `Roles at ${company}` });
+  if (b.getAttribute('aria-expanded') !== 'true') await userEvent.click(b);
+};
+
 const find = async () => {
   await userEvent.click(await screen.findByRole('button', { name: 'Find design-system teams' }));
   return screen.findByRole('list', { name: 'Companies' });
 };
 
 describe('Teams (design-system teams)', () => {
-  it('is the Teams tool in the Discover row', async () => {
+  it('is the Watched tool in the Discover row', async () => {
     renderApp();
     const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
-    expect(within(tools).getByRole('radio', { name: 'Teams' })).toBeChecked();
+    expect(within(tools).getByRole('radio', { name: 'Watched' })).toBeChecked();
   });
 
   it('open roles first: Hiring now puts boards not found below, collapsed; keeps the unchecked', async () => {
     renderApp();
     const list = await find();
-    await screen.findByText(/3 teams found · 1 hiring now/);
-    await within(list).findByText(/1 matching role · 2 open in all/);
+    await screen.findByText(/3 companies, 1 hiring now\./);
+    await within(list).findByText('Lever · 1 matching role');
     const names = () =>
       within(screen.getByRole('list', { name: 'Companies' }))
         .getAllByText(/^(Acme Design|Flaky|Quiet Co)( \(opens in new tab\))?$/)
@@ -138,11 +146,11 @@ describe('Teams (design-system teams)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Board not found (1)' }));
     expect(screen.getByRole('list', { name: 'Board not found' })).toHaveTextContent('Quiet Co');
 
-    await userEvent.click(screen.getByRole('switch', { name: 'Hiring now' }));
+    expect(screen.getByRole('radio', { name: 'All' })).toBeVisible();
+    await showAll();
     expect(names()).toEqual(['Acme Design', 'Flaky', 'Quiet Co']);
-    const rows = within(screen.getByRole('list', { name: 'Companies' })).getAllByRole(
-      'listitem',
-    );
+    await openRoles('Quiet Co');
+    const rows = within(screen.getByRole('list', { name: 'Companies' })).getAllByRole('listitem');
     const quiet = rows.find((r) => r.textContent?.includes('Quiet Co'))!;
     expect(quiet).toHaveTextContent('Board not found');
     // An organisation without a board still gets a careers search, not a dead end.
@@ -153,17 +161,38 @@ describe('Teams (design-system teams)', () => {
     );
   });
 
+  it('each row is one line with a Roles button; one row opens at a time', async () => {
+    renderApp();
+    await find();
+    await screen.findByText('Lever · 1 matching role');
+    expect(screen.queryByRole('list', { name: 'Open roles at Acme Design' })).toBeNull();
+    await openRoles('Acme Design');
+    expect(screen.getByRole('button', { name: 'Roles at Acme Design' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByRole('list', { name: 'Open roles at Acme Design' })).toBeVisible();
+    await openRoles('Flaky');
+    expect(screen.queryByRole('list', { name: 'Open roles at Acme Design' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Roles at Acme Design' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+  });
+
   it('saves a matching role to the Pipeline in one tap; the shared save notice offers Undo', async () => {
     renderApp();
     await find();
+    await openRoles('Acme Design');
     const roles = await screen.findByRole('list', { name: 'Open roles at Acme Design' });
     expect(within(roles).queryByText('Sales Lead')).toBeNull();
     await userEvent.click(within(roles).getByRole('button', { name: 'Save Design Engineer' }));
     expect(getAllJobs().map((j) => j.label)).toEqual(['Design Engineer']);
     expect(getAllJobs()[0].note).toMatch(/Found in Teams/);
     expect(within(roles).getByRole('button', { name: 'Saved Design Engineer' })).toBeDisabled();
+    // The notice is an HDS Toast: one list item in the Notifications region.
     const notice = (await screen.findByText('Saved to Pipeline · To apply')).closest(
-      '[role="status"]',
+      'li',
     ) as HTMLElement;
     await userEvent.click(within(notice).getByRole('button', { name: 'Undo' }));
     expect(getAllJobs()).toEqual([]);
@@ -173,12 +202,26 @@ describe('Teams (design-system teams)', () => {
   it('a starred dream company stays on top and Check lists what is new since last time', async () => {
     renderApp();
     await find();
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Star Acme Design as a dream company' }),
-    );
+    const star = await screen.findByRole('button', {
+      name: 'Star Acme Design as a dream company',
+      pressed: false,
+    });
+    await screen.findByText('Lever · 1 matching role');
+    await userEvent.click(star);
     expect(readDreams(cat).map((d) => d.company)).toEqual(['Acme Design']);
+    // The star fills in place and says it is on; it never turns into a bordered button.
+    const on = screen.getAllByRole('button', {
+      name: 'Star Acme Design as a dream company',
+      pressed: true,
+    });
+    expect(on.length).toBeGreaterThan(0);
+    expect(on[0].querySelector('svg')).toHaveClass('rjb-icon-filled');
     const dreams = screen.getByRole('list', { name: 'Dream companies' });
-    expect(dreams).toHaveTextContent('Not checked yet');
+    expect(screen.getByRole('region', { name: 'Dream companies' })).toHaveTextContent(
+      /^Dream companies1/,
+    );
+    // Its board was already read by the list below: the count, not "Not checked yet".
+    expect(dreams).toHaveTextContent('Lever · 1 matching role');
 
     await userEvent.click(screen.getByRole('button', { name: 'Check dream companies' }));
     expect(await screen.findByText('1 new opening since the last check.')).toBeVisible();
@@ -188,7 +231,7 @@ describe('Teams (design-system teams)', () => {
     try {
       await userEvent.click(screen.getByRole('button', { name: 'Check dream companies' }));
       expect(await screen.findByText('1 new opening since the last check.')).toBeVisible();
-      await within(dreams).findByText('2 matching roles · 1 new');
+      await within(dreams).findByText('Lever · 2 matching roles · 1 new');
     } finally {
       acmeJobs.pop();
     }
@@ -199,15 +242,21 @@ describe('Teams (design-system teams)', () => {
     renderApp();
     const again = await screen.findByRole('list', { name: 'Dream companies' });
     expect(again).toHaveTextContent('Acme Design');
-    await userEvent.click(within(again).getByRole('button', { name: 'Unstar Acme Design' }));
+    await userEvent.click(
+      within(again).getByRole('button', {
+        name: 'Star Acme Design as a dream company',
+        pressed: true,
+      }),
+    );
     expect(readDreams(cat)).toEqual([]);
   });
 
   it('Save as target persists across a reload and shows under Saved', async () => {
     renderApp();
     await find();
-    await screen.findByText(/3 teams found/);
-    await userEvent.click(screen.getByRole('switch', { name: 'Hiring now' }));
+    await screen.findByText(/3 companies/);
+    await showAll();
+    await openRoles('Quiet Co');
     await userEvent.click(screen.getByRole('button', { name: 'Save as target: Quiet Co' }));
     expect(readTargets(cat).map((t) => t.login)).toEqual(['quiet']);
     expect(screen.getByRole('button', { name: 'Saved Quiet Co' })).toBeDisabled();
@@ -223,6 +272,7 @@ describe('Teams (design-system teams)', () => {
   it('Watch board adds a tile to the track', async () => {
     renderApp();
     await find();
+    await openRoles('Acme Design');
     await userEvent.click(
       await screen.findByRole('button', { name: 'Watch board for Acme Design' }),
     );
@@ -251,7 +301,8 @@ describe('Teams (design-system teams)', () => {
   it('has no WCAG A/AA violations', async () => {
     const { container } = renderApp();
     await find();
-    await screen.findByText(/3 teams found · 1 hiring now/);
+    await screen.findByText(/3 companies, 1 hiring now/);
+    await openRoles('Acme Design');
     await screen.findByRole('list', { name: 'Open roles at Acme Design' });
     const results = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },

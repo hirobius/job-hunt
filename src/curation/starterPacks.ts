@@ -16,6 +16,7 @@ import {
   TRADES_PACK,
   type PackContent,
 } from './packContent';
+import { sameGroupLabel } from './groupLabel';
 
 export interface StarterPack {
   id: string;
@@ -156,7 +157,8 @@ export function topUpFromPack(categoryId: string, packId: string): TopUpResult {
     state.tiles.filter((x) => groups.some((g) => g.id === x.groupId)).map((x) => x.url),
   );
   content.groups.forEach((pg, gi) => {
-    let groupId = groups.find((g) => g.label === pg.label)?.id;
+    // Case-insensitive: an older synced 'Apply Now' is the pack's 'Apply now' group.
+    let groupId = groups.find((g) => sameGroupLabel(g.label, pg.label))?.id;
     if (!groupId) {
       groupId = addGroup(categoryId, {
         label: pg.label,

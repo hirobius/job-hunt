@@ -1,4 +1,4 @@
-// The Privacy Policy and Terms pages (#43): `#/legal/privacy` and `#/legal/terms`, opened from the
+// The Privacy policy and Terms pages (#43): `#/legal/privacy` and `#/legal/terms`, opened from the
 // Menu. Like Documents they have no tab: the page names itself and links back to Companies. The
 // text is data in `legal.ts`; while it is unapproved (`LEGAL_DRAFT`) the page says it is a draft.
 import { ArrowLeft } from 'lucide-react';

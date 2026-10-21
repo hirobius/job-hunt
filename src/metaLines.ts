@@ -24,3 +24,12 @@ export function metaLines(items: ReadonlyArray<string | null | undefined | false
 export function itemsInLine(line: string): number {
   return line.split(/\s+·\s+/).filter(Boolean).length;
 }
+
+/** "Oct 11" from a stored date (YYYY-MM-DD or ISO); empty for a date it cannot read. */
+export function shortDate(s: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+  return isNaN(d.getTime())
+    ? ''
+    : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}

@@ -55,6 +55,9 @@ const LIVE: Record<string, unknown> = {
     leverJob('northwind', 'n2', 'Accountant'),
   ],
   'https://boards-api.greenhouse.io/v1/boards/figma/jobs': { jobs: [] },
+  'https://api.lever.co/v0/postings/eastgate?mode=json': [1, 2, 3, 4].map((n) =>
+    leverJob('eastgate', `e${n}`, `Welder ${n}`),
+  ),
 };
 const fakeFetch = vi.fn(async (url: string) => {
   const hit = Object.keys(LIVE).find((k) => url.startsWith(k));
@@ -97,16 +100,17 @@ describe('Companies as one tool (#237)', () => {
       within(row)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Teams', 'Apply', 'ATS']);
+    ).toEqual(['Watched', 'Apply now', 'ATS search']);
   });
 
   it('a track that watches a company opens on its company rows, open roles inline, saved in one tap', async () => {
     watch('https://jobs.lever.co/northwind');
     renderApp();
-    expect(within(await tools()).getByRole('radio', { name: 'Teams' })).toBeChecked();
+    expect(within(await tools()).getByRole('radio', { name: 'Watched' })).toBeChecked();
     const list = await screen.findByRole('list', { name: 'Companies' });
     expect(within(list).getByText('Northwind')).toBeVisible();
-    expect(await within(list).findByText(/1 matching role · 2 open in all/)).toBeVisible();
+    expect(await within(list).findByText('Lever · 1 matching role')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Roles at Northwind' }));
     const roles = await screen.findByRole('list', { name: 'Open roles at Northwind' });
     expect(within(roles).getByText('Senior Welder')).toBeVisible();
     expect(within(roles).queryByText('Accountant')).toBeNull();
@@ -118,13 +122,33 @@ describe('Companies as one tool (#237)', () => {
     );
   });
 
+  it('one Watched panel: count badge, caption, Hiring now | All; All counts what Hiring now hides', async () => {
+    watch('https://jobs.lever.co/northwind');
+    watch('https://boards.greenhouse.io/figma');
+    renderApp();
+    const panel = await screen.findByRole('region', { name: 'Watched' });
+    expect(within(panel).getByRole('heading', { name: 'Watched' })).toBeVisible();
+    expect(
+      await within(panel).findByText(
+        '2 companies, 1 hiring now. Open roles that match this track show first.',
+      ),
+    ).toBeVisible();
+    expect(within(panel).getByRole('button', { name: 'Add a company' })).toBeVisible();
+    const list = within(panel).getByRole('list', { name: 'Companies' });
+    expect(within(list).queryByText('Figma')).toBeNull();
+    await userEvent.click(within(panel).getByRole('radio', { name: 'All (1 more)' }));
+    expect(within(list).getByText('Greenhouse · no matching roles')).toBeVisible();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Roles at Figma' }));
+    expect(within(list).getByText('No open role matches this track right now.')).toBeVisible();
+  });
+
   it('starred companies and the one-button check sit on the Companies home', async () => {
     starDream(cat, {
       company: 'Northwind',
       board: { kind: 'lever', slug: 'northwind' },
     });
     renderApp();
-    expect(within(await tools()).getByRole('radio', { name: 'Teams' })).toBeChecked();
+    expect(within(await tools()).getByRole('radio', { name: 'Watched' })).toBeChecked();
     expect(await screen.findByRole('list', { name: 'Dream companies' })).toHaveTextContent(
       'Northwind',
     );
@@ -133,7 +157,7 @@ describe('Companies as one tool (#237)', () => {
 
   it('a track with nothing to show on Companies still opens on Apply now', async () => {
     renderApp();
-    expect(within(await tools()).getByRole('radio', { name: 'Apply' })).toBeChecked();
+    expect(within(await tools()).getByRole('radio', { name: 'Apply now' })).toBeChecked();
   });
 
   describe('Add a company', () => {
@@ -178,27 +202,32 @@ describe('Companies as one tool (#237)', () => {
       );
       await userEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
       expect(await within(dialog).findByText(/No public board found/)).toBeVisible();
-      await userEvent.click(within(dialog).getByRole('button', { name: 'Star Nobody Inc' }));
+      await userEvent.click(
+        within(dialog).getByRole('button', { name: 'Keep Nobody Inc as a target' }),
+      );
       expect(readDreams(cat).map((d) => d.company)).toEqual(['Nobody Inc']);
     });
   });
 
   describe('old #/discover/* links still land', () => {
     it.each([
-      ['live', 'Teams', 'Live postings'],
-      ['boards', 'Teams', 'Check a list of companies'],
-      ['teams', 'Teams', null],
-      ['apply', 'Apply', null],
-      ['titles', 'Teams', 'Live postings'],
-      ['ats', 'ATS', null],
-      ['nonsense', 'Apply', null],
+      ['live', null, 'Live postings'],
+      ['boards', null, 'Check a list of companies'],
+      ['teams', 'Watched', null],
+      ['apply', 'Apply now', null],
+      ['titles', null, 'Live postings'],
+      ['ats', 'ATS search', null],
+      ['nonsense', 'Apply now', null],
     ])('#/discover/%s', async (slug, radio, heading) => {
       window.location.hash = `#/discover/${slug}`;
       renderApp();
-      expect(within(await tools()).getByRole('radio', { name: radio })).toBeChecked();
+      if (radio) expect(within(await tools()).getByRole('radio', { name: radio })).toBeChecked();
       if (heading) {
+        // A secondary view is the second and last nav level (rev-3 G): "Back to companies"
+        // replaces the tool switch, so no segment claims a page the user isn't on.
         expect(await screen.findByRole('heading', { name: heading })).toBeVisible();
         expect(screen.getByRole('link', { name: 'Back to companies' })).toBeVisible();
+        expect(screen.queryByRole('radiogroup', { name: 'Search tool' })).toBeNull();
       }
     });
 
@@ -206,14 +235,35 @@ describe('Companies as one tool (#237)', () => {
       const g = addGroup(cat, { label: 'Union halls' });
       window.location.hash = `#/discover/${g}`;
       renderApp();
-      expect(await screen.findByRole('tab', { name: 'Union halls', selected: true })).toBeVisible();
+      expect(await screen.findByRole('heading', { level: 3, name: 'Union halls' })).toBeVisible();
+    });
+
+    it('shows an older synced "Apply Now" section in sentence case', async () => {
+      const g = addGroup(cat, { label: 'Apply Now' });
+      window.location.hash = `#/discover/${g}`;
+      renderApp();
+      expect(await screen.findByRole('heading', { level: 3, name: 'Apply now' })).toBeVisible();
+      expect(screen.queryByText('Apply Now')).toBeNull();
     });
 
     it('Companies links to Live postings and the list checker as more ways to find companies', async () => {
       window.location.hash = '#/discover/teams';
       renderApp();
+      // Rows in a panel (rev-3 mock): a title, a caption and an Open button each, not bare links.
+      const more = await screen.findByRole('region', { name: 'More ways to find companies' });
+      const rows = within(more).getAllByRole('listitem');
+      expect(rows).toHaveLength(2);
+      expect(within(rows[0]).getByText('Live postings from job boards')).toBeVisible();
+      expect(
+        within(rows[0]).getByText(/HN, Remotive, Jobicy and your watched boards/),
+      ).toBeVisible();
+      expect(within(rows[1]).getByText('Check a list of companies')).toBeVisible();
+      expect(within(rows[1]).getByText(/Paste names or a YC batch/)).toBeVisible();
+      expect(
+        within(rows[1]).getByRole('link', { name: 'Open Check a list of companies' }),
+      ).toHaveAttribute('href', '#/discover/boards');
       await userEvent.click(
-        await screen.findByRole('link', { name: 'Live postings from job boards' }),
+        within(rows[0]).getByRole('link', { name: 'Open Live postings from job boards' }),
       );
       expect(window.location.hash).toBe('#/discover/live');
       expect(await screen.findByRole('heading', { name: 'Live postings' })).toBeVisible();

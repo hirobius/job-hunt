@@ -2,41 +2,65 @@
 
 Every local stand-in for something HDS doesn't do yet, with its upstream ask. Rule: when an HDS
 release ships the fix, the upgrade PR deletes the workaround and moves its row to "Retired". HDS is
-pinned at **0.26.2**.
+pinned at **0.30.0** (public npm; GitHub Packages stops at 0.26.2). Rows marked _shipped_ have
+the HDS fix out and wait for their screen's redesign slice to migrate.
 
 ## Open
 
-| Workaround | Where | What HDS lacks | Upstream |
-|---|---|---|---|
-| Action toast (Open, Undo) | `src/hds-gaps/ActionToast.tsx` | `useToast` has no action slot | hds#815, fix in hds#816 (unreleased) |
-| Async list states | `src/hds-gaps/AsyncState.tsx` | one component for loading / slow / error / empty / ready | hds#818 |
-| Selectable link list | `src/hds-gaps/RailList.tsx` + `.css` | `NavList` or a list item with `aria-current` | hds#817 |
-| Tab scroll-into-view | `src/hds-gaps/TabsOverflowFade.tsx` | TabsList fades (0.26.1) but doesn't scroll the selected tab into view | hds#823 |
-| SegmentedControl overflow fade | `src/hds-gaps/TabsOverflowFade.tsx` | the TabsList edge fade, on SegmentedControl | hds#823 |
-| Token chips in a text field | `src/hds-gaps/TokenTextarea.tsx` + `.css` | a `TokenField` with atomic tokens and a caret API | hds#826 |
-| Bare top-level tab panels | `src/hds-gaps/barePanel.ts` | a `TabsContent` variant with no surface or inset | hds#819 |
-| Danger menu item | `src/hds-gaps/tone.ts` `DANGER` | `Menu.Item tone="danger"` | hds#822 |
-| Secondary colour on a plain span or p | `src/hds-gaps/tone.ts` `SECONDARY` | nothing for non-`Text` elements (by design; `Text tone` covers the rest) | none needed |
-| Markup per breakpoint | `src/hds-gaps/useBreakpoint.ts` | a `useBreakpoint` / `useMediaQuery` hook on HDS breakpoints | hds#824 |
-| Keyboard-aware dialog | `src/hds-gaps/useVisualViewportVars.ts` | a top-anchored, keyboard-aware Dialog or Sheet | related: hds#690 |
-| Empty state icon | `src/EmptyState.tsx` | an `icon` slot on `EmptyState` (`action` shipped in 0.25) | hds#825 |
-| `Text` weight | `.rjb-semibold` in `src/theme/base.css` | a `weight` prop on `Text` | hds#825 |
-| Menu height cap | `[role='menu']` rule in `src/theme/base.css` | Menu caps its height to the space Radix measures and scrolls (44px phone items in 0.26 made long menus run off screen) | hds#821 |
-| Phone touch size | 40px rule in `src/theme/base.css` | a touch size on sm controls | hds#750 |
-| Dark pressed accent contrast | held pair in `src/theme.contrast.test.ts` | AA on the dark pressed accent | hds#748 (lands in 0.27, unpublished) |
+| Workaround                           | Where                                                                                               | What HDS lacks                                                                                                                                                                  | Upstream         |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Inline fillable blank (rev-3 A)      | `.rjb-blank` / `.rjb-chip` in `src/theme/base.css` (`BlankText.tsx`)                                | a tappable inline token chip (TokenField chips aren't buttons; Tag is a 24px pill with no inline size)                                                                          | to file          |
+| Two-line card title (rev-3 H)        | `.rjb-card-title` / `.rjb-clamp-2` / `.rjb-clamp-3` in `base.css`                                   | a line clamp on `Text`, and a quiet (no underline at rest) title link                                                                                                           | to file          |
+| One-line truncation                  | `.rjb-truncate` in `src/theme/base.css`                                                             | a `truncate` option on `Text` / `InlineLink`                                                                                                                                    | to file          |
+| Resizable textarea                   | `.rjb-resize` in `src/theme/base.css`                                                               | a `resize` prop on `Textarea`                                                                                                                                                   | to file          |
+| Keyboard-aware dialog                | `src/hds-gaps/useVisualViewportVars.ts`                                                             | a top-anchored, keyboard-aware Dialog or Sheet                                                                                                                                  | related: hds#690 |
+| `Text` weight                        | `.rjb-semibold` in `src/theme/base.css`                                                             | _shipped_ 0.28: `Text weight` (regular, medium, bold; no semibold step)                                                                                                         | hds#825          |
+| Phone touch size                     | 40px rule in `src/theme/base.css`                                                                   | a touch size on sm controls                                                                                                                                                     | hds#750          |
+| Dark pressed accent contrast         | held pair in `src/theme.contrast.test.ts`                                                           | _shipped_ 0.27: AA on the dark pressed accent                                                                                                                                   | hds#748          |
+| EmptyState italic + centred          | `src/hds-gaps/EmptyState.tsx` (every app empty state imports it)                                    | a non-italic EmptyState title, and a centred teaching variant (icon tile, bold title, framed)                                                                                   | to file          |
+| Alert title size in a panel          | `.rjb-inline-alerts` in `src/theme/base.css` (Live postings)                                        | an Alert `size` (its titleSm title reads as a page head and wraps at 390)                                                                                                       | to file          |
+| Avatar inflated by touch rule        | `.rjb-avatar` / `.rjb-account` in `src/theme/base.css` (Account menu)                               | the phone touch-size rule (`.h-8` min-height, `.w-8[class*=h-8]` min-width) must not target Avatar, which is not a control; icon Button touch width 40 like the app             | to file          |
+| Compact save Toast                   | `NoticeHost` drops the description and uses `tone="success"`                                        | an inline-actions or compact Toast layout (title and Open / Undo on one line, rev-3 #s-save-notice)                                                                             | to file          |
+| Shell dialog placement               | `.rjb-sheet` in `src/account/sheet.css` (sign-in, Reset)                                            | a top-anchored, keyboard-aware Dialog / AlertDialog placement on a phone                                                                                                        | related: hds#690 |
+| 16px phone form fields               | `@media (max-width: 639.98px)` input/textarea/select rule in `base.css`                             | compact density sets fields to 13px; iOS Safari zooms on focus below 16px. Fields need ≥ 16px below `sm`                                                                        | to file          |
+| Tab row flush with the gutter        | `.rjb-job-tabs` first-tab padding in `src/theme/base.css` (job page)                                | a TabsList option whose first tab (label and underline) starts on the content edge                                                                                              | to file          |
+| Apply pager size + disabled          | `nav[aria-label='Jobs to apply']` in `base.css` (`ApplyMode`)                                       | a bordered 40x40 compact Pagination button; a disabled tertiary without the grey primary fill                                                                                   | to file          |
+| Fill field surface (rev-3 A)         | `.rjb-fillbox` in `src/theme/base.css` (`BlankText.tsx`)                                            | a page-surface Card, so an input in a card in a raised panel isn't a dark hole                                                                                                  | to file          |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Disclosure row hover/press (rev-3 M) | `.rjb-doc-row` in `src/theme/base.css` (`DocumentsLibrary.tsx`)                                     | a hover and pressed background on `Disclosure variant="row"`, so the whole row reads as tappable                                                                                | to file          |
+| Dialog title/description gap         | `[role='alertdialog'] h2 + p` in `src/theme/base.css`                                               | the header's `space-y-1.5` loses to a host's unlayered `h2, p { margin: 0 }`; a gap (or a layered reset) that survives it. Also: the 24px title is heavier than the mock's 20px | to file          |
+| Back link aligned to the heading     | `.rjb-back` in `src/theme/base.css` (`DocumentsView`, `DocumentEditor`, `CompanyPage`, `JobHeader`) | a flush / inline tertiary Button (no inline padding), so a back link's icon lines up with the page heading                                                                      | to file          |
+| Vertical row chevron (rev-3)         | `.rjb-disclosure-vertical` in `src/theme/base.css` (`LiveFeedPanel`, `FeedFit`)                     | a chevron direction on `Disclosure variant="row"` (down when closed, up when open; it turns right)                                                                              | to file          |
+| Company type-ahead (rev-3 L)         | `FindBoardsPanel.tsx` (typed text read from the bubbling change event)                              | `onInputChange` on creatable `Combobox` for async options, and a rich option (leading logo/initial, a second line)                                                              | to file          |
+| Documents row preview (rev-3 M)      | `.rjb-doc-preview` in `base.css`; chips in the row label (`DocumentsLibrary.tsx`)                   | a multi-line `preview` on `Disclosure variant="row"` that can stay while open                                                                                                   | to file          |
+| framer-motion pin                    | `overrides` in `package.json` (framer-motion 12.23.24, motion-dom 12.23.23, motion-utils 12.23.6)   | pin `motion` → framer-motion: 12.42 wraps every AnimatePresence child in PopChild and reads `children.props.ref`, a React 18 console error on each Disclosure open              | to file          |
 
 ## Retired
 
-| Workaround | Retired in | Upstream |
-|---|---|---|
-| Nested `'&'` breakpoint override in `sx` | 0.26.2 upgrade (`base` key) | hds#652 |
-| `EmptyState` action composed outside HDS | 0.26.2 upgrade (`action` prop, 0.25) | hds#654 |
-| `Text` + inline secondary colour | 0.26.2 upgrade (`tone="secondary"`, 0.26) | hds#655 |
-| Active-tab underline patch in `base.css` | 0.26.2 upgrade (bug bash, 0.26) | hds#749 |
-| Wrapper fade on TabsList | 0.26.2 upgrade (TabsList fades, 0.26.1) | hds#723 |
-| `<section>` around a `Stack` for `aria-*` | 0.26.2 upgrade (Stack forwards `aria-*`, 0.26.1) | 0.26.1 |
-| Auto-fit `Grid` instead of MetricTiles | Insights view removed; MetricTiles caps at 2 columns on a phone in 0.26.1 | 0.26.1 |
-| `Sheet` / `SheetMenu`, `.app-sheet*`, `body { overflow-x: clip }` | removed with the v1 redesign (#149) | hds#690 |
+| Workaround                                                        | Retired in                                                                | Upstream |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------- | -------- |
+| `TokenTextarea` + chip-edit helpers in `templateEditor.ts`        | redesign slice 3 (HDS `TokenField`, 0.28)                                 | hds#826  |
+| `TabsOverflowFade` (shell tabs, Discover, Find boards)            | redesign slice 3 (TabsList and SegmentedControl fade and scroll, 0.28)    | hds#823  |
+| `hds-gaps/tone.ts` `SECONDARY` (plain span or p)                  | redesign slice 4 (every use is now `Text tone="secondary"`)               | hds#655  |
+| `barePanel.ts` (Discover sections)                                | redesign slice 3 (`TabsContent variant="bare"`, 0.28)                     | hds#819  |
+| `ActionToast` (Open, Undo)                                        | redesign slice 2 (HDS Toast `actions`, 0.28; `NoticeHost`)                | hds#815  |
+| `AsyncState` (Live postings)                                      | redesign slice 2 (HDS `AsyncState` pattern, 0.28)                         | hds#818  |
+| `EmptyState.tsx` icon composition                                 | redesign slice 2 (HDS `EmptyState icon`, 0.28; every caller uses HDS)     | hds#825  |
+| Menu height cap in `base.css`                                     | redesign slice 2 (Menu caps its height, 0.28)                             | hds#821  |
+| Job page `TabsOverflowFade` + inline bare panel                   | redesign slice 2 (three tabs, `TabsContent variant="bare"`)               | hds#819  |
+| `RailList` (selectable link list)                                 | 0.30.0 upgrade (`NavList`, 0.28; link mode, as rail rows are routes)      | hds#817  |
+| `DANGER` menu item colour                                         | 0.30.0 upgrade (`Menu.Item tone="danger"`, 0.28)                          | hds#822  |
+| `useBreakpoint` / `useAtLeast` hook                               | 0.30.0 upgrade (HDS `useAtLeast`, 0.28)                                   | hds#824  |
+| Shell `BARE_PANEL` style                                          | 0.30.0 upgrade (`TabsContent variant="bare"`, 0.28)                       | hds#819  |
+| Account trigger (icon-only Menu button)                           | 0.30.0 upgrade (`Avatar` icon fallback + status dot, 0.30)                | rev-3 P  |
+| Nested `'&'` breakpoint override in `sx`                          | 0.26.2 upgrade (`base` key)                                               | hds#652  |
+| `EmptyState` action composed outside HDS                          | 0.26.2 upgrade (`action` prop, 0.25)                                      | hds#654  |
+| `Text` + inline secondary colour                                  | 0.26.2 upgrade (`tone="secondary"`, 0.26)                                 | hds#655  |
+| Active-tab underline patch in `base.css`                          | 0.26.2 upgrade (bug bash, 0.26)                                           | hds#749  |
+| Wrapper fade on TabsList                                          | 0.26.2 upgrade (TabsList fades, 0.26.1)                                   | hds#723  |
+| `<section>` around a `Stack` for `aria-*`                         | 0.26.2 upgrade (Stack forwards `aria-*`, 0.26.1)                          | 0.26.1   |
+| Auto-fit `Grid` instead of MetricTiles                            | Insights view removed; MetricTiles caps at 2 columns on a phone in 0.26.1 | 0.26.1   |
+| `Sheet` / `SheetMenu`, `.app-sheet*`, `body { overflow-x: clip }` | removed with the v1 redesign (#149)                                       | hds#690  |
 
 ---
 
@@ -76,6 +100,7 @@ renders with real interactions.
 ## Asks, in priority order
 
 ### 1. Per-component subpath exports (carried over — now the top cost)
+
 One `Button` import pulls all of `hirobius-ui.js` (~308 kB src → our vendor chunk is
 ~406 kB with motion, lucide, all radix). Now that the app consumes ~12 HDS components
 this is tolerable, but any light consumer pays the full freight.
@@ -83,12 +108,14 @@ this is tolerable, but any light consumer pays the full freight.
 lucide/unused radix and without the full stylesheet.
 
 ### 2. `Textarea`
+
 The last two text surfaces (job Notes, snippet body) are still MUI because HDS has no
 multiline field. Same shell/label/helper contract as `Input`.
 **Accept:** `<Textarea label="Notes" minRows={2} />` renders the Input visual language;
 we delete our final `TextField`.
 
 ### 3. General `Tooltip` primitive
+
 The shipped Tooltip is the internal image-interaction pill (`@internal`, cursor/centered
 modes). There's no general hover/focus tooltip, so HDS IconButtons app-wide are still
 wrapped in **MUI** Tooltip — one of the last blockers to deleting `@mui/material`.
@@ -96,39 +123,46 @@ wrapped in **MUI** Tooltip — one of the last blockers to deleting `@mui/materi
 overlay-token themed, works on hover + keyboard focus.
 
 ### 4. Document (or slot-ify) Input's trailing-visual semantics
+
 `trailingVisual` is `aria-hidden` + `pointer-events-none` — deliberately decorative. We
-put a clear *button* in it and it silently became invisible to a11y and unclickable
+put a clear _button_ in it and it silently became invisible to a11y and unclickable
 (caught only because our render harness clicks things). Two asks:
+
 - **Docs:** state loudly that visuals are decorative and that a built-in clear exists
   (we discovered the built-in by accident, then deleted our workaround).
 - **API:** an interactive `trailingAction` slot (positioned, focusable, not hidden) for
   cases like password-reveal, copy, or unit pickers.
-**Accept:** an interactive element in the designated slot is clickable and in the a11y
-tree; docs cover the decorative slots + built-in clear.
+  **Accept:** an interactive element in the designated slot is clickable and in the a11y
+  tree; docs cover the decorative slots + built-in clear.
 
 ### 5. `/mui` preset: ship complete color objects (+ channel keys)
+
 Two consumer papercuts with `cssVariables: true`:
+
 - MUI's `augmentColor` throws running color math on `var()` strings, so every palette
   color needs explicit `light`/`dark`/`contrastText`. The preset ships only `main`, so
   consumers must wrap each entry themselves (we carry a `tone()` helper for this).
 - MUI warns it can't derive `palette.*Channel` from `var()` values
   (`secondaryChannel` in our console).
-**Accept:** `createTheme({ ...hdsMuiThemeOptions() })` produces zero warnings and needs
-no consumer-side color wrapping.
+  **Accept:** `createTheme({ ...hdsMuiThemeOptions() })` produces zero warnings and needs
+  no consumer-side color wrapping.
 
 ### 6. Token-drive the Tabs active-underline color
-Active trigger is `border-foreground` (hardcoded to content color). The accent *tint* is
+
+Active trigger is `border-foreground` (hardcoded to content color). The accent _tint_ is
 token-driven, the underline isn't — a brand that wants an accent underline must override
 a Tailwind class.
 **Accept:** underline color reads a semantic token (default can stay foreground).
 
 ### 7. Contrast check: tertiary button focus/hover state
+
 Watch item from our renders: tertiary buttons in the focused/hover state render a pale
 `accent-subtle` pill; at small sizes the label reads low-contrast against it (observed
 in dark mode). May be fine — flagging for an AA pass on that state specifically.
 **Accept:** tertiary hover/focus label meets 4.5:1 in both themes.
 
 ### 8. `Tag` delete affordance
+
 `Tag` covers filter/toggle chips well. Removable chips (our PillarsDialog list editor
 uses MUI Chip `onDelete`) have no HDS equivalent.
 **Accept:** `<Tag onRemove={…}>` (or a `RemovableTag`) with a keyboard-accessible
@@ -150,7 +184,7 @@ After the adapter retirement, the entire local UI layer is `src/ui/box.tsx`
 spacing shorthands, the HDS token color map, responsive `{xs,sm,md}` objects, nested `&`
 selectors → cached injected CSS classes) plus `Reveal` (a CSS-grid `<Collapse>`). ~150
 `sx=` sites and ~200 primitive elements depend on it. HDS has no layout/`sx` primitive, so
-this cannot be deleted — only *adopted upstream*. It is kept MUI/emotion-free and
+this cannot be deleted — only _adopted upstream_. It is kept MUI/emotion-free and
 dependency-light specifically so it can be lifted into HDS wholesale.
 **Accept:** HDS ships a layout primitive set (`Box`/`Stack` + a token-scoped style prop)
 that covers ad-hoc spacing/flex/grid and the responsive-object + nested-selector cases,

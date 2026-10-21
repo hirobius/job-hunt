@@ -23,11 +23,13 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await expect(page.getByRole('heading', { name: 'Pipeline' })).toBeVisible();
 
   // Documents opens from the Menu; the starter templates are Outreach messages now.
-  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: 'Documents' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Documents' })).toBeVisible();
   const outreach = page.getByRole('region', { name: 'Outreach messages' });
+  // The row expands in place (rev-3 M); Open goes to the editor.
   await outreach.getByRole('button', { name: 'Follow-up after applying' }).click();
+  await outreach.getByRole('button', { name: 'Open Follow-up after applying' }).click();
 
   // Edit the text and save it as version 2.
   const text = page.getByRole('textbox', { name: 'Message text' });
@@ -43,9 +45,15 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await page.getByRole('button', { name: 'Start applying' }).click();
   await expect(page).toHaveURL(/#\/apply\//);
   const list = page.getByRole('list', { name: 'Your templates' });
-  await list.getByRole('button', { name: 'Show all of Follow-up after applying' }).click();
+  // The row previews the start of the edited text (no chevron: Copy is its one action).
   await expect(list.getByText(/I applied for the Fabricator role at Acme Metals/)).toBeVisible();
-  await expect(list.getByText(/See you soon\./)).toBeVisible();
+  // A blank fills in place and saves on the job (rev-3 A).
+  // Every row shares the job's Contact blank; fill it on the follow-up's row.
+  const row = list.getByRole('listitem', { name: 'Follow-up after applying' });
+  await row.getByRole('button', { name: 'Fill Contact' }).click();
+  await row.getByRole('textbox', { name: 'Contact' }).fill('Dana');
+  await row.getByRole('button', { name: 'Fill', exact: true }).click();
+  await expect(list.getByText(/Hi Dana,/).first()).toBeVisible();
   await expect(page.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
     'href',
     '#/copy-deck',

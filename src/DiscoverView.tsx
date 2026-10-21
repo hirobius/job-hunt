@@ -1,21 +1,22 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ArrowLeft, Check, Copy, ExternalLink, Link, ListPlus, Plus, Search } from 'lucide-react';
 import {
   Button,
-  Input as HdsInput,
+  Icon,
+  Select,
+  Switcher,
   SegmentedControl,
-  Tabs as HdsTabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
+  Badge,
+  Card,
   Tag,
   Box,
   Text,
   Disclosure,
-  InlineLink,
   Stack,
+  VisuallyHidden,
 } from '@hirobius/design-system';
+import { EmptyState } from './hds-gaps/EmptyState';
 import TileGrid from './TileGrid';
-import EmptyState from './EmptyState';
 import { useRoute, navigate } from './route';
 import {
   BOARDS,
@@ -37,21 +38,16 @@ import { consumeDiscoverSeed } from './discoverSeed';
 import { useCategories, useGroups, useTiles, addCategory } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
 import type { Category, Seniority } from './curation/types';
-import { ContextCaption } from './LocationControl';
 import DiscoverHeader from './DiscoverHeader';
-import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
-import { BARE_PANEL } from './hds-gaps/barePanel';
-
-const SECTION_PANEL = { ...BARE_PANEL, paddingTop: 'var(--primitive-space-4)' } as const;
-import { useAtLeast } from './hds-gaps/useBreakpoint';
-import { useTrackContext } from './discoverContext';
+import { contextLabel, placeLabel, useTrackContext } from './discoverContext';
+import { Panel, PanelBody, PanelRow, PanelRows } from './PipelinePanel';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
 import { teamSearchFor } from './feed/teamTopics';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 import { useActiveTitles } from './feed/sweepTitles';
 import { useDreams } from './feed/dreams';
 import { boardsFromUrls } from './feed/sources/ats';
-import { SweepTitlesEditor } from './SweepTitles';
+import { displayGroupLabel } from './curation/groupLabel';
 
 const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
 const LiveFeedPanel = lazy(() => import('./LiveFeedPanel'));
@@ -64,16 +60,21 @@ const CompaniesPanel = lazy(() => import('./CompaniesPanel'));
 // An empty store routes to first-run Onboarding (decision D1), gated by the shell (#128).
 
 const ACTIVE_CATEGORY_KEY = 'rjb_active_category';
+/** Hiring-system rows shown before "Show N more" (rev-3 mock: three quiet rows). */
+const ATS_SHOWN = 3;
 
 // Curated group tiles: saved ones removed (issue #57), pin/set-aside triage kept (decision D2).
 function GroupPanel({
   tiles,
   savedSet,
   onManage,
+  place,
 }: {
   tiles: Tile[];
   savedSet: ReadonlySet<string>;
   onManage: () => void;
+  /** The track's place, the tiles' fallback place fact. */
+  place: string;
 }) {
   const triage = useTileTriage();
   const { visible, saved, aside } = partitionTiles(tiles, triage, savedSet);
@@ -82,18 +83,29 @@ function GroupPanel({
       {saved.length > 0 && (
         <Box sx={{ mb: 'xs' }}>
           <Text variant="caption" as="div" tone="secondary">
-            {saved.length} saved — in your Queue
+            {saved.length} saved to your Pipeline
           </Text>
         </Box>
       )}
       {visible.length > 0 ? (
-        <TileGrid tiles={visible} triage />
+        <TileGrid tiles={visible} triage place={place} />
       ) : saved.length > 0 ? (
-        <EmptyState message="All saved — check your Tracker for these." />
+        <EmptyState
+          centered
+          icon={Link}
+          title="All saved to your Pipeline"
+          action={
+            <Button variant="secondary" onClick={() => navigate({ tab: 'queue' })}>
+              Open Pipeline
+            </Button>
+          }
+        />
       ) : (
         <EmptyState
+          centered
+          icon={Link}
           title="No links here yet"
-          message="Add links you trust, or use Title and ATS search for live ones."
+          description="Add links you trust, or use ATS search for live ones."
           action={
             <Button variant="secondary" size="sm" onClick={onManage}>
               Manage this track
@@ -104,7 +116,7 @@ function GroupPanel({
       {aside.length > 0 && (
         <Box sx={{ mt: 'xs' }}>
           <Disclosure label={`Set aside (${aside.length})`}>
-            <TileGrid tiles={aside} triage />
+            <TileGrid tiles={aside} triage place={place} />
           </Disclosure>
         </Box>
       )}
@@ -137,11 +149,15 @@ function AtsPanel({
   const many = all && active.length > 1;
   const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
   const [contract, setContract] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [showAllAts, setShowAllAts] = useState(false);
   if (titles.length === 0)
     return (
       <EmptyState
+        centered
+        icon={ListPlus}
         title="No titles yet"
-        message="Add a few job titles to this track and we'll search the big boards and companies' hiring systems (Greenhouse, Lever, Ashby…) for them."
+        description="Add a few job titles to this track and we'll search the big boards and companies' hiring systems (Greenhouse, Lever, Ashby…) for them."
         action={
           <Button variant="secondary" size="sm" onClick={onManage}>
             Add titles
@@ -170,127 +186,251 @@ function AtsPanel({
       meta: a.note ?? a.domain,
       url: a.href ?? atsSearchUrl(a.site, query),
     }));
-  const allButton = (sites: HiddenSite[], what: string) => (
-    <Box sx={{ mt: 3, mb: 3 }}>
-      <Button variant="secondary" size="sm" asChild>
-        <a href={searchAllUrl(sites, query)} target="_blank" rel="noopener noreferrer">
-          {`Search the top ${searchAllCount(sites, query)} ${what} at once`}
-        </a>
-      </Button>
-    </Box>
-  );
+  // One Google query has a 32-word cap: with many titles ticked, keep the first ones that leave
+  // room for at least three hiring systems, so "Search all boards" never searches none.
+  let fit = query;
+  while (fit.roles && fit.roles.length > 1 && searchAllCount(ATS, fit) < 3)
+    fit = { ...fit, roles: fit.roles.slice(0, -1) };
+  const fitTitles = fit.roles?.length ?? 1;
+  const atsTiles = tilesFor(ATS);
+  const allUrl = searchAllUrl(ATS, fit);
+  const allQuery = new URL(allUrl).searchParams.get('q') ?? '';
+  // Four titles, then "N more" (rev-3 I): the chips wrap, All selected first.
+  const shownTitles = showAll ? active : active.slice(0, 4);
   return (
-    <Box>
-      <Box sx={{ mb: 2.5 }}>
-        <Text variant="ui" tone="secondary">
-          Search the big boards and companies' hiring systems for your ticked titles
-          {entry ? ', entry-level filtered' : ''}. Hiring systems reached through Google draw far
-          less competition.
-        </Text>
-      </Box>
-      <ContextCaption categoryId={categoryId} />
-      {/* Mobile-first: a column that becomes a row from sm. */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { base: 'column', sm: 'row' },
-          gap: 3,
-          mb: 3,
-        }}
+    <Stack gap="spacious">
+      <Panel
+        label="Search hiring systems"
+        title="Search hiring systems"
+        description={`Reads your ticked titles${entry ? ', entry-level filtered' : ''}. Searching ${contextLabel(where, mode)}.`}
       >
-        <Box sx={{ display: 'contents', '& input': { minWidth: 180 } }}>
-          <HdsInput
-            size="sm"
-            label="Role / title"
-            value={many ? '' : role}
-            placeholder={many ? `All selected (${active.length})` : undefined}
-            onChange={(e) => {
-              setRole(e.target.value);
-              setAll(false);
-            }}
-          />
-        </Box>
-        <SegmentedControl
-          aria-label="Recency"
-          size="sm"
-          value={recency}
-          onChange={(v) => setRecency(v as typeof recency)}
-          options={[
-            { value: '', label: 'Any time' },
-            { value: 'w', label: 'Past week' },
-            { value: 'm', label: 'Past month' },
-          ]}
-        />
-        <SegmentedControl
-          aria-label="Engagement"
-          size="sm"
-          value={contract ? 'contract' : 'any'}
-          onChange={(v) => setContract(v === 'contract')}
-          options={[
-            { value: 'any', label: 'Any role' },
-            { value: 'contract', label: 'Contract only' },
-          ]}
-        />
-      </Box>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 1 }}>
-        {active.length > 1 && (
-          <Tag active={many} onClick={() => setAll(true)}>
-            {`All selected (${active.length})`}
-          </Tag>
-        )}
-        {active.map((r) => (
-          <Tag
-            key={r}
-            active={!many && r === role}
-            onClick={() => {
-              setRole(r);
-              setAll(false);
-            }}
-          >
-            {r}
-          </Tag>
-        ))}
-      </Box>
-      <Box sx={{ mb: 'xs' }}>
-        <SweepTitlesEditor categoryId={categoryId} seed={titles} />
-      </Box>
-      <Box sx={{ mt: 4 }}>
-        <Text variant="body" as="h3" className="rjb-semibold">
-          Big job boards
-        </Text>
-      </Box>
-      <TileGrid tiles={boardTiles} cta="Search" />
-      <Box sx={{ mt: 4 }}>
-        <Text variant="body" as="h3" className="rjb-semibold">
+        <PanelBody>
+          <Stack gap="normal">
+            <Stack direction="row" wrap="wrap" gap="px8" align="center">
+              {active.length > 1 && (
+                <Tag active={many} onClick={() => setAll(true)}>
+                  {`All selected (${active.length})`}
+                </Tag>
+              )}
+              {shownTitles.map((r) => (
+                <Tag
+                  key={r}
+                  active={!many && r === role}
+                  onClick={() => {
+                    setRole(r);
+                    setAll(false);
+                  }}
+                >
+                  {r}
+                </Tag>
+              ))}
+              {/* One way into the list: "N more" opens the chip row in place (the ticks are
+                  edited in Live postings' Calibrate). */}
+              {active.length > 4 && (
+                <Tag onClick={() => setShowAll(!showAll)}>
+                  {!showAll && <Icon icon={Plus} size="small" />}
+                  {showAll ? 'Fewer' : `${active.length - 4} more`}
+                </Tag>
+              )}
+            </Stack>
+            {/* Both filters on one row. */}
+            <Switcher gap="tight" threshold="16rem">
+              <Select
+                label="Recency"
+                showLabel={false}
+                value={recency || 'any'}
+                onChange={(v) => setRecency(v === 'any' ? '' : (v as 'w' | 'm'))}
+                options={[
+                  { value: 'any', label: 'Any time' },
+                  { value: 'w', label: 'Past week' },
+                  { value: 'm', label: 'Past month' },
+                ]}
+              />
+              <Select
+                label="Engagement"
+                showLabel={false}
+                value={contract ? 'contract' : 'any'}
+                onChange={(v) => setContract(v === 'contract')}
+                options={[
+                  { value: 'any', label: 'Any role' },
+                  { value: 'contract', label: 'Contract only' },
+                ]}
+              />
+            </Switcher>
+            <Box sx={{ display: 'flex', '& > *': { flex: '1 1 0%' } }}>
+              <Button variant="primary" size="md" asChild>
+                <a href={allUrl} target="_blank" rel="noopener noreferrer">
+                  <Icon icon={Search} />
+                  Search all boards
+                </a>
+              </Button>
+            </Box>
+            <Text variant="caption" as="p" tone="secondary">
+              {`Results open in Google: no hiring system has a search across companies, so this is one Google query over the top ${searchAllCount(ATS, fit)}${many && fitTitles < active.length ? `, with your first ${fitTitles} titles` : ''}.`}
+            </Text>
+            <Card bordered padding="px16">
+              <Stack direction="row" gap="tight" align="start" justify="space-between">
+                <Text variant="mono" as="p" className="rjb-prewrap">
+                  {allQuery}
+                </Text>
+                <CopyQuery text={allQuery} />
+              </Stack>
+            </Card>
+          </Stack>
+        </PanelBody>
+      </Panel>
+      {/* Three quiet rows, the rest one tap away (rev-3 mock): the one-query search above is the
+          way in, these are for one system at a time. */}
+      <Stack gap="px8">
+        <Text variant="body" as="h3" weight="bold">
           Company hiring systems
         </Text>
-      </Box>
-      {allButton(ATS, 'hiring systems')}
-      <TileGrid tiles={tilesFor(ATS)} cta="Search" />
-      <Box sx={{ mt: 6 }}>
-        <Text variant="body" as="h3" className="rjb-semibold">
-          Freelance, startup and remote boards
-        </Text>
-      </Box>
-      <Text variant="caption" tone="secondary">
-        Boards with no open feed (Upwork, Contra, Wellfound…), reached through Google instead.
-      </Text>
-      {allButton(HIDDEN_BOARDS, 'boards')}
-      <TileGrid tiles={tilesFor(HIDDEN_BOARDS)} cta="Search" />
-    </Box>
+        <LinkRows tiles={showAllAts ? atsTiles : atsTiles.slice(0, ATS_SHOWN)} />
+        {atsTiles.length > ATS_SHOWN && (
+          <Box>
+            <Button variant="tertiary" size="sm" onClick={() => setShowAllAts(!showAllAts)}>
+              {showAllAts ? 'Show fewer' : `Show ${atsTiles.length - ATS_SHOWN} more`}
+            </Button>
+          </Box>
+        )}
+      </Stack>
+      <Stack gap="px8">
+        <BoardSection
+          label="Big job boards"
+          count={boardTiles.length}
+          preview="LinkedIn, Indeed and more, with your titles and place"
+        >
+          <LinkRows tiles={boardTiles} bare />
+        </BoardSection>
+        <BoardSection
+          label="Freelance, startup and remote boards"
+          count={HIDDEN_BOARDS.length}
+          preview="Upwork, Contra, Wellfound… through Google"
+        >
+          <Stack gap="xs">
+            <Text variant="caption" as="p" tone="secondary">
+              Boards with no open feed, reached through Google instead.
+            </Text>
+            <Box>
+              <Button variant="secondary" size="md" asChild>
+                <a
+                  href={searchAllUrl(HIDDEN_BOARDS, fit)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {`Search the top ${searchAllCount(HIDDEN_BOARDS, fit)} boards at once`}
+                </a>
+              </Button>
+            </Box>
+            <LinkRows tiles={tilesFor(HIDDEN_BOARDS)} bare />
+          </Stack>
+        </BoardSection>
+      </Stack>
+    </Stack>
   );
 }
 
-// The tools row is data-driven: adding a tool is one entry here. Short labels on a phone, full
-// names from the HDS `sm` breakpoint up (docs/specs/discover.md, "Tools vs sections").
+/** Copy the generated query, with a short "Copied" confirmation. */
+function CopyQuery({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <Button
+      size="md"
+      variant="tertiary"
+      iconOnly
+      iconLeft={<Icon icon={copied ? Check : Copy} />}
+      label={copied ? 'Copied the query' : 'Copy the query'}
+      onClick={() =>
+        navigator.clipboard?.writeText(text).then(
+          () => setCopied(true),
+          () => {},
+        )
+      }
+    />
+  );
+}
+
+/** A closed list of board links (rev-3 mock): one row with the name and a count, opened in place. */
+function BoardSection({
+  label,
+  count,
+  preview,
+  children,
+}: {
+  label: string;
+  count: number;
+  preview: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card bordered padding="none">
+      <Box sx={{ px: 'sm' }}>
+        <Disclosure
+          variant="row"
+          label={
+            // Inline, so the count follows the last word when a long name wraps.
+            <span>
+              {label} <Badge count={count} label={`${count} boards`} />
+            </span>
+          }
+          preview={preview}
+        >
+          {children}
+        </Disclosure>
+      </Box>
+    </Card>
+  );
+}
+
+/** Search links as flat rows (rev-3 I): the name, its site or note, and a quiet Search with an
+ *  external-link icon. `bare`: no card of its own (inside a BoardSection). */
+function LinkRows({ tiles, bare = false }: { tiles: Tile[]; bare?: boolean }) {
+  const rows = (
+    <PanelRows>
+      {tiles.map((t) => (
+        <PanelRow key={t.url + t.name}>
+          <Box as="article" aria-label={t.name}>
+            <Stack direction="row" gap="tight" align="center" justify="space-between">
+              <Box sx={{ minWidth: 0 }}>
+                <Text variant="ui" as="p" className="rjb-semibold">
+                  {t.name}
+                </Text>
+                {t.meta && (
+                  <Text variant="caption" as="p" tone="secondary" className="rjb-truncate">
+                    {t.meta}
+                  </Text>
+                )}
+              </Box>
+              <Button variant="tertiary" size="sm" asChild>
+                <a href={t.url} target="_blank" rel="noopener noreferrer">
+                  Search
+                  <Icon icon={ExternalLink} size="small" />
+                </a>
+              </Button>
+            </Stack>
+          </Box>
+        </PanelRow>
+      ))}
+    </PanelRows>
+  );
+  return bare ? (
+    rows
+  ) : (
+    <Card bordered padding="none">
+      {rows}
+    </Card>
+  );
+}
+
 type ToolKey = 'apply' | 'ats' | 'teams';
-// Teams (slug `teams`) is the companies list (CompaniesPanel, #237): watched companies and GitHub
-// teams with their open roles, dream companies and "Add a company". It leads and is the default
-// where it has something to show; elsewhere it sits after Apply now.
-const TOOLS: { key: ToolKey; label: string; short: string }[] = [
-  { key: 'teams', label: 'Teams', short: 'Teams' },
-  { key: 'apply', label: 'Apply now', short: 'Apply' },
-  { key: 'ats', label: 'ATS search', short: 'ATS' },
+// Watched (slug `teams`, kept for old links) is the companies list (CompaniesPanel, #237): watched
+// companies and GitHub teams with their open roles, dream companies and "Add a company". It leads
+// and is the default where it has something to show; elsewhere it sits after Apply now. The label
+// is rev-3 G's "Watched"; the slug stays `teams`.
+const TOOLS: { key: ToolKey; label: string }[] = [
+  { key: 'teams', label: 'Watched' },
+  { key: 'apply', label: 'Apply now' },
+  { key: 'ats', label: 'ATS search' },
 ];
 // Live postings and the list checker (Find boards) stopped being tools (#237): they are secondary
 // views of the companies list, one link away, and their old slugs still open them. The Titles tool
@@ -328,6 +468,8 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const [manageOpen, setManageOpen] = useState(false);
 
   const cat = categories.find((c) => c.id === activeId) ?? categories[0];
+  const trackContext = useTrackContext(cat.id);
+  const trackPlace = placeLabel(trackContext.where, trackContext.mode);
   const setActive = (id: string) => {
     setActiveId(id);
     try {
@@ -375,14 +517,21 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   // The track's own sections: the first curated group is the featured "Apply now" one (never the
   // feed's watch list); the rest keep their own names.
   const sections = [
-    ...(featured ? [{ key: featured.id, label: 'Apply now', tiles: tilesFor(featured.id) }] : []),
-    ...rest.map((g) => ({ key: g.id, label: g.label, tiles: tilesFor(g.id) })),
+    ...(featured
+      ? [
+          {
+            key: featured.id,
+            label: displayGroupLabel(featured.label, { featured: true }),
+            tiles: tilesFor(featured.id),
+          },
+        ]
+      : []),
+    ...rest.map((g) => ({ key: g.id, label: displayGroupLabel(g.label), tiles: tilesFor(g.id) })),
   ];
 
   const route = useRoute();
   // The title filter's seed (#223): the track's titles, else its ATS roles. One list per track.
   const titleSeed = cat.titles.length ? cat.titles : cat.atsRoles;
-  const wide = useAtLeast('sm');
   const teamSearch = useMemo(
     () => teamSearchFor([...cat.titles, ...cat.atsRoles]),
     [cat.titles, cat.atsRoles],
@@ -443,44 +592,59 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         </Suspense>
       )}
       <Stack gap="inset">
-        <TabsOverflowFade value={tool}>
+        {/* Full width, full names (rev-3 G): the tools are the second and last nav level. A
+            secondary view (Live postings, the list checker) is not one of them, so it swaps the
+            switch for "Back to companies" instead of stacking a third level under a segment that
+            names another page. */}
+        {!secondary && (
           <SegmentedControl
             aria-label="Search tool"
             size="sm"
+            fullWidth
             value={tool}
             onChange={(v) => navigate({ sub: toolSub(v) })}
-            options={tools.map((t) => ({ value: t.key, label: wide ? t.label : t.short }))}
+            options={tools.map((t) => ({ value: t.key, label: t.label }))}
           />
-        </TabsOverflowFade>
+        )}
         {tool === 'apply' && section && (
-          <Stack gap="xs">
-            <Text variant="body" as="h3" className="rjb-semibold">
-              Your sections
-            </Text>
-            {/* Key the tabs by track so switching tracks resets to the first section. */}
-            <HdsTabs
-              key={cat.id}
-              value={section.key}
-              onValueChange={(v) => navigate({ sub: sectionSub(v) })}
-            >
-              <TabsOverflowFade value={section.key}>
-                <TabsList aria-label="Your sections">
-                  {sections.map((sc) => (
-                    <TabsTrigger key={sc.key} value={sc.key}>
-                      {sc.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </TabsOverflowFade>
-              <TabsContent value={section.key} style={SECTION_PANEL}>
-                <GroupPanel
-                  tiles={section.tiles}
-                  savedSet={savedSet}
-                  onManage={() => setManageOpen(true)}
-                />
-              </TabsContent>
-            </HdsTabs>
-          </Stack>
+          // The track's sections stack (rev-3 G: no third tab row). The routed one is open under
+          // its heading; the rest are closed rows, and opening one routes to it.
+          <Box as="section" aria-label="Your sections">
+            <Stack gap="normal">
+              {sections.map((sc) =>
+                sc.key === section.key ? (
+                  <Stack key={sc.key} gap="xs">
+                    <Stack direction="row" gap="px8" align="center">
+                      <Text variant="body" as="h3" weight="bold">
+                        {sc.label}
+                      </Text>
+                      <Badge count={sc.tiles.length} label={`${sc.tiles.length} links`} />
+                    </Stack>
+                    <GroupPanel
+                      tiles={sc.tiles}
+                      place={trackPlace}
+                      savedSet={savedSet}
+                      onManage={() => setManageOpen(true)}
+                    />
+                  </Stack>
+                ) : (
+                  <Card key={sc.key} bordered padding="none">
+                    <Box sx={{ px: 'sm' }}>
+                      <Disclosure
+                        variant="row"
+                        label={sc.label}
+                        preview={`${sc.tiles.length} ${sc.tiles.length === 1 ? 'link' : 'links'}`}
+                        open={false}
+                        onOpenChange={(o) => o && navigate({ sub: sectionSub(sc.key) })}
+                      >
+                        {null}
+                      </Disclosure>
+                    </Box>
+                  </Card>
+                ),
+              )}
+            </Stack>
+          </Box>
         )}
         {tool === 'ats' && (
           <AtsPanel
@@ -493,17 +657,30 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         )}
         {secondary && (
           <Stack gap="px4">
-            <Text variant="ui" as="p">
-              <InlineLink
-                href={defaultTool === 'teams' ? '#/discover' : '#/discover/teams'}
-                externalIcon={false}
-              >
-                Back to companies
-              </InlineLink>
-            </Text>
-            <Text variant="body" as="h3" className="rjb-semibold">
-              {SECONDARY_VIEWS[secondary]}
-            </Text>
+            {/* "← Back to companies", the job page's Back pattern (rev-3), with no leading
+                padding so the arrow lines up with the heading (`.rjb-back-link`). */}
+            <Box>
+              <Button className="rjb-back-link" variant="tertiary" size="md" asChild>
+                <a href={defaultTool === 'teams' ? '#/discover' : '#/discover/teams'}>
+                  <Icon icon={ArrowLeft} />
+                  Back to companies
+                </a>
+              </Button>
+            </Box>
+            {/* Live postings goes straight from Back to the search row (rev-3 mock): its name
+                stays in the outline for assistive tech only. Check a list of companies names
+                itself in its panel's header (rev-3 L). */}
+            {secondary === 'live' ? (
+              <VisuallyHidden>
+                <h3>{SECONDARY_VIEWS[secondary]}</h3>
+              </VisuallyHidden>
+            ) : (
+              secondary !== 'boards' && (
+                <Text variant="body" as="h3" className="rjb-semibold">
+                  {SECONDARY_VIEWS[secondary]}
+                </Text>
+              )
+            )}
           </Stack>
         )}
         {secondary === 'boards' && (

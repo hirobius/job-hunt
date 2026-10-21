@@ -110,7 +110,8 @@ describe('job page header and Overview (#130 slice 1)', () => {
     expect(within(facts).getByText('Company').nextElementSibling).toHaveTextContent('Acme');
     expect(within(facts).getByText('Location').nextElementSibling).toHaveTextContent('Spokane, WA');
     expect(within(facts).getByText('Pay').nextElementSibling).toHaveTextContent('$80k');
-    expect(within(facts).getByText('Source').nextElementSibling).toHaveTextContent('acme.example');
+    const link = within(facts).getByRole('link', { name: /acme\.example/ });
+    expect(link).toHaveAttribute('href', URL_A);
     expect(within(facts).queryByText('Seniority')).toBeNull();
   });
 
@@ -158,11 +159,14 @@ describe('job page header and Overview (#130 slice 1)', () => {
     );
   });
 
-  it('keeps templates and research links on Overview', () => {
+  it('keeps templates on Overview and research links in the header menu', async () => {
     addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { company: 'Acme' });
     openJobPage();
     expect(screen.getByRole('button', { name: 'Use template' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Glassdoor' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Glassdoor/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
+    expect(await screen.findByRole('menuitem', { name: /^Glassdoor/ })).toBeInTheDocument();
   });
 });
 
@@ -171,19 +175,20 @@ const sectionTabs = () => screen.getByRole('tablist', { name: 'Job sections' });
 const tab = (name: string | RegExp) => within(sectionTabs()).getByRole('tab', { name });
 
 describe('job page tabs (#130 slice 2)', () => {
-  it('has five tabs, Overview first and selected', () => {
+  it('has three tabs, Overview first and selected (rev-3 F)', () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
     const names = within(sectionTabs())
       .getAllByRole('tab')
       .map((t) => t.textContent);
-    expect(names).toEqual(['Overview', 'Screening', 'Interviews', 'To-dos', 'Documents']);
+    expect(names).toEqual(['Overview', 'Screening', 'Interviews']);
     expect(tab('Overview')).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('puts counts on the labels of tabs that have something in them', () => {
+  it('counts interviews on the tab and open to-dos on the panel', () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, {
+      company: 'Acme',
       events: [{ id: 'e1', kind: 'interview', date: '2026-10-20' }],
       todos: [
         { id: 't1', text: 'One', done: false },
@@ -193,10 +198,10 @@ describe('job page tabs (#130 slice 2)', () => {
     });
     openJobPage();
     expect(tab('Interviews (1)')).toBeInTheDocument();
-    expect(tab('To-dos (2)')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'To-dos' })).getByText('2')).toBeVisible();
   });
 
-  it('Screening is one click away and shows the fit line over the editor', async () => {
+  it('Screening is one click away: the Fit panel holds the editor', async () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, {
       verdict: 'match',
@@ -205,7 +210,7 @@ describe('job page tabs (#130 slice 2)', () => {
     });
     openJobPage();
     await userEvent.click(tab('Screening'));
-    const fit = screen.getByRole('group', { name: 'Fit summary' });
+    const fit = screen.getByRole('region', { name: 'Fit' });
     expect(within(fit).getByText('Strong fit')).toBeInTheDocument();
     expect(within(fit).queryByText(/travel|applied/)).toBeNull();
     expect(screen.getByText('Work mode')).toBeInTheDocument();
@@ -216,7 +221,21 @@ describe('job page tabs (#130 slice 2)', () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
     await userEvent.click(tab('Screening'));
-    await userEvent.click(screen.getByRole('button', { name: /Screen a job description/ }));
+    // A panel like the others (rev-3): bold heading, a full helper line, an Open button.
+    const jd = screen.getByRole('region', { name: 'Screen a job description' });
+    expect(
+      within(jd).getByRole('heading', { name: 'Screen a job description' }),
+    ).toBeInTheDocument();
+    expect(
+      within(jd).getByText('Paste the posting to get a suggested fit, mode and dealbreakers.'),
+    ).toBeInTheDocument();
+    const toggle = within(jd).getByRole('button', { name: 'Open' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(toggle);
+    expect(within(jd).getByRole('button', { name: 'Close' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
     expect(screen.queryByRole('dialog')).toBeNull();
     await userEvent.type(
       screen.getByRole('textbox', { name: 'Job description' }),
@@ -233,18 +252,24 @@ describe('job page tabs (#130 slice 2)', () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
     await userEvent.click(tab('Interviews'));
-    expect(screen.getByText(/No interviews or calls yet/)).toBeInTheDocument();
+    expect(screen.getByText(/No interviews yet/)).toBeInTheDocument();
     expect(screen.getByLabelText('Event date')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add to calendar' })).toBeInTheDocument();
   });
 
-  it('To-dos has the checklist and Notes, once', async () => {
+  it('Overview has the to-do checklist and Notes, once', async () => {
     addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { company: 'Acme' });
     openJobPage();
-    await userEvent.click(tab('To-dos'));
-    expect(screen.getByText(/No to-dos yet/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Add starter tasks' }));
+    // Empty: a quiet "Add a to-do" line opens the field (rev-3 mock).
+    expect(screen.queryByRole('textbox', { name: 'New to-do' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Add a to-do' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'New to-do' }), 'Call Sam{Enter}');
+    expect(getAllJobs()[0].todos?.map((t) => t.text)).toEqual(['Call Sam']);
+    updateJob(URL_A, { todos: [] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Add starter tasks' }));
     expect(getAllJobs()[0].todos?.length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Add starter tasks' })).toBeNull();
     const notes = screen.getAllByRole('textbox', { name: 'Notes' });
     expect(notes).toHaveLength(1);
     await userEvent.type(notes[0], 'Ask about the shop floor');
@@ -252,21 +277,18 @@ describe('job page tabs (#130 slice 2)', () => {
     expect(getAllJobs()[0].notes).toBe('Ask about the shop floor');
   });
 
-  it('never hides either note: both show on Overview, and To-dos edits notes with note read-only', async () => {
+  it('never hides either note: Notes edits notes, with the older note read-only above', () => {
     addJob(URL_A, 'Design Engineer', 'Found in Live postings · Remotive');
     updateJob(URL_A, { company: 'Acme', notes: 'Ask about the shop floor' });
     openJobPage();
-    expect(screen.getByText('Found in Live postings · Remotive')).toBeInTheDocument();
-    expect(screen.getByText('Ask about the shop floor')).toBeInTheDocument();
-    await userEvent.click(tab('To-dos'));
     expect(screen.getByRole('textbox', { name: 'Notes' })).toHaveValue('Ask about the shop floor');
     expect(screen.getByText(/From when you saved it: Found in Live postings/)).toBeInTheDocument();
   });
 
-  it('with only the older note, the Notes field shows it and no duplicate line', async () => {
+  it('with only the older note, the Notes field shows it and no duplicate line', () => {
     addJob(URL_A, 'Design Engineer', 'Recruiter screen');
+    updateJob(URL_A, { company: 'Acme' });
     openJobPage();
-    await userEvent.click(tab('To-dos'));
     expect(screen.getByRole('textbox', { name: 'Notes' })).toHaveValue('Recruiter screen');
     expect(screen.queryByText(/From when you saved it/)).toBeNull();
   });
@@ -408,7 +430,7 @@ describe('job page two-pane (#130 slice 5)', () => {
       applied: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
     });
     openJobPage(URL_A);
-    expect(within(rail()).getByText('Due')).toBeInTheDocument();
+    expect(within(rail()).getByText('Follow-up due')).toBeInTheDocument();
   });
 });
 
@@ -436,7 +458,7 @@ describe('job page polish and guards (#130 slice 6)', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.getByRole('tablist', { name: 'Job sections' })).toBeInTheDocument();
     if (width >= 1024) expect(rail()).toBeInTheDocument();
-    for (const name of ['Overview', 'Screening', 'Interviews', /To-dos/, /Documents/]) {
+    for (const name of ['Overview', 'Screening', 'Interviews']) {
       await userEvent.click(tab(name));
       await audit(container);
     }

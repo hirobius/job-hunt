@@ -12,6 +12,7 @@ vi.mock('./feed/fetchFeed', async (orig) => ({
 
 import { JobLivenessNote, PipelineLiveness } from './LivenessViews';
 import { liveness, resetLivenessSession } from './livenessStore';
+import { JobBadges } from './JobRowParts';
 import { dedupKey, jobIdOf } from './store';
 
 const A = 'https://jobs.ashbyhq.com/ramp/aaaa';
@@ -75,11 +76,15 @@ describe('JobLivenessNote', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows the date, and a Closed tag when closed', () => {
+  it('shows the date; the Closed badge sits in the badge row (rev-3 B)', () => {
     liveness.set({ [dedupKey(A)]: { state: 'closed', checkedAt: '2026-10-15T12:00:00.000Z' } });
     render(<JobLivenessNote url={A} />);
     expect(screen.getByText(/Checked live Oct 15/)).toBeInTheDocument();
-    expect(screen.getByText('Closed on the board')).toBeInTheDocument();
+    expect(screen.queryByText('Closed on the board')).toBeNull();
+    cleanup();
+    render(<JobBadges job={job(A, 'Designer')} />);
+    const badges = [...document.querySelectorAll('span')].map((s) => s.textContent);
+    expect(badges.indexOf('Saved')).toBeLessThan(badges.indexOf('Closed on the board'));
   });
 
   it('an open job shows the date only', () => {

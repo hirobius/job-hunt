@@ -38,7 +38,8 @@ describe('topUpFromPack', () => {
     expect(cat.atsRoles).toContain('design tokens');
     // Existing group reused, user tile kept, pack tiles added; the watch group created.
     const groups = s.groups.filter((x) => x.categoryId === id);
-    expect(groups.filter((x) => x.label === 'Apply Now')).toHaveLength(1);
+    // The pack's group is 'Apply now' now; an older synced 'Apply Now' is the same group.
+    expect(groups.filter((x) => x.label.toLowerCase() === 'apply now')).toHaveLength(1);
     expect(groups.some((x) => x.label === 'Watched companies')).toBe(true);
     const urls = s.tiles.map((t) => t.url);
     expect(urls).toContain('https://example.com/mine');

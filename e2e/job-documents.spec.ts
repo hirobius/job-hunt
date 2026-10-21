@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Per-job Documents (#225) end to end: a job's Documents tab, a cover letter saved twice (two
+// Per-job Documents (#225) end to end: a job's Documents panel, a cover letter saved twice (two
 // Versions), the second marked Sent (locked), then downloaded as a PDF built in the browser.
 test('job page Documents: cover letter → 2 Versions → Sent → Download PDF', async ({ page }) => {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
@@ -10,14 +10,17 @@ test('job page Documents: cover letter → 2 Versions → Sent → Download PDF'
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await page.getByRole('link', { name: 'Acme · Greenhouse' }).click();
 
-  await page.getByRole('tab', { name: /^Documents/ }).click();
-  await expect(page.getByText('No documents yet')).toBeVisible();
-  await page.getByRole('button', { name: 'New document' }).click();
-  await page.getByRole('combobox', { name: /^Kind/ }).click();
+  // Documents sit on Overview, behind one row: "Add a document" while there are none.
+  // A job saved from a bare link opens with Details in edit, so scope to the Documents panel.
+  const docs = page.getByRole('region', { name: 'Documents' });
+  await docs.getByRole('button', { name: /^(All documents|Add a document)/ }).click();
+  await expect(docs.getByText('No documents yet')).toBeVisible();
+  await docs.getByRole('button', { name: 'New document' }).click();
+  await docs.getByRole('combobox', { name: /^Kind/ }).click();
   await page.getByRole('option', { name: 'Cover letter' }).click();
-  await page.getByRole('textbox', { name: 'Title' }).fill('Acme letter');
-  await page.getByRole('textbox', { name: 'Text' }).fill('Dear Acme, first draft.');
-  await page.getByRole('button', { name: 'Create' }).click();
+  await docs.getByRole('textbox', { name: 'Title' }).fill('Acme letter');
+  await docs.getByRole('textbox', { name: 'Text' }).fill('Dear Acme, first draft.');
+  await docs.getByRole('button', { name: 'Create' }).click();
 
   const card = page.getByRole('region', { name: 'Acme letter' });
   await expect(card).toBeVisible();

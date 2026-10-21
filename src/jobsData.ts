@@ -291,7 +291,7 @@ export const GROUPS: Group[] = [
     // (the low-competition hidden-jobs angle), no one-off postings. Remote by construction,
     // so it sidesteps the Spokane-locked Title-search BOARDS.
     id: 'ds-brief',
-    label: 'Apply Now',
+    label: 'Apply now',
     tiles: [
       t(
         'designsystems.jobs',
@@ -459,7 +459,7 @@ export const GROUPS: Group[] = [
     // ATS Google-dorks for the low-competition hidden-jobs angle. Board rule holds: live
     // searches + durable dorks only, no one-off postings.
     id: 'ic-brief',
-    label: 'Apply Now',
+    label: 'Apply now',
     tiles: [
       t(
         'LinkedIn · Implementation Consultant (Remote)',
@@ -514,7 +514,7 @@ export const GROUPS: Group[] = [
     // live remote searches + the ServiceNow vendor careers page + a durable pure-play partner +
     // ATS Google-dorks (the low-competition hidden-jobs angle), no one-off postings.
     id: 'sn-brief',
-    label: 'Apply Now',
+    label: 'Apply now',
     tiles: [
       t(
         'LinkedIn · ServiceNow (Remote)',
@@ -568,7 +568,7 @@ export const GROUPS: Group[] = [
     // train on the bench. Board rule holds: careers pages + 1-click local searches, no
     // one-off postings.
     id: 'sm-brief',
-    label: 'Apply Now',
+    label: 'Apply now',
     tiles: [
       t(
         'SMART Local 55 — Sheet Metal',
@@ -625,7 +625,7 @@ export const GROUPS: Group[] = [
   {
     // Welding & machining "Apply Now" — shops that run welders and CNC/machine operators.
     id: 'weld-brief',
-    label: 'Apply Now',
+    label: 'Apply now',
     tiles: [
       t(
         'Travis Pattern & Foundry',
@@ -677,7 +677,7 @@ export const GROUPS: Group[] = [
   {
     // Construction-trades "Apply Now" — union JATCs + non-union portals that pay from day one.
     id: 'const-brief',
-    label: 'Apply Now',
+    label: 'Apply now',
     tiles: [
       t(
         'Ironworkers Local 14',

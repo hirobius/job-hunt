@@ -1,6 +1,7 @@
 import { Component, type ReactNode } from 'react';
 import { Button, Box, Stack, Text } from '@hirobius/design-system';
 import { reportError } from './errorReport';
+import { clearLocalData } from './localReset';
 
 // Top-level safety net (issue #46): a render-time crash shows a recovery UI instead of a blank
 // white screen. Offers a plain reload and a "reset local data" escape hatch for when a single bad
@@ -20,14 +21,7 @@ function resetLocalData() {
     )
   )
     return;
-  try {
-    Object.keys(localStorage)
-      .filter((k) => k.startsWith('rjb_'))
-      .forEach((k) => localStorage.removeItem(k));
-  } catch {
-    /* ignore */
-  }
-  window.location.reload();
+  clearLocalData();
 }
 
 export class ErrorBoundary extends Component<Props, State> {

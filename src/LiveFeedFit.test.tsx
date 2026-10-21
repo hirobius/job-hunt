@@ -83,8 +83,7 @@ const renderPanel = () =>
 
 // Evidence sits in Refine, collapsed once postings are showing.
 const openEvidence = async () => {
-  await userEvent.click(screen.getByRole('button', { name: 'Refine' }));
-  await userEvent.click(screen.getByRole('button', { name: /^Your evidence/ }));
+  await userEvent.click(screen.getByRole('button', { name: /^Refine/ }));
 };
 
 const withEvidence = async () => {
@@ -127,21 +126,36 @@ describe('Live postings with the radar engine', () => {
     const strong = row('Design Systems Engineer');
     expect(within(strong).getByText('Strong fit')).toBeInTheDocument();
     expect(within(row('Design Systems Designer')).getByText('Reach')).toBeInTheDocument();
-    await userEvent.click(within(strong).getByRole('button', { name: /Fit and gap \(\d+\)/ }));
-    const fit = within(strong).getByRole('list', { name: 'Fit' });
+    // Fit and gap sit behind the row's menu, so the row stays badge, title, company, facts.
+    await userEvent.click(
+      within(strong).getByRole('button', { name: 'More for Design Systems Engineer' }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Why this fit' }));
+    const dialog = await screen.findByRole('dialog');
+    const fit = within(dialog).getByRole('list', { name: 'Fit' });
     expect(fit).toHaveTextContent('Design tokens: DTCG pipeline');
     expect(within(fit).getByRole('link', { name: /HDS/ })).toHaveAttribute(
       'href',
       'https://example.com/hds',
     );
-    expect(within(strong).getByRole('list', { name: 'Gap' })).toHaveTextContent(
+    expect(within(dialog).getByRole('list', { name: 'Gap' })).toHaveTextContent(
       'Storybook / visual regression',
     );
   });
 
+  it('with evidence, lists the best fits first and says so', async () => {
+    await withEvidence();
+    const items = within(screen.getByRole('list', { name: /live postings/i })).getAllByRole(
+      'listitem',
+    );
+    expect(items[0]).toHaveTextContent('Strong fit');
+    expect(screen.getByText('Sorted by fit')).toBeInTheDocument();
+  });
+
   it('filters to strong fits', async () => {
     await withEvidence();
-    await userEvent.click(screen.getByRole('radio', { name: 'Strong fit (1)' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Openings options' }));
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Strong fit (1)' }));
     const items = within(screen.getByRole('list', { name: /live postings/i })).getAllByRole(
       'listitem',
     );
@@ -175,8 +189,7 @@ describe('Live postings with the radar engine', () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     // Filled-in evidence starts collapsed so the postings lead.
-    await userEvent.click(screen.getByRole('button', { name: 'Refine' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Your evidence (4)' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Refine/ }));
     expect(screen.getByRole('textbox', { name: 'Your evidence' })).toHaveValue(EVIDENCE);
   });
 

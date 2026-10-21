@@ -12,10 +12,22 @@ const REMOTE_COMPETITION_HINT =
 export default function LocationControl({ categoryId }: { categoryId: string }) {
   const { where, mode, setWhere: onWhere, setMode: onMode } = useTrackContext(categoryId);
   return (
+    // rev-3 mock: the Location field (with its visible label) first, then the work mode under it.
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'xs' }}>
+      <Box sx={{ '& > *': { width: '100%' } }}>
+        <HdsInput
+          size="sm"
+          label="Location"
+          placeholder="City, State — blank = anywhere"
+          value={mode === 'remote' ? '' : where}
+          disabled={mode === 'remote'}
+          onChange={(e) => onWhere(e.target.value)}
+        />
+      </Box>
       <SegmentedControl
         aria-label="Work mode"
         size="sm"
+        fullWidth
         value={mode}
         onChange={(v) => onMode(v as WorkMode)}
         options={[
@@ -25,16 +37,6 @@ export default function LocationControl({ categoryId }: { categoryId: string }) 
           { value: 'onsite', label: 'On-site' },
         ]}
       />
-      <Box sx={{ '& > *': { width: '100%' } }}>
-        <HdsInput
-          size="sm"
-          aria-label="Location"
-          placeholder="City, State — blank = anywhere"
-          value={mode === 'remote' ? '' : where}
-          disabled={mode === 'remote'}
-          onChange={(e) => onWhere(e.target.value)}
-        />
-      </Box>
       {mode === 'remote' && (
         <Text variant="caption" as="span" tone="secondary">
           {REMOTE_COMPETITION_HINT}

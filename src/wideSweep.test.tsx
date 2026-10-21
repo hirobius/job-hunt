@@ -71,8 +71,8 @@ const startSweep = async () => {
   const user = userEvent.setup();
   renderApp();
   await screen.findByRole('list', { name: 'Live postings' });
-  await user.click(screen.getByRole('button', { name: 'Find more: sweep all 3 titles' }));
-  await screen.findByRole('heading', { name: 'Sweeping 3 titles at once' });
+  await user.click(screen.getByRole('button', { name: 'Find more' }));
+  await screen.findByRole('heading', { name: 'Sweeping 3 titles' });
   return user;
 };
 const rows = () =>
@@ -88,29 +88,37 @@ describe('wide sweep', () => {
         terms: ['design engineer', 'design technologist', 'design system'],
       }),
     );
-    await screen.findByText('Matched “design engineer”, “design system”');
+    // A row names the other titles it matched as chips (rev-3 K), not its own.
+    await screen.findByText('design system', { selector: '.rjb-chip' });
     expect(rows()).toHaveLength(3);
     const chips = screen.getByRole('group', { name: 'Show titles' });
-    expect(within(chips).getByRole('button', { name: 'design engineer (2)' })).toBeInTheDocument();
-    expect(within(chips).getByRole('button', { name: 'design system (1)' })).toBeInTheDocument();
+    // All first, with the total; counts are Badges, not "(n)"; only the selected chip is filled.
+    const all = within(chips).getByRole('button', { name: 'All, 3' });
+    expect(all).toHaveAttribute('aria-pressed', 'true');
+    expect(within(chips).getByRole('button', { name: 'design engineer, 2' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(within(chips).getByRole('button', { name: 'design system, 1' })).toBeInTheDocument();
   });
 
-  it('a title chip hides its results without a re-fetch', async () => {
+  it('a title chip shows only its results without a re-fetch, and All brings the rest back', async () => {
     const user = await startSweep();
-    await screen.findByText('Matched “design engineer”, “design system”');
+    await screen.findByText('design system', { selector: '.rjb-chip' });
     const calls = feed.fetchFeed.mock.calls.length;
-    await user.click(screen.getByRole('button', { name: 'design engineer (2)' }));
-    // Row 1 still matched "design system", which is showing.
-    expect(rows()).toEqual(['Design Engineer', 'Design Technologist']);
+    await user.click(screen.getByRole('button', { name: 'design system, 1' }));
+    expect(rows()).toEqual(['Design Engineer']);
+    await user.click(screen.getByRole('button', { name: 'All, 3' }));
+    expect(rows()).toHaveLength(3);
     expect(feed.fetchFeed.mock.calls.length).toBe(calls);
   });
 
   it('turning a title off is saved per track and drops it from the next sweep', async () => {
     const user = await startSweep();
-    await user.click(screen.getByRole('button', { name: 'Calibrate' }));
+    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
     await user.click(screen.getByRole('checkbox', { name: 'design technologist' }));
     expect(getAllSweeps()[cat].off).toEqual(['design technologist']);
-    await screen.findByRole('heading', { name: 'Sweeping 2 titles at once' });
+    await screen.findByRole('heading', { name: 'Sweeping 2 titles' });
     expect(feed.fetchFeed).toHaveBeenLastCalledWith(
       expect.objectContaining({ terms: ['design engineer', 'design system'] }),
     );
@@ -118,7 +126,7 @@ describe('wide sweep', () => {
 
   it('adds and removes titles from the sweep list', async () => {
     const user = await startSweep();
-    await user.click(screen.getByRole('button', { name: 'Calibrate' }));
+    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
     await user.type(screen.getByRole('textbox', { name: 'Add a title' }), 'UX engineer');
     await user.click(screen.getByRole('button', { name: 'Add' }));
     await user.click(screen.getByRole('button', { name: 'Remove title design system' }));
@@ -131,7 +139,7 @@ describe('wide sweep', () => {
 
   it('saving a swept posting lands it in the Pipeline To apply queue', async () => {
     const user = await startSweep();
-    await screen.findByText('Matched “design engineer”, “design system”');
+    await screen.findByText('design system', { selector: '.rjb-chip' });
     const list = screen.getByRole('list', { name: 'Live postings' });
     await user.click(within(list).getAllByRole('button', { name: 'Save' })[0]);
     expect(await screen.findByText('Saved to Pipeline · To apply')).toBeInTheDocument();
@@ -150,11 +158,22 @@ describe('wide sweep', () => {
   });
 });
 
+/** ATS search's board lists start closed and its hiring systems show three (rev-3 mock): open
+ *  them all, so every generated link is on the page. */
+const openAllBoards = async () => {
+  for (const name of [
+    /^Big job boards/,
+    /^Freelance, startup and remote boards/,
+    /^Show \d+ more$/,
+  ])
+    await userEvent.click(await screen.findByRole('button', { name }));
+};
+
 describe('ATS search: All selected', () => {
   it('the big-board links OR every title that is on, from the start', async () => {
     window.location.hash = '#/discover/ats';
     renderApp();
-    await screen.findByRole('heading', { name: 'Big job boards' });
+    await openAllBoards();
     const href = screen.getAllByRole('link', { name: /search/i })[0].getAttribute('href') ?? '';
     expect(decodeURIComponent(href)).toContain(
       '("design engineer" OR "design technologist" OR "design system")',

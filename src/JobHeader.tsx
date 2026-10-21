@@ -1,62 +1,67 @@
-// The job page's header (#130): title and status, then the star, the job's one primary next step
-// and the menu of everything else (Remove included). One row on a desktop, actions on the right;
-// on a phone the actions sit in one row under the title. Back goes to the Pipeline.
+// The job page's header (#130; rev-3 mobile slice 2): Back, one badge row above the title (status,
+// a due follow-up, Closed, then fit), the title, company · location · applied date, then one row of
+// actions: the star, the job's one primary next step (it takes the row's room) and the menu of
+// everything else (Remove included). The same column at every width. Back goes to the Pipeline.
 import { ArrowLeft } from 'lucide-react';
-import { Badge, Box, Button, Icon, Text } from '@hirobius/design-system';
+import { Box, Button, Icon, Stack, Text } from '@hirobius/design-system';
+import { MetaCaption } from './MetaCaption';
+import { shortDate } from './metaLines';
 import { titleOf } from './jobRow';
 import { openJob } from './route';
-import { RowMenu, RowPrimaryAction, StarButton, StatusBadge } from './JobRowParts';
-import { useDocuments } from './documents';
-import { documentsForJob, sentSummary } from './jobDocuments';
+import { JobBadges, RowMenu, RowPrimaryAction, StarButton } from './JobRowParts';
 import type { Job } from './types';
 
-export default function JobHeader({ job, showBack = true }: { job: Job; showBack?: boolean }) {
-  // What went out to this job (#228): one quiet line, only once something was marked Sent.
-  const sent = sentSummary(documentsForJob(useDocuments(), job.url));
+/** "← Pipeline": a quiet link-like button back to the list. Its name says where it goes. */
+export function BackToPipeline() {
   return (
-    <Box as="header" sx={{ display: 'flex', flexDirection: 'column', gap: 'xs', mb: 'sm' }}>
-      {showBack && (
-        <Box>
-          <Button
-            variant="tertiary"
-            size="sm"
-            iconLeft={<Icon icon={ArrowLeft} />}
-            onClick={() => openJob(null)}
-          >
-            Back to Pipeline
-          </Button>
-        </Box>
-      )}
-      {/* Mobile-first: a column that becomes a row from sm. */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { base: 'column', sm: 'row' },
-          alignItems: { base: 'stretch', sm: 'center' },
-          justifyContent: { base: 'flex-start', sm: 'space-between' },
-          gap: 'xs',
-        }}
+    // No inline-start padding, so the arrow sits on the page gutter like the title (rev-3).
+    <Box>
+      <Button
+        className="rjb-back"
+        variant="tertiary"
+        size="md"
+        iconLeft={<Icon icon={ArrowLeft} />}
+        aria-label="Back to Pipeline"
+        onClick={() => openJob(null)}
       >
-        <Box
-          sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'xs', minWidth: 0 }}
-        >
+        Pipeline
+      </Button>
+    </Box>
+  );
+}
+
+export default function JobHeader({ job, showBack = true }: { job: Job; showBack?: boolean }) {
+  const applied = job.applied ? shortDate(job.applied) : '';
+  return (
+    <Box as="header" sx={{ mb: 'lg' }}>
+      <Stack gap="normal">
+        {showBack && <BackToPipeline />}
+        <Stack gap="tight">
+          <JobBadges job={job} />
           <Text variant="title" as="h2">
             {titleOf(job)}
           </Text>
-          <StatusBadge job={job} />
-          {job.archived && <Badge tone="neutral">Retired</Badge>}
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 'xs', flexShrink: 0 }}>
+          <MetaCaption
+            items={[job.company?.trim(), job.location?.trim(), applied && `Applied ${applied}`]}
+          />
+        </Stack>
+        {/* On a phone the primary takes the room between the two 40px icon buttons (rev-3
+            mock); from sm up it is as wide as its label. */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 'xs' }}>
           <StarButton job={job} />
-          <RowPrimaryAction job={job} variant="primary" />
-          <RowMenu job={job} onRemoved={() => openJob(null, true)} />
+          <Box
+            sx={{
+              flex: { base: '1 1 0%', sm: '0 0 auto' },
+              minWidth: 0,
+              display: 'flex',
+              '& > *': { flex: '1 1 0%' },
+            }}
+          >
+            <RowPrimaryAction job={job} variant="primary" size="md" />
+          </Box>
+          <RowMenu job={job} size="md" research onRemoved={() => openJob(null, true)} />
         </Box>
-      </Box>
-      {sent && (
-        <Text variant="caption" as="p" tone="secondary">
-          {`Sent: ${sent}`}
-        </Text>
-      )}
+      </Stack>
     </Box>
   );
 }

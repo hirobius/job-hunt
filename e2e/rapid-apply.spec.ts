@@ -40,18 +40,24 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
 
   // A track first (Discover needs one): the first starter pack, three steps.
   await page.goto('/#/discover');
-  await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().click();
+  // The Suggested (first) pack starts ticked (rev-3).
+  await expect(
+    page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first(),
+  ).toBeChecked();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Finish' }).click();
 
-  // Wide net: pick all three postings and save them in one go.
+  // Wide net: save all three postings in one go, from the Openings menu.
   await page.goto('/#/discover/live');
-  const picks = page.getByRole('checkbox', { name: /^Pick / });
-  await expect(picks).toHaveCount(3);
-  for (let i = 0; i < 3; i++) await picks.nth(i).check();
-  await page.getByRole('button', { name: 'Save 3 to Pipeline' }).click();
-  const notice = page.getByRole('status').filter({ hasText: 'Saved 3 to Pipeline · To apply' });
+  const list = page.getByRole('list', { name: 'Live postings' });
+  await expect(list.getByRole('listitem')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Openings options' }).click();
+  await page.getByRole('menuitem', { name: 'Save all (3)' }).click();
+  const notice = page
+    .getByRole('region', { name: /^Notifications/ })
+    .getByRole('listitem')
+    .filter({ hasText: 'Saved 3 to Pipeline · To apply' });
   await expect(notice).toBeVisible();
   await expect(page.getByRole('button', { name: 'Saved' })).toHaveCount(3);
   await notice.getByRole('button', { name: 'Open' }).click();
@@ -60,7 +66,8 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
   await page.getByRole('button', { name: 'Start applying' }).click();
   await expect(page).toHaveURL(/#\/apply\//);
 
-  // The kit: enter a name once, copy it.
+  // The kit: enter a name once (empty fields wait behind one row), copy it.
+  await page.getByRole('button', { name: /^Fill in \d+ more/ }).click();
   await page.getByRole('button', { name: 'Add Name' }).click();
   await page.getByRole('textbox', { name: 'Name' }).fill('Sam Placeholder');
   await page.getByRole('button', { name: 'Done' }).click();
@@ -70,9 +77,15 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
   for (let left = 3; left > 0; left--) {
     await expect(page.getByRole('link', { name: /Open application/ })).toBeVisible();
     await page.getByRole('button', { name: 'Mark applied' }).click();
-    await expect(page.getByText(/Follow up on \d{4}-\d{2}-\d{2}/)).toBeVisible();
-    if (left > 1) await page.getByRole('button', { name: `Next job (1 of ${left - 1})` }).click();
-    else await page.getByRole('button', { name: /To apply is empty/ }).click();
+    await expect(
+      page.getByText(/Follow up on (Today|Tomorrow|[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2})\./),
+    ).toBeVisible();
+    // The pager walks on; the applied job holds its place, so it reads 1 of N (none for one job).
+    const pager = page.getByRole('navigation', { name: 'Jobs to apply' });
+    if (left > 1) {
+      await expect(pager).toContainText(`1 of ${left}`);
+      await pager.getByRole('button', { name: 'Next page' }).click();
+    } else await page.getByRole('button', { name: /To apply is empty/ }).click();
   }
 
   await expect(page.getByRole('region', { name: 'To apply (0)' })).toBeVisible();

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { contextLabel, modeKey, readMode, writeMode } from './discoverContext';
+import { contextLabel, modeKey, placeLabel, readMode, writeMode } from './discoverContext';
 
 afterEach(() => {
   localStorage.clear();
@@ -33,7 +33,15 @@ describe('discoverContext', () => {
 
   it('labels the context in one line', () => {
     expect(contextLabel('Spokane', 'hybrid')).toBe('Spokane, Hybrid');
-    expect(contextLabel('', 'any')).toBe('Anywhere, Any mode');
+    expect(contextLabel('Remote', 'any')).toBe('Remote, any mode');
+    expect(contextLabel('', 'any')).toBe('Anywhere, any mode');
     expect(contextLabel('Spokane', 'remote')).toBe('Remote');
+  });
+
+  it('labels a tile\'s place fact without "any mode"', () => {
+    expect(placeLabel('Remote', 'any')).toBe('Remote');
+    expect(placeLabel('', 'any')).toBe('Anywhere');
+    expect(placeLabel('Spokane', 'hybrid')).toBe('Spokane, Hybrid');
+    expect(placeLabel('Spokane', 'remote')).toBe('Remote');
   });
 });

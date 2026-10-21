@@ -2,7 +2,7 @@
 // a note on a job's page. Closed means the company's board no longer lists the posting; nothing here
 // changes a job's status.
 import { useEffect, useMemo, useState } from 'react';
-import { Badge, Box, Button, InlineLink, Spinner, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, InlineLink, Spinner, Stack, Text } from '@hirobius/design-system';
 import { eligibleJobs, type LiveCheck } from './feed/liveness';
 import { autoLivenessCheck, checkFor, runLivenessCheck, useLiveness } from './livenessStore';
 import { findJobById, jobIdOf, useJobs } from './store';
@@ -47,49 +47,47 @@ export function PipelineLiveness({ jobs }: { jobs: Job[] }) {
   };
 
   return (
-    <Box sx={{ mb: 'sm' }}>
-      <Stack gap="xs">
-        <Stack direction="row" wrap="wrap" gap="xs" align="center">
-          <Button size="sm" variant="tertiary" onClick={onCheck} disabled={busy}>
-            Check which are still open
-          </Button>
-          {busy && <Spinner size="sm" label="Checking company boards" />}
-          <Text variant="caption" as="span" tone="secondary" role="status">
-            {note ||
-              [
-                when && `Checked live ${when}`,
-                closed.length > 0 && `${closed.length} closed on the board`,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-          </Text>
-        </Stack>
-        {closed.length > 0 && (
-          <Box as="ul" aria-label="Closed on the board" sx={{ listStyle: 'none', m: 0, p: 0 }}>
-            {closed.map((j) => (
-              <Box as="li" key={j.url}>
-                <Text variant="ui" as="span">
-                  <InlineLink href={`#/queue/${jobIdOf(j.url)}`} externalIcon={false}>
-                    {j.label}
-                  </InlineLink>
-                </Text>
-              </Box>
-            ))}
-          </Box>
-        )}
+    <Stack gap="xs">
+      <Stack direction="row" wrap="wrap" gap="xs" align="center">
+        <Button size="sm" variant="tertiary" onClick={onCheck} disabled={busy}>
+          Check which are still open
+        </Button>
+        {busy && <Spinner size="sm" label="Checking company boards" />}
+        <Text variant="caption" as="span" tone="secondary" role="status">
+          {note ||
+            [
+              when && `Checked live ${when}`,
+              closed.length > 0 && `${closed.length} closed on the board`,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+        </Text>
       </Stack>
-    </Box>
+      {closed.length > 0 && (
+        <Box as="ul" aria-label="Closed on the board" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+          {closed.map((j) => (
+            <Box as="li" key={j.url}>
+              <Text variant="ui" as="span">
+                <InlineLink href={`#/queue/${jobIdOf(j.url)}`} externalIcon={false}>
+                  {j.label}
+                </InlineLink>
+              </Text>
+            </Box>
+          ))}
+        </Box>
+      )}
+    </Stack>
   );
 }
 
-/** "Checked live Oct 15", plus a Closed tag; nothing for a job that was never checked. */
+/** "Checked live Oct 15"; nothing for a job that was never checked. The Closed badge sits in the
+ *  job's badge row (JobBadges, rev-3 B). */
 export function JobLivenessNote({ url }: { url: string }) {
   const check = checkFor(useLiveness(), url);
   if (!check || check.state === 'unknown') return null;
   return (
     <Box sx={{ mb: 'xs' }}>
       <Stack direction="row" wrap="wrap" gap="xs" align="center">
-        {check.state === 'closed' && <Badge tone="warning">Closed on the board</Badge>}
         <Text variant="caption" as="span" tone="secondary">
           Checked live {checkedOn(check.checkedAt)}
         </Text>

@@ -9,12 +9,12 @@ import { isSample } from './sampleData';
 
 /** Offered only in an empty tracker (the mount decides) and never while signed in, since a
  *  signed-in tracker syncs; loads the sample on click and shows it in the Pipeline. */
-export function TrySampleButton() {
+export function TrySampleButton({ size = 'sm' }: { size?: 'sm' | 'md' }) {
   if (hasCloudSession()) return null;
   return (
     <Button
       variant="secondary"
-      size="sm"
+      size={size}
       onClick={() => {
         loadSample();
         navigate({ tab: 'queue', sub: null, jobId: null });
@@ -32,13 +32,19 @@ export function SampleBanner({ jobs }: { jobs: Job[] }) {
   if (n === 0) return null;
   return (
     <Box role="status" aria-label="Sample data">
-      <Stack direction="row" wrap="wrap" gap="px8" align="center">
+      {/* One quiet line (rev-3 mock): what it is, and Clear. */}
+      <Stack direction="row" wrap="wrap" gap="px4" align="center">
         <Text variant="caption" as="span" tone="secondary">
-          <span className="rjb-semibold">Sample data</span> · {n} fictional{' '}
-          {n === 1 ? 'job' : 'jobs'}. Clearing removes them and any edits to them.
+          Sample data, {n} fictional {n === 1 ? 'job' : 'jobs'}.
         </Text>
-        <Button variant="tertiary" size="sm" onClick={() => clearSample()}>
-          Clear sample data
+        <Button
+          variant="tertiary"
+          size="sm"
+          label="Clear sample data"
+          title="Clearing removes them and any edits to them"
+          onClick={() => clearSample()}
+        >
+          Clear
         </Button>
       </Stack>
     </Box>

@@ -125,8 +125,12 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     const user = userEvent.setup();
     renderApp();
     const dialog = await openFollowUp(user);
+    expect(dialog).toHaveTextContent('the UX Researcher role at Bramble & Finch');
+    // Its blanks are chips that fill in place (rev-3 A); Edit message opens the whole text.
+    expect(within(dialog).getByRole('button', { name: 'Fill Contact' })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Edit message' }));
     const message = within(dialog).getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement;
-    expect(message.value).toContain('the UX Researcher role at Bramble & Finch');
+    expect(message.value).toContain('Hi [Contact]');
   });
 
   it('Mark as sent takes it off the due list', async () => {
@@ -223,7 +227,7 @@ describe('first-run gate in the shell', () => {
   it('picking a track finishes setup and stays on Companies', async () => {
     window.location.hash = '';
     renderApp();
-    await userEvent.click(screen.getAllByRole('checkbox')[0]);
+    expect(screen.getAllByRole('checkbox')[0]).toBeChecked(); // the Suggested pack starts ticked
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
@@ -256,13 +260,14 @@ describe('first-run gate in the shell', () => {
 // state; Dismiss is remembered per device (rjb_ui_getting_started_done).
 describe('Getting started card on the Pipeline', () => {
   const card = () => screen.queryByRole('region', { name: 'Getting started' });
-  const ticks = () =>
-    within(card()!)
-      .getAllByRole('checkbox')
-      .map((c) => [
-        c.getAttribute('aria-label') ?? c.parentElement?.textContent,
-        (c as HTMLInputElement).checked,
-      ]);
+  // Display-only rows (rev-3): no disabled checkbox (its opacity failed AA); each row says
+  // "done" / "not done" to assistive tech in a list named by the panel.
+  const ticks = () => {
+    expect(within(card()!).queryByRole('checkbox')).toBeNull();
+    return within(within(card()!).getByRole('list', { name: 'Getting started steps' }))
+      .getAllByRole('listitem')
+      .map((li) => [li.textContent, !/not done/.test(li.textContent ?? '')]);
+  };
 
   it('is not shown before there is a job of your own, nor for sample data alone', () => {
     seedPack('consulting');
@@ -279,7 +284,7 @@ describe('Getting started card on the Pipeline', () => {
     renderApp();
     expect(ticks()).toEqual([
       [expect.stringMatching(/Save a job/), true],
-      [expect.stringMatching(/Log a follow-up date or mark a job applied/), false],
+      [expect.stringMatching(/Log a follow-up or mark a job applied/), false],
       [expect.stringMatching(/Sign in to sync/), false],
     ]);
   });

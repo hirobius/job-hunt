@@ -34,6 +34,10 @@ const renderApp = () =>
   );
 
 beforeEach(() => {
+  // Radix Select measures and scrolls; jsdom has neither.
+  Element.prototype.hasPointerCapture ??= () => false;
+  Element.prototype.releasePointerCapture ??= () => {};
+  Element.prototype.scrollIntoView ??= () => {};
   h.fake?.reset();
   localStorage.clear();
   replaceCurationState(EMPTY_CURATION);
@@ -64,13 +68,23 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
       await user.click(atsControl);
     }
 
-    // 1. Headings "Company hiring systems" and "Freelance, startup and remote boards" are present.
+    // 1. "Company hiring systems" is a heading over three rows and a Show more; the big boards and
+    // the freelance boards are closed rows with counts (rev-3 mock).
     expect(
       await screen.findByRole('heading', { level: 3, name: 'Company hiring systems' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { level: 3, name: 'Freelance, startup and remote boards' }),
-    ).toBeInTheDocument();
+    const atsRows = () =>
+      screen
+        .getAllByRole('link', { name: 'Search' })
+        .filter((a) => (a.getAttribute('href') ?? '').includes('site%3A'));
+    expect(atsRows()).toHaveLength(3);
+    for (const name of [/^Freelance, startup and remote boards/, /^Big job boards/]) {
+      const row = screen.getByRole('button', { name });
+      expect(row).toHaveAttribute('aria-expanded', 'false');
+      await user.click(row);
+    }
+    await user.click(screen.getByRole('button', { name: /^Show \d+ more$/ }));
+    expect(atsRows().length).toBeGreaterThan(3);
 
     // 2. Toggling Contract only adds the (contract OR freelance OR fractional) clause to a tile's href.
     // Hiring-system tiles are Google `site:` searches; the big boards (#223) sit above them.
@@ -84,8 +98,8 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
       new URL(initialSearchLinks[0].getAttribute('href')!).searchParams.get('q') ?? '';
     expect(initialQuery).not.toContain('(contract OR freelance OR fractional)');
 
-    const contractOption = screen.getByRole('radio', { name: 'Contract only' });
-    await user.click(contractOption);
+    await user.click(screen.getByRole('combobox', { name: /^Engagement/ }));
+    await user.click(await screen.findByRole('option', { name: 'Contract only' }));
 
     // Re-query tile search links after state change (key changes re-mount the tile cards).
     const updatedSearchLinks = atsLinks();
@@ -93,8 +107,8 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
       new URL(updatedSearchLinks[0].getAttribute('href')!).searchParams.get('q') ?? '';
     expect(updatedQuery).toContain('(contract OR freelance OR fractional)');
 
-    // 3. Each "Search the top N" href has 32 words or fewer.
-    const topNLinks = screen.getAllByRole('link', { name: /Search the top/i });
+    // 3. The one-query links (Search all boards, Search the top N) have 32 words or fewer.
+    const topNLinks = screen.getAllByRole('link', { name: /Search the top|Search all boards/i });
     expect(topNLinks.length).toBeGreaterThanOrEqual(2);
     for (const link of topNLinks) {
       const href = link.getAttribute('href')!;

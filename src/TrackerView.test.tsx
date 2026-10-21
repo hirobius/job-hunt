@@ -102,7 +102,60 @@ describe('Pipeline hierarchy', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
-    expect(screen.getByText('1 active · 1 total')).toBeInTheDocument();
+    // On its own line under the title (PageHeader's description), not beside it (rev-3).
+    const header = screen.getByRole('heading', { level: 2, name: 'Pipeline' }).closest('header')!;
+    const meta = header.querySelector('[data-slot="description"]');
+    expect(meta?.textContent).toBe('1 active · 1 total');
+    expect(header.querySelector('[data-slot="status"]')).toBeNull();
+  });
+
+  it('first use says 0 jobs under the title', () => {
+    renderTracker();
+    const header = screen.getByRole('heading', { level: 2, name: 'Pipeline' }).closest('header')!;
+    expect(header.querySelector('[data-slot="description"]')?.textContent).toBe('0 jobs');
+  });
+});
+
+// Rev-3 s-pipeline-filtered-empty: the empty message has its own section with a way back.
+describe('Pipeline filtered to nothing', () => {
+  it('a search with no match: no period, a helper line and Clear search', async () => {
+    const user = userEvent.setup();
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderTracker();
+    await user.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zzz nothing');
+    expect(screen.getByText('No jobs match "zzz nothing"')).toBeInTheDocument();
+    expect(screen.getByText('Try a shorter word, or clear the search.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toHaveValue('');
+    expect(screen.getByRole('link', { name: 'Design Engineer' })).toBeInTheDocument();
+  });
+
+  it('a status with no jobs: Try another status, and Show active goes back', async () => {
+    const user = userEvent.setup();
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderTracker();
+    await user.click(screen.getByRole('button', { name: /^Status:/ }));
+    await user.click(await screen.findByRole('menuitemradio', { name: /^Offer/ }));
+    expect(screen.getByText('Try another status.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Show active' }));
+    expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
+  });
+
+  it('nothing left to apply to: a plain title, no em dash', async () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    markAppliedByUrl('https://acme.example/jobs/1', 'Design Engineer');
+    renderTracker();
+    expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
+    expect(screen.getByText('Check Applied, or add more jobs.')).toBeInTheDocument();
+  });
+});
+
+describe('Status and Sort show only their value', () => {
+  it('the prefix lives in the name, not the visible text', () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderTracker();
+    expect(screen.getByRole('button', { name: /^Status: Active/ }).textContent).toBe('Active');
+    expect(screen.getByRole('button', { name: /^Sort:/ }).textContent).not.toMatch(/^Sort/);
   });
 });
 

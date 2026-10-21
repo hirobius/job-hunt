@@ -1,28 +1,39 @@
-// Apply mode (rapid apply, #/apply/<jobId>): one job at a time from the To apply queue. A big
-// Open application button, Mark applied → Next job, then the Apply sheet's templates (every
-// template filled for the job, #239) and the Application kit as copy rows (profile, letters, answers). Works one-handed on a phone: one column, 40px controls.
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, Copy, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react';
+// Apply mode (rapid apply, #/apply/<jobId>; rev-3 E, mobile slice 2): one job at a time from the
+// To apply queue. One top row (Back to the Pipeline, and an HDS compact pager "‹ 1 of N ›"), the
+// job's badges and title, Open application as the one primary, then Mark applied and Not a fit as
+// one row of two. Below: the Apply sheet's templates (every Outreach message filled for the job,
+// #239) and the Application kit, as panels of expandable rows (HDS Disclosure variant="row": a
+// one-line preview, Copy beside it, the full text when open). Works one-handed on a phone.
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Check, Copy, ExternalLink, ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   Alert,
   Box,
   Button,
+  Disclosure,
   Icon,
   Input as HdsInput,
+  Pagination,
   Select,
   Stack,
   Text,
   Textarea,
   useToast,
 } from '@hirobius/design-system';
+import { EmptyState } from './hds-gaps/EmptyState';
 import { PageHeader } from '@hirobius/design-system/patterns';
-import EmptyState from './EmptyState';
+import { BackToPipeline } from './JobHeader';
+import { JobBadges } from './JobRowParts';
+import { MetaCaption } from './MetaCaption';
+import { savedAgo } from './jobState';
+import { Panel, PanelBody } from './PipelinePanel';
+import BlankText from './BlankText';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
 import { openApply, openJob } from './route';
-import { metaLines } from './metaLines';
 import { titleOf } from './jobRow';
 import { toApplyQueue } from './applyQueue';
 import { followUpDate } from './jobEvents';
+import { dayLabel } from './dayLabel';
 import {
   KIT_FIELDS,
   addAnswer,
@@ -35,7 +46,7 @@ import {
   type KitAnswer,
 } from './applyKit';
 import { useOutreachTemplates } from './outreachTemplates';
-import { fillSnippet } from './templateFill';
+import { fillSnippet, previewText } from './templateFill';
 import { copyFilled } from './templateCopy';
 import { showNotice } from './saveNotice';
 import type { Job } from './types';
@@ -44,29 +55,31 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   const jobs = useJobs();
   const queue = useMemo(() => toApplyQueue(jobs), [jobs]);
   const job = jobId ? findJobById(jobId, jobs) : undefined;
-  useEffect(() => window.scrollTo(0, 0), [jobId]);
-
-  const back = (
-    <Button
-      variant="tertiary"
-      size="sm"
-      iconLeft={<Icon icon={ArrowLeft} />}
-      onClick={() => openJob(null)}
-    >
-      Back to Pipeline
-    </Button>
+  // The pager walks the queue with this job held in its place, so "2 of 3" stays put after Mark
+  // applied (the job leaves To apply) and Next still means the one after it.
+  const sequence = useMemo(
+    () =>
+      job
+        ? toApplyQueue(
+            jobs.map((j) => (j.url === job.url ? { ...j, status: 'Saved', archived: false } : j)),
+          )
+        : queue,
+    [jobs, job, queue],
   );
+  useEffect(() => window.scrollTo(0, 0), [jobId]);
 
   if (!job) {
     return (
       <Stack gap="normal">
-        <Box>{back}</Box>
+        <BackToPipeline />
         <EmptyState
+          framed
+          icon={ListChecks}
           title={queue.length ? 'Pick up where you left off' : 'To apply is empty'}
-          message={
+          description={
             queue.length
               ? `${queue.length} ${queue.length === 1 ? 'job is' : 'jobs are'} waiting to be applied to.`
-              : 'Save jobs from Discover or paste a link, then come back here to apply.'
+              : 'Save jobs from Companies or paste a link, then come back here to apply.'
           }
           action={
             queue.length ? (
@@ -80,9 +93,10 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
     );
   }
 
-  const idx = queue.findIndex((j) => j.url === job.url);
-  const next = idx >= 0 ? (queue[idx + 1] ?? queue.find((j) => j !== job)) : queue[0];
-  const nextPos = next ? queue.indexOf(next) + 1 : 0;
+  const idx = sequence.findIndex((j) => j.url === job.url);
+  const others = queue.filter((j) => j.url !== job.url);
+  // After this one: the next job still to apply to, else the first, else back to the Pipeline.
+  const next = sequence.slice(idx + 1).find((j) => others.includes(j)) ?? others[0] ?? undefined;
   const goNext = () => (next ? openApply(jobIdOf(next.url)) : openJob(null));
 
   const markApplied = () => {
@@ -99,65 +113,83 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   };
 
   const company = job.company?.trim();
+  const saved = savedAgo(job);
   const dueOn = followUpDate(job, new Date());
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal">
-        <PageHeader
-          level={2}
-          breadcrumb={back}
-          title={titleOf(job)}
-          status={
-            <Stack gap="px2">
-              {metaLines([
-                company,
-                idx >= 0 ? 'To apply' : job.status,
-                idx >= 0 && `${idx + 1} of ${queue.length}`,
-              ]).map((line, i) => (
-                <Text key={i} variant="caption" as="span" tone="secondary">
-                  {line}
-                </Text>
-              ))}
-            </Stack>
-          }
-        />
-        <Button asChild variant="primary" size="lg" iconRight={<Icon icon={ExternalLink} />}>
-          <a href={job.url} target="_blank" rel="noopener noreferrer">
-            Open application
-          </a>
-        </Button>
-
-        {job.status !== 'Saved' ? (
-          <Alert tone="success" title={`Applied${company ? ` to ${company}` : ''}`}>
-            {dueOn
-              ? `It's under Follow up in the Pipeline. Follow up on ${dueOn}.`
-              : "It's under Follow up in the Pipeline."}
-          </Alert>
-        ) : null}
-
-        <Stack direction="row" wrap="wrap" gap="tight">
-          {job.status === 'Saved' ? (
-            <>
-              <Button variant="secondary" iconLeft={<Icon icon={Check} />} onClick={markApplied}>
-                Mark applied
-              </Button>
-              <Button variant="tertiary" onClick={goNext} disabled={!next}>
-                Skip
-              </Button>
-              <Button variant="tertiary" onClick={notAFit}>
-                Not a fit
-              </Button>
-            </>
-          ) : next ? (
-            <Button variant="secondary" onClick={goNext}>
-              {`Next job (${nextPos} of ${queue.length})`}
-            </Button>
-          ) : (
-            <Button variant="secondary" onClick={() => openJob(null)}>
-              To apply is empty · back to Pipeline
-            </Button>
+        <Stack direction="row" gap="tight" align="center" justify="space-between">
+          <BackToPipeline />
+          {sequence.length > 0 && (
+            // Hug the right edge: the pager is only as wide as its three parts.
+            <Box sx={{ flex: '0 0 auto' }}>
+              <Pagination
+                variant="compact"
+                label="Jobs to apply"
+                page={idx + 1}
+                count={sequence.length}
+                onPageChange={(p) => openApply(jobIdOf(sequence[p - 1].url))}
+              />
+            </Box>
           )}
         </Stack>
+        <PageHeader
+          level={2}
+          metadata={<JobBadges job={job} />}
+          title={titleOf(job)}
+          description={
+            job.company || job.location || saved ? (
+              // PageHeader wraps the description in a <p>: a span keeps the HTML valid.
+              <MetaCaption as="span" items={[company, job.location?.trim(), saved]} />
+            ) : undefined
+          }
+        />
+        <Box sx={{ display: 'flex', '& > *': { flex: '1 1 0%' } }}>
+          <Button asChild variant="primary" size="md">
+            <a href={job.url} target="_blank" rel="noopener noreferrer">
+              <Icon icon={ExternalLink} />
+              Open application
+            </a>
+          </Button>
+        </Box>
+
+        {job.status === 'Saved' ? (
+          // One row of two equal secondaries under the primary (rev-3 E).
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'xs' }}>
+            <Button
+              variant="secondary"
+              size="md"
+              iconLeft={<Icon icon={Check} />}
+              onClick={markApplied}
+            >
+              Mark applied
+            </Button>
+            <Button variant="secondary" size="md" onClick={notAFit}>
+              Not a fit
+            </Button>
+          </Box>
+        ) : (
+          // A short title (the body step inside .rjb-inline-alerts); the company and the date,
+          // written as the Pipeline writes it, go in the body.
+          <Box className="rjb-inline-alerts">
+            <Alert tone="success" title="Applied">
+              {[
+                company ? `Applied to ${company}.` : '',
+                "It's under Follow up in the Pipeline.",
+                dueOn ? `Follow up on ${dayLabel(dueOn, new Date())}.` : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            </Alert>
+          </Box>
+        )}
+        {job.status !== 'Saved' && !next && (
+          <Box>
+            <Button variant="secondary" size="md" onClick={() => openJob(null)}>
+              To apply is empty · back to Pipeline
+            </Button>
+          </Box>
+        )}
 
         <ApplyTemplates job={job} />
         <ApplicationKit job={job} />
@@ -166,36 +198,12 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   );
 }
 
-/** One label + value with one-tap Copy and inline edit. Empty: a prompt to add it. */
-// Template bodies in the Apply sheet are cut to this many characters until Show all, so the
-// Application kit below them stays in reach on a phone (PR #257 review).
-const PREVIEW_CHARS = 160;
+const previewOf = (text: string) => previewText(text);
 
-function CopyRow({
-  label,
-  value,
-  onSave,
-  multiline = false,
-  editable = true,
-  preview = false,
-  as = 'li',
-}: {
-  as?: 'li' | 'div';
-  /** Show a long value as a short preview with Show all (the Apply sheet's template bodies). */
-  preview?: boolean;
-  label: string;
-  value: string;
-  onSave?: (v: string) => void;
-  multiline?: boolean;
-  editable?: boolean;
-}) {
+/** Copy with a short "Copied" confirmation; a refused copy says why in a toast. */
+function CopyButton({ label, value }: { label: string; value: string }) {
   const { toast } = useToast();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
   const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const long = preview && value.length > PREVIEW_CHARS;
-  const shown = long && !expanded ? `${value.slice(0, PREVIEW_CHARS).trimEnd()}…` : value;
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
   const copy = async () => {
@@ -205,17 +213,43 @@ function CopyRow({
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopied(false), 1500);
   };
+  return (
+    <Button
+      size="md"
+      variant="secondary"
+      disabled={!value}
+      iconLeft={<Icon icon={copied ? Check : Copy} />}
+      aria-label={copied ? `Copied ${label}` : `Copy ${label}`}
+      onClick={copy}
+    >
+      {copied ? 'Copied' : 'Copy'}
+    </Button>
+  );
+}
+
+/** One label + value with one-tap Copy and inline edit. Empty: a prompt to add it. */
+function CopyRow({
+  label,
+  value,
+  onSave,
+  multiline = false,
+  as = 'li',
+}: {
+  as?: 'li' | 'div';
+  label: string;
+  value: string;
+  onSave: (v: string) => void;
+  multiline?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
   const done = () => {
-    onSave?.(draft.trim());
+    onSave(draft.trim());
     setEditing(false);
   };
   const Field = multiline ? Textarea : HdsInput;
   return (
-    <Box
-      as={as}
-      sx={{ py: 'xs', borderBottom: 'thin solid', borderColor: 'border.default' }}
-      aria-label={label}
-    >
+    <Box as={as} sx={{ py: 'xs' }} aria-label={label}>
       {editing ? (
         <Stack gap="tight">
           <Field
@@ -241,48 +275,27 @@ function CopyRow({
       ) : (
         <Stack direction="row" gap="tight" align="center" justify="space-between">
           <Box sx={{ minWidth: 0, flex: '1 1 0%' }}>
-            <Text variant="caption" as="p" tone="secondary">
+            <Text variant="ui" as="p" className="rjb-semibold">
               {label}
             </Text>
-            <Text variant="ui" as="p" className="rjb-prewrap">
-              {shown || (editable ? `Add your ${label.toLowerCase()}` : 'Nothing to fill yet')}
+            <Text variant="caption" as="p" tone="secondary" className="rjb-prewrap">
+              {value || `Add your ${label.toLowerCase()}`}
             </Text>
-            {long && (
-              <Button
-                size="md"
-                variant="tertiary"
-                aria-label={`${expanded ? 'Show less' : 'Show all'} of ${label}`}
-                aria-expanded={expanded}
-                onClick={() => setExpanded((v) => !v)}
-              >
-                {expanded ? 'Show less' : 'Show all'}
-              </Button>
-            )}
           </Box>
           <Stack direction="row" gap="tight" align="center">
-            {editable && (
-              <Button
-                size="md"
-                variant="tertiary"
-                iconOnly
-                iconLeft={<Icon icon={value ? Pencil : Plus} />}
-                label={`${value ? 'Edit' : 'Add'} ${label}`}
-                onClick={() => {
-                  setDraft(value);
-                  setEditing(true);
-                }}
-              />
-            )}
+            {/* A labelled secondary (rev-3 mock: "Add"), named for its field. */}
             <Button
-              size="md"
+              size="sm"
               variant="secondary"
-              disabled={!value}
-              iconLeft={<Icon icon={copied ? Check : Copy} />}
-              aria-label={copied ? `Copied ${label}` : `Copy ${label}`}
-              onClick={copy}
+              aria-label={`${value ? 'Edit' : 'Add'} ${label}`}
+              onClick={() => {
+                setDraft(value);
+                setEditing(true);
+              }}
             >
-              {copied ? 'Copied' : 'Copy'}
+              {value ? 'Edit' : 'Add'}
             </Button>
+            {value && <CopyButton label={label} value={value} />}
           </Stack>
         </Stack>
       )}
@@ -290,7 +303,42 @@ function CopyRow({
   );
 }
 
-/** The Apply sheet's templates (#239): every template filled for this job, one copy row each. */
+/** A list inside a panel: rows split by hairlines, padded like the panel's header. */
+function Rows({ label, children }: { label?: string; children: ReactNode }) {
+  return (
+    <Box
+      as="ul"
+      aria-label={label}
+      sx={{ listStyle: 'none', m: 0, p: 0, '& > li': { px: 'md' } }}
+      className="rjb-rows"
+    >
+      {children}
+    </Box>
+  );
+}
+
+/** An expandable row (HDS Disclosure variant="row") as one list item. */
+function DisclosureItem({
+  label,
+  preview,
+  actions,
+  children,
+}: {
+  label: string;
+  preview: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <Box as="li" aria-label={label} sx={{ py: 'xs' }}>
+      <Disclosure variant="row" label={label} preview={preview} actions={actions}>
+        {children}
+      </Disclosure>
+    </Box>
+  );
+}
+
+/** The Apply sheet's templates (#239): every template filled for this job, one row each. */
 function ApplyTemplates({ job }: { job: Job }) {
   const kit = useApplyKit();
   const snippets = useOutreachTemplates();
@@ -301,7 +349,7 @@ function ApplyTemplates({ job }: { job: Job }) {
   const edit = (label: string) => (
     <Box>
       {/* HDS Button asChild drops iconLeft, so the pencil is the link's own child. */}
-      <Button asChild variant="tertiary" size="md">
+      <Button asChild variant="secondary" size="md">
         <a href="#/copy-deck">
           <Icon icon={Pencil} />
           {label}
@@ -310,38 +358,41 @@ function ApplyTemplates({ job }: { job: Job }) {
     </Box>
   );
   return (
-    <Stack gap="tight">
-      <Text variant="body" as="h3" className="rjb-semibold">
-        Templates
-      </Text>
-      {rows.length ? (
-        <>
+    <Panel label="Templates" title="Templates">
+      <PanelBody>
+        <Stack gap="tight">
           <Text variant="caption" as="p" tone="secondary">
-            Filled for this job. Copy one into the form or an email.
+            {rows.length
+              ? 'Filled for this job. Copy one into the form or an email.'
+              : 'Write an outreach message once in Documents; it shows here filled for each job.'}
           </Text>
-          <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Your templates">
-            {rows.map((r) => (
-              <CopyRow
-                key={r.id}
-                label={r.label}
-                value={r.text}
-                editable={false}
-                multiline
+          {edit(rows.length ? 'Edit documents' : 'Write a message')}
+        </Stack>
+      </PanelBody>
+      {rows.length > 0 && (
+        <Rows label="Your templates">
+          {/* A row is its name, the start of the text (blanks fill in place) and Copy: Copy is
+              the row's one action, so there is no chevron (rev-3 review). The whole text is in
+              Documents. */}
+          {rows.map((r) => (
+            <Box as="li" key={r.id} aria-label={r.label} sx={{ py: 'xs' }}>
+              <BlankText
                 preview
+                text={r.text}
+                job={job}
+                documentId={snippets.find((s) => s.id === r.id)?.documentId}
+                head={
+                  <Text variant="ui" as="p" className="rjb-semibold">
+                    {r.label}
+                  </Text>
+                }
+                action={<CopyButton label={r.label} value={r.text} />}
               />
-            ))}
-          </Box>
-          {edit('Edit documents')}
-        </>
-      ) : (
-        <>
-          <Text variant="caption" as="p" tone="secondary">
-            Write an outreach message once in Documents; it shows here filled for each job.
-          </Text>
-          {edit('Write a message')}
-        </>
+            </Box>
+          ))}
+        </Rows>
       )}
-    </Stack>
+    </Panel>
   );
 }
 
@@ -352,70 +403,111 @@ function ApplicationKit({ job }: { job: Job }) {
     { value: '', label: 'No template' },
     ...snippets.map((s) => ({ value: s.id, label: s.label || 'Untitled' })),
   ];
+  const template = (id?: string) => snippets.find((x) => x.id === id);
   const filled = (id?: string) => {
-    const s = snippets.find((x) => x.id === id);
+    const s = template(id);
     return s ? fillSnippet(s, job, kit.fields.name) : '';
   };
+  const have = KIT_FIELDS.filter((f) => kit.fields[f.key]);
+  const missing = KIT_FIELDS.filter((f) => !kit.fields[f.key]);
+  const fieldRow = (f: (typeof KIT_FIELDS)[number]) => (
+    <CopyRow
+      key={f.key}
+      label={f.label}
+      value={kit.fields[f.key] ?? ''}
+      onSave={(v) => setKitField(f.key, v)}
+    />
+  );
+  const answered = kit.answers.length;
   return (
-    <Stack gap="normal">
-      <Text variant="body" as="h3" className="rjb-semibold">
-        Application kit
-      </Text>
-      <Text variant="caption" as="p" tone="secondary">
-        Enter these once; they follow your account. Copy each into the form.
-      </Text>
-      <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Profile">
-        {KIT_FIELDS.map((f) => (
-          <CopyRow
-            key={f.key}
-            label={f.label}
-            value={kit.fields[f.key] ?? ''}
-            onSave={(v) => setKitField(f.key, v)}
-          />
-        ))}
-      </Box>
-
-      <Text variant="body" as="h3" className="rjb-semibold">
-        Letters
-      </Text>
-      {(
-        [
-          ['whyTemplate', 'Why this company'],
-          ['coverTemplate', 'Cover note'],
-        ] as const
-      ).map(([slot, label]) => (
-        <Stack gap="tight" key={slot}>
-          <Select
-            label={`${label} template`}
-            options={options}
-            value={kit[slot] ?? ''}
-            onChange={(v) => setKitTemplate(slot, v)}
-          />
-          <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
-            <CopyRow label={label} value={filled(kit[slot])} editable={false} multiline />
-          </Box>
-        </Stack>
-      ))}
-
-      <Text variant="body" as="h3" className="rjb-semibold">
-        Your answers
-      </Text>
-      {kit.answers.length === 0 && (
+    <Panel
+      label="Application kit"
+      title="Application kit"
+      badge={`${have.length} of ${KIT_FIELDS.length}`}
+    >
+      <PanelBody>
         <Text variant="caption" as="p" tone="secondary">
-          Save answers to questions forms keep asking (visa, relocation, how you heard).
+          Enter these once. They follow your account.
         </Text>
-      )}
-      <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Your answers">
-        {kit.answers.map((a) => (
-          <AnswerRow key={a.id} a={a} />
-        ))}
-      </Box>
-      <Box>
-        <Button variant="tertiary" iconLeft={<Icon icon={Plus} />} onClick={() => addAnswer()}>
-          Add a question
-        </Button>
-      </Box>
-    </Stack>
+      </PanelBody>
+      <Rows label="Profile">
+        {have.map((f) => fieldRow(f))}
+        {/* Empty fields fold into one row, so the filled ones stay in reach (rev-3 mock). */}
+        {missing.length > 0 && (
+          <DisclosureItem
+            label={`Fill in ${missing.length} more`}
+            preview={missing.map((f) => f.label).join(', ')}
+          >
+            {/* Nested rows split by hairlines, like the panel's own rows. */}
+            <Box
+              as="ul"
+              aria-label="More fields"
+              sx={{ listStyle: 'none', m: 0, p: 0 }}
+              className="rjb-rows"
+            >
+              {missing.map((f) => fieldRow(f))}
+            </Box>
+          </DisclosureItem>
+        )}
+        {(
+          [
+            ['whyTemplate', 'Why this company'],
+            ['coverTemplate', 'Cover note'],
+          ] as const
+        ).map(([slot, label]) => {
+          const text = filled(kit[slot]);
+          return (
+            <DisclosureItem
+              key={slot}
+              label={label}
+              preview={text ? previewOf(text) : 'Pick a template to fill'}
+              actions={text ? <CopyButton label={label} value={text} /> : undefined}
+            >
+              <Stack gap="tight">
+                <Select
+                  label={`${label} template`}
+                  options={options}
+                  value={kit[slot] ?? ''}
+                  onChange={(v) => setKitTemplate(slot, v)}
+                />
+                {text && (
+                  <BlankText text={text} job={job} documentId={template(kit[slot])?.documentId} />
+                )}
+              </Stack>
+            </DisclosureItem>
+          );
+        })}
+        <DisclosureItem
+          label="Custom answers"
+          preview={
+            answered
+              ? kit.answers
+                  .map((a) => a.q.trim())
+                  .filter(Boolean)
+                  .join(', ') || `${answered} saved`
+              : 'Questions forms keep asking (visa, relocation, how you heard)'
+          }
+        >
+          <Stack gap="tight">
+            <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Your answers">
+              {kit.answers.map((a) => (
+                <AnswerRow key={a.id} a={a} />
+              ))}
+            </Box>
+            <Box>
+              <Button
+                variant="tertiary"
+                size="md"
+                iconLeft={<Icon icon={Plus} />}
+                onClick={() => addAnswer()}
+              >
+                Add a question
+              </Button>
+            </Box>
+          </Stack>
+        </DisclosureItem>
+      </Rows>
+    </Panel>
   );
 }
 

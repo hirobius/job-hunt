@@ -24,6 +24,7 @@ import {
   Text,
   Textarea,
 } from '@hirobius/design-system';
+import { EmptyState } from './hds-gaps/EmptyState';
 import {
   createDocument,
   DOCUMENT_KINDS,
@@ -47,7 +48,6 @@ import {
   sentByKind,
   type SentVersion,
 } from './jobDocuments';
-import EmptyState from './EmptyState';
 import type { Job } from './types';
 
 export interface JobDocumentsProps {
@@ -411,9 +411,10 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
       {form === 'base' && <UseBaseForm job={job} bases={bases} onDone={close} />}
       {docs.length === 0 && form === 'none' && (
         <EmptyState
+          centered
           icon={FileText}
           title="No documents yet"
-          message="Keep the résumé, cover letter and messages you write for this job here, with every version."
+          description="Keep the résumé, cover letter and messages you write for this job here, with every version."
           action={
             <Stack direction="row" gap="tight" justify="center" wrap="wrap">
               {newButton('primary')}

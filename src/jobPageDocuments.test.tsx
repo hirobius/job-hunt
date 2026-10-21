@@ -1,4 +1,5 @@
-// The job page's Documents tab (#228), tested at the route seam through App: #/queue/<jobId>.
+// The job page's Documents panel (#228; on Overview since the three-tab job page, rev-3 F), tested
+// at the route seam through App: #/queue/<jobId>.
 // Documents by kind with their Version history, a Base document's independent copy, Mark as
 // Sent (locked, one per kind per Job, refusals said plainly) and the Sent line on the header.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -50,12 +51,14 @@ const openJobPage = (url = URL_A) => {
   return renderApp();
 };
 
-const sectionTabs = () => screen.getByRole('tablist', { name: 'Job sections' });
-const tab = (name: string | RegExp) => within(sectionTabs()).getByRole('tab', { name });
+const docsPanel = () => screen.getByRole('region', { name: 'Documents' });
+/** Every document sits behind the panel's one row ("Add a document" while there are none). */
 const openDocuments = async () => {
-  const t = tab(/^Documents/);
-  await userEvent.click(t);
-  return document.getElementById(t.getAttribute('aria-controls')!) as HTMLElement;
+  const panel = docsPanel();
+  await userEvent.click(
+    within(panel).getByRole('button', { name: /^(All documents|Add a document)/ }),
+  );
+  return panel;
 };
 const docsOf = () => getAllDocuments().filter((d) => d.jobUrl === URL_A);
 
@@ -88,14 +91,14 @@ afterEach(() => {
   dismissNotice();
 });
 
-describe('Documents tab (#228)', () => {
-  it('is a job section, with a count once the job has documents', () => {
+describe('Documents panel (#228)', () => {
+  it('is a panel on Overview, with its count', () => {
     openJobPage();
-    expect(tab('Documents')).toBeInTheDocument();
+    expect(within(docsPanel()).getByText('0')).toBeInTheDocument();
     cleanup();
     createDocument({ kind: 'cover', title: 'Cover letter', jobUrl: URL_A, text: 'Hi' });
     openJobPage();
-    expect(tab('Documents (1)')).toBeInTheDocument();
+    expect(within(docsPanel()).getByText('1')).toBeInTheDocument();
   });
 
   it('starts empty with one action, which makes a document for this job and company', async () => {
@@ -113,7 +116,7 @@ describe('Documents tab (#228)', () => {
     expect(d.versions.map((v) => v.text)).toEqual(['Dear Acme']);
     expect(screen.getByRole('heading', { name: 'Cover letter' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Acme letter' })).toBeInTheDocument();
-    expect(tab('Documents (1)')).toBeInTheDocument();
+    expect(within(docsPanel()).getByText('1')).toBeInTheDocument();
   });
 
   it('lists documents by kind, and each save adds a Version to the history', async () => {
@@ -124,7 +127,7 @@ describe('Documents tab (#228)', () => {
     const heads = within(panel)
       .getAllByRole('heading', { level: 3 })
       .map((x) => x.textContent);
-    expect(heads).toEqual(['Résumé', 'Cover letter', 'Final copies']);
+    expect(heads).toEqual(['Documents', 'Résumé', 'Cover letter', 'Final copies']);
     const letter = screen.getByRole('region', { name: 'Letter' });
     const text = within(letter).getByRole('textbox', { name: 'Text' });
     expect(within(letter).getByRole('button', { name: 'Save version' })).toBeDisabled();
@@ -163,7 +166,7 @@ describe('Documents tab (#228)', () => {
     expect(docsOf()[0].versions.map((v) => v.text)).toEqual(['base', 'tailored']);
   });
 
-  it('Mark as Sent asks first, then locks that Version, labels it and shows it on the header', async () => {
+  it('Mark as Sent asks first, then locks that Version, labels it and shows it on the panel', async () => {
     const id = createDocument({ kind: 'cover', title: 'Letter', jobUrl: URL_A, text: 'one' });
     createDocument({ kind: 'cover', title: 'Other letter', jobUrl: URL_A, text: 'alt' });
     openJobPage();
@@ -183,8 +186,7 @@ describe('Documents tab (#228)', () => {
     expect(within(other).getByText(/already has a Sent Cover letter/)).toBeInTheDocument();
     // A document holding a Sent Version can't be deleted.
     expect(within(letter).queryByRole('button', { name: 'Delete' })).toBeNull();
-    const header = screen.getByRole('heading', { level: 2 }).closest('header') as HTMLElement;
-    expect(within(header).getByText('Sent: Cover letter v1')).toBeInTheDocument();
+    expect(within(docsPanel()).getByText('Sent: Cover letter v1')).toBeInTheDocument();
   });
 
   it('a refused Mark as Sent (another device got there first) says so plainly', async () => {

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Button, Dialog, InlineLink, Stack, Textarea, useToast } from '@hirobius/design-system';
+import { Check, Copy, FileText, Pencil } from 'lucide-react';
+import { Box, Button, Dialog, Icon, Card, Stack, Text, useToast } from '@hirobius/design-system';
 import { documentHref, useOutreachTemplates } from './outreachTemplates';
-import { fillSnippet, unfilledTokens } from './templateFill';
+import { fillSnippet } from './templateFill';
+import BlankText from './BlankText';
 import { useApplyKit } from './applyKit';
 import { copyFilled } from './templateCopy';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 // Fill an Outreach message (a Base document in the library, #227) from a job's
 // company/role/contact/angle and copy it.
@@ -22,7 +23,6 @@ export default function UseTemplate({ job }: { job: Job }) {
   // Every job card mounts one of these — only fill while the dialog is actually open.
   const kitName = useApplyKit().fields.name;
   const filled = open && picked ? fillSnippet(picked, job, kitName) : '';
-  const missing = open ? unfilledTokens(filled) : [];
 
   useEffect(() => {
     if (!copied) return;
@@ -45,7 +45,7 @@ export default function UseTemplate({ job }: { job: Job }) {
       }}
     >
       <Dialog.Trigger asChild>
-        <Button size="sm" variant="tertiary">
+        <Button size="md" variant="secondary" iconLeft={<Icon icon={FileText} />}>
           Use template
         </Button>
       </Dialog.Trigger>
@@ -59,7 +59,9 @@ export default function UseTemplate({ job }: { job: Job }) {
           </Dialog.Description>
         </Dialog.Header>
         {ordered.length === 0 ? (
-          <p style={SECONDARY}>No outreach messages yet. Write one in Documents first.</p>
+          <Text variant="caption" as="p" tone="secondary">
+            No outreach messages yet. Write one in Documents first.
+          </Text>
         ) : (
           <Stack gap="medium">
             <div role="group" aria-label="Templates">
@@ -80,25 +82,43 @@ export default function UseTemplate({ job }: { job: Job }) {
                 ))}
               </Stack>
             </div>
-            <Textarea readOnly rows={12} aria-label="Preview" value={filled} />
-            {missing.length > 0 && (
-              <p style={SECONDARY}>
-                Still unfilled: {missing.map((t) => `[${t}]`).join(', ')}. Add them on the job, or
-                edit after pasting.
-              </p>
-            )}
+            {/* The filled message with its blanks as chips that fill in place (rev-3 A), then
+                "N blanks left"; Copy still works. */}
+            <Stack gap="px8">
+              <Card bordered padding="px16" role="region" aria-label="Preview">
+                <BlankText text={filled} job={job} documentId={picked?.documentId} />
+              </Card>
+              {/* Under the Preview, out of the footer so the sheet never clips it: a 40px tertiary
+                  with a pencil. HDS Button asChild drops iconLeft, so the pencil is the link's own
+                  child. */}
+              {picked && (
+                <Box>
+                  <Button asChild variant="tertiary" size="md">
+                    <a href={documentHref(picked.documentId)}>
+                      <Icon icon={Pencil} />
+                      Edit in Documents
+                    </a>
+                  </Button>
+                </Box>
+              )}
+            </Stack>
           </Stack>
         )}
+        {/* One primary (rev-3 A); the header X closes the sheet. */}
         <Dialog.Footer>
-          {picked && (
-            <InlineLink href={documentHref(picked.documentId)}>Edit in Documents</InlineLink>
-          )}
-          <Dialog.Close asChild>
-            <Button variant="secondary">Close</Button>
-          </Dialog.Close>
-          <Button onClick={copy} disabled={!picked}>
-            {copied ? 'Copied' : 'Copy'}
-          </Button>
+          {/* Rule A, as in Follow up: one full-width primary (Copy message); Edit in Documents is
+              the caption row under the Preview, and the dialog's X is the one Close. Bottom
+              padding keeps the last control off the sheet edge. */}
+          <Box sx={{ flex: '1 1 auto', pb: 'md', display: 'flex', '& > *': { flex: '1 1 0%' } }}>
+            <Button
+              variant="primary"
+              iconLeft={<Icon icon={copied ? Check : Copy} />}
+              onClick={copy}
+              disabled={!picked}
+            >
+              {copied ? 'Copied' : 'Copy message'}
+            </Button>
+          </Box>
         </Dialog.Footer>
       </Dialog.Content>
     </Dialog>

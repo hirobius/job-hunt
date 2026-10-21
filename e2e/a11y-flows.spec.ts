@@ -13,11 +13,14 @@ async function seed(page: Page) {
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   await page.getByRole('tab', { name: 'Companies' }).click();
   await page.getByRole('button', { name: 'Choose a track' }).click();
-  await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().click();
+  // The Suggested (first) pack starts ticked (rev-3).
+  await expect(
+    page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first(),
+  ).toBeChecked();
   for (const name of ['Continue', 'Continue', 'Finish'])
     await page.getByRole('button', { name, exact: true }).click();
   await go(page, '#/discover/apply');
-  await expect(page.getByRole('tablist', { name: 'Your sections' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();
 }
 
 async function go(page: Page, hash: string) {
@@ -31,7 +34,9 @@ async function tabTo(page: Page, name: string, max = 20): Promise<boolean> {
     await page.keyboard.press('Tab');
     const hit = await page.evaluate(
       (n) =>
-        document.activeElement?.tagName === 'A' && document.activeElement.textContent?.trim() === n,
+        document.activeElement?.tagName === 'A' &&
+        (document.activeElement.getAttribute('aria-label') ??
+          document.activeElement.textContent?.trim()) === n,
       name,
     );
     if (hit) return true;
@@ -75,7 +80,7 @@ for (const theme of ['light', 'dark'] as const) {
         const bad: string[] = [];
 
         await go(page, '#/queue');
-        await page.getByRole('button', { name: 'Menu' }).click();
+        await page.getByRole('button', { name: /^Account/ }).click();
         await expect(page.getByRole('menu')).toBeVisible();
         bad.push(...(await axe(page, 'menu open')));
         await page.keyboard.press('Escape');
@@ -96,7 +101,11 @@ for (const theme of ['light', 'dark'] as const) {
         await page.keyboard.press('Escape');
 
         await go(page, '#/copy-deck');
+        // A row expands in place (rev-3 M): axe it open, then Open goes to the editor.
         await page.getByRole('button', { name: 'Follow-up after applying' }).click();
+        await page.waitForTimeout(300);
+        bad.push(...(await axe(page, 'document row open')));
+        await page.getByRole('button', { name: 'Open Follow-up after applying' }).click();
         await expect(page).toHaveURL(/#\/copy-deck\/./);
         await page.waitForTimeout(500);
         bad.push(...(await axe(page, 'outreach editor')));
@@ -109,7 +118,7 @@ for (const theme of ['light', 'dark'] as const) {
 
         // The job page's other tabs (a11y.spec.ts scans Overview only).
         await page.locator('a[href^="#/queue/"]').first().click();
-        for (const name of ['Screening', 'Interviews', 'To-dos']) {
+        for (const name of ['Screening', /^Interviews/]) {
           await page.getByRole('tab', { name }).click();
           await page.waitForTimeout(300);
           bad.push(...(await axe(page, `job ${name}`)));
@@ -129,7 +138,7 @@ test.describe('keyboard only', () => {
   }) => {
     await seed(page);
     await go(page, '#/queue');
-    await page.getByRole('button', { name: 'Menu' }).focus();
+    await page.getByRole('button', { name: /^Account/ }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('menu')).toBeVisible();
     await arrowTo(page, 'Documents', 'ArrowDown');
@@ -140,7 +149,7 @@ test.describe('keyboard only', () => {
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/queue$/);
 
-    await page.getByRole('button', { name: 'Menu' }).focus();
+    await page.getByRole('button', { name: /^Account/ }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('menu')).toBeVisible();
     await page.keyboard.press('End');

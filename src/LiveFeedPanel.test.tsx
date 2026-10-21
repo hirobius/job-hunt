@@ -85,7 +85,7 @@ afterEach(() => {
     .forEach((j) => removeJob(j.url));
 });
 
-const openRefine = () => userEvent.click(screen.getByRole('button', { name: 'Refine' }));
+const openRefine = () => userEvent.click(screen.getByRole('button', { name: /^Refine/ }));
 
 const renderPanel = (boardUrls: string[] = []) =>
   render(
@@ -111,8 +111,8 @@ describe('LiveFeedPanel', () => {
     const rows = within(list).getAllByRole('listitem');
     expect(rows).toHaveLength(2);
     const hn = rows.find((r) => r.textContent?.includes('UX/UI Designer'))!;
-    expect(hn).toHaveTextContent('Contract-friendly');
-    expect(hn).toHaveTextContent('In description');
+    // The signal is a fact with an icon, not a badge on the top row (rev-3 K).
+    expect(hn).toHaveTextContent('Contract');
     expect(screen.queryByText('Backend Engineer')).not.toBeInTheDocument();
   });
 
@@ -122,8 +122,9 @@ describe('LiveFeedPanel', () => {
     const row = within(list)
       .getAllByRole('listitem')
       .find((r) => r.textContent?.includes('Design Systems Lead'))!;
-    // Company, location, mode and source are four items: they must land on two captions.
-    expect(within(row).getByText('Ramp · New York, NY')).toBeInTheDocument();
+    // The company on its own line, the facts with icons, the source as a small label (rev-3 K).
+    expect(within(row).getByText('Ramp')).toBeInTheDocument();
+    expect(within(row).getByText('New York, NY')).toBeInTheDocument();
     for (const e of Array.from(row.querySelectorAll('span, p'))) {
       expect(itemsInLine(e.textContent ?? '')).toBeLessThanOrEqual(MAX_META_ITEMS);
     }
@@ -166,12 +167,39 @@ describe('LiveFeedPanel', () => {
     expect(screen.queryByText(/No live openings mention/)).not.toBeInTheDocument();
   });
 
-  it('filters to contract-friendly openings', async () => {
+  it('filters to contract-friendly openings from the Openings menu', async () => {
     const user = userEvent.setup();
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
-    await user.click(screen.getByRole('radio', { name: /contract-friendly \(1\)/i }));
+    await user.click(screen.getByRole('button', { name: 'Openings options' }));
+    // A filter with nothing in it is not offered.
+    expect(screen.queryByRole('menuitemradio', { name: /First hire/ })).toBeNull();
+    await user.click(screen.getByRole('menuitemradio', { name: 'Contract-friendly (1)' }));
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.getByText(/Showing contract-friendly/)).toBeInTheDocument();
+  });
+
+  it('is one Openings panel: count, how it is sorted, Find more, and rows inside it (rev-3 K)', async () => {
+    renderPanel();
+    const list = await screen.findByRole('list', { name: /live postings/i });
+    const panel = screen.getByRole('region', { name: 'Openings' });
+    expect(panel).toContainElement(list);
+    expect(within(panel).getByRole('heading', { name: 'Openings' })).toBeInTheDocument();
+    expect(within(panel).getByText('Sorted by relevance')).toBeInTheDocument();
+    expect(within(panel).getByRole('button', { name: 'Find more' })).toBeInTheDocument();
+    // No pick boxes, no inline fit disclosure, no term chips under the search.
+    expect(screen.queryByRole('checkbox', { name: /^Pick/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Fit and gap/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'design engineer' })).toBeNull();
+  });
+
+  it('saves every opening on screen from the Openings menu', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    await user.click(screen.getByRole('button', { name: 'Openings options' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Save all (2)' }));
+    expect(getAllJobs()).toHaveLength(2);
   });
 
   it('saves a posting to the tracker with its details', async () => {
@@ -279,7 +307,7 @@ describe('LiveFeedPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('folds a long list of failed sources behind a disclosure', async () => {
+  it('sums up a long list of failed sources in one Partial row with one Retry', async () => {
     const sources = Array.from({ length: 6 }, (_, i) => ({
       key: `b${i}`,
       label: `Board ${i}`,
@@ -288,15 +316,22 @@ describe('LiveFeedPanel', () => {
     }));
     feed.fetchFeed.mockResolvedValueOnce({ postings: RESULT.postings, sources });
     renderPanel();
-    expect(await screen.findByText('6 sources didn’t respond')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /show which ones/i })).toBeInTheDocument();
+    const panel = await screen.findByRole('region', { name: 'Openings' });
+    expect(within(panel).getByText('Partial')).toBeInTheDocument();
+    expect(within(panel).getByText('6 sources didn’t answer')).toBeInTheDocument();
+    expect(
+      within(panel).getByText('Board 0, Board 1 +4 more. Results below are from the rest.'),
+    ).toBeInTheDocument();
+    expect(within(panel).getAllByRole('button', { name: 'Retry' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: /show which ones/i })).toBeNull();
   });
 
-  it('searches a term chip when clicked', async () => {
+  it("searches one of the track's terms from Calibrate's Search for row", async () => {
     const user = userEvent.setup();
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
-    await user.click(screen.getByText('design engineer'));
+    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
+    await user.click(screen.getByRole('button', { name: 'design engineer' }));
     expect(feed.fetchFeed).toHaveBeenLastCalledWith(
       expect.objectContaining({ term: 'design engineer', boardUrls: [] }),
     );
@@ -345,7 +380,9 @@ describe('LiveFeedPanel states (#131)', () => {
     feed.fetchFeed.mockImplementationOnce(() => new Promise(() => {}));
     renderPanel();
     expect(
-      await screen.findByText(/Pulling live openings for “design systems”/),
+      await within(await screen.findByRole('region', { name: 'Openings' })).findByText(
+        'Pulling live openings…',
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).toBeNull();
   });
@@ -388,7 +425,8 @@ describe('LiveFeedPanel states (#131)', () => {
       postings: [],
       sources: [{ key: 'remotive', label: 'Remotive', fetched: 4 }],
     });
-    await user.click(screen.getByRole('button', { name: 'Retry Remotive' }));
+    expect(screen.getByText('1 source didn’t answer')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
     expect(feed.fetchFeed).toHaveBeenLastCalledWith(
       expect.objectContaining({ term: 'design systems', only: ['remotive'] }),
     );
@@ -404,7 +442,7 @@ describe('LiveFeedPanel states (#131)', () => {
     });
     renderPanel();
     expect(
-      await screen.findByText(/No live openings mention “design systems”/),
+      await screen.findByText(/No live openings mention "design systems"/),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Try a broader term' }));
     expect(screen.getByLabelText('Search term')).toHaveFocus();
@@ -413,7 +451,7 @@ describe('LiveFeedPanel states (#131)', () => {
   it('puts the postings ahead of watching companies and evidence, which sit behind Refine', async () => {
     renderPanel();
     const list = await screen.findByRole('list', { name: /live postings/i });
-    const refine = screen.getByRole('button', { name: 'Refine' });
+    const refine = screen.getByRole('button', { name: /^Refine/ });
     expect(refine).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByLabelText(/watch a company/i)).toBeNull();
     expect(screen.getByLabelText('Search term').compareDocumentPosition(list)).toBe(
@@ -422,19 +460,20 @@ describe('LiveFeedPanel states (#131)', () => {
     expect(refine.compareDocumentPosition(list)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it('opens evidence by default only while empty and no postings are showing', async () => {
-    const user = userEvent.setup();
+  it('opens Refine on the evidence by itself only while empty and no postings are showing', async () => {
     feed.fetchFeed.mockResolvedValueOnce({
       postings: [],
       sources: [{ key: 'hn', label: 'Hacker News', fetched: 0 }],
     });
     renderPanel();
     await screen.findByText(/No live openings mention/);
-    await user.click(screen.getByRole('button', { name: 'Refine' }));
-    expect(screen.getByRole('button', { name: 'Your evidence (0)' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^Refine/ })).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      ),
     );
+    expect(screen.getByRole('textbox', { name: 'Your evidence' })).toBeInTheDocument();
   });
 
   it('says once, under the list, that evidence adds a fit, and the link opens Refine', async () => {
@@ -442,7 +481,10 @@ describe('LiveFeedPanel states (#131)', () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     await user.click(screen.getByRole('button', { name: 'Add evidence to see fit' }));
-    expect(screen.getByRole('button', { name: 'Refine' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: /^Refine/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
   });
 
   it('lays a posting out as title, meta, then Save, so the title keeps the whole row', async () => {
@@ -450,7 +492,7 @@ describe('LiveFeedPanel states (#131)', () => {
     const list = await screen.findByRole('list', { name: /live postings/i });
     const row = within(list).getByText('Design Systems Lead').closest('li')!;
     const link = within(row).getByRole('link', { name: /Design Systems Lead/ });
-    const meta = within(row).getByText(/Ramp · New York/);
+    const meta = within(row).getByText('Ramp');
     const save = within(row).getByRole('button', { name: 'Save' });
     expect(link.compareDocumentPosition(meta)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(meta.compareDocumentPosition(save)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
