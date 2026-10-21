@@ -67,6 +67,23 @@ describe('UseTemplate', () => {
     );
   });
 
+  it('Copy is the one primary; Edit in Documents sits under the Preview, not in the footer (rev-3 A)', async () => {
+    const user = userEvent.setup();
+    wrap();
+    await user.click(screen.getByRole('button', { name: 'Use template' }));
+    const copy = screen.getByRole('button', { name: 'Copy' });
+    expect(copy).toHaveAttribute('data-variant', 'primary');
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).queryAllByRole('button', { name: 'Close' }).length).toBeLessThanOrEqual(
+      1,
+    );
+    const link = screen.getByRole('link', { name: 'Edit in Documents' });
+    expect(link.parentElement?.contains(copy)).toBe(false);
+    const preview = screen.getByRole('region', { name: 'Preview' });
+    expect(preview.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(link.compareDocumentPosition(copy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('has no axe violations when open', async () => {
     const user = userEvent.setup();
     wrap();

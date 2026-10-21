@@ -193,3 +193,25 @@ p {
   --semantic-typography-titleSm-font-size: var(--semantic-typography-body-font-size);
   --semantic-typography-titleSm-line-height: var(--semantic-typography-body-line-height);
 }
+
+/* Phone form fields at 16px: compact density sets them to 13px and iOS Safari zooms the page on
+   focus below 16px. HDS gap (docs/hds-upstream-asks-0.9.md, "16px phone form fields"). */
+@media (max-width: 639.98px) {
+  [data-hds] input,
+  [data-hds] textarea,
+  [data-hds] select {
+    font-size: 16px;
+  }
+}
+
+/* The job page's tab row starts on the page gutter, like the badges and title above it (rev-3).
+   HDS gap (docs/hds-upstream-asks-0.9.md, "Tab row flush with the gutter"). */
+.rjb-job-tabs > [role='tab']:first-child {
+  padding-inline-start: 0;
+}
+
+/* A quiet tertiary (the job page's "← Pipeline") whose icon sits on the page gutter: its box
+   stays inside the gutter (layout rule), only the leading padding goes. */
+[data-hds] .rjb-flush-start {
+  padding-inline-start: 0;
+}

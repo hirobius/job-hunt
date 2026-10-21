@@ -86,13 +86,16 @@ export function TodosPanel({ job }: { job: Job }) {
       countLabel={`${open} open`}
       trailing={
         todos.length === 0 ? (
-          <Button
-            size="md"
-            variant="tertiary"
-            onClick={() => updateJob(job.url, { todos: seedStarterTodos() })}
-          >
-            Add starter tasks
-          </Button>
+          // Pulled right by the tertiary's padding so its text ends on the panel's edge.
+          <Box sx={{ mr: -4 }}>
+            <Button
+              size="md"
+              variant="tertiary"
+              onClick={() => updateJob(job.url, { todos: seedStarterTodos() })}
+            >
+              Add starter tasks
+            </Button>
+          </Box>
         ) : undefined
       }
     >
@@ -156,14 +159,17 @@ export function TodosPanel({ job }: { job: Job }) {
               </Button>
             </Stack>
           ) : (
-            <Button
-              size="md"
-              variant="tertiary"
-              iconLeft={<Icon icon={Plus} />}
-              onClick={() => setAdding(true)}
-            >
-              Add a to-do
-            </Button>
+            // Pulled left by the tertiary's padding: the plus sits on the panel's text edge.
+            <Box sx={{ ml: -4 }}>
+              <Button
+                size="md"
+                variant="tertiary"
+                iconLeft={<Icon icon={Plus} />}
+                onClick={() => setAdding(true)}
+              >
+                Add a to-do
+              </Button>
+            </Box>
           )}
         </PanelRow>
       </PanelRows>
