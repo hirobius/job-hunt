@@ -1,9 +1,10 @@
 // The pieces one job row is made of (#129), shared by the desktop table (JobsTable), the phone
 // cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
 // step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
-import { Ellipsis, Star } from 'lucide-react';
+import { Check, Ellipsis, Star } from 'lucide-react';
 import {
   Badge,
+  Box,
   Button,
   Icon,
   Menu,
@@ -11,7 +12,7 @@ import {
   VisuallyHidden,
   useToast,
 } from '@hirobius/design-system';
-import { hostOf, setStatus, updateJob } from './store';
+import { setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
 import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
@@ -145,23 +146,37 @@ export function RowMenu({
         />
       </Menu.Trigger>
       <Menu.Content align="end">
+        {/* "Open posting", not the host: a long domain would widen the menu (rev-3 mock). */}
         <Menu.Item asChild>
           <a href={job.url} target="_blank" rel="noopener noreferrer">
-            Open on {hostOf(job.url) || 'the original site'}
+            Open posting
           </a>
         </Menu.Item>
-        {/* Every stage is one tap from the row: Interviewing, Offer and Rejected included. */}
+        {/* Every stage is one tap from the row: Interviewing, Offer and Rejected included. Plain
+            items on the menu's one inset (rev-3 mock): HDS RadioItem keeps a left gutter for its
+            dot, which left the menu with two left edges. The current stage gets a trailing
+            check, and the items keep the radio semantics (menuitemradio + aria-checked). */}
         <Menu.Label>Status</Menu.Label>
-        <Menu.RadioGroup
-          value={normStatus(job.status)}
-          onValueChange={(v) => setStatus(job.url, v as Status)}
-        >
-          {STATUSES.map((st) => (
-            <Menu.RadioItem key={st} value={st}>
-              {st}
-            </Menu.RadioItem>
-          ))}
-        </Menu.RadioGroup>
+        <Menu.Group role="group" aria-label="Status">
+          {STATUSES.map((st) => {
+            const on = normStatus(job.status) === st;
+            return (
+              <Menu.Item
+                key={st}
+                role="menuitemradio"
+                aria-checked={on}
+                onSelect={() => {
+                  if (!on) setStatus(job.url, st as Status);
+                }}
+              >
+                <Box as="span" sx={{ flex: '1 1 auto' }}>
+                  {st}
+                </Box>
+                {on && <Icon icon={Check} size={16} aria-hidden />}
+              </Menu.Item>
+            );
+          })}
+        </Menu.Group>
         <Menu.Separator />
         <Menu.Item onSelect={() => toggleStar(job)}>{job.priority ? 'Unstar' : 'Star'}</Menu.Item>
         <Menu.Item onSelect={() => updateJob(job.url, { archived: !job.archived })}>
