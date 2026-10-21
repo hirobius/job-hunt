@@ -175,7 +175,7 @@ describe('Outreach messages', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Company' }));
     expect(screen.getByRole('textbox', { name: 'Message text' })).toHaveTextContent('Company');
     const preview = screen.getByRole('region', { name: 'Preview' });
-    expect(preview).toHaveTextContent('Hi at [Company]');
+    expect(preview).toHaveTextContent('Hi at Company');
     await userEvent.click(screen.getByRole('combobox', { name: /^Fill for/ }));
     await userEvent.click(await screen.findByRole('option', { name: /Fabricator/ }));
     expect(preview).toHaveTextContent('Hi at Acme Metals');
@@ -222,10 +222,33 @@ describe('Variables panel', () => {
   it('a value set there fills the preview and is kept on the message, not in its text', async () => {
     const id = await open('Hi [Contact] at [Company]. [Pet]');
     await userEvent.type(within(vars()).getByRole('textbox', { name: 'Pet' }), 'Rex');
-    expect(preview()).toHaveTextContent('Hi [Contact] at [Company]. Rex');
+    expect(preview()).toHaveTextContent('Hi Contact at Company. Rex');
     expect(doc(id).values).toEqual({ pet: 'Rex' });
     expect(doc(id).versions.map((v) => v.text)).toEqual(['Hi [Contact] at [Company]. [Pet]']);
-    expect(screen.getByText(/Not set yet: \[Contact\], \[Company\]/)).toBeInTheDocument();
+  });
+
+  // rev-3 A: the preview's open blanks are chips with "N blanks left", never raw [Brackets].
+  it('the preview shows open blanks as chips and counts them, with no bracket text', async () => {
+    await open('Hi [Contact] at [Company]. [Pet]');
+    await userEvent.type(within(vars()).getByRole('textbox', { name: 'Pet' }), 'Rex');
+    expect(within(preview()).getByText('Contact')).toHaveClass('rjb-chip');
+    expect(within(preview()).getByText('Company')).toHaveClass('rjb-chip');
+    expect(preview().textContent).not.toMatch(/\[/);
+    expect(within(vars()).getByText('2 blanks left')).toBeInTheDocument();
+    expect(screen.queryByText(/Not set yet/)).toBeNull();
+    expect(within(vars()).getByText('Preview')).toBeInTheDocument();
+  });
+
+  it('opening a document from a scrolled list starts the editor at its head', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    await open('Hi [Contact]');
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
+    scrollTo.mockRestore();
+  });
+
+  it('the Fill for default reads "No job", with no bracket syntax', async () => {
+    await open('Hi [Contact]');
+    expect(screen.getByRole('combobox', { name: /^Fill for/ })).toHaveTextContent(/^No job$/);
   });
 
   it('with a job picked, its fields fill and edits are saved on the job', async () => {
@@ -237,13 +260,13 @@ describe('Variables panel', () => {
     expect(within(vars()).getByRole('textbox', { name: 'Company' })).toHaveValue('Acme Metals');
     await userEvent.type(within(vars()).getByRole('textbox', { name: 'Contact' }), 'Jo');
     expect(getAllJobs()[0].contact).toBe('Jo');
-    expect(preview()).toHaveTextContent('Hi Jo at Acme Metals. [Pet]');
+    expect(preview()).toHaveTextContent('Hi Jo at Acme Metals. Pet');
   });
 
   it('a variable named [constructor] or [__proto__] renders and can be set', async () => {
     const id = await open('[constructor] [__proto__]');
     await userEvent.type(within(vars()).getByRole('textbox', { name: '__proto__' }), 'P');
-    expect(preview()).toHaveTextContent('[constructor] P');
+    expect(preview()).toHaveTextContent('constructor P');
     expect(Object.prototype.hasOwnProperty.call(doc(id).values, '__proto__')).toBe(true);
   });
 
@@ -290,7 +313,7 @@ describe('message text', () => {
     body().focus();
     caretAt(body().firstChild!, 5);
     await userEvent.click(screen.getByRole('button', { name: 'Role' }));
-    expect(preview()).toHaveTextContent('Hello [Role] world');
+    expect(preview()).toHaveTextContent('Hello Role world');
     await waitFor(() => expect(body()).toHaveFocus());
     const sel = window.getSelection()!;
     expect(sel.anchorNode?.textContent).toBe(' world');
@@ -309,7 +332,7 @@ describe('message text', () => {
     body().focus();
     caretAt(after, 0);
     await userEvent.keyboard('{Backspace}');
-    expect(preview()).toHaveTextContent('Hi , at [Company]');
+    expect(preview()).toHaveTextContent('Hi , at Company');
     expect(screen.queryByRole('img', { name: 'Contact variable' })).toBeNull();
   });
 
@@ -318,7 +341,7 @@ describe('message text', () => {
     body().focus();
     caretAt(body().firstChild!, 3);
     await userEvent.keyboard('{Delete}');
-    expect(preview()).toHaveTextContent('Hi , at [Company]');
+    expect(preview()).toHaveTextContent('Hi , at Company');
   });
 
   it('a [Name] typed by hand becomes a chip', async () => {
@@ -327,7 +350,7 @@ describe('message text', () => {
     body().append(document.createTextNode(' [Pet]'));
     caretAt(last, 0);
     fireEvent.input(body());
-    expect(preview()).toHaveTextContent('Hi [Contact] [Pet]');
+    expect(preview()).toHaveTextContent('Hi Contact Pet');
     expect(screen.getByRole('img', { name: 'Pet variable' })).toBeInTheDocument();
   });
 
@@ -337,7 +360,7 @@ describe('message text', () => {
     caretAt(body().firstChild!, 3);
     await userEvent.click(screen.getByRole('button', { name: 'Insert variable' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Role' }));
-    expect(preview()).toHaveTextContent('Hi [Role] [Contact], at [Company]');
+    expect(preview()).toHaveTextContent('Hi Role Contact, at Company');
   });
 
   it('Copy filled text copies the preview', async () => {

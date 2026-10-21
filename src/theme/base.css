@@ -49,6 +49,28 @@ p {
   margin: 0;
 }
 
+/* The reset above is unlayered, so it beats HDS's dialog header `space-y-1.5`: a confirm's title
+ * and description touched. Give the description its gap back (HDS gap, docs/hds-upstream-asks-0.9.md). */
+[role='alertdialog'] h2 + p,
+[role='dialog'] h2 + p {
+  margin-block-start: var(--semantic-space-fixed-xs);
+}
+
+/* Back links ("← Pipeline", "← All documents"): drop the tertiary Button's leading inline padding
+ * so the arrow lines up with the page heading (rev-3 mock) while the box stays inside the gutter. */
+.rjb-back {
+  padding-inline-start: 0;
+}
+
+/* Documents rows (rev-3 M): the whole row is tappable, so it shows hover and press like a list
+ * row. HDS Disclosure variant="row" has no row state of its own (HDS gap, see the registry). */
+.rjb-doc-row:has(> * > * > button[aria-expanded]:hover) {
+  background: var(--semantic-color-surface-hover);
+}
+.rjb-doc-row:has(> * > * > button[aria-expanded]:active) {
+  background: var(--semantic-color-surface-pressed);
+}
+
 .rjb-semibold {
   font-weight: 600;
 }

@@ -20,6 +20,7 @@ export function BackToPipeline() {
         className="rjb-flush-start"
         variant="tertiary"
         size="md"
+        className="rjb-back"
         iconLeft={<Icon icon={ArrowLeft} />}
         aria-label="Back to Pipeline"
         onClick={() => openJob(null)}

@@ -140,62 +140,65 @@ export default function DocumentsLibrary({
           Documents
         </Text>
       )}
-      {DOCUMENT_KINDS.map(({ kind, label }) => {
-        const items = libraryItems(docs, kind);
-        const newLabel = `New ${lower(label)}`;
-        return (
-          <Panel
-            key={kind}
-            label={PLURAL[kind]}
-            title={PLURAL[kind]}
-            count={items.length}
-            countLabel={`${items.length} ${lower(PLURAL[kind])}`}
-            trailing={
-              <Button
-                variant="secondary"
-                size="sm"
-                iconLeft={<Icon icon={Plus} />}
-                label={newLabel}
-                onClick={() => go({ kind })}
-              >
-                New
-              </Button>
-            }
-          >
-            {(items.length === 0 || (RESTORE_LABEL[kind] && starterMissing(docs, kind))) && (
-              <PanelBody>
-                <Stack gap="tight">
-                  {items.length === 0 && (
-                    <Text variant="caption" as="p" tone="secondary">
-                      {`No ${lower(PLURAL[kind])} yet. ${EMPTY_HINT[kind]}`}
-                    </Text>
-                  )}
-                  {RESTORE_LABEL[kind] && starterMissing(docs, kind) && (
-                    <Box>
-                      <Button variant="tertiary" size="sm" onClick={() => restoreStarters(kind)}>
-                        {RESTORE_LABEL[kind]}
-                      </Button>
-                    </Box>
-                  )}
-                </Stack>
-              </PanelBody>
-            )}
-            {items.length > 0 && (
-              <PanelRows>
-                {items.map((d) => (
-                  <DocumentRow
-                    key={d.id}
-                    doc={d}
-                    open={expanded === d.id}
-                    onOpenChange={(o) => setExpanded(o ? d.id : null)}
-                    onEdit={() => go({ id: d.id })}
-                  />
-                ))}
-              </PanelRows>
-            )}
-          </Panel>
-        );
-      })}
+      {/* The Pipeline's panel rhythm: panels 24 apart (rev-3 mock). */}
+      <Stack gap="px24">
+        {DOCUMENT_KINDS.map(({ kind, label }) => {
+          const items = libraryItems(docs, kind);
+          const newLabel = `New ${lower(label)}`;
+          return (
+            <Panel
+              key={kind}
+              label={PLURAL[kind]}
+              title={PLURAL[kind]}
+              count={items.length}
+              countLabel={`${items.length} ${lower(PLURAL[kind])}`}
+              trailing={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  iconLeft={<Icon icon={Plus} />}
+                  label={newLabel}
+                  onClick={() => go({ kind })}
+                >
+                  New
+                </Button>
+              }
+            >
+              {(items.length === 0 || (RESTORE_LABEL[kind] && starterMissing(docs, kind))) && (
+                <PanelBody>
+                  <Stack gap="tight">
+                    {items.length === 0 && (
+                      <Text variant="caption" as="p" tone="secondary">
+                        {`No ${lower(PLURAL[kind])} yet. ${EMPTY_HINT[kind]}`}
+                      </Text>
+                    )}
+                    {RESTORE_LABEL[kind] && starterMissing(docs, kind) && (
+                      <Box>
+                        <Button variant="tertiary" size="sm" onClick={() => restoreStarters(kind)}>
+                          {RESTORE_LABEL[kind]}
+                        </Button>
+                      </Box>
+                    )}
+                  </Stack>
+                </PanelBody>
+              )}
+              {items.length > 0 && (
+                <PanelRows>
+                  {items.map((d) => (
+                    <DocumentRow
+                      key={d.id}
+                      doc={d}
+                      open={expanded === d.id}
+                      onOpenChange={(o) => setExpanded(o ? d.id : null)}
+                      onEdit={() => go({ id: d.id })}
+                    />
+                  ))}
+                </PanelRows>
+              )}
+            </Panel>
+          );
+        })}
+      </Stack>
     </Stack>
   );
 }
@@ -229,6 +232,7 @@ function DocumentRow({
     <Box
       as="li"
       aria-label={title}
+      className="rjb-doc-row"
       sx={{ px: 'md', py: 'xs', borderTop: 'thin solid', borderColor: 'border.default' }}
     >
       <Disclosure

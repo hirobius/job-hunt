@@ -20,7 +20,7 @@ const header = (
     level={2}
     breadcrumb={
       // HDS Button asChild drops iconLeft, so the arrow is the link's own child.
-      <Button asChild variant="tertiary" size="md">
+      <Button asChild variant="tertiary" size="md" className="rjb-back">
         <a href="#/queue" aria-label="Back to Pipeline">
           <Icon icon={ArrowLeft} />
           Pipeline
