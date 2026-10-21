@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Check, Copy, ExternalLink, Plus, Search } from 'lucide-react';
+import { ArrowLeft, Check, Copy, ExternalLink, Link, ListPlus, Plus, Search } from 'lucide-react';
 import {
   Button,
   Icon,
@@ -83,18 +83,29 @@ function GroupPanel({
       {saved.length > 0 && (
         <Box sx={{ mb: 'xs' }}>
           <Text variant="caption" as="div" tone="secondary">
-            {saved.length} saved — in your Queue
+            {saved.length} saved to your Pipeline
           </Text>
         </Box>
       )}
       {visible.length > 0 ? (
         <TileGrid tiles={visible} triage place={place} />
       ) : saved.length > 0 ? (
-        <EmptyState title="All saved — check your Tracker for these." />
+        <EmptyState
+          centered
+          icon={Link}
+          title="All saved to your Pipeline"
+          action={
+            <Button variant="secondary" onClick={() => navigate({ tab: 'queue' })}>
+              Open Pipeline
+            </Button>
+          }
+        />
       ) : (
         <EmptyState
+          centered
+          icon={Link}
           title="No links here yet"
-          description="Add links you trust, or use Title and ATS search for live ones."
+          description="Add links you trust, or use ATS search for live ones."
           action={
             <Button variant="secondary" size="sm" onClick={onManage}>
               Manage this track
@@ -143,6 +154,8 @@ function AtsPanel({
   if (titles.length === 0)
     return (
       <EmptyState
+        centered
+        icon={ListPlus}
         title="No titles yet"
         description="Add a few job titles to this track and we'll search the big boards and companies' hiring systems (Greenhouse, Lever, Ashby…) for them."
         action={

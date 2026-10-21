@@ -2,7 +2,7 @@
 // column, with Back and Skip on every step. Tested at the route seam through App: the shell's gate
 // shows it on Companies for a first run, and Finish lands on Companies.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -37,7 +37,8 @@ const click = (name: string | RegExp, role = 'button') =>
   userEvent.click(screen.getByRole(role, { name }));
 const step = (n: number) =>
   expect(screen.getByRole('progressbar', { name: `Step ${n} of 3` })).toBeInTheDocument();
-const pickFirstPack = () => userEvent.click(screen.getAllByRole('checkbox')[0]);
+// The lead (Suggested) pack starts ticked (rev-3), so "picking" it is checking it is still on.
+const pickFirstPack = async () => expect(screen.getAllByRole('checkbox')[0]).toBeChecked();
 
 beforeEach(() => {
   h.fake?.reset();
@@ -63,13 +64,17 @@ describe('step 1: pick a track', () => {
     expect(screen.getByText('Just looking?')).toBeInTheDocument();
     const first = screen.getAllByRole('checkbox')[0];
     expect(first).toHaveAccessibleName('Implementation Consulting');
-    expect(within(first).getByText('Suggested')).toBeInTheDocument();
+    expect(first).toBeChecked(); // the Suggested pack starts ticked
+    expect(
+      screen.getAllByRole('checkbox').filter((c) => (c as HTMLInputElement).checked),
+    ).toHaveLength(1);
+    expect(first.closest('li')).toHaveTextContent('Suggested');
     expect(screen.getAllByText('Suggested')).toHaveLength(1);
   });
 
-  it('Continue needs a pack; no Back on the first step; Skip is there', () => {
+  it('Continue is never disabled; no Back on the first step; Skip is there', () => {
     renderApp();
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
     expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Skip' })).toBeEnabled();
   });
@@ -77,9 +82,12 @@ describe('step 1: pick a track', () => {
   it('"Build your own" asks for a first title before Continue', async () => {
     renderApp();
     await click('Build your own', 'checkbox');
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    await click('Continue');
+    step(1);
+    expect(screen.getByText('Add a first job title for your own track.')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/First job title/), 'Design Engineer');
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+    await click('Continue');
+    step(2);
   });
 
   it('sample data ends the first run: the Pipeline shows the sample, no tracks yet', async () => {
@@ -102,7 +110,7 @@ describe('steps 2 and 3', () => {
     expect(screen.getByRole('textbox', { name: 'Location' })).toBeInTheDocument();
     await click('Back');
     step(1);
-    expect(screen.getAllByRole('checkbox')[0]).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getAllByRole('checkbox')[0]).toBeChecked();
   });
 
   it('Finish seeds the pick with the location, saves the job and stays on Companies', async () => {

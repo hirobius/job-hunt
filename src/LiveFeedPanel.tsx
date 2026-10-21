@@ -39,6 +39,7 @@ import {
   MapPin,
   Rocket,
   Search,
+  SearchX,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -445,7 +446,10 @@ export default function LiveFeedPanel({
   };
   const emptyState = !hasQuery ? (
     <EmptyState
-      title={
+      centered
+      icon={SearchX}
+      title={sweeping ? 'No titles ticked' : 'Nothing to search yet'}
+      description={
         sweeping
           ? 'Tick at least one title under Calibrate to sweep.'
           : 'Type a search term, or pick one under Calibrate.'
@@ -453,17 +457,21 @@ export default function LiveFeedPanel({
     />
   ) : ranked.length === 0 && matched.length > 0 ? (
     <EmptyState
+      centered
+      icon={SearchX}
       title="Everything is hidden by your filters"
       description="Loosen what you left out, the level or the pay floor to see them again."
     />
   ) : (
     <EmptyState
+      centered
+      icon={SearchX}
       title={
         sweeping
           ? `No live openings mention any of your ${sweepTitles.length} titles right now`
-          : `No live openings mention “${term}” right now`
+          : `No live openings mention "${term}" right now`
       }
-      description="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
+      description="Hacker News posts a fresh thread monthly and boards change daily. Try a broader term, or watch more company boards."
       action={
         <Button
           variant="secondary"

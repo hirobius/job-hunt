@@ -59,6 +59,8 @@ export default function TrackerView() {
   const setFilter = (filter: Filter) => setPipelineView({ filter });
   const setSort = (sort: SortKey) => setPipelineView({ sort });
   const setQ = (q: string) => setPipelineView({ q });
+  // Something is non-default: Clear shows, and the selects drop their Status / Sort key (rev-3).
+  const cleared = filter !== 'active' || q.trim() !== '';
   const [url, setUrl] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   // The dialog opens from the header or the empty state, outside its Root, so it has no Trigger:
@@ -215,7 +217,7 @@ export default function TrackerView() {
                       </HdsMenu.Content>
                     </HdsMenu>
                     {/* The filter and search back to their defaults, shown only when one isn't. */}
-                    {(filter !== 'active' || q.trim() !== '') && (
+                    {cleared && (
                       <UiButton
                         variant="tertiary"
                         label="Clear filters"

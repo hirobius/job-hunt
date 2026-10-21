@@ -60,9 +60,9 @@ export function PanelBody({ children }: { children: ReactNode }) {
 }
 
 /** A panel's list: rows split by hairlines, each padded like the header. */
-export function PanelRows({ children }: { children: ReactNode }) {
+export function PanelRows({ children, label }: { children: ReactNode; label?: string }) {
   return (
-    <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+    <Box as="ul" aria-label={label} sx={{ listStyle: 'none', m: 0, p: 0 }}>
       {children}
     </Box>
   );
@@ -72,16 +72,23 @@ export function PanelRow({
   children,
   as = 'li',
   flush = false,
+  dense = false,
 }: {
   children: ReactNode;
   as?: 'li' | 'div';
   /** No padding: the child (an HDS Card's parts) pads itself. */
   flush?: boolean;
+  /** Less vertical padding: the child already stands 40px+ tall (an HDS Checkbox row). */
+  dense?: boolean;
 }) {
   return (
     <Box
       as={as}
-      sx={{ p: flush ? 0 : 'md', borderTop: 'thin solid', borderColor: 'border.default' }}
+      sx={{
+        ...(flush ? { p: 0 } : dense ? { px: 'md', py: 'xs' } : { p: 'md' }),
+        borderTop: 'thin solid',
+        borderColor: 'border.default',
+      }}
     >
       {children}
     </Box>

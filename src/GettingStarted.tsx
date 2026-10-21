@@ -1,9 +1,9 @@
 // The "Getting started" panel over the Pipeline's agenda (#132; on Today until #236; a panel with
-// ticked rows since the rev-3 mock): three steps with checkboxes that show what is already true.
+// ticked rows since the rev-3 mock): three steps with ticks that show what is already true.
 // Shown once there is a job of your own, until it is dismissed on this device.
 import { useContext, useState } from 'react';
-import { X } from 'lucide-react';
-import { Box, Button, Checkbox, Icon, Stack, Text } from '@hirobius/design-system';
+import { Square, SquareCheck, X } from 'lucide-react';
+import { Button, Icon, Stack, Text, VisuallyHidden } from '@hirobius/design-system';
 import { CloudSyncContext } from './account/accountContext';
 import {
   dismissGettingStarted,
@@ -39,18 +39,23 @@ export default function GettingStarted({ jobs }: { jobs: Job[] }) {
         />
       }
     >
-      {/* Ticks are computed, not clicked: the boxes are display-only. */}
-      <PanelRows>
+      {/* Ticks are computed, not clicked: display-only rows (rev-3), full-contrast text whether
+          done or not. A disabled checkbox washed the labels out below AA and, at its 44px phone
+          row, pushed the note ~35px under the label. */}
+      <PanelRows label="Getting started steps">
         {items.map((it) => (
           <PanelRow key={it.id}>
-            <Stack gap="px4">
-              <Checkbox label={it.label} checked={it.done} disabled onChange={() => {}} />
-              {/* The note lines up under the label, past the box and its gap. */}
-              <Box sx={{ pl: 'var(--primitive-space-6)' }}>
+            <Stack direction="row" gap="tight" align="start">
+              <Icon icon={it.done ? SquareCheck : Square} aria-hidden />
+              <Stack gap="px4">
+                <Text variant="ui" as="span" weight="bold" tone="primary">
+                  {it.label}
+                  <VisuallyHidden>{it.done ? ', done' : ', not done'}</VisuallyHidden>
+                </Text>
                 <Text variant="caption" as="p" tone="secondary">
                   {it.note}
                 </Text>
-              </Box>
+              </Stack>
             </Stack>
           </PanelRow>
         ))}

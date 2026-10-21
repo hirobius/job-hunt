@@ -5,7 +5,7 @@
 // #239) and the Application kit, as panels of expandable rows (HDS Disclosure variant="row": a
 // one-line preview, Copy beside it, the full text when open). Works one-handed on a phone.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Check, Copy, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Check, Copy, ExternalLink, ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   Alert,
   Box,
@@ -73,11 +73,13 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
       <Stack gap="normal">
         <BackToPipeline />
         <EmptyState
+          framed
+          icon={ListChecks}
           title={queue.length ? 'Pick up where you left off' : 'To apply is empty'}
           description={
             queue.length
               ? `${queue.length} ${queue.length === 1 ? 'job is' : 'jobs are'} waiting to be applied to.`
-              : 'Save jobs from Discover or paste a link, then come back here to apply.'
+              : 'Save jobs from Companies or paste a link, then come back here to apply.'
           }
           action={
             queue.length ? (
