@@ -404,7 +404,7 @@ describe('LiveFeedPanel states (#131)', () => {
     });
     renderPanel();
     expect(
-      await screen.findByText(/No live openings mention “design systems”/),
+      await screen.findByText(/No live openings mention "design systems"/),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Try a broader term' }));
     expect(screen.getByLabelText('Search term')).toHaveFocus();

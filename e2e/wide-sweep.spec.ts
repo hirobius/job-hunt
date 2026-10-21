@@ -43,7 +43,10 @@ for (const width of [390, 1440]) {
     });
 
     await page.goto('/#/discover');
-    await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().click();
+    // The Suggested (first) pack starts ticked (rev-3).
+    await expect(
+      page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first(),
+    ).toBeChecked();
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByRole('button', { name: 'Finish' }).click();
@@ -65,7 +68,7 @@ for (const width of [390, 1440]) {
     const buttons = chips.getByRole('button');
     for (let i = 0, n = await buttons.count(); i < n; i++) await buttons.nth(i).click();
     await expect(list).toBeHidden();
-    await expect(page.getByText('Every title is hidden — turn one back on above.')).toBeVisible();
+    await expect(page.getByText('Every title is hidden')).toBeVisible();
     await buttons.first().click();
     await expect(list.getByRole('listitem').first()).toBeVisible();
     expect(reads).toBe(readsBefore);

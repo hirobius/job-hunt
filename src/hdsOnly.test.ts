@@ -79,8 +79,6 @@ describe('Inline style allowlist (#93)', () => {
     'JobOverview.tsx': 1,
     // TileGrid: set-aside opacity (runtime); its clamps are base.css classes since slice 4
     'TileGrid.tsx': 1,
-    // Card has no sx or text-align prop
-    'Onboarding.tsx': 1,
   };
   const tsx = sourceFiles(SRC).filter((f) => f.endsWith('.tsx'));
   const counts = Object.fromEntries(

@@ -108,13 +108,14 @@ export default function CompanyPage({ slug }: { slug: string }) {
   if (!company)
     return (
       <EmptyState
+        framed
         icon={Building2}
         title="No company here"
         description="Companies come from the company name on a job. This one may have been renamed."
         action={
-          <InlineLink href="#/queue" externalIcon={false}>
-            Go to the Pipeline
-          </InlineLink>
+          <Button asChild variant="secondary">
+            <a href="#/queue">Go to the Pipeline</a>
+          </Button>
         }
       />
     );

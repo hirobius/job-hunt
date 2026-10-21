@@ -35,7 +35,20 @@ import { navigate } from './route';
 
 // The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
 // chevron right. HDS Button has no stretch or alignment prop.
-const SELECT_LIKE = { flex: '1 1 0', minWidth: 0, justifyContent: 'space-between' } as const;
+const SELECT_LIKE = {
+  flex: '1 1 auto',
+  minWidth: 0,
+  justifyContent: 'space-between',
+  // rev-3 select: 12px inside the border, so a short label and its chevron both fit at 390.
+  paddingInline: 'var(--primitive-space-3)',
+} as const;
+// rev-3 select: the label truncates so the chevron always sits inside the 40px bordered box.
+const SELECT_TEXT = {
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+} as const;
 
 export default function TrackerView() {
   const jobs = useJobs();
@@ -44,6 +57,8 @@ export default function TrackerView() {
   const setFilter = (filter: Filter) => setPipelineView({ filter });
   const setSort = (sort: SortKey) => setPipelineView({ sort });
   const setQ = (q: string) => setPipelineView({ q });
+  // Something is non-default: Clear shows, and the selects drop their Status / Sort key (rev-3).
+  const cleared = filter !== 'active' || q.trim() !== '';
   const [url, setUrl] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   // The dialog opens from the header or the empty state, outside its Root, so it has no Trigger:
@@ -135,12 +150,16 @@ export default function TrackerView() {
                           label={`Status: ${FILTER_LABEL[filter]}`}
                           style={SELECT_LIKE}
                         >
-                          <span>
-                            <Text variant="ui" as="span" tone="secondary">
-                              Status
-                            </Text>{' '}
+                          <Box as="span" sx={SELECT_TEXT}>
+                            {!cleared && (
+                              <>
+                                <Text variant="ui" as="span" tone="secondary">
+                                  Status
+                                </Text>{' '}
+                              </>
+                            )}
                             {FILTER_LABEL[filter]}
-                          </span>
+                          </Box>
                         </UiButton>
                       </HdsMenu.Trigger>
                       <HdsMenu.Content align="start">
@@ -183,12 +202,16 @@ export default function TrackerView() {
                           label={`Sort: ${sortLabel}`}
                           style={SELECT_LIKE}
                         >
-                          <span>
-                            <Text variant="ui" as="span" tone="secondary">
-                              Sort
-                            </Text>{' '}
+                          <Box as="span" sx={SELECT_TEXT}>
+                            {!cleared && (
+                              <>
+                                <Text variant="ui" as="span" tone="secondary">
+                                  Sort
+                                </Text>{' '}
+                              </>
+                            )}
                             {sortLabel}
-                          </span>
+                          </Box>
                         </UiButton>
                       </HdsMenu.Trigger>
                       <HdsMenu.Content align="end">
@@ -205,7 +228,7 @@ export default function TrackerView() {
                       </HdsMenu.Content>
                     </HdsMenu>
                     {/* The filter and search back to their defaults, shown only when one isn't. */}
-                    {(filter !== 'active' || q.trim() !== '') && (
+                    {cleared && (
                       <UiButton
                         variant="tertiary"
                         label="Clear filters"
@@ -219,19 +242,44 @@ export default function TrackerView() {
               </Box>
             </PanelBody>
             {shown.length === 0 ? (
-              <PanelBody>
-                <EmptyState
-                  centered
-                  icon={Search}
-                  title={
-                    q.trim()
-                      ? `No saved jobs match “${q.trim()}”.`
-                      : filter === 'active'
-                        ? 'Nothing left to apply to right now — nice. Check Applied or add more jobs.'
-                        : `Nothing under “${FILTER_LABEL[filter]}”.`
-                  }
-                />
-              </PanelBody>
+              // rev-3 "filtered to nothing": its own body under a hairline, a short title, one
+              // sentence, and the way back out as the empty's action.
+              <Box sx={{ borderTop: 'thin solid', borderColor: 'border.default' }}>
+                <Box sx={{ px: 'md', py: 'lg' }}>
+                  <EmptyState
+                    centered
+                    icon={Search}
+                    title={
+                      q.trim()
+                        ? `No jobs match "${q.trim()}"`
+                        : filter === 'active'
+                          ? 'Nothing left to apply to'
+                          : `Nothing under ${FILTER_LABEL[filter]}`
+                    }
+                    description={
+                      q.trim()
+                        ? 'Try a shorter word, or clear the search.'
+                        : filter === 'active'
+                          ? 'Check Applied, or add more jobs.'
+                          : 'Try another status.'
+                    }
+                    action={
+                      q.trim() ? (
+                        <UiButton variant="secondary" onClick={() => setQ('')}>
+                          Clear search
+                        </UiButton>
+                      ) : filter !== 'active' ? (
+                        <UiButton
+                          variant="secondary"
+                          onClick={() => setPipelineView({ filter: 'active', q: '' })}
+                        >
+                          Clear filters
+                        </UiButton>
+                      ) : undefined
+                    }
+                  />
+                </Box>
+              </Box>
             ) : wide ? (
               <PanelBody>
                 <JobsTable jobs={shown} sort={sort} onSort={setSort} />

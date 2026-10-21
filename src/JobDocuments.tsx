@@ -411,6 +411,7 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
       {form === 'base' && <UseBaseForm job={job} bases={bases} onDone={close} />}
       {docs.length === 0 && form === 'none' && (
         <EmptyState
+          centered
           icon={FileText}
           title="No documents yet"
           description="Keep the résumé, cover letter and messages you write for this job here, with every version."

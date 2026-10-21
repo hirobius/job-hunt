@@ -230,7 +230,7 @@ for (const theme of THEMES) {
         await seed(page);
         await page.evaluate(() => (location.hash = '#/queue'));
         await page.getByRole('textbox', { name: 'Search saved jobs' }).fill('zzz nothing');
-        await expect(page.getByText(/No saved jobs match/)).toBeVisible();
+        await expect(page.getByText(/No jobs match/)).toBeVisible();
         expect(await probe(page)).toEqual([]);
       });
     });

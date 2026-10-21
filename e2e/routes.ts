@@ -24,7 +24,10 @@ export async function seed(page: Page) {
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   await page.getByRole('tab', { name: 'Companies' }).click();
   await page.getByRole('button', { name: 'Choose a track' }).click();
-  await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().click();
+  // The Suggested (first) pack starts ticked (rev-3); keep it as the one track.
+  await expect(
+    page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first(),
+  ).toBeChecked();
   for (const name of ['Continue', 'Continue', 'Finish'])
     await page.getByRole('button', { name, exact: true }).click();
   await go(page, '#/discover/apply');

@@ -27,7 +27,7 @@ import {
   VisuallyHidden,
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
-import { Banknote, Calendar, MapPin, X } from 'lucide-react';
+import { Banknote, Calendar, MapPin, SearchX, X } from 'lucide-react';
 import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
 import { setTrackContext, useTrackContext } from './discoverContext';
 import { ContextCaption } from './LocationControl';
@@ -431,7 +431,10 @@ export default function LiveFeedPanel({
   );
   const emptyState = !hasQuery ? (
     <EmptyState
-      title={
+      centered
+      icon={SearchX}
+      title={sweeping ? 'No titles ticked' : 'Nothing to search yet'}
+      description={
         sweeping
           ? 'Tick at least one title under Calibrate to sweep.'
           : "Type a search term or pick one of this track's terms."
@@ -439,17 +442,21 @@ export default function LiveFeedPanel({
     />
   ) : ranked.length === 0 && matched.length > 0 ? (
     <EmptyState
+      centered
+      icon={SearchX}
       title="Everything is hidden by your filters"
       description="Loosen what you left out, the level or the pay floor to see them again."
     />
   ) : (
     <EmptyState
+      centered
+      icon={SearchX}
       title={
         sweeping
           ? `No live openings mention any of your ${sweepTitles.length} titles right now`
-          : `No live openings mention “${term}” right now`
+          : `No live openings mention "${term}" right now`
       }
-      description="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
+      description="Hacker News posts a fresh thread monthly and boards change daily. Try a broader term, or watch more company boards."
       action={
         <Button
           variant="secondary"
@@ -801,12 +808,21 @@ export default function LiveFeedPanel({
           )}
           {visible.length === 0 ? (
             <EmptyState
+              centered
+              icon={SearchX}
               title={
                 shownTitles.length === 0
-                  ? 'Every title is hidden — turn one back on above.'
+                  ? 'Every title is hidden'
                   : focus === 'strong'
-                    ? 'None is a strong fit for your evidence yet — switch back to All, or add evidence.'
-                    : 'None of these openings carry that signal — switch back to All.'
+                    ? 'No strong fits yet'
+                    : 'None carry that signal'
+              }
+              description={
+                shownTitles.length === 0
+                  ? 'Turn one back on above.'
+                  : focus === 'strong'
+                    ? 'Switch back to All, or add evidence.'
+                    : 'Switch back to All.'
               }
             />
           ) : (
