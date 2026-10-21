@@ -165,12 +165,19 @@ function probe(page: Page) {
 
       // 4. One status rule: at most one status badge on a title's line (rev-3 B: the rest go
       // in one badge row above the title). An HDS Badge is the span sized by its badge tokens.
-      // A job link may wrap its whole row (the job rail), so its title is its first text.
+      // A job link may wrap its whole row (the job rail), so its title is its first text that is
+      // not in a badge (the badge row sits above the title).
+      const inBadge = (el: Element) => !!el.closest('[class*="--component-badge-height"]');
       const titleText = (el: Element): Element => {
         if (/^H[1-6]$/.test(el.tagName)) return el;
         const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
         for (let n = walker.nextNode(); n; n = walker.nextNode())
-          if ((n.textContent || '').trim() && n.parentElement && visible(n.parentElement))
+          if (
+            (n.textContent || '').trim() &&
+            n.parentElement &&
+            visible(n.parentElement) &&
+            !inBadge(n.parentElement)
+          )
             return n.parentElement;
         return el;
       };
