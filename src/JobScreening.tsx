@@ -9,7 +9,8 @@ import { Stack, Text } from '@hirobius/design-system';
 export default function JobScreening({ job }: { job: Job }) {
   const screened = job.screenedAt ? new Date(job.screenedAt).toLocaleDateString() : '';
   return (
-    <Stack gap="normal">
+    // Panels 24 apart, as on the Pipeline (rev-3).
+    <Stack gap="px24">
       <Panel label="Fit" title="Fit">
         <PanelBody>
           <Stack gap="normal">

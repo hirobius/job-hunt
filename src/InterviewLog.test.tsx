@@ -49,9 +49,12 @@ describe('InterviewLog', () => {
       expect.objectContaining({ kind: 'interview', date: '2026-10-20', note: 'Panel round' }),
     ]);
     rerender(<Harness />);
-    expect(screen.getByText(/2026-10-20/)).toBeInTheDocument();
+    // The date reads like the Pipeline's Next 7 days, never the stored ISO string.
+    expect(screen.getByText('Tue, Oct 20')).toBeInTheDocument();
+    expect(screen.queryByText(/2026-10-20/)).toBeNull();
+    expect(screen.getByText('Interview · Panel round')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Remove interview on 2026-10-20' }));
+    await user.click(screen.getByRole('button', { name: 'Remove interview on Tue, Oct 20' }));
     expect(current().events).toEqual([]);
   });
 
@@ -79,6 +82,22 @@ describe('InterviewLog', () => {
     click.mockRestore();
   });
 
+  it('an event with a time reads "Tue, Oct 20, 2:00 PM", one row per event', () => {
+    updateJob(URL_, {
+      events: [
+        { id: 'e1', kind: 'interview', date: '2026-10-20', time: '14:00', note: 'Portfolio' },
+        { id: 'e2', kind: 'call', date: '2026-10-21' },
+      ],
+    });
+    render(<Harness />);
+    const rows = screen.getAllByRole('listitem');
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('Tue, Oct 20, 2:00 PM');
+    expect(rows[0]).toHaveTextContent('Interview · Portfolio');
+    expect(rows[1]).toHaveTextContent('Wed, Oct 21');
+    expect(rows[0].closest('ul')).toHaveClass('rjb-rows');
+  });
+
   it('disables Add to calendar when nothing is upcoming', () => {
     render(<Harness />);
     expect(screen.getByRole('button', { name: 'Add to calendar' })).toBeDisabled();
@@ -87,7 +106,7 @@ describe('InterviewLog', () => {
   it('has no WCAG A/AA violations', async () => {
     updateJob(URL_, { events: [{ id: 'e1', kind: 'call', date: '2026-10-20' }] });
     const { container } = render(<Harness />);
-    await waitFor(() => expect(screen.getByText(/2026-10-20/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Tue, Oct 20')).toBeInTheDocument());
     const results = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });

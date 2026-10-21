@@ -25,8 +25,11 @@ import App from './App';
 import { addJob, findJobById, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { replaceTrash } from './trash';
 import { dismissNotice } from './saveNotice';
+import { ymd } from './jobEvents';
 
 const URL_A = 'https://acme.example/jobs/7';
+// Applied today: no follow-up is due, so the header's primary comes from the status alone.
+const todayYmd = () => ymd(new Date());
 const URL_B = 'https://zenith.example/jobs/2';
 
 const renderApp = () =>
@@ -87,6 +90,37 @@ describe('job page header and Overview (#130 slice 1)', () => {
     openJobPage();
     expect(screen.getByRole('button', { name: /^Follow up/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Mark applied/ })).toBeNull();
+  });
+
+  it("an Interviewing job's one primary is Add interview, which opens the Interviews tab", async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { status: 'Interviewing', applied: todayYmd() });
+    openJobPage();
+    const header = screen
+      .getByRole('heading', { level: 2, name: 'Design Engineer' })
+      .closest('header') as HTMLElement;
+    await userEvent.click(within(header).getByRole('button', { name: 'Add interview' }));
+    expect(
+      within(screen.getByRole('tablist', { name: 'Job sections' })).getByRole('tab', {
+        name: /^Interviews/,
+      }),
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('with no next step the action row is just Star and More, no empty slot between', () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { status: 'Offer', applied: todayYmd() });
+    openJobPage();
+    const star = screen.getByRole('button', { name: 'Star' });
+    const row = star.closest('[data-rjb-actions]') as HTMLElement;
+    expect(row).not.toBeNull();
+    // (The menu's hidden portal anchor is not a slot.)
+    expect([...row.children].filter((c) => !(c as HTMLElement).hidden)).toHaveLength(2);
+    expect(
+      within(row)
+        .getAllByRole('button')
+        .map((b) => b.getAttribute('aria-label') ?? b.textContent),
+    ).toEqual(['Star', expect.stringMatching(/^More actions/)]);
   });
 
   it('starring fills the star, says Starred and where starred jobs show', async () => {
@@ -197,7 +231,10 @@ describe('job page tabs (#130 slice 2)', () => {
       ],
     });
     openJobPage();
-    expect(tab('Interviews (1)')).toBeInTheDocument();
+    // The count is the neutral pill Badge (rev-2 #2), not "(1)" text.
+    const interviews = tab(/^Interviews/);
+    expect(interviews.textContent).not.toContain('(');
+    expect(within(interviews).getByRole('img', { name: '1 booked' })).toHaveTextContent('1');
     expect(within(screen.getByRole('region', { name: 'To-dos' })).getByText('2')).toBeVisible();
   });
 

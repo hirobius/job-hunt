@@ -3,6 +3,7 @@
 // state, not in the URL, and resets to Overview when the job changes.
 import { useEffect, useState } from 'react';
 import {
+  Badge,
   Box,
   Skeleton,
   Stack,
@@ -24,20 +25,30 @@ import JobScreening from './JobScreening';
 import JobInterviews from './JobInterviews';
 import type { Job } from './types';
 
-const withCount = (label: string, n: number) => (n > 0 ? `${label} (${n})` : label);
-
 // Three sections (rev-3 F, Adrian 2026-10-21): Overview holds the details, to-dos, notes and the
 // job's documents; then Screening and Interviews. Few enough for a 390px phone, and HDS TabsList
 // fades its own edge and keeps the selected tab in view if they ever outrun it.
-function JobSections({ job }: { job: Job }) {
-  const [tab, setTab] = useState('overview');
+function JobSections({
+  job,
+  tab,
+  setTab,
+}: {
+  job: Job;
+  tab: string;
+  setTab: (tab: string) => void;
+}) {
+  const n = job.events?.length ?? 0;
   return (
     <Tabs value={tab} onValueChange={setTab}>
       <TabsList aria-label="Job sections" className="rjb-job-tabs">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="screening">Screening</TabsTrigger>
+        {/* Every count is the small neutral pill (rev-2 #2), as on the panels. */}
         <TabsTrigger value="interviews">
-          {withCount('Interviews', job.events?.length ?? 0)}
+          <Stack as="span" direction="row" gap="px8" align="center">
+            Interviews
+            {n > 0 && <Badge count={n} label={`${n} booked`} />}
+          </Stack>
         </TabsTrigger>
       </TabsList>
       <TabsContent value="overview" variant="bare">
@@ -56,6 +67,18 @@ function JobSections({ job }: { job: Job }) {
         </Box>
       </TabsContent>
     </Tabs>
+  );
+}
+
+/** The header over the tabs. The open tab is local state here, so the header's Add interview can
+ *  switch to Interviews; keyed by job, so it resets to Overview when the job changes. */
+function JobDetail({ job, showBack }: { job: Job; showBack: boolean }) {
+  const [tab, setTab] = useState('overview');
+  return (
+    <Box>
+      <JobHeader job={job} showBack={showBack} onAddInterview={() => setTab('interviews')} />
+      <JobSections job={job} tab={tab} setTab={setTab} />
+    </Box>
   );
 }
 
@@ -97,13 +120,8 @@ export default function JobPage({ jobId }: { jobId: string }) {
   // above has already sent us back to the Pipeline.
   if (!job) return <JobPageSkeleton />;
 
-  const detail = (
-    <Box>
-      <JobHeader job={job} showBack={!wide} />
-      {/* Keyed by job, so the open tab and every field's draft reset when the job changes. */}
-      <JobSections key={job.url} job={job} />
-    </Box>
-  );
+  // Keyed by job, so the open tab and every field's draft reset when the job changes.
+  const detail = <JobDetail key={job.url} job={job} showBack={!wide} />;
   if (wide)
     return (
       <Sidebar side="start" sideWidth="22rem" contentMin="50%" gap="normal">

@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
-import { Badge, Box, Button, Stack, Text, Textarea } from '@hirobius/design-system';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Badge, Box, Button, Icon, Stack, Text, Textarea } from '@hirobius/design-system';
 import { Panel, PanelBody } from './PipelinePanel';
 import { screenJd, MAX_JD, type JdScreen } from './jdScreener';
 import { suggestVerdict, verdictTone, verdictLabel, modeLabel, blockerLabel } from './screening';
@@ -35,15 +36,17 @@ export default function JdScreenPanel({ job }: { job: Job }) {
 
   return (
     // A panel of its own under Fit (rev-3 mock), closed by default: the bold panel head, a helper
-    // that wraps, and Open in the header; the screener opens under it.
+    // that wraps, and a quiet Open/Close disclosure control in the header (rev-3 J: not a boxed
+    // button); the screener opens under it.
     <Panel
       label="Screen a job description"
       title="Screen a job description"
       description="Paste the posting to get a suggested fit, mode and dealbreakers."
       trailing={
         <Button
-          variant="secondary"
-          size="md"
+          variant="tertiary"
+          size="sm"
+          iconRight={<Icon icon={open ? ChevronUp : ChevronDown} />}
           aria-expanded={open}
           aria-controls={open ? bodyId : undefined}
           onClick={() => setOpen((o) => !o)}
