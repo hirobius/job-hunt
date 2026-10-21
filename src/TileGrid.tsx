@@ -4,19 +4,28 @@ import {
   Button,
   Card as HdsCard,
   Tooltip as HdsTooltip,
-  Disclosure,
   Icon,
+  Popover,
   Box,
   Stack,
   Text,
   Grid,
   InlineLink,
 } from '@hirobius/design-system';
-import { Banknote, ExternalLink, Globe, Linkedin, MapPin, Phone, Trash2 } from 'lucide-react';
+import {
+  Banknote,
+  Calendar,
+  ExternalLink,
+  Globe,
+  Linkedin,
+  MapPin,
+  Phone,
+  Trash2,
+} from 'lucide-react';
 import { isSaved, useJobs } from './store';
 import { saveWithNotice } from './saveNotice';
 import { useTileTriage, toggleDismiss } from './tileTriage';
-import { parseMeta, splitTileName } from './tileMeta';
+import { parseMeta, postedWindow, splitTileName, type MetaChip } from './tileMeta';
 import type { Tile } from './jobsData';
 
 // Tile kind, derived from the URL (issue #12): aggregator queries are "Search", Google
@@ -41,22 +50,28 @@ const hostOf = (url: string): string => {
 
 const telHref = (phone: string) => `tel:${phone.replace(/-/g, '')}`;
 
-const FACT_ICON = { pay: Banknote, place: MapPin, contact: Phone } as const;
+const FACT_ICON = { pay: Banknote, place: MapPin, contact: Phone, posted: Calendar } as const;
+
+type Fact = { kind: MetaChip['kind'] | 'posted'; text: string };
 
 /** Shared grid of link tiles (rev-3 H anatomy): the source with an icon and the kind badge on
- *  top, the title (two lines), the facts with icons, then Save, Open and a quiet Set aside on
- *  one centre line. Saving floats the tile in its group (issue #13 — pin is retired); with
- *  `triage`, each tile gets a set-aside control. */
+ *  top, the title (two lines), the facts row with icons (where, and for a search how recent),
+ *  then Save, Open and a quiet Set aside on one centre line. Saving floats the tile in its group
+ *  (issue #13 — pin is retired); with `triage`, each tile gets a set-aside control. */
 export default function TileGrid({
   tiles,
   cta = 'Open',
   triage = false,
   onRemove,
+  place,
 }: {
   tiles: Tile[];
   cta?: string;
   triage?: boolean;
   onRemove?: (url: string) => void;
+  /** Where the track searches ("Remote", "Spokane, Hybrid"): the place fact of a tile whose own
+   *  name and meta name none. */
+  place?: string;
 }) {
   useJobs(); // re-render on save
   const { dismissed } = useTileTriage();
@@ -73,13 +88,23 @@ export default function TileGrid({
         const isAside = dismissedSet.has(t.url);
         const kind = kindOf(t.url);
         const meta = parseMeta(t.meta);
-        const { source, title } = splitTileName(t.name, t.url);
-        // Pay, place and the first phone are the facts row (two a row, #192). Every phone and the
-        // rest of the meta are in Details, shown only when there is more than the card says.
-        const chips = meta.chips.filter((c) => c.kind !== 'contact' || c.text === meta.phones[0]);
-        const note = meta.notes[0];
+        const split = splitTileName(t.name, t.url);
+        const { source, title } = split;
+        // The facts row is always there (rev-3 H): pay, the place (the meta's, else the one the
+        // name carried, else the track's) and the first phone, plus how recent a search's
+        // postings are. Two a row (#192).
+        const metaPlace = meta.chips.some((c) => c.kind === 'place');
+        const placeText = metaPlace ? null : (split.place ?? place);
+        const chips: Fact[] = [
+          ...meta.chips.filter((c) => c.kind !== 'contact' || c.text === meta.phones[0]),
+          ...(placeText ? [{ kind: 'place' as const, text: placeText }] : []),
+          ...(kind ? [{ kind: 'posted' as const, text: postedWindow(t.url) }] : []),
+        ];
         const host = hostOf(t.url);
-        const more = meta.phones.length > 1 || meta.emails.length > 0 || meta.notes.length > 1;
+        // A search link's note only restates its title; an employer page's note (what they do,
+        // who they hire) and every extra contact sit behind Details.
+        const more =
+          meta.phones.length > 1 || meta.emails.length > 0 || (!kind && meta.notes.length > 0);
         return (
           <HdsCard
             key={t.url + t.name}
@@ -137,53 +162,11 @@ export default function TileGrid({
                   ))}
                 </Stack>
               )}
-              {note && (
-                <Text variant="caption" as="span" tone="secondary" className="rjb-clamp-2">
-                  {note}
-                </Text>
-              )}
-              <Box sx={{ flex: 1 }}>
-                {more && (
-                  <Disclosure label="Details">
-                    <Box sx={{ overflowWrap: 'anywhere' }}>
-                      <Stack gap="tight">
-                        <Text variant="ui" as="span">
-                          {t.name}
-                        </Text>
-                        {metaLines(meta.raw.split(/\s+·\s+/)).map((line) => (
-                          <Text
-                            key={line}
-                            variant="caption"
-                            as="span"
-                            data-meta-detail
-                            tone="secondary"
-                          >
-                            {line}
-                          </Text>
-                        ))}
-                        {meta.phones.map((ph) => (
-                          <InlineLink key={ph} href={telHref(ph)}>
-                            {ph}
-                          </InlineLink>
-                        ))}
-                        {meta.emails.map((em) => (
-                          <InlineLink key={em} href={`mailto:${em}`}>
-                            {em}
-                          </InlineLink>
-                        ))}
-                        {host && (
-                          <Text variant="caption" as="span" tone="secondary">
-                            {host}
-                          </Text>
-                        )}
-                      </Stack>
-                    </Box>
-                  </Disclosure>
-                )}
-              </Box>
+              {/* Pushes the actions to the card's foot, so tiles in a row line up. */}
+              <Box sx={{ flex: 1 }} />
               {/* Save, Open, then the quiet Set aside on the far side, one centre line (rev-3 G). */}
-              <Stack direction="row" gap="tight" align="center" justify="space-between">
-                <Stack direction="row" gap="tight" align="center">
+              <Stack direction="row" gap="px8" align="center" justify="space-between">
+                <Stack direction="row" gap="px8" align="center">
                   <Button
                     size="sm"
                     variant={saved ? 'tertiary' : 'secondary'}
@@ -193,7 +176,14 @@ export default function TileGrid({
                     {saved ? 'Saved' : 'Save'}
                   </Button>
                   {cta === 'Open' ? (
-                    <Button size="sm" variant="secondary" iconOnly label={`Open ${title}`} asChild>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      iconOnly
+                      label={`Open ${title}`}
+                      className="rjb-icon-40"
+                      asChild
+                    >
                       <a
                         href={t.url}
                         target="_blank"
@@ -211,7 +201,51 @@ export default function TileGrid({
                     </Button>
                   )}
                 </Stack>
-                <Stack direction="row" gap="tight" align="center">
+                <Stack direction="row" gap="px8" align="center">
+                  {more && (
+                    <Popover>
+                      <Popover.Trigger asChild>
+                        <Button size="sm" variant="tertiary">
+                          Details
+                        </Button>
+                      </Popover.Trigger>
+                      <Popover.Content align="end" aria-label={`Details: ${t.name}`}>
+                        <Box sx={{ overflowWrap: 'anywhere' }}>
+                          <Stack gap="tight">
+                            <Text variant="ui" as="span">
+                              {t.name}
+                            </Text>
+                            {metaLines(meta.raw.split(/\s+·\s+/)).map((line) => (
+                              <Text
+                                key={line}
+                                variant="caption"
+                                as="span"
+                                data-meta-detail
+                                tone="secondary"
+                              >
+                                {line}
+                              </Text>
+                            ))}
+                            {meta.phones.map((ph) => (
+                              <InlineLink key={ph} href={telHref(ph)}>
+                                {ph}
+                              </InlineLink>
+                            ))}
+                            {meta.emails.map((em) => (
+                              <InlineLink key={em} href={`mailto:${em}`}>
+                                {em}
+                              </InlineLink>
+                            ))}
+                            {host && (
+                              <Text variant="caption" as="span" tone="secondary">
+                                {host}
+                              </Text>
+                            )}
+                          </Stack>
+                        </Box>
+                      </Popover.Content>
+                    </Popover>
+                  )}
                   {triage && (
                     <Button size="sm" variant="tertiary" onClick={() => toggleDismiss(t.url)}>
                       {isAside ? 'Restore' : 'Set aside'}

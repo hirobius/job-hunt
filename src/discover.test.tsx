@@ -67,6 +67,17 @@ const openContext = async (label: RegExp | string = /^Change where: /) =>
 const hrefs = () =>
   screen.getAllByRole('link', { name: /search/i }).map((a) => a.getAttribute('href') ?? '');
 
+/** ATS search's board lists start closed and its hiring systems show three (rev-3 mock): open
+ *  them all, so every generated link is on the page. */
+const openAllBoards = async () => {
+  for (const name of [
+    /^Big job boards/,
+    /^Freelance, startup and remote boards/,
+    /^Show \d+ more$/,
+  ])
+    await userEvent.click(await screen.findByRole('button', { name }));
+};
+
 describe('Discover track context (slice 1)', () => {
   it('reads location from the track and shows one location control for every tool', async () => {
     window.location.hash = '#/discover/ats';
@@ -74,6 +85,8 @@ describe('Discover track context (slice 1)', () => {
     await openContext();
     expect(await screen.findByLabelText('Location')).toHaveValue('Spokane');
     expect(screen.getAllByLabelText('Location')).toHaveLength(1);
+    await userEvent.keyboard('{Escape}');
+    await openAllBoards();
     expect(hrefs().some((u) => u.includes('l=Spokane'))).toBe(true);
   });
 
@@ -82,6 +95,8 @@ describe('Discover track context (slice 1)', () => {
     renderApp();
     await openContext();
     await userEvent.click(await screen.findByRole('radio', { name: 'Remote' }));
+    await userEvent.keyboard('{Escape}');
+    await openAllBoards();
     expect(hrefs().some((u) => u.includes('l=Remote'))).toBe(true);
     expect(localStorage.getItem(modeKey(cat))).toBe('remote');
   });
@@ -121,7 +136,7 @@ describe('Discover track context (slice 1)', () => {
     window.location.hash = `#/discover/${g}`;
     renderApp();
     expect(await screen.findByRole('heading', { level: 3, name: 'Union halls' })).toBeVisible();
-    expect(screen.queryByRole('heading', { name: 'Big job boards' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Big job boards/ })).not.toBeInTheDocument();
   });
 });
 
@@ -129,15 +144,15 @@ describe('Discover header and tools (slice 2)', () => {
   it('names the track in a page header and shows where and how you search in one button', async () => {
     renderApp();
     expect(await screen.findByRole('heading', { level: 2, name: 'Welding' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Change where: Spokane, Any mode' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Change where: Spokane, any mode' })).toBeVisible();
   });
 
   it('the context line follows the Manage track location', async () => {
     renderApp();
-    await screen.findByRole('button', { name: 'Change where: Spokane, Any mode' });
+    await screen.findByRole('button', { name: 'Change where: Spokane, any mode' });
     act(() => updateCategory(cat, { location: 'Tacoma' }));
     expect(
-      await screen.findByRole('button', { name: 'Change where: Tacoma, Any mode' }),
+      await screen.findByRole('button', { name: 'Change where: Tacoma, any mode' }),
     ).toBeVisible();
   });
 
@@ -206,6 +221,7 @@ describe('Discover header and tools (slice 2)', () => {
   it('lists the community boards and big-company systems on ATS search; the Slack row is a plain link', async () => {
     window.location.hash = '#/discover/ats';
     renderApp();
+    await openAllBoards();
     for (const name of ['Smashing Jobs', 'SuccessFactors', 'Taleo', 'Oracle Recruiting'])
       expect(await screen.findByText(name)).toBeVisible();
     const card = await screen.findByRole('article', { name: 'Join Design Systems Slack' });
@@ -230,6 +246,15 @@ describe('Discover header and tools (slice 2)', () => {
     expect(screen.queryByRole('region', { name: 'Your sections' })).toBeNull();
   });
 
+  it('names the featured Apply now section Job boards, not the tool again (rev-3 G)', async () => {
+    addGroup(cat, { label: 'Apply Now' });
+    addGroup(cat, { label: 'Union halls' });
+    renderApp();
+    const sections = await screen.findByRole('region', { name: 'Your sections' });
+    expect(within(sections).getByRole('heading', { level: 3, name: 'Job boards' })).toBeVisible();
+    expect(within(sections).queryByRole('heading', { name: 'Apply now' })).toBeNull();
+  });
+
   it('a track with no sections opens on ATS search', async () => {
     renderApp();
     expect(await screen.findByRole('radio', { name: 'ATS search' })).toBeChecked();
@@ -252,11 +277,28 @@ describe('Discover header and tools (slice 2)', () => {
     renderApp();
     await userEvent.click(await screen.findByRole('button', { name: 'Manage track' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText(/outreach targets and saved searches/)).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: /delete track/i }));
+    // A quiet button, no loud card: the copy lives in the confirm.
+    expect(within(dialog).queryByText(/outreach targets and saved searches/)).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete track' }));
     expect(
       await screen.findByText(/its outreach targets and saved searches will be gone for good/),
     ).toBeInTheDocument();
+    expect(screen.getByText(/Jobs you saved stay in your Pipeline/)).toBeInTheDocument();
+  });
+
+  it('Manage track: one label style, plain words, a full Seniority row', async () => {
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: 'Manage track' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('radio', { name: 'Experienced' })).toBeInTheDocument();
+    expect(within(dialog).queryByText('Exp.')).toBeNull();
+    for (const name of ['Seniority', 'Title search terms', 'ATS role terms'])
+      expect(within(dialog).getByText(name).tagName).toBe('LABEL');
+    expect(within(dialog).getByPlaceholderText('Add a title')).toBeInTheDocument();
+    expect(within(dialog).getByPlaceholderText('Add an ATS role term')).toBeInTheDocument();
+    const add = within(dialog).getByRole('button', { name: 'Add section' });
+    expect(add.textContent).not.toContain('＋');
+    expect(add.querySelector('svg')).not.toBeNull();
   });
 });
 

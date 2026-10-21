@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseMeta } from './tileMeta';
+import { parseMeta, postedWindow, splitTileName } from './tileMeta';
 
 describe('parseMeta', () => {
   it.each([
@@ -66,5 +66,47 @@ describe('parseMeta', () => {
 
   it('copes with an empty meta', () => {
     expect(parseMeta('')).toMatchObject({ chips: [], notes: [], phones: [], raw: '' });
+  });
+});
+
+describe('postedWindow (rev-3 H Calendar fact)', () => {
+  it.each([
+    ['https://www.linkedin.com/jobs/search/?keywords=x&f_TPR=r86400', 'Past day'],
+    ['https://www.linkedin.com/jobs/search/?keywords=x&f_TPR=r604800', 'Past week'],
+    ['https://www.linkedin.com/jobs/search/?keywords=x&f_TPR=r2592000', 'Past month'],
+    ['https://www.indeed.com/jobs?q=x&fromage=1', 'Past day'],
+    ['https://www.indeed.com/jobs?q=x&fromage=3', 'Past 3 days'],
+    ['https://www.indeed.com/jobs?q=x&fromage=7', 'Past week'],
+    ['https://www.indeed.com/jobs?q=x&fromage=14', 'Past 14 days'],
+    ['https://www.google.com/search?q=x&tbs=qdr:w', 'Past week'],
+    ['https://www.google.com/search?q=x&tbs=qdr:m', 'Past month'],
+    ['https://www.indeed.com/jobs?q=x', 'Any time'],
+    ['not a url', 'Any time'],
+  ])('%s → %s', (url, want) => expect(postedWindow(url)).toBe(want));
+});
+
+describe('splitTileName (rev-3 H)', () => {
+  it('splits the source and strips a trailing place the facts row now carries', () => {
+    expect(
+      splitTileName('LinkedIn · Implementation Consultant (Remote)', 'https://linkedin.com'),
+    ).toEqual({ source: 'LinkedIn', title: 'Implementation Consultant', place: 'Remote' });
+    expect(splitTileName('Indeed · Implementation (Spokane)', 'https://indeed.com')).toEqual({
+      source: 'Indeed',
+      title: 'Implementation',
+      place: 'Spokane',
+    });
+  });
+
+  it('keeps a parenthetical that is not a place', () => {
+    expect(
+      splitTileName('Greenhouse · Implementation Consultant (hidden jobs)', 'https://g.co').title,
+    ).toBe('Implementation Consultant (hidden jobs)');
+  });
+
+  it('uses the domain as the source of a bare name', () => {
+    expect(splitTileName('Travis Pattern', 'https://www.travispattern.com/')).toEqual({
+      source: 'travispattern.com',
+      title: 'Travis Pattern',
+    });
   });
 });

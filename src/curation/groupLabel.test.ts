@@ -20,4 +20,10 @@ describe('starter data', () => {
   it('names no group "Apply Now" in Title Case', () => {
     expect(GROUPS.map((g) => g.label)).not.toContain('Apply Now');
   });
+
+  it('names the featured Apply now section "Job boards" under the Apply now tool (rev-3 G)', () => {
+    expect(displayGroupLabel('Apply Now', { featured: true })).toBe('Job boards');
+    expect(displayGroupLabel('Union Halls', { featured: true })).toBe('Union Halls');
+    expect(displayGroupLabel('Apply Now')).toBe('Apply now');
+  });
 });

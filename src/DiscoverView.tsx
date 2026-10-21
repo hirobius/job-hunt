@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, Copy, Search } from 'lucide-react';
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ArrowLeft, Check, Copy, ExternalLink, Plus, Search } from 'lucide-react';
 import {
   Button,
   Icon,
@@ -38,7 +38,7 @@ import { useCategories, useGroups, useTiles, addCategory } from './curation/cura
 import { seedPack } from './curation/starterPacks';
 import type { Category, Seniority } from './curation/types';
 import DiscoverHeader from './DiscoverHeader';
-import { contextLabel, useTrackContext } from './discoverContext';
+import { contextLabel, placeLabel, useTrackContext } from './discoverContext';
 import { Panel, PanelBody, PanelRow, PanelRows } from './PipelinePanel';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
 import { teamSearchFor } from './feed/teamTopics';
@@ -46,7 +46,6 @@ import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 import { useActiveTitles } from './feed/sweepTitles';
 import { useDreams } from './feed/dreams';
 import { boardsFromUrls } from './feed/sources/ats';
-import { SweepTitlesEditor } from './SweepTitles';
 import { displayGroupLabel } from './curation/groupLabel';
 
 const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
@@ -60,16 +59,21 @@ const CompaniesPanel = lazy(() => import('./CompaniesPanel'));
 // An empty store routes to first-run Onboarding (decision D1), gated by the shell (#128).
 
 const ACTIVE_CATEGORY_KEY = 'rjb_active_category';
+/** Hiring-system rows shown before "Show N more" (rev-3 mock: three quiet rows). */
+const ATS_SHOWN = 3;
 
 // Curated group tiles: saved ones removed (issue #57), pin/set-aside triage kept (decision D2).
 function GroupPanel({
   tiles,
   savedSet,
   onManage,
+  place,
 }: {
   tiles: Tile[];
   savedSet: ReadonlySet<string>;
   onManage: () => void;
+  /** The track's place, the tiles' fallback place fact. */
+  place: string;
 }) {
   const triage = useTileTriage();
   const { visible, saved, aside } = partitionTiles(tiles, triage, savedSet);
@@ -83,7 +87,7 @@ function GroupPanel({
         </Box>
       )}
       {visible.length > 0 ? (
-        <TileGrid tiles={visible} triage />
+        <TileGrid tiles={visible} triage place={place} />
       ) : saved.length > 0 ? (
         <EmptyState title="All saved — check your Tracker for these." />
       ) : (
@@ -100,7 +104,7 @@ function GroupPanel({
       {aside.length > 0 && (
         <Box sx={{ mt: 'xs' }}>
           <Disclosure label={`Set aside (${aside.length})`}>
-            <TileGrid tiles={aside} triage />
+            <TileGrid tiles={aside} triage place={place} />
           </Disclosure>
         </Box>
       )}
@@ -134,6 +138,7 @@ function AtsPanel({
   const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
   const [contract, setContract] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [showAllAts, setShowAllAts] = useState(false);
   if (titles.length === 0)
     return (
       <EmptyState
@@ -173,6 +178,7 @@ function AtsPanel({
   while (fit.roles && fit.roles.length > 1 && searchAllCount(ATS, fit) < 3)
     fit = { ...fit, roles: fit.roles.slice(0, -1) };
   const fitTitles = fit.roles?.length ?? 1;
+  const atsTiles = tilesFor(ATS);
   const allUrl = searchAllUrl(ATS, fit);
   const allQuery = new URL(allUrl).searchParams.get('q') ?? '';
   // Four titles, then "N more" (rev-3 I): the chips wrap, All selected first.
@@ -204,13 +210,15 @@ function AtsPanel({
                   {r}
                 </Tag>
               ))}
+              {/* One way into the list: "N more" opens the chip row in place (the ticks are
+                  edited in Live postings' Calibrate). */}
               {active.length > 4 && (
                 <Tag onClick={() => setShowAll(!showAll)}>
+                  {!showAll && <Icon icon={Plus} size="small" />}
                   {showAll ? 'Fewer' : `${active.length - 4} more`}
                 </Tag>
               )}
             </Stack>
-            <SweepTitlesEditor categoryId={categoryId} seed={titles} />
             {/* Both filters on one row. */}
             <Switcher gap="tight" threshold="16rem">
               <Select
@@ -257,33 +265,52 @@ function AtsPanel({
           </Stack>
         </PanelBody>
       </Panel>
-      <Stack gap="xs">
+      {/* Three quiet rows, the rest one tap away (rev-3 mock): the one-query search above is the
+          way in, these are for one system at a time. */}
+      <Stack gap="px8">
         <Text variant="body" as="h3" weight="bold">
           Company hiring systems
         </Text>
-        <LinkRows tiles={tilesFor(ATS)} />
+        <LinkRows tiles={showAllAts ? atsTiles : atsTiles.slice(0, ATS_SHOWN)} />
+        {atsTiles.length > ATS_SHOWN && (
+          <Box>
+            <Button variant="tertiary" size="sm" onClick={() => setShowAllAts(!showAllAts)}>
+              {showAllAts ? 'Show fewer' : `Show ${atsTiles.length - ATS_SHOWN} more`}
+            </Button>
+          </Box>
+        )}
       </Stack>
-      <Stack gap="xs">
-        <Text variant="body" as="h3" weight="bold">
-          Big job boards
-        </Text>
-        <LinkRows tiles={boardTiles} />
-      </Stack>
-      <Stack gap="xs">
-        <Text variant="body" as="h3" weight="bold">
-          Freelance, startup and remote boards
-        </Text>
-        <Text variant="caption" as="p" tone="secondary">
-          Boards with no open feed (Upwork, Contra, Wellfound…), reached through Google instead.
-        </Text>
-        <Box>
-          <Button variant="secondary" size="md" asChild>
-            <a href={searchAllUrl(HIDDEN_BOARDS, fit)} target="_blank" rel="noopener noreferrer">
-              {`Search the top ${searchAllCount(HIDDEN_BOARDS, fit)} boards at once`}
-            </a>
-          </Button>
-        </Box>
-        <LinkRows tiles={tilesFor(HIDDEN_BOARDS)} />
+      <Stack gap="px8">
+        <BoardSection
+          label="Big job boards"
+          count={boardTiles.length}
+          preview="LinkedIn, Indeed and more, with your titles and place"
+        >
+          <LinkRows tiles={boardTiles} bare />
+        </BoardSection>
+        <BoardSection
+          label="Freelance, startup and remote boards"
+          count={HIDDEN_BOARDS.length}
+          preview="Upwork, Contra, Wellfound… through Google"
+        >
+          <Stack gap="xs">
+            <Text variant="caption" as="p" tone="secondary">
+              Boards with no open feed, reached through Google instead.
+            </Text>
+            <Box>
+              <Button variant="secondary" size="md" asChild>
+                <a
+                  href={searchAllUrl(HIDDEN_BOARDS, fit)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {`Search the top ${searchAllCount(HIDDEN_BOARDS, fit)} boards at once`}
+                </a>
+              </Button>
+            </Box>
+            <LinkRows tiles={tilesFor(HIDDEN_BOARDS)} bare />
+          </Stack>
+        </BoardSection>
       </Stack>
     </Stack>
   );
@@ -309,35 +336,74 @@ function CopyQuery({ text }: { text: string }) {
   );
 }
 
-/** Search links as flat rows (rev-3 I): the name, its site or note, and a quiet Search. */
-function LinkRows({ tiles }: { tiles: Tile[] }) {
+/** A closed list of board links (rev-3 mock): one row with the name and a count, opened in place. */
+function BoardSection({
+  label,
+  count,
+  preview,
+  children,
+}: {
+  label: string;
+  count: number;
+  preview: string;
+  children: ReactNode;
+}) {
   return (
     <Card bordered padding="none">
-      <PanelRows>
-        {tiles.map((t) => (
-          <PanelRow key={t.url + t.name}>
-            <Box as="article" aria-label={t.name}>
-              <Stack direction="row" gap="tight" align="center" justify="space-between">
-                <Box sx={{ minWidth: 0 }}>
-                  <Text variant="ui" as="p" className="rjb-semibold">
-                    {t.name}
+      <Box sx={{ px: 'sm' }}>
+        <Disclosure
+          variant="row"
+          label={
+            // Inline, so the count follows the last word when a long name wraps.
+            <span>
+              {label} <Badge count={count} label={`${count} boards`} />
+            </span>
+          }
+          preview={preview}
+        >
+          {children}
+        </Disclosure>
+      </Box>
+    </Card>
+  );
+}
+
+/** Search links as flat rows (rev-3 I): the name, its site or note, and a quiet Search with an
+ *  external-link icon. `bare`: no card of its own (inside a BoardSection). */
+function LinkRows({ tiles, bare = false }: { tiles: Tile[]; bare?: boolean }) {
+  const rows = (
+    <PanelRows>
+      {tiles.map((t) => (
+        <PanelRow key={t.url + t.name}>
+          <Box as="article" aria-label={t.name}>
+            <Stack direction="row" gap="tight" align="center" justify="space-between">
+              <Box sx={{ minWidth: 0 }}>
+                <Text variant="ui" as="p" className="rjb-semibold">
+                  {t.name}
+                </Text>
+                {t.meta && (
+                  <Text variant="caption" as="p" tone="secondary" className="rjb-truncate">
+                    {t.meta}
                   </Text>
-                  {t.meta && (
-                    <Text variant="caption" as="p" tone="secondary" className="rjb-truncate">
-                      {t.meta}
-                    </Text>
-                  )}
-                </Box>
-                <Button variant="tertiary" size="sm" asChild>
-                  <a href={t.url} target="_blank" rel="noopener noreferrer">
-                    Search
-                  </a>
-                </Button>
-              </Stack>
-            </Box>
-          </PanelRow>
-        ))}
-      </PanelRows>
+                )}
+              </Box>
+              <Button variant="tertiary" size="sm" asChild>
+                <a href={t.url} target="_blank" rel="noopener noreferrer">
+                  Search
+                  <Icon icon={ExternalLink} size="small" />
+                </a>
+              </Button>
+            </Stack>
+          </Box>
+        </PanelRow>
+      ))}
+    </PanelRows>
+  );
+  return bare ? (
+    rows
+  ) : (
+    <Card bordered padding="none">
+      {rows}
     </Card>
   );
 }
@@ -388,6 +454,8 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const [manageOpen, setManageOpen] = useState(false);
 
   const cat = categories.find((c) => c.id === activeId) ?? categories[0];
+  const trackContext = useTrackContext(cat.id);
+  const trackPlace = placeLabel(trackContext.where, trackContext.mode);
   const setActive = (id: string) => {
     setActiveId(id);
     try {
@@ -439,7 +507,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
       ? [
           {
             key: featured.id,
-            label: displayGroupLabel(featured.label),
+            label: displayGroupLabel(featured.label, { featured: true }),
             tiles: tilesFor(featured.id),
           },
         ]
@@ -540,6 +608,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
                     </Stack>
                     <GroupPanel
                       tiles={sc.tiles}
+                      place={trackPlace}
                       savedSet={savedSet}
                       onManage={() => setManageOpen(true)}
                     />

@@ -151,11 +151,22 @@ describe('wide sweep', () => {
   });
 });
 
+/** ATS search's board lists start closed and its hiring systems show three (rev-3 mock): open
+ *  them all, so every generated link is on the page. */
+const openAllBoards = async () => {
+  for (const name of [
+    /^Big job boards/,
+    /^Freelance, startup and remote boards/,
+    /^Show \d+ more$/,
+  ])
+    await userEvent.click(await screen.findByRole('button', { name }));
+};
+
 describe('ATS search: All selected', () => {
   it('the big-board links OR every title that is on, from the start', async () => {
     window.location.hash = '#/discover/ats';
     renderApp();
-    await screen.findByRole('heading', { name: 'Big job boards' });
+    await openAllBoards();
     const href = screen.getAllByRole('link', { name: /search/i })[0].getAttribute('href') ?? '';
     expect(decodeURIComponent(href)).toContain(
       '("design engineer" OR "design technologist" OR "design system")',

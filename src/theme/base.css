@@ -306,3 +306,46 @@ p {
 [data-hds] .rjb-flush-start {
   padding-inline-start: 0;
 }
+
+/* An inline text action in a sentence (Discover's "Remote, any mode · Change", rev-3 mock): an HDS
+ * Button set as an underlined link (HDS InlineLink renders only an <a href>, so it can't be a
+ * Popover trigger). Primary colour, medium weight, no inline padding; on a phone its 40px hit area
+ * overhangs the line instead of pushing the lines apart. */
+[data-hds] .rjb-inline-link {
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  gap: 0;
+  vertical-align: baseline;
+  background: transparent;
+  color: var(--semantic-color-content-primary);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  [data-hds] .rjb-inline-link {
+    min-height: var(--primitive-space-10);
+    margin-block: calc((1lh - var(--primitive-space-10)) / 2);
+    vertical-align: middle;
+  }
+}
+
+/* A 40x40 icon button beside a 40px text button (Discover's New track, a tile's Open; rev-3 mock):
+ * HDS lifts icon-only buttons to its 44px touch minimum, which leaves them 4px off the row's
+ * centre line and not square. 40 is the app's phone target (the rule above). */
+[data-hds] .rjb-icon-40 {
+  min-width: var(--primitive-space-10);
+  min-height: var(--primitive-space-10);
+  width: var(--primitive-space-10);
+  height: var(--primitive-space-10);
+}
+
+/* The location popover (rev-3 mock): md (16) padding around its field and segmented control, and
+ * wide enough for the four modes at that padding. HDS Popover.Content has no padding or size prop. */
+[data-hds] .rjb-popover-md {
+  width: min(22rem, calc(100vw - 2 * var(--primitive-space-4)));
+  padding: var(--primitive-space-4);
+}
