@@ -261,6 +261,23 @@ p {
   overflow-wrap: anywhere;
 }
 
+/* An open Documents row's text (rev-3 M): its line breaks kept; four lines on a phone, all of it
+ * from 600px up. */
+.rjb-doc-preview {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .rjb-doc-preview {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow: hidden;
+  }
+}
+
 /* A long free-text field the user can make taller (Your evidence, rev-3 J). */
 .rjb-resize,
 .rjb-resize textarea {

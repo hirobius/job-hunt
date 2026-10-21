@@ -67,6 +67,26 @@ describe('add / dedupe', () => {
   });
 });
 
+describe('company from a board link (QA)', () => {
+  it('a Greenhouse posting gets its company from the board slug', () => {
+    addJob('https://boards.greenhouse.io/acme/jobs/77');
+    const j = findJobByUrl('https://boards.greenhouse.io/acme/jobs/77');
+    expect(j?.company).toBe('Acme');
+  });
+  it('works for the other ATS hosts, title-cased', () => {
+    addJob('https://jobs.lever.co/acme-labs/1234');
+    expect(findJobByUrl('https://jobs.lever.co/acme-labs/1234')?.company).toBe('Acme Labs');
+    addJob('https://acme.teamtailor.com/jobs/9-welder');
+    expect(findJobByUrl('https://acme.teamtailor.com/jobs/9-welder')?.company).toBe('Acme');
+  });
+  it('an explicit company wins; a non-board link sets none', () => {
+    addJobDetailed('https://jobs.ashbyhq.com/ramp/abc', { company: 'Ramp Inc' });
+    expect(findJobByUrl('https://jobs.ashbyhq.com/ramp/abc')?.company).toBe('Ramp Inc');
+    addJob('https://example.com/careers/welder');
+    expect(findJobByUrl('https://example.com/careers/welder')?.company).toBeUndefined();
+  });
+});
+
 describe('addJobDetailed', () => {
   it('stores label, salary and note, and normalizes the URL', () => {
     const stored = addJobDetailed('greenhouse.io/acme/jobs/7', {

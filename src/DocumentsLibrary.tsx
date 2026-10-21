@@ -5,10 +5,14 @@
 // caller (a route) through `openId` / `onOpen`, or kept here when they are left out. The route is
 // `#/copy-deck` (DocumentsView). Outreach messages are the templates the fill paths use
 // (outreachTemplates.ts); the starter set can be restored here when one is missing.
-// Layout is the rev-3 mock's (item M, slice 3): a panel per kind with its count and a "New" button
-// in the header; each document is an expandable row (HDS Disclosure variant="row", one open at a
-// time) whose preview names its variables as chips; open, it shows the first lines with the
-// variables as chips, then Copy, Open (the editor) and a menu (Pin, Duplicate, Delete).
+// Layout is the rev-3 mock's (item M): a panel per kind with its count and a "New" button in the
+// header (Résumés, Cover letters, Outreach messages, Notes); each document is an expandable row (HDS
+// Disclosure variant="row", one open at a time). The row's top line carries a Pinned badge, then the
+// title, then a meta line: its variables as chips (no brackets, all of them, wrapping), or for a
+// document without variables its versions and last edit. The meta line is part of the trigger, so it
+// stays while the row is open; open, the row shows the text with its line breaks (four lines on a
+// phone, all of it from `sm` up) with the variables as chips, then Copy, Open and a menu (Pin,
+// Duplicate, Delete).
 import { useState, type ReactNode } from 'react';
 import { Copy, Ellipsis, Plus } from 'lucide-react';
 import {
@@ -38,8 +42,9 @@ import { STARTER_SNIPPETS } from './copyDeckStore';
 import type { Document, DocumentKind } from './documents';
 import { Panel, PanelBody, PanelRows } from './PipelinePanel';
 import { WithChips } from './BlankText';
+import { postedAgo } from './feed/format';
+import { metaLines } from './metaLines';
 import { templateVariables } from './templateEditor';
-import { previewText } from './templateFill';
 import { copyFilled } from './templateCopy';
 
 const PLURAL: Record<DocumentKind, string> = {
@@ -54,13 +59,17 @@ const EMPTY_HINT: Record<DocumentKind, string> = {
   note: 'Keep stories and answers you reuse.',
   outreach: 'Write a message once; variables like [Company] fill in for each job.',
 };
-// An open row's preview: about four lines of a phone row.
-const OPEN_PREVIEW_CHARS = 220;
+// The library's order (the rev-3 mock): the kinds people reuse per job first, Notes last.
+const LIBRARY_ORDER: DocumentKind[] = ['resume', 'cover', 'outreach', 'note'];
+// An open row's text: a phone clamps it to four lines in CSS; a very long one is cut here.
+const OPEN_PREVIEW_CHARS = 4000;
 
 /** "Cover letter" → "cover letter"; Résumé keeps its case in the middle of a sentence too. */
 const lower = (label: string) => label.charAt(0).toLowerCase() + label.slice(1);
 const latest = (d: Document) => d.versions[d.versions.length - 1].text;
 const firstLine = (text: string) => text.split('\n').find((l) => l.trim()) ?? '';
+/** An open row's text: blank lines folded, so four phone lines hold more of it. */
+const openText = (text: string) => text.slice(0, OPEN_PREVIEW_CHARS).replace(/\n\s*\n/g, '\n');
 const versionsLabel = (n: number) => (n === 1 ? '1 version' : `${n} versions`);
 
 /** Base documents of a kind, pinned first, then by title. */
@@ -142,7 +151,8 @@ export default function DocumentsLibrary({
       )}
       {/* The Pipeline's panel rhythm: panels 24 apart (rev-3 mock). */}
       <Stack gap="px24">
-        {DOCUMENT_KINDS.map(({ kind, label }) => {
+        {LIBRARY_ORDER.map((kind) => {
+          const label = DOCUMENT_KINDS.find((k) => k.kind === kind)!.label;
           const items = libraryItems(docs, kind);
           const newLabel = `New ${lower(label)}`;
           return (
@@ -218,6 +228,8 @@ function DocumentRow({
 }) {
   const { toast } = useToast();
   const [confirming, setConfirming] = useState(false);
+  // The clock for "edited 3d ago", read once when the row mounts.
+  const [now] = useState(() => Date.now());
   const text = latest(doc);
   const names = templateVariables(text);
   const title = doc.title || 'Untitled';
@@ -226,6 +238,12 @@ function DocumentRow({
     if (r.ok) toast({ title: 'Copied', description: title, tone: 'success' });
     else toast({ title: "Couldn't copy", description: r.reason, tone: 'danger' });
   };
+  const saved = doc.versions[doc.versions.length - 1].savedAt;
+  const edited = postedAgo(saved, now);
+  const meta =
+    doc.kind === 'outreach'
+      ? firstLine(text) || 'Empty'
+      : metaLines([versionsLabel(doc.versions.length), edited && `edited ${edited}`])[0];
   const duplicate = () =>
     createDocument({ kind: doc.kind, title: `${title} (copy)`, text, base: true });
   return (
@@ -243,21 +261,34 @@ function DocumentRow({
           <Stack gap="px4" align="start">
             {doc.pinned && <Badge>Pinned</Badge>}
             <span>{title}</span>
+            {doc.kind !== 'outreach' && (
+              <Text variant="caption" tone="secondary">
+                {meta}
+              </Text>
+            )}
+            {names.length > 0 ? (
+              <Stack direction="row" gap="px4" wrap="wrap">
+                {names.map((n) => (
+                  <span key={n} className="rjb-chip">
+                    {n}
+                  </span>
+                ))}
+              </Stack>
+            ) : (
+              doc.kind === 'outreach' && (
+                <Text variant="caption" tone="secondary" className="rjb-truncate">
+                  {meta}
+                </Text>
+              )
+            )}
           </Stack>
-        }
-        preview={
-          names.length ? (
-            <WithChips text={names.map((n) => `[${n}]`).join(' ')} />
-          ) : (
-            `${firstLine(text) || 'Empty'} · ${versionsLabel(doc.versions.length)}`
-          )
         }
       >
         {/* Only the open row renders its preview and actions. */}
         {open && (
           <Stack gap="normal">
-            <Text variant="ui" as="p">
-              <WithChips text={previewText(text, OPEN_PREVIEW_CHARS) || 'Empty'} />
+            <Text variant="ui" as="p" className="rjb-doc-preview">
+              <WithChips text={openText(text) || 'Empty'} />
             </Text>
             <Stack direction="row" gap="tight" align="center" justify="space-between">
               <Stack direction="row" gap="tight" align="center">

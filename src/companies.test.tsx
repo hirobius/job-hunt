@@ -55,6 +55,9 @@ const LIVE: Record<string, unknown> = {
     leverJob('northwind', 'n2', 'Accountant'),
   ],
   'https://boards-api.greenhouse.io/v1/boards/figma/jobs': { jobs: [] },
+  'https://api.lever.co/v0/postings/eastgate?mode=json': [1, 2, 3, 4].map((n) =>
+    leverJob('eastgate', `e${n}`, `Welder ${n}`),
+  ),
 };
 const fakeFetch = vi.fn(async (url: string) => {
   const hit = Object.keys(LIVE).find((k) => url.startsWith(k));

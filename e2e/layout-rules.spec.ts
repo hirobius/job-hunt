@@ -79,6 +79,10 @@ function probe(page: Page) {
             if (!visible(el)) return;
             // HDS's own clear-input button is 30px wide (hds#750).
             if (el.getAttribute('aria-label') === 'Clear input') return;
+            // A chip input's text field (HDS creatable Combobox) is 28px, but its 40px field is the
+            // target: a press anywhere on the field focuses it.
+            const field = el.getAttribute('role') === 'combobox' && el.closest('[role="group"]');
+            if (field && field.getBoundingClientRect().height >= 39.5) return;
             const r = el.getBoundingClientRect();
             const iconOnly = !(el.textContent || '').trim() && el.tagName !== 'INPUT';
             if (r.height < 39.5 || (iconOnly && r.width < 39.5))

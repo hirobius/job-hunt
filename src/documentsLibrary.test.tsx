@@ -391,6 +391,53 @@ describe('expandable rows', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Open Alpha' })).toBeNull());
   });
 
+  it('lists Outreach messages before Notes (rev-3 M mock order)', () => {
+    renderLib();
+    const heads = screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'));
+    expect(heads.indexOf('Outreach messages')).toBeLessThan(heads.indexOf('Notes'));
+  });
+
+  it('a row names every variable as a chip, no brackets, and keeps them when open', async () => {
+    const id = createDocument({
+      kind: 'outreach',
+      title: 'Many',
+      base: true,
+      text: 'Hi [Contact], [Role] at [Company]. [Angle] from [Your name]',
+    });
+    setDocumentPinned(id, true);
+    renderLib();
+    const row = screen.getByRole('listitem', { name: 'Many' });
+    const chips = () => [...row.querySelectorAll('.rjb-chip')].map((c) => c.textContent);
+    expect(chips()).toEqual(['Contact', 'Role', 'Company', 'Angle', 'Your name']);
+    expect(row).not.toHaveTextContent('[');
+    expect(row).not.toHaveTextContent('…');
+    // Pinned is a badge on the row's top line, above the title.
+    const trigger = within(row).getByRole('button', { name: /Many/ });
+    expect(trigger.textContent?.indexOf('Pinned')).toBeLessThan(
+      trigger.textContent!.indexOf('Many'),
+    );
+    await userEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    // The meta chips stay on the trigger while it is open.
+    expect(trigger.querySelectorAll('.rjb-chip')).toHaveLength(5);
+  });
+
+  it('a document without variables shows its versions and last edit in the meta line', () => {
+    createDocument({ kind: 'cover', title: 'Plain', base: true, text: 'Dear team' });
+    renderLib();
+    const row = screen.getByRole('listitem', { name: 'Plain' });
+    expect(row).toHaveTextContent(/1 version · edited today/);
+  });
+
+  it('an open row keeps the text’s line breaks', async () => {
+    createDocument({ kind: 'note', title: 'Lines', base: true, text: 'One\nTwo' });
+    renderLib();
+    await userEvent.click(screen.getByRole('button', { name: /Lines/ }));
+    const prev = screen.getByRole('listitem', { name: 'Lines' }).querySelector('.rjb-doc-preview');
+    expect(prev).not.toBeNull();
+    expect(prev!.textContent).toBe('One\nTwo');
+  });
+
   it('the row menu duplicates and deletes (after asking)', async () => {
     createDocument({ kind: 'note', title: 'Story', base: true, text: 'Once' });
     renderLib();

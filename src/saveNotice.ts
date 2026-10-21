@@ -6,6 +6,8 @@ import { createStore } from './createStore';
 import {
   addJobOutcome,
   findJobByUrl,
+  getAllJobs,
+  subscribeJobs,
   jobIdOf,
   removeJob,
   updateJob,
@@ -14,7 +16,7 @@ import {
 import { restoreJob, trashJob } from './trash';
 import { titleOf } from './jobRow';
 import type { Job } from './types';
-import { navigate, openJob } from './route';
+import { buildHash, getRoute, navigate, openJob, subscribeRoute } from './route';
 
 export interface NoticeAction {
   label: string;
@@ -27,16 +29,47 @@ export interface Notice {
   /** The toast's icon tone; a save is a success (a check, not the info glyph). */
   tone?: 'success';
   actions: NoticeAction[];
+  /** The saved jobs this notice is about: it goes once one leaves Saved or is gone. */
+  jobUrls?: string[];
 }
 
 const store = createStore<Notice | null>(null);
 let seq = 0;
+/** The route the notice was raised on: any move away from it makes the notice stale. */
+let shownOn = '';
 
 export function showNotice(n: Omit<Notice, 'id'>) {
+  watchForStale();
+  shownOn = buildHash(getRoute());
   store.set({ ...n, id: ++seq });
 }
 export const dismissNotice = () => store.set(null);
 export const useNotice = store.use;
+
+// A save notice is stale once the user has moved on: they navigated (its Open points at a page
+// they already chose, or away from it), or its jobs left Saved (its "To apply" is no longer true,
+// and Undo would keep them anyway, #219; one job marked applied while the toast covers the form).
+// A bulk save keeps its notice while any of its jobs is still to apply. Other notices (Removed,
+// Not a fit) are raised as their view navigates away, so they stay. Watching starts with the
+// first notice.
+let watching = false;
+function watchForStale() {
+  if (watching) return;
+  watching = true;
+  subscribeRoute(() => {
+    if (store.get()?.jobUrls?.length && buildHash(getRoute()) !== shownOn) dismissNotice();
+  });
+  subscribeJobs(() => {
+    const urls = store.get()?.jobUrls;
+    if (!urls?.length) return;
+    const jobs = getAllJobs();
+    const allMoved = urls.every((u) => {
+      const j = jobs.find((x) => x.url === u);
+      return !j || j.status !== 'Saved' || j.archived;
+    });
+    if (allMoved) dismissNotice();
+  });
+}
 
 /** Say where newly saved jobs went: "Saved to Pipeline · To apply", Open, Undo: one line, with no
  *  job name under it (rev-3 #s-save-notice; Open is one tap away). `urls` are the
@@ -49,6 +82,7 @@ export function notifySaved(urls: string[], _label?: string, restored: string[] 
   showNotice({
     title: one ? 'Saved to Pipeline · To apply' : `Saved ${urls.length} to Pipeline · To apply`,
     tone: 'success',
+    jobUrls: urls,
     actions: [
       {
         label: 'Open',

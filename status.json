@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-21T22:00:00Z",
+  "updatedAt": "2026-10-21T23:30:00Z",
   "phase": "live",
   "headline": "Live as Roleforge. Rapid apply (#218) and wide sweep (#220, blob v7) are on main. Companies follows the track in review on claude/teams-first (dream companies, blob v9).",
   "next": [
-    "Rev-3 mobile redesign on claude/redesign-mobile: slices 1-4 done (slice 4: reviewer must-fixes, Discover header/tools/stacked sections, tile and posting anatomy, ATS one-query search, Refine inline evidence, Follow up and Use template blanks as chips, onboarding, Troubleshooting menu). Next: Companies list panel and Check a list type-ahead (rev-3 L), Documents rows (M).",
+    "Rev-3 mobile redesign: L (Check a list type-ahead: your companies + YC + Wikidata, chip input, Keep as a target) and M (Documents rows) built on claude/rf-gaps-lm off claude/rf-polish. Next: Adrian's review; Wikidata + YC hiring.json are unverified live (check on a preview); legal wording adds Wikidata (needs approval).",
     "Review draft PR claude/teams-first: Companies is Discover's default tool (open roles first, Hiring now, inline Save + Undo, dream companies in blob v9; #220 took v7, #214 takes v8).",
     "Merge #181 (polish) and #187 (discovery follow-ups) after review.",
     "Persist all user-edited data across devices: outreach targets, saved searches, evidence, work mode (Adrian, 2026-10-15).",

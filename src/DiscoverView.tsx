@@ -668,15 +668,18 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               </Button>
             </Box>
             {/* Live postings goes straight from Back to the search row (rev-3 mock): its name
-                stays in the outline for assistive tech only. */}
+                stays in the outline for assistive tech only. Check a list of companies names
+                itself in its panel's header (rev-3 L). */}
             {secondary === 'live' ? (
               <VisuallyHidden>
                 <h3>{SECONDARY_VIEWS[secondary]}</h3>
               </VisuallyHidden>
             ) : (
-              <Text variant="body" as="h3" className="rjb-semibold">
-                {SECONDARY_VIEWS[secondary]}
-              </Text>
+              secondary !== 'boards' && (
+                <Text variant="body" as="h3" className="rjb-semibold">
+                  {SECONDARY_VIEWS[secondary]}
+                </Text>
+              )
             )}
           </Stack>
         )}

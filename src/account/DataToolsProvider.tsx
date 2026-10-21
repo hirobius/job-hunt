@@ -4,6 +4,7 @@
 // the restore confirm dialog, and reports failures as toasts.
 import { useRef, useState, type ReactNode } from 'react';
 import { Button, Dialog, Stack, Text, useToast } from '@hirobius/design-system';
+import { returnFocus } from './returnFocus';
 import {
   applyBackup,
   buildBackup,
@@ -136,7 +137,7 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
         onChange={onFile}
       />
       <Dialog open={pending !== null} onOpenChange={(o) => !o && setPending(null)}>
-        <Dialog.Content style={{ width: '100%', maxWidth: 520 }}>
+        <Dialog.Content style={{ width: '100%', maxWidth: 520 }} onCloseAutoFocus={returnFocus}>
           <Dialog.Header>
             <Dialog.Title>Restore from backup</Dialog.Title>
             <Dialog.Description>

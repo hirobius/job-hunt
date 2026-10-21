@@ -3,7 +3,7 @@
 // theme, feedback and the Privacy and terms pages (#43) — one home for everything about "my account and my data".
 // Troubleshooting (rev-3 O) holds the error page's two actions: Reload app, and Reset local data
 // behind a confirm that says exactly what goes. Reset is never a loose button on a page.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Download } from 'lucide-react';
 import { AlertDialog, Avatar, Button, Icon, Menu, Stack } from '@hirobius/design-system';
 import { useJobs } from '../store';
@@ -15,6 +15,7 @@ import { useUnsynced } from './useUnsynced';
 import { navigate } from '../route';
 import { LEGAL_ROUTE } from '../legal';
 import './sheet.css';
+import { setReturnFocus } from './returnFocus';
 
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
@@ -25,6 +26,12 @@ export default function AccountMenu() {
   const unsynced = useUnsynced();
   const { mode, toggle } = useColorMode();
   const [resetting, setResetting] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  /** Run an item that opens a dialog; the dialog gives focus back to this trigger on close. */
+  const opensDialog = (open: () => void) => () => {
+    setReturnFocus(triggerRef.current);
+    open();
+  };
   // The trigger is the HDS Avatar (rev-3 P): your initial when signed in, a neutral person icon
   // when not, and a warning Badge dot while jobs are saved on this device only.
   const initial = sync.user?.email?.trim()[0]?.toUpperCase();
@@ -38,7 +45,10 @@ export default function AccountMenu() {
       <Menu modal={false}>
         <Menu.Trigger asChild>
           <Button
-            ref={setAccountTrigger}
+            ref={(el: HTMLButtonElement | null) => {
+              triggerRef.current = el;
+              setAccountTrigger?.(el);
+            }}
             variant="tertiary"
             iconOnly
             iconLeft={
@@ -66,7 +76,9 @@ export default function AccountMenu() {
           ) : (
             <>
               <Menu.Label data-account-line>Saved on this device only</Menu.Label>
-              <Menu.Item onSelect={() => sync.setSignInOpen(true)}>Sign in to sync…</Menu.Item>
+              <Menu.Item onSelect={opensDialog(() => sync.setSignInOpen(true))}>
+                Sign in to sync…
+              </Menu.Item>
             </>
           )}
           <Menu.Separator />
@@ -75,7 +87,7 @@ export default function AccountMenu() {
             Documents
           </Menu.Item>
           <Menu.Item onSelect={data.backup}>Back up</Menu.Item>
-          <Menu.Item onSelect={data.chooseRestore}>Restore…</Menu.Item>
+          <Menu.Item onSelect={opensDialog(data.chooseRestore)}>Restore…</Menu.Item>
           <Menu.Item onSelect={data.exportCsv} disabled={!data.canExport}>
             Export CSV
           </Menu.Item>
@@ -90,7 +102,7 @@ export default function AccountMenu() {
           <Menu.Separator />
           <Menu.Label>Troubleshooting</Menu.Label>
           <Menu.Item onSelect={() => window.location.reload()}>Reload app</Menu.Item>
-          <Menu.Item onSelect={() => setResetting(true)} tone="danger">
+          <Menu.Item onSelect={opensDialog(() => setResetting(true))} tone="danger">
             Reset local data…
           </Menu.Item>
           {sync.user && (

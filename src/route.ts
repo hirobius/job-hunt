@@ -79,6 +79,9 @@ function subscribe(cb: () => void): () => void {
   };
 }
 
+/** Listen for route changes outside React (the save notice drops itself on navigation). */
+export const subscribeRoute = subscribe;
+
 /** Merge a partial route into the current one and write it to the URL hash.
  *  `replace` swaps the history entry (no new back-stack step) instead of pushing. */
 export function navigate(patch: Partial<Route>, replace = false): void {
