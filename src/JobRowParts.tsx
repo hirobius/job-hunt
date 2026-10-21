@@ -13,32 +13,38 @@ import {
 } from '@hirobius/design-system';
 import { hostOf, setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
+import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
 import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
 import { primaryAction, rowView, STATUS_TONE, titleOf } from './jobRow';
 import { normStatus } from './jobState';
+import { researchLinks } from './jobFacts';
 import { STATUSES, type Job, type Status } from './types';
 
 /** Controls on a phone card are 40px tap targets; the denser table uses the small size. */
 type Size = 'sm' | 'md';
 
-/** The job's Status. A retired job keeps its status, greyed (Retired is not a Status). */
-export function StatusBadge({ job }: { job: Job }) {
+/** The job's Status. Neutral everywhere (rev-3 B): the badge row reserves colour for what needs
+ *  attention (a due follow-up). The table and the rail keep the toned badge (`toned`). */
+export function StatusBadge({ job, toned = true }: { job: Job; toned?: boolean }) {
   const status = normStatus(job.status);
-  return <Badge tone={job.archived ? 'neutral' : STATUS_TONE[status]}>{status}</Badge>;
+  return <Badge tone={job.archived || !toned ? 'neutral' : STATUS_TONE[status]}>{status}</Badge>;
 }
 
-/** One badge row above a job's title (rev-3 B): fit first, then status, Retired, a due
- *  follow-up, and the star on a card. Pipeline cards and the job page share it. */
+/** One badge row above a job's title (rev-3 B order): status, Retired, a due follow-up, Closed on
+ *  the board, then fit, and the star on a card. Status and fit are neutral; only what needs
+ *  attention is a warning. Pipeline cards, the job page and Apply mode share it. */
 export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
   const row = rowView(job);
+  const closed = checkFor(useLiveness(), job.url)?.state === 'closed';
   return (
     <Stack direction="row" wrap="wrap" gap="px8" align="center">
-      {row.verdict && <Badge tone={row.verdict.tone}>{row.verdict.label}</Badge>}
-      <StatusBadge job={job} />
+      <StatusBadge job={job} toned={false} />
       {row.retired && <Badge>Retired</Badge>}
       {row.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
+      {closed && <Badge tone="warning">Closed on the board</Badge>}
+      {row.verdict && <Badge tone="neutral">{row.verdict.label}</Badge>}
       {star && row.pinned && (
         <>
           <StarIcon on />
@@ -115,11 +121,14 @@ export function RowMenu({
   job,
   size = 'sm',
   onRemoved,
+  research = false,
 }: {
   job: Job;
   size?: Size;
   /** Runs after Remove (the job page goes back to the Pipeline). */
   onRemoved?: () => void;
+  /** The job page's menu also holds the research links (rev-3 review: off the Details panel). */
+  research?: boolean;
 }) {
   const title = titleOf(job);
   const toggleStar = useToggleStar();
@@ -168,6 +177,19 @@ export function RowMenu({
         >
           Find more like this
         </Menu.Item>
+        {research && (
+          <>
+            <Menu.Separator />
+            <Menu.Label>Research</Menu.Label>
+            {researchLinks(job.label).map(([name, href]) => (
+              <Menu.Item key={name} asChild>
+                <a href={href} target="_blank" rel="noopener noreferrer">
+                  {name}
+                </a>
+              </Menu.Item>
+            ))}
+          </>
+        )}
         <Menu.Separator />
         {/* Remove goes to Recently removed, with Undo, so it needs no confirm. */}
         <Menu.Item

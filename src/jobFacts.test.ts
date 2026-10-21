@@ -11,14 +11,14 @@ describe('jobFacts', () => {
       jobFacts({ ...base, salary: '$80k', company: 'Acme', location: 'Spokane' }, NOW).map(
         (f) => f.term,
       ),
-    ).toEqual(['Company', 'Location', 'Pay', 'Source']);
+    ).toEqual(['Company', 'Location', 'Pay', 'Link']);
   });
-  it('names the source host', () => {
-    expect(jobFacts(base, NOW)).toEqual([{ term: 'Source', description: 'acme.example' }]);
+  it('names the posting by its domain', () => {
+    expect(jobFacts(base, NOW)).toEqual([{ term: 'Link', description: 'acme.example' }]);
   });
   it('says when it was applied and that a follow-up is due', () => {
     const f = jobFacts({ ...base, status: 'Applied', applied: '2026-10-10' }, NOW);
-    expect(f).toContainEqual({ term: 'Applied', description: '10d ago' });
+    expect(f).toContainEqual({ term: 'Applied', description: 'Oct 10' });
     expect(f).toContainEqual({ term: 'Follow-up', description: 'Due now' });
   });
   it('drops the follow-up clock on a retired job', () => {

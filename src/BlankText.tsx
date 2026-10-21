@@ -16,6 +16,7 @@ import {
   Text,
 } from '@hirobius/design-system';
 import { splitVariables } from './templateEditor';
+import { previewText } from './templateFill';
 import { fillBlank, savesOnJob } from './fillBlank';
 import type { Job } from './types';
 
@@ -75,11 +76,15 @@ export default function BlankText({
   text,
   job,
   documentId,
+  preview = false,
 }: {
   text: string;
   job?: Job;
   /** The message the text was filled from: a blank that isn't a job field saves on it. */
   documentId?: string;
+  /** A row's preview (rev-3 review): the start of the text, three lines at most. Its blanks
+   *  still fill in place, and "N blanks left" counts the whole text. */
+  preview?: boolean;
 }) {
   const [picked, setPicked] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -96,8 +101,12 @@ export default function BlankText({
   };
   return (
     <Stack gap="tight">
-      <Text variant="ui" as="p" className="rjb-prewrap">
-        <WithChips text={text} onPick={fillable ? pick : undefined} picked={picked} />
+      <Text variant="ui" as="p" className={preview ? 'rjb-clamp-3' : 'rjb-prewrap'}>
+        <WithChips
+          text={preview ? previewText(text) : text}
+          onPick={fillable ? pick : undefined}
+          picked={picked}
+        />
       </Text>
       {fillable && picked && (
         <Card bordered padding="px16" role="group" aria-label={`Fill ${picked}`}>

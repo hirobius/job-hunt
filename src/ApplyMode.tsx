@@ -14,7 +14,6 @@ import {
   EmptyState,
   Icon,
   Input as HdsInput,
-  MetaLine,
   Pagination,
   Select,
   Stack,
@@ -25,8 +24,10 @@ import {
 import { PageHeader } from '@hirobius/design-system/patterns';
 import { BackToPipeline } from './JobHeader';
 import { JobBadges } from './JobRowParts';
+import { MetaCaption } from './MetaCaption';
+import { savedAgo } from './jobState';
 import { Panel, PanelBody } from './PipelinePanel';
-import BlankText, { WithChips } from './BlankText';
+import BlankText from './BlankText';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
 import { openApply, openJob } from './route';
 import { titleOf } from './jobRow';
@@ -109,7 +110,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   };
 
   const company = job.company?.trim();
-  const meta = [company, job.location?.trim()].filter((x): x is string => !!x);
+  const saved = savedAgo(job);
   const dueOn = followUpDate(job, new Date());
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
@@ -134,8 +135,8 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
           metadata={<JobBadges job={job} />}
           title={titleOf(job)}
           description={
-            meta.length ? (
-              <MetaLine items={meta.length > 1 ? [meta[0], meta[1]] : [meta[0]]} />
+            job.company || job.location || saved ? (
+              <MetaCaption items={[company, job.location?.trim(), saved]} />
             ) : undefined
           }
         />
@@ -357,19 +358,28 @@ function ApplyTemplates({ job }: { job: Job }) {
       </PanelBody>
       {rows.length > 0 && (
         <Rows label="Your templates">
+          {/* A row is its name, the start of the text (blanks fill in place) and Copy: Copy is
+              the row's one action, so there is no chevron (rev-3 review). The whole text is in
+              Documents. */}
           {rows.map((r) => (
-            <DisclosureItem
-              key={r.id}
-              label={r.label}
-              preview={<WithChips text={previewOf(r.text)} />}
-              actions={<CopyButton label={r.label} value={r.text} />}
-            >
-              <BlankText
-                text={r.text}
-                job={job}
-                documentId={snippets.find((s) => s.id === r.id)?.documentId}
-              />
-            </DisclosureItem>
+            <Box as="li" key={r.id} aria-label={r.label} sx={{ py: 'xs' }}>
+              <Stack direction="row" gap="tight" align="center" justify="space-between">
+                <Box sx={{ minWidth: 0, flex: '1 1 0%' }}>
+                  <Stack gap="px4">
+                    <Text variant="ui" as="p" className="rjb-semibold">
+                      {r.label}
+                    </Text>
+                    <BlankText
+                      preview
+                      text={r.text}
+                      job={job}
+                      documentId={snippets.find((s) => s.id === r.id)?.documentId}
+                    />
+                  </Stack>
+                </Box>
+                <CopyButton label={r.label} value={r.text} />
+              </Stack>
+            </Box>
           ))}
         </Rows>
       )}
@@ -417,7 +427,7 @@ function ApplicationKit({ job }: { job: Job }) {
         {/* Empty fields fold into one row, so the filled ones stay in reach (rev-3 mock). */}
         {missing.length > 0 && (
           <DisclosureItem
-            label={have.length ? `Fill in ${missing.length} more` : 'Fill in your kit'}
+            label={`Fill in ${missing.length} more`}
             preview={missing.map((f) => f.label).join(', ')}
           >
             <Box>{missing.map((f) => fieldRow(f, 'div'))}</Box>

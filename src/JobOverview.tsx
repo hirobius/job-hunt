@@ -4,7 +4,7 @@
 // A job saved from a bare link has nothing to read yet, so its card starts in edit. Remove lives
 // in the header's menu. The company links to its Company page (#230, `#/company/<slug>`).
 import { useRef, useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { ExternalLink, Pencil } from 'lucide-react';
 import {
   Box,
   Button,
@@ -20,7 +20,7 @@ import {
 import { jobIdOf, setJobUrl, updateJob } from './store';
 import { companyHash, openJob } from './route';
 import { companySlug, relinkCompanyNotes } from './companies';
-import { jobFacts, researchLinks } from './jobFacts';
+import { jobFacts } from './jobFacts';
 import { useSavedFlash } from './useSavedFlash';
 import UseTemplate from './UseTemplate';
 import { Panel, PanelBody } from './PipelinePanel';
@@ -153,11 +153,26 @@ function companyLink(name: string) {
   );
 }
 
-/** The Details panel: the facts as a two-column list, Edit in its header, research links last. */
+/** The posting link as the domain alone (rev-3 C): an external-link icon, then the domain cut
+ *  with an ellipsis when it is long. It opens the posting in a new tab. */
+function postingLink(job: Job, domain: string) {
+  return (
+    <Stack direction="row" gap="px4" align="center">
+      <Icon icon={ExternalLink} size="small" />
+      <Box className="rjb-truncate" sx={{ minWidth: 0 }}>
+        <InlineLink href={job.url} externalIcon={false}>
+          {domain}
+        </InlineLink>
+      </Box>
+    </Stack>
+  );
+}
+
+/** The Details panel: the facts as a two-column list, Edit in its header. Research links sit in
+ *  the header's menu (rev-3 review). */
 function DetailsPanel({ job }: { job: Job }) {
   const [editing, setEditing] = useState(!(job.label && job.company));
-  // Notes have their own panel below, so the facts skip them.
-  const facts = jobFacts(job).filter((f) => f.term !== 'Notes');
+  const facts = jobFacts(job);
   return (
     <Panel
       label="Details"
@@ -180,25 +195,18 @@ function DetailsPanel({ job }: { job: Job }) {
         {editing ? (
           <DetailsEditor job={job} onDone={() => setEditing(false)} />
         ) : (
-          <Stack gap="normal">
-            <MetadataList
-              orientation="horizontal"
-              items={facts.map((f) => ({
-                term: f.term,
-                description: f.term === 'Company' ? companyLink(f.description) : f.description,
-              }))}
-            />
-            <Stack direction="row" wrap="wrap" gap="tight" align="center">
-              <Text variant="caption" as="span" tone="secondary">
-                Research
-              </Text>
-              {researchLinks(job.label).map(([name, href]) => (
-                <InlineLink key={name} href={href}>
-                  {name}
-                </InlineLink>
-              ))}
-            </Stack>
-          </Stack>
+          <MetadataList
+            orientation="horizontal"
+            items={facts.map((f) => ({
+              term: f.term,
+              description:
+                f.term === 'Company'
+                  ? companyLink(f.description)
+                  : f.term === 'Link'
+                    ? postingLink(job, f.description)
+                    : f.description,
+            }))}
+          />
         )}
       </PanelBody>
     </Panel>
@@ -217,28 +225,24 @@ function DocumentsPanel({ job }: { job: Job }) {
       count={docs.length}
       countLabel={`${docs.length} documents`}
       trailing={<UseTemplate job={job} />}
+      description={sent ? `Sent: ${sent}` : undefined}
     >
       <PanelBody>
-        <Stack gap="tight">
-          {sent && (
-            <Text variant="caption" as="p" tone="secondary">
-              {`Sent: ${sent}`}
-            </Text>
-          )}
-          <Disclosure
-            variant="row"
-            label="All documents"
-            preview={docs.length ? 'Versions, Sent copies and final files' : 'None yet'}
-          >
-            <JobDocuments
-              job={job}
-              versionActions={(doc, version) => (
-                <DocumentDownload doc={doc} version={version} job={job} />
-              )}
-              uploadSlot={<JobFinalCopies jobUrl={job.url} />}
-            />
-          </Disclosure>
-        </Stack>
+        {/* Every document behind one row. With none yet there is no "None yet" filler: a quiet
+            line opens New document, Use a Base document and Upload a final copy (rev-3 review). */}
+        <Disclosure
+          variant={docs.length ? 'row' : 'nav'}
+          label={docs.length ? 'All documents' : 'Add a document'}
+          preview={docs.length ? 'Versions, Sent copies and final files' : undefined}
+        >
+          <JobDocuments
+            job={job}
+            versionActions={(doc, version) => (
+              <DocumentDownload doc={doc} version={version} job={job} />
+            )}
+            uploadSlot={<JobFinalCopies jobUrl={job.url} />}
+          />
+        </Disclosure>
       </PanelBody>
     </Panel>
   );

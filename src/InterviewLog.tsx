@@ -29,7 +29,29 @@ const slug = (s: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 40) || 'job';
 
-/** Interview / call log for one job, with an "Add to calendar" (.ics) export. */
+/** The .ics export of the job's upcoming events; the Interviews panel's header holds it. */
+export function AddToCalendar({ job }: { job: Job }) {
+  const upcoming = jobIcsEvents(job, new Date());
+  const exportIcs = () => {
+    const now = new Date();
+    const ics = buildIcs(jobIcsEvents(job, now), { now, uidDomain: 'apply-board' });
+    download(`${slug(job.label)}.ics`, ics, 'text/calendar');
+  };
+  return (
+    <Button
+      size="md"
+      variant="secondary"
+      iconLeft={<Icon icon={CalendarPlus} />}
+      disabled={upcoming.length === 0}
+      onClick={exportIcs}
+    >
+      Add to calendar
+    </Button>
+  );
+}
+
+/** Interview / call log for one job: the booked ones, then the form that adds one (rev-3: each
+ *  field on its own row on a phone, the kind full width, Add interview last). */
 export default function InterviewLog({ job }: { job: Job }) {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -47,13 +69,6 @@ export default function InterviewLog({ job }: { job: Job }) {
     setNote('');
   };
 
-  const upcoming = jobIcsEvents(job, new Date());
-  const exportIcs = () => {
-    const now = new Date();
-    const ics = buildIcs(jobIcsEvents(job, now), { now, uidDomain: 'apply-board' });
-    download(`${slug(job.label)}.ics`, ics, 'text/calendar');
-  };
-
   const caption = (text: string) => (
     <Text variant="caption" as="span" tone="secondary">
       {text}
@@ -62,20 +77,6 @@ export default function InterviewLog({ job }: { job: Job }) {
 
   return (
     <Stack gap="normal">
-      <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
-        <Text variant="ui" as="h4" className="rjb-semibold">
-          Interviews & calls
-        </Text>
-        <Button
-          size="sm"
-          variant="tertiary"
-          iconLeft={<CalendarPlus size={16} />}
-          disabled={upcoming.length === 0}
-          onClick={exportIcs}
-        >
-          Add to calendar
-        </Button>
-      </Stack>
       {events.length > 0 && (
         <Box
           as="ul"
@@ -113,7 +114,7 @@ export default function InterviewLog({ job }: { job: Job }) {
         </Box>
       )}
 
-      <Grid layout="auto-fit" minItemWidth="150px" gap="medium" align="end">
+      <Grid layout="auto-fit" minItemWidth="200px" gap="medium" align="end">
         <Stack gap="tight">
           {caption('Date')}
           <Input
@@ -132,8 +133,10 @@ export default function InterviewLog({ job }: { job: Job }) {
             onChange={(e) => setTime(e.target.value)}
           />
         </Stack>
-        <Stack gap="tight">
-          {caption('Kind')}
+      </Grid>
+      <Stack gap="tight">
+        {caption('Kind')}
+        <Box sx={{ '& > *': { width: '100%' }, '& button': { flex: '1 1 0%' } }}>
           <SegmentedControl
             aria-label="Event kind"
             size="sm"
@@ -141,21 +144,17 @@ export default function InterviewLog({ job }: { job: Job }) {
             value={kind}
             onChange={(v) => setKind(v as JobEventKind)}
           />
-        </Stack>
-      </Grid>
-      <Stack direction="row" wrap="wrap" gap="tight" align="center">
-        <Box sx={{ flex: 1, minWidth: 160 }}>
-          <Input
-            aria-label="Event note"
-            placeholder="Note (optional)"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
         </Box>
-        <Button size="sm" variant="secondary" disabled={!date} onClick={add}>
-          Add event
-        </Button>
       </Stack>
+      <Stack gap="tight">
+        {caption('Note (optional)')}
+        <Input aria-label="Event note" value={note} onChange={(e) => setNote(e.target.value)} />
+      </Stack>
+      <Box>
+        <Button size="md" variant="secondary" disabled={!date} onClick={add}>
+          Add interview
+        </Button>
+      </Box>
     </Stack>
   );
 }

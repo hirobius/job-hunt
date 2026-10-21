@@ -130,3 +130,47 @@ p {
     margin-block: calc((1lh - var(--primitive-space-10)) / 2);
   }
 }
+
+/* A job's title on a card or agenda row (rev-3 review): bold, primary colour, two lines at most.
+ * Its link is quiet (no underline until hover), so the title reads as a title, not a link. The
+ * size stays on the compact ramp (body); the mock's 16px is not an HDS compact size. */
+.rjb-card-title {
+  font-weight: var(--primitive-typography-weight-bold);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.rjb-card-title a {
+  color: var(--semantic-color-content-primary);
+  text-decoration: none;
+}
+
+.rjb-card-title a:hover {
+  text-decoration: underline;
+}
+
+/* Panel headings (rev-3): bold on the body size. */
+.rjb-bold {
+  font-weight: var(--primitive-typography-weight-bold);
+}
+
+/* One line, cut with an ellipsis (a long domain in a facts list). */
+.rjb-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A text preview, three lines at most (Apply mode's template rows). */
+.rjb-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}

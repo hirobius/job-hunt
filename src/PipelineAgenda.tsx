@@ -63,7 +63,7 @@ function AgendaRow({
       <Box sx={{ minWidth: 0 }}>
         <Stack gap="px4" align="start">
           {badge}
-          <Text variant="ui" as="span">
+          <Text variant="body" as="span" className="rjb-card-title">
             {title}
           </Text>
           {notes.map((n, i) => (

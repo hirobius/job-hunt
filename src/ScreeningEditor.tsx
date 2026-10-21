@@ -22,7 +22,7 @@ function Chips({ children }: { children: React.ReactNode }) {
   return <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>{children}</Box>;
 }
 
-export function ScreeningEditor({ job }: { job: Job }) {
+export function ScreeningEditor({ job, fitLabel = true }: { job: Job; fitLabel?: boolean }) {
   const [custom, setCustom] = useState('');
   const blockers = job.blockers ?? [];
   const defaultIds = new Set(DEFAULT_BLOCKERS.map((b) => b.id));
@@ -40,8 +40,9 @@ export function ScreeningEditor({ job }: { job: Job }) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box>
-        <FieldLabel>Fit</FieldLabel>
+      {/* Under a panel already headed "Fit", the row needs no second label (rev-3 review). */}
+      <Box role="group" aria-label="Fit">
+        {fitLabel && <FieldLabel>Fit</FieldLabel>}
         <Chips>
           {VERDICTS.map((v) => (
             <Tag
@@ -106,9 +107,11 @@ export function ScreeningEditor({ job }: { job: Job }) {
       </Box>
 
       <Box sx={{ '& > *': { width: '100%' } }}>
+        <FieldLabel>Angle for this role</FieldLabel>
         <HdsInput
           size="sm"
-          label="Angle (positioning for this role)"
+          aria-label="Angle for this role"
+          placeholder="What you lead with for this job"
           value={job.angle ?? ''}
           onChange={(e) => updateJob(job.url, { angle: e.target.value })}
         />

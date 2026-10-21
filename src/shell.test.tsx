@@ -83,7 +83,7 @@ describe('app shell (#115 Phase 1)', () => {
     expect(wordmark.className).toMatch(/hds-type-(body|ui)/);
   });
 
-  it('signed out, the account menu reads: device-only line, sign in | data | display', async () => {
+  it('signed out, the account menu reads: device-only line, sign in | data | display | troubleshooting', async () => {
     renderApp();
     const menu = await openAccount();
     expect(menuOutline(menu)).toEqual([
@@ -98,7 +98,22 @@ describe('app shell (#115 Phase 1)', () => {
       expect.stringMatching(/^item:(Dark|Light) theme$/),
       'item:Send feedback',
       'item:Privacy and terms',
+      '---',
+      'item:Reload app',
+      'item:Reset local data…',
     ]);
+  });
+
+  it('Reset local data asks first and says what goes; Cancel keeps everything (rev-3 O)', async () => {
+    addJob('https://acme.example/jobs/9', 'Welder');
+    renderApp();
+    const menu = await openAccount();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Reset local data…' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Reset local data?' });
+    expect(dialog).toHaveTextContent(/This deletes everything in this browser: 1 job/);
+    expect(within(dialog).getByRole('button', { name: 'Back up first' })).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(getAllJobs().map((j) => j.label)).toContain('Welder');
   });
 
   it('the trigger is the HDS Avatar (rev-3 P): a person icon signed out, no dot with nothing to sync', async () => {
@@ -207,6 +222,9 @@ describe('not-synced cue (rev-3 P)', () => {
       expect.stringMatching(/^item:(Dark|Light) theme$/),
       'item:Send feedback',
       'item:Privacy and terms',
+      '---',
+      'item:Reload app',
+      'item:Reset local data…',
       '---',
       'item:Sign out',
       'item:Delete my data',

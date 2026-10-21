@@ -64,7 +64,7 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
   await expect(page).toHaveURL(/#\/apply\//);
 
   // The kit: enter a name once (empty fields wait behind one row), copy it.
-  await page.getByRole('button', { name: /^Fill in your kit/ }).click();
+  await page.getByRole('button', { name: /^Fill in \d+ more/ }).click();
   await page.getByRole('button', { name: 'Add Name' }).click();
   await page.getByRole('textbox', { name: 'Name' }).fill('Sam Placeholder');
   await page.getByRole('button', { name: 'Done' }).click();

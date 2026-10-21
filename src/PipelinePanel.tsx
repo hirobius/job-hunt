@@ -11,6 +11,7 @@ export function Panel({
   countLabel,
   badge,
   trailing,
+  description,
   children,
 }: {
   /** The region's accessible name. */
@@ -23,18 +24,27 @@ export function Panel({
   /** A text badge in place of a count ("1 of 3"). */
   badge?: string;
   trailing?: ReactNode;
+  /** A caption under the title ("Sent: Cover letter, Oct 9"). */
+  description?: string;
   children?: ReactNode;
 }) {
   return (
     <Card as="section" aria-label={label} padding="none" bordered>
       <Box sx={{ px: 'md', pt: 'md', pb: children ? 'xs' : 'md' }}>
         <Stack direction="row" gap="px8" align="center" justify="space-between">
-          <Stack direction="row" gap="px8" align="center">
-            <Text variant="body" as="h3" className="rjb-semibold">
-              {title}
-            </Text>
-            {count != null && <Badge count={count} label={countLabel} />}
-            {badge && <Badge>{badge}</Badge>}
+          <Stack gap="px4">
+            <Stack direction="row" gap="px8" align="center">
+              <Text variant="body" as="h3" className="rjb-bold">
+                {title}
+              </Text>
+              {count != null && <Badge count={count} label={countLabel} />}
+              {badge && <Badge>{badge}</Badge>}
+            </Stack>
+            {description && (
+              <Text variant="caption" as="p" tone="secondary">
+                {description}
+              </Text>
+            )}
           </Stack>
           {trailing}
         </Stack>

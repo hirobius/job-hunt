@@ -136,7 +136,12 @@ export default function TrackerView() {
                           label={`Status: ${FILTER_LABEL[filter]}`}
                           style={SELECT_LIKE}
                         >
-                          {FILTER_LABEL[filter]}
+                          <span>
+                            <Text variant="ui" as="span" tone="secondary">
+                              Status
+                            </Text>{' '}
+                            {FILTER_LABEL[filter]}
+                          </span>
                         </UiButton>
                       </HdsMenu.Trigger>
                       <HdsMenu.Content align="start">
@@ -177,7 +182,12 @@ export default function TrackerView() {
                           label={`Sort: ${sortLabel}`}
                           style={SELECT_LIKE}
                         >
-                          {sortLabel}
+                          <span>
+                            <Text variant="ui" as="span" tone="secondary">
+                              Sort
+                            </Text>{' '}
+                            {sortLabel}
+                          </span>
                         </UiButton>
                       </HdsMenu.Trigger>
                       <HdsMenu.Content align="end">

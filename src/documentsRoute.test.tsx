@@ -211,8 +211,11 @@ describe('editing a message changes what the fill paths use', () => {
     window.location.hash = `#/apply/${jobIdOf(JOB)}`;
     await renderApp();
     const list = await screen.findByRole('list', { name: 'Your templates' });
-    await userEvent.click(within(list).getByRole('button', { name: /^Follow-up after applying/ }));
-    expect(within(list).getByText(/P\.S\. Acme Metals rocks\./)).toBeInTheDocument();
+    // The row previews the edited text; Copy copies all of it.
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText');
+    await user.click(within(list).getByRole('button', { name: 'Copy Follow-up after applying' }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('P.S. Acme Metals rocks.'));
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
       'href',
       '#/copy-deck',

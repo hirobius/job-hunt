@@ -110,7 +110,8 @@ describe('job page header and Overview (#130 slice 1)', () => {
     expect(within(facts).getByText('Company').nextElementSibling).toHaveTextContent('Acme');
     expect(within(facts).getByText('Location').nextElementSibling).toHaveTextContent('Spokane, WA');
     expect(within(facts).getByText('Pay').nextElementSibling).toHaveTextContent('$80k');
-    expect(within(facts).getByText('Source').nextElementSibling).toHaveTextContent('acme.example');
+    const link = within(facts).getByRole('link', { name: /acme\.example/ });
+    expect(link).toHaveAttribute('href', URL_A);
     expect(within(facts).queryByText('Seniority')).toBeNull();
   });
 
@@ -158,12 +159,14 @@ describe('job page header and Overview (#130 slice 1)', () => {
     );
   });
 
-  it('keeps templates and research links on Overview', () => {
+  it('keeps templates on Overview and research links in the header menu', async () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { company: 'Acme' });
     openJobPage();
     expect(screen.getByRole('button', { name: 'Use template' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /^Glassdoor/ })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Glassdoor/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
+    expect(await screen.findByRole('menuitem', { name: /^Glassdoor/ })).toBeInTheDocument();
   });
 });
 
@@ -235,7 +238,7 @@ describe('job page tabs (#130 slice 2)', () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
     await userEvent.click(tab('Interviews'));
-    expect(screen.getByText(/No interviews or calls yet/)).toBeInTheDocument();
+    expect(screen.getByText(/No interviews yet/)).toBeInTheDocument();
     expect(screen.getByLabelText('Event date')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add to calendar' })).toBeInTheDocument();
   });
@@ -264,7 +267,6 @@ describe('job page tabs (#130 slice 2)', () => {
     addJob(URL_A, 'Design Engineer', 'Found in Live postings · Remotive');
     updateJob(URL_A, { company: 'Acme', notes: 'Ask about the shop floor' });
     openJobPage();
-    expect(screen.getByText('Found in Live postings · Remotive')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Notes' })).toHaveValue('Ask about the shop floor');
     expect(screen.getByText(/From when you saved it: Found in Live postings/)).toBeInTheDocument();
   });

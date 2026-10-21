@@ -52,10 +52,12 @@ const openJobPage = (url = URL_A) => {
 };
 
 const docsPanel = () => screen.getByRole('region', { name: 'Documents' });
-/** Every document sits behind the panel's one "All documents" row: open it. */
+/** Every document sits behind the panel's one row ("Add a document" while there are none). */
 const openDocuments = async () => {
   const panel = docsPanel();
-  await userEvent.click(within(panel).getByRole('button', { name: /^All documents/ }));
+  await userEvent.click(
+    within(panel).getByRole('button', { name: /^(All documents|Add a document)/ }),
+  );
   return panel;
 };
 const docsOf = () => getAllDocuments().filter((d) => d.jobUrl === URL_A);

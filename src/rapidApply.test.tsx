@@ -84,8 +84,8 @@ describe('To apply queue and Apply mode', () => {
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    // Empty fields wait behind one "Fill in your kit" row.
-    await user.click(await screen.findByRole('button', { name: /^Fill in your kit/ }));
+    // Empty fields wait behind one "Fill in N more" row.
+    await user.click(await screen.findByRole('button', { name: /^Fill in \d+ more/ }));
     await user.click(screen.getByRole('button', { name: 'Add Name' }));
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Sam Placeholder');
     await user.click(screen.getByRole('button', { name: 'Done' }));
@@ -160,7 +160,7 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     ).not.toBeNull();
   });
 
-  it('a long template shows a short preview and opens to all of it; Copy copies all of it', async () => {
+  it('a long template shows a short preview, Copy is its one action and copies all of it', async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
     const long = 'Dear [Company] team, ' + 'I build things that last. '.repeat(20) + 'The end.';
@@ -172,13 +172,14 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     expect(within(list).getByText(/^Dear Acme team, I build things/)).toBeInTheDocument();
     await user.click(within(list).getByRole('button', { name: 'Copy Cover letter' }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('The end.'));
-    // The row opens to the whole text (HDS Disclosure variant="row") and closes again.
-    const row = within(list).getByRole('button', { name: /^Cover letter/ });
-    await user.click(row);
-    expect(row).toHaveAttribute('aria-expanded', 'true');
-    expect(within(list).getByText(/The end\./)).toBeInTheDocument();
-    await user.click(row);
-    await waitFor(() => expect(within(list).queryByText(/The end\./)).toBeNull());
+    // No chevron: the row has no disclosure, and its one blank (filled here) leaves none open.
+    const row = within(list).getByRole('listitem', { name: 'Cover letter' });
+    expect(within(row).queryByRole('button', { expanded: false })).toBeNull();
+    expect(
+      within(row)
+        .getAllByRole('button')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['Copied Cover letter']);
   });
 
   it('with no messages, points to Documents instead', async () => {
@@ -206,9 +207,9 @@ describe('Apply mode header keeps to two items per dotted line (#192)', () => {
     const header = screen.getByRole('heading', { name: 'Acme Designer' }).closest('header')!;
     expect(header).toHaveTextContent(/Acme\s*·?\s*Remote/);
     expect(texts).toContain('1 of 3');
-    // Fit first, then the status (rev-3 B).
+    // The status first, then fit (rev-3 B).
     const badges = texts.filter((t) => t === 'Strong fit' || t === 'Saved');
-    expect(badges).toEqual(['Strong fit', 'Saved']);
+    expect(badges).toEqual(['Saved', 'Strong fit']);
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
   });
 });

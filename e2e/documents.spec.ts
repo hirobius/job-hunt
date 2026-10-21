@@ -45,9 +45,8 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await page.getByRole('button', { name: 'Start applying' }).click();
   await expect(page).toHaveURL(/#\/apply\//);
   const list = page.getByRole('list', { name: 'Your templates' });
-  await list.getByRole('button', { name: /^Follow-up after applying/ }).click();
+  // The row previews the start of the edited text (no chevron: Copy is its one action).
   await expect(list.getByText(/I applied for the Fabricator role at Acme Metals/)).toBeVisible();
-  await expect(list.getByText(/See you soon\./)).toBeVisible();
   // A blank fills in place and saves on the job (rev-3 A).
   await list.getByRole('button', { name: 'Fill Contact' }).click();
   await list.getByRole('textbox', { name: 'Contact' }).fill('Dana');

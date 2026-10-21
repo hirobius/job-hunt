@@ -10,24 +10,22 @@ import { jobHash } from './route';
 import { rowView } from './jobRow';
 import { JobBadges, RowMenu, RowPrimaryAction } from './JobRowParts';
 import { PanelRow } from './PipelinePanel';
+import { shortDate } from './metaLines';
+import { savedAgo } from './jobState';
 import type { Job } from './types';
-
-/** "Oct 11" from a stored date (YYYY-MM-DD or ISO). */
-function shortDate(s: string) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
-  const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
-  return isNaN(d.getTime())
-    ? ''
-    : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
 
 export default function JobListCard({ job }: { job: Job }) {
   const titleId = useId();
   const row = rowView(job);
   const applied = job.applied ? shortDate(job.applied) : '';
+  const saved = savedAgo(job);
   const facts = [
     job.location ? { icon: MapPin, label: job.location } : null,
-    applied ? { icon: Calendar, label: `Applied ${applied}` } : null,
+    applied
+      ? { icon: Calendar, label: `Applied ${applied}` }
+      : saved
+        ? { icon: Calendar, label: saved }
+        : null,
   ].filter((f) => f !== null);
 
   return (
@@ -38,7 +36,7 @@ export default function JobListCard({ job }: { job: Job }) {
         <Card.Header metadata={<JobBadges job={job} star />}>
           {/* Body size, not Card.Title's title size: the page title stays the biggest text. */}
           <Stack gap="px4">
-            <Text variant="body" as="h3" className="rjb-semibold" id={titleId}>
+            <Text variant="body" as="h3" className="rjb-card-title" id={titleId}>
               <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
                 {row.title}
               </InlineLink>

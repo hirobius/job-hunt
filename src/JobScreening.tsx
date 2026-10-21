@@ -24,7 +24,7 @@ export default function JobScreening({ job }: { job: Job }) {
                 </Text>
               )
             )}
-            <ScreeningEditor job={job} />
+            <ScreeningEditor job={job} fitLabel={false} />
           </Stack>
         </PanelBody>
       </Panel>
