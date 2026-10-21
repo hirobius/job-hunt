@@ -28,7 +28,7 @@ export async function seed(page: Page) {
   for (const name of ['Continue', 'Continue', 'Finish'])
     await page.getByRole('button', { name, exact: true }).click();
   await go(page, '#/discover/apply');
-  await expect(page.getByRole('tablist', { name: 'Your sections' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();
 }
 
 export async function go(page: Page, hash: string) {

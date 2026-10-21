@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Input as HdsInput, Tag, Text, Box } from '@hirobius/design-system';
+import { X } from 'lucide-react';
+import { Icon, Input as HdsInput, Tag, Text, Box } from '@hirobius/design-system';
 import { updateJob } from './store';
 import { DEFAULT_BLOCKERS, MODES, VERDICTS, blockerLabel } from './screening';
 import type { Job } from './types';
@@ -84,8 +85,14 @@ export function ScreeningEditor({ job, fitLabel = true }: { job: Job; fitLabel?:
             </Tag>
           ))}
           {customTags.map((b) => (
-            <Tag key={b} active onClick={() => toggleBlocker(b)}>
-              {blockerLabel(b)} ✕
+            <Tag
+              key={b}
+              active
+              aria-label={`Remove ${blockerLabel(b)}`}
+              onClick={() => toggleBlocker(b)}
+            >
+              {blockerLabel(b)}
+              <Icon icon={X} size="small" />
             </Tag>
           ))}
         </Chips>

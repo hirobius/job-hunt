@@ -31,10 +31,11 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
     `border` needs a style (`'1px solid'`). Prefer named primitives (Stack/Switcher/Grid) over
     `Box sx`, and parent gaps over child margins.
   - **Responsive `sx` takes a `base` key (HDS 0.26.2, hds#652):** `{ flexDirection: { base:
-    'column', sm: 'row' } }`; `xs` means min-width 375, so never use it as the base. For a row of
+'column', sm: 'row' } }`; `xs` means min-width 375, so never use it as the base. For a row of
     peer fields prefer `Switcher`. The old nested `'&'` override is gone (`hdsOnly.test.ts`).
   - **Secondary text** is `<Text variant="caption" tone="secondary">` (HDS 0.26, hds#655);
-    `hds-gaps/tone` `SECONDARY` is only for a plain span or p.
+    `hds-gaps/tone` is gone (slice 4): use `Text tone`, never an inline colour. Bold is
+    `Text weight="bold"` (HDS 0.28).
   - **Empty states** are HDS `EmptyState` directly (title, description, `icon`, `action`; the
     local composition was retired in redesign slice 2).
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
@@ -231,7 +232,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   furniture: unsynced is the Account Avatar's dot (its title says "Saved on this device only"), and `SampleBanner` is a one-line note under the page header. Section heads are
   `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
   host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 40px phone buttons,
-  reduced motion); shared secondary colour is `hds-gaps/tone` `SECONDARY`. Guards: inline `style={{`
+  reduced motion); secondary colour is `Text tone="secondary"`. Guards: inline `style={{`
   ceiling and no inline font size/weight in `hdsOnly.test.ts` (only lower the ceiling), lint is
   `--max-warnings=0`, composed contrast pairs in `theme.contrast.test.ts` (the dark pressed accent is a
   held HDS gap, hds#748; also tracked upstream: touch size hds#750), and `e2e/a11y.spec.ts` (axe on every route, light/dark, 1440/390; phone sweep for 40px
@@ -262,7 +263,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
   "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
   apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
-- **Title filter (#223):** the sweep's list *is* the track's title filter (seed: the track's titles, else
+- **Title filter (#223):** the sweep's list _is_ the track's title filter (seed: the track's titles, else
   its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
   titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**
   disclosure beside leave-out / pay / level. The Titles tool is gone: its big-board links sit on the ATS
@@ -396,7 +397,7 @@ far this cycle:
   RLS (the DB had been empty — cloud sync never had a backing table until now).
 - **#30 IA/curation chain COMPLETE (B1→B5), live on `main`.** Discover now reads the per-account
   **curation store** (`useCategories`/`useGroups`/`useTiles`), not hardcoded pillars — a `Category`
-  *is* a track. Shipped via per-area PRs: **#75 B1** (wire Discover→curationStore + first-run
+  _is_ a track. Shipped via per-area PRs: **#75 B1** (wire Discover→curationStore + first-run
   `Onboarding` picking starter packs, D1) · **#76 B2/B3** (strip hardcoded content, retire the Trades
   tab, tabs → Discover/Tracker/Templates, slugs kept for back-compat) · **#78 B4** (in-app curation
   controls — `ManageTrackDialog` creates/edits/deletes tracks + sections + links; D2 pin/set-aside

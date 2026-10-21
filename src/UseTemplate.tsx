@@ -5,16 +5,17 @@ import {
   Dialog,
   Icon,
   InlineLink,
+  Card,
   Stack,
-  Textarea,
+  Text,
   useToast,
 } from '@hirobius/design-system';
 import { documentHref, useOutreachTemplates } from './outreachTemplates';
-import { fillSnippet, unfilledTokens } from './templateFill';
+import { fillSnippet } from './templateFill';
+import BlankText from './BlankText';
 import { useApplyKit } from './applyKit';
 import { copyFilled } from './templateCopy';
 import type { Job } from './types';
-import { SECONDARY } from './hds-gaps/tone';
 
 // Fill an Outreach message (a Base document in the library, #227) from a job's
 // company/role/contact/angle and copy it.
@@ -31,7 +32,6 @@ export default function UseTemplate({ job }: { job: Job }) {
   // Every job card mounts one of these — only fill while the dialog is actually open.
   const kitName = useApplyKit().fields.name;
   const filled = open && picked ? fillSnippet(picked, job, kitName) : '';
-  const missing = open ? unfilledTokens(filled) : [];
 
   useEffect(() => {
     if (!copied) return;
@@ -68,7 +68,9 @@ export default function UseTemplate({ job }: { job: Job }) {
           </Dialog.Description>
         </Dialog.Header>
         {ordered.length === 0 ? (
-          <p style={SECONDARY}>No outreach messages yet. Write one in Documents first.</p>
+          <Text variant="caption" as="p" tone="secondary">
+            No outreach messages yet. Write one in Documents first.
+          </Text>
         ) : (
           <Stack gap="medium">
             <div role="group" aria-label="Templates">
@@ -89,13 +91,11 @@ export default function UseTemplate({ job }: { job: Job }) {
                 ))}
               </Stack>
             </div>
-            <Textarea readOnly rows={12} aria-label="Preview" value={filled} />
-            {missing.length > 0 && (
-              <p style={SECONDARY}>
-                Still unfilled: {missing.map((t) => `[${t}]`).join(', ')}. Add them on the job, or
-                edit after pasting.
-              </p>
-            )}
+            {/* The filled message with its blanks as chips that fill in place (rev-3 A), then
+                "N blanks left"; Copy still works. */}
+            <Card bordered padding="px16" role="region" aria-label="Preview">
+              <BlankText text={filled} job={job} documentId={picked?.documentId} />
+            </Card>
           </Stack>
         )}
         <Dialog.Footer>

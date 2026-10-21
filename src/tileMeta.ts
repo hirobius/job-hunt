@@ -62,3 +62,19 @@ export function parseMeta(meta: string): ParsedMeta {
   }
   return out;
 }
+
+const hostname = (url: string): string => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
+};
+
+/** "LinkedIn · Implementation Consultant (Remote)" → the source label and the title (rev-3 H). A
+ *  name with no source prefix is the company's own page: its domain is the source. */
+export function splitTileName(name: string, url: string): { source: string; title: string } {
+  const m = /^([^·]{1,24}?)\s+·\s+(.+)$/.exec(name);
+  if (m) return { source: m[1].trim(), title: m[2].trim() };
+  return { source: hostname(url).replace(/^www\./, ''), title: name };
+}

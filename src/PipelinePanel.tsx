@@ -34,7 +34,7 @@ export function Panel({
         <Stack direction="row" gap="px8" align="center" justify="space-between">
           <Stack gap="px4">
             <Stack direction="row" gap="px8" align="center">
-              <Text variant="body" as="h3" className="rjb-bold">
+              <Text variant="body" as="h3" weight="bold">
                 {title}
               </Text>
               {count != null && <Badge count={count} label={countLabel} />}

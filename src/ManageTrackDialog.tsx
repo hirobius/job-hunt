@@ -59,8 +59,13 @@ function ChipEditor({
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
         {values.map((v) => (
-          <Tag key={v} onClick={() => onChange(values.filter((x) => x !== v))}>
-            {v} ✕
+          <Tag
+            key={v}
+            aria-label={`Remove ${v}`}
+            onClick={() => onChange(values.filter((x) => x !== v))}
+          >
+            {v}
+            <Icon icon={X} size="small" />
           </Tag>
         ))}
         {values.length === 0 && (

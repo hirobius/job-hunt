@@ -10,10 +10,10 @@ test('job page Documents: cover letter → 2 Versions → Sent → Download PDF'
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await page.getByRole('link', { name: 'Acme · Greenhouse' }).click();
 
-  // Documents sit on Overview, behind one "All documents" row (three-tab job page).
+  // Documents sit on Overview, behind one row: "Add a document" while there are none.
   // A job saved from a bare link opens with Details in edit, so scope to the Documents panel.
   const docs = page.getByRole('region', { name: 'Documents' });
-  await docs.getByRole('button', { name: /^All documents/ }).click();
+  await docs.getByRole('button', { name: /^(All documents|Add a document)/ }).click();
   await expect(docs.getByText('No documents yet')).toBeVisible();
   await docs.getByRole('button', { name: 'New document' }).click();
   await docs.getByRole('combobox', { name: /^Kind/ }).click();

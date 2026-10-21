@@ -131,11 +131,10 @@ p {
   }
 }
 
-/* A job's title on a card or agenda row (rev-3 review): bold, primary colour, two lines at most.
+/* A job's title on a card or agenda row (rev-3 review; HDS Text weight="bold"): primary colour, two lines at most.
  * Its link is quiet (no underline until hover), so the title reads as a title, not a link. The
  * size stays on the compact ramp (body); the mock's 16px is not an HDS compact size. */
 .rjb-card-title {
-  font-weight: var(--primitive-typography-weight-bold);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -153,11 +152,6 @@ p {
   text-decoration: underline;
 }
 
-/* Panel headings (rev-3): bold on the body size. */
-.rjb-bold {
-  font-weight: var(--primitive-typography-weight-bold);
-}
-
 /* One line, cut with an ellipsis (a long domain in a facts list). */
 .rjb-truncate {
   overflow: hidden;
@@ -173,4 +167,20 @@ p {
   line-clamp: 3;
   overflow: hidden;
   overflow-wrap: anywhere;
+}
+
+/* A note under a card's facts, two lines at most. */
+.rjb-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* A long free-text field the user can make taller (Your evidence, rev-3 J). */
+.rjb-resize,
+.rjb-resize textarea {
+  resize: vertical;
 }

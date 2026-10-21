@@ -31,7 +31,6 @@ import GettingStarted from './GettingStarted';
 import JobListCard from './JobListCard';
 import { Panel, PanelBody } from './PipelinePanel';
 import { RecentlyRemovedLink } from './RecentlyRemoved';
-import { SECONDARY } from './hds-gaps/tone';
 import { navigate } from './route';
 
 // The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
@@ -165,7 +164,9 @@ export default function TrackerView() {
                                     }}
                                   >
                                     <span>{FILTER_LABEL[f]}</span>
-                                    <span style={SECONDARY}>{counts[f]}</span>
+                                    <Text variant="ui" as="span" tone="secondary">
+                                      {counts[f]}
+                                    </Text>
                                   </Box>
                                 </HdsMenu.RadioItem>
                               ))}

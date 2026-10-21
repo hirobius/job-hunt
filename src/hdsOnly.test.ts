@@ -77,8 +77,8 @@ describe('Inline style allowlist (#93)', () => {
     'TrackerView.tsx': 1,
     // "Saved" fade: opacity follows state at runtime
     'JobOverview.tsx': 1,
-    // TileGrid: set-aside opacity (runtime) + two -webkit-line-clamp boxes (no HDS clamp prop)
-    'TileGrid.tsx': 3,
+    // TileGrid: set-aside opacity (runtime); its clamps are base.css classes since slice 4
+    'TileGrid.tsx': 1,
     // Card has no sx or text-align prop
     'Onboarding.tsx': 1,
   };

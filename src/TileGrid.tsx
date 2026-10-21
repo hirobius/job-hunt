@@ -12,22 +12,23 @@ import {
   Grid,
   InlineLink,
 } from '@hirobius/design-system';
-import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
+import { Banknote, ExternalLink, Globe, Linkedin, MapPin, Phone, Trash2 } from 'lucide-react';
 import { isSaved, useJobs } from './store';
 import { saveWithNotice } from './saveNotice';
 import { useTileTriage, toggleDismiss } from './tileTriage';
-import { parseMeta } from './tileMeta';
+import { parseMeta, splitTileName } from './tileMeta';
 import type { Tile } from './jobsData';
 
 // Tile kind, derived from the URL (issue #12): aggregator queries are "Search", Google
 // fallback leads are "Lead" (verify before relying), everything else is a direct
 // employer/program page and gets no badge — absence of a badge = the strongest kind.
-// Structured `kind` (Portal, Employer, Live) arrives with the meta migration.
-const kindOf = (url: string): { label: string; tone: 'info' | 'warning' } | null =>
+// Structured `kind` (Portal, Employer, Live) arrives with the meta migration. Neutral (rev-3 H):
+// the badge names a kind, it is not a status.
+const kindOf = (url: string): string | null =>
   /google\.com\/search/.test(url)
-    ? { label: 'Lead', tone: 'warning' }
+    ? 'Lead'
     : /(indeed|ziprecruiter|linkedin|snagajob|usajobs|worksourcewa)\./.test(url)
-      ? { label: 'Search', tone: 'info' }
+      ? 'Search'
       : null;
 
 const hostOf = (url: string): string => {
@@ -40,9 +41,12 @@ const hostOf = (url: string): string => {
 
 const telHref = (phone: string) => `tel:${phone.replace(/-/g, '')}`;
 
-/** Shared grid of link tiles with an Open + Save-to-queue action. Used by Discover and
- *  Apprenticeships. Saving floats the tile in its group (issue #13 — pin is retired);
- *  with `triage`, each tile gets a set-aside control. */
+const FACT_ICON = { pay: Banknote, place: MapPin, contact: Phone } as const;
+
+/** Shared grid of link tiles (rev-3 H anatomy): the source with an icon and the kind badge on
+ *  top, the title (two lines), the facts with icons, then Save, Open and a quiet Set aside on
+ *  one centre line. Saving floats the tile in its group (issue #13 — pin is retired); with
+ *  `triage`, each tile gets a set-aside control. */
 export default function TileGrid({
   tiles,
   cta = 'Open',
@@ -69,11 +73,13 @@ export default function TileGrid({
         const isAside = dismissedSet.has(t.url);
         const kind = kindOf(t.url);
         const meta = parseMeta(t.meta);
-        // Pay and place read as chips; the first phone stays one tap from the card (every phone is
-        // in the detail). With nothing parsed, the raw meta shows as the note; the detail repeats it two items a line.
+        const { source, title } = splitTileName(t.name, t.url);
+        // Pay, place and the first phone are the facts row (two a row, #192). Every phone and the
+        // rest of the meta are in Details, shown only when there is more than the card says.
         const chips = meta.chips.filter((c) => c.kind !== 'contact' || c.text === meta.phones[0]);
         const note = meta.notes[0];
         const host = hostOf(t.url);
+        const more = meta.phones.length > 1 || meta.emails.length > 0 || meta.notes.length > 1;
         return (
           <HdsCard
             key={t.url + t.name}
@@ -90,144 +96,144 @@ export default function TileGrid({
               sx={{ p: 'sm', display: 'flex', flexDirection: 'column', gap: 'xs', height: '100%' }}
             >
               <Stack direction="row" gap="xs" align="center" justify="space-between">
-                <Text
-                  variant="body"
-                  as="h3"
-                  className="rjb-semibold"
-                  title={t.name}
-                  style={{
-                    lineHeight: 1.2,
-                    minWidth: 0,
-                    // Two lines, then an ellipsis: one line cut most names at 1440. Full name in Details.
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    overflowWrap: 'anywhere',
-                  }}
-                >
-                  {t.name}
-                </Text>
-                {kind && <Badge tone={kind.tone}>{kind.label}</Badge>}
+                <Box sx={{ minWidth: 0 }}>
+                  <Stack direction="row" gap="px4" align="center">
+                    <Icon icon={source === 'LinkedIn' ? Linkedin : Globe} size="small" />
+                    <Text variant="caption" as="span" tone="secondary">
+                      {source}
+                    </Text>
+                  </Stack>
+                </Box>
+                {kind && <Badge tone="neutral">{kind}</Badge>}
               </Stack>
+              <Text variant="body" as="h3" weight="bold" className="rjb-card-title" title={t.name}>
+                {title}
+              </Text>
               {chips.length > 0 && (
                 <Stack gap="px4">
-                  {/* At most two chips per row (#192). */}
+                  {/* At most two facts per row (#192). */}
                   {chunkMeta(chips).map((row) => (
                     // Box, not Stack: Stack drops the data-meta-row hook the tests count.
                     <Box
                       key={row.map((c) => c.kind + c.text).join('|')}
                       data-meta-row=""
-                      sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'center' }}
+                      sx={{ display: 'flex', flexWrap: 'wrap', gap: 'sm', alignItems: 'center' }}
                     >
-                      {row.map((c) =>
-                        c.kind === 'contact' ? (
-                          <InlineLink key={c.text} href={telHref(c.text)}>
-                            {c.text}
-                          </InlineLink>
-                        ) : (
-                          <Badge key={c.kind + c.text} tone="neutral">
-                            {c.text}
-                          </Badge>
-                        ),
-                      )}
+                      {row.map((c) => (
+                        <Stack key={c.kind + c.text} direction="row" gap="px4" align="center">
+                          <Icon icon={FACT_ICON[c.kind]} size="small" />
+                          {c.kind === 'contact' ? (
+                            <Text variant="caption" as="span">
+                              <InlineLink href={telHref(c.text)}>{c.text}</InlineLink>
+                            </Text>
+                          ) : (
+                            <Text variant="caption" as="span" tone="secondary">
+                              {c.text}
+                            </Text>
+                          )}
+                        </Stack>
+                      ))}
                     </Box>
                   ))}
                 </Stack>
               )}
               {note && (
-                <Text
-                  variant="caption"
-                  as="span"
-                  tone="secondary"
-                  style={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    overflowWrap: 'anywhere',
-                  }}
-                >
+                <Text variant="caption" as="span" tone="secondary" className="rjb-clamp-2">
                   {note}
                 </Text>
               )}
               <Box sx={{ flex: 1 }}>
-                <Disclosure label="Details">
-                  <Box sx={{ overflowWrap: 'anywhere' }}>
-                    <Stack gap="tight">
-                      <Text variant="ui" as="span">
-                        {t.name}
-                      </Text>
-                      {metaLines(meta.raw.split(/\s+·\s+/)).map((line) => (
-                        <Text
-                          key={line}
-                          variant="caption"
-                          as="span"
-                          data-meta-detail
-                          tone="secondary"
-                        >
-                          {line}
+                {more && (
+                  <Disclosure label="Details">
+                    <Box sx={{ overflowWrap: 'anywhere' }}>
+                      <Stack gap="tight">
+                        <Text variant="ui" as="span">
+                          {t.name}
                         </Text>
-                      ))}
-                      {meta.phones.map((ph) => (
-                        <InlineLink key={ph} href={telHref(ph)}>
-                          {ph}
-                        </InlineLink>
-                      ))}
-                      {meta.emails.map((em) => (
-                        <InlineLink key={em} href={`mailto:${em}`}>
-                          {em}
-                        </InlineLink>
-                      ))}
-                      {host && (
-                        <Text variant="caption" as="span" tone="secondary">
-                          {host}
-                        </Text>
-                      )}
-                    </Stack>
-                  </Box>
-                </Disclosure>
+                        {metaLines(meta.raw.split(/\s+·\s+/)).map((line) => (
+                          <Text
+                            key={line}
+                            variant="caption"
+                            as="span"
+                            data-meta-detail
+                            tone="secondary"
+                          >
+                            {line}
+                          </Text>
+                        ))}
+                        {meta.phones.map((ph) => (
+                          <InlineLink key={ph} href={telHref(ph)}>
+                            {ph}
+                          </InlineLink>
+                        ))}
+                        {meta.emails.map((em) => (
+                          <InlineLink key={em} href={`mailto:${em}`}>
+                            {em}
+                          </InlineLink>
+                        ))}
+                        {host && (
+                          <Text variant="caption" as="span" tone="secondary">
+                            {host}
+                          </Text>
+                        )}
+                      </Stack>
+                    </Box>
+                  </Disclosure>
+                )}
               </Box>
-              <Stack direction="row" wrap="wrap" gap="tight" align="center">
-                <Button size="sm" variant="tertiary" asChild>
-                  <a href={t.url} target="_blank" rel="noopener noreferrer">
-                    {cta}
-                  </a>
-                </Button>
-                <Button
-                  size="sm"
-                  variant={saved ? 'tertiary' : 'secondary'}
-                  disabled={saved}
-                  onClick={() => save(t)}
-                >
-                  {saved ? 'Saved' : 'Save'}
-                </Button>
-                {triage && (
+              {/* Save, Open, then the quiet Set aside on the far side, one centre line (rev-3 G). */}
+              <Stack direction="row" gap="tight" align="center" justify="space-between">
+                <Stack direction="row" gap="tight" align="center">
                   <Button
                     size="sm"
-                    variant="tertiary"
-                    iconLeft={<Icon icon={isAside ? ArchiveRestore : Archive} />}
-                    onClick={() => toggleDismiss(t.url)}
+                    variant={saved ? 'tertiary' : 'secondary'}
+                    disabled={saved}
+                    onClick={() => save(t)}
                   >
-                    {isAside ? 'Restore' : 'Set aside'}
+                    {saved ? 'Saved' : 'Save'}
                   </Button>
-                )}
-                {onRemove && (
-                  <HdsTooltip>
-                    <HdsTooltip.Trigger asChild>
-                      <Button
-                        size="sm"
-                        variant="tertiary"
-                        tone="danger"
-                        iconOnly
-                        iconLeft={<Icon icon={Trash2} />}
-                        onClick={() => onRemove(t.url)}
-                        label="Remove tile"
-                      />
-                    </HdsTooltip.Trigger>
-                    <HdsTooltip.Content>Remove</HdsTooltip.Content>
-                  </HdsTooltip>
-                )}
+                  {cta === 'Open' ? (
+                    <Button size="sm" variant="secondary" iconOnly label={`Open ${title}`} asChild>
+                      <a
+                        href={t.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open ${title}`}
+                      >
+                        <Icon icon={ExternalLink} />
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="secondary" asChild>
+                      <a href={t.url} target="_blank" rel="noopener noreferrer">
+                        {cta}
+                      </a>
+                    </Button>
+                  )}
+                </Stack>
+                <Stack direction="row" gap="tight" align="center">
+                  {triage && (
+                    <Button size="sm" variant="tertiary" onClick={() => toggleDismiss(t.url)}>
+                      {isAside ? 'Restore' : 'Set aside'}
+                    </Button>
+                  )}
+                  {onRemove && (
+                    <HdsTooltip>
+                      <HdsTooltip.Trigger asChild>
+                        <Button
+                          size="sm"
+                          variant="tertiary"
+                          tone="danger"
+                          iconOnly
+                          iconLeft={<Icon icon={Trash2} />}
+                          onClick={() => onRemove(t.url)}
+                          label="Remove tile"
+                        />
+                      </HdsTooltip.Trigger>
+                      <HdsTooltip.Content>Remove</HdsTooltip.Content>
+                    </HdsTooltip>
+                  )}
+                </Stack>
               </Stack>
             </Box>
           </HdsCard>

@@ -71,7 +71,7 @@ for (const width of [390, 1440]) {
     expect(reads).toBe(readsBefore);
 
     // The title filter sits in Calibrate (#223).
-    await page.getByRole('button', { name: 'Calibrate' }).click();
+    await page.getByRole('button', { name: /^Calibrate/ }).click();
     await expect(page.getByRole('list', { name: 'Titles' })).toBeVisible();
     await page.screenshot({ path: `test-results/wide-sweep-titles-${width}.png`, fullPage: true });
 

@@ -1,10 +1,24 @@
 // The follow-up flow (2026-10-17). Every "Follow up" button (the Follow up section, a Pipeline row, the job page
-// header) opens this one dialog: the follow-up template filled from the job, editable, with Copy
+// header) opens this one dialog: the follow-up template filled from the job, its blanks filled in
+// place (rev-3 A) or the whole text edited, with Copy
 // message → Mark as sent (undoable) and a quiet Snooze. Only Mark as sent and Snooze change the
 // job; closing changes nothing. The host is mounted once in App, so a row that leaves its list
 // once the follow-up is sent doesn't take the dialog with it.
 import { useState } from 'react';
-import { Alert, Button, Dialog, Stack, Text, Textarea, useToast } from '@hirobius/design-system';
+import { Copy, ExternalLink } from 'lucide-react';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  Dialog,
+  Icon,
+  Stack,
+  Text,
+  Textarea,
+  useToast,
+} from '@hirobius/design-system';
+import BlankText from './BlankText';
 import { useOutreachTemplates } from './outreachTemplates';
 import {
   closeFollowUp,
@@ -16,7 +30,7 @@ import { FOLLOWUP_DAYS, SNOOZE_DAYS } from './jobState';
 import { titleOf } from './jobRow';
 import { logFollowUp, restoreFollowUp, snoozeFollowUp, useJobs } from './store';
 import { copyFilled } from './templateCopy';
-import { fillSnippet, unfilledTokens } from './templateFill';
+import { fillSnippet } from './templateFill';
 import { useApplyKit } from './applyKit';
 import type { Job } from './types';
 
@@ -70,15 +84,14 @@ function FollowUpContent({ job }: { job: Job }) {
   const { toast } = useToast();
   const template = pickFollowUpTemplate(templates);
   const kitName = useApplyKit().fields.name;
-  // Filled once on open (the one fill path, templateFill.fillSnippet); after that the text is the
-  // user's to edit.
-  const [message, setMessage] = useState(() =>
-    template ? fillSnippet(template, job, kitName) : '',
-  );
+  // The filled template (the one fill path, templateFill.fillSnippet) refills as blanks are filled
+  // in place (rev-3 A); Edit message hands the text to the user, and from then on it is theirs.
+  const filled = template ? fillSnippet(template, job, kitName) : '';
+  const [edited, setEdited] = useState<string | null>(template ? null : '');
+  const message = edited ?? filled;
   const [copied, setCopied] = useState(false);
   // The job's follow-up clock before Mark as sent, for Undo. Set means "sent".
   const [sent, setSent] = useState<Pick<Job, 'followUp' | 'snoozeUntil'> | null>(null);
-  const missing = unfilledTokens(message);
   const title = titleOf(job);
 
   const copy = async () => {
@@ -120,32 +133,35 @@ function FollowUpContent({ job }: { job: Job }) {
         <Alert tone="success">{`Follow-up sent. Next one due in ${FOLLOWUP_DAYS} days.`}</Alert>
       ) : (
         <Stack gap="tight">
-          <Textarea
-            label="Message"
-            rows={10}
-            value={message}
-            onChange={(e) => {
-              setMessage(e.target.value);
-              setCopied(false); // an edit needs copying again
-            }}
-          />
+          {edited === null ? (
+            // The message as the template editor shows it: each blank a chip that fills in place
+            // and saves where it belongs (on the job, or on the message), then "N blanks left".
+            <Card bordered padding="px16">
+              <BlankText text={message} job={job} documentId={template?.documentId} />
+            </Card>
+          ) : (
+            <Textarea
+              label="Message"
+              rows={10}
+              value={message}
+              onChange={(e) => {
+                setEdited(e.target.value);
+                setCopied(false); // an edit needs copying again
+              }}
+            />
+          )}
           {!template && (
             <Text variant="caption" tone="secondary">
               No follow-up message yet. Write it here, or add one in Documents.
             </Text>
           )}
-          {missing.length > 0 && (
-            <Text variant="caption" tone="secondary">
-              Still to fill in: {missing.map((t) => `[${t}]`).join(', ')}.
-            </Text>
+          {edited === null && (
+            <Box>
+              <Button variant="tertiary" size="sm" onClick={() => setEdited(message)}>
+                Edit message
+              </Button>
+            </Box>
           )}
-          <div>
-            <Button asChild variant="tertiary" size="sm">
-              <a href={job.url} target="_blank" rel="noopener noreferrer">
-                Open job posting
-              </a>
-            </Button>
-          </div>
         </Stack>
       )}
       <Dialog.Footer>
@@ -157,21 +173,40 @@ function FollowUpContent({ job }: { job: Job }) {
             <Button onClick={closeFollowUp}>Done</Button>
           </>
         ) : (
-          <>
-            <Button variant="tertiary" onClick={snooze}>
-              {`Snooze ${SNOOZE_DAYS} days`}
-            </Button>
-            {copied ? (
-              <>
-                <Button variant="secondary" onClick={copy}>
-                  Copy again
+          // One full-width primary (Copy, then Mark as sent), then Open posting and Snooze as
+          // one row of two secondaries (rev-3 A).
+          <Box sx={{ flex: '1 1 auto' }}>
+            <Stack gap="tight">
+              <Box sx={{ display: 'flex', '& > *': { flex: '1 1 0%' } }}>
+                {copied ? (
+                  <Button variant="primary" onClick={markSent}>
+                    Mark as sent
+                  </Button>
+                ) : (
+                  <Button variant="primary" iconLeft={<Icon icon={Copy} />} onClick={copy}>
+                    Copy message
+                  </Button>
+                )}
+              </Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'xs' }}>
+                {copied ? (
+                  <Button variant="secondary" onClick={copy}>
+                    Copy again
+                  </Button>
+                ) : (
+                  <Button asChild variant="secondary">
+                    <a href={job.url} target="_blank" rel="noopener noreferrer">
+                      <Icon icon={ExternalLink} />
+                      Open posting
+                    </a>
+                  </Button>
+                )}
+                <Button variant="secondary" onClick={snooze}>
+                  {`Snooze ${SNOOZE_DAYS} days`}
                 </Button>
-                <Button onClick={markSent}>Mark as sent</Button>
-              </>
-            ) : (
-              <Button onClick={copy}>Copy message</Button>
-            )}
-          </>
+              </Box>
+            </Stack>
+          </Box>
         )}
       </Dialog.Footer>
     </Dialog.Content>

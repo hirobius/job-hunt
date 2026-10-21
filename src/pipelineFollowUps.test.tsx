@@ -125,8 +125,12 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     const user = userEvent.setup();
     renderApp();
     const dialog = await openFollowUp(user);
+    expect(dialog).toHaveTextContent('the UX Researcher role at Bramble & Finch');
+    // Its blanks are chips that fill in place (rev-3 A); Edit message opens the whole text.
+    expect(within(dialog).getByRole('button', { name: 'Fill Contact' })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Edit message' }));
     const message = within(dialog).getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement;
-    expect(message.value).toContain('the UX Researcher role at Bramble & Finch');
+    expect(message.value).toContain('Hi [Contact]');
   });
 
   it('Mark as sent takes it off the due list', async () => {

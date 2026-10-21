@@ -36,7 +36,7 @@ export default function JobListCard({ job }: { job: Job }) {
         <Card.Header metadata={<JobBadges job={job} star />}>
           {/* Body size, not Card.Title's title size: the page title stays the biggest text. */}
           <Stack gap="px4">
-            <Text variant="body" as="h3" className="rjb-card-title" id={titleId}>
+            <Text variant="body" as="h3" weight="bold" className="rjb-card-title" id={titleId}>
               <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
                 {row.title}
               </InlineLink>

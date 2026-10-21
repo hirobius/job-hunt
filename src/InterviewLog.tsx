@@ -136,15 +136,14 @@ export default function InterviewLog({ job }: { job: Job }) {
       </Grid>
       <Stack gap="tight">
         {caption('Kind')}
-        <Box sx={{ '& > *': { width: '100%' }, '& button': { flex: '1 1 0%' } }}>
-          <SegmentedControl
-            aria-label="Event kind"
-            size="sm"
-            options={KINDS}
-            value={kind}
-            onChange={(v) => setKind(v as JobEventKind)}
-          />
-        </Box>
+        <SegmentedControl
+          aria-label="Event kind"
+          size="sm"
+          fullWidth
+          options={KINDS}
+          value={kind}
+          onChange={(v) => setKind(v as JobEventKind)}
+        />
       </Stack>
       <Stack gap="tight">
         {caption('Note (optional)')}

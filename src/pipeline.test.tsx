@@ -145,7 +145,7 @@ describe('Pipeline on a phone (#129)', () => {
       within(card).getByRole('button', { name: 'Follow up: Zenith Product Designer' }),
     );
     const dialog = await screen.findByRole('dialog', { name: 'Follow up' });
-    expect(within(dialog).getByRole('textbox', { name: 'Message' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Copy message' })).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(getAllJobs().find((j) => j.url === APPLIED)).toEqual(before);

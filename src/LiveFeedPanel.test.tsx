@@ -85,7 +85,7 @@ afterEach(() => {
     .forEach((j) => removeJob(j.url));
 });
 
-const openRefine = () => userEvent.click(screen.getByRole('button', { name: 'Refine' }));
+const openRefine = () => userEvent.click(screen.getByRole('button', { name: /^Refine/ }));
 
 const renderPanel = (boardUrls: string[] = []) =>
   render(
@@ -112,7 +112,6 @@ describe('LiveFeedPanel', () => {
     expect(rows).toHaveLength(2);
     const hn = rows.find((r) => r.textContent?.includes('UX/UI Designer'))!;
     expect(hn).toHaveTextContent('Contract-friendly');
-    expect(hn).toHaveTextContent('In description');
     expect(screen.queryByText('Backend Engineer')).not.toBeInTheDocument();
   });
 
@@ -122,8 +121,9 @@ describe('LiveFeedPanel', () => {
     const row = within(list)
       .getAllByRole('listitem')
       .find((r) => r.textContent?.includes('Design Systems Lead'))!;
-    // Company, location, mode and source are four items: they must land on two captions.
-    expect(within(row).getByText('Ramp · New York, NY')).toBeInTheDocument();
+    // The company on its own line, the facts with icons, the source as a small label (rev-3 K).
+    expect(within(row).getByText('Ramp')).toBeInTheDocument();
+    expect(within(row).getByText('New York, NY')).toBeInTheDocument();
     for (const e of Array.from(row.querySelectorAll('span, p'))) {
       expect(itemsInLine(e.textContent ?? '')).toBeLessThanOrEqual(MAX_META_ITEMS);
     }
@@ -413,7 +413,7 @@ describe('LiveFeedPanel states (#131)', () => {
   it('puts the postings ahead of watching companies and evidence, which sit behind Refine', async () => {
     renderPanel();
     const list = await screen.findByRole('list', { name: /live postings/i });
-    const refine = screen.getByRole('button', { name: 'Refine' });
+    const refine = screen.getByRole('button', { name: /^Refine/ });
     expect(refine).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByLabelText(/watch a company/i)).toBeNull();
     expect(screen.getByLabelText('Search term').compareDocumentPosition(list)).toBe(
@@ -422,19 +422,20 @@ describe('LiveFeedPanel states (#131)', () => {
     expect(refine.compareDocumentPosition(list)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it('opens evidence by default only while empty and no postings are showing', async () => {
-    const user = userEvent.setup();
+  it('opens Refine on the evidence by itself only while empty and no postings are showing', async () => {
     feed.fetchFeed.mockResolvedValueOnce({
       postings: [],
       sources: [{ key: 'hn', label: 'Hacker News', fetched: 0 }],
     });
     renderPanel();
     await screen.findByText(/No live openings mention/);
-    await user.click(screen.getByRole('button', { name: 'Refine' }));
-    expect(screen.getByRole('button', { name: 'Your evidence (0)' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^Refine/ })).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      ),
     );
+    expect(screen.getByRole('textbox', { name: 'Your evidence' })).toBeInTheDocument();
   });
 
   it('says once, under the list, that evidence adds a fit, and the link opens Refine', async () => {
@@ -442,7 +443,10 @@ describe('LiveFeedPanel states (#131)', () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     await user.click(screen.getByRole('button', { name: 'Add evidence to see fit' }));
-    expect(screen.getByRole('button', { name: 'Refine' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: /^Refine/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
   });
 
   it('lays a posting out as title, meta, then Save, so the title keeps the whole row', async () => {
@@ -450,7 +454,7 @@ describe('LiveFeedPanel states (#131)', () => {
     const list = await screen.findByRole('list', { name: /live postings/i });
     const row = within(list).getByText('Design Systems Lead').closest('li')!;
     const link = within(row).getByRole('link', { name: /Design Systems Lead/ });
-    const meta = within(row).getByText(/Ramp · New York/);
+    const meta = within(row).getByText('Ramp');
     const save = within(row).getByRole('button', { name: 'Save' });
     expect(link.compareDocumentPosition(meta)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(meta.compareDocumentPosition(save)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);

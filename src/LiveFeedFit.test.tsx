@@ -83,8 +83,7 @@ const renderPanel = () =>
 
 // Evidence sits in Refine, collapsed once postings are showing.
 const openEvidence = async () => {
-  await userEvent.click(screen.getByRole('button', { name: 'Refine' }));
-  await userEvent.click(screen.getByRole('button', { name: /^Your evidence/ }));
+  await userEvent.click(screen.getByRole('button', { name: /^Refine/ }));
 };
 
 const withEvidence = async () => {
@@ -175,8 +174,7 @@ describe('Live postings with the radar engine', () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     // Filled-in evidence starts collapsed so the postings lead.
-    await userEvent.click(screen.getByRole('button', { name: 'Refine' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Your evidence (4)' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Refine/ }));
     expect(screen.getByRole('textbox', { name: 'Your evidence' })).toHaveValue(EVIDENCE);
   });
 

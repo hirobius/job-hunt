@@ -67,10 +67,10 @@ describe('step 1: pick a track', () => {
     expect(screen.getAllByText('Suggested')).toHaveLength(1);
   });
 
-  it('Continue needs a pack; Back is there but has nowhere to go; Skip is there', () => {
+  it('Continue needs a pack; no Back on the first step; Skip is there', () => {
     renderApp();
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Skip' })).toBeEnabled();
   });
 

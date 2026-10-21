@@ -190,9 +190,7 @@ describe('editing a message changes what the fill paths use', () => {
     await renderApp();
     openFollowUp(JOB);
     const dialog = await screen.findByRole('dialog');
-    expect(
-      (within(dialog).getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement).value,
-    ).toContain('P.S. Acme Metals rocks.');
+    expect(dialog).toHaveTextContent('P.S. Acme Metals rocks.');
   });
 
   it('Use template on the job page', async () => {
@@ -201,7 +199,7 @@ describe('editing a message changes what the fill paths use', () => {
     await renderApp();
     await userEvent.click(await screen.findByRole('button', { name: 'Use template' }));
     await userEvent.click(screen.getByRole('button', { name: 'Follow-up after applying' }));
-    expect((screen.getByLabelText('Preview') as HTMLTextAreaElement).value).toContain(
+    expect(screen.getByRole('region', { name: 'Preview' })).toHaveTextContent(
       'P.S. Acme Metals rocks.',
     );
   });
