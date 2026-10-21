@@ -8,16 +8,22 @@ import { useMode, writeMode } from './trackModes';
 export { modeKey, readMode, writeMode } from './trackModes';
 
 const MODE_LABEL: Record<WorkMode, string> = {
-  any: 'Any mode',
+  any: 'any mode',
   remote: 'Remote',
   hybrid: 'Hybrid',
   onsite: 'On-site',
 };
 
-/** "Spokane, Hybrid" · "Anywhere, Any mode" · "Remote". */
+/** "Spokane, Hybrid" · "Anywhere, any mode" (mid-sentence, so lower case) · "Remote". */
 export function contextLabel(where: string, mode: WorkMode): string {
   if (mode === 'remote') return 'Remote';
   return `${where.trim() || 'Anywhere'}, ${MODE_LABEL[mode]}`;
+}
+
+/** Where the track searches, as a tile's place fact (rev-3 H): "Remote", "Spokane",
+ *  "Anywhere", "Spokane, Hybrid". Any mode says nothing about mode. */
+export function placeLabel(where: string, mode: WorkMode): string {
+  return mode === 'any' ? where.trim() || 'Anywhere' : contextLabel(where, mode);
 }
 
 /** Set the track's location and/or work mode from outside a component (e.g. applying a saved search). */

@@ -68,13 +68,23 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
       await user.click(atsControl);
     }
 
-    // 1. Headings "Company hiring systems" and "Freelance, startup and remote boards" are present.
+    // 1. "Company hiring systems" is a heading over three rows and a Show more; the big boards and
+    // the freelance boards are closed rows with counts (rev-3 mock).
     expect(
       await screen.findByRole('heading', { level: 3, name: 'Company hiring systems' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { level: 3, name: 'Freelance, startup and remote boards' }),
-    ).toBeInTheDocument();
+    const atsRows = () =>
+      screen
+        .getAllByRole('link', { name: 'Search' })
+        .filter((a) => (a.getAttribute('href') ?? '').includes('site%3A'));
+    expect(atsRows()).toHaveLength(3);
+    for (const name of [/^Freelance, startup and remote boards/, /^Big job boards/]) {
+      const row = screen.getByRole('button', { name });
+      expect(row).toHaveAttribute('aria-expanded', 'false');
+      await user.click(row);
+    }
+    await user.click(screen.getByRole('button', { name: /^Show \d+ more$/ }));
+    expect(atsRows().length).toBeGreaterThan(3);
 
     // 2. Toggling Contract only adds the (contract OR freelance OR fractional) clause to a tile's href.
     // Hiring-system tiles are Google `site:` searches; the big boards (#223) sit above them.

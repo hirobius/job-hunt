@@ -19,12 +19,17 @@ const TILES: Tile[] = [
     url: 'https://example.com/resume',
   },
   { name: 'Indeed', meta: 'Aggregator', url: 'https://www.indeed.com/jobs?q=welder' },
+  {
+    name: 'LinkedIn · Implementation Consultant (Remote)',
+    meta: 'Live remote implementation / onboarding roles',
+    url: 'https://www.linkedin.com/jobs/search/?keywords=implementation&f_TPR=r604800',
+  },
 ];
 
 const renderGrid = (triage = true) =>
   render(
     <ToastProvider>
-      <TileGrid tiles={TILES} triage={triage} />
+      <TileGrid tiles={TILES} triage={triage} place="Spokane" />
     </ToastProvider>,
   );
 const card = (name: string) => screen.getByRole('article', { name });
@@ -49,9 +54,25 @@ describe('TileGrid cards (#12, #131)', () => {
     );
   });
 
-  it('falls back to the raw meta when it has no pay, place or contact', () => {
+  it("keeps an employer page's note behind Details, and the track's place in the facts", async () => {
     renderGrid();
-    expect(within(card('Resume builder')).getByText('ATS-friendly resume builder')).toBeVisible();
+    const c = card('Resume builder');
+    expect(within(c).queryByText('ATS-friendly resume builder')).toBeNull();
+    expect(within(c).getByText('Spokane')).toBeVisible();
+    await userEvent.click(within(c).getByRole('button', { name: 'Details' }));
+    expect(await screen.findByText('ATS-friendly resume builder')).toBeVisible();
+  });
+
+  it('a search tile shows where and how recent as facts, with the place out of its title (rev-3 H)', () => {
+    renderGrid();
+    const c = card('LinkedIn · Implementation Consultant (Remote)');
+    expect(within(c).getByRole('heading', { name: 'Implementation Consultant' })).toBeVisible();
+    expect(within(c).getByText('Remote')).toBeVisible();
+    expect(within(c).getByText('Past week')).toBeVisible();
+    expect(within(card('Indeed')).getByText('Any time')).toBeVisible();
+    // Its note only restates the title: no Details.
+    expect(within(c).queryByText(/onboarding roles/)).toBeNull();
+    expect(within(c).queryByRole('button', { name: 'Details' })).toBeNull();
   });
 
   it('marks search tiles with a kind badge', () => {
@@ -59,15 +80,16 @@ describe('TileGrid cards (#12, #131)', () => {
     expect(within(card('Indeed')).getByText('Search')).toBeVisible();
   });
 
-  it('expands to the full detail with a tap-to-call link for every phone', async () => {
+  it('Details opens the full detail with a tap-to-call link for every phone', async () => {
     renderGrid();
     const c = card('Travis Pattern & Foundry');
-    await userEvent.click(within(c).getByRole('button', { name: /details/i }));
-    expect(within(c).getByRole('link', { name: '509-466-9999' })).toHaveAttribute(
+    await userEvent.click(within(c).getByRole('button', { name: 'Details' }));
+    const pop = await screen.findByRole('dialog', { name: /^Details/ });
+    expect(within(pop).getByRole('link', { name: '509-466-9999' })).toHaveAttribute(
       'href',
       'tel:5094669999',
     );
-    expect(within(c).getByText('www.travispattern.com')).toBeVisible();
+    expect(within(pop).getByText('www.travispattern.com')).toBeVisible();
   });
 
   it('has a labelled Set aside button that turns into Restore', async () => {
@@ -91,11 +113,12 @@ describe('Tile chips keep to two per row (#192)', () => {
     rows.forEach((r) => expect(r.children.length).toBeLessThanOrEqual(2));
   });
 
-  it('the Details disclosure never puts more than two meta items on one line', async () => {
+  it('Details never puts more than two meta items on one line', async () => {
     renderGrid();
     const c = card('Travis Pattern & Foundry');
-    await userEvent.click(within(c).getByText('Details'));
-    const lines = Array.from(c.querySelectorAll('[data-meta-detail]'));
+    await userEvent.click(within(c).getByRole('button', { name: 'Details' }));
+    const pop = await screen.findByRole('dialog', { name: /^Details/ });
+    const lines = Array.from(pop.querySelectorAll('[data-meta-detail]'));
     expect(lines.length).toBeGreaterThan(1);
     lines.forEach((l) =>
       expect(itemsInLine(l.textContent ?? '')).toBeLessThanOrEqual(MAX_META_ITEMS),

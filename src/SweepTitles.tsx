@@ -1,7 +1,7 @@
 // The track's title filter (#223, born as the wide sweep's list in #213): which titles are ticked,
 // per track, synced. Live postings ranks and filters by them, and the ATS tool and big-board links
-// search only them. It sits in Live postings' Calibrate control (`bare`) and behind a "Titles (N)"
-// disclosure on the ATS tool. The list starts as the track's own titles, all on
+// search only them. It sits in Live postings' Calibrate control (`bare`); the ATS tool shows the
+// ticked titles as chips only (rev-3 mock). The list starts as the track's own titles, all on
 // (src/feed/sweepTitles.ts).
 import { useState, type FormEvent } from 'react';
 import {

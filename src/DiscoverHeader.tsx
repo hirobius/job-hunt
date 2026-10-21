@@ -39,7 +39,8 @@ export default function DiscoverHeader({
   const packs = STARTER_PACKS.filter((p) => p.id !== 'blank');
   return (
     <Box sx={{ mb: 'sm' }}>
-      <Stack gap="xs">
+      {/* tight: room for the Change link's 40px hit area, which overhangs its line. */}
+      <Stack gap="tight">
         {/* rev-3 G: the track's name, then where and how you search as one caption line with a
             quiet Change (the popover holds the only LocationControl), then Manage track and the
             New track icon button. The track switcher shows only when there is a track to switch
@@ -54,22 +55,30 @@ export default function DiscoverHeader({
               {`${contextLabel(where, mode)} · `}
               <Popover>
                 <Popover.Trigger asChild>
+                  {/* An inline underlined link in the sentence (rev-3 mock), not a padded button:
+                      `.rjb-inline-link` in base.css. Its 40px hit area overhangs the line. */}
                   <Button
                     size="sm"
                     variant="tertiary"
+                    className="rjb-inline-link"
                     aria-label={`Change where: ${contextLabel(where, mode)}`}
                   >
                     Change
                   </Button>
                 </Popover.Trigger>
-                <Popover.Content align="start" aria-label="Where and how you want to work">
+                <Popover.Content
+                  align="start"
+                  aria-label="Where and how you want to work"
+                  className="rjb-popover-md"
+                >
                   <LocationControl categoryId={cat.id} />
                 </Popover.Content>
               </Popover>
             </Text>
           }
         />
-        <Stack direction="row" wrap="wrap" gap="xs" align="center">
+        {/* px8 between Manage track and New track (Stack's xs is the 2px subgrid). */}
+        <Stack direction="row" wrap="wrap" gap="px8" align="center">
           <Button size="md" variant="secondary" onClick={onManage}>
             Manage track
           </Button>
@@ -81,6 +90,7 @@ export default function DiscoverHeader({
                 iconOnly
                 iconLeft={<Icon icon={Plus} />}
                 label="New track"
+                className="rjb-icon-40"
               />
             </HdsMenu.Trigger>
             <HdsMenu.Content align="start">
