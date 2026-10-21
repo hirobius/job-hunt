@@ -24,6 +24,8 @@ the HDS fix out and wait for their screen's redesign slice to migrate.
 | Shell dialog placement          | `.rjb-sheet` in `src/account/sheet.css` (sign-in, Reset)              | a top-anchored, keyboard-aware Dialog / AlertDialog placement on a phone                                                                                            | related: hds#690 |
 | 16px phone form fields          | `@media (max-width: 639.98px)` input/textarea/select rule in `base.css` | compact density sets fields to 13px; iOS Safari zooms on focus below 16px. Fields need ≥ 16px below `sm` | to file          |
 | Tab row flush with the gutter   | `.rjb-job-tabs` first-tab padding in `src/theme/base.css` (job page)    | a TabsList option whose first tab (label and underline) starts on the content edge                       | to file          |
+| Apply pager size + disabled     | `nav[aria-label='Jobs to apply']` in `base.css` (`ApplyMode`)        | a bordered 40x40 compact Pagination button; a disabled tertiary without the grey primary fill          | to file          |
+| Fill field surface (rev-3 A)    | `.rjb-fillbox` in `src/theme/base.css` (`BlankText.tsx`)             | a page-surface Card, so an input in a card in a raised panel isn't a dark hole                         | to file          |
 
 ## Retired
 

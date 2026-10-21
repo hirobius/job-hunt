@@ -47,7 +47,9 @@ describe('UseTemplate', () => {
     // The blank is a chip that fills in place (rev-3 A), counted under the text.
     expect(within(preview).getByRole('button', { name: 'Fill Contact' })).toBeInTheDocument();
     expect(within(preview).getByText(/^\d+ blanks? left$/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Copy' }));
+    // One Close (the dialog's X), and Copy message is the one primary (rule A, like Follow up).
+    expect(screen.getAllByRole('button', { name: /close/i })).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Copy message' }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('[Contact]'));
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
   });
@@ -60,6 +62,10 @@ describe('UseTemplate', () => {
       'href',
       '#/copy-deck/snippet-b',
     );
+    // A 40px tertiary button with a pencil, not a 24px inline link.
+    expect(
+      screen.getByRole('link', { name: 'Edit in Documents' }).querySelector('svg'),
+    ).not.toBeNull();
     await user.click(screen.getByRole('button', { name: 'Plain note' }));
     expect(screen.getByRole('link', { name: 'Edit in Documents' })).toHaveAttribute(
       'href',
@@ -71,7 +77,7 @@ describe('UseTemplate', () => {
     const user = userEvent.setup();
     wrap();
     await user.click(screen.getByRole('button', { name: 'Use template' }));
-    const copy = screen.getByRole('button', { name: 'Copy' });
+    const copy = screen.getByRole('button', { name: 'Copy message' });
     expect(copy).toHaveAttribute('data-variant', 'primary');
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).queryAllByRole('button', { name: 'Close' }).length).toBeLessThanOrEqual(

@@ -74,7 +74,9 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
   for (let left = 3; left > 0; left--) {
     await expect(page.getByRole('link', { name: /Open application/ })).toBeVisible();
     await page.getByRole('button', { name: 'Mark applied' }).click();
-    await expect(page.getByText(/Follow up on \d{4}-\d{2}-\d{2}/)).toBeVisible();
+    await expect(
+      page.getByText(/Follow up on (Today|Tomorrow|[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2})\./),
+    ).toBeVisible();
     // The pager walks on; the applied job holds its place, so it reads 1 of N (none for one job).
     const pager = page.getByRole('navigation', { name: 'Jobs to apply' });
     if (left > 1) {

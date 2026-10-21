@@ -1,15 +1,6 @@
 import { useEffect, useState } from 'react';
-import { FileText } from 'lucide-react';
-import {
-  Button,
-  Dialog,
-  Icon,
-  InlineLink,
-  Card,
-  Stack,
-  Text,
-  useToast,
-} from '@hirobius/design-system';
+import { Check, Copy, FileText, Pencil } from 'lucide-react';
+import { Box, Button, Dialog, Icon, Card, Stack, Text, useToast } from '@hirobius/design-system';
 import { documentHref, useOutreachTemplates } from './outreachTemplates';
 import { fillSnippet } from './templateFill';
 import BlankText from './BlankText';
@@ -97,20 +88,37 @@ export default function UseTemplate({ job }: { job: Job }) {
               <Card bordered padding="px16" role="region" aria-label="Preview">
                 <BlankText text={filled} job={job} documentId={picked?.documentId} />
               </Card>
-              {/* A caption row under the Preview, out of the footer so the sheet never clips it. */}
+              {/* Under the Preview, out of the footer so the sheet never clips it: a 40px tertiary
+                  with a pencil. HDS Button asChild drops iconLeft, so the pencil is the link's own
+                  child. */}
               {picked && (
-                <Text variant="caption" as="p">
-                  <InlineLink href={documentHref(picked.documentId)}>Edit in Documents</InlineLink>
-                </Text>
+                <Box>
+                  <Button asChild variant="tertiary" size="md">
+                    <a href={documentHref(picked.documentId)}>
+                      <Icon icon={Pencil} />
+                      Edit in Documents
+                    </a>
+                  </Button>
+                </Box>
               )}
             </Stack>
           </Stack>
         )}
         {/* One primary (rev-3 A); the header X closes the sheet. */}
         <Dialog.Footer>
-          <Button variant="primary" onClick={copy} disabled={!picked}>
-            {copied ? 'Copied' : 'Copy'}
-          </Button>
+          {/* Rule A, as in Follow up: one full-width primary (Copy message); Edit in Documents is
+              the caption row under the Preview, and the dialog's X is the one Close. Bottom
+              padding keeps the last control off the sheet edge. */}
+          <Box sx={{ flex: '1 1 auto', pb: 'md', display: 'flex', '& > *': { flex: '1 1 0%' } }}>
+            <Button
+              variant="primary"
+              iconLeft={<Icon icon={copied ? Check : Copy} />}
+              onClick={copy}
+              disabled={!picked}
+            >
+              {copied ? 'Copied' : 'Copy message'}
+            </Button>
+          </Box>
         </Dialog.Footer>
       </Dialog.Content>
     </Dialog>

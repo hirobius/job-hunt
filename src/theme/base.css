@@ -69,12 +69,44 @@ p {
 /* Phone touch targets (#133): HDS's sm controls (segmented tool strip, tabs, chips, disclosure
  * triggers) are 18-39px tall. Raise every button to 40px on a phone; the e2e probe holds it.
  * Upstream ask: a touch size for these controls (hds#750). */
-@media (max-width: 600px) {
+@media (max-width: 639px) {
+  /* HDS raises .h-10/.h-9/.h-8 to 44px under 639px: button-styled links (Button asChild) and
+   * inputs come down to 40 with the buttons, so a row of actions or a field + Fill line up. */
   [data-hds] button,
+  [data-hds] a.h-10,
+  [data-hds] a.h-9,
+  [data-hds] a.h-8,
+  [data-hds] input,
   [data-hds] [role='tab'],
   [data-hds] [role='radio'] {
     min-height: var(--primitive-space-10);
   }
+}
+
+/* Apply mode pager (rev-3 E): HDS Pagination compact draws borderless 44x40 tertiaries, and its
+ * disabled tertiary picks up the primary's disabled fill (a grey tile). Mock: bordered 40x40 icon
+ * buttons both sides of "1 of N", disabled just faded. Upstream ask: docs/hds-upstream-asks-0.9.md. */
+[data-hds] nav[aria-label='Jobs to apply'] button {
+  min-width: var(--primitive-space-10);
+  min-height: var(--primitive-space-10);
+  border: thin solid var(--semantic-color-border-default);
+}
+[data-hds] nav[aria-label='Jobs to apply'] button:disabled {
+  background: transparent;
+  opacity: 0.5;
+}
+
+/* The blank's fill field (rev-3 A): on the page surface, the input's own surface, as in the mock,
+ * so in dark the input doesn't read as a hole in a raised card. */
+.rjb-fillbox {
+  background: var(--semantic-color-surface-page);
+}
+
+/* "N blanks left": the warning icon inside the toned text, 4px from the words. */
+.rjb-blanks-left {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--primitive-space-1);
 }
 
 /* Reduced motion (#133): the app's own transitions and HDS's settle at once; Spinner and Skeleton
@@ -125,7 +157,7 @@ p {
   vertical-align: middle;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 639px) {
   .rjb-blank {
     margin-block: calc((1lh - var(--primitive-space-10)) / 2);
   }
