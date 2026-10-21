@@ -412,3 +412,21 @@ p {
 .rjb-disclosure-vertical button[aria-expanded='true'] > span[aria-hidden='true'] {
   transform: rotate(180deg) !important;
 }
+
+/* Message dialogs (Follow up, Use template; rev-3 A): one chrome for both. HDS Dialog.Content has
+ * no size prop and insets by the compact scale step (12px at 390); these take the page's 16px phone
+ * gutter, and only the body scrolls, so the title and the footer's Copy message stay on screen.
+ * The 2px inline padding keeps focus rings inside the scroll box. Upstream ask: a size / scroll-body
+ * option on Dialog.Content (docs/hds-upstream-asks-0.9.md). */
+[data-hds] .rjb-dialog {
+  width: calc(100% - 2 * var(--semantic-space-fixed-sm));
+  max-height: calc(100dvh - 2 * var(--semantic-space-fixed-sm));
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+.rjb-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: calc(var(--primitive-space-1) / 2);
+  margin: calc(var(--primitive-space-1) / -2);
+}

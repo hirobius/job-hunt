@@ -128,7 +128,11 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     expect(dialog).toHaveTextContent('the UX Researcher role at Bramble & Finch');
     // Its blanks are chips that fill in place (rev-3 A); Edit message opens the whole text.
     expect(within(dialog).getByRole('button', { name: 'Fill Contact' })).toBeInTheDocument();
-    await user.click(within(dialog).getByRole('button', { name: 'Edit message' }));
+    // Edit message is the message card's last row, with a pencil, as in Use template.
+    const edit = within(dialog).getByRole('button', { name: 'Edit message' });
+    expect(within(dialog).getByRole('region', { name: 'Preview' }).contains(edit)).toBe(true);
+    expect(edit.querySelector('svg')).not.toBeNull();
+    await user.click(edit);
     const message = within(dialog).getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement;
     expect(message.value).toContain('Hi [Contact]');
   });

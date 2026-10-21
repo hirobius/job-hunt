@@ -110,6 +110,14 @@ export function savedAgo(job: Job, now: Date = new Date()): string {
   return d <= 0 ? 'Saved today' : `Saved ${d} ${d === 1 ? 'day' : 'days'} ago`;
 }
 
+/** The date that matters now, for a meta line (rev-3 B): "Applied today" / "Applied N days ago"
+ *  once a job is past Saved, else (or with no applied date) how long ago it was saved. */
+export function statusAgo(job: Job, now: Date = new Date()): string {
+  const d = normStatus(job.status) === 'Saved' ? null : daysSince(job.applied, now);
+  if (d == null) return savedAgo(job, now);
+  return d <= 0 ? 'Applied today' : `Applied ${d} ${d === 1 ? 'day' : 'days'} ago`;
+}
+
 /**
  * Apply a status transition. Stamps `applied` on first entry to Applied, and appends a dated
  * entry to `history` only when the status actually changes.

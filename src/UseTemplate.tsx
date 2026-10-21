@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, FileText, Pencil } from 'lucide-react';
-import { Box, Button, Dialog, Icon, Card, Stack, Text, useToast } from '@hirobius/design-system';
+import {
+  Box,
+  Button,
+  Dialog,
+  Icon,
+  Card,
+  Tag,
+  Stack,
+  Text,
+  useToast,
+} from '@hirobius/design-system';
 import { documentHref, useOutreachTemplates } from './outreachTemplates';
 import { fillSnippet } from './templateFill';
 import BlankText from './BlankText';
@@ -49,67 +59,70 @@ export default function UseTemplate({ job }: { job: Job }) {
           Use template
         </Button>
       </Dialog.Trigger>
-      <Dialog.Content
-        style={{ width: '100%', maxWidth: 600, maxHeight: '85vh', overflowY: 'auto' }}
-      >
+      {/* HDS Dialog sizing, the page's 16px gutter at 390 and a scrolling body under a pinned
+          header and footer: the shared rjb-dialog classes, the same as Follow up. */}
+      <Dialog.Content className="rjb-dialog">
         <Dialog.Header>
           <Dialog.Title>Use a template</Dialog.Title>
           <Dialog.Description>
             Pick a message to fill in with this job's details, then copy it.
           </Dialog.Description>
         </Dialog.Header>
-        {ordered.length === 0 ? (
-          <Text variant="caption" as="p" tone="secondary">
-            No outreach messages yet. Write one in Documents first.
-          </Text>
-        ) : (
-          <Stack gap="medium">
-            <div role="group" aria-label="Templates">
-              <Stack direction="row" gap="px8" wrap="wrap">
-                {ordered.map((s) => (
-                  <Button
-                    key={s.id}
-                    size="sm"
-                    variant={s.id === picked?.id ? 'primary' : 'secondary'}
-                    aria-pressed={s.id === picked?.id}
-                    onClick={() => {
-                      setPickedId(s.id);
-                      setCopied(false);
-                    }}
-                  >
-                    {s.label}
-                  </Button>
-                ))}
-              </Stack>
-            </div>
-            {/* The filled message with its blanks as chips that fill in place (rev-3 A), then
-                "N blanks left"; Copy still works. */}
-            <Stack gap="px8">
+        <div className="rjb-dialog-body">
+          {ordered.length === 0 ? (
+            <Text variant="caption" as="p" tone="secondary">
+              No outreach messages yet. Write one in Documents first.
+            </Text>
+          ) : (
+            <Stack gap="normal">
+              {/* The messages as HDS toggle chips (Tag: aria-pressed, the active pill marks the
+                  pick), pinned first as outreachTemplates orders them. Never a primary, so Copy
+                  message stays the one (rev-3 A). A Menu isn't used here: HDS Menu and Dialog
+                  carry separate Radix layer copies, so a menu in the dialog closes both on Escape. */}
+              <div role="group" aria-label="Templates">
+                <Stack direction="row" gap="px8" wrap="wrap">
+                  {ordered.map((s) => (
+                    <Tag
+                      key={s.id}
+                      active={s.id === picked?.id}
+                      onClick={() => {
+                        setPickedId(s.id);
+                        setCopied(false);
+                      }}
+                    >
+                      {s.label}
+                    </Tag>
+                  ))}
+                </Stack>
+              </div>
+              {/* The filled message with its blanks as chips that fill in place (rev-3 A), then
+                  "N blanks left" and Edit message as the card's last row; Copy still works. */}
               <Card bordered padding="px16" role="region" aria-label="Preview">
-                <BlankText text={filled} job={job} documentId={picked?.documentId} />
+                <BlankText
+                  text={filled}
+                  job={job}
+                  documentId={picked?.documentId}
+                  trailing={
+                    picked && (
+                      // HDS Button asChild drops iconLeft, so the pencil is the link's own child.
+                      <Button asChild variant="tertiary" size="md">
+                        <a href={documentHref(picked.documentId)}>
+                          <Icon icon={Pencil} />
+                          Edit message
+                        </a>
+                      </Button>
+                    )
+                  }
+                />
               </Card>
-              {/* Under the Preview, out of the footer so the sheet never clips it: a 40px tertiary
-                  with a pencil. HDS Button asChild drops iconLeft, so the pencil is the link's own
-                  child. */}
-              {picked && (
-                <Box>
-                  <Button asChild variant="tertiary" size="md">
-                    <a href={documentHref(picked.documentId)}>
-                      <Icon icon={Pencil} />
-                      Edit in Documents
-                    </a>
-                  </Button>
-                </Box>
-              )}
             </Stack>
-          </Stack>
-        )}
+          )}
+        </div>
         {/* One primary (rev-3 A); the header X closes the sheet. */}
         <Dialog.Footer>
-          {/* Rule A, as in Follow up: one full-width primary (Copy message); Edit in Documents is
-              the caption row under the Preview, and the dialog's X is the one Close. Bottom
-              padding keeps the last control off the sheet edge. */}
-          <Box sx={{ flex: '1 1 auto', pb: 'md', display: 'flex', '& > *': { flex: '1 1 0%' } }}>
+          {/* Rule A, as in Follow up: one full-width primary (Copy message), pinned under the
+              scrolling body; the dialog's X is the one Close. */}
+          <Box sx={{ flex: '1 1 auto', display: 'flex', '& > *': { flex: '1 1 0%' } }}>
             <Button
               variant="primary"
               iconLeft={<Icon icon={copied ? Check : Copy} />}

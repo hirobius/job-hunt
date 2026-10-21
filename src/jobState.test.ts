@@ -9,6 +9,7 @@ import {
   normSnooze,
   snoozeFollowUp,
   SNOOZE_DAYS,
+  statusAgo,
 } from './jobState';
 import type { Job } from './types';
 
@@ -219,5 +220,34 @@ describe('daysSince — a bare date is a local calendar day', () => {
   it('counts whole local days, not UTC-midnight offsets', () => {
     expect(daysSince('2026-10-05', new Date(2026, 9, 11, 23, 59))).toBe(6);
     expect(daysSince('2026-10-05', new Date(2026, 9, 12, 0, 0))).toBe(7);
+  });
+});
+
+// rev-3 B: Apply mode's meta line is company · location · the date that matters now.
+describe('statusAgo', () => {
+  it('says how long ago a Saved job was saved', () => {
+    expect(statusAgo(job({ history: [{ status: 'Saved', at: daysAgo(2) }] }), NOW)).toBe(
+      'Saved 2 days ago',
+    );
+  });
+  it('says when a job past Saved was applied to, the way the Pipeline writes it', () => {
+    const saved = [{ status: 'Saved' as const, at: daysAgo(2) }];
+    expect(statusAgo(job({ status: 'Applied', applied: TODAY, history: saved }), NOW)).toBe(
+      'Applied today',
+    );
+    expect(
+      statusAgo(
+        job({ status: 'Interviewing', applied: daysAgo(1).slice(0, 10), history: saved }),
+        NOW,
+      ),
+    ).toBe('Applied 1 day ago');
+    expect(
+      statusAgo(job({ status: 'Applied', applied: daysAgo(5).slice(0, 10), history: saved }), NOW),
+    ).toBe('Applied 5 days ago');
+  });
+  it('falls back to the saved date when a job past Saved has no applied date', () => {
+    expect(
+      statusAgo(job({ status: 'Applied', history: [{ status: 'Saved', at: daysAgo(3) }] }), NOW),
+    ).toBe('Saved 3 days ago');
   });
 });

@@ -31,6 +31,11 @@ beforeEach(() => setOutreachMessages(SNIPS));
 afterEach(cleanup);
 
 describe('UseTemplate', () => {
+  // The messages are toggle chips; the picked one is pressed (rev-3 A: Copy message is the only
+  // primary).
+  const pick = (user: ReturnType<typeof userEvent.setup>, name: string) =>
+    user.click(screen.getByRole('button', { name }));
+
   it('opens, picks a template, previews the job company and copies', async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
@@ -41,7 +46,15 @@ describe('UseTemplate', () => {
       'aria-pressed',
       'true',
     );
-    await user.click(screen.getByRole('button', { name: 'Plain note' }));
+    await pick(user, 'Plain note');
+    expect(screen.getByRole('button', { name: 'Plain note' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Pinned note' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     const preview = screen.getByRole('region', { name: 'Preview' });
     expect(preview).toHaveTextContent('about Fabricator at Acme Metals');
     // The blank is a chip that fills in place (rev-3 A), counted under the text.
@@ -54,39 +67,48 @@ describe('UseTemplate', () => {
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
   });
 
+  it('lists the messages pinned first, as chips that are never a primary', async () => {
+    const user = userEvent.setup();
+    wrap();
+    await user.click(screen.getByRole('button', { name: 'Use template' }));
+    const group = screen.getByRole('group', { name: 'Templates' });
+    const chips = within(group).getAllByRole('button');
+    expect(chips.map((c) => c.textContent)).toEqual(['Pinned note', 'Plain note']);
+    for (const c of chips) expect(c).not.toHaveAttribute('data-variant', 'primary');
+  });
+
   it('links to the picked message in Documents (#132, #227)', async () => {
     const user = userEvent.setup();
     wrap();
     await user.click(screen.getByRole('button', { name: 'Use template' }));
-    expect(screen.getByRole('link', { name: 'Edit in Documents' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Edit message' })).toHaveAttribute(
       'href',
       '#/copy-deck/snippet-b',
     );
     // A 40px tertiary button with a pencil, not a 24px inline link.
-    expect(
-      screen.getByRole('link', { name: 'Edit in Documents' }).querySelector('svg'),
-    ).not.toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Plain note' }));
-    expect(screen.getByRole('link', { name: 'Edit in Documents' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Edit message' }).querySelector('svg')).not.toBeNull();
+    await pick(user, 'Plain note');
+    expect(screen.getByRole('link', { name: 'Edit message' })).toHaveAttribute(
       'href',
       '#/copy-deck/snippet-a',
     );
   });
 
-  it('Copy is the one primary; Edit in Documents sits under the Preview, not in the footer (rev-3 A)', async () => {
+  it("Copy is the one primary; Edit message is the Preview card's last row (rev-3 A)", async () => {
     const user = userEvent.setup();
     wrap();
     await user.click(screen.getByRole('button', { name: 'Use template' }));
     const copy = screen.getByRole('button', { name: 'Copy message' });
     expect(copy).toHaveAttribute('data-variant', 'primary');
     const dialog = screen.getByRole('dialog');
+    // The picker is never a primary: Copy message is the only one in the dialog.
+    expect(dialog.querySelectorAll('[data-variant="primary"]')).toHaveLength(1);
     expect(within(dialog).queryAllByRole('button', { name: 'Close' }).length).toBeLessThanOrEqual(
       1,
     );
-    const link = screen.getByRole('link', { name: 'Edit in Documents' });
-    expect(link.parentElement?.contains(copy)).toBe(false);
+    const link = screen.getByRole('link', { name: 'Edit message' });
     const preview = screen.getByRole('region', { name: 'Preview' });
-    expect(preview.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(preview.contains(link)).toBe(true);
     expect(link.compareDocumentPosition(copy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
