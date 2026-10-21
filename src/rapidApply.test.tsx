@@ -86,6 +86,8 @@ describe('To apply queue and Apply mode', () => {
     renderApp();
     // Empty fields wait behind one "Fill in N more" row.
     await user.click(await screen.findByRole('button', { name: /^Fill in \d+ more/ }));
+    // A labelled secondary "Add" (rev-3 mock), named for its field.
+    expect(screen.getByRole('button', { name: 'Add Name' })).toHaveTextContent('Add');
     await user.click(screen.getByRole('button', { name: 'Add Name' }));
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Sam Placeholder');
     await user.click(screen.getByRole('button', { name: 'Done' }));
@@ -104,7 +106,13 @@ describe('To apply queue and Apply mode', () => {
     expect(within(pager).getByRole('button', { name: 'Previous page' })).toBeDisabled();
     await user.click(await screen.findByRole('button', { name: 'Mark applied' }));
     expect(findJobByUrl(A)?.status).toBe('Applied');
-    expect(screen.getByText(/Follow up on \d{4}-\d{2}-\d{2}/)).toBeInTheDocument();
+    // A short title, the company in the body, and the date as the Pipeline writes it (no ISO).
+    const note = screen.getByText(
+      /Follow up on (Today|Tomorrow|[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2})\./,
+    );
+    const alert = note.closest('.rjb-inline-alerts') as HTMLElement;
+    expect(within(alert).getByText('Applied')).toBeInTheDocument();
+    expect(screen.queryByText(/\d{4}-\d{2}-\d{2}/)).toBeNull();
     // The applied job holds its place, so the pager still reads 1 of 3.
     expect(within(pager).getByText('1 of 3')).toBeInTheDocument();
     await user.click(within(pager).getByRole('button', { name: 'Next page' }));

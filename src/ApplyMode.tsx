@@ -33,6 +33,7 @@ import { openApply, openJob } from './route';
 import { titleOf } from './jobRow';
 import { toApplyQueue } from './applyQueue';
 import { followUpDate } from './jobEvents';
+import { dayLabel } from './dayLabel';
 import {
   KIT_FIELDS,
   addAnswer,
@@ -166,11 +167,19 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
             </Button>
           </Box>
         ) : (
-          <Alert tone="success" title={`Applied${company ? ` to ${company}` : ''}`}>
-            {dueOn
-              ? `It's under Follow up in the Pipeline. Follow up on ${dueOn}.`
-              : "It's under Follow up in the Pipeline."}
-          </Alert>
+          // A short title (the body step inside .rjb-inline-alerts); the company and the date,
+          // written as the Pipeline writes it, go in the body.
+          <Box className="rjb-inline-alerts">
+            <Alert tone="success" title="Applied">
+              {[
+                company ? `Applied to ${company}.` : '',
+                "It's under Follow up in the Pipeline.",
+                dueOn ? `Follow up on ${dayLabel(dueOn, new Date())}.` : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            </Alert>
+          </Box>
         )}
         {job.status !== 'Saved' && !next && (
           <Box>
@@ -272,17 +281,18 @@ function CopyRow({
             </Text>
           </Box>
           <Stack direction="row" gap="tight" align="center">
+            {/* A labelled secondary (rev-3 mock: "Add"), named for its field. */}
             <Button
-              size="md"
-              variant="tertiary"
-              iconOnly
-              iconLeft={<Icon icon={value ? Pencil : Plus} />}
-              label={`${value ? 'Edit' : 'Add'} ${label}`}
+              size="sm"
+              variant="secondary"
+              aria-label={`${value ? 'Edit' : 'Add'} ${label}`}
               onClick={() => {
                 setDraft(value);
                 setEditing(true);
               }}
-            />
+            >
+              {value ? 'Edit' : 'Add'}
+            </Button>
             {value && <CopyButton label={label} value={value} />}
           </Stack>
         </Stack>
@@ -364,22 +374,18 @@ function ApplyTemplates({ job }: { job: Job }) {
               Documents. */}
           {rows.map((r) => (
             <Box as="li" key={r.id} aria-label={r.label} sx={{ py: 'xs' }}>
-              <Stack direction="row" gap="tight" align="center" justify="space-between">
-                <Box sx={{ minWidth: 0, flex: '1 1 0%' }}>
-                  <Stack gap="px4">
-                    <Text variant="ui" as="p" className="rjb-semibold">
-                      {r.label}
-                    </Text>
-                    <BlankText
-                      preview
-                      text={r.text}
-                      job={job}
-                      documentId={snippets.find((s) => s.id === r.id)?.documentId}
-                    />
-                  </Stack>
-                </Box>
-                <CopyButton label={r.label} value={r.text} />
-              </Stack>
+              <BlankText
+                preview
+                text={r.text}
+                job={job}
+                documentId={snippets.find((s) => s.id === r.id)?.documentId}
+                head={
+                  <Text variant="ui" as="p" className="rjb-semibold">
+                    {r.label}
+                  </Text>
+                }
+                action={<CopyButton label={r.label} value={r.text} />}
+              />
             </Box>
           ))}
         </Rows>
@@ -402,10 +408,9 @@ function ApplicationKit({ job }: { job: Job }) {
   };
   const have = KIT_FIELDS.filter((f) => kit.fields[f.key]);
   const missing = KIT_FIELDS.filter((f) => !kit.fields[f.key]);
-  const fieldRow = (f: (typeof KIT_FIELDS)[number], as: 'li' | 'div' = 'li') => (
+  const fieldRow = (f: (typeof KIT_FIELDS)[number]) => (
     <CopyRow
       key={f.key}
-      as={as}
       label={f.label}
       value={kit.fields[f.key] ?? ''}
       onSave={(v) => setKitField(f.key, v)}
@@ -431,7 +436,15 @@ function ApplicationKit({ job }: { job: Job }) {
             label={`Fill in ${missing.length} more`}
             preview={missing.map((f) => f.label).join(', ')}
           >
-            <Box>{missing.map((f) => fieldRow(f, 'div'))}</Box>
+            {/* Nested rows split by hairlines, like the panel's own rows. */}
+            <Box
+              as="ul"
+              aria-label="More fields"
+              sx={{ listStyle: 'none', m: 0, p: 0 }}
+              className="rjb-rows"
+            >
+              {missing.map((f) => fieldRow(f))}
+            </Box>
           </DisclosureItem>
         )}
         {(

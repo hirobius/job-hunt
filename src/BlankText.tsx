@@ -3,7 +3,7 @@
 // button that opens one small field under the text, and Fill saves the value where the editor's
 // Variables panel would (fillBlank: the job's four fields on the job, the rest on the message), so
 // the text refills at once. "N blanks left" says what is still open; Copy still works.
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { TriangleAlert } from 'lucide-react';
 import {
   Box,
@@ -62,12 +62,11 @@ export function BlanksLeft({ text }: { text: string }) {
   const n = splitVariables(text).filter((p) => p.kind === 'var').length;
   if (!n) return null;
   return (
-    <Stack direction="row" gap="px4" align="center">
+    // The icon sits inside the toned text, so currentColor gives it the warning colour too.
+    <Text variant="caption" as="span" tone="warning" className="rjb-blanks-left">
       <Icon icon={TriangleAlert} size="small" />
-      <Text variant="caption" as="span" tone="warning">
-        {blanksLeft(n)}
-      </Text>
-    </Stack>
+      {blanksLeft(n)}
+    </Text>
   );
 }
 
@@ -77,6 +76,8 @@ export default function BlankText({
   job,
   documentId,
   preview = false,
+  head,
+  action,
 }: {
   text: string;
   job?: Job;
@@ -85,6 +86,11 @@ export default function BlankText({
   /** A row's preview (rev-3 review): the start of the text, three lines at most. Its blanks
    *  still fill in place, and "N blanks left" counts the whole text. */
   preview?: boolean;
+  /** A row's name, above the text. */
+  head?: ReactNode;
+  /** A row's action (Copy), kept on the first line beside the text. The fill field and
+   *  "N blanks left" come after the row at full width (rev-3 A), not squeezed beside it. */
+  action?: ReactNode;
 }) {
   const [picked, setPicked] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -94,22 +100,44 @@ export default function BlankText({
     setDraft('');
   };
   const fill = () => {
+    // Fill stays enabled (rev-3 A: a quiet secondary) and ignores an empty value.
     if (!job || !documentId || !picked || !draft.trim()) return;
     fillBlank(picked, draft, job, documentId);
     setPicked(null);
     setDraft('');
   };
+  const body = (
+    <Text variant="ui" as="p" className={preview ? 'rjb-clamp-3' : 'rjb-prewrap'}>
+      <WithChips
+        text={preview ? previewText(text) : text}
+        onPick={fillable ? pick : undefined}
+        picked={picked}
+      />
+    </Text>
+  );
   return (
     <Stack gap="tight">
-      <Text variant="ui" as="p" className={preview ? 'rjb-clamp-3' : 'rjb-prewrap'}>
-        <WithChips
-          text={preview ? previewText(text) : text}
-          onPick={fillable ? pick : undefined}
-          picked={picked}
-        />
-      </Text>
+      {head || action ? (
+        <Stack direction="row" gap="tight" align="start" justify="space-between">
+          <Box sx={{ minWidth: 0, flex: '1 1 0%' }}>
+            <Stack gap="px4">
+              {head}
+              {body}
+            </Stack>
+          </Box>
+          {action}
+        </Stack>
+      ) : (
+        body
+      )}
       {fillable && picked && (
-        <Card bordered padding="px16" role="group" aria-label={`Fill ${picked}`}>
+        <Card
+          bordered
+          padding="px16"
+          className="rjb-fillbox"
+          role="group"
+          aria-label={`Fill ${picked}`}
+        >
           <Stack gap="px8">
             <Stack direction="row" gap="px8" align="end">
               <Box
@@ -126,7 +154,7 @@ export default function BlankText({
                   }}
                 />
               </Box>
-              <Button variant="secondary" size="md" disabled={!draft.trim()} onClick={fill}>
+              <Button variant="secondary" size="md" onClick={fill}>
                 Fill
               </Button>
             </Stack>

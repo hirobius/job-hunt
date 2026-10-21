@@ -1,15 +1,6 @@
 import { useEffect, useState } from 'react';
-import { FileText } from 'lucide-react';
-import {
-  Button,
-  Dialog,
-  Icon,
-  InlineLink,
-  Card,
-  Stack,
-  Text,
-  useToast,
-} from '@hirobius/design-system';
+import { Check, Copy, FileText, Pencil } from 'lucide-react';
+import { Box, Button, Dialog, Icon, Card, Stack, Text, useToast } from '@hirobius/design-system';
 import { documentHref, useOutreachTemplates } from './outreachTemplates';
 import { fillSnippet } from './templateFill';
 import BlankText from './BlankText';
@@ -99,15 +90,34 @@ export default function UseTemplate({ job }: { job: Job }) {
           </Stack>
         )}
         <Dialog.Footer>
-          {picked && (
-            <InlineLink href={documentHref(picked.documentId)}>Edit in Documents</InlineLink>
-          )}
-          <Dialog.Close asChild>
-            <Button variant="secondary">Close</Button>
-          </Dialog.Close>
-          <Button onClick={copy} disabled={!picked}>
-            {copied ? 'Copied' : 'Copy'}
-          </Button>
+          {/* Rule A, as in Follow up: one full-width primary (Copy message), Edit in Documents as
+              a 40px tertiary above it; the dialog's X is the one Close. Bottom padding keeps the
+              last control off the sheet edge. */}
+          <Box sx={{ flex: '1 1 auto', pb: 'md' }}>
+            <Stack gap="tight">
+              {picked && (
+                <Box>
+                  {/* HDS Button asChild drops iconLeft, so the pencil is the link's own child. */}
+                  <Button asChild variant="tertiary" size="md">
+                    <a href={documentHref(picked.documentId)}>
+                      <Icon icon={Pencil} />
+                      Edit in Documents
+                    </a>
+                  </Button>
+                </Box>
+              )}
+              <Box sx={{ display: 'flex', '& > *': { flex: '1 1 0%' } }}>
+                <Button
+                  variant="primary"
+                  iconLeft={<Icon icon={copied ? Check : Copy} />}
+                  onClick={copy}
+                  disabled={!picked}
+                >
+                  {copied ? 'Copied' : 'Copy message'}
+                </Button>
+              </Box>
+            </Stack>
+          </Box>
         </Dialog.Footer>
       </Dialog.Content>
     </Dialog>

@@ -27,7 +27,8 @@ describe('BlankText', () => {
   it('shows blanks as chips and how many are left', () => {
     render(<BlankText text="Hi [Contact], at [Pet]" />);
     expect(screen.getByText('Contact')).toHaveClass('rjb-chip');
-    expect(screen.getByText('2 blanks left')).toBeInTheDocument();
+    // The warning icon sits inside the warning-toned text, so currentColor tints it.
+    expect(screen.getByText('2 blanks left').querySelector('svg')).not.toBeNull();
     // Read-only without a job: no button to fill.
     expect(screen.queryByRole('button', { name: 'Fill Contact' })).toBeNull();
   });
@@ -58,6 +59,10 @@ describe('BlankText', () => {
     render(<BlankText text="Hi [Pet]" job={job()} documentId={id} />);
     await userEvent.click(screen.getByRole('button', { name: 'Fill Pet' }));
     expect(screen.getByText(/Saves on this message/)).toBeInTheDocument();
+    // Fill is always enabled (rev-3 A) and ignores an empty value.
+    expect(screen.getByRole('button', { name: 'Fill' })).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Fill' }));
+    expect(getAllDocuments().find((d) => d.id === id)?.values ?? {}).toEqual({});
     await userEvent.type(screen.getByRole('textbox', { name: 'Pet' }), 'Rex');
     await userEvent.click(screen.getByRole('button', { name: 'Fill' }));
     expect(getAllDocuments().find((d) => d.id === id)?.values).toEqual({ pet: 'Rex' });

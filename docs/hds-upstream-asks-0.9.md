@@ -19,6 +19,8 @@ the HDS fix out and wait for their screen's redesign slice to migrate.
 | Dark pressed accent contrast    | held pair in `src/theme.contrast.test.ts`                            | _shipped_ 0.27: AA on the dark pressed accent                                                          | hds#748          |
 | EmptyState italic + centred     | `src/hds-gaps/EmptyState.tsx` (every app empty state imports it)     | a non-italic EmptyState title, and a centred teaching variant (icon tile, bold title, framed)          | to file          |
 | Alert title size in a panel     | `.rjb-inline-alerts` in `src/theme/base.css` (Live postings)         | an Alert `size` (its titleSm title reads as a page head and wraps at 390)                              | to file          |
+| Apply pager size + disabled     | `nav[aria-label='Jobs to apply']` in `base.css` (`ApplyMode`)        | a bordered 40x40 compact Pagination button; a disabled tertiary without the grey primary fill          | to file          |
+| Fill field surface (rev-3 A)    | `.rjb-fillbox` in `src/theme/base.css` (`BlankText.tsx`)             | a page-surface Card, so an input in a card in a raised panel isn't a dark hole                         | to file          |
 
 ## Retired
 

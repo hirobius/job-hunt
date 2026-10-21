@@ -14,8 +14,8 @@ import {
   KIND_WORD,
   UPCOMING_DAYS,
   upcomingEvents,
-  ymd,
 } from './jobEvents';
+import { dayLabel } from './dayLabel';
 import { jobIdOf } from './store';
 import { jobHash } from './route';
 import { titleOf } from './jobRow';
@@ -24,19 +24,6 @@ import type { Job } from './types';
 
 const jobHref = (url: string) => jobHash(jobIdOf(url));
 const days = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`;
-
-/** "Today", "Tomorrow", else "Fri, Oct 16". */
-function dayLabel(date: string, now: Date) {
-  if (date === ymd(now)) return 'Today';
-  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  if (date === ymd(tomorrow)) return 'Tomorrow';
-  const [y, m, d] = date.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-}
 
 /** When the clock last started: the last follow-up, else the application. */
 function sinceNote(job: Job, now: Date) {
