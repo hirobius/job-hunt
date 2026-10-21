@@ -349,3 +349,21 @@ p {
   width: min(22rem, calc(100vw - 2 * var(--primitive-space-4)));
   padding: var(--primitive-space-4);
 }
+
+/* A chip with a leading icon (the sweep's matched title on an opening row, rev-3 K). */
+.rjb-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--semantic-space-subgrid-gap);
+}
+
+/* A row Disclosure that opens downward (rev-3 mock: Calibrate, Refine): the chevron points down
+ * when closed and up when open. HDS's row variant turns it right (-90deg) when closed, set inline,
+ * so this has to win over the inline transform. Upstream ask: a chevron direction on Disclosure
+ * variant="row" (HDS gap registry, "Vertical row chevron"). */
+.rjb-disclosure-vertical button[aria-expanded] > span[aria-hidden='true'] {
+  transform: rotate(0deg) !important;
+}
+.rjb-disclosure-vertical button[aria-expanded='true'] > span[aria-hidden='true'] {
+  transform: rotate(180deg) !important;
+}

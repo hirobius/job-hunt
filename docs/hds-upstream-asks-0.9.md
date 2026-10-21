@@ -30,6 +30,7 @@ the HDS fix out and wait for their screen's redesign slice to migrate.
 | Disclosure row hover/press (rev-3 M) | `.rjb-doc-row` in `src/theme/base.css` (`DocumentsLibrary.tsx`)                                     | a hover and pressed background on `Disclosure variant="row"`, so the whole row reads as tappable                                                                                | to file          |
 | Dialog title/description gap         | `[role='alertdialog'] h2 + p` in `src/theme/base.css`                                               | the header's `space-y-1.5` loses to a host's unlayered `h2, p { margin: 0 }`; a gap (or a layered reset) that survives it. Also: the 24px title is heavier than the mock's 20px | to file          |
 | Back link aligned to the heading     | `.rjb-back` in `src/theme/base.css` (`DocumentsView`, `DocumentEditor`, `CompanyPage`, `JobHeader`) | a flush / inline tertiary Button (no inline padding), so a back link's icon lines up with the page heading                                                                      | to file          |
+| Vertical row chevron (rev-3)    | `.rjb-disclosure-vertical` in `src/theme/base.css` (`LiveFeedPanel`, `FeedFit`) | a chevron direction on `Disclosure variant="row"` (down when closed, up when open; it turns right)     | to file          |
 
 ## Retired
 

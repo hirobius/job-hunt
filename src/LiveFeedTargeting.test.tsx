@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import type { FeedResult } from './feed/fetchFeed';
@@ -73,7 +73,10 @@ const renderPanel = () =>
     </ToastProvider>,
   );
 
-const titles = () => screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+const titles = () =>
+  within(screen.getByRole('list', { name: 'Live postings' }))
+    .getAllByRole('heading', { level: 3 })
+    .map((h) => h.textContent);
 
 describe('search targeting in the panel', () => {
   it('excludes a term and says how many it hid', async () => {

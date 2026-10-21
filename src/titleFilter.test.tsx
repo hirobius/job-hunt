@@ -96,7 +96,7 @@ describe('Calibrate: the ticked titles', () => {
     expect(getAllSweeps()[cat].off).toEqual(['design engineer']);
     expect(within(list).queryByRole('heading', { name: /^Design Engineer/ })).toBeNull();
     expect(within(list).getByRole('heading', { name: /^Product Designer/ })).toBeVisible();
-    expect(screen.getByText('1 hidden by titles')).toBeInTheDocument();
+    expect(screen.getByText(/1 hidden by titles/)).toBeInTheDocument();
   });
 
   it('the ATS tool and the big-board links search only the ticked titles', async () => {
