@@ -34,6 +34,7 @@ import { EmptyState } from './hds-gaps/EmptyState';
 import {
   Banknote,
   Calendar,
+  Check,
   Ellipsis,
   FileSignature,
   MapPin,
@@ -489,7 +490,7 @@ export default function LiveFeedPanel({
       <PartialRow
         errors={errors}
         retrying={errors.some((e) => retrying.includes(e.key))}
-        onRetry={() => retrySources(errors.map((e) => e.key))}
+        onRetry={() => retrySources(errors.filter((e) => !isBudgetSpent(e)).map((e) => e.key))}
       />
     ) : null;
 
@@ -735,7 +736,8 @@ export default function LiveFeedPanel({
                 sx={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: 'xs',
+                  columnGap: 'xs',
+                  rowGap: 'sm',
                   alignItems: 'flex-end',
                 }}
               >
@@ -784,11 +786,19 @@ export default function LiveFeedPanel({
                   Saved searches
                 </Text>
                 {!sweeping && (
-                  <Stack direction="row" gap="px8" align="center">
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 'xs',
+                      alignItems: 'center',
+                      maxWidth: 'var(--semantic-layout-width-content)',
+                    }}
+                  >
                     <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%' } }}>
                       <HdsInput
                         size="md"
                         aria-label="Name this search"
+                        placeholder="Name this search"
                         value={saveName}
                         onChange={(e) => setSaveName(e.target.value)}
                       />
@@ -801,7 +811,7 @@ export default function LiveFeedPanel({
                     >
                       Save search
                     </Button>
-                  </Stack>
+                  </Box>
                 )}
                 {saved.length > 0 ? (
                   <Stack
@@ -1008,6 +1018,11 @@ function namesOf(labels: string[]): string {
   return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
 }
 
+/** Remotive's per-browser daily budget is spent (fetchFeed's describeError wording). */
+function isBudgetSpent(e: { error?: string }): boolean {
+  return !!e.error?.includes('daily limit reached');
+}
+
 /** The first row of Openings when some sources failed (rev-3 mock "Partial"): one line of what
  *  failed and one Retry for all of them. A single failure says why, in the source's own words. */
 function PartialRow({
@@ -1019,12 +1034,19 @@ function PartialRow({
   retrying: boolean;
   onRetry: () => void;
 }) {
-  const n = errors.length;
+  // A sweep reads a source once per title ("Remotive · “Designer”"): count and name each once.
+  const sourceOf = (e: { label: string }) => e.label.split(' · ')[0];
+  const names = [...new Set(errors.map(sourceOf))];
+  const n = names.length;
+  // Remotive's daily budget is spent: a Retry cannot succeed, so it gets its own words and none.
+  const spent = [...new Set(errors.filter(isBudgetSpent).map(sourceOf))];
+  const canRetry = errors.some((e) => !isBudgetSpent(e));
   const detail =
-    n === 1 && errors[0].error
-      ? errors[0].error
-      : // A sweep reads a source once per title ("Remotive · “Designer”"): name each source once.
-        `${namesOf([...new Set(errors.map((e) => e.label.split(' · ')[0]))])}.`;
+    spent.length === n
+      ? `${namesOf(spent)}: daily limit reached, back tomorrow.`
+      : n === 1 && errors.length === 1 && errors[0].error
+        ? errors[0].error
+        : `${namesOf(names)}.`;
   return (
     <PanelRowBox>
       <Stack direction="row" gap="tight" align="center" justify="space-between">
@@ -1039,9 +1061,11 @@ function PartialRow({
             </Text>
           </Stack>
         </Box>
-        <Button size="sm" variant="secondary" disabled={retrying} onClick={onRetry}>
-          {retrying ? 'Retrying…' : 'Retry'}
-        </Button>
+        {canRetry && (
+          <Button size="sm" variant="secondary" disabled={retrying} onClick={onRetry}>
+            {retrying ? 'Retrying…' : 'Retry'}
+          </Button>
+        )}
       </Stack>
     </PanelRowBox>
   );
@@ -1150,7 +1174,7 @@ function SignalFact({ sig }: { sig: Signal }) {
  *  title on its own line, the company (the "who") in UI 14/500, then the facts with icons (place,
  *  pay, posted, and the contract / first-hire signals); Save sits on the right, centred on the
  *  row. A swept row names one other title it matched as a chip, only when the sweep covers
- *  several titles. With a fit, a menu beside Save says why ("Why this fit"). */
+ *  several titles. With a fit, the fit badge is a button that says why (Fit and gap). */
 function PostingRow({
   p,
   now,
@@ -1185,7 +1209,19 @@ function PostingRow({
         <Box sx={{ minWidth: 0, flex: '1 1 0%', overflowWrap: 'anywhere' }}>
           <Stack gap="px4">
             <Stack direction="row" wrap="wrap" gap="px8" align="center">
-              {fit && <Badge tone="neutral">{verdictLabel(TIER_INFO[fit.tier].verdict)}</Badge>}
+              {fit && (
+                // The badge is the way into Fit and gap: no per-row menu beside Save (rev-3 K).
+                <Button
+                  size="sm"
+                  variant="tertiary"
+                  className="rjb-badge-button"
+                  aria-label={`Why ${verdictLabel(TIER_INFO[fit.tier].verdict)}`}
+                  aria-haspopup="dialog"
+                  onClick={() => setWhy(true)}
+                >
+                  <Badge tone="neutral">{verdictLabel(TIER_INFO[fit.tier].verdict)}</Badge>
+                </Button>
+              )}
               <Text variant="caption" as="span" tone="secondary">
                 {SOURCE_LABEL[p.source]}
               </Text>
@@ -1211,47 +1247,38 @@ function PostingRow({
               </Stack>
             )}
             {matched.length > 0 && (
-              <Stack direction="row" gap="px4" align="center">
+              <Box sx={{ display: 'flex', gap: 'px4', alignItems: 'center', minWidth: 0 }}>
                 <VisuallyHidden>Matched</VisuallyHidden>
-                <span className="rjb-chip rjb-chip-icon">
+                <span className="rjb-chip rjb-chip-icon rjb-chip-shrink">
                   <Icon icon={Search} size="small" />
-                  {matched[0]}
+                  <span className="rjb-chip-text">{matched[0]}</span>
                 </span>
                 {matched.length > 1 && (
-                  <Text variant="caption" as="span" tone="secondary">
-                    {`+${matched.length - 1}`}
-                  </Text>
+                  <Box as="span" sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <Text variant="caption" as="span" tone="secondary">
+                      {`+${matched.length - 1}`}
+                    </Text>
+                  </Box>
                 )}
-              </Stack>
+              </Box>
             )}
           </Stack>
         </Box>
-        <Stack direction="row" gap="px8" align="center">
-          <Button
-            size="sm"
-            variant={saved ? 'tertiary' : 'secondary'}
-            disabled={saved}
-            onClick={onSave}
+        {saved ? (
+          // A status in Save's slot, not a disabled control (disabled text fails 3:1 here).
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', gap: 'px4', minHeight: 36, flexShrink: 0 }}
           >
-            {saved ? 'Saved' : 'Save'}
+            <Icon icon={Check} size="small" />
+            <Text variant="ui" as="span">
+              Saved
+            </Text>
+          </Box>
+        ) : (
+          <Button size="sm" variant="secondary" onClick={onSave}>
+            Save
           </Button>
-          {fit && (
-            <Menu modal={false}>
-              <Menu.Trigger asChild>
-                <Button
-                  size="sm"
-                  variant="tertiary"
-                  iconOnly
-                  iconLeft={<Icon icon={Ellipsis} />}
-                  label={`More for ${p.title}`}
-                />
-              </Menu.Trigger>
-              <Menu.Content align="end">
-                <Menu.Item onSelect={() => setWhy(true)}>Why this fit</Menu.Item>
-              </Menu.Content>
-            </Menu>
-          )}
-        </Stack>
+        )}
       </Stack>
       {fit && (
         <Dialog open={why} onOpenChange={setWhy}>

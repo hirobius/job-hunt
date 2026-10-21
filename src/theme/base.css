@@ -402,6 +402,43 @@ p {
   gap: var(--semantic-space-subgrid-gap);
 }
 
+/* The sweep's matched-title chip shrinks with an ellipsis in a narrow row, so the "+N" after it
+ * stays on one line (rev-3 K at 390). */
+.rjb-chip-shrink {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.rjb-chip-shrink > .rjb-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* An opening's fit badge is the button into Fit and gap (rev-3 K: one Save on the row, no menu).
+ * An HDS tertiary Button holding the Badge, stripped to the badge's own size. */
+[data-hds] button.rjb-badge-button {
+  height: auto;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.rjb-badge-button:focus-visible {
+  outline: 2px solid var(--semantic-accent-rest);
+  outline-offset: 2px;
+  border-radius: var(--semantic-radius-control);
+}
+
+/* On a phone the button is a 40px target (the touch rule above); its height overhangs the badge
+ * line instead of pushing the source label and the title apart. */
+@media (max-width: 639px) {
+  [data-hds] button.rjb-badge-button {
+    min-height: var(--primitive-space-10);
+    margin-block: calc((var(--primitive-space-5) - var(--primitive-space-10)) / 2);
+  }
+}
+
 /* A row Disclosure that opens downward (rev-3 mock: Calibrate, Refine): the chevron points down
  * when closed and up when open. HDS's row variant turns it right (-90deg) when closed, set inline,
  * so this has to win over the inline transform. Upstream ask: a chevron direction on Disclosure

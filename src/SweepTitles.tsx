@@ -56,37 +56,48 @@ export function SweepTitlesEditor({
   };
 
   const body = (
-    <Stack gap="xs">
-      <Text variant="caption" as="span" tone="secondary">
-        Postings and searches follow the titles you tick. Up to {MAX_SWEEP_ON} at once; saved for
-        this track.
-      </Text>
-      {sweep.titles.length === 0 && (
+    <Stack gap="normal">
+      <Stack gap="xs">
+        {/* Same label style as Calibrate's Search for and Saved searches (rev-3 J). */}
+        {bare && (
+          <Text variant="ui" as="span">
+            Titles
+          </Text>
+        )}
         <Text variant="caption" as="span" tone="secondary">
-          No titles yet. Add one below.
+          Postings and searches follow the titles you tick. Up to {MAX_SWEEP_ON} at once; saved for
+          this track.
         </Text>
-      )}
-      <Box as="ul" aria-label="Titles" sx={{ listStyle: 'none', m: 0, p: 0 }}>
-        {sweep.titles.map((t) => (
-          <Box as="li" key={t}>
-            <Stack direction="row" gap="tight" align="center">
-              <HdsCheckbox
-                label={t}
-                checked={on.has(t.toLowerCase())}
-                onChange={(v) => toggle(t, v)}
-              />
-              <Button
-                size="sm"
-                variant="tertiary"
-                iconOnly
-                iconLeft={<Icon icon={X} />}
-                label={`Remove title ${t}`}
-                onClick={() => removeTitle(categoryId, seed, t)}
-              />
-            </Stack>
-          </Box>
-        ))}
-      </Box>
+        {sweep.titles.length === 0 && (
+          <Text variant="caption" as="span" tone="secondary">
+            No titles yet. Add one below.
+          </Text>
+        )}
+        <Box as="ul" aria-label="Titles" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+          {sweep.titles.map((t) => (
+            <Box as="li" key={t}>
+              {/* Every remove X lines up on the panel's right edge, not after its label. */}
+              <Stack direction="row" gap="tight" align="center" justify="space-between">
+                <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
+                  <HdsCheckbox
+                    label={t}
+                    checked={on.has(t.toLowerCase())}
+                    onChange={(v) => toggle(t, v)}
+                  />
+                </Box>
+                <Button
+                  size="sm"
+                  variant="tertiary"
+                  iconOnly
+                  iconLeft={<Icon icon={X} />}
+                  label={`Remove title ${t}`}
+                  onClick={() => removeTitle(categoryId, seed, t)}
+                />
+              </Stack>
+            </Box>
+          ))}
+        </Box>
+      </Stack>
       <Box as="form" onSubmit={onAdd} sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end' }}>
         <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
           <HdsInput

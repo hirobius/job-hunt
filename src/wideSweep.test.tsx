@@ -89,7 +89,7 @@ describe('wide sweep', () => {
       }),
     );
     // A row names the other titles it matched as chips (rev-3 K), not its own.
-    await screen.findByText('design system', { selector: '.rjb-chip' });
+    await screen.findByText('design system', { selector: '.rjb-chip-text' });
     expect(rows()).toHaveLength(3);
     const chips = screen.getByRole('group', { name: 'Show titles' });
     // All first, with the total; counts are Badges, not "(n)"; only the selected chip is filled.
@@ -104,7 +104,7 @@ describe('wide sweep', () => {
 
   it('a title chip shows only its results without a re-fetch, and All brings the rest back', async () => {
     const user = await startSweep();
-    await screen.findByText('design system', { selector: '.rjb-chip' });
+    await screen.findByText('design system', { selector: '.rjb-chip-text' });
     const calls = feed.fetchFeed.mock.calls.length;
     await user.click(screen.getByRole('button', { name: 'design system, 1' }));
     expect(rows()).toEqual(['Design Engineer']);
@@ -139,7 +139,7 @@ describe('wide sweep', () => {
 
   it('saving a swept posting lands it in the Pipeline To apply queue', async () => {
     const user = await startSweep();
-    await screen.findByText('design system', { selector: '.rjb-chip' });
+    await screen.findByText('design system', { selector: '.rjb-chip-text' });
     const list = screen.getByRole('list', { name: 'Live postings' });
     await user.click(within(list).getAllByRole('button', { name: 'Save' })[0]);
     expect(await screen.findByText('Saved to Pipeline · To apply')).toBeInTheDocument();

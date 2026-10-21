@@ -217,7 +217,9 @@ describe('LiveFeedPanel', () => {
         status: 'Saved',
       }),
     ]);
-    expect(within(ramp).getByRole('button', { name: 'Saved' })).toBeDisabled();
+    // Saved is a status in Save's place, not a disabled control (rev-3 K: readable, 3:1+).
+    expect(within(ramp).queryByRole('button', { name: /^Save/ })).toBeNull();
+    expect(within(ramp).getByText('Saved')).toBeInTheDocument();
   });
 
   it('Remote OK attribution: their link as given, followed, with "Remote OK" on the row', async () => {
@@ -324,6 +326,59 @@ describe('LiveFeedPanel', () => {
     ).toBeInTheDocument();
     expect(within(panel).getAllByRole('button', { name: 'Retry' })).toHaveLength(1);
     expect(screen.queryByRole('button', { name: /show which ones/i })).toBeNull();
+  });
+
+  it('counts a sweep source once however many titles it was asked for', async () => {
+    const sources = ['a', 'b', 'c', 'd', 'e', 'f'].map((t) => ({
+      key: `remotive|${t}`,
+      label: `Remotive · “${t}”`,
+      fetched: 0,
+      error: `Remotive · “${t}”: timed out — try again later.`,
+    }));
+    feed.fetchFeed.mockResolvedValueOnce({ postings: RESULT.postings, sources });
+    renderPanel();
+    const panel = await screen.findByRole('region', { name: 'Openings' });
+    expect(within(panel).getByText('1 source didn’t answer')).toBeInTheDocument();
+    expect(
+      within(panel).getByText('Remotive. Results below are from the rest.'),
+    ).toBeInTheDocument();
+    expect(within(panel).getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+
+  it("Remotive's daily limit says so and offers no Retry, which could not succeed", async () => {
+    feed.fetchFeed.mockResolvedValueOnce({
+      postings: RESULT.postings,
+      sources: [
+        { key: 'hn', label: 'Hacker News', fetched: 2 },
+        {
+          key: 'remotive',
+          label: 'Remotive',
+          fetched: 0,
+          error:
+            'Remotive: daily limit reached — Remotive allows about 4 requests a day, so new terms load from it again tomorrow.',
+        },
+      ],
+    });
+    renderPanel();
+    const panel = await screen.findByRole('region', { name: 'Openings' });
+    expect(
+      within(panel).getByText(
+        'Remotive: daily limit reached, back tomorrow. Results below are from the rest.',
+      ),
+    ).toBeInTheDocument();
+    expect(within(panel).queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
+  it('labels the Calibrate title list and the saved-search name field', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
+    expect(screen.getByText('Titles', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Name this search' })).toHaveAttribute(
+      'placeholder',
+      'Name this search',
+    );
   });
 
   it("searches one of the track's terms from Calibrate's Search for row", async () => {
