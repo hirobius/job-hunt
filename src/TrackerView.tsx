@@ -1,5 +1,4 @@
 import { Fragment, useMemo, useRef, useState } from 'react';
-import { PageHeader } from '@hirobius/design-system/patterns';
 import { Search, Briefcase, ChevronDown, Plus } from 'lucide-react';
 import {
   Button as UiButton,
@@ -103,23 +102,30 @@ export default function TrackerView() {
   return (
     // Rev-3 rhythm: 16 under the page header, 24 between the page's panels.
     <Stack gap="normal">
-      {/* One page header: the screen's name, its counts and its one primary action. */}
-      <PageHeader
-        level={2}
-        title="Pipeline"
-        // The counts on their own line under the title (rev-3 mock), not beside it.
-        description={
-          <MetaCaption
-            as="span"
-            items={
-              jobs.length > 0 ? [`${counts.active} active`, `${counts.all} total`] : ['0 jobs']
-            }
-          />
-        }
-        // One primary action per state: on first use it lives in the empty state instead.
-        actions={jobs.length > 0 ? addJobButton : undefined}
-      />
-      <SampleBanner jobs={jobs} />
+      {/* One page header: the screen's name, its counts and its one primary action. Not HDS
+          PageHeader: it sets the description under the whole title + actions row, ~24-36px below
+          the title; rev-3 puts the counts 4px under it (gap logged in docs/hds-upstream-asks-0.9.md).
+          The sample note sits 12 under the header (mock .note). */}
+      <Stack gap="px12">
+        <Box as="header">
+          <Stack direction="row" wrap="wrap" gap="normal" align="center" justify="space-between">
+            <Stack gap="px4">
+              <Text variant="title" as="h2">
+                Pipeline
+              </Text>
+              {/* The counts on their own line under the title (rev-3 mock), not beside it. */}
+              <MetaCaption
+                items={
+                  jobs.length > 0 ? [`${counts.active} active`, `${counts.all} total`] : ['0 jobs']
+                }
+              />
+            </Stack>
+            {/* One primary action per state: on first use it lives in the empty state instead. */}
+            {jobs.length > 0 && addJobButton}
+          </Stack>
+        </Box>
+        <SampleBanner jobs={jobs} />
+      </Stack>
       <Stack gap="px24">
         {jobs.length > 0 && (
           <>

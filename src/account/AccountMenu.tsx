@@ -5,7 +5,7 @@
 // behind a confirm that says exactly what goes. Reset is never a loose button on a page.
 import { useRef, useState } from 'react';
 import { Download } from 'lucide-react';
-import { AlertDialog, Avatar, Button, Icon, Menu, Stack } from '@hirobius/design-system';
+import { AlertDialog, Avatar, Button, Icon, Menu, Stack, Text } from '@hirobius/design-system';
 import { useJobs } from '../store';
 import { useDocuments } from '../documents';
 import { clearLocalData } from '../localReset';
@@ -151,10 +151,13 @@ function ResetLocalData({
       <AlertDialog.Content className="rjb-sheet" onCloseAutoFocus={refocusAccount(returnFocus)}>
         <AlertDialog.Header>
           <AlertDialog.Title>Reset local data?</AlertDialog.Title>
-          <AlertDialog.Description>
-            {signedIn
-              ? 'This clears jobs, documents and settings from this browser only. Your synced jobs come back after you sign in.'
-              : `This deletes everything in this browser: ${plural(jobs, 'job')}, ${plural(docs, 'document')}, your tracks and your kit. You are not signed in, so nothing comes back.`}
+          {/* The safety copy is body 15 (rev-3 #s-reset-*), never the smallest text in the dialog. */}
+          <AlertDialog.Description asChild>
+            <Text variant="body" as="p" tone="secondary">
+              {signedIn
+                ? 'This clears jobs, documents and settings from this browser only. Your synced jobs come back after you sign in.'
+                : `This deletes everything in this browser: ${plural(jobs, 'job')}, ${plural(docs, 'document')}, your tracks and your kit. You are not signed in, so nothing comes back.`}
+            </Text>
           </AlertDialog.Description>
           {/* rev-3 #s-reset-signed-out: Back up first sits under the text, on its left edge, not
               as a centred button between the text and the actions. */}
@@ -176,7 +179,8 @@ function ResetLocalData({
             <Button variant="secondary">Cancel</Button>
           </AlertDialog.Cancel>
           <AlertDialog.Action asChild>
-            <Button tone="danger" onClick={clearLocalData}>
+            {/* An outlined red secondary, the same border and height as Cancel (mock .btn.danger). */}
+            <Button variant="secondary" className="rjb-danger-outline" onClick={clearLocalData}>
               Reset local data
             </Button>
           </AlertDialog.Action>

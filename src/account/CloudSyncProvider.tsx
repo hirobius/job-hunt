@@ -37,6 +37,7 @@ import {
 } from '../curation/syncStatus';
 import {
   OFFLINE_MSG,
+  OFFLINE_TITLE,
   DELETE_ORDER,
   deleteFailedMsg,
   TRACK_WRITE_FAILED,
@@ -339,7 +340,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     if (msg !== OFFLINE_MSG || outageToasted.current) return;
     outageToasted.current = true;
     toastRef.current({
-      title: 'Sync paused',
+      title: OFFLINE_TITLE,
       description: OFFLINE_MSG,
       tone: 'warning',
       actions: [RELOAD_ACTION],
