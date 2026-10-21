@@ -92,10 +92,9 @@ const watchedUrls = () => getCurationState().tiles.map((t) => t.url);
 describe('Find boards', () => {
   it('is a secondary view of the companies list, not a tool of its own (#237)', async () => {
     renderApp();
-    const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
-    expect(within(tools).queryByRole('radio', { name: 'Boards' })).toBeNull();
-    expect(within(tools).getByRole('radio', { name: 'Teams' })).toBeChecked();
-    expect(screen.getByRole('heading', { name: 'Check a list of companies' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Check a list of companies' })).toBeVisible();
+    // Two nav levels at most (rev-3 G): Back to companies, not the tool switch.
+    expect(screen.queryByRole('radiogroup', { name: 'Search tool' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Back to companies' })).toHaveAttribute(
       'href',
       '#/discover',

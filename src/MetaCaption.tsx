@@ -2,18 +2,21 @@
 // Each item is its own text node with the separator between them, so no rendered string holds
 // more than one item (the #192 two-per-line rule reads leaf text) and a narrow phone wraps it
 // between items. HDS MetaLine takes two items at most; a header has three facts.
+// `as="span"` when it goes into HDS PageHeader's `description`, which is already a <p>.
 import { Fragment } from 'react';
 import { Text } from '@hirobius/design-system';
 
 export function MetaCaption({
   items,
+  as = 'p',
 }: {
   items: ReadonlyArray<string | null | undefined | false>;
+  as?: 'p' | 'span';
 }) {
   const kept = items.filter((i): i is string => !!i);
   if (kept.length === 0) return null;
   return (
-    <Text variant="caption" as="p" tone="secondary">
+    <Text variant="caption" as={as} tone="secondary">
       {kept.map((item, i) => (
         <Fragment key={i}>
           {i > 0 && <span aria-hidden="true">{' · '}</span>}

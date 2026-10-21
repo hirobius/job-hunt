@@ -17,6 +17,8 @@ the HDS fix out and wait for their screen's redesign slice to migrate.
 | `Text` weight                   | `.rjb-semibold` in `src/theme/base.css`                              | _shipped_ 0.28: `Text weight` (regular, medium, bold; no semibold step)                                | hds#825          |
 | Phone touch size                | 40px rule in `src/theme/base.css`                                    | a touch size on sm controls                                                                            | hds#750          |
 | Dark pressed accent contrast    | held pair in `src/theme.contrast.test.ts`                            | _shipped_ 0.27: AA on the dark pressed accent                                                          | hds#748          |
+| EmptyState italic + centred     | `src/hds-gaps/EmptyState.tsx` (every app empty state imports it)     | a non-italic EmptyState title, and a centred teaching variant (icon tile, bold title, framed)          | to file          |
+| Alert title size in a panel     | `.rjb-inline-alerts` in `src/theme/base.css` (Live postings)         | an Alert `size` (its titleSm title reads as a page head and wraps at 390)                              | to file          |
 
 ## Retired
 

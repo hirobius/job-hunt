@@ -115,10 +115,10 @@ const find = async () => {
 };
 
 describe('Teams (design-system teams)', () => {
-  it('is the Teams tool in the Discover row', async () => {
+  it('is the Watched tool in the Discover row', async () => {
     renderApp();
     const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
-    expect(within(tools).getByRole('radio', { name: 'Teams' })).toBeChecked();
+    expect(within(tools).getByRole('radio', { name: 'Watched' })).toBeChecked();
   });
 
   it('open roles first: Hiring now puts boards not found below, collapsed; keeps the unchecked', async () => {

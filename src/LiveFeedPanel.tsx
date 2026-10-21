@@ -24,9 +24,9 @@ import {
   Icon,
   Text,
   InlineLink,
-  EmptyState,
   VisuallyHidden,
 } from '@hirobius/design-system';
+import { EmptyState } from './hds-gaps/EmptyState';
 import { Banknote, Calendar, MapPin, X } from 'lucide-react';
 import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
 import { setTrackContext, useTrackContext } from './discoverContext';
@@ -417,9 +417,10 @@ export default function LiveFeedPanel({
   const failedRow = (s: { key: string; label: string; error?: string }) => (
     <Stack key={s.key} direction="row" gap="xs" align="center" wrap="wrap">
       <Box>{s.error}</Box>
+      {/* Secondary, not tertiary: a quiet button's padding pushed its label off the text edge. */}
       <Button
         size="sm"
-        variant="tertiary"
+        variant="secondary"
         disabled={retrying.includes(s.key)}
         aria-label={`Retry ${s.label}`}
         onClick={() => retrySources([s.key])}
@@ -462,7 +463,8 @@ export default function LiveFeedPanel({
   );
 
   return (
-    <Box>
+    // rjb-inline-alerts: the source-failure Alert titles read at body size, not as a page head.
+    <Box className="rjb-inline-alerts">
       <Box sx={{ mb: 2.5 }}>
         <Text variant="ui" tone="secondary">
           Real openings from Hacker News (“Who is hiring” and the freelancer thread), Remotive,

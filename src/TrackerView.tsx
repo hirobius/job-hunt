@@ -10,8 +10,8 @@ import {
   Stack,
   Text,
   useAtLeast,
-  EmptyState,
 } from '@hirobius/design-system';
+import { EmptyState } from './hds-gaps/EmptyState';
 import { useJobs } from './store';
 import { saveWithNotice } from './saveNotice';
 import { SORTS, type SortKey } from './jobSort';
@@ -221,6 +221,8 @@ export default function TrackerView() {
             {shown.length === 0 ? (
               <PanelBody>
                 <EmptyState
+                  centered
+                  icon={Search}
                   title={
                     q.trim()
                       ? `No saved jobs match “${q.trim()}”.`
@@ -279,19 +281,20 @@ export default function TrackerView() {
           {jobs.length === 0 && (
             // First use: the shared teaching empty (#132): what this will hold, one primary action,
             // one way to see it working.
-            <Box sx={{ paddingBlock: 'xl' }}>
-              <EmptyState
-                icon={Briefcase}
-                title="Track your first job"
-                description="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
-                action={
-                  <Stack direction="row" wrap="wrap" gap="tight" justify="center">
-                    {addJobButton}
-                    <TrySampleButton />
-                  </Stack>
-                }
-              />
-            </Box>
+            // rev-3 "Pipeline, empty": one bordered, centred panel (icon tile, title, sentence,
+            // Add job + sample data); Find the next company stays below it.
+            <EmptyState
+              framed
+              icon={Briefcase}
+              title="Track your first job"
+              description="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
+              action={
+                <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+                  {addJobButton}
+                  <TrySampleButton />
+                </Stack>
+              }
+            />
           )}
           {/* Removed jobs wait here for 30 days; a quiet link, shown only when there are some. */}
           <RecentlyRemovedLink />

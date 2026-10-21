@@ -23,8 +23,8 @@ import {
   Switcher,
   Text,
   Textarea,
-  EmptyState,
 } from '@hirobius/design-system';
+import { EmptyState } from './hds-gaps/EmptyState';
 import {
   createDocument,
   DOCUMENT_KINDS,

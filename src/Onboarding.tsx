@@ -10,8 +10,8 @@ import {
   Stack,
   Text,
   Card,
-  EmptyState,
 } from '@hirobius/design-system';
+import { EmptyState } from './hds-gaps/EmptyState';
 import { Form } from '@hirobius/design-system/patterns';
 import { Panel, PanelBody, PanelRow } from './PipelinePanel';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';

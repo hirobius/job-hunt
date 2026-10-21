@@ -13,8 +13,8 @@ import {
   Text,
   Disclosure,
   Stack,
-  EmptyState,
 } from '@hirobius/design-system';
+import { EmptyState } from './hds-gaps/EmptyState';
 import TileGrid from './TileGrid';
 import { useRoute, navigate } from './route';
 import {
@@ -342,13 +342,14 @@ function LinkRows({ tiles }: { tiles: Tile[] }) {
 }
 
 type ToolKey = 'apply' | 'ats' | 'teams';
-// Teams (slug `teams`) is the companies list (CompaniesPanel, #237): watched companies and GitHub
-// teams with their open roles, dream companies and "Add a company". It leads and is the default
-// where it has something to show; elsewhere it sits after Apply now.
-const TOOLS: { key: ToolKey; label: string; short: string }[] = [
-  { key: 'teams', label: 'Teams', short: 'Teams' },
-  { key: 'apply', label: 'Apply now', short: 'Apply' },
-  { key: 'ats', label: 'ATS search', short: 'ATS' },
+// Watched (slug `teams`, kept for old links) is the companies list (CompaniesPanel, #237): watched
+// companies and GitHub teams with their open roles, dream companies and "Add a company". It leads
+// and is the default where it has something to show; elsewhere it sits after Apply now. The label
+// is rev-3 G's "Watched"; the slug stays `teams`.
+const TOOLS: { key: ToolKey; label: string }[] = [
+  { key: 'teams', label: 'Watched' },
+  { key: 'apply', label: 'Apply now' },
+  { key: 'ats', label: 'ATS search' },
 ];
 // Live postings and the list checker (Find boards) stopped being tools (#237): they are secondary
 // views of the companies list, one link away, and their old slugs still open them. The Titles tool
@@ -502,15 +503,20 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         </Suspense>
       )}
       <Stack gap="inset">
-        {/* Full width, full names (rev-3 G): the tools are the second and last nav level. */}
-        <SegmentedControl
-          aria-label="Search tool"
-          size="sm"
-          fullWidth
-          value={tool}
-          onChange={(v) => navigate({ sub: toolSub(v) })}
-          options={tools.map((t) => ({ value: t.key, label: t.label }))}
-        />
+        {/* Full width, full names (rev-3 G): the tools are the second and last nav level. A
+            secondary view (Live postings, the list checker) is not one of them, so it swaps the
+            switch for "Back to companies" instead of stacking a third level under a segment that
+            names another page. */}
+        {!secondary && (
+          <SegmentedControl
+            aria-label="Search tool"
+            size="sm"
+            fullWidth
+            value={tool}
+            onChange={(v) => navigate({ sub: toolSub(v) })}
+            options={tools.map((t) => ({ value: t.key, label: t.label }))}
+          />
+        )}
         {tool === 'apply' && section && (
           // The track's sections stack (rev-3 G: no third tab row). The routed one is open under
           // its heading; the rest are closed rows, and opening one routes to it.

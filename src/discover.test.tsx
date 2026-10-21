@@ -157,11 +157,11 @@ describe('Discover header and tools (slice 2)', () => {
       within(tools)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Apply now', 'Teams', 'ATS search']);
+    ).toEqual(['Apply now', 'Watched', 'ATS search']);
     expect(within(tools).getByRole('radio', { name: 'Apply now' })).toBeChecked();
     await userEvent.click(within(tools).getByRole('radio', { name: 'ATS search' }));
     expect(window.location.hash).toBe('#/discover/ats');
-    await userEvent.click(within(tools).getByRole('radio', { name: 'Teams' }));
+    await userEvent.click(within(tools).getByRole('radio', { name: 'Watched' }));
     expect(window.location.hash).toBe('#/discover/teams');
     await userEvent.click(within(tools).getByRole('radio', { name: 'Apply now' }));
     expect(window.location.hash).toBe('#/discover');
@@ -173,7 +173,7 @@ describe('Discover header and tools (slice 2)', () => {
     renderApp();
     const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
     expect(within(tools).getByRole('radio', { name: 'Apply now' })).toBeChecked();
-    await userEvent.click(within(tools).getByRole('radio', { name: 'Teams' }));
+    await userEvent.click(within(tools).getByRole('radio', { name: 'Watched' }));
     expect(await screen.findByText(/titles don't name anything GitHub tracks/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Add a company' })).toBeVisible();
     expect(screen.queryByRole('button', { name: /^Find .* teams$/ })).toBeNull();
@@ -190,15 +190,15 @@ describe('Discover header and tools (slice 2)', () => {
       within(tools)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Teams', 'Apply now', 'ATS search']);
-    expect(within(tools).getByRole('radio', { name: 'Teams' })).toBeChecked();
+    ).toEqual(['Watched', 'Apply now', 'ATS search']);
+    expect(within(tools).getByRole('radio', { name: 'Watched' })).toBeChecked();
     expect(await screen.findByRole('button', { name: 'Find design-system teams' })).toBeVisible();
     cleanup();
     window.location.hash = '#/discover/teams';
     renderApp();
     expect(
       within(await screen.findByRole('radiogroup', { name: 'Search tool' })).getByRole('radio', {
-        name: 'Teams',
+        name: 'Watched',
       }),
     ).toBeChecked();
   });
@@ -271,7 +271,10 @@ describe('Discover accessibility', () => {
     void g1;
     window.location.hash = hash;
     const { container } = renderApp();
-    await screen.findByRole('radiogroup', { name: 'Search tool' });
+    // Live postings is a secondary view: Back to companies stands in for the tool switch.
+    await screen.findByRole(hash.endsWith('/live') ? 'link' : 'radiogroup', {
+      name: hash.endsWith('/live') ? 'Back to companies' : 'Search tool',
+    });
     const results = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });

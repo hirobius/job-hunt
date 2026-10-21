@@ -48,10 +48,10 @@ export default function DiscoverHeader({
           level={2}
           title={cat.label}
           description={
-            <Stack direction="row" wrap="wrap" gap="px4" align="center">
-              <Text variant="caption" as="span" tone="secondary">
-                {`${contextLabel(where, mode)} ·`}
-              </Text>
+            // PageHeader wraps the description in a <p>, so this row is inline content only (a
+            // span, not a Stack div): "where · Change".
+            <Text variant="caption" as="span" tone="secondary">
+              {`${contextLabel(where, mode)} · `}
               <Popover>
                 <Popover.Trigger asChild>
                   <Button
@@ -66,7 +66,7 @@ export default function DiscoverHeader({
                   <LocationControl categoryId={cat.id} />
                 </Popover.Content>
               </Popover>
-            </Stack>
+            </Text>
           }
         />
         <Stack direction="row" wrap="wrap" gap="xs" align="center">

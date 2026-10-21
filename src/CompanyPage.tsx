@@ -2,16 +2,8 @@
 // names on Jobs (src/companies.ts), so this page lists what it holds: its Jobs, the Documents on
 // them or naming it, and its own Notes, which can be added and edited here (each save a Version).
 import { useState, type ReactNode } from 'react';
-import {
-  Box,
-  Button,
-  Icon,
-  InlineLink,
-  Stack,
-  Text,
-  Textarea,
-  EmptyState,
-} from '@hirobius/design-system';
+import { Box, Button, Icon, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
+import { EmptyState } from './hds-gaps/EmptyState';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import { addCompanyNote, useCompany } from './companies';
 import { DOCUMENT_KINDS, saveVersion, type Document } from './documents';

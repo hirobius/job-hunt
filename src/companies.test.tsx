@@ -97,13 +97,13 @@ describe('Companies as one tool (#237)', () => {
       within(row)
         .getAllByRole('radio')
         .map((r) => r.textContent),
-    ).toEqual(['Teams', 'Apply now', 'ATS search']);
+    ).toEqual(['Watched', 'Apply now', 'ATS search']);
   });
 
   it('a track that watches a company opens on its company rows, open roles inline, saved in one tap', async () => {
     watch('https://jobs.lever.co/northwind');
     renderApp();
-    expect(within(await tools()).getByRole('radio', { name: 'Teams' })).toBeChecked();
+    expect(within(await tools()).getByRole('radio', { name: 'Watched' })).toBeChecked();
     const list = await screen.findByRole('list', { name: 'Companies' });
     expect(within(list).getByText('Northwind')).toBeVisible();
     expect(await within(list).findByText(/1 matching role · 2 open in all/)).toBeVisible();
@@ -124,7 +124,7 @@ describe('Companies as one tool (#237)', () => {
       board: { kind: 'lever', slug: 'northwind' },
     });
     renderApp();
-    expect(within(await tools()).getByRole('radio', { name: 'Teams' })).toBeChecked();
+    expect(within(await tools()).getByRole('radio', { name: 'Watched' })).toBeChecked();
     expect(await screen.findByRole('list', { name: 'Dream companies' })).toHaveTextContent(
       'Northwind',
     );
@@ -187,20 +187,23 @@ describe('Companies as one tool (#237)', () => {
 
   describe('old #/discover/* links still land', () => {
     it.each([
-      ['live', 'Teams', 'Live postings'],
-      ['boards', 'Teams', 'Check a list of companies'],
-      ['teams', 'Teams', null],
+      ['live', null, 'Live postings'],
+      ['boards', null, 'Check a list of companies'],
+      ['teams', 'Watched', null],
       ['apply', 'Apply now', null],
-      ['titles', 'Teams', 'Live postings'],
+      ['titles', null, 'Live postings'],
       ['ats', 'ATS search', null],
       ['nonsense', 'Apply now', null],
     ])('#/discover/%s', async (slug, radio, heading) => {
       window.location.hash = `#/discover/${slug}`;
       renderApp();
-      expect(within(await tools()).getByRole('radio', { name: radio })).toBeChecked();
+      if (radio) expect(within(await tools()).getByRole('radio', { name: radio })).toBeChecked();
       if (heading) {
+        // A secondary view is the second and last nav level (rev-3 G): "Back to companies"
+        // replaces the tool switch, so no segment claims a page the user isn't on.
         expect(await screen.findByRole('heading', { name: heading })).toBeVisible();
         expect(screen.getByRole('link', { name: 'Back to companies' })).toBeVisible();
+        expect(screen.queryByRole('radiogroup', { name: 'Search tool' })).toBeNull();
       }
     });
 

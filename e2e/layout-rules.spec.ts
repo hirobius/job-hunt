@@ -6,6 +6,7 @@
 //   - one status rule: never two status badges beside a title
 //   - headings sit on the HDS type ramp, and no inline font size anywhere
 //   - a page side gutter of at least 16px on a phone
+//   - no italic text (HDS 0.30's EmptyState title is italic; hds-gaps/EmptyState resets it)
 // Local only: `npm run verify:ui` (or `npm run test:e2e`).
 import { test, expect, type Page } from '@playwright/test';
 import { seed, visitAll } from './routes';
@@ -92,6 +93,8 @@ function probe(page: Page) {
         const ownText = [...el.childNodes].some(
           (n) => n.nodeType === Node.TEXT_NODE && (n.textContent || '').trim(),
         );
+        // 7. No italic (rev-3: no italic anywhere; HDS 0.30's EmptyState title is italic).
+        if (ownText && cs.fontStyle === 'italic') out.push(`italic: ${label(el)}`);
         if (ownText && parseFloat(cs.fontSize) < CAPTION - 0.1)
           out.push(`text size: ${label(el)} ${cs.fontSize} < caption ${CAPTION}px`);
         if (
@@ -168,6 +171,21 @@ for (const theme of THEMES) {
           for (const line of await probe(page)) bad.push(`${name} ${line}`);
         });
         expect(bad).toEqual([]);
+      });
+
+      // The first screen a new user sees: the empty Pipeline (its teaching EmptyState), before
+      // any sample data, and the Pipeline filtered to nothing.
+      test('the empty and filtered-empty Pipeline hold the layout rules', async ({ page }) => {
+        await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+        await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
+        await page.goto('/#/queue');
+        await expect(page.getByText('Track your first job')).toBeVisible();
+        expect(await probe(page)).toEqual([]);
+        await seed(page);
+        await page.evaluate(() => (location.hash = '#/queue'));
+        await page.getByRole('textbox', { name: 'Search saved jobs' }).fill('zzz nothing');
+        await expect(page.getByText(/No saved jobs match/)).toBeVisible();
+        expect(await probe(page)).toEqual([]);
       });
     });
   }

@@ -36,8 +36,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   - **Secondary text** is `<Text variant="caption" tone="secondary">` (HDS 0.26, hds#655);
     `hds-gaps/tone` is gone (slice 4): use `Text tone`, never an inline colour. Bold is
     `Text weight="bold"` (HDS 0.28).
-  - **Empty states** are HDS `EmptyState` directly (title, description, `icon`, `action`; the
-    local composition was retired in redesign slice 2).
+  - **Empty states** import `src/hds-gaps/EmptyState` (HDS `EmptyState` + `not-italic`: HDS 0.30
+    sets the title in italic; `centered` / `framed` draw rev-3's centred teaching empty with an
+    icon tile). `e2e/layout-rules.spec.ts` fails on any italic text.
   - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
@@ -217,8 +218,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   track, New track `Menu`) + the track `Combobox` + one context `Popover` button ("Spokane, Hybrid")
   holding the only `LocationControl`. **Location is `Category.location`; work mode is per track and syncs,
   `rjb_ui_mode:<categoryId>`** (`src/discoverContext.ts`, `useTrackContext`; panels read it, they take
-  no location props). Tools are one `SegmentedControl` (Teams / Apply / ATS since #223, full
-  names from `sm`; HDS fades its overflow edge); the track's sections are `Tabs` under
+  no location props). Tools are one `SegmentedControl` (Watched / Apply now / ATS search; the
+  Watched slug is still `teams`; hidden on the secondary views Live postings and Check a list,
+  where "Back to companies" is the second and last nav level, rev-3 G); the track's sections are `Tabs` under
   "Your sections", shown only for Apply now; slugs unchanged (`#/discover/<tool | groupId>`).
   `TileGrid` cards are equal-height (240px min), with chips parsed from the meta string by
   `tileMeta.parseMeta` (raw text is the fallback; no data migration), a `Details` disclosure with

@@ -11,7 +11,6 @@ import {
   Box,
   Button,
   Disclosure,
-  EmptyState,
   Icon,
   Input as HdsInput,
   Pagination,
@@ -21,6 +20,7 @@ import {
   Textarea,
   useToast,
 } from '@hirobius/design-system';
+import { EmptyState } from './hds-gaps/EmptyState';
 import { PageHeader } from '@hirobius/design-system/patterns';
 import { BackToPipeline } from './JobHeader';
 import { JobBadges } from './JobRowParts';
@@ -136,7 +136,8 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
           title={titleOf(job)}
           description={
             job.company || job.location || saved ? (
-              <MetaCaption items={[company, job.location?.trim(), saved]} />
+              // PageHeader wraps the description in a <p>: a span keeps the HTML valid.
+              <MetaCaption as="span" items={[company, job.location?.trim(), saved]} />
             ) : undefined
           }
         />

@@ -142,7 +142,7 @@ export function SavedTargets({
   categoryId: string;
   boardUrls: string[];
   heading?: boolean;
-  /** Point to the Teams tool's team search (off where there is none to point to). */
+  /** Point to Watched's team search (off where there is none to point to). */
   findLink?: boolean;
 }) {
   const targets = useTargets(categoryId);
@@ -160,7 +160,7 @@ export function SavedTargets({
           {findLink && (
             <>
               {' '}
-              Find teams in the Teams tool and save the ones worth a note.{' '}
+              Find teams under Watched and save the ones worth a note.{' '}
               <InlineLink href="#/discover/teams" externalIcon={false}>
                 Find teams
               </InlineLink>

@@ -9,12 +9,12 @@ import { isSample } from './sampleData';
 
 /** Offered only in an empty tracker (the mount decides) and never while signed in, since a
  *  signed-in tracker syncs; loads the sample on click and shows it in the Pipeline. */
-export function TrySampleButton() {
+export function TrySampleButton({ size = 'sm' }: { size?: 'sm' | 'md' }) {
   if (hasCloudSession()) return null;
   return (
     <Button
       variant="secondary"
-      size="sm"
+      size={size}
       onClick={() => {
         loadSample();
         navigate({ tab: 'queue', sub: null, jobId: null });
