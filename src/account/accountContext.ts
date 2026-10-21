@@ -24,6 +24,11 @@ export interface CloudSyncApi {
   /** The sign-in dialog is opened from the menu and from the nudge. */
   signInOpen: boolean;
   setSignInOpen: (open: boolean) => void;
+  /** The Account button. A dialog opened from one of its menu items (sign-in, Reset) hands focus
+   *  back here on close: the item that opened it is gone (the Menu is non-modal). */
+  accountTrigger?: HTMLButtonElement | null;
+  /** The Account button's callback ref. */
+  setAccountTrigger?: (el: HTMLButtonElement | null) => void;
 }
 
 export interface DataToolsApi {
@@ -41,6 +46,17 @@ export function useCloudSync(): CloudSyncApi {
   const v = useContext(CloudSyncContext);
   if (!v) throw new Error('useCloudSync must be used under <CloudSyncProvider>');
   return v;
+}
+
+/** A dialog's `onCloseAutoFocus`: let Radix return focus to its opener, and when that opener is
+ *  gone (focus fell to the body) put it on the Account button instead. */
+export function refocusAccount(trigger: HTMLElement | null | undefined) {
+  return () => {
+    setTimeout(() => {
+      const el = document.activeElement;
+      if ((!el || el === document.body) && trigger?.isConnected) trigger.focus();
+    }, 0);
+  };
 }
 
 export function useDataTools(): DataToolsApi {

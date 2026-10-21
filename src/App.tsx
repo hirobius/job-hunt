@@ -72,7 +72,7 @@ export default function App() {
   const applying = route.tab === APPLY_ROUTE;
   const company = route.tab === COMPANY_TAB;
   const documents = route.tab === DOCUMENTS_ROUTE;
-  // The Privacy Policy and Terms (#43): pages with no tab, like Documents.
+  // The Privacy policy and Terms (#43): pages with no tab, like Documents.
   const legal = route.tab === LEGAL_ROUTE;
   const slugIndex = TAB_SLUGS.indexOf(
     (applying || company ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
@@ -154,19 +154,27 @@ export default function App() {
                 navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null, jobId: null })
               }
             >
-              <Stack gap="normal">
-                {/* Slim app bar (rev-3): the wordmark at body size (so a page title is always the
-                    biggest text) · the Account avatar. */}
-                <Stack direction="row" gap="gap" align="center" justify="space-between">
-                  <Text variant="body" as="h1" className="rjb-semibold">
-                    {BRAND.name}
-                  </Text>
-                  <AccountMenu />
+              {/* The shell owns the page rhythm (rev-3 .wrap): 24 from the tabs to the first thing on
+                  every page (its back link or its title); views add no top margin of their own. */}
+              <Stack gap="px24">
+                <Stack gap="normal">
+                  {/* Slim app bar (rev-3): the wordmark on the titleSm step (so a page title is
+                      always the biggest text) · the Account avatar. */}
+                  <Stack direction="row" gap="gap" align="center" justify="space-between">
+                    <Text variant="titleSm" as="h1">
+                      {BRAND.name}
+                    </Text>
+                    <AccountMenu />
+                  </Stack>
+                  <TabsList
+                    style={{ marginBottom: 0 }}
+                    className="rjb-top-tabs"
+                    aria-label="Sections"
+                  >
+                    <TabsTrigger value="discover">Companies</TabsTrigger>
+                    <TabsTrigger value="queue">Pipeline</TabsTrigger>
+                  </TabsList>
                 </Stack>
-                <TabsList style={{ marginBottom: 0 }} aria-label="Sections">
-                  <TabsTrigger value="discover">Companies</TabsTrigger>
-                  <TabsTrigger value="queue">Pipeline</TabsTrigger>
-                </TabsList>
                 <TabsContent value="queue" variant="bare">
                   {applying ? (
                     <ApplyMode jobId={route.sub} />

@@ -27,6 +27,15 @@ describe('HDS-only UI (epic #89)', () => {
     expect(offenders).toEqual([]);
   });
 
+  // Sentence case everywhere (rev-3): the legal pages the Account menu opens were the last Title
+  // Case names. The headings, the cross-links and any page title read from legal.ts.
+  it('names the legal pages in sentence case, not Title Case', () => {
+    const offenders = sourceFiles(SRC).filter((f) =>
+      /Privacy Policy|Terms of Use/.test(readFileSync(f, 'utf8')),
+    );
+    expect(offenders).toEqual([]);
+  });
+
   it('sets no text in ALL CAPS (HDS never does)', () => {
     const offenders = sourceFiles(SRC).filter((f) =>
       /textTransform:\s*['"]uppercase['"]/.test(readFileSync(f, 'utf8')),

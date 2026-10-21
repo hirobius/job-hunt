@@ -23,6 +23,7 @@ export default function NoticeHost() {
     shown.current = toast({
       title: n.title,
       description: n.description,
+      ...(n.tone ? { tone: n.tone } : {}),
       duration: 8000,
       ...(actions.length ? { actions } : {}),
     });

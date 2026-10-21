@@ -141,6 +141,19 @@ describe('CloudSyncProvider (via the account menu)', () => {
     expect(within(menu).getByRole('menuitem', { name: 'Retry sync' })).toBeInTheDocument();
   });
 
+  // rev-3 O: a sync or save failure offers Reload (also in Account menu, Troubleshooting). Never Reset.
+  it('the Sync paused toast offers Reload, and no Reset', async () => {
+    fake().failNext('tracker', 'select');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    const title = await screen.findByText('Sync paused');
+    const toast = title.closest('li') ?? title.parentElement!.parentElement!;
+    expect(
+      within(toast as HTMLElement).getByRole('button', { name: /^Reload/ }),
+    ).toBeInTheDocument();
+    expect(within(toast as HTMLElement).queryByRole('button', { name: /Reset/ })).toBeNull();
+  });
+
   it('toasts once per outage, not on every focus re-pull that fails again', async () => {
     fake().failNext('tracker', 'select');
     fake().failNext('tracker', 'select');
@@ -164,6 +177,8 @@ describe('CloudSyncProvider (via the account menu)', () => {
     fake().failNext('groups', 'delete');
     await chooseAccountItem('Delete my data');
     expect(await screen.findByText(/Deleted 3 of 4 — couldn't delete groups/)).toBeInTheDocument();
+    const toast = screen.getByText('Delete incomplete').closest('li')!;
+    expect(within(toast).getByRole('button', { name: /^Reload/ })).toBeInTheDocument();
     expect(getAllJobs()).toHaveLength(1);
   });
 
@@ -242,6 +257,8 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     expect(
       screen.getByText(/kept on this device.*Retry sync in the Account menu/),
     ).toBeInTheDocument();
+    const toast = screen.getByText('Track changes didn’t reach the cloud').closest('li')!;
+    expect(within(toast).getByRole('button', { name: /^Reload/ })).toBeInTheDocument();
     const menu = await openAccount();
     expect(within(menu).getByRole('menuitem', { name: 'Retry sync' })).toBeInTheDocument();
   });

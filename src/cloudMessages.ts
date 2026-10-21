@@ -24,3 +24,12 @@ export const DELETE_ORDER = ['tiles', 'groups', 'categories', 'tracker'] as cons
 
 export const deleteFailedMsg = (failed: readonly string[]) =>
   `Deleted ${DELETE_ORDER.length - failed.length} of ${DELETE_ORDER.length} — couldn't delete ${failed.join(', ')}. Your local copy was kept; try again.`;
+
+/** The one action on a sync or save failure toast (rev-3 O): Reload, which is also in the Account
+ *  menu under Troubleshooting. Never Reset in a toast, and never on a bad restore file (a reload
+ *  does not fix a file). */
+export const RELOAD_ACTION = {
+  label: 'Reload',
+  onSelect: () => window.location.reload(),
+  altText: 'Reload app, also in Account menu, Troubleshooting',
+} as const;

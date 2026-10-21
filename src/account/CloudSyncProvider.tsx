@@ -42,6 +42,7 @@ import {
   TRACK_WRITE_FAILED,
   UNSYNCED_SIGN_OUT,
   UNSYNCED_CHANGES_SIGN_OUT,
+  RELOAD_ACTION,
 } from '../cloudMessages';
 import { getPending, useFailedCount } from '../curation/pending';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
@@ -78,6 +79,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const [signInOpen, setSignInOpen] = useState(false);
+  const [accountTrigger, setAccountTrigger] = useState<HTMLButtonElement | null>(null);
   // True while a pull (adopt) is running: "settled" means none is, and the last one didn't fail.
   const [pulling, setPulling] = useState(false);
   // False until Supabase reports the stored session (or its absence), so signed-in users don't
@@ -296,7 +298,12 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       // Keep this device's copy so nothing is lost while the cloud copy is only partly gone.
       const why = deleteFailedMsg(failed);
       setMsg(why);
-      toast({ title: 'Delete incomplete', description: why, tone: 'danger' });
+      toast({
+        title: 'Delete incomplete',
+        description: why,
+        tone: 'danger',
+        actions: [RELOAD_ACTION],
+      });
       return;
     }
     clearLocalData();
@@ -331,7 +338,12 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     if (msg.startsWith('Synced')) outageToasted.current = false;
     if (msg !== OFFLINE_MSG || outageToasted.current) return;
     outageToasted.current = true;
-    toastRef.current({ title: 'Sync paused', description: OFFLINE_MSG, tone: 'warning' });
+    toastRef.current({
+      title: 'Sync paused',
+      description: OFFLINE_MSG,
+      tone: 'warning',
+      actions: [RELOAD_ACTION],
+    });
   }, [msg]);
 
   // A track change the cloud refused: one toast per burst (a starter pack writes many rows), with
@@ -346,7 +358,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       onCurationWriteFailed(() => {
         if (trackToasted.current) return;
         trackToasted.current = true;
-        toastRef.current({ ...TRACK_WRITE_FAILED, tone: 'warning' });
+        toastRef.current({ ...TRACK_WRITE_FAILED, tone: 'warning', actions: [RELOAD_ACTION] });
       }),
     [],
   );
@@ -367,11 +379,13 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       signOut: () => void signOut(),
       deleteMyData: () => void deleteMyData(),
       signInOpen,
+      accountTrigger,
+      setAccountTrigger,
       setSignInOpen,
     }),
     // The handlers only close over `user` (and stable module state).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, authResolved, pulling, msg, offline, signInOpen],
+    [user, authResolved, pulling, msg, offline, signInOpen, accountTrigger],
   );
   return <CloudSyncContext.Provider value={api}>{children}</CloudSyncContext.Provider>;
 }

@@ -1,0 +1,16 @@
+/* Shell dialogs (sign-in, Reset local data) sit in one place (rev-3). HDS Dialog centres its
+   panel; on a phone the iOS keyboard then covers the field and the button. Below the HDS sm
+   breakpoint (640) the panel is a sheet pinned to the top of the visual viewport (vars from
+   hds-gaps/useVisualViewportVars; without them, the top of the page), capped to the height the
+   keyboard leaves, so it never jumps when the keyboard opens. At sm and up it stays centred.
+   Upstream ask: a top-anchored, keyboard-aware Dialog or Sheet (related: hds#690). */
+.rjb-sheet {
+  max-width: 440px;
+}
+@media (max-width: 639.98px) {
+  .rjb-sheet {
+    top: calc(var(--rjb-vv-top, 0px) + var(--semantic-space-scale-sm));
+    translate: -50% 0;
+    max-height: calc(var(--rjb-vv-height, 100dvh) - 2 * var(--semantic-space-scale-sm));
+  }
+}

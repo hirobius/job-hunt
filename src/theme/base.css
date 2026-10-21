@@ -193,3 +193,40 @@ p {
   --semantic-typography-titleSm-font-size: var(--semantic-typography-body-font-size);
   --semantic-typography-titleSm-line-height: var(--semantic-typography-body-line-height);
 }
+
+/* The Account avatar (rev-3 P, mock #s-account-menu): a 32px circle with a hairline, and the
+ * unsynced Badge sitting on its rim with a page-colour ring. HDS's phone touch-size rule
+ * (`.h-8 { min-height }`, `.w-8[class*=h-8] { min-width }` below 640) also hits the Avatar span,
+ * which is not a control, inflating it to 44px inside its 40px button and pushing the badge off
+ * the circle. Upstream ask: the touch-size rule must not target Avatar (docs/hds-upstream-asks-0.9.md). */
+/* The same rule widens the 40px icon button to 44: hold it at the app's 40px phone target. */
+[data-hds] .rjb-account {
+  min-width: var(--primitive-space-10);
+}
+
+[data-hds] .rjb-avatar {
+  min-width: 0;
+  min-height: 0;
+  border: thin solid var(--semantic-color-border-default);
+}
+
+[data-hds] .rjb-avatar > .absolute {
+  top: 1px;
+  right: 1px;
+  width: var(--primitive-space-px10);
+  height: var(--primitive-space-px10);
+  min-width: 0;
+  min-height: 0;
+  box-shadow: 0 0 0 2px var(--semantic-color-surface-page);
+}
+
+/* The shell's top tabs (rev-3 .tabs): text flush with the page gutter, 24 apart, the underline as
+ * wide as the label, and no tinted box on the selected tab. The 40px phone height stays. */
+.rjb-top-tabs {
+  gap: var(--semantic-space-fixed-md);
+}
+
+.rjb-top-tabs [role='tab'] {
+  padding-inline: 0;
+  background: transparent;
+}
