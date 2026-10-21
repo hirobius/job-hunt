@@ -72,7 +72,9 @@ export function RoleList({
   );
 }
 
-/** Star or unstar a company as a dream company on the track. */
+/** Star or unstar a company as a dream company on the track. A quiet icon toggle that fills in
+ *  place when on (aria-pressed carries the state; the name stays the same, so it isn't announced
+ *  twice), never a bordered button. */
 export function DreamStar({
   categoryId,
   company,
@@ -90,10 +92,11 @@ export function DreamStar({
   return (
     <Button
       size="sm"
-      variant={on ? 'secondary' : 'tertiary'}
+      variant="tertiary"
       iconOnly
-      iconLeft={<Icon icon={Star} />}
-      label={on ? `Unstar ${company}` : `Star ${company} as a dream company`}
+      iconLeft={<Icon icon={Star} className={on ? 'rjb-icon-filled' : undefined} />}
+      label={`Star ${company} as a dream company`}
+      aria-pressed={on}
       onClick={() =>
         on ? unstarDream(categoryId, key) : starDream(categoryId, { company, website, board })
       }

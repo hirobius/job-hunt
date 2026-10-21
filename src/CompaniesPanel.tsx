@@ -3,8 +3,10 @@
 // board tiles, feed/watchlist.ts) and the teams found with the keyless GitHub search in the track's
 // own field (feed/teamTopics.ts picks the topics; a track with none gets no search), one row per
 // board. Each board is read live and filtered by the track's terms (feed/teamRoles.ts); "Hiring now"
-// hides the companies known to have no matching role. "Add a company" (AddCompany.tsx) is the one
-// way onto the list; dream companies sit on top (DreamCompanies.tsx), outreach targets below, and
+// hides the companies known to have no matching role. Rev-3 mock: one "Watched" panel (count badge,
+// one caption, Add a company, Hiring now | All) of hairline rows, each a name, "Greenhouse · 3
+// matching roles" and a Roles button that opens that company's roles in place, one row at a time. "Add a company" (AddCompany.tsx) is the one
+// way onto the list; dream companies sit under it (DreamCompanies.tsx), then outreach targets, and
 // Live postings and the list checker stay one link away (DiscoverView's secondary views).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -14,12 +16,16 @@ import {
   Card,
   Disclosure,
   Input as HdsInput,
+  InlineLink,
+  SegmentedControl,
   Stack,
   Text,
-  Toggle,
   useToast,
 } from '@hirobius/design-system';
-import { SavedTargets, TargetRow, type Row } from './OutreachRows';
+import { SavedTargets, type Row } from './OutreachRows';
+import { atsSearchUrl } from './jobsData';
+import { SOURCE_LABEL } from './feed/types';
+import { Panel, PanelBody, PanelRow } from './PipelinePanel';
 import { ROWS_CLASS, rowsStyle, useWatching } from './outreachShared';
 import {
   findDesignSystemOrgs,
@@ -50,8 +56,8 @@ import { DreamStar, RoleList } from './TeamRoles';
 /** Watched boards read on arrival; the rest wait for "Check open roles". A starter pack can file
  *  a hundred boards, and each read is a whole board. */
 const AUTO_READ = 10;
-/** Roles shown on a row before "Show more". */
-const INLINE_ROLES = 3;
+/** A panel's hairline list (the rows are PanelRows). */
+const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 
 type CompanyRow = Row & { boardCheck?: OrgTarget['boardCheck']; watched?: boolean };
 
@@ -75,13 +81,24 @@ const watchedRow = (b: Board): CompanyRow => ({
 });
 
 const roleCount = (n: number) => `${n} matching ${n === 1 ? 'role' : 'roles'}`;
-const ROLES_LINE: Partial<Record<TeamStatus, (r?: RolesState) => string>> = {
-  hiring: (r) => (r?.state === 'ok' ? `${roleCount(r.roles.length)} · ${r.total} open in all` : ''),
-  quiet: (r) => `No matching roles · ${r?.state === 'ok' ? r.total : 0} open in all`,
-  unknown: () => "Couldn't check",
-  loading: () => 'Checking open roles…',
-  unchecked: () => 'Not looked up yet',
+/** A row's status, after its board's name: "3 matching roles", "no matching roles". */
+const STATUS_LINE: Record<TeamStatus, (r: CompanyRow, rs?: RolesState) => string> = {
+  hiring: (_, rs) => roleCount(rs?.state === 'ok' ? rs.roles.length : 0),
+  quiet: () => 'no matching roles',
+  unknown: () => "couldn't check",
+  loading: () => 'checking open roles…',
+  unchecked: (r) => (r.watched ? 'not checked yet' : 'not looked up yet'),
+  none: () => 'board not found',
 };
+/** What an open row says when it has no role to list. */
+const OPEN_LINE: Partial<Record<TeamStatus, string>> = {
+  quiet: 'No open role matches this track right now.',
+  unknown: "Couldn't read this board (rate-limited, offline or blocked). Try again later.",
+  loading: 'Checking open roles…',
+  unchecked: 'Not looked up yet: find more to check this one.',
+  none: 'No board on the systems we check; it may hire elsewhere.',
+};
+const capital = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 const clock = (ms: number) =>
   new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -113,6 +130,8 @@ export default function CompaniesPanel({
   const [ran, setRan] = useState(false);
   const [hiringOnly, setHiringOnly] = useState(true);
   const [readAll, setReadAll] = useState(false);
+  // One row's roles open at a time (rev-3 mock).
+  const [openRow, setOpenRow] = useState<string | null>(null);
   const [roles, setRoles] = useState<Record<string, RolesState>>({});
   // One politeness budget for the board probes, the role reads and the dream checks.
   const [limiter] = useState(() => createLimiter());
@@ -218,148 +237,226 @@ export default function CompaniesPanel({
     toast({ title: `Saved ${r.company} as a target`, tone: 'success' });
   };
 
+  const toggleRow = (r: CompanyRow) => {
+    const next = openRow === r.login ? null : r.login;
+    setOpenRow(next);
+    // Opening a watched board not read yet reads it now.
+    const signal = life.current?.signal;
+    if (next && r.board && signal && !signal.aborted) loadRoles(r.board, signal);
+  };
+
   const companyRow = (r: CompanyRow) => {
     const rs = rolesOf(r);
     const status = statusOf(r);
     const matching = rs?.state === 'ok' ? rs.roles : [];
+    const line = STATUS_LINE[status](r, rs);
+    const open = openRow === r.login;
+    const panelId = `rjb-roles-${r.login.replace(/[^a-z0-9_-]/gi, '-')}`;
+    const careers = atsSearchUrl(`"${r.company}"`, { role: 'careers', where: '', mode: 'any' });
+    const watching = isWatching(r.board);
     return (
-      <TargetRow
-        key={r.login}
-        r={r}
-        saved={saved(r)}
-        watching={isWatching(r.board)}
-        showWatch={!r.watched}
-        onSave={r.watched ? undefined : () => save(r)}
-        onWatch={watch}
-        rolesLine={r.watched && !rs ? 'Open roles not checked yet' : ROLES_LINE[status]?.(rs)}
-        star={
-          <DreamStar
-            categoryId={categoryId}
-            company={r.company}
-            website={r.website}
-            board={r.board}
-          />
-        }
-      >
-        {matching.length > 0 && (
-          <RoleList company={r.company} roles={matching.slice(0, INLINE_ROLES)} />
-        )}
-        {matching.length > INLINE_ROLES && (
-          <Disclosure label={`Show ${matching.length - INLINE_ROLES} more`}>
-            <RoleList
-              company={r.company}
-              label={`More open roles at ${r.company}`}
-              roles={matching.slice(INLINE_ROLES)}
-            />
-          </Disclosure>
-        )}
-      </TargetRow>
+      <PanelRow key={r.login}>
+        <Stack gap="xs">
+          {/* No wrap: the name column shrinks so the star and Roles stay on the right at 390. */}
+          <Stack direction="row" gap="xs" align="center" justify="space-between">
+            <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
+              <Stack gap="px4">
+                <Text variant="ui" as="span">
+                  {r.website ? (
+                    <InlineLink href={r.website} externalIcon={false}>
+                      {r.company}
+                    </InlineLink>
+                  ) : (
+                    r.company
+                  )}
+                </Text>
+                <Text variant="caption" as="p" tone="secondary">
+                  {r.board ? `${SOURCE_LABEL[r.board.kind]} · ${line}` : capital(line)}
+                </Text>
+                {r.repo && r.repoUrl && (
+                  <Text variant="caption" as="p" tone="secondary">
+                    <InlineLink href={r.repoUrl} externalIcon={false}>
+                      {r.repo}
+                    </InlineLink>
+                    {` · ${(r.stars ?? 0).toLocaleString()} stars`}
+                  </Text>
+                )}
+              </Stack>
+            </Box>
+            <Stack direction="row" gap="px4" align="center">
+              <DreamStar
+                categoryId={categoryId}
+                company={r.company}
+                website={r.website}
+                board={r.board}
+              />
+              <Button
+                size="md"
+                variant="secondary"
+                aria-expanded={open}
+                aria-controls={panelId}
+                aria-label={`Roles at ${r.company}`}
+                onClick={() => toggleRow(r)}
+              >
+                Roles
+              </Button>
+            </Stack>
+          </Stack>
+          {open && (
+            <Box id={panelId}>
+              <Stack gap="xs">
+                {matching.length > 0 ? (
+                  <RoleList company={r.company} roles={matching} />
+                ) : (
+                  <Text variant="caption" as="p" tone="secondary">
+                    {OPEN_LINE[status] ?? ''}
+                  </Text>
+                )}
+                {!r.watched && (
+                  <Stack direction="row" gap="xs" align="center" wrap="wrap">
+                    {r.board ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={watching}
+                        aria-label={`${watching ? 'Watching' : 'Watch board for'} ${r.company}`}
+                        onClick={() => watch(r.board!)}
+                      >
+                        {watching ? 'Watching' : 'Watch board'}
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="tertiary" asChild>
+                        <a
+                          href={careers}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Search careers for ${r.company}`}
+                        >
+                          Search careers
+                        </a>
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={saved(r)}
+                      aria-label={`${saved(r) ? 'Saved' : 'Save as target:'} ${r.company}`}
+                      onClick={() => save(r)}
+                    >
+                      {saved(r) ? 'Saved' : 'Save as target'}
+                    </Button>
+                  </Stack>
+                )}
+              </Stack>
+            </Box>
+          )}
+        </Stack>
+      </PanelRow>
     );
   };
 
   const teams = search ? `${search.noun} teams` : '';
-  const summary = ran
-    ? running
-      ? `Checking… ${teamsN(found.length)} so far`
-      : `${teamsN(found.length)} found · ${hiring} hiring now`
-    : rows.length
-      ? `${companies(rows.length)} · ${hiring} hiring now`
-      : '';
   const hidden = rows.length - shown.length - notFound.length;
+  const caption = running
+    ? `Checking… ${teamsN(found.length)} so far.`
+    : rows.length
+      ? `${companies(rows.length)}, ${hiring} hiring now. Open roles that match this track show first.` +
+        (report && report.unresolved > 0 && !report.stoppedUntil
+          ? ` ${report.unresolved} not looked up yet: find more to resolve the next ${MAX_ORG_LOOKUPS}.`
+          : '')
+      : search
+        ? `Add a company, or find teams with public ${search.noun} work on GitHub. Their open roles show here.`
+        : "Add a company to see its open roles here. The team search looks on GitHub, and this track's titles don't name anything GitHub tracks.";
 
   return (
-    // HDS docs-site rhythm (#241): 48 between sections, 24 under each heading.
-    <Stack gap="spacious">
-      <Stack direction="row" gap="xs" align="center" justify="space-between" wrap="wrap">
-        <Text variant="ui" tone="secondary">
-          Companies you watch or star, with their open roles.
-        </Text>
-        <AddCompany categoryId={categoryId} boardUrls={boardUrls} />
-      </Stack>
-      <DreamCompanies categoryId={categoryId} terms={terms} limiter={limiter} />
-
-      <Stack gap="normal" as="section" aria-label="Open roles by company">
-        <Stack gap="xs">
-          <Text variant="body" as="h3" className="rjb-semibold">
-            Open roles by company
-          </Text>
-          <Text variant="ui" as="p" tone="secondary">
-            {search
-              ? `Companies you watch and companies with public ${search.noun} work on GitHub, the ones with roles that match this track first. Source: GitHub search and the companies' own job boards, no sign-in.`
-              : rows.length
-                ? "Companies you watch, the ones with roles that match this track first. Source: the companies' own job boards."
-                : "Add a company to see its open roles here. The team search looks on GitHub, and this track's titles don't name anything GitHub tracks."}
-          </Text>
-        </Stack>
-        {(search || rows.length > 0) && (
-          <Stack direction="row" gap="xs" align="center" wrap="wrap">
-            {search &&
-              (running ? (
-                <Button size="sm" variant="secondary" onClick={() => abort.current?.abort()}>
-                  Cancel
-                </Button>
-              ) : (
-                <Button size="sm" variant="secondary" onClick={() => void find()}>
-                  {ran ? `Find more ${teams}` : `Find ${teams}`}
-                </Button>
-              ))}
-            {unread > 0 && !readAll && (
-              <Button size="sm" variant="secondary" onClick={() => setReadAll(true)}>
-                {`Check open roles at ${companies(unread)}`}
-              </Button>
-            )}
-            <Toggle label="Hiring now" checked={hiringOnly} onChange={setHiringOnly} />
-          </Stack>
-        )}
-        {search && (
-          <Disclosure label="Refine">
-            <Box sx={{ width: 144 }}>
-              <HdsInput
-                size="sm"
-                label="Minimum stars"
-                helperText="Used on the next search"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={minStars}
-                onChange={(e) => setMinStars(e.target.value)}
-              />
-            </Box>
-          </Disclosure>
-        )}
-
-        {report?.stoppedUntil && (
-          <Alert tone="warning">{`GitHub asks us to wait until ${clock(report.stoppedUntil)}. What was found so far is below; try again after that.`}</Alert>
-        )}
-        {report?.error && <Alert tone="warning">{report.error}</Alert>}
-
-        <Stack gap="xs">
-          {summary && (
-            <Text variant="ui" as="p" role="status">
-              {summary}
-              {!running && hidden > 0
-                ? `. ${hidden} with no matching role or not checked yet hidden: turn off Hiring now to see them.`
-                : ''}
-              {report && !running && report.unresolved > 0 && !report.stoppedUntil
-                ? `. ${report.unresolved} not looked up yet: find more to resolve the next ${MAX_ORG_LOOKUPS}.`
-                : ''}
+    // Panels 24 apart, like the Pipeline's.
+    <Stack gap="normal">
+      <Panel
+        label="Watched"
+        title="Watched"
+        count={rows.length}
+        countLabel={companies(rows.length)}
+      >
+        <PanelBody>
+          <Stack gap="tight">
+            <Text variant="caption" as="p" tone="secondary" role="status">
+              {caption}
             </Text>
-          )}
-
-          {shown.length > 0 && (
-            <ul aria-label="Companies" style={rowsStyle} className={ROWS_CLASS}>
-              {shown.map(companyRow)}
-            </ul>
-          )}
-        </Stack>
-        {notFound.length > 0 && (
-          <Disclosure label={`Board not found (${notFound.length})`}>
-            <ul aria-label="Board not found" style={rowsStyle} className={ROWS_CLASS}>
-              {notFound.map(companyRow)}
-            </ul>
-          </Disclosure>
+            <Stack direction="row" gap="xs" align="center" wrap="wrap">
+              <AddCompany categoryId={categoryId} boardUrls={boardUrls} />
+              {search &&
+                (running ? (
+                  <Button size="sm" variant="secondary" onClick={() => abort.current?.abort()}>
+                    Cancel
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="secondary" onClick={() => void find()}>
+                    {ran ? `Find more ${teams}` : `Find ${teams}`}
+                  </Button>
+                ))}
+              {unread > 0 && !readAll && (
+                <Button size="sm" variant="secondary" onClick={() => setReadAll(true)}>
+                  {`Check open roles at ${companies(unread)}`}
+                </Button>
+              )}
+            </Stack>
+            {rows.length > 0 && (
+              <Box>
+                <SegmentedControl
+                  size="sm"
+                  aria-label="Show companies"
+                  value={hiringOnly ? 'hiring' : 'all'}
+                  onChange={(v) => setHiringOnly(v === 'hiring')}
+                  options={[
+                    { value: 'hiring', label: 'Hiring now' },
+                    // What Hiring now hides (no matching role, or not checked yet) is counted here.
+                    {
+                      value: 'all',
+                      label: hiringOnly && hidden > 0 ? `All (${hidden} more)` : 'All',
+                    },
+                  ]}
+                />
+              </Box>
+            )}
+            {search && (
+              <Disclosure label="Refine">
+                <Box sx={{ width: 144 }}>
+                  <HdsInput
+                    size="sm"
+                    label="Minimum stars"
+                    helperText="Used on the next search"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={minStars}
+                    onChange={(e) => setMinStars(e.target.value)}
+                  />
+                </Box>
+              </Disclosure>
+            )}
+            {report?.stoppedUntil && (
+              <Alert tone="warning">{`GitHub asks us to wait until ${clock(report.stoppedUntil)}. What was found so far is below; try again after that.`}</Alert>
+            )}
+            {report?.error && <Alert tone="warning">{report.error}</Alert>}
+          </Stack>
+        </PanelBody>
+        {shown.length > 0 && (
+          <ul aria-label="Companies" style={LIST}>
+            {shown.map(companyRow)}
+          </ul>
         )}
-      </Stack>
+        {notFound.length > 0 && (
+          <PanelRow as="div">
+            <Disclosure label={`Board not found (${notFound.length})`}>
+              <ul aria-label="Board not found" style={LIST}>
+                {notFound.map(companyRow)}
+              </ul>
+            </Disclosure>
+          </PanelRow>
+        )}
+      </Panel>
+
+      <DreamCompanies categoryId={categoryId} terms={terms} limiter={limiter} roles={roles} />
 
       <SavedTargets categoryId={categoryId} boardUrls={boardUrls} findLink={false} />
 

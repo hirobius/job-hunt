@@ -206,6 +206,27 @@ p {
   text-decoration: underline;
 }
 
+/* A list row's title link (the company page's jobs, rev-3 mock): the Pipeline card title's quiet
+ * link, grown to a 40px tap target without spreading a wrapped title's lines. */
+.rjb-row-title a {
+  display: inline-block;
+  padding-block: calc((var(--primitive-space-10) - 1lh) / 2);
+  color: var(--semantic-color-content-primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.rjb-row-title a:hover {
+  text-decoration: underline;
+}
+
+/* A Back link ("← Pipeline" on a company page, "← Back to companies"): a quiet tertiary whose
+ * arrow sits on the page gutter with the title below it. Only the leading padding goes, so the
+ * box stays inside the gutter (layout rule). */
+[data-hds] .rjb-back-link {
+  padding-inline-start: 0;
+}
+
 /* One line, cut with an ellipsis (a long domain in a facts list). */
 .rjb-truncate {
   overflow: hidden;

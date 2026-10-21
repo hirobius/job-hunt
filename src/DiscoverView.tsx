@@ -644,9 +644,10 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         )}
         {secondary && (
           <Stack gap="px4">
+            {/* "← Back to companies", the job page's Back pattern (rev-3), with no leading
+                padding so the arrow lines up with the heading (`.rjb-back-link`). */}
             <Box>
-              {/* "← Back to companies", the job page's Back pattern (rev-3). */}
-              <Button variant="tertiary" size="md" asChild>
+              <Button className="rjb-back-link" variant="tertiary" size="md" asChild>
                 <a href={defaultTool === 'teams' ? '#/discover' : '#/discover/teams'}>
                   <Icon icon={ArrowLeft} />
                   Back to companies

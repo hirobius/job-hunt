@@ -17,10 +17,9 @@ export function BackToPipeline() {
     // No inline-start padding, so the arrow sits on the page gutter like the title (rev-3).
     <Box>
       <Button
-        className="rjb-flush-start"
+        className="rjb-back"
         variant="tertiary"
         size="md"
-        className="rjb-back"
         iconLeft={<Icon icon={ArrowLeft} />}
         aria-label="Back to Pipeline"
         onClick={() => openJob(null)}
