@@ -4,8 +4,8 @@
 // lets you watch the ones it found. Browser only: the checks go straight to each ATS's keyless board
 // API (src/feed/probe.ts), politely, and can be cancelled. "Not found" and "couldn't check" are kept
 // apart on purpose: only a 404 means a company has no board there.
-// rev-3 L: companies go in through a chip input with type-ahead (your own companies, the YC directory
-// and Wikidata; src/feed/companySuggest.ts), debounced, each source on its own; Enter adds the typed
+// rev-3 L: companies go in through a chip input with type-ahead (your own companies and the YC
+// directory; src/feed/companySuggest.ts), debounced, each source on its own; Enter adds the typed
 // name as it is, so the field works with every source down. "Paste a list" and "Load a YC batch" stay
 // as secondary ways in. A company with no board can be kept as a target (a dream company).
 // HDS gap: Combobox has no `onInputChange` or rich option (logo, two lines), so the typed text is read
@@ -253,7 +253,7 @@ export default function FindBoardsPanel({
             <div onChange={(e) => setQuery((e.target as HTMLInputElement).value)}>
               <FormField
                 label="Companies"
-                description="Suggestions come from your tracks, the YC directory and Wikidata."
+                description="Suggestions come from your tracks and the YC directory."
               >
                 <Combobox
                   multiple

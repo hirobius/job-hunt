@@ -480,10 +480,10 @@ track-agnostic like everything else in Discover.
   fetch them. New hosts `yc-oss.github.io` and `api.github.com` are in `connect-src` and `csp.test.ts`.
 - **Company type-ahead (rev-3 L).** Check a list of companies is a chip input (HDS creatable `Combobox`)
   fed by `feed/companySuggest.ts`: your own companies (watched boards, saved jobs, dreams, targets), the YC
-  mirror's `companies/hiring.json` (read once) and Wikidata `wbsearchentities` (`www.wikidata.org`, in
-  `connect-src`, `csp.test.ts` and `legal.ts`), 250 ms debounce, 5 s timeout, per-source failure isolation,
+  mirror's `companies/hiring.json` (read once; no other directory, Adrian 2026-10-21: no new third party),
+  250 ms debounce, 5 s timeout, failure isolation,
   in-memory cache; Enter adds the typed name as is. Paste a list / Load a YC batch stay as secondaries; a
-  company with no board is a row with "Keep as a target" (a dream company). Both network sources are
+  company with no board is a row with "Keep as a target" (a dream company). The YC source is
   **unverified live**. Pinned in `findBoards.test.tsx`, `feed/companySuggest.test.ts`.
 - **Companies as one tool (#237, Calm list 3/7).** The Teams tool (slug `teams`, label kept) is the
   companies list, `CompaniesPanel.tsx` (was `OutreachTargets.tsx`): one list of company rows (watched

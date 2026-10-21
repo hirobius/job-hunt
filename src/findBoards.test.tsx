@@ -52,12 +52,6 @@ const BATCH = [
   { name: 'Gone Co', status: 'Acquired', isHiring: true },
   { name: 'Nobody', status: 'Active', isHiring: false },
 ];
-const WIKI = {
-  search: [
-    { id: 'Q1', label: 'Quillon Media', description: 'British media company' },
-    { id: 'Q2', label: 'Quill', description: 'writing implement' },
-  ],
-};
 const suggest = { down: false };
 const fakeFetch = vi.fn(async (url: string) => {
   calls.push(url);
@@ -70,10 +64,6 @@ const fakeFetch = vi.fn(async (url: string) => {
           ]),
           { status: 200 },
         );
-  if (url.startsWith('https://www.wikidata.org/'))
-    return suggest.down
-      ? new Response('{}', { status: 503 })
-      : new Response(JSON.stringify(WIKI), { status: 200 });
   if (url.startsWith('https://yc-oss.github.io/api/batches/'))
     return yc.down
       ? new Response('{}', { status: 404 })
@@ -255,7 +245,7 @@ describe('Find boards', () => {
   describe('company type-ahead (rev-3 L)', () => {
     const field = () => screen.findByRole('combobox', { name: 'Companies' });
 
-    it('suggests your own companies, YC and Wikidata as you type; a pick becomes a chip', async () => {
+    it('suggests your own companies and YC as you type; a pick becomes a chip', async () => {
       const g = addGroup(cat, { label: 'Watched companies' });
       addTile(g, {
         name: 'Quillfeather Labs',
@@ -272,26 +262,12 @@ describe('Find boards', () => {
           name: 'Quillstack · YC Winter 2023, quillstack.example',
         }),
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('option', { name: 'Quillon Media · Wikidata, British media company' }),
-      ).toBeInTheDocument();
-      // Wikidata hits that are not companies stay out.
-      expect(screen.queryByRole('option', { name: /writing implement/ })).toBeNull();
       // Your own companies come first.
       expect(screen.getAllByRole('option')[0]).toBe(mine);
       await userEvent.click(screen.getByRole('option', { name: /^Quillstack/ }));
       expect(screen.getByRole('button', { name: 'Remove Quillstack' })).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', { name: 'Find boards' }));
       expect(await screen.findByText('1 of 1 checked, 0 boards found')).toBeVisible();
-    });
-
-    it('waits for a pause in typing, and asks Wikidata once per query', async () => {
-      renderApp();
-      await userEvent.type(await field(), 'quillo');
-      await screen.findByRole('option', { name: /^Quillon Media/ });
-      const wiki = calls.filter((u) => u.startsWith('https://www.wikidata.org/'));
-      expect(wiki).toHaveLength(1);
-      expect(new URL(wiki[0]).searchParams.get('search')).toBe('quillo');
     });
 
     it('with the suggestion sources down, Enter still adds the typed name', async () => {

@@ -4,9 +4,7 @@ import {
   knownCompanies,
   localSuggestions,
   mergeSuggestions,
-  parseWikidata,
   parseYcSuggestions,
-  wikidataUrl,
   YC_SUGGEST_URL,
 } from './companySuggest';
 
@@ -63,35 +61,6 @@ describe('parseYcSuggestions', () => {
   });
 });
 
-describe('parseWikidata', () => {
-  it('keeps company-like entities and names them by their description', () => {
-    const body = {
-      search: [
-        { id: 'Q1', label: 'Quillon Media', description: 'British media company' },
-        { id: 'Q2', label: 'Quill', description: 'writing implement' },
-        { id: 'Q3', label: 'Stripe', description: 'Irish-American financial services firm' },
-        { id: 'Q4', description: 'no label' },
-      ],
-    };
-    expect(parseWikidata(body)).toEqual([
-      { name: 'Quillon Media', detail: 'Wikidata, British media company', source: 'wikidata' },
-      {
-        name: 'Stripe',
-        detail: 'Wikidata, Irish-American financial services firm',
-        source: 'wikidata',
-      },
-    ]);
-  });
-
-  it('asks the keyless, CORS-open search endpoint', () => {
-    const u = new URL(wikidataUrl('Acme & Co'));
-    expect(u.origin).toBe('https://www.wikidata.org');
-    expect(u.searchParams.get('action')).toBe('wbsearchentities');
-    expect(u.searchParams.get('search')).toBe('Acme & Co');
-    expect(u.searchParams.get('origin')).toBe('*');
-  });
-});
-
 describe('mergeSuggestions', () => {
   it('keeps the first of each name, local first, and caps the list', () => {
     const merged = mergeSuggestions(
@@ -110,27 +79,34 @@ describe('mergeSuggestions', () => {
 
 describe('createCompanySuggester', () => {
   const yc = [{ name: 'Quillstack', website: 'https://quillstack.example', batch: 'W23' }];
-  const wiki = { search: [{ id: 'Q1', label: 'Quillon Media', description: 'media company' }] };
 
-  it('asks YC once and Wikidata per query; a failing source drops out, the rest stay', async () => {
-    const fetchJson = vi.fn(async (url: string) => {
-      if (url === YC_SUGGEST_URL) return yc;
-      if (url.includes('wikidata')) throw new Error('blocked');
-      return null;
-    });
+  it('reads the YC list once for every query', async () => {
+    const fetchJson = vi.fn(async (url: string) => (url === YC_SUGGEST_URL ? yc : null));
     const suggest = createCompanySuggester(fetchJson);
     expect((await suggest('quill')).map((s) => s.name)).toEqual(['Quillstack']);
     await suggest('quills');
-    expect(fetchJson.mock.calls.filter(([u]) => u === YC_SUGGEST_URL)).toHaveLength(1);
+    expect(fetchJson).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed YC read gives nothing and is retried on the next query', async () => {
+    let fail = true;
+    const fetchJson = vi.fn(async () => {
+      if (fail) throw new Error('blocked');
+      return yc;
+    });
+    const suggest = createCompanySuggester(fetchJson);
+    expect(await suggest('quill')).toEqual([]);
+    fail = false;
+    expect((await suggest('quills')).map((s) => s.name)).toEqual(['Quillstack']);
   });
 
   it('caches answers in memory by query', async () => {
-    const fetchJson = vi.fn(async (url: string) => (url === YC_SUGGEST_URL ? yc : wiki));
+    const fetchJson = vi.fn(async () => yc);
     const suggest = createCompanySuggester(fetchJson);
     const first = await suggest('Quill');
-    expect(first.map((s) => s.source)).toEqual(['yc', 'wikidata']);
-    await suggest('quill ');
-    expect(fetchJson).toHaveBeenCalledTimes(2);
+    expect(first.map((s) => s.source)).toEqual(['yc']);
+    expect(await suggest('quill ')).toBe(await suggest('quill'));
+    expect(fetchJson).toHaveBeenCalledTimes(1);
   });
 
   it('answers nothing for under two characters, without a request', async () => {
