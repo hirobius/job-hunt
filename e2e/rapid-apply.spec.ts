@@ -45,12 +45,12 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Finish' }).click();
 
-  // Wide net: pick all three postings and save them in one go.
+  // Wide net: save all three postings in one go, from the Openings menu.
   await page.goto('/#/discover/live');
-  const picks = page.getByRole('checkbox', { name: /^Pick / });
-  await expect(picks).toHaveCount(3);
-  for (let i = 0; i < 3; i++) await picks.nth(i).check();
-  await page.getByRole('button', { name: 'Save 3 to Pipeline' }).click();
+  const list = page.getByRole('list', { name: 'Live postings' });
+  await expect(list.getByRole('listitem')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Openings options' }).click();
+  await page.getByRole('menuitem', { name: 'Save all (3)' }).click();
   const notice = page
     .getByRole('region', { name: /^Notifications/ })
     .getByRole('listitem')

@@ -7,18 +7,19 @@ the HDS fix out and wait for their screen's redesign slice to migrate.
 
 ## Open
 
-| Workaround                      | Where                                                                | What HDS lacks                                                                                         | Upstream         |
-| ------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------- |
-| Inline fillable blank (rev-3 A) | `.rjb-blank` / `.rjb-chip` in `src/theme/base.css` (`BlankText.tsx`) | a tappable inline token chip (TokenField chips aren't buttons; Tag is a 24px pill with no inline size) | to file          |
-| Two-line card title (rev-3 H)   | `.rjb-card-title` / `.rjb-clamp-2` / `.rjb-clamp-3` in `base.css`    | a line clamp on `Text`, and a quiet (no underline at rest) title link                                  | to file          |
-| One-line truncation             | `.rjb-truncate` in `src/theme/base.css`                              | a `truncate` option on `Text` / `InlineLink`                                                           | to file          |
-| Resizable textarea              | `.rjb-resize` in `src/theme/base.css`                                | a `resize` prop on `Textarea`                                                                          | to file          |
-| Keyboard-aware dialog           | `src/hds-gaps/useVisualViewportVars.ts`                              | a top-anchored, keyboard-aware Dialog or Sheet                                                         | related: hds#690 |
-| `Text` weight                   | `.rjb-semibold` in `src/theme/base.css`                              | _shipped_ 0.28: `Text weight` (regular, medium, bold; no semibold step)                                | hds#825          |
-| Phone touch size                | 40px rule in `src/theme/base.css`                                    | a touch size on sm controls                                                                            | hds#750          |
-| Dark pressed accent contrast    | held pair in `src/theme.contrast.test.ts`                            | _shipped_ 0.27: AA on the dark pressed accent                                                          | hds#748          |
-| EmptyState italic + centred     | `src/hds-gaps/EmptyState.tsx` (every app empty state imports it)     | a non-italic EmptyState title, and a centred teaching variant (icon tile, bold title, framed)          | to file          |
-| Alert title size in a panel     | `.rjb-inline-alerts` in `src/theme/base.css` (Live postings)         | an Alert `size` (its titleSm title reads as a page head and wraps at 390)                              | to file          |
+| Workaround                      | Where                                                                           | What HDS lacks                                                                                         | Upstream         |
+| ------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------- |
+| Inline fillable blank (rev-3 A) | `.rjb-blank` / `.rjb-chip` in `src/theme/base.css` (`BlankText.tsx`)            | a tappable inline token chip (TokenField chips aren't buttons; Tag is a 24px pill with no inline size) | to file          |
+| Two-line card title (rev-3 H)   | `.rjb-card-title` / `.rjb-clamp-2` / `.rjb-clamp-3` in `base.css`               | a line clamp on `Text`, and a quiet (no underline at rest) title link                                  | to file          |
+| One-line truncation             | `.rjb-truncate` in `src/theme/base.css`                                         | a `truncate` option on `Text` / `InlineLink`                                                           | to file          |
+| Vertical row chevron (rev-3)    | `.rjb-disclosure-vertical` in `src/theme/base.css` (`LiveFeedPanel`, `FeedFit`) | a chevron direction on `Disclosure variant="row"` (down when closed, up when open; it turns right)     | to file          |
+| Resizable textarea              | `.rjb-resize` in `src/theme/base.css`                                           | a `resize` prop on `Textarea`                                                                          | to file          |
+| Keyboard-aware dialog           | `src/hds-gaps/useVisualViewportVars.ts`                                         | a top-anchored, keyboard-aware Dialog or Sheet                                                         | related: hds#690 |
+| `Text` weight                   | `.rjb-semibold` in `src/theme/base.css`                                         | _shipped_ 0.28: `Text weight` (regular, medium, bold; no semibold step)                                | hds#825          |
+| Phone touch size                | 40px rule in `src/theme/base.css`                                               | a touch size on sm controls                                                                            | hds#750          |
+| Dark pressed accent contrast    | held pair in `src/theme.contrast.test.ts`                                       | _shipped_ 0.27: AA on the dark pressed accent                                                          | hds#748          |
+| EmptyState italic + centred     | `src/hds-gaps/EmptyState.tsx` (every app empty state imports it)                | a non-italic EmptyState title, and a centred teaching variant (icon tile, bold title, framed)          | to file          |
+| Alert title size in a panel     | `.rjb-inline-alerts` in `src/theme/base.css` (Live postings)                    | an Alert `size` (its titleSm title reads as a page head and wraps at 390)                              | to file          |
 
 ## Retired
 

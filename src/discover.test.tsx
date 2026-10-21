@@ -146,7 +146,11 @@ describe('Discover header and tools (slice 2)', () => {
     renderApp();
     await openContext();
     await userEvent.click(await screen.findByRole('radio', { name: 'Hybrid' }));
-    expect(await screen.findByText('Searching in Spokane, Hybrid')).toBeVisible();
+    // The header's one context button says it; Live postings repeats no context line (rev-3).
+    expect(
+      await screen.findByRole('button', { name: 'Change where: Spokane, Hybrid' }),
+    ).toBeVisible();
+    expect(screen.queryByText('Searching in Spokane, Hybrid')).toBeNull();
   });
 
   it('offers the tools as one segmented row and routes between them', async () => {

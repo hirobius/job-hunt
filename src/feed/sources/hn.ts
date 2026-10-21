@@ -42,11 +42,32 @@ function pickThreads(listing: unknown, title: RegExp, n: number): HnThread[] {
 }
 
 const ROLE_RE =
-  /\b(engineer|engineering|designer|developer|technologist|architect|lead|manager|head of|director|founding|staff|principal|frontend|front-end|design|ux|ui|cto)\b/i;
+  /\b(engineer|engineering|designer|developer|technologist|architect|lead|manager|head of|director|founding|staff|principal|frontend|front-end|design|ux|ui|cto|consultant|specialist|analyst|implementation|solutions|success|support|onboarding)\b/i;
 const PLACE_RE =
   /\b(remote|on-?site|hybrid|usa?|uk|eu|europe|canada|worldwide|global|anywhere|nyc|new york|sf|san francisco|bay area|london|berlin|toronto|seattle|austin|boston)\b|,\s*[A-Z]{2}\b/i;
 /** Title used when a pipe-format post names no role (one company, several roles in the body). */
 export const HN_NO_ROLE = 'Roles listed in post';
+
+/** A place segment that only names the work mode ("REMOTE"); dropped when a real place is named. */
+const MODE_ONLY_RE = /^(remote|onsite|on-site|hybrid)$/i;
+/** Short codes that stay upper case when an all-caps segment is sentence-cased. */
+const KEEP_CAPS = new Set(['US', 'USA', 'UK', 'EU', 'NYC', 'SF', 'LA', 'DC', 'EMEA', 'APAC', 'UTC']);
+
+/** "REMOTE (US)" → "Remote (US)", "SAN FRANCISCO, CA" → "San Francisco, CA": no ALL CAPS on screen.
+ *  Two-letter words and known codes keep their capitals; mixed-case text is left as written. */
+export function unshout(s: string): string {
+  if (s !== s.toUpperCase() || !/[A-Z]{3}/.test(s)) return s;
+  return s.replace(/[A-Z][A-Z'-]*/g, (w) =>
+    w.length <= 2 || KEEP_CAPS.has(w) ? w : w[0] + w.slice(1).toLowerCase(),
+  );
+}
+
+/** The place segments as shown: un-shouted, deduped, a bare mode word only when no place is named. */
+function placeOf(where: string[]): string {
+  const segs = [...new Set(where.map(unshout))];
+  const places = segs.filter((s) => !MODE_ONLY_RE.test(s));
+  return (places.length ? places : segs.slice(0, 1)).slice(0, 2).join(' · ');
+}
 
 const NOISE_RE = /^(full[- ]?time|part[- ]?time|contract|visa|\$|€|£|https?:|www\.|\S+@\S+)/i;
 const KV_RE = /^\s*(company|role|roles|position|positions|title|location|locations)\s*:\s*(\S.*)$/i;
@@ -95,7 +116,7 @@ function parseComment(hit: unknown, freelance: boolean): Posting | null {
     for (const s of segs.slice(1)) {
       if (NOISE_RE.test(s)) continue;
       if (!title && ROLE_RE.test(s) && !PLACE_RE.test(s)) title = s;
-      else if (PLACE_RE.test(s) && where.length < 2) where.push(s);
+      else if (PLACE_RE.test(s)) where.push(s);
     }
   }
 
@@ -114,7 +135,7 @@ function parseComment(hit: unknown, freelance: boolean): Posting | null {
   // 3. Prose opener ("Acme is hiring engineers to …") — only a named subject counts as a company.
   if (!company && segs.length < 2) company = PROSE_RE.exec(firstLine)?.[1]?.trim() ?? '';
   if (!title) title = segs.length >= 2 ? HN_NO_ROLE : firstLine;
-  const location = where.join(' · ');
+  const location = placeOf(where);
 
   return {
     id: `hn:${id}`,

@@ -111,7 +111,8 @@ describe('LiveFeedPanel', () => {
     const rows = within(list).getAllByRole('listitem');
     expect(rows).toHaveLength(2);
     const hn = rows.find((r) => r.textContent?.includes('UX/UI Designer'))!;
-    expect(hn).toHaveTextContent('Contract-friendly');
+    // The signal is a fact with an icon, not a badge on the top row (rev-3 K).
+    expect(hn).toHaveTextContent('Contract');
     expect(screen.queryByText('Backend Engineer')).not.toBeInTheDocument();
   });
 
@@ -166,12 +167,39 @@ describe('LiveFeedPanel', () => {
     expect(screen.queryByText(/No live openings mention/)).not.toBeInTheDocument();
   });
 
-  it('filters to contract-friendly openings', async () => {
+  it('filters to contract-friendly openings from the Openings menu', async () => {
     const user = userEvent.setup();
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
-    await user.click(screen.getByRole('radio', { name: /contract-friendly \(1\)/i }));
+    await user.click(screen.getByRole('button', { name: 'Openings options' }));
+    // A filter with nothing in it is not offered.
+    expect(screen.queryByRole('menuitemradio', { name: /First hire/ })).toBeNull();
+    await user.click(screen.getByRole('menuitemradio', { name: 'Contract-friendly (1)' }));
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.getByText(/Showing contract-friendly/)).toBeInTheDocument();
+  });
+
+  it('is one Openings panel: count, how it is sorted, Find more, and rows inside it (rev-3 K)', async () => {
+    renderPanel();
+    const list = await screen.findByRole('list', { name: /live postings/i });
+    const panel = screen.getByRole('region', { name: 'Openings' });
+    expect(panel).toContainElement(list);
+    expect(within(panel).getByRole('heading', { name: 'Openings' })).toBeInTheDocument();
+    expect(within(panel).getByText('Sorted by relevance')).toBeInTheDocument();
+    expect(within(panel).getByRole('button', { name: 'Find more' })).toBeInTheDocument();
+    // No pick boxes, no inline fit disclosure, no term chips under the search.
+    expect(screen.queryByRole('checkbox', { name: /^Pick/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Fit and gap/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'design engineer' })).toBeNull();
+  });
+
+  it('saves every opening on screen from the Openings menu', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    await user.click(screen.getByRole('button', { name: 'Openings options' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Save all (2)' }));
+    expect(getAllJobs()).toHaveLength(2);
   });
 
   it('saves a posting to the tracker with its details', async () => {
@@ -279,7 +307,7 @@ describe('LiveFeedPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('folds a long list of failed sources behind a disclosure', async () => {
+  it('sums up a long list of failed sources in one Partial row with one Retry', async () => {
     const sources = Array.from({ length: 6 }, (_, i) => ({
       key: `b${i}`,
       label: `Board ${i}`,
@@ -288,15 +316,22 @@ describe('LiveFeedPanel', () => {
     }));
     feed.fetchFeed.mockResolvedValueOnce({ postings: RESULT.postings, sources });
     renderPanel();
-    expect(await screen.findByText('6 sources didn’t respond')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /show which ones/i })).toBeInTheDocument();
+    const panel = await screen.findByRole('region', { name: 'Openings' });
+    expect(within(panel).getByText('Partial')).toBeInTheDocument();
+    expect(within(panel).getByText('6 sources didn’t answer')).toBeInTheDocument();
+    expect(
+      within(panel).getByText('Board 0, Board 1 +4 more. Results below are from the rest.'),
+    ).toBeInTheDocument();
+    expect(within(panel).getAllByRole('button', { name: 'Retry' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: /show which ones/i })).toBeNull();
   });
 
-  it('searches a term chip when clicked', async () => {
+  it("searches one of the track's terms from Calibrate's Search for row", async () => {
     const user = userEvent.setup();
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
-    await user.click(screen.getByText('design engineer'));
+    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
+    await user.click(screen.getByRole('button', { name: 'design engineer' }));
     expect(feed.fetchFeed).toHaveBeenLastCalledWith(
       expect.objectContaining({ term: 'design engineer', boardUrls: [] }),
     );
@@ -345,7 +380,9 @@ describe('LiveFeedPanel states (#131)', () => {
     feed.fetchFeed.mockImplementationOnce(() => new Promise(() => {}));
     renderPanel();
     expect(
-      await screen.findByText(/Pulling live openings for “design systems”/),
+      await within(await screen.findByRole('region', { name: 'Openings' })).findByText(
+        'Pulling live openings…',
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).toBeNull();
   });
@@ -388,7 +425,8 @@ describe('LiveFeedPanel states (#131)', () => {
       postings: [],
       sources: [{ key: 'remotive', label: 'Remotive', fetched: 4 }],
     });
-    await user.click(screen.getByRole('button', { name: 'Retry Remotive' }));
+    expect(screen.getByText('1 source didn’t answer')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
     expect(feed.fetchFeed).toHaveBeenLastCalledWith(
       expect.objectContaining({ term: 'design systems', only: ['remotive'] }),
     );

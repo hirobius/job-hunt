@@ -13,6 +13,7 @@ import {
   Text,
   Disclosure,
   Stack,
+  VisuallyHidden,
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
 import TileGrid from './TileGrid';
@@ -583,9 +584,17 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
                 </a>
               </Button>
             </Box>
-            <Text variant="body" as="h3" className="rjb-semibold">
-              {SECONDARY_VIEWS[secondary]}
-            </Text>
+            {/* Live postings goes straight from Back to the search row (rev-3 mock): its name
+                stays in the outline for assistive tech only. */}
+            {secondary === 'live' ? (
+              <VisuallyHidden>
+                <h3>{SECONDARY_VIEWS[secondary]}</h3>
+              </VisuallyHidden>
+            ) : (
+              <Text variant="body" as="h3" className="rjb-semibold">
+                {SECONDARY_VIEWS[secondary]}
+              </Text>
+            )}
           </Stack>
         )}
         {secondary === 'boards' && (
