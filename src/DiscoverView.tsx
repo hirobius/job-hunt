@@ -576,9 +576,12 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
                 </a>
               </Button>
             </Box>
-            <Text variant="body" as="h3" className="rjb-semibold">
-              {SECONDARY_VIEWS[secondary]}
-            </Text>
+            {/* Check a list of companies names itself in its panel's header (rev-3 L). */}
+            {secondary !== 'boards' && (
+              <Text variant="body" as="h3" className="rjb-semibold">
+                {SECONDARY_VIEWS[secondary]}
+              </Text>
+            )}
           </Stack>
         )}
         {secondary === 'boards' && (

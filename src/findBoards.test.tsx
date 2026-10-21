@@ -52,8 +52,28 @@ const BATCH = [
   { name: 'Gone Co', status: 'Acquired', isHiring: true },
   { name: 'Nobody', status: 'Active', isHiring: false },
 ];
+const WIKI = {
+  search: [
+    { id: 'Q1', label: 'Quillon Media', description: 'British media company' },
+    { id: 'Q2', label: 'Quill', description: 'writing implement' },
+  ],
+};
+const suggest = { down: false };
 const fakeFetch = vi.fn(async (url: string) => {
   calls.push(url);
+  if (url === 'https://yc-oss.github.io/api/companies/hiring.json')
+    return suggest.down
+      ? new Response('{}', { status: 503 })
+      : new Response(
+          JSON.stringify([
+            { name: 'Quillstack', website: 'https://quillstack.example', batch: 'Winter 2023' },
+          ]),
+          { status: 200 },
+        );
+  if (url.startsWith('https://www.wikidata.org/'))
+    return suggest.down
+      ? new Response('{}', { status: 503 })
+      : new Response(JSON.stringify(WIKI), { status: 200 });
   if (url.startsWith('https://yc-oss.github.io/api/batches/'))
     return yc.down
       ? new Response('{}', { status: 404 })
@@ -69,6 +89,7 @@ beforeEach(() => {
   localStorage.clear();
   calls.length = 0;
   yc.down = false;
+  suggest.down = false;
   fakeFetch.mockClear();
   vi.stubGlobal('fetch', fakeFetch);
   replaceCurationState(EMPTY_CURATION);
@@ -81,8 +102,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** "Paste a list" opens the paste box (rev-3 L keeps it as the secondary way in). */
+const pasteBox = async () => {
+  if (!screen.queryByRole('textbox', { name: 'Paste a list' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Paste a list' }));
+  return screen.getByRole('textbox', { name: 'Paste a list' });
+};
 const paste = async (text: string) => {
-  const box = await screen.findByRole('textbox', { name: 'Companies' });
+  const box = await pasteBox();
   await userEvent.click(box);
   await userEvent.paste(text);
   await userEvent.click(screen.getByRole('button', { name: 'Find boards' }));
@@ -107,11 +134,12 @@ describe('Find boards', () => {
     expect(await screen.findByText('4 of 4 checked, 2 boards found')).toBeVisible();
     const list = screen.getByRole('list', { name: 'Boards found' });
     expect(within(list).getByText('Figma')).toBeVisible();
-    expect(within(list).getByText('Greenhouse')).toBeVisible();
-    expect(within(list).getByText('3 open roles')).toBeVisible();
+    expect(within(list).getByText('Greenhouse · 3 open roles')).toBeVisible();
     expect(within(list).getByText('Plaid')).toBeVisible();
-    expect(within(list).getByText('Lever')).toBeVisible();
-    expect(screen.getByText('Not found (1)')).toBeVisible();
+    expect(within(list).getByText('Lever · 1 open role')).toBeVisible();
+    // One row per company (rev-3 L): no board is a row too, not a hidden list.
+    const none = screen.getByRole('list', { name: 'No board found' });
+    expect(within(none).getByText('Nobody')).toBeVisible();
     expect(screen.getByText("Couldn't check (1)")).toBeVisible();
   });
 
@@ -174,17 +202,20 @@ describe('Find boards', () => {
 
   it('notes lines it will skip and a list over 500', async () => {
     renderApp();
-    const box = await screen.findByRole('textbox', { name: 'Companies' });
+    const box = await pasteBox();
     await userEvent.click(box);
     await userEvent.paste('Acme\n!!!');
     expect(await screen.findByText(/1 line is not a company name/)).toBeVisible();
   });
 
   describe('YC batches', () => {
-    const box = () => screen.findByRole('textbox', { name: 'Companies' });
+    const box = () => screen.findByRole('textbox', { name: 'Paste a list' });
+    const openYc = async () =>
+      userEvent.click(await screen.findByRole('button', { name: 'Load a YC batch' }));
 
     it('offers the last four batches and loads the active companies into the box', async () => {
       renderApp();
+      await openYc();
       const batches = await screen.findByRole('radiogroup', { name: 'YC batch' });
       expect(within(batches).getAllByRole('radio')).toHaveLength(4);
       await userEvent.click(screen.getByRole('button', { name: 'Load batch' }));
@@ -198,6 +229,7 @@ describe('Find boards', () => {
 
     it('can keep only companies that are hiring', async () => {
       renderApp();
+      await openYc();
       await userEvent.click(await screen.findByRole('checkbox', { name: 'Only companies hiring' }));
       await userEvent.click(screen.getByRole('button', { name: 'Load batch' }));
       await waitFor(async () => expect(await box()).toHaveValue('Figma'));
@@ -207,6 +239,7 @@ describe('Find boards', () => {
       yc.down = true;
       renderApp();
       // The shared fetcher caches an hour; an earlier test loaded the newest batch, so use another.
+      await openYc();
       const batches = await screen.findByRole('radiogroup', { name: 'YC batch' });
       await userEvent.click(within(batches).getAllByRole('radio')[3]);
       await userEvent.click(screen.getByRole('button', { name: 'Load batch' }));
@@ -218,10 +251,82 @@ describe('Find boards', () => {
     });
   });
 
+  describe('company type-ahead (rev-3 L)', () => {
+    const field = () => screen.findByRole('combobox', { name: 'Companies' });
+
+    it('suggests your own companies, YC and Wikidata as you type; a pick becomes a chip', async () => {
+      const g = addGroup(cat, { label: 'Watched companies' });
+      addTile(g, {
+        name: 'Quillfeather Labs',
+        url: 'https://jobs.ashbyhq.com/quillfeather',
+        meta: '',
+      });
+      renderApp();
+      await userEvent.type(await field(), 'quill');
+      const mine = await screen.findByRole('option', {
+        name: 'Quillfeather Labs · In your tracks, Ashby board',
+      });
+      expect(
+        await screen.findByRole('option', {
+          name: 'Quillstack · YC Winter 2023, quillstack.example',
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', { name: 'Quillon Media · Wikidata, British media company' }),
+      ).toBeInTheDocument();
+      // Wikidata hits that are not companies stay out.
+      expect(screen.queryByRole('option', { name: /writing implement/ })).toBeNull();
+      // Your own companies come first.
+      expect(screen.getAllByRole('option')[0]).toBe(mine);
+      await userEvent.click(screen.getByRole('option', { name: /^Quillstack/ }));
+      expect(screen.getByRole('button', { name: 'Remove Quillstack' })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Find boards' }));
+      expect(await screen.findByText('1 of 1 checked, 0 boards found')).toBeVisible();
+    });
+
+    it('waits for a pause in typing, and asks Wikidata once per query', async () => {
+      renderApp();
+      await userEvent.type(await field(), 'quillo');
+      await screen.findByRole('option', { name: /^Quillon Media/ });
+      const wiki = calls.filter((u) => u.startsWith('https://www.wikidata.org/'));
+      expect(wiki).toHaveLength(1);
+      expect(new URL(wiki[0]).searchParams.get('search')).toBe('quillo');
+    });
+
+    it('with the suggestion sources down, Enter still adds the typed name', async () => {
+      suggest.down = true;
+      renderApp();
+      const box = await field();
+      await userEvent.type(box, 'Figma{Enter}');
+      expect(screen.getByRole('button', { name: 'Remove Figma' })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Find boards' }));
+      expect(await screen.findByText('1 of 1 checked, 1 board found')).toBeVisible();
+    });
+
+    it('checks picked names and a pasted list together', async () => {
+      renderApp();
+      await userEvent.type(await field(), 'Figma{Enter}');
+      await paste('Plaid');
+      expect(await screen.findByText('2 of 2 checked, 2 boards found')).toBeVisible();
+    });
+
+    it('a company with no board can be kept as a target', async () => {
+      renderApp();
+      await paste('Nobody');
+      await userEvent.click(screen.getByRole('button', { name: 'Keep Nobody as a target' }));
+      await waitFor(() =>
+        expect(JSON.parse(localStorage.getItem('rjb_dreams') ?? '{}')[cat]?.[0]?.company).toBe(
+          'Nobody',
+        ),
+      );
+      expect(screen.getByRole('button', { name: 'Kept Nobody as a target' })).toBeDisabled();
+    });
+  });
+
   it('has no WCAG A/AA violations', async () => {
     const { container } = renderApp();
     await paste('Figma\nNobody');
-    await screen.findByText('Not found (1)');
+    await screen.findByRole('list', { name: 'No board found' });
     const results = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });
