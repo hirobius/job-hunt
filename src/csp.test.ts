@@ -29,6 +29,7 @@ const FEED_HOSTS = [
   'https://*.teamtailor.com',
   'https://*.jobs.personio.de',
   'https://yc-oss.github.io',
+  'https://www.wikidata.org',
   'https://api.github.com',
 ];
 

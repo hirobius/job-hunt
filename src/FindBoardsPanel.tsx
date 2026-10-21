@@ -4,29 +4,52 @@
 // lets you watch the ones it found. Browser only: the checks go straight to each ATS's keyless board
 // API (src/feed/probe.ts), politely, and can be cancelled. "Not found" and "couldn't check" are kept
 // apart on purpose: only a 404 means a company has no board there.
-import { useEffect, useMemo, useRef, useState } from 'react';
+// rev-3 L: companies go in through a chip input with type-ahead (your own companies, the YC directory
+// and Wikidata; src/feed/companySuggest.ts), debounced, each source on its own; Enter adds the typed
+// name as it is, so the field works with every source down. "Paste a list" and "Load a YC batch" stay
+// as secondary ways in. A company with no board can be kept as a target (a dream company).
+// HDS gap: Combobox has no `onInputChange` or rich option (logo, two lines), so the typed text is read
+// from the bubbling change event and an option is one line, "Name · detail · source".
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ClipboardPaste, Star } from 'lucide-react';
 import {
   Box,
   Alert,
   Button,
   Checkbox,
+  Combobox,
   Disclosure,
-  Select,
+  Icon,
   InlineLink,
   Progress,
+  Select,
   Stack,
-  Badge,
   Text,
   Textarea,
   useToast,
 } from '@hirobius/design-system';
+import { FormField } from '@hirobius/design-system/patterns';
 import { discoverBoards, MAX_LIST, parseList, type DiscoverResult } from './feed/discoverBoards';
+import {
+  knownCompanies,
+  localSuggestions,
+  mergeSuggestions,
+  MIN_QUERY,
+  suggestCompanies,
+  type CompanySuggestion,
+} from './feed/companySuggest';
+import { starDream, useAllDreams } from './feed/dreams';
+import { useAllTargets } from './feed/targets';
+import { useTiles } from './curation/curationStore';
+import { useJobs } from './store';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
 import { liveFetchJson } from './feed/fetchFeed';
 import { probeFetchJson } from './feed/probeFetch';
 import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
 import { SOURCE_LABEL } from './feed/types';
 import { addBoardTiles, watchBoard } from './feed/watchlist';
+import { metaLines } from './metaLines';
+import { Panel, PanelBody, PanelRow } from './PipelinePanel';
 import { batchLabel, fetchBatch, recentBatches, ycLines, YC_CREDIT } from './feed/yc';
 
 const EMPTY: DiscoverResult = {
@@ -37,6 +60,17 @@ const EMPTY: DiscoverResult = {
   done: 0,
   total: 0,
 };
+
+// Suggestions wait for a pause in typing.
+const SUGGEST_DEBOUNCE_MS = 250;
+
+/** An option's one line, two meta items (#192), source first: "Quillstack · YC W23, quillstack.example". */
+const optionLabel = (s: CompanySuggestion) =>
+  s.source === 'tracks' && !s.detail.startsWith('In your')
+    ? `${s.name} · In your tracks, ${s.detail}`
+    : `${s.name} · ${s.detail}`;
+
+const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 const roles = (n?: number) =>
   n === undefined ? '' : n === 0 ? 'No openings now' : `${n} open ${n === 1 ? 'role' : 'roles'}`;
@@ -49,6 +83,12 @@ export default function FindBoardsPanel({
   boardUrls: string[];
 }) {
   const { toast } = useToast();
+  const [names, setNames] = useState<string[]>([]);
+  const [query, setQuery] = useState('');
+  const [remote, setRemote] = useState<CompanySuggestion[]>([]);
+  const [pasting, setPasting] = useState(false);
+  const [ycOpen, setYcOpen] = useState(false);
+  const [kept, setKept] = useState<string[]>([]);
   const [text, setText] = useState('');
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<DiscoverResult | null>(null);
@@ -64,7 +104,52 @@ export default function FindBoardsPanel({
   const watched = useMemo(() => boardsFromUrls(boardUrls, Infinity), [boardUrls]);
   const isWatched = (b: Board) =>
     watched.some((w) => w.kind === b.kind && w.slug.toLowerCase() === b.slug.toLowerCase());
-  const parsed = useMemo(() => parseList(text), [text]);
+  const parsed = useMemo(() => parseList([...names, text].join('\n')), [names, text]);
+
+  const tiles = useTiles();
+  const jobs = useJobs();
+  const dreams = useAllDreams();
+  const targets = useAllTargets();
+  const known = useMemo(
+    () =>
+      knownCompanies({
+        tiles,
+        jobs,
+        dreams: Object.values(dreams).flat(),
+        targets: Object.values(targets).flat(),
+      }),
+    [tiles, jobs, dreams, targets],
+  );
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < MIN_QUERY) return;
+    let live = true;
+    const t = setTimeout(
+      () => void suggestCompanies(q).then((r) => live && setRemote(r)),
+      SUGGEST_DEBOUNCE_MS,
+    );
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [query]);
+  const suggestions = mergeSuggestions([
+    localSuggestions(query, known, names),
+    // The last answer stays up while the next is on its way; a short query shows none.
+    (query.trim().length < MIN_QUERY ? [] : remote).filter(
+      (r) => !names.some((n) => sameName(n, r.name)),
+    ),
+  ]);
+  const addName = (name: string) => {
+    const n = name.trim();
+    if (n && !names.some((x) => sameName(x, n))) setNames((all) => [...all, n]);
+    setQuery('');
+  };
+  const keep = (company: string) => {
+    starDream(categoryId, { company });
+    setKept((k) => [...k, company]);
+    toast({ title: `Keeping ${company} as a target`, tone: 'success' });
+  };
 
   const start = async (lines: string[], retry: boolean) => {
     if (running || !lines.length) return;
@@ -117,6 +202,7 @@ export default function FindBoardsPanel({
       const companies = await fetchBatch(batch, liveFetchJson, { hiringOnly });
       const lines = ycLines(companies);
       setText(lines.join('\n'));
+      if (lines.length) setPasting(true);
       setBatchNote(
         lines.length
           ? `Loaded ${lines.length} active ${lines.length === 1 ? 'company' : 'companies'} from ${batchLabel(batch)}. Source: ${YC_CREDIT}.`
@@ -155,131 +241,169 @@ export default function FindBoardsPanel({
 
   const checked = result?.done ?? 0;
   return (
-    <Stack gap="inset">
-      <Text variant="ui" tone="secondary">
-        Paste company names, slugs or job-board links, one per line. We check Greenhouse, Lever,
-        Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio for a public board, so
-        you can watch the ones that exist.
-      </Text>
-      {DISCOVERY_SOURCE_ENABLED.yc && (
-        <Stack gap="xs">
-          <Text variant="body" as="h3" className="rjb-semibold">
-            Start from a YC batch
-          </Text>
-          {/* A Select, not a segmented row: four batch names ran past a 390 phone's content box
-              and clipped mid-word with no cue (rev-3 C). */}
-          <Select
-            label="YC batch"
-            showLabel={false}
-            value={batch}
-            onChange={setBatch}
-            options={recentBatches(new Date()).map((b) => ({ value: b, label: batchLabel(b) }))}
-          />
-          <Stack direction="row" gap="inset" align="center" wrap="wrap">
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={loadingBatch || running}
-              onClick={() => void loadBatch()}
-            >
-              {loadingBatch ? 'Loading…' : 'Load batch'}
-            </Button>
-            <Checkbox
-              label="Only companies hiring"
-              checked={hiringOnly}
-              onChange={() => setHiringOnly((v) => !v)}
-            />
+    <Stack gap="normal">
+      <Panel
+        label="Check a list of companies"
+        title="Check a list of companies"
+        description="Add companies, then we check 8 job-board systems for each: Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio."
+      >
+        <PanelBody>
+          <Stack gap="inset">
+            {/* The typed text, for the suggestions: HDS Combobox has no onInputChange (see the top). */}
+            <div onChange={(e) => setQuery((e.target as HTMLInputElement).value)}>
+              <FormField
+                label="Companies"
+                description="Suggestions come from your tracks, the YC directory and Wikidata."
+              >
+                <Combobox
+                  multiple
+                  creatable
+                  value={names}
+                  options={suggestions.map((s) => ({ value: s.name, label: optionLabel(s) }))}
+                  onChange={(v) => {
+                    setNames(v);
+                    setQuery('');
+                  }}
+                  onCreate={addName}
+                  placeholder="Type a company name"
+                  emptyMessage="Keep typing a company name"
+                  disabled={running}
+                />
+              </FormField>
+            </div>
+            {pasting && (
+              <Textarea
+                label="Paste a list"
+                helperText="Company names, slugs or job-board links, one per line."
+                rows={6}
+                value={text}
+                placeholder={'Acme Labs\nstripe\nhttps://jobs.lever.co/plaid'}
+                onChange={(e) => setText(e.target.value)}
+                disabled={running}
+              />
+            )}
+            {(parsed.trimmed > 0 || parsed.ignored.length > 0) && (
+              <Text variant="caption" as="p" tone="secondary">
+                {parsed.trimmed > 0 &&
+                  `Only the first ${MAX_LIST} are checked in one run; ${parsed.trimmed} left out. `}
+                {parsed.ignored.length > 0 &&
+                  `${parsed.ignored.length} ${parsed.ignored.length === 1 ? 'line is' : 'lines are'} not a company name or board link and will be skipped.`}
+              </Text>
+            )}
+            <Stack direction="row" gap="xs" wrap="wrap" align="center">
+              {running ? (
+                <Button variant="secondary" onClick={() => abort.current?.abort()}>
+                  Cancel
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  disabled={!parsed.lines.length}
+                  onClick={() => void start(parsed.lines, false)}
+                >
+                  Find boards
+                </Button>
+              )}
+              {!pasting && (
+                <Button
+                  variant="secondary"
+                  iconLeft={<Icon icon={ClipboardPaste} />}
+                  onClick={() => setPasting(true)}
+                >
+                  Paste a list
+                </Button>
+              )}
+              {DISCOVERY_SOURCE_ENABLED.yc && !ycOpen && (
+                <Button variant="tertiary" onClick={() => setYcOpen(true)}>
+                  Load a YC batch
+                </Button>
+              )}
+            </Stack>
+            {DISCOVERY_SOURCE_ENABLED.yc && ycOpen && (
+              <Stack gap="xs">
+                <Text variant="body" as="h3" className="rjb-semibold">
+                  Start from a YC batch
+                </Text>
+                {/* A Select, not a segmented row: four batch names ran past a 390 phone's content
+                    box and clipped mid-word with no cue (rev-3 C). */}
+                <Select
+                  label="YC batch"
+                  showLabel={false}
+                  value={batch}
+                  onChange={setBatch}
+                  options={recentBatches(new Date()).map((b) => ({ value: b, label: batchLabel(b) }))}
+                />
+                <Stack direction="row" gap="inset" align="center" wrap="wrap">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={loadingBatch || running}
+                    onClick={() => void loadBatch()}
+                  >
+                    {loadingBatch ? 'Loading…' : 'Load batch'}
+                  </Button>
+                  <Checkbox
+                    label="Only companies hiring"
+                    checked={hiringOnly}
+                    onChange={() => setHiringOnly((v) => !v)}
+                  />
+                </Stack>
+                {batchNote && (
+                  <Text variant="caption" as="p" tone="secondary">
+                    {batchNote}
+                  </Text>
+                )}
+                {batchError && <Alert tone="warning">{batchError}</Alert>}
+              </Stack>
+            )}
           </Stack>
-          {batchNote && (
-            <Text variant="caption" as="p" tone="secondary">
-              {batchNote}
-            </Text>
-          )}
-          {batchError && <Alert tone="warning">{batchError}</Alert>}
-        </Stack>
-      )}
-      <Textarea
-        label="Companies"
-        rows={6}
-        value={text}
-        placeholder={'Acme Labs\nstripe\nhttps://jobs.lever.co/plaid'}
-        onChange={(e) => setText(e.target.value)}
-        disabled={running}
-      />
-      {(parsed.trimmed > 0 || parsed.ignored.length > 0) && (
-        <Text variant="caption" as="p" tone="secondary">
-          {parsed.trimmed > 0 &&
-            `Only the first ${MAX_LIST} are checked in one run; ${parsed.trimmed} left out. `}
-          {parsed.ignored.length > 0 &&
-            `${parsed.ignored.length} ${parsed.ignored.length === 1 ? 'line is' : 'lines are'} not a company name or board link and will be skipped.`}
-        </Text>
-      )}
-      <Stack direction="row" gap="xs" wrap="wrap">
-        {running ? (
-          <Button variant="secondary" size="sm" onClick={() => abort.current?.abort()}>
-            Cancel
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            disabled={!parsed.lines.length}
-            onClick={() => void start(parsed.lines, false)}
-          >
-            Find boards
-          </Button>
-        )}
-      </Stack>
-
+        </PanelBody>
+      </Panel>
       {result && (
-        <Stack gap="xs">
-          <Progress
-            size="sm"
-            value={checked}
-            max={Math.max(result.total, 1)}
-            label={`${checked} of ${result.total} checked`}
-          />
-          <Text variant="ui" as="p" role="status">
-            {`${checked} of ${result.total} checked, ${result.found.length} ${result.found.length === 1 ? 'board' : 'boards'} found`}
-            {!running && checked < result.total - result.unknown.length ? ' (stopped)' : ''}
-          </Text>
-        </Stack>
-      )}
-
-      {result && result.found.length > 0 && (
-        <Stack gap="xs">
-          <Stack direction="row" justify="space-between" align="center">
-            <Text variant="body" as="h3" className="rjb-semibold">
-              Boards found
-            </Text>
-            {unwatchedFound.length > 1 && (
+        <Panel
+          label="Found"
+          title="Found"
+          badge={`${result.found.length} of ${result.total}`}
+          trailing={
+            unwatchedFound.length > 1 && (
               <Button size="sm" variant="secondary" onClick={watchAll}>
                 {`Watch all (${unwatchedFound.length})`}
               </Button>
-            )}
-          </Stack>
-          <Box
-            as="ul"
-            aria-label="Boards found"
-            sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 'xs' }}
-          >
-            {result.found.map((f) => (
-              <li key={`${f.board.kind}:${f.board.slug}`}>
-                <Stack direction="row" gap="xs" align="center" justify="space-between" wrap="wrap">
-                  <Stack gap="px4">
-                    <Stack direction="row" gap="xs" align="center" wrap="wrap">
-                      <Text variant="ui" as="span">
-                        <InlineLink href={canonicalBoardUrl(f.board)} externalIcon={false}>
-                          {f.company}
-                        </InlineLink>
-                      </Text>
-                      <Badge>{SOURCE_LABEL[f.board.kind]}</Badge>
-                    </Stack>
-                    {f.jobs !== undefined && (
-                      <Text variant="caption" tone="secondary">
-                        {roles(f.jobs)}
-                      </Text>
-                    )}
-                  </Stack>
+            )
+          }
+        >
+          <PanelBody>
+            <Stack gap="xs">
+              <Progress
+                size="sm"
+                value={checked}
+                max={Math.max(result.total, 1)}
+                label={`${checked} of ${result.total} checked`}
+              />
+              <Text variant="caption" as="p" tone="secondary" role="status">
+                {`${checked} of ${result.total} checked, ${result.found.length} ${result.found.length === 1 ? 'board' : 'boards'} found`}
+                {!running && checked < result.total - result.unknown.length ? ' (stopped)' : ''}
+              </Text>
+              {result.alreadyWatched.length > 0 && (
+                <Text variant="caption" as="p" tone="secondary">
+                  {`Already watching: ${result.alreadyWatched.join(', ')}.`}
+                </Text>
+              )}
+            </Stack>
+          </PanelBody>
+          {/* One row per company (rev-3 L): a board found to watch, or none to keep as a target. */}
+          {result.found.length > 0 && (
+            <ResultRows label="Boards found">
+              {result.found.map((f) => (
+                <ResultRow
+                  key={`${f.board.kind}:${f.board.slug}`}
+                  title={
+                    <InlineLink href={canonicalBoardUrl(f.board)} externalIcon={false}>
+                      {f.company}
+                    </InlineLink>
+                  }
+                  meta={metaLines([SOURCE_LABEL[f.board.kind], roles(f.jobs)])[0]}
+                >
                   <Button
                     size="sm"
                     variant="secondary"
@@ -289,56 +413,104 @@ export default function FindBoardsPanel({
                   >
                     {isWatched(f.board) ? 'Watching' : 'Watch'}
                   </Button>
-                </Stack>
-              </li>
-            ))}
-          </Box>
-        </Stack>
-      )}
-
-      {result && result.alreadyWatched.length > 0 && (
-        <Text variant="caption" as="p" tone="secondary">
-          {`Already watching: ${result.alreadyWatched.join(', ')}.`}
-        </Text>
-      )}
-
-      {result && result.missed.length > 0 && (
-        <Disclosure label={`Not found (${result.missed.length})`}>
-          <Stack gap="xs">
-            <Text variant="caption" as="p" tone="secondary">
-              No public board on any of the five systems under the names we tried. They may use
-              another system or a different spelling; paste the board link if you have it.
-            </Text>
-            <Text variant="ui" as="p">
-              {result.missed.join(', ')}
-            </Text>
-          </Stack>
-        </Disclosure>
-      )}
-
-      {result && result.unknown.length > 0 && (
-        <Disclosure label={`Couldn't check (${result.unknown.length})`}>
-          <Stack gap="xs">
-            <Text variant="caption" as="p" tone="secondary">
-              These didn't get an answer (rate-limited, offline or blocked), so we can't say whether
-              a board exists.
-            </Text>
-            <Text variant="ui" as="p">
-              {result.unknown.join(', ')}
-            </Text>
-            <div>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={running}
-                onClick={() => void start(result.unknown, true)}
-              >
-                Retry unknown
-              </Button>
-            </div>
-          </Stack>
-        </Disclosure>
+                </ResultRow>
+              ))}
+            </ResultRows>
+          )}
+          {result.missed.length > 0 && (
+            <ResultRows label="No board found">
+              {result.missed.map((company) => {
+                const done = kept.includes(company);
+                return (
+                  <ResultRow key={company} title={company} meta="No board found">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      iconLeft={<Icon icon={Star} />}
+                      disabled={done}
+                      aria-label={`${done ? 'Kept' : 'Keep'} ${company} as a target`}
+                      onClick={() => keep(company)}
+                    >
+                      {done ? 'Kept' : 'Keep as a target'}
+                    </Button>
+                  </ResultRow>
+                );
+              })}
+            </ResultRows>
+          )}
+          {(result.missed.length > 0 || result.unknown.length > 0) && (
+            <PanelRow as="div">
+              <Stack gap="xs">
+                {result.missed.length > 0 && (
+                  <Text variant="caption" as="p" tone="secondary">
+                    No board means none on the systems we check under the names we tried. It may
+                    hire elsewhere or under another spelling; paste its board link if you have it.
+                  </Text>
+                )}
+                {result.unknown.length > 0 && (
+                  <Disclosure label={`Couldn't check (${result.unknown.length})`}>
+                    <Stack gap="xs">
+                      <Text variant="caption" as="p" tone="secondary">
+                        These didn't get an answer (rate-limited, offline or blocked), so we can't
+                        say whether a board exists.
+                      </Text>
+                      <Text variant="ui" as="p">
+                        {result.unknown.join(', ')}
+                      </Text>
+                      <Box>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={running}
+                          onClick={() => void start(result.unknown, true)}
+                        >
+                          Retry unknown
+                        </Button>
+                      </Box>
+                    </Stack>
+                  </Disclosure>
+                )}
+              </Stack>
+            </PanelRow>
+          )}
+        </Panel>
       )}
     </Stack>
+  );
+}
+
+/** A list of result rows under the Found panel's header, split by hairlines. */
+function ResultRows({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <Box as="ul" aria-label={label} sx={{ listStyle: 'none', m: 0, p: 0 }}>
+      {children}
+    </Box>
+  );
+}
+
+/** One company: its name over a one-line meta, its action on the right. */
+function ResultRow({
+  title,
+  meta,
+  children,
+}: {
+  title: ReactNode;
+  meta: string;
+  children: ReactNode;
+}) {
+  return (
+    <PanelRow>
+      <Stack direction="row" gap="xs" align="center" justify="space-between">
+        <Stack gap="px4">
+          <Text variant="ui" as="span" weight="medium">
+            {title}
+          </Text>
+          <Text variant="caption" tone="secondary">
+            {meta}
+          </Text>
+        </Stack>
+        {children}
+      </Stack>
+    </PanelRow>
   );
 }
