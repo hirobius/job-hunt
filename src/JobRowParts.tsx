@@ -2,13 +2,21 @@
 // cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
 // step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
 import { Ellipsis, Star } from 'lucide-react';
-import { Badge, Button, Icon, Menu, useToast } from '@hirobius/design-system';
+import {
+  Badge,
+  Button,
+  Icon,
+  Menu,
+  Stack,
+  VisuallyHidden,
+  useToast,
+} from '@hirobius/design-system';
 import { hostOf, setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
 import { FollowUpButton } from './FollowUp';
 import { navigate } from './route';
 import { setDiscoverSeed } from './discoverSeed';
-import { primaryAction, STATUS_TONE, titleOf } from './jobRow';
+import { primaryAction, rowView, STATUS_TONE, titleOf } from './jobRow';
 import { normStatus } from './jobState';
 import { STATUSES, type Job, type Status } from './types';
 
@@ -19,6 +27,26 @@ type Size = 'sm' | 'md';
 export function StatusBadge({ job }: { job: Job }) {
   const status = normStatus(job.status);
   return <Badge tone={job.archived ? 'neutral' : STATUS_TONE[status]}>{status}</Badge>;
+}
+
+/** One badge row above a job's title (rev-3 B): fit first, then status, Retired, a due
+ *  follow-up, and the star on a card. Pipeline cards and the job page share it. */
+export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
+  const row = rowView(job);
+  return (
+    <Stack direction="row" wrap="wrap" gap="px8" align="center">
+      {row.verdict && <Badge tone={row.verdict.tone}>{row.verdict.label}</Badge>}
+      <StatusBadge job={job} />
+      {row.retired && <Badge>Retired</Badge>}
+      {row.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
+      {star && row.pinned && (
+        <>
+          <StarIcon on />
+          <VisuallyHidden>Starred</VisuallyHidden>
+        </>
+      )}
+    </Stack>
+  );
 }
 
 /** The star: outline when off, filled when on. */
@@ -35,20 +63,21 @@ function useToggleStar() {
   };
 }
 
-/** The job page's star toggle: says Star or Starred, so the state reads without the icon. The
- *  text carries the state, so there is no aria-pressed (both would announce it twice). */
+/** The job page's star toggle: a 40px icon button named Star or Starred, so the state reads
+ *  from its name and the filled icon. The name carries the state, so there is no aria-pressed
+ *  (both would announce it twice). */
 export function StarButton({ job }: { job: Job }) {
   const toggle = useToggleStar();
   const on = !!job.priority;
   return (
     <Button
-      size="sm"
-      variant="tertiary"
+      size="md"
+      variant="secondary"
+      iconOnly
       iconLeft={<StarIcon on={on} />}
+      label={on ? 'Starred' : 'Star'}
       onClick={() => toggle(job)}
-    >
-      {on ? 'Starred' : 'Star'}
-    </Button>
+    />
   );
 }
 

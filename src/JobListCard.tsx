@@ -4,11 +4,11 @@
 // 40px tap targets. The title links to the job's page, where everything else lives.
 import { useId } from 'react';
 import { Calendar, MapPin } from 'lucide-react';
-import { Badge, Box, Card, InlineLink, Stack, Text, VisuallyHidden } from '@hirobius/design-system';
+import { Box, Card, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { jobIdOf } from './store';
 import { jobHash } from './route';
 import { rowView } from './jobRow';
-import { RowMenu, RowPrimaryAction, StarIcon, StatusBadge } from './JobRowParts';
+import { JobBadges, RowMenu, RowPrimaryAction } from './JobRowParts';
 import { PanelRow } from './PipelinePanel';
 import type { Job } from './types';
 
@@ -35,23 +35,7 @@ export default function JobListCard({ job }: { job: Job }) {
     // Footer with the actions. Flat inside the Jobs panel: no border of its own, a hairline above.
     <PanelRow as="div" flush>
       <Card as="article" aria-labelledby={titleId} padding="none" className="border-0">
-        <Card.Header
-          metadata={
-            // One badge row above the title (rev-3 B): fit first, then status, then due.
-            <Stack direction="row" wrap="wrap" gap="px8" align="center">
-              {row.verdict && <Badge tone={row.verdict.tone}>{row.verdict.label}</Badge>}
-              <StatusBadge job={job} />
-              {row.retired && <Badge>Retired</Badge>}
-              {row.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
-              {row.pinned && (
-                <>
-                  <StarIcon on />
-                  <VisuallyHidden>Starred</VisuallyHidden>
-                </>
-              )}
-            </Stack>
-          }
-        >
+        <Card.Header metadata={<JobBadges job={job} star />}>
           {/* Body size, not Card.Title's title size: the page title stays the biggest text. */}
           <Stack gap="px4">
             <Text variant="body" as="h3" className="rjb-semibold" id={titleId}>

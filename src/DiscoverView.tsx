@@ -14,9 +14,9 @@ import {
   InlineLink,
   Stack,
   useAtLeast,
+  EmptyState,
 } from '@hirobius/design-system';
 import TileGrid from './TileGrid';
-import EmptyState from './EmptyState';
 import { useRoute, navigate } from './route';
 import {
   BOARDS,
@@ -89,11 +89,11 @@ function GroupPanel({
       {visible.length > 0 ? (
         <TileGrid tiles={visible} triage />
       ) : saved.length > 0 ? (
-        <EmptyState message="All saved — check your Tracker for these." />
+        <EmptyState title="All saved — check your Tracker for these." />
       ) : (
         <EmptyState
           title="No links here yet"
-          message="Add links you trust, or use Title and ATS search for live ones."
+          description="Add links you trust, or use Title and ATS search for live ones."
           action={
             <Button variant="secondary" size="sm" onClick={onManage}>
               Manage this track
@@ -141,7 +141,7 @@ function AtsPanel({
     return (
       <EmptyState
         title="No titles yet"
-        message="Add a few job titles to this track and we'll search the big boards and companies' hiring systems (Greenhouse, Lever, Ashby…) for them."
+        description="Add a few job titles to this track and we'll search the big boards and companies' hiring systems (Greenhouse, Lever, Ashby…) for them."
         action={
           <Button variant="secondary" size="sm" onClick={onManage}>
             Add titles

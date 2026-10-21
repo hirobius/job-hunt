@@ -209,9 +209,7 @@ describe('editing a message changes what the fill paths use', () => {
     window.location.hash = `#/apply/${jobIdOf(JOB)}`;
     await renderApp();
     const list = await screen.findByRole('list', { name: 'Your templates' });
-    await userEvent.click(
-      within(list).getByRole('button', { name: 'Show all of Follow-up after applying' }),
-    );
+    await userEvent.click(within(list).getByRole('button', { name: /^Follow-up after applying/ }));
     expect(within(list).getByText(/P\.S\. Acme Metals rocks\./)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
       'href',

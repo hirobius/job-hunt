@@ -76,7 +76,10 @@ for (const width of [390, 1440]) {
     await page.screenshot({ path: `test-results/wide-sweep-titles-${width}.png`, fullPage: true });
 
     await list.getByRole('button', { name: 'Save' }).first().click();
-    const notice = page.getByRole('status').filter({ hasText: 'Saved to Pipeline · To apply' });
+    const notice = page
+      .getByRole('region', { name: /^Notifications/ })
+      .getByRole('listitem')
+      .filter({ hasText: 'Saved to Pipeline · To apply' });
     await expect(notice).toBeVisible();
     await page.goto('/#/queue');
     await expect(page.getByRole('region', { name: 'To apply (1)' })).toBeVisible();

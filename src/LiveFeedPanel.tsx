@@ -23,9 +23,9 @@ import {
   Icon,
   Text,
   InlineLink,
+  EmptyState,
 } from '@hirobius/design-system';
 import { X } from 'lucide-react';
-import EmptyState from './EmptyState';
 import { EvidenceEditor, FitGapDetails, PatternsSummary } from './FeedFit';
 import { setTrackContext, useTrackContext } from './discoverContext';
 import { ContextCaption } from './LocationControl';
@@ -33,7 +33,7 @@ import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
 import { notifySaved } from './saveNotice';
 import { fetchFeed, type FeedResult } from './feed/fetchFeed';
 import { mergeRetry } from './feed/mergeFeed';
-import AsyncState, { type AsyncStatus } from './hds-gaps/AsyncState';
+import { AsyncState, type AsyncStatus } from '@hirobius/design-system/patterns';
 import { rankPostings } from './feed/match';
 import { applyTargeting, NO_TARGETING } from './feed/targeting';
 import type { Seniority } from './curation/types';
@@ -418,7 +418,7 @@ export default function LiveFeedPanel({
   );
   const emptyState = !hasQuery ? (
     <EmptyState
-      message={
+      title={
         sweeping
           ? 'Tick at least one title under Calibrate to sweep.'
           : "Type a search term or pick one of this track's terms."
@@ -427,7 +427,7 @@ export default function LiveFeedPanel({
   ) : ranked.length === 0 && matched.length > 0 ? (
     <EmptyState
       title="Everything is hidden by your filters"
-      message="Loosen what you left out, the level or the pay floor to see them again."
+      description="Loosen what you left out, the level or the pay floor to see them again."
     />
   ) : (
     <EmptyState
@@ -436,7 +436,7 @@ export default function LiveFeedPanel({
           ? `No live openings mention any of your ${sweepTitles.length} titles right now`
           : `No live openings mention “${term}” right now`
       }
-      message="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
+      description="Hacker News posts a fresh thread monthly and boards change daily — try a broader term, or watch more company boards."
       action={
         <Button
           variant="secondary"
@@ -701,6 +701,7 @@ export default function LiveFeedPanel({
 
       <AsyncState
         status={status}
+        label="Live openings"
         onRetry={retryAll}
         loadingLabel={
           reading
@@ -708,14 +709,8 @@ export default function LiveFeedPanel({
             : `Pulling live openings for “${term}”…`
         }
         slowNote="Still trying: slow sources are skipped after 15 s"
-        error={
-          current?.error
-            ? { title: current.error }
-            : {
-                title: "Couldn't reach any source",
-                message: 'Check your internet connection or try again later.',
-              }
-        }
+        errorTitle={current?.error ?? "Couldn't reach any source"}
+        error={current?.error ? undefined : 'Check your internet connection or try again later.'}
         empty={emptyState}
       >
         <Box>
@@ -769,7 +764,7 @@ export default function LiveFeedPanel({
           )}
           {visible.length === 0 ? (
             <EmptyState
-              message={
+              title={
                 shownTitles.length === 0
                   ? 'Every title is hidden — turn one back on above.'
                   : focus === 'strong'

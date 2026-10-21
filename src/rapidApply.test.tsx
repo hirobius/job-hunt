@@ -22,6 +22,13 @@ const A = 'https://acme.example/jobs/1';
 const B = 'https://bolt.example/jobs/2';
 const C = 'https://cask.example/jobs/3';
 
+/** The save notice: an HDS Toast in the Notifications region. */
+const findNotice = async () => {
+  const region = await screen.findByRole('region', { name: /^Notifications/ });
+  await within(region).findByRole('listitem');
+  return region;
+};
+
 const renderApp = () =>
   render(
     <ColorModeProvider>
@@ -54,7 +61,7 @@ describe('save notice', () => {
     const user = userEvent.setup();
     renderApp();
     act(() => notifySaved([C], 'Cask Designer'));
-    const notice = await screen.findByRole('status', { name: '' });
+    const notice = await findNotice();
     expect(within(notice).getByText('Saved to Pipeline · To apply')).toBeInTheDocument();
     await user.click(within(notice).getByRole('button', { name: 'Undo' }));
     expect(findJobByUrl(C)).toBeUndefined();
@@ -77,7 +84,9 @@ describe('To apply queue and Apply mode', () => {
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    await user.click(await screen.findByRole('button', { name: 'Add Name' }));
+    // Empty fields wait behind one "Fill in your kit" row.
+    await user.click(await screen.findByRole('button', { name: /^Fill in your kit/ }));
+    await user.click(screen.getByRole('button', { name: 'Add Name' }));
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Sam Placeholder');
     await user.click(screen.getByRole('button', { name: 'Done' }));
     expect(getApplyKit().fields.name).toBe('Sam Placeholder');
@@ -86,14 +95,19 @@ describe('To apply queue and Apply mode', () => {
     expect(await screen.findByRole('button', { name: 'Copied Name' })).toBeInTheDocument();
   });
 
-  it('Mark applied → follow-up date → Next job; Not a fit sets aside with Undo', async () => {
+  it('Mark applied → follow-up date → pager Next; Not a fit sets aside with Undo', async () => {
     const user = userEvent.setup();
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
+    const pager = await screen.findByRole('navigation', { name: 'Jobs to apply' });
+    expect(within(pager).getByText('1 of 3')).toBeInTheDocument();
+    expect(within(pager).getByRole('button', { name: 'Previous page' })).toBeDisabled();
     await user.click(await screen.findByRole('button', { name: 'Mark applied' }));
     expect(findJobByUrl(A)?.status).toBe('Applied');
     expect(screen.getByText(/Follow up on \d{4}-\d{2}-\d{2}/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Next job (1 of 2)' }));
+    // The applied job holds its place, so the pager still reads 1 of 3.
+    expect(within(pager).getByText('1 of 3')).toBeInTheDocument();
+    await user.click(within(pager).getByRole('button', { name: 'Next page' }));
     expect(await screen.findByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Not a fit' }));
     expect(findJobByUrl(C)?.archived).toBe(true);
@@ -146,7 +160,7 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     ).not.toBeNull();
   });
 
-  it('a long template shows a short preview with Show all; Copy still copies all of it', async () => {
+  it('a long template shows a short preview and opens to all of it; Copy copies all of it', async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
     const long = 'Dear [Company] team, ' + 'I build things that last. '.repeat(20) + 'The end.';
@@ -158,10 +172,13 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     expect(within(list).getByText(/^Dear Acme team, I build things/)).toBeInTheDocument();
     await user.click(within(list).getByRole('button', { name: 'Copy Cover letter' }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('The end.'));
-    await user.click(within(list).getByRole('button', { name: 'Show all of Cover letter' }));
+    // The row opens to the whole text (HDS Disclosure variant="row") and closes again.
+    const row = within(list).getByRole('button', { name: /^Cover letter/ });
+    await user.click(row);
+    expect(row).toHaveAttribute('aria-expanded', 'true');
     expect(within(list).getByText(/The end\./)).toBeInTheDocument();
-    await user.click(within(list).getByRole('button', { name: 'Show less of Cover letter' }));
-    expect(within(list).queryByText(/The end\./)).toBeNull();
+    await user.click(row);
+    await waitFor(() => expect(within(list).queryByText(/The end\./)).toBeNull());
   });
 
   it('with no messages, points to Documents instead', async () => {
@@ -178,15 +195,20 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
 });
 
 describe('Apply mode header keeps to two items per dotted line (#192)', () => {
-  it('splits company, stage and position across lines', async () => {
+  it('badges above the title, company on its line, the position in the pager', async () => {
+    updateJob(A, { location: 'Remote', verdict: 'match' });
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
     await screen.findByRole('link', { name: 'Open application' });
     const texts = [...document.body.querySelectorAll('*')]
       .filter((e) => e.children.length === 0)
       .map((e) => e.textContent ?? '');
-    expect(texts).toContain('Acme · To apply');
+    const header = screen.getByRole('heading', { name: 'Acme Designer' }).closest('header')!;
+    expect(header).toHaveTextContent(/Acme\s*·?\s*Remote/);
     expect(texts).toContain('1 of 3');
+    // Fit first, then the status (rev-3 B).
+    const badges = texts.filter((t) => t === 'Strong fit' || t === 'Saved');
+    expect(badges).toEqual(['Strong fit', 'Saved']);
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
   });
 });
@@ -198,7 +220,7 @@ describe('rapid apply follow-ups (#219)', () => {
     renderApp();
     act(() => notifySaved([B, C]));
     updateJob(B, { status: 'Applied' });
-    const notice = await screen.findByRole('status', { name: '' });
+    const notice = await findNotice();
     await user.click(within(notice).getByRole('button', { name: 'Undo' }));
     expect(findJobByUrl(B)?.status).toBe('Applied');
     expect(findJobByUrl(C)).toBeUndefined();
@@ -212,7 +234,7 @@ describe('rapid apply follow-ups (#219)', () => {
       expect(saveWithNotice(C, 'Cask Designer')).toBe('restored');
     });
     expect(findJobByUrl(C)?.archived).toBe(false);
-    const notice = await screen.findByRole('status', { name: '' });
+    const notice = await findNotice();
     expect(within(notice).getByText('Saved to Pipeline · To apply')).toBeInTheDocument();
     await user.click(within(notice).getByRole('button', { name: 'Undo' }));
     expect(findJobByUrl(C)).toMatchObject({ archived: true, notes: 'kept' });
@@ -230,7 +252,8 @@ describe('rapid apply follow-ups (#219)', () => {
     const user = userEvent.setup();
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
-    await user.click(await screen.findByRole('button', { name: 'Add a question' }));
+    await user.click(await screen.findByRole('button', { name: /^Custom answers/ }));
+    await user.click(screen.getByRole('button', { name: 'Add a question' }));
     expect(screen.getByRole('button', { name: 'Remove this question' })).toBeInTheDocument();
   });
 });

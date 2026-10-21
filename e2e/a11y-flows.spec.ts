@@ -109,7 +109,7 @@ for (const theme of ['light', 'dark'] as const) {
 
         // The job page's other tabs (a11y.spec.ts scans Overview only).
         await page.locator('a[href^="#/queue/"]').first().click();
-        for (const name of ['Screening', 'Interviews', 'To-dos']) {
+        for (const name of ['Screening', /^Interviews/]) {
           await page.getByRole('tab', { name }).click();
           await page.waitForTimeout(300);
           bad.push(...(await axe(page, `job ${name}`)));

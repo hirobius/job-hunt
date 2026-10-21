@@ -1,5 +1,5 @@
-// The job page's Overview (#130): the details card, then the secondary tools (templates, research
-// links). The card reads as a facts list; Edit turns the same card into its fields (title,
+// The job page's Overview (#130; rev-3 F, three tabs): Details, To-dos, Notes and Documents as
+// panels. Details reads as a facts list; Edit turns the same panel into its fields (title,
 // company, location, pay, link, contact, with seniority and résumé version under More fields).
 // A job saved from a bare link has nothing to read yet, so its card starts in edit. Remove lives
 // in the header's menu. The company links to its Company page (#230, `#/company/<slug>`).
@@ -8,7 +8,6 @@ import { Pencil } from 'lucide-react';
 import {
   Box,
   Button,
-  Card,
   Disclosure,
   Icon,
   InlineLink,
@@ -24,6 +23,13 @@ import { companySlug, relinkCompanyNotes } from './companies';
 import { jobFacts, researchLinks } from './jobFacts';
 import { useSavedFlash } from './useSavedFlash';
 import UseTemplate from './UseTemplate';
+import { Panel, PanelBody } from './PipelinePanel';
+import { NotesPanel, TodosPanel } from './TodosNotes';
+import JobDocuments from './JobDocuments';
+import JobFinalCopies from './JobFinalCopies';
+import { DocumentDownload } from './DocumentDownload';
+import { useDocuments } from './documents';
+import { documentsForJob, sentSummary } from './jobDocuments';
 import type { Job } from './types';
 
 /** A text field that writes straight through to the job and tells the page it saved. */
@@ -96,44 +102,42 @@ function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
     <JobField job={job} field={key} label={label} onSaved={flash} />
   );
   return (
-    <Card bordered padding="component">
-      <Stack gap="normal">
-        {field('label', 'Title')}
+    <Stack gap="normal">
+      {field('label', 'Title')}
+      <Switcher gap="tight">
+        {field('company', 'Company')}
+        {field('location', 'Location')}
+      </Switcher>
+      <Switcher gap="tight">
+        {field('salary', 'Pay')}
+        {field('contact', 'Contact')}
+      </Switcher>
+      <LinkField job={job} />
+      <Disclosure label="More fields" variant="nav">
         <Switcher gap="tight">
-          {field('company', 'Company')}
-          {field('location', 'Location')}
+          {field('seniority', 'Seniority')}
+          {field('resume', 'Résumé version')}
         </Switcher>
-        <Switcher gap="tight">
-          {field('salary', 'Pay')}
-          {field('contact', 'Contact')}
-        </Switcher>
-        <LinkField job={job} />
-        <Disclosure label="More fields" variant="nav">
-          <Switcher gap="tight">
-            {field('seniority', 'Seniority')}
-            {field('resume', 'Résumé version')}
-          </Switcher>
-        </Disclosure>
-        <Stack direction="row" gap="tight" align="center" justify="end">
-          <Text
-            variant="caption"
-            as="span"
-            tone="success"
-            aria-hidden={!saved}
-            style={{
-              opacity: saved ? 1 : 0,
-              transition:
-                'opacity var(--hds-motion-productive-duration) var(--hds-motion-productive-easing)',
-            }}
-          >
-            Saved ✓
-          </Text>
-          <Button size="sm" variant="secondary" onClick={onDone}>
-            Done
-          </Button>
-        </Stack>
+      </Disclosure>
+      <Stack direction="row" gap="tight" align="center" justify="end">
+        <Text
+          variant="caption"
+          as="span"
+          tone="success"
+          aria-hidden={!saved}
+          style={{
+            opacity: saved ? 1 : 0,
+            transition:
+              'opacity var(--hds-motion-productive-duration) var(--hds-motion-productive-easing)',
+          }}
+        >
+          Saved ✓
+        </Text>
+        <Button size="md" variant="secondary" onClick={onDone}>
+          Done
+        </Button>
       </Stack>
-    </Card>
+    </Stack>
   );
 }
 
@@ -149,51 +153,104 @@ function companyLink(name: string) {
   );
 }
 
-export default function JobOverview({ job }: { job: Job }) {
+/** The Details panel: the facts as a two-column list, Edit in its header, research links last. */
+function DetailsPanel({ job }: { job: Job }) {
   const [editing, setEditing] = useState(!(job.label && job.company));
-  const facts = jobFacts(job);
-
+  // Notes have their own panel below, so the facts skip them.
+  const facts = jobFacts(job).filter((f) => f.term !== 'Notes');
   return (
-    <Stack gap="normal">
-      <Stack gap="tight">
-        <Stack direction="row" gap="tight" align="center" justify="space-between">
-          <Text variant="body" as="h3" className="rjb-semibold">
-            Details
-          </Text>
-          {!editing && (
-            <Button
-              size="sm"
-              variant="tertiary"
-              iconLeft={<Icon icon={Pencil} />}
-              aria-label="Edit details"
-              onClick={() => setEditing(true)}
-            >
-              Edit
-            </Button>
-          )}
-        </Stack>
+    <Panel
+      label="Details"
+      title="Details"
+      trailing={
+        !editing && (
+          <Button
+            size="md"
+            variant="secondary"
+            iconLeft={<Icon icon={Pencil} />}
+            aria-label="Edit details"
+            onClick={() => setEditing(true)}
+          >
+            Edit
+          </Button>
+        )
+      }
+    >
+      <PanelBody>
         {editing ? (
           <DetailsEditor job={job} onDone={() => setEditing(false)} />
         ) : (
-          <MetadataList
-            variant="divided"
-            items={facts.map((f) => ({
-              term: f.term,
-              description: f.term === 'Company' ? companyLink(f.description) : f.description,
-            }))}
-          />
+          <Stack gap="normal">
+            <MetadataList
+              orientation="horizontal"
+              items={facts.map((f) => ({
+                term: f.term,
+                description: f.term === 'Company' ? companyLink(f.description) : f.description,
+              }))}
+            />
+            <Stack direction="row" wrap="wrap" gap="tight" align="center">
+              <Text variant="caption" as="span" tone="secondary">
+                Research
+              </Text>
+              {researchLinks(job.label).map(([name, href]) => (
+                <InlineLink key={name} href={href}>
+                  {name}
+                </InlineLink>
+              ))}
+            </Stack>
+          </Stack>
         )}
-      </Stack>
-      <Stack direction="row" wrap="wrap" gap="tight" align="center">
-        <UseTemplate job={job} />
-        {researchLinks(job.label).map(([name, href]) => (
-          <Button key={name} size="sm" variant="secondary" asChild>
-            <a href={href} target="_blank" rel="noopener noreferrer">
-              {name}
-            </a>
-          </Button>
-        ))}
-      </Stack>
+      </PanelBody>
+    </Panel>
+  );
+}
+
+/** The job's documents (#228): what went out, Use template, and every document with its
+ *  Versions and final copies behind one row, so the Overview stays short on a phone. */
+function DocumentsPanel({ job }: { job: Job }) {
+  const docs = documentsForJob(useDocuments(), job.url);
+  const sent = sentSummary(docs);
+  return (
+    <Panel
+      label="Documents"
+      title="Documents"
+      count={docs.length}
+      countLabel={`${docs.length} documents`}
+      trailing={<UseTemplate job={job} />}
+    >
+      <PanelBody>
+        <Stack gap="tight">
+          {sent && (
+            <Text variant="caption" as="p" tone="secondary">
+              {`Sent: ${sent}`}
+            </Text>
+          )}
+          <Disclosure
+            variant="row"
+            label="All documents"
+            preview={docs.length ? 'Versions, Sent copies and final files' : 'None yet'}
+          >
+            <JobDocuments
+              job={job}
+              versionActions={(doc, version) => (
+                <DocumentDownload doc={doc} version={version} job={job} />
+              )}
+              uploadSlot={<JobFinalCopies jobUrl={job.url} />}
+            />
+          </Disclosure>
+        </Stack>
+      </PanelBody>
+    </Panel>
+  );
+}
+
+export default function JobOverview({ job }: { job: Job }) {
+  return (
+    <Stack gap="normal">
+      <DetailsPanel job={job} />
+      <TodosPanel job={job} />
+      <NotesPanel job={job} />
+      <DocumentsPanel job={job} />
     </Stack>
   );
 }

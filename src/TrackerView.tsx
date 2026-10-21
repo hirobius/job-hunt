@@ -10,6 +10,7 @@ import {
   Stack,
   Text,
   useAtLeast,
+  EmptyState,
 } from '@hirobius/design-system';
 import { useJobs } from './store';
 import { saveWithNotice } from './saveNotice';
@@ -23,7 +24,6 @@ import {
   visibleJobs,
   type Filter,
 } from './pipelineView';
-import EmptyState from './EmptyState';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import JobsTable from './JobsTable';
 import ApplyQueueSummary from './ApplyQueueSummary';
@@ -210,7 +210,7 @@ export default function TrackerView() {
             {shown.length === 0 ? (
               <PanelBody>
                 <EmptyState
-                  message={
+                  title={
                     q.trim()
                       ? `No saved jobs match “${q.trim()}”.`
                       : filter === 'active'
@@ -272,7 +272,7 @@ export default function TrackerView() {
               <EmptyState
                 icon={Briefcase}
                 title="Track your first job"
-                message="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
+                description="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
                 action={
                   <Stack direction="row" wrap="wrap" gap="tight" justify="center">
                     {addJobButton}

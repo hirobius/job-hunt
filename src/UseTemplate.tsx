@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Button, Dialog, InlineLink, Stack, Textarea, useToast } from '@hirobius/design-system';
+import { FileText } from 'lucide-react';
+import {
+  Button,
+  Dialog,
+  Icon,
+  InlineLink,
+  Stack,
+  Textarea,
+  useToast,
+} from '@hirobius/design-system';
 import { documentHref, useOutreachTemplates } from './outreachTemplates';
 import { fillSnippet, unfilledTokens } from './templateFill';
 import { useApplyKit } from './applyKit';
@@ -45,7 +54,7 @@ export default function UseTemplate({ job }: { job: Job }) {
       }}
     >
       <Dialog.Trigger asChild>
-        <Button size="sm" variant="tertiary">
+        <Button size="md" variant="secondary" iconLeft={<Icon icon={FileText} />}>
           Use template
         </Button>
       </Dialog.Trigger>

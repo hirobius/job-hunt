@@ -43,7 +43,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await page.getByRole('button', { name: 'Start applying' }).click();
   await expect(page).toHaveURL(/#\/apply\//);
   const list = page.getByRole('list', { name: 'Your templates' });
-  await list.getByRole('button', { name: 'Show all of Follow-up after applying' }).click();
+  await list.getByRole('button', { name: /^Follow-up after applying/ }).click();
   await expect(list.getByText(/I applied for the Fabricator role at Acme Metals/)).toBeVisible();
   await expect(list.getByText(/See you soon\./)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(

@@ -11,3 +11,9 @@ beforeEach(resetPipelineView);
 
 // The follow-up dialog's open job is in-memory too: no test starts with it open.
 beforeEach(closeFollowUp);
+
+// HDS Toast (Radix) captures the pointer for swipe-to-dismiss when its actions are clicked; jsdom
+// has no pointer capture.
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.setPointerCapture ??= () => {};
+Element.prototype.releasePointerCapture ??= () => {};

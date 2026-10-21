@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2026-10-21T13:00:00Z",
+  "updatedAt": "2026-10-21T15:00:00Z",
   "phase": "live",
   "headline": "Live as Roleforge. Rapid apply (#218) and wide sweep (#220, blob v7) are on main. Companies follows the track in review on claude/teams-first (dream companies, blob v9).",
   "next": [
-    "Redesign-mobile guardrails on claude/redesign-mobile (docs/guardrails.md): HDS freshness in verify; layout rules + screenshot baselines in npm run verify:ui. Next: the rev-3 mobile redesign on that branch.",
+    "Rev-3 mobile redesign on claude/redesign-mobile: slice 1 (shell, Pipeline) and slice 2 (job page with three tabs, Apply mode with pager + Disclosure rows; ActionToast, AsyncState, EmptyState and the Menu cap retired for HDS 0.30) done. Next: Companies/Discover, Documents, Account slices; retire TabsOverflowFade, barePanel and TokenTextarea (HDS has them).",
     "Review draft PR claude/teams-first: Companies is Discover's default tool (open roles first, Hiring now, inline Save + Undo, dream companies in blob v9; #220 took v7, #214 takes v8).",
     "Merge #181 (polish) and #187 (discovery follow-ups) after review.",
     "Persist all user-edited data across devices: outreach targets, saved searches, evidence, work mode (Adrian, 2026-10-15).",

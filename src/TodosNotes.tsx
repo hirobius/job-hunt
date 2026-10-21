@@ -1,16 +1,20 @@
+// The job's to-dos and its one Notes field, as two panels on the job page's Overview (rev-3 F).
+// All mutations flow through updateJob so they persist via the localStorage + Supabase sync path.
 import { useState } from 'react';
 import {
-  Button as UiButton,
+  Button,
   Checkbox as HdsCheckbox,
   Input as HdsInput,
   Textarea,
   Icon,
   Box,
+  Stack,
   Text,
 } from '@hirobius/design-system';
 import { X, Plus } from 'lucide-react';
 import { updateJob } from './store';
 import { addTodo, toggleTodo, deleteTodo, seedStarterTodos } from './todos';
+import { Panel, PanelBody, PanelRow, PanelRows } from './PipelinePanel';
 import type { Job } from './types';
 
 /** The job's one Notes field — kept in local state and committed on blur so every keystroke
@@ -23,9 +27,10 @@ function NotesField({ job }: { job: Job }) {
   const [draft, setDraft] = useState(shown);
   return (
     <Textarea
-      label="Notes"
+      aria-label="Notes"
       rows={3}
       value={draft}
+      placeholder="What to remember about this job"
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => {
         if (draft !== shown) updateJob(job.url, { notes: draft });
@@ -34,11 +39,34 @@ function NotesField({ job }: { job: Job }) {
   );
 }
 
-/** Per-role to-dos + notes, the job page's To-dos tab (#130): a checklist and one notes field. All mutations flow through updateJob so
- *  they persist via the existing localStorage + Supabase sync path. */
-export function TodosNotes({ job }: { job: Job }) {
+/** The Notes panel: the panel's heading names the field. */
+export function NotesPanel({ job }: { job: Job }) {
+  return (
+    <Panel label="Notes" title="Notes">
+      <PanelBody>
+        <Stack gap="tight">
+          {job.notes && job.note && job.note !== job.notes && (
+            <Box sx={{ overflowWrap: 'anywhere' }}>
+              <Text variant="caption" as="p" tone="secondary">
+                From when you saved it: {job.note}
+              </Text>
+            </Box>
+          )}
+          {/* HDS fields size to their content otherwise. */}
+          <Box sx={{ '& > *': { width: '100%', maxWidth: 'none' } }}>
+            <NotesField key={job.url} job={job} />
+          </Box>
+        </Stack>
+      </PanelBody>
+    </Panel>
+  );
+}
+
+/** Per-role to-dos: a checklist, one quiet add row, and starter tasks while it is empty. */
+export function TodosPanel({ job }: { job: Job }) {
   const [draft, setDraft] = useState('');
   const todos = job.todos ?? [];
+  const open = todos.filter((t) => !t.done).length;
 
   const commitAdd = () => {
     const next = addTodo(todos, draft);
@@ -49,26 +77,35 @@ export function TodosNotes({ job }: { job: Job }) {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* TO-DOS */}
-      <Box>
-        <Text variant="caption" as="span" tone="secondary">
-          To-dos
-        </Text>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1.5 }}>
-          {todos.map((todo) => (
-            <Box
-              sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center' }}
-              key={todo.id}
-            >
+    <Panel
+      label="To-dos"
+      title="To-dos"
+      count={open}
+      countLabel={`${open} open`}
+      trailing={
+        todos.length === 0 ? (
+          <Button
+            size="md"
+            variant="tertiary"
+            onClick={() => updateJob(job.url, { todos: seedStarterTodos() })}
+          >
+            Add starter tasks
+          </Button>
+        ) : undefined
+      }
+    >
+      <PanelRows>
+        {todos.map((todo) => (
+          <PanelRow key={todo.id}>
+            <Stack direction="row" gap="px8" align="center">
               <Box
                 sx={{
-                  flex: 1,
+                  flex: '1 1 0%',
                   minWidth: 0,
                   ...(todo.done && {
                     '& label > span:last-of-type': {
                       textDecoration: 'line-through',
-                      opacity: 0.6,
+                      color: 'content.secondary',
                     },
                   }),
                 }}
@@ -79,80 +116,43 @@ export function TodosNotes({ job }: { job: Job }) {
                   onChange={() => updateJob(job.url, { todos: toggleTodo(todos, todo.id) })}
                 />
               </Box>
-              <UiButton
-                size="sm"
+              <Button
+                size="md"
                 variant="tertiary"
                 iconOnly
                 iconLeft={<Icon icon={X} />}
                 label={`Delete “${todo.text}”`}
                 onClick={() => updateJob(job.url, { todos: deleteTodo(todos, todo.id) })}
               />
+            </Stack>
+          </PanelRow>
+        ))}
+        {/* One quiet add row: type, then Enter or the plus. */}
+        <PanelRow>
+          <Stack direction="row" gap="px8" align="center">
+            <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%', maxWidth: 'none' } }}>
+              <HdsInput
+                aria-label="New to-do"
+                placeholder={todos.length ? 'Add a to-do' : 'No to-dos yet. Add a to-do'}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitAdd();
+                }}
+              />
             </Box>
-          ))}
-
-          {todos.length === 0 && (
-            <Box>
-              <Box sx={{ mb: 2 }}>
-                <Text variant="ui" as="p" tone="secondary">
-                  No to-dos yet. Add your own below, or start from a short checklist.
-                </Text>
-              </Box>
-              <UiButton
-                size="sm"
-                variant="secondary"
-                onClick={() => updateJob(job.url, { todos: seedStarterTodos() })}
-              >
-                Add starter tasks
-              </UiButton>
-            </Box>
-          )}
-        </Box>
-
-        {/* add-todo row */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: 1.5,
-            alignItems: 'center',
-            mt: 1.5,
-          }}
-        >
-          <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-            <HdsInput
-              size="sm"
-              aria-label="New to-do"
-              placeholder="Add a to-do…"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') commitAdd();
-              }}
+            <Button
+              size="md"
+              variant="secondary"
+              iconOnly
+              iconLeft={<Icon icon={Plus} />}
+              label="Add to-do"
+              disabled={!draft.trim()}
+              onClick={commitAdd}
             />
-          </Box>
-          <UiButton
-            size="sm"
-            variant="secondary"
-            iconLeft={<Plus size={16} />}
-            disabled={!draft.trim()}
-            onClick={commitAdd}
-          >
-            Add
-          </UiButton>
-        </Box>
-      </Box>
-
-      {/* NOTES: the textarea carries its own label */}
-      <Box sx={{ mt: 1.5 }}>
-        {job.notes && job.note && job.note !== job.notes && (
-          <Box sx={{ mb: 2, overflowWrap: 'anywhere' }}>
-            <Text variant="caption" as="p" tone="secondary">
-              From when you saved it: {job.note}
-            </Text>
-          </Box>
-        )}
-        <NotesField key={job.url} job={job} />
-      </Box>
-    </Box>
+          </Stack>
+        </PanelRow>
+      </PanelRows>
+    </Panel>
   );
 }

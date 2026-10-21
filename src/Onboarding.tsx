@@ -9,9 +9,9 @@ import {
   Stack,
   Text,
   Card,
+  EmptyState,
 } from '@hirobius/design-system';
 import { Form, FormActions } from '@hirobius/design-system/patterns';
-import EmptyState from './EmptyState';
 import { STARTER_PACKS, seedPack } from './curation/starterPacks';
 import { useCurationSyncStatus } from './curation/syncStatus';
 import { TrySampleButton } from './demo/SampleData';
@@ -277,7 +277,7 @@ export function ChooseTrack() {
     <Box sx={{ py: 'lg' }}>
       <EmptyState
         title="Pick a track to search"
-        message="A track holds your job titles, location and saved links."
+        description="A track holds your job titles, location and saved links."
         action={
           <Button variant="primary" onClick={() => setOpen(true)}>
             Choose a track

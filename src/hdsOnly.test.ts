@@ -69,7 +69,6 @@ describe('Inline style allowlist (#93)', () => {
   const ALLOWED: Record<string, number> = {
     // HDS TabsList hard-codes mb-6 and has no prop to drop it
     'App.tsx': 1,
-    'JobPage.tsx': 1,
     // HDS Dialog.Content has no size prop; portalled, so a wrapper can't size it
     'ManageTrackDialog.tsx': 1,
     'UseTemplate.tsx': 1,

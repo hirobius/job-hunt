@@ -9,17 +9,13 @@ the HDS fix out and wait for their screen's redesign slice to migrate.
 
 | Workaround                            | Where                                                                                     | What HDS lacks                                                           | Upstream         |
 | ------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------- |
-| Action toast (Open, Undo)             | `src/hds-gaps/ActionToast.tsx`                                                            | _shipped_ 0.28: Toast `actions`                                          | hds#815          |
-| Async list states                     | `src/hds-gaps/AsyncState.tsx`                                                             | _shipped_ 0.28: `AsyncState` pattern                                     | hds#818          |
-| Tab scroll-into-view                  | `src/hds-gaps/TabsOverflowFade.tsx`                                                       | TabsList fades (0.26.1) but doesn't scroll the selected tab into view    | hds#823          |
-| SegmentedControl overflow fade        | `src/hds-gaps/TabsOverflowFade.tsx`                                                       | the TabsList edge fade, on SegmentedControl                              | hds#823          |
+| Tab scroll-into-view                  | `src/hds-gaps/TabsOverflowFade.tsx` (shell tabs, Discover, Find boards)                   | _shipped_ 0.28: TabsList keeps the selected tab in view                  | hds#823          |
+| SegmentedControl overflow fade        | `src/hds-gaps/TabsOverflowFade.tsx`                                                       | _shipped_ 0.28: SegmentedControl fades and scrolls too                   | hds#823          |
 | Token chips in a text field           | `src/hds-gaps/TokenTextarea.tsx` + `.css`                                                 | _shipped_ 0.28: `TokenField`                                             | hds#826          |
 | Bare in-page tab panels               | `src/hds-gaps/barePanel.ts` (Discover sections only; the shell moved to `variant="bare"`) | _shipped_ 0.28: `TabsContent variant="bare"`                             | hds#819          |
 | Secondary colour on a plain span or p | `src/hds-gaps/tone.ts` `SECONDARY`                                                        | nothing for non-`Text` elements (by design; `Text tone` covers the rest) | none needed      |
 | Keyboard-aware dialog                 | `src/hds-gaps/useVisualViewportVars.ts`                                                   | a top-anchored, keyboard-aware Dialog or Sheet                           | related: hds#690 |
-| Empty state icon                      | `src/EmptyState.tsx`                                                                      | _shipped_ 0.28: `EmptyState icon`                                        | hds#825          |
 | `Text` weight                         | `.rjb-semibold` in `src/theme/base.css`                                                   | _shipped_ 0.28: `Text weight` (regular, medium, bold; no semibold step)  | hds#825          |
-| Menu height cap                       | `[role='menu']` rule in `src/theme/base.css`                                              | _shipped_ 0.28: Menu caps its height and scrolls                         | hds#821          |
 | Phone touch size                      | 40px rule in `src/theme/base.css`                                                         | a touch size on sm controls                                              | hds#750          |
 | Dark pressed accent contrast          | held pair in `src/theme.contrast.test.ts`                                                 | _shipped_ 0.27: AA on the dark pressed accent                            | hds#748          |
 
@@ -27,6 +23,11 @@ the HDS fix out and wait for their screen's redesign slice to migrate.
 
 | Workaround                                                        | Retired in                                                                | Upstream |
 | ----------------------------------------------------------------- | ------------------------------------------------------------------------- | -------- |
+| `ActionToast` (Open, Undo)                                        | redesign slice 2 (HDS Toast `actions`, 0.28; `NoticeHost`)                | hds#815  |
+| `AsyncState` (Live postings)                                      | redesign slice 2 (HDS `AsyncState` pattern, 0.28)                         | hds#818  |
+| `EmptyState.tsx` icon composition                                 | redesign slice 2 (HDS `EmptyState icon`, 0.28; every caller uses HDS)     | hds#825  |
+| Menu height cap in `base.css`                                     | redesign slice 2 (Menu caps its height, 0.28)                             | hds#821  |
+| Job page `TabsOverflowFade` + inline bare panel                   | redesign slice 2 (three tabs, `TabsContent variant="bare"`)               | hds#819  |
 | `RailList` (selectable link list)                                 | 0.30.0 upgrade (`NavList`, 0.28; link mode, as rail rows are routes)      | hds#817  |
 | `DANGER` menu item colour                                         | 0.30.0 upgrade (`Menu.Item tone="danger"`, 0.28)                          | hds#822  |
 | `useBreakpoint` / `useAtLeast` hook                               | 0.30.0 upgrade (HDS `useAtLeast`, 0.28)                                   | hds#824  |

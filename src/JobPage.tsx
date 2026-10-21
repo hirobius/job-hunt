@@ -1,5 +1,5 @@
 // A saved job's own page (#127, #130): `#/queue/<jobId>`, inside the Pipeline tab. A header
-// (title, status, one next step, menu) over the job's sections as tabs. The open tab is local
+// (badges, title, one next step, menu) over the job's three sections as tabs. The open tab is local
 // state, not in the URL, and resets to Overview when the job changes.
 import { useEffect, useState } from 'react';
 import {
@@ -20,65 +20,40 @@ import { useCloudSync } from './account/accountContext';
 import JobHeader from './JobHeader';
 import JobOverview from './JobOverview';
 import JobRail from './JobRail';
-import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
 import JobScreening from './JobScreening';
 import JobInterviews from './JobInterviews';
-import { TodosNotes } from './TodosNotes';
-import JobDocuments from './JobDocuments';
-import JobFinalCopies from './JobFinalCopies';
-import { DocumentDownload } from './DocumentDownload';
-import { useDocuments } from './documents';
-import { documentsForJob } from './jobDocuments';
 import type { Job } from './types';
 
 const withCount = (label: string, n: number) => (n > 0 ? `${label} (${n})` : label);
 
+// Three sections (rev-3 F, Adrian 2026-10-21): Overview holds the details, to-dos, notes and the
+// job's documents; then Screening and Interviews. Few enough for a 390px phone, and HDS TabsList
+// fades its own edge and keeps the selected tab in view if they ever outrun it.
 function JobSections({ job }: { job: Job }) {
   const [tab, setTab] = useState('overview');
-  const openTodos = (job.todos ?? []).filter((t) => !t.done).length;
-  const docCount = documentsForJob(useDocuments(), job.url).length;
-  // HDS TabsContent is a padded surface (as for the shell's tabs, see App.tsx BARE_PANEL): make
-  // it bare so the section sits on the page, a step under the tab rule.
-  const panel = {
-    background: 'transparent',
-    padding: 0,
-    borderRadius: 0,
-    marginTop: 'var(--primitive-space-4)',
-  } as const;
   return (
     <Tabs value={tab} onValueChange={setTab}>
-      {/* Five tabs can outrun a 390px phone: the fade says more sit past the edge. */}
-      <TabsOverflowFade value={tab}>
-        <TabsList aria-label="Job sections" style={{ marginBottom: 0 }}>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="screening">Screening</TabsTrigger>
-          <TabsTrigger value="interviews">
-            {withCount('Interviews', job.events?.length ?? 0)}
-          </TabsTrigger>
-          <TabsTrigger value="todos">{withCount('To-dos', openTodos)}</TabsTrigger>
-          <TabsTrigger value="documents">{withCount('Documents', docCount)}</TabsTrigger>
-        </TabsList>
-      </TabsOverflowFade>
-      <TabsContent value="overview" style={panel}>
-        <JobOverview job={job} />
+      <TabsList aria-label="Job sections">
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="screening">Screening</TabsTrigger>
+        <TabsTrigger value="interviews">
+          {withCount('Interviews', job.events?.length ?? 0)}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="overview" variant="bare">
+        <Box sx={{ pt: 'sm' }}>
+          <JobOverview job={job} />
+        </Box>
       </TabsContent>
-      <TabsContent value="screening" style={panel}>
-        <JobScreening job={job} />
+      <TabsContent value="screening" variant="bare">
+        <Box sx={{ pt: 'sm' }}>
+          <JobScreening job={job} />
+        </Box>
       </TabsContent>
-      <TabsContent value="interviews" style={panel}>
-        <JobInterviews job={job} />
-      </TabsContent>
-      <TabsContent value="todos" style={panel}>
-        <TodosNotes key={job.url} job={job} />
-      </TabsContent>
-      <TabsContent value="documents" style={panel}>
-        <JobDocuments
-          job={job}
-          versionActions={(doc, version) => (
-            <DocumentDownload doc={doc} version={version} job={job} />
-          )}
-          uploadSlot={<JobFinalCopies jobUrl={job.url} />}
-        />
+      <TabsContent value="interviews" variant="bare">
+        <Box sx={{ pt: 'sm' }}>
+          <JobInterviews job={job} />
+        </Box>
       </TabsContent>
     </Tabs>
   );

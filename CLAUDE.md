@@ -35,9 +35,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
     peer fields prefer `Switcher`. The old nested `'&'` override is gone (`hdsOnly.test.ts`).
   - **Secondary text** is `<Text variant="caption" tone="secondary">` (HDS 0.26, hds#655);
     `hds-gaps/tone` `SECONDARY` is only for a plain span or p.
-  - **`EmptyState.tsx`** is a composition (HDS `EmptyState`, whose `action` it passes through,
-    hds#654, + an optional icon HDS has no slot for yet); collapse it into HDS when that lands.
-  - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, `EmptyState.tsx`, the
+  - **Empty states** are HDS `EmptyState` directly (title, description, `icon`, `action`; the
+    local composition was retired in redesign slice 2).
+  - **HDS gap registry (#146):** every local workaround (`src/hds-gaps/`, the
     `base.css` patches) is listed with its upstream ask in `docs/hds-upstream-asks-0.9.md`. Delete
     a workaround in the HDS upgrade PR that ships its fix, and update the table.
 - **Design language (pure HDS, Adrian 2026-10-12; graphite 2026-10-15):** HDS typography
@@ -115,14 +115,17 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **Job routes (#127):** every saved job has a page at `#/queue/<jobId>` (`Route.jobId`; the second
   segment is a job under `queue`, a sub-tab elsewhere). `store.jobIdOf(url)` derives the id (hash
   of `dedupKey`, never stored); `findJobById` resolves it; `route.openJob(id | null)` navigates.
-  **Job page (#130):** `JobPage.tsx` = `JobHeader` (title + status; Star (filled when on, "Starred"),
-  the one primary next step and the menu, which holds Remove; one row on desktop, actions in one row
-  under the title on a phone) over `Tabs` Overview (`JobOverview`: a Details card that is the
-  `jobFacts` `MetadataList`, and turns into its fields on Edit: title, company, location, pay, link
+  **Job page (#130; rev-3 mobile slice 2):** `JobPage.tsx` = `JobHeader` ("← Pipeline", one
+  `JobBadges` row above the title (fit first, status, Follow-up due), company · location, then one
+  row: 40px icon Star ("Star"/"Starred"), the one primary next step, the menu, which holds Remove)
+  over **three** `Tabs` (rev-3 F): Overview (`JobOverview`: `PipelinePanel` panels — Details, the
+  `jobFacts` `MetadataList` that turns into its fields on Edit: title, company, location, pay, link
   (saves on blur, the page follows the new id), contact, with seniority and résumé under More
-  fields; starts in edit for a job without title and company; then templates and research links) ·
-  Screening (`JobScreening`: fit line, inline `JdScreenPanel`, `ScreeningEditor`) · Interviews ·
-  To-dos (`TodosNotes`, holds the one Notes field: `notes`, else the older `note`). **Remove is soft
+  fields; starts in edit for a job without title and company; research links under the facts ·
+  To-dos and Notes (`TodosNotes`; the one Notes field: `notes`, else the older `note`) · Documents
+  (count, Sent line, Use template, every document behind one "All documents" Disclosure row)) ·
+  Screening (`JobScreening`: Fit panel with `ScreeningEditor`, `JdScreenPanel` as a closed row) ·
+  Interviews. **Remove is soft
   (`trash.ts`):** the job goes to Recently removed (link under the Pipeline list, Restore / Delete
   forever) with an Undo notice (`saveNotice.removeWithUndo`, shown by the one `NoticeHost`, so it
   never stacks with a save notice). Restoring a posting saved again since merges the removed copy's
@@ -215,7 +218,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `TileGrid` cards are equal-height (240px min), with chips parsed from the meta string by
   `tileMeta.parseMeta` (raw text is the fallback; no data migration), a `Details` disclosure with
   tap-to-call for every phone, and a labelled Set aside. Live postings states go through
-  `hds-gaps/AsyncState` (skeleton + "still trying" at 10 s; `fetchFeed` has a 15 s per-source cap and
+  HDS `AsyncState` (skeleton + "still trying" at 10 s; `fetchFeed` has a 15 s per-source cap and
   `only: [keys]` for the per-source Retry, merged by `feed/mergeFeed`); Watch a company, suggested
   companies and Your evidence sit in a collapsed **Refine** disclosure under the search. Fit wording
   is `screening.verdictLabel` everywhere (Strong fit / Stretch / Reach). Pinned in
@@ -231,15 +234,19 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   targets, uppercase, running motion). `axe-core` is an exact-pinned devDependency (4.14.0).
 - **Rapid apply (2026-10-17):** every save (Discover tiles, Live postings incl. "Save N to Pipeline"
   / "Save all shown", quick-add) raises `saveNotice.notifySaved` → "Saved to Pipeline · To apply" with
-  Open + Undo (`NoticeHost` in the shell; `hds-gaps/ActionToast` because HDS Toast has no action slot).
+  Open + Undo (`NoticeHost` in the shell: an HDS Toast with `actions`, one at a time).
   The Pipeline opens on `ApplyQueueSummary`: **To apply (N)** + the one primary **Start applying**, and
   **Follow up (M)** with dates (`applyQueue.ts`: Saved & not set aside, pinned first then newest).
   **Apply mode** `#/apply/<jobId>` (`ApplyMode.tsx`, `route.openApply`; the Pipeline tab stays
-  selected): Open application, Mark applied (follow-up 7 days on), Next job (k of N), Skip, Not a fit
-  (retire + Undo), and the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**): profile
-  fields, two template-filled letters and custom Q&A, each a copy row. **Apply sheet (#239):** above
-  the kit, "Templates" lists every Outreach message filled for the job (`applyKit.filledTemplates` →
-  `fillSnippet`, pinned first, one copy row each) with an Edit documents link. The row menu sets any status.
+  selected; rev-3 E): one top row "← Pipeline" + HDS `Pagination variant="compact"` ("‹ 1 of N ›",
+  the applied job holds its place in the walk), badges above the title, Open application (the one
+  primary), then Mark applied (follow-up 7 days on) and Not a fit (retire + Undo) as one row of two;
+  no Skip or Next job. Then panels of HDS `Disclosure variant="row"` rows (preview, Copy beside it,
+  blanks as chips with "N blanks left" when open): **Apply sheet (#239)** "Templates" lists every
+  Outreach message filled for the job (`applyKit.filledTemplates` → `fillSnippet`, pinned first) with
+  an Edit documents link; the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**):
+  filled profile fields as copy rows, the empty ones folded into one "Fill in N more" row, the two
+  template-filled letters and Custom answers. The row menu sets any status.
   Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
 - **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
   title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys
