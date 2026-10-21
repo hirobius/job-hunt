@@ -5,10 +5,9 @@
 // #239) and the Application kit, as panels of expandable rows (HDS Disclosure variant="row": a
 // one-line preview, Copy beside it, the full text when open). Works one-handed on a phone.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Check, Copy, ExternalLink, Pencil, Plus, Trash2, TriangleAlert } from 'lucide-react';
+import { Check, Copy, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   Alert,
-  Badge,
   Box,
   Button,
   Disclosure,
@@ -27,7 +26,7 @@ import { PageHeader } from '@hirobius/design-system/patterns';
 import { BackToPipeline } from './JobHeader';
 import { JobBadges } from './JobRowParts';
 import { Panel, PanelBody } from './PipelinePanel';
-import { splitVariables } from './templateEditor';
+import BlankText, { WithChips } from './BlankText';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
 import { openApply, openJob } from './route';
 import { titleOf } from './jobRow';
@@ -45,7 +44,7 @@ import {
   type KitAnswer,
 } from './applyKit';
 import { useOutreachTemplates } from './outreachTemplates';
-import { fillSnippet } from './templateFill';
+import { fillSnippet, previewText } from './templateFill';
 import { copyFilled } from './templateCopy';
 import { showNotice } from './saveNotice';
 import type { Job } from './types';
@@ -186,12 +185,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   );
 }
 
-// Previews are cut to this many characters, so a long letter never fills the row (PR #257 review).
-const PREVIEW_CHARS = 160;
-const previewOf = (text: string) => {
-  const flat = text.replace(/\s+/g, ' ').trim();
-  return flat.length > PREVIEW_CHARS ? `${flat.slice(0, PREVIEW_CHARS).trimEnd()}…` : flat;
-};
+const previewOf = (text: string) => previewText(text);
 
 /** Copy with a short "Copied" confirmation; a refused copy says why in a toast. */
 function CopyButton({ label, value }: { label: string; value: string }) {
@@ -217,44 +211,6 @@ function CopyButton({ label, value }: { label: string; value: string }) {
     >
       {copied ? 'Copied' : 'Copy'}
     </Button>
-  );
-}
-
-/** Text with its blanks ([Contact]) as small chips, as the template editor shows them (rev-3 A). */
-function WithChips({ text }: { text: string }) {
-  return (
-    <>
-      {splitVariables(text).map((p, i) =>
-        p.kind === 'var' ? (
-          <Badge key={i} tone="neutral">
-            {p.name}
-          </Badge>
-        ) : (
-          p.text
-        ),
-      )}
-    </>
-  );
-}
-
-/** A filled text with its blanks ([Contact]) as chips, and how many are left to fill. */
-function FilledText({ text }: { text: string }) {
-  const parts = splitVariables(text);
-  const blanks = parts.filter((p) => p.kind === 'var').length;
-  return (
-    <Stack gap="tight">
-      <Text variant="ui" as="p" className="rjb-prewrap">
-        <WithChips text={text} />
-      </Text>
-      {blanks > 0 && (
-        <Stack direction="row" gap="px4" align="center">
-          <Icon icon={TriangleAlert} size="small" />
-          <Text variant="caption" as="span" tone="warning">
-            {blanks === 1 ? '1 blank left' : `${blanks} blanks left`}
-          </Text>
-        </Stack>
-      )}
-    </Stack>
   );
 }
 
@@ -408,7 +364,11 @@ function ApplyTemplates({ job }: { job: Job }) {
               preview={<WithChips text={previewOf(r.text)} />}
               actions={<CopyButton label={r.label} value={r.text} />}
             >
-              <FilledText text={r.text} />
+              <BlankText
+                text={r.text}
+                job={job}
+                documentId={snippets.find((s) => s.id === r.id)?.documentId}
+              />
             </DisclosureItem>
           ))}
         </Rows>
@@ -424,8 +384,9 @@ function ApplicationKit({ job }: { job: Job }) {
     { value: '', label: 'No template' },
     ...snippets.map((s) => ({ value: s.id, label: s.label || 'Untitled' })),
   ];
+  const template = (id?: string) => snippets.find((x) => x.id === id);
   const filled = (id?: string) => {
-    const s = snippets.find((x) => x.id === id);
+    const s = template(id);
     return s ? fillSnippet(s, job, kit.fields.name) : '';
   };
   const have = KIT_FIELDS.filter((f) => kit.fields[f.key]);
@@ -483,7 +444,9 @@ function ApplicationKit({ job }: { job: Job }) {
                   value={kit[slot] ?? ''}
                   onChange={(v) => setKitTemplate(slot, v)}
                 />
-                {text && <FilledText text={text} />}
+                {text && (
+                  <BlankText text={text} job={job} documentId={template(kit[slot])?.documentId} />
+                )}
               </Stack>
             </DisclosureItem>
           );

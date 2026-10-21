@@ -40,10 +40,6 @@ import { seedPack } from './curation/starterPacks';
 import type { Category, Seniority } from './curation/types';
 import { ContextCaption } from './LocationControl';
 import DiscoverHeader from './DiscoverHeader';
-import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
-import { BARE_PANEL } from './hds-gaps/barePanel';
-
-const SECTION_PANEL = { ...BARE_PANEL, paddingTop: 'var(--primitive-space-4)' } as const;
 import { useTrackContext } from './discoverContext';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
 import { teamSearchFor } from './feed/teamTopics';
@@ -443,15 +439,13 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         </Suspense>
       )}
       <Stack gap="inset">
-        <TabsOverflowFade value={tool}>
-          <SegmentedControl
-            aria-label="Search tool"
-            size="sm"
-            value={tool}
-            onChange={(v) => navigate({ sub: toolSub(v) })}
-            options={tools.map((t) => ({ value: t.key, label: wide ? t.label : t.short }))}
-          />
-        </TabsOverflowFade>
+        <SegmentedControl
+          aria-label="Search tool"
+          size="sm"
+          value={tool}
+          onChange={(v) => navigate({ sub: toolSub(v) })}
+          options={tools.map((t) => ({ value: t.key, label: wide ? t.label : t.short }))}
+        />
         {tool === 'apply' && section && (
           <Stack gap="xs">
             <Text variant="body" as="h3" className="rjb-semibold">
@@ -463,21 +457,22 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               value={section.key}
               onValueChange={(v) => navigate({ sub: sectionSub(v) })}
             >
-              <TabsOverflowFade value={section.key}>
-                <TabsList aria-label="Your sections">
-                  {sections.map((sc) => (
-                    <TabsTrigger key={sc.key} value={sc.key}>
-                      {sc.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </TabsOverflowFade>
-              <TabsContent value={section.key} style={SECTION_PANEL}>
-                <GroupPanel
-                  tiles={section.tiles}
-                  savedSet={savedSet}
-                  onManage={() => setManageOpen(true)}
-                />
+              <TabsList aria-label="Your sections">
+                {sections.map((sc) => (
+                  <TabsTrigger key={sc.key} value={sc.key}>
+                    {sc.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <TabsContent value={section.key} variant="bare">
+                {/* 16px under the strip, as the old inline panel style had. */}
+                <Box sx={{ pt: 4 }}>
+                  <GroupPanel
+                    tiles={section.tiles}
+                    savedSet={savedSet}
+                    onManage={() => setManageOpen(true)}
+                  />
+                </Box>
               </TabsContent>
             </HdsTabs>
           </Stack>

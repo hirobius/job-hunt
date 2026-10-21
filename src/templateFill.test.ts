@@ -4,6 +4,7 @@ import {
   fillSnippet,
   fillVariables,
   ownValue,
+  previewText,
   resolveVariables,
   unfilledTokens,
   valuesFromJob,
@@ -120,5 +121,23 @@ describe('variables named after Object.prototype members', () => {
     const values = { pet: 42, contact: null } as unknown as Record<string, string>;
     expect(fillSnippet({ body: '[Pet] [Contact]', values }, null)).toBe('[Pet] [Contact]');
     expect(ownValue({ a: 1 } as Record<string, unknown>, 'a')).toBeUndefined();
+  });
+});
+
+describe('previewText', () => {
+  it('leaves a short text whole, with its whitespace flattened', () => {
+    expect(previewText('Hi [Contact],\n\nthanks', 40)).toBe('Hi [Contact], thanks');
+  });
+  it('never cuts inside a blank: one the cut would split is dropped whole', () => {
+    const t = 'Thanks for your time, [Your name] and more';
+    // A cut at 26 lands inside "[Your name]".
+    expect(previewText(t, 26)).toBe('Thanks for your time,…');
+    expect(previewText(t, 26)).not.toMatch(/\[Your n/);
+  });
+  it('cuts on a word boundary, never mid-word', () => {
+    expect(previewText('I applied for the Fabricator role', 22)).toBe('I applied for the…');
+  });
+  it('keeps a blank that ends right at the cut', () => {
+    expect(previewText('Hi [Contact] there', 12)).toBe('Hi [Contact]…');
   });
 });

@@ -98,7 +98,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   terms + a curated "Apply Now" featured group. The old IT Support / Design Engineering
   pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
   **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (the one `h1`, `Text variant="body"` semibold, so the
-  page title is always the biggest text) · top tabs (**Companies · Pipeline**; they scroll on a phone, with the `src/hds-gaps/TabsOverflowFade` edge cue) · the
+  page title is always the biggest text) · top tabs (**Companies · Pipeline**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
   **Account** button: an HDS `Avatar` (initial signed in, person icon signed out, a warning dot while jobs are unsynced; named "Account" / "Account, not synced"; it holds account, data, display and feedback). Phone page gutter is 16 (`--semantic-space-fixed-sm`), HDS's region gutter from `sm`. `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Back up,
@@ -122,7 +122,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `jobFacts` `MetadataList` that turns into its fields on Edit: title, company, location, pay, link
   (saves on blur, the page follows the new id), contact, with seniority and résumé under More
   fields; starts in edit for a job without title and company; research links under the facts ·
-  To-dos and Notes (`TodosNotes`; the one Notes field: `notes`, else the older `note`) · Documents
+  To-dos (a quiet "Add a to-do" line opens the field; "Add starter tasks" while empty) and Notes (`TodosNotes`; the one Notes field: `notes`, else the older `note`) · Documents
   (count, Sent line, Use template, every document behind one "All documents" Disclosure row)) ·
   Screening (`JobScreening`: Fit panel with `ScreeningEditor`, `JdScreenPanel` as a closed row) ·
   Interviews. **Remove is soft
@@ -165,10 +165,14 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 - **Documents library (#227; replaced Templates #132, no tab since #240):** `#/copy-deck` (slug kept)
   is a page with no tab selected (App mounts `DocumentsView` outside the tab panels), reached from the
   Menu's Documents item and the Apply sheet's Edit documents link, headed "Documents" with Back to
-  Pipeline. `DocumentsLibrary` lists Base documents per kind (flat rows, #241); `DocumentEditor` saves
-  each change as a Version. Outreach messages keep the Templates tools: `hds-gaps/TokenTextarea`
-  (contenteditable; each `[Name]` one atomic chip; keys go through `templateEditor` helpers), the chip
-  row + Insert variable `Menu` (`insertToken`), a Fill for preview, and the #221 **Variables panel** (a
+  Pipeline. `DocumentsLibrary` is a `Panel` per kind (count, "New" in the header) of HDS Disclosure
+  rows, one open at a time (redesign slice 3, rev-3 M): closed, the title and its variables as chips;
+  open, the first lines (`templateFill.previewText`, cut on a word or blank boundary) with Copy, Open
+  (the editor) and a menu (Pin, Duplicate, Delete). `DocumentEditor` (rev-3 N: the document's title as
+  the page head; Save, Version history and the menu in one row) saves each change as a Version.
+  Outreach messages use HDS `TokenField` (each `[Name]` one atomic chip), the chip row + Insert
+  variable `Menu` (`insertToken`), and the #221 **Variables panel** (Fill for, then each variable, then the
+  filled Preview with Copy; a
   picked job's four fields save on the job, the rest on `Document.values`, not a Version; `[Your name]`
   falls back to the kit name). `#/copy-deck/<id>` opens one; an old `#/copy-deck/<snippetId>` resolves
   to `snippet-<id>` (`outreachTemplates.resolveDocumentId`, hash rewritten); unknown → the library once
@@ -213,7 +217,7 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   holding the only `LocationControl`. **Location is `Category.location`; work mode is per track and syncs,
   `rjb_ui_mode:<categoryId>`** (`src/discoverContext.ts`, `useTrackContext`; panels read it, they take
   no location props). Tools are one `SegmentedControl` (Teams / Apply / ATS since #223, full
-  names from `sm`), wrapped in `hds-gaps/TabsOverflowFade`; the track's sections are `Tabs` under
+  names from `sm`; HDS fades its overflow edge); the track's sections are `Tabs` under
   "Your sections", shown only for Apply now; slugs unchanged (`#/discover/<tool | groupId>`).
   `TileGrid` cards are equal-height (240px min), with chips parsed from the meta string by
   `tileMeta.parseMeta` (raw text is the fallback; no data migration), a `Details` disclosure with
@@ -242,7 +246,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   the applied job holds its place in the walk), badges above the title, Open application (the one
   primary), then Mark applied (follow-up 7 days on) and Not a fit (retire + Undo) as one row of two;
   no Skip or Next job. Then panels of HDS `Disclosure variant="row"` rows (preview, Copy beside it,
-  blanks as chips with "N blanks left" when open): **Apply sheet (#239)** "Templates" lists every
+  blanks as chips with "N blanks left" when open; tap a blank to fill it in place, `BlankText` →
+  `fillBlank`: the job's four fields save on the job, any other on the message's values, rev-3 A,
+  slice 3): **Apply sheet (#239)** "Templates" lists every
   Outreach message filled for the job (`applyKit.filledTemplates` → `fillSnippet`, pinned first) with
   an Edit documents link; the **Application kit** (`applyKit.ts`, `rjb_apply_kit`, blob **v6**):
   filled profile fields as copy rows, the empty ones folded into one "Fill in N more" row, the two

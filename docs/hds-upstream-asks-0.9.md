@@ -7,22 +7,22 @@ the HDS fix out and wait for their screen's redesign slice to migrate.
 
 ## Open
 
-| Workaround                            | Where                                                                                     | What HDS lacks                                                           | Upstream         |
-| ------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------- |
-| Tab scroll-into-view                  | `src/hds-gaps/TabsOverflowFade.tsx` (shell tabs, Discover, Find boards)                   | _shipped_ 0.28: TabsList keeps the selected tab in view                  | hds#823          |
-| SegmentedControl overflow fade        | `src/hds-gaps/TabsOverflowFade.tsx`                                                       | _shipped_ 0.28: SegmentedControl fades and scrolls too                   | hds#823          |
-| Token chips in a text field           | `src/hds-gaps/TokenTextarea.tsx` + `.css`                                                 | _shipped_ 0.28: `TokenField`                                             | hds#826          |
-| Bare in-page tab panels               | `src/hds-gaps/barePanel.ts` (Discover sections only; the shell moved to `variant="bare"`) | _shipped_ 0.28: `TabsContent variant="bare"`                             | hds#819          |
-| Secondary colour on a plain span or p | `src/hds-gaps/tone.ts` `SECONDARY`                                                        | nothing for non-`Text` elements (by design; `Text tone` covers the rest) | none needed      |
-| Keyboard-aware dialog                 | `src/hds-gaps/useVisualViewportVars.ts`                                                   | a top-anchored, keyboard-aware Dialog or Sheet                           | related: hds#690 |
-| `Text` weight                         | `.rjb-semibold` in `src/theme/base.css`                                                   | _shipped_ 0.28: `Text weight` (regular, medium, bold; no semibold step)  | hds#825          |
-| Phone touch size                      | 40px rule in `src/theme/base.css`                                                         | a touch size on sm controls                                              | hds#750          |
-| Dark pressed accent contrast          | held pair in `src/theme.contrast.test.ts`                                                 | _shipped_ 0.27: AA on the dark pressed accent                            | hds#748          |
+| Workaround                            | Where                                                                | What HDS lacks                                                                                         | Upstream         |
+| ------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------- |
+| Inline fillable blank (rev-3 A)       | `.rjb-blank` / `.rjb-chip` in `src/theme/base.css` (`BlankText.tsx`) | a tappable inline token chip (TokenField chips aren't buttons; Tag is a 24px pill with no inline size) | to file          |
+| Secondary colour on a plain span or p | `src/hds-gaps/tone.ts` `SECONDARY`                                   | nothing for non-`Text` elements (by design; `Text tone` covers the rest)                               | none needed      |
+| Keyboard-aware dialog                 | `src/hds-gaps/useVisualViewportVars.ts`                              | a top-anchored, keyboard-aware Dialog or Sheet                                                         | related: hds#690 |
+| `Text` weight                         | `.rjb-semibold` in `src/theme/base.css`                              | _shipped_ 0.28: `Text weight` (regular, medium, bold; no semibold step)                                | hds#825          |
+| Phone touch size                      | 40px rule in `src/theme/base.css`                                    | a touch size on sm controls                                                                            | hds#750          |
+| Dark pressed accent contrast          | held pair in `src/theme.contrast.test.ts`                            | _shipped_ 0.27: AA on the dark pressed accent                                                          | hds#748          |
 
 ## Retired
 
 | Workaround                                                        | Retired in                                                                | Upstream |
 | ----------------------------------------------------------------- | ------------------------------------------------------------------------- | -------- |
+| `TokenTextarea` + chip-edit helpers in `templateEditor.ts`        | redesign slice 3 (HDS `TokenField`, 0.28)                                 | hds#826  |
+| `TabsOverflowFade` (shell tabs, Discover, Find boards)            | redesign slice 3 (TabsList and SegmentedControl fade and scroll, 0.28)    | hds#823  |
+| `barePanel.ts` (Discover sections)                                | redesign slice 3 (`TabsContent variant="bare"`, 0.28)                     | hds#819  |
 | `ActionToast` (Open, Undo)                                        | redesign slice 2 (HDS Toast `actions`, 0.28; `NoticeHost`)                | hds#815  |
 | `AsyncState` (Live postings)                                      | redesign slice 2 (HDS `AsyncState` pattern, 0.28)                         | hds#818  |
 | `EmptyState.tsx` icon composition                                 | redesign slice 2 (HDS `EmptyState icon`, 0.28; every caller uses HDS)     | hds#825  |

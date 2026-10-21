@@ -62,9 +62,11 @@ export function NotesPanel({ job }: { job: Job }) {
   );
 }
 
-/** Per-role to-dos: a checklist, one quiet add row, and starter tasks while it is empty. */
+/** Per-role to-dos: a checklist, a quiet "Add a to-do" line that opens the field (rev-3 mock),
+ *  and starter tasks while it is empty. */
 export function TodosPanel({ job }: { job: Job }) {
   const [draft, setDraft] = useState('');
+  const [adding, setAdding] = useState(false);
   const todos = job.todos ?? [];
   const open = todos.filter((t) => !t.done).length;
 
@@ -127,30 +129,42 @@ export function TodosPanel({ job }: { job: Job }) {
             </Stack>
           </PanelRow>
         ))}
-        {/* One quiet add row: type, then Enter or the plus. */}
+        {/* One quiet line until it is wanted; then the field: Enter or Add, Escape closes it. */}
         <PanelRow>
-          <Stack direction="row" gap="px8" align="center">
-            <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%', maxWidth: 'none' } }}>
-              <HdsInput
-                aria-label="New to-do"
-                placeholder={todos.length ? 'Add a to-do' : 'No to-dos yet. Add a to-do'}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitAdd();
-                }}
-              />
-            </Box>
+          {adding ? (
+            <Stack direction="row" gap="px8" align="center">
+              <Box
+                sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%', maxWidth: 'none' } }}
+              >
+                <HdsInput
+                  aria-label="New to-do"
+                  placeholder="Add a to-do"
+                  value={draft}
+                  autoFocus
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitAdd();
+                    if (e.key === 'Escape') setAdding(false);
+                  }}
+                  onBlur={() => {
+                    if (!draft.trim()) setAdding(false);
+                  }}
+                />
+              </Box>
+              <Button size="md" variant="secondary" disabled={!draft.trim()} onClick={commitAdd}>
+                Add
+              </Button>
+            </Stack>
+          ) : (
             <Button
               size="md"
-              variant="secondary"
-              iconOnly
+              variant="tertiary"
               iconLeft={<Icon icon={Plus} />}
-              label="Add to-do"
-              disabled={!draft.trim()}
-              onClick={commitAdd}
-            />
-          </Stack>
+              onClick={() => setAdding(true)}
+            >
+              Add a to-do
+            </Button>
+          )}
         </PanelRow>
       </PanelRows>
     </Panel>

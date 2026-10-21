@@ -27,7 +27,9 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await page.getByRole('menuitem', { name: 'Documents' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Documents' })).toBeVisible();
   const outreach = page.getByRole('region', { name: 'Outreach messages' });
+  // The row expands in place (rev-3 M); Open goes to the editor.
   await outreach.getByRole('button', { name: 'Follow-up after applying' }).click();
+  await outreach.getByRole('button', { name: 'Open Follow-up after applying' }).click();
 
   // Edit the text and save it as version 2.
   const text = page.getByRole('textbox', { name: 'Message text' });
@@ -46,6 +48,11 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await list.getByRole('button', { name: /^Follow-up after applying/ }).click();
   await expect(list.getByText(/I applied for the Fabricator role at Acme Metals/)).toBeVisible();
   await expect(list.getByText(/See you soon\./)).toBeVisible();
+  // A blank fills in place and saves on the job (rev-3 A).
+  await list.getByRole('button', { name: 'Fill Contact' }).click();
+  await list.getByRole('textbox', { name: 'Contact' }).fill('Dana');
+  await list.getByRole('button', { name: 'Fill', exact: true }).click();
+  await expect(list.getByText(/Hi Dana,/).first()).toBeVisible();
   await expect(page.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
     'href',
     '#/copy-deck',

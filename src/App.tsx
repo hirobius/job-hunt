@@ -32,7 +32,6 @@ import { saveWithNotice } from './saveNotice';
 import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
-import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
 
 // Code-split Discover and Documents so the initial bundle carries the Pipeline (the quick-add
 // landing); the rest load on demand.
@@ -164,13 +163,10 @@ export default function App() {
                   </Text>
                   <AccountMenu />
                 </Stack>
-                {/* The fade says more sit past the edge when the tabs overflow a narrow phone. */}
-                <TabsOverflowFade value={TAB_SLUGS[tab]}>
-                  <TabsList style={{ marginBottom: 0 }} aria-label="Sections">
-                    <TabsTrigger value="discover">Companies</TabsTrigger>
-                    <TabsTrigger value="queue">Pipeline</TabsTrigger>
-                  </TabsList>
-                </TabsOverflowFade>
+                <TabsList style={{ marginBottom: 0 }} aria-label="Sections">
+                  <TabsTrigger value="discover">Companies</TabsTrigger>
+                  <TabsTrigger value="queue">Pipeline</TabsTrigger>
+                </TabsList>
                 <TabsContent value="queue" variant="bare">
                   {applying ? (
                     <ApplyMode jobId={route.sub} />

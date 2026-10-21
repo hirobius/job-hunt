@@ -92,3 +92,41 @@ p {
 .rjb-icon-filled {
   fill: currentColor;
 }
+
+/* Template blanks (rev-3 A, N): a read-only blank in a filled text is the template editor's chip
+ * (HDS TokenField's look, from the same tokens). A blank that fills in place is an HDS Tag set in
+ * the line (`.rjb-blank`): its component tokens take the chip's shape, and on a phone its 40px hit
+ * area overhangs the line instead of pushing the lines apart. Upstream ask: an inline, tappable
+ * token chip (HDS gap registry, "Inline fillable blank"). */
+.rjb-chip {
+  display: inline-block;
+  margin-inline: 1px;
+  padding-inline: var(--semantic-space-subgrid-gap);
+  border: thin solid var(--semantic-color-border-default);
+  border-radius: var(--semantic-radius-control);
+  background: var(--semantic-color-surface-raised);
+  color: var(--semantic-color-content-primary);
+  font-size: var(--semantic-typography-caption-font-size);
+  line-height: var(--semantic-typography-caption-line-height);
+  white-space: nowrap;
+}
+
+.rjb-blank {
+  --component-tag-minHeight: 0;
+  --component-tag-minWidth: 0;
+  --component-tag-radius: var(--semantic-radius-control);
+  --component-tag-paddingX: var(--semantic-space-subgrid-gap);
+  --component-tag-paddingY: 0;
+  --component-tag-border: var(--semantic-color-border-default);
+  --component-tag-background: var(--semantic-color-surface-raised);
+  --component-tag-text: var(--semantic-color-content-primary);
+  min-width: 0;
+  margin-inline: 1px;
+  vertical-align: middle;
+}
+
+@media (max-width: 600px) {
+  .rjb-blank {
+    margin-block: calc((1lh - var(--primitive-space-10)) / 2);
+  }
+}

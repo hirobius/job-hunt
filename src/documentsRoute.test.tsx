@@ -109,6 +109,8 @@ describe('the Documents page', () => {
     await userEvent.click(
       await within(outreach()).findByRole('button', { name: /Thank-you after interview/ }),
     );
+    // The row expands first (rev-3 M); Open goes to the editor.
+    await userEvent.click(screen.getByRole('button', { name: 'Open Thank-you after interview' }));
     await waitFor(() => expect(window.location.hash).toBe('#/copy-deck/snippet-tpl-thanks'));
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Thank-you after interview');
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));

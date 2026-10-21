@@ -244,8 +244,13 @@ describe('job page tabs (#130 slice 2)', () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { company: 'Acme' });
     openJobPage();
-    expect(screen.getByRole('textbox', { name: 'New to-do' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Add starter tasks' }));
+    // Empty: a quiet "Add a to-do" line opens the field (rev-3 mock).
+    expect(screen.queryByRole('textbox', { name: 'New to-do' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Add a to-do' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'New to-do' }), 'Call Sam{Enter}');
+    expect(getAllJobs()[0].todos?.map((t) => t.text)).toEqual(['Call Sam']);
+    updateJob(URL_A, { todos: [] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Add starter tasks' }));
     expect(getAllJobs()[0].todos?.length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: 'Add starter tasks' })).toBeNull();
     const notes = screen.getAllByRole('textbox', { name: 'Notes' });

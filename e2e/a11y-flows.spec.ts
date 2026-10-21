@@ -31,7 +31,9 @@ async function tabTo(page: Page, name: string, max = 20): Promise<boolean> {
     await page.keyboard.press('Tab');
     const hit = await page.evaluate(
       (n) =>
-        document.activeElement?.tagName === 'A' && document.activeElement.textContent?.trim() === n,
+        document.activeElement?.tagName === 'A' &&
+        (document.activeElement.getAttribute('aria-label') ??
+          document.activeElement.textContent?.trim()) === n,
       name,
     );
     if (hit) return true;
@@ -96,7 +98,11 @@ for (const theme of ['light', 'dark'] as const) {
         await page.keyboard.press('Escape');
 
         await go(page, '#/copy-deck');
+        // A row expands in place (rev-3 M): axe it open, then Open goes to the editor.
         await page.getByRole('button', { name: 'Follow-up after applying' }).click();
+        await page.waitForTimeout(300);
+        bad.push(...(await axe(page, 'document row open')));
+        await page.getByRole('button', { name: 'Open Follow-up after applying' }).click();
         await expect(page).toHaveURL(/#\/copy-deck\/./);
         await page.waitForTimeout(500);
         bad.push(...(await axe(page, 'outreach editor')));

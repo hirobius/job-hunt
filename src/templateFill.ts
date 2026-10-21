@@ -84,3 +84,25 @@ export function fillSnippet(
     Object.fromEntries(Object.entries(resolved).map(([k, r]) => [k, r.value])),
   );
 }
+
+/**
+ * A one-paragraph preview of a filled text, at most `max` characters before the ellipsis. The cut
+ * lands on a word or blank boundary, never inside one, so a preview never ends in "[Your n…"
+ * (slice 3, rev-3 item 4). A blank the cut would split is dropped whole.
+ */
+export function previewText(text: string, max = 160): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  if (flat.length <= max) return flat;
+  let cut = max;
+  // Inside a blank: back up to its start.
+  for (const m of flat.matchAll(/\[([^[\]\n]{1,40})\]/g)) {
+    const start = m.index ?? 0;
+    if (start < cut && start + m[0].length > cut) cut = start;
+  }
+  // Inside a word (the next character continues it): back up to the space before it.
+  if (cut < flat.length && flat[cut] !== ' ' && flat[cut - 1] !== ' ' && flat[cut - 1] !== ']') {
+    const space = flat.lastIndexOf(' ', cut - 1);
+    if (space > 0) cut = space;
+  }
+  return `${flat.slice(0, cut).trimEnd()}…`;
+}
