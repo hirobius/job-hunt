@@ -125,7 +125,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
         <Stack gap="tight">
           <Box>
             {/* HDS Button asChild drops iconLeft, so the arrow is the link's own child. */}
-            <Button asChild variant="tertiary" size="sm">
+            <Button asChild variant="tertiary" size="md" className="rjb-back">
               <a href="#/queue">
                 <Icon icon={ArrowLeft} />
                 Back to Pipeline

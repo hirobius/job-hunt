@@ -18,6 +18,7 @@ export function BackToPipeline() {
       <Button
         variant="tertiary"
         size="md"
+        className="rjb-back"
         iconLeft={<Icon icon={ArrowLeft} />}
         aria-label="Back to Pipeline"
         onClick={() => openJob(null)}

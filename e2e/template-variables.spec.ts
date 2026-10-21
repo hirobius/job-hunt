@@ -45,12 +45,12 @@ for (const width of [1440, 390]) {
     for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
     await page.keyboard.press('ArrowRight');
     await page.keyboard.type('!');
-    await expect(preview(page)).toHaveText('Hi [Contact]!, at [Company]');
+    await expect(preview(page)).toHaveText('Hi Contact!, at Company');
 
     // Backspace twice: the "!" then the whole chip.
     await page.keyboard.press('Backspace');
     await page.keyboard.press('Backspace');
-    await expect(preview(page)).toHaveText('Hi , at [Company]');
+    await expect(preview(page)).toHaveText('Hi , at Company');
 
     // Shift+Tab to Insert variable, open it, arrow to Role: it lands where the caret was.
     await page.keyboard.press('Shift+Tab');
@@ -60,15 +60,15 @@ for (const width of [1440, 390]) {
     await page.keyboard.press('ArrowDown');
     await expect(page.getByRole('menuitem', { name: 'Role' })).toBeFocused();
     await page.keyboard.press('Enter');
-    await expect(preview(page)).toHaveText('Hi [Role], at [Company]');
+    await expect(preview(page)).toHaveText('Hi Role, at Company');
     await expect(field).toBeFocused();
     await page.keyboard.type('X');
-    await expect(preview(page)).toHaveText('Hi [Role]X, at [Company]');
+    await expect(preview(page)).toHaveText('Hi RoleX, at Company');
 
     // Enter makes a plain new line.
     await page.keyboard.press('Enter');
     await page.keyboard.type('Bye');
-    await expect(preview(page)).toHaveText('Hi [Role]X\nBye, at [Company]');
+    await expect(preview(page)).toHaveText('Hi RoleX\nBye, at Company');
 
     // Save keeps it as a new Version; the first stays readable.
     await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -87,7 +87,7 @@ test('a value set under Variables fills the preview and is kept on the message',
     .getByRole('region', { name: 'Variables' })
     .getByRole('textbox', { name: 'Company' })
     .fill('Acme');
-  await expect(preview(page)).toHaveText('Hi [Contact], at Acme');
+  await expect(preview(page)).toHaveText('Hi Contact, at Acme');
   await expect.poll(async () => (await stored(page)).values).toEqual({ company: 'Acme' });
   expect((await stored(page)).versions.map((v) => v.text)).toEqual(['Hi [Contact], at [Company]']);
 });

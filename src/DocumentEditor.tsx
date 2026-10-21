@@ -41,13 +41,14 @@ import { DocumentDownload } from './DocumentDownload';
 import { updateJob, useJobs } from './store';
 import type { Job } from './types';
 import { useApplyKit } from './applyKit';
-import { fillSnippet, ownValue, resolveVariables } from './templateFill';
+import { fillSnippet, ownValue } from './templateFill';
 import { insertToken, templateVariables, TOKEN_CHIPS } from './templateEditor';
 import type { TokenFieldHandle } from '@hirobius/design-system';
 import { JOB_FIELD } from './fillBlank';
 import { Panel, PanelBody } from './PipelinePanel';
 import { copyFilled } from './templateCopy';
 import { metaLines } from './metaLines';
+import { BlanksLeft, WithChips } from './BlankText';
 
 const NO_JOB = 'none';
 const FULL = { width: '100%' } as const;
@@ -88,6 +89,10 @@ export default function DocumentEditor({
     setSeen(saved);
   }
   const [confirming, setConfirming] = useState(false);
+  // Opened from a scrolled list, the editor starts at its head (like JobPage and ApplyMode).
+  useEffect(() => {
+    window.scrollTo?.({ top: 0 });
+  }, [doc?.id, kind]);
   const outreach = kind === 'outreach';
   const dirty = doc ? draft !== saved : true;
 
@@ -151,7 +156,12 @@ export default function DocumentEditor({
   return (
     <Stack gap="normal">
       <Box>
-        <Button variant="tertiary" iconLeft={<Icon icon={ArrowLeft} />} onClick={onBack}>
+        <Button
+          variant="tertiary"
+          className="rjb-back"
+          iconLeft={<Icon icon={ArrowLeft} />}
+          onClick={onBack}
+        >
           All documents
         </Button>
       </Box>
@@ -257,8 +267,6 @@ function OutreachText({
   const job = jobs.find((j) => j.url === fillFor);
   const filled = fillSnippet({ body: value, values }, job, kitName);
   const names = templateVariables(value);
-  const resolved = resolveVariables(names, values, job, kitName);
-  const missing = names.filter((n) => !resolved[n.toLowerCase()]).map((n) => `[${n}]`);
   // fromEntries makes own keys, so even a variable named `__proto__` is kept as a plain value.
   const setValue = (key: string, v: string) => {
     if (!docId) return;
@@ -314,7 +322,7 @@ function OutreachText({
     else toast({ title: "Couldn't copy", description: r.reason, tone: 'danger' });
   };
   const options = [
-    { value: NO_JOB, label: 'No job (show [Tokens])' },
+    { value: NO_JOB, label: 'No job' },
     ...jobs.map((j) => ({
       value: j.url,
       label: metaLines([j.label, j.company])[0] || j.url,
@@ -381,18 +389,29 @@ function OutreachText({
               onChange={(v) => setFillFor(v === NO_JOB ? null : v)}
             />
             {docId && names.map(variableField)}
-            <Surface padding="px16" role="region" aria-label="Preview">
-              <Text variant="body" as="p" style={PRE}>
-                {filled || 'Nothing to preview yet.'}
-              </Text>
-            </Surface>
-            {missing.length > 0 && (
+            {/* rev-3 A: open blanks are chips and "N blanks left", never raw [Brackets]. A boxed
+                preview, named on screen, lined up with the fields above it. */}
+            <Stack gap="px4">
               <Text variant="caption" as="p" tone="secondary">
-                {job
-                  ? `Still unfilled for this job: ${missing.join(', ')}. Set them above, or edit after pasting.`
-                  : `Not set yet: ${missing.join(', ')}. Set them above, or pick a job.`}
+                Preview
               </Text>
-            )}
+              <Box
+                role="region"
+                aria-label="Preview"
+                sx={{
+                  border: 'thin solid',
+                  borderColor: 'border.default',
+                  borderRadius: 'md',
+                  bgcolor: 'var(--semantic-color-surface-sunken)',
+                  p: 'sm',
+                }}
+              >
+                <Text variant="body" as="p" style={PRE}>
+                  {filled ? <WithChips text={filled} /> : 'Nothing to preview yet.'}
+                </Text>
+              </Box>
+            </Stack>
+            <BlanksLeft text={filled} />
             <Box>
               <Button variant="secondary" onClick={copy}>
                 Copy filled text
