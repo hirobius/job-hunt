@@ -64,7 +64,7 @@ describe('HDS version pin (#115 Phase 0)', () => {
 // Inline styles (#93, #133): every `style={{` in non-test src/**/*.tsx is on this allowlist, each
 // count with the reason HDS can't express it yet. Anything else is an HDS prop, a layout primitive
 // or `Box sx` with token keys. Lower a count when you remove one; never add a file or raise one.
-// Named style constants (`style={SECONDARY}`, `style={DANGER}`) are the hds-gaps idiom, not counted.
+// Named style constants (`style={SECONDARY}`) are the hds-gaps idiom, not counted.
 describe('Inline style allowlist (#93)', () => {
   const ALLOWED: Record<string, number> = {
     // HDS TabsList hard-codes mb-6 and has no prop to drop it
@@ -74,8 +74,8 @@ describe('Inline style allowlist (#93)', () => {
     'ManageTrackDialog.tsx': 1,
     'UseTemplate.tsx': 1,
     'account/DataToolsProvider.tsx': 1,
-    // TrackerView: the Add job Dialog.Content (as above) + Button has no nowrap prop
-    'TrackerView.tsx': 2,
+    // TrackerView: the Add job Dialog.Content (as above)
+    'TrackerView.tsx': 1,
     // "Saved" fade: opacity follows state at runtime
     'JobOverview.tsx': 1,
     // TileGrid: set-aside opacity (runtime) + two -webkit-line-clamp boxes (no HDS clamp prop)

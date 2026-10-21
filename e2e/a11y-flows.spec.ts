@@ -75,7 +75,7 @@ for (const theme of ['light', 'dark'] as const) {
         const bad: string[] = [];
 
         await go(page, '#/queue');
-        await page.getByRole('button', { name: 'Menu' }).click();
+        await page.getByRole('button', { name: /^Account/ }).click();
         await expect(page.getByRole('menu')).toBeVisible();
         bad.push(...(await axe(page, 'menu open')));
         await page.keyboard.press('Escape');
@@ -129,7 +129,7 @@ test.describe('keyboard only', () => {
   }) => {
     await seed(page);
     await go(page, '#/queue');
-    await page.getByRole('button', { name: 'Menu' }).focus();
+    await page.getByRole('button', { name: /^Account/ }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('menu')).toBeVisible();
     await arrowTo(page, 'Documents', 'ArrowDown');
@@ -140,7 +140,7 @@ test.describe('keyboard only', () => {
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/queue$/);
 
-    await page.getByRole('button', { name: 'Menu' }).focus();
+    await page.getByRole('button', { name: /^Account/ }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('menu')).toBeVisible();
     await page.keyboard.press('End');

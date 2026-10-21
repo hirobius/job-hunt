@@ -44,7 +44,7 @@ describe('Try with sample data (Tracker)', () => {
       expect(screen.getAllByText('UX Researcher')[0]).toBeInTheDocument();
       expect(tryButton()).toBeNull();
 
-      await user.click(within(banner()!).getByText(/clear sample data/i));
+      await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
       expect(banner()).toBeNull();
       expect(getAllJobs()).toEqual([]);
       expect(tryButton()).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('Try with sample data (Tracker)', () => {
     renderTracker();
     await user.click(tryButton()!);
     addJob('https://boards.greenhouse.io/acme/jobs/8');
-    await user.click(within(banner()!).getByText(/clear sample data/i));
+    await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
     expect(getAllJobs().map((j) => j.url)).toEqual(['https://boards.greenhouse.io/acme/jobs/8']);
   });
 });

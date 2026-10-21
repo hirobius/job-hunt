@@ -86,7 +86,7 @@ describe('the Documents page', () => {
   it('the Menu opens Documents', async () => {
     window.location.hash = '#/queue';
     await renderApp();
-    await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
     const menu = await screen.findByRole('menu');
     expect(within(menu).queryByRole('menuitem', { name: 'Templates' })).toBeNull();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));

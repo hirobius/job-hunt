@@ -4,14 +4,19 @@
 // src/hdsFreshness.test.ts holds the build to the same rule offline. See docs/guardrails.md.
 //
 //   npm run hds:check
-import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const PKG = '@hirobius/design-system';
 const RECORD = 'hds-version.json';
 
-// `npm view` follows .npmrc, which maps @hirobius to GitHub Packages (needs HDS_PACKAGES_TOKEN).
-const latest = execFileSync('npm', ['view', PKG, 'dist-tags.latest'], { encoding: 'utf8' }).trim();
+// HDS publishes to public npm. Read it there directly: `npm view` follows .npmrc, which maps
+// @hirobius to GitHub Packages (it stops at 0.26.2), and caches answers. The query string busts
+// any proxy or registry cache, so a fresh publish is seen at once.
+const res = await fetch(`https://registry.npmjs.org/${PKG.replace('/', '%2F')}?t=${Date.now()}`, {
+  headers: { accept: 'application/json', 'cache-control': 'no-cache' },
+});
+if (!res.ok) throw new Error(`registry answered ${res.status}`);
+const latest = String((await res.json())['dist-tags']?.latest ?? '').trim();
 if (!/^\d+\.\d+\.\d+$/.test(latest)) throw new Error(`unexpected latest version: ${latest}`);
 const installed = JSON.parse(readFileSync(`node_modules/${PKG}/package.json`, 'utf8')).version;
 

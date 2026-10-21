@@ -2,13 +2,12 @@
 // links, with the open one marked. It reads the Pipeline's shared filter and sort (pipelineView);
 // only the search is editable here, and "Change filters" goes back to the list.
 import { Search } from 'lucide-react';
-import { Badge, Box, Input, InlineLink, Stack, Text } from '@hirobius/design-system';
+import { Badge, Box, Input, InlineLink, NavList, Stack, Text } from '@hirobius/design-system';
 import { useJobs, jobIdOf } from './store';
 import { jobHash } from './route';
 import { rowView } from './jobRow';
 import { StatusBadge } from './JobRowParts';
 import { FILTER_LABEL, setPipelineView, usePipelineView, visibleJobs } from './pipelineView';
-import RailList, { type RailItem } from './hds-gaps/RailList';
 import type { Job } from './types';
 import './JobRail.css';
 
@@ -16,17 +15,16 @@ function RowBody({ job }: { job: Job }) {
   const v = rowView(job);
   return (
     <Stack gap="tight">
-      <Stack direction="row" gap="tight" align="start" justify="space-between">
-        <Box sx={{ overflowWrap: 'anywhere' }}>
-          <Text variant="ui" as="div" className="rjb-semibold">
-            {v.title}
-          </Text>
-        </Box>
-        <Stack direction="row" gap="tight" align="center">
-          {v.followUp?.due && <Badge tone="warning">Due</Badge>}
-          <StatusBadge job={job} />
-        </Stack>
+      {/* One badge row above the title (rev-3 B), as on the Pipeline cards. */}
+      <Stack direction="row" wrap="wrap" gap="tight" align="center">
+        <StatusBadge job={job} />
+        {v.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
       </Stack>
+      <Box sx={{ overflowWrap: 'anywhere' }}>
+        <Text variant="ui" as="div" className="rjb-semibold">
+          {v.title}
+        </Text>
+      </Box>
       {v.factLines.map((line, i) => (
         <Text key={i} variant="caption" as="span" tone="secondary">
           {line}
@@ -44,12 +42,12 @@ export default function JobRail({ openId }: { openId: string }) {
   // The open job stays on screen even when the filter or search would hide it.
   const hidden = !!open && !shown.some((j) => j.url === open.url);
 
-  const item = (j: Job): RailItem => ({
-    id: j.url,
-    href: jobHash(jobIdOf(j.url)),
-    current: jobIdOf(j.url) === openId,
-    children: <RowBody job={j} />,
-  });
+  // Rows are links (each job has its own route), so NavList's link mode, not its select mode.
+  const item = (j: Job) => (
+    <NavList.Item key={j.url} href={jobHash(jobIdOf(j.url))} current={jobIdOf(j.url) === openId}>
+      <RowBody job={j} />
+    </NavList.Item>
+  );
 
   return (
     <nav aria-label="Jobs" className="job-rail">
@@ -72,7 +70,7 @@ export default function JobRail({ openId }: { openId: string }) {
         </Text>
         {hidden && open && (
           <Stack gap="tight">
-            <RailList items={[item(open)]} />
+            <NavList>{item(open)}</NavList>
             <Text variant="caption" as="p" tone="secondary">
               Not in this filter
             </Text>
@@ -83,7 +81,7 @@ export default function JobRail({ openId }: { openId: string }) {
             No jobs match.
           </Text>
         ) : (
-          <RailList items={shown.map(item)} />
+          <NavList>{shown.map(item)}</NavList>
         )}
       </Stack>
     </nav>

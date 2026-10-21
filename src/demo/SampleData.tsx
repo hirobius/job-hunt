@@ -32,13 +32,19 @@ export function SampleBanner({ jobs }: { jobs: Job[] }) {
   if (n === 0) return null;
   return (
     <Box role="status" aria-label="Sample data">
-      <Stack direction="row" wrap="wrap" gap="px8" align="center">
+      {/* One quiet line (rev-3 mock): what it is, and Clear. */}
+      <Stack direction="row" wrap="wrap" gap="px4" align="center">
         <Text variant="caption" as="span" tone="secondary">
-          <span className="rjb-semibold">Sample data</span> · {n} fictional{' '}
-          {n === 1 ? 'job' : 'jobs'}. Clearing removes them and any edits to them.
+          Sample data, {n} fictional {n === 1 ? 'job' : 'jobs'}.
         </Text>
-        <Button variant="tertiary" size="sm" onClick={() => clearSample()}>
-          Clear sample data
+        <Button
+          variant="tertiary"
+          size="sm"
+          label="Clear sample data"
+          title="Clearing removes them and any edits to them"
+          onClick={() => clearSample()}
+        >
+          Clear
         </Button>
       </Stack>
     </Box>

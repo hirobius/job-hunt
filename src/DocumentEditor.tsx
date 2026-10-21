@@ -45,7 +45,6 @@ import TokenTextarea from './hds-gaps/TokenTextarea';
 import type { TokenTextareaHandle } from './hds-gaps/TokenTextarea';
 import { copyFilled } from './templateCopy';
 import { metaLines } from './metaLines';
-import { DANGER } from './hds-gaps/tone';
 
 const NO_JOB = 'none';
 const FULL = { width: '100%' } as const;
@@ -131,8 +130,7 @@ export default function DocumentEditor({
               {doc.pinned ? 'Unpin' : 'Pin'}
             </Menu.Item>
             <Menu.Separator />
-            {/* HDS Menu.Item has no danger tone; the feedback token marks the destructive item. */}
-            <Menu.Item onSelect={() => setConfirming(true)} style={DANGER}>
+            <Menu.Item onSelect={() => setConfirming(true)} tone="danger">
               Delete
             </Menu.Item>
           </Menu.Content>

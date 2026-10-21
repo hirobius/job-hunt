@@ -23,7 +23,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await expect(page.getByRole('heading', { name: 'Pipeline' })).toBeVisible();
 
   // Documents opens from the Menu; the starter templates are Outreach messages now.
-  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: 'Documents' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Documents' })).toBeVisible();
   const outreach = page.getByRole('region', { name: 'Outreach messages' });

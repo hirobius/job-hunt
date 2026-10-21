@@ -20,7 +20,8 @@ PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run veri
 
 The installed `@hirobius/design-system` may trail the latest published HDS by at most one minor.
 "Latest" is the checked-in record `hds-version.json`, so the unit test is offline and deterministic.
-`npm run hds:check` reads the registry (via `.npmrc`, needs `HDS_PACKAGES_TOKEN`), rewrites the
+`npm run hds:check` reads public npm directly (`registry.npmjs.org`, with a cache-busting query; `npm view`
+followed `.npmrc` to GitHub Packages, which stops at 0.26.2, and recorded a stale latest), rewrites the
 record when the latest moved, and exits 1 when the app is more than one minor behind. Commit the
 record when it changes. Upgrade with `npx @hirobius/design-system@latest upgrade`.
 
@@ -35,9 +36,9 @@ Every route (`e2e/routes.ts`, plus the job page and Apply mode) at 390 and 1440,
 - headings on the HDS type ramp, and no inline font size other than an HDS ramp token
 - a 16px page side gutter on a phone
 
-**Known debt** (`KNOWN_DEBT` in the spec) is tolerated only in its exact form, and the test fails
-once it is gone, so the list only shrinks: the 12px HDS phone gutter (the mock sets 16), and the
-job rail's "Due" beside a status badge at 1440 (rev-3 B).
+**Known debt:** none. Slice 1 cleared both entries (the 12px phone gutter is now 16; the job
+rail's "Due" moved into one badge row above the title, rev-3 B). The heading ramp includes HDS
+0.29's `titleSm`.
 
 ## 3. Screenshot baselines
 

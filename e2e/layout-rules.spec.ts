@@ -14,20 +14,15 @@ const THEMES = ['light', 'dark'] as const;
 const WIDTHS = [390, 1440] as const;
 const PHONE = 600;
 const GUTTER = 16;
-// KNOWN_DEBT, to clear in the redesign. Each is tolerated only in its exact form, and the test
-// fails once it is no longer seen, so clearing one means deleting it here:
-//   gutter (390): the shell's phone gutter is HDS's region gutter, 12px today; the rev-3 mock
-//     sets 16. Content sitting exactly on 12 is tolerated; anything closer to the edge fails.
-//   status (1440): the job rail shows "Due" beside a row's status badge; rev-3 B moves it into
-//     one badge row above the title. Only that pair, inside a rail link, is tolerated.
-const GUTTER_DEBT = 12;
+// KNOWN_DEBT: none. The redesign cleared the last two (slice 1): the 12px phone gutter (now 16,
+// rev-3 mock) and the job rail's "Due" beside a status badge (now one badge row above the
+// title, rev-3 B). A new debt needs a reason here and an exact-form check in probe().
 
 /** Run every rule in the page; returns one line per offence. */
 function probe(page: Page) {
   return page.evaluate(
-    ({ phone, gutter, debt }) => {
+    ({ phone, gutter }) => {
       const out: string[] = [];
-      const known = new Set<string>();
       const W = document.documentElement.clientWidth;
       const isPhone = W < phone;
       const label = (el: Element) =>
@@ -60,7 +55,8 @@ function probe(page: Page) {
         s.remove();
         return n;
       };
-      const RAMP = ['display', 'title', 'body', 'ui', 'caption', 'mono'].map((k) =>
+      // titleSm joined the ramp in HDS 0.29 (Alert titles use it).
+      const RAMP = ['display', 'title', 'titleSm', 'body', 'ui', 'caption', 'mono'].map((k) =>
         px(`--semantic-typography-${k}-font-size`),
       );
       const CAPTION = px('--semantic-typography-caption-font-size');
@@ -91,7 +87,7 @@ function probe(page: Page) {
         const cs = getComputedStyle(el);
         // HDS Text sets its ramp as inline token vars; anything else inline is off the ramp.
         const fs = el.style.fontSize;
-        if (fs && !/^var\(--semantic-typography-[a-z]+-font-size\)$/.test(fs))
+        if (fs && !/^var\(--semantic-typography-[a-zA-Z]+-font-size\)$/.test(fs))
           out.push(`inline font: ${label(el)} font-size: ${fs}`);
         const ownText = [...el.childNodes].some(
           (n) => n.nodeType === Node.TEXT_NODE && (n.textContent || '').trim(),
@@ -111,11 +107,10 @@ function probe(page: Page) {
         ) {
           const r = el.getBoundingClientRect();
           const edge = Math.min(r.left, W - r.right);
-          if (edge < gutter - 0.5 && Math.abs(edge - debt) > 0.5)
+          if (edge < gutter - 0.5)
             out.push(
               `gutter: ${label(el)} spans ${Math.round(r.left)}–${Math.round(r.right)} of ${W}`,
             );
-          else if (edge < gutter - 0.5) known.add('gutter');
         }
       });
 
@@ -147,19 +142,14 @@ function probe(page: Page) {
             return mid >= t.top && mid <= t.bottom;
           },
         );
-        const railDue =
-          scope === el &&
-          badges.length === 2 &&
-          badges.some((b) => b.textContent?.trim() === 'Due');
-        if (railDue) known.add('status');
-        else if (badges.length > 1)
+        if (badges.length > 1)
           out.push(
             `status: ${label(title)} has ${badges.length} badges beside it (${badges.map((b) => b.textContent?.trim()).join(', ')})`,
           );
       });
-      return { bad: [...new Set(out)], known: [...known] };
+      return [...new Set(out)];
     },
-    { phone: PHONE, gutter: GUTTER, debt: GUTTER_DEBT },
+    { phone: PHONE, gutter: GUTTER },
   );
 }
 
@@ -174,17 +164,10 @@ for (const theme of THEMES) {
         await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
         await seed(page);
         const bad: string[] = [];
-        const known = new Set<string>();
         await visitAll(page, async (name) => {
-          const found = await probe(page);
-          for (const line of found.bad) bad.push(`${name} ${line}`);
-          found.known.forEach((k) => known.add(k));
+          for (const line of await probe(page)) bad.push(`${name} ${line}`);
         });
         expect(bad).toEqual([]);
-        // A cleared debt must leave the list (KNOWN_DEBT above).
-        expect([...known].sort(), 'a known debt is cleared: drop it from KNOWN_DEBT').toEqual(
-          width < PHONE ? ['gutter'] : ['status'],
-        );
       });
     });
   }

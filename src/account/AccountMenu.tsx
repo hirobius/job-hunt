@@ -1,13 +1,10 @@
 // The header's account menu (#115 Phase 1): sync status + sign-in/out, Documents (#240, #227: no
 // tab), the data controls that used to crowd the Tracker toolbar (back up, restore, export), the
 // theme, feedback and the Privacy and terms pages (#43) — one home for everything about "my account and my data".
-import { Button, Icon, Menu } from '@hirobius/design-system';
-import { Menu as MenuIcon } from 'lucide-react';
+import { Avatar, Button, Menu } from '@hirobius/design-system';
 import { useColorMode } from '../ColorMode';
-import { useDensity } from '../Density';
 import { useCloudSync, useDataTools } from './accountContext';
 import { useUnsynced } from './useUnsynced';
-import { DANGER } from '../hds-gaps/tone';
 import { navigate } from '../route';
 import { LEGAL_ROUTE } from '../legal';
 
@@ -18,7 +15,10 @@ export default function AccountMenu() {
   const data = useDataTools();
   const unsynced = useUnsynced();
   const { mode, toggle } = useColorMode();
-  const { density, toggle: toggleDensity } = useDensity();
+  // The trigger is the HDS Avatar (rev-3 P): your initial when signed in, a neutral person icon
+  // when not, and a warning Badge dot while jobs are saved on this device only.
+  const initial = sync.user?.email?.trim()[0]?.toUpperCase();
+  const name = unsynced ? 'Account, not synced' : 'Account';
 
   // Header lines are Menu.Labels (not focusable, not clickable). The email is plain text;
   // index.html's format-detection meta stops iOS turning it into a mailto link.
@@ -26,13 +26,19 @@ export default function AccountMenu() {
     // Non-modal, so a dialog opened from an item (sign-in, restore) takes focus cleanly.
     <Menu modal={false}>
       <Menu.Trigger asChild>
-        {/* Icon-only: the menu holds settings, data and feedback, not just the account. */}
         <Button
           variant="tertiary"
-          size="sm"
           iconOnly
-          iconLeft={<Icon icon={MenuIcon} />}
-          label="Menu"
+          iconLeft={
+            <Avatar
+              size="sm"
+              alt=""
+              initials={initial}
+              fallback={initial ? 'initials' : 'icon'}
+              status={unsynced ? 'warning' : undefined}
+            />
+          }
+          label={name}
           title={unsynced ? 'Saved on this device only' : undefined}
         />
       </Menu.Trigger>
@@ -61,9 +67,6 @@ export default function AccountMenu() {
         </Menu.Item>
         <Menu.Separator />
         <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
-        <Menu.Item onSelect={toggleDensity}>
-          {density === 'compact' ? 'Comfortable' : 'Compact'} spacing
-        </Menu.Item>
         <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>
           Send feedback
         </Menu.Item>
@@ -74,8 +77,7 @@ export default function AccountMenu() {
           <>
             <Menu.Separator />
             <Menu.Item onSelect={sync.signOut}>Sign out</Menu.Item>
-            {/* HDS Menu.Item has no danger tone; the feedback token marks the destructive item. */}
-            <Menu.Item onSelect={sync.deleteMyData} style={DANGER}>
+            <Menu.Item onSelect={sync.deleteMyData} tone="danger">
               Delete my data
             </Menu.Item>
           </>

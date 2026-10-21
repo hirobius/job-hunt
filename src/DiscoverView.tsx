@@ -13,6 +13,7 @@ import {
   Disclosure,
   InlineLink,
   Stack,
+  useAtLeast,
 } from '@hirobius/design-system';
 import TileGrid from './TileGrid';
 import EmptyState from './EmptyState';
@@ -43,7 +44,6 @@ import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
 import { BARE_PANEL } from './hds-gaps/barePanel';
 
 const SECTION_PANEL = { ...BARE_PANEL, paddingTop: 'var(--primitive-space-4)' } as const;
-import { useAtLeast } from './hds-gaps/useBreakpoint';
 import { useTrackContext } from './discoverContext';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
 import { teamSearchFor } from './feed/teamTopics';

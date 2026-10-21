@@ -11,9 +11,15 @@ import { STATUSES, type Job } from './types';
 export type SortKey = 'recent' | 'followup' | 'applied' | 'status' | 'salary' | 'fit' | 'az';
 
 /** Each sort runs one way; `direction` says which, for a table header's aria-sort. */
-export const SORTS: { key: SortKey; label: string; direction: 'ascending' | 'descending' }[] = [
-  { key: 'recent', label: 'Recently added', direction: 'descending' },
-  { key: 'followup', label: 'Follow-up due first', direction: 'ascending' }, // soonest due first
+export const SORTS: {
+  key: SortKey;
+  label: string;
+  /** What the Pipeline's narrow Sort trigger shows, when the label is too long for it. */
+  short?: string;
+  direction: 'ascending' | 'descending';
+}[] = [
+  { key: 'recent', label: 'Recently added', short: 'Newest', direction: 'descending' },
+  { key: 'followup', label: 'Follow-up due first', short: 'Follow-up due', direction: 'ascending' }, // soonest due first
   { key: 'fit', label: 'Best fit', direction: 'ascending' }, // match → reach
   { key: 'applied', label: 'Applied date', direction: 'descending' }, // most recent first
   { key: 'status', label: 'Status', direction: 'ascending' },

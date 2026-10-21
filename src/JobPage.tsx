@@ -12,6 +12,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  useAtLeast,
 } from '@hirobius/design-system';
 import { findJobById, useJobs } from './store';
 import { openJob } from './route';
@@ -20,7 +21,6 @@ import JobHeader from './JobHeader';
 import JobOverview from './JobOverview';
 import JobRail from './JobRail';
 import TabsOverflowFade from './hds-gaps/TabsOverflowFade';
-import { useAtLeast } from './hds-gaps/useBreakpoint';
 import JobScreening from './JobScreening';
 import JobInterviews from './JobInterviews';
 import { TodosNotes } from './TodosNotes';

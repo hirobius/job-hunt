@@ -24,7 +24,7 @@ export const renderAccount = () =>
 
 /** Open the account menu and return it. */
 export async function openAccount() {
-  await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+  await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
   return screen.findByRole('menu');
 }
 

@@ -279,7 +279,7 @@ describe('Getting started card on the Pipeline', () => {
     renderApp();
     expect(ticks()).toEqual([
       [expect.stringMatching(/Save a job/), true],
-      [expect.stringMatching(/Log a follow-up date or mark a job applied/), false],
+      [expect.stringMatching(/Log a follow-up or mark a job applied/), false],
       [expect.stringMatching(/Sign in to sync/), false],
     ]);
   });

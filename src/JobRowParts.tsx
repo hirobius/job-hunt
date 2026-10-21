@@ -1,7 +1,7 @@
 // The pieces one job row is made of (#129), shared by the desktop table (JobsTable), the phone
 // cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
 // step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
-import { EllipsisVertical, Star } from 'lucide-react';
+import { Ellipsis, Star } from 'lucide-react';
 import { Badge, Button, Icon, Menu, useToast } from '@hirobius/design-system';
 import { hostOf, setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
@@ -11,7 +11,6 @@ import { setDiscoverSeed } from './discoverSeed';
 import { primaryAction, STATUS_TONE, titleOf } from './jobRow';
 import { normStatus } from './jobState';
 import { STATUSES, type Job, type Status } from './types';
-import { DANGER } from './hds-gaps/tone';
 
 /** Controls on a phone card are 40px tap targets; the denser table uses the small size. */
 type Size = 'sm' | 'md';
@@ -98,11 +97,12 @@ export function RowMenu({
   return (
     <Menu>
       <Menu.Trigger asChild>
+        {/* A bordered 40px button on a phone card (rev-3 mock); quiet in the dense table. */}
         <Button
           size={size}
-          variant="tertiary"
+          variant={size === 'md' ? 'secondary' : 'tertiary'}
           iconOnly
-          iconLeft={<Icon icon={EllipsisVertical} />}
+          iconLeft={<Icon icon={Ellipsis} />}
           label={`More actions: ${title}`}
         />
       </Menu.Trigger>
@@ -140,14 +140,13 @@ export function RowMenu({
           Find more like this
         </Menu.Item>
         <Menu.Separator />
-        {/* Remove goes to Recently removed, with Undo, so it needs no confirm. HDS Menu.Item has
-            no danger tone; the feedback token marks the destructive item. */}
+        {/* Remove goes to Recently removed, with Undo, so it needs no confirm. */}
         <Menu.Item
           onSelect={() => {
             removeWithUndo(job);
             onRemoved?.();
           }}
-          style={DANGER}
+          tone="danger"
         >
           Remove
         </Menu.Item>

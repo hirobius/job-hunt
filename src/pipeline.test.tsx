@@ -166,7 +166,8 @@ describe('Retired jobs stay readable', () => {
     renderApp();
     await showRetired();
     const card = screen.getByRole('article', { name: 'Design Engineer' });
-    expect(within(card).getByText(/^Retired · Acme/)).toBeInTheDocument();
+    expect(within(card).getByText('Retired')).toBeInTheDocument();
+    expect(within(card).getByText('Acme')).toBeInTheDocument();
     expect(faded(card)).toBe(false);
   });
 
@@ -185,17 +186,17 @@ describe('Retired jobs stay readable', () => {
 describe('Pipeline filter (#129)', () => {
   beforeEach(() => viewport(390));
 
-  it('a non-default status shows as a chip that clears back to Active', async () => {
+  it('a non-default status shows a quiet Clear that goes back to Active (rev-3 item 1)', async () => {
     renderApp();
-    expect(screen.queryByRole('button', { name: /^Clear filter/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
     await userEvent.click(
       within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Applied/ }),
     );
-    const chip = await screen.findByRole('button', { name: 'Clear filter: Applied' });
-    await userEvent.click(chip);
+    expect(screen.getByRole('button', { name: 'Status: Applied' })).toHaveTextContent('Applied');
+    await userEvent.click(await screen.findByRole('button', { name: 'Clear filters' }));
     expect(screen.getByRole('button', { name: /^Status: Active/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Clear filter/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
   });
 
   it('All is demoted to the end of the status menu', async () => {
@@ -278,7 +279,7 @@ describe('Pipeline on a desktop (#129)', () => {
     expect(titles()).toEqual(['Zenith Product Designer', 'Design Engineer', 'Writer']);
     await userEvent.click(within(jobHeader).getByRole('button'));
     await waitFor(() => expect(jobHeader).toHaveAttribute('aria-sort', 'none'));
-    expect(screen.getByRole('button', { name: 'Sort: Recently added' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sort: Newest' })).toBeInTheDocument();
   });
 });
 
