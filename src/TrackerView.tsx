@@ -116,8 +116,9 @@ export default function TrackerView() {
             countLabel={`${shown.length} ${shown.length === 1 ? 'job' : 'jobs'} shown`}
           >
             <PanelBody>
-              {/* Full width on a phone; the HDS form-control cap on a wide screen. */}
-              <Box sx={{ maxWidth: 'var(--hds-form-control-max-width, 40rem)' }}>
+              {/* The full-width search (the panel's width at every size): no form-control cap, and
+                  Status and Sort split the row. */}
+              <Box className="rjb-form-full">
                 <Stack gap="tight">
                   <HdsInput
                     aria-label="Search saved jobs"

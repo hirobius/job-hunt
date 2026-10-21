@@ -49,6 +49,14 @@ describe('Company page (#230)', () => {
     expect(within(docs).getByText(/Cover letter/)).toBeInTheDocument();
   });
 
+  it('heads the page like Documents: a "← Pipeline" back link above the title', () => {
+    seedAcme();
+    render(<CompanyPage slug="acme" />);
+    const back = screen.getByRole('link', { name: 'Back to Pipeline' });
+    expect(back).toHaveAttribute('href', '#/queue');
+    expect(back).toHaveTextContent(/^Pipeline$/);
+  });
+
   it('adds a company note: a note Document on the company, with no job', async () => {
     seedAcme();
     render(<CompanyPage slug="acme" />);

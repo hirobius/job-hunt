@@ -101,43 +101,46 @@ function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
   const field = (key: keyof Job, label: string) => (
     <JobField job={job} field={key} label={label} onSaved={flash} />
   );
+  // No form-control cap: the single fields (Title, Link) line up with the paired rows.
   return (
-    <Stack gap="normal">
-      {field('label', 'Title')}
-      <Switcher gap="tight">
-        {field('company', 'Company')}
-        {field('location', 'Location')}
-      </Switcher>
-      <Switcher gap="tight">
-        {field('salary', 'Pay')}
-        {field('contact', 'Contact')}
-      </Switcher>
-      <LinkField job={job} />
-      <Disclosure label="More fields" variant="nav">
+    <Box className="rjb-form-full">
+      <Stack gap="normal">
+        {field('label', 'Title')}
         <Switcher gap="tight">
-          {field('seniority', 'Seniority')}
-          {field('resume', 'Résumé version')}
+          {field('company', 'Company')}
+          {field('location', 'Location')}
         </Switcher>
-      </Disclosure>
-      <Stack direction="row" gap="tight" align="center" justify="end">
-        <Text
-          variant="caption"
-          as="span"
-          tone="success"
-          aria-hidden={!saved}
-          style={{
-            opacity: saved ? 1 : 0,
-            transition:
-              'opacity var(--hds-motion-productive-duration) var(--hds-motion-productive-easing)',
-          }}
-        >
-          Saved ✓
-        </Text>
-        <Button size="md" variant="secondary" onClick={onDone}>
-          Done
-        </Button>
+        <Switcher gap="tight">
+          {field('salary', 'Pay')}
+          {field('contact', 'Contact')}
+        </Switcher>
+        <LinkField job={job} />
+        <Disclosure label="More fields" variant="nav">
+          <Switcher gap="tight">
+            {field('seniority', 'Seniority')}
+            {field('resume', 'Résumé version')}
+          </Switcher>
+        </Disclosure>
+        <Stack direction="row" gap="tight" align="center" justify="end">
+          <Text
+            variant="caption"
+            as="span"
+            tone="success"
+            aria-hidden={!saved}
+            style={{
+              opacity: saved ? 1 : 0,
+              transition:
+                'opacity var(--hds-motion-productive-duration) var(--hds-motion-productive-easing)',
+            }}
+          >
+            Saved ✓
+          </Text>
+          <Button size="md" variant="secondary" onClick={onDone}>
+            Done
+          </Button>
+        </Stack>
       </Stack>
-    </Stack>
+    </Box>
   );
 }
 

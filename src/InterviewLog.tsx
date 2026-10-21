@@ -76,7 +76,7 @@ export default function InterviewLog({ job }: { job: Job }) {
   );
 
   return (
-    <Stack gap="normal">
+    <Stack gap="normal" className="rjb-form-full">
       {events.length > 0 && (
         <Box
           as="ul"

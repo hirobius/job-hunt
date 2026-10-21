@@ -522,188 +522,193 @@ export default function LiveFeedPanel({
         </>
       )}
       {/* Calibrate (#223): the track's ticked titles beside the other targeting. A bordered row
-          with what it holds under its name (rev-3 J), like Refine. */}
-      <Box sx={{ mb: 'xs' }}>
-        <Card bordered padding="none">
-          <Box sx={{ px: 'sm' }}>
-            <Disclosure
-              variant="row"
-              label="Calibrate"
-              preview="Titles, leave-out words, pay floor, level"
-              open={calibrateOpen}
-              onOpenChange={setCalibrateOpen}
-            >
-              <Stack gap="normal">
-                <SweepTitlesEditor categoryId={categoryId} seed={sweepSeed} bare />
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 'xs',
-                    alignItems: 'flex-end',
-                    mb: 'xs',
-                  }}
-                >
-                  <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
-                    <HdsInput
-                      size="sm"
-                      label="Leave out (words, commas between)"
-                      placeholder="manager, sales"
-                      value={excludeText}
-                      onChange={(e) => setExcludeText(e.target.value)}
+          with what it holds under its name (rev-3 J), like Refine. Calibrate, the saved searches
+          and Refine share one parent gap, so all three sit alike (no margins between them). */}
+      <Box sx={{ mb: 'sm' }}>
+        <Stack gap="normal">
+          <Card bordered padding="none">
+            <Box sx={{ px: 'sm' }}>
+              <Disclosure
+                variant="row"
+                label="Calibrate"
+                preview="Titles, leave-out words, pay floor, level"
+                open={calibrateOpen}
+                onOpenChange={setCalibrateOpen}
+              >
+                <Stack gap="normal">
+                  <SweepTitlesEditor categoryId={categoryId} seed={sweepSeed} bare />
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 'xs',
+                      alignItems: 'flex-end',
+                      mb: 'xs',
+                    }}
+                  >
+                    <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
+                      <HdsInput
+                        size="sm"
+                        label="Leave out (words, commas between)"
+                        placeholder="manager, sales"
+                        value={excludeText}
+                        onChange={(e) => setExcludeText(e.target.value)}
+                      />
+                    </Box>
+                    <Box sx={{ width: 160 }}>
+                      <HdsInput
+                        size="sm"
+                        label="Pay floor (USD a year)"
+                        inputMode="numeric"
+                        placeholder="120000"
+                        value={floorText}
+                        onChange={(e) => setFloorText(e.target.value)}
+                      />
+                    </Box>
+                    <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                      <SegmentedControl
+                        aria-label="Level"
+                        size="sm"
+                        value={seniority}
+                        onChange={(v) => setSeniority(v as Seniority)}
+                        options={[
+                          { value: 'any', label: 'Any level' },
+                          { value: 'entry', label: 'Entry level' },
+                          { value: 'experienced', label: 'Experienced' },
+                        ]}
+                      />
+                    </Box>
+                    <HdsCheckbox
+                      label="Only show postings with a salary"
+                      checked={salaryOnly}
+                      onChange={() => setSalaryOnly((v) => !v)}
                     />
                   </Box>
-                  <Box sx={{ width: 160 }}>
-                    <HdsInput
-                      size="sm"
-                      label="Pay floor (USD a year)"
-                      inputMode="numeric"
-                      placeholder="120000"
-                      value={floorText}
-                      onChange={(e) => setFloorText(e.target.value)}
-                    />
-                  </Box>
-                  <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-                    <SegmentedControl
-                      aria-label="Level"
-                      size="sm"
-                      value={seniority}
-                      onChange={(v) => setSeniority(v as Seniority)}
-                      options={[
-                        { value: 'any', label: 'Any level' },
-                        { value: 'entry', label: 'Entry level' },
-                        { value: 'experienced', label: 'Experienced' },
-                      ]}
-                    />
-                  </Box>
-                  <HdsCheckbox
-                    label="Only show postings with a salary"
-                    checked={salaryOnly}
-                    onChange={() => setSalaryOnly((v) => !v)}
-                  />
-                </Box>
-              </Stack>
-            </Disclosure>
-          </Box>
-        </Card>
-      </Box>
-      {!sweeping && (
-        <Box
-          sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'flex-end', mb: 'xs' }}
-        >
-          <Box sx={{ width: 200 }}>
-            <HdsInput
-              size="sm"
-              label="Name this search"
-              placeholder="Austin contract"
-              value={saveName}
-              onChange={(e) => setSaveName(e.target.value)}
-            />
-          </Box>
-          <Button size="sm" variant="secondary" disabled={!saveName.trim()} onClick={saveSearch}>
-            Save search
-          </Button>
-        </Box>
-      )}
-      {saved.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', mb: 'xs' }}>
-          {saved.map((f) => (
-            <Box key={f.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Tag onClick={() => applySaved(f)}>{f.name}</Tag>
+                </Stack>
+              </Disclosure>
+            </Box>
+          </Card>
+          {!sweeping && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs', alignItems: 'flex-end' }}>
+              <Box sx={{ width: 200 }}>
+                <HdsInput
+                  size="sm"
+                  label="Name this search"
+                  placeholder="Austin contract"
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                />
+              </Box>
               <Button
                 size="sm"
-                variant="tertiary"
-                iconOnly
-                iconLeft={<Icon icon={X} />}
-                label={`Remove saved search ${f.name}`}
-                onClick={() => deleteFilter(categoryId, f.name)}
-              />
+                variant="secondary"
+                disabled={!saveName.trim()}
+                onClick={saveSearch}
+              >
+                Save search
+              </Button>
             </Box>
-          ))}
-        </Box>
-      )}
-      {hiddenNotes.length > 0 && (
-        <Box role="status" sx={{ mb: 'xs' }}>
-          {hiddenNotes.map((line, i) => (
-            <Text key={i} variant="caption" as="div" tone="secondary">
-              {line}
-            </Text>
-          ))}
-        </Box>
-      )}
+          )}
+          {saved.length > 0 && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+              {saved.map((f) => (
+                <Box key={f.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Tag onClick={() => applySaved(f)}>{f.name}</Tag>
+                  <Button
+                    size="sm"
+                    variant="tertiary"
+                    iconOnly
+                    iconLeft={<Icon icon={X} />}
+                    label={`Remove saved search ${f.name}`}
+                    onClick={() => deleteFilter(categoryId, f.name)}
+                  />
+                </Box>
+              ))}
+            </Box>
+          )}
+          {hiddenNotes.length > 0 && (
+            <Box role="status">
+              {hiddenNotes.map((line, i) => (
+                <Text key={i} variant="caption" as="div" tone="secondary">
+                  {line}
+                </Text>
+              ))}
+            </Box>
+          )}
 
-      {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
-      <Box sx={{ mb: 'sm' }}>
-        <Card bordered padding="none">
-          <Box sx={{ px: 'sm' }}>
-            <Disclosure
-              variant="row"
-              label="Refine"
-              preview="Watch a company, your evidence"
-              open={refineOpen}
-              onOpenChange={setRefineOpen}
-            >
-              {/* One label style (UI 14/500) and one gap between label, field and helper. */}
-              <Stack gap="normal">
-                <Box as="form" onSubmit={onWatch}>
-                  <Stack gap="px8">
-                    <Text variant="ui" as="span" id={watchId}>
-                      Watch a company
-                    </Text>
-                    <Stack direction="row" gap="px8" align="center">
-                      <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%' } }}>
-                        <HdsInput
-                          aria-labelledby={watchId}
-                          placeholder="Board link"
-                          value={watchUrl}
-                          onChange={(e) => setWatchUrl(e.target.value)}
-                        />
-                      </Box>
+          {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
+          <Card bordered padding="none">
+            <Box sx={{ px: 'sm' }}>
+              <Disclosure
+                variant="row"
+                label="Refine"
+                preview="Watch a company, your evidence"
+                open={refineOpen}
+                onOpenChange={setRefineOpen}
+              >
+                {/* One label style (UI 14/500) and one gap between label, field and helper. */}
+                <Stack gap="normal">
+                  <Box as="form" onSubmit={onWatch}>
+                    <Stack gap="px8">
+                      <Text variant="ui" as="span" id={watchId}>
+                        Watch a company
+                      </Text>
+                      {/* No form-control cap: the field runs up to its Watch button. */}
+                      <Stack direction="row" gap="px8" align="center" className="rjb-form-full">
+                        <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%' } }}>
+                          <HdsInput
+                            aria-labelledby={watchId}
+                            placeholder="Board link"
+                            value={watchUrl}
+                            onChange={(e) => setWatchUrl(e.target.value)}
+                          />
+                        </Box>
+                        <Button
+                          type="submit"
+                          size="md"
+                          variant="secondary"
+                          disabled={!watchUrl.trim()}
+                        >
+                          Watch
+                        </Button>
+                      </Stack>
+                      <Text variant="caption" as="p" tone={watchError ? 'danger' : 'secondary'}>
+                        {watchError ||
+                          (watchedCount
+                            ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'}. Manage them in Manage track.`
+                            : 'Paste a job-board link (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor or Personio) to pull that company’s openings in.')}
+                      </Text>
+                    </Stack>
+                  </Box>
+                  {suggestedCount > 0 && (
+                    <Box>
                       <Button
-                        type="submit"
                         size="md"
                         variant="secondary"
-                        disabled={!watchUrl.trim()}
+                        onClick={() => {
+                          const n = addBoardTiles(categoryId, suggested);
+                          toast({
+                            title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
+                            description:
+                              'Their openings now show up here. Remove any in Manage track.',
+                            tone: 'success',
+                          });
+                        }}
                       >
-                        Watch
+                        Add suggested companies ({suggestedCount})
                       </Button>
-                    </Stack>
-                    <Text variant="caption" as="p" tone={watchError ? 'danger' : 'secondary'}>
-                      {watchError ||
-                        (watchedCount
-                          ? `Watching ${watchedCount} company ${watchedCount === 1 ? 'board' : 'boards'}. Manage them in Manage track.`
-                          : 'Paste a job-board link (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor or Personio) to pull that company’s openings in.')}
-                    </Text>
-                  </Stack>
-                </Box>
-                {suggestedCount > 0 && (
-                  <Box>
-                    <Button
-                      size="md"
-                      variant="secondary"
-                      onClick={() => {
-                        const n = addBoardTiles(categoryId, suggested);
-                        toast({
-                          title: `Watching ${n} more ${n === 1 ? 'company' : 'companies'}`,
-                          description:
-                            'Their openings now show up here. Remove any in Manage track.',
-                          tone: 'success',
-                        });
-                      }}
-                    >
-                      Add suggested companies ({suggestedCount})
-                    </Button>
-                  </Box>
-                )}
-                <EvidenceEditor
-                  text={evidenceText}
-                  count={evidence.length}
-                  onChange={writeEvidence}
-                />
-              </Stack>
-            </Disclosure>
-          </Box>
-        </Card>
+                    </Box>
+                  )}
+                  <EvidenceEditor
+                    text={evidenceText}
+                    count={evidence.length}
+                    onChange={writeEvidence}
+                  />
+                </Stack>
+              </Disclosure>
+            </Box>
+          </Card>
+        </Stack>
       </Box>
 
       {errors.length > 0 && !allFailed && (

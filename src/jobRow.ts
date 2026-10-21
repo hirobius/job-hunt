@@ -7,20 +7,10 @@ import { metaLines } from './metaLines';
 import { SORTS, type SortKey } from './jobSort';
 import { prettyTitle } from './store';
 import { VERDICTS } from './screening';
-import type { Job, Status, Verdict } from './types';
+import type { Job, Verdict } from './types';
 
 /** A row's title: the saved label, else one derived from the URL. */
 export const titleOf = (job: Job) => job.label || prettyTitle(job.url);
-
-/** Status → HDS Badge tone (the semantic feedback tokens; Interviewing = inProgress). */
-export const STATUS_TONE: Record<Status, 'neutral' | 'info' | 'inProgress' | 'success' | 'danger'> =
-  {
-    Saved: 'neutral',
-    Applied: 'info',
-    Interviewing: 'inProgress',
-    Offer: 'success',
-    Rejected: 'danger',
-  };
 
 /** The one next step a row offers: apply to a saved job, or log a due follow-up. */
 export type NextStep = 'apply' | 'followup';

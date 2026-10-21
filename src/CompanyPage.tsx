@@ -3,6 +3,7 @@
 // them or naming it, and its own Notes, which can be added and edited here (each save a Version).
 import { useState, type ReactNode } from 'react';
 import { Box, Button, Icon, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
+import { PageHeader } from '@hirobius/design-system/patterns';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import { addCompanyNote, useCompany } from './companies';
@@ -122,21 +123,21 @@ export default function CompanyPage({ slug }: { slug: string }) {
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="spacious">
-        <Stack gap="tight">
-          <Box>
-            {/* HDS Button asChild drops iconLeft, so the arrow is the link's own child. */}
-            <Button asChild variant="tertiary" size="sm">
-              <a href="#/queue">
+        {/* Headed like Documents and Apply mode: "← Pipeline" above the title. */}
+        <PageHeader
+          level={2}
+          breadcrumb={
+            // HDS Button asChild drops iconLeft, so the arrow is the link's own child.
+            <Button asChild variant="tertiary" size="md">
+              <a href="#/queue" aria-label="Back to Pipeline">
                 <Icon icon={ArrowLeft} />
-                Back to Pipeline
+                Pipeline
               </a>
             </Button>
-          </Box>
-          <Text variant="title" as="h2">
-            {company.name}
-          </Text>
-          <Quiet>{company.jobs.length === 1 ? '1 job' : `${company.jobs.length} jobs`}</Quiet>
-        </Stack>
+          }
+          title={company.name}
+          description={company.jobs.length === 1 ? '1 job' : `${company.jobs.length} jobs`}
+        />
 
         <Section id="company-jobs" title="Jobs">
           {company.jobs.length ? (

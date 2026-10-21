@@ -92,7 +92,7 @@ export default function JobsTable({
         { slot: 'badge', content: <StatusBadge job={job} /> },
         {
           slot: 'badge',
-          content: row.verdict ? <Badge tone={row.verdict.tone}>{row.verdict.label}</Badge> : NONE,
+          content: row.verdict ? <Badge tone="neutral">{row.verdict.label}</Badge> : NONE,
         },
         { slot: 'description', content: row.applied ?? NONE },
         {
