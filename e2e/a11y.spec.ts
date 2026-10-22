@@ -87,6 +87,31 @@ for (const theme of THEMES) {
   }
 }
 
+test.describe('landmarks', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('every route has one main and no content outside a landmark', async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await seed(page);
+    const bad: string[] = [];
+    for (const hash of ROUTES) {
+      await go(page, hash);
+      await page.addScriptTag({ path: AXE });
+      const v = await page.evaluate(async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const r = await (window as any).axe.run(document, {
+          runOnly: { type: 'rule', values: ['landmark-one-main', 'region'] },
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return r.violations.map((x: any) => `${x.id} x${x.nodes.length}: ${x.nodes[0]?.target}`);
+      });
+      bad.push(...v.map((x: string) => `${hash} ${x}`));
+    }
+    expect(bad).toEqual([]);
+  });
+});
+
 test.describe('phone sweep', () => {
   test.use({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
 

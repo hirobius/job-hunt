@@ -79,6 +79,32 @@ describe('app shell (#115 Phase 1)', () => {
     expect(screen.queryByRole('button', { name: 'More options' })).toBeNull();
   });
 
+  it('has landmarks: a banner with the wordmark, account and tabs, and one main with the page', () => {
+    window.location.hash = '#/queue';
+    renderApp();
+    // A page's own <header> inside main is not a banner (testing-library counts it; axe doesn't).
+    const banners = screen.getAllByRole('banner').filter((el) => !el.closest('main'));
+    expect(banners).toHaveLength(1);
+    const banner = banners[0];
+    expect(within(banner).getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
+    expect(within(banner).getByRole('tablist')).toBeInTheDocument();
+    expect(within(banner).getByRole('button', { name: /^Account/ })).toBeInTheDocument();
+    const mains = screen.getAllByRole('main');
+    expect(mains).toHaveLength(1);
+    expect(within(mains[0]).getByRole('tabpanel')).toBeInTheDocument();
+    expect(
+      within(mains[0]).getByRole('heading', { level: 2, name: 'Pipeline' }),
+    ).toBeInTheDocument();
+  });
+
+  it('the page with no tab (Documents) is inside main too', async () => {
+    window.location.hash = '#/copy-deck';
+    renderApp();
+    expect(
+      await within(screen.getByRole('main')).findByRole('heading', { name: 'Documents' }),
+    ).toBeInTheDocument();
+  });
+
   it('the wordmark is an app-bar label, smaller than any page title', () => {
     renderApp();
     const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });

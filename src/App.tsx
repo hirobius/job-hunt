@@ -168,65 +168,73 @@ export default function App() {
               {/* The shell owns the page rhythm (rev-3 .wrap): 24 from the tabs to the first thing on
                   every page (its back link or its title); views add no top margin of their own. */}
               <Stack gap="px24">
-                <Stack gap="normal">
-                  {/* Slim app bar (rev-3): the wordmark on the titleSm step (so a page title is
+                {/* Landmarks: the app bar is the banner, the page is the one main (axe
+                    landmark-one-main / region). */}
+                <Box as="header">
+                  <Stack gap="normal">
+                    {/* Slim app bar (rev-3): the wordmark on the titleSm step (so a page title is
                       always the biggest text) · the Account avatar. */}
-                  <Stack direction="row" gap="gap" align="center" justify="space-between">
-                    <Text variant="titleSm" as="h1">
-                      {BRAND.name}
-                    </Text>
-                    <AccountMenu />
+                    <Stack direction="row" gap="gap" align="center" justify="space-between">
+                      <Text variant="titleSm" as="h1">
+                        {BRAND.name}
+                      </Text>
+                      <AccountMenu />
+                    </Stack>
+                    <TabsList
+                      style={{ marginBottom: 0 }}
+                      className="rjb-top-tabs"
+                      aria-label="Sections"
+                    >
+                      <TabsTrigger value="discover">Companies</TabsTrigger>
+                      <TabsTrigger value="queue">Pipeline</TabsTrigger>
+                    </TabsList>
                   </Stack>
-                  <TabsList
-                    style={{ marginBottom: 0 }}
-                    className="rjb-top-tabs"
-                    aria-label="Sections"
-                  >
-                    <TabsTrigger value="discover">Companies</TabsTrigger>
-                    <TabsTrigger value="queue">Pipeline</TabsTrigger>
-                  </TabsList>
-                </Stack>
-                <TabsContent value="queue" variant="bare">
-                  {applying ? (
-                    <ApplyMode jobId={route.sub} />
-                  ) : company ? (
-                    <CompanyPage slug={route.sub ?? ''} />
-                  ) : route.jobId ? (
-                    <>
-                      <JobPageLiveness jobId={route.jobId} />
-                      <JobPage jobId={route.jobId} />
-                    </>
-                  ) : (
-                    // Unsynced shows as the Account avatar's dot (rev-3 P): no banner here.
-                    <TrackerView />
-                  )}
-                </TabsContent>
-                <TabsContent value="discover" variant="bare">
-                  {firstRun ? (
-                    <Onboarding offerSample />
-                  ) : hasTracks ? (
-                    <Suspense fallback={<DiscoverSkeleton />}>
-                      <DiscoverView />
-                    </Suspense>
-                  ) : (
-                    <ChooseTrack />
-                  )}
-                </TabsContent>
-                {documents && (
-                  <Suspense fallback={<CopyDeckSkeleton />}>
-                    <DocumentsView />
-                  </Suspense>
-                )}
-                {legal && (
-                  <Suspense fallback={null}>
-                    <LegalPage />
-                  </Suspense>
-                )}
-                {notFound && (
-                  <Suspense fallback={null}>
-                    <NotFoundPage />
-                  </Suspense>
-                )}
+                </Box>
+                <Box as="main">
+                  <Stack gap="px24">
+                    <TabsContent value="queue" variant="bare">
+                      {applying ? (
+                        <ApplyMode jobId={route.sub} />
+                      ) : company ? (
+                        <CompanyPage slug={route.sub ?? ''} />
+                      ) : route.jobId ? (
+                        <>
+                          <JobPageLiveness jobId={route.jobId} />
+                          <JobPage jobId={route.jobId} />
+                        </>
+                      ) : (
+                        // Unsynced shows as the Account avatar's dot (rev-3 P): no banner here.
+                        <TrackerView />
+                      )}
+                    </TabsContent>
+                    <TabsContent value="discover" variant="bare">
+                      {firstRun ? (
+                        <Onboarding offerSample />
+                      ) : hasTracks ? (
+                        <Suspense fallback={<DiscoverSkeleton />}>
+                          <DiscoverView />
+                        </Suspense>
+                      ) : (
+                        <ChooseTrack />
+                      )}
+                    </TabsContent>
+                    {documents && (
+                      <Suspense fallback={<CopyDeckSkeleton />}>
+                        <DocumentsView />
+                      </Suspense>
+                    )}
+                    {legal && (
+                      <Suspense fallback={null}>
+                        <LegalPage />
+                      </Suspense>
+                    )}
+                    {notFound && (
+                      <Suspense fallback={null}>
+                        <NotFoundPage />
+                      </Suspense>
+                    )}
+                  </Stack>
+                </Box>
               </Stack>
             </HdsTabs>
           </Box>
