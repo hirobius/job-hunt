@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { go, openApply, seed } from './routes';
+import { go, openApply, openJob, seed } from './routes';
 
 // Return paths (Adrian 2026-10-22): "whenever someone navigates away with a key action, they should
 // be able to get back easily enough / automatically." With the sample pipeline and a starter track,
@@ -448,6 +448,8 @@ for (const width of [390, 1440] as const) {
         const shown = (await page.getByRole('heading', { level: 2 }).first().textContent())!;
         await page.getByRole('button', { name: 'Not a fit' }).click();
         await expect(page.getByRole('heading', { level: 2 }).first()).not.toHaveText(shown);
+        // Past the double-tap guard (ApplyMode DOUBLE_TAP_MS), so the next tap is a new one.
+        await page.waitForTimeout(800);
       }
       await page.getByRole('button', { name: 'Not a fit' }).dblclick();
       await stays(/#\/queue$/);
@@ -467,6 +469,182 @@ for (const width of [390, 1440] as const) {
       // The open tab, tapped again, goes to its root.
       await page.getByRole('tab', { name: 'Pipeline' }).click();
       await expect(page).toHaveURL(/#\/queue$/);
+    });
+
+    // Review blockers (2026-10-22): coming back must restore what the person was doing, not only
+    // the page. Each walk changes the view, leaves with a key action, and comes back both ways.
+    test('Live postings: Save → Open → Back keeps the search, the filters, the rows and the scroll', async ({
+      page,
+    }) => {
+      // Synthetic Hacker News posts (no real people): 50 for whatever term is searched, so the
+      // list has a Show more. Each read is counted: coming back must not read again.
+      let reads = 0;
+      await page.route(/^https:\/\/hn\.algolia\.com\//, (r) => {
+        const url = r.request().url();
+        const json = (body: unknown) =>
+          r.fulfill({
+            status: 200,
+            headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+        if (url.includes('search_by_date'))
+          return json({
+            hits: [
+              {
+                objectID: '9',
+                title: 'Ask HN: Who is hiring? (October 2026)',
+                created_at: '2026-10-01',
+              },
+            ],
+          });
+        reads++;
+        const term = new URL(url).searchParams.get('query') || 'x';
+        return json({
+          hits: Array.from({ length: 50 }, (_, i) => ({
+            objectID: `p-${i}`,
+            story_id: 9,
+            parent_id: 9,
+            created_at: '2026-10-10T10:00:00Z',
+            comment_text: `Co${i} | ${term} ${i} | Remote | REMOTE<p>Hiring a ${term}.</p>`,
+          })),
+        });
+      });
+      await go(page, '#/discover/live');
+      const list = page.getByRole('list', { name: 'Live postings' });
+      await expect(list.getByRole('listitem').first()).toBeVisible({ timeout: 20_000 });
+      await page.getByRole('button', { name: /^Show more/ }).click();
+      await page.getByRole('button', { name: /^Calibrate/ }).click();
+      await page.getByLabel(/^Leave out/).fill('Co7 ');
+      await page.waitForTimeout(300);
+      const count = await list.getByRole('listitem').count();
+      expect(count).toBeGreaterThan(40);
+      const readsBefore = reads;
+
+      const saveAndOpen = async (n: number) => {
+        const row = list.getByRole('listitem').nth(n);
+        const title = (await row.getByRole('heading', { level: 3 }).textContent())!
+          .replace(/\s*\(opens in new tab\)$/, '')
+          .trim();
+        await row.scrollIntoViewIfNeeded();
+        await row.getByRole('button', { name: 'Save' }).click();
+        await page
+          .getByRole('region', { name: /^Notifications/ })
+          .getByRole('button', { name: 'Open' })
+          .click();
+        await expect(page.getByRole('heading', { level: 2, name: title })).toBeVisible();
+        return title;
+      };
+      const comesBack = async (title: string) => {
+        await expect(page).toHaveURL(/#\/discover\/live$/);
+        await expect(list.getByRole('listitem')).toHaveCount(count);
+        await expect(page.getByLabel(/^Leave out/)).toHaveValue('Co7 ');
+        await expect(
+          list.getByRole('heading', { level: 3, name: new RegExp(`^${title}`) }),
+        ).toBeInViewport();
+        expect(reads).toBe(readsBefore);
+      };
+
+      // The in-app way back.
+      const first = await saveAndOpen(count - 3);
+      await page
+        .getByRole('button', { name: 'Back to Live postings' })
+        .or(page.getByRole('link', { name: 'Back to Live postings' }))
+        .first()
+        .click();
+      await comesBack(first);
+      // The browser's Back.
+      const second = await saveAndOpen(count - 6);
+      await page.goBack();
+      await comesBack(second);
+    });
+
+    test('Companies: All and the open row come back after Live postings and Back', async ({
+      page,
+    }) => {
+      await go(page, '#/discover/teams');
+      const panel = page.getByRole('region', { name: 'Watched' });
+      const show = panel.getByRole('group', { name: 'Show companies' });
+      await show.getByRole('button', { name: /^All/ }).click();
+      await expect(show.getByRole('button', { name: /^All/ })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      const rowButton = panel.getByRole('button', { name: /^Roles at / }).first();
+      const name = (await rowButton.getAttribute('aria-label')) ?? (await rowButton.textContent())!;
+      await rowButton.click();
+      const open = panel.getByRole('button', { name });
+      await expect(open).toHaveAttribute('aria-expanded', 'true');
+      const more = page.getByRole('region', { name: 'More ways to find companies' });
+
+      await more.getByRole('link', { name: 'Open Live postings from job boards' }).click();
+      await expect(page).toHaveURL(/#\/discover\/live$/);
+      await page.getByRole('link', { name: 'Back to companies' }).click();
+      await expect(page).toHaveURL(/#\/discover\/teams$/);
+      await expect(show.getByRole('button', { name: /^All/ })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      await expect(open).toHaveAttribute('aria-expanded', 'true');
+
+      await more.getByRole('link', { name: 'Open Live postings from job boards' }).click();
+      await expect(page).toHaveURL(/#\/discover\/live$/);
+      await page.goBack();
+      await expect(page).toHaveURL(/#\/discover\/teams$/);
+      await expect(show.getByRole('button', { name: /^All/ })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      await expect(open).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    test('Find more like this: the search keeps its title and Recency after a trip away and Back', async ({
+      page,
+    }) => {
+      await openJob(page);
+      const title = (await page.getByRole('heading', { level: 2 }).first().textContent())!.trim();
+      await page.getByRole('button', { name: `More actions: ${title}` }).click();
+      await page.getByRole('menuitem', { name: 'Find more like this' }).click();
+      await expect(page).toHaveURL(/#\/discover\/ats\?from=/);
+      const searchUrl = page.url();
+      const query = () =>
+        page
+          .getByRole('link', { name: /Search all boards/ })
+          .getAttribute('href')
+          .then((h) => decodeURIComponent(h ?? ''));
+      await expect.poll(query).toContain(title);
+      await page.getByRole('combobox', { name: /^Recency/ }).click();
+      await page.getByRole('option', { name: 'Past week' }).click();
+      await expect.poll(query).toContain('tbs=qdr:w');
+
+      await page.getByRole('tab', { name: 'Pipeline' }).click();
+      await expect(page).toHaveURL(/#\/queue/);
+      await page.goBack();
+      await expect(page).toHaveURL(searchUrl);
+      await expect.poll(query).toContain(title);
+      await expect.poll(query).toContain('tbs=qdr:w');
+      await expect(page.getByRole('link', { name: `Back to ${title}` })).toBeVisible();
+    });
+
+    test('Apply mode: a half-typed kit field is still open with its text after Edit documents', async ({
+      page,
+    }) => {
+      await openApply(page);
+      await page.getByRole('button', { name: /^Fill in \d+ more/ }).click();
+      const add = page.getByRole('button', { name: /^Add / }).first();
+      const label = (await add.getAttribute('aria-label'))!.replace(/^Add /, '');
+      await add.click();
+      const field = page.getByRole('textbox', { name: label, exact: true });
+      await field.fill('Half typ');
+      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
+      await page.getByRole('link', { name: /^Back to Apply mode/ }).click();
+      await expect(page).toHaveURL(/#\/apply\//);
+      await expect(field).toHaveValue('Half typ');
+      // And the browser's Back.
+      await page.getByRole('link', { name: /^(Edit documents|Write a message)$/ }).click();
+      await expect(page).toHaveURL(/#\/copy-deck/);
+      await page.goBack();
+      await expect(page).toHaveURL(/#\/apply\//);
+      await expect(field).toHaveValue('Half typ');
     });
   });
 }

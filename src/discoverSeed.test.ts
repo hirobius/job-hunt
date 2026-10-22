@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { setDiscoverSeed, consumeDiscoverSeed } from './discoverSeed';
+import { setDiscoverSeed, consumeDiscoverSeed, seedFor } from './discoverSeed';
+import { resetViewMemory } from './viewMemory';
 
 describe('discoverSeed', () => {
   beforeEach(() => {
@@ -29,5 +30,27 @@ describe('discoverSeed', () => {
 
   it('returns null if setDiscoverSeed was never called', () => {
     expect(consumeDiscoverSeed()).toBeNull();
+  });
+});
+
+describe('seedFor: the seed stays with the search it was handed to (return paths)', () => {
+  beforeEach(() => {
+    consumeDiscoverSeed();
+    resetViewMemory();
+  });
+
+  it('a search opened from a job keeps that job’s seed on every later visit; others get none', () => {
+    setDiscoverSeed('Welder');
+    expect(seedFor('/queue/a')).toBe('Welder');
+    expect(seedFor('/queue/a')).toBe('Welder');
+    expect(seedFor(null)).toBeNull();
+    expect(seedFor('/queue/b')).toBeNull();
+  });
+
+  it('a new seed from the same job replaces the old one', () => {
+    setDiscoverSeed('Welder');
+    seedFor('/queue/a');
+    setDiscoverSeed('Fitter');
+    expect(seedFor('/queue/a')).toBe('Fitter');
   });
 });

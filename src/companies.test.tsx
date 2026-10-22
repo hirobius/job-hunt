@@ -33,7 +33,7 @@ import { EMPTY_CURATION } from './curation/types';
 import { readDreams, starDream } from './feed/dreams';
 import { readTargets, saveTarget } from './feed/targets';
 import { dismissNotice } from './saveNotice';
-import { getAllJobs } from './store';
+import { getAllJobs, removeJob } from './store';
 
 const renderApp = () =>
   render(
@@ -341,3 +341,38 @@ describe('Companies as one tool (#237)', () => {
     });
   });
 });
+
+// Return paths (Adrian 2026-10-22): Companies comes back as it was left: All, the open row, and the
+// roles already read (no second read of the same board).
+describe('Companies comes back as it was left', () => {
+  it('keeps All, the open row and its roles after a trip to the Pipeline and the browser Back', async () => {
+    // No saved jobs, so the Pipeline's liveness check reads no board of its own.
+    getAllJobs()
+      .slice()
+      .forEach((j) => removeJob(j.url));
+    watch('https://jobs.lever.co/northwind');
+    watch('https://boards.greenhouse.io/figma');
+    renderApp();
+    const panel = await screen.findByRole('region', { name: 'Watched' });
+    const show = within(panel).getByRole('group', { name: 'Show companies' });
+    await userEvent.click(await within(show).findByRole('button', { name: 'All (1 more)' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Roles at Northwind' }));
+    await screen.findByRole('list', { name: 'Open roles at Northwind' });
+    const reads = fakeFetch.mock.calls.length;
+
+    window.location.hash = '#/queue';
+    await screen.findByRole('heading', { level: 2, name: 'Pipeline' });
+    window.history.back();
+    const back = await screen.findByRole('region', { name: 'Watched' });
+    expect(
+      within(within(back).getByRole('group', { name: 'Show companies' })).getByRole('button', {
+        name: 'All',
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    const roles = within(back).getByRole('list', { name: 'Open roles at Northwind' });
+    expect(within(roles).getByText('Senior Welder')).toBeVisible();
+    expect(within(back).getByText('Greenhouse · no matching roles')).toBeVisible();
+    expect(fakeFetch.mock.calls.slice(reads).map((c) => String(c[0]))).toEqual([]);
+  });
+});
+

@@ -323,6 +323,7 @@ function CopyRow({
   label,
   value,
   onSave,
+  remember,
   multiline = false,
   as = 'li',
 }: {
@@ -330,10 +331,13 @@ function CopyRow({
   label: string;
   value: string;
   onSave: (v: string) => void;
+  /** Keeps the open field and its text for this page load, so a trip to Edit documents and Back
+   *  finds it as it was left (return paths). */
+  remember: string;
   multiline?: boolean;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
+  const [editing, setEditing] = useRemembered(`kit-edit:${remember}`, false);
+  const [draft, setDraft] = useRemembered(`kit-draft:${remember}`, value);
   const done = () => {
     onSave(draft.trim());
     setEditing(false);
@@ -523,6 +527,7 @@ function ApplicationKit({ job }: { job: Job }) {
       label={f.label}
       value={kit.fields[f.key] ?? ''}
       onSave={(v) => setKitField(f.key, v)}
+      remember={`field:${f.key}`}
     />
   );
   const answered = kit.answers.length;
@@ -651,6 +656,7 @@ function AnswerRow({ a }: { a: KitAnswer }) {
           value={a.a}
           multiline
           onSave={(v) => updateAnswer(a.id, { a: v })}
+          remember={`answer:${a.id}`}
           as="div"
         />
       </Stack>

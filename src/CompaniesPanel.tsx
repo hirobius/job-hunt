@@ -11,6 +11,7 @@
 // once one is saved), and
 // Live postings and the list checker stay one link away (DiscoverView's secondary views).
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { recall, remember, useRemembered } from './viewMemory';
 import {
   Alert,
   Box,
@@ -147,28 +148,45 @@ export default function CompaniesPanel({
   const { toast } = useToast();
   const targets = useTargets(categoryId);
   const { isWatching, watch } = useWatching(categoryId, boardUrls);
-  const [skipSmall, setSkipSmall] = useState(true);
+  // What the list was showing is kept per track for this page load (viewMemory), so a trip away
+  // (a saved role's page, Live postings) and Back comes back to it as it was (return paths).
+  const kept = (k: string) => `companies:${categoryId}:${k}`;
+  const [skipSmall, setSkipSmall] = useRemembered(kept('skipSmall'), true);
   const [running, setRunning] = useState(false);
-  const [found, setFound] = useState<CompanyRow[]>([]);
-  const [report, setReport] = useState<RunReport | null>(null);
-  const [suggestReport, setSuggestReport] = useState<SuggestReport | null>(null);
-  const [ran, setRan] = useState(false);
+  const [found, setFound] = useRemembered<CompanyRow[]>(kept('found'), []);
+  const [report, setReport] = useRemembered<RunReport | null>(kept('report'), null);
+  const [suggestReport, setSuggestReport] = useRemembered<SuggestReport | null>(
+    kept('suggestReport'),
+    null,
+  );
+  const [ran, setRan] = useRemembered(kept('ran'), false);
   // GitHub's keyless limit is not an error: the run stops, keeps what it found, and picks up once
   // by itself when the wait is over. A click before then only says the time again.
   const [early, setEarly] = useState(false);
   const resumed = useRef(false);
-  const [hiringOnly, setHiringOnly] = useState(true);
-  const [readAll, setReadAll] = useState(false);
+  const [hiringOnly, setHiringOnly] = useRemembered(kept('hiringOnly'), true);
+  const [readAll, setReadAll] = useRemembered(kept('readAll'), false);
   // One row's roles open at a time (rev-3 mock).
-  const [openRow, setOpenRow] = useState<string | null>(null);
-  const [roles, setRoles] = useState<Record<string, RolesState>>({});
+  const [openRow, setOpenRow] = useRemembered<string | null>(kept('openRow'), null);
+  // The roles read so far come back with the list; a read cut short by leaving (still loading
+  // when kept) is dropped, so it is read again.
+  const [rolesKept] = useState(() => {
+    const done = Object.fromEntries(
+      Object.entries(recall<Record<string, RolesState>>(kept('roles')) ?? {}).filter(
+        ([, v]) => v.state !== 'loading',
+      ),
+    );
+    remember(kept('roles'), done);
+    return done;
+  });
+  const [roles, setRoles] = useRemembered<Record<string, RolesState>>(kept('roles'), rolesKept);
   // A design-systems track ranks and tags role types and folds the engineering-heavy roles.
   const roleTypes = useRoleTypes(categoryId, terms);
   // One politeness budget for the board probes, the role reads and the dream checks.
   const [limiter] = useState(() => createLimiter());
   const abort = useRef<AbortController | null>(null);
   const life = useRef<AbortController | null>(null);
-  const asked = useRef(new Set<string>());
+  const asked = useRef(new Set<string>(Object.keys(rolesKept)));
   useEffect(() => {
     life.current = new AbortController();
     return () => {
@@ -177,7 +195,7 @@ export default function CompaniesPanel({
     };
   }, []);
 
-  // Read a board once per visit; a failure is "Couldn't check", never "no roles". A read cut
+  // Read a board once per page load (kept with the list); a failure is "Couldn't check", never "no roles". A read cut
   // short (Cancel, leaving) is forgotten, so it can be asked again.
   const loadRoles = (b: Board, signal: AbortSignal) => {
     const k = boardKey(b);
@@ -188,6 +206,8 @@ export default function CompaniesPanel({
       // Cut short: forget the ask so it can be made again, but keep the "Couldn't check" answer, so
       // a cancelled team's row stays visible (a watched board is re-read by the effect below).
       if (signal.aborted) asked.current.delete(k);
+      // Left while reading: nothing to show it on, and the kept list reads it again on return.
+      if (life.current?.signal.aborted) return;
       setRoles((m) => ({ ...m, [k]: r }));
     });
   };

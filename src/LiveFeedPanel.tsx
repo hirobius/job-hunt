@@ -72,6 +72,7 @@ import { sweepRank, titleCounts, withoutHidden, type SweptPosting } from './feed
 import { SweepTitlesEditor } from './SweepTitles';
 import { activeTitles, useSweep } from './feed/sweepTitles';
 import { metaLines } from './metaLines';
+import { useRemembered } from './viewMemory';
 import { foldRoles, orderByRoleType, roleTypeOf, roleTypeTag } from './feed/roleType';
 import { useRoleTypes, writeShowEngineering } from './feed/roleTypePref';
 import { useBackCloses, useBackSheet } from './useBackCloses';
@@ -88,6 +89,8 @@ interface Loaded {
   term: string;
   boardsKey: string;
   at: number;
+  /** The Retry count it was read on (a come-back with the same count reads nothing new). */
+  attempt?: number;
   result?: FeedResult;
   error?: string;
   /** Still reading boards: `result` is what has answered so far. */
@@ -118,35 +121,39 @@ export default function LiveFeedPanel({
 }) {
   const { where, mode } = useTrackContext(categoryId);
   const { toast } = useToast();
-  const [input, setInput] = useState(terms[0] ?? '');
-  const [term, setTerm] = useState(terms[0] ?? '');
-  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  // What the search was doing is kept per track for this page load (viewMemory), so Save → Open →
+  // Back (or the browser's Back) comes back to the same term, filters and rows (return paths).
+  const kept = (k: string) => `live:${categoryId}:${k}`;
+  const [input, setInput] = useRemembered(kept('input'), terms[0] ?? '');
+  const [term, setTerm] = useRemembered(kept('term'), terms[0] ?? '');
+  const [loaded, setLoaded] = useRemembered<Loaded | null>(kept('loaded'), null);
   /** Bumped by Retry so the same term and boards are read again. */
-  const [attempt, setAttempt] = useState(0);
+  const [attempt, setAttempt] = useRemembered(kept('attempt'), 0);
   /** Source keys a per-source Retry is reading right now. */
   const [retrying, setRetrying] = useState<string[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
   const [refineOpen, setRefineOpen] = useState(false);
   const watchId = useId();
   const savedId = useId();
-  const [calibrateOpen, setCalibrateOpen] = useState(calibrate);
-  // Arriving through the old Titles link opens Calibrate, also when this panel is already up.
-  const [calibrateSeen, setCalibrateSeen] = useState(calibrate);
+  const [calibrateOpen, setCalibrateOpen] = useRemembered(kept('calibrate'), calibrate);
+  // Arriving through the old Titles link opens Calibrate, also when this panel is already up or
+  // comes back with it closed.
+  const [calibrateSeen, setCalibrateSeen] = useState(false);
   if (calibrate !== calibrateSeen) {
     setCalibrateSeen(calibrate);
     if (calibrate) setCalibrateOpen(true);
   }
-  const [focus, setFocus] = useState<Focus>('all');
-  const [shown, setShown] = useState(PAGE);
+  const [focus, setFocus] = useRemembered<Focus>(kept('focus'), 'all');
+  const [shown, setShown] = useRemembered(kept('shown'), PAGE);
   const [watchUrl, setWatchUrl] = useState('');
   const [watchError, setWatchError] = useState('');
   const evidenceText = useEvidence();
   const track = useCategories().find((c) => c.id === categoryId);
   const trackSeniority = track?.seniority ?? 'any';
-  const [excludeText, setExcludeText] = useState('');
-  const [seniority, setSeniority] = useState<Seniority>(trackSeniority);
-  const [floorText, setFloorText] = useState('');
-  const [salaryOnly, setSalaryOnly] = useState(false);
+  const [excludeText, setExcludeText] = useRemembered(kept('exclude'), '');
+  const [seniority, setSeniority] = useRemembered<Seniority>(kept('seniority'), trackSeniority);
+  const [floorText, setFloorText] = useRemembered(kept('floor'), '');
+  const [salaryOnly, setSalaryOnly] = useRemembered(kept('salaryOnly'), false);
   const saved = useFilters(categoryId);
   const [saveName, setSaveName] = useState('');
   const evidence = useMemo(() => parseEvidence(evidenceText), [evidenceText]);
@@ -155,9 +162,9 @@ export default function LiveFeedPanel({
   const roleTypes = useRoleTypes(categoryId, terms);
   // The wide sweep: one search across every title that is on. `onlyTitle` (a title chip) only
   // filters what is on screen (no re-fetch); the on/off list itself is per track and synced.
-  const [sweeping, setSweeping] = useState(false);
-  const [onlyTitle, setOnlyTitle] = useState<string | null>(null);
-  const [zeroTitlesShown, setZeroTitlesShown] = useState(false);
+  const [sweeping, setSweeping] = useRemembered(kept('sweeping'), false);
+  const [onlyTitle, setOnlyTitle] = useRemembered<string | null>(kept('onlyTitle'), null);
+  const [zeroTitlesShown, setZeroTitlesShown] = useRemembered(kept('zeroTitles'), false);
   // The track's title filter (#223) is the sweep's list: what it searches, and what ranks and
   // filters every result.
   const titleFilter = useSweep(categoryId, sweepSeed);
@@ -185,6 +192,16 @@ export default function LiveFeedPanel({
 
   useEffect(() => {
     if (!hasQuery) return;
+    // Come back to (return paths): this read already answered in full, so its rows stand as they
+    // were, with no new read (Retry bumps `attempt` and reads again).
+    if (
+      loaded?.term === query &&
+      loaded.boardsKey === boardsKey &&
+      loaded.attempt === attempt &&
+      !loaded.reading &&
+      !loaded.error
+    )
+      return;
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const startedAt = Date.now();
@@ -201,6 +218,7 @@ export default function LiveFeedPanel({
           setLoaded({
             term,
             boardsKey,
+            attempt,
             at: startedAt,
             result: { postings: p.postings, sources: p.sources },
             reading: { done: p.boardsDone, total: p.boardsTotal },
@@ -211,7 +229,7 @@ export default function LiveFeedPanel({
       .then((result) => {
         clearTimeout(timer);
         timer = undefined;
-        if (alive) setLoaded({ term, boardsKey, at: Date.now(), result });
+        if (alive) setLoaded({ term, boardsKey, attempt, at: Date.now(), result });
       })
       .catch(() => {
         clearTimeout(timer);
@@ -219,6 +237,7 @@ export default function LiveFeedPanel({
           setLoaded({
             term,
             boardsKey,
+            attempt,
             at: Date.now(),
             error: 'The feed failed unexpectedly — try searching again.',
           });

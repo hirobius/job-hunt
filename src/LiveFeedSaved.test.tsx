@@ -21,6 +21,7 @@ import { addCategory, getCurationState, replaceCurationState } from './curation/
 import { EMPTY_CURATION } from './curation/types';
 import { readMode } from './discoverContext';
 import { FILTERS_KEY } from './feed/savedFilters';
+import { resetViewMemory } from './viewMemory';
 
 const RESULT: FeedResult = {
   postings: [
@@ -78,6 +79,7 @@ describe('saved searches', () => {
     });
 
     first.unmount(); // a reload
+    resetViewMemory();
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     expect(screen.getByLabelText(/leave out/i)).toHaveValue('');

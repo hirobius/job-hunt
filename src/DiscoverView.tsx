@@ -39,7 +39,8 @@ import { useJobs } from './store';
 import { partitionTiles } from './tileState';
 import { splitTileName } from './tileMeta';
 import { useTileTriage } from './tileTriage';
-import { consumeDiscoverSeed } from './discoverSeed';
+import { seedFor } from './discoverSeed';
+import { useRemembered } from './viewMemory';
 import { useCategories, useGroups, useTiles, addCategory } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
 import type { Category, Seniority } from './curation/types';
@@ -145,6 +146,7 @@ function AtsPanel({
   seniority,
   categoryId,
   initialTitle,
+  remember,
   onManage,
 }: {
   /** The track's titles: the title filter's list until edited (#213, #223). */
@@ -153,17 +155,20 @@ function AtsPanel({
   categoryId: string;
   /** A title "Find more like this" seeded (#57). */
   initialTitle?: string | null;
+  /** Where its picks are kept for this page load (per track and origin, return paths). */
+  remember: string;
   onManage: () => void;
 }) {
   const { where, mode } = useTrackContext(categoryId);
   const active = useActiveTitles(categoryId, titles);
-  const [role, setRole] = useState(initialTitle || active[0] || '');
-  const [all, setAll] = useState(!initialTitle);
+  // Kept for this page load, so the search comes back as it was left (return paths).
+  const [role, setRole] = useRemembered(`${remember}:role`, initialTitle || active[0] || '');
+  const [all, setAll] = useRemembered(`${remember}:all`, !initialTitle);
   const many = all && active.length > 1;
-  const [recency, setRecency] = useState<'' | 'w' | 'm'>('');
-  const [contract, setContract] = useState(false);
-  const [showAll, setShowAll] = useState(false);
-  const [showAllAts, setShowAllAts] = useState(false);
+  const [recency, setRecency] = useRemembered<'' | 'w' | 'm'>(`${remember}:recency`, '');
+  const [contract, setContract] = useRemembered(`${remember}:contract`, false);
+  const [showAll, setShowAll] = useRemembered(`${remember}:showAll`, false);
+  const [showAllAts, setShowAllAts] = useRemembered(`${remember}:showAllAts`, false);
   const [fullQuery, setFullQuery] = useState(false);
   if (titles.length === 0)
     return (
@@ -553,7 +558,6 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const allTiles = useTiles();
   const jobs = useJobs();
   const savedSet = useMemo(() => new Set(jobs.map((j) => j.url)), [jobs]);
-  const [seed] = useState(() => consumeDiscoverSeed());
   const [activeId, setActiveId] = useState(() => loadActiveCategory(categories));
   const [manageOpen, setManageOpen] = useState(false);
   // The browser's Back closes Manage track and stays on Companies (return paths).
@@ -622,6 +626,9 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   ];
 
   const route = useRoute();
+  // Find more like this: the title it handed over stays with the search opened from that job (its
+  // `?from=`), so coming back to it shows the same title (return paths).
+  const seed = useMemo(() => seedFor(route.from ?? null), [route.from]);
   // The title filter's seed (#223): the track's titles, else its ATS roles. One list per track.
   const titleSeed = cat.titles.length ? cat.titles : cat.atsRoles;
   // The track's company source (#215): GitHub where its terms name a topic, else its starter list
@@ -754,6 +761,8 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         )}
         {tool === 'ats' && (
           <AtsPanel
+            key={`${cat.id}|${from ?? ''}|${seed ?? ''}`}
+            remember={`ats:${cat.id}:${from ?? ''}:${seed ?? ''}`}
             titles={titleSeed}
             initialTitle={seed}
             seniority={cat.seniority}

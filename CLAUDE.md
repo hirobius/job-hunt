@@ -189,7 +189,7 @@ Previews: `docs/brand/`.
   track): Back closes the top one, closing one on screen pops it and any over it, a push waits for
   a pop in flight (Sign in picked from the Account menu), a sheet gone while open pops its entry,
   and a navigation or Back from a menu item drops the sheets' entries first. Use template reopens
-  on its message when its Edit message / Write a message editor comes back. Apply mode's open rows survive a trip to Documents (`viewMemory.ts`). A magic link
+  on its message when its Edit message / Write a message editor comes back. **View memory** (`viewMemory.ts` `useRemembered`, in memory per page load, written at once so a row unmounting in the same commit keeps its value): coming back restores what was being done, not only the page. Apply mode's open rows and a half-typed kit field / custom answer (open + draft); Live postings per track (term, Show more, focus, leave-out / pay floor / level / salary-only, sweep + title chip, Calibrate, and the fetched rows, so Back shows them with no new read and the scroll lands on the saved row); Companies per track (Hiring now | All, the open row, the roles read, Find teams / Suggest companies results; a read cut short by leaving is read again); the ATS search per track + origin + seed (title, All selected, Recency, Engagement). The Find more like this seed stays with its `?from=` job (`discoverSeed.seedFor`), so only that job's search shows it. A magic link
   returns to the page the sign-in was asked from (`account/signInReturn.ts`). Pinned in
   `src/route.test.ts`, `src/returnPaths.test.tsx`, `scrollMemory.test.ts`, `tabMemory.test.ts`,
   `routeLabel.test.ts`; E2E `e2e/return-paths.spec.ts` (390 and 1440, with the browser's Back).

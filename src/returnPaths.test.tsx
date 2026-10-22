@@ -137,6 +137,41 @@ describe('a job page goes back to where it was opened from', () => {
     expect(await screen.findByRole('tab', { name: 'Screening', selected: true })).toBeVisible();
   });
 
+  it('Find more like this: the search keeps its title and filters after a trip away and Back', async () => {
+    seedPack('consulting');
+    window.location.hash = `#/queue/${idA}`;
+    renderApp();
+    await heading('Fabricator');
+    await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Find more like this' }));
+    await waitFor(() => expect(getRoute()).toMatchObject({ tab: 'discover', sub: 'ats' }));
+    // The one Google query reads the seeded title (it is no chip: the track has no such title).
+    const searchAll = () =>
+      decodeURIComponent(
+        screen.getByRole('link', { name: /Search all boards/ }).getAttribute('href') ?? '',
+      );
+    await waitFor(() => expect(searchAll()).toContain('Fabricator'));
+    await userEvent.click(screen.getByRole('combobox', { name: /^Recency/ }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Past week' }));
+    expect(searchAll()).toContain('tbs=qdr:w');
+    const searchHash = window.location.hash;
+
+    window.location.hash = '#/queue';
+    await heading('Pipeline');
+    window.history.back();
+    await at(searchHash);
+    // The seed stays tied to its job's search, and so does what was picked there.
+    await waitFor(() => expect(searchAll()).toContain('Fabricator'));
+    expect(searchAll()).toContain('tbs=qdr:w');
+    expect(screen.getByRole('link', { name: 'Back to Fabricator' })).toBeInTheDocument();
+
+    // A plain ATS search (no job behind it) is not that job's search.
+    window.location.hash = '#/discover/ats';
+    await at('#/discover/ats');
+    await waitFor(() => expect(searchAll()).not.toContain('Fabricator'));
+    expect(searchAll()).not.toContain('tbs=qdr');
+  });
+
   it('Remove goes back to the origin; Undo reopens the job page', async () => {
     window.location.hash = '#/company/acme-metals';
     renderApp();
@@ -199,6 +234,23 @@ describe('Apply mode', () => {
     await userEvent.click(within(notice()).getByRole('button', { name: 'Undo' }));
     await at(`#/apply/${jobIdOf(C)}`);
     expect(await heading('Machinist')).toBeInTheDocument();
+  });
+
+  it('a half-typed kit field is still open with its text after Edit documents and Back', async () => {
+    window.location.hash = `#/apply/${idA}`;
+    renderApp();
+    await heading('Fabricator');
+    await userEvent.click(await screen.findByRole('button', { name: /^Fill in \d+ more/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add Name' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'Sam Pla');
+    await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
+    await heading('Documents');
+    await userEvent.click(screen.getByRole('link', { name: /^Back to Apply mode/ }));
+    await at(`#/apply/${idA}`);
+    expect(await screen.findByRole('textbox', { name: 'Name' })).toHaveValue('Sam Pla');
+    // Cancel closes it, and the next visit starts closed.
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
   });
 
   it('Edit documents: Documents names Apply mode, and saving a message comes straight back', async () => {

@@ -118,3 +118,49 @@ describe('search targeting in the panel', () => {
     expect(titles()).not.toContain('Senior Design Systems Engineer');
   });
 });
+
+// Return paths (Adrian 2026-10-22): Save → Open → Back comes back to the same search, the same
+// filters and the same rows, read once (the panel remounts on the way back).
+describe('Live postings comes back as it was left', () => {
+  it('keeps the term, the filters and the results across a remount, without a second read', async () => {
+    const user = userEvent.setup();
+    const first = renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    const box = screen.getByRole('textbox', { name: 'Search term' });
+    await user.clear(box);
+    await user.type(box, 'design system{Enter}');
+    await screen.findByRole('list', { name: /live postings/i });
+    await user.type(screen.getByLabelText(/leave out/i), 'manager');
+    await user.type(screen.getByLabelText(/pay floor/i), '100000');
+    await user.click(screen.getByRole('radio', { name: /entry level/i }));
+    const before = titles();
+    const reads = feed.fetchFeed.mock.calls.length;
+    first.unmount();
+
+    render(
+      <ToastProvider>
+        <LiveFeedPanel categoryId={cat} terms={['design systems']} boardUrls={[]} />
+      </ToastProvider>,
+    );
+    // The rows are there at once: no skeleton, no new read.
+    expect(screen.getByRole('list', { name: /live postings/i })).toBeInTheDocument();
+    expect(titles()).toEqual(before);
+    expect(screen.getByRole('textbox', { name: 'Search term' })).toHaveValue('design system');
+    expect(screen.getByLabelText(/leave out/i)).toHaveValue('manager');
+    expect(screen.getByLabelText(/pay floor/i)).toHaveValue('100000');
+    expect(screen.getByRole('radio', { name: /entry level/i })).toBeChecked();
+    expect(feed.fetchFeed.mock.calls.length).toBe(reads);
+  });
+
+  it('is kept per track', async () => {
+    const user = userEvent.setup();
+    const first = renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    await user.type(screen.getByLabelText(/leave out/i), 'manager');
+    first.unmount();
+    cat = addCategory({ label: 'Other', seniority: 'any' });
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    expect(screen.getByLabelText(/leave out/i)).toHaveValue('');
+  });
+});
