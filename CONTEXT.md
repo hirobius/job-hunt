@@ -30,12 +30,16 @@ _Avoid_: job state, workflow, state machine
 The view of every saved Job, as one list with search, a Status filter and sort (`#/queue`). It was called the Tracker until #128.
 _Avoid_: tracker, queue (in copy), board
 
-**Today**:
-The home view (`#/today`): Follow-ups due now, the next 7 days of interviews and calls, one quick-add field.
-_Avoid_: dashboard, home page, inbox
+**Companies**:
+The home tab (`#/discover`, the old Discover): the user's tracks, the companies they watch with open roles, Apply now links and the ATS search. Today (`#/today`) is gone; its lists open the Pipeline (To apply, Follow up, Next 7 days).
+_Avoid_: dashboard, home page, Discover (in copy)
+
+**Apply mode**:
+Working through To apply one Job at a time (`#/apply/<id>`): open the application, then Mark applied or Not a fit, with the Outreach messages filled for the Job and the Application kit to copy from.
+_Avoid_: wizard, apply flow
 
 **First run**:
-A visit with no tracks and no Jobs. The shell shows onboarding instead of Today; Discover shows it whenever there are no tracks.
+A visit with no tracks and no Jobs. Companies shows onboarding (with a sample-data offer); it shows Choose a track whenever there are no tracks.
 _Avoid_: new user, empty state
 
 **Active queue**:
@@ -43,15 +47,15 @@ The default Pipeline view: Jobs not yet applied to (Saved) plus any pinned as Pr
 _Avoid_: inbox, backlog, todo
 
 **Priority**:
-A Job the user has pinned so it stays in the Active queue and sorts to the top regardless of Status.
-_Avoid_: starred, favourite, flagged
+A Job the user has pinned so it stays in the Active queue and sorts to the top regardless of Status. The UI's word is Star / Starred (stored as `pinned`).
+_Avoid_: favourite, flagged
 
 **Retired**:
 A Job set aside and hidden from the Active queue but kept in the list (stored as `archived`).
 _Avoid_: deleted, removed, closed
 
 **Posting**:
-An opening pulled live from a job source (Hacker News, Remotive, a company board) into Discover's Live postings. Never stored — saving one creates a Job.
+An opening pulled live from a job source (Hacker News, Remotive, a company board) into Live postings (under Companies). Never stored — saving one creates a Job.
 _Avoid_: listing, opening (in code), result
 
 **Watched company**:

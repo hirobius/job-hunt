@@ -37,8 +37,9 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
 
 - ✅ **Cover-letter template copy board**, a few reusable templates
   (IT support / SOC / GRC) with `[Company]`/`[Role]` merge blanks and a Copy
-  button each. Fill 2 blanks, send. (#132: now a list and an editor at `#/copy-deck/<id>`,
-  with token chips and a preview filled for a saved job.)
+  button each. Fill 2 blanks, send. (Now the Documents library, #227: `#/copy-deck`, opened
+  from the Account menu, with Versions, a Sent copy per job and `[Variable]` chips filled for a
+  saved job. Apply mode lists every Outreach message filled for the job it shows.)
 - ✅ **JD ↔ resume keyword match**, paste a job description, highlight the ATS
   keywords your master skill list is missing. Quick in-app self-check; deep
   tailoring done by the assistant (see Phase 4).
@@ -47,13 +48,15 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
 
 ## Navigation & UX
 
-- ✅ **URL-synced navigation**, hash routing (no react-router): the top-level tab,
-  Discover's sub-tab, and the active career pillar all live in the hash
-  (`#/queue`, `#/discover/titles`, `?pillar=<id>`) and restore on refresh /
-  back-forward. Today (`#/today`) is the default landing view (#128); quick-add deep links still
-  land on the Pipeline (`#/queue`) (`src/route.ts`, `src/App.tsx`).
+- ✅ **URL-synced navigation**, hash routing (no react-router): two tabs, Companies
+  (`#/discover`, home) and Pipeline (`#/queue`), plus pages for a job (`#/queue/<id>`), Apply mode
+  (`#/apply/<id>`), a Company (`#/company/<slug>`) and Documents (`#/copy-deck`). They restore on
+  refresh and back-forward, and each sets the page title. Today (`#/today`) is retired and
+  redirects to Companies; the Titles tool is folded into Live postings' Calibrate
+  (`#/discover/titles` redirects). Quick-add deep links land on the Pipeline (`src/route.ts`,
+  `src/App.tsx`).
 - ✅ **Sort, Saved filter, skeletons, empty states, autosave feedback**, see Phase 2
-  for sort; the Tracker also has a Saved filter and a scrollable filter row on mobile,
+  for sort; the Pipeline also has Status and Sort menus and a Clear filters button,
   lazy views show layout-matched skeletons, empties use a shared `EmptyState`, and
   detail-field autosave shows a "Saved ✓" flash.
 - ✅ **Accessibility**, tab/tabpanel ARIA associations, a named filter group, and one
@@ -62,14 +65,14 @@ Legend: ⬜ todo · 🔧 in progress · ✅ done
 
 ## Phase 3b, Live discovery
 
-- ✅ **Live postings** (Discover → Live postings): real openings from Hacker News "Who is hiring",
+- ✅ **Live postings** (Companies → Live postings): real openings from Hacker News "Who is hiring",
   Remotive, Jobicy and the Greenhouse, Lever, Ashby, Workable and Recruitee boards you watch.
   Matched to the track's terms and ranked. Flags contract and first-hire roles. Reads every watched
   board, 6 at a time. One click saves a posting to the Pipeline. No backend and no keys.
 - ✅ **Role radar**: paste your evidence, and each posting shows fit and gaps. A Strong fit filter
   and a "What these postings ask for" roll-up sit above the list. Starter packs bring a directory
   of boards to watch.
-- ✅ **Wider ATS search** (Discover → ATS): 18 hiring systems and 3 large per-tenant systems
+- ✅ **Wider ATS search** (Companies → ATS search): 18 hiring systems and 3 large per-tenant systems
   through Google, a set of freelance, startup and remote boards, and a Contract only switch.
 - ✅ **Track sync**: a refused write shows a toast and Retry sync in Account. A journal replays it.
   An empty cloud never wipes local tracks. Sign-out warns about unsynced tracks.
