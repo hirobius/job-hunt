@@ -412,3 +412,19 @@ p {
 .rjb-disclosure-vertical button[aria-expanded='true'] > span[aria-hidden='true'] {
   transform: rotate(180deg) !important;
 }
+
+/* Lucide icons at the rev-3 stroke (item 3: 1.75 throughout). CSS beats the presentation
+ * attribute lucide-react writes, so every HDS and app icon follows without a prop. */
+[data-hds] svg.lucide {
+  stroke-width: 1.75;
+}
+
+/* A tertiary Button that reads as an inline text link right after a sentence ("Sample data, 8
+ * fictional jobs. Clear"): no inline padding, underlined. HDS InlineLink takes only an href and
+ * Button has no link variant (HDS gap, docs/hds-upstream-asks-0.9.md). */
+.rjb-inline-link {
+  padding-inline: 0;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

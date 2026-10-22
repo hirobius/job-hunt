@@ -37,9 +37,12 @@ export function SampleBanner({ jobs }: { jobs: Job[] }) {
         <Text variant="caption" as="span" tone="secondary">
           Sample data, {n} fictional {n === 1 ? 'job' : 'jobs'}.
         </Text>
+        {/* An inline link right after the sentence (rev-3 mock): HDS InlineLink is href-only, so a
+            tertiary Button styled as a link (.rjb-inline-link) keeps the button semantics. */}
         <Button
           variant="tertiary"
           size="sm"
+          className="rjb-inline-link"
           label="Clear sample data"
           title="Clearing removes them and any edits to them"
           onClick={() => clearSample()}

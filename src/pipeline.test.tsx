@@ -199,6 +199,16 @@ describe('Pipeline filter (#129)', () => {
     expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
   });
 
+  it('Clear sits in the Jobs panel header, so Status and Sort keep the whole row (rev-3 polish)', async () => {
+    renderApp();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search saved jobs' }), 'zzz');
+    const clear = await screen.findByRole('button', { name: 'Clear filters' });
+    const search = screen.getByRole('textbox', { name: 'Search saved jobs' });
+    // Above the search: in the header row beside "Jobs N", not in the select row.
+    expect(clear.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(clear).toHaveTextContent(/^Clear$/);
+  });
+
   it('All is demoted to the end of the status menu', async () => {
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));

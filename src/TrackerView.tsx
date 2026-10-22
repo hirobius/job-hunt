@@ -1,5 +1,4 @@
 import { Fragment, useMemo, useRef, useState } from 'react';
-import { PageHeader } from '@hirobius/design-system/patterns';
 import { Search, Briefcase, ChevronDown, Plus } from 'lucide-react';
 import {
   Button as UiButton,
@@ -38,8 +37,8 @@ import { navigate } from './route';
 
 // The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
 // chevron right. HDS Button has no stretch or alignment prop.
-// They show only the value ("Active ⌄"): the "Status" / "Sort" prefix lives in the name, so
-// with Clear beside them the chevron still fits, and a long value truncates (rev-3 chip states).
+// They show only the value ("Active ⌄"): the "Status" / "Sort" prefix lives in the name. Clear
+// sits in the panel header, so the two always split the row; a long value still truncates.
 const SELECT_LIKE = {
   flex: '1 1 0',
   minWidth: 0,
@@ -101,25 +100,31 @@ export default function TrackerView() {
   );
 
   return (
-    // Rev-3 rhythm: 16 under the page header, 24 between the page's panels.
-    <Stack gap="normal">
-      {/* One page header: the screen's name, its counts and its one primary action. */}
-      <PageHeader
-        level={2}
-        title="Pipeline"
-        // The counts on their own line under the title (rev-3 mock), not beside it.
-        description={
-          <MetaCaption
-            as="span"
-            items={
-              jobs.length > 0 ? [`${counts.active} active`, `${counts.all} total`] : ['0 jobs']
-            }
-          />
-        }
-        // One primary action per state: on first use it lives in the empty state instead.
-        actions={jobs.length > 0 ? addJobButton : undefined}
-      />
-      <SampleBanner jobs={jobs} />
+    // Rev-3 rhythm: 4 from the title to its counts, 12 to the sample note, 24 to the panels.
+    <Stack gap="px24">
+      <Stack gap="tight">
+        {/* One page header: the screen's name, its counts 4 under it (rev-3 mock) and its one
+            primary action, centred against both lines. Not HDS PageHeader: its description slot
+            drops below the actions row with a 12 gap on a phone, and its title slot is the h2
+            itself, so it can't hold the counts. */}
+        <Box as="header">
+          <Stack direction="row" gap="px8" align="center" justify="space-between">
+            <Stack gap="px4">
+              <Text as="h2" variant="title">
+                Pipeline
+              </Text>
+              <MetaCaption
+                items={
+                  jobs.length > 0 ? [`${counts.active} active`, `${counts.all} total`] : ['0 jobs']
+                }
+              />
+            </Stack>
+            {/* One primary action per state: on first use it lives in the empty state instead. */}
+            {jobs.length > 0 && addJobButton}
+          </Stack>
+        </Box>
+        <SampleBanner jobs={jobs} />
+      </Stack>
       <Stack gap="px24">
         {jobs.length > 0 && (
           <>
@@ -137,6 +142,21 @@ export default function TrackerView() {
             title="Jobs"
             count={shown.length}
             countLabel={`${shown.length} ${shown.length === 1 ? 'job' : 'jobs'} shown`}
+            // The filter and search back to their defaults, shown only when one isn't. It lives in
+            // the header (like the Documents panels' New), so Status and Sort always split the
+            // whole row and never truncate.
+            trailing={
+              cleared ? (
+                <UiButton
+                  variant="tertiary"
+                  size="sm"
+                  label="Clear filters"
+                  onClick={() => setPipelineView({ filter: 'active', q: '' })}
+                >
+                  Clear
+                </UiButton>
+              ) : undefined
+            }
           >
             <PanelBody>
               {/* The full-width search (the panel's width at every size): no form-control cap, and
@@ -218,16 +238,6 @@ export default function TrackerView() {
                         </HdsMenu.RadioGroup>
                       </HdsMenu.Content>
                     </HdsMenu>
-                    {/* The filter and search back to their defaults, shown only when one isn't. */}
-                    {cleared && (
-                      <UiButton
-                        variant="tertiary"
-                        label="Clear filters"
-                        onClick={() => setPipelineView({ filter: 'active', q: '' })}
-                      >
-                        Clear
-                      </UiButton>
-                    )}
                   </Stack>
                   {/* Liveness sits with the list it checks: one caption-sized row under the
                       toolbar, never above the page title. */}

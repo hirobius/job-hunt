@@ -102,17 +102,15 @@ describe('Pipeline hierarchy', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
-    // On its own line under the title (PageHeader's description), not beside it (rev-3).
-    const header = screen.getByRole('heading', { level: 2, name: 'Pipeline' }).closest('header')!;
-    const meta = header.querySelector('[data-slot="description"]');
-    expect(meta?.textContent).toBe('1 active · 1 total');
-    expect(header.querySelector('[data-slot="status"]')).toBeNull();
+    // On its own line right under the title (4 apart, rev-3), not beside it.
+    const title = screen.getByRole('heading', { level: 2, name: 'Pipeline' });
+    expect(title.nextElementSibling?.textContent).toBe('1 active · 1 total');
   });
 
   it('first use says 0 jobs under the title', () => {
     renderTracker();
-    const header = screen.getByRole('heading', { level: 2, name: 'Pipeline' }).closest('header')!;
-    expect(header.querySelector('[data-slot="description"]')?.textContent).toBe('0 jobs');
+    const title = screen.getByRole('heading', { level: 2, name: 'Pipeline' });
+    expect(title.nextElementSibling?.textContent).toBe('0 jobs');
   });
 });
 
