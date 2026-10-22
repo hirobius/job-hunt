@@ -13,6 +13,8 @@ import { packIdForLabel, seedPack, STARTER_PACKS, topUpFromPack } from './starte
 import { DIRECTORY_BY_PACK, TARGETS_BY_PACK } from '../radar/directory';
 import { readTargets, saveTarget } from '../feed/targets';
 import { parseBoardUrl } from '../feed/sources/ats';
+import { placeKey } from './localize';
+import { CONSULTING_PACK, DESIGN_SYSTEMS_PACK, SERVICENOW_PACK, TRADES_PACK } from './packContent';
 
 afterEach(() => replaceCurationState({ categories: [], groups: [], tiles: [] }));
 
@@ -227,5 +229,69 @@ describe('starter links follow the track location (Adrian 2026-10-22)', () => {
     const indeed = tilesOf(id).filter((t) => /indeed\.com/.test(t.url));
     expect(indeed.length).toBeGreaterThan(0);
     indeed.forEach((t) => expect(new URL(t.url).searchParams.get('l')).toBe('Boise, ID'));
+  });
+});
+
+describe('top-up after the live release adds no duplicate links (review, finding 1)', () => {
+  const PACKS = {
+    trades: TRADES_PACK,
+    consulting: CONSULTING_PACK,
+    servicenow: SERVICENOW_PACK,
+    designsystems: DESIGN_SYSTEMS_PACK,
+  } as const;
+  const urlsOf = (id: string) => {
+    const s = getCurationState();
+    const groups = new Set(s.groups.filter((g) => g.categoryId === id).map((g) => g.id));
+    return s.tiles.filter((t) => groups.has(t.groupId)).map((t) => t.url);
+  };
+  // 2dd1e49 seeded the pack's links as written (Spokane), whatever the track's location.
+  const asLiveRelease = (id: string, packId: keyof typeof PACKS) => {
+    const s = getCurationState();
+    const groups = s.groups.filter((g) => g.categoryId === id);
+    replaceCurationState({
+      ...s,
+      tiles: s.tiles.map((t) => {
+        const g = groups.find((x) => x.id === t.groupId);
+        const raw = PACKS[packId].groups.find((pg) => pg.label === g?.label)?.tiles[t.sortOrder];
+        return raw ? { ...t, name: raw.name, url: raw.url, meta: raw.meta } : t;
+      }),
+    });
+  };
+
+  for (const location of ['Spokane, WA', '', 'Seattle, WA']) {
+    it(`a track seeded on the live release at "${location}" tops up with no duplicates`, () => {
+      let spokaneLinks = 0;
+      for (const packId of Object.keys(PACKS) as (keyof typeof PACKS)[]) {
+        const id = seedPack(packId, location);
+        asLiveRelease(id, packId);
+        const before = urlsOf(id);
+        spokaneLinks += before.filter((u) => /spokane/i.test(u)).length;
+        expect(topUpFromPack(id, packId).tiles).toBe(0);
+        expect(urlsOf(id)).toEqual(before);
+      }
+      expect(spokaneLinks).toBeGreaterThan(0);
+    });
+  }
+
+  it('a track seeded with the old re-encoded localize also tops up with no duplicates', () => {
+    const id = seedPack('trades', 'Seattle, WA');
+    const s = getCurationState();
+    replaceCurationState({
+      ...s,
+      tiles: s.tiles.map((t) => {
+        const u = new URL(t.url);
+        if (!u.searchParams.has('l')) return t;
+        u.searchParams.set('l', 'Seattle, WA');
+        return { ...t, url: u.toString() };
+      }),
+    });
+    expect(topUpFromPack(id, 'trades').tiles).toBe(0);
+  });
+
+  it('no two links in a pack share a place-free key (the key never merges two searches)', () => {
+    Object.values(PACKS).forEach((p) => {
+      const urls = p.groups.flatMap((g) => g.tiles.map((t) => t.url));
+      expect(new Set(urls.map(placeKey)).size).toBe(new Set(urls).size);
+    });
   });
 });

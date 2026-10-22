@@ -3,12 +3,13 @@
 // Version, with a Version history), delete behind an AlertDialog, and for Outreach messages the
 // token chips and the preview filled for a picked job.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import DocumentsLibrary from './DocumentsLibrary';
 import { createDocument, getAllDocuments, replaceDocuments, setDocumentPinned } from './documents';
 import { addJob, getAllJobs, removeJob, updateJob } from './store';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 
 const JOB = 'https://acme.example/jobs/1';
 
@@ -86,6 +87,36 @@ describe('a clean first run (Adrian 2026-10-22: nothing the user did not create)
       within(section('Résumés')).getByRole('button', { name: 'New résumé' }),
     ).toBeInTheDocument();
     expect(getAllDocuments()).toEqual([]);
+  });
+});
+
+describe('waits for cloud sync before offering starters (review, finding 3)', () => {
+  const withSync = (settled: boolean) => (
+    <CloudSyncContext.Provider value={{ settled } as CloudSyncApi}>
+      <ToastProvider>
+        <DocumentsLibrary />
+      </ToastProvider>
+    </CloudSyncContext.Provider>
+  );
+
+  it('a new device shows no empty state and no Add starter messages until sync settles', () => {
+    const r = render(withSync(false));
+    expect(screen.queryByText('No documents yet')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add starter messages' })).toBeNull();
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+    r.rerender(withSync(true));
+    expect(screen.getByText('No documents yet')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add starter messages' })).toBeInTheDocument();
+  });
+
+  it('the cloud messages that arrive meanwhile show instead of the empty state', () => {
+    const r = render(withSync(false));
+    act(() => {
+      createDocument({ kind: 'outreach', title: 'My edited intro', base: true, text: 'Hi' });
+    });
+    r.rerender(withSync(true));
+    expect(screen.queryByText('No documents yet')).toBeNull();
+    expect(screen.getByText('My edited intro')).toBeInTheDocument();
   });
 });
 

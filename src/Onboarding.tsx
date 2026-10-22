@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import {
   Badge,
@@ -36,6 +36,8 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
   const [step, setStep] = useState(1);
   const [picked, setPicked] = useState<string[]>([]);
   const [pickError, setPickError] = useState(false);
+  // Each refused Continue, so the track list takes focus again even when the alert already shows.
+  const [pickAttempt, setPickAttempt] = useState(0);
   const [firstTitle, setFirstTitle] = useState('');
   const [location, setLocation] = useState('');
   const [jobUrl, setJobUrl] = useState('');
@@ -108,7 +110,10 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
           e.preventDefault();
           if (lastStep) finish(true);
           else if (step > 1 || ready) next();
-          else setPickError(true);
+          else {
+            setPickError(true);
+            setPickAttempt((n) => n + 1);
+          }
         }}
         noValidate
       >
@@ -132,6 +137,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
                 firstTitle={firstTitle}
                 onFirstTitle={setFirstTitle}
                 showError={pickError}
+                attempt={pickAttempt}
               />
             ) : (
               <PanelBody>
@@ -204,12 +210,15 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
   );
 }
 
+const PICK_ERROR_ID = 'onboarding-pick-error';
+
 function PickTrack({
   picked,
   onToggle,
   firstTitle,
   onFirstTitle,
   showError,
+  attempt,
 }: {
   picked: string[];
   onToggle: (id: string) => void;
@@ -217,12 +226,29 @@ function PickTrack({
   onFirstTitle: (v: string) => void;
   /** Continue was pressed with nothing ready: say why (the primary is never disabled). */
   showError: boolean;
+  /** Counts refused Continues: each one moves focus to the first track when none is picked. */
+  attempt: number;
 }) {
   const needsTitle = picked.includes('blank');
+  const noPick = showError && picked.length === 0;
+  // Box types its ref as a div; it is the fieldset, only queried.
+  const list = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (attempt && picked.length === 0)
+      list.current?.querySelector<HTMLInputElement>('input[type="checkbox"]')?.focus();
+    // Only a refused Continue moves focus, not a tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt]);
   return (
     // rev-3 mock: one panel of hairline checkbox rows (no card in a card), each pack's blurb
     // lined up under its label, past the box.
-    <Box as="fieldset" aria-label="Starter tracks" sx={{ border: 0, m: 0, p: 0, minWidth: 0 }}>
+    <Box
+      as="fieldset"
+      ref={list}
+      aria-label="Starter tracks"
+      aria-describedby={noPick ? PICK_ERROR_ID : undefined}
+      sx={{ border: 0, m: 0, p: 0, minWidth: 0 }}
+    >
       <PanelRows>
         {STARTER_PACKS.map((p, i) => (
           <PanelRow key={p.id} dense>
@@ -269,9 +295,9 @@ function PickTrack({
           </Box>
         </PanelRow>
       )}
-      {showError && picked.length === 0 && (
+      {noPick && (
         <PanelRow as="div">
-          <Text variant="caption" as="p" role="alert" tone="danger">
+          <Text variant="caption" as="p" role="alert" tone="danger" id={PICK_ERROR_ID}>
             Pick at least one track
           </Text>
         </PanelRow>
