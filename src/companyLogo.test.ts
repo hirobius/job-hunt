@@ -133,9 +133,14 @@ describe('postingDomain', () => {
     ['Acme, Inc.', 'https://jobs.acme.com/1', 'acme.com'],
     ['The Acme Co', 'https://acme.co.uk/x', 'acme.co.uk'],
     ['Acme Corp LLC', 'https://acme.io', 'acme.io'],
-    ['Acme Welding Supply', 'https://acme.com', 'acme.com'],
-    ['Acme', 'https://acmewelding.com', 'acmewelding.com'],
-    ['St. Mary’s Health', 'https://stmarys.org', 'stmarys.org'],
+    ['Acme Inc', 'https://acme.com/j', 'acme.com'],
+    ['The Acme Co', 'https://acmeco.com/j', 'acmeco.com'],
+    ['Bank of America', 'https://bankofamerica.com/j', 'bankofamerica.com'],
+    ['Meta', 'https://metacareers.com/j', 'metacareers.com'],
+    ['Acme', 'https://acmejobs.com/j', 'acmejobs.com'],
+    ['3M', 'https://3m.com/j', '3m.com'],
+    ['Société Générale', 'https://societegenerale.com/j', 'societegenerale.com'],
+    ['St. Mary’s Health', 'https://stmaryshealth.org', 'stmaryshealth.org'],
   ])('%s at %s → %s', (c, url, out) => expect(postingDomain(c, url)).toBe(out));
   it.each([
     ['Acme', 'https://www.randomhost.com/job/1'],
@@ -145,6 +150,16 @@ describe('postingDomain', () => {
     ['Inc', 'https://inc.com'],
     ['', 'https://acme.com'],
     ['Acme', 'https://staffing-agency.com/acme-job'],
+    ['Top Talent Welding', 'https://talent.com/j'],
+    ['Spokane Sheet Metal', 'https://metal.com/j'],
+    ['Northwest Pipe', 'https://pipe.com/j'],
+    ['Global', 'https://insightglobal.com/j'],
+    ['HP', 'https://shpock.com/j'],
+    ['Apple', 'https://applebees.com/j'],
+    ['Go', 'https://gopuff.com/j'],
+    ['Acme Welding Supply', 'https://acme.com'],
+    ['Acme', 'https://acmewelding.com'],
+    ['Acme', 'https://acmecareersjobs.com'],
   ])('%s at %s → none', (c, url) => expect(postingDomain(c, url)).toBeNull());
 });
 
@@ -175,5 +190,34 @@ describe('companyDomain', () => {
 describe('logoUrl', () => {
   it('is DuckDuckGo’s icon service by domain', () => {
     expect(logoUrl('acme.com')).toBe('https://icons.duckduckgo.com/ip3/acme.com.ico');
+  });
+});
+
+describe('two-part public suffixes', () => {
+  it.each([
+    'com.pk',
+    'co.ke',
+    'com.ng',
+    'co.il',
+    'com.sg',
+    'com.hk',
+    'com.tw',
+    'co.kr',
+    'com.mx',
+    'com.ar',
+    'com.co',
+    'com.tr',
+    'co.th',
+    'com.my',
+    'com.ph',
+    'com.vn',
+    'com.eg',
+    'com.sa',
+    'co.id',
+    'net.au',
+    'org.au',
+  ])('%s keeps the company label', (suffix) => {
+    expect(logoDomain(`https://careers.acme.${suffix}/x`)).toBe(`acme.${suffix}`);
+    expect(logoDomain(`https://jobs.${suffix}/x`)).toBeNull();
   });
 });

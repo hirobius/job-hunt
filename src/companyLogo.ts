@@ -138,6 +138,13 @@ const TWO_LEVEL_SUFFIXES = new Set([
   'com.my',
   'com.ph',
   'com.co',
+  'com.pk',
+  'co.ke',
+  'com.ng',
+  'co.th',
+  'com.vn',
+  'com.eg',
+  'com.sa',
 ]);
 
 /** Splits a host into its registrable name and public suffix, or null when the host is itself a
@@ -188,25 +195,40 @@ export function logoDomain(address: string | undefined | null): string | null {
   return parts ? `${parts.name}.${parts.suffix}` : null;
 }
 
-const FILLER_WORDS = new Set(['inc', 'llc', 'co', 'the', 'corp', 'corporation', 'company', 'ltd']);
+const FILLER_WORDS = new Set(['inc', 'llc', 'ltd', 'co', 'corp', 'company', 'the', 'group']);
 
-/** A company name as letters and digits only, without Inc/LLC/Co/the and the like. */
-const normalizeName = (company: string) =>
-  company
-    .toLowerCase()
+/** The one word a careers-style site may add to the company's name (`metacareers.com`). */
+const CAREERS_SUFFIXES = ['careers', 'jobs', 'hq', 'group', 'team', 'work'];
+
+/** A name as lower-case letters and digits only, accents folded (é → e). */
+const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+/** The spellings of a company's name a site may use: without Inc/LLC/Co/the and the like
+ *  ("Acme Inc" → acme), or with only a leading "the" dropped ("The Acme Co" → acmeco). */
+function nameForms(company: string): string[] {
+  const words = fold(company)
     .split(/[^\p{L}\p{N}]+/u)
-    .filter((w) => w && !FILLER_WORDS.has(w))
-    .join('');
+    .filter(Boolean);
+  const stripped = words.filter((w) => !FILLER_WORDS.has(w)).join('');
+  const kept = (words[0] === 'the' ? words.slice(1) : words).join('');
+  return stripped ? [...new Set([stripped, kept])] : [];
+}
 
-/** A posting's domain, used only when its registrable name contains the company's name (or the
- *  other way round): a posting hosted by a staffing firm or an unlisted board gives the letter. */
+/** Long enough to mean something: 3 letters, or 2 when it holds a digit (3M). */
+const longEnough = (name: string) => name.length >= 3 || (name.length === 2 && /\d/.test(name));
+
+/** A posting's domain, used only when its registrable name IS the company's name (accents, spaces,
+ *  punctuation and Inc/LLC-like words aside), or the name plus one careers word (metacareers.com).
+ *  A name merely inside the other (talent.com for "Top Talent Welding") gives the letter. */
 export function postingDomain(company: string, address: string | undefined | null): string | null {
   const domain = logoDomain(address);
-  const name = normalizeName(company);
-  if (!domain || name.length < 2) return null;
-  const label = registrable(domain)?.name.replace(/[^\p{L}\p{N}]/gu, '') ?? '';
-  if (label.length < 2) return null;
-  return label.includes(name) || name.includes(label) ? domain : null;
+  if (!domain) return null;
+  const label = fold(registrable(domain)?.name ?? '').replace(/[^\p{L}\p{N}]/gu, '');
+  const ok = nameForms(company).some(
+    (name) =>
+      longEnough(name) && (label === name || CAREERS_SUFFIXES.some((x) => label === name + x)),
+  );
+  return ok ? domain : null;
 }
 
 /** The domain for a company's mark: its own website (`sites`, any is trusted, first usable wins),
