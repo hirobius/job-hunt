@@ -15,7 +15,7 @@ import { BRAND } from '../src/brand.ts';
 import { flameSvg } from '../src/flameMark.ts';
 import { hdsColor } from '../src/hdsColor.ts';
 
-const svg = flameSvg({ tile: true, color: hdsColor });
+const svg = flameSvg({ tile: true, color: hdsColor, label: BRAND.name });
 writeFileSync('public/favicon.svg', svg);
 console.log('public/favicon.svg');
 const dataUrl = (s) => `data:image/svg+xml;base64,${Buffer.from(s).toString('base64')}`;

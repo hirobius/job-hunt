@@ -54,6 +54,7 @@ import { metaLines } from './metaLines';
 import { BlanksLeft, WithChips } from './BlankText';
 import { dropDocDraft, keepDocDraft, readDocDraft } from './docDrafts';
 import { scrollToTop } from './scrollMemory';
+import { BackGuard } from './back';
 
 const NO_JOB = 'none';
 const FULL = { width: '100%' } as const;
@@ -154,11 +155,20 @@ export default function DocumentEditor({
     });
   }, [restored, docId, toast]);
   const [leaving, setLeaving] = useState(false);
-  const leave = () => (unsaved ? setLeaving(true) : onBack());
+  // Where Discard goes: the Back that asked (a named origin, return paths), else All documents.
+  const pendingBack = useRef<(() => void) | null>(null);
+  const guardBack = (go: () => void) => {
+    if (!unsaved) return go();
+    pendingBack.current = go;
+    setLeaving(true);
+  };
+  const leave = () => guardBack(onBack);
   const discard = () => {
     if (docId) dropDocDraft(docId);
     setDraft(saved);
-    onBack();
+    const go = pendingBack.current ?? onBack;
+    pendingBack.current = null;
+    go();
   };
 
   const back$ = returnTo ? `Back to ${returnTo.label}` : undefined;
@@ -233,18 +243,20 @@ export default function DocumentEditor({
 
   return (
     <Stack gap="normal" className="rjb-form-full">
-      {back ?? (
-        <Box>
-          <Button
-            variant="tertiary"
-            className="rjb-back"
-            iconLeft={<Icon icon={ArrowLeft} />}
-            onClick={leave}
-          >
-            All documents
-          </Button>
-        </Box>
-      )}
+      <BackGuard.Provider value={guardBack}>
+        {back ?? (
+          <Box>
+            <Button
+              variant="tertiary"
+              className="rjb-back"
+              iconLeft={<Icon icon={ArrowLeft} />}
+              onClick={leave}
+            >
+              All documents
+            </Button>
+          </Box>
+        )}
+      </BackGuard.Provider>
       <Stack gap="px4">
         <Text variant="title" as="h2">
           {doc ? doc.title || 'Untitled' : `New ${label.charAt(0).toLowerCase()}${label.slice(1)}`}

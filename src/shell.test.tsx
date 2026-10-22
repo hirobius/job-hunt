@@ -229,41 +229,35 @@ describe('app shell (#115 Phase 1)', () => {
   });
 });
 
-describe('not-synced cue (rev-3 P)', () => {
+describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () => {
   beforeEach(() => {
     window.location.hash = '#/queue';
   });
 
-  // The cue says jobs live only here, so it needs some.
+  // Jobs saved only here: the menu's sync line says so; the avatar stays plain.
   beforeEach(() => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
   });
 
-  it('is not shown on a first visit with nothing to sync', async () => {
-    removeJob('https://acme.example/jobs/1');
-    renderApp();
-    await screen.findByRole('button', { name: 'Account' });
-    await new Promise((r) => setTimeout(r, 0)); // let the session check settle
-    expect(screen.queryByRole('button', { name: 'Account, not synced' })).toBeNull();
-  });
-
-  it('signed out with jobs, the Account avatar carries it on every route; no banner', async () => {
+  it('signed out with jobs, the avatar is plain "Account" on every route; no banner', async () => {
     for (const hash of ['#/queue', '#/copy-deck']) {
       window.location.hash = hash;
       const { unmount } = renderApp();
-      const account = await screen.findByRole('button', { name: 'Account, not synced' });
-      expect(account).toHaveAttribute('title', 'Saved on this device only');
+      const account = await screen.findByRole('button', { name: 'Account' });
+      expect(account).not.toHaveAttribute('title');
+      expect(screen.queryByRole('button', { name: 'Account, not synced' })).toBeNull();
       expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
       unmount();
     }
   });
 
-  it('signed in while sync is failing, the avatar carries the dot too', async () => {
+  it('signed in while sync is failing, the avatar still has no dot', async () => {
     fake().failNext('tracker', 'select');
     renderApp();
     act(() => fake().signIn('u1'));
     expect(await screen.findByText(OFFLINE_MSG)).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: 'Account, not synced' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Account' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Account, not synced' })).toBeNull();
   });
 
   it('Sign in to sync in the menu opens a dialog with the email field', async () => {

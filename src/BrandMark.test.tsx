@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { BrandMark } from './BrandMark';
 import { FLAME, flameCss, flameSvg } from './flameMark';
 import { hdsColor } from './hdsColor';
+import { BRAND } from './brand';
 
 afterEach(() => {
   cleanup();
@@ -71,7 +72,7 @@ describe('BrandMark', () => {
 describe('the icon flame', () => {
   it('public/favicon.svg is the static flame, coloured from HDS variables (npm run icons)', () => {
     const favicon = readFileSync('public/favicon.svg', 'utf8');
-    expect(favicon).toBe(flameSvg({ tile: true, color: hdsColor }));
+    expect(favicon).toBe(flameSvg({ tile: true, color: hdsColor, label: BRAND.name }));
     expect(favicon).not.toMatch(/Apply Board|var\(/);
   });
 

@@ -171,15 +171,19 @@ export const FLAME_NOISE = {
 /**
  * The still flame as a standalone SVG string, for the favicon, app icons and share image. Colours
  * are resolved to literal values by `color` (an HDS primitive token → hex): an icon file can't read
- * CSS variables. `tile` puts it on the graphite app tile, with the dark-theme roles.
+ * CSS variables. `tile` puts it on the graphite app tile, with the dark-theme roles. `label` names
+ * the image (the favicon carries the product name, brand.test.ts).
  */
 export function flameSvg({
   tile = false,
   color,
+  label,
 }: {
   tile?: boolean;
   color: (token: string) => string;
+  label?: string;
 }): string {
+  const named = label ? ` role="img" aria-label="${label}"` : '';
   const roles = ROLES.dark;
   const paint = (p: string) => color(isRole(p) ? roles[p] : p);
   const grads = FLAME.tongues
@@ -212,9 +216,9 @@ export function flameSvg({
     `<feTurbulence type="fractalNoise" baseFrequency="${FLAME_NOISE.baseFrequency}" numOctaves="${FLAME_NOISE.numOctaves}" seed="${FLAME_NOISE.seed}" result="n"/>` +
     `<feDisplacementMap in="SourceGraphic" in2="n" scale="${FLAME_NOISE.scale}" xChannelSelector="R" yChannelSelector="G"/></filter></defs>`;
   if (!tile)
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${FLAME.viewBox}">${defs}${flame}</svg>\n`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${FLAME.viewBox}"${named}>${defs}${flame}</svg>\n`;
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${defs}` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"${named}>${defs}` +
     `<rect width="100" height="100" rx="22" fill="${color('graphite-900')}"/>` +
     `<g transform="translate(21.2 14) scale(1.8)">${flame}</g></svg>\n`
   );

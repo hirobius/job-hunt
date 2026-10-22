@@ -11,7 +11,6 @@ import { useDocuments } from '../documents';
 import { clearLocalData } from '../localReset';
 import { useColorMode } from '../ColorMode';
 import { refocusAccount, useCloudSync, useDataTools } from './accountContext';
-import { useUnsynced } from './useUnsynced';
 import { getRoute, navigate, withOrigin } from '../route';
 import { useBackCloses } from '../useBackCloses';
 import { LEGAL_ROUTE } from '../legal';
@@ -25,7 +24,6 @@ export default function AccountMenu() {
   const sync = useCloudSync();
   const { accountTrigger, setAccountTrigger } = sync;
   const data = useDataTools();
-  const unsynced = useUnsynced();
   const { mode, toggle } = useColorMode();
   const [resetting, setResetting] = useState(false);
   // Controlled, so the browser's Back closes the open menu instead of leaving the page.
@@ -38,9 +36,8 @@ export default function AccountMenu() {
     open();
   };
   // The trigger is the HDS Avatar (rev-3 P): your initial when signed in, a neutral person icon
-  // when not, and a warning Badge dot while jobs are saved on this device only.
+  // when not. No unsynced dot (Adrian 2026-10-22): the menu's sync line says where data lives.
   const initial = sync.user?.email?.trim()[0]?.toUpperCase();
-  const name = unsynced ? 'Account, not synced' : 'Account';
 
   // Header lines are Menu.Labels (not focusable, not clickable). The email is plain text;
   // index.html's format-detection meta stops iOS turning it into a mailto link.
@@ -62,13 +59,11 @@ export default function AccountMenu() {
                 alt=""
                 initials={initial}
                 fallback={initial ? 'initials' : 'icon'}
-                status={unsynced ? 'warning' : undefined}
                 className="rjb-avatar"
               />
             }
-            label={name}
+            label="Account"
             className="rjb-account"
-            title={unsynced ? 'Saved on this device only' : undefined}
           />
         </Menu.Trigger>
         <Menu.Content align="end">

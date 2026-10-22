@@ -117,10 +117,10 @@ Previews: `docs/brand/`.
   pillars are gone. `PillarsDialog` (relabeled "Trades") still lets users add custom pillars.
   **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (the one `h1`, `Text variant="body"` semibold, so the
   page title is always the biggest text) · top tabs (**Companies · Pipeline**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
-  **Account** button: an HDS `Avatar` (initial signed in, person icon signed out, a warning dot while jobs are unsynced; named "Account" / "Account, not synced"; it holds account, data, display and feedback). Phone page gutter is 16 (`--semantic-space-fixed-sm`), HDS's region gutter from `sm`. `src/account/` is the account
+  **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Phone page gutter is 16 (`--semantic-space-fixed-sm`), HDS's region gutter from `sm`. `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Back up,
-  Restore…, Export CSV, theme and feedback; there is no sync banner (the Avatar dot says it, rev-3 P);
+  Restore…, Export CSV, theme and feedback; there is no sync banner and no Avatar dot (the menu's sync line says it);
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
   tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
@@ -276,7 +276,7 @@ Previews: `docs/brand/`.
   is `screening.verdictLabel` everywhere (Strong fit / Stretch / Reach). Pinned in
   `src/discover.test.tsx`, `TileGrid.test.tsx`, `LiveFeed*.test.tsx`.
 - **Design polish (#133, `docs/specs/design-polish.md`, `docs/redesign-2026.md`):** banners are not page
-  furniture: unsynced is the Account Avatar's dot (its title says "Saved on this device only"), and `SampleBanner` is a one-line note under the page header. Section heads are
+  furniture: unsynced is only the Account menu's sync line (no Avatar dot), and `SampleBanner` is a one-line note under the page header. Section heads are
   `Text variant="body"` + `className="rjb-semibold"`; `title` is the page head only. `base.css` holds the
   host resets (heading/paragraph margin 0, `.rjb-semibold`, phone tab padding, 40px phone buttons,
   reduced motion); secondary colour is `Text tone="secondary"`. Guards: inline `style={{`

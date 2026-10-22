@@ -94,7 +94,7 @@ describe('Pipeline panels (rev-3)', () => {
     expect(within(toApply).getByText('3')).toBeInTheDocument();
     expect(screen.getAllByRole('article').length).toBeGreaterThan(0);
     expect(tintedBoxesIn(panel)).toHaveLength(0);
-    // No sync banner: the Account avatar's dot says it.
+    // No sync banner (and no avatar dot): the Account menu's sync line says it.
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
   });
 

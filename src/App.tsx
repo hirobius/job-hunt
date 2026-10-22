@@ -258,7 +258,7 @@ export default function App() {
                             <JobPage jobId={route.jobId} />
                           </>
                         ) : (
-                          // Unsynced shows as the Account avatar's dot (rev-3 P): no banner here.
+                          // No sync banner: the Account menu's sync line says where data lives.
                           <TrackerView />
                         )}
                       </Suspense>

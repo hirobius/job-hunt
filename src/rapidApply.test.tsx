@@ -157,7 +157,9 @@ describe('To apply queue and Apply mode', () => {
     expect(pagerOf().getByText('2 of 2')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(findJobByUrl(C)?.archived).toBe(false);
-    expect(pagerOf().getByText('3 of 3')).toBeInTheDocument();
+    // Undo reopens the job set aside at its place in the walk (return paths).
+    expect(await screen.findByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
+    expect(pagerOf().getByText('2 of 3')).toBeInTheDocument();
   });
 
   it('with one job left the pager still shows, as 1 of 1 with both arrows off (QA)', async () => {
