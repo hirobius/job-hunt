@@ -1,6 +1,7 @@
 // The pieces one job row is made of (#129), shared by the desktop table (JobsTable), the phone
 // cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
 // step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
+import { useRef, useState } from 'react';
 import { Check, Ellipsis, Star } from 'lucide-react';
 import {
   Badge,
@@ -12,8 +13,9 @@ import {
   VisuallyHidden,
   useToast,
 } from '@hirobius/design-system';
-import { setStatus, updateJob } from './store';
-import { removeWithUndo } from './saveNotice';
+import { getAllJobs, setStatus, updateJob } from './store';
+import { removeWithUndo, showNotice } from './saveNotice';
+import { collapseRow, flashRow, starClass } from './feedback';
 import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
 import { navigate } from './route';
@@ -55,18 +57,44 @@ export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
   );
 }
 
-/** The star: outline when off, filled when on. */
-export function StarIcon({ on }: { on: boolean }) {
-  return <Icon icon={Star} size="small" className={on ? 'rjb-icon-filled' : undefined} />;
+/** The star: outline when off, filled when on. `animate` (once the user has toggled it) pops it
+ *  on each change (#212); a star already on when the page opens holds still. */
+export function StarIcon({ on, animate = false }: { on: boolean; animate?: boolean }) {
+  return <Icon icon={Star} size="small" className={starClass(on, animate)} />;
 }
 
-/** Star or unstar a job; starring says where starred jobs show. */
+/** Star or unstar a job, and say so: starring says where starred jobs show. */
 function useToggleStar() {
   const { toast } = useToast();
   return (job: Job) => {
     updateJob(job.url, { priority: !job.priority });
-    if (!job.priority) toast({ title: 'Starred', description: 'Shows first in your Pipeline' });
+    toast(
+      job.priority
+        ? { title: 'Unstarred', description: titleOf(job) }
+        : { title: 'Starred', description: 'Shows first in your Pipeline' },
+    );
   };
+}
+
+/** Change a job and say so, with Undo putting back the fields the change touched (#212). A row
+ *  the change keeps in the list flashes; one it filters out leaves the notice behind. */
+function changeWithUndo(job: Job, title: string, change: () => void, from: Element | null) {
+  change();
+  flashRow(from);
+  showNotice({
+    title,
+    description: titleOf(job),
+    actions: [{ label: 'Undo', run: () => updateJob(job.url, undoPatch(job)) }],
+  });
+}
+
+/** A patch that puts a job back as it was: every field it had, and the ones it gained cleared. */
+function undoPatch(before: Job): Partial<Job> {
+  const now = getAllJobs().find((j) => j.url === before.url);
+  const patch: Partial<Job> = { ...before };
+  for (const k of Object.keys(now ?? {}) as (keyof Job)[])
+    if (!(k in before)) (patch as Record<string, unknown>)[k] = undefined;
+  return patch;
 }
 
 /** The job page's star toggle: a 40px icon button named Star or Starred, so the state reads
@@ -74,15 +102,19 @@ function useToggleStar() {
  *  (both would announce it twice). */
 export function StarButton({ job }: { job: Job }) {
   const toggle = useToggleStar();
+  const [touched, setTouched] = useState(false);
   const on = !!job.priority;
   return (
     <Button
       size="md"
       variant="secondary"
       iconOnly
-      iconLeft={<StarIcon on={on} />}
+      iconLeft={<StarIcon on={on} animate={touched} />}
       label={on ? 'Starred' : 'Star'}
-      onClick={() => toggle(job)}
+      onClick={() => {
+        setTouched(true);
+        toggle(job);
+      }}
     />
   );
 }
@@ -107,7 +139,14 @@ export function RowPrimaryAction({
         size={size}
         variant={variant}
         aria-label={`Mark applied: ${title}`}
-        onClick={() => setStatus(job.url, 'Applied')}
+        onClick={(e) =>
+          changeWithUndo(
+            job,
+            'Marked applied · Follow up in 7 days',
+            () => setStatus(job.url, 'Applied'),
+            e.currentTarget,
+          )
+        }
       >
         Mark applied
       </Button>
@@ -132,11 +171,14 @@ export function RowMenu({
 }) {
   const title = titleOf(job);
   const toggleStar = useToggleStar();
+  // The row the menu sits in, for its feedback: a flash on a change, a collapse on Remove.
+  const anchor = useRef<HTMLButtonElement>(null);
   return (
     <Menu>
       <Menu.Trigger asChild>
         {/* A bordered 40px button on a phone card (rev-3 mock); quiet in the dense table. */}
         <Button
+          ref={anchor}
           size={size}
           variant={size === 'md' ? 'secondary' : 'tertiary'}
           iconOnly
@@ -165,7 +207,13 @@ export function RowMenu({
                 role="menuitemradio"
                 aria-checked={on}
                 onSelect={() => {
-                  if (!on) setStatus(job.url, st as Status);
+                  if (!on)
+                    changeWithUndo(
+                      job,
+                      `Moved to ${st}`,
+                      () => setStatus(job.url, st as Status),
+                      anchor.current,
+                    );
                 }}
               >
                 <Box as="span" sx={{ flex: '1 1 auto' }}>
@@ -177,8 +225,24 @@ export function RowMenu({
           })}
         </Menu.Group>
         <Menu.Separator />
-        <Menu.Item onSelect={() => toggleStar(job)}>{job.priority ? 'Unstar' : 'Star'}</Menu.Item>
-        <Menu.Item onSelect={() => updateJob(job.url, { archived: !job.archived })}>
+        <Menu.Item
+          onSelect={() => {
+            toggleStar(job);
+            flashRow(anchor.current);
+          }}
+        >
+          {job.priority ? 'Unstar' : 'Star'}
+        </Menu.Item>
+        <Menu.Item
+          onSelect={() =>
+            changeWithUndo(
+              job,
+              job.archived ? 'Unretired' : 'Retired',
+              () => updateJob(job.url, { archived: !job.archived }),
+              anchor.current,
+            )
+          }
+        >
           {job.archived ? 'Unretire' : 'Retire'}
         </Menu.Item>
         <Menu.Separator />
@@ -205,11 +269,14 @@ export function RowMenu({
           </>
         )}
         <Menu.Separator />
-        {/* Remove goes to Recently removed, with Undo, so it needs no confirm. */}
+        {/* Remove goes to Recently removed, with Undo, so it needs no confirm. A list row
+            collapses first (#212); the job page goes back to the Pipeline at once. */}
         <Menu.Item
           onSelect={() => {
-            removeWithUndo(job);
-            onRemoved?.();
+            if (onRemoved) {
+              removeWithUndo(job);
+              onRemoved();
+            } else collapseRow(anchor.current, () => removeWithUndo(job));
           }}
           tone="danger"
         >
