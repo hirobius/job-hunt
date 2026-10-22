@@ -44,6 +44,13 @@ describe('seedPack', () => {
     ]);
   });
 
+  it('Build your own is named after its first title, not "Build your own" (an instruction)', () => {
+    const id = seedPack('blank', '', { titles: ['  Design Engineer '] });
+    expect(getCurationState().categories.find((c) => c.id === id)!.label).toBe('Design Engineer');
+    const bare = seedPack('blank');
+    expect(getCurationState().categories.find((c) => c.id === bare)!.label).toBe('My track');
+  });
+
   it('every advertised pack id is seedable without throwing', () => {
     STARTER_PACKS.forEach((p) => expect(() => seedPack(p.id)).not.toThrow());
   });

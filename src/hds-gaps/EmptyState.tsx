@@ -5,6 +5,8 @@
 //     teaching empty (Pipeline, empty; filtered to nothing) is centred: an icon tile, a bold title,
 //     one sentence and the actions in one centred column. `centered` draws that; `framed` also
 //     puts it in one bordered panel when it sits loose on the page (not inside a Panel already).
+//   - HDS's children sit gap-1 (4px) apart, so the actions crowd the sentence; centred empties put
+//     16px more above the actions (rev-3: about 16-20px).
 // Every app empty state imports this one, not HDS's, so the italic can't come back on a new screen.
 import type { ReactNode } from 'react';
 import {
@@ -63,6 +65,8 @@ export function EmptyState({
       )}
       <HdsEmptyState
         {...rest}
+        // HDS lays the children out with gap-1 (4px): the actions get 16px more under the sentence.
+        action={rest.action ? <Box sx={{ pt: 'sm' }}>{rest.action}</Box> : undefined}
         title={
           <Text as="span" variant="body" weight="bold" tone="primary">
             {title}

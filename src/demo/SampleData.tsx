@@ -9,12 +9,20 @@ import { isSample } from './sampleData';
 
 /** Offered only in an empty tracker (the mount decides) and never while signed in, since a
  *  signed-in tracker syncs; loads the sample on click and shows it in the Pipeline. */
-export function TrySampleButton({ size = 'sm' }: { size?: 'sm' | 'md' }) {
+export function TrySampleButton({
+  size = 'md',
+  link = false,
+}: {
+  size?: 'sm' | 'md';
+  /** A quiet underlined inline link (onboarding's "Just looking?"), not a bordered button. */
+  link?: boolean;
+}) {
   if (hasCloudSession()) return null;
   return (
     <Button
-      variant="secondary"
+      variant={link ? 'tertiary' : 'secondary'}
       size={size}
+      className={link ? 'rjb-inline-link' : undefined}
       onClick={() => {
         loadSample();
         navigate({ tab: 'queue', sub: null, jobId: null });

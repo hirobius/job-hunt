@@ -92,6 +92,18 @@ describe('To apply queue and Apply mode', () => {
     expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', A);
   });
 
+  it('with nothing to apply to, Apply mode points to Companies instead of a dead end', async () => {
+    const user = userEvent.setup();
+    getAllJobs()
+      .slice()
+      .forEach((j) => removeJob(j.url));
+    window.location.hash = '#/apply/nope';
+    renderApp();
+    expect(await screen.findByText('To apply is empty')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Find the next company' }));
+    expect(window.location.hash).toBe('#/discover');
+  });
+
   it('kit fields are entered once inline and copied with a Copied confirmation', async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');

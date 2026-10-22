@@ -29,7 +29,7 @@ import { statusAgo } from './jobState';
 import { Panel, PanelBody } from './PipelinePanel';
 import BlankText from './BlankText';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
-import { openApply, openJob } from './route';
+import { navigate, openApply, openJob } from './route';
 import { titleOf } from './jobRow';
 import { toApplyQueue } from './applyQueue';
 import { followUpDate } from './jobEvents';
@@ -94,7 +94,15 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
               <Button variant="primary" onClick={() => openApply(jobIdOf(queue[0].url))}>
                 Start applying
               </Button>
-            ) : undefined
+            ) : (
+              // Never a dead end: the one action points to where jobs come from (rev-3 empty).
+              <Button
+                variant="secondary"
+                onClick={() => navigate({ tab: 'discover', sub: null, jobId: null })}
+              >
+                Find the next company
+              </Button>
+            )
           }
         />
       </Stack>

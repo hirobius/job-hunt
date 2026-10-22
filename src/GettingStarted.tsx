@@ -2,8 +2,8 @@
 // ticked rows since the rev-3 mock): three steps with ticks that show what is already true.
 // Shown once there is a job of your own, until it is dismissed on this device.
 import { useContext, useState } from 'react';
-import { Square, SquareCheck, X } from 'lucide-react';
-import { Button, Icon, Stack, Text, VisuallyHidden } from '@hirobius/design-system';
+import { Check, X } from 'lucide-react';
+import { Box, Button, Icon, Stack, Text, VisuallyHidden } from '@hirobius/design-system';
 import { CloudSyncContext } from './account/accountContext';
 import {
   dismissGettingStarted,
@@ -46,9 +46,9 @@ export default function GettingStarted({ jobs }: { jobs: Job[] }) {
         {items.map((it) => (
           <PanelRow key={it.id}>
             <Stack direction="row" gap="tight" align="start">
-              <Icon icon={it.done ? SquareCheck : Square} aria-hidden />
+              <TickBox done={it.done} />
               <Stack gap="px4">
-                <Text variant="ui" as="span" weight="bold" tone="primary">
+                <Text variant="body" as="span" tone="primary">
                   {it.label}
                   <VisuallyHidden>{it.done ? ', done' : ', not done'}</VisuallyHidden>
                 </Text>
@@ -61,5 +61,32 @@ export default function GettingStarted({ jobs }: { jobs: Job[] }) {
         ))}
       </PanelRows>
     </Panel>
+  );
+}
+
+/** The rev-3 tick: a 20px box, filled with a check when done, centred on the label's first line
+ *  (body line box). Drawn, not a checkbox: the ticks are computed, never clicked. */
+function TickBox({ done }: { done: boolean }) {
+  return (
+    <Box
+      aria-hidden="true"
+      sx={{
+        flex: 'none',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 'var(--primitive-space-5)',
+        height: 'var(--primitive-space-5)',
+        mt: 'calc((var(--semantic-typography-body-line-height) * var(--semantic-typography-body-font-size) - var(--primitive-space-5)) / 2)',
+        // The control radius (4px), like HDS Checkbox: a tick box, not a pill.
+        borderRadius: 'var(--semantic-radius-control)',
+        border: 'var(--semantic-borderWidth-emphasis) solid',
+        borderColor: done ? 'content.primary' : 'var(--semantic-color-border-strong)',
+        bgcolor: done ? 'content.primary' : 'transparent',
+        color: 'var(--semantic-color-content-inverse)',
+      }}
+    >
+      {done && <Icon icon={Check} size="small" />}
+    </Box>
   );
 }
