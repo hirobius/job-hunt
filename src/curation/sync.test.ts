@@ -19,6 +19,7 @@ import { addCategory, getCurationState, replaceCurationState } from './curationS
 import { getCurationSyncStatus } from './syncStatus';
 import { categoryToRow } from './map';
 import { MY_LINKS } from './legacyTiles';
+import { setTabAccount, tabFrozen } from '../tabAccount';
 
 const f = () => fake.current!;
 const NOW = '2026-10-01T00:00:00.000Z';
@@ -132,9 +133,20 @@ describe('pushRestoredCuration', () => {
   it('replace makes the cloud match the restored board exactly', async () => {
     f().tables.categories = [cloudCategory('old', 'Old cloud track')];
     f().signIn('u1');
+    setTabAccount('u1'); // through CloudSync's sign-in path
     addCategory({ label: 'Restored' });
     expect(await pushRestoredCuration('replace')).toBe(true);
     expect(f().tables.categories.map((r) => r.label)).toEqual(['Restored']);
+  });
+
+  it("another tab's account in the shared session gets nothing, and this tab stops (#288)", async () => {
+    f().tables.categories = [cloudCategory('theirs', 'Their track')];
+    setTabAccount('u1');
+    f().signIn('u2'); // another tab signed in as someone else
+    addCategory({ label: 'Restored' });
+    expect(await pushRestoredCuration('replace')).toBe(false);
+    expect(f().tables.categories.map((r) => r.label)).toEqual(['Their track']);
+    expect(tabFrozen()).toBe('switched');
   });
 
   it('signed out → nothing to mirror', async () => {

@@ -1,0 +1,169 @@
+// #288: two tabs share this browser's stores (`rjb_*`) and its Supabase session, but each holds
+// its own data in memory. Tab A is the real provider here; tab B is everything it shares with
+// tab A: the stored session (localStorage `sb-…-auth-token`, its storage event), supabase-js's
+// cross-tab broadcast of auth events, and the cloud tables. A switch in tab B must never let tab
+// A's later edits reach the other account.
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, screen, waitFor } from '@testing-library/react';
+import { createFakeSupabase } from '../test/fakeSupabase';
+import { loadSupabase } from '../supabase';
+
+const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));
+vi.mock('@supabase/supabase-js', async () => {
+  const { createFakeSupabase } = await import('../test/fakeSupabase');
+  return {
+    createClient: () => {
+      h.fake = createFakeSupabase();
+      return h.fake.client;
+    },
+  };
+});
+
+import { renderAccount, addDeviceDataIfAsked } from '../test/renderAccount';
+import { addCategory, getCurationState, replaceCurationState } from '../curation/curationStore';
+import { addJob, getAllJobs, removeJob } from '../store';
+import { TAB_SIGNED_OUT, TAB_SWITCHED } from '../cloudMessages';
+import { tabFrozen } from '../tabAccount';
+import type { Job } from '../types';
+
+const fake = () => h.fake!;
+const AUTH_KEY = 'sb-test-auth-token';
+
+/** What tab B does to the session both tabs share: `user` signs in (null: signs out). */
+function tabB(
+  user: string | null,
+  {
+    event,
+    relay = true,
+    storage = true,
+  }: { event?: string; relay?: boolean; storage?: boolean } = {},
+) {
+  const raw = user ? JSON.stringify({ access_token: 't', user: { id: user } }) : null;
+  act(() => {
+    fake().otherTab(user, event, relay);
+    if (!storage) return;
+    const oldValue = localStorage.getItem(AUTH_KEY);
+    if (raw) localStorage.setItem(AUTH_KEY, raw);
+    else localStorage.removeItem(AUTH_KEY);
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: AUTH_KEY,
+        oldValue,
+        newValue: raw,
+        storageArea: localStorage,
+      }),
+    );
+  });
+}
+
+const rowsFor = (table: string, uid: string) =>
+  (fake().tables[table] ?? []).filter((r) => r.user_id === uid);
+const trackerUrls = (uid: string) =>
+  ((rowsFor('tracker', uid)[0]?.data.jobs ?? []) as Job[]).map((j) => j.url);
+const settle = () => act(() => new Promise((r) => setTimeout(r, 800))); // past the push debounce
+
+/** Tab A signed in as X with one job and one track in the cloud; Y's cloud copy holds its own. */
+async function tabASignedInAsX() {
+  fake().tables.tracker = [{ user_id: 'y', data: { v: 10, jobs: [] } }];
+  renderAccount();
+  localStorage.setItem(AUTH_KEY, JSON.stringify({ access_token: 't', user: { id: 'x' } }));
+  act(() => fake().signIn('x'));
+  await addDeviceDataIfAsked();
+  act(() => {
+    addJob('https://x.example/jobs/1', 'Before');
+    addCategory({ label: 'X track' });
+  });
+  await waitFor(() => expect(trackerUrls('x')).toEqual(['https://x.example/jobs/1']));
+  await waitFor(() => expect(rowsFor('categories', 'x')).toHaveLength(1));
+}
+
+/** Tab A edits jobs and tracks, then is focused (a re-pull) and its Retry sync is chosen. */
+async function tabAEditsLater() {
+  act(() => {
+    addJob('https://x.example/jobs/2', 'After');
+    addCategory({ label: 'Made after the switch' });
+  });
+  act(() => {
+    window.dispatchEvent(new Event('focus'));
+  });
+  await settle();
+}
+
+beforeEach(async () => {
+  await loadSupabase();
+  fake().reset();
+  replaceCurationState({ categories: [], groups: [], tiles: [] });
+});
+afterEach(() => {
+  cleanup();
+  getAllJobs()
+    .slice()
+    .forEach((j) => removeJob(j.url));
+  localStorage.removeItem(AUTH_KEY);
+  vi.restoreAllMocks();
+});
+
+describe('an account switch in another tab (#288)', () => {
+  it.each([
+    ['relayed by the auth broadcast and the storage event', { relay: true, storage: true }],
+    ['seen only as a storage event', { relay: false, storage: true }],
+    ['with no event at all (the shared session just names Y)', { relay: false, storage: false }],
+  ])('%s: tab A never writes to Y, and says to reload', async (_how, opts) => {
+    await tabASignedInAsX();
+    const jobsInStorage = localStorage.getItem('rjb_shortlist');
+
+    tabB('y', opts);
+    await tabAEditsLater();
+
+    expect(rowsFor('categories', 'y')).toEqual([]);
+    expect(rowsFor('groups', 'y')).toEqual([]);
+    expect(rowsFor('tiles', 'y')).toEqual([]);
+    expect(rowsFor('tracker', 'y')).toEqual([{ user_id: 'y', data: { v: 10, jobs: [] } }]);
+    // Nor to X under Y's session: nothing more is sent at all.
+    expect(trackerUrls('x')).toEqual(['https://x.example/jobs/1']);
+    expect(tabFrozen()).toBe('switched');
+    expect(await screen.findByText(TAB_SWITCHED)).toBeInTheDocument();
+    // Once tab A has heard, its later edits stay out of shared storage, where tab B (or a reload)
+    // would sync them. With no event at all, it hears only at its first send, after that edit.
+    if (opts.storage || opts.relay)
+      expect(localStorage.getItem('rjb_shortlist')).toBe(jobsInStorage);
+    act(() => {
+      addJob('https://x.example/jobs/3', 'Later still');
+    });
+    expect(localStorage.getItem('rjb_shortlist')).not.toContain('jobs/3');
+    // The edit is kept on screen in tab A; the reload starts from what tab B left.
+    expect(getCurationState().categories.map((c) => c.label)).toContain('Made after the switch');
+  });
+
+  it('a sign-out in tab B makes tab A stop syncing', async () => {
+    await tabASignedInAsX();
+    tabB(null);
+    expect(await screen.findByText(TAB_SIGNED_OUT)).toBeInTheDocument();
+    await tabAEditsLater();
+    expect(tabFrozen()).toBe('signedOut');
+    expect(trackerUrls('x')).toEqual(['https://x.example/jobs/1']);
+    expect(rowsFor('categories', 'x')).toHaveLength(1);
+
+    // …and tab B signing in as Y next changes nothing for Y either.
+    tabB('y');
+    act(() => {
+      addCategory({ label: 'Even later' });
+    });
+    await settle();
+    expect(rowsFor('categories', 'y')).toEqual([]);
+    expect(rowsFor('tracker', 'y')).toEqual([{ user_id: 'y', data: { v: 10, jobs: [] } }]);
+    expect(tabFrozen()).toBe('switched');
+  });
+
+  it('a same-user token refresh in tab B changes nothing in tab A', async () => {
+    await tabASignedInAsX();
+    tabB('x', { event: 'TOKEN_REFRESHED' });
+    await tabAEditsLater();
+    expect(tabFrozen()).toBeNull();
+    expect(screen.queryByText(TAB_SWITCHED)).toBeNull();
+    await waitFor(() =>
+      expect(trackerUrls('x')).toEqual(['https://x.example/jobs/1', 'https://x.example/jobs/2']),
+    );
+    await waitFor(() => expect(rowsFor('categories', 'x')).toHaveLength(2));
+  });
+});

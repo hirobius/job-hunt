@@ -6,6 +6,11 @@
 export const OFFLINE_TITLE = "Couldn't sync";
 export const OFFLINE_MSG = 'Your changes are saved on this device.';
 
+/** Another tab changed who is signed in (#288): this tab stops syncing until a reload. */
+export const TAB_FROZEN_TITLE = 'Sync stopped in this tab';
+export const TAB_SWITCHED = 'You signed in as someone else in another tab. Reload to continue.';
+export const TAB_SIGNED_OUT = 'You signed out in another tab. Reload to continue.';
+
 /** A track change the cloud refused (curationStore's mirror): what happened, then the fix. */
 export const TRACK_WRITE_FAILED = {
   title: 'Track changes didn’t reach the cloud',
