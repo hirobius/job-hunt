@@ -1,6 +1,6 @@
 // The job's to-dos and its one Notes field, as two panels on the job page's Overview (rev-3 F).
 // All mutations flow through updateJob so they persist via the localStorage + Supabase sync path.
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Button,
   Checkbox as HdsCheckbox,
@@ -35,24 +35,53 @@ function deleteWithUndo(url: string, todo: Todo, from: Element) {
   });
 }
 
-/** The job's one Notes field — kept in local state and committed on blur so every keystroke
- *  doesn't thrash the store/Supabase sync. Keyed by job url upstream so it re-seeds when the job
+/** The job's one Notes field. The draft lives in local state and saves 300 ms after the last
+ *  keystroke (so typing doesn't thrash the store/Supabase sync), and at once on blur, unmount
+ *  (Back, a hash change) and pagehide / a hidden tab (reload, the phone back gesture), so a note
+ *  is never lost to a missing blur. Keyed by job url upstream so it re-seeds when the job
  *  changes. Jobs carry two: `note` (where it was saved from) and `notes` (the user's). This edits
  *  `notes`, showing `note` only when `notes` is empty; when both are set `note` is a read-only
  *  line above, so neither is ever hidden. */
+const NOTES_DEBOUNCE_MS = 300;
+
 function NotesField({ job }: { job: Job }) {
   const shown = job.notes || job.note || '';
   const [draft, setDraft] = useState(shown);
+  const draftRef = useRef(draft);
+  const savedRef = useRef(shown);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const url = job.url;
+  const flush = useCallback(() => {
+    clearTimeout(timer.current);
+    if (draftRef.current === savedRef.current) return;
+    savedRef.current = draftRef.current;
+    updateJob(url, { notes: draftRef.current });
+  }, [url]);
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState !== 'visible') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onHide);
+      flush();
+    };
+  }, [flush]);
   return (
     <Textarea
       aria-label="Notes"
       rows={3}
       value={draft}
       placeholder="What to remember about this job"
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => {
-        if (draft !== shown) updateJob(job.url, { notes: draft });
+      onChange={(e) => {
+        setDraft(e.target.value);
+        draftRef.current = e.target.value;
+        clearTimeout(timer.current);
+        timer.current = setTimeout(flush, NOTES_DEBOUNCE_MS);
       }}
+      onBlur={flush}
     />
   );
 }

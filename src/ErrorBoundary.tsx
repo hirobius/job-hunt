@@ -52,8 +52,8 @@ export class ErrorBoundary extends Component<Props, State> {
             <Button variant="primary" onClick={() => window.location.reload()}>
               Reload
             </Button>
-            {/* Outlined, red text (rev-3 #s-error-boundary, `.rjb-danger-outline`). */}
-            <Button variant="secondary" className="rjb-danger-outline" onClick={resetLocalData}>
+            {/* The app's one destructive style: HDS secondary + tone="danger". */}
+            <Button variant="secondary" tone="danger" onClick={resetLocalData}>
               Reset local data
             </Button>
           </Stack>

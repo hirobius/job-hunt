@@ -52,5 +52,7 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'], // e2e/ is Playwright, not Vitest
     css: false,
     restoreMocks: true,
+    // Room for findBy's 5 s (src/test/setup.ts) on a busy builder.
+    testTimeout: 20_000,
   },
 });

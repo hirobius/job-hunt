@@ -51,6 +51,18 @@ async function arrowTo(page: Page, name: string, key: 'ArrowDown' | 'ArrowUp') {
 async function axe(page: Page, where: string): Promise<string[]> {
   await page.addScriptTag({ path: AXE });
   const found: string[] = await page.evaluate(async () => {
+    // Let every finite animation and transition end first: axe caught an HDS Alert mid-fade, its
+    // half-faded text failing contrast (a flake). Loop, since one ending can start another.
+    for (let i = 0; i < 10; i++) {
+      const running = document
+        .getAnimations()
+        .filter(
+          (a) => a.playState === 'running' && a.effect?.getComputedTiming().endTime !== Infinity,
+        );
+      if (!running.length) break;
+      await Promise.all(running.map((a) => a.finished.catch(() => {})));
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const r = await (window as any).axe.run(document, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },

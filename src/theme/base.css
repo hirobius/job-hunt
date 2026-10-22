@@ -239,13 +239,6 @@ p {
   padding-inline-start: 0;
 }
 
-/* An outlined danger action (rev-3 .btn.danger: Reset local data in its confirm and on the error
- * page): HDS secondary's border and height, red text. HDS `tone="danger"` on a secondary drops the
- * border for a tinted fill, so the host sets the colour on a plain secondary (HDS gap registry). */
-[data-hds] .rjb-danger-outline {
-  color: var(--semantic-color-content-danger);
-}
-
 /* One line, cut with an ellipsis (a long domain in a facts list). */
 .rjb-truncate {
   overflow: hidden;
@@ -504,21 +497,6 @@ p {
   white-space: nowrap;
 }
 
-/* An opening's fit badge is the button into Fit and gap (rev-3 K: one Save on the row, no menu).
- * An HDS tertiary Button holding the Badge, stripped to the badge's own size. */
-[data-hds] button.rjb-badge-button {
-  height: auto;
-  min-height: 0;
-  min-width: 0;
-  padding: 0;
-}
-
-.rjb-badge-button:focus-visible {
-  outline: 2px solid var(--semantic-accent-rest);
-  outline-offset: 2px;
-  border-radius: var(--semantic-radius-control);
-}
-
 /* On a phone the button is a 40px target (the touch rule above); its height overhangs the badge
  * line instead of pushing the source label and the title apart. */
 @media (max-width: 639px) {
@@ -537,6 +515,17 @@ p {
 }
 .rjb-disclosure-vertical button[aria-expanded='true'] > span[aria-hidden='true'] {
   transform: rotate(180deg) !important;
+}
+
+/* A section row's one-line preview (ATS search's board lists, Apply now's other sections) wraps
+ * instead of being cut: HDS Disclosure variant="row" always truncates its preview, and at 390 the
+ * description lost its point (round-2 review). Upstream ask: docs/hds-upstream-asks-0.9.md,
+ * "Disclosure row preview wrap". */
+.rjb-disclosure-wrap button[aria-expanded] .truncate {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* Quiet text actions (rev-3 G: a tile's Set aside and Details): a tertiary button in secondary
@@ -560,6 +549,14 @@ p {
   font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* Form sheets (Add job, Add a company; rev-3 s-add-company): HDS Dialog's panel at full width up
+ * to 480, less the page's 16px phone gutter each side, so on a phone it never touches the screen
+ * edge (round-2 review) and its footer stacks Add over Cancel. */
+[data-hds] .rjb-form-sheet {
+  width: calc(100% - 2 * var(--semantic-space-fixed-sm));
+  max-width: 480px;
 }
 
 /* Message dialogs (Follow up, Use template; rev-3 A): one chrome for both. HDS Dialog.Content has
@@ -591,16 +588,6 @@ p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Bordered danger button in a confirm dialog (HDS gap, registry: "Bordered danger button"; rev-3
- * mock .btn.danger): HDS draws Button variant="secondary" tone="danger" as a pale tinted fill with a
- * transparent border, which barely shows on the light dialog and is a maroon block in dark. The
- * mock's danger confirm has no fill at rest, red text and the neutral edge Cancel has (the secondary
- * rest border, border.interactive; tone="danger" re-scopes the component border var to red). */
-[data-hds] [role='alertdialog'] button[data-variant='secondary'][data-tone='danger']:not(:hover) {
-  background-color: transparent;
-  border-color: var(--semantic-color-border-interactive);
 }
 
 /* A generated search query (ATS search): breaks fall on its spaces and ORs, never mid-word. */

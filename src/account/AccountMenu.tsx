@@ -183,8 +183,8 @@ function ResetLocalData({
             <Button variant="secondary">Cancel</Button>
           </AlertDialog.Cancel>
           <AlertDialog.Action asChild>
-            {/* An outlined red secondary, the same border and height as Cancel (mock .btn.danger). */}
-            <Button variant="secondary" className="rjb-danger-outline" onClick={clearLocalData}>
+            {/* The app's one destructive style: HDS secondary + tone="danger". */}
+            <Button variant="secondary" tone="danger" onClick={clearLocalData}>
               Reset local data
             </Button>
           </AlertDialog.Action>

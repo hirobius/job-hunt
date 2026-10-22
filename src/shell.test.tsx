@@ -145,12 +145,10 @@ describe('app shell (#115 Phase 1)', () => {
     expect(within(dialog).getByRole('button', { name: 'Back up first' })).toBeInTheDocument();
     // The safety copy still describes the dialog (body text through asChild, not a caption).
     expect(dialog).toHaveAccessibleDescription(/This deletes everything in this browser/);
-    // An outlined red secondary like Cancel (rev-3 .btn.danger), not HDS's tinted danger fill.
+    // The app's one destructive style: HDS secondary + tone="danger" (its tinted fill).
     const reset = within(dialog).getByRole('button', { name: 'Reset local data' });
-    expect(reset).toHaveClass('rjb-danger-outline');
-    expect(reset.className.replace(' rjb-danger-outline', '')).toBe(
-      within(dialog).getByRole('button', { name: 'Cancel' }).className,
-    );
+    expect(reset).toHaveClass('bg-feedback-bg-danger', 'text-feedback-danger');
+    expect(reset).not.toHaveClass('rjb-danger-outline');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(getAllJobs().map((j) => j.label)).toContain('Welder');
     // Focus goes back to the Account button, not <body> (QA: the menu is non-modal and the

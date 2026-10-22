@@ -346,6 +346,31 @@ describe('job page tabs (#130 slice 2)', () => {
     expect(getAllJobs()[0].notes).toBe('Ask about the shop floor');
   });
 
+  it('Notes is never lost: saved while typing, and on leaving the page without a blur', async () => {
+    addJob(URL_A, 'Design Engineer');
+    addJob(URL_B, 'Welder');
+    updateJob(URL_A, { company: 'Acme' });
+    openJobPage();
+    const notes = () => screen.getByRole('textbox', { name: 'Notes' });
+    // Debounced save while typing, no blur.
+    await userEvent.type(notes(), 'Ask');
+    await waitFor(() => expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Ask'));
+    // pagehide (reload, phone back gesture) flushes the draft at once.
+    await userEvent.type(notes(), ' about pay');
+    act(() => {
+      window.dispatchEvent(new Event('pagehide'));
+    });
+    expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Ask about pay');
+    // A hash change (browser Back) unmounts the field: the draft is flushed on unmount.
+    await userEvent.type(notes(), ' and hours');
+    act(() => {
+      window.location.hash = '#/queue';
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Notes' })).toBeNull());
+    expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Ask about pay and hours');
+  });
+
   it('never hides either note: Notes edits notes, with the older note read-only above', () => {
     addJob(URL_A, 'Design Engineer', 'Found in Live postings · Remotive');
     updateJob(URL_A, { company: 'Acme', notes: 'Ask about the shop floor' });
