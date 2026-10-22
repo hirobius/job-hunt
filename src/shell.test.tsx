@@ -152,8 +152,15 @@ describe('app shell (#115 Phase 1)', () => {
     const dialog = await screen.findByRole('alertdialog', { name: 'Reset local data?' });
     expect(dialog).toHaveTextContent(/This deletes everything in this browser: 1 job/);
     expect(within(dialog).getByRole('button', { name: 'Back up first' })).toBeInTheDocument();
-    // The safety copy still describes the dialog (body text through asChild, not a caption).
+    // The safety copy still describes the dialog (body text inside HDS's description, not a caption).
     expect(dialog).toHaveAccessibleDescription(/This deletes everything in this browser/);
+    // HDS's Description already renders a <p>: the body copy sits in it as a span, never a second
+    // <p> (invalid nesting, a dev console error) and never an `asChild` leaking onto the DOM.
+    expect(dialog.querySelector('p p')).toBeNull();
+    expect(dialog.querySelector('[aschild]')).toBeNull();
+    const description = within(dialog).getByText(/This deletes everything in this browser/);
+    expect(description.tagName).toBe('SPAN');
+    expect(description).toHaveClass('hds-type-body');
     // The app's one destructive style: HDS secondary + tone="danger" (its tinted fill).
     const reset = within(dialog).getByRole('button', { name: 'Reset local data' });
     expect(reset).toHaveClass('bg-feedback-bg-danger', 'text-feedback-danger');
