@@ -1,8 +1,9 @@
 {
-  "updatedAt": "2026-10-22T12:00:00Z",
+  "updatedAt": "2026-10-22T12:30:00Z",
   "phase": "live",
   "headline": "Live as RoleForge. Rapid apply (#218) and wide sweep (#220, blob v7) are on main. Companies follows the track in review on claude/teams-first (dream companies, blob v9).",
   "next": [
+    "Review release candidate claude/rf-candidate (off claude/rf-batch3): merges rf-job-links, calm-limits, quickwins, ds-ranking, export-links, new-url, r2-followups, flame-brand, fix-onboarding-r2, fix-qa-r2, fix-desktop-r2, return-paths; Account avatar unsynced dot removed. verify, verify:ui and e2e green. Not merged; add roleforge-app.vercel.app to Supabase redirect URLs before shipping.",
     "Review claude/rf-quickwins (off claude/rf-batch3): /assets immutable cache, sample data adds a Sample track, lazy supabase-js + route views (first load 319.6 → 246.3 kB gz JS signed out), Starred/Documents/Follow-up due wording, kit note sign-in aware, favicon brand, starter template fixes, main landmark, PWA (titles per route, manifest id + screenshots, favicon.ico, theme-color per scheme, font preload), docs. Not merged.",
     "New production address https://roleforge-app.vercel.app on claude/rf-new-url (off claude/rf-batch3): magic links accept both it and the old job-hunt-jade address; add both to Supabase Auth → URL Configuration before merging. Not merged.",
     "Review batch candidate claude/rf-batch3 (on claude/rf-ship-r2): #172 inline-style ratchet (6) + #171 ATS tests, redesign gaps (OS colour mode on first visit, Page not found, legal back link), #215 company source follows the track, #212 visible feedback, Open posting links beside every listed job, #105 vite 8 + plugin-react 6 + jest-dom 7. Not merged.",
