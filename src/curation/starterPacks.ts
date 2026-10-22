@@ -69,7 +69,11 @@ export function seedPack(
   opts: { titles?: string[] } = {},
 ): string {
   const content = CONTENT_FOR[packId];
-  const label = STARTER_PACKS.find((p) => p.id === packId)?.label ?? 'My Track';
+  // "Build your own" is an instruction, not a name: that track is named after its first title.
+  const label =
+    packId === 'blank'
+      ? opts.titles?.[0]?.trim() || 'My track'
+      : (STARTER_PACKS.find((p) => p.id === packId)?.label ?? 'My track');
   const loc = (location ?? '').trim() || content?.location || '';
   const categoryId = addCategory({
     label,

@@ -138,7 +138,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
               <PanelBody>
                 {step === 2 ? (
                   <HdsInput
-                    aria-label="Location"
+                    label="City, state or Remote"
                     placeholder="City, state or Remote"
                     helperText="Leave it blank to search anywhere. Work mode is set later in Companies."
                     value={location}
@@ -146,7 +146,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
                   />
                 ) : (
                   <HdsInput
-                    aria-label="Job link"
+                    label="Job link"
                     type="url"
                     placeholder="Paste a job link"
                     helperText="Optional. It lands in your Pipeline."
@@ -193,7 +193,10 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
               <Text variant="caption" as="span" tone="secondary">
                 Just looking?
               </Text>
-              <TrySampleButton />
+              {/* Caption-sized, like the words before it (the link inherits the font). */}
+              <Text variant="caption" as="span">
+                <TrySampleButton link />
+              </Text>
             </Stack>
           )}
         </Stack>
@@ -224,8 +227,8 @@ function PickTrack({
       <PanelRows>
         {STARTER_PACKS.map((p, i) => (
           <PanelRow key={p.id} dense>
-            {/* No gap: the Checkbox row is already 44px tall on a phone. */}
-            <Stack>
+            {/* The smallest gap: the Checkbox row is already 44px tall on a phone. */}
+            <Stack gap="xs">
               <Stack direction="row" gap="tight" align="center" wrap="wrap">
                 <Checkbox
                   label={p.label}
@@ -236,7 +239,14 @@ function PickTrack({
                 {/* The lead pack (#59): the list follows STARTER_PACKS order, consulting first. */}
                 {i === 0 && <Badge tone="neutral">Suggested</Badge>}
               </Stack>
-              <Box sx={{ pl: 'var(--primitive-space-6)', pb: 'xs' }}>
+              {/* Pulled up into the 44px row's slack so it sits ~4px under the label (rev-3). */}
+              <Box
+                sx={{
+                  pl: 'var(--primitive-space-6)',
+                  mt: 'calc(-1 * var(--primitive-space-2))',
+                  pb: 'xs',
+                }}
+              >
                 <Text variant="caption" as="p" tone="secondary" id={`pack-${p.id}-blurb`}>
                   {p.blurb}
                 </Text>

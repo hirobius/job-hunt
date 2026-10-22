@@ -57,7 +57,7 @@ describe('Onboarding pack picker a11y (#104)', () => {
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('button', { name: 'Finish' }));
     expect(getCurationState().categories.map((c) => [c.label, c.titles])).toEqual([
-      ['Build your own', ['Design Engineer']],
+      ['Design Engineer', ['Design Engineer']],
     ]);
   });
 

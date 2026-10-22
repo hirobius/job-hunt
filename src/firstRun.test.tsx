@@ -107,7 +107,7 @@ describe('steps 2 and 3', () => {
     await pickFirstPack();
     await click('Continue');
     step(2);
-    expect(screen.getByRole('textbox', { name: 'Location' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'City, state or Remote' })).toBeInTheDocument();
     await click('Back');
     step(1);
     expect(screen.getAllByRole('checkbox')[0]).toBeChecked();
@@ -117,7 +117,10 @@ describe('steps 2 and 3', () => {
     renderApp();
     await pickFirstPack();
     await click('Continue');
-    await userEvent.type(screen.getByRole('textbox', { name: 'Location' }), 'Tacoma, WA');
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'City, state or Remote' }),
+      'Tacoma, WA',
+    );
     await click('Continue');
     step(3);
     await userEvent.type(
