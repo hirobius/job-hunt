@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Job } from '../types';
 import { addJob, getAllJobs, removeJob, replaceAll, updateJob } from '../store';
+import { addCategory, getCurationState, replaceCurationState } from '../curation/curationStore';
 import { clearSample, hasCloudSession, loadSample, seedIfEmpty, withoutSample } from './loadSample';
 import { isSample } from './sampleData';
 import { sampleJobs } from './sampleData';
@@ -88,6 +89,48 @@ describe('loadSample / clearSample (store adapters)', () => {
     const before = getAllJobs();
     expect(clearSample()).toBe(0);
     expect(getAllJobs()).toEqual(before);
+  });
+});
+
+describe('the Sample track', () => {
+  const labels = () => getCurationState().categories.map((c) => c.label);
+  afterEach(() => {
+    getAllJobs()
+      .slice()
+      .forEach((j) => removeJob(j.url));
+    replaceCurationState({ categories: [], groups: [], tiles: [] });
+    localStorage.clear();
+  });
+
+  it('loading into a board with no tracks adds one track, "Sample", from the first pack', () => {
+    loadSample(NOW);
+    expect(labels()).toEqual(['Sample']);
+    const { groups, tiles } = getCurationState();
+    expect(groups.length).toBeGreaterThan(0);
+    expect(tiles.length).toBeGreaterThan(0);
+  });
+
+  it('leaves an existing board alone', () => {
+    addCategory({ label: 'Mine' });
+    loadSample(NOW);
+    expect(labels()).toEqual(['Mine']);
+  });
+
+  it('clear removes the Sample track, and only that one', () => {
+    loadSample(NOW);
+    addCategory({ label: 'Mine' });
+    addCategory({ label: 'Sample' }); // the user's own, same name: kept
+    clearSample();
+    expect(labels()).toEqual(['Mine', 'Sample']);
+    expect(getCurationState().categories).toHaveLength(2);
+  });
+
+  it('clear after the user deleted the Sample track changes nothing else', () => {
+    loadSample(NOW);
+    replaceCurationState({ categories: [], groups: [], tiles: [] });
+    addCategory({ label: 'Mine' });
+    clearSample();
+    expect(labels()).toEqual(['Mine']);
   });
 });
 
