@@ -5,12 +5,13 @@
 // beside the link in the same `li`, for use inside HDS `NavList`. Ask: a trailing action slot on
 // NavList.Item, rendered outside its link. Delete this when it lands
 // (docs/hds-upstream-asks-0.9.md).
-import type { ReactNode } from 'react';
+import type { MouseEventHandler, ReactNode } from 'react';
 import './NavListActionItem.css';
 
 export function NavListActionItem({
   href,
   current = false,
+  onClick,
   action,
   children,
 }: {
@@ -18,6 +19,8 @@ export function NavListActionItem({
   href: string;
   /** Marks the row as the current page (aria-current="page"), as NavList.Item's `current`. */
   current?: boolean;
+  /** The link's click (the job rail hops in place, return paths). */
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
   /** A control beside the row's link, outside it (the job rail's posting link). */
   action?: ReactNode;
   /** The row's content, inside its link: a title line, a meta line, a badge. */
@@ -25,7 +28,12 @@ export function NavListActionItem({
 }) {
   return (
     <li className="rjb-navlist-row">
-      <a href={href} aria-current={current ? 'page' : undefined} className="rjb-navlist-link">
+      <a
+        href={href}
+        aria-current={current ? 'page' : undefined}
+        className="rjb-navlist-link"
+        onClick={onClick}
+      >
         {children}
       </a>
       {action && <div className="rjb-navlist-action">{action}</div>}

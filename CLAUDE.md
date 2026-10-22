@@ -148,13 +148,41 @@ Previews: `docs/brand/`.
   forever) with an Undo notice (`saveNotice.removeWithUndo`, shown by the one `NoticeHost`, so it
   never stacks with a save notice). Restoring a posting saved again since merges the removed copy's
   notes, to-dos and interviews into the saved one. Starred jobs
-  have their own Pipeline filter. The open tab is local
-  state keyed by job, not in the URL. At ≥ `lg` an HDS `Sidebar` puts `JobRail` (links with
-  HDS `NavList` link rows, badges above the title) beside the job; below it the job is alone with a Back link.
+  have their own Pipeline filter. The open tab is in the URL (`?section=screening|interviews`,
+  Overview left out, written in place), so coming back to a job opens the tab it was on. At ≥ `lg`
+  an HDS `Sidebar` puts `JobRail` (links with HDS `NavList` link rows, badges above the title; a
+  rail hop replaces the entry) beside the job; below it the job is alone with a Back link (at `lg`
+  too when the job was opened from somewhere other than the Pipeline).
   The Pipeline's filter/search/sort live in `pipelineView.ts` (in memory, shared by `TrackerView`
   and the rail; `test/setup.ts` resets it per test). An unknown id shows a skeleton, then waits for
   `useCloudSync().settled` before falling back to `#/queue`. Pinned in `src/jobPage.test.tsx`. `HOME_ROUTE` (`discover`) and
   `QUICK_ADD_LANDING` (`queue`) are separate in `App.tsx`. Pinned in `src/jobRoute.test.tsx`.
+- **Return paths (Adrian 2026-10-22: "whenever someone navigates away with a key action, they
+  should be able to get back"):** one route-level mechanism. A page opened by a jump carries its
+  origin in the hash (`?from=<origin hash path>`, `route.withOrigin` / `linkTo`; left out when the
+  origin is the page's default way back, `route.defaultBack`; one level of the origin's own origin
+  kept; a job → its Company → the same job doesn't nest). The page's Back is `BackLink` (`back.ts`
+  `useBack`): it names the origin (`routeLabel.ts`: "← Senior UX Designer", "← Apply mode (2 of
+  3)", "← Companies") and calls `route.goBackTo`, which pops to that page when it is an earlier
+  entry of this tab (a trail kept in `history.state.rjb`, matched by `pageKey`) and replaces
+  otherwise, so the browser's Back never bounces. Finishing the key action returns there: a Save
+  in an editor opened from a job page or Apply mode (`DocumentsView` `returnTarget`, toast "Back to
+  …"), Remove from a job page (Undo reopens it), Retire of a job closed on the board, Undo on Not
+  a fit. Never global state: back/forward and reload keep it. **Scroll** (`scrollMemory.ts`, set
+  up in `main.tsx`): browser restoration is off; each page's position (by hash, sessionStorage)
+  comes back on a revisit (Back/Forward), an in-app Back, a top tab or a reload, once the page is
+  tall enough, and is held while rows load above it; a new top-level page opens at its top; pages
+  that scroll to top on open use `scrollToTop()`. **Top tabs** (`tabMemory.ts`) reopen where they
+  were left (`openTab`; Find the next company uses it too); the open tab tapped again goes to its
+  root. Start applying resumes at the last Apply job ("Resume applying (2 of 3)"). The Apply pager,
+  Not a fit's next job and rail hops move in place (replace). **Sheets** (`useBackCloses.ts`): Add
+  job, Follow up, Use template, Manage track, Add a company and the Account menu push a same-URL
+  entry, so Back closes them; Use template reopens on its message when its Edit message / Write a
+  message editor comes back. The hook lives with the open state, in a component that stays
+  mounted. Apply mode's open rows survive a trip to Documents (`viewMemory.ts`). A magic link
+  returns to the page the sign-in was asked from (`account/signInReturn.ts`). Pinned in
+  `src/route.test.ts`, `src/returnPaths.test.tsx`, `scrollMemory.test.ts`, `tabMemory.test.ts`,
+  `routeLabel.test.ts`; E2E `e2e/return-paths.spec.ts` (390 and 1440, with the browser's Back).
 - **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1):** the tabs are
   **Companies · Pipeline** (Templates lost its tab in #240); Companies is the old Discover (slug
   `discover`, home, hosts the first-run gate) and an empty hash lands there. "Try with sample data"
@@ -192,7 +220,8 @@ Previews: `docs/brand/`.
   variable `Menu` (`insertToken`), and the #221 **Variables panel** (Fill for, then each variable, then the
   filled Preview with Copy; a
   picked job's four fields save on the job, the rest on `Document.values`, not a Version; `[Your name]`
-  falls back to the kit name). `#/copy-deck/<id>` opens one; an old `#/copy-deck/<snippetId>` resolves
+  falls back to the kit name). `#/copy-deck/<id>` opens one and `#/copy-deck/new/<kind>` is a New
+  editor (its first Save replaces the entry with the new id); an old `#/copy-deck/<snippetId>` resolves
   to `snippet-<id>` (`outreachTemplates.resolveDocumentId`, hash rewritten); unknown → the library once
   sync has settled and the move below has run. **Snippets are legacy data** (store + blob sync kept):
   `App`'s `SnippetMigration` runs `migrateSnippetStore` after sync settles: each snippet not yet

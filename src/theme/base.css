@@ -260,6 +260,16 @@ p {
   padding-inline-start: 0;
 }
 
+/* A Back that names the page it returns to (return paths): a long job title ellipsizes on one line
+ * instead of wrapping the header. */
+.rjb-back-label {
+  display: inline-block;
+  max-width: min(36ch, 70vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
 /* One line, cut with an ellipsis (a long domain in a facts list). */
 .rjb-truncate {
   overflow: hidden;

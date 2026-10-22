@@ -4,6 +4,7 @@
 // message → Mark as sent (undoable) and a quiet Snooze. Only Mark as sent and Snooze change the
 // job; closing changes nothing. The host is mounted once in App, so a row that leaves its list
 // once the follow-up is sent doesn't take the dialog with it.
+import { useBackCloses } from './useBackCloses';
 import { useRef, useState } from 'react';
 import { Copy, ExternalLink, Pencil } from 'lucide-react';
 import {
@@ -77,6 +78,8 @@ function dayName(ymd: string) {
 export function FollowUpHost() {
   const url = useFollowUpTarget();
   const job = useJobs().find((j) => j.url === url);
+  // The browser's Back closes the sheet and stays on the page under it (return paths).
+  useBackCloses(!!job, closeFollowUp, 'follow-up');
   return (
     <Dialog open={!!job} onOpenChange={(o) => !o && closeFollowUp()}>
       {job && <FollowUpContent key={job.url} job={job} />}

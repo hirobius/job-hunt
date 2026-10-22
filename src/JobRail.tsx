@@ -1,11 +1,15 @@
 // The job page's list rail at lg and up (#130): the jobs the Pipeline list showed, as compact
 // links, with the open one marked, each with its posting link beside it (Adrian 2026-10-22). It
 // reads the Pipeline's shared filter and sort (pipelineView); only the search is editable here, and
-// "Change filters" goes back to the list.
+// "Change filters" goes back to the list with the Jobs panel in view. A hop to another job replaces
+// the history entry and keeps the page's origin (return paths), so one Back leaves the job pages
+// for wherever they were opened from.
 import { Search } from 'lucide-react';
 import { Box, Input, InlineLink, NavList, Stack, Text } from '@hirobius/design-system';
 import { useJobs, jobIdOf } from './store';
-import { jobHash } from './route';
+import { getRoute, goBackTo, jobHash, navigate, parseHash } from './route';
+import { requestReveal } from './scrollMemory';
+import { inPlaceClick } from './back';
 import { rowView } from './jobRow';
 import { JobBadges } from './JobRowParts';
 import { JobPostingLink } from './PostingLink';
@@ -34,6 +38,12 @@ function RowBody({ job }: { job: Job }) {
   );
 }
 
+/** Back to the list (a pop when it is just behind), landing on its Jobs panel's filters. */
+function changeFilters() {
+  requestReveal('#/queue', 'section[aria-label="Jobs"]');
+  goBackTo(parseHash('#/queue'));
+}
+
 export default function JobRail({ openId }: { openId: string }) {
   const jobs = useJobs();
   const view = usePipelineView();
@@ -44,11 +54,13 @@ export default function JobRail({ openId }: { openId: string }) {
 
   // Rows are links (each job has its own route), as NavList's link mode. The posting link sits
   // beside each row's link, not in it: NavList.Item has no slot for that (hds-gaps).
+  const hop = (id: string) => () => navigate({ jobId: id, from: getRoute().from ?? null }, true);
   const item = (j: Job) => (
     <NavListActionItem
       key={j.url}
       href={jobHash(jobIdOf(j.url))}
       current={jobIdOf(j.url) === openId}
+      onClick={inPlaceClick(hop(jobIdOf(j.url)))}
       action={<JobPostingLink job={j} />}
     >
       <RowBody job={j} />
@@ -70,9 +82,12 @@ export default function JobRail({ openId }: { openId: string }) {
           {FILTER_LABEL[view.filter]} · {shown.length} {shown.length === 1 ? 'job' : 'jobs'}
         </Text>
         <Text variant="caption" as="p" tone="secondary">
-          <InlineLink href="#/queue" externalIcon={false}>
-            Change filters
-          </InlineLink>
+          {/* InlineLink takes no onClick: the link's click bubbles to this span. */}
+          <span onClick={inPlaceClick(changeFilters)}>
+            <InlineLink href="#/queue" externalIcon={false}>
+              Change filters
+            </InlineLink>
+          </span>
         </Text>
         {hidden && open && (
           <Stack gap="tight">

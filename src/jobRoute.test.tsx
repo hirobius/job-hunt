@@ -116,13 +116,21 @@ describe('job route (#127)', () => {
     expect(window.location.hash).toBe('#/queue/notsyncedyet');
   });
 
-  it('switching tabs drops the job id', async () => {
+  // Return paths: the Pipeline tab reopens where it was left (the job page); tapping it again, as
+  // the open tab, goes to its root, the list.
+  it('switching tabs and back reopens the job; the open tab again goes to the list', async () => {
     addJob(URL_A, 'Design Engineer');
     window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
     renderApp();
+    await screen.findByRole('heading', { level: 2, name: 'Design Engineer' });
     await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
     await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
-    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Design Engineer' }),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    expect(await screen.findByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
   });
 
   it('a ?add= quick-add link still lands on the Pipeline, not a job page', () => {

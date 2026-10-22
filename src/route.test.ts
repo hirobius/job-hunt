@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { parseHash, buildHash, jobHash, isAuthCallback } from './route';
+import { waitFor } from '@testing-library/react';
+import {
+  parseHash,
+  buildHash,
+  jobHash,
+  isAuthCallback,
+  withOrigin,
+  originOf,
+  goBackTo,
+  navigate,
+  getRoute,
+  type Route,
+} from './route';
 import { jobIdOf } from './store';
 
 describe('route — parseHash', () => {
@@ -118,5 +130,159 @@ describe('jobHash (#128)', () => {
   it('is the job route that parseHash reads back', () => {
     expect(jobHash('k3x9a1')).toBe('#/queue/k3x9a1');
     expect(parseHash(jobHash('k3x9a1')).jobId).toBe('k3x9a1');
+  });
+});
+
+// Return paths (Adrian 2026-10-22): a page opened by a key action carries where it was opened
+// from, so its Back can name that page and go there, and browser back/forward and reloads keep it.
+describe('route — the origin a page was opened from', () => {
+  it('reads and writes `from` as a hash path, round-tripping through parse and build', () => {
+    const r = parseHash('#/company/acme?from=%2Fqueue%2Fk3x9a1');
+    expect(r).toEqual({
+      tab: 'company',
+      sub: 'acme',
+      pillar: null,
+      jobId: null,
+      from: '/queue/k3x9a1',
+    });
+    expect(buildHash(r)).toBe('#/company/acme?from=%2Fqueue%2Fk3x9a1');
+  });
+
+  it("round-trips an origin that has its own origin and a job page's section", () => {
+    const r = {
+      tab: 'queue',
+      sub: null,
+      pillar: null,
+      jobId: 'k3x9a1',
+      section: 'screening',
+      from: '/company/acme?from=%2Fdiscover%2Fapply',
+    };
+    expect(parseHash(buildHash(r))).toEqual(r);
+  });
+
+  it('reads the job page section only on a job route', () => {
+    expect(parseHash('#/queue/k3x9a1?section=interviews').section).toBe('interviews');
+    expect(parseHash('#/queue?section=interviews').section).toBeUndefined();
+  });
+
+  it('leaves both out of a hash that has neither', () => {
+    expect(buildHash(parseHash('#/queue/k3x9a1'))).toBe('#/queue/k3x9a1');
+  });
+
+  it('keeps every path segment after the tab as the sub (the New document editor)', () => {
+    expect(parseHash('#/copy-deck/new/outreach').sub).toBe('new/outreach');
+    expect(buildHash(parseHash('#/copy-deck/new/outreach?from=%2Fapply%2Fx'))).toBe(
+      '#/copy-deck/new/outreach?from=%2Fapply%2Fx',
+    );
+  });
+});
+
+describe('route — withOrigin records where a jump came from', () => {
+  const at = (hash: string) => parseHash(hash);
+  const company: Partial<Route> & { tab: string } = { tab: 'company', sub: 'acme' };
+
+  it('records the page it was opened on', () => {
+    expect(buildHash(withOrigin(company, at('#/queue/A?section=screening')))).toBe(
+      '#/company/acme?from=%2Fqueue%2FA%3Fsection%3Dscreening',
+    );
+  });
+
+  it("leaves it out when the origin is the page's own default way back", () => {
+    // A job, Apply mode, a Company and Documents go back to the Pipeline list by default; an open
+    // document goes back to the library; the legal pages to Companies.
+    expect(buildHash(withOrigin({ tab: 'queue', jobId: 'A' }, at('#/queue')))).toBe('#/queue/A');
+    expect(buildHash(withOrigin({ tab: 'copy-deck' }, at('#/queue')))).toBe('#/copy-deck');
+    expect(buildHash(withOrigin({ tab: 'copy-deck', sub: 'd1' }, at('#/copy-deck')))).toBe(
+      '#/copy-deck/d1',
+    );
+    expect(buildHash(withOrigin({ tab: 'legal', sub: 'privacy' }, at('#/discover')))).toBe(
+      '#/legal/privacy',
+    );
+  });
+
+  it("keeps one level of the origin's own origin, so two Backs still work", () => {
+    const job = at('#/queue/A?from=%2Fdiscover%2Fapply');
+    const onCompany = withOrigin(company, job);
+    expect(originOf(onCompany)).toMatchObject({
+      tab: 'queue',
+      jobId: 'A',
+      from: '/discover/apply',
+    });
+    // From the Company page on to another job: the job's own origin is dropped (one level kept).
+    const next = withOrigin({ tab: 'queue', jobId: 'B' }, onCompany);
+    expect(originOf(next)).toMatchObject({ tab: 'company', sub: 'acme', from: '/queue/A' });
+    expect(originOf(originOf(next)!)?.from).toBeUndefined();
+  });
+
+  it("going back to the page the origin came from reuses that page's own origin (no loop)", () => {
+    const onCompany = withOrigin(company, at('#/queue/A?from=%2Fdiscover%2Fapply'));
+    expect(buildHash(withOrigin({ tab: 'queue', jobId: 'A' }, onCompany))).toBe(
+      '#/queue/A?from=%2Fdiscover%2Fapply',
+    );
+    const plain = withOrigin(company, at('#/queue/A'));
+    expect(buildHash(withOrigin({ tab: 'queue', jobId: 'A' }, plain))).toBe('#/queue/A');
+  });
+
+  it('a route with no origin has none to read', () => {
+    expect(originOf(at('#/queue/A'))).toBeNull();
+  });
+});
+
+// Back goes back: when the page to return to is an earlier entry in this tab's history, Back pops
+// to it (so the browser's own Back doesn't bounce into the page just left); otherwise it replaces
+// the current entry with it.
+describe('route — goBackTo', () => {
+  const settle = () => new Promise((r) => setTimeout(r, 30));
+
+  it('pops back to an earlier entry for that page instead of pushing it again', async () => {
+    window.location.hash = '#/queue';
+    await settle();
+    window.location.hash = '#/queue/back1';
+    await settle();
+    window.location.hash = '#/company/back1-co?from=%2Fqueue%2Fback1';
+    await settle();
+    const length = window.history.length;
+    goBackTo(parseHash('#/queue'));
+    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    expect(window.history.length).toBe(length);
+    // The entries left behind are still forward, as after the browser's Back.
+    window.history.forward();
+    await waitFor(() => expect(window.location.hash).toBe('#/queue/back1'));
+  });
+
+  it('lands on the earlier entry as it was (its section and origin), matched by page', async () => {
+    window.location.hash = '#/queue/back2?section=screening&from=%2Fdiscover%2Fapply';
+    await settle();
+    window.location.hash = '#/company/back2-co';
+    await settle();
+    goBackTo(parseHash('#/queue/back2'));
+    await waitFor(() => expect(getRoute()).toMatchObject({ jobId: 'back2', section: 'screening' }));
+  });
+
+  it('replaces the current entry when the page is not behind it (a cold load)', async () => {
+    window.location.hash = '#/legal/terms?from=%2Fdiscover%2Fats';
+    await settle();
+    const length = window.history.length;
+    goBackTo(parseHash('#/discover/ats'));
+    await waitFor(() => expect(window.location.hash).toBe('#/discover/ats'));
+    expect(window.history.length).toBe(length);
+  });
+});
+
+describe('route — navigate keeps an origin with its page', () => {
+  it('drops the origin and section when the page changes, unless they are named', () => {
+    window.location.hash = '#/queue/nav1?section=interviews&from=%2Fcompany%2Fco';
+    navigate({ jobId: 'nav2' });
+    expect(getRoute()).toMatchObject({ jobId: 'nav2' });
+    expect(getRoute().from).toBeFalsy();
+    expect(getRoute().section).toBeFalsy();
+    navigate({ jobId: 'nav3', from: '/company/co' });
+    expect(getRoute().from).toBe('/company/co');
+  });
+
+  it('keeps them while the page stays the same', () => {
+    window.location.hash = '#/queue/nav4?from=%2Fcompany%2Fco';
+    navigate({ section: 'screening' }, true);
+    expect(window.location.hash).toBe('#/queue/nav4?section=screening&from=%2Fcompany%2Fco');
   });
 });

@@ -370,7 +370,8 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
-    expect(window.location.hash).toBe('#/copy-deck');
+    // It remembers the page it was opened from (Companies here), for its Back (return paths).
+    expect(window.location.hash).toBe('#/copy-deck?from=%2Fdiscover');
     expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
   });
 

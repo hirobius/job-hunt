@@ -4,6 +4,7 @@
 // board on the systems we check, the company can be starred as a dream company instead. "Couldn't
 // check" is never read as "no board". Rev-3 mock (s-add-company): the Add job dialog's pattern, one
 // field with a one-line helper, Add the one primary.
+import { useBackCloses } from './useBackCloses';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   Alert,
@@ -35,6 +36,8 @@ export default function AddCompany({
   boardUrls: string[];
 }) {
   const [open, setOpen] = useState(false);
+  // The browser's Back closes the sheet and stays on the companies list (return paths).
+  useBackCloses(open, () => setOpen(false), `add-company:${categoryId}`);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {/* A Trigger, so closing the dialog returns focus here (a11y pass). */}

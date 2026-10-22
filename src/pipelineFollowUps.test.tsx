@@ -159,7 +159,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     expect(dueNames()).toEqual(['Design Systems Lead']);
   });
 
-  it('lists the interviews and calls in the next 7 days; Open job goes to its page', async () => {
+  it('lists the interviews and calls in the next 7 days; Open job goes to its Interviews tab', async () => {
     renderApp();
     const rows = within(region(/^Next 7 days/)).getAllByRole('listitem');
     expect(rows.map((r) => r.textContent)).toEqual([
@@ -171,9 +171,11 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     );
     await waitFor(() =>
       expect(window.location.hash).toBe(
-        `#/queue/${jobIdOf('https://meridianoak.example.com/careers/clinical-systems-analyst')}`,
+        `#/queue/${jobIdOf('https://meridianoak.example.com/careers/clinical-systems-analyst')}?section=interviews`,
       ),
     );
+    // The event lives on the Interviews tab, so that is the one that opens (return paths).
+    expect(await screen.findByRole('tab', { name: /Interviews/, selected: true })).toBeVisible();
   });
 
   it('every Follow up and Next 7 days row opens its posting in one tap (Adrian 2026-10-22)', () => {

@@ -4,6 +4,9 @@ import { resetPipelineView } from '../pipelineView';
 import { closeExportLinks } from '../exportLinks';
 import { closeFollowUp } from '../followUpFlow';
 import { configure } from '@testing-library/react';
+import { resetTabMemory } from '../tabMemory';
+import { resetViewMemory } from '../viewMemory';
+import { resetHistoryRecord } from '../route';
 import '@testing-library/jest-dom/vitest';
 
 // findBy*/waitFor give up after 1 s by default; a busy Vercel builder (verify runs in the deploy)
@@ -28,6 +31,12 @@ beforeEach(closeExportLinks);
 
 // A document's unsaved draft is kept for the tab (docDrafts.ts): no test inherits another's.
 beforeEach(() => sessionStorage.clear());
+
+// Where each top tab was left, and which rows were open (return paths): no test inherits them.
+beforeEach(resetTabMemory);
+beforeEach(resetViewMemory);
+// No test starts on a sheet's history entry left open by the one before (useBackCloses).
+beforeEach(resetHistoryRecord);
 
 // HDS Toast (Radix) captures the pointer for swipe-to-dismiss when its actions are clicked; jsdom
 // has no pointer capture.

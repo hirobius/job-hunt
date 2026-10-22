@@ -236,9 +236,10 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     expect(
       await within(list).findByRole('button', { name: 'Copied Cold intro' }),
     ).toBeInTheDocument();
+    // Documents remembers Apply mode, so its Back and a Save come back here (return paths).
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
       'href',
-      '#/copy-deck',
+      `#/copy-deck?from=%2Fapply%2F${jobIdOf(A)}`,
     );
     expect(
       screen.getByRole('link', { name: 'Edit documents' }).querySelector('svg'),
@@ -267,15 +268,16 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     ).toEqual(['Copied Cover letter']);
   });
 
-  it('with no messages, points to Documents instead', async () => {
+  it('with no messages, opens a new one in Documents instead', async () => {
     setOutreachMessages([]);
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
     await screen.findByRole('link', { name: 'Open application' });
     expect(screen.queryByRole('list', { name: 'Your templates' })).toBeNull();
+    // A new message, remembering Apply mode: saving it comes back here (return paths).
     expect(screen.getByRole('link', { name: 'Write a message' })).toHaveAttribute(
       'href',
-      '#/copy-deck',
+      `#/copy-deck/new/outreach?from=%2Fapply%2F${jobIdOf(A)}`,
     );
   });
 });

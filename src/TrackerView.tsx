@@ -35,10 +35,11 @@ import { Panel, PanelBody } from './PipelinePanel';
 import { PipelineLiveness } from './LivenessViews';
 import { RecentlyRemovedLink } from './RecentlyRemoved';
 import { useTrash } from './trash';
-import { navigate } from './route';
 import { openExportLinks } from './exportLinks';
 import { useVisualViewportVars } from './hds-gaps/useVisualViewportVars';
 import './account/sheet.css';
+import { openTab } from './tabMemory';
+import { useBackCloses } from './useBackCloses';
 
 // The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
 // chevron right. HDS Button has no stretch or alignment prop.
@@ -76,6 +77,8 @@ export default function TrackerView() {
   // The dialog opens from the header or the empty state, outside its Root, so it has no Trigger:
   // remember which button opened it and give focus back there on close (a11y pass).
   const addOpener = useRef<HTMLElement | null>(null);
+  // The browser's Back closes the sheet and stays on the Pipeline (return paths).
+  useBackCloses(addOpen, () => setAddOpen(false), 'add-job');
   // A sortable table where there's room for its six columns; compact cards below that (#129).
   const wide = useAtLeast('lg');
   // Export links sits beside Status and Sort; on a phone it folds into a ⋯ menu so they keep room.
@@ -363,9 +366,10 @@ export default function TrackerView() {
           </Stack>
         )}
         {/* The list always ends by pointing back to Companies (#238), empty or not. Secondary, so
-          Add job / Start applying stay the page's one primary. */}
+          Add job / Start applying stay the page's one primary. It opens Companies where it was
+          left (its last tool or section), like the Companies tab (return paths). */}
         <Stack direction="row">
-          <UiButton variant="secondary" onClick={() => navigate({ tab: 'discover', sub: null })}>
+          <UiButton variant="secondary" onClick={() => openTab('discover')}>
             Find the next company
           </UiButton>
         </Stack>

@@ -49,6 +49,7 @@ import { getPending, useFailedCount } from '../curation/pending';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { CloudSyncContext, type CloudSyncApi } from './accountContext';
 import { magicLinkRedirect } from './authRedirect';
+import { rememberSignInReturn, returnAfterSignIn } from './signInReturn';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
 // delete so a shared browser can't carry one person's jobs/pillars/résumé to the next.
@@ -217,6 +218,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         if (u) setCurationAccount(true); // only this tab's own sign-out clears it (#169)
         setAuthResolved(true);
         if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+        // Opened from the magic link: back to the page the link was asked for on (return paths).
+        if (event === 'SIGNED_IN') returnAfterSignIn();
         pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
         seedPending.current = !!u; // a sign-in owes a seed merge; sign-out or a user change resets it
         if (u) adopt(true, u);
@@ -337,6 +340,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   };
 
   const sendLink = async (email: string): Promise<string | null> => {
+    // The link lands on the app's root: remember this page so that tab comes back here.
+    rememberSignInReturn();
     let supa;
     try {
       supa = await loadSupabase(); // the first sign-in fetches the client

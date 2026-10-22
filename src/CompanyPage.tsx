@@ -4,12 +4,14 @@
 // Rev-3 mock: "← Pipeline" on the page's left edge, then Jobs, Documents and Notes as Pipeline
 // panels (count badges on the first two); a job row reads like a Pipeline card.
 import { useState, type ReactNode } from 'react';
-import { Box, Button, Icon, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
+import { Box, Button, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
-import { ArrowLeft, Building2 } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { addCompanyNote, useCompany } from './companies';
 import { DOCUMENT_KINDS, saveVersion, type Document } from './documents';
-import { jobHash } from './route';
+import { linkTo, useRoute, type Route } from './route';
+import BackLink from './BackLink';
+import { backClick, useBack } from './back';
 import { jobIdOf } from './store';
 import { JobBadges, RowPrimaryAction } from './JobRowParts';
 import { titleOf } from './jobRow';
@@ -42,6 +44,8 @@ function jobMeta(job: Job): string {
  *  posting's icon link beside it, a meta line, and the one next step on the right. */
 function CompanyJobRow({ job }: { job: Job }) {
   const meta = jobMeta(job);
+  // The job page remembers this Company page, so its Back returns here (return paths).
+  const href = linkTo({ tab: 'queue', jobId: jobIdOf(job.url) }, useRoute());
   return (
     <PanelRow>
       <Stack direction="row" gap="xs" align="center" justify="space-between">
@@ -50,7 +54,7 @@ function CompanyJobRow({ job }: { job: Job }) {
             <JobBadges job={job} />
             <JobPostingTitle job={job}>
               <Text variant="body" as="h4" weight="bold" className="rjb-row-title">
-                <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
+                <InlineLink href={href} externalIcon={false}>
                   {titleOf(job)}
                 </InlineLink>
               </Text>
@@ -139,9 +143,12 @@ function NewNote({ company, action }: { company: string; action: string }) {
   );
 }
 
+const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
+
 export default function CompanyPage({ slug }: { slug: string }) {
   const company = useCompany(slug);
   usePageTitle(company?.name ?? 'Company');
+  const back = useBack(PIPELINE, 'Pipeline');
   if (!company)
     return (
       <EmptyState
@@ -150,8 +157,11 @@ export default function CompanyPage({ slug }: { slug: string }) {
         title="No company here"
         description="Companies come from the company name on a job. This one may have been renamed."
         action={
+          // Usually renamed from the job page it was opened from: back there, by name.
           <Button asChild variant="secondary">
-            <a href="#/queue">Go to the Pipeline</a>
+            <a href={back.href} onClick={backClick(back)}>
+              {back.recorded ? `Back to ${back.label}` : 'Go to the Pipeline'}
+            </a>
           </Button>
         }
       />
@@ -163,17 +173,9 @@ export default function CompanyPage({ slug }: { slug: string }) {
       <Stack gap="normal">
         <Stack gap="tight">
           {/* "← Pipeline", the job page's Back, with no leading padding so the arrow sits on the
-              page gutter with the title (`.rjb-back-link`; its box stays inside the gutter). */}
-          <Box>
-            {/* A link (it navigates). HDS Button asChild drops iconLeft, so the arrow is the
-                link's own child. */}
-            <Button asChild className="rjb-back-link" variant="tertiary" size="md">
-              <a href="#/queue" aria-label="Back to Pipeline">
-                <Icon icon={ArrowLeft} />
-                Pipeline
-              </a>
-            </Button>
-          </Box>
+              page gutter with the title (`.rjb-back-link`; its box stays inside the gutter). Opened
+              from a job, it names that job and goes back to it (return paths). */}
+          <BackLink fallback={PIPELINE} fallbackLabel="Pipeline" />
           <Text variant="title" as="h2">
             {company.name}
           </Text>
