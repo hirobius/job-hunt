@@ -54,16 +54,17 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await row.getByRole('textbox', { name: 'Contact' }).fill('Dana');
   await row.getByRole('button', { name: 'Fill', exact: true }).click();
   await expect(list.getByText(/Hi Dana,/).first()).toBeVisible();
+  // Documents remembers Apply mode, so its Back and a Save come back here (return paths).
   await expect(page.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
     'href',
-    '#/copy-deck',
+    /^#\/copy-deck\?from=%2Fapply%2F/,
   );
 
   // The job page links its company to the Company page, which links back to the job.
   await page.evaluate(() => (location.hash = '#/queue'));
   await page.locator('a[href^="#/queue/"]').first().click();
   await page.getByRole('link', { name: 'Acme Metals', exact: true }).click();
-  await expect(page).toHaveURL(/#\/company\/acme-metals$/);
+  await expect(page).toHaveURL(/#\/company\/acme-metals\?from=%2Fqueue%2F/);
   await expect(page.getByRole('heading', { level: 2, name: 'Acme Metals' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Pipeline', selected: true })).toBeVisible();
   await page.getByRole('link', { name: 'Fabricator', exact: true }).click();

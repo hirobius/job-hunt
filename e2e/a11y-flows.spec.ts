@@ -133,7 +133,7 @@ for (const theme of ['light', 'dark'] as const) {
 test.describe('keyboard only', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('Menu → Documents → back to the Pipeline, and Menu → Privacy and terms', async ({
+  test('Menu → Documents → back to the Pipeline, and Menu → Privacy and terms → back again', async ({
     page,
   }) => {
     await seed(page);
@@ -155,10 +155,11 @@ test.describe('keyboard only', () => {
     await page.keyboard.press('End');
     await arrowTo(page, 'Privacy and terms', 'ArrowUp');
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/#\/legal\/privacy$/);
-    expect(await tabTo(page, 'Back to Companies')).toBe(true);
+    // Opened from the Pipeline, the page remembers it and its Back goes there (return paths).
+    await expect(page).toHaveURL(/#\/legal\/privacy\?from=%2Fqueue$/);
+    expect(await tabTo(page, 'Back to Pipeline')).toBe(true);
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/#\/discover$/);
+    await expect(page).toHaveURL(/#\/queue$/);
   });
 
   test('the title filter: tick and untick a title with Space', async ({ page }) => {
