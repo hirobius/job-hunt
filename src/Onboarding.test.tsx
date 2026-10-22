@@ -74,6 +74,24 @@ describe('Onboarding pack picker a11y (#104)', () => {
     expect(screen.queryByText('Pick at least one track')).toBeNull();
   });
 
+  it('the "Pick at least one track" alert describes the track list and focus goes to the first track (review, finding 4)', async () => {
+    const user = userEvent.setup();
+    render(<Onboarding />);
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    const alert = screen.getByRole('alert');
+    const list = screen.getByRole('group', { name: 'Starter tracks' });
+    expect(alert.id).not.toBe('');
+    expect(list.getAttribute('aria-describedby')?.split(' ')).toContain(alert.id);
+    expect(list).toHaveAccessibleDescription('Pick at least one track');
+    expect(screen.getAllByRole('checkbox')[0]).toHaveFocus();
+    // Pressed again from the button: focus goes back to the first track.
+    screen.getByRole('button', { name: 'Continue' }).focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getAllByRole('checkbox')[0]).toHaveFocus();
+    await user.click(screen.getByRole('checkbox', { name: 'ServiceNow' }));
+    expect(list).not.toHaveAttribute('aria-describedby');
+  });
+
   it('a pack set up with no location searches anywhere: no "Remote" default', async () => {
     const user = userEvent.setup();
     render(<Onboarding />);

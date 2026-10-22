@@ -15,7 +15,7 @@
 // stays while the row is open; open, the row shows the text with its line breaks (four lines on a
 // phone, all of it from `sm` up) with the variables as chips, then Copy, Open and a menu (Pin,
 // Duplicate, Delete).
-import { useState, type ReactNode } from 'react';
+import { useContext, useState, type ReactNode } from 'react';
 import { Copy, Ellipsis, FileText, Plus } from 'lucide-react';
 import {
   AlertDialog,
@@ -25,6 +25,7 @@ import {
   Disclosure,
   Icon,
   Menu,
+  Skeleton,
   Stack,
   Text,
   useToast,
@@ -52,6 +53,8 @@ import { highlightNew, useHighlight } from './feedback';
 import { useBackCloses, useBackSheet } from './useBackCloses';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { AddStarterMessages } from './StarterMessages';
+import { CloudSyncContext } from './account/accountContext';
+import { useSnippets } from './copyDeckStore';
 
 const PLURAL: Record<DocumentKind, string> = {
   resume: 'Résumés',
@@ -134,6 +137,9 @@ export default function DocumentsLibrary({
   const [expanded, setExpanded] = useState<string | null>(null);
   // An empty library shows its sections only once the user starts from scratch.
   const [fromScratch, setFromScratch] = useState(false);
+  const settled = useContext(CloudSyncContext)?.settled ?? true;
+  // Snippets not moved yet become documents once sync settles (App's SnippetMigration).
+  const moving = useSnippets().some((s) => !s.migrated);
   const controlled = openId !== undefined;
   const open: Open = newKind
     ? { kind: newKind }
@@ -182,6 +188,21 @@ export default function DocumentsLibrary({
       Documents
     </Text>
   );
+  // A new device's documents arrive with sync (and the snippet move after it): until both are done,
+  // "No documents yet" would be wrong and Add starter messages could land over the user's own
+  // edited messages (review of ef40fc6). Outside the provider (tests) it counts as settled.
+  if (!fromScratch && !docs.some((d) => d.base) && (!settled || moving))
+    return (
+      <Stack gap="spacious">
+        {head}
+        <Box aria-busy aria-label="Loading">
+          <Stack gap="normal">
+            <Skeleton variant="text" width="40%" />
+            <Skeleton variant="text" width="70%" />
+          </Stack>
+        </Box>
+      </Stack>
+    );
   if (!fromScratch && !docs.some((d) => d.base))
     return (
       <Stack gap="spacious">

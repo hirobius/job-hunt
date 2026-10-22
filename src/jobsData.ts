@@ -128,8 +128,11 @@ export const BOARDS: {
     tag: 'Remote only',
     modes: ['remote', 'any'],
     build: (term) => {
-      const first = /"([^"]+)"/.exec(term)?.[1] ?? term.trim();
-      return `https://www.remoterocketship.com/?sort=DateAdded&jobTitle=${encc(first)}`;
+      // No title (an empty clause like `""`): the plain newest-first list, no jobTitle param.
+      const quoted = [...term.matchAll(/"([^"]*)"/g)].map((m) => m[1].trim());
+      const first = quoted.length ? (quoted.find(Boolean) ?? '') : term.trim();
+      const base = 'https://www.remoterocketship.com/?sort=DateAdded';
+      return first ? `${base}&jobTitle=${encc(first)}` : base;
     },
   },
 ];

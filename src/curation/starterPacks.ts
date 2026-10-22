@@ -17,7 +17,7 @@ import {
   type PackContent,
 } from './packContent';
 import { sameGroupLabel } from './groupLabel';
-import { localizeTile } from './localize';
+import { localizeTile, placeKey } from './localize';
 
 export interface StarterPack {
   id: string;
@@ -161,8 +161,10 @@ export function topUpFromPack(categoryId: string, packId: string): TopUpResult {
   if (t.added || a.added) updateCategory(categoryId, { titles: t.next, atsRoles: a.next });
 
   const groups = state.groups.filter((g) => g.categoryId === categoryId);
+  // By place-free key: a link seeded before links followed the location (raw Spokane), or under
+  // another location, is the same tile as the pack link localized now (review of ef40fc6).
   const urls = new Set(
-    state.tiles.filter((x) => groups.some((g) => g.id === x.groupId)).map((x) => x.url),
+    state.tiles.filter((x) => groups.some((g) => g.id === x.groupId)).map((x) => placeKey(x.url)),
   );
   content.groups.forEach((pg, gi) => {
     // Case-insensitive: an older synced 'Apply Now' is the pack's 'Apply now' group.
@@ -176,9 +178,10 @@ export function topUpFromPack(categoryId: string, packId: string): TopUpResult {
       res.groups++;
     }
     const fresh = pg.tiles.flatMap((raw, ti) => {
+      const key = placeKey(raw.url);
+      if (urls.has(key)) return [];
+      urls.add(key);
       const tile = localizeTile(raw, cat.location);
-      if (urls.has(tile.url)) return [];
-      urls.add(tile.url);
       return [{ ...tile, sortOrder: 1000 + ti }];
     });
     addTiles(groupId, fresh);

@@ -403,7 +403,10 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   data stays opt-in and adds no messages. Setup defaults (Adrian 2026-10-22): every starter pack starts
   unticked (Suggested keeps its badge); a track with no location means anywhere (packs have no
   "Remote" default); the packs' Spokane search links follow the track's location when seeded or topped
-  up (`curation/localize.ts`; blank drops the place), employer pages stay as they are. Pinned in `firstRun`, `emptyStates`, `documentsLibrary`,
+  up (`curation/localize.ts`; blank drops the place; only the place param is rewritten, the rest of the URL
+  stays byte for byte), employer pages stay as they are. Top-up dedupes by `placeKey` (URL without its place, params
+  decoded), so a link seeded on the live release (raw Spokane) never comes back as a second, localized copy. Documents'
+  empty state and Add starter messages wait for `settled` and the snippet move (a new device's messages arrive first). Pinned in `firstRun`, `emptyStates`, `documentsLibrary`,
   `pipelineFollowUps`, `rapidApply`, `copyDeckStore`, `syncBlob` tests; e2e seeds call `addStarters`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /

@@ -166,6 +166,14 @@ describe('Remote Rocketship (a remote-only board, link only)', () => {
     ).toBe('https://www.remoterocketship.com/?sort=DateAdded&jobTitle=Design%20Engineer');
   });
 
+  it('with no title, leaves the jobTitle param out (review, finding 5)', () => {
+    for (const term of ['', '""', '  ', '("" OR "")']) {
+      expect(rr.build(term, { where: '', mode: 'remote' })).toBe(
+        'https://www.remoterocketship.com/?sort=DateAdded',
+      );
+    }
+  });
+
   it('shows only where remote work is on the table: Remote or Any, not Hybrid or On-site', () => {
     expect(boardsFor('remote').some((b) => b.name === 'Remote Rocketship')).toBe(true);
     expect(boardsFor('any').some((b) => b.name === 'Remote Rocketship')).toBe(true);
