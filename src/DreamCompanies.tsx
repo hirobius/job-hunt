@@ -8,10 +8,18 @@ import { atsSearchUrl } from './jobsData';
 import { markDreamChecked, useDreams, type Dream } from './feed/dreams';
 import { liveFetchJson } from './feed/fetchFeed';
 import type { Limiter } from './feed/probe';
-import { boardKey, newSince, readRoles, type Role, type RolesState } from './feed/teamRoles';
+import {
+  boardKey,
+  foldRolesState,
+  newSince,
+  readRoles,
+  type Role,
+  type RolesState,
+} from './feed/teamRoles';
+import { foldRoles } from './feed/roleType';
 import { SOURCE_LABEL } from './feed/types';
 import { Panel, PanelBody, PanelRow } from './PipelinePanel';
-import { DreamStar, RoleList } from './TeamRoles';
+import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
 
 type Checked = { roles: Role[]; fresh: Set<string> } | 'unknown';
 
@@ -23,12 +31,15 @@ export default function DreamCompanies({
   terms,
   limiter,
   roles = {},
+  roleTypes = { ranked: false, fold: false },
 }: {
   categoryId: string;
   terms: string[];
   limiter: Limiter;
   /** Boards the companies list has read this visit, by boardKey: a starred one shows its count. */
   roles?: Record<string, RolesState>;
+  /** A design-systems track tags role types and folds the engineering-heavy roles (roleType.ts). */
+  roleTypes?: { ranked: boolean; fold: boolean };
 }) {
   const dreams = useDreams(categoryId);
   const [checked, setChecked] = useState<Record<string, Checked>>({});
@@ -61,7 +72,8 @@ export default function DreamCompanies({
             setChecked((c) => ({ ...c, [d.key]: 'unknown' }));
             return;
           }
-          const found = newSince(r.roles, d.seen);
+          // New openings are counted among the roles shown, not the folded engineering-heavy ones.
+          const found = newSince(foldRoles(r.roles, roleTypes.fold).shown, d.seen);
           fresh += found.length;
           markDreamChecked(
             categoryId,
@@ -125,6 +137,7 @@ export default function DreamCompanies({
               categoryId={categoryId}
               checked={checked[d.key]}
               read={d.board ? roles[boardKey(d.board)] : undefined}
+              roleTypes={roleTypes}
             />
           ))}
         </ul>
@@ -136,6 +149,7 @@ export default function DreamCompanies({
 const lower = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 
 function statusLine(d: Dream, c?: Checked, read?: RolesState): string {
+  // `c` and `read` hold the shown roles only (DreamRow folds them first).
   if (!d.board) return 'No public board to check';
   if (c === 'unknown') return "Couldn't check";
   if (c) return `${plural(c.roles.length, 'matching role')} · ${c.fresh.size} new`;
@@ -149,14 +163,23 @@ function statusLine(d: Dream, c?: Checked, read?: RolesState): string {
 function DreamRow({
   d,
   categoryId,
-  checked,
-  read,
+  checked: allChecked,
+  read: allRead,
+  roleTypes,
 }: {
   d: Dream;
   categoryId: string;
   checked?: Checked;
   read?: RolesState;
+  roleTypes: { ranked: boolean; fold: boolean };
 }) {
+  const read = foldRolesState(allRead, roleTypes.fold).roles;
+  const split =
+    allChecked && allChecked !== 'unknown' ? foldRoles(allChecked.roles, roleTypes.fold) : null;
+  const checked: Checked | undefined =
+    allChecked && allChecked !== 'unknown'
+      ? { roles: split!.shown, fresh: allChecked.fresh }
+      : allChecked;
   const careers = atsSearchUrl(`"${d.company}"`, { role: 'careers', where: '', mode: 'any' });
   return (
     <PanelRow>
@@ -197,8 +220,14 @@ function DreamRow({
           </Stack>
         </Stack>
         {checked && checked !== 'unknown' && checked.roles.length > 0 && (
-          <RoleList company={d.company} roles={checked.roles} newIds={checked.fresh} />
+          <RoleList
+            company={d.company}
+            roles={checked.roles}
+            newIds={checked.fresh}
+            typed={roleTypes.ranked}
+          />
         )}
+        {split && <FoldedRoles company={d.company} roles={split.folded} />}
       </Stack>
     </PanelRow>
   );

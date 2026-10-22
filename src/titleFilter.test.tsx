@@ -15,6 +15,7 @@ vi.mock('./feed/fetchFeed', () => feed);
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { writeShowEngineering } from './feed/roleTypePref';
 import { addCategory, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 import { getAllSweeps, setTitleOn } from './feed/sweepTitles';
@@ -47,6 +48,8 @@ beforeEach(() => {
   feed.fetchFeed.mockReset().mockResolvedValue({ postings: POSTINGS, sources: [] });
   replaceCurationState(EMPTY_CURATION);
   cat = addCategory({ label: 'Design Systems', titles: TITLES, atsRoles: ['design system'] });
+  // These pin the title filter, not role types: keep the engineering-heavy roles in the list.
+  writeShowEngineering(cat, true);
   window.history.replaceState(null, '', '/');
 });
 afterEach(cleanup);

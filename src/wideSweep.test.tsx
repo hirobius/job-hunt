@@ -15,6 +15,7 @@ vi.mock('./feed/fetchFeed', () => feed);
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { writeShowEngineering } from './feed/roleTypePref';
 import { addCategory, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 import { getAllSweeps } from './feed/sweepTitles';
@@ -56,6 +57,8 @@ beforeEach(() => {
     titles: ['design engineer', 'design technologist', 'design system'],
     atsRoles: ['design system'],
   });
+  // These pin the title filter, not role types: keep the engineering-heavy roles in the list.
+  writeShowEngineering(cat, true);
   window.history.replaceState(null, '', '/');
   window.location.hash = '#/discover/live';
 });
@@ -141,7 +144,11 @@ describe('wide sweep', () => {
     const user = await startSweep();
     await screen.findByText('design system', { selector: '.rjb-chip-text' });
     const list = screen.getByRole('list', { name: 'Live postings' });
-    await user.click(within(list).getAllByRole('button', { name: 'Save' })[0]);
+    // The design-systems track lists the Design Technologist first; save Co 1's Design Engineer.
+    const row = within(list)
+      .getAllByRole('listitem')
+      .find((li) => within(li).queryByText('Co 1'))!;
+    await user.click(within(row).getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Saved to Pipeline · To apply')).toBeInTheDocument();
     const job = findJobByUrl(POSTINGS[0].url)!;
     expect(job.status).toBe('Saved');
