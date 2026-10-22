@@ -1,6 +1,8 @@
 // What this device holds that a sign-in would add to the account (the merge guard, security
-// audit). Starter templates and an empty kit are not "data": every fresh device has them.
+// audit). Starter templates, an empty kit and sample jobs are not "data": a fresh device has the
+// first two, and sample data is never pushed.
 import { emptyBlob, type SyncData } from '../syncBlob';
+import { isSample } from '../demo/isSample';
 
 const starterSnippet = (id: string) => id.startsWith('tpl-');
 const starterDocument = (id: string) => id.startsWith('snippet-tpl-');
@@ -13,9 +15,10 @@ export interface DeviceData {
 }
 
 export function deviceData(d: SyncData, tracks: number): DeviceData {
+  const jobs = d.jobs.filter((j) => !isSample(j)).length;
   const any =
-    d.jobs.length > 0 ||
-    d.trash.length > 0 ||
+    jobs > 0 ||
+    d.trash.some((r) => !isSample(r.job)) ||
     tracks > 0 ||
     d.copydeck.some((s) => !starterSnippet(s.id)) ||
     d.documents.some((x) => !starterDocument(x.id)) ||
@@ -25,7 +28,7 @@ export function deviceData(d: SyncData, tracks: number): DeviceData {
     anyList(d.targets) ||
     anyList(d.filters) ||
     anyList(d.dreams);
-  return { jobs: d.jobs.length, any };
+  return { jobs, any };
 }
 
 /** The merge question, in plain words. */

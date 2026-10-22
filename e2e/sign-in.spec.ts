@@ -33,3 +33,25 @@ test('desktop: a centred dialog', async ({ page }) => {
   expect(Math.abs(box.y + box.height / 2 - 450)).toBeLessThanOrEqual(2);
   expect(box.width).toBeLessThanOrEqual(440);
 });
+
+// Login injection (security audit): a link carrying someone's session tokens never signs this
+// browser in on its own. The tokens leave the address bar at once, and Cancel drops them.
+test('an unsolicited token link asks first, and Cancel drops it', async ({ page }) => {
+  const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const token = `${b64({ alg: 'HS256' })}.${b64({ sub: 'x', email: 'attacker@evil.test' })}.sig`;
+  const supabase: string[] = [];
+  page.on('request', (r) => {
+    if (r.url().includes('supabase.co')) supabase.push(r.url());
+  });
+  await page.goto(`/#access_token=${token}&refresh_token=r&token_type=bearer&type=magiclink`);
+  const ask = page.getByRole('alertdialog', { name: 'Sign in as attacker@evil.test?' });
+  await expect(ask).toBeVisible();
+  expect(page.url()).not.toContain('access_token');
+  await ask.getByRole('button', { name: 'Cancel' }).click();
+  await expect(ask).toBeHidden();
+  expect(page.url()).not.toContain('access_token');
+  expect(supabase.filter((u) => u.includes('/auth/'))).toEqual([]);
+  expect(
+    await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('sb-'))),
+  ).toEqual([]);
+});
