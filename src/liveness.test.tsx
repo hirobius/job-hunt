@@ -51,6 +51,22 @@ describe('PipelineLiveness', () => {
     expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
   });
 
+  it('each closed job also links to its posting, to confirm it is gone (Adrian 2026-10-22)', async () => {
+    feed.fetchJson.mockResolvedValue(board('aaaa'));
+    render(<PipelineLiveness jobs={[job(A, 'Open role'), job(B, 'Gone role')]} />);
+    const posting = await screen.findByRole('link', { name: 'Open posting for Gone role' });
+    expect(posting).toHaveAttribute('href', B);
+    expect(posting).toHaveAttribute('target', '_blank');
+  });
+
+  it('a closed job saved from a bare link still shows a title, not an empty link', async () => {
+    feed.fetchJson.mockResolvedValue(board('aaaa'));
+    render(<PipelineLiveness jobs={[job(A, 'Open role'), job(B, '')]} />);
+    // The derived title (the board's company first), as on every other row.
+    const link = await screen.findByRole('link', { name: /^Ramp/ });
+    expect(link).toHaveAttribute('href', `#/queue/${jobIdOf(B)}`);
+  });
+
   it('the button re-checks on demand', async () => {
     feed.fetchJson.mockResolvedValue(board('aaaa', 'bbbb'));
     render(<PipelineLiveness jobs={[job(A, 'a'), job(B, 'b')]} />);

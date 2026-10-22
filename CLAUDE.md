@@ -289,6 +289,17 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   re-run it after a brand change and commit the PNGs. Pinned in `pwa.test.ts`. `npm run audit` =
   `npm audit --omit=dev --audit-level=high`; run it by hand (it is not in `verify`: the Vercel build
   must not fail on a new advisory upstream).
+- **Posting links (Adrian 2026-10-22: anywhere a job is listed, its posting is one tap away).** A
+  saved job's title opens its page in the app; `PostingLink.tsx` (`JobPostingLink` for a Job) is the
+  quiet icon link to the posting right beside it (HDS icon-only Button as an `<a target=_blank>`,
+  named "Open posting for <title> at <company>", tooltip "Open posting", nothing for a non-web
+  URL). It sits beside the title, never inside a link: the Pipeline table and cards, the Follow up
+  and Next 7 days rows, the closed-on-the-board list, Recently removed, the Company page and the job
+  page header. Its target overflows the title's line (`.rjb-posting-link` in `base.css`), so rows
+  keep their rhythm; 40x40 on a phone. Unsaved listings (Live postings, team and dream roles, tiles,
+  Manage track's links) have no page: their title is the link out, with HDS's external icon. Apply
+  mode keeps Open application; the job rail (NavList rows are links) relies on the header beside it.
+  Pinned in `PostingLink.test.tsx`, the surface suites and `e2e/posting-links.spec.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.

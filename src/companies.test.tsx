@@ -113,6 +113,10 @@ describe('Companies as one tool (#237)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Roles at Northwind' }));
     const roles = await screen.findByRole('list', { name: 'Open roles at Northwind' });
     expect(within(roles).getByText('Senior Welder')).toBeVisible();
+    // The role's title is its posting link, in a new tab (Adrian 2026-10-22).
+    const posting = within(roles).getByRole('link', { name: /^Senior Welder/ });
+    expect(posting).toHaveAttribute('href', 'https://jobs.lever.co/northwind/n1');
+    expect(posting).toHaveAttribute('target', '_blank');
     expect(within(roles).queryByText('Accountant')).toBeNull();
     // A watched row is already watched: no disabled Watching button as noise (PR #257 review).
     expect(within(list).queryByRole('button', { name: /Watch/ })).toBeNull();

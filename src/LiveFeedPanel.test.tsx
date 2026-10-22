@@ -220,6 +220,16 @@ describe('LiveFeedPanel', () => {
     expect(within(ramp).getByRole('button', { name: 'Saved' })).toBeDisabled();
   });
 
+  it('each opening title opens the posting in a new tab, with the external-link icon (Adrian 2026-10-22)', async () => {
+    renderPanel();
+    const row = (await screen.findByText('Design Systems Lead')).closest('li')!;
+    const link = within(row).getByRole('link', { name: /Design Systems Lead/ });
+    expect(link).toHaveAttribute('href', 'https://jobs.ashbyhq.com/ramp/1');
+    expect(link).toHaveAttribute('target', '_blank');
+    // A visible cue that it leaves the app, not only the screen-reader "(opens in new tab)".
+    expect(link.querySelector('svg')).not.toBeNull();
+  });
+
   it('Remote OK attribution: their link as given, followed, with "Remote OK" on the row', async () => {
     const url = 'https://remoteOK.com/remote-jobs/design-systems-lead-9';
     feed.fetchFeed.mockResolvedValueOnce({

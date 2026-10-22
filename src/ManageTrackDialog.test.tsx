@@ -13,7 +13,13 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 import ManageTrackDialog from './ManageTrackDialog';
-import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
+import {
+  addCategory,
+  addGroup,
+  addTile,
+  getCurationState,
+  replaceCurationState,
+} from './curation/curationStore';
 
 afterEach(() => {
   cleanup();
@@ -38,5 +44,28 @@ describe('ManageTrackDialog · starter-pack update', () => {
     expect(
       await screen.findByText(/Added \d+ terms, \d+ links and \d+ outreach targets/),
     ).toBeInTheDocument();
+  });
+});
+
+describe('ManageTrackDialog · section links', () => {
+  it('each link opens its page in a new tab, to check it before keeping it (Adrian 2026-10-22)', async () => {
+    const id = addCategory({ label: 'Welding', titles: [], atsRoles: [] });
+    const group = addGroup(id, { label: 'Shops' });
+    addTile(group, { name: 'Travis Pattern & Foundry', url: 'https://www.travispattern.com/' });
+    // Typed without a scheme: a relative link would open the app itself, so it stays text.
+    addTile(group, { name: 'Acme careers', url: 'acme.example/careers' });
+    render(
+      <ToastProvider>
+        <ManageTrackDialog categoryId={id} open onClose={() => {}} onDeleted={() => {}} />
+      </ToastProvider>,
+    );
+    const dialog = await screen.findByRole('dialog');
+    const link = within(dialog).getByRole('link', { name: /^Travis Pattern & Foundry/ });
+    expect(link).toHaveAttribute('href', 'https://www.travispattern.com/');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(
+      within(dialog).getByRole('button', { name: 'Remove Travis Pattern & Foundry' }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText('Acme careers').closest('a')).toBeNull();
   });
 });

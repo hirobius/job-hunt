@@ -19,3 +19,10 @@ Element.prototype.setPointerCapture ??= () => {};
 Element.prototype.releasePointerCapture ??= () => {};
 // HDS Select (Radix) scrolls the picked option into view when it opens; jsdom has no layout.
 Element.prototype.scrollIntoView ??= () => {};
+// HDS Tooltip (Radix) measures its arrow with a ResizeObserver; jsdom has none. Every saved job's
+// row now carries the Open posting tooltip (PostingLink), so any test that focuses one needs it.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};

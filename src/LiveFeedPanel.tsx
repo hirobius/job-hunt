@@ -1190,10 +1190,10 @@ function PostingRow({
                 {SOURCE_LABEL[p.source]}
               </Text>
             </Stack>
+            {/* An opening has no page in the app: its title is the posting link, with the
+                external-link icon so it reads as leaving the app (Adrian 2026-10-22). */}
             <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
-              <InlineLink href={p.url} externalIcon={false}>
-                {p.title}
-              </InlineLink>
+              <InlineLink href={p.url}>{p.title}</InlineLink>
             </Text>
             {p.company && (
               <Text variant="ui" as="p">

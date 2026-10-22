@@ -172,6 +172,25 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     );
   });
 
+  it('every Follow up and Next 7 days row opens its posting in one tap (Adrian 2026-10-22)', () => {
+    renderApp();
+    const urlOf = (label: string) => getAllJobs().find((j) => j.label === label)?.url;
+    const rows = within(followUps()).getAllByRole('listitem');
+    expect(rows.length).toBeGreaterThan(2); // due and waiting rows alike
+    for (const r of rows) {
+      const title = titleOf(r)!;
+      const posting = within(r).getByRole('link', {
+        name: new RegExp(`^Open posting for ${title}`),
+      });
+      expect(posting).toHaveAttribute('href', urlOf(title));
+      expect(posting).toHaveAttribute('target', '_blank');
+    }
+    const event = within(region(/^Next 7 days/)).getAllByRole('listitem')[0];
+    expect(
+      within(event).getByRole('link', { name: /^Open posting for Clinical Systems Analyst/ }),
+    ).toHaveAttribute('href', 'https://meridianoak.example.com/careers/clinical-systems-analyst');
+  });
+
   it('no line in a row holds three or more " · " items (#192)', () => {
     renderApp();
     const lines = [followUps(), region(/^Next 7 days/)].flatMap((r) =>

@@ -21,6 +21,7 @@ import { jobHash } from './route';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
 import { timeLabel } from './agendaTime';
+import { JobPostingLink, PostingLink } from './PostingLink';
 import type { Job } from './types';
 
 const jobHref = (url: string) => jobHash(jobIdOf(url));
@@ -33,15 +34,19 @@ function sinceNote(job: Job, now: Date) {
   return s.appliedDaysAgo != null ? `Applied ${days(s.appliedDaysAgo)} ago` : '';
 }
 
-/** One agenda row: an optional badge above the title (rev-3 B), note lines, an optional trailing
- * action. State is text (a Badge or the title's own words), never a status dot (#193). */
+/** One agenda row: an optional badge above the title (rev-3 B), the title with the job's posting
+ * link beside it, note lines, an optional trailing action. State is text (a Badge or the title's
+ * own words), never a status dot (#193). */
 function AgendaRow({
   title,
+  posting,
   badge,
   notes,
   trailing,
 }: {
   title: ReactNode;
+  /** The job's PostingLink: one tap to the posting from every row (Adrian 2026-10-22). */
+  posting: ReactNode;
   badge?: ReactNode;
   notes: string[];
   trailing?: ReactNode;
@@ -51,9 +56,14 @@ function AgendaRow({
       <Box sx={{ minWidth: 0 }}>
         <Stack gap="px4" align="start">
           {badge}
-          <Text variant="body" as="span" weight="bold" className="rjb-card-title">
-            {title}
-          </Text>
+          <Stack direction="row" gap="px4" align="center">
+            <Box sx={{ minWidth: 0 }}>
+              <Text variant="body" as="span" weight="bold" className="rjb-card-title">
+                {title}
+              </Text>
+            </Box>
+            {posting}
+          </Stack>
           {notes.map((n, i) => (
             <Text key={i} variant="caption" as="span" tone="secondary">
               {n}
@@ -86,6 +96,7 @@ export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
                   {titleOf(job)}
                 </InlineLink>
               }
+              posting={<JobPostingLink job={job} />}
               badge={<Badge tone="warning">Due</Badge>}
               notes={metaLines([job.company, sinceNote(job, now)])}
               trailing={<FollowUpButton job={job} />}
@@ -102,6 +113,7 @@ export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
                     {titleOf(job)}
                   </InlineLink>
                 }
+                posting={<JobPostingLink job={job} />}
                 notes={metaLines([
                   deriveJobState(job, now).status,
                   date ? `Follow up ${dayLabel(date, now)}` : '',
@@ -131,6 +143,7 @@ export function NextDaysSection({ jobs, now }: { jobs: Job[]; now: Date }) {
           <PanelRow key={`${it.jobUrl}-${it.id}`}>
             <AgendaRow
               title={`${KIND_WORD[it.kind]} · ${it.label}`}
+              posting={<PostingLink url={it.jobUrl} title={it.label} company={it.company} />}
               notes={metaLines([
                 `${dayLabel(it.date, now)}, ${timeLabel(it.time)}`,
                 it.company,

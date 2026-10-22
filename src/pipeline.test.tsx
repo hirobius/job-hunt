@@ -98,8 +98,27 @@ describe('Pipeline on a phone (#129)', () => {
     const card = screen.getByRole('article', { name: 'Design Engineer' });
     const title = within(card).getByRole('link', { name: 'Design Engineer' });
     expect(title).toHaveAttribute('href', `#/queue/${jobIdOf(SAVED)}`);
-    // Nothing shares the title's row: its heading holds the link alone.
+    // Its heading holds the link alone.
     expect(title.closest('h3')!.textContent).toBe('Design Engineer');
+  });
+
+  it('opens the posting in one tap from beside the title (Adrian 2026-10-22)', () => {
+    renderApp();
+    const card = screen.getByRole('article', { name: 'Design Engineer' });
+    const posting = within(card).getByRole('link', {
+      name: 'Open posting for Design Engineer at Acme',
+    });
+    expect(posting).toHaveAttribute('href', SAVED);
+    expect(posting).toHaveAttribute('target', '_blank');
+    // Beside the title, never inside its link.
+    expect(posting.closest('h3')).toBeNull();
+    expect(posting.parentElement!.closest('a')).toBeNull();
+    const applied = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    expect(
+      within(applied).getByRole('link', {
+        name: 'Open posting for Zenith Product Designer at Zenith',
+      }),
+    ).toHaveAttribute('href', APPLIED);
   });
 
   it('each card has one primary action, the rest in its menu', async () => {
@@ -242,6 +261,19 @@ describe('Pipeline on a desktop (#129)', () => {
     ).toBeInTheDocument();
   });
 
+  it('each row opens its posting in one tap from beside the title (Adrian 2026-10-22)', () => {
+    renderApp();
+    const table = screen.getByRole('table', { name: 'Saved jobs' });
+    const row = within(table).getByRole('row', { name: /Design Engineer/ });
+    const posting = within(row).getByRole('link', {
+      name: 'Open posting for Design Engineer at Acme',
+    });
+    expect(posting).toHaveAttribute('href', SAVED);
+    expect(posting).toHaveAttribute('rel', 'noopener noreferrer');
+    // In the Job cell, with the title, not in the actions cell.
+    expect(within(row).getAllByRole('cell')[0]).toContainElement(posting);
+  });
+
   it('marks starred rows (they float in every sort) and retired ones', async () => {
     updateJob(SAVED, { archived: true });
     renderApp();
@@ -268,6 +300,8 @@ describe('Pipeline on a desktop (#129)', () => {
     const titles = () =>
       within(table())
         .getAllByRole('link')
+        // The job-page links; each row also has its posting link beside the title.
+        .filter((l) => l.getAttribute('href')?.startsWith('#/queue/'))
         .map((l) => l.textContent);
     // Default: the pinned job with a due follow-up first, then most recently added.
     expect(titles()).toEqual(['Zenith Product Designer', 'Writer', 'Design Engineer']);
