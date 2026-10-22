@@ -192,7 +192,8 @@ export default function App() {
     } else if (!getRoute().tab) {
       navigate({ tab: HOME_ROUTE }, true);
     }
-    // Mount only: the link is read once, as the tab opens.
+    // Mount only: the link is read once, as the tab opens (a new `toast` must not re-run a quick-add).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // An old #/today link or bookmark (#236) lands on Companies; replace, so Back skips it.

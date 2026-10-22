@@ -391,7 +391,21 @@ Previews: `docs/brand/`.
   `e2e/export-links.spec.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
-  bookmarklet / Gmail-scan one-tap links.
+  bookmarklet / Gmail-scan one-tap links. The URL is cleaned through the route seam
+  (`navigate(…, true, { search })`), never a raw `history.replaceState`: route.ts must know the
+  hash it is on, or a sheet's pop waits ~2 s for a hashchange that never comes (`shell.test.tsx`).
+  Never rewrite the URL outside `route.ts`.
+- **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;
+  `account/authLinkError.ts` words it ("That sign-in link has expired. Send a new one from
+  Account.") and App toasts it and replaces the hash with Companies through the route seam.
+- **Stale tab after a deploy** (`staleBuild.ts`, `chunkError.ts`, `StaleBuildNotice.tsx`): every
+  dynamic import goes through `importFresh` (App's and DiscoverView's `lazy`, `routeViews.ts`,
+  `loadSupabase`), plus Vite's `vite:preloadError`. A chunk that is gone raises one toast "A new
+  version is ready. Reload to continue." with Reload; `ErrorBoundary` shows the same line instead of
+  "Something broke"; Sign in says it inline. Reload notes the time in sessionStorage
+  (`rjb_stale_reload`), and `errorReport` drops chunk errors unless one comes within 2 min of that
+  reload (the reload didn't fix it). Pinned in `staleBuild.test.tsx`. A new lazy import uses
+  `importFresh` too.
 - **Tracker model:** default "Active" filter = not-yet-applied (Saved) + pinned;
   applying drops a job out of the active queue. Follow-up loop: due 7 days after applying or the
   last follow-up. Every "Follow up" button (Pipeline Follow up section, Pipeline row, job header) opens the one
