@@ -49,6 +49,7 @@ import { useOutreachTemplates } from './outreachTemplates';
 import { fillSnippet, previewText } from './templateFill';
 import { copyFilled } from './templateCopy';
 import { showNotice } from './saveNotice';
+import { useCloudSync } from './account/accountContext';
 import type { Job } from './types';
 
 export default function ApplyMode({ jobId }: { jobId: string | null }) {
@@ -420,6 +421,7 @@ function ApplicationKit({ job }: { job: Job }) {
     />
   );
   const answered = kit.answers.length;
+  const { user } = useCloudSync(); // signed out, the kit stays on this device
   return (
     <Panel
       label="Application kit"
@@ -428,7 +430,9 @@ function ApplicationKit({ job }: { job: Job }) {
     >
       <PanelBody>
         <Text variant="caption" as="p" tone="secondary">
-          Enter these once. They follow your account.
+          {user
+            ? 'Enter these once. They follow your account.'
+            : 'Enter these once. Saved on this device only.'}
         </Text>
       </PanelBody>
       <Rows label="Profile">

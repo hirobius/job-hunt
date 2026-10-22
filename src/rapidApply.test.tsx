@@ -5,10 +5,19 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
+const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));
 vi.mock('@supabase/supabase-js', async () => {
   const { createFakeSupabase } = await import('./test/fakeSupabase');
-  return { createClient: () => createFakeSupabase().client };
+  return {
+    createClient: () => {
+      h.fake = createFakeSupabase();
+      return h.fake.client;
+    },
+  };
 });
+
+import type { createFakeSupabase } from './test/fakeSupabase';
+import { loadSupabase } from './supabase';
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
@@ -274,5 +283,28 @@ describe('rapid apply follow-ups (#219)', () => {
     await user.click(await screen.findByRole('button', { name: /^Custom answers/ }));
     await user.click(screen.getByRole('button', { name: 'Add a question' }));
     expect(screen.getByRole('button', { name: 'Remove this question' })).toBeInTheDocument();
+  });
+});
+
+describe('Application kit: where it is kept (sign-in aware)', () => {
+  const kitNote = () =>
+    within(screen.getByRole('region', { name: /^Application kit/ })).getByText(/^Enter these once/);
+
+  it('signed out, it says the kit stays on this device', async () => {
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('heading', { name: 'Acme Designer' });
+    expect(kitNote()).toHaveTextContent('Enter these once. Saved on this device only.');
+  });
+
+  it('signed in, it says the kit follows the account', async () => {
+    await loadSupabase();
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    act(() => h.fake!.signIn('u1'));
+    await waitFor(() =>
+      expect(kitNote()).toHaveTextContent('Enter these once. They follow your account.'),
+    );
+    act(() => void h.fake!.client.auth.signOut());
   });
 });
