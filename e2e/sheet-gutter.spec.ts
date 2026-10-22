@@ -22,10 +22,7 @@ test('Add job and Add a company sheets keep a side gutter at 390', async ({ page
   await expect(page.getByRole('dialog', { name: 'Add a job' })).toBeVisible();
   await expectGutter(page);
   await page.keyboard.press('Escape');
-  await page.getByRole('tab', { name: 'Companies' }).click();
-  await page.getByRole('button', { name: 'Choose a track' }).click();
-  for (const name of ['Continue', 'Continue', 'Finish'])
-    await page.getByRole('button', { name, exact: true }).click();
+  // The sample brings its Sample track, so Companies needs no setup.
   await page.evaluate(() => (location.hash = '#/discover/teams'));
   await page
     .getByRole('button', { name: /^Add a company/ })

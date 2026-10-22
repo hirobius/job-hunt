@@ -317,7 +317,7 @@ for (const width of [390, 1440] as const) {
       ).toEqual([]);
       expect(await longTitleOffences(page.getByRole('region', { name: /^Jobs/ }))).toEqual([]);
       await openJobTitled(page, LONG.slice(0, 20));
-      expect(await longTitleOffences(page.locator('header'))).toEqual([]);
+      expect(await longTitleOffences(page.getByRole('main').locator('header'))).toEqual([]);
       if (!phone)
         expect(await longTitleOffences(page.getByRole('navigation', { name: 'Jobs' }))).toEqual([]);
       await page.evaluate(() => (location.hash = '#/queue'));
@@ -340,7 +340,7 @@ test.describe('the job rail at 1440', () => {
     await page.locator('a[href^="#/queue/"]').first().click();
     const rail = page.getByRole('navigation', { name: 'Jobs' });
     const rows = rail.getByRole('listitem');
-    expect(await rows.count()).toBeGreaterThan(1);
+    await expect(rows.nth(1)).toBeVisible();
     for (const row of await rows.all()) {
       const link = row.locator('a[href^="#/queue/"]');
       await expect(link).toHaveCount(1);

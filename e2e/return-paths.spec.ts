@@ -190,7 +190,7 @@ for (const width of [390, 1440] as const) {
     test('the browser Back closes a sheet and keeps the page under it', async ({ page }) => {
       await go(page, '#/queue');
       await page.getByRole('button', { name: 'Add job' }).click();
-      await page.getByLabel('Job URL').fill('https://example.com/jobs/typed');
+      await page.getByLabel('Job link').fill('https://example.com/jobs/typed');
       await page.goBack();
       await expect(page.getByRole('dialog')).toHaveCount(0);
       await expect(page).toHaveURL(/#\/queue$/);
