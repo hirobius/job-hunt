@@ -55,9 +55,17 @@ describe('legal pages (#43)', () => {
     expect(vercel.purpose).toMatch(/without cookies/);
   });
 
-  it('does not list AI processing: AI is removed (2026-07)', () => {
-    const all = text(PRIVACY) + text(TERMS);
-    expect(all).not.toMatch(/Anthropic|Claude|OpenAI|\bAI\b/);
+  it('mentions AI only for the opt-in OpenRouter screening, and says what is sent', () => {
+    const others = THIRD_PARTIES.filter((t) => !t.hosts.includes('https://openrouter.ai'));
+    const rest = text(PRIVACY).replace(/OpenRouter[^\n]*/g, '') + text(TERMS);
+    expect(rest + others.map((t) => t.purpose).join('\n')).not.toMatch(
+      /Anthropic|Claude|OpenAI|\bAI\b/,
+    );
+    const ai = THIRD_PARTIES.find((t) => t.hosts.includes('https://openrouter.ai'))!;
+    expect(ai.purpose).toMatch(/only when you press Screen/i);
+    expect(ai.purpose).toMatch(/job posting you pasted/);
+    expect(ai.purpose).toMatch(/never synced, backed up or sent to us/);
+    expect(ai.purpose).toMatch(/bills you/);
   });
 
   it('privacy covers stored PII, local storage, export and erasure', () => {

@@ -32,6 +32,15 @@ describe('error reports (#47)', () => {
     );
   });
 
+  it('never carries an API key (Screen with AI uses the user’s own key)', () => {
+    expect(scrubText('401 for sk-or-v1-abcdef0123456789 at fetch', 200)).toBe(
+      '401 for [key] at fetch',
+    );
+    expect(scrubText('header Authorization: Bearer abc.def-123', 200)).toBe(
+      'header Authorization: [key]',
+    );
+  });
+
   it('keeps only the tab of the route, never a job id', () => {
     expect(routeOf('#/queue/abc123')).toBe('queue');
     expect(routeOf('#/copy-deck/snippet-1')).toBe('copy-deck');

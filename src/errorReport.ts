@@ -28,10 +28,13 @@ const URL_TAIL = /(https?:\/\/[^\s?#)]+)[?#][^\s)]*/g;
 // Double-quoted runs are where engines echo data (`"Acme Corp…" is not valid JSON`); single quotes
 // name code (`reading 'title'`), which is what a fix needs, so those stay.
 const QUOTED = /"[^"\n]*"/g;
+// An API key (the user's own AI key, src/ai/) must never reach a report, whatever an error says.
+const SECRET = /\b(?:sk-[\w-]{8,}|Bearer\s+\S+)/gi;
 
 /** Removes anything that could identify the user or their data from free text. */
 export function scrubText(text: string, max: number): string {
   return text
+    .replace(SECRET, '[key]')
     .replace(EMAIL, '[email]')
     .replace(URL_TAIL, '$1')
     .replace(QUOTED, '"…"')

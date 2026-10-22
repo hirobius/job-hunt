@@ -75,6 +75,10 @@ describe('content security policy', () => {
     expect(src('style-src')).toEqual(["'self'", "'unsafe-inline'"]);
   });
 
+  it('lets Screen with AI reach OpenRouter (the user’s own key; sign-in, key exchange, models, screening)', () => {
+    expect(src('connect-src')).toContain('https://openrouter.ai');
+  });
+
   it.each(FEED_HOSTS)('lets the live feed reach %s', (host) => {
     expect(src('connect-src')).toContain(host);
   });

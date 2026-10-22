@@ -2,8 +2,11 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { applyBrand } from './src/brandHtml.ts';
 import { fontPreloadTag } from './src/fontPreload.ts';
+import { aiScreeningOn } from './src/ai/flagRule.ts';
 
 export default defineConfig({
+  // Screen with AI: off on Vercel production until approved (src/ai/flagRule.ts).
+  define: { __RF_AI_SCREENING__: JSON.stringify(aiScreeningOn(process.env)) },
   // brand-html: index.html's %BRAND_*% placeholders come from src/brand.ts (#55).
   plugins: [
     react(),

@@ -5,9 +5,9 @@
 import { BRAND } from './brand';
 
 /** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
- *  on 2026-10-20; set it back to true while a revision is under review. */
-export const LEGAL_DRAFT = false;
-export const LEGAL_UPDATED = '20 October 2026';
+ *  on 2026-10-20; true again while the Screen with AI (OpenRouter) wording is under review. */
+export const LEGAL_DRAFT = true;
+export const LEGAL_UPDATED = '22 October 2026';
 export const OPERATOR = 'Hirobius';
 export const CONTACT_EMAIL = 'hello@hirobius.com';
 
@@ -73,6 +73,12 @@ export const THIRD_PARTIES: ThirdParty[] = [
     purpose:
       'Company logos. To show a company’s logo, your browser asks DuckDuckGo’s icon service for the icon of the company’s web address, such as acme.com. It receives that web address and your IP address, never your name, email, notes, documents or account. Where there is no logo, the app shows the company’s first letter.',
     hosts: ['https://icons.duckduckgo.com'],
+  },
+  {
+    name: 'OpenRouter (only if you connect AI)',
+    purpose:
+      'Screen with AI is optional and off until you connect your own OpenRouter account. Your key stays in this browser: it is never synced, backed up or sent to us. Only when you press Screen, your browser sends the job posting you pasted and the track’s name, titles, level, place and work mode to OpenRouter, which passes them to the AI provider of the model you picked. Never your other jobs, notes, documents, kit or account. Your provider bills you for each screen, under their own terms.',
+    hosts: ['https://openrouter.ai'],
   },
   {
     name: 'Company directories',

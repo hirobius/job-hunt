@@ -125,7 +125,7 @@ Previews: `docs/brand/`.
   tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
   line as non-item labels | data | display | Sign out, Delete my data last in the danger colour;
-  data = Documents, Back up, Restore…, Export CSV).
+  data = Documents, Back up, Restore…, Export CSV, Export links, then Connect AI for screening… while `AI_SCREENING` is on).
 - **Guardrails (redesign-mobile, `docs/guardrails.md`):** HDS freshness (≤ 1 minor behind `hds-version.json`) runs in `verify`; layout rules + screenshot baselines run in `npm run verify:ui` (local, needs Chromium; update baselines with `npm run test:visual -- --update-snapshots`).
 - **Screenshot gallery (#115 Phase 0):** `npm run gallery` (or `-- --url=<deploy> --out=gallery/x`)
   shoots every route/sub-tab/dialog at 1440+390, light+dark, with sample data → `gallery/`
@@ -485,7 +485,23 @@ re-litigate decisions already in `docs/adr/`.
   `src/account/authRedirect.ts` (`PRODUCTION_ORIGIN`, `LEGACY_ORIGIN`).
 - Keep personal contact info OUT of this public repo (letters/snippets ship with a
   "add your name + contact" placeholder).
-- **AI is fully removed (2026-07).** The résumé-tailor went first (`TailorDialog`/`tailor-core.ts`/
+- **Screen with AI (bring your own model, 2026-10-22, behind `AI_SCREENING`).** The one AI feature:
+  a "Screen with AI" panel on the job page's Screening tab (`AiScreenPanel.tsx`, under the rules-based
+  `JdScreenPanel`, which stays the default). `src/ai/`: `oauth.ts` (OpenRouter OAuth PKCE; our `state`
+  rides in the callback as `?rf_ai=`, checked against sessionStorage `rjb_ai_pending`, 15 min; App
+  finishes it on load and returns to the page it started on), `connection.ts` (the user's own key
+  `rjb_ai_key` + model `rjb_ai_model`, localStorage only: never synced, backed up, exported or reported;
+  `errorReport` scrubs key-shaped text), `untrusted.ts` (strip invisible/control chars, 12,000-char cap,
+  plain-text cleaner for output), `prompt.ts` (posting fenced by a nonce tag, track brief only),
+  `result.ts` (strict schema check + clamp; off-schema = plain error), `client.ts` (models list, screen;
+  no tools; fixed error sentences). Suggestions are accepted one by one or all; nothing saves without a
+  click. Red team: `src/ai/redteam.test.ts`; E2E `e2e/ai-screening.spec.ts` (OpenRouter mocked;
+  screenshots to `gallery/ai-screening/`). Flag: `src/ai/flagRule.ts` via vite `define`: on in dev,
+  tests, local builds and previews; **off on Vercel production** until Adrian approves
+  (`RF_AI_SCREENING=on|off` overrides). `https://openrouter.ai` is in `connect-src` and `THIRD_PARTIES`
+  (wording under review: `LEGAL_DRAFT` true). Account menu: "Connect AI for screening…" / "Disconnect
+  AI (OpenRouter)" after Export links.
+- **AI was removed (2026-07), then came back only as the opt-in screen above.** The résumé-tailor went first (`TailorDialog`/`tailor-core.ts`/
   `api/tailor.ts`); then **"Add with AI" too (#54)** — `src/ai/` and `api/extract.ts` are gone,
   `@anthropic-ai/sdk` is dropped, and there is no Anthropic key / server AI endpoint anymore. The
   JD screener (#61) is **rules-based, client-side** — no AI. `docs/adr/0002` + `README`/`FEATURES`

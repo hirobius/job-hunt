@@ -1,6 +1,7 @@
 // Phase 1 of the redesign (#115): the app shell. Rendered through App at the route seam and
 // driven by role + name — slim header, top tabs, one account menu for every data control, a
 // one-time sync nudge, and the old routes / quick-add links still landing where they did.
+import { LEGAL_DRAFT } from './legal';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -135,6 +136,7 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Restore…',
       'item:Export CSV',
       'item:Export links',
+      'item:Connect AI for screening…',
       '---',
       expect.stringMatching(/^item:(Dark|Light) theme$/),
       'item:Send feedback',
@@ -292,6 +294,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
       'item:Restore…',
       'item:Export CSV',
       'item:Export links',
+      'item:Connect AI for screening…',
       '---',
       expect.stringMatching(/^item:(Dark|Light) theme$/),
       'item:Send feedback',
@@ -402,9 +405,14 @@ describe('routes keep working (#115 Phase 1)', () => {
       'href',
       '#/discover',
     );
-    // The wording is approved (2026-10-20): the page carries its date and no draft notice.
-    expect(screen.getByText(/^Last updated/)).toBeInTheDocument();
-    expect(screen.queryByText(/This is a draft under review/)).toBeNull();
+    // Approved wording carries its date and no draft notice; a revision under review says so.
+    if (LEGAL_DRAFT) {
+      expect(screen.getByText(/^Draft of/)).toBeInTheDocument();
+      expect(screen.getByText(/This is a draft under review/)).toBeInTheDocument();
+    } else {
+      expect(screen.getByText(/^Last updated/)).toBeInTheDocument();
+      expect(screen.queryByText(/This is a draft under review/)).toBeNull();
+    }
     expect(screen.getByRole('link', { name: 'hello@hirobius.com' })).toHaveAttribute(
       'href',
       'mailto:hello@hirobius.com',

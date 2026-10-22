@@ -17,6 +17,9 @@ import { LEGAL_ROUTE } from '../legal';
 import { openExportLinks } from '../exportLinks';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
+import { AI_SCREENING } from '../ai/flag';
+import { forgetKey, useAiConnected } from '../ai/connection';
+import { connectFromHere } from '../ai/oauth';
 
 const FEEDBACK_URL = 'https://github.com/hirobius/job-hunt/issues/new';
 
@@ -25,6 +28,7 @@ export default function AccountMenu() {
   const { accountTrigger, setAccountTrigger } = sync;
   const data = useDataTools();
   const { mode, toggle } = useColorMode();
+  const aiConnected = useAiConnected();
   const [resetting, setResetting] = useState(false);
   // Controlled, so the browser's Back closes the open menu instead of leaving the page.
   const [open, setOpen] = useState(false);
@@ -96,6 +100,15 @@ export default function AccountMenu() {
           <Menu.Item onSelect={() => openExportLinks('all')} disabled={!data.canExport}>
             Export links
           </Menu.Item>
+          {/* Screen with AI (src/ai/): the user's own OpenRouter key, kept in this browser only. */}
+          {AI_SCREENING &&
+            (aiConnected ? (
+              <Menu.Item onSelect={forgetKey}>Disconnect AI (OpenRouter)</Menu.Item>
+            ) : (
+              <Menu.Item onSelect={() => void connectFromHere()}>
+                Connect AI for screening…
+              </Menu.Item>
+            ))}
           <Menu.Separator />
           <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
           <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>

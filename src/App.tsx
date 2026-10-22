@@ -40,6 +40,7 @@ import { useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
 import StaleBuildNotice from './StaleBuildNotice';
 import { authLinkErrorMessage } from './account/authLinkError';
+import { finishConnect, parseCallback } from './ai/oauth';
 import { saveWithNotice } from './saveNotice';
 import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
@@ -155,6 +156,30 @@ export default function App() {
   // normalize the hash to the default landing tab so back/forward and refresh are consistent.
   const { toast } = useToast();
   useEffect(() => {
+    // Back from OpenRouter (Screen with AI): finish the connect, say how it went, and return to
+    // the page it was started from with the code gone from the address bar.
+    const aiCallback = parseCallback(window.location.search);
+    if (aiCallback) {
+      navigate(
+        { tab: QUICK_ADD_LANDING, sub: null, jobId: null, from: null, section: null },
+        true,
+        {
+          search: '',
+        },
+      );
+      void finishConnect(aiCallback).then((r) => {
+        toast(
+          r.ok
+            ? {
+                title: 'AI connected. Screen with AI is ready on each job’s Screening tab.',
+                tone: 'success',
+              }
+            : { title: r.reason, tone: 'warning', duration: 10000 },
+        );
+        navigate({ ...parseHash(r.returnHash) }, true, { search: '' });
+      });
+      return;
+    }
     const linkError = authLinkErrorMessage(window.location.hash);
     const qp = new URLSearchParams(window.location.search);
     const label = qp.get('t') || qp.get('title') || '';
