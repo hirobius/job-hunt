@@ -129,6 +129,19 @@ describe('To apply queue and Apply mode', () => {
     expect(findJobByUrl(C)?.archived).toBe(false);
   });
 
+  it('a double tap on Not a fit sets aside one job, not the next one too', async () => {
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'Not a fit' }));
+    // The next job renders under the finger; the second tap of the double tap lands on it.
+    await screen.findByRole('heading', { name: 'Cask Designer' });
+    await user.click(screen.getByRole('button', { name: 'Not a fit' }));
+    expect(findJobByUrl(A)?.archived).toBe(true);
+    expect(findJobByUrl(C)?.archived).toBeFalsy();
+    expect(screen.getByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
+  });
+
   it('the row menu reaches every status', async () => {
     const user = userEvent.setup();
     renderApp();

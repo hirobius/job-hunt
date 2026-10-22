@@ -123,20 +123,27 @@ test('Fill for keeps a long job label on one 40px line (390)', async ({ page }) 
   await expect(span).toHaveCSS('white-space', 'nowrap');
 });
 
-// HDS gap (registry: "Bordered danger button"; rev-3 mock .btn.danger): the Delete confirm has no
-// fill at rest and the same neutral edge as Cancel, in light and dark.
+// One destructive style app-wide: HDS Button variant="secondary" tone="danger" (its tinted fill and
+// danger text), the same in the Delete confirm as on Recently removed and Reset local data.
 for (const mode of ['light', 'dark'] as const) {
-  test(`the Delete confirm is a bordered danger button (${mode}, 390)`, async ({ page }) => {
+  test(`the Delete confirm is the HDS danger button (${mode}, 390)`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await page.addInitScript((m) => localStorage.setItem('rjb_color_mode', m), mode);
     await open(page);
     await page.getByRole('button', { name: 'More actions' }).click();
     await page.getByRole('menuitem', { name: 'Delete' }).click();
-    const dialog = page.getByRole('alertdialog');
-    const del = dialog.getByRole('button', { name: 'Delete' });
-    const cancel = dialog.getByRole('button', { name: 'Cancel' });
-    await expect(del).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-    const edge = await cancel.evaluate((e) => getComputedStyle(e).borderTopColor);
-    await expect(del).toHaveCSS('border-top-color', edge);
+    const del = page.getByRole('alertdialog').getByRole('button', { name: 'Delete' });
+    const want = await del.evaluate(() => {
+      const probe = document.createElement('div');
+      probe.style.background = 'var(--semantic-color-feedback-bg-error)';
+      probe.style.color = 'var(--semantic-color-feedback-error)';
+      document.body.append(probe);
+      const cs = getComputedStyle(probe);
+      const out = { bg: cs.backgroundColor, fg: cs.color };
+      probe.remove();
+      return out;
+    });
+    await expect(del).toHaveCSS('background-color', want.bg);
+    await expect(del).toHaveCSS('color', want.fg);
   });
 }

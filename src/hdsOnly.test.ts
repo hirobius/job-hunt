@@ -81,8 +81,6 @@ describe('Inline style allowlist (#93)', () => {
     // HDS Dialog.Content has no size prop; portalled, so a wrapper can't size it
     'ManageTrackDialog.tsx': 1,
     'account/DataToolsProvider.tsx': 1,
-    // TrackerView: the Add job Dialog.Content (as above)
-    'TrackerView.tsx': 1,
     // "Saved" fade: opacity follows state at runtime
     'JobOverview.tsx': 1,
     // TileGrid: set-aside opacity (runtime); its clamps are base.css classes since slice 4
@@ -112,7 +110,7 @@ describe('Inline style allowlist (#93)', () => {
 
   // The ratchet (#172): the total `style={{` in non-test src/**/*.tsx. Lower it as styles are
   // burned down, never raise it.
-  const MAX_INLINE_STYLES = 6;
+  const MAX_INLINE_STYLES = 5;
   it(`has at most ${MAX_INLINE_STYLES} inline styles in all`, () => {
     const total = Object.values(counts).reduce((a, n) => a + n, 0);
     expect(total).toBeLessThanOrEqual(MAX_INLINE_STYLES);

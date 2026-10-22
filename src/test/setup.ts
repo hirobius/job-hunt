@@ -1,7 +1,12 @@
 import { beforeEach } from 'vitest';
 import { resetPipelineView } from '../pipelineView';
 import { closeFollowUp } from '../followUpFlow';
+import { configure } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+
+// findBy*/waitFor give up after 1 s by default; a busy Vercel builder (verify runs in the deploy)
+// can take longer to render, failing the production build on a slow machine, not a bug.
+configure({ asyncUtilTimeout: 5000 });
 
 // jsdom has no scrolling; JobPage scrolls to the top on open (#127).
 window.scrollTo = () => {};

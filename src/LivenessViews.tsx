@@ -51,7 +51,13 @@ export function PipelineLiveness({ jobs }: { jobs: Job[] }) {
   return (
     <Stack gap="xs">
       <Stack direction="row" wrap="wrap" gap="xs" align="center">
-        <Button size="sm" variant="tertiary" onClick={onCheck} disabled={busy}>
+        <Button
+          size="sm"
+          variant="tertiary"
+          className="rjb-flush-start"
+          onClick={onCheck}
+          disabled={busy}
+        >
           Check which are still open
         </Button>
         {busy && <Spinner size="sm" label="Checking company boards" />}

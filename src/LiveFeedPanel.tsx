@@ -35,6 +35,7 @@ import {
   Banknote,
   Calendar,
   Check,
+  ChevronRight,
   Ellipsis,
   FileSignature,
   MapPin,
@@ -1210,16 +1211,18 @@ function PostingRow({
           <Stack gap="px4">
             <Stack direction="row" wrap="wrap" gap="px8" align="center">
               {fit && (
-                // The badge is the way into Fit and gap: no per-row menu beside Save (rev-3 K).
+                // The fit is the way into Fit and gap: no per-row menu beside Save (rev-3 K). A
+                // bordered small button with a chevron, so it reads as tappable, sized on its own
+                // line (40px on a phone) so its hit area never overhangs the title below.
                 <Button
                   size="sm"
-                  variant="tertiary"
-                  className="rjb-badge-button"
+                  variant="secondary"
+                  iconRight={<Icon icon={ChevronRight} />}
                   aria-label={`Why ${verdictLabel(TIER_INFO[fit.tier].verdict)}`}
                   aria-haspopup="dialog"
                   onClick={() => setWhy(true)}
                 >
-                  <Badge tone="neutral">{verdictLabel(TIER_INFO[fit.tier].verdict)}</Badge>
+                  {verdictLabel(TIER_INFO[fit.tier].verdict)}
                 </Button>
               )}
               <Text variant="caption" as="span" tone="secondary">

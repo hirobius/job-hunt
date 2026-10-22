@@ -43,7 +43,7 @@ function RemovedRow({ entry }: { entry: Removed }) {
         </Button>
         <Button
           size="sm"
-          variant="tertiary"
+          variant="secondary"
           tone="danger"
           aria-label={`Delete forever: ${title}`}
           onClick={() => deleteForever(entry.job.url)}

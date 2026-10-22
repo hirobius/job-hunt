@@ -1,6 +1,0 @@
-/* Add a company sits like Add job (TrackerView's dialog, rev-3 s-add-company): HDS Dialog's panel at
-   full width up to 480, so on a phone it runs edge to edge and its footer stacks Add over Cancel. */
-.rjb-add-company {
-  width: 100%;
-  max-width: 480px;
-}

@@ -404,18 +404,19 @@ function SectionRow({
   children: ReactNode;
 }) {
   return (
-    <Card bordered padding="none" className="rjb-disclosure-vertical">
+    <Card bordered padding="none" className="rjb-disclosure-vertical rjb-disclosure-wrap">
       <Box sx={{ px: 'md' }}>
         <Disclosure
           variant="row"
           label={
-            // The badge stays beside the name: the name truncates, the badge never wraps alone.
-            // A Box, not Stack: the label sits in a grid cell, so the row needs min-width 0.
+            // The badge stays beside the name: the name wraps (never cut, round-2 review at
+            // 390), the badge never wraps alone. A Box, not Stack: the label sits in a grid
+            // cell, so the row needs min-width 0.
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 'xs', minWidth: 0 }}>
               <Box
                 as="span"
-                className="rjb-semibold rjb-truncate"
-                sx={{ display: 'block', minWidth: 0 }}
+                className="rjb-semibold"
+                sx={{ display: 'block', minWidth: 0, overflowWrap: 'anywhere' }}
               >
                 {label}
               </Box>

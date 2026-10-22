@@ -51,6 +51,9 @@ import { copyFilled } from './templateCopy';
 import { showNotice } from './saveNotice';
 import type { Job } from './types';
 
+/** How long after a Not a fit another one is ignored (the second tap of a double tap). */
+const DOUBLE_TAP_MS = 700;
+
 export default function ApplyMode({ jobId }: { jobId: string | null }) {
   const jobs = useJobs();
   const queue = useMemo(() => toApplyQueue(jobs), [jobs]);
@@ -67,6 +70,8 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
     [jobs, job, queue],
   );
   useEffect(() => window.scrollTo(0, 0), [jobId]);
+  // When the last Not a fit ran. The view is not keyed by job, so this outlives the job change.
+  const lastNotAFit = useRef(0);
 
   if (!job) {
     return (
@@ -103,6 +108,11 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
     setStatus(job.url, 'Applied');
   };
   const notAFit = () => {
+    // A double tap's second tap lands on the next job's Not a fit, which renders under the finger.
+    // Ignore Not a fit for a moment after one runs, so a double tap sets aside one job.
+    const now = Date.now();
+    if (now - lastNotAFit.current < DOUBLE_TAP_MS) return;
+    lastNotAFit.current = now;
     updateJob(job.url, { archived: true });
     showNotice({
       title: 'Set aside as not a fit',

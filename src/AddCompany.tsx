@@ -26,7 +26,6 @@ import { SOURCE_LABEL } from './feed/types';
 import { watchBoard } from './feed/watchlist';
 import { starDream } from './feed/dreams';
 import { listStyle } from './outreachShared';
-import './AddCompany.css';
 
 export default function AddCompany({
   categoryId,
@@ -124,7 +123,7 @@ function AddCompanyContent({
 
   return (
     // Presented like Add job (TrackerView): the same width, header and footer.
-    <Dialog.Content className="rjb-add-company" aria-describedby={undefined}>
+    <Dialog.Content className="rjb-form-sheet" aria-describedby={undefined}>
       <Dialog.Header>
         <Dialog.Title>Add a company</Dialog.Title>
       </Dialog.Header>

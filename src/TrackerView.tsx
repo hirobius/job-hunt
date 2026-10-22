@@ -327,7 +327,7 @@ export default function TrackerView() {
       {/* Portals out, so it takes no slot in the page's rhythm. */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <Dialog.Content
-          style={{ width: '100%', maxWidth: 480 }}
+          className="rjb-form-sheet"
           onCloseAutoFocus={(e) => {
             if (!addOpener.current?.isConnected) return;
             e.preventDefault();
