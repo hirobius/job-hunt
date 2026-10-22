@@ -402,6 +402,20 @@ export function removeDocument(id: string): boolean {
   return true;
 }
 
+/** Put a removed document back at `at` (its old place; past the end puts it last), for Undo
+ *  (#212). An id the store has again is left as it is. Like an upload, the write is checked first:
+ *  false when the device has no room (the caps still hold, as the file was counted before). */
+export function restoreDocument(d: Document, at: number): boolean {
+  const all = store.get();
+  if (all.some((x) => x.id === d.id)) return true;
+  const list = [...all];
+  list.splice(Math.max(0, Math.min(at, list.length)), 0, d);
+  const next = sanitizeDocuments(list);
+  if (!trySavePersisted(DOCUMENTS_KEY, next)) return false;
+  store.set(next);
+  return true;
+}
+
 /** A Job deleted for good takes its documents with it (Sent ones too). */
 export function dropDocumentsForJob(url: string) {
   const key = dedupKey(url);

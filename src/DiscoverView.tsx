@@ -14,6 +14,7 @@ import {
   Disclosure,
   Stack,
   VisuallyHidden,
+  useToast,
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
 import TileGrid from './TileGrid';
@@ -363,9 +364,17 @@ function AtsPanel({
   );
 }
 
-/** Copy the generated query, with a short "Copied" confirmation. */
+/** Copy the generated query: the icon turns to a check and a toast says so (#212), or says it
+ *  couldn't. */
 function CopyQuery({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+  const failed = () =>
+    toast({
+      title: "Couldn't copy",
+      description: 'Select the query and copy it yourself.',
+      tone: 'danger',
+    });
   return (
     <Button
       size="md"
@@ -373,12 +382,13 @@ function CopyQuery({ text }: { text: string }) {
       iconOnly
       iconLeft={<Icon icon={copied ? Check : Copy} />}
       label={copied ? 'Copied the query' : 'Copy the query'}
-      onClick={() =>
-        navigator.clipboard?.writeText(text).then(
-          () => setCopied(true),
-          () => {},
-        )
-      }
+      onClick={() => {
+        if (!navigator.clipboard) return failed();
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true);
+          toast({ title: 'Copied the query', tone: 'success' });
+        }, failed);
+      }}
     />
   );
 }

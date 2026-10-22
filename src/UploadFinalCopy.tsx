@@ -1,18 +1,10 @@
 // Final copies (#231): upload the PDF/Word file that actually went out for a Job, optionally marked
-// Sent, then download it back or remove it (refused once Sent, like every Sent Document). The file
+// Sent, then download it back or remove it (refused once Sent, like every Sent Document; a removal
+// collapses the row and offers Undo, #212). The file
 // is kept in the synced blob (see the storage note in documents.ts), so the caps are small and the
 // errors name them. Mounted on the job page's Documents tab by JobFinalCopies.tsx.
 import { useRef, useState, type ChangeEvent } from 'react';
-import {
-  Alert,
-  AlertDialog,
-  Badge,
-  Button,
-  Checkbox,
-  Select,
-  Stack,
-  Text,
-} from '@hirobius/design-system';
+import { Alert, Badge, Button, Checkbox, Select, Stack, Text } from '@hirobius/design-system';
 import {
   addFinalCopy,
   DOCUMENT_KINDS,
@@ -23,6 +15,7 @@ import {
   markSent,
   readFinalFile,
   removeDocument,
+  restoreDocument,
   uploadedBytes,
   uploadError,
   UPLOAD_MAX_BYTES,
@@ -32,6 +25,8 @@ import {
 } from './documents';
 import { documentsForJob, kindLabel } from './jobDocuments';
 import { download } from './download';
+import { collapseRow } from './feedback';
+import { notifyRemoved, showNotice } from './saveNotice';
 
 const KIND_OPTIONS = DOCUMENT_KINDS.map((k) => ({ value: k.kind, label: k.label }));
 const ACCEPT =
@@ -142,80 +137,68 @@ export function UploadFinalCopy({
   );
 }
 
+/** Remove a final copy (#212): its row collapses, then it goes, and a notice offers Undo, which
+ *  puts the document (file and all) back in its place. Read when the removal lands, so two inside
+ *  one collapse both stick. */
+function removeWithUndo(d: Document, from: Element) {
+  collapseRow(from, () => {
+    const at = getAllDocuments().findIndex((x) => x.id === d.id);
+    if (at < 0 || !removeDocument(d.id)) return;
+    notifyRemoved(`Removed “${d.title}”`, () => {
+      if (!restoreDocument(d, at))
+        showNotice({
+          title: `“${d.title}” couldn't be put back`,
+          description: "This device's storage is full. Remove a final copy first.",
+          actions: [],
+        });
+    });
+  });
+}
+
 /** This job's final copies: download each back; remove one that is not Sent. */
 export function FinalCopies({ jobUrl }: { jobUrl: string }) {
   const copies = documentsForJob(useDocuments(), jobUrl).filter(isFinalCopy);
-  // Removing a file can't be undone: it asks first.
-  const [removing, setRemoving] = useState<Document | null>(null);
   if (!copies.length) return null;
 
   return (
-    <>
-      <Stack gap="tight" as="ul" style={LIST_RESET}>
-        {copies.map((d) => {
-          const v = d.versions.find((x) => x.file)!;
-          const file = v.file!;
-          const isSent = d.versions.some((x) => x.sentAt);
-          return (
-            <li key={d.id}>
-              <Stack direction="row" gap="tight" align="center" wrap="wrap">
-                <Stack gap="hairline">
-                  <Text variant="ui">{file.name}</Text>
-                  <Text variant="caption" tone="secondary">
-                    {kindLabel(d.kind)} · {formatBytes(file.size)}
-                  </Text>
-                </Stack>
-                {isSent && <Badge tone="success">Sent</Badge>}
+    <Stack gap="tight" as="ul" style={LIST_RESET}>
+      {copies.map((d) => {
+        const v = d.versions.find((x) => x.file)!;
+        const file = v.file!;
+        const isSent = d.versions.some((x) => x.sentAt);
+        return (
+          <li key={d.id}>
+            <Stack direction="row" gap="tight" align="center" wrap="wrap">
+              <Stack gap="hairline">
+                <Text variant="ui">{file.name}</Text>
+                <Text variant="caption" tone="secondary">
+                  {kindLabel(d.kind)} · {formatBytes(file.size)}
+                </Text>
+              </Stack>
+              {isSent && <Badge tone="success">Sent</Badge>}
+              <Button
+                variant="tertiary"
+                size="sm"
+                aria-label={`Download ${file.name}`}
+                onClick={() => download(file.name, finalFileBlob(file))}
+              >
+                Download
+              </Button>
+              {!isSent && (
                 <Button
                   variant="tertiary"
                   size="sm"
-                  aria-label={`Download ${file.name}`}
-                  onClick={() => download(file.name, finalFileBlob(file))}
+                  tone="danger"
+                  aria-label={`Remove ${file.name}`}
+                  onClick={(e) => removeWithUndo(d, e.currentTarget)}
                 >
-                  Download
+                  Remove
                 </Button>
-                {!isSent && (
-                  <Button
-                    variant="tertiary"
-                    size="sm"
-                    tone="danger"
-                    aria-label={`Remove ${file.name}`}
-                    onClick={() => setRemoving(d)}
-                  >
-                    Remove
-                  </Button>
-                )}
-              </Stack>
-            </li>
-          );
-        })}
-      </Stack>
-      <AlertDialog open={removing !== null} onOpenChange={(o) => !o && setRemoving(null)}>
-        <AlertDialog.Content>
-          <AlertDialog.Header>
-            <AlertDialog.Title>{`Remove “${removing?.title ?? ''}”?`}</AlertDialog.Title>
-            <AlertDialog.Description>
-              The file is deleted. This can't be undone.
-            </AlertDialog.Description>
-          </AlertDialog.Header>
-          <AlertDialog.Footer>
-            <AlertDialog.Cancel asChild>
-              <Button variant="secondary">Cancel</Button>
-            </AlertDialog.Cancel>
-            <AlertDialog.Action asChild>
-              <Button
-                tone="danger"
-                onClick={() => {
-                  if (removing) removeDocument(removing.id);
-                  setRemoving(null);
-                }}
-              >
-                Remove
-              </Button>
-            </AlertDialog.Action>
-          </AlertDialog.Footer>
-        </AlertDialog.Content>
-      </AlertDialog>
-    </>
+              )}
+            </Stack>
+          </li>
+        );
+      })}
+    </Stack>
   );
 }

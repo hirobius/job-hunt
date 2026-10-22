@@ -1,6 +1,7 @@
 // "Where did my save go?" (rapid apply): every save says it landed in the Pipeline's To apply
 // queue, with Open and Undo. A Remove says so too, with Undo (a job goes to Recently removed,
-// trash.ts; a to-do, an interview or an outreach target is put back in its place). One notice at a
+// trash.ts; a to-do, an interview, an outreach target, a final copy, a track's link or section is
+// put back in its place). One notice at a
 // time, so they never stack; any view raises it through `notifySaved` / `removeWithUndo` /
 // `notifyRemoved` / `showNotice`, and the shell renders it once (NoticeHost.tsx).
 import { createStore } from './createStore';
@@ -32,6 +33,10 @@ export interface Notice {
   actions: NoticeAction[];
   /** The saved jobs this notice is about: it goes once one leaves Saved or is gone. */
   jobUrls?: string[];
+  /** Raised inside a modal dialog: the dialog shows it (DialogNotice), not the toast, which the
+   *  dialog would hide from a screen reader and the keyboard. It turns into the toast when the
+   *  dialog closes (`noticeToToast`). */
+  inDialog?: true;
 }
 
 const store = createStore<Notice | null>(null);
@@ -46,6 +51,12 @@ export function showNotice(n: Omit<Notice, 'id'>) {
 }
 export const dismissNotice = () => store.set(null);
 export const useNotice = store.use;
+
+/** A dialog closed: a notice it was showing moves to the toast, so its Undo stays in reach. */
+export function noticeToToast() {
+  const n = store.get();
+  if (n?.inDialog) store.set({ ...n, inDialog: undefined });
+}
 
 // A save notice is stale once the user has moved on: they navigated (its Open points at a page
 // they already chose, or away from it), or its jobs left Saved (its "To apply" is no longer true,
@@ -124,9 +135,20 @@ export function restoreWithNotice(url: string) {
 }
 
 /** Say something was removed, with Undo putting it back (#212): a job, a to-do, an interview, an
- *  outreach target. The caller has already removed it (after its row collapsed). */
-export function notifyRemoved(title: string, undo: () => void, description?: string) {
-  showNotice({ title, description, actions: [{ label: 'Undo', run: undo }] });
+ *  outreach target, a final copy, a track's link or section. The caller has already removed it
+ *  (after its row collapsed). `inDialog`: raised inside a modal dialog (see Notice.inDialog). */
+export function notifyRemoved(
+  title: string,
+  undo: () => void,
+  description?: string,
+  opts: { inDialog?: boolean } = {},
+) {
+  showNotice({
+    title,
+    description,
+    actions: [{ label: 'Undo', run: undo }],
+    ...(opts.inDialog ? { inDialog: true as const } : {}),
+  });
 }
 
 /** Remove a job to Recently removed, with Undo. */

@@ -1,9 +1,11 @@
 // Upload a final copy (#231): pick a kind and a PDF/Word file, optionally mark it Sent; download
-// it back; remove it unless it is Sent.
+// it back; remove it unless it is Sent (with Undo, #212).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { ToastProvider } from '@hirobius/design-system';
 import { FinalCopies, UploadFinalCopy } from './UploadFinalCopy';
+import NoticeHost from './NoticeHost';
 import { addFinalCopy, getAllDocuments, markSent, replaceDocuments } from './documents';
 
 const JOB = 'https://acme.example/jobs/1';
@@ -115,19 +117,30 @@ describe('FinalCopies', () => {
     URL.revokeObjectURL = saved.revoke ?? (() => {}); // download() revokes a beat later
   });
 
-  it('removes an unsent copy; a Sent one is locked and offers no Remove', async () => {
+  it('Remove on an unsent copy collapses it, says so, and Undo puts it back; a Sent one is locked', async () => {
+    add('first.pdf');
     add('draft.pdf');
     const sent = add('sent.pdf');
     markSent(sent.id, sent.versionId);
-    render(<FinalCopies jobUrl={JOB} />);
+    render(
+      <ToastProvider>
+        <NoticeHost />
+        <FinalCopies jobUrl={JOB} />
+      </ToastProvider>,
+    );
     const sentRow = screen.getByText('sent.pdf').closest('li')!;
     expect(within(sentRow).queryByRole('button', { name: /Remove/ })).toBeNull();
     expect(within(sentRow).getByText('Sent')).toBeTruthy();
+    // #212: no "can't be undone" confirm; the file goes at once, with Undo.
     await userEvent.click(screen.getByRole('button', { name: 'Remove draft.pdf' }));
-    const confirm = screen.getByRole('alertdialog', { name: 'Remove “draft.pdf”?' });
-    await userEvent.click(within(confirm).getByRole('button', { name: 'Remove' }));
-    expect(getAllDocuments().map((d) => d.title)).toEqual(['sent.pdf']);
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(getAllDocuments().map((d) => d.title)).toEqual(['first.pdf', 'sent.pdf']);
     expect(screen.queryByText('draft.pdf')).toBeNull();
+    expect(await screen.findByText('Removed “draft.pdf”')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(getAllDocuments().map((d) => d.title)).toEqual(['first.pdf', 'draft.pdf', 'sent.pdf']);
+    expect(getAllDocuments()[1].versions[0].file).toMatchObject({ name: 'draft.pdf', size: 3 });
+    expect(screen.getByText('draft.pdf')).toBeTruthy();
   });
 
   it('shows nothing for a job with no final copies, and ignores other jobs', () => {

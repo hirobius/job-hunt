@@ -24,7 +24,7 @@ import App from './App';
 import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 import { GH_BUDGET_KEY } from './feed/githubBudget';
-import { TARGETS_KEY, readTargets } from './feed/targets';
+import { TARGETS_KEY, getAllTargets, readTargets } from './feed/targets';
 import { readDreams } from './feed/dreams';
 import { getAllJobs } from './store';
 
@@ -48,7 +48,7 @@ const repo = (login: string, stars: number, extra: Record<string, unknown> = {})
   ...extra,
 });
 
-const gh = { limited: false };
+const gh = { limited: false, boardless: false };
 const leverJob = (id: string, text: string) => ({
   id,
   text,
@@ -100,6 +100,18 @@ const fakeFetch = vi.fn(async (url: string) => {
         status: 'Active',
       },
       { name: 'Shoebox', slug: 'shoebox', one_liner: 'Sells shoes', status: 'Active' },
+      // A matching company with no board anywhere (a board-less suggestion).
+      ...(gh.boardless
+        ? [
+            {
+              name: 'Rollout Partners',
+              slug: 'rolloutpartners',
+              website: 'https://rollout.example',
+              one_liner: 'Implementation consultant studio',
+              status: 'Active',
+            },
+          ]
+        : []),
     ]);
   if (url === 'https://api.lever.co/v0/postings/onboardly?mode=json')
     return json([
@@ -116,6 +128,7 @@ beforeEach(() => {
   h.fake?.reset();
   localStorage.clear();
   gh.limited = false;
+  gh.boardless = false;
   fakeFetch.mockClear();
   vi.stubGlobal('fetch', fakeFetch);
   replaceCurationState(EMPTY_CURATION);
@@ -367,6 +380,37 @@ describe('a non-design track (#215)', () => {
     expect(screen.queryByText(/Acme Design/)).toBeNull();
     expect(fakeFetch.mock.calls.some(([u]) => String(u).includes('api.github.com'))).toBe(false);
   });
+
+  it('a board-less suggestion saved as a target persists, syncs and shows under Saved targets', async () => {
+    gh.boardless = true;
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: 'Suggest companies' }));
+    const notFound = await screen.findByRole(
+      'button',
+      { name: /^Board not found \(1\)/ },
+      { timeout: 15_000 },
+    );
+    await userEvent.click(notFound);
+    await openRoles('Rollout Partners');
+    await userEvent.click(screen.getByRole('button', { name: 'Save as target: Rollout Partners' }));
+    const saved = expect.objectContaining({
+      login: 'yc:rolloutpartners',
+      company: 'Rollout Partners',
+      website: 'https://rollout.example',
+    });
+    expect(readTargets(cat)).toEqual([saved]);
+    // The sync blob and backup read every track's targets through the same sanitizer.
+    expect(getAllTargets()[cat]).toEqual([saved]);
+    expect(await screen.findByRole('button', { name: 'Saved Rollout Partners' })).toBeDisabled();
+    expect(await screen.findByRole('list', { name: 'Saved targets' })).toHaveTextContent(
+      'Rollout Partners',
+    );
+    cleanup();
+    renderApp();
+    expect(await screen.findByRole('list', { name: 'Saved targets' })).toHaveTextContent(
+      'Rollout Partners',
+    );
+  }, 30_000);
 
   it('a design-systems track still searches GitHub', async () => {
     addCategory({ label: 'Design systems', titles: ['Design engineer'], atsRoles: ['design'] });

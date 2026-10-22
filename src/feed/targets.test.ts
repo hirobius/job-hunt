@@ -132,6 +132,34 @@ describe('targets without a GitHub repo (#198: seeded from a starter pack)', () 
     });
   });
 
+  it('keeps a board-less suggestion that has a website or a YC login (Save as target)', () => {
+    expect(
+      sanitizeTargets({
+        a: [
+          { login: 'yc:rollout', company: 'Rollout', website: 'https://rollout.example' },
+          { login: 'yc:quiet', company: 'Quiet' },
+          { login: 'site', company: 'Site Co', website: 'https://site.example' },
+          { login: 'nothing', company: 'Nothing', website: 'javascript:alert(1)' },
+        ],
+      }).a.map((t) => [t.login, t.website]),
+    ).toEqual([
+      ['yc:rollout', 'https://rollout.example'],
+      ['yc:quiet', undefined],
+      ['site', 'https://site.example'],
+    ]);
+  });
+
+  it('a saved board-less target survives readTargets', () => {
+    saveTarget('a', {
+      login: 'yc:rollout',
+      company: 'Rollout',
+      website: 'https://rollout.example',
+    });
+    expect(readTargets('a')).toEqual([
+      expect.objectContaining({ login: 'yc:rollout', website: 'https://rollout.example' }),
+    ]);
+  });
+
   it('addTargets adds only logins the track lacks and returns how many', () => {
     saveTarget('a', { login: 'Ramp', company: 'Mine', board: { kind: 'ashby', slug: 'ramp' } });
     const n = addTargets('a', [
