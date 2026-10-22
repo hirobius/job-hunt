@@ -89,6 +89,25 @@ const fakeFetch = vi.fn(async (url: string) => {
   // Flaky's boards never answer: "Couldn't check", never "no board".
   if (url.includes('flaky')) return json({}, 503);
   if (url === 'https://api.lever.co/v0/postings/acme?mode=json') return json(acmeJobs);
+  // A non-design track's suggestions (#215): the YC hiring list and one YC company's board.
+  if (url === 'https://yc-oss.github.io/api/companies/hiring.json')
+    return json([
+      {
+        name: 'Onboardly',
+        slug: 'onboardly',
+        website: 'https://onboardly.example',
+        one_liner: 'Implementation consultants on demand',
+        status: 'Active',
+      },
+      { name: 'Shoebox', slug: 'shoebox', one_liner: 'Sells shoes', status: 'Active' },
+    ]);
+  if (url === 'https://api.lever.co/v0/postings/onboardly?mode=json')
+    return json([
+      {
+        ...leverJob('7', 'Implementation Consultant'),
+        hostedUrl: 'https://jobs.lever.co/onboardly/7',
+      },
+    ]);
   return json({}, 404);
 });
 
@@ -308,5 +327,52 @@ describe('Teams (design-system teams)', () => {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });
     expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
+  });
+});
+
+describe('a non-design track (#215)', () => {
+  beforeEach(() => {
+    replaceCurationState(EMPTY_CURATION);
+    cat = addCategory({
+      label: 'Implementation Consulting',
+      titles: ['Implementation consultant'],
+      atsRoles: [],
+    });
+    window.location.hash = '#/discover/teams';
+  });
+
+  it('shows no GitHub search, says its source in one line and suggests matching companies', async () => {
+    renderApp();
+    await screen.findByText(
+      'Suggestions come from the Implementation Consulting starter list and YC companies hiring now. GitHub search only finds design-system and ServiceNow teams.',
+    );
+    expect(screen.queryByRole('button', { name: /design-system teams/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Suggest companies' }));
+    const list = await screen.findByRole('list', { name: 'Companies' });
+    // The YC companies are probed for a board (the probe's polite pace), then read.
+    await within(list).findByText('Lever · 1 matching role', undefined, { timeout: 10_000 });
+    expect(within(list).getByRole('link', { name: /^Onboardly/ })).toHaveAttribute(
+      'href',
+      'https://onboardly.example',
+    );
+    // The YC company that doesn't match the track's titles is never suggested.
+    expect(screen.queryByText(/Shoebox/)).toBeNull();
+    await openRoles('Onboardly');
+    expect(
+      within(await screen.findByRole('list', { name: 'Open roles at Onboardly' })).getByText(
+        'Implementation Consultant',
+      ),
+    ).toBeVisible();
+    // Never a design-system organisation, never a GitHub call.
+    expect(screen.queryByText(/Acme Design/)).toBeNull();
+    expect(fakeFetch.mock.calls.some(([u]) => String(u).includes('api.github.com'))).toBe(false);
+  });
+
+  it('a design-systems track still searches GitHub', async () => {
+    addCategory({ label: 'Design systems', titles: ['Design engineer'], atsRoles: ['design'] });
+    localStorage.setItem('rjb_active_category', getCurationState().categories[1].id);
+    renderApp();
+    expect(await screen.findByRole('button', { name: 'Find design-system teams' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Suggest companies' })).toBeNull();
   });
 });

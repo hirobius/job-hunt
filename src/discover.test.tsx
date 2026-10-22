@@ -187,15 +187,21 @@ describe('Discover header and tools (slice 2)', () => {
     expect(window.location.hash).toBe('#/discover');
   });
 
-  it('follows the track: a welding track opens on Apply now and its Teams tool says why there is no search', async () => {
+  it('follows the track: a welding track opens on Apply now and its Teams tool names its source instead of GitHub', async () => {
     addGroup(cat, { label: 'First picks' });
     window.location.hash = '#/discover';
     renderApp();
     const tools = await screen.findByRole('radiogroup', { name: 'Search tool' });
     expect(within(tools).getByRole('radio', { name: 'Apply now' })).toBeChecked();
     await userEvent.click(within(tools).getByRole('radio', { name: 'Watched' }));
-    expect(await screen.findByText(/titles don't name anything GitHub tracks/)).toBeVisible();
+    // No GitHub search (#215): its source is the YC hiring list, said in one line.
+    expect(
+      await screen.findByText(
+        /^Suggestions come from YC companies hiring now\. GitHub search only/,
+      ),
+    ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Add a company' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Suggest companies' })).toBeVisible();
     expect(screen.queryByRole('button', { name: /^Find .* teams$/ })).toBeNull();
   });
 

@@ -510,6 +510,12 @@ track-agnostic like everything else in Discover.
   from team rows (`DreamStar`), always show on top (`DreamCompanies.tsx`), and "Check
   dream companies" re-reads boards fresh and flags openings new since the last check. Pinned in
   `src/outreach.test.tsx`, `discover.test.tsx`, `feed/teamRoles.test.ts`, `feed/dreams.test.ts`.
+- **Company source follows the track (#215).** `feed/companySource.ts` `companySourceFor`: GitHub where
+  `teamSearchFor` finds a topic (unchanged); otherwise **Suggest companies** lists the track's starter-pack
+  boards not yet watched (`packIdForLabel` → `boardsForPack`) then YC companies hiring now (`hiring.json`)
+  whose one-liner/tags match its titles/ATS roles as phrases (max 15, probed for a board). One caption line
+  names the source; never design-system orgs on a non-design track; no new hosts. Pinned in
+  `feed/companySource.test.ts` and `outreach.test.tsx` ("a non-design track").
 - ⚠️ **CSP (#41):** when a Content-Security-Policy lands, `connect-src` must allow `hn.algolia.com`,
   `remotive.com`, `boards-api.greenhouse.io`, `api.lever.co`, `api.eu.lever.co`, `api.ashbyhq.com`
   or the feed goes silent (each source would report "couldn't connect").
