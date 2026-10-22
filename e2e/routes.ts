@@ -16,6 +16,8 @@ export const ROUTES = [
   '#/legal/terms',
   // A Company's page (#230), named by a sample job's company.
   '#/company/larkspur-analytics',
+  // An unknown route shows Page not found, not Companies.
+  '#/nope',
 ];
 
 /** A Greenhouse posting the seed adds on top of the sample data. */

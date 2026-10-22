@@ -11,33 +11,58 @@ const ColorModeContext = createContext<{ mode: ColorMode; toggle: () => void }>(
 
 export const useColorMode = () => useContext(ColorModeContext);
 
-function initialMode(): ColorMode {
+function storedMode(): ColorMode | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') return stored;
   } catch {
     /* ignore */
   }
-  return 'dark';
+  return null;
 }
 
-/** Owns the color mode: persists it and sets `data-theme` AND the `.dark` class on <html> — HDS
+const DARK_QUERY = '(prefers-color-scheme: dark)';
+
+/** The OS colour scheme; dark where it can't be read (the app's look before this followed the OS). */
+function osMode(): ColorMode {
+  if (typeof window.matchMedia !== 'function') return 'dark';
+  return window.matchMedia(DARK_QUERY).matches ? 'dark' : 'light';
+}
+
+/** Owns the color mode: follows the OS until the user picks one (only a pick is stored), and sets `data-theme` AND the `.dark` class on <html> — HDS
  *  keys its dark tokens on both, so they must agree or light mode picks up dark rules. */
 export function ColorModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<ColorMode>(initialMode);
+  const [picked, setPicked] = useState<ColorMode | null>(storedMode);
+  const [os, setOs] = useState<ColorMode>(osMode);
+  const mode = picked ?? os;
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', mode);
     document.documentElement.classList.toggle('dark', mode === 'dark');
-    try {
-      localStorage.setItem(STORAGE_KEY, mode);
-    } catch {
-      /* ignore */
-    }
   }, [mode]);
 
+  // No pick yet: follow the OS live, so switching it at sunset switches the app too.
+  useEffect(() => {
+    if (picked || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia(DARK_QUERY);
+    const onChange = () => setOs(mq.matches ? 'dark' : 'light');
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, [picked]);
+
   const value = useMemo(
-    () => ({ mode, toggle: () => setMode((m) => (m === 'dark' ? 'light' : 'dark')) }),
+    () => ({
+      mode,
+      toggle: () => {
+        const next: ColorMode = mode === 'dark' ? 'light' : 'dark';
+        setPicked(next);
+        try {
+          localStorage.setItem(STORAGE_KEY, next);
+        } catch {
+          /* ignore */
+        }
+      },
+    }),
     [mode],
   );
 

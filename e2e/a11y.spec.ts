@@ -24,6 +24,8 @@ const ROUTES = [
   '#/legal/terms',
   // A Company's page (#230), named by a sample job's company.
   '#/company/larkspur-analytics',
+  // An unknown route's Page not found.
+  '#/nope',
 ];
 
 async function seed(page: Page) {

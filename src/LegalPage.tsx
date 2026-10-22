@@ -26,8 +26,9 @@ export default function LegalPage() {
           <PageHeader
             level={2}
             breadcrumb={
-              // HDS Button asChild drops iconLeft, so the arrow is the link's own child.
-              <Button asChild variant="tertiary" size="sm">
+              // HDS Button asChild drops iconLeft, so the arrow is the link's own child. No leading
+              // padding, so the arrow lines up with the title (`.rjb-back-link`).
+              <Button asChild className="rjb-back-link" variant="tertiary" size="md">
                 <a href="#/discover">
                   <Icon icon={ArrowLeft} />
                   Back to Companies

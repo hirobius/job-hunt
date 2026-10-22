@@ -64,3 +64,23 @@ describe('App top-level tab wiring', () => {
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
   });
 });
+
+describe('an unknown route (review nit)', () => {
+  it('#/nope shows a not-found page with a way home, not Companies', async () => {
+    window.location.hash = '#/nope';
+    renderApp();
+    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+    // No tab is selected and no tab panel mounts, like Documents.
+    expect(screen.queryByRole('tab', { selected: true })).toBeNull();
+    expect(screen.queryByRole('tabpanel')).toBeNull();
+    screen.getByRole('button', { name: 'Go to Companies' }).click();
+    await vi.waitFor(() => expect(window.location.hash).toBe('#/discover'));
+  });
+
+  it('the old Trades slug (#/apprenticeships) still lands on Companies', () => {
+    window.location.hash = '#/apprenticeships';
+    renderApp();
+    expect(screen.getByRole('tab', { name: 'Companies', selected: true })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
+  });
+});
