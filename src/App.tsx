@@ -15,6 +15,7 @@ import { ApplyMode, CompanyPage, JobPage, TrackerView } from './routeViews';
 import { JobPageLiveness } from './LivenessViews';
 import { Onboarding, ChooseTrack } from './Onboarding';
 import { BRAND } from './brand';
+import { usePageTitle } from './pageTitle';
 import { LEGAL_ROUTE } from './legal';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
@@ -87,6 +88,18 @@ export default function App() {
     (applying || company ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
   );
   const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
+  // The section pages' titles; a job, Apply mode, a Company and the legal pages set their own.
+  usePageTitle(
+    notFound
+      ? 'Page not found'
+      : documents
+        ? 'Documents'
+        : applying || company || legal || route.jobId
+          ? null
+          : TAB_SLUGS[tab] === 'queue'
+            ? 'Pipeline'
+            : 'Companies',
+  );
 
   // The onboarding gate (#128) lives here, not in a view. Companies can't work without a track,
   // and on a first run (no tracks and no jobs) it also offers sample data, so nobody lands on an

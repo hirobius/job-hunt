@@ -1,5 +1,5 @@
 /* global document -- page callbacks run in the browser */
-// App icons and the share image (#47): renders public/favicon.svg and a brand card to PNG with
+// App icons, /favicon.ico and the share image (#47): renders public/favicon.svg and a brand card to PNG with
 // headless Chromium, so the installable-app icons and the Open Graph image are reproducible.
 // Re-run after a brand change and commit the PNGs:
 //
@@ -8,23 +8,22 @@
 // Chromium: PW_CHROMIUM_PATH (cloud sessions: /opt/pw-browsers/chromium-1194/chrome-linux/chrome),
 // else Playwright's own. The name and description come from src/brand.ts (Node strips its types).
 import { chromium } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { BRAND } from '../src/brand.ts';
 
 const svg = readFileSync('public/favicon.svg', 'utf8');
 const svgUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-// HDS's own face, inlined: a page set with setContent can't load file:// fonts.
-const font = (weight) =>
-  `data:font/woff2;base64,${readFileSync(
-    `node_modules/@hirobius/design-system/dist/fonts/plus-jakarta-sans-${weight}.woff2`,
-  ).toString('base64')}`;
+// HDS's own face, inlined: a page set with setContent can't load file:// fonts. HDS ships it as
+// one variable file (every weight).
+const FONT = `data:font/woff2;base64,${readFileSync(
+  'node_modules/@hirobius/design-system/dist/fonts/plus-jakarta-sans-variable.woff2',
+).toString('base64')}`;
 // The icon's own colours (favicon.svg): graphite tile, light face.
 const GRAPHITE = '#2a2428';
 const FACE = '#d4d0d2';
 
 const page = (body, w, h) => `<!doctype html><html><head><style>
-  @font-face { font-family: Brand; src: url(${font(400)}) format('woff2'); font-weight: 400; }
-  @font-face { font-family: Brand; src: url(${font(700)}) format('woff2'); font-weight: 700; }
+  @font-face { font-family: Brand; src: url(${FONT}) format('woff2'); font-weight: 200 800; }
   html, body { margin: 0; width: ${w}px; height: ${h}px; overflow: hidden; }
   body { background: ${GRAPHITE}; font-family: Brand, sans-serif; }
 </style></head><body>${body}</body></html>`;
@@ -56,6 +55,31 @@ try {
     await p.screenshot({ path: `public/${file}`, omitBackground: !inset });
     await p.close();
     console.log(`public/${file}`);
+  }
+
+  // /favicon.ico: one 32px PNG in an ICO container (PNG entries are valid ICO since Vista), for
+  // crawlers and browsers that ask for /favicon.ico whatever the page links.
+  {
+    const p = await browser.newPage({ viewport: { width: 32, height: 32 } });
+    await p.setContent(
+      page(`<img src="${svgUrl}" style="width:32px;height:32px;display:block">`, 32, 32),
+    );
+    const png = await p.screenshot({ omitBackground: true });
+    await p.close();
+    const head = Buffer.alloc(22);
+    head.writeUInt16LE(0, 0); // reserved
+    head.writeUInt16LE(1, 2); // type: icon
+    head.writeUInt16LE(1, 4); // one image
+    head.writeUInt8(32, 6); // width
+    head.writeUInt8(32, 7); // height
+    head.writeUInt8(0, 8); // no palette
+    head.writeUInt8(0, 9); // reserved
+    head.writeUInt16LE(1, 10); // colour planes
+    head.writeUInt16LE(32, 12); // bits per pixel
+    head.writeUInt32LE(png.length, 14);
+    head.writeUInt32LE(22, 18); // the PNG starts right after this header
+    writeFileSync('public/favicon.ico', Buffer.concat([head, png]));
+    console.log('public/favicon.ico');
   }
 
   const p = await browser.newPage({ viewport: { width: 1200, height: 630 } });

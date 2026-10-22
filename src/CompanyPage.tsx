@@ -17,6 +17,7 @@ import { deriveJobState, savedAgo } from './jobState';
 import { Panel, PanelBody, PanelRow } from './PipelinePanel';
 import { JobPostingLink } from './PostingLink';
 import type { Job } from './types';
+import { usePageTitle } from './pageTitle';
 
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 // Fields fill the column (a Box sx, not an inline style: the #133 ratchet).
@@ -144,6 +145,7 @@ function NewNote({ company, action }: { company: string; action: string }) {
 
 export default function CompanyPage({ slug }: { slug: string }) {
   const company = useCompany(slug);
+  usePageTitle(company?.name ?? 'Company');
   if (!company)
     return (
       <EmptyState

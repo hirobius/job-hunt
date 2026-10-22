@@ -50,12 +50,14 @@ import { fillSnippet, previewText } from './templateFill';
 import { copyFilled } from './templateCopy';
 import { showNotice } from './saveNotice';
 import { useCloudSync } from './account/accountContext';
+import { usePageTitle } from './pageTitle';
 import type { Job } from './types';
 
 export default function ApplyMode({ jobId }: { jobId: string | null }) {
   const jobs = useJobs();
   const queue = useMemo(() => toApplyQueue(jobs), [jobs]);
   const job = jobId ? findJobById(jobId, jobs) : undefined;
+  usePageTitle(job ? `Apply: ${titleOf(job)}` : 'Apply');
   // The pager walks the queue with this job held in its place, so "2 of 3" stays put after Mark
   // applied (the job leaves To apply) and Next still means the one after it.
   const sequence = useMemo(

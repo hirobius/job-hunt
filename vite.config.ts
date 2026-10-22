@@ -1,12 +1,25 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { applyBrand } from './src/brandHtml.ts';
+import { fontPreloadTag } from './src/fontPreload.ts';
 
 export default defineConfig({
   // brand-html: index.html's %BRAND_*% placeholders come from src/brand.ts (#55).
   plugins: [
     react(),
     { name: 'brand-html', transformIndexHtml: (html: string) => applyBrand(html) },
+    // preload-font: the body font is fetched with the HTML, not after the CSS is parsed.
+    {
+      name: 'preload-font',
+      apply: 'build',
+      transformIndexHtml: {
+        order: 'post',
+        handler: (html, ctx) => {
+          const tag = fontPreloadTag(Object.keys(ctx.bundle ?? {}));
+          return tag ? html.replace('</title>', `</title>\n    ${tag}`) : html;
+        },
+      },
+    },
   ],
   build: {
     rollupOptions: {

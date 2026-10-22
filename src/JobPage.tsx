@@ -16,6 +16,8 @@ import {
   useAtLeast,
 } from '@hirobius/design-system';
 import { findJobById, useJobs } from './store';
+import { titleOf } from './jobRow';
+import { usePageTitle } from './pageTitle';
 import { openJob } from './route';
 import { useCloudSync } from './account/accountContext';
 import JobHeader from './JobHeader';
@@ -99,6 +101,7 @@ function JobPageSkeleton() {
 
 export default function JobPage({ jobId }: { jobId: string }) {
   const job = findJobById(jobId, useJobs());
+  usePageTitle(job ? titleOf(job) : 'Job');
   // An unknown id may just not have synced onto this device yet: wait until sync has settled,
   // then fall back to the Pipeline without a new history entry.
   const { settled } = useCloudSync();
