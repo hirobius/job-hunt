@@ -9,6 +9,7 @@
 //   - a page side gutter of at least 16px on a phone
 //   - the page starts 24 under the tab row on every route (the shell owns that space)
 //   - no italic text (HDS 0.30's EmptyState title is italic; hds-gaps/EmptyState resets it)
+//   - a back link's arrow sits on the page heading's left edge (no tertiary inset)
 // Local only: `npm run verify:ui` (or `npm run test:e2e`).
 import { test, expect, type Page } from '@playwright/test';
 import { seed, visitAll } from './routes';
@@ -224,6 +225,20 @@ function probe(page: Page) {
             `status: ${label(title)} has ${badges.length} badges beside it (${badges.map((b) => b.textContent?.trim()).join(', ')})`,
           );
       });
+      // 8. Back links ("← Pipeline", "Back to companies"): the arrow lines up with the page
+      // heading (rev-3), never inset by the tertiary Button's leading padding.
+      const h2 = [...document.querySelectorAll('h2')].find(visible);
+      if (h2)
+        document.querySelectorAll('a, button').forEach((el) => {
+          const name = (el.getAttribute('aria-label') || el.textContent || '').trim();
+          const arrow = el.firstElementChild;
+          if (!visible(el) || !/^(Back|All documents)/.test(name) || arrow?.tagName !== 'svg')
+            return;
+          const d = Math.round(
+            arrow.getBoundingClientRect().left - h2.getBoundingClientRect().left,
+          );
+          if (Math.abs(d) > 1) out.push(`back inset: ${label(el)} arrow is ${d}px off the heading`);
+        });
       return [...new Set(out)];
     },
     { phone: PHONE, gutter: GUTTER, rhythm: RHYTHM },

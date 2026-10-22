@@ -38,6 +38,7 @@ import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const DocumentsView = lazy(() => import('./DocumentsView'));
 const LegalPage = lazy(() => import('./LegalPage'));
+const NotFoundPage = lazy(() => import('./NotFoundPage'));
 
 // Top-level tabs, in render order (Calm list: Companies · Pipeline). The URL hash carries the slug;
 // slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline). `#/today` (#128) is
@@ -52,6 +53,8 @@ const DOCUMENTS_ROUTE = 'copy-deck';
 const HOME_ROUTE = 'discover';
 const QUICK_ADD_LANDING = 'queue';
 const APPLY_ROUTE = 'apply';
+// The old Trades tab's slug: its bookmarks still land on Companies, like an empty hash.
+const LEGACY_HOME = 'apprenticeships';
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
 /** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
@@ -74,6 +77,14 @@ export default function App() {
   const documents = route.tab === DOCUMENTS_ROUTE;
   // The Privacy policy and Terms (#43): pages with no tab, like Documents.
   const legal = route.tab === LEGAL_ROUTE;
+  // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show Companies.
+  const known: string[] = [...TAB_SLUGS, APPLY_ROUTE, COMPANY_TAB, DOCUMENTS_ROUTE, LEGAL_ROUTE];
+  const notFound =
+    route.tab !== '' &&
+    route.tab !== RETIRED_TODAY &&
+    route.tab !== LEGACY_HOME &&
+    !known.includes(route.tab);
+  const noTab = documents || legal || notFound;
   const slugIndex = TAB_SLUGS.indexOf(
     (applying || company ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
   );
@@ -144,12 +155,12 @@ export default function App() {
               py: 'md',
             }}
           >
-            {/* On the Documents and legal pages no tab is selected (and no tab panel mounts).
+            {/* On the Documents, legal and not-found pages no tab is selected (and no tab panel mounts).
                 Manual activation there: Tab past the Account button focuses the first tab, which
                 would otherwise select it and leave the page before a keyboard user reaches it. */}
             <HdsTabs
-              value={documents || legal ? '' : TAB_SLUGS[tab]}
-              activationMode={documents || legal ? 'manual' : 'automatic'}
+              value={noTab ? '' : TAB_SLUGS[tab]}
+              activationMode={noTab ? 'manual' : 'automatic'}
               onValueChange={(v) =>
                 navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null, jobId: null })
               }
@@ -209,6 +220,11 @@ export default function App() {
                 {legal && (
                   <Suspense fallback={null}>
                     <LegalPage />
+                  </Suspense>
+                )}
+                {notFound && (
+                  <Suspense fallback={null}>
+                    <NotFoundPage />
                   </Suspense>
                 )}
               </Stack>
