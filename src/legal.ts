@@ -71,7 +71,7 @@ export const THIRD_PARTIES: ThirdParty[] = [
   {
     name: 'DuckDuckGo',
     purpose:
-      'Company logos. To show a company’s logo, your browser asks DuckDuckGo’s icon service for the icon of the company’s web address, such as acme.com. It receives that web address and your IP address, never your name, email, notes, documents or account. Where there is no logo, the app shows the company’s first letter.',
+      'Company logos. To show a company’s logo, your browser asks DuckDuckGo’s icon service for the icon of the company’s web address, such as acme.com. It receives that web address and your IP address, and may see that the request came from this app (our site address, never the page or job), but never your name, email, notes, documents or account. Where there is no logo, the app shows the company’s first letter.',
     hosts: ['https://icons.duckduckgo.com'],
   },
   {

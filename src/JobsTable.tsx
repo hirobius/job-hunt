@@ -72,7 +72,7 @@ export default function JobsTable({
           slot: 'custom',
           content: (
             <Stack direction="row" gap="px8" align="center">
-              {job.company && <CompanyLogo company={job.company} addresses={[job.url]} />}
+              {job.company && <CompanyLogo company={job.company} postings={[job.url]} />}
               <Stack gap="px2">
                 <Stack direction="row" gap="px4" align="center">
                   <JobPostingTitle job={job}>

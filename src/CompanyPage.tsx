@@ -182,7 +182,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
           </Text>
           {/* The mark sits with the job count, so the Back arrow and the heading keep one edge. */}
           <Stack direction="row" gap="px8" align="center">
-            <CompanyLogo company={company.name} addresses={company.jobs.map((j) => j.url)} />
+            <CompanyLogo company={company.name} postings={company.jobs.map((j) => j.url)} />
             <Quiet>{company.jobs.length === 1 ? '1 job' : `${company.jobs.length} jobs`}</Quiet>
           </Stack>
         </Stack>

@@ -54,7 +54,7 @@ export default function JobListCard({ job }: { job: Job }) {
               </JobPostingTitle>
               {job.company && (
                 <Stack direction="row" gap="px8" align="center">
-                  <CompanyLogo company={job.company} addresses={[job.url]} />
+                  <CompanyLogo company={job.company} postings={[job.url]} />
                   <Text variant="ui" as="p">
                     {job.company}
                   </Text>
