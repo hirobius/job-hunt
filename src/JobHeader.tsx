@@ -54,24 +54,30 @@ export default function JobHeader({
     ) : null;
   const primary = next ? <RowPrimaryAction job={job} variant="primary" size="md" /> : addInterview;
   return (
+    // Roomy rhythm: Back, 12 to the badges, 8 to the title, 4 to the meta, 20 to the actions; 40
+    // to the tabs.
     <Box as="header" sx={{ mb: 'lg' }}>
-      <Stack gap="normal">
-        {showBack && <BackToPipeline />}
-        <Stack gap="tight">
-          <JobBadges job={job} />
-          {/* The posting is one tap from the title (Adrian 2026-10-22), quiet beside it: the
-              header's one primary stays the next step. */}
-          <Stack direction="row" gap="px4" align="center">
-            <Box sx={{ minWidth: 0 }}>
-              <Text variant="title" as="h2">
-                {titleOf(job)}
-              </Text>
-            </Box>
-            <JobPostingLink job={job} size="md" />
+      <Stack gap="tight">
+        <Stack gap="medium">
+          {showBack && <BackToPipeline />}
+          <Stack gap="px8">
+            <JobBadges job={job} />
+            <Stack gap="px4">
+              {/* The posting is one tap from the title (Adrian 2026-10-22), quiet beside it: the
+                  header's one primary stays the next step. */}
+              <Stack direction="row" gap="px4" align="center">
+                <Box sx={{ minWidth: 0 }}>
+                  <Text variant="title" as="h2">
+                    {titleOf(job)}
+                  </Text>
+                </Box>
+                <JobPostingLink job={job} size="md" />
+              </Stack>
+              <MetaCaption
+                items={[job.company?.trim(), job.location?.trim(), applied && `Applied ${applied}`]}
+              />
+            </Stack>
           </Stack>
-          <MetaCaption
-            items={[job.company?.trim(), job.location?.trim(), applied && `Applied ${applied}`]}
-          />
         </Stack>
         {/* On a phone the primary takes the room between the two 40px icon buttons (rev-3
             mock); from sm up it is as wide as its label. No primary, no slot: no hole. */}

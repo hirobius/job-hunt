@@ -6,7 +6,7 @@
 // Pipeline, whose Apply sheet links here, and it opens from the Menu.
 import { useContext, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { Box, Button, Icon } from '@hirobius/design-system';
+import { Button, Icon } from '@hirobius/design-system';
 import { PageHeader } from '@hirobius/design-system/patterns';
 import DocumentsLibrary from './DocumentsLibrary';
 import { useDocuments } from './documents';
@@ -46,14 +46,12 @@ export default function DocumentsView() {
     else if (!named && settled && !moving) navigate({ sub: null }, true);
   }, [route.sub, named, settled, moving]);
 
-  // The 760 content measure, like the job page: documents are prose.
+  // The shell's 760 content measure: documents are prose.
   return (
-    <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
-      <DocumentsLibrary
-        header={header}
-        openId={named}
-        onOpen={(id) => navigate({ sub: id ? encodeURIComponent(id) : null })}
-      />
-    </Box>
+    <DocumentsLibrary
+      header={header}
+      openId={named}
+      onOpen={(id) => navigate({ sub: id ? encodeURIComponent(id) : null })}
+    />
   );
 }

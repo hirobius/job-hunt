@@ -40,7 +40,7 @@ export default function AddCompany({
     <Dialog open={open} onOpenChange={setOpen}>
       {/* A Trigger, so closing the dialog returns focus here (a11y pass). */}
       <Dialog.Trigger asChild>
-        <Button size="sm" iconLeft={<Icon icon={Plus} />}>
+        <Button size="md" variant="primary" iconLeft={<Icon icon={Plus} />}>
           Add a company
         </Button>
       </Dialog.Trigger>

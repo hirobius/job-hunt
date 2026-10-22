@@ -14,12 +14,13 @@
 // phone, all of it from `sm` up) with the variables as chips, then Copy, Open and a menu (Pin,
 // Duplicate, Delete).
 import { useState, type ReactNode } from 'react';
-import { Copy, Ellipsis, Plus } from 'lucide-react';
+import { Copy, Ellipsis, Pencil, Plus } from 'lucide-react';
 import {
   AlertDialog,
   Badge,
   Box,
   Button,
+  Card,
   Disclosure,
   Icon,
   Menu,
@@ -41,6 +42,7 @@ import { documentIdForSnippet, kindForSnippet, restoreStarterOutreach } from './
 import { STARTER_SNIPPETS } from './copyDeckStore';
 import type { Document, DocumentKind } from './documents';
 import { Panel, PanelBody, PanelRows } from './PipelinePanel';
+import { useCardPadding } from './cardPadding';
 import { WithChips } from './BlankText';
 import { postedAgo } from './feed/format';
 import { metaLines } from './metaLines';
@@ -144,14 +146,15 @@ export default function DocumentsLibrary({
     );
 
   return (
-    <Stack gap="spacious">
+    // Roomy rhythm: the page head, then 40 to each kind's section.
+    <Stack gap="inset">
       {header ?? (
         <Text variant="title" as="h2">
           Documents
         </Text>
       )}
-      {/* The Pipeline's panel rhythm: panels 24 apart (rev-3 mock). */}
-      <Stack gap="px24">
+      {/* The Pipeline's section rhythm: 40 apart. */}
+      <Stack gap="inset">
         {LIBRARY_ORDER.map((kind) => {
           const label = DOCUMENT_KINDS.find((k) => k.kind === kind)!.label;
           const items = libraryItems(docs, kind);
@@ -159,14 +162,15 @@ export default function DocumentsLibrary({
           return (
             <Panel
               key={kind}
+              kind="list"
               label={PLURAL[kind]}
               title={PLURAL[kind]}
               count={items.length}
               countLabel={`${items.length} ${lower(PLURAL[kind])}`}
               trailing={
                 <Button
-                  variant="secondary"
-                  size="sm"
+                  variant="tertiary"
+                  size="md"
                   iconLeft={<Icon icon={Plus} />}
                   label={newLabel}
                   onClick={() => go({ kind })}
@@ -177,7 +181,7 @@ export default function DocumentsLibrary({
             >
               {(items.length === 0 || (RESTORE_LABEL[kind] && starterMissing(docs, kind))) && (
                 <PanelBody>
-                  <Stack gap="tight">
+                  <Stack gap="px8">
                     {items.length === 0 && (
                       <Text variant="caption" as="p" tone="secondary">
                         {`No ${lower(PLURAL[kind])} yet. ${EMPTY_HINT[kind]}`}
@@ -185,7 +189,12 @@ export default function DocumentsLibrary({
                     )}
                     {RESTORE_LABEL[kind] && starterMissing(docs, kind) && (
                       <Box>
-                        <Button variant="tertiary" size="sm" onClick={() => restoreStarters(kind)}>
+                        <Button
+                          variant="tertiary"
+                          size="md"
+                          className="rjb-flush-start"
+                          onClick={() => restoreStarters(kind)}
+                        >
                           {RESTORE_LABEL[kind]}
                         </Button>
                       </Box>
@@ -254,14 +263,16 @@ function DocumentRow({
     highlightNew(doc.id);
     toast({ title: doc.pinned ? 'Unpinned' : 'Pinned', description: title });
   };
-  const highlight = useHighlight<HTMLElement>(doc.id);
+  const highlight = useHighlight<HTMLDivElement>(doc.id);
+  const padding = useCardPadding();
   return (
-    <Box
+    // Each document is a filled card (roomy: was a hairline row); the whole card shows hover.
+    <Card
       as="li"
       ref={highlight}
       aria-label={title}
-      className="rjb-doc-row"
-      sx={{ px: 'md', py: 'xs', borderTop: 'thin solid', borderColor: 'border.default' }}
+      className="rjb-doc-row border-0"
+      padding={padding}
     >
       <Disclosure
         variant="row"
@@ -303,22 +314,23 @@ function DocumentRow({
             </Text>
             <Stack direction="row" gap="tight" align="center" justify="space-between">
               <Stack direction="row" gap="tight" align="center">
-                <Button
-                  variant="secondary"
-                  size="md"
-                  iconLeft={<Icon icon={Copy} />}
-                  onClick={copy}
-                >
+                <Button variant="tertiary" size="md" iconLeft={<Icon icon={Copy} />} onClick={copy}>
                   Copy
                 </Button>
-                <Button variant="secondary" size="md" label={`Open ${title}`} onClick={onEdit}>
+                <Button
+                  variant="tertiary"
+                  size="md"
+                  iconLeft={<Icon icon={Pencil} />}
+                  label={`Open ${title}`}
+                  onClick={onEdit}
+                >
                   Open
                 </Button>
               </Stack>
               <Menu modal={false}>
                 <Menu.Trigger asChild>
                   <Button
-                    variant="secondary"
+                    variant="tertiary"
                     size="md"
                     iconOnly
                     iconLeft={<Icon icon={Ellipsis} />}
@@ -369,6 +381,6 @@ function DocumentRow({
           </AlertDialog.Footer>
         </AlertDialog.Content>
       </AlertDialog>
-    </Box>
+    </Card>
   );
 }

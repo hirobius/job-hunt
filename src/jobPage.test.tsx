@@ -502,6 +502,20 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(within(rail()).getByText('Not in this filter')).toBeInTheDocument();
   });
 
+  it('a rail row is the title, "Company · Status" and only a warning badge (roomy)', () => {
+    viewport(1280);
+    updateJob(URL_B, { company: 'Forge Co', verdict: 'match' });
+    openJobPage(URL_A);
+    const row = within(rail()).getByRole('link', { name: /Welder/ });
+    expect(row).toHaveTextContent('Welder');
+    expect(within(row).getByText('Forge Co · Saved')).toBeInTheDocument();
+    // Status and fit live in the caption and on the job page, not as rail badges.
+    expect(within(row).queryByText('Strong fit')).toBeNull();
+    expect(row.querySelectorAll('[class*="--component-badge-height"]')).toHaveLength(0);
+    // The rail is one filled card: no outline of its own.
+    expect(rail()).toHaveAttribute('data-bordered', 'false');
+  });
+
   it('marks a follow-up that is due', () => {
     viewport(1280);
     const d = new Date();

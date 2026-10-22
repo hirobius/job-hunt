@@ -14,6 +14,7 @@ import {
 } from '@hirobius/design-system';
 import {
   Banknote,
+  Bookmark,
   Calendar,
   ExternalLink,
   Globe,
@@ -29,6 +30,7 @@ import { parseMeta, postedWindow, splitTileName, type MetaChip } from './tileMet
 import type { Tile } from './jobsData';
 import { parseBoardUrl } from './feed/sources/ats';
 import { httpUrl } from './feed/targets';
+import { useCardPadding } from './cardPadding';
 
 // Tile kind, derived from the URL (issue #12): aggregator queries are "Search", Google
 // fallback leads are "Lead" (verify before relying), everything else is a direct
@@ -86,8 +88,15 @@ export default function TileGrid({
   const save = (t: Tile) => {
     saveWithNotice(t.url, t.name, t.meta);
   };
+  // Roomy: filled, borderless cards with the card padding, as far apart as they are padded.
+  const padding = useCardPadding();
   return (
-    <Grid layout="auto-fill" minItemWidth="240px" gap="medium" align="stretch">
+    <Grid
+      layout="auto-fill"
+      minItemWidth="320px"
+      gap={padding === 'component' ? 'normal' : 'tight'}
+      align="stretch"
+    >
       {tiles.map((t) => {
         const saved = isSaved(t.url);
         const isAside = dismissedSet.has(t.url);
@@ -118,8 +127,8 @@ export default function TileGrid({
         return (
           <HdsCard
             key={t.url + t.name}
-            bordered
-            padding="none"
+            padding={padding}
+            className="border-0"
             style={{
               height: '100%',
               opacity: isAside ? 0.6 : 1,
@@ -128,7 +137,7 @@ export default function TileGrid({
             <Box
               as="article"
               aria-label={t.name}
-              sx={{ p: 'sm', display: 'flex', flexDirection: 'column', gap: 'xs', height: '100%' }}
+              sx={{ display: 'flex', flexDirection: 'column', gap: 'xs', height: '100%' }}
             >
               <Stack direction="row" gap="xs" align="center" justify="space-between">
                 <Box sx={{ minWidth: 0 }}>
@@ -143,149 +152,156 @@ export default function TileGrid({
               </Stack>
               {/* The title opens the page too, with the external-link icon (Adrian 2026-10-22):
                   every unsaved listing's title is its link out (a web address only). */}
-              <Text variant="body" as="h3" weight="bold" className="rjb-card-title" title={t.name}>
+              <Text variant="body" as="h3" className="rjb-card-title rjb-semibold" title={t.name}>
                 {httpUrl(t.url) ? <InlineLink href={t.url}>{title}</InlineLink> : title}
               </Text>
               {chips.length > 0 && (
-                <Stack gap="px4">
-                  {/* At most two facts per row (#192). */}
-                  {chunkMeta(chips).map((row) => (
-                    // Box, not Stack: Stack drops the data-meta-row hook the tests count.
-                    <Box
-                      key={row.map((c) => c.kind + c.text).join('|')}
-                      data-meta-row=""
-                      sx={{ display: 'flex', flexWrap: 'wrap', gap: 'sm', alignItems: 'center' }}
-                    >
-                      {row.map((c) => (
-                        <Stack key={c.kind + c.text} direction="row" gap="px4" align="center">
-                          <Icon icon={FACT_ICON[c.kind]} size="small" />
-                          {c.kind === 'contact' ? (
-                            <Text variant="caption" as="span">
-                              <InlineLink href={telHref(c.text)}>{c.text}</InlineLink>
-                            </Text>
-                          ) : (
-                            <Text variant="caption" as="span" tone="secondary">
-                              {c.text}
-                            </Text>
-                          )}
-                        </Stack>
-                      ))}
-                    </Box>
-                  ))}
-                </Stack>
-              )}
-              {/* Pushes the actions to the card's foot, so tiles in a row line up. */}
-              <Box sx={{ flex: 1 }} />
-              {/* Save, Open, then the quiet Set aside on the far side, one centre line (rev-3 G). */}
-              <Stack direction="row" gap="px8" align="center" justify="space-between">
-                <Stack direction="row" gap="px8" align="center">
-                  <Button
-                    size="sm"
-                    variant={saved ? 'tertiary' : 'secondary'}
-                    disabled={saved}
-                    onClick={() => save(t)}
-                  >
-                    {saved ? 'Saved' : 'Save'}
-                  </Button>
-                  {cta === 'Open' ? (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      iconOnly
-                      label={`Open ${title}`}
-                      className="rjb-icon-row"
-                      asChild
-                    >
-                      <a
-                        href={t.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`Open ${title}`}
+                // 12 under the title: 8 of the column's gap and 4 here.
+                <Box sx={{ pt: 'fixed-2xs' }}>
+                  <Stack gap="px4">
+                    {/* At most two facts per row (#192). */}
+                    {chunkMeta(chips).map((row) => (
+                      // Box, not Stack: Stack drops the data-meta-row hook the tests count.
+                      <Box
+                        key={row.map((c) => c.kind + c.text).join('|')}
+                        data-meta-row=""
+                        sx={{ display: 'flex', flexWrap: 'wrap', gap: 'sm', alignItems: 'center' }}
                       >
-                        <Icon icon={ExternalLink} />
-                      </a>
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="secondary" asChild>
-                      <a href={t.url} target="_blank" rel="noopener noreferrer">
-                        {cta}
-                      </a>
-                    </Button>
-                  )}
-                </Stack>
-                <Stack direction="row" gap="px8" align="center">
-                  {more && (
-                    <Popover>
-                      <Popover.Trigger asChild>
-                        <Button size="sm" variant="tertiary" className="rjb-quiet">
-                          Details
-                        </Button>
-                      </Popover.Trigger>
-                      <Popover.Content align="end" aria-label={`Details: ${t.name}`}>
-                        <Box sx={{ overflowWrap: 'anywhere' }}>
-                          <Stack gap="tight">
-                            <Text variant="ui" as="span">
-                              {t.name}
-                            </Text>
-                            {metaLines(meta.raw.split(/\s+·\s+/)).map((line) => (
-                              <Text
-                                key={line}
-                                variant="caption"
-                                as="span"
-                                data-meta-detail
-                                tone="secondary"
-                              >
-                                {line}
+                        {row.map((c) => (
+                          <Stack key={c.kind + c.text} direction="row" gap="px4" align="center">
+                            <Icon icon={FACT_ICON[c.kind]} size="small" />
+                            {c.kind === 'contact' ? (
+                              <Text variant="caption" as="span">
+                                <InlineLink href={telHref(c.text)}>{c.text}</InlineLink>
                               </Text>
-                            ))}
-                            {meta.phones.map((ph) => (
-                              <InlineLink key={ph} href={telHref(ph)}>
-                                {ph}
-                              </InlineLink>
-                            ))}
-                            {meta.emails.map((em) => (
-                              <InlineLink key={em} href={`mailto:${em}`}>
-                                {em}
-                              </InlineLink>
-                            ))}
-                            {host && (
+                            ) : (
                               <Text variant="caption" as="span" tone="secondary">
-                                {host}
+                                {c.text}
                               </Text>
                             )}
                           </Stack>
-                        </Box>
-                      </Popover.Content>
-                    </Popover>
-                  )}
-                  {triage && (
+                        ))}
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+              {/* Pushes the actions to the card's foot, so tiles in a row line up. */}
+              <Box sx={{ flex: 1 }} />
+              {/* Save, Open, then the quiet Set aside on the far side, one centre line (rev-3 G).
+                  All quiet tertiaries, 40 tall (roomy: no outlined buttons on a card). */}
+              <Box sx={{ pt: 'fixed-2xs' }}>
+                <Stack direction="row" wrap="wrap" gap="px8" align="center" justify="space-between">
+                  <Stack direction="row" gap="px8" align="center">
                     <Button
-                      size="sm"
+                      size="md"
                       variant="tertiary"
-                      className="rjb-quiet"
-                      onClick={() => toggleDismiss(t.url)}
+                      iconLeft={<Icon icon={Bookmark} size={16} />}
+                      disabled={saved}
+                      onClick={() => save(t)}
                     >
-                      {isAside ? 'Restore' : 'Set aside'}
+                      {saved ? 'Saved' : 'Save'}
                     </Button>
-                  )}
-                  {onRemove && (
-                    <HdsTooltip>
-                      <HdsTooltip.Trigger asChild>
-                        <Button
-                          size="sm"
-                          variant="tertiary"
-                          tone="danger"
-                          iconOnly
-                          iconLeft={<Icon icon={Trash2} />}
-                          onClick={() => onRemove(t.url)}
-                          label="Remove tile"
-                        />
-                      </HdsTooltip.Trigger>
-                      <HdsTooltip.Content>Remove</HdsTooltip.Content>
-                    </HdsTooltip>
-                  )}
+                    {cta === 'Open' ? (
+                      <Button
+                        size="md"
+                        variant="tertiary"
+                        iconOnly
+                        label={`Open ${title}`}
+                        className="rjb-icon-row"
+                        asChild
+                      >
+                        <a
+                          href={t.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Open ${title}`}
+                        >
+                          <Icon icon={ExternalLink} />
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button size="md" variant="tertiary" asChild>
+                        <a href={t.url} target="_blank" rel="noopener noreferrer">
+                          {cta}
+                        </a>
+                      </Button>
+                    )}
+                  </Stack>
+                  <Stack direction="row" gap="px8" align="center">
+                    {more && (
+                      <Popover>
+                        <Popover.Trigger asChild>
+                          <Button size="md" variant="tertiary" className="rjb-quiet">
+                            Details
+                          </Button>
+                        </Popover.Trigger>
+                        <Popover.Content align="end" aria-label={`Details: ${t.name}`}>
+                          <Box sx={{ overflowWrap: 'anywhere' }}>
+                            <Stack gap="tight">
+                              <Text variant="ui" as="span">
+                                {t.name}
+                              </Text>
+                              {metaLines(meta.raw.split(/\s+·\s+/)).map((line) => (
+                                <Text
+                                  key={line}
+                                  variant="caption"
+                                  as="span"
+                                  data-meta-detail
+                                  tone="secondary"
+                                >
+                                  {line}
+                                </Text>
+                              ))}
+                              {meta.phones.map((ph) => (
+                                <InlineLink key={ph} href={telHref(ph)}>
+                                  {ph}
+                                </InlineLink>
+                              ))}
+                              {meta.emails.map((em) => (
+                                <InlineLink key={em} href={`mailto:${em}`}>
+                                  {em}
+                                </InlineLink>
+                              ))}
+                              {host && (
+                                <Text variant="caption" as="span" tone="secondary">
+                                  {host}
+                                </Text>
+                              )}
+                            </Stack>
+                          </Box>
+                        </Popover.Content>
+                      </Popover>
+                    )}
+                    {triage && (
+                      <Button
+                        size="md"
+                        variant="tertiary"
+                        className="rjb-quiet"
+                        onClick={() => toggleDismiss(t.url)}
+                      >
+                        {isAside ? 'Restore' : 'Set aside'}
+                      </Button>
+                    )}
+                    {onRemove && (
+                      <HdsTooltip>
+                        <HdsTooltip.Trigger asChild>
+                          <Button
+                            size="sm"
+                            variant="tertiary"
+                            tone="danger"
+                            iconOnly
+                            iconLeft={<Icon icon={Trash2} />}
+                            onClick={() => onRemove(t.url)}
+                            label="Remove tile"
+                          />
+                        </HdsTooltip.Trigger>
+                        <HdsTooltip.Content>Remove</HdsTooltip.Content>
+                      </HdsTooltip>
+                    )}
+                  </Stack>
                 </Stack>
-              </Stack>
+              </Box>
             </Box>
           </HdsCard>
         );

@@ -1,6 +1,6 @@
-// The pieces one job row is made of (#129), shared by the desktop table (JobsTable), the phone
-// cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
-// step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
+// The pieces one job row is made of (#129), shared by the Pipeline's job cards (JobCard), the job
+// rail and the job page's header (JobHeader): the status badge, the row's one next step, and the
+// menu that holds everything else. What a row offers is decided in jobRow.ts.
 import { useRef, useState } from 'react';
 import { Check, Ellipsis, Star } from 'lucide-react';
 import {
@@ -25,7 +25,7 @@ import { normStatus } from './jobState';
 import { researchLinks } from './jobFacts';
 import { STATUSES, type Job, type Status } from './types';
 
-/** Controls on a phone card are 40px tap targets; the denser table uses the small size. */
+/** Controls on a card are 40px tap targets (md); the job rail uses the small size. */
 type Size = 'sm' | 'md';
 
 /** The job's Status. Neutral everywhere (rev-3 B): the table, the rail, the Company page and the
@@ -107,7 +107,7 @@ export function StarButton({ job }: { job: Job }) {
   return (
     <Button
       size="md"
-      variant="secondary"
+      variant="tertiary"
       iconOnly
       iconLeft={<StarIcon on={on} animate={touched} />}
       label={on ? 'Starred' : 'Star'}
@@ -119,17 +119,17 @@ export function StarButton({ job }: { job: Job }) {
   );
 }
 
-/** The row's one next step, or nothing when there isn't one. Secondary, so the page's own
- *  primary action (Add job) stays the only filled button on the screen. */
+/** The row's one next step, or nothing when there isn't one. Quiet (tertiary, with an icon so it
+ *  reads as an action; roomy), so the page's own primary action stays the only filled button. */
 export function RowPrimaryAction({
   job,
   size = 'sm',
-  variant = 'secondary',
+  variant = 'tertiary',
 }: {
   job: Job;
   size?: Size;
   /** The job page's header makes this its one primary action. */
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'tertiary';
 }) {
   const action = primaryAction(job);
   const title = titleOf(job);
@@ -138,6 +138,7 @@ export function RowPrimaryAction({
       <Button
         size={size}
         variant={variant}
+        iconLeft={<Icon icon={Check} size={16} />}
         aria-label={`Mark applied: ${title}`}
         onClick={(e) =>
           changeWithUndo(
@@ -176,11 +177,11 @@ export function RowMenu({
   return (
     <Menu>
       <Menu.Trigger asChild>
-        {/* A bordered 40px button on a phone card (rev-3 mock); quiet in the dense table. */}
+        {/* A quiet icon button (roomy: no outline); 40px on a card. */}
         <Button
           ref={anchor}
           size={size}
-          variant={size === 'md' ? 'secondary' : 'tertiary'}
+          variant="tertiary"
           iconOnly
           iconLeft={<Icon icon={Ellipsis} />}
           label={`More actions: ${title}`}

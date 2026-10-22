@@ -26,6 +26,29 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Light canvas (roomy layout, 2026-10-22; HDS gap "Light canvas", docs/hds-upstream-asks-0.9.md).
+ * Cards are borderless now, so a card reads by its fill alone. HDS light raised (#fafafa) is
+ * 1.04:1 on page white, too faint to see; the light page is muted and every raised surface is
+ * white, the same step as dark's black canvas under #1a1a1a cards. Dark is untouched. */
+:root[data-theme='light'] {
+  --semantic-color-surface-raised: var(--semantic-color-surface-page);
+}
+:root[data-theme='light'] body {
+  background: var(--semantic-color-surface-muted);
+}
+
+/* Borderless chips (HDS gap "Borderless Tag"): an HDS Tag (Hiring now / All, sweep titles, a
+ * track's terms) is a filled pill with no outline; the selected one keeps its accent fill (3:1+
+ * on canvas and card, so the state is not colour alone). Inside a card a chip steps to the
+ * overlay fill, so it never melts into the card. */
+[data-hds] {
+  --component-tag-border: transparent;
+  --component-tag-activeBorder: transparent;
+}
+[data-hds] [data-padding] {
+  --component-tag-background: var(--semantic-color-surface-overlay);
+}
+
 /* One visible focus ring for the app's own controls (links, tiles). The HDS accent clears 3:1
  * on both surfaces (theme.contrast.test); the offset keeps it legible on an accent control. */
 a:focus-visible,
@@ -82,13 +105,6 @@ p {
   --hds-form-control-max-width: none;
 }
 
-/* Calm list rows (#241): a company list is flat rows on the page, split by hairlines, not cards
- * or a loose gap. */
-.rjb-rows > li {
-  padding-block: var(--primitive-space-4);
-  border-top: thin solid var(--semantic-color-border-default);
-}
-
 /* Apply mode copy rows: keep a saved answer's line breaks. */
 .rjb-prewrap {
   white-space: pre-wrap;
@@ -118,22 +134,29 @@ p {
 }
 
 /* Apply mode pager (rev-3 E): HDS Pagination compact draws borderless 44x40 tertiaries, and its
- * disabled tertiary picks up the primary's disabled fill (a grey tile). Mock: bordered 40x40 icon
- * buttons both sides of "1 of N", disabled just faded. Upstream ask: docs/hds-upstream-asks-0.9.md. */
+ * disabled tertiary picks up the primary's disabled fill (a grey tile). 40x40 icon buttons both
+ * sides of "1 of N", borderless (roomy), disabled just faded. Upstream ask:
+ * docs/hds-upstream-asks-0.9.md. */
 [data-hds] nav[aria-label='Jobs to apply'] button {
   min-width: var(--primitive-space-10);
   min-height: var(--primitive-space-10);
-  border: thin solid var(--semantic-color-border-default);
 }
 [data-hds] nav[aria-label='Jobs to apply'] button:disabled {
   background: transparent;
   opacity: 0.5;
 }
 
-/* The blank's fill field (rev-3 A): on the page surface, the input's own surface, as in the mock,
- * so in dark the input doesn't read as a hole in a raised card. */
-.rjb-fillbox {
-  background: var(--semantic-color-surface-page);
+/* HDS AsyncState's Retry is an outlined secondary; on the page it is quiet like every other
+ * non-primary action outside a dialog (roomy). HDS gap registry, "Quiet AsyncState retry". */
+.rjb-inline-alerts button[data-variant='secondary'] {
+  border-color: transparent;
+}
+
+/* A disabled quiet button ("Watching", "Saved"): HDS's base disabled fill is the primary's (a grey
+ * tile) on every variant, so a disabled tertiary read as a box. It stays unfilled, its text
+ * dimmed. HDS gap registry, "Disabled tertiary fill". */
+[data-hds] button[data-variant='tertiary']:disabled {
+  background-color: transparent;
 }
 
 /* "N blanks left": the warning icon inside the toned text, 4px from the words. */
@@ -159,18 +182,17 @@ p {
   fill: currentColor;
 }
 
-/* Template blanks (rev-3 A, N): a read-only blank in a filled text is the template editor's chip
- * (HDS TokenField's look, from the same tokens). A blank that fills in place is an HDS Tag set in
- * the line (`.rjb-blank`): its component tokens take the chip's shape, and on a phone its 40px hit
- * area overhangs the line instead of pushing the lines apart. Upstream ask: an inline, tappable
- * token chip (HDS gap registry, "Inline fillable blank"). */
+/* Template blanks (rev-3 A, N): a read-only blank in a filled text is a soft chip, an overlay fill
+ * with no outline (roomy). A blank that fills in place is an HDS Tag set in the line
+ * (`.rjb-blank`): its component tokens take the chip's shape, and on a phone its 40px hit area
+ * overhangs the line instead of pushing the lines apart. Upstream ask: an inline, tappable token
+ * chip (HDS gap registry, "Inline fillable blank"). */
 .rjb-chip {
   display: inline-block;
   margin-inline: 1px;
-  padding-inline: var(--semantic-space-subgrid-gap);
-  border: thin solid var(--semantic-color-border-default);
-  border-radius: var(--semantic-radius-control);
-  background: var(--semantic-color-surface-raised);
+  padding-inline: var(--semantic-space-fixed-2xs);
+  border-radius: var(--semantic-radius-scale-sm);
+  background: var(--semantic-color-surface-overlay);
   color: var(--semantic-color-content-primary);
   font-size: var(--semantic-typography-caption-font-size);
   line-height: var(--semantic-typography-caption-line-height);
@@ -183,8 +205,8 @@ p {
   --component-tag-radius: var(--semantic-radius-control);
   --component-tag-paddingX: var(--semantic-space-subgrid-gap);
   --component-tag-paddingY: 0;
-  --component-tag-border: var(--semantic-color-border-default);
-  --component-tag-background: var(--semantic-color-surface-raised);
+  --component-tag-border: transparent;
+  --component-tag-background: var(--semantic-color-surface-overlay);
   --component-tag-text: var(--semantic-color-content-primary);
   min-width: 0;
   margin-inline: 1px;
@@ -197,9 +219,9 @@ p {
   }
 }
 
-/* A job's title on a card or agenda row (rev-3 review; HDS Text weight="bold"): primary colour, two lines at most.
- * Its link is quiet (no underline until hover), so the title reads as a title, not a link. The
- * size stays on the compact ramp (body); the mock's 16px is not an HDS compact size. */
+/* An item's title on a card (a job, a company, a document; roomy: body 18, semibold): primary
+ * colour, two lines at most. Its link is quiet (no underline until hover), so the title reads as a
+ * title, not a link. */
 .rjb-card-title {
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -305,7 +327,8 @@ p {
   --semantic-typography-titleSm-line-height: var(--semantic-typography-body-line-height);
 }
 
-/* The Account avatar (rev-3 P, mock #s-account-menu): a 32px circle with a hairline, and the
+/* The Account avatar (rev-3 P, mock #s-account-menu): a 32px circle with a subdued ring (its muted
+ * fill is the light canvas colour, so without the ring the button has no shape), and the
  * unsynced Badge sitting on its rim with a page-colour ring. HDS's phone touch-size rule
  * (`.h-8 { min-height }`, `.w-8[class*=h-8] { min-width }` below 640) also hits the Avatar span,
  * which is not a control, inflating it to 44px inside its 40px button and pushing the badge off
@@ -318,7 +341,7 @@ p {
 [data-hds] .rjb-avatar {
   min-width: 0;
   min-height: 0;
-  border: thin solid var(--semantic-color-border-default);
+  border: thin solid var(--semantic-color-border-subdued);
 }
 
 [data-hds] .rjb-avatar > .absolute {
@@ -330,6 +353,17 @@ p {
   min-height: 0;
   box-shadow: 0 0 0 2px var(--semantic-color-surface-page);
 }
+/* The ring takes the canvas colour: muted on the light canvas. */
+:root[data-theme='light'] [data-hds] .rjb-avatar > .absolute {
+  box-shadow: 0 0 0 2px var(--semantic-color-surface-muted);
+}
+
+/* An item card's round initial (ItemCard): HDS's phone touch-size rule (above) also inflates an
+ * sm Avatar to 44px; it is not a control, so it keeps its own size. */
+[data-hds] .rjb-item-avatar {
+  min-width: 0;
+  min-height: 0;
+}
 
 /* The shell's top tabs (rev-3 .tabs): text flush with the page gutter, 24 apart, the underline as
  * wide as the label, and no tinted box on the selected tab. The 40px phone height stays. */
@@ -340,16 +374,6 @@ p {
 .rjb-top-tabs [role='tab'] {
   padding-inline: 0;
   background: transparent;
-}
-
-/* Phone form fields at 16px: compact density sets them to 13px and iOS Safari zooms the page on
-   focus below 16px. HDS gap (docs/hds-upstream-asks-0.9.md, "16px phone form fields"). */
-@media (max-width: 639.98px) {
-  [data-hds] input,
-  [data-hds] textarea,
-  [data-hds] select {
-    font-size: 16px;
-  }
 }
 
 /* The job page's tab row starts on the page gutter, like the badges and title above it (rev-3).
@@ -400,21 +424,12 @@ p {
   height: var(--primitive-space-10);
 }
 
-/* A tile's Open icon button matches its row (Save, Set aside) at every width: 40 on a phone, the
- * sm 32 from sm up, so the actions row never mixes heights. */
+/* A tile's Open icon button matches its row (Save, Set aside): 40 at every width. */
 [data-hds] .rjb-icon-row {
   min-width: var(--primitive-space-10);
   min-height: var(--primitive-space-10);
   width: var(--primitive-space-10);
   height: var(--primitive-space-10);
-}
-@media (min-width: 640px) {
-  [data-hds] .rjb-icon-row {
-    min-width: var(--primitive-space-8);
-    min-height: var(--primitive-space-8);
-    width: var(--primitive-space-8);
-    height: var(--primitive-space-8);
-  }
 }
 
 /* The posting link beside a saved job's title (PostingLink, Adrian 2026-10-22). It never shrinks
@@ -527,8 +542,7 @@ p {
 }
 
 /* Message dialogs (Follow up, Use template; rev-3 A): one chrome for both. HDS Dialog.Content has
- * no size prop and insets by the compact scale step (12px at 390); these take the page's 16px phone
- * gutter, and only the body scrolls, so the title and the footer's Copy message stay on screen.
+ * no size prop; these sit 16px in from a phone's edges, and only the body scrolls, so the title and the footer's Copy message stay on screen.
  * The 2px inline padding keeps focus rings inside the scroll box. Upstream ask: a size / scroll-body
  * option on Dialog.Content (docs/hds-upstream-asks-0.9.md). */
 [data-hds] .rjb-dialog {

@@ -5,18 +5,14 @@ import { useToast } from '@hirobius/design-system';
 import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
 import { watchBoard } from './feed/watchlist';
 
+/** A plain list inside a card (open roles, boards found): items 8 apart, no rules (roomy). */
 export const listStyle = {
   listStyle: 'none',
   margin: 0,
   padding: 0,
   display: 'grid',
-  gap: 'var(--primitive-space-3)',
+  gap: 'var(--semantic-space-scale-xs)',
 } as const;
-
-/** A list of companies (#241, Calm list): flat rows split by hairlines (`.rjb-rows` in base.css)
- *  instead of a gap. Pair with `className={ROWS_CLASS}`. */
-export const rowsStyle = { ...listStyle, gap: 0 } as const;
-export const ROWS_CLASS = 'rjb-rows';
 
 /** Hook: what the track already watches and the watch action, shared by both surfaces. */
 export function useWatching(categoryId: string, boardUrls: string[]) {

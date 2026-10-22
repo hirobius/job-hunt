@@ -14,6 +14,7 @@ import {
   Disclosure,
   Stack,
   VisuallyHidden,
+  useAtLeast,
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
 import TileGrid from './TileGrid';
@@ -42,6 +43,7 @@ import type { Category, Seniority } from './curation/types';
 import DiscoverHeader from './DiscoverHeader';
 import { contextLabel, placeLabel, useTrackContext } from './discoverContext';
 import { Panel, PanelBody, PanelRow, PanelRows } from './PipelinePanel';
+import { useCardPadding } from './cardPadding';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
 import { companySourceFor } from './feed/companySource';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
@@ -90,7 +92,7 @@ function GroupPanel({
   return (
     <Box>
       {saved.length > 0 && (
-        <Box sx={{ mb: 'xs' }}>
+        <Box sx={{ mb: 'fixed-xs' }}>
           <Text variant="caption" as="div" tone="secondary">
             {saved.length} saved to your Pipeline
           </Text>
@@ -104,7 +106,7 @@ function GroupPanel({
           icon={Link}
           title="All saved to your Pipeline"
           action={
-            <Button variant="secondary" onClick={() => navigate({ tab: 'queue' })}>
+            <Button variant="tertiary" onClick={() => navigate({ tab: 'queue' })}>
               Open Pipeline
             </Button>
           }
@@ -116,14 +118,14 @@ function GroupPanel({
           title="No links here yet"
           description="Add links you trust, or use ATS search for live ones."
           action={
-            <Button variant="secondary" size="sm" onClick={onManage}>
+            <Button variant="tertiary" onClick={onManage}>
               Manage this track
             </Button>
           }
         />
       )}
       {aside.length > 0 && (
-        <Box sx={{ mt: 'xs' }}>
+        <Box sx={{ mt: 'md' }}>
           <Disclosure label={`Set aside (${aside.length})`}>
             <TileGrid tiles={aside} triage place={place} />
           </Disclosure>
@@ -169,7 +171,7 @@ function AtsPanel({
         title="No titles yet"
         description="Add a few job titles to this track and we'll search the big boards and companies' hiring systems (Greenhouse, Lever, Ashby…) for them."
         action={
-          <Button variant="secondary" size="sm" onClick={onManage}>
+          <Button variant="tertiary" onClick={onManage}>
             Add titles
           </Button>
         }
@@ -208,7 +210,7 @@ function AtsPanel({
   // Four titles, then "N more" (rev-3 I): the chips wrap, All selected first.
   const shownTitles = showAll ? active : active.slice(0, 4);
   return (
-    <Stack gap="spacious">
+    <Stack gap="inset">
       <Panel
         label="Search hiring systems"
         title="Search hiring systems"
@@ -279,8 +281,9 @@ function AtsPanel({
               {`Results open in Google: no hiring system has a search across companies, so this is one Google query over the top ${searchAllCount(ATS, fit)}${many && fitTitles < active.length ? `, with your first ${fitTitles} titles` : ''}.`}
             </Text>
             {/* The query gets the card's full width under its Copy (a phone fits ~4 mono lines
-                beside nothing else); breaks fall on spaces and ORs, four lines until opened. */}
-            <Card bordered padding="px16">
+                beside nothing else); breaks fall on spaces and ORs, four lines until opened. A
+                well inside the card (roomy: a surface step, not an outline). */}
+            <Box sx={{ bgcolor: 'surface.overlay', borderRadius: 'sm', p: 'fixed-sm' }}>
               <Stack gap="px8">
                 <Stack direction="row" gap="px8" align="center" justify="space-between">
                   <Text variant="caption" as="span" tone="secondary">
@@ -308,54 +311,56 @@ function AtsPanel({
                   </Box>
                 )}
               </Stack>
-            </Card>
+            </Box>
           </Stack>
         </PanelBody>
       </Panel>
       {/* Three quiet rows, the rest one tap away (rev-3 mock): the one-query search above is the
           way in, these are for one system at a time. */}
-      <Stack gap="px8">
-        <Text variant="body" as="h3" weight="bold">
-          Company hiring systems
-        </Text>
+      <Panel label="Company hiring systems" title="Company hiring systems">
         <LinkRows tiles={showAllAts ? atsTiles : atsTiles.slice(0, ATS_SHOWN)} />
         {atsTiles.length > ATS_SHOWN && (
           <Box>
-            <Button variant="tertiary" size="sm" onClick={() => setShowAllAts(!showAllAts)}>
+            <Button
+              variant="tertiary"
+              className="rjb-flush-start"
+              onClick={() => setShowAllAts(!showAllAts)}
+            >
               {showAllAts ? 'Show fewer' : `Show ${atsTiles.length - ATS_SHOWN} more`}
             </Button>
           </Box>
         )}
-      </Stack>
-      <Stack gap="px8">
+      </Panel>
+      <Stack gap="tight">
         <BoardSection
           label="Big job boards"
           count={boardTiles.length}
           preview="LinkedIn, Indeed and more, with your titles and place"
         >
-          <LinkRows tiles={boardTiles} bare />
+          <LinkRows tiles={boardTiles} />
         </BoardSection>
         <BoardSection
           label="Freelance, startup and remote boards"
           count={HIDDEN_BOARDS.length}
           preview="Upwork, Contra, Wellfound… through Google"
         >
-          <Stack gap="xs">
+          <Stack gap="px8">
             <Text variant="caption" as="p" tone="secondary">
               Boards with no open feed, reached through Google instead.
             </Text>
             <Box>
-              <Button variant="secondary" size="md" asChild>
+              <Button variant="tertiary" size="md" className="rjb-flush-start" asChild>
                 <a
                   href={searchAllUrl(HIDDEN_BOARDS, fit)}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
+                  <Icon icon={Search} />
                   {`Search the top ${searchAllCount(HIDDEN_BOARDS, fit)} boards at once`}
                 </a>
               </Button>
             </Box>
-            <LinkRows tiles={tilesFor(HIDDEN_BOARDS)} bare />
+            <LinkRows tiles={tilesFor(HIDDEN_BOARDS)} />
           </Stack>
         </BoardSection>
       </Stack>
@@ -384,8 +389,8 @@ function CopyQuery({ text }: { text: string }) {
 }
 
 /** A closed row with its name, a count badge and a one-line preview, opening downward (rev-3
- *  mock: ATS search's board lists, Apply now's other sections). The row's text starts on the
- *  PanelRow inset (md), so it lines up with the link rows beside it. */
+ *  mock: ATS search's board lists, Apply now's other sections), on one filled card (roomy: no
+ *  outline). */
 function SectionRow({
   label,
   count,
@@ -403,9 +408,10 @@ function SectionRow({
   onOpenChange?: (open: boolean) => void;
   children: ReactNode;
 }) {
+  const padding = useCardPadding();
   return (
-    <Card bordered padding="none" className="rjb-disclosure-vertical">
-      <Box sx={{ px: 'md' }}>
+    <Card padding={padding} className="border-0 rjb-disclosure-vertical">
+      <Box>
         <Disclosure
           variant="row"
           label={
@@ -452,10 +458,11 @@ function BoardSection({
   );
 }
 
-/** Search links as flat rows (rev-3 I): the name, its site or note, and a quiet Search with an
- *  external-link icon. `bare`: no card of its own (inside a BoardSection). */
-function LinkRows({ tiles, bare = false }: { tiles: Tile[]; bare?: boolean }) {
-  const rows = (
+/** Search links as rows (rev-3 I): the name, its site or note, and a quiet Search with an
+ *  external-link icon. Tray rows on the card they sit in (a section's, a BoardSection's), set
+ *  apart by space, never a rule. */
+function LinkRows({ tiles }: { tiles: Tile[] }) {
+  return (
     <PanelRows>
       {tiles.map((t) => (
         <PanelRow key={t.url + t.name}>
@@ -471,7 +478,7 @@ function LinkRows({ tiles, bare = false }: { tiles: Tile[]; bare?: boolean }) {
                   </Text>
                 )}
               </Box>
-              <Button variant="tertiary" size="sm" asChild>
+              <Button variant="tertiary" size="md" asChild>
                 <a href={t.url} target="_blank" rel="noopener noreferrer">
                   Search
                   <Icon icon={ExternalLink} size="small" />
@@ -482,14 +489,6 @@ function LinkRows({ tiles, bare = false }: { tiles: Tile[]; bare?: boolean }) {
         </PanelRow>
       ))}
     </PanelRows>
-  );
-  return bare ? (
-    rows
-  ) : (
-    <Card bordered padding="none">
-      {/* The card draws the only outline: no row hairline on its rounded top edge. */}
-      <Box sx={{ '& > ul > li:first-of-type': { borderTop: 0 } }}>{rows}</Box>
-    </Card>
   );
 }
 
@@ -601,6 +600,8 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   ];
 
   const route = useRoute();
+  // The tool switch spans the phone's column; from sm it hugs its labels.
+  const atSm = useAtLeast('sm');
   // The title filter's seed (#223): the track's titles, else its ATS roles. One list per track.
   const titleSeed = cat.titles.length ? cat.titles : cat.atsRoles;
   // The track's company source (#215): GitHub where its terms name a topic, else its starter list
@@ -649,7 +650,8 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
     v === sections[0].key ? (defaultTool === 'apply' ? null : 'apply') : v;
 
   return (
-    <Box>
+    // Roomy rhythm: 28 from the page head to the tool switch, then 40 to the tool's sections.
+    <Stack gap="normal">
       <DiscoverHeader
         categories={categories}
         cat={cat}
@@ -677,7 +679,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
           <SegmentedControl
             aria-label="Search tool"
             size="sm"
-            fullWidth
+            fullWidth={!atSm}
             value={tool}
             onChange={(v) => navigate({ sub: toolSub(v) })}
             options={tools.map((t) => ({ value: t.key, label: t.label }))}
@@ -690,9 +692,10 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             <Stack gap="normal">
               {sections.map((sc) =>
                 sc.key === section.key ? (
-                  <Stack key={sc.key} gap="xs">
+                  // The open section: its label on the canvas, 16 over its tiles.
+                  <Stack key={sc.key} gap="px16">
                     <Stack direction="row" gap="px8" align="center">
-                      <Text variant="body" as="h3" weight="bold">
+                      <Text variant="ui" as="h3" className="rjb-semibold">
                         {sc.label}
                       </Text>
                       <Badge count={sc.tiles.length} label={`${sc.tiles.length} links`} />
@@ -787,6 +790,6 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
           </Suspense>
         )}
       </Stack>
-    </Box>
+    </Stack>
   );
 }

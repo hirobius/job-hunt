@@ -1,10 +1,10 @@
-// Badges are neutral except what needs attention (rev-3 B): the desktop table, the job rail and
-// the Company page show status and fit in the neutral tone, like the job header and the phone
-// cards. Only a due follow-up (and Closed on the board) is a warning.
+// Badges are neutral except what needs attention (rev-3 B): the Pipeline's job cards, the job rail
+// and the Company page show status and fit in the neutral tone, like the job header. Only a due
+// follow-up (and Closed on the board) is a warning.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
-import JobsTable from './JobsTable';
+import JobCard from './JobCard';
 import JobRail from './JobRail';
 import CompanyPage from './CompanyPage';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
@@ -37,27 +37,34 @@ afterEach(() => {
 });
 
 describe('neutral badges on desktop (rev-3 B)', () => {
-  it('the Pipeline table shows status and fit neutral', () => {
+  it('the Pipeline job cards show status and fit neutral', () => {
     seed();
     const { container } = render(
       <ToastProvider>
-        <JobsTable jobs={getAllJobs()} sort="recent" onSort={() => {}} />
+        {getAllJobs().map((j) => (
+          <JobCard key={j.url} job={j} />
+        ))}
       </ToastProvider>,
     );
     expect(container.querySelectorAll('[data-tone]').length).toBeGreaterThan(0);
     expect(nonNeutral(container)).toEqual([]);
   });
 
-  it('the job rail uses the shared badge row: neutral status and fit', () => {
+  it('the job rail says status in its caption, with no neutral badge row (roomy)', () => {
     seed();
     const { container } = render(<JobRail openId={jobIdOf(URL_A)} />);
-    expect(container.textContent).toContain('Strong fit');
+    expect(container.textContent).toContain('Acme · Offer');
+    expect(container.textContent).not.toContain('Strong fit');
     expect(nonNeutral(container)).toEqual([]);
   });
 
   it('the Company page lists its jobs with neutral status', () => {
     seed();
-    const { container } = render(<CompanyPage slug="acme" />);
+    const { container } = render(
+      <ToastProvider>
+        <CompanyPage slug="acme" />
+      </ToastProvider>,
+    );
     expect(container.textContent).toContain('Offer');
     expect(nonNeutral(container)).toEqual([]);
   });

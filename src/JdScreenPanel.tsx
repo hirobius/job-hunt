@@ -45,7 +45,7 @@ export default function JdScreenPanel({ job }: { job: Job }) {
       trailing={
         <Button
           variant="tertiary"
-          size="sm"
+          size="md"
           iconRight={<Icon icon={open ? ChevronUp : ChevronDown} />}
           aria-expanded={open}
           aria-controls={open ? bodyId : undefined}
@@ -121,7 +121,7 @@ export default function JdScreenPanel({ job }: { job: Job }) {
                     Apply to this job
                   </Button>
                 ) : (
-                  <Button variant="secondary" size="md" onClick={run} disabled={!text.trim()}>
+                  <Button variant="tertiary" size="md" onClick={run} disabled={!text.trim()}>
                     Screen
                   </Button>
                 )}

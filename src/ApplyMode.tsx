@@ -26,7 +26,7 @@ import { BackToPipeline } from './JobHeader';
 import { JobBadges } from './JobRowParts';
 import { MetaCaption } from './MetaCaption';
 import { statusAgo } from './jobState';
-import { Panel, PanelBody } from './PipelinePanel';
+import { Panel, PanelRow, PanelRows } from './PipelinePanel';
 import BlankText from './BlankText';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
 import { openApply, openJob } from './route';
@@ -117,7 +117,9 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   const saved = statusAgo(job);
   const dueOn = followUpDate(job, new Date());
   return (
-    <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
+    // Roomy rhythm: the top row, 28 to the job, 20 to Open application, 12 to the decision pair;
+    // then 40 to Templates and to the Application kit.
+    <Stack gap="inset">
       <Stack gap="normal">
         <Stack direction="row" gap="tight" align="center" justify="space-between">
           <BackToPipeline />
@@ -134,68 +136,82 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
             </Box>
           )}
         </Stack>
-        <PageHeader
-          level={2}
-          metadata={<JobBadges job={job} />}
-          title={titleOf(job)}
-          description={
-            job.company || job.location || saved ? (
-              // PageHeader wraps the description in a <p>: a span keeps the HTML valid.
-              <MetaCaption as="span" items={[company, job.location?.trim(), saved]} />
-            ) : undefined
-          }
-        />
-        <Box sx={{ display: 'flex', '& > *': { flex: '1 1 0%' } }}>
-          <Button asChild variant="primary" size="md">
-            <a href={job.url} target="_blank" rel="noopener noreferrer">
-              <Icon icon={ExternalLink} />
-              Open application
-            </a>
-          </Button>
-        </Box>
+        <Stack gap="tight">
+          <PageHeader
+            level={2}
+            metadata={<JobBadges job={job} />}
+            title={titleOf(job)}
+            description={
+              job.company || job.location || saved ? (
+                // PageHeader wraps the description in a <p>: a span keeps the HTML valid.
+                <MetaCaption as="span" items={[company, job.location?.trim(), saved]} />
+              ) : undefined
+            }
+          />
+          <Stack gap="medium">
+            {/* Full width on a phone, as wide as its label from sm. */}
+            <Box sx={{ display: 'flex', '& > *': { flex: { base: '1 1 0%', sm: '0 0 auto' } } }}>
+              <Button asChild variant="primary" size="md">
+                <a href={job.url} target="_blank" rel="noopener noreferrer">
+                  <Icon icon={ExternalLink} />
+                  Open application
+                </a>
+              </Button>
+            </Box>
 
-        {job.status === 'Saved' ? (
-          // One row of two equal secondaries under the primary (rev-3 E).
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'xs' }}>
-            <Button
-              variant="secondary"
-              size="md"
-              iconLeft={<Icon icon={Check} />}
-              onClick={markApplied}
-            >
-              Mark applied
-            </Button>
-            <Button variant="secondary" size="md" onClick={notAFit}>
-              Not a fit
-            </Button>
-          </Box>
-        ) : (
-          // A short title (the body step inside .rjb-inline-alerts); the company and the date,
-          // written as the Pipeline writes it, go in the body.
-          <Box className="rjb-inline-alerts">
-            <Alert tone="success" title="Applied">
-              {[
-                company ? `Applied to ${company}.` : '',
-                "It's under Follow up in the Pipeline.",
-                dueOn ? `Follow up on ${dayLabel(dueOn, new Date())}.` : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            </Alert>
-          </Box>
-        )}
-        {job.status !== 'Saved' && !next && (
-          <Box>
-            <Button variant="secondary" size="md" onClick={() => openJob(null)}>
-              To apply is empty · back to Pipeline
-            </Button>
-          </Box>
-        )}
-
-        <ApplyTemplates job={job} />
-        <ApplicationKit job={job} />
+            {job.status === 'Saved' ? (
+              // One row of two equal secondaries under the primary (rev-3 E): the decision pair is
+              // one of the two places an outlined button stays (roomy outline rule).
+              <Box
+                data-rjb-decision=""
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { base: '1fr 1fr', sm: 'auto auto' },
+                  justifyContent: 'start',
+                  gap: 'xs',
+                }}
+              >
+                <Button
+                  variant="secondary"
+                  size="md"
+                  iconLeft={<Icon icon={Check} />}
+                  onClick={markApplied}
+                >
+                  Mark applied
+                </Button>
+                <Button variant="secondary" size="md" onClick={notAFit}>
+                  Not a fit
+                </Button>
+              </Box>
+            ) : (
+              // A short title (the body step inside .rjb-inline-alerts); the company and the date,
+              // written as the Pipeline writes it, go in the body.
+              <Box className="rjb-inline-alerts">
+                <Alert tone="success" title="Applied">
+                  {[
+                    company ? `Applied to ${company}.` : '',
+                    "It's under Follow up in the Pipeline.",
+                    dueOn ? `Follow up on ${dayLabel(dueOn, new Date())}.` : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                </Alert>
+              </Box>
+            )}
+            {job.status !== 'Saved' && !next && (
+              <Box>
+                <Button variant="tertiary" size="md" onClick={() => openJob(null)}>
+                  To apply is empty · back to Pipeline
+                </Button>
+              </Box>
+            )}
+          </Stack>
+        </Stack>
       </Stack>
-    </Box>
+
+      <ApplyTemplates job={job} />
+      <ApplicationKit job={job} />
+    </Stack>
   );
 }
 
@@ -217,7 +233,7 @@ function CopyButton({ label, value }: { label: string; value: string }) {
   return (
     <Button
       size="md"
-      variant="secondary"
+      variant="tertiary"
       disabled={!value}
       iconLeft={<Icon icon={copied ? Check : Copy} />}
       aria-label={copied ? `Copied ${label}` : `Copy ${label}`}
@@ -250,72 +266,65 @@ function CopyRow({
   };
   const Field = multiline ? Textarea : HdsInput;
   return (
-    <Box as={as} sx={{ py: 'xs' }} aria-label={label}>
-      {editing ? (
-        <Stack gap="tight">
-          <Field
-            label={label}
-            value={draft}
-            autoFocus
-            onChange={(e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) =>
-              setDraft(e.target.value)
-            }
-            onKeyDown={(e: React.KeyboardEvent) => {
-              if (!multiline && e.key === 'Enter') done();
-            }}
-          />
-          <Stack direction="row" gap="tight">
-            <Button size="md" variant="secondary" onClick={done}>
-              Done
-            </Button>
-            <Button size="md" variant="tertiary" onClick={() => setEditing(false)}>
-              Cancel
-            </Button>
-          </Stack>
-        </Stack>
-      ) : (
-        <Stack direction="row" gap="tight" align="center" justify="space-between">
-          <Box sx={{ minWidth: 0, flex: '1 1 0%' }}>
-            <Text variant="ui" as="p" className="rjb-semibold">
-              {label}
-            </Text>
-            <Text variant="caption" as="p" tone="secondary" className="rjb-prewrap">
-              {value || `Add your ${label.toLowerCase()}`}
-            </Text>
-          </Box>
-          <Stack direction="row" gap="tight" align="center">
-            {/* A labelled secondary (rev-3 mock: "Add"), named for its field. */}
-            <Button
-              size="sm"
-              variant="secondary"
-              aria-label={`${value ? 'Edit' : 'Add'} ${label}`}
-              onClick={() => {
-                setDraft(value);
-                setEditing(true);
+    <PanelRow as={as}>
+      <Box aria-label={label}>
+        {editing ? (
+          <Stack gap="tight">
+            <Field
+              label={label}
+              value={draft}
+              autoFocus
+              onChange={(e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) =>
+                setDraft(e.target.value)
+              }
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (!multiline && e.key === 'Enter') done();
               }}
-            >
-              {value ? 'Edit' : 'Add'}
-            </Button>
-            {value && <CopyButton label={label} value={value} />}
+            />
+            <Stack direction="row" gap="px8">
+              <Button size="md" variant="tertiary" onClick={done}>
+                Done
+              </Button>
+              <Button size="md" variant="tertiary" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+            </Stack>
           </Stack>
-        </Stack>
-      )}
-    </Box>
+        ) : (
+          <Stack direction="row" gap="tight" align="center" justify="space-between">
+            <Box sx={{ minWidth: 0, flex: '1 1 0%' }}>
+              <Text variant="ui" as="p" className="rjb-semibold">
+                {label}
+              </Text>
+              <Text variant="caption" as="p" tone="secondary" className="rjb-prewrap">
+                {value || `Add your ${label.toLowerCase()}`}
+              </Text>
+            </Box>
+            <Stack direction="row" gap="tight" align="center">
+              {/* A labelled quiet button (rev-3 mock: "Add"), named for its field. */}
+              <Button
+                size="md"
+                variant="tertiary"
+                aria-label={`${value ? 'Edit' : 'Add'} ${label}`}
+                onClick={() => {
+                  setDraft(value);
+                  setEditing(true);
+                }}
+              >
+                {value ? 'Edit' : 'Add'}
+              </Button>
+              {value && <CopyButton label={label} value={value} />}
+            </Stack>
+          </Stack>
+        )}
+      </Box>
+    </PanelRow>
   );
 }
 
-/** A list inside a panel: rows split by hairlines, padded like the panel's header. */
+/** A list on the Application kit's card: tray rows set apart by space, never a rule. */
 function Rows({ label, children }: { label?: string; children: ReactNode }) {
-  return (
-    <Box
-      as="ul"
-      aria-label={label}
-      sx={{ listStyle: 'none', m: 0, p: 0, '& > li': { px: 'md' } }}
-      className="rjb-rows"
-    >
-      {children}
-    </Box>
-  );
+  return <PanelRows label={label}>{children}</PanelRows>;
 }
 
 /** An expandable row (HDS Disclosure variant="row") as one list item. */
@@ -331,11 +340,13 @@ function DisclosureItem({
   children: ReactNode;
 }) {
   return (
-    <Box as="li" aria-label={label} sx={{ py: 'xs' }}>
-      <Disclosure variant="row" label={label} preview={preview} actions={actions}>
-        {children}
-      </Disclosure>
-    </Box>
+    <PanelRow>
+      <Box aria-label={label}>
+        <Disclosure variant="row" label={label} preview={preview} actions={actions}>
+          {children}
+        </Disclosure>
+      </Box>
+    </PanelRow>
   );
 }
 
@@ -347,51 +358,50 @@ function ApplyTemplates({ job }: { job: Job }) {
     () => filledTemplates(snippets, job, kit.fields.name),
     [snippets, job, kit.fields.name],
   );
-  const edit = (label: string) => (
-    <Box>
-      {/* HDS Button asChild drops iconLeft, so the pencil is the link's own child. */}
-      <Button asChild variant="secondary" size="md">
-        <a href="#/copy-deck">
-          <Icon icon={Pencil} />
-          {label}
-        </a>
-      </Button>
-    </Box>
-  );
   return (
-    <Panel label="Templates" title="Templates">
-      <PanelBody>
-        <Stack gap="tight">
-          <Text variant="caption" as="p" tone="secondary">
-            {rows.length
-              ? 'Filled for this job. Copy one into the form or an email.'
-              : 'Write an outreach message once in Documents; it shows here filled for each job.'}
-          </Text>
-          {edit(rows.length ? 'Edit documents' : 'Write a message')}
-        </Stack>
-      </PanelBody>
+    // Roomy: the label on the canvas with Edit documents beside it, then one card per template:
+    // its name, the start of the text (blanks fill in place), "N blanks left" and Copy, the card's
+    // one action (no chevron, rev-3 review). The whole text is in Documents.
+    <Panel
+      kind="list"
+      label="Templates"
+      title="Templates"
+      description={
+        rows.length
+          ? 'Filled for this job. Copy one into the form or an email.'
+          : 'Write an outreach message once in Documents; it shows here filled for each job.'
+      }
+      trailing={
+        // HDS Button asChild drops iconLeft, so the pencil is the link's own child.
+        <Button asChild variant="tertiary" size="md">
+          <a href="#/copy-deck">
+            <Icon icon={Pencil} />
+            {rows.length ? 'Edit documents' : 'Write a message'}
+          </a>
+        </Button>
+      }
+    >
       {rows.length > 0 && (
-        <Rows label="Your templates">
-          {/* A row is its name, the start of the text (blanks fill in place) and Copy: Copy is
-              the row's one action, so there is no chevron (rev-3 review). The whole text is in
-              Documents. */}
+        <PanelRows label="Your templates">
           {rows.map((r) => (
-            <Box as="li" key={r.id} aria-label={r.label} sx={{ py: 'xs' }}>
-              <BlankText
-                preview
-                text={r.text}
-                job={job}
-                documentId={snippets.find((s) => s.id === r.id)?.documentId}
-                head={
-                  <Text variant="ui" as="p" className="rjb-semibold">
-                    {r.label}
-                  </Text>
-                }
-                action={<CopyButton label={r.label} value={r.text} />}
-              />
-            </Box>
+            <PanelRow key={r.id}>
+              <Box aria-label={r.label}>
+                <BlankText
+                  preview
+                  text={r.text}
+                  job={job}
+                  documentId={snippets.find((s) => s.id === r.id)?.documentId}
+                  head={
+                    <Text variant="ui" as="p" className="rjb-semibold">
+                      {r.label}
+                    </Text>
+                  }
+                  trailing={<CopyButton label={r.label} value={r.text} />}
+                />
+              </Box>
+            </PanelRow>
           ))}
-        </Rows>
+        </PanelRows>
       )}
     </Panel>
   );
@@ -426,88 +436,81 @@ function ApplicationKit({ job }: { job: Job }) {
       title="Application kit"
       badge={`${have.length} of ${KIT_FIELDS.length}`}
     >
-      <PanelBody>
+      <Stack gap="px8">
         <Text variant="caption" as="p" tone="secondary">
           Enter these once. They follow your account.
         </Text>
-      </PanelBody>
-      <Rows label="Profile">
-        {have.map((f) => fieldRow(f))}
-        {/* Empty fields fold into one row, so the filled ones stay in reach (rev-3 mock). */}
-        {missing.length > 0 && (
-          <DisclosureItem
-            label={`Fill in ${missing.length} more`}
-            preview={missing.map((f) => f.label).join(', ')}
-          >
-            {/* Nested rows split by hairlines, like the panel's own rows. */}
-            <Box
-              as="ul"
-              aria-label="More fields"
-              sx={{ listStyle: 'none', m: 0, p: 0 }}
-              className="rjb-rows"
-            >
-              {missing.map((f) => fieldRow(f))}
-            </Box>
-          </DisclosureItem>
-        )}
-        {(
-          [
-            ['whyTemplate', 'Why this company'],
-            ['coverTemplate', 'Cover note'],
-          ] as const
-        ).map(([slot, label]) => {
-          const text = filled(kit[slot]);
-          return (
+        <Rows label="Profile">
+          {have.map((f) => fieldRow(f))}
+          {/* Empty fields fold into one row, so the filled ones stay in reach (rev-3 mock). */}
+          {missing.length > 0 && (
             <DisclosureItem
-              key={slot}
-              label={label}
-              preview={text ? previewOf(text) : 'Pick a template to fill'}
-              actions={text ? <CopyButton label={label} value={text} /> : undefined}
+              label={`Fill in ${missing.length} more`}
+              preview={missing.map((f) => f.label).join(', ')}
             >
-              <Stack gap="tight">
-                <Select
-                  label={`${label} template`}
-                  options={options}
-                  value={kit[slot] ?? ''}
-                  onChange={(v) => setKitTemplate(slot, v)}
-                />
-                {text && (
-                  <BlankText text={text} job={job} documentId={template(kit[slot])?.documentId} />
-                )}
-              </Stack>
+              {/* Nested rows set apart by space, like the card's own rows. */}
+              <PanelRows label="More fields">{missing.map((f) => fieldRow(f))}</PanelRows>
             </DisclosureItem>
-          );
-        })}
-        <DisclosureItem
-          label="Custom answers"
-          preview={
-            answered
-              ? kit.answers
-                  .map((a) => a.q.trim())
-                  .filter(Boolean)
-                  .join(', ') || `${answered} saved`
-              : 'Questions forms keep asking (visa, relocation, how you heard)'
-          }
-        >
-          <Stack gap="tight">
-            <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Your answers">
-              {kit.answers.map((a) => (
-                <AnswerRow key={a.id} a={a} />
-              ))}
-            </Box>
-            <Box>
-              <Button
-                variant="tertiary"
-                size="md"
-                iconLeft={<Icon icon={Plus} />}
-                onClick={() => addAnswer()}
+          )}
+          {(
+            [
+              ['whyTemplate', 'Why this company'],
+              ['coverTemplate', 'Cover note'],
+            ] as const
+          ).map(([slot, label]) => {
+            const text = filled(kit[slot]);
+            return (
+              <DisclosureItem
+                key={slot}
+                label={label}
+                preview={text ? previewOf(text) : 'Pick a template to fill'}
+                actions={text ? <CopyButton label={label} value={text} /> : undefined}
               >
-                Add a question
-              </Button>
-            </Box>
-          </Stack>
-        </DisclosureItem>
-      </Rows>
+                <Stack gap="tight">
+                  <Select
+                    label={`${label} template`}
+                    options={options}
+                    value={kit[slot] ?? ''}
+                    onChange={(v) => setKitTemplate(slot, v)}
+                  />
+                  {text && (
+                    <BlankText text={text} job={job} documentId={template(kit[slot])?.documentId} />
+                  )}
+                </Stack>
+              </DisclosureItem>
+            );
+          })}
+          <DisclosureItem
+            label="Custom answers"
+            preview={
+              answered
+                ? kit.answers
+                    .map((a) => a.q.trim())
+                    .filter(Boolean)
+                    .join(', ') || `${answered} saved`
+                : 'Questions forms keep asking (visa, relocation, how you heard)'
+            }
+          >
+            <Stack gap="tight">
+              <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Your answers">
+                {kit.answers.map((a) => (
+                  <AnswerRow key={a.id} a={a} />
+                ))}
+              </Box>
+              <Box>
+                <Button
+                  variant="tertiary"
+                  size="md"
+                  iconLeft={<Icon icon={Plus} />}
+                  onClick={() => addAnswer()}
+                >
+                  Add a question
+                </Button>
+              </Box>
+            </Stack>
+          </DisclosureItem>
+        </Rows>
+      </Stack>
     </Panel>
   );
 }

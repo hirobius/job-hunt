@@ -55,7 +55,7 @@ export default function UseTemplate({ job }: { job: Job }) {
       }}
     >
       <Dialog.Trigger asChild>
-        <Button size="md" variant="secondary" iconLeft={<Icon icon={FileText} />}>
+        <Button size="md" variant="tertiary" iconLeft={<Icon icon={FileText} />}>
           Use template
         </Button>
       </Dialog.Trigger>
@@ -97,7 +97,7 @@ export default function UseTemplate({ job }: { job: Job }) {
               </div>
               {/* The filled message with its blanks as chips that fill in place (rev-3 A), then
                   "N blanks left" and Edit message as the card's last row; Copy still works. */}
-              <Card bordered padding="px16" role="region" aria-label="Preview">
+              <Card padding="item" className="border-0" role="region" aria-label="Preview">
                 <BlankText
                   text={filled}
                   job={job}

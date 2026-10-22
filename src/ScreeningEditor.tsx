@@ -98,7 +98,6 @@ export function ScreeningEditor({ job, fitLabel = true }: { job: Job; fitLabel?:
         </Chips>
         <Box sx={{ display: 'contents', '& input': { mt: 2, maxWidth: 240 } }}>
           <HdsInput
-            size="sm"
             aria-label="Add a custom dealbreaker"
             placeholder="Add a dealbreaker…"
             value={custom}
@@ -116,7 +115,6 @@ export function ScreeningEditor({ job, fitLabel = true }: { job: Job; fitLabel?:
       <Box sx={{ '& > *': { width: '100%' } }}>
         <FieldLabel>Angle for this role</FieldLabel>
         <HdsInput
-          size="sm"
           aria-label="Angle for this role"
           placeholder="What you lead with for this job"
           value={job.angle ?? ''}

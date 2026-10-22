@@ -154,7 +154,7 @@ export function TodosPanel({ job }: { job: Job }) {
                   }}
                 />
               </Box>
-              <Button size="md" variant="secondary" disabled={!draft.trim()} onClick={commitAdd}>
+              <Button size="md" variant="tertiary" disabled={!draft.trim()} onClick={commitAdd}>
                 Add
               </Button>
             </Stack>

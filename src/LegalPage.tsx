@@ -19,9 +19,9 @@ export default function LegalPage() {
   const doc = legalDocFor(useRoute().sub);
   const other = doc === TERMS ? PRIVACY : TERMS;
   return (
-    // The 760 content measure, like the job page and Documents: this is prose.
-    <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
-      <Stack gap="spacious">
+    // Prose in the shell's 760 measure, no card; sections 40 apart (roomy).
+    <Box>
+      <Stack gap="inset">
         <Stack gap="normal">
           <PageHeader
             level={2}

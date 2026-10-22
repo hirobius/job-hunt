@@ -159,15 +159,17 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     expect(dueNames()).toEqual(['Design Systems Lead']);
   });
 
-  it('lists the interviews and calls in the next 7 days; Open job goes to its page', async () => {
+  it('lists the interviews and calls in the next 7 days; the title opens the job (roomy)', async () => {
     renderApp();
     const rows = within(region(/^Next 7 days/)).getAllByRole('listitem');
     expect(rows.map((r) => r.textContent)).toEqual([
       expect.stringMatching(/Interview · Clinical Systems Analyst.*Hiring manager/),
       expect.stringMatching(/Interview · Senior UX Designer.*Final loop/),
     ]);
+    // No separate Open button: the event's title is the job's link.
+    expect(within(rows[0]).queryByRole('link', { name: /^Open job/ })).toBeNull();
     await userEvent.click(
-      within(rows[0]).getByRole('link', { name: 'Open job: Clinical Systems Analyst' }),
+      within(rows[0]).getByRole('link', { name: 'Interview · Clinical Systems Analyst' }),
     );
     await waitFor(() =>
       expect(window.location.hash).toBe(

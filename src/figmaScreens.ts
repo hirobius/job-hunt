@@ -28,8 +28,7 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
     tab: 'queue',
     sources: [
       { file: 'src/TrackerView.tsx', component: 'TrackerView' },
-      { file: 'src/JobsTable.tsx', component: 'JobsTable' },
-      { file: 'src/JobListCard.tsx', component: 'JobListCard' },
+      { file: 'src/JobCard.tsx', component: 'JobCard' },
     ],
     nodeId: '23:4039',
     phoneNodeId: '23:4122',

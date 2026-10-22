@@ -8,7 +8,6 @@ import { TriangleAlert } from 'lucide-react';
 import {
   Box,
   Button,
-  Card,
   Icon,
   Input as HdsInput,
   Stack,
@@ -134,12 +133,11 @@ export default function BlankText({
         body
       )}
       {fillable && picked && (
-        <Card
-          bordered
-          padding="px16"
-          className="rjb-fillbox"
+        // A well on the card (roomy: a surface step, not an outline).
+        <Box
           role="group"
           aria-label={`Fill ${picked}`}
+          sx={{ bgcolor: 'surface.overlay', borderRadius: 'sm', p: 'fixed-sm' }}
         >
           <Stack gap="px8">
             <Stack direction="row" gap="px8" align="end">
@@ -157,7 +155,7 @@ export default function BlankText({
                   }}
                 />
               </Box>
-              <Button variant="secondary" size="md" onClick={fill}>
+              <Button variant="tertiary" size="md" onClick={fill}>
                 Fill
               </Button>
             </Stack>
@@ -167,7 +165,7 @@ export default function BlankText({
                 : 'Saves on this message, for every job.'}
             </Text>
           </Stack>
-        </Card>
+        </Box>
       )}
       {trailing ? (
         // "N blanks left" left, the action right; the empty span keeps the action right-aligned

@@ -197,6 +197,93 @@ describe('No accent bars or status dots (#193)', () => {
   });
 });
 
+// Roomy layout (Adrian 2026-10-22: "the outlines are killing us"): default density, and an outline
+// only where a control needs one (docs/specs/roomy.md §1). Things are told apart by surface fill,
+// space and type, never by a stroke around a panel or a hairline between rows.
+const ROOT = resolve(SRC, '..');
+const css = (f: string) => readFileSync(join(SRC, 'theme', f), 'utf8');
+/** `selector { body }` blocks of a stylesheet, comments stripped, at-rule wrappers flattened. */
+function cssRules(text: string): { selector: string; body: string }[] {
+  const clean = text.replace(/\/\*[\s\S]*?\*\//g, '');
+  const out: { selector: string; body: string }[] = [];
+  const re = /([^{}]+)\{([^{}]*)\}/g;
+  for (let m = re.exec(clean); m; m = re.exec(clean))
+    out.push({ selector: m[1].replace(/@media[^{]*$/, '').trim(), body: m[2] });
+  return out;
+}
+/** A `bordered` prop on an HDS Card in JSX (not a word in a comment). */
+export const BORDERED_CARD = /<(?:Hds)?Card\b[^>]*?\sbordered(?:=\{true\})?[\s/>]/;
+/** A stroke set through Box `sx` (a string value; `border: 0` resets a fieldset). */
+export const SX_BORDER = /\bborder(?:Top|Bottom|Left|Right|Color)?\s*:\s*['"]/;
+
+describe('Roomy layout: default density and the outline rule (2026-10-22)', () => {
+  it('runs at HDS default density: no data-density on <html> (compact cannot come back silently)', () => {
+    expect(readFileSync(join(ROOT, 'index.html'), 'utf8')).not.toMatch(/data-density/);
+    expect(readFileSync(join(ROOT, 'public', 'theme-init.js'), 'utf8')).not.toMatch(/density/);
+  });
+
+  it('bites: the patterns catch a bordered Card and an sx stroke, and pass clean code', () => {
+    expect(BORDERED_CARD.test('<Card bordered padding="none">')).toBe(true);
+    expect(BORDERED_CARD.test('<HdsCard\n  as="li"\n  bordered\n>')).toBe(true);
+    expect(BORDERED_CARD.test('<Card padding="item" className="border-0">')).toBe(false);
+    expect(BORDERED_CARD.test('// one bordered panel')).toBe(false);
+    expect(SX_BORDER.test("sx={{ borderTop: 'thin solid', borderColor: 'border.default' }}")).toBe(
+      true,
+    );
+    expect(SX_BORDER.test('sx={{ border: 0, m: 0 }}')).toBe(false);
+  });
+
+  it('draws no bordered Card anywhere in src/', () => {
+    const offenders = sourceFiles(SRC).filter((f) => BORDERED_CARD.test(readFileSync(f, 'utf8')));
+    expect(offenders.map((f) => f.slice(SRC.length + 1))).toEqual([]);
+  });
+
+  it('sets no border, rule or border colour through sx in src/', () => {
+    const offenders = sourceFiles(SRC).filter((f) => SX_BORDER.test(readFileSync(f, 'utf8')));
+    expect(offenders.map((f) => f.slice(SRC.length + 1))).toEqual([]);
+  });
+
+  it('base.css strokes only the Account avatar ring', () => {
+    const stroked = cssRules(css('base.css')).filter((r) =>
+      /thin solid|\bborder\s*:\s*\d/.test(r.body),
+    );
+    expect(stroked.map((r) => r.selector)).toEqual(['[data-hds] .rjb-avatar']);
+  });
+
+  it('remaps one HDS surface token: light raised to page white (the light canvas)', () => {
+    const decls = readdirSync(join(SRC, 'theme'))
+      .filter((f) => f.endsWith('.css'))
+      .flatMap((f) =>
+        cssRules(css(f)).flatMap((r) =>
+          [...r.body.matchAll(/(--semantic-color-surface-[\w-]+)\s*:\s*([^;]+);/g)].map(
+            (m) => `${r.selector} ${m[1]}: ${m[2].trim()}`,
+          ),
+        ),
+      );
+    expect(decls).toEqual([
+      ":root[data-theme='light'] --semantic-color-surface-raised: var(--semantic-color-surface-page)",
+    ]);
+  });
+
+  // A surface inside a card is a well (Box sx / Surface), never a Card with its own small padding;
+  // a Card pads itself (item / component). Only these keep `none`, each laying out its own parts.
+  const PADDING_NONE_ALLOWED: Record<string, number> = {};
+  it('pads every Card with item or component (wells are Box or Surface)', () => {
+    const counts = Object.fromEntries(
+      sourceFiles(SRC)
+        .filter((f) => f.endsWith('.tsx'))
+        .map((f) => {
+          const text = readFileSync(f, 'utf8');
+          const n = (text.match(/<(?:Hds)?Card\b[^>]*?\spadding="(?:none|px16|px24)"/g) ?? [])
+            .length;
+          return [f.slice(SRC.length + 1), n] as const;
+        })
+        .filter(([, n]) => n > 0),
+    );
+    expect(counts).toEqual(PADDING_NONE_ALLOWED);
+  });
+});
+
 // #146: a workaround goes when its HDS fix ships. 0.26.2 gave `sx` a `base` key (hds#652), so the
 // old "base on the key, override nested under '&'" pattern must not come back.
 describe('Retired HDS workarounds (#146)', () => {

@@ -35,8 +35,8 @@ describe('TrackerView', () => {
   });
 });
 
-// #115 / #129: one compact toolbar (search · status · sort · add) instead of a full-width URL
-// field plus an 8-option status strip.
+// #115 / #129: one toolbar (search · status · sort · add) instead of a full-width URL field plus an
+// 8-option status strip.
 describe('Pipeline toolbar', () => {
   it('has no status strip; status is one menu button showing the current view', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
@@ -150,12 +150,16 @@ describe('Pipeline filtered to nothing', () => {
   });
 });
 
-describe('Status and Sort show only their value', () => {
-  it('the prefix lives in the name, not the visible text', () => {
+// Roomy layout: Status and Sort are quiet menu triggers, so each says what it is and its value
+// in visible text ("Status: Active"), the name and the text one string.
+describe('Status and Sort say what they are and their value', () => {
+  it('the visible text is the name: "Status: Active", "Sort: Newest"', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();
-    expect(screen.getByRole('button', { name: /^Status: Active/ }).textContent).toBe('Active');
-    expect(screen.getByRole('button', { name: /^Sort:/ }).textContent).not.toMatch(/^Sort/);
+    expect(screen.getByRole('button', { name: 'Status: Active' }).textContent).toBe(
+      'Status: Active',
+    );
+    expect(screen.getByRole('button', { name: 'Sort: Newest' }).textContent).toBe('Sort: Newest');
   });
 });
 

@@ -43,6 +43,14 @@ afterEach(() => {
 });
 
 describe('TileGrid cards (#12, #131)', () => {
+  it('each tile is a filled card with no outline, at least 320 wide (roomy)', () => {
+    const { container } = renderGrid();
+    const tile = card('Indeed').closest('[data-padding]')!;
+    expect(tile).toHaveAttribute('data-bordered', 'false');
+    expect(tile.getAttribute('data-padding')).toMatch(/^(item|component)$/);
+    expect(container.innerHTML).toMatch(/minmax\(min\(320px/);
+  });
+
   it('shows pay, place and the first phone as chips, with the rest of the meta as a note', () => {
     renderGrid();
     const c = card('Travis Pattern & Foundry');
@@ -137,7 +145,9 @@ describe('TileGrid cards (#12, #131)', () => {
   it('a watched company board names its hiring system and carries a Board badge (rev-3 H)', () => {
     render(
       <ToastProvider>
-        <TileGrid tiles={[{ name: 'Figma', meta: '', url: 'https://boards.greenhouse.io/figma' }]} />
+        <TileGrid
+          tiles={[{ name: 'Figma', meta: '', url: 'https://boards.greenhouse.io/figma' }]}
+        />
       </ToastProvider>,
     );
     const c = card('Figma');

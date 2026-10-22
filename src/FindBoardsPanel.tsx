@@ -48,7 +48,8 @@ import { probeFetchJson } from './feed/probeFetch';
 import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
 import { SOURCE_LABEL } from './feed/types';
 import { addBoardTiles, watchBoard } from './feed/watchlist';
-import { Panel, PanelBody, PanelRow } from './PipelinePanel';
+import { Panel, PanelBody, PanelRow, PanelRows } from './PipelinePanel';
+import ItemCard from './ItemCard';
 import { batchLabel, fetchBatch, recentBatches, ycLines, YC_CREDIT } from './feed/yc';
 
 const EMPTY: DiscoverResult = {
@@ -256,14 +257,14 @@ export default function FindBoardsPanel({
 
   const checked = result?.done ?? 0;
   return (
-    <Stack gap="normal">
+    <Stack gap="inset">
       <Panel
         label="Check a list of companies"
         title="Check a list of companies"
         description="Add companies, then we check 8 job-board systems for each: Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio."
       >
         <PanelBody>
-          <Stack gap="inset">
+          <Stack gap="normal">
             {/* The typed text, for the suggestions: HDS Combobox has no onInputChange (see the top). */}
             <div ref={fieldRef} onChange={(e) => setQuery((e.target as HTMLInputElement).value)}>
               <FormField
@@ -310,10 +311,10 @@ export default function FindBoardsPanel({
                   `${parsed.ignored.length} ${parsed.ignored.length === 1 ? 'line is' : 'lines are'} not a company name or board link and will be skipped.`}
               </Text>
             )}
-            {/* 8 apart (rev-3 mock); compact density's "xs" is 2px. */}
+            {/* 8 apart (rev-3 mock); Stack's "xs" is the 2px subgrid at any density. */}
             <Stack direction="row" gap="px8" wrap="wrap" align="center">
               {running ? (
-                <Button variant="secondary" onClick={() => abort.current?.abort()}>
+                <Button variant="tertiary" onClick={() => abort.current?.abort()}>
                   Cancel
                 </Button>
               ) : (
@@ -323,7 +324,7 @@ export default function FindBoardsPanel({
               )}
               {!pasting && (
                 <Button
-                  variant="secondary"
+                  variant="tertiary"
                   iconLeft={<Icon icon={ClipboardPaste} />}
                   onClick={() => setPasting(true)}
                 >
@@ -337,7 +338,7 @@ export default function FindBoardsPanel({
               )}
             </Stack>
             {DISCOVERY_SOURCE_ENABLED.yc && ycOpen && (
-              <Stack gap="xs">
+              <Stack gap="px8">
                 <Text variant="body" as="h3" className="rjb-semibold">
                   Start from a YC batch
                 </Text>
@@ -355,8 +356,7 @@ export default function FindBoardsPanel({
                 />
                 <Stack direction="row" gap="inset" align="center" wrap="wrap">
                   <Button
-                    size="sm"
-                    variant="secondary"
+                    variant="tertiary"
                     disabled={loadingBatch || running}
                     onClick={() => void loadBatch()}
                   >
@@ -381,19 +381,20 @@ export default function FindBoardsPanel({
       </Panel>
       {result && (
         <Panel
+          kind="list"
           label="Found"
           title="Found"
           badge={`${result.found.length} of ${result.total}`}
           trailing={
             unwatchedFound.length > 1 && (
-              <Button size="sm" variant="secondary" onClick={watchAll}>
+              <Button variant="tertiary" onClick={watchAll}>
                 {`Watch all (${unwatchedFound.length})`}
               </Button>
             )
           }
         >
           <PanelBody>
-            <Stack gap="xs">
+            <Stack gap="px8">
               <Progress
                 size="sm"
                 value={checked}
@@ -429,8 +430,8 @@ export default function FindBoardsPanel({
                   }
                 >
                   <Button
-                    size="sm"
-                    variant="secondary"
+                    size="md"
+                    variant="tertiary"
                     disabled={isWatched(f.board)}
                     aria-label={`${isWatched(f.board) ? 'Watching' : 'Watch'} ${f.company}`}
                     onClick={() => watchOne(f.board)}
@@ -448,8 +449,8 @@ export default function FindBoardsPanel({
                 return (
                   <ResultRow key={company} title={company} meta="No board found">
                     <Button
-                      size="sm"
-                      variant="secondary"
+                      size="md"
+                      variant="tertiary"
                       iconLeft={<Icon icon={Star} />}
                       disabled={done}
                       aria-label={`${done ? 'Kept' : 'Keep'} ${company} as a target`}
@@ -463,8 +464,8 @@ export default function FindBoardsPanel({
             </ResultRows>
           )}
           {(result.missed.length > 0 || result.unknown.length > 0) && (
-            <PanelRow as="div">
-              <Stack gap="xs">
+            <Box>
+              <Stack gap="px8">
                 {result.missed.length > 0 && (
                   <Text variant="caption" as="p" tone="secondary">
                     No board means none on the systems we check under the names we tried. It may
@@ -473,7 +474,7 @@ export default function FindBoardsPanel({
                 )}
                 {result.unknown.length > 0 && (
                   <Disclosure label={`Couldn't check (${result.unknown.length})`}>
-                    <Stack gap="xs">
+                    <Stack gap="px8">
                       <Text variant="caption" as="p" tone="secondary">
                         These didn't get an answer (rate-limited, offline or blocked), so we can't
                         say whether a board exists.
@@ -483,8 +484,8 @@ export default function FindBoardsPanel({
                       </Text>
                       <Box>
                         <Button
-                          size="sm"
-                          variant="secondary"
+                          variant="tertiary"
+                          className="rjb-flush-start"
                           disabled={running}
                           onClick={() => void start(result.unknown, true)}
                         >
@@ -495,7 +496,7 @@ export default function FindBoardsPanel({
                   </Disclosure>
                 )}
               </Stack>
-            </PanelRow>
+            </Box>
           )}
         </Panel>
       )}
@@ -503,16 +504,12 @@ export default function FindBoardsPanel({
   );
 }
 
-/** A list of result rows under the Found panel's header, split by hairlines. */
+/** A list of result cards under the Found section's label. */
 function ResultRows({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <Box as="ul" aria-label={label} sx={{ listStyle: 'none', m: 0, p: 0 }}>
-      {children}
-    </Box>
-  );
+  return <PanelRows label={label}>{children}</PanelRows>;
 }
 
-/** One company: its name over a one-line meta, its action on the right. */
+/** One company card: its initial, its name over a one-line meta, its action (ItemCard). */
 function ResultRow({
   title,
   meta,
@@ -524,17 +521,16 @@ function ResultRow({
 }) {
   return (
     <PanelRow>
-      <Stack direction="row" gap="px8" align="center" justify="space-between">
+      <ItemCard avatar={title} actions={children}>
         <Stack gap="px4">
-          <Text variant="ui" as="span" weight="medium">
+          <Text variant="body" as="span" className="rjb-semibold">
             {title}
           </Text>
           <Text variant="caption" tone="secondary">
             {meta}
           </Text>
         </Stack>
-        {children}
-      </Stack>
+      </ItemCard>
     </PanelRow>
   );
 }

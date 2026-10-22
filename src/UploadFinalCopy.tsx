@@ -108,7 +108,7 @@ export function UploadFinalCopy({
         onChange={(v) => setKind(v as DocumentKind)}
       />
       <Stack direction="row" gap="tight" align="center" wrap="wrap">
-        <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
+        <Button variant="tertiary" size="md" onClick={() => fileRef.current?.click()}>
           Choose file
         </Button>
         <Text variant="ui" tone={picked ? undefined : 'secondary'}>
@@ -129,8 +129,8 @@ export function UploadFinalCopy({
       <Checkbox label="Mark as Sent" checked={sent} onChange={setSent} />
       <Stack direction="row" gap="tight" align="center" wrap="wrap">
         <Button
-          variant="secondary"
-          size="sm"
+          variant="tertiary"
+          size="md"
           disabled={!picked || !!error || busy}
           onClick={() => void upload()}
         >

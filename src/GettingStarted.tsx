@@ -28,7 +28,6 @@ export default function GettingStarted({ jobs }: { jobs: Job[] }) {
       trailing={
         <Button
           variant="tertiary"
-          size="sm"
           iconOnly
           iconLeft={<Icon icon={X} />}
           label="Dismiss"
@@ -45,10 +44,10 @@ export default function GettingStarted({ jobs }: { jobs: Job[] }) {
       <PanelRows label="Getting started steps">
         {items.map((it) => (
           <PanelRow key={it.id}>
-            <Stack direction="row" gap="tight" align="start">
+            <Stack direction="row" gap="medium" align="start">
               <Icon icon={it.done ? SquareCheck : Square} aria-hidden />
               <Stack gap="px4">
-                <Text variant="ui" as="span" weight="bold" tone="primary">
+                <Text variant="ui" as="span" className="rjb-semibold" tone="primary">
                   {it.label}
                   <VisuallyHidden>{it.done ? ', done' : ', not done'}</VisuallyHidden>
                 </Text>

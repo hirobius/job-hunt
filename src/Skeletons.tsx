@@ -1,14 +1,20 @@
 // Suspense fallbacks shaped like the view they stand in for, so the layout doesn't jump
 // when the real chunk loads (replaces a centered spinner). All HDS: Skeleton, Stack, Box.
-// Calm list (#241): both views are flat rows on the page, so the placeholders are too (no cards).
+// Roomy layout: both views are filled cards on the canvas, so the placeholders are too (no rules).
 import { Skeleton, Box, Stack } from '@hirobius/design-system';
 
-/** Flat row placeholders split by hairlines, like the Companies and Templates lists. */
+/** Card placeholders, like the Companies and Documents lists: filled, set apart by space. */
 function RowsSkeleton({ count }: { count: number }) {
   return (
-    <Box aria-hidden>
+    <Box
+      aria-hidden
+      sx={{ display: 'flex', flexDirection: 'column', gap: { base: 'sm', sm: 'md' } }}
+    >
       {Array.from({ length: count }).map((_, i) => (
-        <Box key={i} sx={{ py: 'sm', borderBottom: 'thin solid', borderColor: 'border.default' }}>
+        <Box
+          key={i}
+          sx={{ bgcolor: 'surface.raised', borderRadius: 'lg', p: { base: 'sm', sm: 'md' } }}
+        >
           <Skeleton variant="text" width="40%" />
           <Skeleton variant="text" width="70%" />
         </Box>

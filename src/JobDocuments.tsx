@@ -15,7 +15,6 @@ import {
   Badge,
   Box,
   Button,
-  Card,
   Disclosure,
   Input,
   Select,
@@ -64,6 +63,9 @@ const when = (iso: string) =>
 /** A refused action, said in the tab's Alert. */
 type Message = { title: string; text: string };
 
+/** A surface inside the Documents card: a well (roomy: a fill step, not an outline). */
+const WELL = { bgcolor: 'surface.overlay', borderRadius: 'sm', p: 'fixed-sm' } as const;
+
 /** Fill the column: HDS fields size to their content otherwise. */
 const FULL = { flex: 1, minWidth: 0, '& > *': { width: '100%' } } as const;
 
@@ -72,7 +74,7 @@ function NewDocumentForm({ job, onDone }: { job: Job; onDone: () => void }) {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   return (
-    <Card bordered padding="component">
+    <Box sx={WELL}>
       <Stack gap="normal">
         <Switcher gap="tight">
           <Box sx={FULL}>
@@ -85,7 +87,6 @@ function NewDocumentForm({ job, onDone }: { job: Job; onDone: () => void }) {
           </Box>
           <Box sx={FULL}>
             <Input
-              size="sm"
               label="Title"
               placeholder={kindLabel(kind)}
               value={title}
@@ -97,12 +98,12 @@ function NewDocumentForm({ job, onDone }: { job: Job; onDone: () => void }) {
           <Textarea label="Text" rows={6} value={text} onChange={(e) => setText(e.target.value)} />
         </Box>
         <Stack direction="row" gap="tight" justify="end" wrap="wrap">
-          <Button size="sm" variant="tertiary" onClick={onDone}>
+          <Button size="md" variant="tertiary" onClick={onDone}>
             Cancel
           </Button>
           <Button
-            size="sm"
-            variant="secondary"
+            size="md"
+            variant="tertiary"
             onClick={() => {
               createDocument({
                 kind,
@@ -118,7 +119,7 @@ function NewDocumentForm({ job, onDone }: { job: Job; onDone: () => void }) {
           </Button>
         </Stack>
       </Stack>
-    </Card>
+    </Box>
   );
 }
 
@@ -126,7 +127,7 @@ function UseBaseForm({ job, bases, onDone }: { job: Job; bases: Document[]; onDo
   const [id, setId] = useState(bases[0]?.id ?? '');
   const base = bases.find((b) => b.id === id);
   return (
-    <Card bordered padding="component">
+    <Box sx={WELL}>
       <Stack gap="normal">
         <Box sx={FULL}>
           <Select
@@ -144,12 +145,12 @@ function UseBaseForm({ job, bases, onDone }: { job: Job; bases: Document[]; onDo
           round.
         </Text>
         <Stack direction="row" gap="tight" justify="end" wrap="wrap">
-          <Button size="sm" variant="tertiary" onClick={onDone}>
+          <Button size="md" variant="tertiary" onClick={onDone}>
             Cancel
           </Button>
           <Button
-            size="sm"
-            variant="secondary"
+            size="md"
+            variant="tertiary"
             disabled={!base}
             onClick={() => {
               if (base) createDocument(copyBase(base, job));
@@ -160,7 +161,7 @@ function UseBaseForm({ job, bases, onDone }: { job: Job; bases: Document[]; onDo
           </Button>
         </Stack>
       </Stack>
-    </Card>
+    </Box>
   );
 }
 
@@ -240,7 +241,7 @@ function DocumentCard({
   const label = kindLabel(doc.kind);
 
   return (
-    <Card bordered padding="component">
+    <Box sx={WELL}>
       <section aria-labelledby={headingId}>
         <Stack gap="normal">
           <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
@@ -271,8 +272,8 @@ function DocumentCard({
               </Text>
             )}
             <Button
-              size="sm"
-              variant="secondary"
+              size="md"
+              variant="tertiary"
               disabled={draft === latest.text}
               onClick={() => saveVersion(doc.id, draft)}
             >
@@ -361,7 +362,7 @@ function DocumentCard({
           </AlertDialog.Footer>
         </AlertDialog.Content>
       </AlertDialog>
-    </Card>
+    </Box>
   );
 }
 
@@ -375,13 +376,13 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
   const [message, setMessage] = useState<Message | null>(null);
   const close = () => setForm('none');
 
-  const newButton = (variant: 'primary' | 'secondary') => (
-    <Button size="sm" variant={variant} onClick={() => setForm('new')}>
+  const newButton = (variant: 'primary' | 'tertiary') => (
+    <Button size="md" variant={variant} onClick={() => setForm('new')}>
       New document
     </Button>
   );
   const baseButton = bases.length > 0 && (
-    <Button size="sm" variant="tertiary" onClick={() => setForm('base')}>
+    <Button size="md" variant="tertiary" onClick={() => setForm('base')}>
       Use a Base document
     </Button>
   );
@@ -404,7 +405,7 @@ export default function JobDocuments({ job, versionActions, uploadSlot }: JobDoc
       )}
       {docs.length > 0 && form === 'none' && (
         <Stack direction="row" gap="tight" align="center" wrap="wrap">
-          {newButton('secondary')}
+          {newButton('tertiary')}
           {baseButton}
         </Stack>
       )}

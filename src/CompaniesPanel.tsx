@@ -4,18 +4,22 @@
 // (feed/companySource.ts, #215): the keyless GitHub search where the track's terms name a topic,
 // else its starter list and the YC companies hiring now that match its titles. One row per
 // board. Each board is read live and filtered by the track's terms (feed/teamRoles.ts); "Hiring now"
-// hides the companies known to have no matching role. Rev-3 mock: one "Watched" panel (count badge,
-// one caption, Add a company, Hiring now | All) of hairline rows, each a name, "Greenhouse · 3
-// matching roles" and a Roles button that opens that company's roles in place, one row at a time. "Add a company" (AddCompany.tsx) is the one
+// hides the companies known to have no matching role. Roomy layout (2026-10-22): one "Watched"
+// section (count badge, one caption, Add a company, Hiring now | All) of company cards, each the
+// company's initial, its name, "Greenhouse · 3 matching roles" and a Roles button that opens that
+// company's roles in the card, one at a time. "Add a company" (AddCompany.tsx) is the one
 // way onto the list; dream companies sit under it (DreamCompanies.tsx), then outreach targets (only
 // once one is saved), and
 // Live postings and the list checker stay one link away (DiscoverView's secondary views).
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
   Alert,
   Box,
   Button,
+  Card,
   Disclosure,
+  Icon,
   Input as HdsInput,
   InlineLink,
   Stack,
@@ -26,7 +30,9 @@ import {
 import { SavedTargets, type Row } from './OutreachRows';
 import { atsSearchUrl } from './jobsData';
 import { SOURCE_LABEL } from './feed/types';
-import { Panel, PanelBody, PanelRow } from './PipelinePanel';
+import { Panel, PanelRow, PanelRows } from './PipelinePanel';
+import { useCardPadding } from './cardPadding';
+import ItemCard from './ItemCard';
 import { useWatching } from './outreachShared';
 import {
   findDesignSystemOrgs,
@@ -63,9 +69,6 @@ import { DreamStar, RoleList } from './TeamRoles';
 /** Watched boards read on arrival; the rest wait for "Check open roles". A starter pack can file
  *  a hundred boards, and each read is a whole board. */
 const AUTO_READ = 10;
-/** A panel's hairline list (the rows are PanelRows). */
-const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
-
 type CompanyRow = Row & { boardCheck?: OrgTarget['boardCheck']; watched?: boolean };
 
 const asRow = (o: OrgTarget): CompanyRow => ({
@@ -301,54 +304,56 @@ export default function CompaniesPanel({
     const watching = isWatching(r.board);
     return (
       <PanelRow key={r.login}>
-        {/* 12 from the row's caption to its open roles (rev-3 mock). Compact density's "xs" is
-            2px, so rows use the px steps. */}
+        {/* 12 from the card's text to its open roles (rev-3 mock). Stack's "xs" is the 2px
+            subgrid at any density, so the card uses the px steps. */}
         <Stack gap="px12">
-          {/* No wrap: the name column shrinks so the star and Roles stay on the right at 390. */}
-          <Stack direction="row" gap="px8" align="center" justify="space-between">
-            <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
-              <Stack gap="px4">
-                <Text variant="ui" as="span">
-                  {r.website ? (
-                    <InlineLink href={r.website} externalIcon={false}>
-                      {r.company}
-                    </InlineLink>
-                  ) : (
-                    r.company
-                  )}
-                </Text>
-                <Text variant="caption" as="p" tone="secondary">
-                  {r.board ? `${SOURCE_LABEL[r.board.kind]} · ${line}` : capital(line)}
-                </Text>
-                {r.repo && r.repoUrl && (
-                  <Text variant="caption" as="p" tone="secondary">
-                    <InlineLink href={r.repoUrl} externalIcon={false}>
-                      {r.repo}
-                    </InlineLink>
-                    {` · ${(r.stars ?? 0).toLocaleString()} stars`}
-                  </Text>
+          <ItemCard
+            avatar={r.company}
+            actions={
+              <>
+                <DreamStar
+                  categoryId={categoryId}
+                  company={r.company}
+                  website={r.website}
+                  board={r.board}
+                />
+                <Button
+                  size="md"
+                  variant="tertiary"
+                  iconRight={<Icon icon={ChevronDown} size={16} />}
+                  aria-expanded={open}
+                  aria-controls={panelId}
+                  aria-label={`Roles at ${r.company}`}
+                  onClick={() => toggleRow(r)}
+                >
+                  Roles
+                </Button>
+              </>
+            }
+          >
+            <Stack gap="px4">
+              <Text variant="body" as="span" className="rjb-semibold rjb-card-title">
+                {r.website ? (
+                  <InlineLink href={r.website} externalIcon={false}>
+                    {r.company}
+                  </InlineLink>
+                ) : (
+                  r.company
                 )}
-              </Stack>
-            </Box>
-            <Stack direction="row" gap="px4" align="center">
-              <DreamStar
-                categoryId={categoryId}
-                company={r.company}
-                website={r.website}
-                board={r.board}
-              />
-              <Button
-                size="md"
-                variant="secondary"
-                aria-expanded={open}
-                aria-controls={panelId}
-                aria-label={`Roles at ${r.company}`}
-                onClick={() => toggleRow(r)}
-              >
-                Roles
-              </Button>
+              </Text>
+              <Text variant="caption" as="p" tone="secondary">
+                {r.board ? `${SOURCE_LABEL[r.board.kind]} · ${line}` : capital(line)}
+              </Text>
+              {r.repo && r.repoUrl && (
+                <Text variant="caption" as="p" tone="secondary">
+                  <InlineLink href={r.repoUrl} externalIcon={false}>
+                    {r.repo}
+                  </InlineLink>
+                  {` · ${(r.stars ?? 0).toLocaleString()} stars`}
+                </Text>
+              )}
             </Stack>
-          </Stack>
+          </ItemCard>
           {open && (
             <Box id={panelId}>
               <Stack gap="px12">
@@ -363,8 +368,8 @@ export default function CompaniesPanel({
                   <Stack direction="row" gap="px8" align="center" wrap="wrap">
                     {r.board ? (
                       <Button
-                        size="sm"
-                        variant="secondary"
+                        size="md"
+                        variant="tertiary"
                         disabled={watching}
                         aria-label={`${watching ? 'Watching' : 'Watch board for'} ${r.company}`}
                         onClick={() => watch(r.board!)}
@@ -372,7 +377,7 @@ export default function CompaniesPanel({
                         {watching ? 'Watching' : 'Watch board'}
                       </Button>
                     ) : (
-                      <Button size="sm" variant="tertiary" asChild>
+                      <Button size="md" variant="tertiary" asChild>
                         <a
                           href={careers}
                           target="_blank"
@@ -384,8 +389,8 @@ export default function CompaniesPanel({
                       </Button>
                     )}
                     <Button
-                      size="sm"
-                      variant="secondary"
+                      size="md"
+                      variant="tertiary"
                       disabled={saved(r)}
                       aria-label={`${saved(r) ? 'Saved' : 'Save as target:'} ${r.company}`}
                       onClick={() => save(r)}
@@ -420,117 +425,107 @@ export default function CompaniesPanel({
           : "Add a company to see its open roles here. The team search looks on GitHub, and this track's titles don't name anything GitHub tracks.";
 
   return (
-    // Panels 24 apart, like the Pipeline's.
-    <Stack gap="normal">
+    // Sections 40 apart, like the Pipeline's.
+    <Stack gap="inset">
       <Panel
+        kind="list"
         label="Watched"
         title="Watched"
         count={rows.length}
         countLabel={companies(rows.length)}
+        description={<span role="status">{caption}</span>}
+        trailing={<AddCompany categoryId={categoryId} boardUrls={boardUrls} />}
       >
-        <PanelBody>
-          <Stack gap="tight">
-            <Text variant="caption" as="p" tone="secondary" role="status">
-              {caption}
-            </Text>
+        {/* The section's tools on the canvas: the ways to find more, then the Hiring now | All
+            chips with Refine on their row. */}
+        <Stack gap="medium">
+          {(search || suggested || (unread > 0 && !readAll)) && (
             <Stack direction="row" gap="px8" align="center" wrap="wrap">
-              <AddCompany categoryId={categoryId} boardUrls={boardUrls} />
               {search &&
                 (running ? (
-                  <Button size="sm" variant="secondary" onClick={() => abort.current?.abort()}>
+                  <Button variant="tertiary" onClick={() => abort.current?.abort()}>
                     Cancel
                   </Button>
                 ) : (
-                  <Button size="sm" variant="secondary" onClick={() => void find()}>
+                  <Button variant="tertiary" onClick={() => void find()}>
                     {ran ? `Find more ${teams}` : `Find ${teams}`}
                   </Button>
                 ))}
               {suggested &&
                 (running ? (
-                  <Button size="sm" variant="secondary" onClick={() => abort.current?.abort()}>
+                  <Button variant="tertiary" onClick={() => abort.current?.abort()}>
                     Cancel
                   </Button>
                 ) : (
-                  <Button size="sm" variant="secondary" onClick={() => void suggest()}>
+                  <Button variant="tertiary" onClick={() => void suggest()}>
                     {ran ? 'Suggest again' : 'Suggest companies'}
                   </Button>
                 ))}
               {unread > 0 && !readAll && (
-                <Button size="sm" variant="secondary" onClick={() => setReadAll(true)}>
+                <Button variant="tertiary" onClick={() => setReadAll(true)}>
                   {`Check open roles at ${companies(unread)}`}
                 </Button>
               )}
             </Stack>
-            {suggested && (
-              <Text variant="caption" as="p" tone="secondary">
-                {suggested.line}
-              </Text>
-            )}
-            {suggestReport?.ycDown && (
-              <Alert tone="warning">{`The ${YC_CREDIT} didn't answer, so only your starter list is suggested. Try again later.`}</Alert>
-            )}
-            {suggested?.yc &&
-              suggestReport &&
-              !suggestReport.ycDown &&
-              !suggestReport.ycMatched && (
-                <Text variant="caption" as="p" tone="secondary">
-                  No YC company hiring now matches this track's titles.
-                </Text>
-              )}
-            {rows.length > 0 && (
-              // Two chips (rev-3 mock): Hiring now filled, All outlined, 8 apart; HDS Tag with
-              // aria-pressed, 40px tall on a phone (base.css) and never under 48 wide.
-              <Stack
-                direction="row"
-                gap="px8"
-                align="center"
-                role="group"
-                aria-label="Show companies"
-              >
-                <Tag active={hiringOnly} onClick={() => setHiringOnly(true)}>
-                  Hiring now
-                </Tag>
-                {/* What Hiring now hides (no matching role, or not checked yet) is counted here. */}
-                <Tag active={!hiringOnly} onClick={() => setHiringOnly(false)}>
-                  {hiringOnly && hidden > 0 ? `All (${hidden} more)` : 'All'}
-                </Tag>
-              </Stack>
-            )}
-            {search && (
-              <Disclosure label="Refine">
-                <Box sx={{ width: 144 }}>
-                  <HdsInput
-                    size="sm"
-                    label="Minimum stars"
-                    helperText="Used on the next search"
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    value={minStars}
-                    onChange={(e) => setMinStars(e.target.value)}
-                  />
-                </Box>
-              </Disclosure>
-            )}
-            {report?.stoppedUntil && (
-              <Alert tone="warning">{`GitHub asks us to wait until ${clock(report.stoppedUntil)}. What was found so far is below; try again after that.`}</Alert>
-            )}
-            {report?.error && <Alert tone="warning">{report.error}</Alert>}
-          </Stack>
-        </PanelBody>
-        {shown.length > 0 && (
-          <ul aria-label="Companies" style={LIST}>
-            {shown.map(companyRow)}
-          </ul>
-        )}
-        {notFound.length > 0 && (
-          <PanelRow as="div">
-            <Disclosure label={`Board not found (${notFound.length})`}>
-              <ul aria-label="Board not found" style={LIST}>
-                {notFound.map(companyRow)}
-              </ul>
+          )}
+          {suggested && (
+            <Text variant="caption" as="p" tone="secondary">
+              {suggested.line}
+            </Text>
+          )}
+          {suggestReport?.ycDown && (
+            <Alert tone="warning">{`The ${YC_CREDIT} didn't answer, so only your starter list is suggested. Try again later.`}</Alert>
+          )}
+          {suggested?.yc && suggestReport && !suggestReport.ycDown && !suggestReport.ycMatched && (
+            <Text variant="caption" as="p" tone="secondary">
+              No YC company hiring now matches this track's titles.
+            </Text>
+          )}
+          {rows.length > 0 && (
+            // Two chips (rev-3 mock): Hiring now filled when on, All a soft fill, 8 apart; HDS Tag
+            // with aria-pressed, 40px tall on a phone (base.css), no outline (roomy).
+            <Stack
+              direction="row"
+              gap="px8"
+              align="center"
+              role="group"
+              aria-label="Show companies"
+            >
+              <Tag active={hiringOnly} onClick={() => setHiringOnly(true)}>
+                Hiring now
+              </Tag>
+              {/* What Hiring now hides (no matching role, or not checked yet) is counted here. */}
+              <Tag active={!hiringOnly} onClick={() => setHiringOnly(false)}>
+                {hiringOnly && hidden > 0 ? `All (${hidden} more)` : 'All'}
+              </Tag>
+            </Stack>
+          )}
+          {search && (
+            // HDS Disclosure's panel is its own filled surface: a full-width card on the canvas.
+            <Disclosure label="Refine">
+              <Box sx={{ width: 144 }}>
+                <HdsInput
+                  label="Minimum stars"
+                  helperText="Used on the next search"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  value={minStars}
+                  onChange={(e) => setMinStars(e.target.value)}
+                />
+              </Box>
             </Disclosure>
-          </PanelRow>
+          )}
+          {report?.stoppedUntil && (
+            <Alert tone="warning">{`GitHub asks us to wait until ${clock(report.stoppedUntil)}. What was found so far is below; try again after that.`}</Alert>
+          )}
+          {report?.error && <Alert tone="warning">{report.error}</Alert>}
+        </Stack>
+        {shown.length > 0 && <PanelRows label="Companies">{shown.map(companyRow)}</PanelRows>}
+        {notFound.length > 0 && (
+          <Disclosure label={`Board not found (${notFound.length})`}>
+            <PanelRows label="Board not found">{notFound.map(companyRow)}</PanelRows>
+          </Disclosure>
         )}
       </Panel>
 
@@ -553,8 +548,9 @@ export default function CompaniesPanel({
   );
 }
 
-// "More ways to find companies" (rev-3 mock): the shared Panel, like Watched, with full-bleed
-// hairline rows, each a title, a caption and an Open button (a 40px target), not bare text links.
+// "More ways to find companies": two link cards (roomy). Each whole card is the link (HDS Card
+// asChild: the interactive-card hover and focus ring), a title, a caption and a chevron; no
+// separate Open button.
 const MORE_WAYS = [
   {
     title: 'Live postings from job boards',
@@ -569,29 +565,30 @@ const MORE_WAYS = [
 ] as const;
 
 function MoreWays() {
+  const padding = useCardPadding();
   return (
-    <Panel label="More ways to find companies" title="More ways to find companies">
-      <ul style={LIST}>
+    <Panel kind="list" label="More ways to find companies" title="More ways to find companies">
+      <PanelRows>
         {MORE_WAYS.map((w) => (
-          <PanelRow key={w.href}>
-            <Stack direction="row" gap="px8" align="center" justify="space-between">
-              <Stack gap="px4">
-                <Text variant="ui" as="span">
-                  {w.title}
-                </Text>
-                <Text variant="caption" tone="secondary">
-                  {w.caption}
-                </Text>
-              </Stack>
-              <Button size="md" variant="secondary" asChild>
-                <a href={w.href} aria-label={`Open ${w.title}`}>
-                  Open
-                </a>
-              </Button>
-            </Stack>
+          <PanelRow key={w.href} flush>
+            <Card asChild padding={padding} className="border-0">
+              <a href={w.href}>
+                <Stack direction="row" gap="px16" align="center" justify="space-between">
+                  <Stack gap="px4">
+                    <Text variant="body" as="span" className="rjb-semibold">
+                      {w.title}
+                    </Text>
+                    <Text variant="caption" tone="secondary">
+                      {w.caption}
+                    </Text>
+                  </Stack>
+                  <Icon icon={ChevronRight} size="large" aria-hidden />
+                </Stack>
+              </a>
+            </Card>
           </PanelRow>
         ))}
-      </ul>
+      </PanelRows>
     </Panel>
   );
 }

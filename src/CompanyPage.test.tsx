@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
+import { ToastProvider } from '@hirobius/design-system';
 import CompanyPage from './CompanyPage';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { createDocument, getAllDocuments, replaceDocuments } from './documents';
@@ -36,7 +37,11 @@ const seedAcme = () => {
 describe('Company page (#230)', () => {
   it("shows the company's name, its Jobs (linked to their pages) and its Documents", () => {
     seedAcme();
-    render(<CompanyPage slug="acme" />);
+    render(
+      <ToastProvider>
+        <CompanyPage slug="acme" />
+      </ToastProvider>,
+    );
     expect(screen.getByRole('heading', { level: 2, name: 'Acme, Inc.' })).toBeInTheDocument();
     const jobs = screen.getByRole('region', { name: 'Jobs' });
     expect(within(jobs).getByRole('link', { name: 'Design Engineer' })).toHaveAttribute(
@@ -49,9 +54,13 @@ describe('Company page (#230)', () => {
     expect(within(docs).getByText(/Cover letter/)).toBeInTheDocument();
   });
 
-  it('rev-3 panels: Jobs and Documents with count badges, job rows like Pipeline cards, Back on the edge', async () => {
+  it('sections: Jobs and Documents with count badges, Pipeline job cards, Back on the edge', async () => {
     seedAcme();
-    render(<CompanyPage slug="acme" />);
+    render(
+      <ToastProvider>
+        <CompanyPage slug="acme" />
+      </ToastProvider>,
+    );
     expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveAttribute(
       'href',
       '#/queue',
@@ -59,7 +68,8 @@ describe('Company page (#230)', () => {
     expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveTextContent(/^Pipeline$/);
     const jobs = screen.getByRole('region', { name: 'Jobs' });
     expect(within(jobs).getByText('2')).toBeInTheDocument();
-    const rows = within(jobs).getAllByRole('listitem');
+    // Each job is the Pipeline's job card (roomy).
+    const rows = within(jobs).getAllByRole('article');
     expect(rows).toHaveLength(2);
     // Each row: its status badge above the title, and the one next step.
     expect(within(rows[0]).getByText('Saved')).toBeInTheDocument();
@@ -71,7 +81,11 @@ describe('Company page (#230)', () => {
 
   it('each job row opens its posting in one tap from beside the title (Adrian 2026-10-22)', () => {
     seedAcme();
-    render(<CompanyPage slug="acme" />);
+    render(
+      <ToastProvider>
+        <CompanyPage slug="acme" />
+      </ToastProvider>,
+    );
     const jobs = screen.getByRole('region', { name: 'Jobs' });
     const posting = within(jobs).getByRole('link', {
       name: 'Open posting for Design Engineer at Acme, Inc.',
@@ -86,7 +100,11 @@ describe('Company page (#230)', () => {
 
   it('an empty Documents panel says so in one line', () => {
     addCompanyNote('Bolt', 'Keep in touch');
-    render(<CompanyPage slug="bolt" />);
+    render(
+      <ToastProvider>
+        <CompanyPage slug="bolt" />
+      </ToastProvider>,
+    );
     expect(
       within(screen.getByRole('region', { name: 'Documents' })).getByText('None sent yet.'),
     ).toBeInTheDocument();
@@ -94,7 +112,11 @@ describe('Company page (#230)', () => {
 
   it('adds a company note: a note Document on the company, with no job', async () => {
     seedAcme();
-    render(<CompanyPage slug="acme" />);
+    render(
+      <ToastProvider>
+        <CompanyPage slug="acme" />
+      </ToastProvider>,
+    );
     const notes = screen.getByRole('region', { name: 'Notes' });
     // Rev-3 mock: the field and a Save note, no "No notes yet" or label line above it.
     expect(within(notes).queryByText(/No notes yet|New note/)).toBeNull();
@@ -112,7 +134,11 @@ describe('Company page (#230)', () => {
   it('editing a note and saving adds a Version; the earlier text is kept', async () => {
     seedAcme();
     const id = addCompanyNote('Acme', 'First');
-    render(<CompanyPage slug="acme" />);
+    render(
+      <ToastProvider>
+        <CompanyPage slug="acme" />
+      </ToastProvider>,
+    );
     const notes = screen.getByRole('region', { name: 'Notes' });
     const save = within(notes).getByRole('button', { name: 'Save note' });
     expect(save).toBeDisabled(); // nothing changed
@@ -127,14 +153,22 @@ describe('Company page (#230)', () => {
 
   it('a company with only notes still has its page (nothing orphaned after a rename)', () => {
     addCompanyNote('Bolt', 'Keep in touch');
-    render(<CompanyPage slug="bolt" />);
+    render(
+      <ToastProvider>
+        <CompanyPage slug="bolt" />
+      </ToastProvider>,
+    );
     expect(screen.getByRole('heading', { level: 2, name: 'Bolt' })).toBeInTheDocument();
     expect(screen.getByText(/No jobs at this company/)).toBeInTheDocument();
     expect(screen.getByLabelText('Note')).toHaveValue('Keep in touch');
   });
 
   it('an unknown company says so, with a way back to the Pipeline', () => {
-    render(<CompanyPage slug="nobody" />);
+    render(
+      <ToastProvider>
+        <CompanyPage slug="nobody" />
+      </ToastProvider>,
+    );
     expect(screen.getByText('No company here')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Go to the Pipeline' })).toHaveAttribute(
       'href',
@@ -145,7 +179,11 @@ describe('Company page (#230)', () => {
   it('has no axe violations', async () => {
     seedAcme();
     addCompanyNote('Acme', 'First');
-    const { container } = render(<CompanyPage slug="acme" />);
+    const { container } = render(
+      <ToastProvider>
+        <CompanyPage slug="acme" />
+      </ToastProvider>,
+    );
     const r = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });

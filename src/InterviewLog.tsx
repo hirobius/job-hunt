@@ -9,7 +9,7 @@ import {
   Stack,
   Text,
 } from '@hirobius/design-system';
-import { CalendarPlus, X } from 'lucide-react';
+import { CalendarPlus, Plus, X } from 'lucide-react';
 import { buildIcs } from './ics';
 import { download } from './download';
 import { addEvent, jobIcsEvents, removeEvent } from './jobEvents';
@@ -17,6 +17,7 @@ import { dayLabel } from './dayLabel';
 import { timeLabel } from './agendaTime';
 import { updateJob } from './store';
 import type { Job, JobEventKind } from './types';
+import { PanelRow, PanelRows } from './PipelinePanel';
 
 const KINDS: { value: JobEventKind; label: string }[] = [
   { value: 'interview', label: 'Interview' },
@@ -47,7 +48,7 @@ export function AddToCalendar({ job }: { job: Job }) {
   return (
     <Button
       size="md"
-      variant="secondary"
+      variant="tertiary"
       iconLeft={<Icon icon={CalendarPlus} />}
       disabled={upcoming.length === 0}
       onClick={exportIcs}
@@ -85,14 +86,14 @@ export default function InterviewLog({ job }: { job: Job }) {
 
   return (
     <Stack gap="normal" className="rjb-form-full">
-      {/* One row per event, split by the Calm list hairline (.rjb-rows): the day over its kind
-          and note, the remove button at the end. */}
+      {/* One tray row per event, set apart by space (roomy: no rules): the day over its kind and
+          note, the remove button at the end. */}
       {events.length > 0 && (
-        <Box as="ul" className="rjb-rows" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+        <PanelRows label="Booked">
           {events.map((e) => {
             const when = whenOf(e.date, e.time, now);
             return (
-              <li key={e.id}>
+              <PanelRow key={e.id}>
                 <Stack direction="row" gap="px8" align="center" wrap="nowrap">
                   <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
                     <Stack gap="px4">
@@ -106,7 +107,7 @@ export default function InterviewLog({ job }: { job: Job }) {
                     </Stack>
                   </Box>
                   <Button
-                    size="sm"
+                    size="md"
                     variant="tertiary"
                     iconOnly
                     iconLeft={<Icon icon={X} />}
@@ -114,14 +115,14 @@ export default function InterviewLog({ job }: { job: Job }) {
                     onClick={() => updateJob(job.url, { events: removeEvent(job.events, e.id) })}
                   />
                 </Stack>
-              </li>
+              </PanelRow>
             );
           })}
-        </Box>
+        </PanelRows>
       )}
 
       <Grid layout="auto-fit" minItemWidth="200px" gap="medium" align="end">
-        <Stack gap="tight">
+        <Stack gap="px8">
           {caption('Date')}
           <Input
             type="date"
@@ -130,7 +131,7 @@ export default function InterviewLog({ job }: { job: Job }) {
             onChange={(e) => setDate(e.target.value)}
           />
         </Stack>
-        <Stack gap="tight">
+        <Stack gap="px8">
           {caption('Time (optional)')}
           <Input
             type="time"
@@ -140,7 +141,7 @@ export default function InterviewLog({ job }: { job: Job }) {
           />
         </Stack>
       </Grid>
-      <Stack gap="tight">
+      <Stack gap="px8">
         {caption('Kind')}
         <SegmentedControl
           aria-label="Event kind"
@@ -151,12 +152,18 @@ export default function InterviewLog({ job }: { job: Job }) {
           onChange={(v) => setKind(v as JobEventKind)}
         />
       </Stack>
-      <Stack gap="tight">
+      <Stack gap="px8">
         {caption('Note (optional)')}
         <Input aria-label="Event note" value={note} onChange={(e) => setNote(e.target.value)} />
       </Stack>
       <Box>
-        <Button size="md" variant="secondary" disabled={!date} onClick={add}>
+        <Button
+          size="md"
+          variant="tertiary"
+          iconLeft={<Icon icon={Plus} />}
+          disabled={!date}
+          onClick={add}
+        >
           Add interview
         </Button>
       </Box>

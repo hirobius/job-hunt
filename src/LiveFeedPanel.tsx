@@ -5,9 +5,10 @@
 // the user saves a posting, which turns it into a tracked Job. Watching a board files a tile on the
 // track (src/feed/watchlist.ts). "Find more" runs the wide sweep (#213): every title that is on for
 // the track, in one search, merged and tagged by title (src/feed/sweep.ts).
-// Layout (rev-3 mock, K/H): the search row, then Calibrate → Refine → Openings, 24 apart. Openings
-// is one bordered panel: a header (count, how it is sorted and what is hidden, Find more, a menu
-// with the Show filter and Save all), a Partial row when sources failed, then hairline rows.
+// Layout (rev-3 mock, K/H; roomy 2026-10-22): the search row, then Calibrate → Refine → Openings,
+// 28 apart. Calibrate and Refine are filled cards; Openings is a section: its label on the canvas
+// (count, how it is sorted and what is hidden, Find more, a menu with the Show filter and Save all),
+// a Partial card when sources failed, then one card per opening. No outlines.
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
   Badge,
@@ -33,6 +34,7 @@ import {
 import { EmptyState } from './hds-gaps/EmptyState';
 import {
   Banknote,
+  Bookmark,
   Calendar,
   Check,
   Ellipsis,
@@ -45,6 +47,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { EvidenceEditor, FitGapBody, PatternsSummary } from './FeedFit';
+import { Panel, PanelRow, PanelRows } from './PipelinePanel';
+import { useCardPadding } from './cardPadding';
+import ItemCard from './ItemCard';
 import { setTrackContext, useTrackContext } from './discoverContext';
 import { addJobDetailed, dedupKey, updateJob, useJobs } from './store';
 import { notifySaved } from './saveNotice';
@@ -125,6 +130,8 @@ export default function LiveFeedPanel({
   const watchId = useId();
   const savedId = useId();
   const [calibrateOpen, setCalibrateOpen] = useState(calibrate);
+  // Calibrate and Refine are filled cards with the card padding (roomy).
+  const cardPadding = useCardPadding();
   // Arriving through the old Titles link opens Calibrate, also when this panel is already up.
   const [calibrateSeen, setCalibrateSeen] = useState(calibrate);
   if (calibrate !== calibrateSeen) {
@@ -475,8 +482,7 @@ export default function LiveFeedPanel({
       description="Hacker News posts a fresh thread monthly and boards change daily. Try a broader term, or watch more company boards."
       action={
         <Button
-          variant="secondary"
-          size="sm"
+          variant="tertiary"
           onClick={() => (sweeping ? startSweep(false) : searchRef.current?.focus())}
         >
           {sweeping ? 'Back to one search' : 'Try a broader term'}
@@ -520,8 +526,8 @@ export default function LiveFeedPanel({
     <Menu modal={false}>
       <Menu.Trigger asChild>
         <Button
-          size="sm"
-          variant="secondary"
+          size="md"
+          variant="tertiary"
           iconOnly
           iconLeft={<Icon icon={Ellipsis} />}
           label="Openings options"
@@ -557,7 +563,7 @@ export default function LiveFeedPanel({
       trailing={
         <Stack direction="row" gap="px8" align="center">
           {!sweeping && (
-            <Button size="sm" variant="secondary" onClick={() => startSweep(true)}>
+            <Button variant="tertiary" onClick={() => startSweep(true)}>
               Find more
             </Button>
           )}
@@ -567,7 +573,7 @@ export default function LiveFeedPanel({
     >
       {partial}
       {visible.length === 0 ? (
-        <PanelRowBox>
+        <Box sx={{ py: 'fixed-sm' }}>
           <EmptyState
             title={
               shownTitles.length === 0
@@ -577,9 +583,9 @@ export default function LiveFeedPanel({
                   : 'None of these openings carry that signal. Show all from the menu.'
             }
           />
-        </PanelRowBox>
+        </Box>
       ) : (
-        <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
+        <PanelRows label="Live postings">
           {visible.slice(0, shown).map((p) => (
             <PostingRow
               key={p.id}
@@ -591,14 +597,14 @@ export default function LiveFeedPanel({
               sweepTitles={sweeping ? sweepTitles.length : 0}
             />
           ))}
-        </Box>
+        </PanelRows>
       )}
       {visible.length > shown && (
-        <PanelRowBox>
-          <Button variant="tertiary" size="sm" onClick={() => setShown((n) => n + PAGE)}>
+        <Box>
+          <Button variant="tertiary" onClick={() => setShown((n) => n + PAGE)}>
             Show more ({visible.length - shown})
           </Button>
-        </PanelRowBox>
+        </Box>
       )}
     </OpeningsPanel>
   );
@@ -611,15 +617,17 @@ export default function LiveFeedPanel({
         slow && 'Still trying: slow sources are skipped after 15 s',
       ]}
     >
-      <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-hidden="true">
-        {Array.from({ length: SKELETON_ROWS }, (_, i) => (
-          <PanelRowBox key={i} as="li">
-            <Stack gap="px8">
-              <Skeleton variant="text" width="60%" />
-              <Skeleton variant="text" width="30%" />
-            </Stack>
-          </PanelRowBox>
-        ))}
+      <Box aria-hidden="true">
+        <PanelRows>
+          {Array.from({ length: SKELETON_ROWS }, (_, i) => (
+            <PanelRow key={i}>
+              <Stack gap="px8">
+                <Skeleton variant="text" width="60%" />
+                <Skeleton variant="text" width="30%" />
+              </Stack>
+            </PanelRow>
+          ))}
+        </PanelRows>
       </Box>
     </OpeningsPanel>
   );
@@ -629,7 +637,7 @@ export default function LiveFeedPanel({
   const emptyBlock = hasQuery ? (
     <OpeningsPanel count={0} caption={hiddenNotes}>
       {partial}
-      <PanelRowBox>{emptyState}</PanelRowBox>
+      <Box sx={{ py: 'fixed-sm' }}>{emptyState}</Box>
     </OpeningsPanel>
   ) : (
     emptyState
@@ -648,7 +656,7 @@ export default function LiveFeedPanel({
   );
 
   return (
-    // Panels stack 24 apart (rev-3): the search (or the sweep's head), Calibrate, Refine, Openings.
+    // Sections stack 28 apart: the search (or the sweep's head), Calibrate, Refine, Openings.
     <Stack gap="normal">
       {sweeping ? (
         <Stack gap="normal">
@@ -660,7 +668,12 @@ export default function LiveFeedPanel({
               Matched postings, deduped
             </Text>
             <Box>
-              <Button size="md" variant="secondary" onClick={() => startSweep(false)}>
+              <Button
+                size="md"
+                variant="tertiary"
+                className="rjb-flush-start"
+                onClick={() => startSweep(false)}
+              >
                 Back to one search
               </Button>
             </Box>
@@ -687,21 +700,21 @@ export default function LiveFeedPanel({
               onChange={(e) => setInput(e.target.value)}
             />
           </Box>
-          {/* Secondary: Live postings has no primary action (rev-3); the mock's only fill is a
-              selected state. */}
-          <Button type="submit" size="md" variant="secondary">
+          {/* The screen's one primary: searching is what Live postings is for (roomy: no outlined
+              button beside the field). */}
+          <Button type="submit" size="md" variant="primary">
             Search
           </Button>
         </Box>
       )}
       {/* Calibrate (#223): the track's ticked titles beside the other targeting, then the saved
-          searches. A bordered row with what it holds under its name (rev-3 J), like Refine. */}
-      <Card bordered padding="none" className="rjb-disclosure-vertical">
-        <Box sx={{ px: 'sm', pb: calibrateOpen ? 'sm' : 0 }}>
+          searches. A filled card with what it holds under its name (rev-3 J), like Refine. */}
+      <Card padding={cardPadding} className="border-0 rjb-disclosure-vertical">
+        <Box>
           <Disclosure
             variant="row"
             label={
-              <Text variant="body" as="span" weight="bold">
+              <Text variant="body" as="span" className="rjb-semibold">
                 Calibrate
               </Text>
             }
@@ -743,7 +756,6 @@ export default function LiveFeedPanel({
               >
                 <Box sx={{ flex: 1, minWidth: 200, maxWidth: 360, '& > *': { width: '100%' } }}>
                   <HdsInput
-                    size="sm"
                     label="Leave out (words, commas between)"
                     placeholder="manager, sales"
                     value={excludeText}
@@ -752,7 +764,6 @@ export default function LiveFeedPanel({
                 </Box>
                 <Box sx={{ width: 160 }}>
                   <HdsInput
-                    size="sm"
                     label="Pay floor (USD a year)"
                     inputMode="numeric"
                     placeholder="120000"
@@ -805,7 +816,7 @@ export default function LiveFeedPanel({
                     </Box>
                     <Button
                       size="md"
-                      variant="secondary"
+                      variant="tertiary"
                       disabled={!saveName.trim()}
                       onClick={saveSearch}
                     >
@@ -826,7 +837,7 @@ export default function LiveFeedPanel({
                       <Stack key={f.name} direction="row" gap="px4" align="center">
                         <Tag onClick={() => applySaved(f)}>{f.name}</Tag>
                         <Button
-                          size="sm"
+                          size="md"
                           variant="tertiary"
                           iconOnly
                           iconLeft={<Icon icon={X} />}
@@ -848,12 +859,12 @@ export default function LiveFeedPanel({
       </Card>
 
       {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
-      <Card bordered padding="none" className="rjb-disclosure-vertical">
-        <Box sx={{ px: 'sm', pb: refineOpen ? 'sm' : 0 }}>
+      <Card padding={cardPadding} className="border-0 rjb-disclosure-vertical">
+        <Box>
           <Disclosure
             variant="row"
             label={
-              <Text variant="body" as="span" weight="bold">
+              <Text variant="body" as="span" className="rjb-semibold">
                 Refine
               </Text>
             }
@@ -881,7 +892,7 @@ export default function LiveFeedPanel({
                         onChange={(e) => setWatchUrl(e.target.value)}
                       />
                     </Box>
-                    <Button type="submit" size="md" variant="secondary" disabled={!watchUrl.trim()}>
+                    <Button type="submit" size="md" variant="tertiary" disabled={!watchUrl.trim()}>
                       Watch
                     </Button>
                   </Stack>
@@ -897,7 +908,8 @@ export default function LiveFeedPanel({
                 <Box>
                   <Button
                     size="md"
-                    variant="secondary"
+                    variant="tertiary"
+                    className="rjb-flush-start"
                     onClick={() => {
                       const n = addBoardTiles(categoryId, suggested);
                       toast({
@@ -942,7 +954,7 @@ export default function LiveFeedPanel({
           <Text variant="caption" as="p" tone="secondary">
             Postings get a fit once you add evidence.
           </Text>
-          <Button size="sm" variant="tertiary" onClick={() => setRefineOpen(true)}>
+          <Button variant="tertiary" onClick={() => setRefineOpen(true)}>
             Add evidence to see fit
           </Button>
         </Stack>
@@ -951,9 +963,9 @@ export default function LiveFeedPanel({
   );
 }
 
-/** The Openings panel (rev-3 K): the Pipeline's bordered Card, a header with the count, a caption
- *  of how it is sorted and what is hidden (two items a line, #192) and trailing controls, then
- *  rows split by hairlines. */
+/** The Openings section (rev-3 K; roomy): its label on the canvas with the count, a caption of how
+ *  it is sorted and what is hidden (two items a line, #192) and trailing controls, then one card
+ *  per opening. */
 function OpeningsPanel({
   count,
   caption,
@@ -969,45 +981,26 @@ function OpeningsPanel({
 }) {
   const lines = metaLines(caption);
   return (
-    <Card as="section" aria-label="Openings" aria-busy={busy || undefined} padding="none" bordered>
-      <Box sx={{ px: 'sm', py: 'sm' }}>
-        <Stack direction="row" gap="px8" align="center" justify="space-between">
-          <Box sx={{ minWidth: 0 }}>
-            <Stack gap="px4">
-              <Stack direction="row" gap="px8" align="center">
-                <Text variant="body" as="h3" weight="bold">
-                  Openings
-                </Text>
-                {count != null && <Badge count={count} label={`${count} openings`} />}
-              </Stack>
-              {lines.length > 0 && (
-                <Box role="status">
-                  {lines.map((l) => (
-                    <Text key={l} variant="caption" as="p" tone="secondary">
-                      {l}
-                    </Text>
-                  ))}
-                </Box>
-              )}
-            </Stack>
+    <Panel
+      kind="list"
+      label="Openings"
+      title="Openings"
+      busy={busy}
+      count={count}
+      countLabel={count != null ? `${count} openings` : undefined}
+      description={
+        lines.length > 0 ? (
+          <Box role="status">
+            {lines.map((l) => (
+              <p key={l}>{l}</p>
+            ))}
           </Box>
-          {trailing}
-        </Stack>
-      </Box>
-      {children}
-    </Card>
-  );
-}
-
-/** One padded row of the Openings panel, with the hairline above it (none below the last). */
-function PanelRowBox({ children, as = 'div' }: { children: ReactNode; as?: 'div' | 'li' }) {
-  return (
-    <Box
-      as={as}
-      sx={{ px: 'sm', py: 'sm', borderTop: 'thin solid', borderColor: 'border.default' }}
+        ) : undefined
+      }
+      trailing={trailing}
     >
       {children}
-    </Box>
+    </Panel>
   );
 }
 
@@ -1048,12 +1041,12 @@ function PartialRow({
         ? errors[0].error
         : `${namesOf(names)}.`;
   return (
-    <PanelRowBox>
+    <PanelRow as="div">
       <Stack direction="row" gap="tight" align="center" justify="space-between">
         <Box sx={{ minWidth: 0, flex: '1 1 0%' }}>
           <Stack gap="px4" align="start">
             <Badge tone="warning">Partial</Badge>
-            <Text variant="body" as="p" weight="bold">
+            <Text variant="body" as="p" className="rjb-semibold">
               {`${n} ${n === 1 ? 'source' : 'sources'} didn’t answer`}
             </Text>
             <Text variant="caption" as="p" tone="secondary">
@@ -1062,12 +1055,12 @@ function PartialRow({
           </Stack>
         </Box>
         {canRetry && (
-          <Button size="sm" variant="secondary" disabled={retrying} onClick={onRetry}>
+          <Button variant="tertiary" disabled={retrying} onClick={onRetry}>
             {retrying ? 'Retrying…' : 'Retry'}
           </Button>
         )}
       </Stack>
-    </PanelRowBox>
+    </PanelRow>
   );
 }
 
@@ -1204,9 +1197,39 @@ function PostingRow({
   const matched =
     sweepTitles > 1 ? p.titles.filter((t) => t.toLowerCase() !== p.title.trim().toLowerCase()) : [];
   return (
-    <PanelRowBox as="li">
-      <Stack direction="row" gap="tight" align="center" justify="space-between">
-        <Box sx={{ minWidth: 0, flex: '1 1 0%', overflowWrap: 'anywhere' }}>
+    <PanelRow>
+      <ItemCard
+        avatar={p.company || p.title}
+        actions={
+          saved ? (
+            // A status in Save's slot, not a disabled control (disabled text fails 3:1 here).
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'px4',
+                minHeight: 'var(--primitive-space-10)',
+                flexShrink: 0,
+              }}
+            >
+              <Icon icon={Check} size="small" />
+              <Text variant="ui" as="span">
+                Saved
+              </Text>
+            </Box>
+          ) : (
+            <Button
+              size="md"
+              variant="tertiary"
+              iconLeft={<Icon icon={Bookmark} size={16} />}
+              onClick={onSave}
+            >
+              Save
+            </Button>
+          )
+        }
+      >
+        <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
           <Stack gap="px4">
             <Stack direction="row" wrap="wrap" gap="px8" align="center">
               {fit && (
@@ -1228,11 +1251,11 @@ function PostingRow({
             </Stack>
             {/* An opening has no page in the app: its title is the posting link, with the
                 external-link icon so it reads as leaving the app (Adrian 2026-10-22). */}
-            <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
+            <Text variant="body" as="h3" className="rjb-card-title rjb-semibold">
               <InlineLink href={p.url}>{p.title}</InlineLink>
             </Text>
             {p.company && (
-              <Text variant="ui" as="p">
+              <Text variant="ui" as="p" tone="secondary">
                 {p.company}
               </Text>
             )}
@@ -1264,22 +1287,7 @@ function PostingRow({
             )}
           </Stack>
         </Box>
-        {saved ? (
-          // A status in Save's slot, not a disabled control (disabled text fails 3:1 here).
-          <Box
-            sx={{ display: 'flex', alignItems: 'center', gap: 'px4', minHeight: 36, flexShrink: 0 }}
-          >
-            <Icon icon={Check} size="small" />
-            <Text variant="ui" as="span">
-              Saved
-            </Text>
-          </Box>
-        ) : (
-          <Button size="sm" variant="secondary" onClick={onSave}>
-            Save
-          </Button>
-        )}
-      </Stack>
+      </ItemCard>
       {fit && (
         <Dialog open={why} onOpenChange={setWhy}>
           {why && (
@@ -1295,6 +1303,6 @@ function PostingRow({
           )}
         </Dialog>
       )}
-    </PanelRowBox>
+    </PanelRow>
   );
 }

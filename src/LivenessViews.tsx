@@ -102,13 +102,9 @@ export function JobLivenessNote({ url }: { url: string }) {
   );
 }
 
-/** The note above a job's page, at the page's own measure. */
+/** The note above a job's page (the shell sets the measure). */
 export function JobPageLiveness({ jobId }: { jobId: string }) {
   const job = findJobById(jobId, useJobs());
   if (!job) return null;
-  return (
-    <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
-      <JobLivenessNote url={job.url} />
-    </Box>
-  );
+  return <JobLivenessNote url={job.url} />;
 }

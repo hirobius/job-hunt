@@ -1,7 +1,8 @@
 // Dream companies (Teams tool, top section): starred companies that always show, open roles or
 // not. "Check dream companies" re-reads every board fresh and lists the matching openings that are new
-// since the last check (the ids seen are stored per company, src/feed/dreams.ts). Rev-3 mock: a panel
-// with a count badge; a board the companies list has already read shows its matching roles.
+// since the last check (the ids seen are stored per company, src/feed/dreams.ts). Roomy layout: a
+// section label with a count badge over company cards; with none, only the caption on the canvas.
+// A board the companies list has already read shows its matching roles.
 import { useEffect, useRef, useState } from 'react';
 import { Box, Button, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { atsSearchUrl } from './jobsData';
@@ -10,12 +11,12 @@ import { liveFetchJson } from './feed/fetchFeed';
 import type { Limiter } from './feed/probe';
 import { boardKey, newSince, readRoles, type Role, type RolesState } from './feed/teamRoles';
 import { SOURCE_LABEL } from './feed/types';
-import { Panel, PanelBody, PanelRow } from './PipelinePanel';
+import { Panel, PanelRow, PanelRows } from './PipelinePanel';
+import ItemCard from './ItemCard';
 import { DreamStar, RoleList } from './TeamRoles';
 
 type Checked = { roles: Role[]; fresh: Set<string> } | 'unknown';
 
-const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 export default function DreamCompanies({
@@ -87,6 +88,7 @@ export default function DreamCompanies({
   const canCheck = dreams.some((d) => d.board);
   return (
     <Panel
+      kind="list"
       label="Dream companies"
       title="Dream companies"
       count={n}
@@ -94,8 +96,8 @@ export default function DreamCompanies({
     >
       {/* The check sits under the head, not beside it: at 390 a header button wraps the title. */}
       {(n === 0 || summary || canCheck) && (
-        <PanelBody>
-          <Stack gap="tight">
+        <Box>
+          <Stack gap="medium">
             {(n === 0 || summary) && (
               <Text variant="caption" as="p" tone="secondary" role={summary ? 'status' : undefined}>
                 {summary || 'Star a company to keep it here, with new openings flagged.'}
@@ -104,8 +106,8 @@ export default function DreamCompanies({
             {canCheck && (
               <Box>
                 <Button
-                  size="sm"
-                  variant="secondary"
+                  variant="tertiary"
+                  className="rjb-flush-start"
                   disabled={running}
                   onClick={() => void check()}
                 >
@@ -114,10 +116,10 @@ export default function DreamCompanies({
               </Box>
             )}
           </Stack>
-        </PanelBody>
+        </Box>
       )}
       {n > 0 && (
-        <ul aria-label="Dream companies" style={LIST}>
+        <PanelRows label="Dream companies">
           {dreams.map((d) => (
             <DreamRow
               key={d.key}
@@ -127,7 +129,7 @@ export default function DreamCompanies({
               read={d.board ? roles[boardKey(d.board)] : undefined}
             />
           ))}
-        </ul>
+        </PanelRows>
       )}
     </Panel>
   );
@@ -160,11 +162,30 @@ function DreamRow({
   const careers = atsSearchUrl(`"${d.company}"`, { role: 'careers', where: '', mode: 'any' });
   return (
     <PanelRow>
-      {/* Compact density's "xs" is 2px: 12 to the roles, 8 between actions. */}
+      {/* 12 from the card's text to its roles (Stack's "xs" is the 2px subgrid at any density). */}
       <Stack gap="px12">
-        <Stack direction="row" gap="px8" align="center" justify="space-between" wrap="wrap">
+        <ItemCard
+          avatar={d.company}
+          actions={
+            <>
+              {!d.board && (
+                <Button size="md" variant="tertiary" asChild>
+                  <a
+                    href={careers}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Search careers for ${d.company}`}
+                  >
+                    Search careers
+                  </a>
+                </Button>
+              )}
+              <DreamStar categoryId={categoryId} company={d.company} />
+            </>
+          }
+        >
           <Stack gap="px4">
-            <Text variant="ui" as="span">
+            <Text variant="body" as="span" className="rjb-semibold rjb-card-title">
               {d.website ? (
                 <InlineLink href={d.website} externalIcon={false}>
                   {d.company}
@@ -180,22 +201,7 @@ function DreamRow({
                 : statusLine(d, checked, read)}
             </Text>
           </Stack>
-          <Stack direction="row" gap="px8" align="center">
-            {!d.board && (
-              <Button size="sm" variant="tertiary" asChild>
-                <a
-                  href={careers}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Search careers for ${d.company}`}
-                >
-                  Search careers
-                </a>
-              </Button>
-            )}
-            <DreamStar categoryId={categoryId} company={d.company} />
-          </Stack>
-        </Stack>
+        </ItemCard>
         {checked && checked !== 'unknown' && checked.roles.length > 0 && (
           <RoleList company={d.company} roles={checked.roles} newIds={checked.fresh} />
         )}

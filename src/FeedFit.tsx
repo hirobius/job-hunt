@@ -15,6 +15,7 @@ import {
 import { EVIDENCE_MAX } from './radar/evidenceStore';
 import type { FitGap } from './radar/fitGap';
 import type { Patterns } from './radar/patterns';
+import { useCardPadding } from './cardPadding';
 
 export function EvidenceEditor({
   text,
@@ -104,6 +105,7 @@ export function FitGapBody({ fg }: { fg: FitGap }) {
 export function PatternsSummary({ patterns }: { patterns: Patterns }) {
   const id = useId();
   const [open, setOpen] = useState(false);
+  const padding = useCardPadding();
   const list = (name: string, items: { label: string; count: number }[]) => (
     <Box sx={{ minWidth: 0 }}>
       <Stack gap="xs">
@@ -128,14 +130,15 @@ export function PatternsSummary({ patterns }: { patterns: Patterns }) {
       </Stack>
     </Box>
   );
-  // The same bordered row as Calibrate and Refine (rev-3 J): a bold name over a one-line preview.
+  // The same filled card as Calibrate and Refine (rev-3 J; roomy): a bold name over a one-line
+  // preview, no outline.
   return (
-    <Card bordered padding="none" className="rjb-disclosure-vertical">
-      <Box sx={{ px: 'sm', pb: open ? 'sm' : 0 }}>
+    <Card padding={padding} className="border-0 rjb-disclosure-vertical">
+      <Box>
         <Disclosure
           variant="row"
           label={
-            <Text variant="body" as="span" weight="bold">
+            <Text variant="body" as="span" className="rjb-semibold">
               What these postings ask for
             </Text>
           }

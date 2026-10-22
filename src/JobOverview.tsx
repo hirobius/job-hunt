@@ -50,7 +50,6 @@ function JobField({
   return (
     <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
       <Input
-        size="sm"
         label={label}
         value={(job[field] as string) || ''}
         onFocus={(e) => {
@@ -82,7 +81,6 @@ function LinkField({ job }: { job: Job }) {
   return (
     <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
       <Input
-        size="sm"
         type="url"
         label="Link"
         value={draft}
@@ -135,7 +133,7 @@ function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
           >
             Saved ✓
           </Text>
-          <Button size="md" variant="secondary" onClick={onDone}>
+          <Button size="md" variant="tertiary" onClick={onDone}>
             Done
           </Button>
         </Stack>
@@ -184,7 +182,7 @@ function DetailsPanel({ job }: { job: Job }) {
         !editing && (
           <Button
             size="md"
-            variant="secondary"
+            variant="tertiary"
             iconLeft={<Icon icon={Pencil} />}
             aria-label="Edit details"
             onClick={() => setEditing(true)}
@@ -253,7 +251,8 @@ function DocumentsPanel({ job }: { job: Job }) {
 
 export default function JobOverview({ job }: { job: Job }) {
   return (
-    <Stack gap="px24">
+    // Roomy: the sections 40 apart.
+    <Stack gap="inset">
       <DetailsPanel job={job} />
       <TodosPanel job={job} />
       <NotesPanel job={job} />

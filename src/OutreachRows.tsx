@@ -1,9 +1,9 @@
 // Rows of the Teams tool: one outreach target (a team found on GitHub with its repo, stars and
 // open roles, or a starter pack's company with its board), the watch action, and the saved-targets
-// rows (Panel rows: CompaniesPanel puts them in an "Outreach targets" panel once one is saved).
+// rows (tray rows: CompaniesPanel puts them on one "Outreach targets" card once one is saved).
 import type { ReactNode } from 'react';
 import { Badge, Button, InlineLink, Stack, Text } from '@hirobius/design-system';
-import { PanelRow } from './PipelinePanel';
+import { PanelRow, PanelRows } from './PipelinePanel';
 import { atsSearchUrl } from './jobsData';
 import type { Board } from './feed/sources/ats';
 import { removeTarget, useTargets, type Target } from './feed/targets';
@@ -50,12 +50,13 @@ export function TargetRow({
   const careers = atsSearchUrl(`"${r.company}"`, { role: 'careers', where: '', mode: 'any' });
   return (
     <PanelRow>
-      {/* Compact density's "xs" is 2px: rows use the px steps (8 between actions, 12 to roles). */}
+      {/* Stack's "xs" is the 2px subgrid at any density: rows use the px steps (8 between
+          actions, 12 to roles). */}
       <Stack gap="px12">
         <Stack direction="row" gap="px8" align="center" justify="space-between" wrap="wrap">
           <Stack gap="px4">
             <Stack direction="row" gap="px8" align="center" wrap="wrap">
-              <Text variant="ui" as="span">
+              <Text variant="ui" as="span" className="rjb-semibold">
                 {r.website ? (
                   <InlineLink href={r.website} externalIcon={false}>
                     {r.company}
@@ -82,7 +83,7 @@ export function TargetRow({
           </Stack>
           <Stack direction="row" gap="px8" align="center" wrap="wrap">
             {!r.board && (
-              <Button size="sm" variant="tertiary" asChild>
+              <Button size="md" variant="tertiary" asChild>
                 <a
                   href={careers}
                   target="_blank"
@@ -95,8 +96,8 @@ export function TargetRow({
             )}
             {r.board && showWatch && (
               <Button
-                size="sm"
-                variant="secondary"
+                size="md"
+                variant="tertiary"
                 disabled={watching}
                 aria-label={`${watching ? 'Watching' : 'Watch board for'} ${r.company}`}
                 onClick={() => onWatch(r.board!)}
@@ -106,8 +107,8 @@ export function TargetRow({
             )}
             {onSave && (
               <Button
-                size="sm"
-                variant="secondary"
+                size="md"
+                variant="tertiary"
                 disabled={saved}
                 aria-label={`${saved ? 'Saved' : 'Save as target:'} ${r.company}`}
                 onClick={onSave}
@@ -117,8 +118,9 @@ export function TargetRow({
             )}
             {onRemove && (
               <Button
-                size="sm"
+                size="md"
                 variant="tertiary"
+                className="rjb-quiet"
                 aria-label={`Remove ${r.company}`}
                 onClick={onRemove}
               >
@@ -134,10 +136,8 @@ export function TargetRow({
   );
 }
 
-const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
-
-/** The saved targets of a track, as a panel's hairline rows (the caller shows them only when there
- *  is at least one). */
+/** The saved targets of a track, as tray rows on a card (the caller shows them only when there is
+ *  at least one). */
 export function SavedTargets({
   categoryId,
   boardUrls,
@@ -148,7 +148,7 @@ export function SavedTargets({
   const targets = useTargets(categoryId);
   const { isWatching, watch } = useWatching(categoryId, boardUrls);
   return (
-    <ul aria-label="Saved targets" style={LIST}>
+    <PanelRows label="Saved targets">
       {targets.map((t) => (
         <TargetRow
           key={t.login}
@@ -159,6 +159,6 @@ export function SavedTargets({
           onWatch={watch}
         />
       ))}
-    </ul>
+    </PanelRows>
   );
 }

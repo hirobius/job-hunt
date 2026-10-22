@@ -1,9 +1,10 @@
 // Calm list 7/7 (#241): the header and spacing pass. Tested at the route seam through App.
 // - The app name never competes with a page title: a body-size wordmark at every width (rev-3
 //   mock), the one h1, named by BRAND.
-// - The Pipeline is panels (rev-3 mock): To apply, Follow up and Jobs are HDS Cards with a count
-//   Badge; no tinted banner boxes. The Documents list stays flat rows.
-// - Rev-3 rhythm: the Pipeline's panels stack 24 apart.
+// - Roomy layout (2026-10-22): every Pipeline section is a label with a count Badge on the canvas
+//   over filled, borderless HDS Cards: To apply is one block card; Follow up and Jobs are item
+//   cards. No tinted banner boxes, no outlines. Each document in the library is a card too.
+// - Roomy rhythm: sections stack 40 apart (HDS `inset`, a scale step that follows density).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
@@ -46,6 +47,12 @@ function viewport(width: number) {
 
 /** HDS Card marks its root with data-padding + data-variant; Callout is a tinted bg-muted box. */
 const cardsIn = (el: Element) => el.querySelectorAll('[data-padding][data-variant]');
+const isCard = (el: Element) => el.matches('[data-padding][data-variant]');
+/** A card HDS draws with an outline: `bordered`, a feedback tone or the accent variant. */
+const outlined = (el: Element) =>
+  el.getAttribute('data-bordered') === 'true' ||
+  (el.getAttribute('data-tone') ?? 'neutral') !== 'neutral' ||
+  el.getAttribute('data-variant') === 'accent';
 const tintedBoxesIn = (el: Element) => el.querySelectorAll('.bg-muted[data-tone]');
 
 beforeEach(() => {
@@ -81,32 +88,42 @@ describe('app bar (rev-3)', () => {
 });
 
 describe('Pipeline panels (rev-3)', () => {
-  it('To apply, Follow up and Jobs are HDS Cards with a count Badge; no tinted banners', async () => {
+  it('To apply is a block card; Follow up and Jobs are item cards; none outlined (roomy)', async () => {
     loadSample();
     window.location.hash = '#/queue';
     renderApp();
     const toApply = await screen.findByRole('region', { name: /^To apply/ });
     const panel = toApply.closest('[role="tabpanel"]')!;
-    for (const name of [/^To apply/, /^Follow up/, /^Jobs$/]) {
-      const region = screen.getByRole('region', { name });
-      expect(region).toHaveAttribute('data-padding');
-    }
+    // The section itself is not a card: its label sits on the canvas, its content on one card.
+    expect(isCard(toApply)).toBe(false);
+    expect(cardsIn(toApply)).toHaveLength(1);
     expect(within(toApply).getByText('3')).toBeInTheDocument();
-    expect(screen.getAllByRole('article').length).toBeGreaterThan(0);
+    // Follow up: each item is its own card.
+    const followUps = within(screen.getByRole('region', { name: /^Follow up/ })).getAllByRole(
+      'listitem',
+    );
+    expect(followUps.length).toBeGreaterThan(0);
+    for (const li of followUps) expect(isCard(li)).toBe(true);
+    // Jobs: each job is an article card.
+    const articles = within(screen.getByRole('region', { name: /^Jobs$/ })).getAllByRole('article');
+    expect(articles.length).toBeGreaterThan(0);
+    for (const a of articles) expect(isCard(a)).toBe(true);
+    // No card on the page is outlined.
+    expect([...cardsIn(panel)].filter(outlined)).toEqual([]);
     expect(tintedBoxesIn(panel)).toHaveLength(0);
     // No sync banner: the Account avatar's dot says it.
     expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
   });
 
-  it('the Pipeline panels stack 24 apart', async () => {
+  it('the Pipeline sections stack 40 apart (inset)', async () => {
     loadSample();
     window.location.hash = '#/queue';
     renderApp();
     const toApply = await screen.findByRole('region', { name: /^To apply/ });
-    expect(toApply.parentElement).toHaveAttribute('data-hds-metrics', 'gap:px24');
+    expect(toApply.parentElement).toHaveAttribute('data-hds-metrics', 'gap:inset');
   });
 
-  it('the Documents library is flat rows, not a card per document (#227)', async () => {
+  it('each document in the library is a filled card, with no hairline (roomy; was flat rows, #227)', async () => {
     viewport(1440);
     window.location.hash = '#/copy-deck';
     renderApp();
@@ -114,6 +131,8 @@ describe('Pipeline panels (rev-3)', () => {
     await waitFor(() =>
       expect(within(outreach).getAllByRole('listitem').length).toBeGreaterThan(0),
     );
-    expect(cardsIn(outreach)).toHaveLength(0);
+    const items = within(outreach).getAllByRole('listitem');
+    for (const li of items) expect(isCard(li)).toBe(true);
+    expect([...cardsIn(outreach)].filter(outlined)).toEqual([]);
   });
 });

@@ -86,7 +86,7 @@ export function SweepTitlesEditor({
                   />
                 </Box>
                 <Button
-                  size="sm"
+                  size="md"
                   variant="tertiary"
                   iconOnly
                   iconLeft={<Icon icon={X} />}
@@ -101,14 +101,13 @@ export function SweepTitlesEditor({
       <Box as="form" onSubmit={onAdd} sx={{ display: 'flex', gap: 'xs', alignItems: 'flex-end' }}>
         <Box sx={{ flex: 1, maxWidth: 360, '& > *': { width: '100%' } }}>
           <HdsInput
-            size="sm"
             label="Add a title"
             placeholder="Design technologist"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
           />
         </Box>
-        <Button type="submit" size="sm" variant="secondary" disabled={!draft.trim()}>
+        <Button type="submit" size="md" variant="tertiary" disabled={!draft.trim()}>
           Add
         </Button>
       </Box>

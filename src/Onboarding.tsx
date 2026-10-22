@@ -177,7 +177,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
                 )}
                 <Stack direction="row" gap="tight" align="center">
                   {step > 1 && (
-                    <Button type="button" variant="secondary" onClick={skip}>
+                    <Button type="button" variant="tertiary" onClick={skip}>
                       {lastStep ? "I'll do it later" : 'Skip'}
                     </Button>
                   )}
@@ -224,7 +224,7 @@ function PickTrack({
     <Box as="fieldset" aria-label="Starter tracks" sx={{ border: 0, m: 0, p: 0, minWidth: 0 }}>
       <PanelRows>
         {STARTER_PACKS.map((p, i) => (
-          <PanelRow key={p.id} dense>
+          <PanelRow key={p.id}>
             {/* No gap: the Checkbox row is already 44px tall on a phone. */}
             <Stack>
               <Stack direction="row" gap="tight" align="center" wrap="wrap">

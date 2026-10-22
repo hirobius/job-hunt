@@ -5,7 +5,7 @@
 // job; closing changes nothing. The host is mounted once in App, so a row that leaves its list
 // once the follow-up is sent doesn't take the dialog with it.
 import { useState } from 'react';
-import { Copy, ExternalLink, Pencil } from 'lucide-react';
+import { Copy, ExternalLink, Pencil, Send } from 'lucide-react';
 import {
   Alert,
   Box,
@@ -45,16 +45,18 @@ const LINK_AS_BUTTON = { minHeight: 'var(--primitive-space-10)' } as const;
 export function FollowUpButton({
   job,
   size,
-  variant = 'secondary',
+  variant = 'tertiary',
 }: {
   job: Job;
   size?: Size;
-  variant?: 'primary' | 'secondary';
+  /** Quiet (tertiary) on a card (roomy); the job page's header makes it its one primary. */
+  variant?: 'primary' | 'tertiary';
 }) {
   return (
     <Button
       size={size}
       variant={variant}
+      iconLeft={<Icon icon={Send} size={16} />}
       aria-label={`Follow up: ${titleOf(job)}`}
       onClick={() => openFollowUp(job.url)}
     >
@@ -145,7 +147,7 @@ function FollowUpContent({ job }: { job: Job }) {
               // The message as the template editor shows it: each blank a chip that fills in place
               // and saves where it belongs (on the job, or on the message), then "N blanks left"
               // with Edit message beside it as the card's last row (as in Use template).
-              <Card bordered padding="px16" role="region" aria-label="Preview">
+              <Card padding="item" className="border-0" role="region" aria-label="Preview">
                 <BlankText
                   text={message}
                   job={job}

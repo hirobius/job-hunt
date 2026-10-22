@@ -52,17 +52,17 @@ function JobSections({
         </TabsTrigger>
       </TabsList>
       <TabsContent value="overview" variant="bare">
-        <Box sx={{ pt: 'sm' }}>
+        <Box sx={{ pt: 'md' }}>
           <JobOverview job={job} />
         </Box>
       </TabsContent>
       <TabsContent value="screening" variant="bare">
-        <Box sx={{ pt: 'sm' }}>
+        <Box sx={{ pt: 'md' }}>
           <JobScreening job={job} />
         </Box>
       </TabsContent>
       <TabsContent value="interviews" variant="bare">
-        <Box sx={{ pt: 'sm' }}>
+        <Box sx={{ pt: 'md' }}>
           <JobInterviews job={job} />
         </Box>
       </TabsContent>
@@ -84,7 +84,7 @@ function JobDetail({ job, showBack }: { job: Job; showBack: boolean }) {
 
 function JobPageSkeleton() {
   return (
-    <Box aria-busy="true" sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
+    <Box aria-busy="true">
       <Text variant="ui" as="p" role="status" tone="secondary">
         Looking for this job. It may still be syncing to this device.
       </Text>
@@ -124,10 +124,11 @@ export default function JobPage({ jobId }: { jobId: string }) {
   const detail = <JobDetail key={job.url} job={job} showBack={!wide} />;
   if (wide)
     return (
-      <Sidebar side="start" sideWidth="22rem" contentMin="50%" gap="normal">
+      <Sidebar side="start" sideWidth="22rem" contentMin="50%" gap="inset">
         <JobRail openId={jobId} />
         {detail}
       </Sidebar>
     );
-  return <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>{detail}</Box>;
+  // The shell's column is the 760 measure here.
+  return detail;
 }

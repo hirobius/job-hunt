@@ -1,7 +1,7 @@
 // Companies' inline roles (a team's matching openings, saved in one tap) and the dream
 // star, shared by the team rows and the dream companies section.
 import { Badge, Box, Button, Icon, InlineLink, Stack, Text } from '@hirobius/design-system';
-import { Star } from 'lucide-react';
+import { Bookmark, Star } from 'lucide-react';
 import { useState } from 'react';
 import { starClass } from './feedback';
 import { addJobDetailed, dedupKey, useJobs } from './store';
@@ -58,8 +58,9 @@ export function RoleList({
                 </Stack>
               </Box>
               <Button
-                size="sm"
-                variant="secondary"
+                size="md"
+                variant="tertiary"
+                iconLeft={<Icon icon={Bookmark} size={16} />}
                 disabled={saved}
                 aria-label={`${saved ? 'Saved' : 'Save'} ${r.title}`}
                 onClick={() => save(r)}
@@ -95,7 +96,7 @@ export function DreamStar({
   const [touched, setTouched] = useState(false);
   return (
     <Button
-      size="sm"
+      size="md"
       variant="tertiary"
       iconOnly
       iconLeft={<Icon icon={Star} className={starClass(on, touched)} />}

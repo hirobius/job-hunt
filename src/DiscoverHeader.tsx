@@ -1,15 +1,7 @@
 // Discover's header: the track's name (which is the track switcher), Manage / New track, and the one place
 // where location and work mode are set (a popover, because HDS has no sheet yet). Spec:
 // docs/specs/discover.md, "Track header".
-import {
-  Box,
-  Button,
-  Icon,
-  Menu as HdsMenu,
-  Popover,
-  Stack,
-  Text,
-} from '@hirobius/design-system';
+import { Button, Icon, Menu as HdsMenu, Popover, Stack, Text } from '@hirobius/design-system';
 import { PageHeader } from '@hirobius/design-system/patterns';
 import { ChevronDown, Plus } from 'lucide-react';
 import { STARTER_PACKS } from './curation/starterPacks';
@@ -37,90 +29,87 @@ export default function DiscoverHeader({
   // so an existing user can add e.g. the ServiceNow track any time, not only at first run.
   const packs = STARTER_PACKS.filter((p) => p.id !== 'blank');
   return (
-    <Box sx={{ mb: 'sm' }}>
-      {/* tight: room for the Change link's 40px hit area, which overhangs its line. */}
-      <Stack gap="tight">
-        {/* rev-3 G: the track's name (with two tracks or more, the switcher), then where and how
-            you search as one caption line with a quiet Change (the popover holds the only
-            LocationControl), then Manage track and the New track icon button. */}
-        <PageHeader
-          level={2}
-          title={
-            categories.length > 1 ? (
-              // Two tracks or more: the title is the switcher (rev-3 G), so the page keeps two
-              // nav levels (top tabs, then the tool switch) and never names the track twice.
-              <HdsMenu>
-                <HdsMenu.Trigger asChild>
-                  <Button
-                    variant="tertiary"
-                    className="rjb-title-trigger"
-                    aria-label={`Switch track: ${cat.label}`}
-                  >
-                    {cat.label}
-                    <Icon icon={ChevronDown} />
-                  </Button>
-                </HdsMenu.Trigger>
-                <HdsMenu.Content align="start">
-                  <HdsMenu.Label>Switch track</HdsMenu.Label>
-                  <HdsMenu.RadioGroup value={cat.id} onValueChange={onChange}>
-                    {categories.map((c) => (
-                      <HdsMenu.RadioItem key={c.id} value={c.id}>
-                        {c.label}
-                      </HdsMenu.RadioItem>
-                    ))}
-                  </HdsMenu.RadioGroup>
-                </HdsMenu.Content>
-              </HdsMenu>
-            ) : (
-              cat.label
-            )
-          }
-          description={
-            // PageHeader wraps the description in a <p>, so this row is inline content only (a
-            // span, not a Stack div): "where · Change".
-            <Text variant="caption" as="span" tone="secondary">
-              {`${contextLabel(where, mode)} · `}
-              <Popover>
-                <Popover.Trigger asChild>
-                  {/* An inline underlined link in the sentence (rev-3 mock), not a padded button:
-                      `.rjb-inline-link` in base.css. Its 40px hit area overhangs the line. */}
-                  <Button
-                    size="sm"
-                    variant="tertiary"
-                    className="rjb-inline-link"
-                    aria-label={`Change where: ${contextLabel(where, mode)}`}
-                  >
-                    Change
-                  </Button>
-                </Popover.Trigger>
-                <Popover.Content
-                  align="start"
-                  aria-label="Where and how you want to work"
-                  className="rjb-popover-md"
-                >
-                  <LocationControl categoryId={cat.id} />
-                </Popover.Content>
-              </Popover>
-            </Text>
-          }
-        />
-        {/* px8 between Manage track and New track (Stack's xs is the 2px subgrid). */}
-        <Stack direction="row" wrap="wrap" gap="px8" align="center">
-          <Button size="md" variant="secondary" onClick={onManage}>
+    // rev-3 G: the track's name (with two tracks or more, the switcher), then where and how you
+    // search as one caption line with a quiet Change (the popover holds the only LocationControl).
+    // Manage track and New track are the header's quiet actions (roomy: no outlined buttons, and
+    // no separate button row).
+    <PageHeader
+      level={2}
+      title={
+        categories.length > 1 ? (
+          // Two tracks or more: the title is the switcher (rev-3 G), so the page keeps two nav
+          // levels (top tabs, then the tool switch) and never names the track twice.
+          <HdsMenu>
+            <HdsMenu.Trigger asChild>
+              <Button
+                variant="tertiary"
+                className="rjb-title-trigger"
+                aria-label={`Switch track: ${cat.label}`}
+              >
+                {cat.label}
+                <Icon icon={ChevronDown} />
+              </Button>
+            </HdsMenu.Trigger>
+            <HdsMenu.Content align="start">
+              <HdsMenu.Label>Switch track</HdsMenu.Label>
+              <HdsMenu.RadioGroup value={cat.id} onValueChange={onChange}>
+                {categories.map((c) => (
+                  <HdsMenu.RadioItem key={c.id} value={c.id}>
+                    {c.label}
+                  </HdsMenu.RadioItem>
+                ))}
+              </HdsMenu.RadioGroup>
+            </HdsMenu.Content>
+          </HdsMenu>
+        ) : (
+          cat.label
+        )
+      }
+      description={
+        // PageHeader wraps the description in a <p>, so this row is inline content only (a span,
+        // not a Stack div): "where · Change".
+        <Text variant="caption" as="span" tone="secondary">
+          {`${contextLabel(where, mode)} · `}
+          <Popover>
+            <Popover.Trigger asChild>
+              {/* An inline underlined link in the sentence (rev-3 mock), not a padded button:
+                  `.rjb-inline-link` in base.css. Its 40px hit area overhangs the line. */}
+              <Button
+                size="sm"
+                variant="tertiary"
+                className="rjb-inline-link"
+                aria-label={`Change where: ${contextLabel(where, mode)}`}
+              >
+                Change
+              </Button>
+            </Popover.Trigger>
+            <Popover.Content
+              align="start"
+              aria-label="Where and how you want to work"
+              className="rjb-popover-md"
+            >
+              <LocationControl categoryId={cat.id} />
+            </Popover.Content>
+          </Popover>
+        </Text>
+      }
+      actions={
+        <Stack direction="row" gap="px8" align="center">
+          <Button size="md" variant="tertiary" onClick={onManage}>
             Manage track
           </Button>
           <HdsMenu>
             <HdsMenu.Trigger asChild>
               <Button
                 size="md"
-                variant="secondary"
+                variant="tertiary"
                 iconOnly
                 iconLeft={<Icon icon={Plus} />}
                 label="New track"
                 className="rjb-icon-40"
               />
             </HdsMenu.Trigger>
-            <HdsMenu.Content align="start">
+            <HdsMenu.Content align="end">
               <HdsMenu.Label>Start from a pack</HdsMenu.Label>
               {packs.map((p) => (
                 <HdsMenu.Item key={p.id} onSelect={() => onSeedPack(p.id)}>
@@ -132,7 +121,7 @@ export default function DiscoverHeader({
             </HdsMenu.Content>
           </HdsMenu>
         </Stack>
-      </Stack>
-    </Box>
+      }
+    />
   );
 }

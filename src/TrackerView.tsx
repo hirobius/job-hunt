@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useRef, useState } from 'react';
-import { Search, Briefcase, ChevronDown, Plus } from 'lucide-react';
+import { ArrowRight, Search, Briefcase, ChevronDown, Plus } from 'lucide-react';
 import {
   Button as UiButton,
   Input as HdsInput,
@@ -8,7 +8,6 @@ import {
   Box,
   Stack,
   Text,
-  useAtLeast,
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { MetaCaption } from './MetaCaption';
@@ -25,32 +24,15 @@ import {
   type Filter,
 } from './pipelineView';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
-import JobsTable from './JobsTable';
-import ApplyQueueSummary from './ApplyQueueSummary';
+import ToApply from './ApplyQueueSummary';
+import { FollowUpSection, NextDaysSection } from './PipelineAgenda';
 import GettingStarted from './GettingStarted';
-import JobListCard from './JobListCard';
-import { Panel, PanelBody } from './PipelinePanel';
+import JobCard from './JobCard';
+import { Panel, PanelRow, PanelRows } from './PipelinePanel';
 import { PipelineLiveness } from './LivenessViews';
 import { RecentlyRemovedLink } from './RecentlyRemoved';
 import { useTrash } from './trash';
 import { navigate } from './route';
-
-// The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
-// chevron right. HDS Button has no stretch or alignment prop.
-// They show only the value ("Active ⌄"): the "Status" / "Sort" prefix lives in the name. Clear
-// sits in the panel header, so the two always split the row; a long value still truncates.
-const SELECT_LIKE = {
-  flex: '1 1 0',
-  minWidth: 0,
-  overflow: 'hidden',
-  justifyContent: 'space-between',
-} as const;
-const SELECT_VALUE = {
-  minWidth: 0,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-} as const;
 
 export default function TrackerView() {
   const jobs = useJobs();
@@ -59,19 +41,18 @@ export default function TrackerView() {
   const setFilter = (filter: Filter) => setPipelineView({ filter });
   const setSort = (sort: SortKey) => setPipelineView({ sort });
   const setQ = (q: string) => setPipelineView({ q });
-  // Something is non-default: Clear shows, and the selects drop their Status / Sort key (rev-3).
+  // Something is non-default: Clear shows.
   const cleared = filter !== 'active' || q.trim() !== '';
   const [url, setUrl] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   // The dialog opens from the header or the empty state, outside its Root, so it has no Trigger:
   // remember which button opened it and give focus back there on close (a11y pass).
   const addOpener = useRef<HTMLElement | null>(null);
-  // A sortable table where there's room for its six columns; compact cards below that (#129).
-  const wide = useAtLeast('lg');
+  const now = new Date();
 
   const shown = useMemo(() => visibleJobs(jobs, view), [jobs, view]);
   const sortDef = SORTS.find((s) => s.key === sort);
-  // The trigger shows the short form; its name says the same words (WCAG label in name).
+  // The trigger shows the short form ("Sort: Newest").
   const sortLabel = sortDef?.short ?? sortDef?.label ?? '';
   const counts = useMemo(() => filterCounts(jobs), [jobs]);
   // Recently removed's link is the only thing under the list besides the first-run empty; no
@@ -85,10 +66,11 @@ export default function TrackerView() {
     setAddOpen(false);
   };
 
-  // Start applying is the page's one primary once there are jobs; Add job steps down.
+  // Start applying is the page's one primary once there are jobs; Add job steps down to a quiet
+  // tertiary with its icon (roomy).
   const addJobButton = (
     <UiButton
-      variant={jobs.length > 0 ? 'secondary' : 'primary'}
+      variant={jobs.length > 0 ? 'tertiary' : 'primary'}
       iconLeft={<Plus size={16} />}
       onClick={(e) => {
         addOpener.current = e.currentTarget;
@@ -100,13 +82,14 @@ export default function TrackerView() {
   );
 
   return (
-    // Rev-3 rhythm: 4 from the title to its counts, 12 to the sample note, 24 to the panels.
-    <Stack gap="px24">
-      <Stack gap="tight">
-        {/* One page header: the screen's name, its counts 4 under it (rev-3 mock) and its one
-            primary action, centred against both lines. Not HDS PageHeader: its description slot
-            drops below the actions row with a 12 gap on a phone, and its title slot is the h2
-            itself, so it can't hold the counts. */}
+    // Roomy rhythm: 4 from the title to its counts, 12 to the sample note, then 40 to the first
+    // section and between sections.
+    <Stack gap="inset">
+      <Stack gap="medium">
+        {/* One page header: the screen's name, its counts 4 under it (rev-3 mock) and its add
+            action, centred against both lines. Not HDS PageHeader: its description slot drops
+            below the actions row with a 12 gap on a phone, and its title slot is the h2 itself, so
+            it can't hold the counts. */}
         <Box as="header">
           <Stack direction="row" gap="px8" align="center" justify="space-between">
             <Stack gap="px4">
@@ -125,204 +108,189 @@ export default function TrackerView() {
         </Box>
         <SampleBanner jobs={jobs} />
       </Stack>
-      <Stack gap="px24">
-        {jobs.length > 0 && (
-          <>
-            {/* Shown after your first job until dismissed (#132; moved from Today in #236). */}
-            <GettingStarted jobs={jobs} />
-            <ApplyQueueSummary jobs={jobs} />
-          </>
-        )}
-        {/* The Jobs panel (rev-3 item 1): a full-width search, then Status and Sort as one row
-            of select-style menus, all 40px, and a quiet Clear only when something is
-            non-default. No panel until there is something to search or filter. */}
-        {jobs.length > 0 && (
-          <Panel
-            label="Jobs"
-            title="Jobs"
-            count={shown.length}
-            countLabel={`${shown.length} ${shown.length === 1 ? 'job' : 'jobs'} shown`}
-            // The filter and search back to their defaults, shown only when one isn't. It lives in
-            // the header (like the Documents panels' New), so Status and Sort always split the
-            // whole row and never truncate.
-            trailing={
-              cleared ? (
-                <UiButton
-                  variant="tertiary"
-                  size="sm"
-                  label="Clear filters"
-                  onClick={() => setPipelineView({ filter: 'active', q: '' })}
-                >
-                  Clear
-                </UiButton>
-              ) : undefined
-            }
-          >
-            <PanelBody>
-              {/* The full-width search (the panel's width at every size): no form-control cap, and
-                  Status and Sort split the row. */}
-              <Box className="rjb-form-full">
-                <Stack gap="tight">
-                  <HdsInput
-                    aria-label="Search saved jobs"
-                    placeholder="Search jobs"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    leadingVisual={<Search size={16} />}
-                  />
-                  <Stack direction="row" gap="tight" align="center">
-                    <HdsMenu>
-                      <HdsMenu.Trigger asChild>
-                        <UiButton
-                          variant="secondary"
-                          iconRight={<ChevronDown size={16} />}
-                          label={`Status: ${FILTER_LABEL[filter]}`}
-                          style={SELECT_LIKE}
-                        >
-                          <span style={SELECT_VALUE}>{FILTER_LABEL[filter]}</span>
-                        </UiButton>
-                      </HdsMenu.Trigger>
-                      <HdsMenu.Content align="start">
-                        <HdsMenu.RadioGroup
-                          value={filter}
-                          onValueChange={(v) => setFilter(v as Filter)}
-                        >
-                          {FILTER_GROUPS.map((g, gi) => (
-                            <Fragment key={gi}>
-                              {gi > 0 && <HdsMenu.Separator />}
-                              {g.label && <HdsMenu.Label>{g.label}</HdsMenu.Label>}
-                              {g.items.map((f) => (
-                                <HdsMenu.RadioItem key={f} value={f}>
-                                  <Box
-                                    as="span"
-                                    sx={{
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      gap: 'sm',
-                                      width: '100%',
-                                    }}
-                                  >
-                                    <span>{FILTER_LABEL[f]}</span>
-                                    <Text variant="ui" as="span" tone="secondary">
-                                      {counts[f]}
-                                    </Text>
-                                  </Box>
-                                </HdsMenu.RadioItem>
-                              ))}
-                            </Fragment>
-                          ))}
-                        </HdsMenu.RadioGroup>
-                      </HdsMenu.Content>
-                    </HdsMenu>
-                    <HdsMenu>
-                      <HdsMenu.Trigger asChild>
-                        <UiButton
-                          variant="secondary"
-                          iconRight={<ChevronDown size={16} />}
-                          label={`Sort: ${sortLabel}`}
-                          style={SELECT_LIKE}
-                        >
-                          <span style={SELECT_VALUE}>{sortLabel}</span>
-                        </UiButton>
-                      </HdsMenu.Trigger>
-                      <HdsMenu.Content align="end">
-                        <HdsMenu.RadioGroup
-                          value={sort}
-                          onValueChange={(v) => setSort(v as SortKey)}
-                        >
-                          {SORTS.map((s) => (
-                            <HdsMenu.RadioItem key={s.key} value={s.key}>
-                              {s.label}
+      {jobs.length > 0 && (
+        <>
+          <ToApply jobs={jobs} />
+          {/* Shown after your first job until dismissed (#132; moved from Today in #236). */}
+          <GettingStarted jobs={jobs} />
+          <FollowUpSection jobs={jobs} now={now} />
+          <NextDaysSection jobs={jobs} now={now} />
+        </>
+      )}
+      {/* The Jobs section (roomy): its toolbar on the canvas (a full-width search; Status and Sort
+          as quiet menus that say their value), then one card per job at every width. A quiet
+          Clear sits in the label row only when something is non-default. No section until there
+          is something to search or filter. */}
+      {jobs.length > 0 && (
+        <Panel
+          kind="list"
+          label="Jobs"
+          title="Jobs"
+          count={shown.length}
+          countLabel={`${shown.length} ${shown.length === 1 ? 'job' : 'jobs'} shown`}
+          trailing={
+            cleared ? (
+              <UiButton
+                variant="tertiary"
+                label="Clear filters"
+                onClick={() => setPipelineView({ filter: 'active', q: '' })}
+              >
+                Clear
+              </UiButton>
+            ) : undefined
+          }
+        >
+          {/* The full-width search: no form-control cap. */}
+          <Box className="rjb-form-full">
+            <Stack gap="medium">
+              <HdsInput
+                aria-label="Search saved jobs"
+                placeholder="Search jobs"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                leadingVisual={<Search size={16} />}
+              />
+              <Stack direction="row" wrap="wrap" gap="px8" align="center">
+                <HdsMenu>
+                  <HdsMenu.Trigger asChild>
+                    <UiButton variant="tertiary" iconRight={<ChevronDown size={16} />}>
+                      Status: {FILTER_LABEL[filter]}
+                    </UiButton>
+                  </HdsMenu.Trigger>
+                  <HdsMenu.Content align="start">
+                    <HdsMenu.RadioGroup
+                      value={filter}
+                      onValueChange={(v) => setFilter(v as Filter)}
+                    >
+                      {FILTER_GROUPS.map((g, gi) => (
+                        <Fragment key={gi}>
+                          {gi > 0 && <HdsMenu.Separator />}
+                          {g.label && <HdsMenu.Label>{g.label}</HdsMenu.Label>}
+                          {g.items.map((f) => (
+                            <HdsMenu.RadioItem key={f} value={f}>
+                              <Box
+                                as="span"
+                                sx={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  gap: 'sm',
+                                  width: '100%',
+                                }}
+                              >
+                                <span>{FILTER_LABEL[f]}</span>
+                                <Text variant="ui" as="span" tone="secondary">
+                                  {counts[f]}
+                                </Text>
+                              </Box>
                             </HdsMenu.RadioItem>
                           ))}
-                        </HdsMenu.RadioGroup>
-                      </HdsMenu.Content>
-                    </HdsMenu>
-                  </Stack>
-                  {/* Liveness sits with the list it checks: one caption-sized row under the
-                      toolbar, never above the page title. */}
-                  <PipelineLiveness jobs={jobs} />
+                        </Fragment>
+                      ))}
+                    </HdsMenu.RadioGroup>
+                  </HdsMenu.Content>
+                </HdsMenu>
+                <HdsMenu>
+                  <HdsMenu.Trigger asChild>
+                    <UiButton variant="tertiary" iconRight={<ChevronDown size={16} />}>
+                      Sort: {sortLabel}
+                    </UiButton>
+                  </HdsMenu.Trigger>
+                  <HdsMenu.Content align="start">
+                    <HdsMenu.RadioGroup value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+                      {SORTS.map((s) => (
+                        <HdsMenu.RadioItem key={s.key} value={s.key}>
+                          {s.label}
+                        </HdsMenu.RadioItem>
+                      ))}
+                    </HdsMenu.RadioGroup>
+                  </HdsMenu.Content>
+                </HdsMenu>
+              </Stack>
+              {/* Liveness sits with the list it checks: one caption-sized row under the toolbar,
+                  never above the page title. */}
+              <PipelineLiveness jobs={jobs} />
+            </Stack>
+          </Box>
+          {shown.length === 0 ? (
+            // On the canvas under the toolbar, with room above and below (rev-3 filtered-empty).
+            <Box sx={{ py: 'lg' }}>
+              {q.trim() ? (
+                <EmptyState
+                  centered
+                  icon={Search}
+                  title={`No jobs match "${q.trim()}"`}
+                  description="Try a shorter word, or clear the search."
+                  action={
+                    <UiButton variant="tertiary" onClick={() => setQ('')}>
+                      Clear search
+                    </UiButton>
+                  }
+                />
+              ) : filter === 'active' ? (
+                <EmptyState
+                  centered
+                  icon={Search}
+                  title="Nothing left to apply to"
+                  description="Check Applied, or add more jobs."
+                />
+              ) : (
+                <EmptyState
+                  centered
+                  icon={Search}
+                  title={`Nothing under “${FILTER_LABEL[filter]}”`}
+                  description="Try another status."
+                  action={
+                    <UiButton variant="tertiary" onClick={() => setFilter('active')}>
+                      Show active
+                    </UiButton>
+                  }
+                />
+              )}
+            </Box>
+          ) : (
+            <PanelRows label="Jobs shown">
+              {shown.map((j) => (
+                <PanelRow key={j.url} flush>
+                  <JobCard job={j} />
+                </PanelRow>
+              ))}
+            </PanelRows>
+          )}
+        </Panel>
+      )}
+      {(jobs.length === 0 || removedCount > 0) && (
+        <Stack gap="normal">
+          {jobs.length === 0 && (
+            // First use: the shared teaching empty (#132): what this will hold, one primary action,
+            // one way to see it working. One filled, centred card (icon tile, title, sentence, Add
+            // job + sample data); Find the next company stays below it.
+            <EmptyState
+              framed
+              icon={Briefcase}
+              title="Track your first job"
+              description="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
+              action={
+                <Stack direction="row" wrap="wrap" gap="px8" justify="center">
+                  {addJobButton}
+                  <TrySampleButton />
                 </Stack>
-              </Box>
-            </PanelBody>
-            {shown.length === 0 ? (
-              // Its own section under the toolbar, a hairline above (rev-3 filtered-empty).
-              <Box sx={{ borderTop: 'thin solid', borderColor: 'border.default', py: 'lg' }}>
-                <PanelBody>
-                  {q.trim() ? (
-                    <EmptyState
-                      centered
-                      icon={Search}
-                      title={`No jobs match "${q.trim()}"`}
-                      description="Try a shorter word, or clear the search."
-                      action={
-                        <UiButton variant="secondary" onClick={() => setQ('')}>
-                          Clear search
-                        </UiButton>
-                      }
-                    />
-                  ) : filter === 'active' ? (
-                    <EmptyState
-                      centered
-                      icon={Search}
-                      title="Nothing left to apply to"
-                      description="Check Applied, or add more jobs."
-                    />
-                  ) : (
-                    <EmptyState
-                      centered
-                      icon={Search}
-                      title={`Nothing under “${FILTER_LABEL[filter]}”`}
-                      description="Try another status."
-                      action={
-                        <UiButton variant="secondary" onClick={() => setFilter('active')}>
-                          Show active
-                        </UiButton>
-                      }
-                    />
-                  )}
-                </PanelBody>
-              </Box>
-            ) : wide ? (
-              <PanelBody>
-                <JobsTable jobs={shown} sort={sort} onSort={setSort} />
-              </PanelBody>
-            ) : (
-              shown.map((j) => <JobListCard key={j.url} job={j} />)
-            )}
-          </Panel>
-        )}
-        {(jobs.length === 0 || removedCount > 0) && (
-          <Stack gap="normal">
-            {jobs.length === 0 && (
-              // First use: the shared teaching empty (#132): what this will hold, one primary action,
-              // one way to see it working.
-              // rev-3 "Pipeline, empty": one bordered, centred panel (icon tile, title, sentence,
-              // Add job + sample data); Find the next company stays below it.
-              <EmptyState
-                framed
-                icon={Briefcase}
-                title="Track your first job"
-                description="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
-                action={
-                  <Stack direction="row" wrap="wrap" gap="tight" justify="center">
-                    {addJobButton}
-                    <TrySampleButton />
-                  </Stack>
-                }
-              />
-            )}
-            {/* Removed jobs wait here for 30 days; a quiet link, shown only when there are some. */}
-            <RecentlyRemovedLink />
-          </Stack>
-        )}
-        {/* The list always ends by pointing back to Companies (#238), empty or not. Secondary, so
-          Add job / Start applying stay the page's one primary. */}
-        <Stack direction="row">
-          <UiButton variant="secondary" onClick={() => navigate({ tab: 'discover', sub: null })}>
-            Find the next company
-          </UiButton>
+              }
+            />
+          )}
+          {/* Removed jobs wait here for 30 days; a quiet link, shown only when there are some. */}
+          <RecentlyRemovedLink />
         </Stack>
+      )}
+      {/* The list always ends by pointing back to Companies (#238), empty or not. Quiet, so Add
+          job / Start applying stay the page's one primary. */}
+      <Stack direction="row">
+        <UiButton
+          variant="tertiary"
+          iconRight={<ArrowRight size={16} />}
+          onClick={() => navigate({ tab: 'discover', sub: null })}
+        >
+          Find the next company
+        </UiButton>
       </Stack>
       {/* Portals out, so it takes no slot in the page's rhythm. */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>

@@ -80,8 +80,7 @@ function ChipEditor({
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
-              border: 'thin solid',
-              borderColor: 'border.default',
+              bgcolor: 'surface.raised',
               borderRadius: 'pill',
               pl: 'sm',
               maxWidth: '100%',
@@ -302,7 +301,7 @@ export default function ManageTrackDialog({
               onChange={(next) => updateCategory(cat.id, { atsRoles: next })}
             />
 
-            <Box sx={{ borderTop: 'thin solid', borderColor: 'border.default', pt: 'sm' }}>
+            <Box sx={{ pt: 'xs' }}>
               <Stack gap="normal">
                 <Text variant="body" className="rjb-semibold">
                   Sections & links
@@ -375,13 +374,11 @@ export default function ManageTrackDialog({
                 </Stack>
               </Stack>
             </Disclosure>
-            {/* Delete sits apart at the end of the body (a hairline above it), not beside Done,
-                so the two can't be confused on a phone. The confirm says what goes with it. */}
+            {/* Delete sits apart at the end of the body (space above it, no rule), not beside
+                Done, so the two can't be confused on a phone. The confirm says what goes with it. */}
             <Box
               sx={{
-                borderTop: 'thin solid',
-                borderColor: 'border.default',
-                pt: 'sm',
+                pt: 'md',
                 '& > *': { width: '100%' },
               }}
             >

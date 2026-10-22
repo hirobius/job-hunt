@@ -9,7 +9,7 @@
 // is the rev-3 mock's editor (slice 3): the document's title as the page head, Save, Version
 // history and the menu in one row. Delete sits in the menu and asks first.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, Ellipsis, Plus } from 'lucide-react';
+import { ArrowLeft, Copy, Ellipsis, Plus } from 'lucide-react';
 import {
   AlertDialog,
   Button,
@@ -46,6 +46,7 @@ import { insertToken, templateVariables, TOKEN_CHIPS } from './templateEditor';
 import type { TokenFieldHandle } from '@hirobius/design-system';
 import { JOB_FIELD } from './fillBlank';
 import { Panel, PanelBody } from './PipelinePanel';
+import { useCardPadding } from './cardPadding';
 import { copyFilled } from './templateCopy';
 import { metaLines } from './metaLines';
 import { BlanksLeft, WithChips } from './BlankText';
@@ -120,7 +121,7 @@ export default function DocumentEditor({
       </Button>
       {doc && (
         <Button
-          variant="secondary"
+          variant="tertiary"
           aria-expanded={history}
           aria-controls={`history-${doc.id}`}
           onClick={() => setHistory(!history)}
@@ -133,7 +134,7 @@ export default function DocumentEditor({
         <Menu modal={false}>
           <Menu.Trigger asChild>
             <Button
-              variant="secondary"
+              variant="tertiary"
               iconOnly
               iconLeft={<Icon icon={Ellipsis} />}
               label="More actions"
@@ -378,7 +379,10 @@ function OutreachText({
       </Stack>
       {actions}
       {history}
-      <Panel label={docId ? 'Variables' : 'Fill for a job'} title={docId ? 'Variables' : 'Fill for a job'}>
+      <Panel
+        label={docId ? 'Variables' : 'Fill for a job'}
+        title={docId ? 'Variables' : 'Fill for a job'}
+      >
         <PanelBody>
           <Stack gap="normal">
             {docId && names.length > 0 && (
@@ -395,8 +399,9 @@ function OutreachText({
               onChange={(v) => setFillFor(v === NO_JOB ? null : v)}
             />
             {docId && names.map(variableField)}
-            {/* rev-3 A: open blanks are chips and "N blanks left", never raw [Brackets]. A boxed
-                preview, named on screen, lined up with the fields above it. */}
+            {/* rev-3 A: open blanks are chips and "N blanks left", never raw [Brackets]. The
+                preview is a well on the card (roomy: a fill step, not an outline), named on
+                screen, lined up with the fields above it. */}
             <Stack gap="px4">
               <Text variant="caption" as="p" tone="secondary">
                 Preview
@@ -404,13 +409,7 @@ function OutreachText({
               <Box
                 role="region"
                 aria-label="Preview"
-                sx={{
-                  border: 'thin solid',
-                  borderColor: 'border.default',
-                  borderRadius: 'md',
-                  bgcolor: 'var(--semantic-color-surface-sunken)',
-                  p: 'sm',
-                }}
+                sx={{ bgcolor: 'surface.overlay', borderRadius: 'sm', p: 'fixed-sm' }}
               >
                 <Text variant="body" as="p" style={PRE}>
                   {filled ? <WithChips text={filled} /> : 'Nothing to preview yet.'}
@@ -419,7 +418,7 @@ function OutreachText({
             </Stack>
             <BlanksLeft text={filled} />
             <Box>
-              <Button variant="secondary" onClick={copy}>
+              <Button variant="tertiary" iconLeft={<Icon icon={Copy} />} onClick={copy}>
                 Copy filled text
               </Button>
             </Box>
@@ -436,15 +435,16 @@ function VersionHistory({ doc, onUse }: { doc: Document; onUse: (text: string) =
   const [shown, setShown] = useState<string | null>(null);
   const numbered = versions.map((v, i) => ({ v, n: i + 1 })).reverse();
   const pick = numbered.find((x) => x.v.id === shown);
+  const padding = useCardPadding();
   return (
-    <Surface padding="px16" id={`history-${doc.id}`} role="region" aria-label="Version history">
+    <Surface padding={padding} id={`history-${doc.id}`} role="region" aria-label="Version history">
       <Stack gap="tight">
         <Stack as="ul" gap="tight" style={LIST}>
           {numbered.map(({ v, n }) => (
             <li key={v.id}>
               <Button
                 variant="tertiary"
-                size="sm"
+                size="md"
                 aria-pressed={v.id === shown}
                 onClick={() => setShown(v.id === shown ? null : v.id)}
               >
@@ -454,19 +454,23 @@ function VersionHistory({ doc, onUse }: { doc: Document; onUse: (text: string) =
           ))}
         </Stack>
         {pick && (
-          <Surface padding="px16" role="region" aria-label={`Version ${pick.n}`}>
+          <Box
+            role="region"
+            aria-label={`Version ${pick.n}`}
+            sx={{ bgcolor: 'surface.overlay', borderRadius: 'sm', p: 'fixed-sm' }}
+          >
             <Stack gap="tight">
               <Text variant="body" as="p" style={PRE}>
                 {pick.v.text || 'Empty'}
               </Text>
               <Stack direction="row" gap="tight">
-                <Button variant="secondary" size="sm" onClick={() => onUse(pick.v.text)}>
+                <Button variant="tertiary" size="md" onClick={() => onUse(pick.v.text)}>
                   Use this text
                 </Button>
                 <DocumentDownload doc={doc} version={pick.v} />
               </Stack>
             </Stack>
-          </Surface>
+          </Box>
         )}
       </Stack>
     </Surface>

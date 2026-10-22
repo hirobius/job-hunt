@@ -24,7 +24,7 @@ export function DocumentDownload({
       <Menu.Trigger asChild>
         <Button
           size={size}
-          variant="secondary"
+          variant="tertiary"
           iconLeft={<Icon icon={Download} />}
           aria-label={`Download version ${n}`}
         >

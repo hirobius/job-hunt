@@ -5,7 +5,6 @@
   top: var(--primitive-space-4);
   max-height: calc(100vh - 2 * var(--primitive-space-4));
   overflow-y: auto;
-  padding-right: var(--primitive-space-1);
 }
 
 /* The open job: a selected fill plus a 2px edge marker that hover lacks, so the current row reads
