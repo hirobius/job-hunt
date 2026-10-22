@@ -82,8 +82,6 @@ describe('Inline style allowlist (#93)', () => {
     'ManageTrackDialog.tsx': 1,
     'UseTemplate.tsx': 1,
     'account/DataToolsProvider.tsx': 1,
-    // TrackerView: the Add job Dialog.Content (as above)
-    'TrackerView.tsx': 1,
     // "Saved" fade: opacity follows state at runtime
     'JobOverview.tsx': 1,
     // TileGrid: set-aside opacity (runtime); its clamps are base.css classes since slice 4

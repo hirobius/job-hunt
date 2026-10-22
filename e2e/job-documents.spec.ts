@@ -6,8 +6,9 @@ test('job page Documents: cover letter → 2 Versions → Sent → Download PDF'
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Add job' }).click();
-  await page.getByLabel('Job URL').fill('https://boards.greenhouse.io/acme/jobs/77');
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  const add = page.getByRole('dialog', { name: 'Add a job' });
+  await add.getByLabel('Job link').fill('https://boards.greenhouse.io/acme/jobs/77');
+  await add.getByRole('button', { name: 'Add job' }).click();
   await page.getByRole('link', { name: 'Acme · Greenhouse' }).click();
 
   // Documents sit on Overview, behind one row: "Add a document" while there are none.

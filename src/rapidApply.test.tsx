@@ -29,6 +29,9 @@ const findNotice = async () => {
   return region;
 };
 
+/** Apply mode's pager, looked up fresh (it can re-render as the walk moves on). */
+const pagerOf = () => within(screen.getByRole('navigation', { name: 'Jobs to apply' }));
+
 const renderApp = () =>
   render(
     <ColorModeProvider>
@@ -119,11 +122,41 @@ describe('To apply queue and Apply mode', () => {
     expect(within(pager).getByText('1 of 3')).toBeInTheDocument();
     await user.click(within(pager).getByRole('button', { name: 'Next page' }));
     expect(await screen.findByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
+    // QA: the job applied to on this walk keeps its place after you move on, so the count holds.
+    expect(pagerOf().getByText('2 of 3')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Not a fit' }));
     expect(findJobByUrl(C)?.archived).toBe(true);
     await waitFor(() => expect(window.location.hash).toBe(`#/apply/${jobIdOf(B)}`));
+    // The set-aside job leaves the walk; the applied one stays, so the pager never vanishes.
+    expect(pagerOf().getByText('2 of 2')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     expect(findJobByUrl(C)?.archived).toBe(false);
+    expect(pagerOf().getByText('3 of 3')).toBeInTheDocument();
+  });
+
+  it('with one job left the pager still shows, as 1 of 1 with both arrows off (QA)', async () => {
+    removeJob(B);
+    removeJob(C);
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const pager = await screen.findByRole('navigation', { name: 'Jobs to apply' });
+    expect(within(pager).getByText('1 of 1')).toBeInTheDocument();
+    expect(within(pager).getByRole('button', { name: 'Previous page' })).toBeDisabled();
+    expect(within(pager).getByRole('button', { name: 'Next page' })).toBeDisabled();
+  });
+
+  it('after Mark applied the meta line gives the applied date, not the saved one (QA, rev-3 B)', async () => {
+    const user = userEvent.setup();
+    updateJob(A, { history: [{ status: 'Saved', at: '2026-01-05' }] });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const header = (await screen.findByRole('heading', { name: 'Acme Designer' })).closest(
+      'header',
+    )!;
+    expect(header).toHaveTextContent(/Saved \d+ days ago/);
+    await user.click(screen.getByRole('button', { name: 'Mark applied' }));
+    expect(header).toHaveTextContent('Applied today');
+    expect(header).not.toHaveTextContent(/Saved \d+ days ago/);
   });
 
   it('the row menu reaches every status', async () => {
@@ -251,12 +284,16 @@ describe('rapid apply follow-ups (#219)', () => {
     expect(findJobByUrl(C)).toMatchObject({ archived: true, notes: 'kept' });
   });
 
-  it('saveWithNotice says nothing for a job that is already in the Pipeline', () => {
+  it('saveWithNotice says a job is already in the Pipeline, not that it saved it (QA)', async () => {
     renderApp();
     act(() => {
       expect(saveWithNotice(A)).toBe('exists');
     });
-    expect(screen.queryByText('Saved to Pipeline · To apply')).not.toBeInTheDocument();
+    const notice = await findNotice();
+    expect(within(notice).getByText('Already in your Pipeline')).toBeInTheDocument();
+    expect(within(notice).getByText('Acme Designer')).toBeInTheDocument();
+    expect(within(notice).getByRole('button', { name: 'Open' })).toBeInTheDocument();
+    expect(within(notice).queryByText('Saved to Pipeline · To apply')).toBeNull();
   });
 
   it('an unnamed question’s remove button still says what it removes', async () => {

@@ -5,6 +5,7 @@
 // recomputing the rules per render. `now` is injected (defaulted) so the whole
 // module is a deterministic test surface with no clock mocking.
 import { STATUSES, type Job, type Status, type StatusChange } from './types';
+import { shortDate } from './metaLines';
 
 /** Days after the last contact (apply, or last follow-up) before a follow-up falls due. */
 export const FOLLOWUP_DAYS = 7;
@@ -108,6 +109,14 @@ export function savedAgo(job: Job, now: Date = new Date()): string {
   const d = daysSince(job.history?.find((h) => h.status === 'Saved')?.at, now);
   if (d == null) return '';
   return d <= 0 ? 'Saved today' : `Saved ${d} ${d === 1 ? 'day' : 'days'} ago`;
+}
+
+/** "Applied today", else "Applied Oct 21", from the job's applied date; empty without one. The
+ *  meta line's date once a job has moved past Saved (Apply mode, rev-3 B). */
+export function appliedLabel(job: Job, now: Date = new Date()): string {
+  const d = daysSince(job.applied, now);
+  if (d == null || !job.applied) return '';
+  return d <= 0 ? 'Applied today' : `Applied ${shortDate(job.applied)}`;
 }
 
 /**

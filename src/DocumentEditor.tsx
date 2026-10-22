@@ -7,7 +7,9 @@
 // other value on the message, `Document.values`, not a Version), and the preview filled through
 // templateFill.fillSnippet (job fields, then the message's own values, then the kit name). Layout
 // is the rev-3 mock's editor (slice 3): the document's title as the page head, Save, Version
-// history and the menu in one row. Delete sits in the menu and asks first.
+// history and the menu in one row. Delete sits in the menu and asks first. Unsaved text is never
+// lost without a word (QA): All documents asks first, a reload warns, and a draft left by the
+// browser's Back is kept for the tab (docDrafts) and brought back with a notice.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowLeft, Ellipsis, Plus } from 'lucide-react';
 import {
@@ -30,6 +32,7 @@ import {
 import {
   createDocument,
   DOCUMENT_KINDS,
+  getAllDocuments,
   removeDocument,
   renameDocument,
   saveVersion,
@@ -49,6 +52,7 @@ import { Panel, PanelBody } from './PipelinePanel';
 import { copyFilled } from './templateCopy';
 import { metaLines } from './metaLines';
 import { BlanksLeft, WithChips } from './BlankText';
+import { dropDocDraft, keepDocDraft, readDocDraft } from './docDrafts';
 
 const NO_JOB = 'none';
 const FULL = { width: '100%' } as const;
@@ -80,8 +84,14 @@ export default function DocumentEditor({
   const { toast } = useToast();
   const label = labelOf(kind);
   const saved = doc ? doc.versions[doc.versions.length - 1].text : '';
+  const docId = doc?.id;
   const [title, setTitle] = useState(doc ? doc.title : label);
-  const [draft, setDraft] = useState(saved);
+  // A draft this tab left unsaved (the browser's Back took the editor away) comes back.
+  const [restored] = useState(() => {
+    const kept = docId ? readDocDraft(docId) : null;
+    return kept != null && kept !== saved ? kept : null;
+  });
+  const [draft, setDraft] = useState(restored ?? saved);
   // A newer Version synced in: an untouched draft follows it, so Save never re-saves older text.
   const [seen, setSeen] = useState(saved);
   if (seen !== saved) {
@@ -95,6 +105,53 @@ export default function DocumentEditor({
   }, [doc?.id, kind]);
   const outreach = kind === 'outreach';
   const dirty = doc ? draft !== saved : true;
+  // Text that would be lost on leaving: an edit not yet saved as a Version, or a new document
+  // with something in it.
+  const unsaved = doc ? draft !== saved : draft.trim() !== '' || title.trim() !== label;
+
+  // Keep the draft for the tab while it differs from the latest Version; drop it once they match.
+  useEffect(() => {
+    if (!docId) return;
+    if (draft !== saved) keepDocDraft(docId, draft);
+    else dropDocDraft(docId);
+  }, [docId, draft, saved]);
+  // A reload or a closed tab asks while there is unsaved text.
+  useEffect(() => {
+    if (!unsaved) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [unsaved]);
+  // Say so when a kept draft came back, with a way to drop it. Once per opening (StrictMode runs
+  // effects twice).
+  const told = useRef(false);
+  useEffect(() => {
+    if (restored == null || !docId || told.current) return;
+    told.current = true;
+    toast({
+      title: 'Restored unsaved changes',
+      description: 'Save to keep them.',
+      actions: [
+        {
+          label: 'Discard',
+          onSelect: () => {
+            const latest = getAllDocuments().find((d) => d.id === docId);
+            if (latest) setDraft(latest.versions[latest.versions.length - 1].text);
+          },
+        },
+      ],
+    });
+  }, [restored, docId, toast]);
+  const [leaving, setLeaving] = useState(false);
+  const back = () => (unsaved ? setLeaving(true) : onBack());
+  const discard = () => {
+    if (docId) dropDocDraft(docId);
+    setDraft(saved);
+    onBack();
+  };
 
   const save = () => {
     if (!doc) {
@@ -160,7 +217,7 @@ export default function DocumentEditor({
           variant="tertiary"
           className="rjb-back"
           iconLeft={<Icon icon={ArrowLeft} />}
-          onClick={onBack}
+          onClick={back}
         >
           All documents
         </Button>
@@ -203,6 +260,29 @@ export default function DocumentEditor({
           {doc && history && <VersionHistory doc={doc} onUse={setDraft} />}
         </>
       )}
+      {/* Leaving with unsaved text (QA): Keep editing is the default (Radix focuses Cancel). */}
+      <AlertDialog open={leaving} onOpenChange={setLeaving}>
+        <AlertDialog.Content>
+          <AlertDialog.Header>
+            <AlertDialog.Title>Discard changes?</AlertDialog.Title>
+            <AlertDialog.Description>
+              {doc
+                ? 'Your changes since the last Save will be lost.'
+                : 'This new document will be lost.'}
+            </AlertDialog.Description>
+          </AlertDialog.Header>
+          <AlertDialog.Footer>
+            <AlertDialog.Cancel asChild>
+              <Button variant="secondary">Keep editing</Button>
+            </AlertDialog.Cancel>
+            <AlertDialog.Action asChild>
+              <Button tone="danger" onClick={discard}>
+                Discard
+              </Button>
+            </AlertDialog.Action>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog>
       {doc && (
         <AlertDialog open={confirming} onOpenChange={setConfirming}>
           <AlertDialog.Content>
@@ -220,8 +300,10 @@ export default function DocumentEditor({
                 <Button
                   tone="danger"
                   onClick={() => {
-                    if (removeDocument(doc.id)) onBack();
-                    else
+                    if (removeDocument(doc.id)) {
+                      dropDocDraft(doc.id);
+                      onBack();
+                    } else
                       toast({
                         title: "Couldn't delete",
                         description: 'A sent document is locked.',

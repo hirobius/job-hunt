@@ -2,7 +2,7 @@
 // or the user navigated. Its Open would otherwise point at the page already showing.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
-import { dismissNotice, notifySaved, showNotice, useNotice } from './saveNotice';
+import { dismissNotice, notifySaved, saveWithNotice, showNotice, useNotice } from './saveNotice';
 import { addJob, getAllJobs, jobIdOf, removeJob, setStatus } from './store';
 import { navigate, openJob } from './route';
 
@@ -68,5 +68,31 @@ describe('a stale save notice is dismissed', () => {
     window.location.hash = '#/discover';
     await hashSettled();
     expect(getNotice()).not.toBeNull();
+  });
+});
+
+// QA (rf-polish): saving a link that is already in the Pipeline closed the dialog (or did nothing
+// on a tile or a quick-add link) with no word at all.
+describe('saving a job that is already saved', () => {
+  it('says so, names the job and offers Open', async () => {
+    let out: string | undefined;
+    act(() => {
+      out = saveWithNotice(A);
+    });
+    expect(out).toBe('exists');
+    const n = getNotice();
+    expect(n?.title).toBe('Already in your Pipeline');
+    expect(n?.description).toBe('Acme Designer');
+    expect(n?.actions.map((a) => a.label)).toEqual(['Open']);
+    act(() => n!.actions[0].run());
+    await hashSettled();
+    expect(window.location.hash).toBe(`#/queue/${jobIdOf(A)}`);
+  });
+
+  it('a new link still says Saved to Pipeline', () => {
+    act(() => {
+      saveWithNotice('https://cask.example/jobs/c', 'Cask Designer');
+    });
+    expect(getNotice()?.title).toBe('Saved to Pipeline · To apply');
   });
 });

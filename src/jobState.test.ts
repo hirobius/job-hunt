@@ -9,6 +9,7 @@ import {
   normSnooze,
   snoozeFollowUp,
   SNOOZE_DAYS,
+  appliedLabel,
 } from './jobState';
 import type { Job } from './types';
 
@@ -219,5 +220,20 @@ describe('daysSince — a bare date is a local calendar day', () => {
   it('counts whole local days, not UTC-midnight offsets', () => {
     expect(daysSince('2026-10-05', new Date(2026, 9, 11, 23, 59))).toBe(6);
     expect(daysSince('2026-10-05', new Date(2026, 9, 12, 0, 0))).toBe(7);
+  });
+});
+
+// Apply mode's meta line (QA, rev-3 B): once a job is applied to, it gives the applied date.
+describe('appliedLabel', () => {
+  it('says Applied today on the day', () => {
+    expect(appliedLabel(job({ status: 'Applied', applied: TODAY }), NOW)).toBe('Applied today');
+  });
+  it('gives the short date on any other day', () => {
+    expect(appliedLabel(job({ status: 'Applied', applied: '2026-06-21' }), NOW)).toBe(
+      'Applied Jun 21',
+    );
+  });
+  it('is empty for a job with no applied date', () => {
+    expect(appliedLabel(job({ status: 'Interviewing' }), NOW)).toBe('');
   });
 });

@@ -1,5 +1,5 @@
-import { Fragment, useMemo, useRef, useState } from 'react';
-import { PageHeader } from '@hirobius/design-system/patterns';
+import { Fragment, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Form, PageHeader } from '@hirobius/design-system/patterns';
 import { Search, Briefcase, ChevronDown, Plus } from 'lucide-react';
 import {
   Button as UiButton,
@@ -35,6 +35,8 @@ import { PipelineLiveness } from './LivenessViews';
 import { RecentlyRemovedLink } from './RecentlyRemoved';
 import { useTrash } from './trash';
 import { navigate } from './route';
+import { useVisualViewportVars } from './hds-gaps/useVisualViewportVars';
+import './account/sheet.css';
 
 // The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
 // chevron right. HDS Button has no stretch or alignment prop.
@@ -63,7 +65,12 @@ export default function TrackerView() {
   // Something is non-default: Clear shows, and the selects drop their Status / Sort key (rev-3).
   const cleared = filter !== 'active' || q.trim() !== '';
   const [url, setUrl] = useState('');
+  // Said under the field (QA): an empty or unreadable link keeps the dialog open and says why.
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const urlField = useRef<HTMLInputElement>(null);
+  // Pinned to the top of what the phone keyboard leaves visible, like Sign in (sheet.css).
+  const sheetRef = useVisualViewportVars<HTMLDivElement>();
   // The dialog opens from the header or the empty state, outside its Root, so it has no Trigger:
   // remember which button opened it and give focus back there on close (a11y pass).
   const addOpener = useRef<HTMLElement | null>(null);
@@ -79,11 +86,20 @@ export default function TrackerView() {
   // empty wrapper (and no extra gap) when neither shows.
   const removedCount = useTrash().length;
 
-  const submit = () => {
-    if (!url.trim()) return;
-    saveWithNotice(url.trim());
+  // Add job is never greyed out (rev-3): an empty or unreadable link gets a field error instead,
+  // and the dialog stays open. A link already saved closes it; saveWithNotice says so.
+  const submit = (e?: FormEvent) => {
+    e?.preventDefault();
+    const link = url.trim();
+    if (!link) return setUrlError('Paste a job link');
+    if (saveWithNotice(link) === 'invalid')
+      return setUrlError('Paste the full link to the posting, like https://…');
     setUrl('');
     setAddOpen(false);
+  };
+  const onAddOpenChange = (open: boolean) => {
+    setAddOpen(open);
+    if (!open) setUrlError(null);
   };
 
   // Start applying is the page's one primary once there are jobs; Add job steps down.
@@ -315,9 +331,19 @@ export default function TrackerView() {
         </Stack>
       </Stack>
       {/* Portals out, so it takes no slot in the page's rhythm. */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      <Dialog open={addOpen} onOpenChange={onAddOpenChange}>
+        {/* Placed like the other shell dialogs with a field (`.rjb-sheet`: Sign in, Reset), so the
+            phone keyboard never covers the field or Add job. The rev-3 mock has no close X and no
+            description: Cancel closes, and the field says where the title comes from. */}
         <Dialog.Content
-          style={{ width: '100%', maxWidth: 480 }}
+          ref={sheetRef}
+          className="rjb-sheet"
+          hideClose
+          aria-describedby={undefined}
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            urlField.current?.focus();
+          }}
           onCloseAutoFocus={(e) => {
             if (!addOpener.current?.isConnected) return;
             e.preventDefault();
@@ -326,28 +352,46 @@ export default function TrackerView() {
         >
           <Dialog.Header>
             <Dialog.Title>Add a job</Dialog.Title>
-            <Dialog.Description>
-              Paste the posting's link. The title fills in from the URL; you can edit it after.
-            </Dialog.Description>
           </Dialog.Header>
-          <HdsInput
-            label="Job URL"
-            type="url"
-            placeholder="https://…"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submit();
-            }}
-          />
-          <Dialog.Footer>
-            <Dialog.Close asChild>
-              <UiButton variant="secondary">Cancel</UiButton>
-            </Dialog.Close>
-            <UiButton variant="primary" disabled={!url.trim()} onClick={submit}>
-              Add
-            </UiButton>
-          </Dialog.Footer>
+          <Form noValidate onSubmit={submit}>
+            <Stack gap="normal">
+              <HdsInput
+                ref={urlField}
+                label="Job link"
+                type="url"
+                inputMode="url"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="go"
+                placeholder="https://"
+                value={url}
+                helperText="The title fills in from the link. You can edit it after."
+                error={!!urlError}
+                errorMessage={urlError ?? undefined}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  if (urlError) setUrlError(null);
+                }}
+              />
+              {/* Phone: the full-width primary over a full-width Cancel (rev-3 mock). From sm, one
+                  row with Add job right-most. Add job comes first in the DOM either way. */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: { base: 'column', sm: 'row-reverse' },
+                  gap: 'xs',
+                }}
+              >
+                <UiButton type="submit" variant="primary">
+                  Add job
+                </UiButton>
+                <Dialog.Close asChild>
+                  <UiButton variant="secondary">Cancel</UiButton>
+                </Dialog.Close>
+              </Box>
+            </Stack>
+          </Form>
         </Dialog.Content>
       </Dialog>
     </Stack>

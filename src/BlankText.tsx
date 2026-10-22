@@ -2,8 +2,10 @@
 // (rev-3 A, N). Read-only by default; given a job and the message's document, each chip is a
 // button that opens one small field under the text, and Fill saves the value where the editor's
 // Variables panel would (fillBlank: the job's four fields on the job, the rest on the message), so
-// the text refills at once. "N blanks left" says what is still open; Copy still works.
-import { useState, type ReactNode } from 'react';
+// the text refills at once. "N blanks left" says what is still open; Copy still works. After a
+// fill the field goes, so focus moves on: to the next open blank, else to the copy action (QA: it
+// fell to the dialog, which drew a heavy outline round the whole sheet).
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { TriangleAlert } from 'lucide-react';
 import {
   Box,
@@ -78,6 +80,7 @@ export default function BlankText({
   preview = false,
   head,
   action,
+  nextFocus,
 }: {
   text: string;
   job?: Job;
@@ -91,10 +94,31 @@ export default function BlankText({
   /** A row's action (Copy), kept on the first line beside the text. The fill field and
    *  "N blanks left" come after the row at full width (rev-3 A), not squeezed beside it. */
   action?: ReactNode;
+  /** Where focus goes once the last open blank is filled (the dialog's Copy message). Left out,
+   *  the row's own action takes it. */
+  nextFocus?: RefObject<HTMLElement | null>;
 }) {
   const [picked, setPicked] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const fillable = !!job && !!documentId;
+  const root = useRef<HTMLDivElement>(null);
+  const actionBox = useRef<HTMLDivElement>(null);
+  // A frame after the field closes (the text has refilled by then): focus the blank named
+  // `back` (Escape), else the first open blank, else the copy action.
+  const frame = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  const moveFocus = (back?: string) => {
+    cancelAnimationFrame(frame.current);
+    frame.current = requestAnimationFrame(() => {
+      const blanks = [...(root.current?.querySelectorAll<HTMLElement>('.rjb-blank') ?? [])];
+      const target =
+        (back && blanks.find((b) => b.getAttribute('aria-label') === `Fill ${back}`)) ||
+        blanks[0] ||
+        nextFocus?.current ||
+        actionBox.current?.querySelector<HTMLElement>('button:not(:disabled), a[href]');
+      target?.focus();
+    });
+  };
   const pick = (name: string) => {
     setPicked(picked === name ? null : name);
     setDraft('');
@@ -105,6 +129,12 @@ export default function BlankText({
     fillBlank(picked, draft, job, documentId);
     setPicked(null);
     setDraft('');
+    moveFocus();
+  };
+  const cancel = () => {
+    const name = picked ?? undefined;
+    setPicked(null);
+    moveFocus(name);
   };
   const body = (
     <Text variant="ui" as="p" className={preview ? 'rjb-clamp-3' : 'rjb-prewrap'}>
@@ -116,7 +146,7 @@ export default function BlankText({
     </Text>
   );
   return (
-    <Stack gap="tight">
+    <Stack gap="tight" ref={root}>
       {head || action ? (
         <Stack direction="row" gap="tight" align="start" justify="space-between">
           <Box sx={{ minWidth: 0, flex: '1 1 0%' }}>
@@ -125,7 +155,7 @@ export default function BlankText({
               {body}
             </Stack>
           </Box>
-          {action}
+          {action && <Box ref={actionBox}>{action}</Box>}
         </Stack>
       ) : (
         body
@@ -150,7 +180,7 @@ export default function BlankText({
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') fill();
-                    if (e.key === 'Escape') setPicked(null);
+                    if (e.key === 'Escape') cancel();
                   }}
                 />
               </Box>

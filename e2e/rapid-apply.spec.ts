@@ -74,18 +74,17 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
   await page.getByRole('button', { name: 'Copy Name' }).click();
   await expect(page.getByRole('button', { name: 'Copied Name' })).toBeVisible();
 
-  for (let left = 3; left > 0; left--) {
+  for (let n = 1; n <= 3; n++) {
     await expect(page.getByRole('link', { name: /Open application/ })).toBeVisible();
     await page.getByRole('button', { name: 'Mark applied' }).click();
     await expect(
       page.getByText(/Follow up on (Today|Tomorrow|[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2})\./),
     ).toBeVisible();
-    // The pager walks on; the applied job holds its place, so it reads 1 of N (none for one job).
+    // The pager walks on; every job applied to on the way holds its place (QA), so it reads n of 3.
     const pager = page.getByRole('navigation', { name: 'Jobs to apply' });
-    if (left > 1) {
-      await expect(pager).toContainText(`1 of ${left}`);
-      await pager.getByRole('button', { name: 'Next page' }).click();
-    } else await page.getByRole('button', { name: /To apply is empty/ }).click();
+    await expect(pager).toContainText(`${n} of 3`);
+    if (n < 3) await pager.getByRole('button', { name: 'Next page' }).click();
+    else await page.getByRole('button', { name: /To apply is empty/ }).click();
   }
 
   await expect(page.getByRole('region', { name: 'To apply (0)' })).toBeVisible();

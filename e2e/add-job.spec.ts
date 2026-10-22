@@ -5,9 +5,33 @@ import { test, expect } from '@playwright/test';
 test('adds a pasted job URL to the queue', async ({ page }) => {
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Add job' }).click();
-  await page.getByLabel('Job URL').fill('https://boards.greenhouse.io/acme/jobs/77');
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add a job' });
+  await dialog.getByLabel('Job link').fill('https://boards.greenhouse.io/acme/jobs/77');
+  await dialog.getByRole('button', { name: 'Add job' }).click();
   await expect(page.getByRole('link', { name: 'Acme · Greenhouse' })).toBeVisible();
+});
+
+// QA: a link that isn't one keeps the dialog open with a field error; the same link twice says it
+// is already in the Pipeline instead of closing in silence.
+test('Add job explains a bad link and an already saved one', async ({ page }) => {
+  await page.goto('/#/queue');
+  await page.getByRole('button', { name: 'Add job' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add a job' });
+  await dialog.getByLabel('Job link').fill('not a url');
+  await dialog.getByRole('button', { name: 'Add job' }).click();
+  await expect(
+    dialog.getByText('Paste the full link to the posting, like https://…'),
+  ).toBeVisible();
+  await dialog.getByLabel('Job link').fill('https://jobs.lever.co/acme/1');
+  await dialog.getByRole('button', { name: 'Add job' }).click();
+  await expect(dialog).toBeHidden();
+  await page.getByRole('button', { name: 'Add job' }).first().click();
+  await dialog.getByLabel('Job link').fill('https://jobs.lever.co/acme/1');
+  await dialog.getByLabel('Job link').press('Enter');
+  const notices = page.getByRole('region', { name: /^Notifications/ });
+  await expect(notices.getByText('Already in your Pipeline')).toBeVisible();
+  await notices.getByRole('button', { name: 'Open' }).click();
+  await expect(page).toHaveURL(/#\/queue\/./);
 });
 
 // A first visit offers the sample pipeline, which lands on the Pipeline with its follow-ups

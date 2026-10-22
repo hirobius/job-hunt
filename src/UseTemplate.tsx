@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, FileText, Pencil } from 'lucide-react';
 import { Box, Button, Dialog, Icon, Card, Stack, Text, useToast } from '@hirobius/design-system';
 import { documentHref, useOutreachTemplates } from './outreachTemplates';
@@ -16,6 +16,8 @@ export default function UseTemplate({ job }: { job: Job }) {
   const [open, setOpen] = useState(false);
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Focus lands on Copy message once the last blank is filled (QA), not on the dialog.
+  const copyButton = useRef<HTMLButtonElement>(null);
 
   // Pinned first (outreachTemplates already orders them).
   const ordered = templates;
@@ -86,7 +88,12 @@ export default function UseTemplate({ job }: { job: Job }) {
                 "N blanks left"; Copy still works. */}
             <Stack gap="px8">
               <Card bordered padding="px16" role="region" aria-label="Preview">
-                <BlankText text={filled} job={job} documentId={picked?.documentId} />
+                <BlankText
+                  text={filled}
+                  job={job}
+                  documentId={picked?.documentId}
+                  nextFocus={copyButton}
+                />
               </Card>
               {/* Under the Preview, out of the footer so the sheet never clips it: a 40px tertiary
                   with a pencil. HDS Button asChild drops iconLeft, so the pencil is the link's own
@@ -111,6 +118,7 @@ export default function UseTemplate({ job }: { job: Job }) {
               padding keeps the last control off the sheet edge. */}
           <Box sx={{ flex: '1 1 auto', pb: 'md', display: 'flex', '& > *': { flex: '1 1 0%' } }}>
             <Button
+              ref={copyButton}
               variant="primary"
               iconLeft={<Icon icon={copied ? Check : Copy} />}
               onClick={copy}
