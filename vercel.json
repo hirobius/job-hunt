@@ -23,6 +23,10 @@
           "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://nelrcmbkimjjmfmgnixj.supabase.co wss://nelrcmbkimjjmfmgnixj.supabase.co https://hn.algolia.com https://remotive.com https://jobicy.com https://remoteok.com https://boards-api.greenhouse.io https://api.lever.co https://api.eu.lever.co https://api.ashbyhq.com https://apply.workable.com https://*.recruitee.com https://api.smartrecruiters.com https://*.teamtailor.com https://*.jobs.personio.de https://yc-oss.github.io https://api.github.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         }
       ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     }
   ]
 }
