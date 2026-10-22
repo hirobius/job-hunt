@@ -59,7 +59,9 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
     .getByRole('listitem')
     .filter({ hasText: 'Saved 3 to Pipeline · To apply' });
   await expect(notice).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Saved' })).toHaveCount(3);
+  // Each saved row shows a "Saved" status in Save's slot (rev-3 K), not a disabled button.
+  await expect(list.getByText('Saved', { exact: true })).toHaveCount(3);
+  await expect(list.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
   await notice.getByRole('button', { name: 'Open' }).click();
 
   await expect(page.getByRole('region', { name: 'To apply (3)' })).toBeVisible();
