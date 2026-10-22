@@ -149,7 +149,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
                   <HdsInput
                     label="Job link"
                     type="url"
-                    placeholder="Paste a job link"
+                    placeholder="Job link"
                     helperText="Optional. It lands in your Pipeline."
                     value={jobUrl}
                     onChange={(e) => {
@@ -262,7 +262,7 @@ function PickTrack({
             <HdsInput
               label="First job title for your own track"
               required
-              placeholder="e.g. Design Engineer"
+              placeholder="Job title"
               value={firstTitle}
               onChange={(e) => onFirstTitle(e.target.value)}
               error={showError && firstTitle.trim() === ''}

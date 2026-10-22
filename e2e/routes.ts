@@ -33,9 +33,18 @@ export async function seed(page: Page) {
   const add = page.getByRole('dialog', { name: 'Add a job' });
   await add.getByLabel('Job link').fill(BOARD_JOB);
   await add.getByRole('button', { name: 'Add job' }).click();
+  // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
+  await addStarters(page);
   // The sample adds a Sample track from the first starter pack: no setup needed.
   await go(page, '#/discover/apply');
   await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();
+}
+
+/** Add the starter messages from Documents' empty state (a first run adds none). */
+export async function addStarters(page: Page) {
+  await go(page, '#/copy-deck');
+  await page.getByRole('button', { name: 'Add starter messages' }).click();
+  await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
 }
 
 export async function go(page: Page, hash: string) {

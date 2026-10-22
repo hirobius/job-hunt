@@ -411,7 +411,7 @@ export default function TrackerView() {
                 autoCorrect="off"
                 spellCheck={false}
                 enterKeyHint="go"
-                placeholder="https://"
+                placeholder="Job link"
                 value={url}
                 helperText="The title fills in from the link. You can edit it after."
                 error={!!urlError}

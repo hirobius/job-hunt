@@ -26,6 +26,9 @@ import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob } from './stor
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
+import { STARTER_SNIPPETS } from './copyDeckStore';
+import { getAllDocuments } from './documents';
+import { setOutreachMessages } from './test/outreach';
 
 const renderApp = () =>
   render(
@@ -90,6 +93,8 @@ describe('#/today is retired (#236)', () => {
 describe('Follow-ups in the Pipeline (#236)', () => {
   beforeEach(() => {
     loadSample();
+    // The starter messages are the user's to add (a clean first run): these tests have them.
+    setOutreachMessages([...STARTER_SNIPPETS]);
   });
 
   it('one Follow up section: the due ones first, marked Due, each with its own Follow up', () => {
@@ -135,6 +140,21 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     await user.click(edit);
     const message = within(dialog).getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement;
     expect(message.value).toContain('Hi [Contact]');
+  });
+
+  it('with no messages yet: an empty message box, and one tap adds the starters and fills it', async () => {
+    setOutreachMessages([]);
+    const user = userEvent.setup();
+    renderApp();
+    const dialog = await openFollowUp(user);
+    const box = within(dialog).getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement;
+    expect(box.value).toBe('');
+    await user.click(within(dialog).getByRole('button', { name: 'Add starter messages' }));
+    expect(getAllDocuments().some((d) => d.id === 'snippet-tpl-followup')).toBe(true);
+    await waitFor(() =>
+      expect(dialog).toHaveTextContent('the UX Researcher role at Bramble & Finch'),
+    );
+    expect(within(dialog).queryByRole('button', { name: 'Add starter messages' })).toBeNull();
   });
 
   it('Mark as sent takes it off the due list', async () => {

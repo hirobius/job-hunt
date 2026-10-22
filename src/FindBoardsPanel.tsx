@@ -282,7 +282,7 @@ export default function FindBoardsPanel({
                     setQuery('');
                   }}
                   onCreate={addName}
-                  placeholder="Type a company name"
+                  placeholder="Company"
                   emptyMessage="Keep typing a company name"
                   disabled={running}
                 />
@@ -294,7 +294,7 @@ export default function FindBoardsPanel({
                 helperText="Company names, slugs or job-board links, one per line."
                 rows={6}
                 value={text}
-                placeholder={'Acme Labs\nstripe\nhttps://jobs.lever.co/plaid'}
+                placeholder="Companies"
                 onChange={(e) => {
                   setText(e.target.value);
                   setFieldError('');

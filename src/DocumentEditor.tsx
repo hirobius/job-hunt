@@ -497,7 +497,7 @@ function OutreachText({
           aria-label="Message text"
           rows={8}
           value={value}
-          placeholder="Paste or write your message…"
+          placeholder="Message"
           onChange={onChange}
           helperText="Type a name in square brackets, like [Hiring manager], to make your own variable."
         />

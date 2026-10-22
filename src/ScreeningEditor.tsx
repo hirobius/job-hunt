@@ -100,7 +100,7 @@ export function ScreeningEditor({ job, fitLabel = true }: { job: Job; fitLabel?:
           <HdsInput
             size="sm"
             aria-label="Add a custom dealbreaker"
-            placeholder="Add a dealbreaker…"
+            placeholder="Dealbreaker"
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             onKeyDown={(e) => {
@@ -118,7 +118,7 @@ export function ScreeningEditor({ job, fitLabel = true }: { job: Job; fitLabel?:
         <HdsInput
           size="sm"
           aria-label="Angle for this role"
-          placeholder="What you lead with for this job"
+          placeholder="Angle"
           value={job.angle ?? ''}
           onChange={(e) => updateJob(job.url, { angle: e.target.value })}
         />

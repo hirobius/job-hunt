@@ -98,6 +98,8 @@ export default function DreamCompanies({
 
   const n = dreams.length;
   const canCheck = dreams.some((d) => d.board);
+  // An empty section stays hidden (a clean first run): a row's star is how a company gets here.
+  if (n === 0) return null;
   return (
     <Panel
       label="Dream companies"
@@ -106,12 +108,12 @@ export default function DreamCompanies({
       countLabel={plural(n, 'company', 'companies')}
     >
       {/* The check sits under the head, not beside it: at 390 a header button wraps the title. */}
-      {(n === 0 || summary || canCheck) && (
+      {(summary || canCheck) && (
         <PanelBody>
           <Stack gap="tight">
-            {(n === 0 || summary) && (
-              <Text variant="caption" as="p" tone="secondary" role={summary ? 'status' : undefined}>
-                {summary || 'Star a company to keep it here, with new openings flagged.'}
+            {summary && (
+              <Text variant="caption" as="p" tone="secondary" role="status">
+                {summary}
               </Text>
             )}
             {canCheck && (
@@ -129,20 +131,18 @@ export default function DreamCompanies({
           </Stack>
         </PanelBody>
       )}
-      {n > 0 && (
-        <ul aria-label="Dream companies" style={LIST}>
-          {dreams.map((d) => (
-            <DreamRow
-              key={d.key}
-              d={d}
-              categoryId={categoryId}
-              checked={checked[d.key]}
-              read={d.board ? roles[boardKey(d.board)] : undefined}
-              roleTypes={roleTypes}
-            />
-          ))}
-        </ul>
-      )}
+      <ul aria-label="Dream companies" style={LIST}>
+        {dreams.map((d) => (
+          <DreamRow
+            key={d.key}
+            d={d}
+            categoryId={categoryId}
+            checked={checked[d.key]}
+            read={d.board ? roles[boardKey(d.board)] : undefined}
+            roleTypes={roleTypes}
+          />
+        ))}
+      </ul>
     </Panel>
   );
 }

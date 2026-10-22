@@ -74,7 +74,7 @@ function NotesField({ job }: { job: Job }) {
       aria-label="Notes"
       rows={3}
       value={draft}
-      placeholder="What to remember about this job"
+      placeholder="Notes"
       onChange={(e) => {
         setDraft(e.target.value);
         draftRef.current = e.target.value;

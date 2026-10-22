@@ -31,6 +31,10 @@ const ROUTES = [
 async function seed(page: Page) {
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
+  // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
+  await go(page, '#/copy-deck');
+  await page.getByRole('button', { name: 'Add starter messages' }).click();
+  await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
   // Apply now by name: which tool `#/discover` opens on depends on the track (teamTopics.ts).
   await go(page, '#/discover/apply');

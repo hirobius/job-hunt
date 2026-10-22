@@ -4,7 +4,9 @@
 // first save, so an abandoned New leaves nothing behind. Which document is open can be held by the
 // caller (a route) through `openId` / `onOpen`, or kept here when they are left out. The route is
 // `#/copy-deck` (DocumentsView). Outreach messages are the templates the fill paths use
-// (outreachTemplates.ts); the starter set can be restored here when one is missing.
+// (outreachTemplates.ts); the starter set can be restored here when one is missing. An empty
+// library (a first run) is one empty state with one setup action, Add starter messages, and a quiet
+// Start from scratch that shows the sections (Adrian 2026-10-22: nothing is added unasked).
 // Layout is the rev-3 mock's (item M): a panel per kind with its count and a "New" button in the
 // header (Résumés, Cover letters, Outreach messages, Notes); each document is an expandable row (HDS
 // Disclosure variant="row", one open at a time). The row's top line carries a Pinned badge, then the
@@ -14,7 +16,7 @@
 // phone, all of it from `sm` up) with the variables as chips, then Copy, Open and a menu (Pin,
 // Duplicate, Delete).
 import { useState, type ReactNode } from 'react';
-import { Copy, Ellipsis, Plus } from 'lucide-react';
+import { Copy, Ellipsis, FileText, Plus } from 'lucide-react';
 import {
   AlertDialog,
   Badge,
@@ -48,6 +50,8 @@ import { rowChips, templateVariables } from './templateEditor';
 import { copyFilled } from './templateCopy';
 import { highlightNew, useHighlight } from './feedback';
 import { useBackCloses, useBackSheet } from './useBackCloses';
+import { EmptyState } from './hds-gaps/EmptyState';
+import { AddStarterMessages } from './StarterMessages';
 
 const PLURAL: Record<DocumentKind, string> = {
   resume: 'Résumés',
@@ -128,6 +132,8 @@ export default function DocumentsLibrary({
   const [local, setLocal] = useState<Open>(null);
   // One row open at a time (rev-3 M).
   const [expanded, setExpanded] = useState<string | null>(null);
+  // An empty library shows its sections only once the user starts from scratch.
+  const [fromScratch, setFromScratch] = useState(false);
   const controlled = openId !== undefined;
   const open: Open = newKind
     ? { kind: newKind }
@@ -171,13 +177,35 @@ export default function DocumentsLibrary({
       />
     );
 
+  const head = header ?? (
+    <Text variant="title" as="h2">
+      Documents
+    </Text>
+  );
+  if (!fromScratch && !docs.some((d) => d.base))
+    return (
+      <Stack gap="spacious">
+        {head}
+        <EmptyState
+          framed
+          icon={FileText}
+          title="No documents yet"
+          description="Keep your résumé, cover letters, notes and messages here, and fill them for each job."
+          action={
+            <Stack direction="row" gap="tight" wrap="wrap" justify="center">
+              <AddStarterMessages variant="primary" />
+              <Button variant="tertiary" onClick={() => setFromScratch(true)}>
+                Start from scratch
+              </Button>
+            </Stack>
+          }
+        />
+      </Stack>
+    );
+
   return (
     <Stack gap="spacious">
-      {header ?? (
-        <Text variant="title" as="h2">
-          Documents
-        </Text>
-      )}
+      {head}
       {/* The Pipeline's panel rhythm: panels 24 apart (rev-3 mock). */}
       <Stack gap="px24">
         {LIBRARY_ORDER.map((kind) => {

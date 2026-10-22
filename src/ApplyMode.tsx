@@ -58,6 +58,7 @@ import {
   type KitAnswer,
 } from './applyKit';
 import { useOutreachTemplates } from './outreachTemplates';
+import { AddStarterMessages } from './StarterMessages';
 import { fillSnippet, previewText } from './templateFill';
 import { copyFilled } from './templateCopy';
 import { showNotice } from './saveNotice';
@@ -475,9 +476,17 @@ function ApplyTemplates({ job }: { job: Job }) {
           <Text variant="caption" as="p" tone="secondary">
             {rows.length
               ? 'Filled for this job. Copy one into the form or an email.'
-              : 'Write an outreach message once in Documents; it shows here filled for each job.'}
+              : 'No messages yet. Add the starters or write your own; each shows here filled for this job.'}
           </Text>
-          {edit(rows.length ? 'Edit documents' : 'Write a message')}
+          {rows.length ? (
+            edit('Edit documents')
+          ) : (
+            // A clean first run has no messages: one tap adds the starters (Adrian 2026-10-22).
+            <Stack direction="row" gap="tight" wrap="wrap">
+              <AddStarterMessages />
+              {edit('Write a message')}
+            </Stack>
+          )}
         </Stack>
       </PanelBody>
       {rows.length > 0 && (
@@ -577,16 +586,29 @@ function ApplicationKit({ job }: { job: Job }) {
               key={slot}
               remember={slot}
               label={label}
-              preview={text ? previewOf(text) : 'Pick a template to fill'}
+              preview={
+                text
+                  ? previewOf(text)
+                  : snippets.length
+                    ? 'Pick a template to fill'
+                    : 'No messages yet'
+              }
               actions={text ? <CopyButton label={label} value={text} /> : undefined}
             >
               <Stack gap="tight">
-                <Select
-                  label={`${label} template`}
-                  options={options}
-                  value={kit[slot] ?? ''}
-                  onChange={(v) => setKitTemplate(slot, v)}
-                />
+                {/* With no messages, a picker would offer only "No template": add them instead. */}
+                {snippets.length ? (
+                  <Select
+                    label={`${label} template`}
+                    options={options}
+                    value={kit[slot] ?? ''}
+                    onChange={(v) => setKitTemplate(slot, v)}
+                  />
+                ) : (
+                  <Box>
+                    <AddStarterMessages />
+                  </Box>
+                )}
                 {text && (
                   <BlankText text={text} job={job} documentId={template(kit[slot])?.documentId} />
                 )}
@@ -638,7 +660,7 @@ function AnswerRow({ a }: { a: KitAnswer }) {
             <HdsInput
               label="Question"
               value={a.q}
-              placeholder="e.g. Do you need visa sponsorship?"
+              placeholder="Question"
               onChange={(e) => updateAnswer(a.id, { q: e.target.value })}
             />
           </Box>

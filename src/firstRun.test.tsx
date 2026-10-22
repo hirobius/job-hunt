@@ -23,6 +23,7 @@ import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, removeJob } from './store';
 import { getCurationState, replaceCurationState } from './curation/curationStore';
+import { getAllDocuments } from './documents';
 
 const renderApp = () =>
   render(
@@ -173,6 +174,45 @@ describe('steps 2 and 3', () => {
     await waitFor(() => expect(getCurationState().categories).toHaveLength(1));
     expect(getCurationState().categories).toHaveLength(1);
     expect(getAllJobs()).toHaveLength(0);
+  });
+});
+
+describe('a clean first run (Adrian 2026-10-22: nothing the user did not create)', () => {
+  /** Every visible text field's placeholder, by its label. */
+  const placeholders = () =>
+    screen
+      .queryAllByRole('textbox')
+      .map((el) => [
+        el.getAttribute('aria-label') ?? (el as HTMLInputElement).labels?.[0]?.textContent,
+        el.getAttribute('placeholder'),
+      ]);
+
+  it('each field shows only its own name as the placeholder: no "e.g." and no made-up example', async () => {
+    renderApp();
+    await click('Build your own', 'checkbox');
+    expect(screen.getByLabelText(/First job title/)).toHaveAttribute('placeholder', 'Job title');
+    await userEvent.type(screen.getByLabelText(/First job title/), 'Welder');
+    await click('Continue');
+    expect(screen.getByRole('textbox', { name: 'City, state or Remote' })).toHaveAttribute(
+      'placeholder',
+      'City, state or Remote',
+    );
+    await click('Continue');
+    expect(screen.getByRole('textbox', { name: 'Job link' })).toHaveAttribute(
+      'placeholder',
+      'Job link',
+    );
+    for (const [, ph] of placeholders()) expect(ph ?? '').not.toMatch(/e\.g\.|example|acme/i);
+  });
+
+  it('finishing setup adds no starter messages or documents', async () => {
+    renderApp();
+    await pickFirstPack();
+    await click('Continue');
+    await click('Continue');
+    await click("I'll do it later");
+    await waitFor(() => expect(getCurationState().categories).toHaveLength(1));
+    expect(getAllDocuments()).toEqual([]);
   });
 });
 

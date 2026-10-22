@@ -11,6 +11,10 @@ async function seed(page: Page) {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
+  // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
+  await go(page, '#/copy-deck');
+  await page.getByRole('button', { name: 'Add starter messages' }).click();
+  await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
   await go(page, '#/discover/apply');
   await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();

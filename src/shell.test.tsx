@@ -21,6 +21,7 @@ import { createFakeSupabase } from './test/fakeSupabase';
 import { loadSupabase } from './supabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { addStarterMessages } from './addStarters';
 import { BRAND } from './brand';
 import { addJob, getAllJobs, removeJob } from './store';
 import { OFFLINE_MSG } from './cloudMessages';
@@ -361,6 +362,7 @@ describe('routes keep working (#115 Phase 1)', () => {
   );
 
   it('#/copy-deck/<id> still opens that template, now an Outreach message (#240, #227)', async () => {
+    addStarterMessages(); // a clean first run has none (Adrian 2026-10-22)
     window.location.hash = '#/copy-deck/tpl-cover';
     renderApp();
     expect(await screen.findByRole('textbox', { name: 'Title' })).toHaveValue('Cover letter');

@@ -22,10 +22,13 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await page.goto('/#/queue');
   await expect(page.getByRole('heading', { name: 'Pipeline' })).toBeVisible();
 
-  // Documents opens from the Menu; the starter templates are Outreach messages now.
+  // Documents opens from the Menu. A first run has no messages (Adrian 2026-10-22): its empty
+  // state adds the starters in one tap, as Outreach messages.
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: 'Documents' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Documents' })).toBeVisible();
+  await expect(page.getByText('No documents yet')).toBeVisible();
+  await page.getByRole('button', { name: 'Add starter messages' }).click();
   const outreach = page.getByRole('region', { name: 'Outreach messages' });
   // The row expands in place (rev-3 M); Open goes to the editor.
   await outreach.getByRole('button', { name: 'Follow-up after applying' }).click();

@@ -18,7 +18,7 @@ export default function LocationControl({ categoryId }: { categoryId: string }) 
         <HdsInput
           size="sm"
           label="Location"
-          placeholder="City, State — blank = anywhere"
+          placeholder="Location"
           value={mode === 'remote' ? '' : where}
           disabled={mode === 'remote'}
           onChange={(e) => onWhere(e.target.value)}
