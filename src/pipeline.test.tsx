@@ -265,7 +265,7 @@ describe('Pipeline on a desktop (#129)', () => {
     );
     expect(within(row).getByText('Applied')).toBeInTheDocument();
     expect(within(row).getByText('10d ago')).toBeInTheDocument();
-    expect(within(row).getByText('Due')).toBeInTheDocument();
+    expect(within(row).getByText('Follow-up due')).toBeInTheDocument();
     expect(
       within(row).getByRole('button', { name: 'Follow up: Zenith Product Designer' }),
     ).toBeInTheDocument();

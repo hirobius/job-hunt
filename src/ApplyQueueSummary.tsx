@@ -28,7 +28,7 @@ export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
           <Stack gap="normal" align="start">
             <Text variant="caption" as="p" tone="secondary">
               {queue.length
-                ? 'Pinned first, then newest.'
+                ? 'Starred first, then newest.'
                 : 'Nothing waiting. Save jobs from Companies to fill it.'}
             </Text>
             <Button

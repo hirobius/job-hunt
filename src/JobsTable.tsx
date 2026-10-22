@@ -103,7 +103,7 @@ export default function JobsTable({
           content: !row.followUp ? (
             NONE
           ) : row.followUp.due ? (
-            <Badge tone="warning">Due</Badge>
+            <Badge tone="warning">Follow-up due</Badge>
           ) : (
             <Text variant="caption" as="span" tone="secondary">
               In {row.followUp.inDays}d

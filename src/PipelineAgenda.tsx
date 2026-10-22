@@ -97,7 +97,7 @@ export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
                 </InlineLink>
               }
               posting={<JobPostingLink job={job} />}
-              badge={<Badge tone="warning">Due</Badge>}
+              badge={<Badge tone="warning">Follow-up due</Badge>}
               notes={metaLines([job.company, sinceNote(job, now)])}
               trailing={<FollowUpButton job={job} />}
             />

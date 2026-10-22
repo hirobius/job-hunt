@@ -71,10 +71,12 @@ describe('save notice', () => {
 });
 
 describe('To apply queue and Apply mode', () => {
-  it('Pipeline opens on To apply (N) with Start applying, pinned first', async () => {
+  it('Pipeline opens on To apply (N) with Start applying, starred first', async () => {
     const user = userEvent.setup();
     renderApp();
     expect(screen.getByRole('region', { name: 'To apply (3)' })).toBeInTheDocument();
+    // Jobs are starred, not pinned (the Star button's word).
+    expect(screen.getByText('Starred first, then newest.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Start applying' }));
     expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
     expect(await screen.findByRole('heading', { name: 'Acme Designer' })).toBeInTheDocument();
@@ -155,6 +157,9 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
     const filled = 'Hi, the Acme Designer role at Acme. Sam Placeholder';
+    // The panel is named like its Edit documents link (one word for one thing).
+    expect(await screen.findByRole('region', { name: 'Documents' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Templates' })).toBeNull();
     const list = await screen.findByRole('list', { name: 'Your templates' });
     const rows = within(list).getAllByRole('listitem');
     expect(rows.map((r) => r.getAttribute('aria-label'))).toEqual(['Thank you', 'Cold intro']);

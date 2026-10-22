@@ -359,7 +359,7 @@ function ApplyTemplates({ job }: { job: Job }) {
     </Box>
   );
   return (
-    <Panel label="Templates" title="Templates">
+    <Panel label="Documents" title="Documents">
       <PanelBody>
         <Stack gap="tight">
           <Text variant="caption" as="p" tone="secondary">
