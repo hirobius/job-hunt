@@ -160,8 +160,9 @@ function DreamRow({
   const careers = atsSearchUrl(`"${d.company}"`, { role: 'careers', where: '', mode: 'any' });
   return (
     <PanelRow>
-      <Stack gap="xs">
-        <Stack direction="row" gap="xs" align="center" justify="space-between" wrap="wrap">
+      {/* Compact density's "xs" is 2px: 12 to the roles, 8 between actions. */}
+      <Stack gap="px12">
+        <Stack direction="row" gap="px8" align="center" justify="space-between" wrap="wrap">
           <Stack gap="px4">
             <Text variant="ui" as="span">
               {d.website ? (
@@ -179,7 +180,7 @@ function DreamRow({
                 : statusLine(d, checked, read)}
             </Text>
           </Stack>
-          <Stack direction="row" gap="xs" align="center">
+          <Stack direction="row" gap="px8" align="center">
             {!d.board && (
               <Button size="sm" variant="tertiary" asChild>
                 <a

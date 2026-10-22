@@ -124,13 +124,30 @@ describe('Find boards', () => {
     expect(await screen.findByText('4 of 4 checked, 2 boards found')).toBeVisible();
     const list = screen.getByRole('list', { name: 'Boards found' });
     expect(within(list).getByText('Figma')).toBeVisible();
-    expect(within(list).getByText('Greenhouse · 3 open roles')).toBeVisible();
+    const [figma, plaid] = within(list).getAllByRole('listitem');
+    expect(figma).toHaveTextContent(/Greenhouse.* · 3 open roles/);
     expect(within(list).getByText('Plaid')).toBeVisible();
-    expect(within(list).getByText('Lever · 1 open role')).toBeVisible();
+    expect(plaid).toHaveTextContent(/Lever.* · 1 open role/);
+    // Every row title is plain text (rev-3 L); the board link is the source label in the meta line.
+    expect(within(figma).queryByRole('link', { name: /^Figma/ })).toBeNull();
+    expect(within(figma).getByRole('link', { name: /^Greenhouse/ })).toHaveAttribute(
+      'href',
+      'https://boards.greenhouse.io/figma',
+    );
     // One row per company (rev-3 L): no board is a row too, not a hidden list.
     const none = screen.getByRole('list', { name: 'No board found' });
     expect(within(none).getByText('Nobody')).toBeVisible();
     expect(screen.getByText("Couldn't check (1)")).toBeVisible();
+  });
+
+  it('Find boards is never greyed out: with nothing entered it says what to add', async () => {
+    renderApp();
+    const find = await screen.findByRole('button', { name: 'Find boards' });
+    expect(find).toBeEnabled();
+    await userEvent.click(find);
+    expect(await screen.findByText('Add at least one company')).toBeVisible();
+    expect(screen.getByRole('combobox')).toHaveFocus();
+    expect(calls).toHaveLength(0);
   });
 
   it('Watch files a tile on the track and flips the row to Watching', async () => {
@@ -297,6 +314,7 @@ describe('Find boards', () => {
         ),
       );
       expect(screen.getByRole('button', { name: 'Kept Nobody as a target' })).toBeDisabled();
+      expect(await screen.findByText('Added Nobody to Dream companies')).toBeVisible();
     });
   });
 

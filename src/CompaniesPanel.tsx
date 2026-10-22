@@ -6,19 +6,19 @@
 // hides the companies known to have no matching role. Rev-3 mock: one "Watched" panel (count badge,
 // one caption, Add a company, Hiring now | All) of hairline rows, each a name, "Greenhouse · 3
 // matching roles" and a Roles button that opens that company's roles in place, one row at a time. "Add a company" (AddCompany.tsx) is the one
-// way onto the list; dream companies sit under it (DreamCompanies.tsx), then outreach targets, and
+// way onto the list; dream companies sit under it (DreamCompanies.tsx), then outreach targets (only
+// once one is saved), and
 // Live postings and the list checker stay one link away (DiscoverView's secondary views).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
   Button,
-  Card,
   Disclosure,
   Input as HdsInput,
   InlineLink,
-  SegmentedControl,
   Stack,
+  Tag,
   Text,
   useToast,
 } from '@hirobius/design-system';
@@ -26,7 +26,7 @@ import { SavedTargets, type Row } from './OutreachRows';
 import { atsSearchUrl } from './jobsData';
 import { SOURCE_LABEL } from './feed/types';
 import { Panel, PanelBody, PanelRow } from './PipelinePanel';
-import { ROWS_CLASS, rowsStyle, useWatching } from './outreachShared';
+import { useWatching } from './outreachShared';
 import {
   findDesignSystemOrgs,
   MAX_ORG_LOOKUPS,
@@ -256,9 +256,11 @@ export default function CompaniesPanel({
     const watching = isWatching(r.board);
     return (
       <PanelRow key={r.login}>
-        <Stack gap="xs">
+        {/* 12 from the row's caption to its open roles (rev-3 mock). Compact density's "xs" is
+            2px, so rows use the px steps. */}
+        <Stack gap="px12">
           {/* No wrap: the name column shrinks so the star and Roles stay on the right at 390. */}
-          <Stack direction="row" gap="xs" align="center" justify="space-between">
+          <Stack direction="row" gap="px8" align="center" justify="space-between">
             <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
               <Stack gap="px4">
                 <Text variant="ui" as="span">
@@ -304,7 +306,7 @@ export default function CompaniesPanel({
           </Stack>
           {open && (
             <Box id={panelId}>
-              <Stack gap="xs">
+              <Stack gap="px12">
                 {matching.length > 0 ? (
                   <RoleList company={r.company} roles={matching} />
                 ) : (
@@ -313,7 +315,7 @@ export default function CompaniesPanel({
                   </Text>
                 )}
                 {!r.watched && (
-                  <Stack direction="row" gap="xs" align="center" wrap="wrap">
+                  <Stack direction="row" gap="px8" align="center" wrap="wrap">
                     {r.board ? (
                       <Button
                         size="sm"
@@ -382,7 +384,7 @@ export default function CompaniesPanel({
             <Text variant="caption" as="p" tone="secondary" role="status">
               {caption}
             </Text>
-            <Stack direction="row" gap="xs" align="center" wrap="wrap">
+            <Stack direction="row" gap="px8" align="center" wrap="wrap">
               <AddCompany categoryId={categoryId} boardUrls={boardUrls} />
               {search &&
                 (running ? (
@@ -401,22 +403,23 @@ export default function CompaniesPanel({
               )}
             </Stack>
             {rows.length > 0 && (
-              <Box>
-                <SegmentedControl
-                  size="sm"
-                  aria-label="Show companies"
-                  value={hiringOnly ? 'hiring' : 'all'}
-                  onChange={(v) => setHiringOnly(v === 'hiring')}
-                  options={[
-                    { value: 'hiring', label: 'Hiring now' },
-                    // What Hiring now hides (no matching role, or not checked yet) is counted here.
-                    {
-                      value: 'all',
-                      label: hiringOnly && hidden > 0 ? `All (${hidden} more)` : 'All',
-                    },
-                  ]}
-                />
-              </Box>
+              // Two chips (rev-3 mock): Hiring now filled, All outlined, 8 apart; HDS Tag with
+              // aria-pressed, 40px tall on a phone (base.css) and never under 48 wide.
+              <Stack
+                direction="row"
+                gap="px8"
+                align="center"
+                role="group"
+                aria-label="Show companies"
+              >
+                <Tag active={hiringOnly} onClick={() => setHiringOnly(true)}>
+                  Hiring now
+                </Tag>
+                {/* What Hiring now hides (no matching role, or not checked yet) is counted here. */}
+                <Tag active={!hiringOnly} onClick={() => setHiringOnly(false)}>
+                  {hiringOnly && hidden > 0 ? `All (${hidden} more)` : 'All'}
+                </Tag>
+              </Stack>
             )}
             {search && (
               <Disclosure label="Refine">
@@ -458,15 +461,25 @@ export default function CompaniesPanel({
 
       <DreamCompanies categoryId={categoryId} terms={terms} limiter={limiter} roles={roles} />
 
-      <SavedTargets categoryId={categoryId} boardUrls={boardUrls} findLink={false} />
+      {/* No empty section: it shows once a company is saved as a target. */}
+      {targets.length > 0 && (
+        <Panel
+          label="Outreach targets"
+          title="Outreach targets"
+          count={targets.length}
+          countLabel={companies(targets.length)}
+        >
+          <SavedTargets categoryId={categoryId} boardUrls={boardUrls} />
+        </Panel>
+      )}
 
       <MoreWays />
     </Stack>
   );
 }
 
-// "More ways to find companies" (rev-3 mock): a bordered panel of rows, each a title, a caption and
-// an Open button (a 40px target), not two bare text links.
+// "More ways to find companies" (rev-3 mock): the shared Panel, like Watched, with full-bleed
+// hairline rows, each a title, a caption and an Open button (a 40px target), not bare text links.
 const MORE_WAYS = [
   {
     title: 'Live postings from job boards',
@@ -482,35 +495,28 @@ const MORE_WAYS = [
 
 function MoreWays() {
   return (
-    <Card bordered padding="none" as="section" aria-labelledby="rjb-more-ways">
-      <Box sx={{ px: 'sm', pt: 'sm' }}>
-        <Text variant="body" as="h3" className="rjb-semibold" id="rjb-more-ways">
-          More ways to find companies
-        </Text>
-      </Box>
-      <Box sx={{ px: 'sm' }}>
-        <ul style={rowsStyle} className={ROWS_CLASS}>
-          {MORE_WAYS.map((w) => (
-            <li key={w.href}>
-              <Stack direction="row" gap="xs" align="center" justify="space-between">
-                <Stack gap="px4">
-                  <Text variant="ui" as="span">
-                    {w.title}
-                  </Text>
-                  <Text variant="caption" tone="secondary">
-                    {w.caption}
-                  </Text>
-                </Stack>
-                <Button size="sm" variant="secondary" asChild>
-                  <a href={w.href} aria-label={`Open ${w.title}`}>
-                    Open
-                  </a>
-                </Button>
+    <Panel label="More ways to find companies" title="More ways to find companies">
+      <ul style={LIST}>
+        {MORE_WAYS.map((w) => (
+          <PanelRow key={w.href}>
+            <Stack direction="row" gap="px8" align="center" justify="space-between">
+              <Stack gap="px4">
+                <Text variant="ui" as="span">
+                  {w.title}
+                </Text>
+                <Text variant="caption" tone="secondary">
+                  {w.caption}
+                </Text>
               </Stack>
-            </li>
-          ))}
-        </ul>
-      </Box>
-    </Card>
+              <Button size="md" variant="secondary" asChild>
+                <a href={w.href} aria-label={`Open ${w.title}`}>
+                  Open
+                </a>
+              </Button>
+            </Stack>
+          </PanelRow>
+        ))}
+      </ul>
+    </Panel>
   );
 }

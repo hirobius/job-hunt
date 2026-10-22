@@ -48,7 +48,6 @@ import { probeFetchJson } from './feed/probeFetch';
 import { boardsFromUrls, canonicalBoardUrl, type Board } from './feed/sources/ats';
 import { SOURCE_LABEL } from './feed/types';
 import { addBoardTiles, watchBoard } from './feed/watchlist';
-import { metaLines } from './metaLines';
 import { Panel, PanelBody, PanelRow } from './PipelinePanel';
 import { batchLabel, fetchBatch, recentBatches, ycLines, YC_CREDIT } from './feed/yc';
 
@@ -97,7 +96,9 @@ export default function FindBoardsPanel({
   const [loadingBatch, setLoadingBatch] = useState(false);
   const [batchNote, setBatchNote] = useState('');
   const [batchError, setBatchError] = useState('');
+  const [fieldError, setFieldError] = useState('');
   const abort = useRef<AbortController | null>(null);
+  const fieldRef = useRef<HTMLDivElement | null>(null);
   const resultRef = useRef<DiscoverResult | null>(null);
   useEffect(() => () => abort.current?.abort(), []);
 
@@ -143,12 +144,26 @@ export default function FindBoardsPanel({
   const addName = (name: string) => {
     const n = name.trim();
     if (n && !names.some((x) => sameName(x, n))) setNames((all) => [...all, n]);
+    if (n) setFieldError('');
     setQuery('');
   };
   const keep = (company: string) => {
     starDream(categoryId, { company });
     setKept((k) => [...k, company]);
-    toast({ title: `Keeping ${company} as a target`, tone: 'success' });
+    // Where it landed, in the same words as Add a company's.
+    toast({ title: `Added ${company} to Dream companies`, tone: 'success' });
+  };
+
+  // The primary is never greyed out (rev-3): with nothing entered, say what to add, on the field.
+  const findBoards = () => {
+    if (running) return;
+    if (!parsed.lines.length) {
+      setFieldError('Add at least one company');
+      fieldRef.current?.querySelector<HTMLElement>('[role="combobox"], input')?.focus();
+      return;
+    }
+    setFieldError('');
+    void start(parsed.lines, false);
   };
 
   const start = async (lines: string[], retry: boolean) => {
@@ -250,10 +265,11 @@ export default function FindBoardsPanel({
         <PanelBody>
           <Stack gap="inset">
             {/* The typed text, for the suggestions: HDS Combobox has no onInputChange (see the top). */}
-            <div onChange={(e) => setQuery((e.target as HTMLInputElement).value)}>
+            <div ref={fieldRef} onChange={(e) => setQuery((e.target as HTMLInputElement).value)}>
               <FormField
                 label="Companies"
                 description="Suggestions come from your tracks and the YC directory."
+                error={fieldError || undefined}
               >
                 <Combobox
                   multiple
@@ -262,6 +278,7 @@ export default function FindBoardsPanel({
                   options={suggestions.map((s) => ({ value: s.name, label: optionLabel(s) }))}
                   onChange={(v) => {
                     setNames(v);
+                    if (v.length) setFieldError('');
                     setQuery('');
                   }}
                   onCreate={addName}
@@ -278,7 +295,10 @@ export default function FindBoardsPanel({
                 rows={6}
                 value={text}
                 placeholder={'Acme Labs\nstripe\nhttps://jobs.lever.co/plaid'}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  setFieldError('');
+                }}
                 disabled={running}
               />
             )}
@@ -290,17 +310,14 @@ export default function FindBoardsPanel({
                   `${parsed.ignored.length} ${parsed.ignored.length === 1 ? 'line is' : 'lines are'} not a company name or board link and will be skipped.`}
               </Text>
             )}
-            <Stack direction="row" gap="xs" wrap="wrap" align="center">
+            {/* 8 apart (rev-3 mock); compact density's "xs" is 2px. */}
+            <Stack direction="row" gap="px8" wrap="wrap" align="center">
               {running ? (
                 <Button variant="secondary" onClick={() => abort.current?.abort()}>
                   Cancel
                 </Button>
               ) : (
-                <Button
-                  variant="primary"
-                  disabled={!parsed.lines.length}
-                  onClick={() => void start(parsed.lines, false)}
-                >
+                <Button variant="primary" onClick={findBoards}>
                   Find boards
                 </Button>
               )}
@@ -400,12 +417,16 @@ export default function FindBoardsPanel({
               {result.found.map((f) => (
                 <ResultRow
                   key={`${f.board.kind}:${f.board.slug}`}
-                  title={
-                    <InlineLink href={canonicalBoardUrl(f.board)} externalIcon={false}>
-                      {f.company}
-                    </InlineLink>
+                  title={f.company}
+                  // The title is plain like every row's (rev-3 L); the board link is its source.
+                  meta={
+                    <>
+                      <InlineLink href={canonicalBoardUrl(f.board)} externalIcon={false}>
+                        {SOURCE_LABEL[f.board.kind]}
+                      </InlineLink>
+                      {roles(f.jobs) && ` · ${roles(f.jobs)}`}
+                    </>
                   }
-                  meta={metaLines([SOURCE_LABEL[f.board.kind], roles(f.jobs)])[0]}
                 >
                   <Button
                     size="sm"
@@ -497,13 +518,13 @@ function ResultRow({
   meta,
   children,
 }: {
-  title: ReactNode;
-  meta: string;
+  title: string;
+  meta: ReactNode;
   children: ReactNode;
 }) {
   return (
     <PanelRow>
-      <Stack direction="row" gap="xs" align="center" justify="space-between">
+      <Stack direction="row" gap="px8" align="center" justify="space-between">
         <Stack gap="px4">
           <Text variant="ui" as="span" weight="medium">
             {title}

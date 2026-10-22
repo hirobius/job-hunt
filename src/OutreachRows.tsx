@@ -1,13 +1,14 @@
 // Rows of the Teams tool: one outreach target (a team found on GitHub with its repo, stars and
-// open roles, or a starter pack's company with its board), the watch action, and the saved-targets section. Kept apart
-// from the engine so Live postings can show saved targets without loading the GitHub search code.
+// open roles, or a starter pack's company with its board), the watch action, and the saved-targets
+// rows (Panel rows: CompaniesPanel puts them in an "Outreach targets" panel once one is saved).
 import type { ReactNode } from 'react';
 import { Badge, Button, InlineLink, Stack, Text } from '@hirobius/design-system';
+import { PanelRow } from './PipelinePanel';
 import { atsSearchUrl } from './jobsData';
 import type { Board } from './feed/sources/ats';
 import { removeTarget, useTargets, type Target } from './feed/targets';
 import { SOURCE_LABEL } from './feed/types';
-import { ROWS_CLASS, rowsStyle, useWatching } from './outreachShared';
+import { useWatching } from './outreachShared';
 
 export type Row = Omit<Target, 'savedAt'>;
 
@@ -48,11 +49,12 @@ export function TargetRow({
 }) {
   const careers = atsSearchUrl(`"${r.company}"`, { role: 'careers', where: '', mode: 'any' });
   return (
-    <li>
-      <Stack gap="xs">
-        <Stack direction="row" gap="xs" align="center" justify="space-between" wrap="wrap">
+    <PanelRow>
+      {/* Compact density's "xs" is 2px: rows use the px steps (8 between actions, 12 to roles). */}
+      <Stack gap="px12">
+        <Stack direction="row" gap="px8" align="center" justify="space-between" wrap="wrap">
           <Stack gap="px4">
-            <Stack direction="row" gap="xs" align="center" wrap="wrap">
+            <Stack direction="row" gap="px8" align="center" wrap="wrap">
               <Text variant="ui" as="span">
                 {r.website ? (
                   <InlineLink href={r.website} externalIcon={false}>
@@ -78,7 +80,7 @@ export function TargetRow({
               </Text>
             )}
           </Stack>
-          <Stack direction="row" gap="xs" align="center" wrap="wrap">
+          <Stack direction="row" gap="px8" align="center" wrap="wrap">
             {!r.board && (
               <Button size="sm" variant="tertiary" asChild>
                 <a
@@ -128,59 +130,35 @@ export function TargetRow({
         </Stack>
         {children}
       </Stack>
-    </li>
+    </PanelRow>
   );
 }
 
-/** The saved targets of a track, as a section. */
+const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
+
+/** The saved targets of a track, as a panel's hairline rows (the caller shows them only when there
+ *  is at least one). */
 export function SavedTargets({
   categoryId,
   boardUrls,
-  heading = true,
-  findLink = true,
 }: {
   categoryId: string;
   boardUrls: string[];
-  heading?: boolean;
-  /** Point to Watched's team search (off where there is none to point to). */
-  findLink?: boolean;
 }) {
   const targets = useTargets(categoryId);
   const { isWatching, watch } = useWatching(categoryId, boardUrls);
   return (
-    <Stack gap="xs" as="section" aria-label="Outreach targets">
-      {heading && (
-        <Text variant="body" as="h3" className="rjb-semibold">
-          Outreach targets
-        </Text>
-      )}
-      {targets.length === 0 ? (
-        <Text variant="caption" as="p" tone="secondary">
-          Companies with no opening yet that you want to write to.
-          {findLink && (
-            <>
-              {' '}
-              Find teams under Watched and save the ones worth a note.{' '}
-              <InlineLink href="#/discover/teams" externalIcon={false}>
-                Find teams
-              </InlineLink>
-            </>
-          )}
-        </Text>
-      ) : (
-        <ul aria-label="Saved targets" style={rowsStyle} className={ROWS_CLASS}>
-          {targets.map((t) => (
-            <TargetRow
-              key={t.login}
-              r={t}
-              saved
-              watching={isWatching(t.board)}
-              onRemove={() => removeTarget(categoryId, t.login)}
-              onWatch={watch}
-            />
-          ))}
-        </ul>
-      )}
-    </Stack>
+    <ul aria-label="Saved targets" style={LIST}>
+      {targets.map((t) => (
+        <TargetRow
+          key={t.login}
+          r={t}
+          saved
+          watching={isWatching(t.board)}
+          onRemove={() => removeTarget(categoryId, t.login)}
+          onWatch={watch}
+        />
+      ))}
+    </ul>
   );
 }
