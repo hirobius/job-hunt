@@ -730,3 +730,15 @@ p {
     animation: none;
   }
 }
+
+/* Placeholder brand mark beside the wordmark: a quiet neutral rounded square, cap-height sized. */
+.rjb-brand-mark {
+  display: inline-block;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--primitive-radius-8);
+  background: var(--semantic-color-surface-muted);
+  border: thin solid var(--semantic-color-border-strong);
+  box-sizing: border-box;
+}

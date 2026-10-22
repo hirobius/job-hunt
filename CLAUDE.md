@@ -15,13 +15,11 @@ commit `f15fd52`).
 `src/brand.test.ts` fails on a hard-coded name. Stored identifiers stay fixed on purpose: the backup
 format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 
-**Brand mark (2026-10-22):** `src/BrandMark.tsx` is the animated cobalt flame left of the wordmark
-(aria-hidden, 24px). Pure SVG + CSS: geometry, HDS cobalt colours and motion live in `src/flameMark.ts`
-(tongue paths morph via CSS `d`, with a scale fallback; fixed `feTurbulence` lick; embers; glow); all
-motion sits behind `prefers-reduced-motion: no-preference` and pauses while hidden/offscreen. `npm run
-icons` writes `public/favicon.svg` from the same module (`src/hdsColor.ts` reads HDS hex values, Node
-only) and renders the PNG icons + og-image; `BrandMark.test.tsx` fails if `favicon.svg` is stale.
-Previews: `docs/brand/`.
+**Brand mark (2026-10-22):** a placeholder until a logo exists (Adrian: "leave the logo blank").
+`src/BrandMark.tsx` is a plain 24px rounded square left of the wordmark (aria-hidden; `.rjb-brand-mark`
+in `base.css`, HDS tokens only, no motion). The cobalt flame (`flameMark.ts`) is deleted. `npm run
+icons` writes `public/favicon.svg` and renders the PNG icons, `favicon.ico` + og-image with the same
+square on the graphite tile; `BrandMark.test.tsx` pins it.
 
 ## Stack & conventions
 

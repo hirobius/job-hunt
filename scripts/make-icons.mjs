@@ -1,6 +1,6 @@
 /* global document -- page callbacks run in the browser */
-// App icons, /favicon.ico and the share image (#47): writes public/favicon.svg (the still cobalt
-// flame on the graphite tile, from src/flameMark.ts with colours read from HDS's variables.css), then
+// App icons, /favicon.ico and the share image (#47): writes public/favicon.svg (the placeholder
+// rounded square on the graphite tile, colours read from HDS's variables.css), then
 // renders it and a brand card to PNG with headless Chromium, so the app icons, /favicon.ico and the
 // Open Graph image are reproducible.
 // Re-run after a brand change and commit the PNGs:
@@ -12,16 +12,18 @@
 import { chromium } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { BRAND } from '../src/brand.ts';
-import { flameSvg } from '../src/flameMark.ts';
 import { hdsColor } from '../src/hdsColor.ts';
 
-const svg = flameSvg({ tile: true, color: hdsColor, label: BRAND.name });
+// The placeholder mark (Adrian 2026-10-22): a plain rounded square, a quiet light neutral.
+const SQUARE = hdsColor('neutral-300');
+const svg =
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="${BRAND.name}">` +
+  `<rect width="64" height="64" rx="14" fill="${hdsColor('graphite-900')}"/>` +
+  `<rect x="18" y="18" width="28" height="28" rx="6" fill="${SQUARE}"/></svg>\n`;
 writeFileSync('public/favicon.svg', svg);
 console.log('public/favicon.svg');
 const dataUrl = (s) => `data:image/svg+xml;base64,${Buffer.from(s).toString('base64')}`;
 const svgUrl = dataUrl(svg);
-// The bare flame (no tile) for the share card.
-const flameUrl = dataUrl(flameSvg({ color: hdsColor }));
 // HDS's own face (one variable font since HDS 0.30), inlined: a page set with setContent can't
 // load file:// fonts.
 const font = `data:font/woff2;base64,${readFileSync(
@@ -96,7 +98,7 @@ try {
     page(
       `<div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding:0 96px;box-sizing:border-box;color:${FACE}">
         <div style="display:flex;align-items:center;gap:32px">
-          <img src="${flameUrl}" style="width:102px;height:128px">
+          <div style="width:104px;height:104px;border-radius:24px;background:${SQUARE}"></div>
           <div style="font-size:104px;font-weight:700;line-height:1.1;color:#fff">${BRAND.name}</div>
         </div>
         <div style="font-size:36px;line-height:1.35;margin-top:40px;max-width:960px">${BRAND.description}</div>
