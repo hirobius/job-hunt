@@ -319,6 +319,10 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
   "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
   apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
+- **Remote Rocketship (2026-10-22):** a "Big job boards" link (`BOARDS`, tag "Remote only",
+  `modes: ['remote','any']`, shown through `boardsFor(mode)`): `https://www.remoterocketship.com/?sort=DateAdded&jobTitle=<first ticked title>`.
+  Link only: no API (its paid one needs a personal key; a later bring-your-own-key slice), no fetch, so CSP and
+  `legal.ts` are unchanged. The query form is **unverified live** (the host was unreachable from the build container).
 - **Title filter (#223):** the sweep's list _is_ the track's title filter (seed: the track's titles, else
   its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
   titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**
@@ -388,6 +392,16 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   (`linksFilename`: `<slug>-links-YYYY-MM-DD.txt`). `buildLinkList` skips non-web links (counted),
   dedupes, keeps order. Pinned in `exportLinks.test.ts`, `exportLinksDialog.test.tsx`,
   `e2e/export-links.spec.ts`.
+- **Clean first run (Adrian 2026-10-22):** a new user sees nothing they didn't create. Placeholders are
+  the field's own name ("Job title", "Job link", "Company"), never an "e.g." or a made-up name
+  (`placeholders.test.ts` scans the source). Empty sections hide (Dream companies, the Pipeline's
+  panels). The snippet store starts **empty** (`copyDeckStore` no longer falls back to the starters), so
+  no starter messages are migrated in on a first run or a new device; `AddStarterMessages`
+  (`StarterMessages.tsx` → `addStarters.ts` → `restoreStarterOutreach`) adds them in one tap from
+  Documents' empty state ("No documents yet": Add starter messages | Start from scratch), the
+  follow-up dialog (an empty message box until then), the Apply sheet and the kit's letters. Sample
+  data stays opt-in and adds no messages. Pinned in `firstRun`, `emptyStates`, `documentsLibrary`,
+  `pipelineFollowUps`, `rapidApply`, `copyDeckStore`, `syncBlob` tests; e2e seeds call `addStarters`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links. The URL is cleaned through the route seam

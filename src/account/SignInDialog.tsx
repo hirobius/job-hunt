@@ -138,7 +138,7 @@ export default function SignInDialog() {
                   ref={inputRef}
                   type="email"
                   label="Email"
-                  placeholder="you@example.com"
+                  placeholder="Email"
                   autoComplete="email"
                   inputMode="email"
                   autoCapitalize="none"

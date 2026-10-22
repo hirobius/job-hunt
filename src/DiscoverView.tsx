@@ -23,7 +23,7 @@ import BackLink from './BackLink';
 import { useBackCloses } from './useBackCloses';
 import type { Back } from './back';
 import {
-  BOARDS,
+  boardsFor,
   ATS,
   HIDDEN_BOARDS,
   atsSearchUrl,
@@ -187,7 +187,7 @@ function AtsPanel({
     );
   const entry = seniority === 'entry';
   const term = titleClause(many ? active : [role]);
-  const boardTiles: Tile[] = BOARDS.map((b) => {
+  const boardTiles: Tile[] = boardsFor(mode).map((b) => {
     const url = b.build(term, { where, mode });
     return { name: b.name, meta: b.tag, url: entry ? entryLevelize(url) : url };
   });

@@ -808,7 +808,7 @@ export default function LiveFeedPanel({
                   <HdsInput
                     size="sm"
                     label="Leave out (words, commas between)"
-                    placeholder="manager, sales"
+                    placeholder="Leave out"
                     value={excludeText}
                     onChange={(e) => setExcludeText(e.target.value)}
                   />
@@ -818,7 +818,7 @@ export default function LiveFeedPanel({
                     size="sm"
                     label="Pay floor (USD a year)"
                     inputMode="numeric"
-                    placeholder="120000"
+                    placeholder="Pay floor"
                     value={floorText}
                     onChange={(e) => setFloorText(e.target.value)}
                   />

@@ -15,6 +15,7 @@ vi.mock('@supabase/supabase-js', async () => {
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { addStarterMessages } from './addStarters';
 import { BRAND } from './brand';
 import { getAllJobs, removeJob } from './store';
 import { loadSample } from './demo/loadSample';
@@ -108,6 +109,7 @@ describe('Pipeline panels (rev-3)', () => {
 
   it('the Documents library is flat rows, not a card per document (#227)', async () => {
     viewport(1440);
+    addStarterMessages(); // a clean first run has none (Adrian 2026-10-22)
     window.location.hash = '#/copy-deck';
     renderApp();
     const outreach = await screen.findByRole('region', { name: 'Outreach messages' });

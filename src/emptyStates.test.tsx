@@ -1,7 +1,7 @@
 // Teaching empty states (#132 slice 1): one pattern (title, one sentence, one primary action),
 // tested at the route seam through App and driven by title text and the action's role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -21,6 +21,10 @@ import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, removeJob, setStatusByUrl } from './store';
 import { addCategory, addGroup, replaceCurationState } from './curation/curationStore';
+import { seedPack } from './curation/starterPacks';
+import { getAllDocuments } from './documents';
+import { getSnippets } from './copyDeckStore';
+import { loadSupabase } from './supabase';
 
 const renderApp = () =>
   render(
@@ -99,5 +103,50 @@ describe('Pipeline filtered to nothing', () => {
     renderApp();
     expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
     expect(screen.getByText('Check Applied, or add more jobs.')).toBeInTheDocument();
+  });
+});
+
+// Adrian 2026-10-22: a first run shows nothing the user did not create, and empty sections hide.
+describe('a clean first run', () => {
+  it('Documents: one empty state with Add starter messages; nothing was added behind it', async () => {
+    window.location.hash = '#/copy-deck';
+    renderApp();
+    expect(await screen.findByText('No documents yet')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add starter messages' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Outreach messages' })).toBeNull();
+    expect(getAllDocuments()).toEqual([]);
+    expect(getSnippets()).toEqual([]);
+  });
+
+  it('Companies right after picking a track: no empty Dream companies section', async () => {
+    seedPack('consulting');
+    window.location.hash = '#/discover/teams';
+    renderApp();
+    expect(await screen.findByRole('button', { name: 'Add a company' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Dream companies' })).toBeNull();
+    expect(screen.queryByText(/Star a company to keep it here/)).toBeNull();
+  });
+
+  it('the Add job field shows its name, not a made-up link', async () => {
+    window.location.hash = '#/queue';
+    renderApp();
+    await userEvent.click(screen.getAllByRole('button', { name: 'Add job' })[0]);
+    const dialog = await screen.findByRole('dialog', { name: 'Add a job' });
+    expect(within(dialog).getByRole('textbox', { name: 'Job link' })).toHaveAttribute(
+      'placeholder',
+      'Job link',
+    );
+  });
+
+  it('signed in on a new device with an empty account: still no starter messages', async () => {
+    await loadSupabase();
+    window.location.hash = '#/copy-deck';
+    renderApp();
+    act(() => h.fake!.signIn('u-new'));
+    // The seed merge lands and pushes this device's (empty) blob up.
+    await waitFor(() => expect(h.fake!.tables.tracker?.length).toBe(1));
+    expect(await screen.findByText('No documents yet')).toBeInTheDocument();
+    expect(getAllDocuments()).toEqual([]);
+    act(() => void h.fake!.client.auth.signOut());
   });
 });

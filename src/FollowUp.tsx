@@ -33,6 +33,7 @@ import { logFollowUp, restoreFollowUp, snoozeFollowUp, useJobs } from './store';
 import { copyFilled } from './templateCopy';
 import { fillSnippet } from './templateFill';
 import { useApplyKit } from './applyKit';
+import { AddStarterMessages } from './StarterMessages';
 import type { Job } from './types';
 
 type Size = 'sm' | 'md';
@@ -180,10 +181,20 @@ function FollowUpContent({ job }: { job: Job }) {
                 }}
               />
             )}
+            {/* No message yet (a clean first run adds none): write one here, or add the
+                starters in one tap, and an untouched box fills from the follow-up starter. */}
             {!template && (
-              <Text variant="caption" tone="secondary">
-                No follow-up message yet. Write it here, or add one in Documents.
-              </Text>
+              <Stack gap="tight">
+                <Text variant="caption" tone="secondary">
+                  No follow-up message yet. Write it here, or add the starter messages.
+                </Text>
+                <Box>
+                  <AddStarterMessages
+                    size="sm"
+                    onAdded={() => setEdited((e) => (e?.trim() ? e : null))}
+                  />
+                </Box>
+              </Stack>
             )}
           </Stack>
         )}

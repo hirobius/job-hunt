@@ -12,12 +12,19 @@ import { addJob, getAllJobs, removeJob, updateJob } from './store';
 
 const JOB = 'https://acme.example/jobs/1';
 
-const renderLib = () =>
+const renderRaw = () =>
   render(
     <ToastProvider>
       <DocumentsLibrary />
     </ToastProvider>,
   );
+/** The library with its sections showing: an empty one opens on its empty state, so start blank. */
+const renderLib = () => {
+  const r = renderRaw();
+  const blank = screen.queryByRole('button', { name: 'Start from scratch' });
+  if (blank) fireEvent.click(blank);
+  return r;
+};
 const section = (name: string) => screen.getByRole('region', { name });
 const doc = (id: string) => getAllDocuments().find((d) => d.id === id)!;
 /** A row expands (rev-3 M); its Open button opens the editor. */
@@ -44,6 +51,42 @@ afterEach(() => {
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
+});
+
+describe('a clean first run (Adrian 2026-10-22: nothing the user did not create)', () => {
+  it('an empty library is one empty state with one setup action, and no sections or starters', () => {
+    renderRaw();
+    expect(screen.getByText('No documents yet')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add starter messages' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start from scratch' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Outreach messages' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Résumés' })).toBeNull();
+    expect(getAllDocuments()).toEqual([]);
+  });
+
+  it('Add starter messages adds the starters once, each under its kind', async () => {
+    renderRaw();
+    await userEvent.click(screen.getByRole('button', { name: 'Add starter messages' }));
+    expect(getAllDocuments().map((d) => d.id)).toEqual([
+      'snippet-tpl-outreach',
+      'snippet-tpl-cover',
+      'snippet-tpl-followup',
+      'snippet-tpl-thanks',
+      'snippet-tpl-intro-call',
+    ]);
+    expect(within(section('Outreach messages')).getByText('Outreach note')).toBeInTheDocument();
+    expect(within(section('Cover letters')).getByText('Cover letter')).toBeInTheDocument();
+    expect(screen.queryByText('No documents yet')).toBeNull();
+  });
+
+  it('Start from scratch shows the sections, each with its New button', async () => {
+    renderRaw();
+    await userEvent.click(screen.getByRole('button', { name: 'Start from scratch' }));
+    expect(
+      within(section('Résumés')).getByRole('button', { name: 'New résumé' }),
+    ).toBeInTheDocument();
+    expect(getAllDocuments()).toEqual([]);
+  });
 });
 
 describe('library', () => {
@@ -165,7 +208,7 @@ describe('create, edit, delete', () => {
       within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
     );
     expect(getAllDocuments()).toHaveLength(0);
-    await waitFor(() => expect(section('Résumés')).toHaveTextContent('No résumés yet'));
+    await waitFor(() => expect(screen.getByText('No documents yet')).toBeInTheDocument());
   });
 
   it('Back with an unsaved edit asks first; Discard returns to the library without saving', async () => {

@@ -67,6 +67,8 @@ export const BOARDS: {
   name: string;
   tag: string;
   build: (term: string, loc: SearchLoc) => string;
+  /** The work modes it is shown for; left out, every mode. */
+  modes?: readonly WorkMode[];
 }[] = [
   {
     name: 'Indeed',
@@ -117,7 +119,24 @@ export const BOARDS: {
       return `https://www.snagajob.com/search?q=${encc(term)}${w ? `&w=${encc(w)}` : ''}`;
     },
   },
+  {
+    // Remote-only, so it shows for Remote and Any. A link out only: no API (its paid one needs a
+    // personal key), no fetch, so CSP and legal.ts are unchanged. Its title filter takes one
+    // title, so the link carries the first ticked one. The `jobTitle` + `sort` query is the form
+    // its own search page uses (unverified live from here: the host was not reachable).
+    name: 'Remote Rocketship',
+    tag: 'Remote only',
+    modes: ['remote', 'any'],
+    build: (term) => {
+      const first = /"([^"]+)"/.exec(term)?.[1] ?? term.trim();
+      return `https://www.remoterocketship.com/?sort=DateAdded&jobTitle=${encc(first)}`;
+    },
+  },
 ];
+
+/** The big boards to show for a work mode. */
+export const boardsFor = (mode: WorkMode) =>
+  BOARDS.filter((b) => !b.modes || b.modes.includes(mode));
 
 // ---- ATS hidden-jobs generator ----
 export const ATS_ROLES = [

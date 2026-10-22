@@ -121,7 +121,7 @@ function NewNote({ company, action }: { company: string; action: string }) {
       <Box className="rjb-form-full">
         <Textarea
           aria-label="New note"
-          placeholder="What you learn about this company"
+          placeholder="Note"
           rows={3}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

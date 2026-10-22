@@ -236,7 +236,7 @@ describe('Companies as one tool (#237)', () => {
       renderApp();
       const dialog = await open();
       const field = within(dialog).getByLabelText('Company name or job-board link');
-      expect(field).toHaveAttribute('placeholder', 'Acme Labs or a board link');
+      expect(field).toHaveAttribute('placeholder', 'Company or board link');
       expect(dialog).toHaveTextContent(
         'We look for its board on Greenhouse, Lever, Ashby and 5 more, or paste the board link.',
       );
@@ -375,4 +375,3 @@ describe('Companies comes back as it was left', () => {
     expect(fakeFetch.mock.calls.slice(reads).map((c) => String(c[0]))).toEqual([]);
   });
 });
-

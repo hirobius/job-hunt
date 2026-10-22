@@ -109,13 +109,20 @@ describe('Calibrate: the ticked titles', () => {
     await openAllBoards();
     const all = hrefs();
     expect(all.length).toBeGreaterThan(0);
-    for (const u of all.filter((x) => x.includes('designer'))) {
+    const isRR = (u: string) => u.startsWith('https://www.remoterocketship.com/');
+    for (const u of all.filter((x) => x.includes('designer') && !isRR(x))) {
       expect(u).toContain('"product designer" OR "design system"');
       expect(u).not.toContain('design engineer');
     }
-    // Every generated board and ATS link carries the ticked titles.
-    expect(all.filter((u) => u.includes('"product designer" OR "design system"')).length).toBe(
-      all.filter((u) => u.includes('designer')).length,
+    // Every generated board and ATS link carries the ticked titles; Remote Rocketship's title
+    // filter takes one title, so it carries the first ticked one.
+    const rr = all.filter(isRR);
+    expect(rr).toEqual([
+      'https://www.remoterocketship.com/?sort=DateAdded&jobTitle=product designer',
+    ]);
+    const rest = all.filter((u) => !rr.includes(u));
+    expect(rest.filter((u) => u.includes('"product designer" OR "design system"')).length).toBe(
+      rest.filter((u) => u.includes('designer')).length,
     );
   });
 

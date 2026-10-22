@@ -9,9 +9,20 @@ const load = async () => {
 beforeEach(() => localStorage.clear());
 
 describe('copyDeckStore defaults', () => {
-  it('ships no personal info', async () => {
+  it('a first run starts with no snippets: starters are added only on request', async () => {
     const { getSnippets } = await load();
-    const all = getSnippets();
+    expect(getSnippets()).toEqual([]);
+  });
+
+  it('a deck emptied by the user stays empty on the next load', async () => {
+    localStorage.setItem(KEY, '[]');
+    const { getSnippets } = await load();
+    expect(getSnippets()).toEqual([]);
+  });
+
+  it('ships no personal info', async () => {
+    const { STARTER_SNIPPETS } = await load();
+    const all = STARTER_SNIPPETS;
     expect(all).toHaveLength(5);
     for (const s of all) {
       expect(`${s.label}\n${s.body}`).not.toMatch(
@@ -21,8 +32,8 @@ describe('copyDeckStore defaults', () => {
   });
 
   it('every default uses [Company] or [Role]', async () => {
-    const { getSnippets } = await load();
-    for (const s of getSnippets()) expect(s.body).toMatch(/\[(Company|Role)\]/);
+    const { STARTER_SNIPPETS } = await load();
+    for (const s of STARTER_SNIPPETS) expect(s.body).toMatch(/\[(Company|Role)\]/);
   });
 
   it('keeps an existing stored deck unchanged and appends no starter', async () => {
@@ -33,8 +44,8 @@ describe('copyDeckStore defaults', () => {
   });
 
   it('ships one Intro call script for a hiring manager, with tokens', async () => {
-    const { getSnippets } = await load();
-    const intro = getSnippets().filter((x) => x.label === 'Intro call script');
+    const { STARTER_SNIPPETS } = await load();
+    const intro = STARTER_SNIPPETS.filter((x) => x.label === 'Intro call script');
     expect(intro).toHaveLength(1);
     expect(intro[0].body).toMatch(/\[Contact\]/);
     expect(intro[0].body).toMatch(/design system/i);

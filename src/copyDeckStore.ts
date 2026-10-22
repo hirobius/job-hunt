@@ -2,7 +2,9 @@
 // neutral templates using [Company]/[Role]/[Contact]/[Angle] tokens (see templateFill.ts),
 // with no personal details (#14, #103). A small external store (mirrors store.ts /
 // pillarStore.ts) so the deck can sync to the cloud even when the Copy Deck tab has never
-// been opened. Self-initializes from localStorage, falling back to the defaults.
+// been opened. Self-initializes from localStorage; a first run starts empty (Adrian 2026-10-22:
+// nothing the user didn't create), and the starters are added only on request ("Add starter
+// messages", snippetMigration.restoreStarterOutreach).
 import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
 
@@ -58,10 +60,10 @@ const DEFAULTS: Snippet[] = [
 export const STARTER_SNIPPETS: readonly Snippet[] = DEFAULTS;
 
 function load(): Snippet[] {
-  let arr: Snippet[] = DEFAULTS;
+  let arr: Snippet[] = [];
   try {
     const r = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (Array.isArray(r) && r.length) arr = r.map((s: Snippet) => ({ ...s, id: s.id || newId() }));
+    if (Array.isArray(r)) arr = r.map((s: Snippet) => ({ ...s, id: s.id || newId() }));
   } catch {
     /* ignore */
   }
