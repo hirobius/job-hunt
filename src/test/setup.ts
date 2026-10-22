@@ -1,5 +1,6 @@
 import { beforeEach } from 'vitest';
 import { resetPipelineView } from '../pipelineView';
+import { closeExportLinks } from '../exportLinks';
 import { closeFollowUp } from '../followUpFlow';
 import '@testing-library/jest-dom/vitest';
 
@@ -11,6 +12,8 @@ beforeEach(resetPipelineView);
 
 // The follow-up dialog's open job is in-memory too: no test starts with it open.
 beforeEach(closeFollowUp);
+// …and so is the Export links dialog's scope.
+beforeEach(closeExportLinks);
 
 // HDS Toast (Radix) captures the pointer for swipe-to-dismiss when its actions are clicked; jsdom
 // has no pointer capture.

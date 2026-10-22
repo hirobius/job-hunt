@@ -1,10 +1,11 @@
 import { Fragment, useMemo, useRef, useState } from 'react';
-import { Search, Briefcase, ChevronDown, Plus } from 'lucide-react';
+import { Search, Briefcase, ChevronDown, Download, MoreHorizontal, Plus } from 'lucide-react';
 import {
   Button as UiButton,
   Input as HdsInput,
   Menu as HdsMenu,
   Dialog,
+  Icon,
   Box,
   Stack,
   Text,
@@ -34,6 +35,7 @@ import { PipelineLiveness } from './LivenessViews';
 import { RecentlyRemovedLink } from './RecentlyRemoved';
 import { useTrash } from './trash';
 import { navigate } from './route';
+import { openExportLinks } from './exportLinks';
 
 // The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
 // chevron right. HDS Button has no stretch or alignment prop.
@@ -68,6 +70,8 @@ export default function TrackerView() {
   const addOpener = useRef<HTMLElement | null>(null);
   // A sortable table where there's room for its six columns; compact cards below that (#129).
   const wide = useAtLeast('lg');
+  // Export links sits beside Status and Sort; on a phone it folds into a ⋯ menu so they keep room.
+  const roomy = useAtLeast('sm');
 
   const shown = useMemo(() => visibleJobs(jobs, view), [jobs, view]);
   const sortDef = SORTS.find((s) => s.key === sort);
@@ -238,6 +242,31 @@ export default function TrackerView() {
                         </HdsMenu.RadioGroup>
                       </HdsMenu.Content>
                     </HdsMenu>
+                    {roomy ? (
+                      <UiButton
+                        variant="tertiary"
+                        iconLeft={<Icon icon={Download} />}
+                        onClick={() => openExportLinks('view')}
+                      >
+                        Export links
+                      </UiButton>
+                    ) : (
+                      <HdsMenu modal={false}>
+                        <HdsMenu.Trigger asChild>
+                          <UiButton
+                            variant="secondary"
+                            iconOnly
+                            iconLeft={<Icon icon={MoreHorizontal} />}
+                            label="More job actions"
+                          />
+                        </HdsMenu.Trigger>
+                        <HdsMenu.Content align="end">
+                          <HdsMenu.Item onSelect={() => openExportLinks('view')}>
+                            Export links
+                          </HdsMenu.Item>
+                        </HdsMenu.Content>
+                      </HdsMenu>
+                    )}
                   </Stack>
                   {/* Liveness sits with the list it checks: one caption-sized row under the
                       toolbar, never above the page title. */}
