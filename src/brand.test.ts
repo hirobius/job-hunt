@@ -40,3 +40,20 @@ describe('brand (#55)', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('brand in public/ (static files, no build step)', () => {
+  const PUBLIC = resolve(SRC, '../public');
+  const textFiles = readdirSync(PUBLIC).filter((n) => /\.(svg|webmanifest|txt|js|json)$/.test(n));
+
+  it('no public file carries the old name', () => {
+    const offenders = textFiles.filter((n) =>
+      /Apply Board/.test(readFileSync(join(PUBLIC, n), 'utf8')),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('the favicon is named after the product', () => {
+    const svg = readFileSync(join(PUBLIC, 'favicon.svg'), 'utf8');
+    expect(/aria-label="([^"]*)"/.exec(svg)?.[1]).toBe(BRAND.name);
+  });
+});
