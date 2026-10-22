@@ -10,6 +10,11 @@ const openSignIn = async (page: Page) => {
   return page.getByRole('dialog', { name: 'Sign in' });
 };
 
+// Company logos come from a third-party icon host; tests never reach it (letters show).
+test.beforeEach(async ({ context }) => {
+  await context.route('https://icons.duckduckgo.com/**', (r) => r.abort());
+});
+
 test('phone with the keyboard up: field and button sit above it', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 400 });
   const dialog = await openSignIn(page);

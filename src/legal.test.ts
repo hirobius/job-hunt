@@ -23,8 +23,15 @@ const connectSrc = (): string[] => {
   const csp = vercel.headers
     .flatMap((h) => h.headers)
     .find((h) => h.key === 'Content-Security-Policy')!.value;
-  const part = csp.split(';').find((p) => p.trim().startsWith('connect-src'))!;
-  return part.trim().split(/\s+/).slice(1);
+  const hosts = (directive: string) =>
+    csp
+      .split(';')
+      .find((p) => p.trim().startsWith(directive))!
+      .trim()
+      .split(/\s+/)
+      .slice(1);
+  // Every origin the browser may contact: fetches (connect-src) and the logo images (img-src).
+  return [...hosts('connect-src'), ...hosts('img-src').filter((h) => h.startsWith('https:'))];
 };
 
 describe('legal pages (#43)', () => {

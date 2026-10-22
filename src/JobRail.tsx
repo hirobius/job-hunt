@@ -17,6 +17,7 @@ import { NavListActionItem } from './hds-gaps/NavListActionItem';
 import { FILTER_LABEL, setPipelineView, usePipelineView, visibleJobs } from './pipelineView';
 import type { Job } from './types';
 import './JobRail.css';
+import CompanyLogo from './CompanyLogo';
 
 function RowBody({ job }: { job: Job }) {
   const v = rowView(job);
@@ -29,11 +30,16 @@ function RowBody({ job }: { job: Job }) {
           {v.title}
         </Text>
       </Box>
-      {v.factLines.map((line, i) => (
-        <Text key={i} variant="caption" as="span" tone="secondary">
-          {line}
-        </Text>
-      ))}
+      <Stack direction="row" gap="px8" align="center">
+        {job.company && <CompanyLogo company={job.company} addresses={[job.url]} />}
+        <Stack>
+          {v.factLines.map((line, i) => (
+            <Text key={i} variant="caption" as="span" tone="secondary">
+              {line}
+            </Text>
+          ))}
+        </Stack>
+      </Stack>
     </Stack>
   );
 }

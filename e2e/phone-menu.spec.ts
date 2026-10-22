@@ -3,6 +3,12 @@ import { test, expect } from '@playwright/test';
 // A long row menu on a phone (44px items) must fit a 390px screen with the page scroll-locked, so
 // Remove, the last item, can be reached. HDS Menu caps its own height since 0.28 (hds#821; the
 // base.css stand-in is gone); this holds it.
+
+// Company logos come from a third-party icon host; tests never reach it (letters show).
+test.beforeEach(async ({ context }) => {
+  await context.route('https://icons.duckduckgo.com/**', (r) => r.abort());
+});
+
 test.use({ viewport: { width: 390, height: 844 } });
 
 test('a row menu on a phone fits the screen and its last item can be clicked', async ({ page }) => {

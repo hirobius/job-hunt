@@ -20,6 +20,7 @@ import { foldRoles } from './feed/roleType';
 import { SOURCE_LABEL } from './feed/types';
 import { Panel, PanelBody, PanelRow } from './PipelinePanel';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
+import CompanyLogo from './CompanyLogo';
 
 type Checked = { roles: Role[]; fresh: Set<string> } | 'unknown';
 
@@ -186,22 +187,25 @@ function DreamRow({
       {/* Compact density's "xs" is 2px: 12 to the roles, 8 between actions. */}
       <Stack gap="px12">
         <Stack direction="row" gap="px8" align="center" justify="space-between" wrap="wrap">
-          <Stack gap="px4">
-            <Text variant="ui" as="span">
-              {d.website ? (
-                <InlineLink href={d.website} externalIcon={false}>
-                  {d.company}
-                </InlineLink>
-              ) : (
-                d.company
-              )}
-            </Text>
-            {/* The companies list's caption: "Greenhouse · 3 matching roles". */}
-            <Text variant="caption" tone="secondary">
-              {d.board
-                ? `${SOURCE_LABEL[d.board.kind]} · ${lower(statusLine(d, checked, read))}`
-                : statusLine(d, checked, read)}
-            </Text>
+          <Stack direction="row" gap="px12" align="center">
+            <CompanyLogo company={d.company} addresses={[d.website]} />
+            <Stack gap="px4">
+              <Text variant="ui" as="span">
+                {d.website ? (
+                  <InlineLink href={d.website} externalIcon={false}>
+                    {d.company}
+                  </InlineLink>
+                ) : (
+                  d.company
+                )}
+              </Text>
+              {/* The companies list's caption: "Greenhouse · 3 matching roles". */}
+              <Text variant="caption" tone="secondary">
+                {d.board
+                  ? `${SOURCE_LABEL[d.board.kind]} · ${lower(statusLine(d, checked, read))}`
+                  : statusLine(d, checked, read)}
+              </Text>
+            </Stack>
           </Stack>
           <Stack direction="row" gap="px8" align="center">
             {!d.board && (

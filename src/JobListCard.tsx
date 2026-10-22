@@ -15,6 +15,7 @@ import { JobPostingTitle } from './PostingLink';
 import { shortDate } from './metaLines';
 import { savedAgo } from './jobState';
 import type { Job } from './types';
+import CompanyLogo from './CompanyLogo';
 
 export default function JobListCard({ job }: { job: Job }) {
   const titleId = useId();
@@ -52,9 +53,12 @@ export default function JobListCard({ job }: { job: Job }) {
                 </Text>
               </JobPostingTitle>
               {job.company && (
-                <Text variant="ui" as="p">
-                  {job.company}
-                </Text>
+                <Stack direction="row" gap="px8" align="center">
+                  <CompanyLogo company={job.company} addresses={[job.url]} />
+                  <Text variant="ui" as="p">
+                    {job.company}
+                  </Text>
+                </Stack>
               )}
             </Stack>
             {facts.length > 0 && <Card.Facts items={facts} className="p-0" />}

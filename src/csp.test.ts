@@ -79,6 +79,10 @@ describe('content security policy', () => {
     expect(src('connect-src')).toContain(host);
   });
 
+  it('loads images from the app, data: URIs and DuckDuckGo’s icon service (company logos)', () => {
+    expect(src('img-src')).toEqual(["'self'", 'data:', 'https://icons.duckduckgo.com']);
+  });
+
   it('lets cloud sync reach Supabase over https and wss', () => {
     const origin = new URL(SUPABASE_URL).origin;
     expect(src('connect-src')).toContain(origin);
