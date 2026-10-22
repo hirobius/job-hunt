@@ -16,6 +16,7 @@ import { STARTER_PACKS } from './curation/starterPacks';
 import type { Category } from './curation/types';
 import { contextLabel, useTrackContext } from './discoverContext';
 import LocationControl from './LocationControl';
+import { useBackSheet } from './useBackCloses';
 
 export default function DiscoverHeader({
   categories,
@@ -36,6 +37,10 @@ export default function DiscoverHeader({
   // Packs the user can pull in as a ready-made track (the explicit "Blank track" item is separate),
   // so an existing user can add e.g. the ServiceNow track any time, not only at first run.
   const packs = STARTER_PACKS.filter((p) => p.id !== 'blank');
+  // The browser's Back closes an open menu or the popover and stays on the page (return paths).
+  const switchSheet = useBackSheet('switch-track');
+  const whereSheet = useBackSheet('where');
+  const newTrackSheet = useBackSheet('new-track');
   return (
     <Box sx={{ mb: 'sm' }}>
       {/* tight: room for the Change link's 40px hit area, which overhangs its line. */}
@@ -49,7 +54,7 @@ export default function DiscoverHeader({
             categories.length > 1 ? (
               // Two tracks or more: the title is the switcher (rev-3 G), so the page keeps two
               // nav levels (top tabs, then the tool switch) and never names the track twice.
-              <HdsMenu>
+              <HdsMenu {...switchSheet}>
                 <HdsMenu.Trigger asChild>
                   <Button
                     variant="tertiary"
@@ -80,7 +85,7 @@ export default function DiscoverHeader({
             // span, not a Stack div): "where · Change".
             <Text variant="caption" as="span" tone="secondary">
               {`${contextLabel(where, mode)} · `}
-              <Popover>
+              <Popover {...whereSheet}>
                 <Popover.Trigger asChild>
                   {/* An inline underlined link in the sentence (rev-3 mock), not a padded button:
                       `.rjb-inline-link` in base.css. Its 40px hit area overhangs the line. */}
@@ -109,7 +114,7 @@ export default function DiscoverHeader({
           <Button size="md" variant="secondary" onClick={onManage}>
             Manage track
           </Button>
-          <HdsMenu>
+          <HdsMenu {...newTrackSheet}>
             <HdsMenu.Trigger asChild>
               <Button
                 size="md"

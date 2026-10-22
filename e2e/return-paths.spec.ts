@@ -87,6 +87,33 @@ for (const width of [390, 1440] as const) {
       await expect(page).not.toHaveURL(/#\/queue\//);
     });
 
+    test('a job that leaves the list on the way (Mark applied): Back lands at the list end at once, and a scroll then starts there', async ({
+      page,
+    }) => {
+      // The default Active filter: Mark applied takes the job out of the list, so the page comes
+      // back one row shorter and never grows back to where it was.
+      await go(page, '#/queue');
+      await atBottom(page);
+      await page.waitForTimeout(400);
+      const before = await scrollY(page);
+      expect(before).toBeGreaterThan(300);
+      const last = jobsPanel(page).locator('a[href^="#/queue/"]').last();
+      const title = (await last.textContent())!.trim();
+      await last.click();
+      await expect(page.getByRole('heading', { level: 2, name: title })).toBeVisible();
+      await page.getByRole('button', { name: 'Mark applied' }).first().click();
+      await page.goBack();
+      await expect(page).toHaveURL(/#\/queue$/);
+      await page.waitForTimeout(500);
+      const y = await scrollY(page);
+      expect(y).toBeGreaterThan(before - 400);
+      // The user scrolls right away: from there, not from the top.
+      await page.mouse.move(width / 2, 400);
+      await page.mouse.wheel(0, -50);
+      await page.waitForTimeout(600);
+      expect(await scrollY(page)).toBeGreaterThan(before - 450);
+    });
+
     test('a job and its Company page each name the other on their Back', async ({ page }) => {
       // A job opened from the Company page goes back to the Company, at every width.
       await go(page, '#/company/larkspur-analytics');
@@ -168,9 +195,20 @@ for (const width of [390, 1440] as const) {
     test('Live postings: Back to companies lands on the More ways panel again', async ({
       page,
     }) => {
+      // The watched boards answer late (here: refused after a while), as a real board read
+      // can: the rows reorder as each one answers, well after the way back has landed.
+      await page.route(
+        /^https?:\/\/(boards-api\.greenhouse\.io|api\.(eu\.)?lever\.co|api\.ashbyhq\.com)\//,
+        async (r) => {
+          await new Promise((done) => setTimeout(done, 900));
+          await r.abort().catch(() => {});
+        },
+      );
+      const checking = page.getByText(/checking open roles/);
       await go(page, '#/discover/teams');
       const more = page.getByRole('region', { name: 'More ways to find companies' });
       // The company rows read their boards on arrival: let them finish before measuring.
+      await expect(checking).toHaveCount(0, { timeout: 20_000 });
       await settled(page);
       await more.scrollIntoViewIfNeeded();
       await settled(page);
@@ -179,22 +217,80 @@ for (const width of [390, 1440] as const) {
       await expect(page).toHaveURL(/#\/discover\/live$/);
       await page.getByRole('link', { name: 'Back to companies' }).click();
       await expect(page).toHaveURL(/#\/discover\/teams$/);
-      // The panel is back where it was on screen, once the rows above it have loaded again.
-      await expect.poll(() => topOf(more), { timeout: 6000 }).toBeGreaterThan(before - 6);
-      await expect.poll(() => topOf(more), { timeout: 6000 }).toBeLessThan(before + 6);
+      // The panel is back where it was on screen, once the rows above it have loaded again, and
+      // stays there while the rows read their boards again and reorder as they answer.
+      const holds = async () => {
+        await expect.poll(() => topOf(more), { timeout: 6000 }).toBeGreaterThan(before - 6);
+        await expect.poll(() => topOf(more), { timeout: 6000 }).toBeLessThan(before + 6);
+        await expect(checking).toHaveCount(0, { timeout: 20_000 });
+        await page.waitForTimeout(300);
+        expect(Math.abs((await topOf(more)) - before)).toBeLessThan(6);
+      };
+      await holds();
+      // Check a list, then the browser's Back: the same.
+      await more.getByRole('link', { name: 'Open Check a list of companies' }).click();
+      await expect(page).toHaveURL(/#\/discover\/boards$/);
+      await page.goBack();
+      await expect(page).toHaveURL(/#\/discover\/teams$/);
+      await holds();
       // A pop: the browser's Back leaves Companies instead of reopening Live postings.
       await page.goBack();
       await expect(page).not.toHaveURL(/#\/discover\/live$/);
     });
 
     test('the browser Back closes a sheet and keeps the page under it', async ({ page }) => {
+      // Every sheet opens over a page with another page behind it, so leaving would have
+      // somewhere to go (the review walk: Companies behind the Pipeline).
+      const closesOnBack = async (sheet: Locator, url: RegExp) => {
+        await expect(sheet).toBeVisible();
+        await page.goBack();
+        await expect(sheet).toHaveCount(0);
+        await expect(page).toHaveURL(url);
+        await page.waitForTimeout(300);
+        await expect(page).toHaveURL(url);
+      };
+      await go(page, '#/discover/apply');
       await go(page, '#/queue');
+      const queue = /#\/queue$/;
       await page.getByRole('button', { name: 'Add job' }).click();
       await page.getByLabel('Job URL').fill('https://example.com/jobs/typed');
-      await page.goBack();
-      await expect(page.getByRole('dialog')).toHaveCount(0);
-      await expect(page).toHaveURL(/#\/queue$/);
+      await closesOnBack(page.getByRole('dialog'), queue);
       await expect(page.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeVisible();
+
+      // Sign in, picked from the Account menu (whose own entry is popped as it closes), typed in.
+      await page.getByRole('button', { name: /^Account/ }).click();
+      await page.getByRole('menuitem', { name: 'Sign in to sync…' }).click();
+      const signIn = page.getByRole('dialog', { name: 'Sign in' });
+      await signIn.getByLabel('Email').fill('typed@example.com');
+      await closesOnBack(signIn, queue);
+
+      // A row's menu, the Status filter, and Recently removed.
+      const firstTitle = (await jobsPanel(page)
+        .locator('a[href^="#/queue/"]')
+        .first()
+        .textContent())!.trim();
+      await page
+        .getByRole('button', { name: `More actions: ${firstTitle}` })
+        .first()
+        .click();
+      await closesOnBack(page.getByRole('menu'), queue);
+      await page.getByRole('button', { name: /^Status:/ }).click();
+      await closesOnBack(page.getByRole('menu'), queue);
+      await page
+        .getByRole('button', { name: `More actions: ${firstTitle}` })
+        .first()
+        .click();
+      await page.getByRole('menuitem', { name: 'Remove' }).click();
+      await page.getByRole('button', { name: /^Recently removed/ }).click();
+      await closesOnBack(page.getByRole('dialog', { name: 'Recently removed' }), queue);
+
+      // Companies: where and how you want to work.
+      await go(page, '#/discover/ats');
+      await page.getByRole('button', { name: /^Change where:/ }).click();
+      await closesOnBack(
+        page.getByRole('dialog', { name: 'Where and how you want to work' }),
+        /#\/discover\/ats$/,
+      );
     });
 
     // Review blockers (2026-10-22): Remove, Delete and double clicks each navigated twice, landing
@@ -236,9 +332,9 @@ for (const width of [390, 1440] as const) {
       await expect(page.getByRole('heading', { level: 2, name: lastTitle })).toBeVisible();
       await removeOpenJob(lastTitle);
       await expect(page).toHaveURL(/#\/queue$/);
-      // One row shorter, so the page may clamp a little; never back at the top.
-      await expect.poll(() => scrollY(page), { timeout: 4000 }).toBeGreaterThan(before - 400);
-      await page.waitForTimeout(600);
+      // One row shorter, so the page clamps a little, at once: never at the top while it waits.
+      await page.waitForTimeout(800);
+      expect(await scrollY(page)).toBeGreaterThan(before - 400);
       await expect(page).toHaveURL(/#\/queue$/);
 
       // Opened from Companies (a save notice's Open names it), with another tool behind it: Remove

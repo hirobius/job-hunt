@@ -1,13 +1,14 @@
 // Recently removed (src/trash.ts) in the UI: the quiet link under the Pipeline list that opens
 // the list of removed jobs, each with its posting link, Restore and Delete forever. The Undo after
 // a Remove is a save notice (saveNotice.removeWithUndo), so it never stacks with another notice.
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { Box, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
 import { deleteForever, TRASH_DAYS, useTrash, type Removed } from './trash';
 import { restoreWithNotice } from './saveNotice';
 import { JobPostingLink } from './PostingLink';
+import { useBackSheet } from './useBackCloses';
 
 const daysAgo = (iso: string, now = Date.now()) => {
   const d = Math.floor((now - Date.parse(iso)) / 86_400_000);
@@ -58,10 +59,17 @@ function RemovedRow({ entry }: { entry: Removed }) {
 /** The quiet link under the Pipeline list; nothing when the trash is empty. */
 export function RecentlyRemovedLink() {
   const trash = useTrash();
-  const [open, setOpen] = useState(false);
-  if (trash.length === 0) return null;
+  // The browser's Back closes it (return paths); emptied (the last one restored or deleted), it
+  // closes too, so its entry goes with it.
+  const sheet = useBackSheet('recently-removed');
+  const empty = trash.length === 0;
+  const { onOpenChange } = sheet;
+  useEffect(() => {
+    if (empty) onOpenChange(false);
+  }, [empty, onOpenChange]);
+  if (empty) return null;
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog {...sheet}>
       <Dialog.Trigger asChild>
         <Button size="sm" variant="tertiary">
           {`Recently removed (${trash.length})`}

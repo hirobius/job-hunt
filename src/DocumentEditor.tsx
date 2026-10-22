@@ -50,6 +50,7 @@ import { copyFilled } from './templateCopy';
 import { metaLines } from './metaLines';
 import { BlanksLeft, WithChips } from './BlankText';
 import { scrollToTop } from './scrollMemory';
+import { useBackCloses, useBackSheet } from './useBackCloses';
 
 const NO_JOB = 'none';
 const FULL = { width: '100%' } as const;
@@ -97,6 +98,9 @@ export default function DocumentEditor({
     setSeen(saved);
   }
   const [confirming, setConfirming] = useState(false);
+  // The browser's Back closes the menu or the confirm and stays on the page (return paths).
+  const menu = useBackSheet('document-menu');
+  useBackCloses(confirming, () => setConfirming(false), 'document-delete');
   // Opened from a scrolled list, the editor starts at its head (like JobPage and ApplyMode).
   useEffect(() => {
     scrollToTop();
@@ -154,7 +158,7 @@ export default function DocumentEditor({
       )}
       {doc && (
         // Not modal: a modal menu and the confirm dialog both lock body pointer events (#132).
-        <Menu modal={false}>
+        <Menu modal={false} {...menu}>
           <Menu.Trigger asChild>
             <Button
               variant="secondary"
@@ -296,6 +300,7 @@ function OutreachText({
   const jobs = useJobs();
   const kitName = useApplyKit().fields.name;
   const [fillFor, setFillFor] = useState<string | null>(null);
+  const insertMenu = useBackSheet('insert-variable');
   const job = jobs.find((j) => j.url === fillFor);
   const filled = fillSnippet({ body: value, values }, job, kitName);
   const names = templateVariables(value);
@@ -373,7 +378,7 @@ function OutreachText({
               <HdsTooltip.Content>{c.hint}</HdsTooltip.Content>
             </HdsTooltip>
           ))}
-          <Menu>
+          <Menu {...insertMenu}>
             <Menu.Trigger asChild>
               {/* A chip like the variables beside it (rev-3 mock). */}
               <Tag>

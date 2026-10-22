@@ -8,6 +8,7 @@ import { Form } from '@hirobius/design-system/patterns';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
 import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
+import { useBackCloses } from '../useBackCloses';
 import './sheet.css';
 import './SignInDialog.css';
 
@@ -83,6 +84,8 @@ export default function SignInDialog() {
       setFieldError(null);
     }
   };
+  // The browser's Back closes it and stays on the page (return paths).
+  useBackCloses(signInOpen, () => onOpenChange(false), 'sign-in');
 
   return (
     <Dialog open={signInOpen} onOpenChange={onOpenChange}>

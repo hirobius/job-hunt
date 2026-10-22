@@ -30,6 +30,7 @@ export default function AccountMenu() {
   // Controlled, so the browser's Back closes the open menu instead of leaving the page.
   const [open, setOpen] = useState(false);
   useBackCloses(open, () => setOpen(false), 'account-menu');
+  useBackCloses(resetting, () => setResetting(false), 'reset-local-data');
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   /** Run an item that opens a dialog; the dialog gives focus back to this trigger on close. */
   const opensDialog = (open: () => void) => () => {

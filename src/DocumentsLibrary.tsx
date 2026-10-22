@@ -47,6 +47,7 @@ import { metaLines } from './metaLines';
 import { rowChips, templateVariables } from './templateEditor';
 import { copyFilled } from './templateCopy';
 import { highlightNew, useHighlight } from './feedback';
+import { useBackCloses, useBackSheet } from './useBackCloses';
 
 const PLURAL: Record<DocumentKind, string> = {
   resume: 'Résumés',
@@ -256,6 +257,9 @@ function DocumentRow({
 }) {
   const { toast } = useToast();
   const [confirming, setConfirming] = useState(false);
+  // The browser's Back closes the menu or the confirm and stays on the page (return paths).
+  const menu = useBackSheet(`doc-menu:${doc.id}`);
+  useBackCloses(confirming, () => setConfirming(false), `doc-delete:${doc.id}`);
   // The clock for "edited 3d ago", read once when the row mounts.
   const [now] = useState(() => Date.now());
   const text = latest(doc);
@@ -342,7 +346,7 @@ function DocumentRow({
                   Open
                 </Button>
               </Stack>
-              <Menu modal={false}>
+              <Menu modal={false} {...menu}>
                 <Menu.Trigger asChild>
                   <Button
                     variant="secondary"

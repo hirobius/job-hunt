@@ -24,6 +24,7 @@ import { primaryAction, rowView, titleOf } from './jobRow';
 import { normStatus } from './jobState';
 import { researchLinks } from './jobFacts';
 import { STATUSES, type Job, type Status } from './types';
+import { useBackSheet } from './useBackCloses';
 
 /** Controls on a phone card are 40px tap targets; the denser table uses the small size. */
 type Size = 'sm' | 'md';
@@ -177,8 +178,10 @@ export function RowMenu({
   const toggleStar = useToggleStar();
   // The row the menu sits in, for its feedback: a flash on a change, a collapse on Remove.
   const anchor = useRef<HTMLButtonElement>(null);
+  // The browser's Back closes the open menu and stays on the page (return paths).
+  const sheet = useBackSheet(`job-menu:${job.url}`);
   return (
-    <Menu>
+    <Menu {...sheet}>
       <Menu.Trigger asChild>
         {/* A bordered 40px button on a phone card (rev-3 mock); quiet in the dense table. */}
         <Button

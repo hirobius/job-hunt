@@ -30,6 +30,7 @@ import { notifySaved } from './saveNotice';
 import { liveness } from './livenessStore';
 import { getRoute, subscribeScrollRestore } from './route';
 import { getAllDocuments } from './documents';
+import { trashJob } from './trash';
 import { rememberSignInReturn, returnAfterSignIn, takeSignInReturn } from './account/signInReturn';
 
 const A = 'https://acme.example/jobs/1';
@@ -319,6 +320,99 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     window.history.back();
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     expect(window.location.hash).toBe('#/queue');
+  });
+
+  // Review blockers (2026-10-22): these left the page on Back, the sheet still open over the page
+  // behind. Each one starts with a page behind it, so leaving would have somewhere to go.
+  async function over(first: string, hash: string) {
+    window.location.hash = first;
+    renderApp();
+    await at(first);
+    await new Promise((r) => setTimeout(r, 50));
+    window.location.hash = hash;
+    await at(hash);
+  }
+  const closesOnBack = async (sheet: () => HTMLElement | null, hash: string) => {
+    await waitFor(() => expect(sheet()).not.toBeNull());
+    window.history.back();
+    await waitFor(() => expect(sheet()).toBeNull());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(window.location.hash).toBe(hash);
+  };
+
+  it('Sign in, picked from the Account menu, with an email typed', async () => {
+    await over('#/discover/apply', '#/queue');
+    await userEvent.click(await screen.findByRole('button', { name: /^Account/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign in to sync…' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Sign in' });
+    await userEvent.type(within(dialog).getByLabelText('Email'), 'typed@example.com');
+    // The Account menu's own entry is popped as it closes; the dialog gets one after that.
+    await new Promise((r) => setTimeout(r, 50));
+    await closesOnBack(() => screen.queryByRole('dialog', { name: 'Sign in' }), '#/queue');
+    // No step left behind by the menu: the next Back leaves the page.
+    window.history.back();
+    await at('#/discover/apply');
+  });
+
+  it('a sheet over a sheet: Back closes the top one; closing both leaves no step behind', async () => {
+    seedPack('consulting');
+    await over('#/queue', '#/discover/ats');
+    const manage = () => screen.queryByRole('dialog', { name: 'Manage track' });
+    const confirm = () => screen.queryByRole('alertdialog', { name: 'Delete this track?' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Manage track' }));
+    await waitFor(() => expect(manage()).not.toBeNull());
+    await userEvent.click(within(manage()!).getByRole('button', { name: 'Delete track' }));
+    await closesOnBack(confirm, '#/discover/ats');
+    expect(manage()).not.toBeNull();
+    await closesOnBack(manage, '#/discover/ats');
+    // Delete track closes the confirm and Manage track together: one Back then leaves the page.
+    await userEvent.click(await screen.findByRole('button', { name: 'Manage track' }));
+    await waitFor(() => expect(manage()).not.toBeNull());
+    await userEvent.click(within(manage()!).getByRole('button', { name: 'Delete track' }));
+    await waitFor(() => expect(confirm()).not.toBeNull());
+    await userEvent.click(within(confirm()!).getByRole('button', { name: 'Delete track' }));
+    await waitFor(() => expect(manage()).toBeNull());
+    await new Promise((r) => setTimeout(r, 80));
+    expect(window.location.hash).toBe('#/discover/ats');
+    window.history.back();
+    await at('#/queue');
+  });
+
+  it("Companies' where and how you want to work", async () => {
+    seedPack('consulting');
+    await over('#/discover/apply', '#/discover/ats');
+    await userEvent.click(await screen.findByRole('button', { name: /^Change where: / }));
+    await closesOnBack(
+      () => screen.queryByRole('dialog', { name: 'Where and how you want to work' }),
+      '#/discover/ats',
+    );
+  });
+
+  it('Recently removed', async () => {
+    addJob(B, 'Welder');
+    trashJob(B);
+    await over('#/discover/apply', '#/queue');
+    await userEvent.click(await screen.findByRole('button', { name: /^Recently removed/ }));
+    await closesOnBack(() => screen.queryByRole('dialog', { name: 'Recently removed' }), '#/queue');
+  });
+
+  it("a row's More actions menu", async () => {
+    await over('#/discover/apply', '#/queue');
+    await userEvent.click(
+      (await screen.findAllByRole('button', { name: 'More actions: Fabricator' }))[0],
+    );
+    await closesOnBack(() => screen.queryByRole('menu'), '#/queue');
+  });
+
+  it("Remove from a job page opened on its own: Back doesn't come back to the removed job", async () => {
+    await over('#/discover/apply', `#/queue/${idA}`);
+    await heading('Fabricator');
+    await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await at('#/queue');
+    await new Promise((r) => setTimeout(r, 80));
+    window.history.back();
+    await at('#/discover/apply');
   });
 
   it('closing it on screen leaves no extra step for Back', async () => {

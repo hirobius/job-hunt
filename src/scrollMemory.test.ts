@@ -72,6 +72,45 @@ describe('scroll memory', () => {
     await waitFor(() => expect(y).toBe(681));
   });
 
+  // Review blocker (2026-10-22): a Pipeline that came back one row shorter (the job was marked
+  // applied, removed or retired) never grows back to the old position. It used to sit at the top
+  // for the whole long wait, and a scroll in that time lost the row.
+  it('a page that came back shorter lands at its end as soon as it holds still', async () => {
+    window.location.hash = '#/queue';
+    await new Promise((r) => setTimeout(r, 10));
+    height = 4000;
+    await scrollBy(3200);
+    window.location.hash = '#/queue/last';
+    await new Promise((r) => setTimeout(r, 10));
+    await scrollBy(0);
+    height = 3600; // one row fewer: the most it can scroll is 2800
+    window.location.hash = '#/queue';
+    requestScrollRestore('#/queue');
+    await waitFor(() => expect(y).toBe(2800), { timeout: 700 });
+    // A row loading late still gets its room: the page grows, the position follows.
+    height = 4000;
+    await waitFor(() => expect(y).toBe(3200), { timeout: 700 });
+  });
+
+  it('holds the position while the browser moves it without the user (rows reordering)', async () => {
+    window.location.hash = '#/discover/teams';
+    await new Promise((r) => setTimeout(r, 10));
+    height = 3000;
+    await scrollBy(647);
+    window.location.hash = '#/discover/live';
+    await new Promise((r) => setTimeout(r, 10));
+    requestScrollRestore('#/discover/teams');
+    window.location.hash = '#/discover/teams';
+    await waitFor(() => expect(y).toBe(647));
+    // Rows reorder for a second without changing the page height; scroll anchoring follows one
+    // and moves the page each time.
+    for (let i = 0; i < 4; i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      y -= 77;
+    }
+    await waitFor(() => expect(y).toBe(647));
+  });
+
   it('a page never scrolled comes back at its top', async () => {
     window.location.hash = '#/legal/privacy';
     await new Promise((r) => setTimeout(r, 10));

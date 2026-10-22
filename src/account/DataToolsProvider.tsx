@@ -5,6 +5,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Button, Dialog, Stack, Text, useToast } from '@hirobius/design-system';
 import { returnFocus } from './returnFocus';
+import { useBackCloses } from '../useBackCloses';
 import {
   applyBackup,
   buildBackup,
@@ -80,6 +81,8 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<Backup | null>(null);
+  // The browser's Back closes the Restore dialog and stays on the page (return paths).
+  useBackCloses(pending !== null, () => setPending(null), 'restore-backup');
   const fail = (title: string, description: string) =>
     toast({ title, description, tone: 'danger', duration: 8000 });
 

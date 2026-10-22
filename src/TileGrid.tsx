@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { chunkMeta, metaLines } from './metaLines';
 import {
   Badge,
@@ -29,6 +30,7 @@ import { parseMeta, postedWindow, splitTileName, type MetaChip } from './tileMet
 import type { Tile } from './jobsData';
 import { parseBoardUrl } from './feed/sources/ats';
 import { httpUrl } from './feed/targets';
+import { useBackCloses } from './useBackCloses';
 
 // Tile kind, derived from the URL (issue #12): aggregator queries are "Search", Google
 // fallback leads are "Lead" (verify before relying), everything else is a direct
@@ -80,6 +82,9 @@ export default function TileGrid({
 }) {
   useJobs(); // re-render on save
   const { dismissed } = useTileTriage();
+  // One tile's Details open at a time; the browser's Back closes it and stays (return paths).
+  const [details, setDetails] = useState<string | null>(null);
+  useBackCloses(details !== null, () => setDetails(null), 'tile-details');
   const dismissedSet = new Set(dismissed);
   // Enriched save (issue #57): carry the tile name → label and its meta → note so the queue
   // card isn't a bare URL; the save notice says where it went and offers Open / Undo.
@@ -215,7 +220,12 @@ export default function TileGrid({
                 </Stack>
                 <Stack direction="row" gap="px8" align="center">
                   {more && (
-                    <Popover>
+                    <Popover
+                      open={details === t.url + t.name}
+                      onOpenChange={(o) =>
+                        setDetails((d) => (o ? t.url + t.name : d === t.url + t.name ? null : d))
+                      }
+                    >
                       <Popover.Trigger asChild>
                         <Button size="sm" variant="tertiary" className="rjb-quiet">
                           Details

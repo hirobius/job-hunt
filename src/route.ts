@@ -94,11 +94,16 @@ interface Entry {
   /** Set on an entry a sheet pushed: the sheet's id and what it needs to reopen as it was. */
   sheet?: string;
   data?: unknown;
+  /** The sheets open on this page, one entry each, bottom first (the last is `sheet`): a sheet over
+   *  a sheet (Delete track over Manage track). */
+  sheets?: string[];
 }
 const TRAIL_MAX = 12;
 let keySeq = 0;
 const newKey = () => `${Date.now().toString(36)}.${++keySeq}`;
 let entry: Entry | null = null;
+/** The sheets open on an entry's page, bottom first. */
+const sheetsOf = (e: Entry | null): string[] => (e?.sheet ? (e.sheets ?? [e.sheet]) : []);
 /** Pops this module asked the browser for (a sheet's entry, a Back to an earlier page) that
  *  haven't landed yet. A Back is single-flight: until its pop lands, the page on screen is the one
  *  being left, so a second Back (a double click, or a fallback effect in the same tick as a Remove)
@@ -270,6 +275,13 @@ export function navigate(
     afterPops.push(() => navigate(patch, replace, opts));
     return;
   }
+  const open = sheetsOf(entry);
+  if (open.length > 1) {
+    // From a sheet over a sheet: down to the first one's entry, which the page then replaces.
+    startPop(() => window.history.go(1 - open.length));
+    afterPops.push(() => navigate(patch, replace, opts));
+    return;
+  }
   const cur = getSnapshot();
   const next: Route = { ...cur, ...patch };
   // A job id belongs to the tab it was opened in: switching tabs without naming a job drops it.
@@ -308,6 +320,16 @@ export function goBackTo(target: Route | Route[]): void {
   }
   const h = buildHash(targets[0]);
   requestScrollRestore(h);
+  const open = sheetsOf(entry);
+  if (open.length) {
+    // Open sheets' entries (a menu item asked for this) sit on the page's own: drop them first, so
+    // the target takes the page's place and Back never lands on the page just left.
+    startPop(() => window.history.go(-open.length));
+    afterPops.push(() => {
+      if (h !== window.location.hash) replaceRoute(h);
+    });
+    return;
+  }
   if (h !== window.location.hash) replaceRoute(h);
 }
 
@@ -326,12 +348,15 @@ export function pushSheet(id: string, data?: unknown): void {
     hash: window.location.hash,
     sheet: id,
     data,
+    sheets: [...sheetsOf(cur), id],
   };
   window.history.pushState({ ...stateObject(), rjb: e }, '', window.location.href);
   entry = e;
 }
 /** The sheet whose entry is the current one, or null. */
 export const currentSheet = (): string | null => entry?.sheet ?? null;
+/** The sheets open on the current page (their entries are this one and those just under it). */
+export const openSheets = (): string[] => sheetsOf(entry);
 /** What the current sheet entry holds to reopen as it was. */
 export const currentSheetData = (): unknown => entry?.data;
 /** Update what an open sheet's entry holds (its pick changed). */
@@ -348,10 +373,26 @@ export function resetHistoryRecord(): void {
   writeEntry({ key: newKey(), trail: [], hash: window.location.hash });
 }
 
-/** A sheet closed on screen: pop its entry, so Back doesn't land on it. */
+/** A sheet closed on screen: pop its entry, so Back doesn't land on it, and the entries of any
+ *  sheet still over it (closed with it). With a pop in flight (a menu item went Back, a sheet over
+ *  this one closed first), it waits for that to land and pops what is left of it then. */
 export function popSheet(id: string): void {
-  if (entry?.sheet !== id) return;
-  startPop(() => window.history.back());
+  if (pendingBack > 0) {
+    afterPops.push(() => popSheet(id));
+    return;
+  }
+  const open = sheetsOf(entry);
+  const at = open.lastIndexOf(id);
+  if (at < 0) return;
+  const n = open.length - at;
+  startPop(() => (n === 1 ? window.history.back() : window.history.go(-n)));
+}
+
+/** Run `fn` once the pops in flight have landed (now, when there are none): a sheet that opens as
+ *  another closes (Sign in from the Account menu) pushes its entry after the menu's is popped. */
+export function afterBack(fn: () => void): void {
+  if (pendingBack > 0) afterPops.push(fn);
+  else fn();
 }
 
 /** Read the current route, re-rendering on any hash change. */

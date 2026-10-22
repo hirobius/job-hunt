@@ -2,8 +2,9 @@
 // coming back to it (browser Back or Forward, an in-app Back, a top tab reopening where it was)
 // lands where it was left. The browser's own restoration is turned off: it restores before the
 // page has re-rendered and clamps to the height of the page just left, so the row you opened ends
-// up off screen. Here the position comes back once the page is tall enough to hold it (or after
-// a short wait), and any touch, wheel or key press while waiting leaves the page where it is.
+// up off screen. Here the position comes back once the page is tall enough to hold it, or as far as
+// it goes once the page has stopped growing (a row left the list: the page came back shorter), and
+// any touch, wheel or key press while waiting leaves the page where it is.
 // Kept in sessionStorage, so a reload lands where it was too.
 import {
   buildHash,
@@ -16,12 +17,16 @@ import {
 
 const STORE_KEY = 'rjb_scroll';
 const MAX_PAGES = 60;
-/** How long a restore waits for the page to grow tall enough. */
+/** How long a restore waits for the page to grow tall enough, at most. */
 const WAIT_MS = 2500;
+/** A page shorter than the position that has held its height this long has stopped growing (a row
+ *  left the list): the restore goes as far as it can now instead of waiting out WAIT_MS. */
+const STILL_MS = 150;
 /** How long a restore asked for before its navigation waits for the hash to change. */
 const HASH_GRACE_MS = 500;
-/** Once reached, the position is held until the page height has been still this long (rows that
- *  load above it would otherwise push it down), or the wait runs out. */
+/** Once reached, the position is held until the page has been still this long (rows that load
+ *  above it would otherwise push it down, rows that reorder would drag it along through the
+ *  browser's scroll anchoring), or the wait runs out. */
 const SETTLE_MS = 400;
 
 const norm = (hash: string) => buildHash(parseHash(hash));
@@ -32,9 +37,12 @@ let pending: {
   y: number;
   asked: number;
   reveal?: string;
-  /** Once the position is reached: the page height last seen, and when it last changed. */
+  /** The page height last seen, and when it last changed (before the position is reached: is it
+   *  still growing?). */
   height?: number;
   changed?: number;
+  /** The position has been reached (or gone as far as the page allows): now it is held. */
+  holding?: boolean;
 } | null = null;
 let installed = false;
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -66,8 +74,10 @@ function save() {
 }
 
 function onScroll() {
-  if (pending) return; // a restore in progress: its steps are not the user's position
   const key = norm(window.location.hash);
+  // A restore in progress here: its steps are not the user's position. (One still waiting for its
+  // navigation is about another page.)
+  if (pending?.hash === key) return;
   positions.delete(key); // newest last, so the cap drops the oldest
   positions.set(key, window.scrollY);
   save();
@@ -119,23 +129,29 @@ function step() {
   const height = document.documentElement.scrollHeight;
   const max = Math.max(0, height - window.innerHeight);
   const to = Math.min(p.y, max);
-  if (p.changed === undefined) {
-    if (max >= p.y - 1 || now - p.asked > WAIT_MS) {
+  if (height !== p.height) {
+    p.height = height;
+    p.changed = now;
+  }
+  if (!p.holding) {
+    // Tall enough, or no longer growing (it came back shorter), or waited long enough: go.
+    const still = now - (p.changed ?? now) > STILL_MS;
+    if (max >= p.y - 1 || still || now - p.asked > WAIT_MS) {
       window.scrollTo(0, to);
-      p.height = height;
+      p.holding = true;
       p.changed = now;
     }
     raf(step);
     return;
   }
-  // Settling: the page grew or shrank (rows loading), or kept what was on screen in place by
-  // moving the scroll: put the position back.
-  if (height !== p.height) {
-    p.height = height;
+  // Holding: the page grew or shrank (rows loading), or the browser moved the scroll to keep what
+  // was on screen in place (scroll anchoring, rows above loading or reordering): put the position
+  // back, and hold on until the page has been still for a moment.
+  if (Math.abs(window.scrollY - to) > 1) {
+    window.scrollTo(0, to);
     p.changed = now;
   }
-  if (Math.abs(window.scrollY - to) > 1) window.scrollTo(0, to);
-  if (now - p.changed > SETTLE_MS || now - p.asked > 2 * WAIT_MS) pending = null;
+  if (now - (p.changed ?? now) > SETTLE_MS || now - p.asked > 2 * WAIT_MS) pending = null;
   else raf(step);
 }
 
