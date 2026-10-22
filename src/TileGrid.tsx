@@ -28,6 +28,7 @@ import { useTileTriage, toggleDismiss } from './tileTriage';
 import { parseMeta, postedWindow, splitTileName, type MetaChip } from './tileMeta';
 import type { Tile } from './jobsData';
 import { parseBoardUrl } from './feed/sources/ats';
+import { httpUrl } from './feed/targets';
 
 // Tile kind, derived from the URL (issue #12): aggregator queries are "Search", Google
 // fallback leads are "Lead" (verify before relying), everything else is a direct
@@ -59,9 +60,9 @@ const FACT_ICON = { pay: Banknote, place: MapPin, contact: Phone, posted: Calend
 type Fact = { kind: MetaChip['kind'] | 'posted'; text: string };
 
 /** Shared grid of link tiles (rev-3 H anatomy): the source with an icon and the kind badge on
- *  top, the title (two lines), the facts row with icons (where, and for a search how recent),
- *  then Save, Open and a quiet Set aside on one centre line. Saving floats the tile in its group
- *  (issue #13 — pin is retired); with `triage`, each tile gets a set-aside control. */
+ *  top, the title (two lines, a link out), the facts row with icons (where, and for a search how
+ *  recent), then Save, Open and a quiet Set aside on one centre line. Saving floats the tile in
+ *  its group (issue #13 — pin is retired); with `triage`, each tile gets a set-aside control. */
 export default function TileGrid({
   tiles,
   cta = 'Open',
@@ -140,8 +141,10 @@ export default function TileGrid({
                 </Box>
                 {kind && <Badge tone="neutral">{kind}</Badge>}
               </Stack>
+              {/* The title opens the page too, with the external-link icon (Adrian 2026-10-22):
+                  every unsaved listing's title is its link out (a web address only). */}
               <Text variant="body" as="h3" weight="bold" className="rjb-card-title" title={t.name}>
-                {title}
+                {httpUrl(t.url) ? <InlineLink href={t.url}>{title}</InlineLink> : title}
               </Text>
               {chips.length > 0 && (
                 <Stack gap="px4">

@@ -69,6 +69,21 @@ describe('Company page (#230)', () => {
     expect(screen.getByRole('heading', { name: 'Notes' })).toBeInTheDocument();
   });
 
+  it('each job row opens its posting in one tap from beside the title (Adrian 2026-10-22)', () => {
+    seedAcme();
+    render(<CompanyPage slug="acme" />);
+    const jobs = screen.getByRole('region', { name: 'Jobs' });
+    const posting = within(jobs).getByRole('link', {
+      name: 'Open posting for Design Engineer at Acme, Inc.',
+    });
+    expect(posting).toHaveAttribute('href', URL_A);
+    expect(posting).toHaveAttribute('target', '_blank');
+    expect(posting.closest('h4')).toBeNull();
+    expect(
+      within(jobs).getByRole('link', { name: 'Open posting for Staff Designer at ACME' }),
+    ).toHaveAttribute('href', URL_B);
+  });
+
   it('an empty Documents panel says so in one line', () => {
     addCompanyNote('Bolt', 'Keep in touch');
     render(<CompanyPage slug="bolt" />);

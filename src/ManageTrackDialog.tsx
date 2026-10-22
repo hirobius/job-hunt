@@ -10,9 +10,11 @@ import {
   Text,
   Stack,
   Disclosure,
+  InlineLink,
   useToast,
 } from '@hirobius/design-system';
 import { Plus, Trash2, X } from 'lucide-react';
+import { httpUrl } from './feed/targets';
 import {
   updateCategory,
   removeCategory,
@@ -143,8 +145,10 @@ function GroupEditor({ groupId }: { groupId: string }) {
           key={t.id}
         >
           <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+            {/* A link out, so a link can be checked before it is kept (Adrian 2026-10-22). One
+                typed without a scheme would open the app itself, so it stays text. */}
             <Text variant="caption" as="div">
-              {t.name}
+              {httpUrl(t.url) ? <InlineLink href={t.url}>{t.name}</InlineLink> : t.name}
             </Text>
           </Box>
           <Button

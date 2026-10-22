@@ -8,7 +8,7 @@ test('job page Documents: cover letter → 2 Versions → Sent → Download PDF'
   await page.getByRole('button', { name: 'Add job' }).click();
   await page.getByLabel('Job URL').fill('https://boards.greenhouse.io/acme/jobs/77');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await page.getByRole('link', { name: 'Acme · Greenhouse' }).click();
+  await page.getByRole('link', { name: 'Acme · Greenhouse', exact: true }).click();
 
   // Documents sit on Overview, behind one row: "Add a document" while there are none.
   // A job saved from a bare link opens with Details in edit, so scope to the Documents panel.

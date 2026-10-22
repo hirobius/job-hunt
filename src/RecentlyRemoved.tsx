@@ -1,12 +1,13 @@
 // Recently removed (src/trash.ts) in the UI: the quiet link under the Pipeline list that opens
-// the list of removed jobs, each with Restore and Delete forever. The Undo after a Remove is a
-// save notice (saveNotice.removeWithUndo), so it never stacks with another notice.
+// the list of removed jobs, each with its posting link, Restore and Delete forever. The Undo after
+// a Remove is a save notice (saveNotice.removeWithUndo), so it never stacks with another notice.
 import { useState } from 'react';
 import { Box, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
 import { deleteForever, TRASH_DAYS, useTrash, type Removed } from './trash';
 import { restoreWithNotice } from './saveNotice';
+import { JobPostingLink } from './PostingLink';
 
 const daysAgo = (iso: string, now = Date.now()) => {
   const d = Math.floor((now - Date.parse(iso)) / 86_400_000);
@@ -18,9 +19,13 @@ function RemovedRow({ entry }: { entry: Removed }) {
   return (
     <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
       <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <Text variant="ui" as="span" className="rjb-semibold">
-          {title}
-        </Text>
+        {/* A removed job has no page, but its posting is still one tap away. */}
+        <Stack direction="row" gap="px4" align="center">
+          <Text variant="ui" as="span" className="rjb-semibold">
+            {title}
+          </Text>
+          <JobPostingLink job={entry.job} />
+        </Stack>
         {metaLines([entry.job.company, daysAgo(entry.removedAt)]).map((line) => (
           <Text key={line} variant="caption" as="span" tone="secondary">
             {line}

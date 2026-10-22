@@ -15,6 +15,7 @@ import { JobBadges, RowPrimaryAction } from './JobRowParts';
 import { titleOf } from './jobRow';
 import { deriveJobState, savedAgo } from './jobState';
 import { Panel, PanelBody, PanelRow } from './PipelinePanel';
+import { JobPostingLink } from './PostingLink';
 import type { Job } from './types';
 
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
@@ -37,8 +38,8 @@ function jobMeta(job: Job): string {
   return d <= 0 ? 'Applied today' : `Applied ${d} ${d === 1 ? 'day' : 'days'} ago`;
 }
 
-/** One job, like a Pipeline card: badges above the title (the row's link, a 40px target), a meta
- *  line, and the one next step on the right. */
+/** One job, like a Pipeline card: badges above the title (the row's link, a 40px target) with the
+ *  posting's icon link beside it, a meta line, and the one next step on the right. */
 function CompanyJobRow({ job }: { job: Job }) {
   const meta = jobMeta(job);
   return (
@@ -47,11 +48,16 @@ function CompanyJobRow({ job }: { job: Job }) {
         <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
           <Stack gap="px4">
             <JobBadges job={job} />
-            <Text variant="body" as="h4" weight="bold" className="rjb-row-title">
-              <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
-                {titleOf(job)}
-              </InlineLink>
-            </Text>
+            <Stack direction="row" gap="px4" align="center">
+              <Box sx={{ minWidth: 0 }}>
+                <Text variant="body" as="h4" weight="bold" className="rjb-row-title">
+                  <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
+                    {titleOf(job)}
+                  </InlineLink>
+                </Text>
+              </Box>
+              <JobPostingLink job={job} />
+            </Stack>
             {meta && (
               <Text variant="caption" as="p" tone="secondary">
                 {meta}

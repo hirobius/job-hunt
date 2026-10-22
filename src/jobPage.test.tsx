@@ -78,6 +78,35 @@ describe('job page header and Overview (#130 slice 1)', () => {
     expect(within(header).getByRole('button', { name: /^More actions/ })).toBeInTheDocument();
   });
 
+  it('the header opens the posting in one tap from beside the title (Adrian 2026-10-22)', () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { company: 'Acme' });
+    openJobPage();
+    const header = screen
+      .getByRole('heading', { level: 2, name: 'Design Engineer' })
+      .closest('header') as HTMLElement;
+    const posting = within(header).getByRole('link', {
+      name: 'Open posting for Design Engineer at Acme',
+    });
+    expect(posting).toHaveAttribute('href', URL_A);
+    expect(posting).toHaveAttribute('target', '_blank');
+    // Beside the title, not inside the heading; the next step stays the header's one primary.
+    expect(posting.closest('h2')).toBeNull();
+    expect(within(header).getByRole('button', { name: /^Mark applied/ })).toBeInTheDocument();
+  });
+
+  it('a job that is only a URL still opens its posting from the header', () => {
+    addJob(URL_A);
+    openJobPage();
+    // Details opens as fields (no link fact), so the header is the one-tap way out.
+    expect(screen.getByRole('textbox', { name: 'Link' })).toBeInTheDocument();
+    const header = screen.getByRole('heading', { level: 2 }).closest('header') as HTMLElement;
+    expect(within(header).getByRole('link', { name: /^Open posting/ })).toHaveAttribute(
+      'href',
+      URL_A,
+    );
+  });
+
   it('the primary action is Follow up when one is due, and Mark applied is gone', () => {
     addJob(URL_A, 'Design Engineer');
     const d = new Date();
@@ -385,6 +414,23 @@ describe('job page remove (Recently removed)', () => {
     );
     expect(getAllJobs().map((j) => j.label)).toEqual(['Welder']);
     expect(screen.queryByRole('button', { name: /Recently removed/ })).toBeNull();
+  });
+
+  it('a removed job still opens its posting from Recently removed (Adrian 2026-10-22)', async () => {
+    addJob(URL_B, 'Welder');
+    replaceTrash([
+      {
+        job: { url: URL_A, label: 'Design Engineer', company: 'Acme', status: 'Saved' },
+        removedAt: new Date().toISOString(),
+      },
+    ]);
+    window.location.hash = '#/queue';
+    renderApp();
+    await userEvent.click(screen.getByRole('button', { name: 'Recently removed (1)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
+    expect(
+      within(dialog).getByRole('link', { name: 'Open posting for Design Engineer at Acme' }),
+    ).toHaveAttribute('href', URL_A);
   });
 });
 

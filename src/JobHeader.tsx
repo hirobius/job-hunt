@@ -1,7 +1,8 @@
 // The job page's header (#130; rev-3 mobile slice 2): Back, one badge row above the title (status,
-// a due follow-up, Closed, then fit), the title, company · location · applied date, then one row of
-// actions: the star, the job's one primary next step (it takes the row's room) and the menu of
-// everything else (Remove included). The same column at every width. Back goes to the Pipeline.
+// a due follow-up, Closed, then fit), the title with its posting link beside it, company ·
+// location · applied date, then one row of actions: the star, the job's one primary next step (it
+// takes the row's room) and the menu of everything else (Remove included). The same column at
+// every width. Back goes to the Pipeline.
 // An Interviewing job's primary is Add interview (opens the Interviews tab); a job with no next
 // step (Offer, Rejected, retired, applied and not yet due) has none, so Star and More sit together.
 import { ArrowLeft } from 'lucide-react';
@@ -11,6 +12,7 @@ import { shortDate } from './metaLines';
 import { primaryAction, titleOf } from './jobRow';
 import { openJob } from './route';
 import { JobBadges, RowMenu, RowPrimaryAction, StarButton } from './JobRowParts';
+import { JobPostingLink } from './PostingLink';
 import type { Job } from './types';
 
 /** "← Pipeline": a quiet link-like button back to the list. Its name says where it goes. */
@@ -57,9 +59,16 @@ export default function JobHeader({
         {showBack && <BackToPipeline />}
         <Stack gap="tight">
           <JobBadges job={job} />
-          <Text variant="title" as="h2">
-            {titleOf(job)}
-          </Text>
+          {/* The posting is one tap from the title (Adrian 2026-10-22), quiet beside it: the
+              header's one primary stays the next step. */}
+          <Stack direction="row" gap="px4" align="center">
+            <Box sx={{ minWidth: 0 }}>
+              <Text variant="title" as="h2">
+                {titleOf(job)}
+              </Text>
+            </Box>
+            <JobPostingLink job={job} size="md" />
+          </Stack>
           <MetaCaption
             items={[job.company?.trim(), job.location?.trim(), applied && `Applied ${applied}`]}
           />

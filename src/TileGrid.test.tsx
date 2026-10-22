@@ -66,13 +66,40 @@ describe('TileGrid cards (#12, #131)', () => {
   it('a search tile shows where and how recent as facts, with the place out of its title (rev-3 H)', () => {
     renderGrid();
     const c = card('LinkedIn · Implementation Consultant (Remote)');
-    expect(within(c).getByRole('heading', { name: 'Implementation Consultant' })).toBeVisible();
+    // The title is a link out, so its name ends with HDS's "(opens in new tab)"; no "(Remote)".
+    expect(
+      within(c).getByRole('heading', {
+        name: /^Implementation Consultant\s*\(opens in new tab\)$/,
+      }),
+    ).toBeVisible();
     expect(within(c).getByText('Remote')).toBeVisible();
     expect(within(c).getByText('Past week')).toBeVisible();
     expect(within(card('Indeed')).getByText('Any time')).toBeVisible();
     // Its note only restates the title: no Details.
     expect(within(c).queryByText(/onboarding roles/)).toBeNull();
     expect(within(c).queryByRole('button', { name: 'Details' })).toBeNull();
+  });
+
+  it('the title opens the page in a new tab, as Open does (Adrian 2026-10-22)', () => {
+    renderGrid();
+    const c = card('Travis Pattern & Foundry');
+    const title = within(within(c).getByRole('heading')).getByRole('link');
+    expect(title).toHaveAttribute('href', 'https://www.travispattern.com/');
+    expect(title).toHaveAttribute('target', '_blank');
+    expect(title.querySelector('svg')).not.toBeNull(); // the external-link icon
+    expect(within(c).getByRole('link', { name: /^Open / })).toHaveAttribute(
+      'href',
+      'https://www.travispattern.com/',
+    );
+  });
+
+  it('a tile whose link is not a web address keeps a plain title', () => {
+    render(
+      <ToastProvider>
+        <TileGrid tiles={[{ name: 'Acme careers', meta: '', url: 'acme.example/careers' }]} />
+      </ToastProvider>,
+    );
+    expect(within(card('Acme careers')).getByRole('heading').querySelector('a')).toBeNull();
   });
 
   it('marks search tiles with a kind badge', () => {

@@ -1,8 +1,9 @@
 // The Pipeline at desktop (#129): an HDS Table with sortable columns. A header click goes through
 // the same SortKey as the toolbar's Sort menu (jobRow.nextSort), so the two never disagree. Each
-// row's title links to the job's page; the last column holds the row's one next step and its
-// menu. HDS Table rows can't be clicked, selected or styled (HDS gap, filed with the Phase 7 asks,
-// #133), so the title link is the way in, and a retired row says so in words with neutral badges.
+// row's title links to the job's page, with the posting's icon link beside it; the last column
+// holds the row's one next step and its menu. HDS Table rows can't be clicked, selected or styled
+// (HDS gap, filed with the Phase 7 asks, #133), so the title link is the way in, and a retired row
+// says so in words with neutral badges.
 import { useId } from 'react';
 import {
   Badge,
@@ -19,6 +20,7 @@ import { jobHash } from './route';
 import type { SortKey } from './jobSort';
 import { nextSort, rowView, sortDirectionOf, type SortableColumn } from './jobRow';
 import { RowMenu, RowPrimaryAction, StarIcon, StatusBadge } from './JobRowParts';
+import { JobPostingLink } from './PostingLink';
 import type { Job } from './types';
 
 const NONE = (
@@ -80,6 +82,7 @@ export default function JobsTable({
                 <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
                   {row.title}
                 </InlineLink>
+                <JobPostingLink job={job} />
               </Stack>
               {row.factLines.map((line, i) => (
                 <Text key={i} variant="caption" as="span" tone="secondary">

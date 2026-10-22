@@ -417,6 +417,30 @@ p {
   }
 }
 
+/* The posting link beside a saved job's title (PostingLink, Adrian 2026-10-22). It never shrinks
+ * out of the title's row, and its target overflows the title's line (centred) instead of
+ * stretching it, so a card or row keeps its rev-3 rhythm; above and below it are only text. On a
+ * phone it is the app's 40x40 target: HDS's touch rule would lift the sm icon-only button to 44
+ * wide there, off the row's centre line (as with .rjb-icon-40). */
+[data-hds] .rjb-posting-link {
+  flex-shrink: 0;
+  margin-block: calc((1lh - var(--primitive-space-8)) / 2);
+}
+
+[data-hds] .rjb-posting-link-md {
+  margin-block: calc((1lh - var(--primitive-space-10)) / 2);
+}
+
+@media (max-width: 639px) {
+  [data-hds] .rjb-posting-link {
+    min-width: var(--primitive-space-10);
+    min-height: var(--primitive-space-10);
+    width: var(--primitive-space-10);
+    height: var(--primitive-space-10);
+    margin-block: calc((1lh - var(--primitive-space-10)) / 2);
+  }
+}
+
 /* The location popover (rev-3 mock): md (16) padding around its field and segmented control, and
  * wide enough for the four modes at that padding. HDS Popover.Content has no padding or size prop. */
 [data-hds] .rjb-popover-md {

@@ -6,6 +6,8 @@ import { Box, Button, InlineLink, Spinner, Stack, Text } from '@hirobius/design-
 import { eligibleJobs, type LiveCheck } from './feed/liveness';
 import { autoLivenessCheck, checkFor, runLivenessCheck, useLiveness } from './livenessStore';
 import { findJobById, jobIdOf, useJobs } from './store';
+import { titleOf } from './jobRow';
+import { JobPostingLink } from './PostingLink';
 import type { Job } from './types';
 
 const checkedOn = (iso: string) =>
@@ -67,11 +69,15 @@ export function PipelineLiveness({ jobs }: { jobs: Job[] }) {
         <Box as="ul" aria-label="Closed on the board" sx={{ listStyle: 'none', m: 0, p: 0 }}>
           {closed.map((j) => (
             <Box as="li" key={j.url}>
-              <Text variant="ui" as="span">
-                <InlineLink href={`#/queue/${jobIdOf(j.url)}`} externalIcon={false}>
-                  {j.label}
-                </InlineLink>
-              </Text>
+              {/* The job's page, and its posting beside it to confirm it is gone. */}
+              <Stack direction="row" gap="px4" align="center">
+                <Text variant="ui" as="span">
+                  <InlineLink href={`#/queue/${jobIdOf(j.url)}`} externalIcon={false}>
+                    {titleOf(j)}
+                  </InlineLink>
+                </Text>
+                <JobPostingLink job={j} />
+              </Stack>
             </Box>
           ))}
         </Box>

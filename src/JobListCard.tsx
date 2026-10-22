@@ -1,7 +1,8 @@
 // One job in the Pipeline's Jobs panel on a phone or tablet (#129; rev-3 H anatomy): a badge row
 // above the title (fit first, then status, then a due follow-up), the title on its own line, the
 // company, the facts with icons (HDS Card.Facts), then the row's one next step and its menu as
-// 40px tap targets. The title links to the job's page, where everything else lives.
+// 40px tap targets. The title links to the job's page, where everything else lives; the posting
+// opens from the icon link beside it.
 import { useId } from 'react';
 import { Calendar, MapPin } from 'lucide-react';
 import { Box, Card, InlineLink, Stack, Text } from '@hirobius/design-system';
@@ -10,6 +11,7 @@ import { jobHash } from './route';
 import { rowView } from './jobRow';
 import { JobBadges, RowMenu, RowPrimaryAction } from './JobRowParts';
 import { PanelRow } from './PipelinePanel';
+import { JobPostingLink } from './PostingLink';
 import { shortDate } from './metaLines';
 import { savedAgo } from './jobState';
 import type { Job } from './types';
@@ -41,11 +43,23 @@ export default function JobListCard({ job }: { job: Job }) {
           <Stack gap="px8">
             {/* Body size, not Card.Title's title size: the page title stays the biggest text. */}
             <Stack gap="px4">
-              <Text variant="body" as="h3" weight="bold" className="rjb-card-title" id={titleId}>
-                <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
-                  {row.title}
-                </InlineLink>
-              </Text>
+              {/* The title opens the job's page; the posting is one tap away right beside it. */}
+              <Stack direction="row" gap="px4" align="center">
+                <Box sx={{ minWidth: 0 }}>
+                  <Text
+                    variant="body"
+                    as="h3"
+                    weight="bold"
+                    className="rjb-card-title"
+                    id={titleId}
+                  >
+                    <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
+                      {row.title}
+                    </InlineLink>
+                  </Text>
+                </Box>
+                <JobPostingLink job={job} />
+              </Stack>
               {job.company && (
                 <Text variant="ui" as="p">
                   {job.company}
