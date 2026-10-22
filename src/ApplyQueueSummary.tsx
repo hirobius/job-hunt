@@ -3,13 +3,14 @@
 // and calls. Sections with nothing in them render nothing. Rev-3 mock: each is a panel
 // (PipelinePanel) with its count as a Badge.
 import { useMemo } from 'react';
-import { Button, Stack, Text } from '@hirobius/design-system';
+import { AvatarGroup, Button, Stack, Text } from '@hirobius/design-system';
 import { toApplyQueue } from './applyQueue';
 import { jobIdOf } from './store';
 import { openApply } from './route';
 import { lastApplyJobId } from './tabMemory';
 import { FollowUpSection, NextDaysSection } from './PipelineAgenda';
 import { Panel, PanelBody } from './PipelinePanel';
+import CompanyLogo from './CompanyLogo';
 import type { Job } from './types';
 
 const jobs$ = (n: number) => `${n} ${n === 1 ? 'job' : 'jobs'}`;
@@ -17,6 +18,13 @@ const jobs$ = (n: number) => `${n} ${n === 1 ? 'job' : 'jobs'}`;
 export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
   const queue = useMemo(() => toApplyQueue(jobs), [jobs]);
   const now = new Date();
+  // The first few companies waiting, one mark each (their logos, else their letters).
+  const waiting: Job[] = [];
+  for (const j of queue) {
+    const name = j.company?.trim().toLowerCase();
+    if (name && !waiting.some((w) => w.company?.trim().toLowerCase() === name)) waiting.push(j);
+    if (waiting.length === 12) break;
+  }
   // Back from Apply mode at "2 of 3": Start applying picks up there (return paths).
   const lastId = lastApplyJobId();
   const resumeAt = lastId ? queue.findIndex((j) => jobIdOf(j.url) === lastId) : -1;
@@ -28,6 +36,15 @@ export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
         title="To apply"
         count={queue.length}
         countLabel={jobs$(queue.length)}
+        trailing={
+          waiting.length > 0 && (
+            <AvatarGroup size="sm" max={3} aria-hidden>
+              {waiting.map((j) => (
+                <CompanyLogo key={j.url} company={j.company} addresses={[j.url]} />
+              ))}
+            </AvatarGroup>
+          )
+        }
       >
         <PanelBody>
           <Stack gap="normal" align="start">

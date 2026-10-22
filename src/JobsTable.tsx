@@ -22,6 +22,7 @@ import { nextSort, rowView, sortDirectionOf, type SortableColumn } from './jobRo
 import { RowMenu, RowPrimaryAction, StarIcon, StatusBadge } from './JobRowParts';
 import { JobPostingTitle } from './PostingLink';
 import type { Job } from './types';
+import CompanyLogo from './CompanyLogo';
 
 const NONE = (
   <Text variant="caption" as="span" tone="secondary">
@@ -70,27 +71,30 @@ export default function JobsTable({
         {
           slot: 'custom',
           content: (
-            <Stack gap="px2">
-              <Stack direction="row" gap="px4" align="center">
-                <JobPostingTitle job={job}>
-                  <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
-                    {row.title}
-                  </InlineLink>
-                </JobPostingTitle>
-                {/* Starred jobs float to the top in every sort (jobSort), so say why. The star
+            <Stack direction="row" gap="px8" align="center">
+              {job.company && <CompanyLogo company={job.company} addresses={[job.url]} />}
+              <Stack gap="px2">
+                <Stack direction="row" gap="px4" align="center">
+                  <JobPostingTitle job={job}>
+                    <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
+                      {row.title}
+                    </InlineLink>
+                  </JobPostingTitle>
+                  {/* Starred jobs float to the top in every sort (jobSort), so say why. The star
                     trails the title, so every title and its company line share one left edge. */}
-                {row.pinned && (
-                  <>
-                    <StarIcon on />
-                    <VisuallyHidden>Starred</VisuallyHidden>
-                  </>
-                )}
+                  {row.pinned && (
+                    <>
+                      <StarIcon on />
+                      <VisuallyHidden>Starred</VisuallyHidden>
+                    </>
+                  )}
+                </Stack>
+                {row.factLines.map((line, i) => (
+                  <Text key={i} variant="caption" as="span" tone="secondary">
+                    {line}
+                  </Text>
+                ))}
               </Stack>
-              {row.factLines.map((line, i) => (
-                <Text key={i} variant="caption" as="span" tone="secondary">
-                  {line}
-                </Text>
-              ))}
             </Stack>
           ),
         },

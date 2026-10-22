@@ -62,6 +62,7 @@ import AddCompany from './AddCompany';
 import DreamCompanies from './DreamCompanies';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
 import { useRoleTypes } from './feed/roleTypePref';
+import CompanyLogo from './CompanyLogo';
 
 /** Watched boards read on arrival; the rest wait for "Check open roles". A starter pack can file
  *  a hundred boards, and each read is a whole board. */
@@ -366,27 +367,30 @@ export default function CompaniesPanel({
           {/* No wrap: the name column shrinks so the star and Roles stay on the right at 390. */}
           <Stack direction="row" gap="px8" align="center" justify="space-between">
             <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
-              <Stack gap="px4">
-                <Text variant="ui" as="span">
-                  {r.website ? (
-                    <InlineLink href={r.website} externalIcon={false}>
-                      {r.company}
-                    </InlineLink>
-                  ) : (
-                    r.company
-                  )}
-                </Text>
-                <Text variant="caption" as="p" tone="secondary">
-                  {r.board ? `${SOURCE_LABEL[r.board.kind]} · ${line}` : capital(line)}
-                </Text>
-                {r.repo && r.repoUrl && (
-                  <Text variant="caption" as="p" tone="secondary">
-                    <InlineLink href={r.repoUrl} externalIcon={false}>
-                      {r.repo}
-                    </InlineLink>
-                    {` · ${(r.stars ?? 0).toLocaleString()} stars`}
+              <Stack direction="row" gap="px12" align="center">
+                <CompanyLogo company={r.company} addresses={[r.website]} />
+                <Stack gap="px4">
+                  <Text variant="ui" as="span">
+                    {r.website ? (
+                      <InlineLink href={r.website} externalIcon={false}>
+                        {r.company}
+                      </InlineLink>
+                    ) : (
+                      r.company
+                    )}
                   </Text>
-                )}
+                  <Text variant="caption" as="p" tone="secondary">
+                    {r.board ? `${SOURCE_LABEL[r.board.kind]} · ${line}` : capital(line)}
+                  </Text>
+                  {r.repo && r.repoUrl && (
+                    <Text variant="caption" as="p" tone="secondary">
+                      <InlineLink href={r.repoUrl} externalIcon={false}>
+                        {r.repo}
+                      </InlineLink>
+                      {` · ${(r.stars ?? 0).toLocaleString()} stars`}
+                    </Text>
+                  )}
+                </Stack>
               </Stack>
             </Box>
             <Stack direction="row" gap="px4" align="center">

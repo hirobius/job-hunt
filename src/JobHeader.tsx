@@ -15,6 +15,7 @@ import { checkFor, useLiveness } from './livenessStore';
 import { JobBadges, RowMenu, RowPrimaryAction, StarButton } from './JobRowParts';
 import { JobPostingTitle } from './PostingLink';
 import type { Job } from './types';
+import CompanyLogo from './CompanyLogo';
 
 const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
 
@@ -60,9 +61,12 @@ export default function JobHeader({
               {titleOf(job)}
             </Text>
           </JobPostingTitle>
-          <MetaCaption
-            items={[job.company?.trim(), job.location?.trim(), applied && `Applied ${applied}`]}
-          />
+          <Stack direction="row" gap="px8" align="center">
+            {job.company?.trim() && <CompanyLogo company={job.company} addresses={[job.url]} />}
+            <MetaCaption
+              items={[job.company?.trim(), job.location?.trim(), applied && `Applied ${applied}`]}
+            />
+          </Stack>
         </Stack>
         {/* On a phone the primary takes the room between the two 40px icon buttons (rev-3
             mock); from sm up it is as wide as its label. No primary, no slot: no hole. */}

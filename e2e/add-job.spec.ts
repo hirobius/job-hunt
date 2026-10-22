@@ -2,6 +2,12 @@ import { test, expect } from '@playwright/test';
 
 // Core happy path: paste a job URL → it lands in the queue. The Pipeline is `#/queue`; the empty
 // hash is Companies (Calm list).
+
+// Company logos come from a third-party icon host; tests never reach it (letters show).
+test.beforeEach(async ({ context }) => {
+  await context.route('https://icons.duckduckgo.com/**', (r) => r.abort());
+});
+
 test('adds a pasted job URL to the queue', async ({ page }) => {
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Add job' }).click();

@@ -20,6 +20,7 @@ import { Panel, PanelBody, PanelRow } from './PipelinePanel';
 import { JobPostingTitle } from './PostingLink';
 import type { Job } from './types';
 import { usePageTitle } from './pageTitle';
+import CompanyLogo from './CompanyLogo';
 
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 // Fields fill the column (a Box sx, not an inline style: the #133 ratchet).
@@ -179,7 +180,11 @@ export default function CompanyPage({ slug }: { slug: string }) {
           <Text variant="title" as="h2">
             {company.name}
           </Text>
-          <Quiet>{company.jobs.length === 1 ? '1 job' : `${company.jobs.length} jobs`}</Quiet>
+          {/* The mark sits with the job count, so the Back arrow and the heading keep one edge. */}
+          <Stack direction="row" gap="px8" align="center">
+            <CompanyLogo company={company.name} addresses={company.jobs.map((j) => j.url)} />
+            <Quiet>{company.jobs.length === 1 ? '1 job' : `${company.jobs.length} jobs`}</Quiet>
+          </Stack>
         </Stack>
 
         <Panel

@@ -329,6 +329,11 @@ for (const width of [390, 1440] as const) {
   });
 }
 
+// Company logos come from a third-party icon host; tests never reach it (letters show).
+test.beforeEach(async ({ context }) => {
+  await context.route('https://icons.duckduckgo.com/**', (r) => r.abort());
+});
+
 test.describe('the job rail at 1440', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
