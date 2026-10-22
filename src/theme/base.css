@@ -109,6 +109,11 @@ p {
   [data-hds] [role='tab'],
   [data-hds] [role='radio'] {
     min-height: var(--primitive-space-10);
+  } /* That rule widens HDS's 'Clear input' button to 44px, but the input keeps 28px of end padding,
+   * so typed text ran under the ×. Pad the text clear of the wider button. Upstream ask: the
+   * input's end padding should follow the clear button's width (docs/hds-upstream-asks-0.9.md). */
+  [data-hds] input:has(~ button[aria-label='Clear input']) {
+    padding-inline-end: var(--primitive-space-11, 44px);
   }
 }
 

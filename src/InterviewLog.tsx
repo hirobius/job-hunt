@@ -13,6 +13,8 @@ import { CalendarPlus, X } from 'lucide-react';
 import { buildIcs } from './ics';
 import { download } from './download';
 import { addEvent, jobIcsEvents, removeEvent } from './jobEvents';
+import { dayLabel } from './dayLabel';
+import { timeLabel } from './agendaTime';
 import { updateJob } from './store';
 import type { Job, JobEventKind } from './types';
 
@@ -21,6 +23,11 @@ const KINDS: { value: JobEventKind; label: string }[] = [
   { value: 'call', label: 'Call' },
   { value: 'other', label: 'Other' },
 ];
+
+/** When an event is, as the Pipeline's Next 7 days writes it: "Tue, Oct 20, 2:00 PM" (no time, just
+ *  the day). */
+const whenOf = (date: string, time: string | undefined, now: Date) =>
+  time ? `${dayLabel(date, now)}, ${timeLabel(time)}` : dayLabel(date, now);
 
 const slug = (s: string) =>
   s
@@ -58,6 +65,7 @@ export default function InterviewLog({ job }: { job: Job }) {
   const [kind, setKind] = useState<JobEventKind>('interview');
   const [note, setNote] = useState('');
   const events = job.events ?? [];
+  const now = new Date();
 
   const add = () => {
     if (!date) return;
@@ -77,40 +85,38 @@ export default function InterviewLog({ job }: { job: Job }) {
 
   return (
     <Stack gap="normal" className="rjb-form-full">
+      {/* One row per event, split by the Calm list hairline (.rjb-rows): the day over its kind
+          and note, the remove button at the end. */}
       {events.length > 0 && (
-        <Box
-          as="ul"
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'sm',
-            listStyle: 'none',
-            m: 0,
-            p: 0,
-          }}
-        >
-          {events.map((e) => (
-            <li key={e.id}>
-              <Stack direction="row" wrap="wrap" gap="tight" align="center">
-                <Text variant="ui" as="span">
-                  {e.date}
-                  {e.time ? ` ${e.time}` : ''}
-                </Text>
-                <Text variant="ui" as="span" tone="secondary">
-                  {KINDS.find((k) => k.value === e.kind)?.label}
-                  {e.note ? ` · ${e.note}` : ''}
-                </Text>
-                <Button
-                  size="sm"
-                  variant="tertiary"
-                  iconOnly
-                  iconLeft={<Icon icon={X} />}
-                  label={`Remove ${e.kind} on ${e.date}`}
-                  onClick={() => updateJob(job.url, { events: removeEvent(job.events, e.id) })}
-                />
-              </Stack>
-            </li>
-          ))}
+        <Box as="ul" className="rjb-rows" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+          {events.map((e) => {
+            const when = whenOf(e.date, e.time, now);
+            return (
+              <li key={e.id}>
+                <Stack direction="row" gap="px8" align="center" wrap="nowrap">
+                  <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
+                    <Stack gap="px4">
+                      <Text variant="ui" as="span" weight="medium">
+                        {when}
+                      </Text>
+                      <Text variant="caption" as="span" tone="secondary">
+                        {KINDS.find((k) => k.value === e.kind)?.label}
+                        {e.note ? ` · ${e.note}` : ''}
+                      </Text>
+                    </Stack>
+                  </Box>
+                  <Button
+                    size="sm"
+                    variant="tertiary"
+                    iconOnly
+                    iconLeft={<Icon icon={X} />}
+                    label={`Remove ${e.kind} on ${when}`}
+                    onClick={() => updateJob(job.url, { events: removeEvent(job.events, e.id) })}
+                  />
+                </Stack>
+              </li>
+            );
+          })}
         </Box>
       )}
 

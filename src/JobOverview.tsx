@@ -253,7 +253,7 @@ function DocumentsPanel({ job }: { job: Job }) {
 
 export default function JobOverview({ job }: { job: Job }) {
   return (
-    <Stack gap="normal">
+    <Stack gap="px24">
       <DetailsPanel job={job} />
       <TodosPanel job={job} />
       <NotesPanel job={job} />
