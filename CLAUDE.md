@@ -327,6 +327,14 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   no page: their title is the link out, with HDS's external icon. Apply mode keeps Open application.
   Pinned in `PostingLink.test.tsx`, the surface suites and `e2e/posting-links.spec.ts` (hit-tests
   every target: each pixel takes the tap, no overlap with another control; long titles at 390).
+- **Export links (2026-10-22):** one `ExportLinksHost` dialog (mounted in `DataToolsProvider`, open
+  scope in `exportLinks.ts`) opened from the Jobs panel (a tertiary "Export links" beside Status/Sort;
+  below `sm` a ⋯ "More job actions" menu) on **This view** (`visibleJobs`) and from the Account menu
+  (after Export CSV) on **All saved jobs**. Format Links only / With title and company; read-only
+  Preview; Copy (`copyFilled`, falls back to selecting the text) and Download .txt
+  (`linksFilename`: `<slug>-links-YYYY-MM-DD.txt`). `buildLinkList` skips non-web links (counted),
+  dedupes, keeps order. Pinned in `exportLinks.test.ts`, `exportLinksDialog.test.tsx`,
+  `e2e/export-links.spec.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.

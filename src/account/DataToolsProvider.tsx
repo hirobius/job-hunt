@@ -32,6 +32,7 @@ import { getAllSweeps, replaceSweeps } from '../feed/sweepTitles';
 import { BRAND } from '../brand';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
+import { ExportLinksHost } from '../ExportLinksDialog';
 
 const JSON_MIME = 'application/json';
 const day = () => new Date().toISOString().slice(0, 10);
@@ -136,6 +137,8 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
         hidden
         onChange={onFile}
       />
+      {/* Export links (2026-10-22): opened from here (Account menu) and the Pipeline's Jobs panel. */}
+      <ExportLinksHost />
       <Dialog open={pending !== null} onOpenChange={(o) => !o && setPending(null)}>
         <Dialog.Content style={{ width: '100%', maxWidth: 520 }} onCloseAutoFocus={returnFocus}>
           <Dialog.Header>

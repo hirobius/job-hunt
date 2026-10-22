@@ -14,6 +14,7 @@ import { refocusAccount, useCloudSync, useDataTools } from './accountContext';
 import { useUnsynced } from './useUnsynced';
 import { navigate } from '../route';
 import { LEGAL_ROUTE } from '../legal';
+import { openExportLinks } from '../exportLinks';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
 
@@ -90,6 +91,9 @@ export default function AccountMenu() {
           <Menu.Item onSelect={opensDialog(data.chooseRestore)}>Restore…</Menu.Item>
           <Menu.Item onSelect={data.exportCsv} disabled={!data.canExport}>
             Export CSV
+          </Menu.Item>
+          <Menu.Item onSelect={() => openExportLinks('all')} disabled={!data.canExport}>
+            Export links
           </Menu.Item>
           <Menu.Separator />
           <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
