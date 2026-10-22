@@ -1,4 +1,5 @@
-import { beforeEach } from 'vitest';
+import { beforeAll, beforeEach } from 'vitest';
+import { preloadViews } from '../routeViews';
 import { resetPipelineView } from '../pipelineView';
 import { closeFollowUp } from '../followUpFlow';
 import '@testing-library/jest-dom/vitest';
@@ -8,6 +9,11 @@ window.scrollTo = () => {};
 
 // The Pipeline's filter/sort/search is shared in-memory state (#130): every test starts on Active.
 beforeEach(resetPipelineView);
+
+// The shell's route views load on demand (routeViews.ts); load them up front so a test sees the
+// Pipeline, job page, Apply mode and Company page on the first render, as before the split.
+// beforeAll, not at import: the test file's vi.mock calls must be registered first.
+beforeAll(() => preloadViews());
 
 // The follow-up dialog's open job is in-memory too: no test starts with it open.
 beforeEach(closeFollowUp);

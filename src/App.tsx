@@ -11,10 +11,7 @@ import {
   Stack,
 } from '@hirobius/design-system';
 import { FollowUpHost } from './FollowUp';
-import TrackerView from './TrackerView';
-import JobPage from './JobPage';
-import ApplyMode from './ApplyMode';
-import CompanyPage from './CompanyPage';
+import { ApplyMode, CompanyPage, JobPage, TrackerView } from './routeViews';
 import { JobPageLiveness } from './LivenessViews';
 import { Onboarding, ChooseTrack } from './Onboarding';
 import { BRAND } from './brand';
@@ -31,10 +28,11 @@ import NoticeHost from './NoticeHost';
 import { saveWithNotice } from './saveNotice';
 import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
-import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
+import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
 
-// Code-split Discover and Documents so the initial bundle carries the Pipeline (the quick-add
-// landing); the rest load on demand.
+// Code-split every route view: Discover, Documents and the rest here, the Pipeline, job page,
+// Apply mode and Company page through routeViews.ts (they render without a Suspense step once
+// loaded, so moving between them never flashes a skeleton).
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const DocumentsView = lazy(() => import('./DocumentsView'));
 const LegalPage = lazy(() => import('./LegalPage'));
@@ -193,19 +191,21 @@ export default function App() {
                 <Box as="main">
                   <Stack gap="px24">
                     <TabsContent value="queue" variant="bare">
-                      {applying ? (
-                        <ApplyMode jobId={route.sub} />
-                      ) : company ? (
-                        <CompanyPage slug={route.sub ?? ''} />
-                      ) : route.jobId ? (
-                        <>
-                          <JobPageLiveness jobId={route.jobId} />
-                          <JobPage jobId={route.jobId} />
-                        </>
-                      ) : (
-                        // Unsynced shows as the Account avatar's dot (rev-3 P): no banner here.
-                        <TrackerView />
-                      )}
+                      <Suspense fallback={<PipelineSkeleton />}>
+                        {applying ? (
+                          <ApplyMode jobId={route.sub} />
+                        ) : company ? (
+                          <CompanyPage slug={route.sub ?? ''} />
+                        ) : route.jobId ? (
+                          <>
+                            <JobPageLiveness jobId={route.jobId} />
+                            <JobPage jobId={route.jobId} />
+                          </>
+                        ) : (
+                          // Unsynced shows as the Account avatar's dot (rev-3 P): no banner here.
+                          <TrackerView />
+                        )}
+                      </Suspense>
                     </TabsContent>
                     <TabsContent value="discover" variant="bare">
                       {firstRun ? (
