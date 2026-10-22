@@ -54,11 +54,12 @@ import { useActiveTitles } from './feed/sweepTitles';
 import { useDreams } from './feed/dreams';
 import { boardsFromUrls } from './feed/sources/ats';
 import { displayGroupLabel } from './curation/groupLabel';
+import { importFresh } from './staleBuild';
 
-const ManageTrackDialog = lazy(() => import('./ManageTrackDialog'));
-const LiveFeedPanel = lazy(() => import('./LiveFeedPanel'));
-const FindBoardsPanel = lazy(() => import('./FindBoardsPanel'));
-const CompaniesPanel = lazy(() => import('./CompaniesPanel'));
+const ManageTrackDialog = lazy(importFresh(() => import('./ManageTrackDialog')));
+const LiveFeedPanel = lazy(importFresh(() => import('./LiveFeedPanel')));
+const FindBoardsPanel = lazy(importFresh(() => import('./FindBoardsPanel')));
+const CompaniesPanel = lazy(importFresh(() => import('./CompaniesPanel')));
 
 // Discover reads the per-account CURATION STORE (categories→groups→tiles), not the old hardcoded
 // pillars (B1 / #30). A Category IS a track: its titles/atsRoles/seniority/location drive the

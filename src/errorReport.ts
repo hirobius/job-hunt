@@ -4,6 +4,7 @@
 // public key that sync uses (never a user's session), and the table only accepts inserts (nobody can read it with that key).
 // A report never carries personal data: no user id or email, no job text, no URL query or job id.
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
+import { isChunkLoadError, staleReloadFailed } from './chunkError';
 
 export type ErrorKind = 'render' | 'error' | 'rejection';
 
@@ -101,6 +102,9 @@ export function createReporter(send: SendReport = sendToSupabase) {
   const seen = new Set<string>();
   return (kind: ErrorKind, error: unknown) => {
     if (seen.size >= MAX_PER_PAGE || typeof window === 'undefined') return;
+    // A chunk gone after a deploy is fixed by a reload (staleBuild.ts): report it only when the
+    // reload for the new version didn't help.
+    if (isChunkLoadError(error) && !staleReloadFailed()) return;
     const report = buildReport(kind, error, {
       hash: window.location.hash,
       userAgent: navigator.userAgent,

@@ -7,6 +7,7 @@
 // or a magic link has just returned (`needsClientAtBoot`), and otherwise on sign-in.
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
+import { importFresh } from './staleBuild';
 
 /** True when a Supabase session is persisted in this browser (read synchronously at boot, before
  *  the auth listener fires) — lets the UI wait for a sign-in pull instead of flashing onboarding. */
@@ -52,7 +53,7 @@ const listeners = new Set<(c: SupabaseClient) => void>();
 
 /** The shared client, built on first call (the supabase-js chunk is fetched then). */
 export function loadSupabase(): Promise<SupabaseClient> {
-  client ??= import('@supabase/supabase-js').then(
+  client ??= importFresh(() => import('@supabase/supabase-js'))().then(
     ({ createClient }) => {
       const c = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       loaded = c;

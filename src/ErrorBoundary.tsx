@@ -2,6 +2,8 @@ import { Component, type ReactNode } from 'react';
 import { Button, Box, Stack, Text } from '@hirobius/design-system';
 import { reportError } from './errorReport';
 import { clearLocalData } from './localReset';
+import { isChunkLoadError } from './chunkError';
+import { reloadForNewVersion, STALE_MSG } from './staleBuild';
 
 // Top-level safety net (issue #46): a render-time crash shows a recovery UI instead of a blank
 // white screen. Offers a plain reload and a "reset local data" escape hatch for when a single bad
@@ -38,6 +40,19 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (!this.state.error) return this.props.children;
+    // A tab older than the deploy asked for a chunk that is gone: not a crash, a reload fixes it
+    // (the report is held back unless that reload didn't help, errorReport.ts).
+    if (isChunkLoadError(this.state.error))
+      return (
+        <Box sx={{ maxWidth: 480, mx: 'auto', mt: 16, px: 'md', textAlign: 'center' }}>
+          <Stack gap="tight" align="center">
+            <Text variant="body">{STALE_MSG}</Text>
+            <Button variant="primary" onClick={() => reloadForNewVersion()}>
+              Reload
+            </Button>
+          </Stack>
+        </Box>
+      );
     return (
       <Box sx={{ maxWidth: 480, mx: 'auto', mt: 16, px: 'md', textAlign: 'center' }}>
         <Stack gap="tight" align="center">

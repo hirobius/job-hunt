@@ -19,6 +19,7 @@ import {
   Text,
   Container,
   Stack,
+  useToast,
 } from '@hirobius/design-system';
 import { FollowUpHost } from './FollowUp';
 import { ApplyMode, CompanyPage, JobPage, TrackerView } from './routeViews';
@@ -37,18 +38,21 @@ import { useSnippets } from './copyDeckStore';
 import { migrateSnippetStore } from './outreachTemplates';
 import { useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
+import StaleBuildNotice from './StaleBuildNotice';
+import { authLinkErrorMessage } from './account/authLinkError';
 import { saveWithNotice } from './saveNotice';
 import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
+import { importFresh } from './staleBuild';
 
 // Code-split every route view: Discover, Documents and the rest here, the Pipeline, job page,
 // Apply mode and Company page through routeViews.ts (they render without a Suspense step once
 // loaded, so moving between them never flashes a skeleton).
-const DiscoverView = lazy(() => import('./DiscoverView'));
-const DocumentsView = lazy(() => import('./DocumentsView'));
-const LegalPage = lazy(() => import('./LegalPage'));
-const NotFoundPage = lazy(() => import('./NotFoundPage'));
+const DiscoverView = lazy(importFresh(() => import('./DiscoverView')));
+const DocumentsView = lazy(importFresh(() => import('./DocumentsView')));
+const LegalPage = lazy(importFresh(() => import('./LegalPage')));
+const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
 
 // Top-level tabs, in render order (Calm list: Companies · Pipeline). The URL hash carries the slug;
 // slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline). `#/today` (#128) is
@@ -149,7 +153,9 @@ export default function App() {
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
   // After ingesting, land on the Pipeline so the just-added job is visible; with no route at all,
   // normalize the hash to the default landing tab so back/forward and refresh are consistent.
+  const { toast } = useToast();
   useEffect(() => {
+    const linkError = authLinkErrorMessage(window.location.hash);
     const qp = new URLSearchParams(window.location.search);
     const label = qp.get('t') || qp.get('title') || '';
     let acted = false;
@@ -176,9 +182,17 @@ export default function App() {
         true,
         { search: s ? '?' + s : '' },
       );
+    } else if (linkError) {
+      // An expired or refused sign-in link (#error=…): say so, and replace the error with Companies.
+      toast({ title: linkError, tone: 'warning', duration: 10000 });
+      navigate(
+        { tab: HOME_ROUTE, sub: null, pillar: null, jobId: null, from: null, section: null },
+        true,
+      );
     } else if (!getRoute().tab) {
       navigate({ tab: HOME_ROUTE }, true);
     }
+    // Mount only: the link is read once, as the tab opens.
   }, []);
 
   // An old #/today link or bookmark (#236) lands on Companies; replace, so Back skips it.
@@ -298,6 +312,7 @@ export default function App() {
         <SignInDialog />
         <FollowUpHost />
         <NoticeHost />
+        <StaleBuildNotice />
       </DataToolsProvider>
     </CloudSyncProvider>
   );

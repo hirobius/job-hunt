@@ -14,6 +14,7 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { installErrorReporting } from './errorReport';
 import App from './App';
 import { installScrollMemory } from './scrollMemory';
+import { installStaleBuildGuard } from './staleBuild';
 
 // Vercel Web Analytics (page counts only; needs the dashboard toggle — see issue #16).
 inject();
@@ -21,6 +22,8 @@ inject();
 installErrorReporting();
 // Pages come back at the scroll they had (return paths): Back, Forward, a top tab, a reload.
 installScrollMemory();
+// A tab older than the deploy: a chunk that is gone says "A new version is ready" (staleBuild.ts).
+installStaleBuildGuard();
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

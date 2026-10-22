@@ -419,6 +419,25 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/9');
   });
 
+  it('an expired sign-in link says so in a toast and leaves no error in the URL', async () => {
+    await act(() => new Promise((r) => setTimeout(r, 0)));
+    window.history.replaceState(
+      null,
+      '',
+      '/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired',
+    );
+    resetHistoryRecord();
+    const before = window.history.length;
+    renderApp();
+    expect(
+      await screen.findByText('That sign-in link has expired. Send a new one from Account.'),
+    ).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/discover');
+    expect(window.location.href).not.toMatch(/error/);
+    expect(window.history.length).toBe(before); // replaced: Back doesn't return to the error
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
+  });
+
   it('after a quick-add link, a sheet closing and a tab move at once (the URL goes through the route)', async () => {
     // A fresh load of the link: the hashchange from beforeEach has run, and the route module
     // starts its record on the URL the browser opened.

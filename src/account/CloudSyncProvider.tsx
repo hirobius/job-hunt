@@ -50,6 +50,8 @@ import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore
 import { CloudSyncContext, type CloudSyncApi } from './accountContext';
 import { magicLinkRedirect } from './authRedirect';
 import { rememberSignInReturn, returnAfterSignIn } from './signInReturn';
+import { isChunkLoadError } from '../chunkError';
+import { STALE_MSG } from '../staleBuild';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
 // delete so a shared browser can't carry one person's jobs/pillars/résumé to the next.
@@ -345,8 +347,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     let supa;
     try {
       supa = await loadSupabase(); // the first sign-in fetches the client
-    } catch {
-      return signInErrorMessage({ message: 'Failed to fetch' });
+    } catch (e) {
+      // The tab is older than the deploy (the notice offers Reload), else the network is down.
+      return isChunkLoadError(e) ? STALE_MSG : signInErrorMessage({ message: 'Failed to fetch' });
     }
     const r = await supa.auth.signInWithOtp({
       email,
