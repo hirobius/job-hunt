@@ -112,6 +112,27 @@ p {
   }
 }
 
+/* Tab strips (desktop QA): HDS TabsList is `h-10 overflow-x-auto` with a 1px bottom border, so its
+ * triggers overflow a 39px client box by 1px; overflow-x auto makes overflow-y auto too, and a
+ * classic (non-overlay) scrollbar, as on Windows Chrome/Edge, shows under every tab bar. Clip the
+ * vertical axis (phones keep the horizontal scroll); from 640 (where HDS's h-10 is 40, not the
+ * phone 44) the border goes outside the 40px box and each trigger fills it, so the triggers are
+ * 40px targets and nothing overflows. Upstream ask: docs/hds-upstream-asks-0.9.md. */
+[data-hds] [role='tablist'] {
+  overflow-y: hidden;
+}
+
+@media (min-width: 640px) {
+  [data-hds] [role='tablist'] {
+    box-sizing: content-box;
+  }
+
+  [data-hds] [role='tablist'] > [role='tab'] {
+    min-height: var(--primitive-space-10);
+    margin-bottom: 0;
+  }
+}
+
 /* Apply mode pager (rev-3 E): HDS Pagination compact draws borderless 44x40 tertiaries, and its
  * disabled tertiary picks up the primary's disabled fill (a grey tile). Mock: bordered 40x40 icon
  * buttons both sides of "1 of N", disabled just faded. Upstream ask: docs/hds-upstream-asks-0.9.md. */
@@ -381,6 +402,13 @@ p {
 /* A 40x40 icon button beside a 40px text button (Discover's New track, a tile's Open; rev-3 mock):
  * HDS lifts icon-only buttons to its 44px touch minimum, which leaves them 4px off the row's
  * centre line and not square. 40 is the app's phone target (the rule above). */
+/* A small button at the 40px height of its row's icon buttons (Discover tile footers, desktop QA):
+ * keeps the sm padding and type, only the height matches. Phones already get 40 (touch rule). */
+[data-hds] .rjb-h-40 {
+  min-height: var(--primitive-space-10);
+  height: var(--primitive-space-10);
+}
+
 [data-hds] .rjb-icon-40 {
   min-width: var(--primitive-space-10);
   min-height: var(--primitive-space-10);

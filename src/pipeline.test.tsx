@@ -246,9 +246,12 @@ describe('Pipeline on a desktop (#129)', () => {
     updateJob(SAVED, { archived: true });
     renderApp();
     const table = screen.getByRole('table', { name: 'Saved jobs' });
-    expect(
-      within(within(table).getByRole('row', { name: /Zenith/ })).getByText('Starred'),
-    ).toBeInTheDocument();
+    const starredRow = within(table).getByRole('row', { name: /Zenith/ });
+    const starred = within(starredRow).getByText('Starred');
+    expect(starred).toBeInTheDocument();
+    // The star trails the title, so starred and unstarred titles share one left edge (desktop QA).
+    const title = within(starredRow).getByRole('link', { name: 'Zenith Product Designer' });
+    expect(title.compareDocumentPosition(starred) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // Retired jobs show under the Retired view, with their real status and a Retired note.
     await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
     await userEvent.click(

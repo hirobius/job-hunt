@@ -70,16 +70,17 @@ export default function JobsTable({
           content: (
             <Stack gap="px2">
               <Stack direction="row" gap="px4" align="center">
-                {/* Starred jobs float to the top in every sort (jobSort), so say why. */}
+                <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
+                  {row.title}
+                </InlineLink>
+                {/* Starred jobs float to the top in every sort (jobSort), so say why. The star
+                    trails the title, so every title and its company line share one left edge. */}
                 {row.pinned && (
                   <>
                     <StarIcon on />
                     <VisuallyHidden>Starred</VisuallyHidden>
                   </>
                 )}
-                <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
-                  {row.title}
-                </InlineLink>
               </Stack>
               {row.factLines.map((line, i) => (
                 <Text key={i} variant="caption" as="span" tone="secondary">

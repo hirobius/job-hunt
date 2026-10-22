@@ -164,11 +164,13 @@ export default function TileGrid({
               )}
               {/* Pushes the actions to the card's foot, so tiles in a row line up. */}
               <Box sx={{ flex: 1 }} />
-              {/* Save, Open, then the quiet Set aside on the far side, one centre line (rev-3 G). */}
+              {/* Save, Open, then the quiet Set aside on the far side, one centre line (rev-3 G); all
+                  40px tall at every width, so the footer is one even row (desktop QA). */}
               <Stack direction="row" gap="px8" align="center" justify="space-between">
                 <Stack direction="row" gap="px8" align="center">
                   <Button
                     size="sm"
+                    className="rjb-h-40"
                     variant={saved ? 'tertiary' : 'secondary'}
                     disabled={saved}
                     onClick={() => save(t)}
@@ -194,7 +196,7 @@ export default function TileGrid({
                       </a>
                     </Button>
                   ) : (
-                    <Button size="sm" variant="secondary" asChild>
+                    <Button size="sm" variant="secondary" className="rjb-h-40" asChild>
                       <a href={t.url} target="_blank" rel="noopener noreferrer">
                         {cta}
                       </a>
@@ -205,7 +207,7 @@ export default function TileGrid({
                   {more && (
                     <Popover>
                       <Popover.Trigger asChild>
-                        <Button size="sm" variant="tertiary">
+                        <Button size="sm" variant="tertiary" className="rjb-h-40">
                           Details
                         </Button>
                       </Popover.Trigger>
@@ -247,7 +249,12 @@ export default function TileGrid({
                     </Popover>
                   )}
                   {triage && (
-                    <Button size="sm" variant="tertiary" onClick={() => toggleDismiss(t.url)}>
+                    <Button
+                      size="sm"
+                      variant="tertiary"
+                      className="rjb-h-40"
+                      onClick={() => toggleDismiss(t.url)}
+                    >
                       {isAside ? 'Restore' : 'Set aside'}
                     </Button>
                   )}
@@ -258,6 +265,7 @@ export default function TileGrid({
                           size="sm"
                           variant="tertiary"
                           tone="danger"
+                          className="rjb-icon-40"
                           iconOnly
                           iconLeft={<Icon icon={Trash2} />}
                           onClick={() => onRemove(t.url)}

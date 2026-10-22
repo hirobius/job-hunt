@@ -248,7 +248,7 @@ export default function FindBoardsPanel({
         description="Add companies, then we check 8 job-board systems for each: Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio."
       >
         <PanelBody>
-          <Stack gap="inset">
+          <Stack gap="inset" className="rjb-form-full">
             {/* The typed text, for the suggestions: HDS Combobox has no onInputChange (see the top). */}
             <div onChange={(e) => setQuery((e.target as HTMLInputElement).value)}>
               <FormField

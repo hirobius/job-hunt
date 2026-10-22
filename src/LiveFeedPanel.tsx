@@ -669,15 +669,11 @@ export default function LiveFeedPanel({
       ) : (
         <Box
           as="form"
+          className="rjb-form-full"
           onSubmit={onSearch}
-          sx={{
-            display: 'flex',
-            gap: 'xs',
-            alignItems: 'center',
-            maxWidth: 'var(--semantic-layout-width-content)',
-          }}
+          sx={{ display: 'flex', gap: 'xs', alignItems: 'center' }}
         >
-          <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%', maxWidth: 'none' } }}>
+          <Box sx={{ flex: '1 1 0%', minWidth: 0, '& > *': { width: '100%' } }}>
             <HdsInput
               size="md"
               ref={searchRef}
