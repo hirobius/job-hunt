@@ -126,11 +126,9 @@ describe('Live postings with the radar engine', () => {
     const strong = row('Design Systems Engineer');
     expect(within(strong).getByText('Strong fit')).toBeInTheDocument();
     expect(within(row('Design Systems Designer')).getByText('Reach')).toBeInTheDocument();
-    // Fit and gap sit behind the row's menu, so the row stays badge, title, company, facts.
-    await userEvent.click(
-      within(strong).getByRole('button', { name: 'More for Design Systems Engineer' }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Why this fit' }));
+    // The fit badge itself opens Fit and gap: the row has one Save and no menu (rev-3 K).
+    expect(within(strong).queryByRole('button', { name: /^More for/ })).toBeNull();
+    await userEvent.click(within(strong).getByRole('button', { name: 'Why Strong fit' }));
     const dialog = await screen.findByRole('dialog');
     const fit = within(dialog).getByRole('list', { name: 'Fit' });
     expect(fit).toHaveTextContent('Design tokens: DTCG pipeline');
