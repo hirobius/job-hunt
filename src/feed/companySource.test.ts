@@ -37,6 +37,19 @@ describe('companySourceFor', () => {
     });
   });
 
+  it('a CAD "design engineer" track is not a design-system track (#215 review)', () => {
+    for (const title of ['Mechanical design engineer', 'Hardware design engineer'])
+      expect(companySourceFor({ label: 'X', titles: [title], atsRoles: [] }, ON).kind).not.toBe(
+        'github',
+      );
+    expect(
+      companySourceFor(
+        { label: 'Fab shop', titles: ['Sheet metal design engineer'], atsRoles: [] },
+        ON,
+      ),
+    ).toMatchObject({ kind: 'suggested', yc: true });
+  });
+
   it('a track outside every pack uses YC alone', () => {
     const s = companySourceFor({ label: 'Welding', titles: ['Welder'], atsRoles: [] }, ON);
     expect(s).toMatchObject({ kind: 'suggested', packBoards: [], yc: true });

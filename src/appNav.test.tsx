@@ -77,6 +77,19 @@ describe('an unknown route (review nit)', () => {
     await vi.waitFor(() => expect(window.location.hash).toBe('#/discover'));
   });
 
+  // Supabase's email link signs in through the hash (implicit flow), and an expired or used link
+  // comes back as #error=…. Neither is a route: Companies shows, and the hash is left for auth-js.
+  it.each([
+    '#access_token=a&refresh_token=b&expires_in=3600&token_type=bearer&type=magiclink',
+    '#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired',
+  ])('a sign-in callback (%s) lands on Companies, not Page not found', (hash) => {
+    window.location.hash = hash;
+    renderApp();
+    expect(screen.getByRole('tab', { name: 'Companies', selected: true })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Page not found' })).toBeNull();
+    expect(window.location.hash).toBe(hash);
+  });
+
   it('the old Trades slug (#/apprenticeships) still lands on Companies', () => {
     window.location.hash = '#/apprenticeships';
     renderApp();

@@ -42,6 +42,13 @@ export function parseHash(hash: string): Route {
   };
 }
 
+/** Supabase's email link signs in through the hash (`#access_token=…`, implicit flow), and an
+ *  expired or used link comes back as `#error=…`. That is a callback for auth-js to read and
+ *  clear, not a route: a slug never holds `=`. Leave the hash alone (the tokens are in it). */
+export function isAuthCallback(route: Route): boolean {
+  return route.tab.includes('=');
+}
+
 /** Serialize a Route back into a `#/...` hash string. Pure — exported for tests. */
 export function buildHash(r: Route): string {
   const second = r.tab === JOB_TAB ? r.jobId : r.sub;

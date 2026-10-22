@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseHash, buildHash, jobHash } from './route';
+import { parseHash, buildHash, jobHash, isAuthCallback } from './route';
 import { jobIdOf } from './store';
 
 describe('route — parseHash', () => {
@@ -44,6 +44,18 @@ describe('route — parseHash', () => {
   it('tolerates a missing leading slash', () => {
     expect(parseHash('#queue')).toEqual({ tab: 'queue', sub: null, pillar: null, jobId: null });
   });
+});
+
+describe('route — a sign-in callback is not a route', () => {
+  it.each([
+    '#access_token=a&refresh_token=b&expires_in=3600&token_type=bearer&type=magiclink',
+    '#error=access_denied&error_code=otp_expired',
+    '#code=abc',
+  ])('%s', (hash) => expect(isAuthCallback(parseHash(hash))).toBe(true));
+
+  it.each(['', '#/queue', '#/discover/ats?pillar=abc', '#/nope'])('%s is not one', (hash) =>
+    expect(isAuthCallback(parseHash(hash))).toBe(false),
+  );
 });
 
 describe('route — buildHash', () => {

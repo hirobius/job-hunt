@@ -611,6 +611,8 @@ p {
 /* Action feedback (#212, feedback.ts), on HDS motion tokens only. A row whose state just changed,
  * or the item an action made (a duplicate, a pinned document that moved), flashes the selected
  * surface and fades back; a star pops on each toggle; a removed row collapses before it goes.
+ * Flash and collapse are a `data-motion` attribute (React rewrites a className it owns mid-flash);
+ * on an HDS Table row, which has no box (`display: contents`), feedback.ts marks its cells.
  * Upstream: hds `claude/component-motion` wires motion into the components themselves. */
 @keyframes rjb-flash {
   from {
@@ -620,7 +622,7 @@ p {
     background-color: transparent;
   }
 }
-.rjb-flash {
+[data-motion='flash'] {
   animation: rjb-flash calc(var(--hds-motion-spatial-duration) * 3)
     var(--hds-motion-productive-easing);
 }
@@ -649,7 +651,7 @@ p {
     transform: scaleY(0.6);
   }
 }
-.rjb-collapse {
+[data-motion='collapse'] {
   transform-origin: top;
   animation: rjb-collapse var(--hds-motion-productive-duration) var(--hds-motion-exit-easing)
     forwards;
@@ -657,13 +659,13 @@ p {
 /* Reduced motion: the state change and the toast stay, the movement goes. A flash holds still for
  * its length (feedback.ts clears it); a pop and a collapse don't run. */
 @media (prefers-reduced-motion: reduce) {
-  .rjb-flash {
+  [data-motion='flash'] {
     animation: none;
     background-color: var(--semantic-color-surface-selected);
   }
   .rjb-pop,
   .rjb-pop-off,
-  .rjb-collapse {
+  [data-motion='collapse'] {
     animation: none;
   }
 }

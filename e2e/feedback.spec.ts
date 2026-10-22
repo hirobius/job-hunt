@@ -3,8 +3,11 @@ import { go, openJob, seed } from './routes';
 
 // The feedback sweep (#212): every row and page action on the Pipeline, the job page, Documents
 // and Companies must change something visible within 300 ms of the press: the page's text (a
-// toast, a dialog, a new state), the route, or a new keyframe animation (a flash, a pop, a
-// collapse). A press that only changes an aria-label or a colour transition does not count.
+// toast, a dialog, a new state), the route, or a new keyframe animation on an element with a box (a
+// flash, a pop, a collapse). A press that only changes an aria-label or a colour transition does
+// not count. Neither does something going away on its own: picking an item closes its menu whatever
+// the item did, and an earlier toast may leave during the press. So open menus, listboxes and
+// toasts are left out of the page's text; one that appears, or whose text changes, still counts.
 test.use({
   permissions: ['clipboard-read', 'clipboard-write'],
   viewport: { width: 1440, height: 900 },
@@ -12,28 +15,90 @@ test.use({
 
 const LIMIT_MS = 300;
 
+interface Fb {
+  start: number;
+  seen: number;
+  /** What changed first (text and the words, a menu or toast, or an animation), for the message. */
+  why: string;
+  /** Keyframe animations started since the press: the name and the row (or card) it ran in. */
+  anims: { name: string; row: string }[];
+}
+
 /** Watch from each press for the first visible change; the page records how long it took. */
 async function installWatcher(page: Page) {
   await page.addInitScript(() => {
-    const w = window as unknown as { __fb: { start: number; seen: number } };
-    w.__fb = { start: 0, seen: -1 };
-    const sig = () => `${document.body.innerText}|${location.hash}`;
+    const w = window as unknown as { __fb: Fb };
+    w.__fb = { start: 0, seen: -1, why: '', anims: [] };
+    // Menus, listboxes and toasts (a Radix toast is an li in the Notifications region).
+    const TRANSIENT =
+      '[role="menu"], [role="listbox"], [role="region"][aria-label^="Notifications"] li';
+    const squash = (s: string) => s.replace(/\s+/g, ' ').trim();
+    const transients = () =>
+      new Map(
+        [...document.querySelectorAll<HTMLElement>(TRANSIENT)].map((el) => [
+          el,
+          squash(el.innerText),
+        ]),
+      );
+    /** The page's text without its menus, listboxes and toasts, and the route. */
+    const sig = () => {
+      let text = squash(document.body.innerText);
+      for (const own of transients().values()) {
+        const at = own ? text.lastIndexOf(own) : -1;
+        if (at >= 0) text = text.slice(0, at) + text.slice(at + own.length);
+      }
+      return `${squash(text)}|${location.hash}`;
+    };
+    /** The words a text change took away and added, for the failure message. */
+    const diff = (a: string, b: string) => {
+      const [x, y] = [a.split(' '), b.split(' ')];
+      const gone = x.filter((wd) => !y.includes(wd)).slice(0, 8);
+      const added = y.filter((wd) => !x.includes(wd)).slice(0, 8);
+      return `-[${gone.join(' ')}] +[${added.join(' ')}]`;
+    };
+    /** An element that paints: not `display: contents` (an HDS Table row has no box). */
+    const boxed = (el: Element | null) =>
+      !!el && el.isConnected && getComputedStyle(el).display !== 'contents';
     const keyframes = () =>
-      document
-        .getAnimations()
-        .filter((a) => a instanceof CSSAnimation && a.playState === 'running');
+      document.getAnimations().filter((a) => {
+        if (!(a instanceof CSSAnimation) || a.playState !== 'running') return false;
+        const el = (a.effect as KeyframeEffect | null)?.target ?? null;
+        return boxed(el) && !el!.closest(TRANSIENT);
+      });
+    addEventListener(
+      'animationstart',
+      (e) => {
+        const el = e.target as Element;
+        if (!boxed(el) || !w.__fb.start) return;
+        const row = el.closest('[role="row"], tr, li, article');
+        w.__fb.anims.push({ name: e.animationName, row: squash(row?.textContent ?? '') });
+      },
+      true,
+    );
     addEventListener(
       'pointerdown',
       () => {
         const base = sig();
+        const had = transients();
         const before = new Set(keyframes());
         const start = performance.now();
-        w.__fb = { start, seen: -1 };
+        w.__fb = { start, seen: -1, why: '', anims: [] };
         const tick = () => {
           const t = performance.now() - start;
           if (w.__fb.start !== start) return;
-          if (sig() !== base || keyframes().some((a) => !before.has(a))) {
-            w.__fb.seen = t;
+          const now = sig();
+          const came = [...transients()].find(([el, text]) => had.get(el) !== text);
+          const moved = keyframes().find((a) => !before.has(a)) as CSSAnimation | undefined;
+          const why =
+            now !== base
+              ? `text ${diff(base, now)}`
+              : came
+                ? `${came[0].getAttribute('role') ?? 'toast'} "${came[1].slice(0, 40)}"`
+                : moved
+                  ? `animation ${moved.animationName}`
+                  : '';
+          if (why) {
+            Object.assign(w.__fb, { seen: t, why });
             return;
           }
           if (t < 1500) requestAnimationFrame(tick);
@@ -45,18 +110,26 @@ async function installWatcher(page: Page) {
   });
 }
 
+/** The keyframe animations that started since the last press. */
+const anims = (page: Page) => page.evaluate(() => (window as unknown as { __fb: Fb }).__fb.anims);
+
+/** Expect `name` to have run in the row (or card) that holds `text`. */
+async function ranIn(page: Page, name: string, text: string) {
+  await expect
+    .poll(() => anims(page), { message: `${name} in the row of ${text}` })
+    .toContainEqual({ name, row: expect.stringContaining(text) });
+}
+
 /** Press a control and require a visible change within the limit. */
 async function press(page: Page, target: Locator, name: string) {
   await target.click();
   await page.waitForFunction(() => {
-    const fb = (window as unknown as { __fb: { start: number; seen: number } }).__fb;
+    const fb = (window as unknown as { __fb: Fb }).__fb;
     return fb.seen >= 0 || performance.now() - fb.start > 1500;
   });
-  const seen = await page.evaluate(
-    () => (window as unknown as { __fb: { seen: number } }).__fb.seen,
-  );
+  const { seen, why } = await page.evaluate(() => (window as unknown as { __fb: Fb }).__fb);
   expect(seen, `${name}: nothing visible changed`).toBeGreaterThanOrEqual(0);
-  expect(seen, `${name}: took ${Math.round(seen)} ms`).toBeLessThanOrEqual(LIMIT_MS);
+  expect(seen, `${name}: took ${Math.round(seen)} ms (${why})`).toBeLessThanOrEqual(LIMIT_MS);
 }
 
 const button = (page: Page, name: string | RegExp) =>
@@ -90,11 +163,17 @@ test('Pipeline: every row and page action answers within 300 ms', async ({ page 
     page.getByText('Marked applied · Follow up in 7 days', { exact: true }),
   ).toBeVisible();
 
+  // The desktop table's rows have no box (HDS Table: `display: contents`), so the row's cells
+  // flash and collapse; the toast alone is not the item's feedback.
   await menu(page, 'More actions: Senior Product Designer', 'Star');
+  await ranIn(page, 'rjb-flash', 'Senior Product Designer');
   await menu(page, 'More actions: Senior Product Designer', 'Unstar');
+  await ranIn(page, 'rjb-flash', 'Senior Product Designer');
   await menu(page, 'More actions: Implementation Consultant', 'Retire');
   await menu(page, 'More actions: Product Designer', 'Interviewing');
+  await ranIn(page, 'rjb-flash', 'Product Designer');
   await menu(page, 'More actions: Clinical Systems Analyst', 'Remove');
+  await ranIn(page, 'rjb-collapse', 'Clinical Systems Analyst');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
   await expect(button(page, 'More actions: Clinical Systems Analyst')).toHaveCount(0);
 
@@ -111,6 +190,15 @@ test('Pipeline: every row and page action answers within 300 ms', async ({ page 
   await press(page, button(page, 'Start applying'), 'Start applying');
   await go(page, '#/queue');
   await press(page, button(page, 'Find the next company'), 'Find the next company');
+});
+
+test('Pipeline cards (390): Remove collapses the card before it goes', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(page, '#/queue');
+  await menu(page, 'More actions: Clinical Systems Analyst', 'Remove');
+  await ranIn(page, 'rjb-collapse', 'Clinical Systems Analyst');
+  await expect(button(page, 'More actions: Clinical Systems Analyst')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
 });
 
 test('Job page: every header and panel action answers within 300 ms', async ({ page }) => {
@@ -147,14 +235,15 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
 
   const more = 'More actions for Follow-up after applying';
   await menu(page, more, 'Pin');
-  await expect(page.getByRole('listitem', { name: 'Follow-up after applying' })).toHaveClass(
-    /rjb-flash/,
+  await expect(page.getByRole('listitem', { name: 'Follow-up after applying' })).toHaveAttribute(
+    'data-motion',
+    'flash',
   );
   await menu(page, more, 'Unpin');
 
   await menu(page, more, 'Duplicate');
   const copy = page.getByRole('listitem', { name: 'Follow-up after applying (copy)' });
-  await expect(copy).toHaveClass(/rjb-flash/);
+  await expect(copy).toHaveAttribute('data-motion', 'flash');
   await expect(copy).toBeInViewport();
 
   await menu(page, more, 'Delete');
@@ -195,10 +284,14 @@ test.describe('reduced motion', () => {
     await expect(page.getByText(/^(Starred|Unstarred)$/)).toBeVisible();
     expect(await moving()).toEqual([]);
 
+    // At 390, where the same Remove collapses the card with motion on (the test above).
+    await page.setViewportSize({ width: 390, height: 844 });
     await go(page, '#/queue');
     await menu(page, 'More actions: Clinical Systems Analyst', 'Remove');
-    expect(await moving()).toEqual([]);
     await expect(button(page, 'More actions: Clinical Systems Analyst')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+    await page.waitForTimeout(400);
+    expect(await anims(page)).toEqual([]);
+    expect(await moving()).toEqual([]);
   });
 });

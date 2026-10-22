@@ -291,10 +291,14 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   must not fail on a new advisory upstream).
 - **Action feedback (#212):** every action answers within 300 ms: a toast, a state change with motion, or
   the item it made scrolled into view and flashed. `src/feedback.ts` (`flashRow`, `collapseRow`, `highlightNew`
-  with `useHighlight`, `starClass`) drives `.rjb-flash` / `.rjb-pop` / `.rjb-collapse` in `base.css` (HDS motion
-  tokens only; reduced motion keeps the state and toast, drops the movement). Row status / Retire / Mark applied
+  with `useHighlight`, `starClass`) drives `[data-motion=flash|collapse]` and `.rjb-pop` in `base.css` (HDS motion
+  tokens only; reduced motion keeps the state and toast, drops the movement). Flash and collapse are an attribute,
+  not a class (React rewrites a className it owns, e.g. a starred table row moving to the top), and on an HDS Table
+  row (`display: contents`, no box) they mark its cells. Row status / Retire / Mark applied
   raise a notice with Undo; Remove collapses the row first; Duplicate and Pin flash the row they land on. Pinned
-  by `e2e/feedback.spec.ts` (the sweep fails if a press changes nothing visible in 300 ms) and `src/feedback.test.ts`.
+  by `e2e/feedback.spec.ts` (the sweep fails if a press changes nothing visible in 300 ms; a menu closing or an
+  earlier toast leaving does not count; it checks the table row's flash and collapse at 1440 and the card's at 390)
+  and `src/feedback.test.ts`.
 - **Posting links (Adrian 2026-10-22: anywhere a job is listed, its posting is one tap away).** A
   saved job's title opens its page in the app; `PostingLink.tsx` (`JobPostingLink` for a Job) is the
   quiet icon link to the posting right beside it (HDS icon-only Button as an `<a target=_blank>`,

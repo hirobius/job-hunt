@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { useRoute, navigate, getRoute, COMPANY_TAB } from './route';
+import { useRoute, navigate, getRoute, isAuthCallback, COMPANY_TAB } from './route';
 import {
   Tabs as HdsTabs,
   TabsList,
@@ -78,11 +78,13 @@ export default function App() {
   // The Privacy policy and Terms (#43): pages with no tab, like Documents.
   const legal = route.tab === LEGAL_ROUTE;
   // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show Companies.
+  // A sign-in link's callback hash is not a link: Companies shows while auth-js reads it.
   const known: string[] = [...TAB_SLUGS, APPLY_ROUTE, COMPANY_TAB, DOCUMENTS_ROUTE, LEGAL_ROUTE];
   const notFound =
     route.tab !== '' &&
     route.tab !== RETIRED_TODAY &&
     route.tab !== LEGACY_HOME &&
+    !isAuthCallback(route) &&
     !known.includes(route.tab);
   const noTab = documents || legal || notFound;
   const slugIndex = TAB_SLUGS.indexOf(

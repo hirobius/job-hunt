@@ -1,7 +1,10 @@
 // Visible feedback for every action (#212): an action changes state with motion, raises a toast
 // (saveNotice / useToast), or highlights the item it made and scrolls it into view. The motion is
-// base.css's `.rjb-flash` / `.rjb-collapse` / `.rjb-pop` on HDS motion tokens; reduced motion keeps
-// the state change and the toast and drops the movement (a flash holds still, a collapse is skipped).
+// base.css's `[data-motion="flash"]` / `[data-motion="collapse"]` and `.rjb-pop` on HDS motion
+// tokens; reduced motion keeps the state change and the toast and drops the movement (a flash holds
+// still, a collapse is skipped). Flash and collapse mark an attribute, not a class: React owns the
+// className of what it renders and rewrites it on any change (a starred table row floats to the top
+// and its cells' divider class changes), which would wipe a class mid-flash.
 import { useCallback } from 'react';
 import { createStore } from './createStore';
 
@@ -19,16 +22,37 @@ const FLASH_MS = 1200;
 /** The collapse's length: `--hds-motion-productive-duration` (150ms) plus a frame of slack. */
 const COLLAPSE_MS = 180;
 
-/** The row an action sits in: a table row, a list item or a card. */
-const rowOf = (from: Element | null) => from?.closest('tr, li, article') ?? null;
+/** The row an action sits in: a table row (an HDS Table's is a `role="row"` div), a list item or
+ *  a card. */
+const rowOf = (from: Element | null) => from?.closest('tr, [role="row"], li, article') ?? null;
+
+/** The attribute that carries a flash or a collapse (base.css). */
+const MOTION = 'data-motion';
+/** Each flashing element's clear-up, so a second flash restarts the length, not just the motion. */
+const timers = new WeakMap<Element, ReturnType<typeof setTimeout>>();
+
+/** The boxes that show an element's motion: the element itself, or, for one with no box of its own
+ *  (`display: contents`, like an HDS Table row, whose cells are the grid's items), its children. */
+function boxesOf(el: Element): Element[] {
+  return getComputedStyle(el).display === 'contents' ? [...el.children] : [el];
+}
 
 /** Flash an element (a row whose state just changed); a second flash restarts it. */
 export function flash(el: Element | null) {
   if (!el) return;
-  el.classList.remove('rjb-flash');
-  void (el as HTMLElement).offsetWidth; // restart the animation
-  el.classList.add('rjb-flash');
-  setTimeout(() => el.classList.remove('rjb-flash'), FLASH_MS);
+  const boxes = boxesOf(el);
+  for (const box of boxes) box.removeAttribute(MOTION);
+  void (boxes[0] as HTMLElement | undefined)?.offsetWidth; // restart the animation
+  for (const box of boxes) {
+    box.setAttribute(MOTION, 'flash');
+    clearTimeout(timers.get(box));
+    timers.set(
+      box,
+      setTimeout(() => {
+        if (box.getAttribute(MOTION) === 'flash') box.removeAttribute(MOTION);
+      }, FLASH_MS),
+    );
+  }
 }
 
 /** Flash the row an action sits in. */
@@ -39,7 +63,7 @@ export const flashRow = (from: Element | null) => flash(rowOf(from));
 export function collapseRow(from: Element | null, then: () => void) {
   const row = rowOf(from);
   if (!row || !motionOk()) return then();
-  row.classList.add('rjb-collapse');
+  for (const box of boxesOf(row)) box.setAttribute(MOTION, 'collapse');
   setTimeout(then, COLLAPSE_MS);
 }
 
