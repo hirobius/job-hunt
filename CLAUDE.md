@@ -5,7 +5,8 @@ Project memory for future Claude Code sessions in this repo.
 ## What this is
 
 **Roleforge** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
-**https://job-hunt-jade.vercel.app** (repo `hirobius/job-hunt`). Rebuilt from a
+**https://roleforge-app.vercel.app** (repo `hirobius/job-hunt`; the old
+`job-hunt-jade.vercel.app` still serves and is an accepted sign-in origin until it redirects). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
 commit `f15fd52`).
 
@@ -410,8 +411,10 @@ re-litigate decisions already in `docs/adr/`.
 
 ## Notes
 
-- Supabase redirect URLs must include any new origin for magic-link sign-in
-  (production `job-hunt-jade.vercel.app` is already allowed).
+- Supabase redirect URLs must include any new origin for magic-link sign-in. During the move
+  **both** `https://roleforge-app.vercel.app/` (Site URL) and `https://job-hunt-jade.vercel.app/`
+  must be in Supabase Auth → URL Configuration → Redirect URLs; the client side is
+  `src/account/authRedirect.ts` (`PRODUCTION_ORIGIN`, `LEGACY_ORIGIN`).
 - Keep personal contact info OUT of this public repo (letters/snippets ship with a
   "add your name + contact" placeholder).
 - **AI is fully removed (2026-07).** The résumé-tailor went first (`TailorDialog`/`tailor-core.ts`/

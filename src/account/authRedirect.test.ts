@@ -1,18 +1,25 @@
 // Where a magic link may send the user back to (#44). Only this app's own origins; anything
 // else falls back to production, and the path is always the root.
 import { describe, expect, it } from 'vitest';
-import { PRODUCTION_ORIGIN, magicLinkRedirect } from './authRedirect';
+import { LEGACY_ORIGIN, PRODUCTION_ORIGIN, magicLinkRedirect } from './authRedirect';
 
-const PROD = 'https://job-hunt-jade.vercel.app/';
+const PROD = 'https://roleforge-app.vercel.app/';
+const OLD = 'https://job-hunt-jade.vercel.app/';
 const at = (origin: string, pathname = '/') => magicLinkRedirect({ origin, pathname });
 
 describe('magicLinkRedirect', () => {
   it('production origin is the known one', () => {
-    expect(PRODUCTION_ORIGIN).toBe('https://job-hunt-jade.vercel.app');
+    expect(PRODUCTION_ORIGIN).toBe('https://roleforge-app.vercel.app');
+  });
+
+  it('the old address is still accepted during the move', () => {
+    expect(LEGACY_ORIGIN).toBe('https://job-hunt-jade.vercel.app');
   });
 
   it.each([
-    ['https://job-hunt-jade.vercel.app', PROD],
+    ['https://roleforge-app.vercel.app', PROD],
+    // A link opened on the old address lands back on the old address.
+    ['https://job-hunt-jade.vercel.app', OLD],
     [
       'https://job-hunt-h95mo04go-adrian-6234s-projects.vercel.app',
       'https://job-hunt-h95mo04go-adrian-6234s-projects.vercel.app/',
@@ -29,6 +36,15 @@ describe('magicLinkRedirect', () => {
   });
 
   it.each([
+    'https://roleforge-app.vercel.app.evil.com',
+    'https://evil-roleforge-app.vercel.app',
+    'http://roleforge-app.vercel.app',
+    'https://roleforge-app.vercel.app:8443',
+    'https://user@roleforge-app.vercel.app',
+    'https://roleforge-app.vercel.app@evil.com',
+    'https://evil.com#roleforge-app.vercel.app',
+    'https://ROLEFORGE-APP.vercel.app.evil.com',
+    'https://roleforge-app.vercel.app/',
     'https://job-hunt-jade.vercel.app.evil.com',
     'https://evil-job-hunt-jade.vercel.app',
     'https://evil.com',
@@ -67,6 +83,7 @@ describe('magicLinkRedirect', () => {
     expect(at('http://localhost:5173', '/evil?next=https://evil.com#x')).toBe(
       'http://localhost:5173/',
     );
-    expect(at('https://job-hunt-jade.vercel.app', '//evil.com/')).toBe(PROD);
+    expect(at('https://roleforge-app.vercel.app', '//evil.com/')).toBe(PROD);
+    expect(at('https://job-hunt-jade.vercel.app', '//evil.com/')).toBe(OLD);
   });
 });

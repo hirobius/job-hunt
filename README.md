@@ -1,6 +1,6 @@
 # Roleforge
 
-A job-hunt tracker with a discovery board. Live at https://job-hunt-jade.vercel.app
+A job-hunt tracker with a discovery board. Live at https://roleforge-app.vercel.app
 
 The name is set in one place, `src/brand.ts`. It was called Apply Board before.
 
