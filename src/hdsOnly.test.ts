@@ -108,12 +108,16 @@ describe('Inline style allowlist (#93)', () => {
     expect(counts).toEqual(ALLOWED);
   });
 
-  // The ratchet (#172): the total `style={{` in non-test src/**/*.tsx. Lower it as styles are
-  // burned down, never raise it.
+  // The ratchet (#172): the total `style={{` in non-test src/**/*.tsx. It fails when the count
+  // rises, and when it falls it says to lower this constant. Lower it as styles are burned down,
+  // never raise it.
   const MAX_INLINE_STYLES = 5;
-  it(`has at most ${MAX_INLINE_STYLES} inline styles in all`, () => {
+  it(`has exactly ${MAX_INLINE_STYLES} inline styles in all (lower MAX_INLINE_STYLES when it falls)`, () => {
     const total = Object.values(counts).reduce((a, n) => a + n, 0);
-    expect(total).toBeLessThanOrEqual(MAX_INLINE_STYLES);
+    expect(
+      total,
+      `${total} inline styles: set MAX_INLINE_STYLES to ${total} (lower it, never raise it)`,
+    ).toBe(MAX_INLINE_STYLES);
   });
 
   it('sets no raw font size or weight inline', () => {
