@@ -30,12 +30,12 @@ const DEFAULTS: Snippet[] = [
   {
     id: 'tpl-outreach',
     label: 'Outreach note',
-    body: "Hi [Contact],\n\nI came across the [Role] opening at [Company] and wanted to reach out directly. [Angle]\n\nI'd love to learn more about the team and how I could help. Would you be open to a quick conversation? I've attached my resume for context.\n\nThank you for your time,\n[Your name]",
+    body: "Hi [Contact],\n\nI came across the [Role] opening at [Company] and wanted to reach out directly.\n\nI'd love to learn more about the team and how I could help. Would you be open to a quick conversation? I've attached my résumé for context.\n\nThank you for your time,\n[Your name]",
   },
   {
     id: 'tpl-cover',
     label: 'Cover letter',
-    body: "Dear [Contact],\n\nI'm writing to apply for the [Role] position at [Company]. [Angle]\n\nI'm drawn to this role because it matches the work I do best, and I'd welcome the chance to show how I can contribute to your team. My resume is attached, and I'm glad to share more detail on anything that would be helpful.\n\nThank you for considering my application. I look forward to hearing from you.\n\nSincerely,\n[Your name]",
+    body: "Dear [Contact],\n\nI'm writing to apply for the [Role] position at [Company]. [Angle]\n\nI'm drawn to this role because it matches the work I do best, and I'd welcome the chance to show how I can contribute to your team. My résumé is attached, and I'm glad to share more detail on anything that would be helpful.\n\nThank you for considering my application. I look forward to hearing from you.\n\nSincerely,\n[Your name]",
   },
   {
     id: 'tpl-followup',
@@ -50,7 +50,7 @@ const DEFAULTS: Snippet[] = [
   {
     id: 'tpl-intro-call',
     label: 'Intro call script',
-    body: "Hi [Contact], this is [Your name]. I'll be brief: I'm a designer who builds design systems and product design for teams like [Company], and I saw the [Role] opening.\n\n[Angle]\n\nIn one line: I help product teams ship a consistent, accessible UI faster by turning scattered patterns into a shared system of components and guidelines.\n\nCould I ask two quick questions?\n1. How does design and engineering work together on UI at [Company] today?\n2. Is the [Role] role still open, and who makes the call on it?\n\nIf now is a bad time, when is a better 10 minutes this week? I can also send a short note and a link to my work first.\n\nThank you, [Contact]. [Your name]",
+    body: "Hi [Contact], this is [Your name]. I'll be brief: I'm a designer who builds design systems and product design for teams like [Company], and I saw the [Role] opening.\n\nIn one line: I help product teams ship a consistent, accessible UI faster by turning scattered patterns into a shared system of components and guidelines.\n\nCould I ask two quick questions?\n1. How does design and engineering work together on UI at [Company] today?\n2. Is the [Role] role still open, and who makes the call on it?\n\nIf now is a bad time, when is a better 10 minutes this week? I can also send a short note and a link to my work first.\n\nThank you, [Contact]. [Your name]",
   },
 ];
 

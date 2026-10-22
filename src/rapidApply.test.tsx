@@ -286,6 +286,19 @@ describe('rapid apply follow-ups (#219)', () => {
   });
 });
 
+describe('Apply sheet previews keep line breaks', () => {
+  afterEach(() => setOutreachMessages([]));
+  it('the greeting stays on its own line, not run into the next sentence', async () => {
+    setOutreachMessages([{ id: 'ty', label: 'Thanks', body: 'Hi [Contact],\n\nThank you.' }]);
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const list = await screen.findByRole('list', { name: 'Your templates' });
+    const preview = within(list).getByText(/Thank you\./);
+    expect(preview.textContent).toBe('Hi Contact,\nThank you.');
+    expect(preview).toHaveClass('rjb-clamp-3');
+  });
+});
+
 describe('Application kit: where it is kept (sign-in aware)', () => {
   const kitNote = () =>
     within(screen.getByRole('region', { name: /^Application kit/ })).getByText(/^Enter these once/);

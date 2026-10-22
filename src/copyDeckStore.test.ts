@@ -57,3 +57,20 @@ describe('restoreStarterSnippets', () => {
     expect(getSnippets()).toHaveLength(all.length);
   });
 });
+
+describe('starter templates read cleanly', () => {
+  it('spell résumé with its accents', async () => {
+    const { STARTER_SNIPPETS } = await load();
+    const body = (id: string) => STARTER_SNIPPETS.find((s) => s.id === id)!.body;
+    for (const s of STARTER_SNIPPETS) expect(s.body).not.toMatch(/\bresume\b/i);
+    expect(body('tpl-outreach')).toContain('résumé');
+    expect(body('tpl-cover')).toContain('résumé');
+  });
+  it('leave no dangling [Angle] in the outreach note or the intro call script', async () => {
+    const { STARTER_SNIPPETS } = await load();
+    const body = (id: string) => STARTER_SNIPPETS.find((s) => s.id === id)!.body;
+    expect(body('tpl-outreach')).not.toContain('[Angle]');
+    expect(body('tpl-intro-call')).not.toContain('[Angle]');
+    expect(body('tpl-intro-call')).not.toMatch(/\n{3,}/);
+  });
+});

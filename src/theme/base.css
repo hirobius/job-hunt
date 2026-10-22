@@ -255,6 +255,9 @@ p {
 
 /* A text preview, three lines at most (Apply mode's template rows). */
 .rjb-clamp-3 {
+  /* A preview keeps its line breaks (previewText folds blank lines), so "Hi [Contact]," stays on
+   * its own line instead of running into the next sentence. */
+  white-space: pre-line;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;

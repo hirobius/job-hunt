@@ -86,12 +86,17 @@ export function fillSnippet(
 }
 
 /**
- * A one-paragraph preview of a filled text, at most `max` characters before the ellipsis. The cut
+ * A short preview of a filled text (line breaks kept), at most `max` characters before the ellipsis. The cut
  * lands on a word or blank boundary, never inside one, so a preview never ends in "[Your n…"
  * (slice 3, rev-3 item 4). A blank the cut would split is dropped whole.
  */
 export function previewText(text: string, max = 160): string {
-  const flat = text.replace(/\s+/g, ' ').trim();
+  // Line breaks stay (a greeting keeps its own line); runs of blank lines fold to one break.
+  const flat = text
+    .split('\n')
+    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n');
   if (flat.length <= max) return flat;
   let cut = max;
   // Inside a blank: back up to its start.
@@ -100,8 +105,9 @@ export function previewText(text: string, max = 160): string {
     if (start < cut && start + m[0].length > cut) cut = start;
   }
   // Inside a word (the next character continues it): back up to the space before it.
-  if (cut < flat.length && flat[cut] !== ' ' && flat[cut - 1] !== ' ' && flat[cut - 1] !== ']') {
-    const space = flat.lastIndexOf(' ', cut - 1);
+  const gap = (c: string | undefined) => c === ' ' || c === '\n';
+  if (cut < flat.length && !gap(flat[cut]) && !gap(flat[cut - 1]) && flat[cut - 1] !== ']') {
+    const space = Math.max(flat.lastIndexOf(' ', cut - 1), flat.lastIndexOf('\n', cut - 1));
     if (space > 0) cut = space;
   }
   return `${flat.slice(0, cut).trimEnd()}…`;
