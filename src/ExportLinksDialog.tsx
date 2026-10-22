@@ -18,6 +18,7 @@ import { useJobs } from './store';
 import { usePipelineView, visibleJobs } from './pipelineView';
 import { copyFilled } from './templateCopy';
 import { download } from './download';
+import { useBackCloses } from './useBackCloses';
 import {
   buildLinkList,
   closeExportLinks,
@@ -32,6 +33,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 /** Mounted once; renders the dialog while a scope is open. */
 export function ExportLinksHost() {
   const scope = useExportLinksScope();
+  useBackCloses(scope !== null, closeExportLinks, 'export-links');
   return (
     <Dialog open={scope !== null} onOpenChange={(o) => !o && closeExportLinks()}>
       {/* Keyed by the opening scope, so each open starts from where it was opened. */}

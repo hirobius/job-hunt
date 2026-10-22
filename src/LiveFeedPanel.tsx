@@ -74,6 +74,7 @@ import { activeTitles, useSweep } from './feed/sweepTitles';
 import { metaLines } from './metaLines';
 import { foldRoles, orderByRoleType, roleTypeOf, roleTypeTag } from './feed/roleType';
 import { useRoleTypes, writeShowEngineering } from './feed/roleTypePref';
+import { useBackCloses, useBackSheet } from './useBackCloses';
 
 type Focus = 'all' | 'strong' | SignalId;
 /** Rows rendered per page — the rest sit behind "Show more". */
@@ -518,6 +519,8 @@ export default function LiveFeedPanel({
   const offered = focusOptions.filter((o) => o.value === 'all' || o.count > 0 || o.value === focus);
   const focusLabel = focusOptions.find((o) => o.value === focus)?.label ?? 'All';
   const unsaved = visible.filter((p) => !savedKeys.has(dedupKey(p.url)));
+  // The browser's Back closes the open menu and stays on the page (return paths).
+  const showSheet = useBackSheet('feed-show');
   const captionItems = [
     reading
       ? `Read ${reading.done} of ${reading.total} boards…`
@@ -529,7 +532,7 @@ export default function LiveFeedPanel({
   ];
 
   const openingsMenu = (
-    <Menu modal={false}>
+    <Menu modal={false} {...showSheet}>
       <Menu.Trigger asChild>
         <Button
           size="sm"
@@ -1249,6 +1252,7 @@ function PostingRow({
   typeTag?: string;
 }) {
   const [why, setWhy] = useState(false);
+  useBackCloses(why, () => setWhy(false), `feed-why:${p.id}`);
   const place = p.location || (p.mode ? modeLabel(p.mode) : '');
   const posted = postedAgo(p.postedAt, now);
   const pay = payLabel(p);

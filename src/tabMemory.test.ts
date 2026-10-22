@@ -3,6 +3,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { lastRouteOf, openTab, resetTabMemory } from './tabMemory';
+import { addJob, jobIdOf, removeJob } from './store';
 
 const visit = async (hash: string) => {
   window.location.hash = hash;
@@ -31,6 +32,34 @@ describe('tab memory', () => {
   it('falls back to the tab root before anything was visited', () => {
     expect(lastRouteOf('queue')).toBe('#/queue');
     expect(lastRouteOf('discover')).toBe('#/discover');
+  });
+
+  // Review blocker (2026-10-22): a removed job's page stayed the Pipeline's place, so every tap on
+  // the tab reopened it and its fallback sent the user to the origin (Companies) again.
+  it('a remembered job page or Apply mode whose job is no longer saved reopens the list', async () => {
+    await visit('#/queue/gone123?from=%2Fdiscover%2Fats');
+    await visit('#/discover/ats');
+    openTab('queue');
+    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await visit('#/apply/gone456');
+    await visit('#/discover/ats');
+    openTab('queue');
+    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+  });
+
+  it('a remembered job page whose job is saved reopens the job', async () => {
+    const url = 'https://acme.example/jobs/tab-memory';
+    addJob(url, 'Fabricator');
+    try {
+      await visit(`#/queue/${jobIdOf(url)}?section=screening`);
+      await visit('#/discover/ats');
+      openTab('queue');
+      await waitFor(() =>
+        expect(window.location.hash).toBe(`#/queue/${jobIdOf(url)}?section=screening`),
+      );
+    } finally {
+      removeJob(url);
+    }
   });
 
   it('openTab goes back to where the tab was left', async () => {

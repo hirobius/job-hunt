@@ -67,6 +67,10 @@ import { useRoleTypes } from './feed/roleTypePref';
 const AUTO_READ = 10;
 /** A panel's hairline list (the rows are PanelRows). */
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
+/** The company rows reorder as their boards answer (open roles first). The browser's scroll
+ *  anchoring would follow a row that moved and drag the page with it, under the user and on the
+ *  way back to this page (return paths): it anchors on what is around the list instead. */
+const COMPANY_LIST = { ...LIST, overflowAnchor: 'none' } as const;
 
 type CompanyRow = Row & { boardCheck?: OrgTarget['boardCheck']; watched?: boolean };
 
@@ -554,14 +558,14 @@ export default function CompaniesPanel({
           </Stack>
         </PanelBody>
         {shown.length > 0 && (
-          <ul aria-label="Companies" style={LIST}>
+          <ul aria-label="Companies" style={COMPANY_LIST}>
             {shown.map(companyRow)}
           </ul>
         )}
         {notFound.length > 0 && (
           <PanelRow as="div">
             <Disclosure label={`Board not found (${notFound.length})`}>
-              <ul aria-label="Board not found" style={LIST}>
+              <ul aria-label="Board not found" style={COMPANY_LIST}>
                 {notFound.map(companyRow)}
               </ul>
             </Disclosure>

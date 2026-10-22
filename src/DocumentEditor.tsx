@@ -55,6 +55,7 @@ import { BlanksLeft, WithChips } from './BlankText';
 import { dropDocDraft, keepDocDraft, readDocDraft } from './docDrafts';
 import { scrollToTop } from './scrollMemory';
 import { BackGuard } from './back';
+import { useBackCloses, useBackSheet } from './useBackCloses';
 
 const NO_JOB = 'none';
 const FULL = { width: '100%' } as const;
@@ -108,6 +109,9 @@ export default function DocumentEditor({
     setSeen(saved);
   }
   const [confirming, setConfirming] = useState(false);
+  // The browser's Back closes the menu or the confirm and stays on the page (return paths).
+  const menu = useBackSheet('document-menu');
+  useBackCloses(confirming, () => setConfirming(false), 'document-delete');
   // Opened from a scrolled list, the editor starts at its head (like JobPage and ApplyMode).
   useEffect(() => {
     scrollToTop();
@@ -155,6 +159,7 @@ export default function DocumentEditor({
     });
   }, [restored, docId, toast]);
   const [leaving, setLeaving] = useState(false);
+  useBackCloses(leaving, () => setLeaving(false), 'document-discard');
   // Where Discard goes: the Back that asked (a named origin, return paths), else All documents.
   const pendingBack = useRef<(() => void) | null>(null);
   const guardBack = (go: () => void) => {
@@ -172,11 +177,19 @@ export default function DocumentEditor({
   };
 
   const back$ = returnTo ? `Back to ${returnTo.label}` : undefined;
+  // A Save that goes back leaves with a pop that lands a moment later; until then this editor is
+  // still on screen, so a second click (a double click) must not save, or go back, again.
+  const goingBack = useRef(false);
+  const goBack = () => {
+    goingBack.current = true;
+    returnTo?.go();
+  };
   const save = () => {
+    if (goingBack.current) return;
     if (!doc) {
       const id = createDocument({ kind, title: title.trim() || label, text: draft, base: true });
       toast({ title: 'Saved', description: back$ ?? (title.trim() || label), tone: 'success' });
-      if (returnTo) returnTo.go();
+      if (returnTo) goBack();
       else onCreated(id);
       return;
     }
@@ -186,7 +199,7 @@ export default function DocumentEditor({
         tone: 'success',
         ...(back$ ? { description: back$ } : {}),
       });
-      returnTo?.go();
+      if (returnTo) goBack();
     }
   };
   const commitTitle = () => {
@@ -213,7 +226,7 @@ export default function DocumentEditor({
       )}
       {doc && (
         // Not modal: a modal menu and the confirm dialog both lock body pointer events (#132).
-        <Menu modal={false}>
+        <Menu modal={false} {...menu}>
           <Menu.Trigger asChild>
             <Button
               variant="secondary"
@@ -382,6 +395,7 @@ function OutreachText({
   const jobs = useJobs();
   const kitName = useApplyKit().fields.name;
   const [fillFor, setFillFor] = useState<string | null>(null);
+  const insertMenu = useBackSheet('insert-variable');
   const job = jobs.find((j) => j.url === fillFor);
   const filled = fillSnippet({ body: value, values }, job, kitName);
   const names = templateVariables(value);
@@ -459,7 +473,7 @@ function OutreachText({
               <HdsTooltip.Content>{c.hint}</HdsTooltip.Content>
             </HdsTooltip>
           ))}
-          <Menu>
+          <Menu {...insertMenu}>
             <Menu.Trigger asChild>
               {/* A chip like the variables beside it (rev-3 mock). */}
               <Tag>

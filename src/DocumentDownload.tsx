@@ -5,6 +5,7 @@ import { Button, Icon, Menu } from '@hirobius/design-system';
 import { downloadDocument } from './docExport';
 import type { Document, Version } from './documents';
 import type { Job } from './types';
+import { useBackSheet } from './useBackCloses';
 
 export function DocumentDownload({
   doc,
@@ -19,8 +20,10 @@ export function DocumentDownload({
   size?: 'sm' | 'md';
 }) {
   const n = Math.max(1, doc.versions.findIndex((v) => v.id === version.id) + 1);
+  // The browser's Back closes the open menu and stays on the page (return paths).
+  const sheet = useBackSheet(`download:${doc.id}:${version.id}`);
   return (
-    <Menu>
+    <Menu {...sheet}>
       <Menu.Trigger asChild>
         <Button
           size={size}

@@ -49,6 +49,7 @@ import {
   type SentVersion,
 } from './jobDocuments';
 import type { Job } from './types';
+import { useBackCloses } from './useBackCloses';
 
 export interface JobDocumentsProps {
   job: Job;
@@ -235,6 +236,9 @@ function DocumentCard({
   }
   const [sending, setSending] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // The browser's Back closes a confirm and stays on the job (return paths).
+  useBackCloses(sending !== null, () => setSending(null), `mark-sent:${doc.id}`);
+  useBackCloses(deleting, () => setDeleting(false), `job-doc-delete:${doc.id}`);
   const headingId = `doc-${doc.id}`;
   const sentHere = kindSent?.doc.id === doc.id;
   const label = kindLabel(doc.kind);

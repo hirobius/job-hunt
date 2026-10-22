@@ -4,6 +4,7 @@
 // showing now. Tapping the open tab goes to its root (App.tsx).
 import { buildHash, COMPANY_TAB, getRoute, navigate, parseHash, subscribeRoute } from './route';
 import type { Route } from './route';
+import { findJobById } from './store';
 
 export type TopTab = 'discover' | 'queue';
 
@@ -35,9 +36,17 @@ export function lastRouteOf(tab: TopTab): string {
   return last[tab] ?? `#/${tab}`;
 }
 
-/** Open a top tab where it was left, at the scroll it had. */
+/** A job page or Apply mode left on a job that is no longer saved (removed here, or on another
+ *  device): there is nothing to reopen, and the job page's fallback would leave the tab. */
+const jobGone = (r: Route) => {
+  const id = r.tab === 'queue' ? r.jobId : r.tab === 'apply' ? r.sub : null;
+  return !!id && !findJobById(id);
+};
+
+/** Open a top tab where it was left, at the scroll it had; its root when that place is gone. */
 export function openTab(tab: TopTab): void {
-  const r = parseHash(lastRouteOf(tab));
+  const left = parseHash(lastRouteOf(tab));
+  const r = jobGone(left) ? parseHash(`#/${tab}`) : left;
   navigate({ ...r, from: r.from ?? null, section: r.section ?? null }, false, { restore: true });
 }
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import {
   parseHash,
@@ -10,6 +10,8 @@ import {
   goBackTo,
   navigate,
   getRoute,
+  subscribeScrollRestore,
+  backInFlight,
   type Route,
 } from './route';
 import { jobIdOf } from './store';
@@ -257,6 +259,67 @@ describe('route — goBackTo', () => {
     await settle();
     goBackTo(parseHash('#/queue/back2'));
     await waitFor(() => expect(getRoute()).toMatchObject({ jobId: 'back2', section: 'screening' }));
+  });
+
+  // Review blockers (2026-10-22): a double click, or a click handler and a fallback effect in the
+  // same tick, called goBackTo twice before the first pop landed, and the second pop overshot.
+  it('is single-flight: a second call before the pop lands does not pop again', async () => {
+    window.location.hash = '#/discover/apply';
+    await settle();
+    window.location.hash = '#/queue';
+    await settle();
+    window.location.hash = '#/queue/twice1';
+    await settle();
+    // jsdom lands two same-tick pops on one entry (Chromium overshoots): count the traversals.
+    const go = vi.spyOn(window.history, 'go');
+    goBackTo(parseHash('#/queue'));
+    goBackTo(parseHash('#/queue'));
+    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await settle();
+    const calls = go.mock.calls.length;
+    go.mockRestore();
+    expect(window.location.hash).toBe('#/queue');
+    expect(calls).toBe(1);
+  });
+
+  it('a navigation asked for while a pop is in flight waits for it, and is a no-op onto the same page', async () => {
+    window.location.hash = '#/discover/apply';
+    await settle();
+    window.location.hash = '#/queue';
+    await settle();
+    window.location.hash = '#/queue/twice2';
+    await settle();
+    const restored: string[] = [];
+    const stop = subscribeScrollRestore((h) => restored.push(h));
+    goBackTo(parseHash('#/queue'));
+    // The job page's fallback (the job just went away): the Pipeline, in place.
+    navigate({ tab: 'queue', jobId: null }, true);
+    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await settle();
+    stop();
+    expect(window.location.hash).toBe('#/queue');
+    // A real revisit: the list's scroll is asked back, and the job's entry is still ahead.
+    expect(restored).toContain('#/queue');
+    window.history.forward();
+    await waitFor(() => expect(window.location.hash).toBe('#/queue/twice2'));
+  });
+
+  it('a goBackTo to another page asked while a pop is in flight runs once it has landed', async () => {
+    window.location.hash = '#/discover/ats';
+    await settle();
+    window.location.hash = '#/company/twice3-co';
+    await settle();
+    window.location.hash = '#/queue/twice3?from=%2Fcompany%2Ftwice3-co';
+    await settle();
+    goBackTo(parseHash('#/company/twice3-co'));
+    expect(backInFlight()).toBe(true);
+    // Asked again before the pop lands: once it has, the Company is behind no more, so this one
+    // goes on to where it was then asked to go (the ATS search), exactly once.
+    goBackTo(parseHash('#/discover/ats'));
+    await waitFor(() => expect(window.location.hash).toBe('#/discover/ats'));
+    await settle();
+    expect(window.location.hash).toBe('#/discover/ats');
+    expect(backInFlight()).toBe(false);
   });
 
   it('replaces the current entry when the page is not behind it (a cold load)', async () => {

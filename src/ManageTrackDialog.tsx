@@ -37,6 +37,7 @@ import type { Group, Tile } from './curation/types';
 import { collapseRow } from './feedback';
 import { noticeToToast, notifyRemoved } from './saveNotice';
 import { DialogNotice } from './NoticeHost';
+import { useBackSheet } from './useBackCloses';
 
 // In-app curation controls (issue #37 / B4): edit a track's search terms + seniority + location,
 // and add/remove its sections (groups) and links (tiles) — all through the curation store, which
@@ -280,6 +281,8 @@ export default function ManageTrackDialog({
   const groups = useGroups()
     .filter((g) => g.categoryId === categoryId)
     .sort((a, b) => a.sortOrder - b.sortOrder);
+  // The confirm sits over this dialog: the browser's Back closes it alone (return paths).
+  const deleteSheet = useBackSheet('delete-track');
   if (!cat) return null;
 
   const confirmBody = `“${cat.label}”, all its sections and links, and its outreach targets and saved searches will be gone for good. Jobs you saved stay in your Pipeline.`;
@@ -457,7 +460,7 @@ export default function ManageTrackDialog({
                 '& > *': { width: '100%' },
               }}
             >
-              <AlertDialog>
+              <AlertDialog {...deleteSheet}>
                 <AlertDialog.Trigger asChild>
                   <Button variant="secondary" tone="danger">
                     Delete track

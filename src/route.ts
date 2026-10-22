@@ -94,15 +94,33 @@ interface Entry {
   /** Set on an entry a sheet pushed: the sheet's id and what it needs to reopen as it was. */
   sheet?: string;
   data?: unknown;
+  /** The sheets open on this page, one entry each, bottom first (the last is `sheet`): a sheet over
+   *  a sheet (Delete track over Manage track). */
+  sheets?: string[];
 }
 const TRAIL_MAX = 12;
 let keySeq = 0;
 const newKey = () => `${Date.now().toString(36)}.${++keySeq}`;
 let entry: Entry | null = null;
-/** Sheet entries this module asked the browser to pop that it hasn't popped yet. */
+/** The sheets open on an entry's page, bottom first. */
+const sheetsOf = (e: Entry | null): string[] => (e?.sheet ? (e.sheets ?? [e.sheet]) : []);
+/** Pops this module asked the browser for (a sheet's entry, a Back to an earlier page) that
+ *  haven't landed yet. A Back is single-flight: until its pop lands, the page on screen is the one
+ *  being left, so a second Back (a double click, or a fallback effect in the same tick as a Remove)
+ *  would pop again from there and overshoot. */
 let pendingBack = 0;
-/** Navigations waiting for those pops (a push now would land before them). */
+/** Navigations waiting for those pops (a push now would land before them). They run once the pop
+ *  has landed, so a repeat Back finds it is already there and does nothing. */
 let afterPops: (() => void)[] = [];
+/** The pop in flight changes the hash: it has landed once its hashchange has run (popstate fires
+ *  first), so the entry record and the scroll restore are done before anything waiting runs. */
+let awaitingHash = false;
+/** The hash this module last saw, to tell a pop that changes it from one that doesn't. */
+let knownHash = typeof window !== 'undefined' ? window.location.hash : '';
+/** A pop that never lands (a stale trail asking for an entry that isn't there) must not hold every
+ *  navigation forever: after this long the wait is dropped. */
+const POP_GRACE_MS = 2000;
+let popTimer: ReturnType<typeof setTimeout> | undefined;
 const restoreListeners = new Set<(hash: string) => void>();
 /** The page was reloaded onto an entry this tab had already marked (its scroll can come back). */
 let reloadedEntry = false;
@@ -139,6 +157,32 @@ export function subscribeScrollRestore(cb: (hash: string) => void): () => void {
 /** True when this load is a reload of an entry this tab had already visited. */
 export const wasReloaded = () => reloadedEntry;
 
+/** True while a pop this module asked for (a Back, a sheet closing) hasn't landed yet. */
+export const backInFlight = () => pendingBack > 0;
+
+/** Ask the browser for a pop, holding navigation until it lands. */
+function startPop(pop: () => void) {
+  pendingBack++;
+  clearTimeout(popTimer);
+  popTimer = setTimeout(() => {
+    if (pendingBack === 0) return;
+    pendingBack = 1;
+    awaitingHash = false;
+    popLanded();
+  }, POP_GRACE_MS);
+  pop();
+}
+
+/** A pop landed: when it was the last one, run what was waiting for it. */
+function popLanded() {
+  if (pendingBack > 0 && --pendingBack === 0) {
+    clearTimeout(popTimer);
+    const run = afterPops;
+    afterPops = [];
+    run.forEach((f) => f());
+  }
+}
+
 if (typeof window !== 'undefined') {
   const found = readEntry();
   if (found) {
@@ -152,11 +196,11 @@ if (typeof window !== 'undefined') {
     else if (entry && window.location.hash === entry.hash)
       // An entry with this URL that this tab never marked: start a record for it.
       writeEntry({ key: newKey(), trail: [], hash: window.location.hash });
-    if (pendingBack > 0 && --pendingBack === 0) {
-      const run = afterPops;
-      afterPops = [];
-      run.forEach((f) => f());
-    }
+    if (pendingBack === 0) return;
+    // A pop onto another hash lands with its hashchange, still to come; a sheet's pop (same URL)
+    // has landed now.
+    if (window.location.hash !== knownHash) awaitingHash = true;
+    else popLanded();
   });
 
   window.addEventListener('hashchange', (ev) => {
@@ -174,7 +218,12 @@ if (typeof window !== 'undefined') {
         hash: window.location.hash,
       });
     }
+    knownHash = window.location.hash;
     emit();
+    if (awaitingHash) {
+      awaitingHash = false;
+      popLanded();
+    }
   });
 }
 
@@ -208,6 +257,7 @@ function replaceRoute(h: string) {
     { key: e.key, trail: e.trail, hash: h },
     window.location.pathname + window.location.search + h,
   );
+  knownHash = h;
   emit(); // replaceState doesn't fire hashchange
 }
 
@@ -222,6 +272,13 @@ export function navigate(
   opts: { restore?: boolean } = {},
 ): void {
   if (pendingBack > 0) {
+    afterPops.push(() => navigate(patch, replace, opts));
+    return;
+  }
+  const open = sheetsOf(entry);
+  if (open.length > 1) {
+    // From a sheet over a sheet: down to the first one's entry, which the page then replaces.
+    startPop(() => window.history.go(1 - open.length));
     afterPops.push(() => navigate(patch, replace, opts));
     return;
   }
@@ -242,7 +299,9 @@ export function navigate(
 /** Go back to `target`: pop to it when it is an earlier entry in this tab's history (matched by
  *  page, so it comes back exactly as it was left), else replace the current entry with it. Either
  *  way its scroll position comes back. A list names pages that are the same view (Companies at
- *  `#/discover` and `#/discover/teams`): the nearest one behind wins, else the first. */
+ *  `#/discover` and `#/discover/teams`): the nearest one behind wins, else the first.
+ *  Single-flight: asked again before a pop has landed, it waits for it, and on the target page
+ *  already it does nothing, so a double click or a click plus a fallback goes back once. */
 export function goBackTo(target: Route | Route[]): void {
   if (pendingBack > 0) {
     afterPops.push(() => goBackTo(target));
@@ -250,15 +309,27 @@ export function goBackTo(target: Route | Route[]): void {
   }
   const targets = Array.isArray(target) ? target : [target];
   const want = new Set(targets.map(pageKey));
+  if (want.has(pageKey(getSnapshot()))) return;
   const trail = entry?.trail ?? [];
   for (let i = trail.length - 1; i >= 0; i--) {
     if (want.has(pageKey(parseHash(trail[i])))) {
-      window.history.go(i - trail.length);
+      const delta = i - trail.length;
+      startPop(() => window.history.go(delta));
       return;
     }
   }
   const h = buildHash(targets[0]);
   requestScrollRestore(h);
+  const open = sheetsOf(entry);
+  if (open.length) {
+    // Open sheets' entries (a menu item asked for this) sit on the page's own: drop them first, so
+    // the target takes the page's place and Back never lands on the page just left.
+    startPop(() => window.history.go(-open.length));
+    afterPops.push(() => {
+      if (h !== window.location.hash) replaceRoute(h);
+    });
+    return;
+  }
   if (h !== window.location.hash) replaceRoute(h);
 }
 
@@ -277,12 +348,15 @@ export function pushSheet(id: string, data?: unknown): void {
     hash: window.location.hash,
     sheet: id,
     data,
+    sheets: [...sheetsOf(cur), id],
   };
   window.history.pushState({ ...stateObject(), rjb: e }, '', window.location.href);
   entry = e;
 }
 /** The sheet whose entry is the current one, or null. */
 export const currentSheet = (): string | null => entry?.sheet ?? null;
+/** The sheets open on the current page (their entries are this one and those just under it). */
+export const openSheets = (): string[] => sheetsOf(entry);
 /** What the current sheet entry holds to reopen as it was. */
 export const currentSheetData = (): unknown => entry?.data;
 /** Update what an open sheet's entry holds (its pick changed). */
@@ -293,14 +367,32 @@ export function setSheetData(id: string, data: unknown): void {
 export function resetHistoryRecord(): void {
   pendingBack = 0;
   afterPops = [];
+  awaitingHash = false;
+  clearTimeout(popTimer);
+  knownHash = window.location.hash;
   writeEntry({ key: newKey(), trail: [], hash: window.location.hash });
 }
 
-/** A sheet closed on screen: pop its entry, so Back doesn't land on it. */
+/** A sheet closed on screen: pop its entry, so Back doesn't land on it, and the entries of any
+ *  sheet still over it (closed with it). With a pop in flight (a menu item went Back, a sheet over
+ *  this one closed first), it waits for that to land and pops what is left of it then. */
 export function popSheet(id: string): void {
-  if (entry?.sheet !== id) return;
-  pendingBack++;
-  window.history.back();
+  if (pendingBack > 0) {
+    afterPops.push(() => popSheet(id));
+    return;
+  }
+  const open = sheetsOf(entry);
+  const at = open.lastIndexOf(id);
+  if (at < 0) return;
+  const n = open.length - at;
+  startPop(() => (n === 1 ? window.history.back() : window.history.go(-n)));
+}
+
+/** Run `fn` once the pops in flight have landed (now, when there are none): a sheet that opens as
+ *  another closes (Sign in from the Account menu) pushes its entry after the menu's is popped. */
+export function afterBack(fn: () => void): void {
+  if (pendingBack > 0) afterPops.push(fn);
+  else fn();
 }
 
 /** Read the current route, re-rendering on any hash change. */
