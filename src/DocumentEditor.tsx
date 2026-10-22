@@ -80,7 +80,7 @@ export default function DocumentEditor({
   const { toast } = useToast();
   const label = labelOf(kind);
   const saved = doc ? doc.versions[doc.versions.length - 1].text : '';
-  const [title, setTitle] = useState(doc ? doc.title : label);
+  const [title, setTitle] = useState(doc ? doc.title : '');
   const [draft, setDraft] = useState(saved);
   // A newer Version synced in: an untouched draft follows it, so Save never re-saves older text.
   const [seen, setSeen] = useState(saved);
@@ -177,7 +177,7 @@ export default function DocumentEditor({
       <HdsInput
         label="Title"
         value={title}
-        placeholder="Untitled"
+        placeholder={doc ? 'Untitled' : label}
         onChange={(e) => setTitle(e.target.value)}
         onBlur={commitTitle}
       />
@@ -218,6 +218,7 @@ export default function DocumentEditor({
               </AlertDialog.Cancel>
               <AlertDialog.Action asChild>
                 <Button
+                  variant="secondary"
                   tone="danger"
                   onClick={() => {
                     if (removeDocument(doc.id)) onBack();
@@ -372,7 +373,7 @@ function OutreachText({
       </Stack>
       {actions}
       {history}
-      <Panel label={docId ? 'Variables' : 'Fill for a job'} title={docId ? 'Variables' : 'Preview'}>
+      <Panel label={docId ? 'Variables' : 'Fill for a job'} title={docId ? 'Variables' : 'Fill for a job'}>
         <PanelBody>
           <Stack gap="normal">
             {docId && names.length > 0 && (

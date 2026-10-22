@@ -215,7 +215,9 @@ describe('Documents panel (#228)', () => {
     const region = screen.getByRole('region', { name: 'Scratch' });
     await userEvent.click(within(region).getByRole('button', { name: 'Delete' }));
     const dialog = await screen.findByRole('alertdialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    const confirm = within(dialog).getByRole('button', { name: 'Delete' });
+    expect(confirm).toHaveAttribute('data-variant', 'secondary');
+    await userEvent.click(confirm);
     expect(docsOf()).toEqual([]);
     expect(screen.getByText('No documents yet')).toBeInTheDocument();
   });

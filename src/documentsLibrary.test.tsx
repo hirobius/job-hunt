@@ -88,13 +88,24 @@ describe('create, edit, delete', () => {
     );
     expect(getAllDocuments()).toHaveLength(0);
     const title = screen.getByRole('textbox', { name: 'Title' });
-    await userEvent.clear(title);
+    // rev-3 N: the field starts empty with the kind as its placeholder, under "New cover letter".
+    expect(title).toHaveValue('');
+    expect(title).toHaveAttribute('placeholder', 'Cover letter');
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('New cover letter');
     await userEvent.type(title, 'General letter');
     await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), 'Dear team');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     const [d] = getAllDocuments();
     expect(d).toMatchObject({ kind: 'cover', title: 'General letter', base: true });
     expect(d.versions.map((v) => v.text)).toEqual(['Dear team']);
+  });
+
+  it('a new document saved with no title takes its kind as the title', async () => {
+    renderLib();
+    await userEvent.click(within(section('Notes')).getByRole('button', { name: 'New note' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), 'Prep');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(getAllDocuments()[0]).toMatchObject({ kind: 'note', title: 'Note' });
   });
 
   it('each save adds a Version; the history shows them and an earlier one can be read', async () => {
@@ -141,6 +152,11 @@ describe('create, edit, delete', () => {
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
     const dialog = await screen.findByRole('alertdialog');
+    // The bordered danger button, like every other confirm in the app (rev-3 mock .btn.danger).
+    expect(within(dialog).getByRole('button', { name: 'Delete' })).toHaveAttribute(
+      'data-variant',
+      'secondary',
+    );
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(getAllDocuments()).toHaveLength(1);
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
@@ -276,6 +292,9 @@ describe('Variables panel', () => {
       within(section('Outreach messages')).getByRole('button', { name: 'New outreach message' }),
     );
     expect(screen.queryByRole('region', { name: 'Variables' })).toBeNull();
+    // "Preview" is the box's caption only, not also the panel's title.
+    expect(screen.getByText('Fill for a job', { selector: 'h1,h2,h3,h4,h5,h6' })).toBeVisible();
+    expect(screen.getAllByText('Preview')).toHaveLength(1);
   });
 });
 
@@ -397,7 +416,7 @@ describe('expandable rows', () => {
     expect(heads.indexOf('Outreach messages')).toBeLessThan(heads.indexOf('Notes'));
   });
 
-  it('a row names every variable as a chip, no brackets, and keeps them when open', async () => {
+  it('a row shows three variable chips in a fixed order and +N, no brackets, kept when open', async () => {
     const id = createDocument({
       kind: 'outreach',
       title: 'Many',
@@ -408,7 +427,7 @@ describe('expandable rows', () => {
     renderLib();
     const row = screen.getByRole('listitem', { name: 'Many' });
     const chips = () => [...row.querySelectorAll('.rjb-chip')].map((c) => c.textContent);
-    expect(chips()).toEqual(['Contact', 'Role', 'Company', 'Angle', 'Your name']);
+    expect(chips()).toEqual(['Company', 'Role', 'Contact', '+2']);
     expect(row).not.toHaveTextContent('[');
     expect(row).not.toHaveTextContent('…');
     // Pinned is a badge on the row's top line, above the title.
@@ -419,7 +438,7 @@ describe('expandable rows', () => {
     await userEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     // The meta chips stay on the trigger while it is open.
-    expect(trigger.querySelectorAll('.rjb-chip')).toHaveLength(5);
+    expect(trigger.querySelectorAll('.rjb-chip')).toHaveLength(4);
   });
 
   it('a document without variables shows its versions and last edit in the meta line', () => {
@@ -447,9 +466,11 @@ describe('expandable rows', () => {
     expect(getAllDocuments().map((d) => d.title)).toEqual(['Story', 'Story (copy)']);
     await userEvent.click(screen.getByRole('button', { name: 'More actions for Story' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    await userEvent.click(
-      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
-    );
+    const confirm = within(await screen.findByRole('alertdialog')).getByRole('button', {
+      name: 'Delete',
+    });
+    expect(confirm).toHaveAttribute('data-variant', 'secondary');
+    await userEvent.click(confirm);
     expect(getAllDocuments().map((d) => d.title)).toEqual(['Story (copy)']);
   });
 });

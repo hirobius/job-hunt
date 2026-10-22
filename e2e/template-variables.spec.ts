@@ -91,3 +91,52 @@ test('a value set under Variables fills the preview and is kept on the message',
   await expect.poll(async () => (await stored(page)).values).toEqual({ company: 'Acme' });
   expect((await stored(page)).versions.map((v) => v.text)).toEqual(['Hi [Contact], at [Company]']);
 });
+
+// HDS gap (registry: "Select trigger text centred and wrapping"): a long job label in "Fill for"
+// stays on one start-aligned line, so the trigger keeps the 40px height of the fields under it.
+test('Fill for keeps a long job label on one 40px line (390)', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('rjb_shortlist'))
+      localStorage.setItem(
+        'rjb_shortlist',
+        JSON.stringify([
+          {
+            url: 'https://larkspur.example/jobs/designer',
+            label: 'Senior Product Designer',
+            company: 'Larkspur Analytics and Research Partners',
+            status: 'Saved',
+            added: '2026-10-01T00:00:00.000Z',
+          },
+        ]),
+      );
+  });
+  await open(page);
+  const trigger = page.getByRole('combobox', { name: 'Fill for' });
+  await trigger.click();
+  await page.getByRole('option', { name: /Senior Product Designer/ }).click();
+  await expect(trigger).toContainText('Larkspur');
+  const box = await trigger.boundingBox();
+  expect(Math.round(box!.height)).toBeLessThanOrEqual(40);
+  const span = trigger.locator('> span').first();
+  await expect(span).toHaveCSS('text-align', 'start');
+  await expect(span).toHaveCSS('white-space', 'nowrap');
+});
+
+// HDS gap (registry: "Bordered danger button"; rev-3 mock .btn.danger): the Delete confirm has no
+// fill at rest and the same neutral edge as Cancel, in light and dark.
+for (const mode of ['light', 'dark'] as const) {
+  test(`the Delete confirm is a bordered danger button (${mode}, 390)`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.addInitScript((m) => localStorage.setItem('rjb_color_mode', m), mode);
+    await open(page);
+    await page.getByRole('button', { name: 'More actions' }).click();
+    await page.getByRole('menuitem', { name: 'Delete' }).click();
+    const dialog = page.getByRole('alertdialog');
+    const del = dialog.getByRole('button', { name: 'Delete' });
+    const cancel = dialog.getByRole('button', { name: 'Cancel' });
+    await expect(del).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    const edge = await cancel.evaluate((e) => getComputedStyle(e).borderTopColor);
+    await expect(del).toHaveCSS('border-top-color', edge);
+  });
+}

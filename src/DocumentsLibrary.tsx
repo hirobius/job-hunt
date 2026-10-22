@@ -44,7 +44,7 @@ import { Panel, PanelBody, PanelRows } from './PipelinePanel';
 import { WithChips } from './BlankText';
 import { postedAgo } from './feed/format';
 import { metaLines } from './metaLines';
-import { templateVariables } from './templateEditor';
+import { rowChips, templateVariables } from './templateEditor';
 import { copyFilled } from './templateCopy';
 
 const PLURAL: Record<DocumentKind, string> = {
@@ -232,6 +232,7 @@ function DocumentRow({
   const [now] = useState(() => Date.now());
   const text = latest(doc);
   const names = templateVariables(text);
+  const chips = rowChips(names);
   const title = doc.title || 'Untitled';
   const copy = async () => {
     const r = await copyFilled(text);
@@ -268,11 +269,12 @@ function DocumentRow({
             )}
             {names.length > 0 ? (
               <Stack direction="row" gap="px4" wrap="wrap">
-                {names.map((n) => (
+                {chips.shown.map((n) => (
                   <span key={n} className="rjb-chip">
                     {n}
                   </span>
                 ))}
+                {chips.more > 0 && <span className="rjb-chip">+{chips.more}</span>}
               </Stack>
             ) : (
               doc.kind === 'outreach' && (
@@ -343,6 +345,7 @@ function DocumentRow({
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
               <Button
+                variant="secondary"
                 tone="danger"
                 onClick={() => {
                   if (!removeDocument(doc.id))
