@@ -48,7 +48,7 @@ const repo = (login: string, stars: number, extra: Record<string, unknown> = {})
   ...extra,
 });
 
-const gh = { limited: false };
+const gh = { limited: false, retryAfter: '' };
 const leverJob = (id: string, text: string) => ({
   id,
   text,
@@ -62,10 +62,12 @@ const json = (b: unknown, status = 200, headers: Record<string, string> = {}) =>
 const fakeFetch = vi.fn(async (url: string) => {
   if (url.startsWith('https://api.github.com/search/repositories')) {
     if (gh.limited)
-      return json({}, 403, {
-        'x-ratelimit-remaining': '0',
-        'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 900),
-      });
+      return gh.retryAfter
+        ? json({}, 429, { 'retry-after': gh.retryAfter })
+        : json({}, 403, {
+            'x-ratelimit-remaining': '0',
+            'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 900),
+          });
     return json({
       items: [
         repo('acme', 900),
@@ -116,6 +118,7 @@ beforeEach(() => {
   h.fake?.reset();
   localStorage.clear();
   gh.limited = false;
+  gh.retryAfter = '';
   fakeFetch.mockClear();
   vi.stubGlobal('fetch', fakeFetch);
   replaceCurationState(EMPTY_CURATION);
@@ -301,20 +304,50 @@ describe('Teams (design-system teams)', () => {
     expect(screen.getByRole('button', { name: 'Watching Acme Design' })).toBeDisabled();
   });
 
-  it('stops on a GitHub rate limit and says when to come back', async () => {
+  it('a GitHub rate limit is a quiet note, not a warning; an early click repeats the time', async () => {
     gh.limited = true;
     renderApp();
     await userEvent.click(await screen.findByRole('button', { name: 'Find design-system teams' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/GitHub asks us to wait until /);
+    expect(
+      await screen.findByText(
+        /^GitHub's free search is busy\. Showing what we found; more after .+\.$/,
+      ),
+    ).toBeVisible();
+    expect(screen.queryByRole('alert')).toBeNull();
     // Our own budget now holds back the next try without calling GitHub again.
     const before = fakeFetch.mock.calls.length;
     gh.limited = false;
     await userEvent.click(
       await screen.findByRole('button', { name: /Find .*design-system teams/ }),
     );
-    await screen.findByRole('alert');
+    expect(
+      await screen.findByText(/^Still busy\. We'll carry on by ourselves after .+\.$/),
+    ).toBeVisible();
     expect(fakeFetch.mock.calls.length).toBe(before);
     expect(localStorage.getItem(GH_BUDGET_KEY)).toContain('blockedUntil');
+  });
+
+  it('picks up again on its own once the wait is over, keeping what it found', async () => {
+    gh.limited = true;
+    gh.retryAfter = '1';
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: 'Find design-system teams' }));
+    await screen.findByText(/GitHub's free search is busy/);
+    gh.limited = false;
+    // No click: the page resumes once the wait has passed.
+    expect(
+      await screen.findByRole('list', { name: 'Companies' }, { timeout: 5000 }),
+    ).toHaveTextContent('Acme Design');
+    expect(screen.queryByText(/GitHub's free search is busy/)).toBeNull();
+  }, 10_000);
+
+  it('Refine offers "Skip small teams" in plain words, on by default', async () => {
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: 'Refine' }));
+    expect(screen.queryByLabelText(/Minimum stars/)).toBeNull();
+    expect(
+      screen.getByRole('checkbox', { name: 'Skip small teams (fewer than 20 GitHub stars)' }),
+    ).toBeChecked();
   });
 
   it('has no WCAG A/AA violations', async () => {
