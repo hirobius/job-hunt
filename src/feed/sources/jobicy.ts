@@ -6,6 +6,7 @@
 // show sanitized text only (htmlToText). Only about the last 7 days of jobs appear. Every field is
 // optional here; a missing one never drops a row, only a missing id or url does.
 import { htmlToText } from '../html';
+import { httpUrl } from '../../httpUrl';
 import type { Posting } from '../types';
 import { arr, num, obj, str, type FetchJson } from './http';
 
@@ -26,7 +27,7 @@ const isoOf = (s: string): string | undefined => {
 export function parseJobicyJob(j: unknown): Posting | null {
   const o = obj(j);
   const id = String(o.id ?? '');
-  const url = str(o.url);
+  const url = httpUrl(str(o.url));
   if (!id || !url) return null;
   const types = (Array.isArray(o.jobType) ? arr(o.jobType) : [o.jobType]).map(str).filter(Boolean);
   const salaryMin = num(o.annualSalaryMin);

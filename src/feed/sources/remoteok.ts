@@ -8,6 +8,7 @@
 // (`SOURCE_ENABLED.remoteok` in fetchFeed.ts) until the live `legal` notice has been read and checked.
 import { htmlToText } from '../html';
 import { matchTerm } from '../match';
+import { httpUrl } from '../../httpUrl';
 import type { Posting } from '../types';
 import { arr, num, obj, str, type FetchJson } from './http';
 
@@ -16,7 +17,7 @@ export const REMOTEOK_URL = 'https://remoteok.com/api';
 export function parseRemoteOkJob(j: unknown): Posting | null {
   const o = obj(j);
   const id = String(o.id ?? '');
-  const url = str(o.url);
+  const url = httpUrl(str(o.url));
   // The legal notice has `legal` and no id/url, so it falls out here too.
   if (!id || !url || 'legal' in o) return null;
   const tags = arr(o.tags).map(str).filter(Boolean);

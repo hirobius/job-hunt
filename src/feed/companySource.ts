@@ -8,6 +8,7 @@
 // one line which source it used. No new hosts: the YC mirror and the ATS probes are already in CSP.
 import { boardsForPack, packIdForLabel, STARTER_PACKS } from '../curation/starterPacks';
 import { discoverBoards } from './discoverBoards';
+import { httpUrl } from '../httpUrl';
 import type { Limiter, ProbeOptions } from './probe';
 import { boardsFromUrls, boardLabel } from './sources/ats';
 import type { Board } from './sources/ats';
@@ -156,7 +157,8 @@ export async function* suggestTrackCompanies(
     { fetchJson, signal, limiter, watched, kv },
   );
   const login = (c: YcCompany) => `yc:${(c.slug || c.name).toLowerCase()}`;
-  const site = (name: string) => byName.get(name.toLowerCase())?.website || undefined;
+  // The YC mirror is a third party: only an http(s) website becomes a link.
+  const site = (name: string) => httpUrl(byName.get(name.toLowerCase())?.website);
   for (const f of result.found) {
     if (known.has(boardKey(f.board))) continue;
     known.add(boardKey(f.board));

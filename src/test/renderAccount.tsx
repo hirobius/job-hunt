@@ -33,3 +33,10 @@ export async function chooseAccountItem(name: string | RegExp) {
   const menu = await openAccount();
   await userEvent.click(within(menu).getByRole('menuitem', { name }));
 }
+
+/** A sign-in on a device that holds data asks before adding it to the account (the merge guard,
+ *  security audit): answer Add, as a person signing in to their own account would. */
+export async function addDeviceDataIfAsked() {
+  const add = screen.queryByRole('button', { name: 'Add to account' });
+  if (add) await userEvent.click(add);
+}

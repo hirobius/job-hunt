@@ -24,6 +24,8 @@ export const MAX_PER_PAGE = 5;
 const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
 // Query strings and fragments can carry the quick-add link or a job id: keep only the path.
 const URL_TAIL = /(https?:\/\/[^\s?#)]+)[?#][^\s)]*/g;
+// Session tokens (a magic link's fragment) never leave the browser, wherever a message echoes one.
+const TOKEN = /\b(access_token|refresh_token|provider_token|provider_refresh_token)=[^\s&#"')]*/g;
 
 // Double-quoted runs are where engines echo data (`"Acme Corp…" is not valid JSON`); single quotes
 // name code (`reading 'title'`), which is what a fix needs, so those stay.
@@ -32,6 +34,7 @@ const QUOTED = /"[^"\n]*"/g;
 /** Removes anything that could identify the user or their data from free text. */
 export function scrubText(text: string, max: number): string {
   return text
+    .replace(TOKEN, '$1=[token]')
     .replace(EMAIL, '[email]')
     .replace(URL_TAIL, '$1')
     .replace(QUOTED, '"…"')

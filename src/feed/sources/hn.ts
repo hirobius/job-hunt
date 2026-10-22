@@ -51,7 +51,19 @@ export const HN_NO_ROLE = 'Roles listed in post';
 /** A place segment that only names the work mode ("REMOTE"); dropped when a real place is named. */
 const MODE_ONLY_RE = /^(remote|onsite|on-site|hybrid)$/i;
 /** Short codes that stay upper case when an all-caps segment is sentence-cased. */
-const KEEP_CAPS = new Set(['US', 'USA', 'UK', 'EU', 'NYC', 'SF', 'LA', 'DC', 'EMEA', 'APAC', 'UTC']);
+const KEEP_CAPS = new Set([
+  'US',
+  'USA',
+  'UK',
+  'EU',
+  'NYC',
+  'SF',
+  'LA',
+  'DC',
+  'EMEA',
+  'APAC',
+  'UTC',
+]);
 
 /** "REMOTE (US)" → "Remote (US)", "SAN FRANCISCO, CA" → "San Francisco, CA": no ALL CAPS on screen.
  *  Two-letter words and known codes keep their capitals; mixed-case text is left as written. */

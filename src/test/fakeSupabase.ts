@@ -2,6 +2,8 @@
 // maybeSingle/upsert/delete + a minimal auth. Rows are keyed by `id` (or `user_id` for tracker).
 // `failNext(table, op)` makes the next matching call resolve `{ error }` — supabase-js reports
 // RLS / network failures that way rather than throwing. `createClient` calls are counted.
+import { tokenEmail } from '../account/authLink';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- rows are loosely typed test data
 type Row = Record<string, any>;
 type Op = 'select' | 'upsert' | 'delete';
@@ -88,6 +90,15 @@ export function createFakeSupabase() {
         listeners.add(cb);
         return { data: { subscription: { unsubscribe: () => listeners.delete(cb) } } };
       },
+      /** A magic link's tokens: the "server" knows a token by the email in its payload. */
+      async setSession(t: { access_token: string; refresh_token: string }) {
+        const email = tokenEmail(t.access_token);
+        if (!email || !t.refresh_token)
+          return { data: { user: null, session: null }, error: { message: 'Invalid token' } };
+        session = { user: { id: `id-${email}`, email } };
+        listeners.forEach((l) => l('SIGNED_IN', session));
+        return { data: { user: session.user, session }, error: null };
+      },
       async signOut() {
         session = null;
         listeners.forEach((l) => l('SIGNED_OUT', null));
@@ -121,4 +132,11 @@ export function createFakeSupabase() {
       session = null;
     },
   };
+}
+
+/** An access token as a magic link carries it: a JWT whose payload names the account's email. */
+export function fakeAccessToken(email: string): string {
+  const b64 = (o: object) =>
+    btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: `id-${email}`, email })}.sig`;
 }

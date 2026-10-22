@@ -394,6 +394,19 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   (`navigate(…, true, { search })`), never a raw `history.replaceState`: route.ts must know the
   hash it is on, or a sheet's pop waits ~2 s for a hashchange that never comes (`shell.test.tsx`).
   Never rewrite the URL outside `route.ts`.
+- **Login injection guard (security audit, 2026-10-22):** supabase-js never reads the URL
+  (`flowType: 'implicit'`, `detectSessionInUrl: false`). `src/authFragment.ts` (main.tsx's first
+  import) takes `#access_token=…` and strips it with `replaceState` before the router, analytics or a
+  crash report can see it (`errorReport` also scrubs `*_token=`). `account/authLink.ts`: a link signs
+  in on its own only when this browser asked for one to the same email within 1 hour
+  (`rjb_signin_request`, written by `sendLink`); any other link shows "Sign in as x@y.com?" (Cancel
+  drops it). Then the merge guard: an account this device has no `rjb_sync_base` for, while the
+  device holds data (`account/deviceData.ts`), asks "Add this device's N jobs to x@y.com?" before any
+  pull or push; Don't add (the default, also Escape/Back) signs out locally and keeps the data.
+  Tests sign in with `addDeviceDataIfAsked()` (`test/renderAccount.tsx`). Pinned in
+  `account/authLink.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
+  feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
+  `unsafeUrls.test.tsx`.
 - **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;
   `account/authLinkError.ts` words it ("That sign-in link has expired. Send a new one from
   Account.") and App toasts it and replaces the hash with Companies through the route seam.

@@ -1,4 +1,5 @@
 import { createStore } from './createStore';
+import { safeJobUrl } from './httpUrl';
 import { mergeByKey } from './mergeByKey';
 import { type Job, type JobMode, type Status } from './types';
 import {
@@ -131,7 +132,8 @@ export function sanitizeJobs(arr: unknown): Job[] {
   for (const it of arr as Job[]) {
     if (!it || !it.url) continue;
     const url = cleanUrl(it.url);
-    if (!url || RETIRED[url]) continue;
+    // A synced or restored job's link becomes an href: `javascript:` / `data:` never load.
+    if (!url || RETIRED[url] || !safeJobUrl(url)) continue;
     const key = dedupKey(url);
     if (seen.has(key)) continue; // first occurrence wins
     seen.add(key);

@@ -2,6 +2,7 @@
 // A saved company entry, not a Job (docs/specs/discovery-methods.md): it lives in local storage per track
 // (`rjb_targets`) and syncs with the account in the blob (ADR 0008). Storage is untrusted.
 import { useMemo } from 'react';
+import { httpUrl } from '../httpUrl';
 import { liveStorage } from '../liveStorage';
 import { mergeByKey } from '../mergeByKey';
 import { loadPersisted, savePersisted } from '../persisted';
@@ -26,15 +27,7 @@ export interface Target {
 }
 
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-export const httpUrl = (v: unknown): string | undefined => {
-  if (typeof v !== 'string') return undefined;
-  try {
-    const u = new URL(v);
-    return u.protocol === 'https:' || u.protocol === 'http:' ? v : undefined;
-  } catch {
-    return undefined;
-  }
-};
+export { httpUrl };
 
 /** A stored board, or undefined when it isn't one we can read. */
 export function sanitizeBoard(v: unknown): Board | undefined {

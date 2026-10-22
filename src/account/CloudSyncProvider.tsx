@@ -29,7 +29,7 @@ import {
 } from '../syncBlob';
 import { keysOf, readSyncBase, writeSyncBase } from '../syncBase';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
-import { setCurationAccount } from '../curation/curationStore';
+import { getCurationState, setCurationAccount } from '../curation/curationStore';
 import {
   getCurationSyncStatus,
   onCurationWriteFailed,
@@ -52,6 +52,18 @@ import { magicLinkRedirect } from './authRedirect';
 import { rememberSignInReturn, returnAfterSignIn } from './signInReturn';
 import { isChunkLoadError } from '../chunkError';
 import { STALE_MSG } from '../staleBuild';
+import { takeBootAuthTokens, type AuthTokens } from '../authFragment';
+import {
+  clearSignInRequest,
+  decideAuthLink,
+  readSignInRequest,
+  rememberSignInRequest,
+  sameEmail,
+} from './authLink';
+import { deviceData, mergeQuestion } from './deviceData';
+import { LinkConfirmDialog, MergeConfirmDialog } from './AuthGuards';
+
+const BAD_LINK_MSG = 'That sign-in link could not be used. Send a new one from Account.';
 
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
 // delete so a shared browser can't carry one person's jobs/pillars/résumé to the next.
@@ -99,6 +111,12 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // this device's local-only jobs after a failed first pull.
   const seedPending = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // A sign-in link nobody asked for in this browser, waiting on "Sign in as x@y.com?".
+  const [linkAsk, setLinkAsk] = useState<{ email: string; tokens: AuthTokens } | null>(null);
+  // An account this device never synced with, while it holds data: "Add this device's N jobs?".
+  // Until it is answered nothing is pulled or pushed (adopt waits on it).
+  const [mergeAsk, setMergeAsk] = useState<{ user: User; question: string } | null>(null);
+  const mergeHeld = useRef<string | null>(null);
 
   const localBlob = (): SyncData => ({
     jobs: getAllJobs(),
@@ -151,6 +169,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   }
   const dirty = () => localJson() !== lastSynced.current;
   async function adopt(seed: boolean, u: User) {
+    if (mergeHeld.current === u.id) return; // the merge question is still open
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     setPulling(true);
     try {
@@ -217,19 +236,49 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       const { data } = supa.auth.onAuthStateChange((event, session) => {
         const u = session?.user ?? null;
         setUser(u);
-        if (u) setCurationAccount(true); // only this tab's own sign-out clears it (#169)
         setAuthResolved(true);
         if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
         // Opened from the magic link: back to the page the link was asked for on (return paths).
         if (event === 'SIGNED_IN') returnAfterSignIn();
         pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
         seedPending.current = !!u; // a sign-in owes a seed merge; sign-out or a user change resets it
-        if (u) adopt(true, u);
-        else signedOut();
+        if (!u) {
+          mergeHeld.current = null;
+          setMergeAsk(null);
+          signedOut();
+          return;
+        }
+        if (mergeHeld.current === u.id) return; // already asking (a second event for the same user)
+        // Never fold this device's data into an account it has not synced with without asking:
+        // a crafted link could be someone else's account (login injection, security audit).
+        const held =
+          readSyncBase(u.id) === null
+            ? deviceData(localBlob(), getCurationState().categories.length)
+            : null;
+        if (held?.any) {
+          mergeHeld.current = u.id;
+          setMergeAsk({ user: u, question: mergeQuestion(held, u.email ?? 'this account') });
+          return;
+        }
+        mergeHeld.current = null;
+        setMergeAsk(null);
+        setCurationAccount(true); // only this tab's own sign-out clears it (#169)
+        adopt(true, u);
       });
       unsubscribe = () => data.subscription.unsubscribe();
     });
-    if (needsClientAtBoot()) void loadSupabase().catch(() => setAuthResolved(true));
+    // A magic link's tokens (authFragment.ts took them out of the URL): they sign in on their own
+    // only when this browser asked for a link to that email in the last hour; else confirm first.
+    const tokens = takeBootAuthTokens();
+    const decision = tokens ? decideAuthLink(tokens, readSignInRequest()) : null;
+    if (tokens && decision?.kind === 'auto') void acceptLink(tokens, decision.email);
+    else if (tokens && decision?.kind === 'confirm')
+      void Promise.resolve().then(() => setLinkAsk({ email: decision.email, tokens }));
+    else if (decision?.kind === 'reject')
+      toast({ title: "Couldn't sign in", description: BAD_LINK_MSG, tone: 'danger' });
+    // A link signing in, or a stored session: the client is needed now.
+    if (decision?.kind === 'auto' || needsClientAtBoot())
+      void loadSupabase().catch(() => setAuthResolved(true));
     else if (!loadedSupabase()) {
       signedOut();
       void Promise.resolve().then(() => setAuthResolved(true));
@@ -246,6 +295,50 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Set the session a link brought, then check it is the account the link named.
+  async function acceptLink(tokens: AuthTokens, email: string) {
+    clearSignInRequest();
+    try {
+      const supa = await loadSupabase();
+      const r = await supa.auth.setSession(tokens);
+      if (r.error || !r.data.user) {
+        toast({ title: "Couldn't sign in", description: BAD_LINK_MSG, tone: 'danger' });
+        return;
+      }
+      if (!sameEmail(r.data.user.email, email)) {
+        await supa.auth.signOut({ scope: 'local' });
+        toast({ title: "Couldn't sign in", description: BAD_LINK_MSG, tone: 'danger' });
+      }
+    } catch {
+      toast({ title: "Couldn't sign in", description: BAD_LINK_MSG, tone: 'danger' });
+    }
+  }
+  const confirmLink = () => {
+    const ask = linkAsk;
+    setLinkAsk(null);
+    if (ask) void acceptLink(ask.tokens, ask.email);
+  };
+  // Cancel drops the tokens (the URL never kept them).
+  const cancelLink = () => setLinkAsk(null);
+
+  const addDeviceData = () => {
+    const ask = mergeAsk;
+    setMergeAsk(null);
+    if (!ask || mergeHeld.current !== ask.user.id) return;
+    mergeHeld.current = null;
+    setCurationAccount(true);
+    void adopt(true, ask.user);
+  };
+  // The default: sign out of that account and keep this device's data here, untouched.
+  const keepDeviceData = () => {
+    const ask = mergeAsk;
+    setMergeAsk(null);
+    if (!ask || mergeHeld.current !== ask.user.id) return;
+    void loadSupabase()
+      .then((supa) => supa.auth.signOut({ scope: 'local' }))
+      .catch(() => {});
+  };
 
   // push local changes (debounced); skip when nothing changed since the last sync
   useEffect(() => {
@@ -342,8 +435,10 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   };
 
   const sendLink = async (email: string): Promise<string | null> => {
-    // The link lands on the app's root: remember this page so that tab comes back here.
+    // The link lands on the app's root: remember this page so that tab comes back here, and that
+    // this browser asked for it (a link it asked for signs in without the confirm, authLink.ts).
     rememberSignInReturn();
+    rememberSignInRequest(email);
     let supa;
     try {
       supa = await loadSupabase(); // the first sign-in fetches the client
@@ -425,5 +520,19 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, authResolved, pulling, msg, offline, signInOpen, accountTrigger],
   );
-  return <CloudSyncContext.Provider value={api}>{children}</CloudSyncContext.Provider>;
+  return (
+    <CloudSyncContext.Provider value={api}>
+      {children}
+      <LinkConfirmDialog
+        email={linkAsk?.email ?? null}
+        onSignIn={confirmLink}
+        onCancel={cancelLink}
+      />
+      <MergeConfirmDialog
+        question={mergeAsk?.question ?? null}
+        onAdd={addDeviceData}
+        onKeep={keepDeviceData}
+      />
+    </CloudSyncContext.Provider>
+  );
 }

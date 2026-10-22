@@ -2,13 +2,14 @@
 // we link back to the Remotive URL and credit Remotive as the source: the posting URL is theirs and
 // the feed badges every row with its source, so both hold. Search is fuzzy; match.ts filters.
 import { htmlToText } from '../html';
+import { httpUrl } from '../../httpUrl';
 import type { Posting } from '../types';
 import { arr, obj, str, type FetchJson } from './http';
 
 export function parseRemotiveJob(j: unknown): Posting | null {
   const o = obj(j);
   const id = String(o.id ?? '');
-  const url = str(o.url);
+  const url = httpUrl(str(o.url));
   if (!id || !url) return null;
   // job_type ("contract", "part_time", "freelance") goes into the text so signals see it.
   const jobType = str(o.job_type).replace(/_/g, '-');

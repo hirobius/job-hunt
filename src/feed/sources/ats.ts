@@ -7,6 +7,7 @@
 import { decodeEntities, htmlToText } from '../html';
 import { inferMode } from '../match';
 import type { JobMode } from '../../types';
+import { httpUrl } from '../../httpUrl';
 import type { Posting } from '../types';
 import { arr, obj, prettySlug, str, type FetchJson } from './http';
 
@@ -145,7 +146,7 @@ const joinText = (...parts: string[]) => parts.filter(Boolean).join('\n');
 export function parseGreenhouseJob(j: unknown, slug: string): Posting | null {
   const o = obj(j);
   const id = String(o.id ?? '');
-  const url = str(o.absolute_url);
+  const url = httpUrl(str(o.absolute_url));
   if (!id || !url) return null;
   const location = str(obj(o.location).name);
   return {
@@ -172,7 +173,7 @@ const WORKPLACE_MODE: Record<string, JobMode> = {
 export function parseLeverJob(j: unknown, slug: string): Posting | null {
   const o = obj(j);
   const id = str(o.id);
-  const url = str(o.hostedUrl);
+  const url = httpUrl(str(o.hostedUrl));
   if (!id || !url) return null;
   const cat = obj(o.categories);
   const location = str(cat.location);
@@ -202,7 +203,7 @@ export function parseLeverJob(j: unknown, slug: string): Posting | null {
 export function parseAshbyJob(j: unknown, slug: string): Posting | null {
   const o = obj(j);
   const id = str(o.id);
-  const url = str(o.jobUrl);
+  const url = httpUrl(str(o.jobUrl));
   if (!id || !url || o.isListed === false) return null;
   const location = str(o.location);
   const employment = str(o.employmentType);
@@ -231,7 +232,7 @@ export function parseAshbyJob(j: unknown, slug: string): Posting | null {
 export function parseWorkableJob(j: unknown, slug: string): Posting | null {
   const o = obj(j);
   const code = str(o.shortcode);
-  const url = str(o.url);
+  const url = httpUrl(str(o.url));
   if (!code || !url) return null;
   const location = [str(o.city), str(o.state), str(o.country)].filter(Boolean).join(', ');
   const employment = str(o.employment_type);
@@ -307,7 +308,7 @@ export function parseTeamtailorJob(j: unknown, slug: string): Posting | null {
   const o = obj(j);
   const a = { ...o, ...obj(o.attributes) };
   const id = String(o.id ?? '');
-  const url = str(a.url) || str(obj(o.links)['careersite-job-url']);
+  const url = httpUrl(str(a.url)) ?? httpUrl(str(obj(o.links)['careersite-job-url']));
   if (!id || !url) return null;
   const location = str(a.location) || str(obj(arr(a.locations)[0]).name);
   const remote = str(a['remote-status'] ?? a.remote_status).toLowerCase();

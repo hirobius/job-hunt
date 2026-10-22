@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Button, ToastProvider } from '@hirobius/design-system';
+import { fakeAccessToken } from './test/fakeSupabase';
 
 const h = vi.hoisted(() => ({ calls: 0 }));
 vi.mock('@supabase/supabase-js', async () => {
@@ -74,22 +75,24 @@ describe('the Supabase client loads lazily', () => {
     await waitFor(() => expect(h.calls).toBe(1));
   });
 
-  it('a returning magic link builds it at boot', async () => {
-    window.location.hash = '#access_token=a&refresh_token=r&type=magiclink';
+  it('a returning magic link this browser asked for builds it at boot', async () => {
+    const { rememberSignInRequest } = await import('./account/authLink');
+    rememberSignInRequest('me@example.com');
+    window.location.hash = `#access_token=${fakeAccessToken('me@example.com')}&refresh_token=r`;
     await boot();
     await waitFor(() => expect(h.calls).toBe(1));
   });
 });
 
-describe('readAuthCallback', () => {
+describe('readAuthTokens', () => {
   it.each<[string, unknown]>([
     ['', null],
     ['#/queue', null],
     ['#access_token=a', null],
     ['#access_token=a&refresh_token=r&type=magiclink', { access_token: 'a', refresh_token: 'r' }],
   ])('%s', async (hash, out) => {
-    const { readAuthCallback } = await import('./supabase');
-    expect(readAuthCallback(hash)).toEqual(out);
+    const { readAuthTokens } = await import('./authFragment');
+    expect(readAuthTokens(hash)).toEqual(out);
   });
 });
 

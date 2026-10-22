@@ -21,7 +21,12 @@ vi.mock('@supabase/supabase-js', async () => {
   };
 });
 
-import { renderAccount, openAccount, chooseAccountItem } from '../test/renderAccount';
+import {
+  renderAccount,
+  openAccount,
+  chooseAccountItem,
+  addDeviceDataIfAsked,
+} from '../test/renderAccount';
 import CloudSyncProvider from './CloudSyncProvider';
 import { useCloudSync } from './accountContext';
 import {
@@ -124,6 +129,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     ];
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() =>
       expect(getCurationState().categories.map((c) => c.label)).toEqual(['Design Systems']),
     );
@@ -139,6 +145,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     fake().failNext('tracker', 'select');
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     expect(await screen.findByText(OFFLINE_MSG)).toBeInTheDocument();
     const menu = await openAccount();
     expect(within(menu).getByRole('menuitem', { name: 'Retry sync' })).toBeInTheDocument();
@@ -151,6 +158,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     fake().failNext('tracker', 'select');
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     const title = await screen.findByText(OFFLINE_TITLE);
     const toast = title.closest('li') ?? title.parentElement!.parentElement!;
     expect(
@@ -164,6 +172,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     fake().failNext('tracker', 'select');
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     expect(await screen.findByText(OFFLINE_MSG)).toBeInTheDocument();
     act(() => {
       window.dispatchEvent(new Event('focus'));
@@ -178,6 +187,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     fake().failNext('groups', 'delete');
     await chooseAccountItem('Delete my data');
@@ -201,6 +211,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     fake().failNext('tracker', 'select');
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     expect(await screen.findByText(OFFLINE_MSG)).toBeInTheDocument();
     // Wait out the 500ms push debounce: the cloud row must be untouched.
     await new Promise((r) => setTimeout(r, 800));
@@ -253,6 +264,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
   it('a track change the cloud refuses is loud: a toast says what and how to fix it', async () => {
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     fake().failNext('categories', 'upsert');
     act(() => {
@@ -274,6 +286,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     setCurationSyncedAt('2026-10-05T00:00:00.000Z');
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() =>
       expect(fake().tables.categories?.map((c) => c.label)).toEqual(['Design Systems']),
     );
@@ -283,6 +296,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
   const signedInWithSyncedTrack = async () => {
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     act(() => {
       addCategory({ label: 'Design Systems' });
@@ -329,6 +343,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
   it('several refused writes in a burst make one toast, not one each', async () => {
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     fake().failNext('categories', 'upsert');
     fake().failNext('categories', 'upsert');
@@ -413,6 +428,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     );
     expect(cloudLabels()).toEqual(['Design Systems']);
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() => expect(cloudLabels()).toEqual(['Design Engineering']));
     expect(label()).toEqual(['Design Engineering']);
     expect(getPending()).toEqual([]);
@@ -421,6 +437,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
   it('a job removed on another device stays removed when this one reloads (#219)', async () => {
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     act(() => {
       addJob('https://a.example/1');
       addJob('https://b.example/1');
@@ -440,6 +457,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     cleanup();
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() => expect(getTrash().map((r) => r.job.url)).toEqual([a.url]));
     expect(getAllJobs().map((j) => j.url)).toEqual([b.url]);
     await waitFor(() =>
@@ -450,6 +468,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
   it('a job removed here while the push failed stays removed after a reload (#219)', async () => {
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     act(() => {
       addJob('https://a.example/1');
       addJob('https://b.example/1');
@@ -466,6 +485,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     cleanup();
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() =>
       expect(fake().tables.tracker[0].data.jobs.map((j: Job) => j.url)).not.toContain(a),
     );
@@ -476,6 +496,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
   it('sample data is kept on this device across reloads while signed in, and never uploaded', async () => {
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
     act(() => {
       loadSample();
@@ -488,6 +509,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     cleanup();
     renderAccount();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() => expect(fake().tables.tracker[0].data.jobs).toHaveLength(1));
     expect(getAllJobs().filter((j) => (j as { demo?: boolean }).demo)).toHaveLength(sample);
     expect(getAllJobs().map((j) => j.url)).toContain('https://real.example/1');
@@ -547,6 +569,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     it('survives sign-out and comes back on a fresh device', async () => {
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       act(edit);
       await waitFor(() =>
@@ -575,6 +598,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       act(() => replaceDocuments([])); // a fresh device's in-memory store
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(readTargets('trk').map((t) => t.login)).toEqual(['acme']));
       expect(readFilters('trk').map((f) => f.name)).toEqual(['Austin hybrid']);
       expect(readEvidence()).toBe('Led a design system');
@@ -587,6 +611,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       const seed = ['Design Systems Engineer', 'Design Engineer', 'UX Engineer'];
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       act(() => {
         setTitleOn('trk', seed, 'UX Engineer', false);
@@ -605,6 +630,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       act(() => replaceDocuments([]));
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() =>
         expect(getAllSweeps()).toEqual({ trk: { titles: seed, off: ['UX Engineer'] } }),
       );
@@ -630,6 +656,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       edit(); // this device was used signed out
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() =>
         expect(
           readTargets('trk')
@@ -662,6 +689,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       writeEvidence('l'.repeat(10_000));
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       expect(await screen.findByText('Evidence was trimmed')).toBeInTheDocument();
       expect(readEvidence().length).toBe(20_000);
     });
@@ -669,6 +697,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     it('an old-deploy tab that strips the v5 fields gets them re-uploaded on the next refresh', async () => {
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       act(edit);
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
@@ -688,6 +717,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     it('a v7 blob from the production deploy never wipes Recently removed, and gets it re-uploaded', async () => {
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       act(() => {
         addJob('https://example.test/removed', 'Removed job');
@@ -714,6 +744,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     it('a reload after an old-deploy tab rewrote the row keeps the fields that tab did not know (#219 review)', async () => {
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       act(edit);
       await waitFor(() => expect(fake().tables.tracker[0].data.documents).toHaveLength(1));
@@ -726,6 +757,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       cleanup();
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 10 }));
       expect(readDreams('trk').map((d) => d.company)).toEqual(['Dreamco']);
       expect(getAllDocuments().map((d) => d.title)).toEqual(['Base résumé']);
@@ -735,6 +767,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     it('sign-out inside the push debounce still uploads the edit before wiping', async () => {
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       act(edit);
       await chooseAccountItem('Sign out'); // well inside the 500 ms debounce
@@ -750,6 +783,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       fake().failNext('tracker', 'upsert');
       act(edit);
@@ -764,6 +798,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     it('a failed push is retried (the edit is still dirty), so a later sign-out uploads it', async () => {
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       fake().failNext('tracker', 'upsert');
       act(edit);
@@ -778,6 +813,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       // Device A: the track write is refused while the blob push (with its target) succeeds.
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       const release = fake().holdNext('categories', 'upsert');
       let id = '';
@@ -796,6 +832,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       replaceCurationState({ categories: [], groups: [], tiles: [] });
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(readTargets(id)).toHaveLength(1));
       await new Promise((r) => setTimeout(r, 100));
       expect(fake().tables.tracker[0].data.targets?.[id]).toHaveLength(1);
@@ -811,6 +848,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     it('an old-deploy tab that strips the v5 fields gets them re-uploaded on the next refresh', async () => {
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       act(edit);
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
@@ -830,6 +868,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     it('sign-out inside the push debounce still uploads the edit before wiping', async () => {
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       act(edit);
       await chooseAccountItem('Sign out'); // well inside the 500 ms debounce
@@ -845,6 +884,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       fake().failNext('tracker', 'upsert');
       act(edit);
@@ -859,6 +899,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
     it('a failed push is retried (the edit is still dirty), so a later sign-out uploads it', async () => {
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
       fake().failNext('tracker', 'upsert');
       act(edit);
@@ -880,6 +921,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       edit();
       renderAccount();
       act(() => fake().signIn('u1'));
+      await addDeviceDataIfAsked();
       await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(10));
       act(() => {
         window.dispatchEvent(new Event('focus'));

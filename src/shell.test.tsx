@@ -18,6 +18,7 @@ vi.mock('@supabase/supabase-js', async () => {
 });
 
 import { createFakeSupabase } from './test/fakeSupabase';
+import { addDeviceDataIfAsked } from './test/renderAccount';
 import { loadSupabase } from './supabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
@@ -263,6 +264,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
     fake().failNext('tracker', 'select');
     renderApp();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     expect(await screen.findByText(OFFLINE_MSG)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Account' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Account, not synced' })).toBeNull();
@@ -279,6 +281,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
   it('signed in, the avatar shows your initial with no dot, and the menu the sync status', async () => {
     renderApp();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     const account = await screen.findByRole('button', { name: 'Account' });
     await waitFor(() => expect(account.textContent).toBe('U'));
     const menu = await openAccount();
@@ -314,6 +317,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
     fake().failNext('tracker', 'select');
     renderApp();
     act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
     expect(await screen.findByText(OFFLINE_MSG)).toBeInTheDocument();
     const menu = await openAccount();
     expect(within(menu).getByRole('menuitem', { name: 'Retry sync' })).toBeInTheDocument();

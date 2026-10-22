@@ -3,13 +3,13 @@
 // kept here, on this device, and the tab the link opens goes there once the sign-in lands. It
 // expires after a day, and it is only used by a tab that opened from a sign-in link.
 import { buildHash, getRoute, isAuthCallback, navigate, parseHash } from '../route';
+import { openedFromAuthLink } from '../authFragment';
 
 const KEY = 'rjb_signin_return';
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-/** This tab opened from a sign-in link (read at load, before auth-js clears the hash). */
-export const openedFromSignInLink =
-  typeof window !== 'undefined' && isAuthCallback(parseHash(window.location.hash));
+/** This tab opened from a sign-in link (read at load, before authFragment strips the tokens). */
+export const openedFromSignInLink = openedFromAuthLink;
 
 /** Remember the page a sign-in link is being sent from. */
 export function rememberSignInReturn(now = Date.now()): void {

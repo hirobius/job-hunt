@@ -24,6 +24,7 @@ import App from './App';
 import { addJob, findJobByUrl, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { getApplyKit, replaceApplyKit, emptyKit, setKitField } from './applyKit';
 import { setOutreachMessages } from './test/outreach';
+import { addDeviceDataIfAsked } from './test/renderAccount';
 import { notifySaved, dismissNotice, saveWithNotice } from './saveNotice';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 
@@ -381,6 +382,7 @@ describe('Application kit: where it is kept (sign-in aware)', () => {
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
     act(() => h.fake!.signIn('u1'));
+    await addDeviceDataIfAsked();
     await waitFor(() =>
       expect(kitNote()).toHaveTextContent('Enter these once. They follow your account.'),
     );

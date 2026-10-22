@@ -194,7 +194,8 @@ export default function TileGrid({
                   >
                     {saved ? 'Saved' : 'Save'}
                   </Button>
-                  {cta === 'Open' ? (
+                  {/* Only a web address opens: a synced tile could carry `javascript:`. */}
+                  {!httpUrl(t.url) ? null : cta === 'Open' ? (
                     <Button
                       size="sm"
                       variant="secondary"

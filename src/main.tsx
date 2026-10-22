@@ -1,3 +1,5 @@
+// First: a magic link's session tokens leave the address bar before anything else reads it.
+import './authFragment';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 // HDS consumed directly from public npm (ADR-0005): styles.css = tokens + component

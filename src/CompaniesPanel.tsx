@@ -45,7 +45,7 @@ import {
 } from './feed/companySource';
 import { YC_CREDIT } from './feed/yc';
 import { probeFetchJson } from './feed/probeFetch';
-import { saveTarget, useTargets } from './feed/targets';
+import { httpUrl, saveTarget, useTargets } from './feed/targets';
 import { liveFetchJson } from './feed/fetchFeed';
 import { createLimiter } from './feed/probe';
 import { boardLabel, boardsFromUrls, type Board } from './feed/sources/ats';
@@ -91,7 +91,7 @@ const asRow = (o: OrgTarget): CompanyRow => ({
 const suggestedRow = (c: SuggestedCompany): CompanyRow => ({
   login: c.login,
   company: c.company,
-  website: c.website,
+  website: httpUrl(c.website), // a third party's link: only http(s) becomes an href
   board: c.board,
   boardCheck: c.boardCheck,
 });

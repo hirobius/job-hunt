@@ -210,6 +210,19 @@ describe('suggestTrackCompanies', () => {
     expect(report).toEqual({ ycMatched: 3 });
   });
 
+  it.each(['javascript:alert(1)', 'data:text/html,x'])(
+    'a YC website %j is never a link',
+    async (bad) => {
+      const evil: FetchJson = async (url) =>
+        url === YC_HIRING_URL
+          ? [yc('Nobody', 'Implementation consultant marketplace', { website: bad })]
+          : world(url);
+      const { out } = await run(evil);
+      const row = out.find((c) => c.company === 'Nobody')!;
+      expect(row.website).toBeUndefined();
+    },
+  );
+
   it('a YC list that does not answer keeps the pack rows and says so', async () => {
     const down: FetchJson = async (url) => {
       throw new FetchError(url === YC_HIRING_URL ? 0 : 404, url);

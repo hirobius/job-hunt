@@ -1,0 +1,224 @@
+// Login injection (security audit, High): a crafted `#access_token=<attacker>` link must never
+// sign this browser in to someone else's account on its own, and this device's data must never go
+// into an account it has not synced with unless the person says so. A magic link this browser
+// asked for still signs in without a question; one opened on another device asks first.
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { ToastProvider } from '@hirobius/design-system';
+import { fakeAccessToken } from '../test/fakeSupabase';
+import {
+  decideAuthLink,
+  readSignInRequest,
+  rememberSignInRequest,
+  REQUEST_MAX_AGE_MS,
+  tokenEmail,
+} from './authLink';
+import { readAuthTokens, stripAuthFragment } from '../authFragment';
+import { deviceData, mergeQuestion } from './deviceData';
+import { emptyBlob } from '../syncBlob';
+import { buildReport } from '../errorReport';
+
+const h = vi.hoisted(() => ({
+  fake: null as null | ReturnType<typeof import('../test/fakeSupabase').createFakeSupabase>,
+}));
+vi.mock('@supabase/supabase-js', async () => {
+  const { createFakeSupabase } = await import('../test/fakeSupabase');
+  return {
+    createClient: () => {
+      h.fake = createFakeSupabase();
+      return h.fake.client;
+    },
+  };
+});
+
+const ATTACKER = 'attacker@evil.test';
+const ME = 'me@example.test';
+const linkFor = (email: string) =>
+  `#access_token=${fakeAccessToken(email)}&refresh_token=r&expires_in=3600&token_type=bearer&type=magiclink`;
+
+beforeEach(() => {
+  h.fake = null;
+  localStorage.clear();
+  vi.resetModules(); // authFragment reads the URL once per load: each test boots a fresh app
+});
+afterEach(async () => {
+  cleanup();
+  // A sheet unmounted while open pops its history entry: let that land before the next boot.
+  await new Promise((r) => setTimeout(r, 50));
+  history.replaceState(null, '', '/');
+});
+
+/** Boot the account seam the way a page load does, with `hash` in the address bar. */
+async function boot(hash: string, opts: { job?: boolean } = {}) {
+  history.replaceState(null, '', '/' + hash);
+  const store = await import('../store');
+  if (opts.job) store.addJob('https://jobs.example.org/secret-role', 'Secret role');
+  const { default: CloudSyncProvider } = await import('./CloudSyncProvider');
+  const { useCloudSync } = await import('./accountContext');
+  function Probe() {
+    const { user } = useCloudSync();
+    return <span>{user ? `in:${user.email}` : 'out'}</span>;
+  }
+  render(
+    <ToastProvider>
+      <CloudSyncProvider>
+        <Probe />
+      </CloudSyncProvider>
+    </ToastProvider>,
+  );
+  return store;
+}
+
+describe('an unsolicited sign-in link (no request from this browser)', () => {
+  it('is blocked until confirmed, and Cancel drops it', async () => {
+    const store = await boot(linkFor(ATTACKER), { job: true });
+    // The tokens left the URL at once.
+    expect(location.hash).toBe('');
+    expect(location.href).not.toContain('access_token');
+    expect(
+      await screen.findByRole('alertdialog', { name: `Sign in as ${ATTACKER}?` }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('out')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByText('out')).toBeInTheDocument();
+    // Never signed in, nothing sent anywhere, this device's job untouched.
+    expect((await h.fake?.client.auth.getSession())?.data.session ?? null).toBeNull();
+    expect(h.fake?.tables.tracker ?? []).toEqual([]);
+    expect(store.getAllJobs()).toHaveLength(1);
+  });
+
+  it('confirmed, it signs in, but this device’s data is not added unless asked (default: keep)', async () => {
+    const store = await boot(linkFor(ATTACKER), { job: true });
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
+    const ask = await screen.findByRole('alertdialog', {
+      name: `Add this device's 1 job to ${ATTACKER}?`,
+    });
+    expect(ask).toBeInTheDocument();
+    // While it asks, nothing is pulled or pushed.
+    expect(h.fake!.tables.tracker ?? []).toEqual([]);
+    await userEvent.click(screen.getByRole('button', { name: "Don't add" }));
+    await waitFor(() => expect(screen.getByText('out')).toBeInTheDocument());
+    expect(h.fake!.tables.tracker ?? []).toEqual([]);
+    expect(store.getAllJobs().map((j) => j.label)).toEqual(['Secret role']);
+  });
+
+  it('a link opened on another device (empty here) asks, then signs in and syncs', async () => {
+    await boot(linkFor(ME));
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    // Nothing on this device to ask about: the sync runs.
+    await waitFor(() => expect(h.fake!.tables.tracker).toHaveLength(1));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('a link whose token names no account is refused', async () => {
+    await boot('#access_token=garbage&refresh_token=r');
+    expect(location.hash).toBe('');
+    expect(await screen.findByText(/could not be used/)).toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByText('out')).toBeInTheDocument();
+  });
+});
+
+describe('a link this browser asked for', () => {
+  it('signs in without the confirm when the email matches', async () => {
+    rememberSignInRequest('Me@Example.test');
+    await boot(linkFor(ME));
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(location.hash).toBe('');
+    // The request is used up.
+    expect(readSignInRequest()).toBeNull();
+  });
+
+  it('asks when the link is for another email than the one asked for', async () => {
+    rememberSignInRequest(ME);
+    await boot(linkFor(ATTACKER));
+    expect(
+      await screen.findByRole('alertdialog', { name: `Sign in as ${ATTACKER}?` }),
+    ).toBeInTheDocument();
+  });
+
+  it('first sign-in on a device with data: Add puts it in the account', async () => {
+    rememberSignInRequest(ME);
+    await boot(linkFor(ME), { job: true });
+    await userEvent.click(await screen.findByRole('button', { name: 'Add to account' }));
+    await waitFor(() => expect(h.fake!.tables.tracker).toHaveLength(1));
+    expect(h.fake!.tables.tracker[0].data.jobs.map((j: { url: string }) => j.url)).toEqual([
+      'https://jobs.example.org/secret-role',
+    ]);
+  });
+
+  it('the account this device already syncs with is not asked about again', async () => {
+    rememberSignInRequest(ME);
+    localStorage.setItem('rjb_sync_base', JSON.stringify({ uid: `id-${ME}`, keys: {} }));
+    await boot(linkFor(ME), { job: true });
+    expect(await screen.findByText(`in:${ME}`)).toBeInTheDocument();
+    await waitFor(() => expect(h.fake!.tables.tracker).toHaveLength(1));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+});
+
+describe('the pieces', () => {
+  it('reads the email a token names, and nothing from garbage', () => {
+    expect(tokenEmail(fakeAccessToken(ME))).toBe(ME);
+    expect(tokenEmail('garbage')).toBeNull();
+    expect(tokenEmail('a.b.c')).toBeNull();
+  });
+
+  it('decides: matching fresh request → auto; anything else → confirm; no email → reject', () => {
+    const t = { access_token: fakeAccessToken(ME), refresh_token: 'r' };
+    expect(decideAuthLink(t, 'ME@example.test')).toEqual({ kind: 'auto', email: ME });
+    expect(decideAuthLink(t, null)).toEqual({ kind: 'confirm', email: ME });
+    expect(decideAuthLink(t, ATTACKER)).toEqual({ kind: 'confirm', email: ME });
+    expect(decideAuthLink({ access_token: 'x', refresh_token: 'r' }, ME)).toEqual({
+      kind: 'reject',
+    });
+  });
+
+  it('a sign-in request lasts an hour', () => {
+    rememberSignInRequest(ME, 1000);
+    expect(readSignInRequest(1000 + REQUEST_MAX_AGE_MS)).toBe(ME);
+    expect(readSignInRequest(1001 + REQUEST_MAX_AGE_MS)).toBeNull();
+  });
+
+  it('strips a token fragment in place, and leaves a route alone', () => {
+    const calls: string[] = [];
+    const hist = {
+      state: null,
+      replaceState: (_s: unknown, _t: string, u: string) => calls.push(u),
+    };
+    stripAuthFragment({ hash: linkFor(ME), pathname: '/', search: '?x=1' }, hist);
+    stripAuthFragment({ hash: '#refresh_token=r', pathname: '/', search: '' }, hist);
+    stripAuthFragment({ hash: '#/queue', pathname: '/', search: '' }, hist);
+    expect(calls).toEqual(['/?x=1', '/']);
+    expect(readAuthTokens('#/queue')).toBeNull();
+  });
+
+  it('a crash report never carries a token', () => {
+    const tok = fakeAccessToken(ME);
+    const r = buildReport('error', new Error(`bad hash #access_token=${tok}&refresh_token=rt1`), {
+      hash: linkFor(ME),
+      userAgent: '',
+    });
+    expect(JSON.stringify(r)).not.toContain(tok);
+    expect(JSON.stringify(r)).not.toContain('rt1');
+    expect(r.route).toBe('');
+  });
+
+  it('counts what this device holds, ignoring starter templates and an empty kit', () => {
+    const fresh = {
+      ...emptyBlob(),
+      copydeck: [{ id: 'tpl-followup' }],
+      documents: [{ id: 'snippet-tpl-followup' }],
+    } as never;
+    expect(deviceData(fresh, 0)).toEqual({ jobs: 0, any: false });
+    expect(deviceData(emptyBlob(), 1).any).toBe(true);
+    expect(mergeQuestion({ jobs: 2, any: true }, ME)).toBe(`Add this device's 2 jobs to ${ME}?`);
+    expect(mergeQuestion({ jobs: 0, any: true }, ME)).toBe(
+      `Add this device's saved data to ${ME}?`,
+    );
+  });
+});
