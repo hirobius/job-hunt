@@ -77,6 +77,21 @@ async function installWatcher(page: Page) {
       },
       true,
     );
+    // A flash or collapse (feedback.ts) is a `data-motion` attribute whose CSS starts a keyframe
+    // animation. Read that animation when the attribute lands: under load the row can be gone
+    // (collapse, then remove) before its animationstart event is dispatched, which made the
+    // check above miss a collapse that did run.
+    new MutationObserver((records) => {
+      if (!w.__fb.start) return;
+      for (const r of records) {
+        const el = r.target as Element;
+        if (!el.getAttribute('data-motion') || !boxed(el)) continue;
+        const row = el.closest('[role="row"], tr, li, article');
+        for (const a of el.getAnimations())
+          if (a instanceof CSSAnimation)
+            w.__fb.anims.push({ name: a.animationName, row: squash(row?.textContent ?? '') });
+      }
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-motion'] });
     addEventListener(
       'pointerdown',
       () => {
