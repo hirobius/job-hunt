@@ -51,6 +51,13 @@ describe('seedPack', () => {
     expect(getCurationState().categories.find((c) => c.id === bare)!.label).toBe('My track');
   });
 
+  it('no location means anywhere: no pack defaults to "Remote" (Adrian 2026-10-22)', () => {
+    STARTER_PACKS.forEach((p) => {
+      const id = seedPack(p.id, '');
+      expect(getCurationState().categories.find((c) => c.id === id)!.location).toBe('');
+    });
+  });
+
   it('every advertised pack id is seedable without throwing', () => {
     STARTER_PACKS.forEach((p) => expect(() => seedPack(p.id)).not.toThrow());
   });
@@ -169,5 +176,56 @@ describe('design systems targets track (#198)', () => {
     expect(list).toHaveLength(23);
     expect(list.find((t) => t.login === 'stripe')!.company).toBe('My Stripe note');
     expect(topUpFromPack(id, 'designsystems').targets).toBe(0);
+  });
+});
+
+describe('starter links follow the track location (Adrian 2026-10-22)', () => {
+  const tilesOf = (id: string) => {
+    const s = getCurationState();
+    const groups = new Set(s.groups.filter((g) => g.categoryId === id).map((g) => g.id));
+    return s.tiles.filter((t) => groups.has(t.groupId));
+  };
+  const SEARCH_HOSTS = /indeed\.com|linkedin\.com\/jobs|ziprecruiter\.com/;
+
+  it('with a location, every local search link uses it and none says Spokane', () => {
+    for (const pack of ['trades', 'consulting']) {
+      const tiles = tilesOf(seedPack(pack, 'Boise, ID'));
+      const local = tiles.filter((t) => /Boise/.test(t.url));
+      expect(local.length).toBeGreaterThan(0);
+      tiles
+        .filter((t) => SEARCH_HOSTS.test(t.url))
+        .forEach((t) => {
+          expect(t.url).not.toMatch(/spokane/i);
+          expect(`${t.name} ${t.meta}`).not.toMatch(/spokane/i);
+        });
+      expect(local.map((t) => t.name).some((n) => n.includes('(Boise, ID)'))).toBe(true);
+    }
+  });
+
+  it('with no location, the local search links carry no location at all', () => {
+    const tiles = tilesOf(seedPack('trades', ''));
+    const indeed = tiles.find((t) => t.url.includes('indeed.com/jobs?q=fabricator'))!;
+    expect(new URL(indeed.url).searchParams.has('l')).toBe(false);
+    expect(indeed.name).toBe('Indeed · Fabricator');
+    tiles
+      .filter((t) => SEARCH_HOSTS.test(t.url))
+      .forEach((t) => expect(`${t.url} ${t.name} ${t.meta}`).not.toMatch(/spokane/i));
+  });
+
+  it('a remote search keeps its own location', () => {
+    const tiles = tilesOf(seedPack('consulting', 'Boise, ID'));
+    expect(tiles.some((t) => t.url.includes('l=Remote'))).toBe(true);
+  });
+
+  it('topping up a track uses the track location too', () => {
+    const id = seedPack('trades', 'Boise, ID');
+    replaceCurationState({
+      ...getCurationState(),
+      tiles: getCurationState().tiles.filter((t) => !/indeed/.test(t.url)),
+    });
+    topUpFromPack(id, 'trades');
+    const indeed = tilesOf(id).filter((t) => /indeed\.com/.test(t.url));
+    expect(indeed.length).toBeGreaterThan(0);
+    indeed.forEach((t) => expect(new URL(t.url).searchParams.get('l')).toBe('Boise, ID'));
   });
 });

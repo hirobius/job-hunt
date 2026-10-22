@@ -474,7 +474,8 @@ export const GROUPS: Group[] = [
   {
     // Implementation Consulting "Apply Now" — the other parallel (non-trades) track: software
     // implementation / onboarding / professional-services roles, generalist across ecosystems.
-    // Curates BOTH remote and Spokane-area live searches (the pillar is remote+Spokane), plus
+    // Curates BOTH remote and local live searches (the local ones follow the track's location when
+    // seeded, curation/localize.ts), plus
     // ATS Google-dorks for the low-competition hidden-jobs angle. Board rule holds: live
     // searches + durable dorks only, no one-off postings.
     id: 'ic-brief',
@@ -502,7 +503,7 @@ export const GROUPS: Group[] = [
       ),
       t(
         'Indeed · Implementation / Onboarding (Spokane)',
-        'Live Spokane-area implementation & onboarding postings',
+        'Live local implementation & onboarding postings',
         'https://www.indeed.com/jobs?q=implementation+OR+%22onboarding+specialist%22&l=Spokane%2C+WA',
       ),
       t(
@@ -636,7 +637,7 @@ export const GROUPS: Group[] = [
       ),
       t(
         'Indeed · Fabricator (Spokane)',
-        'All live Spokane fab + sheet-metal postings',
+        'All live fab + sheet-metal postings',
         'https://www.indeed.com/jobs?q=fabricator+OR+%22sheet+metal%22&l=Spokane%2C+WA',
       ),
     ],
@@ -901,7 +902,7 @@ export const GROUPS: Group[] = [
       ),
       t(
         'Indeed · CNC machinist (Spokane)',
-        'Live Spokane CNC + machine-operator postings',
+        'Live CNC + machine-operator postings',
         'https://www.indeed.com/jobs?q=CNC+OR+machinist&l=Spokane%2C+WA',
       ),
     ],

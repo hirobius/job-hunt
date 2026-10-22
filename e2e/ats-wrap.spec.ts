@@ -6,6 +6,7 @@ test('ATS search row titles and descriptions wrap at 390', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 });
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.goto('/#/discover');
+  await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().check();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Finish' }).click();

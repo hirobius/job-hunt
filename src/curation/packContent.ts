@@ -13,8 +13,6 @@ export interface PackContent {
   /** ATS hidden-jobs search terms. */
   atsRoles: string[];
   seniority: Seniority;
-  /** Default search location label (onboarding can override it). */
-  location: string;
   /** Curated groups seeded into the new track, in order. */
   groups: Group[];
   /** Company board urls seeded as the track's "Watched companies" (src/radar/directory.ts). */
@@ -33,7 +31,6 @@ export const TRADES_PACK: PackContent = {
   titles: TITLES, // sheet-metal / fab / welder titles live in jobsData
   atsRoles: ATS_ROLES,
   seniority: 'entry',
-  location: '',
   groups: pick('sm-brief', 'smshops', 'machineshops'),
   boards: DIRECTORY_BY_PACK.trades,
 };
@@ -85,7 +82,6 @@ export const DESIGN_SYSTEMS_PACK: PackContent = {
   titles: DESIGN_SYSTEMS_TITLES,
   atsRoles: DESIGN_SYSTEMS_ATS_ROLES,
   seniority: 'experienced',
-  location: 'Remote',
   groups: pick('ds-brief', 'ds-watch'),
   boards: DIRECTORY_BY_PACK.designsystems,
   targets: TARGETS_BY_PACK.designsystems,
@@ -119,7 +115,6 @@ export const CONSULTING_PACK: PackContent = {
   titles: CONSULTING_TITLES,
   atsRoles: CONSULTING_ATS_ROLES,
   seniority: 'experienced',
-  location: 'Remote',
   groups: pick('ic-brief'),
   boards: DIRECTORY_BY_PACK.consulting,
 };
@@ -152,7 +147,6 @@ export const SERVICENOW_PACK: PackContent = {
   titles: SERVICENOW_TITLES,
   atsRoles: SERVICENOW_ATS_ROLES,
   seniority: 'any',
-  location: 'Remote',
   groups: pick('sn-brief'),
   boards: DIRECTORY_BY_PACK.servicenow,
 };

@@ -27,16 +27,14 @@ import { navigate } from './route';
 // job. Back and Skip are on every step (at the last, Skip reads "I'll do it later"). Nothing is
 // written until the end: Finish (or the last Skip) seeds the picked packs (fork-on-pick) with the
 // location and saves the job if one was given. Skipping everything seeds nothing, so the gate
-// stays and the steps start over. The Suggested pack starts ticked, and Continue is never shown
-// disabled (rev-3): pressing it with nothing ready says why instead. On a first run it also offers the sample pipeline (#107), which ends
+// stays and the steps start over. Every pack starts unticked, the Suggested one too (Adrian
+// 2026-10-22), and Continue is never shown disabled (rev-3): pressing it with nothing ready says why instead. On a first run it also offers the sample pipeline (#107), which ends
 // the first run by filling the Pipeline. Step state is component state only.
 const STEPS = 3;
-// The lead pack (#59) starts ticked (rev-3 mock).
-const SUGGESTED = [STARTER_PACKS[0].id];
 
 export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
   const [step, setStep] = useState(1);
-  const [picked, setPicked] = useState<string[]>(SUGGESTED);
+  const [picked, setPicked] = useState<string[]>([]);
   const [pickError, setPickError] = useState(false);
   const [firstTitle, setFirstTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -53,7 +51,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
 
   const reset = () => {
     setStep(1);
-    setPicked(SUGGESTED);
+    setPicked([]);
     setPickError(false);
     setFirstTitle('');
     setLocation('');
@@ -90,7 +88,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
 
   const lastStep = step === STEPS;
   const next = () => setStep((s) => s + 1);
-  // Skip on step 1 skips picking a track, so the pre-ticked Suggested pack is not seeded behind it.
+  // Skip on step 1 skips picking a track, so nothing ticked there is seeded behind it.
   const skip = () => {
     if (lastStep) return finish(false);
     if (step === 1) {

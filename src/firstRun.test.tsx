@@ -38,8 +38,13 @@ const click = (name: string | RegExp, role = 'button') =>
   userEvent.click(screen.getByRole(role, { name }));
 const step = (n: number) =>
   expect(screen.getByRole('progressbar', { name: `Step ${n} of 3` })).toBeInTheDocument();
-// The lead (Suggested) pack starts ticked (rev-3), so "picking" it is checking it is still on.
-const pickFirstPack = async () => expect(screen.getAllByRole('checkbox')[0]).toBeChecked();
+// Every pack starts unticked, the Suggested one too (Adrian 2026-10-22): picking it ticks it.
+const pickFirstPack = async () => {
+  const box = screen.getAllByRole('checkbox')[0];
+  expect(box).not.toBeChecked();
+  await userEvent.click(box);
+  expect(box).toBeChecked();
+};
 
 beforeEach(() => {
   h.fake?.reset();
@@ -65,10 +70,10 @@ describe('step 1: pick a track', () => {
     expect(screen.getByText('Just looking?')).toBeInTheDocument();
     const first = screen.getAllByRole('checkbox')[0];
     expect(first).toHaveAccessibleName('Implementation Consulting');
-    expect(first).toBeChecked(); // the Suggested pack starts ticked
+    expect(first).not.toBeChecked(); // suggested, but unticked (Adrian 2026-10-22)
     expect(
       screen.getAllByRole('checkbox').filter((c) => (c as HTMLInputElement).checked),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expect(first.closest('li')).toHaveTextContent('Suggested');
     expect(screen.getAllByText('Suggested')).toHaveLength(1);
   });

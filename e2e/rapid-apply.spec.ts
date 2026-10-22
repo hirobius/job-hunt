@@ -40,10 +40,8 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
 
   // A track first (Discover needs one): the first starter pack, three steps.
   await page.goto('/#/discover');
-  // The Suggested (first) pack starts ticked (rev-3).
-  await expect(
-    page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first(),
-  ).toBeChecked();
+  // Every pack starts unticked (Adrian 2026-10-22): tick the Suggested (first) one.
+  await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().check();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Finish' }).click();

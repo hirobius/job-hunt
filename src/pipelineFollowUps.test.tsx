@@ -272,7 +272,9 @@ describe('first-run gate in the shell', () => {
   it('picking a track finishes setup and stays on Companies', async () => {
     window.location.hash = '';
     renderApp();
-    expect(screen.getAllByRole('checkbox')[0]).toBeChecked(); // the Suggested pack starts ticked
+    const lead = screen.getAllByRole('checkbox')[0];
+    expect(lead).not.toBeChecked(); // the Suggested pack starts unticked (Adrian 2026-10-22)
+    await userEvent.click(lead);
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
