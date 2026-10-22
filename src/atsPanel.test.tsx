@@ -68,6 +68,16 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
     expect(screen.getByRole('button', { name: 'Show less' })).toBeInTheDocument();
   });
 
+  it('Copy the query copies it and says so in a toast (#212)', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(async (_t: string) => {});
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'Copy the query' }));
+    expect(writeText).toHaveBeenCalledWith(document.querySelector('.rjb-query')!.textContent);
+    expect(await screen.findByText('Copied the query')).toBeInTheDocument();
+  });
+
   it('renders both tile set headings, toggles contract clause, checks "Search top N" word limits, and passes axe', async () => {
     const user = userEvent.setup();
     const { container } = renderApp();

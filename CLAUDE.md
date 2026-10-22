@@ -234,7 +234,8 @@ Previews: `docs/brand/`.
   `modal={false}` (a modal menu plus the dialog left the page unclickable). Pinned in
   `documentsRoute.test.tsx`, `documentsLibrary.test.tsx`, `outreachTemplates.test.ts`; E2E
   `e2e/documents.spec.ts`, `e2e/template-variables.spec.ts`. Final copies (#231, uploaded PDF/Word)
-  live in the synced blob, capped at 500 KB per file and 1 MB per account.
+  live in the synced blob, capped at 500 KB per file and 1 MB per account. Removing an unsent one has no
+  confirm: it collapses and Undo re-adds it (`documents.restoreDocument`, the file with it).
 - **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
   `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
   Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).
@@ -343,9 +344,14 @@ Previews: `docs/brand/`.
   tokens only; reduced motion keeps the state and toast, drops the movement). Flash and collapse are an attribute,
   not a class (React rewrites a className it owns, e.g. a starred table row moving to the top), and on an HDS Table
   row (`display: contents`, no box) they mark its cells. Row status / Retire / Mark applied
-  raise a notice with Undo; every Remove (a Pipeline job, a job's to-do or interview, an outreach target) collapses
-  the row first, then a notice (`saveNotice.notifyRemoved`) offers Undo that puts it back in its place
-  (`restoreTodo` / `restoreEvent` / `targets.restoreTarget`); Duplicate and Pin flash the row they land on. Pinned
+  raise a notice with Undo; **Remove is soft everywhere**: every Remove (a Pipeline job, a job's to-do or interview,
+  a final copy, an outreach target, Manage track's links and sections) collapses the row first, then a notice
+  (`saveNotice.notifyRemoved`) offers Undo that puts it back in its place (`restoreTodo` / `restoreEvent` /
+  `targets.restoreTarget` / `documents.restoreDocument` / `curationStore.restoreTile` / `restoreGroup`, a section
+  with its links in order, its row sent before its links). Inside a modal dialog (Manage track) the notice is
+  `inDialog`: the dialog's footer shows it (`NoticeHost.DialogNotice`, reachable by keyboard and screen reader,
+  which the toast behind a modal is not), and it moves to the toast when the dialog closes (`noticeToToast`).
+  ATS search's Copy the query toasts "Copied the query"; Duplicate and Pin flash the row they land on. Pinned
   by `e2e/feedback.spec.ts` (the sweep fails if a press changes nothing visible in 300 ms; a menu closing or an
   earlier toast leaving does not count; it checks the table row's flash and collapse at 1440 and the card's at 390)
   and `src/feedback.test.ts`.
@@ -560,7 +566,8 @@ track-agnostic like everything else in Discover.
   mirror) and offer Watch. `dsOrgs.ts` + `githubBudget.ts` find design-system orgs via keyless GitHub
   search (3 pages, 30 org lookups per run, 8 searches/min and 40 core/hour in `rjb_gh_budget`, stops with
   "wait until" on 403/429); results are outreach targets (`targets.ts`, `rjb_targets`, per track, synced in the blob,
-  shown in the Teams tool). YC and GitHub sit behind `DISCOVERY_SOURCE_ENABLED`
+  shown in the Teams tool). A target needs a repo, a board, a website or a `yc:` login, so a board-less
+  suggested company saved with "Save as target" persists, syncs and shows under Saved targets. YC and GitHub sit behind `DISCOVERY_SOURCE_ENABLED`
   (`feed/discoverySources.ts`) and are **unverified live**, as are the new community-board `site:` clauses
   in `jobsData.ts`. Big-company ATSs (Workday, SuccessFactors, Taleo, Oracle) are Google links only: never
   fetch them. New hosts `yc-oss.github.io` and `api.github.com` are in `connect-src` and `csp.test.ts`.

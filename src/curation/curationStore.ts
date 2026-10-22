@@ -92,11 +92,11 @@ function mirror(
   id: string,
   op: PendingOp,
   write: (uid: string) => PromiseLike<{ error: unknown }>,
-) {
+): Promise<void> {
   const held = waiting(table).has(id);
   // Journalled before any await, so a write still in flight counts as unsynced (sign-out asks).
   const v = markPending(table, id, op);
-  void (async () => {
+  return (async () => {
     let ok = false;
     try {
       const uid = await currentUserId();
@@ -116,7 +116,7 @@ function upsert<T extends CurationTable>(
   id: string,
   buildRow: (uid: string) => RowForTable<T>,
 ) {
-  mirror(table, id, 'upsert', async (uid) =>
+  return mirror(table, id, 'upsert', async (uid) =>
     (await loadSupabase()).from(table).upsert(buildRow(uid)),
   );
 }
@@ -126,17 +126,20 @@ export const TILE_CHUNK = 50;
 // The bulk form of `mirror` for upserts: every row is journalled at once (before any await), the
 // rows go up in chunks, and each chunk's rows settle together on that chunk's result. A refused
 // chunk leaves exactly its own rows journalled as failed (the next sync replays them); one report
-// covers the whole batch.
+// covers the whole batch. `after` holds the writes back until another lands (a restored section's
+// links wait for the section row).
 function upsertMany<T extends CurationTable>(
   table: T,
   ids: string[],
   buildRows: (uid: string) => RowForTable<T>[],
+  after?: Promise<void>,
 ) {
   if (ids.length === 0) return;
   const held = waiting(table);
   const vs = markPendingMany(table, ids, 'upsert');
   const writes = ids.map((id, i) => ({ id, v: vs[i] }));
   void (async () => {
+    await after;
     const uid = await currentUserId(); // never throws: a failed session read is "no user"
     if (purelyLocal(uid)) {
       settlePendingMany(
@@ -178,6 +181,17 @@ function remove(table: CurationTable, rowId: string) {
 // ---- sortOrder helpers (append to the end of the relevant scope) ----
 const nextSort = (items: { sortOrder: number }[]) =>
   items.reduce((m, x) => Math.max(m, x.sortOrder), -1) + 1;
+
+/** `item` put back among `list` where its sortOrder places it within its scope (its section's
+ *  links, its track's sections), so views that keep the store's order see it in its old place. */
+function insertBySort<T extends { sortOrder: number }>(
+  list: T[],
+  item: T,
+  sameScope: (x: T) => boolean,
+): T[] {
+  const at = list.findIndex((x) => sameScope(x) && x.sortOrder > item.sortOrder);
+  return at < 0 ? [...list, item] : [...list.slice(0, at), item, ...list.slice(at)];
+}
 
 // ---- categories ----
 export function addCategory(partial: Partial<Category> = {}): string {
@@ -265,6 +279,28 @@ export function removeGroup(id: string) {
   remove('groups', id);
 }
 
+/** Put a deleted section back (Undo, #212): the same row (id, place) and its links as they were,
+ *  in their order. The section goes up first, then its links (the cloud may have dropped them with
+ *  it). A section the track has again is left as it is. */
+export function restoreGroup(g: Group, tiles: Tile[]) {
+  const s = store.get();
+  if (s.groups.some((x) => x.id === g.id)) return;
+  const own = tiles.filter((t) => t.groupId === g.id);
+  const ids = new Set(own.map((t) => t.id));
+  store.set({
+    ...s,
+    groups: insertBySort(s.groups, g, (x) => x.categoryId === g.categoryId),
+    tiles: [...s.tiles.filter((t) => !ids.has(t.id)), ...own],
+  });
+  const section = upsert('groups', g.id, (uid) => groupToRow(g, uid));
+  upsertMany(
+    'tiles',
+    own.map((t) => t.id),
+    (uid) => own.map((t) => tileToRow(t, uid)),
+    section,
+  );
+}
+
 // ---- tiles ----
 export function addTile(groupId: string, partial: Partial<Tile> = {}): string {
   const s = store.get();
@@ -329,6 +365,15 @@ export function removeTile(id: string) {
   if (!s.tiles.some((t) => t.id === id)) return;
   store.set({ ...s, tiles: s.tiles.filter((t) => t.id !== id) });
   remove('tiles', id);
+}
+
+/** Put a removed link back (Undo, #212): the same row, so it takes its old place. One the store
+ *  has again is left as it is. */
+export function restoreTile(t: Tile) {
+  const s = store.get();
+  if (s.tiles.some((x) => x.id === t.id)) return;
+  store.set({ ...s, tiles: insertBySort(s.tiles, t, (x) => x.groupId === t.groupId) });
+  upsert('tiles', t.id, (uid) => tileToRow(t, uid));
 }
 
 // ---- whole-state access (used by the sync layer) ----

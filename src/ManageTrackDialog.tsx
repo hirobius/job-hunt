@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import {
   AlertDialog,
   Button,
@@ -23,6 +23,9 @@ import {
   removeGroup,
   addTile,
   removeTile,
+  restoreGroup,
+  restoreTile,
+  getCurationState,
   useCategories,
   useGroups,
   useTiles,
@@ -30,6 +33,10 @@ import {
 import type { Seniority } from './curation/types';
 import { STARTER_PACKS, topUpFromPack } from './curation/starterPacks';
 import { displayGroupLabel } from './curation/groupLabel';
+import type { Group, Tile } from './curation/types';
+import { collapseRow } from './feedback';
+import { noticeToToast, notifyRemoved } from './saveNotice';
+import { DialogNotice } from './NoticeHost';
 
 // In-app curation controls (issue #37 / B4): edit a track's search terms + seniority + location,
 // and add/remove its sections (groups) and links (tiles) — all through the curation store, which
@@ -127,8 +134,37 @@ function ChipEditor({
   );
 }
 
-function GroupEditor({ groupId }: { groupId: string }) {
-  const tiles = useTiles().filter((t) => t.groupId === groupId);
+/** Remove a link (#212): its row collapses, then it goes, and a notice offers Undo, which puts it
+ *  back in its place. */
+function removeTileWithUndo(t: Tile, from: Element) {
+  collapseRow(from, () => {
+    removeTile(t.id);
+    notifyRemoved(`Removed “${t.name}”`, () => restoreTile(t), undefined, { inDialog: true });
+  });
+}
+
+/** Delete a section (#212): it collapses, then it goes, and Undo puts it back in its place with
+ *  its links in their order (read when the delete lands, so a link added meanwhile comes back). */
+function removeGroupWithUndo(g: Group, from: Element) {
+  collapseRow(from, () => {
+    const { groups, tiles } = getCurationState();
+    const now = groups.find((x) => x.id === g.id);
+    if (!now) return;
+    const links = tiles.filter((t) => t.groupId === g.id);
+    removeGroup(g.id);
+    notifyRemoved(
+      `Deleted the “${displayGroupLabel(now.label)}” section`,
+      () => restoreGroup(now, links),
+      undefined,
+      { inDialog: true },
+    );
+  });
+}
+
+function GroupEditor({ groupId, sectionName }: { groupId: string; sectionName: string }) {
+  const tiles = useTiles()
+    .filter((t) => t.groupId === groupId)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const addLink = () => {
@@ -139,29 +175,45 @@ function GroupEditor({ groupId }: { groupId: string }) {
   };
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'xs' }}>
-      {tiles.map((t) => (
+      {tiles.length > 0 && (
         <Box
-          sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center' }}
-          key={t.id}
+          as="ul"
+          aria-label={`Links in ${sectionName}`}
+          sx={{
+            listStyle: 'none',
+            m: 0,
+            p: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'xs',
+          }}
         >
-          <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
-            {/* A link out, so a link can be checked before it is kept (Adrian 2026-10-22). One
+          {tiles.map((t) => (
+            <Box
+              as="li"
+              sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center' }}
+              key={t.id}
+            >
+              <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+                {/* A link out, so a link can be checked before it is kept (Adrian 2026-10-22). One
                 typed without a scheme would open the app itself, so it stays text. */}
-            <Text variant="caption" as="div">
-              {httpUrl(t.url) ? <InlineLink href={t.url}>{t.name}</InlineLink> : t.name}
-            </Text>
-          </Box>
-          <Button
-            size="sm"
-            variant="tertiary"
-            tone="danger"
-            iconOnly
-            iconLeft={<Icon icon={X} />}
-            label={`Remove ${t.name}`}
-            onClick={() => removeTile(t.id)}
-          />
+                <Text variant="caption" as="div">
+                  {httpUrl(t.url) ? <InlineLink href={t.url}>{t.name}</InlineLink> : t.name}
+                </Text>
+              </Box>
+              <Button
+                size="sm"
+                variant="tertiary"
+                tone="danger"
+                iconOnly
+                iconLeft={<Icon icon={X} />}
+                label={`Remove ${t.name}`}
+                onClick={(e) => removeTileWithUndo(t, e.currentTarget)}
+              />
+            </Box>
+          ))}
         </Box>
-      ))}
+      )}
       {/* Mobile-first: a column that becomes a row from sm. */}
       <Box
         sx={{
@@ -219,6 +271,11 @@ export default function ManageTrackDialog({
   onDeleted: () => void;
 }) {
   const { toast } = useToast();
+  // Closed (or gone): a Remove's Undo it was showing moves to the toast.
+  useEffect(() => {
+    if (!open) noticeToToast();
+    return noticeToToast;
+  }, [open]);
   const cat = useCategories().find((c) => c.id === categoryId);
   const groups = useGroups()
     .filter((g) => g.categoryId === categoryId)
@@ -307,30 +364,45 @@ export default function ManageTrackDialog({
                 <Text variant="body" className="rjb-semibold">
                   Sections & links
                 </Text>
-                {groups.map((g) => (
-                  <Stack key={g.id} gap="px8">
-                    <Stack direction="row" gap="px8" align="center">
-                      <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
-                        <HdsInput
-                          size="sm"
-                          aria-label="Section name"
-                          value={displayGroupLabel(g.label)}
-                          onChange={(e) => updateGroup(g.id, { label: e.target.value })}
-                        />
-                      </Box>
-                      <Button
-                        size="sm"
-                        variant="tertiary"
-                        tone="danger"
-                        iconOnly
-                        iconLeft={<Icon icon={Trash2} />}
-                        label={`Delete ${displayGroupLabel(g.label)} section`}
-                        onClick={() => removeGroup(g.id)}
-                      />
-                    </Stack>
-                    <GroupEditor groupId={g.id} />
-                  </Stack>
-                ))}
+                {groups.length > 0 && (
+                  <Box
+                    as="ul"
+                    aria-label="Sections"
+                    sx={{
+                      listStyle: 'none',
+                      m: 0,
+                      p: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 'sm',
+                    }}
+                  >
+                    {groups.map((g) => (
+                      <Stack key={g.id} as="li" gap="px8">
+                        <Stack direction="row" gap="px8" align="center">
+                          <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+                            <HdsInput
+                              size="sm"
+                              aria-label="Section name"
+                              value={displayGroupLabel(g.label)}
+                              onChange={(e) => updateGroup(g.id, { label: e.target.value })}
+                            />
+                          </Box>
+                          <Button
+                            size="sm"
+                            variant="tertiary"
+                            tone="danger"
+                            iconOnly
+                            iconLeft={<Icon icon={Trash2} />}
+                            label={`Delete ${displayGroupLabel(g.label)} section`}
+                            onClick={(e) => removeGroupWithUndo(g, e.currentTarget)}
+                          />
+                        </Stack>
+                        <GroupEditor groupId={g.id} sectionName={displayGroupLabel(g.label)} />
+                      </Stack>
+                    ))}
+                  </Box>
+                )}
                 <Box>
                   <Button
                     variant="secondary"
@@ -418,6 +490,8 @@ export default function ManageTrackDialog({
           </Stack>
         </Box>
         <Dialog.Footer>
+          {/* A Remove's Undo (#212): here while the dialog is open, the toast once it closes. */}
+          <DialogNotice />
           <Button variant="primary" onClick={onClose}>
             Done
           </Button>
