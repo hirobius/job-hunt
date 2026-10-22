@@ -99,6 +99,26 @@ describe('TileGrid cards (#12, #131)', () => {
     expect(within(c).getByRole('button', { name: 'Restore' })).toBeVisible();
   });
 
+  it('Set aside is a quiet action (rev-3 G)', () => {
+    renderGrid();
+    // The tile set aside above stays set aside (the triage store outlives the test).
+    expect(
+      within(card('Indeed')).getByRole('button', { name: /^(Set aside|Restore)$/ }),
+    ).toHaveClass('rjb-quiet');
+  });
+
+  it('a watched company board names its hiring system and carries a Board badge (rev-3 H)', () => {
+    render(
+      <ToastProvider>
+        <TileGrid tiles={[{ name: 'Figma', meta: '', url: 'https://boards.greenhouse.io/figma' }]} />
+      </ToastProvider>,
+    );
+    const c = card('Figma');
+    expect(within(c).getByText('Greenhouse')).toBeVisible();
+    expect(within(c).queryByText('boards.greenhouse.io')).toBeNull();
+    expect(within(c).getByText('Board')).toBeVisible();
+  });
+
   it('offers no Set aside without triage', () => {
     renderGrid(false);
     expect(screen.queryByRole('button', { name: 'Set aside' })).toBeNull();

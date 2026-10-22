@@ -28,6 +28,7 @@ import App from './App';
 import {
   addCategory,
   addGroup,
+  addTile,
   replaceCurationState,
   updateCategory,
 } from './curation/curationStore';
@@ -248,6 +249,29 @@ describe('Discover header and tools (slice 2)', () => {
     expect(within(sections).getByRole('button', { name: /^First picks/ })).toBeVisible();
     await userEvent.click(screen.getByRole('radio', { name: 'ATS search' }));
     expect(screen.queryByRole('region', { name: 'Your sections' })).toBeNull();
+  });
+
+  it('two tracks: the page title is the switcher, with no separate combobox (rev-3 G)', async () => {
+    addCategory({ label: 'ServiceNow', titles: ['Admin'], atsRoles: [] });
+    renderApp();
+    const trigger = await screen.findByRole('button', { name: 'Switch track: Welding' });
+    expect(screen.queryByRole('combobox', { name: 'Track to search' })).toBeNull();
+    await userEvent.click(trigger);
+    await userEvent.click(await screen.findByRole('menuitemradio', { name: 'ServiceNow' }));
+    expect(await screen.findByRole('button', { name: 'Switch track: ServiceNow' })).toBeVisible();
+  });
+
+  it('a closed section row counts its links in a badge, not an "N links" line', async () => {
+    addGroup(cat, { label: 'First picks' });
+    const g = addGroup(cat, { label: 'Union halls' });
+    addTile(g, { name: 'Local 55', url: 'https://local55.example.org/', meta: '' });
+    addTile(g, { name: 'Local 44', url: 'https://local44.example.org/', meta: '' });
+    renderApp();
+    const sections = await screen.findByRole('region', { name: 'Your sections' });
+    const row = within(sections).getByRole('button', { name: /^Union halls/ });
+    expect(within(row).getByRole('img', { name: '2 links' })).toBeInTheDocument();
+    expect(within(sections).queryByText('2 links')).toBeNull();
+    expect(within(sections).getByText('Local 55, Local 44')).toBeInTheDocument();
   });
 
   it('names the featured Apply now section Job boards, not the tool again (rev-3 G)', async () => {

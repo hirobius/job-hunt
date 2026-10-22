@@ -27,18 +27,22 @@ import { saveWithNotice } from './saveNotice';
 import { useTileTriage, toggleDismiss } from './tileTriage';
 import { parseMeta, postedWindow, splitTileName, type MetaChip } from './tileMeta';
 import type { Tile } from './jobsData';
+import { parseBoardUrl } from './feed/sources/ats';
 
 // Tile kind, derived from the URL (issue #12): aggregator queries are "Search", Google
 // fallback leads are "Lead" (verify before relying), everything else is a direct
 // employer/program page and gets no badge — absence of a badge = the strongest kind.
 // Structured `kind` (Portal, Employer, Live) arrives with the meta migration. Neutral (rev-3 H):
 // the badge names a kind, it is not a status.
+// A company's own board on a hiring system (a watched company) is a "Board".
 const kindOf = (url: string): string | null =>
   /google\.com\/search/.test(url)
     ? 'Lead'
     : /(indeed|ziprecruiter|linkedin|snagajob|usajobs|worksourcewa)\./.test(url)
       ? 'Search'
-      : null;
+      : parseBoardUrl(url)
+        ? 'Board'
+        : null;
 
 const hostOf = (url: string): string => {
   try {
@@ -98,13 +102,18 @@ export default function TileGrid({
         const chips: Fact[] = [
           ...meta.chips.filter((c) => c.kind !== 'contact' || c.text === meta.phones[0]),
           ...(placeText ? [{ kind: 'place' as const, text: placeText }] : []),
-          ...(kind ? [{ kind: 'posted' as const, text: postedWindow(t.url) }] : []),
+          // How recent: a search's own window. A board lists what is open now, so no window.
+          ...(kind && kind !== 'Board'
+            ? [{ kind: 'posted' as const, text: postedWindow(t.url) }]
+            : []),
         ];
         const host = hostOf(t.url);
         // A search link's note only restates its title; an employer page's note (what they do,
         // who they hire) and every extra contact sit behind Details.
         const more =
-          meta.phones.length > 1 || meta.emails.length > 0 || (!kind && meta.notes.length > 0);
+          meta.phones.length > 1 ||
+          meta.emails.length > 0 ||
+          ((!kind || kind === 'Board') && meta.notes.length > 0);
         return (
           <HdsCard
             key={t.url + t.name}
@@ -181,7 +190,7 @@ export default function TileGrid({
                       variant="secondary"
                       iconOnly
                       label={`Open ${title}`}
-                      className="rjb-icon-40"
+                      className="rjb-icon-row"
                       asChild
                     >
                       <a
@@ -205,7 +214,7 @@ export default function TileGrid({
                   {more && (
                     <Popover>
                       <Popover.Trigger asChild>
-                        <Button size="sm" variant="tertiary">
+                        <Button size="sm" variant="tertiary" className="rjb-quiet">
                           Details
                         </Button>
                       </Popover.Trigger>
@@ -247,7 +256,12 @@ export default function TileGrid({
                     </Popover>
                   )}
                   {triage && (
-                    <Button size="sm" variant="tertiary" onClick={() => toggleDismiss(t.url)}>
+                    <Button
+                      size="sm"
+                      variant="tertiary"
+                      className="rjb-quiet"
+                      onClick={() => toggleDismiss(t.url)}
+                    >
                       {isAside ? 'Restore' : 'Set aside'}
                     </Button>
                   )}

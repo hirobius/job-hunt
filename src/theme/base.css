@@ -388,6 +388,23 @@ p {
   height: var(--primitive-space-10);
 }
 
+/* A tile's Open icon button matches its row (Save, Set aside) at every width: 40 on a phone, the
+ * sm 32 from sm up, so the actions row never mixes heights. */
+[data-hds] .rjb-icon-row {
+  min-width: var(--primitive-space-10);
+  min-height: var(--primitive-space-10);
+  width: var(--primitive-space-10);
+  height: var(--primitive-space-10);
+}
+@media (min-width: 640px) {
+  [data-hds] .rjb-icon-row {
+    min-width: var(--primitive-space-8);
+    min-height: var(--primitive-space-8);
+    width: var(--primitive-space-8);
+    height: var(--primitive-space-8);
+  }
+}
+
 /* The location popover (rev-3 mock): md (16) padding around its field and segmented control, and
  * wide enough for the four modes at that padding. HDS Popover.Content has no padding or size prop. */
 [data-hds] .rjb-popover-md {
@@ -411,4 +428,58 @@ p {
 }
 .rjb-disclosure-vertical button[aria-expanded='true'] > span[aria-hidden='true'] {
   transform: rotate(180deg) !important;
+}
+
+/* Quiet text actions (rev-3 G: a tile's Set aside and Details): a tertiary button in secondary
+ * text, so it never reads as loud as Save. HDS tertiary sets primary text and has no quiet tone.
+ * Upstream ask: docs/hds-upstream-asks-0.9.md, "Quiet tertiary". */
+[data-hds] .rjb-quiet {
+  color: var(--semantic-color-content-secondary);
+}
+
+/* Lucide at stroke 1.75 (rev-3 rule 3). HDS Icon draws lucide at its default 2 and has no stroke
+ * prop or token. Upstream ask: docs/hds-upstream-asks-0.9.md, "Icon stroke width". */
+[data-hds] svg.lucide {
+  stroke-width: 1.75;
+}
+
+/* A generated search query (ATS search): breaks fall on its spaces and ORs, never mid-word. */
+.rjb-query {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+/* Four lines at most, with a "Show full query" toggle beside it. */
+.rjb-clamp-4 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
+
+/* The page title as the track switcher (rev-3 G, two tracks or more): a tertiary Menu trigger set
+ * in the heading's own type, so the title still reads as the title. HDS Button has no
+ * text-in-heading variant. Upstream ask: docs/hds-upstream-asks-0.9.md, "Title menu trigger". */
+[data-hds] .rjb-title-trigger {
+  font: inherit;
+  height: auto;
+  min-height: var(--primitive-space-10);
+  margin-block: calc((1lh - var(--primitive-space-10)) / 2);
+  padding-block: 0;
+  padding-inline: 0;
+  gap: var(--primitive-space-1);
+  text-align: start;
+  white-space: normal;
+}
+
+/* A removable term pill (Manage track, rev-3 mock): 32px tall, its X a 40px hit area that
+ * overhangs the pill by 4 each side. HDS Tag is one whole button with no dismiss slot.
+ * Upstream ask: docs/hds-upstream-asks-0.9.md, "Dismissible tag". */
+[data-hds] .rjb-term .rjb-term-x {
+  width: var(--primitive-space-10);
+  min-width: var(--primitive-space-10);
+  height: var(--primitive-space-10);
+  min-height: var(--primitive-space-10);
+  margin-block: calc(var(--primitive-space-1) * -1);
 }

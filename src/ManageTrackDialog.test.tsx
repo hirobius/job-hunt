@@ -40,3 +40,23 @@ describe('ManageTrackDialog · starter-pack update', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('ManageTrackDialog · term chips', () => {
+  it('only the X removes a term; the chip text is not a button', async () => {
+    const user = userEvent.setup();
+    const id = addCategory({ label: 'T', titles: ['Welder', 'Fitter'], atsRoles: [] });
+    render(
+      <ToastProvider>
+        <ManageTrackDialog categoryId={id} open onClose={() => {}} onDeleted={() => {}} />
+      </ToastProvider>,
+    );
+    const dialog = await screen.findByRole('dialog');
+    const text = within(dialog).getByText('Welder');
+    expect(text.closest('button')).toBeNull();
+    await user.click(text);
+    expect(getCurationState().categories.find((c) => c.id === id)!.titles).toContain('Welder');
+    await user.click(within(dialog).getByRole('button', { name: 'Remove Welder' }));
+    expect(getCurationState().categories.find((c) => c.id === id)!.titles).toEqual(['Fitter']);
+    expect(within(dialog).getByRole('textbox', { name: 'Add a title' })).toBeInTheDocument();
+  });
+});

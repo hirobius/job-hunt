@@ -1,10 +1,9 @@
-// Discover's header: the track's name, the track switcher, Manage / New track, and the one place
+// Discover's header: the track's name (which is the track switcher), Manage / New track, and the one place
 // where location and work mode are set (a popover, because HDS has no sheet yet). Spec:
 // docs/specs/discover.md, "Track header".
 import {
   Box,
   Button,
-  Combobox,
   Icon,
   Menu as HdsMenu,
   Popover,
@@ -12,7 +11,7 @@ import {
   Text,
 } from '@hirobius/design-system';
 import { PageHeader } from '@hirobius/design-system/patterns';
-import { Plus } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import { STARTER_PACKS } from './curation/starterPacks';
 import type { Category } from './curation/types';
 import { contextLabel, useTrackContext } from './discoverContext';
@@ -41,13 +40,41 @@ export default function DiscoverHeader({
     <Box sx={{ mb: 'sm' }}>
       {/* tight: room for the Change link's 40px hit area, which overhangs its line. */}
       <Stack gap="tight">
-        {/* rev-3 G: the track's name, then where and how you search as one caption line with a
-            quiet Change (the popover holds the only LocationControl), then Manage track and the
-            New track icon button. The track switcher shows only when there is a track to switch
-            to, so a one-track user sees two nav levels at most. */}
+        {/* rev-3 G: the track's name (with two tracks or more, the switcher), then where and how
+            you search as one caption line with a quiet Change (the popover holds the only
+            LocationControl), then Manage track and the New track icon button. */}
         <PageHeader
           level={2}
-          title={cat.label}
+          title={
+            categories.length > 1 ? (
+              // Two tracks or more: the title is the switcher (rev-3 G), so the page keeps two
+              // nav levels (top tabs, then the tool switch) and never names the track twice.
+              <HdsMenu>
+                <HdsMenu.Trigger asChild>
+                  <Button
+                    variant="tertiary"
+                    className="rjb-title-trigger"
+                    aria-label={`Switch track: ${cat.label}`}
+                  >
+                    {cat.label}
+                    <Icon icon={ChevronDown} />
+                  </Button>
+                </HdsMenu.Trigger>
+                <HdsMenu.Content align="start">
+                  <HdsMenu.Label>Switch track</HdsMenu.Label>
+                  <HdsMenu.RadioGroup value={cat.id} onValueChange={onChange}>
+                    {categories.map((c) => (
+                      <HdsMenu.RadioItem key={c.id} value={c.id}>
+                        {c.label}
+                      </HdsMenu.RadioItem>
+                    ))}
+                  </HdsMenu.RadioGroup>
+                </HdsMenu.Content>
+              </HdsMenu>
+            ) : (
+              cat.label
+            )
+          }
           description={
             // PageHeader wraps the description in a <p>, so this row is inline content only (a
             // span, not a Stack div): "where · Change".
@@ -104,19 +131,6 @@ export default function DiscoverHeader({
               <HdsMenu.Item onSelect={onBlank}>Blank track</HdsMenu.Item>
             </HdsMenu.Content>
           </HdsMenu>
-          {categories.length > 1 && (
-            <Box
-              sx={{ flex: '1 1 12rem', maxWidth: '24rem', minWidth: 0, '& > *': { width: '100%' } }}
-            >
-              <Combobox
-                aria-label="Track to search"
-                options={categories.map((c) => ({ value: c.id, label: c.label }))}
-                value={cat.id}
-                onChange={onChange}
-                placeholder="Pick a track"
-              />
-            </Box>
-          )}
         </Stack>
       </Stack>
     </Box>

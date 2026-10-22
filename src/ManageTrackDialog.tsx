@@ -5,7 +5,6 @@ import {
   Dialog,
   Input as HdsInput,
   SegmentedControl,
-  Tag,
   Icon,
   Box,
   Text,
@@ -68,15 +67,37 @@ function ChipEditor({
     <Stack gap="px8">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs' }}>
+        {/* A term is a static pill; only its X removes it (rev-3 mock), so a stray tap on the
+            text can't drop a term. HDS Tag is always one whole button, so this is a Box pill
+            with an icon Button: `.rjb-term` / `.rjb-term-x` in base.css. */}
         {values.map((v) => (
-          <Tag
+          <Box
             key={v}
-            aria-label={`Remove ${v}`}
-            onClick={() => onChange(values.filter((x) => x !== v))}
+            as="span"
+            className="rjb-term"
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              border: 'thin solid',
+              borderColor: 'border.default',
+              borderRadius: 'pill',
+              pl: 'sm',
+              maxWidth: '100%',
+            }}
           >
-            {v}
-            <Icon icon={X} size="small" />
-          </Tag>
+            <Text variant="ui" as="span" className="rjb-truncate">
+              {v}
+            </Text>
+            <Button
+              size="sm"
+              variant="tertiary"
+              iconOnly
+              iconLeft={<Icon icon={X} size="small" />}
+              label={`Remove ${v}`}
+              className="rjb-term-x"
+              onClick={() => onChange(values.filter((x) => x !== v))}
+            />
+          </Box>
         ))}
         {values.length === 0 && (
           <Text variant="caption" as="span" tone="secondary">
@@ -88,7 +109,7 @@ function ChipEditor({
         <HdsInput
           id={id}
           size="sm"
-          aria-label={`Add ${label}`}
+          aria-label={placeholder}
           placeholder={placeholder}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -115,7 +136,7 @@ function GroupEditor({ groupId }: { groupId: string }) {
     setUrl('');
   };
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pl: 'xs' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'xs' }}>
       {tiles.map((t) => (
         <Box
           sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center' }}
@@ -142,8 +163,7 @@ function GroupEditor({ groupId }: { groupId: string }) {
         sx={{
           display: 'flex',
           flexDirection: { base: 'column', sm: 'row' },
-          gap: 1,
-          mt: 0.5,
+          gap: 'xs',
         }}
       >
         <Box sx={{ display: 'contents', '& input': { flex: 1, minWidth: 0 } }}>

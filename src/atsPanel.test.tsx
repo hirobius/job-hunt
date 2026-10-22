@@ -55,6 +55,19 @@ afterEach(() => {
 });
 
 describe('ATS search panel (Discover → AtsPanel)', () => {
+  it('shows the generated query full width under its Copy, clamped with a Show full query toggle', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const copy = await screen.findByRole('button', { name: 'Copy the query' });
+    const query = document.querySelector('.rjb-query');
+    expect(query).not.toBeNull();
+    expect(copy.compareDocumentPosition(query!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(query).toHaveClass('rjb-clamp-4');
+    await user.click(screen.getByRole('button', { name: 'Show full query' }));
+    expect(query).not.toHaveClass('rjb-clamp-4');
+    expect(screen.getByRole('button', { name: 'Show less' })).toBeInTheDocument();
+  });
+
   it('renders both tile set headings, toggles contract clause, checks "Search top N" word limits, and passes axe', async () => {
     const user = userEvent.setup();
     const { container } = renderApp();
