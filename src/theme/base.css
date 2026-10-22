@@ -234,6 +234,13 @@ p {
   padding-inline-start: 0;
 }
 
+/* An outlined danger action (rev-3 .btn.danger: Reset local data in its confirm and on the error
+ * page): HDS secondary's border and height, red text. HDS `tone="danger"` on a secondary drops the
+ * border for a tinted fill, so the host sets the colour on a plain secondary (HDS gap registry). */
+[data-hds] .rjb-danger-outline {
+  color: var(--semantic-color-content-danger);
+}
+
 /* One line, cut with an ellipsis (a long domain in a facts list). */
 .rjb-truncate {
   overflow: hidden;

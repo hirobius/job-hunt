@@ -103,7 +103,8 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
   return (
     // rev-3 mock: the title and "Step N of 3" over the progress bar, then one panel per step
     // whose footer holds Back (not on step 1), Skip and the one primary, then "Just looking?".
-    <Box sx={{ maxWidth: 560, mx: 'auto', py: 'md' }}>
+    // No top padding: the shell's 24 gap under the tabs sets the rhythm, like every other page.
+    <Box sx={{ maxWidth: 560, mx: 'auto', pb: 'md' }}>
       <Form
         onSubmit={(e) => {
           e.preventDefault();
@@ -278,7 +279,8 @@ export function ChooseTrack() {
   if (open) return <Onboarding />;
   return (
     // rev-3 mock: the page's title over the centred teaching empty, framed (like the Pipeline's).
-    <Box sx={{ py: 'md' }}>
+    // No top padding: the title sits at tabs + 24 (the shell's gap), like Pipeline and Documents.
+    <Box sx={{ pb: 'md' }}>
       <Stack gap="normal">
         <Text variant="title" as="h2">
           Companies

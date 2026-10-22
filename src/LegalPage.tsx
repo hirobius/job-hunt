@@ -26,11 +26,13 @@ export default function LegalPage() {
           <PageHeader
             level={2}
             breadcrumb={
-              // HDS Button asChild drops iconLeft, so the arrow is the link's own child.
-              <Button asChild variant="tertiary" size="sm">
-                <a href="#/discover">
+              // "← Companies" (rev-3 #s-legal), flush on the page gutter like Documents' and the
+              // Company page's Back (`.rjb-back-link`). HDS Button asChild drops iconLeft, so the
+              // arrow is the link's own child.
+              <Button asChild className="rjb-back-link" variant="tertiary" size="md">
+                <a href="#/discover" aria-label="Back to Companies">
                   <Icon icon={ArrowLeft} />
-                  Back to Companies
+                  Companies
                 </a>
               </Button>
             }

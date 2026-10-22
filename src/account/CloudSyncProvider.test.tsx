@@ -34,7 +34,7 @@ import { setCurationSyncedAt } from '../curation/syncStatus';
 import { clearAllPending, getPending } from '../curation/pending';
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
-import { OFFLINE_MSG } from '../cloudMessages';
+import { OFFLINE_MSG, OFFLINE_TITLE } from '../cloudMessages';
 import { saveTarget, readTargets } from '../feed/targets';
 import { readDreams, starDream } from '../feed/dreams';
 import { saveFilter, readFilters } from '../feed/savedFilters';
@@ -142,11 +142,13 @@ describe('CloudSyncProvider (via the account menu)', () => {
   });
 
   // rev-3 O: a sync or save failure offers Reload (also in Account menu, Troubleshooting). Never Reset.
-  it('the Sync paused toast offers Reload, and no Reset', async () => {
+  it('the sync failure toast uses the mock copy (no em dash) and offers Reload, no Reset', async () => {
+    expect(OFFLINE_TITLE).toBe("Couldn't sync");
+    expect(OFFLINE_MSG).toBe('Your changes are saved on this device.');
     fake().failNext('tracker', 'select');
     renderAccount();
     act(() => fake().signIn('u1'));
-    const title = await screen.findByText('Sync paused');
+    const title = await screen.findByText(OFFLINE_TITLE);
     const toast = title.closest('li') ?? title.parentElement!.parentElement!;
     expect(
       within(toast as HTMLElement).getByRole('button', { name: /^Reload/ }),
@@ -163,9 +165,9 @@ describe('CloudSyncProvider (via the account menu)', () => {
     act(() => {
       window.dispatchEvent(new Event('focus'));
     });
-    await waitFor(() => expect(screen.getAllByText('Sync paused')).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByText(OFFLINE_TITLE)).toHaveLength(1));
     await new Promise((r) => setTimeout(r, 50));
-    expect(screen.getAllByText('Sync paused')).toHaveLength(1);
+    expect(screen.getAllByText(OFFLINE_TITLE)).toHaveLength(1);
   });
 
   it('Delete my data reports a failed delete and keeps the local copy', async () => {

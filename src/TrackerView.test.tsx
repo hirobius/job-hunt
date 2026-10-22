@@ -102,8 +102,10 @@ describe('Pipeline hierarchy', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     renderTracker();
     expect(screen.getByRole('textbox', { name: 'Search saved jobs' })).toBeInTheDocument();
-    // On its own line right under the title (4 apart, rev-3), not beside it.
+    // On its own line straight under the title (rev-3: 4px under it), not beside it and not
+    // after the actions row (where PageHeader's description sits).
     const title = screen.getByRole('heading', { level: 2, name: 'Pipeline' });
+    expect(title.closest('header')).not.toBeNull();
     expect(title.nextElementSibling?.textContent).toBe('1 active · 1 total');
   });
 

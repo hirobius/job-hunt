@@ -1,9 +1,10 @@
 // CloudSync's user-facing status copy, kept out of the component module (fast-refresh) and
 // shared with its tests.
 
-/** Shown whenever a pull or push fails — says what happened AND that nothing is lost. */
-export const OFFLINE_MSG =
-  "Cloud unreachable — changes are saved on this device and will sync when it's back.";
+/** The sync-failure toast (rev-3 #s-error-toast): what happened, then that nothing is lost.
+ *  OFFLINE_MSG is also the Account menu's status line while the outage lasts. */
+export const OFFLINE_TITLE = "Couldn't sync";
+export const OFFLINE_MSG = 'Your changes are saved on this device.';
 
 /** A track change the cloud refused (curationStore's mirror): what happened, then the fix. */
 export const TRACK_WRITE_FAILED = {
@@ -26,7 +27,8 @@ export const deleteFailedMsg = (failed: readonly string[]) =>
   `Deleted ${DELETE_ORDER.length - failed.length} of ${DELETE_ORDER.length} — couldn't delete ${failed.join(', ')}. Your local copy was kept; try again.`;
 
 /** The one action on a sync or save failure toast (rev-3 O): Reload, which is also in the Account
- *  menu under Troubleshooting. Never Reset in a toast, and never on a bad restore file (a reload
+ *  menu under Troubleshooting. The mock's RotateCw icon waits on HDS (ToastAction has no icon slot;
+ *  docs/hds-upstream-asks-0.9.md). Never Reset in a toast, and never on a bad restore file (a reload
  *  does not fix a file). */
 export const RELOAD_ACTION = {
   label: 'Reload',

@@ -113,6 +113,14 @@ describe('app shell (#115 Phase 1)', () => {
     const dialog = await screen.findByRole('alertdialog', { name: 'Reset local data?' });
     expect(dialog).toHaveTextContent(/This deletes everything in this browser: 1 job/);
     expect(within(dialog).getByRole('button', { name: 'Back up first' })).toBeInTheDocument();
+    // The safety copy still describes the dialog (body text through asChild, not a caption).
+    expect(dialog).toHaveAccessibleDescription(/This deletes everything in this browser/);
+    // An outlined red secondary like Cancel (rev-3 .btn.danger), not HDS's tinted danger fill.
+    const reset = within(dialog).getByRole('button', { name: 'Reset local data' });
+    expect(reset).toHaveClass('rjb-danger-outline');
+    expect(reset.className.replace(' rjb-danger-outline', '')).toBe(
+      within(dialog).getByRole('button', { name: 'Cancel' }).className,
+    );
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(getAllJobs().map((j) => j.label)).toContain('Welder');
     // Focus goes back to the Account button, not <body> (QA: the menu is non-modal and the
@@ -211,6 +219,14 @@ describe('not-synced cue (rev-3 P)', () => {
       expect(screen.queryByRole('region', { name: 'Sync your data' })).toBeNull();
       unmount();
     }
+  });
+
+  it('signed in while sync is failing, the avatar carries the dot too', async () => {
+    fake().failNext('tracker', 'select');
+    renderApp();
+    act(() => fake().signIn('u1'));
+    expect(await screen.findByText(OFFLINE_MSG)).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Account, not synced' })).toBeInTheDocument();
   });
 
   it('Sign in to sync in the menu opens a dialog with the email field', async () => {
