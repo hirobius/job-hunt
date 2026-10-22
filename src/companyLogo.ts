@@ -44,7 +44,111 @@ export const BOARD_DOMAINS: readonly string[] = [
   'ycombinator.com',
   'algolia.com',
   'google.com',
+  'sites.google.com',
+  // More ATS
+  'paycomonline.net',
+  'paycom.com',
+  'governmentjobs.com',
+  'neogov.com',
+  'paylocity.com',
+  'ultipro.com',
+  'ukg.com',
+  'adp.com',
+  'dayforcehcm.com',
+  'breezy.hr',
+  'applytojob.com',
+  'jazzhr.com',
+  'rippling.com',
+  'gem.com',
+  'pinpointhq.com',
+  'hirebridge.com',
+  // More job boards
+  'dice.com',
+  'monster.com',
+  'builtin.com',
+  'simplyhired.com',
+  'weworkremotely.com',
+  'himalayas.app',
+  'welcometothejungle.com',
+  'otta.com',
+  'usajobs.gov',
+  'craigslist.org',
+  'careerbuilder.com',
+  'snagajob.com',
+  // Hosting: a page on someone's repo or notes is not their company
+  'github.com',
+  'github.io',
+  'notion.site',
+  'notion.so',
 ];
+
+/** Common two-level public suffixes. The registrable name is the label before one of these (or
+ *  before the last label), so `jobs.co.uk` has no company in it and `shop.acme.co.uk` is acme.co.uk. */
+const TWO_LEVEL_SUFFIXES = new Set([
+  'co.uk',
+  'ac.uk',
+  'gov.uk',
+  'org.uk',
+  'me.uk',
+  'ltd.uk',
+  'plc.uk',
+  'net.uk',
+  'sch.uk',
+  'com.au',
+  'net.au',
+  'org.au',
+  'edu.au',
+  'gov.au',
+  'id.au',
+  'co.nz',
+  'org.nz',
+  'net.nz',
+  'govt.nz',
+  'ac.nz',
+  'co.jp',
+  'or.jp',
+  'ne.jp',
+  'ac.jp',
+  'go.jp',
+  'com.br',
+  'net.br',
+  'org.br',
+  'gov.br',
+  'co.in',
+  'net.in',
+  'org.in',
+  'gov.in',
+  'ac.in',
+  'com.mx',
+  'org.mx',
+  'gob.mx',
+  'co.za',
+  'org.za',
+  'gov.za',
+  'ac.za',
+  'com.sg',
+  'com.hk',
+  'com.tr',
+  'com.ar',
+  'com.cn',
+  'com.tw',
+  'co.kr',
+  'co.il',
+  'co.id',
+  'com.my',
+  'com.ph',
+  'com.co',
+]);
+
+/** Splits a host into its registrable name and public suffix, or null when the host is itself a
+ *  suffix (or one label). */
+function registrable(host: string): { name: string; suffix: string } | null {
+  const labels = host.split('.');
+  const two = labels.slice(-2).join('.');
+  const n = TWO_LEVEL_SUFFIXES.has(two) ? 2 : 1;
+  if (labels.length <= n) return null;
+  return { name: labels[labels.length - n - 1], suffix: labels.slice(-n).join('.') };
+}
 
 /** Never a real company site. */
 const RESERVED_TLDS = ['example', 'test', 'invalid', 'localhost', 'local', 'internal'];
@@ -78,15 +182,46 @@ export function logoDomain(address: string | undefined | null): string | null {
   if (RESERVED_SITES.some((d) => host === d || host.endsWith(`.${d}`))) return null;
   if (BOARD_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`))) return null;
   const bare = host.replace(CAREERS_PREFIX, '');
-  if (bare.includes('.') && !BOARD_DOMAINS.some((d) => bare === d)) host = bare;
-  return host;
+  if (bare !== host && bare.includes('.')) host = bare;
+  else if (bare !== host && TWO_LEVEL_SUFFIXES.has(bare)) return null;
+  const parts = registrable(host);
+  return parts ? `${parts.name}.${parts.suffix}` : null;
 }
 
-/** The first usable domain among the addresses, in the order given (the company's own website
- *  first, then the posting's link). */
-export function companyDomain(...addresses: (string | undefined | null)[]): string | null {
-  for (const a of addresses) {
+const FILLER_WORDS = new Set(['inc', 'llc', 'co', 'the', 'corp', 'corporation', 'company', 'ltd']);
+
+/** A company name as letters and digits only, without Inc/LLC/Co/the and the like. */
+const normalizeName = (company: string) =>
+  company
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w && !FILLER_WORDS.has(w))
+    .join('');
+
+/** A posting's domain, used only when its registrable name contains the company's name (or the
+ *  other way round): a posting hosted by a staffing firm or an unlisted board gives the letter. */
+export function postingDomain(company: string, address: string | undefined | null): string | null {
+  const domain = logoDomain(address);
+  const name = normalizeName(company);
+  if (!domain || name.length < 2) return null;
+  const label = registrable(domain)?.name.replace(/[^\p{L}\p{N}]/gu, '') ?? '';
+  if (label.length < 2) return null;
+  return label.includes(name) || name.includes(label) ? domain : null;
+}
+
+/** The domain for a company's mark: its own website (`sites`, any is trusted, first usable wins),
+ *  else the first posting link whose domain carries the company's name. */
+export function companyDomain(
+  company: string,
+  sites: (string | undefined | null)[] = [],
+  postings: (string | undefined | null)[] = [],
+): string | null {
+  for (const a of sites) {
     const d = logoDomain(a);
+    if (d) return d;
+  }
+  for (const a of postings) {
+    const d = postingDomain(company, a);
     if (d) return d;
   }
   return null;

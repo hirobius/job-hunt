@@ -62,7 +62,7 @@ describe('CompanyLogo', () => {
 
   it('never asks for a job board’s icon: the letter only', () => {
     const { container } = render(
-      <CompanyLogo company="Acme" addresses={['https://boards.greenhouse.io/acme/jobs/1']} />,
+      <CompanyLogo company="Acme" postings={['https://boards.greenhouse.io/acme/jobs/1']} />,
     );
     expect(made).toHaveLength(0);
     expect(mark(container).getAttribute('data-rjb-logo')).toBe('letter');
@@ -72,9 +72,18 @@ describe('CompanyLogo', () => {
     render(
       <CompanyLogo
         company="Acme"
-        addresses={['https://acme.com', 'https://jobs.lever.co/acme/1']}
+        addresses={['https://acme.com']}
+        postings={['https://jobs.lever.co/acme/1']}
       />,
     );
+    expect(made[0].src).toContain('/acme.com.ico');
+  });
+
+  it('uses a posting’s domain only when it carries the company name', () => {
+    const a = render(<CompanyLogo company="Acme" postings={['https://staffing.com/acme-job']} />);
+    expect(made).toHaveLength(0);
+    expect(mark(a.container).getAttribute('data-rjb-logo')).toBe('letter');
+    render(<CompanyLogo company="Acme" postings={['https://jobs.acme.com/1']} />);
     expect(made[0].src).toContain('/acme.com.ico');
   });
 

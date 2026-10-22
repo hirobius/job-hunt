@@ -11,19 +11,21 @@ import { companyDomain, logoLetter, logoUrl, MIN_LOGO_PX, verdicts } from './com
 export default function CompanyLogo({
   company,
   addresses = [],
+  postings = [],
   size = 'sm',
   className,
 }: {
   company: string | undefined;
-  /** Web addresses to take the domain from, in order: the company's own site first, then the
-   *  posting's link (a job board's address is skipped, see companyLogo.ts). */
+  /** The company's own web addresses (dreams, targets): always win when usable. */
   addresses?: (string | undefined)[];
+  /** Posting links: used only when their domain carries the company's name (companyLogo.ts). */
+  postings?: (string | undefined)[];
   size?: 'sm' | 'md' | 'lg';
   /** AvatarGroup adds its ring and overlap through this. */
   className?: string;
 }) {
   const name = company?.trim() ?? '';
-  const domain = name ? companyDomain(...addresses) : null;
+  const domain = name ? companyDomain(name, addresses, postings) : null;
   const url = domain ? logoUrl(domain) : null;
   const ref = useRef<HTMLSpanElement>(null);
   // Bumped when a probe lands; what to show is read from `verdicts`, never copied into state.

@@ -188,7 +188,9 @@ function DreamRow({
       <Stack gap="px12">
         <Stack direction="row" gap="px8" align="center" justify="space-between" wrap="wrap">
           <Stack direction="row" gap="px12" align="center">
-            <CompanyLogo company={d.company} addresses={[d.website]} />
+            <Box sx={{ display: { base: 'none', sm: 'block' } }}>
+              <CompanyLogo company={d.company} addresses={[d.website]} />
+            </Box>
             <Stack gap="px4">
               <Text variant="ui" as="span">
                 {d.website ? (

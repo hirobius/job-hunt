@@ -55,6 +55,12 @@ describe('legal pages (#43)', () => {
     expect(vercel.purpose).toMatch(/without cookies/);
   });
 
+  it('says DuckDuckGo may see the request came from this app, never the page or job', () => {
+    const ddg = THIRD_PARTIES.find((t) => t.name === 'DuckDuckGo')!;
+    expect(ddg.purpose).toMatch(/came from this app/);
+    expect(ddg.purpose).toMatch(/never the page or job/);
+  });
+
   it('does not list AI processing: AI is removed (2026-07)', () => {
     const all = text(PRIVACY) + text(TERMS);
     expect(all).not.toMatch(/Anthropic|Claude|OpenAI|\bAI\b/);

@@ -31,7 +31,7 @@ function RowBody({ job }: { job: Job }) {
         </Text>
       </Box>
       <Stack direction="row" gap="px8" align="center">
-        {job.company && <CompanyLogo company={job.company} addresses={[job.url]} />}
+        {job.company && <CompanyLogo company={job.company} postings={[job.url]} />}
         <Stack>
           {v.factLines.map((line, i) => (
             <Text key={i} variant="caption" as="span" tone="secondary">

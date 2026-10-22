@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BOARD_DOMAINS, companyDomain, logoDomain, logoUrl } from './companyLogo';
+import { BOARD_DOMAINS, companyDomain, logoDomain, logoUrl, postingDomain } from './companyLogo';
 
 describe('logoDomain', () => {
   it.each([
@@ -8,7 +8,11 @@ describe('logoDomain', () => {
     ['http://Acme.COM', 'acme.com'],
     ['https://careers.acme.com/jobs/1', 'acme.com'],
     ['https://jobs.acme.io/x', 'acme.io'],
-    ['https://shop.acme.co.uk/', 'shop.acme.co.uk'],
+    ['https://shop.acme.co.uk/', 'acme.co.uk'],
+    ['https://eng.acme.com/x', 'acme.com'],
+    ['https://careers.acme.co.uk/x', 'acme.co.uk'],
+    ['https://jobs.acme.com.au', 'acme.com.au'],
+    ['https://www.acme.co.nz', 'acme.co.nz'],
     ['https://acme.com:8443/a', 'acme.com'],
   ])('%s → %s', (input, out) => expect(logoDomain(input)).toBe(out));
 
@@ -60,6 +64,11 @@ describe('logoDomain', () => {
     'https://example.org',
     'https://acme.test',
     'https://intranet/jobs',
+    'https://jobs.co.uk',
+    'https://careers.com.au/x',
+    'https://co.uk',
+    'https://jobs.org.uk',
+    'https://careers.co.za',
   ])('not usable: %j', (input) => expect(logoDomain(input)).toBeNull());
 
   it('every board domain is blocked, and so are its subdomains', () => {
@@ -75,16 +84,91 @@ describe('logoDomain', () => {
   });
 });
 
+describe('hosts the blocklist must cover', () => {
+  it.each([
+    'paycomonline.net',
+    'paycom.com',
+    'governmentjobs.com',
+    'neogov.com',
+    'paylocity.com',
+    'ultipro.com',
+    'ukg.com',
+    'adp.com',
+    'dayforcehcm.com',
+    'breezy.hr',
+    'applytojob.com',
+    'jazzhr.com',
+    'rippling.com',
+    'gem.com',
+    'pinpointhq.com',
+    'hirebridge.com',
+    'dice.com',
+    'monster.com',
+    'builtin.com',
+    'simplyhired.com',
+    'weworkremotely.com',
+    'himalayas.app',
+    'welcometothejungle.com',
+    'otta.com',
+    'usajobs.gov',
+    'craigslist.org',
+    'careerbuilder.com',
+    'snagajob.com',
+    'github.com',
+    'github.io',
+    'notion.site',
+    'notion.so',
+    'google.com',
+    'sites.google.com',
+  ])('%s and its subdomains give no domain', (d) => {
+    expect(BOARD_DOMAINS).toContain(d);
+    expect(logoDomain(`https://${d}/x`)).toBeNull();
+    expect(logoDomain(`https://acme.${d}/x`)).toBeNull();
+  });
+});
+
+describe('postingDomain', () => {
+  it.each([
+    ['Acme', 'https://www.acme.com/careers/1', 'acme.com'],
+    ['Acme, Inc.', 'https://jobs.acme.com/1', 'acme.com'],
+    ['The Acme Co', 'https://acme.co.uk/x', 'acme.co.uk'],
+    ['Acme Corp LLC', 'https://acme.io', 'acme.io'],
+    ['Acme Welding Supply', 'https://acme.com', 'acme.com'],
+    ['Acme', 'https://acmewelding.com', 'acmewelding.com'],
+    ['St. Mary’s Health', 'https://stmarys.org', 'stmarys.org'],
+  ])('%s at %s → %s', (c, url, out) => expect(postingDomain(c, url)).toBe(out));
+  it.each([
+    ['Acme', 'https://www.randomhost.com/job/1'],
+    ['Acme', 'https://boards.greenhouse.io/acme/1'],
+    ['Acme', 'https://acme.github.io/jobs'],
+    ['Acme', 'https://jobs.co.uk/x'],
+    ['Inc', 'https://inc.com'],
+    ['', 'https://acme.com'],
+    ['Acme', 'https://staffing-agency.com/acme-job'],
+  ])('%s at %s → none', (c, url) => expect(postingDomain(c, url)).toBeNull());
+});
+
 describe('companyDomain', () => {
   it('takes the first usable address: the company site before the posting', () => {
-    expect(companyDomain('https://acme.com', 'https://jobs.lever.co/x')).toBe('acme.com');
-    expect(companyDomain(undefined, 'https://boards.greenhouse.io/x', 'https://acme.org/c')).toBe(
-      'acme.org',
+    expect(companyDomain('Acme', ['https://acme.com'], ['https://jobs.lever.co/x'])).toBe(
+      'acme.com',
     );
+    expect(
+      companyDomain('Acme', [undefined, 'https://boards.greenhouse.io/x', 'https://acme.org/c']),
+    ).toBe('acme.org');
+  });
+  it('the company site wins even when its name differs', () => {
+    expect(companyDomain('Acme', ['https://other.com'], ['https://acme.com/j'])).toBe('other.com');
+  });
+  it('falls back to a posting whose domain carries the company name', () => {
+    expect(companyDomain('Acme', [undefined], ['https://random.com/1', 'https://acme.com/2'])).toBe(
+      'acme.com',
+    );
+    expect(companyDomain('Acme', [], ['https://random.com/1'])).toBeNull();
   });
   it('is null when none is usable', () => {
-    expect(companyDomain('https://jobs.lever.co/x', '')).toBeNull();
-    expect(companyDomain()).toBeNull();
+    expect(companyDomain('Acme', ['https://jobs.lever.co/x', ''])).toBeNull();
+    expect(companyDomain('Acme')).toBeNull();
   });
 });
 

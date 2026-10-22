@@ -62,7 +62,7 @@ export default function JobHeader({
             </Text>
           </JobPostingTitle>
           <Stack direction="row" gap="px8" align="center">
-            {job.company?.trim() && <CompanyLogo company={job.company} addresses={[job.url]} />}
+            {job.company?.trim() && <CompanyLogo company={job.company} postings={[job.url]} />}
             <MetaCaption
               items={[job.company?.trim(), job.location?.trim(), applied && `Applied ${applied}`]}
             />

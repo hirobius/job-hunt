@@ -368,7 +368,9 @@ export default function CompaniesPanel({
           <Stack direction="row" gap="px8" align="center" justify="space-between">
             <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
               <Stack direction="row" gap="px12" align="center">
-                <CompanyLogo company={r.company} addresses={[r.website]} />
+                <Box sx={{ display: { base: 'none', sm: 'block' } }}>
+                  <CompanyLogo company={r.company} addresses={[r.website]} />
+                </Box>
                 <Stack gap="px4">
                   <Text variant="ui" as="span">
                     {r.website ? (
