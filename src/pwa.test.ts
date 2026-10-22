@@ -19,6 +19,7 @@ function pngSize(path: string): { w: number; h: number } {
 }
 
 interface Manifest {
+  id: string;
   name: string;
   short_name: string;
   description: string;
@@ -28,6 +29,7 @@ interface Manifest {
   theme_color: string;
   background_color: string;
   icons: { src: string; sizes: string; type: string; purpose?: string }[];
+  screenshots: { src: string; sizes: string; type: string; form_factor: string; label: string }[];
 }
 const manifest = JSON.parse(readFileSync('public/manifest.webmanifest', 'utf8')) as Manifest;
 
@@ -45,8 +47,23 @@ describe('installable app (#47)', () => {
     expect(manifest.display).toBe('standalone');
   });
 
-  it('uses the page theme colour', () => {
-    expect(manifest.theme_color).toBe(meta('name', 'theme-color'));
+  it('has a stable id, so a later start_url change is still the same installed app', () => {
+    expect(manifest.id).toBe('/');
+  });
+
+  it('uses the icon graphite for the installed title bar and splash', () => {
+    expect(manifest.theme_color).toBe('#2a2428');
+    expect(manifest.background_color).toBe('#2a2428');
+  });
+
+  it('shows a wide and a narrow screenshot in the install sheet, at their stated sizes', () => {
+    expect(manifest.screenshots.map((s) => s.form_factor).sort()).toEqual(['narrow', 'wide']);
+    for (const shot of manifest.screenshots) {
+      expect(shot.type).toBe('image/png');
+      expect(shot.label.length).toBeGreaterThan(10);
+      const { w, h } = pngSize(`public${shot.src}`);
+      expect(`${w}x${h}`).toBe(shot.sizes);
+    }
   });
 
   it('ships 192 and 512 PNG icons, plus a maskable one, at their stated sizes', () => {
@@ -68,12 +85,27 @@ describe('installable app (#47)', () => {
   });
 });
 
+describe('favicon.ico', () => {
+  it('ships /favicon.ico (crawlers and old browsers ask for it): an ICO holding a 32px PNG', () => {
+    const b = readFileSync('public/favicon.ico');
+    expect([b.readUInt16LE(0), b.readUInt16LE(2), b.readUInt16LE(4)]).toEqual([0, 1, 1]);
+    expect([b[6], b[7]]).toEqual([32, 32]);
+    const offset = b.readUInt32LE(18);
+    expect(b.subarray(offset + 1, offset + 4).toString('latin1')).toBe('PNG');
+    expect(b.readUInt32BE(offset + 16)).toBe(32);
+    expect(html).toContain('<link rel="icon" href="/favicon.ico" sizes="32x32" />');
+  });
+});
+
 describe('share image (#47)', () => {
   it('is a 1200x630 PNG at an absolute URL, with its size and alt text', () => {
     expect(meta('property', 'og:image')).toBe(`${SITE}/og-image.png`);
     expect(meta('property', 'og:image:width')).toBe('1200');
     expect(meta('property', 'og:image:height')).toBe('630');
-    expect(meta('property', 'og:image:alt')).toBe(BRAND.name);
+    // Says what the image shows, not just the name.
+    expect(meta('property', 'og:image:alt')).toBe(
+      `The ${BRAND.name} check-mark logo, the name ${BRAND.name} and the line: ${BRAND.description}`,
+    );
     expect(pngSize('public/og-image.png')).toEqual({ w: 1200, h: 630 });
   });
 

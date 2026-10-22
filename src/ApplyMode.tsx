@@ -49,12 +49,15 @@ import { useOutreachTemplates } from './outreachTemplates';
 import { fillSnippet, previewText } from './templateFill';
 import { copyFilled } from './templateCopy';
 import { showNotice } from './saveNotice';
+import { useCloudSync } from './account/accountContext';
+import { usePageTitle } from './pageTitle';
 import type { Job } from './types';
 
 export default function ApplyMode({ jobId }: { jobId: string | null }) {
   const jobs = useJobs();
   const queue = useMemo(() => toApplyQueue(jobs), [jobs]);
   const job = jobId ? findJobById(jobId, jobs) : undefined;
+  usePageTitle(job ? `Apply: ${titleOf(job)}` : 'Apply');
   // The pager walks the queue with this job held in its place, so "2 of 3" stays put after Mark
   // applied (the job leaves To apply) and Next still means the one after it.
   const sequence = useMemo(
@@ -359,7 +362,7 @@ function ApplyTemplates({ job }: { job: Job }) {
     </Box>
   );
   return (
-    <Panel label="Templates" title="Templates">
+    <Panel label="Documents" title="Documents">
       <PanelBody>
         <Stack gap="tight">
           <Text variant="caption" as="p" tone="secondary">
@@ -420,6 +423,7 @@ function ApplicationKit({ job }: { job: Job }) {
     />
   );
   const answered = kit.answers.length;
+  const { user } = useCloudSync(); // signed out, the kit stays on this device
   return (
     <Panel
       label="Application kit"
@@ -428,7 +432,9 @@ function ApplicationKit({ job }: { job: Job }) {
     >
       <PanelBody>
         <Text variant="caption" as="p" tone="secondary">
-          Enter these once. They follow your account.
+          {user
+            ? 'Enter these once. They follow your account.'
+            : 'Enter these once. Saved on this device only.'}
         </Text>
       </PanelBody>
       <Rows label="Profile">

@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Roleforge",
   "short_name": "Roleforge",
   "description": "A job-application tracker and discovery board: screen postings, track your pipeline, and generate targeted searches.",
@@ -15,6 +16,22 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "The Pipeline: jobs to apply to, follow-ups due and the next 7 days"
+    },
+    {
+      "src": "/screenshot-narrow.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "The Pipeline on a phone: what to apply to next and what to follow up"
     }
   ]
 }

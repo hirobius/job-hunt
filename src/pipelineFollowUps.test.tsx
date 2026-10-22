@@ -95,7 +95,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
   it('one Follow up section: the due ones first, marked Due, each with its own Follow up', () => {
     renderApp();
     const rows = within(followUps()).getAllByRole('listitem');
-    const due = rows.filter((r) => within(r).queryByText('Due'));
+    const due = rows.filter((r) => within(r).queryByText('Follow-up due'));
     expect(due.map(titleOf)).toEqual(['UX Researcher', 'Design Systems Lead']);
     // The due rows lead the list, and only they carry the action.
     expect(rows.slice(0, 2)).toEqual(due);
@@ -114,7 +114,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
   const dueNames = () =>
     within(followUps())
       .getAllByRole('listitem')
-      .filter((r) => within(r).queryByText('Due'))
+      .filter((r) => within(r).queryByText('Follow-up due'))
       .map(titleOf);
   const openFollowUp = async (user: ReturnType<typeof userEvent.setup>) => {
     await user.click(within(followUps()).getByRole('button', { name: 'Follow up: UX Researcher' }));
@@ -222,7 +222,7 @@ describe('empty sections render nothing (#236)', () => {
     renderApp();
     const row = within(followUps()).getByRole('listitem');
     expect(row).toHaveTextContent(/Follow up /);
-    expect(within(row).queryByText('Due')).toBeNull();
+    expect(within(row).queryByText('Follow-up due')).toBeNull();
     expect(within(row).queryByRole('button')).toBeNull();
     expect(screen.queryByRole('region', { name: /^Next 7 days/ })).toBeNull();
   });

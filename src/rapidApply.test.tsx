@@ -5,10 +5,19 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
+const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));
 vi.mock('@supabase/supabase-js', async () => {
   const { createFakeSupabase } = await import('./test/fakeSupabase');
-  return { createClient: () => createFakeSupabase().client };
+  return {
+    createClient: () => {
+      h.fake = createFakeSupabase();
+      return h.fake.client;
+    },
+  };
 });
+
+import type { createFakeSupabase } from './test/fakeSupabase';
+import { loadSupabase } from './supabase';
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
@@ -71,10 +80,12 @@ describe('save notice', () => {
 });
 
 describe('To apply queue and Apply mode', () => {
-  it('Pipeline opens on To apply (N) with Start applying, pinned first', async () => {
+  it('Pipeline opens on To apply (N) with Start applying, starred first', async () => {
     const user = userEvent.setup();
     renderApp();
     expect(screen.getByRole('region', { name: 'To apply (3)' })).toBeInTheDocument();
+    // Jobs are starred, not pinned (the Star button's word).
+    expect(screen.getByText('Starred first, then newest.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Start applying' }));
     expect(window.location.hash).toBe(`#/apply/${jobIdOf(A)}`);
     expect(await screen.findByRole('heading', { name: 'Acme Designer' })).toBeInTheDocument();
@@ -155,6 +166,9 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     window.location.hash = `#/apply/${jobIdOf(A)}`;
     renderApp();
     const filled = 'Hi, the Acme Designer role at Acme. Sam Placeholder';
+    // The panel is named like its Edit documents link (one word for one thing).
+    expect(await screen.findByRole('region', { name: 'Documents' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Templates' })).toBeNull();
     const list = await screen.findByRole('list', { name: 'Your templates' });
     const rows = within(list).getAllByRole('listitem');
     expect(rows.map((r) => r.getAttribute('aria-label'))).toEqual(['Thank you', 'Cold intro']);
@@ -269,5 +283,41 @@ describe('rapid apply follow-ups (#219)', () => {
     await user.click(await screen.findByRole('button', { name: /^Custom answers/ }));
     await user.click(screen.getByRole('button', { name: 'Add a question' }));
     expect(screen.getByRole('button', { name: 'Remove this question' })).toBeInTheDocument();
+  });
+});
+
+describe('Apply sheet previews keep line breaks', () => {
+  afterEach(() => setOutreachMessages([]));
+  it('the greeting stays on its own line, not run into the next sentence', async () => {
+    setOutreachMessages([{ id: 'ty', label: 'Thanks', body: 'Hi [Contact],\n\nThank you.' }]);
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const list = await screen.findByRole('list', { name: 'Your templates' });
+    const preview = within(list).getByText(/Thank you\./);
+    expect(preview.textContent).toBe('Hi Contact,\nThank you.');
+    expect(preview).toHaveClass('rjb-clamp-3');
+  });
+});
+
+describe('Application kit: where it is kept (sign-in aware)', () => {
+  const kitNote = () =>
+    within(screen.getByRole('region', { name: /^Application kit/ })).getByText(/^Enter these once/);
+
+  it('signed out, it says the kit stays on this device', async () => {
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('heading', { name: 'Acme Designer' });
+    expect(kitNote()).toHaveTextContent('Enter these once. Saved on this device only.');
+  });
+
+  it('signed in, it says the kit follows the account', async () => {
+    await loadSupabase();
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    act(() => h.fake!.signIn('u1'));
+    await waitFor(() =>
+      expect(kitNote()).toHaveTextContent('Enter these once. They follow your account.'),
+    );
+    act(() => void h.fake!.client.auth.signOut());
   });
 });

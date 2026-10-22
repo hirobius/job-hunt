@@ -23,7 +23,7 @@ export const ROUTES = [
 /** A Greenhouse posting the seed adds on top of the sample data. */
 export const BOARD_JOB = 'https://boards.greenhouse.io/acme/jobs/77';
 
-/** Sample data + the first starter track, landing on Apply now. */
+/** Sample data (with its Sample track, from the first starter pack), landing on Apply now. */
 export async function seed(page: Page) {
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
@@ -32,14 +32,7 @@ export async function seed(page: Page) {
   await page.getByRole('button', { name: 'Add job' }).click();
   await page.getByLabel('Job URL').fill(BOARD_JOB);
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await page.getByRole('tab', { name: 'Companies' }).click();
-  await page.getByRole('button', { name: 'Choose a track' }).click();
-  // The Suggested (first) pack starts ticked (rev-3); keep it as the one track.
-  await expect(
-    page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first(),
-  ).toBeChecked();
-  for (const name of ['Continue', 'Continue', 'Finish'])
-    await page.getByRole('button', { name, exact: true }).click();
+  // The sample adds a Sample track from the first starter pack: no setup needed.
   await go(page, '#/discover/apply');
   await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();
 }

@@ -11,13 +11,11 @@ import {
   Stack,
 } from '@hirobius/design-system';
 import { FollowUpHost } from './FollowUp';
-import TrackerView from './TrackerView';
-import JobPage from './JobPage';
-import ApplyMode from './ApplyMode';
-import CompanyPage from './CompanyPage';
+import { ApplyMode, CompanyPage, JobPage, TrackerView } from './routeViews';
 import { JobPageLiveness } from './LivenessViews';
 import { Onboarding, ChooseTrack } from './Onboarding';
 import { BRAND } from './brand';
+import { usePageTitle } from './pageTitle';
 import { LEGAL_ROUTE } from './legal';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
@@ -31,10 +29,11 @@ import NoticeHost from './NoticeHost';
 import { saveWithNotice } from './saveNotice';
 import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
-import { DiscoverSkeleton, CopyDeckSkeleton } from './Skeletons';
+import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
 
-// Code-split Discover and Documents so the initial bundle carries the Pipeline (the quick-add
-// landing); the rest load on demand.
+// Code-split every route view: Discover, Documents and the rest here, the Pipeline, job page,
+// Apply mode and Company page through routeViews.ts (they render without a Suspense step once
+// loaded, so moving between them never flashes a skeleton).
 const DiscoverView = lazy(() => import('./DiscoverView'));
 const DocumentsView = lazy(() => import('./DocumentsView'));
 const LegalPage = lazy(() => import('./LegalPage'));
@@ -91,6 +90,18 @@ export default function App() {
     (applying || company ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
   );
   const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
+  // The section pages' titles; a job, Apply mode, a Company and the legal pages set their own.
+  usePageTitle(
+    notFound
+      ? 'Page not found'
+      : documents
+        ? 'Documents'
+        : applying || company || legal || route.jobId
+          ? null
+          : TAB_SLUGS[tab] === 'queue'
+            ? 'Pipeline'
+            : 'Companies',
+  );
 
   // The onboarding gate (#128) lives here, not in a view. Companies can't work without a track,
   // and on a first run (no tracks and no jobs) it also offers sample data, so nobody lands on an
@@ -170,65 +181,75 @@ export default function App() {
               {/* The shell owns the page rhythm (rev-3 .wrap): 24 from the tabs to the first thing on
                   every page (its back link or its title); views add no top margin of their own. */}
               <Stack gap="px24">
-                <Stack gap="normal">
-                  {/* Slim app bar (rev-3): the wordmark on the titleSm step (so a page title is
+                {/* Landmarks: the app bar is the banner, the page is the one main (axe
+                    landmark-one-main / region). */}
+                <Box as="header">
+                  <Stack gap="normal">
+                    {/* Slim app bar (rev-3): the wordmark on the titleSm step (so a page title is
                       always the biggest text) · the Account avatar. */}
-                  <Stack direction="row" gap="gap" align="center" justify="space-between">
-                    <Text variant="titleSm" as="h1">
-                      {BRAND.name}
-                    </Text>
-                    <AccountMenu />
+                    <Stack direction="row" gap="gap" align="center" justify="space-between">
+                      <Text variant="titleSm" as="h1">
+                        {BRAND.name}
+                      </Text>
+                      <AccountMenu />
+                    </Stack>
+                    <TabsList
+                      style={{ marginBottom: 0 }}
+                      className="rjb-top-tabs"
+                      aria-label="Sections"
+                    >
+                      <TabsTrigger value="discover">Companies</TabsTrigger>
+                      <TabsTrigger value="queue">Pipeline</TabsTrigger>
+                    </TabsList>
                   </Stack>
-                  <TabsList
-                    style={{ marginBottom: 0 }}
-                    className="rjb-top-tabs"
-                    aria-label="Sections"
-                  >
-                    <TabsTrigger value="discover">Companies</TabsTrigger>
-                    <TabsTrigger value="queue">Pipeline</TabsTrigger>
-                  </TabsList>
-                </Stack>
-                <TabsContent value="queue" variant="bare">
-                  {applying ? (
-                    <ApplyMode jobId={route.sub} />
-                  ) : company ? (
-                    <CompanyPage slug={route.sub ?? ''} />
-                  ) : route.jobId ? (
-                    <>
-                      <JobPageLiveness jobId={route.jobId} />
-                      <JobPage jobId={route.jobId} />
-                    </>
-                  ) : (
-                    // Unsynced shows as the Account avatar's dot (rev-3 P): no banner here.
-                    <TrackerView />
-                  )}
-                </TabsContent>
-                <TabsContent value="discover" variant="bare">
-                  {firstRun ? (
-                    <Onboarding offerSample />
-                  ) : hasTracks ? (
-                    <Suspense fallback={<DiscoverSkeleton />}>
-                      <DiscoverView />
-                    </Suspense>
-                  ) : (
-                    <ChooseTrack />
-                  )}
-                </TabsContent>
-                {documents && (
-                  <Suspense fallback={<CopyDeckSkeleton />}>
-                    <DocumentsView />
-                  </Suspense>
-                )}
-                {legal && (
-                  <Suspense fallback={null}>
-                    <LegalPage />
-                  </Suspense>
-                )}
-                {notFound && (
-                  <Suspense fallback={null}>
-                    <NotFoundPage />
-                  </Suspense>
-                )}
+                </Box>
+                <Box as="main">
+                  <Stack gap="px24">
+                    <TabsContent value="queue" variant="bare">
+                      <Suspense fallback={<PipelineSkeleton />}>
+                        {applying ? (
+                          <ApplyMode jobId={route.sub} />
+                        ) : company ? (
+                          <CompanyPage slug={route.sub ?? ''} />
+                        ) : route.jobId ? (
+                          <>
+                            <JobPageLiveness jobId={route.jobId} />
+                            <JobPage jobId={route.jobId} />
+                          </>
+                        ) : (
+                          // Unsynced shows as the Account avatar's dot (rev-3 P): no banner here.
+                          <TrackerView />
+                        )}
+                      </Suspense>
+                    </TabsContent>
+                    <TabsContent value="discover" variant="bare">
+                      {firstRun ? (
+                        <Onboarding offerSample />
+                      ) : hasTracks ? (
+                        <Suspense fallback={<DiscoverSkeleton />}>
+                          <DiscoverView />
+                        </Suspense>
+                      ) : (
+                        <ChooseTrack />
+                      )}
+                    </TabsContent>
+                    {documents && (
+                      <Suspense fallback={<CopyDeckSkeleton />}>
+                        <DocumentsView />
+                      </Suspense>
+                    )}
+                    {legal && (
+                      <Suspense fallback={null}>
+                        <LegalPage />
+                      </Suspense>
+                    )}
+                    {notFound && (
+                      <Suspense fallback={null}>
+                        <NotFoundPage />
+                      </Suspense>
+                    )}
+                  </Stack>
+                </Box>
               </Stack>
             </HdsTabs>
           </Box>

@@ -64,6 +64,13 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   is enforced by `src/theme.contrast.test.ts` against the shipped `variables.css`.
   ⚠️ `vite.config.ts` manualChunks must match react EXACTLY — a loose
   `includes('react')` catches HDS's radix/lucide deps → circular-chunk startup crash.
+  **Lazy loading (quick wins, 2026-10-22):** supabase-js is a dynamic import (`src/supabase.ts`
+  `loadSupabase()`; boot loads it only with a stored session or a magic-link return, else on
+  sign-in) and stays out of every manualChunks group (a named group pulls tslib in and vendor then
+  imports it). Never import `@supabase/supabase-js` statically (`supabaseLazy.test.tsx`); tests
+  that sign in call `loadSupabase()` first. The Pipeline, job page, Apply mode and Company page are
+  `routeViews.ts` lazy views (`lazyView.tsx`); `test/setup.ts` preloads them. App wraps the bar in
+  `header` and every page in one `main`; each route sets `document.title` (`pageTitle.ts`).
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
@@ -286,7 +293,10 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   **Installable + share image (#47):** `public/manifest.webmanifest` (name = BRAND, standalone, no
   service worker), PNG icons (192, 512, maskable 512, 180 touch icon) and the 1200x630
   `og-image.png` are rendered by `npm run icons` (`scripts/make-icons.mjs`, headless Chromium);
-  re-run it after a brand change and commit the PNGs. Pinned in `pwa.test.ts`. `npm run audit` =
+  re-run it after a brand change and commit the PNGs; it also writes `/favicon.ico`. The manifest's
+  install screenshots come from `npm run screenshots` (`scripts/make-screenshots.mjs`, the sample
+  Pipeline at 1280x800 and 390x844). theme-color follows HDS surface-page per scheme; the body font
+  is preloaded by the `preload-font` plugin (`fontPreload.ts`). Pinned in `pwa.test.ts`, `meta.test.ts`. `npm run audit` =
   `npm audit --omit=dev --audit-level=high`; run it by hand (it is not in `verify`: the Vercel build
   must not fail on a new advisory upstream).
 - **Action feedback (#212):** every action answers within 300 ms: a toast, a state change with motion, or

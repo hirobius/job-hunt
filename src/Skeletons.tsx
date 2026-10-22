@@ -46,3 +46,16 @@ export function CopyDeckSkeleton({ count = 3 }: { count?: number }) {
     </Box>
   );
 }
+
+/** The Pipeline (and the job pages under its tab): the page title, a panel head, then rows. */
+export function PipelineSkeleton() {
+  return (
+    <Box aria-busy aria-label="Loading">
+      <Stack gap="normal">
+        <Skeleton variant="text" width="25%" height={32} />
+        <Skeleton variant="rectangular" width="100%" height={88} />
+        <RowsSkeleton count={4} />
+      </Stack>
+    </Box>
+  );
+}

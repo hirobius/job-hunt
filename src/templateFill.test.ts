@@ -125,8 +125,12 @@ describe('variables named after Object.prototype members', () => {
 });
 
 describe('previewText', () => {
-  it('leaves a short text whole, with its whitespace flattened', () => {
-    expect(previewText('Hi [Contact],\n\nthanks', 40)).toBe('Hi [Contact], thanks');
+  it('leaves a short text whole, keeping its line breaks (blank lines fold to one break)', () => {
+    expect(previewText('Hi [Contact],\n\nthanks', 40)).toBe('Hi [Contact],\nthanks');
+    expect(previewText('Hi  there ,\n \n\n  you\t all', 40)).toBe('Hi there ,\nyou all');
+  });
+  it('cuts on a line break as on a space', () => {
+    expect(previewText('Thanks for your\ntime and more', 18)).toBe('Thanks for your…');
   });
   it('never cuts inside a blank: one the cut would split is dropped whole', () => {
     const t = 'Thanks for your time, [Your name] and more';

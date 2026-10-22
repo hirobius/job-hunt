@@ -3,6 +3,7 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import userEvent from '@testing-library/user-event';
 import { Button, ToastProvider } from '@hirobius/design-system';
 import { createFakeSupabase } from '../test/fakeSupabase';
+import { loadSupabase } from '../supabase';
 
 // Count every createClient call app-wide: the app must build exactly ONE Supabase client (#99).
 const h = vi.hoisted(() => ({
@@ -50,7 +51,9 @@ import { getAllSweeps, setTitleOn } from '../feed/sweepTitles';
 const fake = () => h.fake!;
 const NOW = '2026-10-01T00:00:00.000Z';
 
-beforeEach(() => {
+// The Supabase client loads lazily (supabase.ts); load it as a sign-in would, so `fake()` exists.
+beforeEach(async () => {
+  await loadSupabase();
   fake().reset();
   replaceCurationState({ categories: [], groups: [], tiles: [] });
 });

@@ -7,43 +7,56 @@ The name is set in one place, `src/brand.ts`. It was called Apply Board before.
 ## What it does
 
 Paste a job link and it lands in your Pipeline. Screen it, mark it applied, and a follow-up
-countdown starts. Today opens on what is due. Discover holds your tracks of searches, company pages
-and job boards. Templates keeps outreach text one click from the clipboard.
+countdown starts. Two tabs: **Companies** (home) holds your tracks and the companies you watch;
+**Pipeline** opens on what to apply to and what to follow up. Documents keeps your messages,
+letters and résumés.
 
 Everything works signed out, in the browser. An optional email sign-in syncs it across devices.
 
-- **Today** (`#/today`): follow-ups due, the next 7 days of interviews, one quick-add field.
-- **Pipeline** (`#/queue`): every saved job, sortable. Status runs Saved, Applied, Interviewing,
-  Offer, Rejected. There are seven sorts. Each job has its own page with details, to-dos, notes and
-  an interview log you can add to a calendar.
+- **Companies** (`#/discover`, home): your tracks. Each lists the companies you watch with their
+  open roles inline (Add a company watches a board, or stars a dream company with none), Apply now
+  links and an ATS search. Details are below.
+- **Pipeline** (`#/queue`): To apply with Start applying, Follow up (due first) and Next 7 days,
+  then every saved job with search, Status and Sort (a table on desktop, cards on a phone). Status
+  runs Saved, Applied, Interviewing, Offer, Rejected. There are seven sorts. It ends with Find the
+  next company.
+- **Job page** (`#/queue/<id>`): Overview (details, to-dos, notes, documents), Screening and
+  Interviews, with an interview log you can add to a calendar.
+- **Apply mode** (`#/apply/<id>`): one job from To apply at a time. Open application, then Mark
+  applied (follow-up in 7 days) or Not a fit. Your Documents come filled for the job, and the
+  Application kit holds profile fields, letters and custom answers as copy rows.
+- **Company page** (`#/company/<slug>`): one company's jobs, documents and notes, linked from a
+  job's Details.
+- **Documents** (`#/copy-deck`, in the Account menu): résumés, cover letters, notes and outreach
+  messages. Every save is a Version; one Version per kind can be marked Sent to a job. `[Variable]`
+  chips fill from a picked job.
 - **Screening**: fit verdict, work mode, blockers and your angle. Paste a job description
   and keyword rules suggest values. Nothing leaves the browser.
-- **Discover** (`#/discover`): tracks you can edit, plus Title, ATS and Live postings tools.
-  Details are below.
-- **Templates** (`#/copy-deck`): outreach snippets with token chips and a preview filled from a
-  saved job.
-- **Your data**: Back up and Restore as JSON, and a CSV export of every job field. Sample data is
-  one click and never syncs, exports or backs up.
+- **Your data** (Account menu): Back up and Restore as JSON, and a CSV export of every job field.
+  Sample data is one click (it adds a removable Sample track) and never syncs, exports or backs up.
 - **Quick-add links**: `?add=<url>`, `?applied=<url>` and `?status=<Status>&u=<url>` work from a
   bookmarklet or phone shortcut.
 
-### Discover
+### Companies
 
-- **Title and ATS search** build Google queries from your terms, a location and a work mode. The
-  ATS tool covers 18 hiring systems (Greenhouse, Lever, Workday and others) and three large
-  per-tenant systems that only Google can search. A second set covers freelance, startup and
-  remote boards. A "Contract only" switch adds the words contract, freelance and fractional.
+- **ATS search** builds Google queries from the track's ticked titles, a location and a work mode.
+  It covers 18 hiring systems (Greenhouse, Lever, Workday and others) and three large per-tenant
+  systems that only Google can search, plus links to the big job boards. A second set covers
+  freelance, startup and remote boards. A "Contract only" switch adds the words contract,
+  freelance and fractional.
 - **Live postings** reads real openings when you open the tool. Sources are Hacker News "Who is
   hiring", Remotive, Jobicy and the Greenhouse, Lever, Ashby, Workable and Recruitee boards of
   companies you watch. It reads every watched board, 6 at a time, with no cap. Nothing is stored
-  until you save a posting.
+  until you save a posting. Calibrate holds the title filter (the track's titles, ticked or not),
+  leave-out terms, a pay floor and a level. Live postings and Find boards open from "More ways to
+  find companies".
 - **Role radar** scores each posting against the evidence you paste in. Each posting shows its fit
   and gaps, and a Strong fit filter narrows the list. "What these postings ask for" rolls up the
   common asks. Starter packs come with a directory of boards to watch.
 
 ### Cloud sync
 
-Sign in with a magic link. Jobs, templates and your other edits sync as one row per user. Tracks
+Sign in with a magic link. Jobs, documents and your other edits sync as one row per user. Tracks
 live in their own tables. Row-level security guards both. Setup for the `tracker` table is in
 [`SUPABASE_SETUP.md`](SUPABASE_SETUP.md).
 

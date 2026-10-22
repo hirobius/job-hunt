@@ -5,7 +5,12 @@ const fake = vi.hoisted(() => ({ current: null as null | ReturnType<typeof creat
 vi.mock('../supabase', async () => {
   const { createFakeSupabase } = await import('../test/fakeSupabase');
   fake.current = createFakeSupabase();
-  return { supabase: fake.current.client, hasPersistedSession: () => false };
+  const client = fake.current.client;
+  return {
+    loadSupabase: async () => client,
+    loadedSupabase: () => client,
+    hasPersistedSession: () => false,
+  };
 });
 
 import { syncOnLogin, takeLocalLegacyTiles, foldIntoStore, pushRestoredCuration } from './sync';

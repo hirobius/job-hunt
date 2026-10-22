@@ -31,14 +31,7 @@ const ROUTES = [
 async function seed(page: Page) {
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
-  await page.getByRole('tab', { name: 'Companies' }).click();
-  await page.getByRole('button', { name: 'Choose a track' }).click();
-  // The Suggested (first) pack starts ticked (rev-3).
-  await expect(
-    page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first(),
-  ).toBeChecked();
-  for (const name of ['Continue', 'Continue', 'Finish'])
-    await page.getByRole('button', { name, exact: true }).click();
+  // The sample adds a Sample track from the first starter pack: no setup needed.
   // Apply now by name: which tool `#/discover` opens on depends on the track (teamTopics.ts).
   await go(page, '#/discover/apply');
   await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();
@@ -93,6 +86,31 @@ for (const theme of THEMES) {
     });
   }
 }
+
+test.describe('landmarks', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('every route has one main and no content outside a landmark', async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+    await seed(page);
+    const bad: string[] = [];
+    for (const hash of ROUTES) {
+      await go(page, hash);
+      await page.addScriptTag({ path: AXE });
+      const v = await page.evaluate(async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const r = await (window as any).axe.run(document, {
+          runOnly: { type: 'rule', values: ['landmark-one-main', 'region'] },
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return r.violations.map((x: any) => `${x.id} x${x.nodes.length}: ${x.nodes[0]?.target}`);
+      });
+      bad.push(...v.map((x: string) => `${hash} ${x}`));
+    }
+    expect(bad).toEqual([]);
+  });
+});
 
 test.describe('phone sweep', () => {
   test.use({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });

@@ -14,9 +14,11 @@ import {
   TERMS,
 } from './legal';
 import { useRoute } from './route';
+import { usePageTitle } from './pageTitle';
 
 export default function LegalPage() {
   const doc = legalDocFor(useRoute().sub);
+  usePageTitle(doc.title);
   const other = doc === TERMS ? PRIVACY : TERMS;
   return (
     // The 760 content measure, like the job page and Documents: this is prose.

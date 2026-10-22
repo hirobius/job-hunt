@@ -19,6 +19,7 @@ vi.mock('@supabase/supabase-js', async () => {
 
 import { act } from '@testing-library/react';
 import { createFakeSupabase } from './test/fakeSupabase';
+import { loadSupabase } from './supabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
@@ -34,7 +35,9 @@ const renderApp = () =>
     </ColorModeProvider>,
   );
 
-beforeEach(() => {
+// The Supabase client loads lazily (supabase.ts); load it as a sign-in would, so `fake()` exists.
+beforeEach(async () => {
+  await loadSupabase();
   h.fake?.reset();
   localStorage.clear();
   window.history.replaceState(null, '', '/');

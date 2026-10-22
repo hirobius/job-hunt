@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useToast } from '@hirobius/design-system';
 import type { User } from '@supabase/supabase-js';
-import { supabase as supa } from '../supabase';
+import { loadedSupabase, loadSupabase, needsClientAtBoot, onSupabaseLoaded } from '../supabase';
 import { signInErrorMessage } from './signInErrors';
 import { useJobs, getAllJobs, replaceAll } from '../store';
 import { useSnippets, getSnippets, replaceSnippets } from '../copyDeckStore';
@@ -84,7 +84,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // True while a pull (adopt) is running: "settled" means none is, and the last one didn't fail.
   const [pulling, setPulling] = useState(false);
   // False until Supabase reports the stored session (or its absence), so signed-in users don't
-  // see the signed-out nudge flash on load.
+  // see the signed-out nudge flash on load. With no session stored (and no magic link returning)
+  // the client isn't loaded at all (supabase.ts): signed out, answered a tick later as before.
   const [authResolved, setAuthResolved] = useState(false);
   const lastSynced = useRef('');
   // True once a pull since sign-in has merged the cloud copy in. Until then local data is
@@ -115,6 +116,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const localJson = () => JSON.stringify(writeBlob(localBlob()));
 
   async function pull(uid: string): Promise<SyncData | null> {
+    const supa = await loadSupabase();
     const r = await supa.from('tracker').select('data').eq('user_id', uid).maybeSingle();
     if (r.error) throw new Error(r.error.message);
     return r.data ? readBlob(r.data.data) : null;
@@ -127,6 +129,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     const data = writeBlob(localBlob());
     let ok: boolean;
     try {
+      const supa = await loadSupabase();
       const r = await supa.from('tracker').upsert({
         user_id: u.id,
         data,
@@ -197,26 +200,45 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // auth state. Token refreshes / profile updates aren't a new sign-in — don't re-run the
   // seed merge (it would also flip the sync gate mid-onboarding).
   useEffect(() => {
-    void supa.auth.getSession().then(
-      () => setAuthResolved(true),
-      () => setAuthResolved(true),
-    );
-    const { data } = supa.auth.onAuthStateChange((event, session) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) setCurationAccount(true); // only this tab's own sign-out clears it (#169)
-      setAuthResolved(true);
-      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
-      pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
-      seedPending.current = !!u; // a sign-in owes a seed merge; sign-out or a user change resets it
-      if (u) adopt(true, u);
-      else {
-        foldIntoStore(takeLocalLegacyTiles()); // signed out: fold this device's old links now
-        if (getCurationSyncStatus() === 'syncing') setCurationSyncStatus('idle');
-        setMsg('Sign in to sync across your devices');
-      }
+    const signedOut = () => {
+      foldIntoStore(takeLocalLegacyTiles()); // signed out: fold this device's old links now
+      if (getCurationSyncStatus() === 'syncing') setCurationSyncStatus('idle');
+      setMsg('Sign in to sync across your devices');
+    };
+    let unsubscribe = () => {};
+    const offLoaded = onSupabaseLoaded((supa) => {
+      void supa.auth.getSession().then(
+        () => setAuthResolved(true),
+        () => setAuthResolved(true),
+      );
+      const { data } = supa.auth.onAuthStateChange((event, session) => {
+        const u = session?.user ?? null;
+        setUser(u);
+        if (u) setCurationAccount(true); // only this tab's own sign-out clears it (#169)
+        setAuthResolved(true);
+        if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+        pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
+        seedPending.current = !!u; // a sign-in owes a seed merge; sign-out or a user change resets it
+        if (u) adopt(true, u);
+        else signedOut();
+      });
+      unsubscribe = () => data.subscription.unsubscribe();
     });
-    return () => data.subscription.unsubscribe();
+    if (needsClientAtBoot()) void loadSupabase().catch(() => setAuthResolved(true));
+    else if (!loadedSupabase()) {
+      signedOut();
+      void Promise.resolve().then(() => setAuthResolved(true));
+    }
+    // Another tab signed in (it stored a session): load the client so this tab follows.
+    const onStorage = (e: StorageEvent) => {
+      if (e.newValue && /^sb-.+-auth-token$/.test(e.key ?? '')) void loadSupabase().catch(() => {});
+    };
+    window.addEventListener('storage', onStorage);
+    return () => {
+      offLoaded();
+      unsubscribe();
+      window.removeEventListener('storage', onStorage);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -268,7 +290,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
     if (getPending().length > 0 && !window.confirm(UNSYNCED_SIGN_OUT)) return;
     setCurationAccount(false);
-    await supa.auth.signOut();
+    await (await loadSupabase()).auth.signOut();
     clearLocalData();
     location.reload();
   };
@@ -287,6 +309,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     // user; the FK cascade would cover the children, but we delete them explicitly so erasure
     // never silently depends on it. supabase-js reports failure as `{ error }`, not a throw.
     const failed: string[] = [];
+    const supa = await loadSupabase();
     for (const table of DELETE_ORDER) {
       try {
         const r = await supa.from(table).delete().eq('user_id', user.id);
@@ -314,6 +337,12 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   };
 
   const sendLink = async (email: string): Promise<string | null> => {
+    let supa;
+    try {
+      supa = await loadSupabase(); // the first sign-in fetches the client
+    } catch {
+      return signInErrorMessage({ message: 'Failed to fetch' });
+    }
     const r = await supa.auth.signInWithOtp({
       email,
       // Only this app's own origins, at the root (#44). The real gate is the Supabase dashboard's
