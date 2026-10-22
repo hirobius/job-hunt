@@ -140,7 +140,12 @@ export default function DocumentEditor({
             />
           </Menu.Trigger>
           <Menu.Content align="end">
-            <Menu.Item onSelect={() => setDocumentPinned(doc.id, !doc.pinned)}>
+            <Menu.Item
+              onSelect={() => {
+                setDocumentPinned(doc.id, !doc.pinned);
+                toast({ title: doc.pinned ? 'Unpinned' : 'Pinned', description: doc.title });
+              }}
+            >
               {doc.pinned ? 'Unpin' : 'Pin'}
             </Menu.Item>
             <Menu.Separator />

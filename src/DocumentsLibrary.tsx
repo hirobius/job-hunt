@@ -46,6 +46,7 @@ import { postedAgo } from './feed/format';
 import { metaLines } from './metaLines';
 import { templateVariables } from './templateEditor';
 import { copyFilled } from './templateCopy';
+import { highlightNew, useHighlight } from './feedback';
 
 const PLURAL: Record<DocumentKind, string> = {
   resume: 'Résumés',
@@ -244,11 +245,19 @@ function DocumentRow({
     doc.kind === 'outreach'
       ? firstLine(text) || 'Empty'
       : metaLines([versionsLabel(doc.versions.length), edited && `edited ${edited}`])[0];
+  // Duplicate and Pin move the row, so the row they land on scrolls into view and flashes (#212).
   const duplicate = () =>
-    createDocument({ kind: doc.kind, title: `${title} (copy)`, text, base: true });
+    highlightNew(createDocument({ kind: doc.kind, title: `${title} (copy)`, text, base: true }));
+  const pin = () => {
+    setDocumentPinned(doc.id, !doc.pinned);
+    highlightNew(doc.id);
+    toast({ title: doc.pinned ? 'Unpinned' : 'Pinned', description: title });
+  };
+  const highlight = useHighlight<HTMLElement>(doc.id);
   return (
     <Box
       as="li"
+      ref={highlight}
       aria-label={title}
       className="rjb-doc-row"
       sx={{ px: 'md', py: 'xs', borderTop: 'thin solid', borderColor: 'border.default' }}
@@ -315,9 +324,7 @@ function DocumentRow({
                   />
                 </Menu.Trigger>
                 <Menu.Content align="end">
-                  <Menu.Item onSelect={() => setDocumentPinned(doc.id, !doc.pinned)}>
-                    {doc.pinned ? 'Unpin' : 'Pin'}
-                  </Menu.Item>
+                  <Menu.Item onSelect={pin}>{doc.pinned ? 'Unpin' : 'Pin'}</Menu.Item>
                   <Menu.Item onSelect={duplicate}>Duplicate</Menu.Item>
                   <Menu.Separator />
                   <Menu.Item onSelect={() => setConfirming(true)} tone="danger">

@@ -2,6 +2,8 @@
 // star, shared by the team rows and the dream companies section.
 import { Badge, Box, Button, Icon, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { Star } from 'lucide-react';
+import { useState } from 'react';
+import { starClass } from './feedback';
 import { addJobDetailed, dedupKey, useJobs } from './store';
 import { notifySaved } from './saveNotice';
 import { jobFieldsFor } from './feed/toJob';
@@ -89,17 +91,21 @@ export function DreamStar({
   const dreams = useDreams(categoryId);
   const key = dreamKey(company);
   const on = dreams.some((d) => d.key === key);
+  // Pops on each toggle (#212); a star already on when the page opens holds still.
+  const [touched, setTouched] = useState(false);
   return (
     <Button
       size="sm"
       variant="tertiary"
       iconOnly
-      iconLeft={<Icon icon={Star} className={on ? 'rjb-icon-filled' : undefined} />}
+      iconLeft={<Icon icon={Star} className={starClass(on, touched)} />}
       label={`Star ${company} as a dream company`}
       aria-pressed={on}
-      onClick={() =>
-        on ? unstarDream(categoryId, key) : starDream(categoryId, { company, website, board })
-      }
+      onClick={() => {
+        setTouched(true);
+        if (on) unstarDream(categoryId, key);
+        else starDream(categoryId, { company, website, board });
+      }}
     />
   );
 }

@@ -289,6 +289,12 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   re-run it after a brand change and commit the PNGs. Pinned in `pwa.test.ts`. `npm run audit` =
   `npm audit --omit=dev --audit-level=high`; run it by hand (it is not in `verify`: the Vercel build
   must not fail on a new advisory upstream).
+- **Action feedback (#212):** every action answers within 300 ms: a toast, a state change with motion, or
+  the item it made scrolled into view and flashed. `src/feedback.ts` (`flashRow`, `collapseRow`, `highlightNew`
+  - `useHighlight`, `starClass`) drives `.rjb-flash` / `.rjb-pop` / `.rjb-collapse` in `base.css` (HDS motion
+    tokens only; reduced motion keeps the state and toast, drops the movement). Row status / Retire / Mark applied
+    raise a notice with Undo; Remove collapses the row first; Duplicate and Pin flash the row they land on. Pinned
+    by `e2e/feedback.spec.ts` (the sweep fails if a press changes nothing visible in 300 ms) and `src/feedback.test.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.
