@@ -4,6 +4,7 @@ import { FetchError, type FetchJson } from './sources/http';
 import {
   matchRoles,
   newSince,
+  foldRolesState,
   orderTeams,
   readRoles,
   teamStatus,
@@ -38,6 +39,25 @@ describe('matchRoles', () => {
     ['blank terms are skipped', ['  '], []],
   ])('%s', (_n, terms, want) => {
     expect(matchRoles(postings, terms, NOW).map((r) => r.id)).toEqual(want);
+  });
+  it('a design-systems track ranks design-systems roles first, then product design, engineering last', () => {
+    // Ashby's board, as Adrian saw it: "Design Engineer" led the list on score.
+    const ashby = [
+      post('de', 'Design Engineer - Americas/Canada/EU'),
+      post('fe', 'Frontend Engineer, Design Systems'),
+      post('pd', 'Product Designer', 'Help shape our design engineer tooling.'),
+      post('ds', 'Product Designer – Design Systems'),
+    ];
+    const terms = ['design systems', 'design engineer', 'product designer'];
+    expect(matchRoles(ashby, terms, NOW).map((r) => r.id)).toEqual(['ds', 'pd', 'de', 'fe']);
+  });
+  it('another track keeps score order', () => {
+    // On a design-systems track the designer would lead; here the title hit does.
+    const roles = [
+      post('d', 'Product Designer', 'Works with a welder.'),
+      post('e', 'Welder Engineer'),
+    ];
+    expect(matchRoles(roles, ['welder'], NOW).map((r) => r.id)).toEqual(['e', 'd']);
   });
   it('keeps the term each role matched', () => {
     const [r] = matchRoles([post('a', 'Designer')], ['engineer', 'designer'], NOW);
@@ -134,5 +154,32 @@ describe('newSince', () => {
     ['one new', ['a', 'gone'], ['b']],
   ])('%s', (_n, seen, want) => {
     expect(newSince([r('a'), r('b')], seen).map((x) => x.id)).toEqual(want);
+  });
+});
+
+describe('foldRolesState', () => {
+  const roles = matchRoles(
+    [post('de', 'Design Engineer'), post('ds', 'Design Systems Designer')],
+    ['design engineer', 'design systems'],
+    NOW,
+  );
+  const ok: RolesState = { state: 'ok', roles, total: 9 };
+  it('folds the engineering-heavy roles out of the count, keeping them for the disclosure', () => {
+    const { roles: rs, folded } = foldRolesState(ok, true);
+    expect(rs?.state === 'ok' && rs.roles.map((r) => r.id)).toEqual(['ds']);
+    expect(folded.map((r) => r.id)).toEqual(['de']);
+    expect(teamStatus({ board: { kind: 'lever', slug: 'a' }, roles: rs })).toBe('hiring');
+  });
+  it('only engineering-heavy roles reads as no matching role', () => {
+    const only = { ...ok, roles: roles.filter((r) => r.id === 'de') };
+    const { roles: rs } = foldRolesState(only, true);
+    expect(teamStatus({ board: { kind: 'lever', slug: 'a' }, roles: rs })).toBe('quiet');
+  });
+  it('folds nothing when off, and passes other states through', () => {
+    expect(foldRolesState(ok, false)).toEqual({ roles: ok, folded: [] });
+    expect(foldRolesState({ state: 'unknown' }, true)).toEqual({
+      roles: { state: 'unknown' },
+      folded: [],
+    });
   });
 });

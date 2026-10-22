@@ -4,6 +4,7 @@
 // from `readRoles`, which takes its fetcher and limiter so tests never hit the network.
 import { rankPostings } from './match';
 import { createLimiter, hostKey, type Limiter } from './probe';
+import { foldRoles, isDesignSystemsTrack, orderByRoleType } from './roleType';
 import { boardApiUrl, fetchBoard, type Board } from './sources/ats';
 import { FetchError, type FetchJson } from './sources/http';
 import type { Posting, RankedPosting } from './types';
@@ -16,7 +17,9 @@ export type RolesState =
 
 export const boardKey = (b: Board) => `${b.kind}:${b.slug.toLowerCase()}`;
 
-/** The postings that match any of `terms` as a phrase, best first, one row per opening. */
+/** The postings that match any of `terms` as a phrase, best first, one row per opening. On a
+ *  design-systems track the role type leads (feed/roleType.ts): design systems, then product design,
+ *  engineering-heavy last; score orders each type. */
 export function matchRoles(postings: Posting[], terms: string[], now: number): Role[] {
   const best = new Map<string, Role>();
   for (const term of terms) {
@@ -26,7 +29,10 @@ export function matchRoles(postings: Posting[], terms: string[], now: number): R
       if (!cur || p.score > cur.score) best.set(p.id, { ...p, term });
     }
   }
-  return [...best.values()].sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
+  const byScore = [...best.values()].sort(
+    (a, b) => b.score - a.score || a.title.localeCompare(b.title),
+  );
+  return isDesignSystemsTrack(terms) ? orderByRoleType(byScore) : byScore;
 }
 
 /** Read one board and keep the roles that match. Any failure is 'unknown', never "no roles". */
@@ -101,3 +107,14 @@ export const newSince = (roles: Role[], seen: readonly string[]): Role[] => {
   const s = new Set(seen);
   return roles.filter((r) => !s.has(r.id));
 };
+
+/** A board's answer with the engineering-heavy roles taken out (when `fold`): what its row counts,
+ *  orders and lists, and the folded roles for its "N engineering-heavy roles" disclosure. */
+export function foldRolesState(
+  rs: RolesState | undefined,
+  fold: boolean,
+): { roles?: RolesState; folded: Role[] } {
+  if (!rs || rs.state !== 'ok') return { roles: rs, folded: [] };
+  const { shown, folded } = foldRoles(rs.roles, fold);
+  return { roles: folded.length ? { ...rs, roles: shown } : rs, folded };
+}

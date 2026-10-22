@@ -19,6 +19,7 @@ import {
   Menu,
   SegmentedControl,
   Checkbox as HdsCheckbox,
+  Toggle,
   Disclosure,
   Skeleton,
   Stack,
@@ -70,6 +71,8 @@ import { sweepRank, titleCounts, withoutHidden, type SweptPosting } from './feed
 import { SweepTitlesEditor } from './SweepTitles';
 import { activeTitles, useSweep } from './feed/sweepTitles';
 import { metaLines } from './metaLines';
+import { foldRoles, orderByRoleType, roleTypeOf, roleTypeTag } from './feed/roleType';
+import { useRoleTypes, writeShowEngineering } from './feed/roleTypePref';
 
 type Focus = 'all' | 'strong' | SignalId;
 /** Rows rendered per page — the rest sit behind "Show more". */
@@ -145,6 +148,9 @@ export default function LiveFeedPanel({
   const saved = useFilters(categoryId);
   const [saveName, setSaveName] = useState('');
   const evidence = useMemo(() => parseEvidence(evidenceText), [evidenceText]);
+  // A design-systems track ranks role types (design systems first) and folds the engineering-heavy
+  // openings behind one quiet row, unless Calibrate's "Show engineering-heavy roles" is on.
+  const roleTypes = useRoleTypes(categoryId, terms);
   // The wide sweep: one search across every title that is on. `onlyTitle` (a title chip) only
   // filters what is on screen (no re-fetch); the on/off list itself is per track and synced.
   const [sweeping, setSweeping] = useState(false);
@@ -281,26 +287,31 @@ export default function LiveFeedPanel({
     () => (sweeping ? titleCounts(ranked, sweepTitles) : {}),
     [sweeping, ranked, sweepTitles],
   );
-  // With evidence the list leads with the best fits (stable: relevance breaks ties).
-  const byFit = useMemo(
-    () =>
-      fits.size
-        ? [...ranked].sort(
-            (a, b) => TIER_RANK[fits.get(a.id)!.tier] - TIER_RANK[fits.get(b.id)!.tier],
-          )
-        : ranked,
-    [ranked, fits],
+  // With evidence the list leads with the best fits (stable: relevance breaks ties). On a
+  // design-systems track the role type leads, fit and relevance order each type.
+  const byFit = useMemo(() => {
+    const fitted = fits.size
+      ? [...ranked].sort(
+          (a, b) => TIER_RANK[fits.get(a.id)!.tier] - TIER_RANK[fits.get(b.id)!.tier],
+        )
+      : ranked;
+    return roleTypes.ranked ? orderByRoleType(fitted) : fitted;
+  }, [ranked, fits, roleTypes.ranked]);
+  const foldedCount = useMemo(
+    () => foldRoles(ranked, roleTypes.fold).folded.length,
+    [ranked, roleTypes.fold],
   );
   const shownTitles =
     sweeping && onlyTitle
       ? withoutHidden(byFit, new Set(sweepTitles.filter((t) => t !== onlyTitle)))
       : byFit;
-  const visible =
+  const focused =
     focus === 'all'
       ? shownTitles
       : focus === 'strong'
         ? shownTitles.filter((p) => fits.get(p.id)?.tier === 'strong')
         : shownTitles.filter((p) => p.signals.some((s) => s.id === focus));
+  const { shown: visible, folded } = foldRoles(focused, roleTypes.fold);
   /** A title chip shows only that title's rows; the active one again (or All) shows every row. */
   const showOnly = (t: string | null) => {
     setOnlyTitle((cur) => (t === cur ? null : t));
@@ -552,7 +563,7 @@ export default function LiveFeedPanel({
 
   const readyPanel = (
     <OpeningsPanel
-      count={ranked.length}
+      count={ranked.length - foldedCount}
       caption={captionItems}
       trailing={
         <Stack direction="row" gap="px8" align="center">
@@ -566,7 +577,13 @@ export default function LiveFeedPanel({
       }
     >
       {partial}
-      {visible.length === 0 ? (
+      {visible.length === 0 && folded.length > 0 ? (
+        <PanelRowBox>
+          <Text variant="caption" as="p" tone="secondary">
+            Only engineering-heavy roles match. They are below.
+          </Text>
+        </PanelRowBox>
+      ) : visible.length === 0 ? (
         <PanelRowBox>
           <EmptyState
             title={
@@ -589,6 +606,7 @@ export default function LiveFeedPanel({
               fit={fits.get(p.id)}
               onSave={() => save(p)}
               sweepTitles={sweeping ? sweepTitles.length : 0}
+              typeTag={roleTypes.ranked ? roleTypeTag(roleTypeOf(p)) : ''}
             />
           ))}
         </Box>
@@ -598,6 +616,32 @@ export default function LiveFeedPanel({
           <Button variant="tertiary" size="sm" onClick={() => setShown((n) => n + PAGE)}>
             Show more ({visible.length - shown})
           </Button>
+        </PanelRowBox>
+      )}
+      {folded.length > 0 && (
+        <PanelRowBox>
+          <Disclosure
+            label={`${folded.length} engineering-heavy ${folded.length === 1 ? 'role' : 'roles'}`}
+          >
+            <Box
+              as="ul"
+              sx={{ listStyle: 'none', m: 0, p: 0 }}
+              aria-label="Engineering-heavy roles"
+            >
+              {folded.map((p) => (
+                <PostingRow
+                  key={p.id}
+                  p={p}
+                  now={current!.at}
+                  saved={savedKeys.has(dedupKey(p.url))}
+                  fit={fits.get(p.id)}
+                  onSave={() => save(p)}
+                  sweepTitles={sweeping ? sweepTitles.length : 0}
+                  typeTag={roleTypeTag('design-engineering')}
+                />
+              ))}
+            </Box>
+          </Disclosure>
         </PanelRowBox>
       )}
     </OpeningsPanel>
@@ -779,6 +823,13 @@ export default function LiveFeedPanel({
                   onChange={() => setSalaryOnly((v) => !v)}
                 />
               </Box>
+              {roleTypes.ranked && (
+                <Toggle
+                  label="Show engineering-heavy roles"
+                  checked={!roleTypes.fold}
+                  onChange={(on) => writeShowEngineering(categoryId, on)}
+                />
+              )}
               {/* Saved searches (rev-3): the last group, one UI 14/500 label over the name field
                   and its button on one row, then the saved ones as chips. */}
               <Stack gap="px8">
@@ -1187,6 +1238,7 @@ function PostingRow({
   fit,
   onSave,
   sweepTitles,
+  typeTag = '',
 }: {
   p: SweptPosting;
   now: number;
@@ -1196,6 +1248,8 @@ function PostingRow({
   onSave: () => void;
   /** How many titles the sweep covers (0 outside a sweep). */
   sweepTitles: number;
+  /** The role type in plain words on a design-systems track ("Design systems"); '' for none. */
+  typeTag?: string;
 }) {
   const [why, setWhy] = useState(false);
   const place = p.location || (p.mode ? modeLabel(p.mode) : '');
@@ -1227,6 +1281,7 @@ function PostingRow({
                   <Badge tone="neutral">{verdictLabel(TIER_INFO[fit.tier].verdict)}</Badge>
                 </Button>
               )}
+              {typeTag && <Badge tone="neutral">{typeTag}</Badge>}
               <Text variant="caption" as="span" tone="secondary">
                 {SOURCE_LABEL[p.source]}
               </Text>

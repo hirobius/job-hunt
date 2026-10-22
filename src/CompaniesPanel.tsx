@@ -51,6 +51,7 @@ import { boardLabel, boardsFromUrls, type Board } from './feed/sources/ats';
 import {
   boardKey,
   orderTeams,
+  foldRolesState,
   readRoles,
   teamStatus,
   type RolesState,
@@ -58,7 +59,8 @@ import {
 } from './feed/teamRoles';
 import AddCompany from './AddCompany';
 import DreamCompanies from './DreamCompanies';
-import { DreamStar, RoleList } from './TeamRoles';
+import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
+import { useRoleTypes } from './feed/roleTypePref';
 
 /** Watched boards read on arrival; the rest wait for "Check open roles". A starter pack can file
  *  a hundred boards, and each read is a whole board. */
@@ -156,6 +158,8 @@ export default function CompaniesPanel({
   // One row's roles open at a time (rev-3 mock).
   const [openRow, setOpenRow] = useState<string | null>(null);
   const [roles, setRoles] = useState<Record<string, RolesState>>({});
+  // A design-systems track ranks and tags role types and folds the engineering-heavy roles.
+  const roleTypes = useRoleTypes(categoryId, terms);
   // One politeness budget for the board probes, the role reads and the dream checks.
   const [limiter] = useState(() => createLimiter());
   const abort = useRef<AbortController | null>(null);
@@ -205,7 +209,10 @@ export default function CompaniesPanel({
     ...watchedBoards.filter((b) => !teamBoards.has(boardKey(b))).map(watchedRow),
   ];
 
-  const rolesOf = (r: Row) => (r.board ? roles[boardKey(r.board)] : undefined);
+  // What a row counts and lists: its board's roles less the folded engineering-heavy ones.
+  const foldOf = (r: Row) =>
+    foldRolesState(r.board ? roles[boardKey(r.board)] : undefined, roleTypes.fold);
+  const rolesOf = (r: Row) => foldOf(r).roles;
   const statusOf = (r: CompanyRow): TeamStatus =>
     r.board && !rolesOf(r)
       ? 'unchecked'
@@ -319,7 +326,7 @@ export default function CompaniesPanel({
   };
 
   const companyRow = (r: CompanyRow) => {
-    const rs = rolesOf(r);
+    const { roles: rs, folded } = foldOf(r);
     const status = statusOf(r);
     const matching = rs?.state === 'ok' ? rs.roles : [];
     const line = STATUS_LINE[status](r, rs);
@@ -381,12 +388,15 @@ export default function CompaniesPanel({
             <Box id={panelId}>
               <Stack gap="px12">
                 {matching.length > 0 ? (
-                  <RoleList company={r.company} roles={matching} />
+                  <RoleList company={r.company} roles={matching} typed={roleTypes.ranked} />
                 ) : (
                   <Text variant="caption" as="p" tone="secondary">
-                    {OPEN_LINE[status] ?? ''}
+                    {status === 'quiet' && folded.length > 0
+                      ? 'Only engineering-heavy roles match right now.'
+                      : (OPEN_LINE[status] ?? '')}
                   </Text>
                 )}
+                <FoldedRoles company={r.company} roles={folded} />
                 {!r.watched && (
                   <Stack direction="row" gap="px8" align="center" wrap="wrap">
                     {r.board ? (
@@ -559,7 +569,13 @@ export default function CompaniesPanel({
         )}
       </Panel>
 
-      <DreamCompanies categoryId={categoryId} terms={terms} limiter={limiter} roles={roles} />
+      <DreamCompanies
+        categoryId={categoryId}
+        terms={terms}
+        limiter={limiter}
+        roles={roles}
+        roleTypes={roleTypes}
+      />
 
       {/* No empty section: it shows once a company is saved as a target. */}
       {targets.length > 0 && (

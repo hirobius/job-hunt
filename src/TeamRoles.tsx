@@ -1,6 +1,15 @@
 // Companies' inline roles (a team's matching openings, saved in one tap) and the dream
 // star, shared by the team rows and the dream companies section.
-import { Badge, Box, Button, Icon, InlineLink, Stack, Text } from '@hirobius/design-system';
+import {
+  Badge,
+  Box,
+  Button,
+  Disclosure,
+  Icon,
+  InlineLink,
+  Stack,
+  Text,
+} from '@hirobius/design-system';
 import { Star } from 'lucide-react';
 import { useState } from 'react';
 import { starClass } from './feedback';
@@ -8,6 +17,7 @@ import { addJobDetailed, dedupKey, useJobs } from './store';
 import { notifySaved } from './saveNotice';
 import { jobFieldsFor } from './feed/toJob';
 import type { Role } from './feed/teamRoles';
+import { roleTypeOf, roleTypeTag } from './feed/roleType';
 import { dreamKey, starDream, unstarDream, useDreams } from './feed/dreams';
 import type { Board } from './feed/sources/ats';
 import { listStyle } from './outreachShared';
@@ -19,12 +29,15 @@ export function RoleList({
   roles,
   newIds,
   label = `Open roles at ${company}`,
+  typed = false,
 }: {
   company: string;
   roles: Role[];
   newIds?: Set<string>;
   /** The list's accessible name (a second list on one row needs its own). */
   label?: string;
+  /** Tag each role with its type (a design-systems track, feed/roleType.ts). */
+  typed?: boolean;
 }) {
   const jobs = useJobs();
   const savedKeys = new Set(jobs.map((j) => dedupKey(j.url)));
@@ -37,6 +50,7 @@ export function RoleList({
     <ul aria-label={label} style={listStyle}>
       {roles.map((r) => {
         const saved = savedKeys.has(dedupKey(r.url));
+        const tag = typed ? roleTypeTag(roleTypeOf(r)) : '';
         return (
           <li key={r.id}>
             {/* No wrap: the title column shrinks so Save sits on the right of every role, the
@@ -49,6 +63,7 @@ export function RoleList({
                       <InlineLink href={r.url}>{r.title}</InlineLink>
                     </Text>
                     {newIds?.has(r.id) && <Badge tone="info">New</Badge>}
+                    {tag && <Badge tone="neutral">{tag}</Badge>}
                   </Stack>
                   {r.location && (
                     <Text variant="caption" tone="secondary">
@@ -71,6 +86,23 @@ export function RoleList({
         );
       })}
     </ul>
+  );
+}
+
+/** A company's engineering-heavy roles on a design-systems track: kept, not deleted, behind one
+ *  quiet "N engineering-heavy roles" row (feed/roleType.ts). Nothing when there are none. */
+export function FoldedRoles({ company, roles }: { company: string; roles: Role[] }) {
+  if (roles.length === 0) return null;
+  const n = roles.length;
+  return (
+    <Disclosure label={`${n} engineering-heavy ${n === 1 ? 'role' : 'roles'}`}>
+      <RoleList
+        company={company}
+        roles={roles}
+        typed
+        label={`Engineering-heavy roles at ${company}`}
+      />
+    </Disclosure>
   );
 }
 
