@@ -306,12 +306,17 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   quiet icon link to the posting right beside it (HDS icon-only Button as an `<a target=_blank>`,
   named "Open posting for <title> at <company>", tooltip "Open posting", nothing for a non-web
   URL). It sits beside the title, never inside a link: the Pipeline table and cards, the Follow up
-  and Next 7 days rows, the closed-on-the-board list, Recently removed, the Company page and the job
-  page header. Its target overflows the title's line (`.rjb-posting-link` in `base.css`), so rows
-  keep their rhythm; 40x40 on a phone. Unsaved listings (Live postings, team and dream roles, tiles,
-  Manage track's links) have no page: their title is the link out, with HDS's external icon. Apply
-  mode keeps Open application; the job rail (NavList rows are links) relies on the header beside it.
-  Pinned in `PostingLink.test.tsx`, the surface suites and `e2e/posting-links.spec.ts`.
+  and Next 7 days rows, the closed-on-the-board list, Recently removed, the Company page, the job
+  page header (all through `PostingTitle` / `JobPostingTitle`: the title shrinks and wraps anywhere,
+  so a long unbroken title never runs under the link or pushes it off screen) and every job rail row
+  (beside the row's link, `hds-gaps/NavListActionItem`: NavList.Item has no trailing slot). Its
+  target overflows the title's line (`.rjb-posting-link` in `base.css`), so rows keep their rhythm,
+  and is stacked above the text there, so all of it takes the tap; 40x40 on a phone. Rows only a line
+  tall that each end in one (`.rjb-posting-rows`) grow to the target instead, so targets never
+  overlap. Unsaved listings (Live postings, team and dream roles, tiles, Manage track's links) have
+  no page: their title is the link out, with HDS's external icon. Apply mode keeps Open application.
+  Pinned in `PostingLink.test.tsx`, the surface suites and `e2e/posting-links.spec.ts` (hit-tests
+  every target: each pixel takes the tap, no overlap with another control; long titles at 390).
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links.

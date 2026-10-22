@@ -9,8 +9,9 @@
 }
 
 /* The open job: a selected fill plus a 2px edge marker that hover lacks, so the current row reads
-   apart from a hovered one in both themes (dark hover and selected share a grey). */
-.job-rail [aria-current='page'] {
+   apart from a hovered one in both themes (dark hover and selected share a grey). The row, not its
+   link, carries both, so they run under the posting link too (hds-gaps/NavListActionItem). */
+.job-rail li:has(> [aria-current='page']) {
   background: var(--semantic-color-surface-selected);
   box-shadow: inset 2px 0 0 var(--semantic-color-content-primary);
 }

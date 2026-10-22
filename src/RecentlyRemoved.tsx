@@ -7,7 +7,7 @@ import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
 import { deleteForever, TRASH_DAYS, useTrash, type Removed } from './trash';
 import { restoreWithNotice } from './saveNotice';
-import { JobPostingLink } from './PostingLink';
+import { JobPostingTitle } from './PostingLink';
 
 const daysAgo = (iso: string, now = Date.now()) => {
   const d = Math.floor((now - Date.parse(iso)) / 86_400_000);
@@ -20,12 +20,11 @@ function RemovedRow({ entry }: { entry: Removed }) {
     <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
       <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* A removed job has no page, but its posting is still one tap away. */}
-        <Stack direction="row" gap="px4" align="center">
+        <JobPostingTitle job={entry.job}>
           <Text variant="ui" as="span" className="rjb-semibold">
             {title}
           </Text>
-          <JobPostingLink job={entry.job} />
-        </Stack>
+        </JobPostingTitle>
         {metaLines([entry.job.company, daysAgo(entry.removedAt)]).map((line) => (
           <Text key={line} variant="caption" as="span" tone="secondary">
             {line}

@@ -419,10 +419,15 @@ p {
 
 /* The posting link beside a saved job's title (PostingLink, Adrian 2026-10-22). It never shrinks
  * out of the title's row, and its target overflows the title's line (centred) instead of
- * stretching it, so a card or row keeps its rev-3 rhythm; above and below it are only text. On a
+ * stretching it, so a card or row keeps its rev-3 rhythm. Only text sits in that overflow, and the
+ * link is stacked above it, so every point of the target takes the tap (QA 2026-10-22: the caption
+ * under it took up to 11px). Where rows are only as tall as a line and each ends in a posting link,
+ * the rows grow to the target instead (.rjb-posting-rows), so two targets never overlap. On a
  * phone it is the app's 40x40 target: HDS's touch rule would lift the sm icon-only button to 44
  * wide there, off the row's centre line (as with .rjb-icon-40). */
 [data-hds] .rjb-posting-link {
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
   margin-block: calc((1lh - var(--primitive-space-8)) / 2);
 }
@@ -438,6 +443,34 @@ p {
     width: var(--primitive-space-10);
     height: var(--primitive-space-10);
     margin-block: calc((1lh - var(--primitive-space-10)) / 2);
+  }
+}
+
+/* A title and its posting link (PostingTitle) may sit in another row (the Pipeline table's star),
+ * so the pair shrinks there too: a long unbroken title wraps instead of pushing the link out. */
+[data-hds] .rjb-posting-title {
+  min-width: 0;
+}
+
+/* A list of one-line rows that each end in a posting link (the closed-on-the-board list): each row
+ * is as tall as the link's target, a subgrid gap apart (NavList's), so neighbouring targets never
+ * overlap or share an edge, and the first never reaches the control above the list (QA
+ * 2026-10-22). */
+[data-hds] .rjb-posting-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--semantic-space-subgrid-gap);
+}
+
+[data-hds] .rjb-posting-rows > li {
+  display: flex;
+  align-items: center;
+  min-height: var(--primitive-space-8);
+}
+
+@media (max-width: 639px) {
+  [data-hds] .rjb-posting-rows > li {
+    min-height: var(--primitive-space-10);
   }
 }
 

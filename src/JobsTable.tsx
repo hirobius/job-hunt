@@ -20,7 +20,7 @@ import { jobHash } from './route';
 import type { SortKey } from './jobSort';
 import { nextSort, rowView, sortDirectionOf, type SortableColumn } from './jobRow';
 import { RowMenu, RowPrimaryAction, StarIcon, StatusBadge } from './JobRowParts';
-import { JobPostingLink } from './PostingLink';
+import { JobPostingTitle } from './PostingLink';
 import type { Job } from './types';
 
 const NONE = (
@@ -79,10 +79,11 @@ export default function JobsTable({
                     <VisuallyHidden>Starred</VisuallyHidden>
                   </>
                 )}
-                <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
-                  {row.title}
-                </InlineLink>
-                <JobPostingLink job={job} />
+                <JobPostingTitle job={job}>
+                  <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
+                    {row.title}
+                  </InlineLink>
+                </JobPostingTitle>
               </Stack>
               {row.factLines.map((line, i) => (
                 <Text key={i} variant="caption" as="span" tone="secondary">

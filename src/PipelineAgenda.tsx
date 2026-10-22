@@ -8,20 +8,14 @@ import { Panel, PanelRow, PanelRows } from './PipelinePanel';
 import { FollowUpButton } from './FollowUp';
 import { deriveJobState } from './jobState';
 import { followUpJobs } from './applyQueue';
-import {
-  dueFollowUps,
-  followUpDate,
-  KIND_WORD,
-  UPCOMING_DAYS,
-  upcomingEvents,
-} from './jobEvents';
+import { dueFollowUps, followUpDate, KIND_WORD, UPCOMING_DAYS, upcomingEvents } from './jobEvents';
 import { dayLabel } from './dayLabel';
 import { jobIdOf } from './store';
 import { jobHash } from './route';
-import { titleOf } from './jobRow';
+import { postingOf, titleOf } from './jobRow';
 import { metaLines } from './metaLines';
 import { timeLabel } from './agendaTime';
-import { JobPostingLink, PostingLink } from './PostingLink';
+import { PostingTitle } from './PostingLink';
 import type { Job } from './types';
 
 const jobHref = (url: string) => jobHash(jobIdOf(url));
@@ -45,8 +39,8 @@ function AgendaRow({
   trailing,
 }: {
   title: ReactNode;
-  /** The job's PostingLink: one tap to the posting from every row (Adrian 2026-10-22). */
-  posting: ReactNode;
+  /** The job whose posting opens from beside the title, in one tap (Adrian 2026-10-22). */
+  posting: { url: string; title?: string; company?: string };
   badge?: ReactNode;
   notes: string[];
   trailing?: ReactNode;
@@ -56,14 +50,11 @@ function AgendaRow({
       <Box sx={{ minWidth: 0 }}>
         <Stack gap="px4" align="start">
           {badge}
-          <Stack direction="row" gap="px4" align="center">
-            <Box sx={{ minWidth: 0 }}>
-              <Text variant="body" as="span" weight="bold" className="rjb-card-title">
-                {title}
-              </Text>
-            </Box>
-            {posting}
-          </Stack>
+          <PostingTitle {...posting}>
+            <Text variant="body" as="span" weight="bold" className="rjb-card-title">
+              {title}
+            </Text>
+          </PostingTitle>
           {notes.map((n, i) => (
             <Text key={i} variant="caption" as="span" tone="secondary">
               {n}
@@ -96,7 +87,7 @@ export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
                   {titleOf(job)}
                 </InlineLink>
               }
-              posting={<JobPostingLink job={job} />}
+              posting={postingOf(job)}
               badge={<Badge tone="warning">Due</Badge>}
               notes={metaLines([job.company, sinceNote(job, now)])}
               trailing={<FollowUpButton job={job} />}
@@ -113,7 +104,7 @@ export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
                     {titleOf(job)}
                   </InlineLink>
                 }
-                posting={<JobPostingLink job={job} />}
+                posting={postingOf(job)}
                 notes={metaLines([
                   deriveJobState(job, now).status,
                   date ? `Follow up ${dayLabel(date, now)}` : '',
@@ -143,7 +134,7 @@ export function NextDaysSection({ jobs, now }: { jobs: Job[]; now: Date }) {
           <PanelRow key={`${it.jobUrl}-${it.id}`}>
             <AgendaRow
               title={`${KIND_WORD[it.kind]} · ${it.label}`}
-              posting={<PostingLink url={it.jobUrl} title={it.label} company={it.company} />}
+              posting={{ url: it.jobUrl, title: it.label, company: it.company }}
               notes={metaLines([
                 `${dayLabel(it.date, now)}, ${timeLabel(it.time)}`,
                 it.company,
