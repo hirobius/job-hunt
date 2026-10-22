@@ -151,9 +151,10 @@ function ResetLocalData({
       <AlertDialog.Content className="rjb-sheet" onCloseAutoFocus={refocusAccount(returnFocus)}>
         <AlertDialog.Header>
           <AlertDialog.Title>Reset local data?</AlertDialog.Title>
-          {/* The safety copy is body 15 (rev-3 #s-reset-*), never the smallest text in the dialog. */}
-          <AlertDialog.Description asChild>
-            <Text variant="body" as="p" tone="secondary">
+          {/* The safety copy is body 15 (rev-3 #s-reset-*), never the smallest text in the dialog.
+              HDS's Description is already a <p> (Radix asChild inside), so the body Text is a span. */}
+          <AlertDialog.Description>
+            <Text variant="body" as="span" tone="secondary">
               {signedIn
                 ? 'This clears jobs, documents and settings from this browser only. Your synced jobs come back after you sign in.'
                 : `This deletes everything in this browser: ${plural(jobs, 'job')}, ${plural(docs, 'document')}, your tracks and your kit. You are not signed in, so nothing comes back.`}
