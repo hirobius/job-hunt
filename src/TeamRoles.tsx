@@ -39,10 +39,10 @@ export function RoleList({
           <li key={r.id}>
             {/* No wrap: the title column shrinks so Save sits on the right of every role, the
                 same at 390 as at 1440 (PR #257 review). */}
-            <Stack direction="row" gap="xs" align="center" justify="space-between">
+            <Stack direction="row" gap="px8" align="center" justify="space-between">
               <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
                 <Stack gap="px4">
-                  <Stack direction="row" gap="xs" align="center" wrap="wrap">
+                  <Stack direction="row" gap="px8" align="center" wrap="wrap">
                     <Text variant="ui" as="span">
                       <InlineLink href={r.url}>{r.title}</InlineLink>
                     </Text>

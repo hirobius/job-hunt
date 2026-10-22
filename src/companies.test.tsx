@@ -31,6 +31,7 @@ import {
 } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 import { readDreams, starDream } from './feed/dreams';
+import { saveTarget } from './feed/targets';
 import { getAllJobs } from './store';
 
 const renderApp = () =>
@@ -136,7 +137,19 @@ describe('Companies as one tool (#237)', () => {
     expect(within(panel).getByRole('button', { name: 'Add a company' })).toBeVisible();
     const list = within(panel).getByRole('list', { name: 'Companies' });
     expect(within(list).queryByText('Figma')).toBeNull();
-    await userEvent.click(within(panel).getByRole('radio', { name: 'All (1 more)' }));
+    // Two chips (rev-3 mock s-companies-teams): Hiring now pressed, All not.
+    const show = within(panel).getByRole('group', { name: 'Show companies' });
+    expect(within(show).getByRole('button', { name: 'Hiring now' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const all = within(show).getByRole('button', { name: 'All (1 more)' });
+    expect(all).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.click(all);
+    expect(within(show).getByRole('button', { name: 'All' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(within(list).getByText('Greenhouse · no matching roles')).toBeVisible();
     await userEvent.click(within(panel).getByRole('button', { name: 'Roles at Figma' }));
     expect(within(list).getByText('No open role matches this track right now.')).toBeVisible();
@@ -153,6 +166,25 @@ describe('Companies as one tool (#237)', () => {
       'Northwind',
     );
     expect(screen.getByRole('button', { name: 'Check dream companies' })).toBeVisible();
+  });
+
+  it('no saved outreach target: no Outreach targets section between the panels', async () => {
+    watch('https://jobs.lever.co/northwind');
+    renderApp();
+    await screen.findByRole('region', { name: 'Watched' });
+    expect(screen.queryByRole('region', { name: 'Outreach targets' })).toBeNull();
+    expect(screen.queryByText('Outreach targets')).toBeNull();
+  });
+
+  it('a saved outreach target shows in a panel like Watched', async () => {
+    saveTarget(cat, { login: 'quiet', company: 'Quiet Co', repo: 'quiet/tokens' });
+    window.location.hash = '#/discover/teams';
+    renderApp();
+    const panel = await screen.findByRole('region', { name: 'Outreach targets' });
+    expect(within(panel).getByRole('heading', { name: 'Outreach targets' })).toBeVisible();
+    expect(within(panel).getByRole('list', { name: 'Saved targets' })).toHaveTextContent(
+      'Quiet Co',
+    );
   });
 
   it('a track with nothing to show on Companies still opens on Apply now', async () => {
@@ -179,7 +211,20 @@ describe('Companies as one tool (#237)', () => {
       expect(await screen.findByRole('list', { name: 'Companies' })).toHaveTextContent('Northwind');
     });
 
-    it('a name is looked up on the five systems, and a board found is one Watch away', async () => {
+    it('one field with a short helper line, no description; Add is the one primary', async () => {
+      window.location.hash = '#/discover/teams';
+      renderApp();
+      const dialog = await open();
+      const field = within(dialog).getByLabelText('Company name or job-board link');
+      expect(field).toHaveAttribute('placeholder', 'Acme Labs or a board link');
+      expect(dialog).toHaveTextContent(
+        'We look for its board on Greenhouse, Lever, Ashby and 5 more, or paste the board link.',
+      );
+      expect(dialog).not.toHaveTextContent(/Recruitee|Watched companies show/);
+      expect(dialog).not.toHaveAttribute('aria-describedby', expect.stringMatching(/./));
+    });
+
+    it('a name is looked up on the systems we check, and a board found is one Watch away', async () => {
       window.location.hash = '#/discover/teams';
       renderApp();
       const dialog = await open();
@@ -201,11 +246,17 @@ describe('Companies as one tool (#237)', () => {
         'Nobody Inc',
       );
       await userEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
-      expect(await within(dialog).findByText(/No public board found/)).toBeVisible();
+      expect(
+        await within(dialog).findByText(
+          'No public board found for Nobody Inc on the systems we check. It may hire elsewhere; keep it as a target to stay on your list.',
+        ),
+      ).toBeVisible();
       await userEvent.click(
         within(dialog).getByRole('button', { name: 'Keep Nobody Inc as a target' }),
       );
       expect(readDreams(cat).map((d) => d.company)).toEqual(['Nobody Inc']);
+      // The toast says where it went (the Dream companies panel), the same words as Find boards.
+      expect(await screen.findByText('Added Nobody Inc to Dream companies')).toBeVisible();
     });
   });
 

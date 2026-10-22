@@ -109,8 +109,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** Hiring now | All: an HDS SegmentedControl (rev-3 mock), not a switch. */
-const showAll = () => userEvent.click(screen.getByRole('radio', { name: /^All/ }));
+/** Hiring now | All: two toggle chips (rev-3 mock), not a switch. */
+const showAll = () => userEvent.click(screen.getByRole('button', { name: /^All/ }));
 /** A company row's Roles button opens its roles (and actions) in place. */
 const openRoles = async (company: string) => {
   const b = await screen.findByRole('button', { name: `Roles at ${company}` });
@@ -146,7 +146,7 @@ describe('Teams (design-system teams)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Board not found (1)' }));
     expect(screen.getByRole('list', { name: 'Board not found' })).toHaveTextContent('Quiet Co');
 
-    expect(screen.getByRole('radio', { name: 'All' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'All' })).toBeVisible();
     await showAll();
     expect(names()).toEqual(['Acme Design', 'Flaky', 'Quiet Co']);
     await openRoles('Quiet Co');
