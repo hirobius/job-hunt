@@ -111,6 +111,14 @@ describe('Inline style allowlist (#93)', () => {
     expect(counts).toEqual(ALLOWED);
   });
 
+  // The ratchet (#172): the total `style={{` in non-test src/**/*.tsx. Lower it as styles are
+  // burned down, never raise it.
+  const MAX_INLINE_STYLES = 7;
+  it(`has at most ${MAX_INLINE_STYLES} inline styles in all`, () => {
+    const total = Object.values(counts).reduce((a, n) => a + n, 0);
+    expect(total).toBeLessThanOrEqual(MAX_INLINE_STYLES);
+  });
+
   it('sets no raw font size or weight inline', () => {
     const offenders = tsx.filter((f) =>
       /style=\{\{[^}]*\bfont(Size|Weight)\s*:/.test(readFileSync(f, 'utf8')),
