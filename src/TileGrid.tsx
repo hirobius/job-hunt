@@ -123,7 +123,6 @@ export default function TileGrid({
         return (
           <HdsCard
             key={t.url + t.name}
-            bordered
             padding="none"
             style={{
               height: '100%',

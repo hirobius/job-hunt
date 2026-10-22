@@ -121,7 +121,7 @@ export default function UseTemplate({ job }: { job: Job }) {
               </div>
               {/* The filled message with its blanks as chips that fill in place (rev-3 A), then
                   "N blanks left" and Edit message as the card's last row; Copy still works. */}
-              <Card bordered padding="px16" role="region" aria-label="Preview">
+              <Card padding="px16" role="region" aria-label="Preview">
                 <BlankText
                   text={filled}
                   job={job}

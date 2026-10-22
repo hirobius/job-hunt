@@ -82,8 +82,10 @@ export default function TrackerView() {
   const statusSheet = useBackSheet('pipeline-status');
   const sortSheet = useBackSheet('pipeline-sort');
   const moreSheet = useBackSheet('pipeline-more');
-  // A sortable table where there's room for its six columns; compact cards below that (#129).
-  const wide = useAtLeast('lg');
+  // A sortable table where there's room for its six columns (the shell's full 1052 measure, from
+  // HDS xl); compact cards below that (#129). At lg the shell's content is ~920 and titles wrapped
+  // to three lines.
+  const wide = useAtLeast('xl');
   // Export links sits beside Status and Sort; on a phone it folds into a ⋯ menu so they keep room.
   const roomy = useAtLeast('sm');
 
@@ -349,7 +351,7 @@ export default function TrackerView() {
             {jobs.length === 0 && (
               // First use: the shared teaching empty (#132): what this will hold, one primary action,
               // one way to see it working.
-              // rev-3 "Pipeline, empty": one bordered, centred panel (icon tile, title, sentence,
+              // rev-3 "Pipeline, empty": one centred panel (icon tile, title, sentence,
               // Add job + sample data); Find the next company stays below it.
               <EmptyState
                 framed

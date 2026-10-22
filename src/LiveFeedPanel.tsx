@@ -6,7 +6,7 @@
 // track (src/feed/watchlist.ts). "Find more" runs the wide sweep (#213): every title that is on for
 // the track, in one search, merged and tagged by title (src/feed/sweep.ts).
 // Layout (rev-3 mock, K/H): the search row, then Calibrate → Refine → Openings, 24 apart. Openings
-// is one bordered panel: a header (count, how it is sorted and what is hidden, Find more, a menu
+// is one panel: a header (count, how it is sorted and what is hidden, Find more, a menu
 // with the Show filter and Save all), a Partial row when sources failed, then hairline rows.
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
@@ -758,8 +758,8 @@ export default function LiveFeedPanel({
         </Box>
       )}
       {/* Calibrate (#223): the track's ticked titles beside the other targeting, then the saved
-          searches. A bordered row with what it holds under its name (rev-3 J), like Refine. */}
-      <Card bordered padding="none" className="rjb-disclosure-vertical">
+          searches. A row with what it holds under its name (rev-3 J), like Refine. */}
+      <Card padding="none" className="rjb-disclosure-vertical">
         <Box sx={{ px: 'sm', pb: calibrateOpen ? 'sm' : 0 }}>
           <Disclosure
             variant="row"
@@ -918,7 +918,7 @@ export default function LiveFeedPanel({
       </Card>
 
       {/* Watching companies and your evidence are set-and-forget: tucked away so the postings lead. */}
-      <Card bordered padding="none" className="rjb-disclosure-vertical">
+      <Card padding="none" className="rjb-disclosure-vertical">
         <Box sx={{ px: 'sm', pb: refineOpen ? 'sm' : 0 }}>
           <Disclosure
             variant="row"
@@ -1021,7 +1021,7 @@ export default function LiveFeedPanel({
   );
 }
 
-/** The Openings panel (rev-3 K): the Pipeline's bordered Card, a header with the count, a caption
+/** The Openings panel (rev-3 K): the Pipeline's Card (a raised fill, no outline), a header with the count, a caption
  *  of how it is sorted and what is hidden (two items a line, #192) and trailing controls, then
  *  rows split by hairlines. */
 function OpeningsPanel({
@@ -1039,7 +1039,7 @@ function OpeningsPanel({
 }) {
   const lines = metaLines(caption);
   return (
-    <Card as="section" aria-label="Openings" aria-busy={busy || undefined} padding="none" bordered>
+    <Card as="section" aria-label="Openings" aria-busy={busy || undefined} padding="none">
       <Box sx={{ px: 'sm', py: 'sm' }}>
         <Stack direction="row" gap="px8" align="center" justify="space-between">
           <Box sx={{ minWidth: 0 }}>

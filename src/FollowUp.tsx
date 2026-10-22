@@ -152,7 +152,7 @@ function FollowUpContent({ job }: { job: Job }) {
               // The message as the template editor shows it: each blank a chip that fills in place
               // and saves where it belongs (on the job, or on the message), then "N blanks left"
               // with Edit message beside it as the card's last row (as in Use template).
-              <Card bordered padding="px16" role="region" aria-label="Preview">
+              <Card padding="px16" role="region" aria-label="Preview">
                 <BlankText
                   text={message}
                   job={job}

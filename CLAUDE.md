@@ -54,7 +54,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.30.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.31.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
   `.npmrc` maps `@hirobius` there, so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`). GitHub
   Packages stops at design-system 0.26.2, so the lockfile resolves it from registry.npmjs.org and `.npmrc` sets
@@ -256,11 +256,16 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
   `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
   `pipelineFollowUps.test.tsx`.
-- **Pipeline rows (#129):** the shell is HDS page width (`Container maxWidth="max"`, 1200). The
-  Pipeline table and Discover's tile grid use it; the job page and Documents sit at
+- **Shell width (Adrian 2026-10-22, the portfolio's):** `src/hds-gaps/PageShell` = HDS `Container`
+  at 1180 in all with a `clamp(1.25rem, 5vw, 4rem)` gutter (20 on a phone, 64 from 1280), so content
+  is at most 1052; header, tabs and every page share it. **No outlines on surfaces (HDS 0.31 soft
+  surfaces):** Cards and panels are borderless (raised fill + spacing); never pass `bordered`.
+  Inputs, focus, selected/current, overlays, row dividers and feedback tones keep theirs.
+  `e2e/no-outlines.spec.ts` fails on a Card or container box that draws an edge.
+- **Pipeline rows (#129):** the Pipeline table and Discover's tile grid use the shell width; the job page and Documents sit at
   the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders
   `JobsTable` (HDS `Table`, sortable headers through `jobRow.nextSort` → the same `SortKey` as the
-  toolbar) at ≥ the HDS `lg` breakpoint and `JobListCard` (title on its own row) below it, chosen
+  toolbar) at ≥ the HDS `xl` breakpoint (1280; at `lg` the 920 measure wrapped titles to three lines) and `JobListCard` (title on its own row) below it, chosen
   by HDS `useAtLeast` (no `matchMedia` → cards). Both render `jobRow.rowView` with
   `JobRowParts.tsx`: one next step per row (Mark applied / Follow up, secondary so Add job stays
   the page's one primary) + the row `Menu` (also on the job page's header, minus Remove); 40px controls on

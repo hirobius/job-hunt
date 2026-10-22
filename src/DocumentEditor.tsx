@@ -534,8 +534,6 @@ function OutreachText({
                 role="region"
                 aria-label="Preview"
                 sx={{
-                  border: 'thin solid',
-                  borderColor: 'border.default',
                   borderRadius: 'md',
                   bgcolor: 'var(--semantic-color-surface-sunken)',
                   p: 'sm',

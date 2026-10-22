@@ -17,7 +17,6 @@ import {
   TabsContent,
   Box,
   Text,
-  Container,
   Stack,
   useToast,
 } from '@hirobius/design-system';
@@ -45,6 +44,7 @@ import { useCategories } from './curation/curationStore';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
+import { PageShell } from './hds-gaps/PageShell';
 
 // Code-split every route view: Discover, Documents and the rest here, the Pipeline, job page,
 // Apply mode and Company page through routeViews.ts (they render without a Suspense step once
@@ -205,20 +205,10 @@ export default function App() {
     <CloudSyncProvider>
       <SnippetMigration />
       <DataToolsProvider>
-        {/* The HDS page width (1200): wide enough for the Pipeline table and, next, the job page's
-            list rail (#129, #130). Each view sets its own inner measure where prose needs one. */}
-        <Container maxWidth="max">
-          {/* Page gutter: 16 on a phone (rev-3 mock; HDS's compact region gutter is 12 there),
-              HDS's region gutter from sm up. */}
-          <Box
-            sx={{
-              px: {
-                base: 'var(--semantic-space-fixed-sm)',
-                sm: 'var(--semantic-space-region-gutter)',
-              },
-              py: 'md',
-            }}
-          >
+        {/* The portfolio's shell (Adrian 2026-10-22): 1180 in all, gutters that grow with the
+            viewport, so content stops near 1052. Header, tabs and every page share it. */}
+        <PageShell>
+          <Box sx={{ py: 'md' }}>
             {/* On the Documents, legal and not-found pages no tab is selected (and no tab panel mounts).
                 Manual activation there: Tab past the Account button focuses the first tab, which
                 would otherwise select it and leave the page before a keyboard user reaches it. */}
@@ -309,7 +299,7 @@ export default function App() {
               </Stack>
             </HdsTabs>
           </Box>
-        </Container>
+        </PageShell>
         <SignInDialog />
         <FollowUpHost />
         <NoticeHost />
