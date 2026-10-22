@@ -1,7 +1,8 @@
 // Companies (#237, Calm list 3/7; the Discover tool keeps its `teams` slug and Teams label): one
 // list of company rows with their open roles inline. The rows are the track's watched companies (its
-// board tiles, feed/watchlist.ts) and the teams found with the keyless GitHub search in the track's
-// own field (feed/teamTopics.ts picks the topics; a track with none gets no search), one row per
+// board tiles, feed/watchlist.ts) and the companies found by the track's own source
+// (feed/companySource.ts, #215): the keyless GitHub search where the track's terms name a topic,
+// else its starter list and the YC companies hiring now that match its titles. One row per
 // board. Each board is read live and filtered by the track's terms (feed/teamRoles.ts); "Hiring now"
 // hides the companies known to have no matching role. Rev-3 mock: one "Watched" panel (count badge,
 // one caption, Add a company, Hiring now | All) of hairline rows, each a name, "Greenhouse · 3
@@ -35,7 +36,13 @@ import {
   type RunReport,
 } from './feed/dsOrgs';
 import { createGithubBudget } from './feed/githubBudget';
-import type { TeamSearch } from './feed/teamTopics';
+import {
+  suggestTrackCompanies,
+  type CompanySource,
+  type SuggestReport,
+  type SuggestedCompany,
+} from './feed/companySource';
+import { YC_CREDIT } from './feed/yc';
 import { probeFetchJson } from './feed/probeFetch';
 import { saveTarget, useTargets } from './feed/targets';
 import { liveFetchJson } from './feed/fetchFeed';
@@ -71,6 +78,14 @@ const asRow = (o: OrgTarget): CompanyRow => ({
   board: o.board,
   openRoles: o.openRoles,
   boardCheck: o.boardCheck,
+});
+
+const suggestedRow = (c: SuggestedCompany): CompanyRow => ({
+  login: c.login,
+  company: c.company,
+  website: c.website,
+  board: c.board,
+  boardCheck: c.boardCheck,
 });
 
 const watchedRow = (b: Board): CompanyRow => ({
@@ -110,16 +125,17 @@ export default function CompaniesPanel({
   categoryId,
   boardUrls,
   terms,
-  search,
+  source,
 }: {
   categoryId: string;
   boardUrls: string[];
   /** The track's search terms: a role matches when it mentions one as a phrase. */
   terms: string[];
-  /** The GitHub search for this track's field, or null when its terms name no topic (or the
-   *  GitHub source is off). */
-  search: TeamSearch | null;
+  /** Where this track's companies come from (feed/companySource.ts). */
+  source: CompanySource;
 }) {
+  const search = source.kind === 'github' ? source.search : null;
+  const suggested = source.kind === 'suggested' ? source : null;
   const { toast } = useToast();
   const targets = useTargets(categoryId);
   const { isWatching, watch } = useWatching(categoryId, boardUrls);
@@ -127,6 +143,7 @@ export default function CompaniesPanel({
   const [running, setRunning] = useState(false);
   const [found, setFound] = useState<CompanyRow[]>([]);
   const [report, setReport] = useState<RunReport | null>(null);
+  const [suggestReport, setSuggestReport] = useState<SuggestReport | null>(null);
   const [ran, setRan] = useState(false);
   const [hiringOnly, setHiringOnly] = useState(true);
   const [readAll, setReadAll] = useState(false);
@@ -227,6 +244,34 @@ export default function CompaniesPanel({
       }
     } finally {
       setReport({ ...rep });
+      setRunning(false);
+    }
+  };
+
+  // A track with no GitHub topic: its starter list, then the YC companies that match its titles.
+  const suggest = async () => {
+    if (running || !suggested) return;
+    const ac = new AbortController();
+    abort.current = ac;
+    const rep: SuggestReport = { ycMatched: 0 };
+    setRunning(true);
+    setRan(true);
+    setFound([]);
+    setSuggestReport(null);
+    try {
+      for await (const c of suggestTrackCompanies(suggested, {
+        fetchJson: probeFetchJson,
+        watched: watchedBoards,
+        terms,
+        limiter,
+        signal: ac.signal,
+        report: rep,
+      })) {
+        setFound((prev) => [...prev, suggestedRow(c)]);
+        if (c.board) loadRoles(c.board, ac.signal);
+      }
+    } finally {
+      setSuggestReport({ ...rep });
       setRunning(false);
     }
   };
@@ -358,7 +403,9 @@ export default function CompaniesPanel({
   const teams = search ? `${search.noun} teams` : '';
   const hidden = rows.length - shown.length - notFound.length;
   const caption = running
-    ? `Checking… ${teamsN(found.length)} so far.`
+    ? suggested
+      ? `Checking… ${companies(found.length)} so far.`
+      : `Checking… ${teamsN(found.length)} so far.`
     : rows.length
       ? `${companies(rows.length)}, ${hiring} hiring now. Open roles that match this track show first.` +
         (report && report.unresolved > 0 && !report.stoppedUntil
@@ -366,7 +413,9 @@ export default function CompaniesPanel({
           : '')
       : search
         ? `Add a company, or find teams with public ${search.noun} work on GitHub. Their open roles show here.`
-        : "Add a company to see its open roles here. The team search looks on GitHub, and this track's titles don't name anything GitHub tracks.";
+        : suggested
+          ? 'Add a company, or get suggestions for this track. Their open roles show here.'
+          : "Add a company to see its open roles here. The team search looks on GitHub, and this track's titles don't name anything GitHub tracks.";
 
   return (
     // Panels 24 apart, like the Pipeline's.
@@ -394,12 +443,38 @@ export default function CompaniesPanel({
                     {ran ? `Find more ${teams}` : `Find ${teams}`}
                   </Button>
                 ))}
+              {suggested &&
+                (running ? (
+                  <Button size="sm" variant="secondary" onClick={() => abort.current?.abort()}>
+                    Cancel
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="secondary" onClick={() => void suggest()}>
+                    {ran ? 'Suggest again' : 'Suggest companies'}
+                  </Button>
+                ))}
               {unread > 0 && !readAll && (
                 <Button size="sm" variant="secondary" onClick={() => setReadAll(true)}>
                   {`Check open roles at ${companies(unread)}`}
                 </Button>
               )}
             </Stack>
+            {suggested && (
+              <Text variant="caption" as="p" tone="secondary">
+                {suggested.line}
+              </Text>
+            )}
+            {suggestReport?.ycDown && (
+              <Alert tone="warning">{`The ${YC_CREDIT} didn't answer, so only your starter list is suggested. Try again later.`}</Alert>
+            )}
+            {suggested?.yc &&
+              suggestReport &&
+              !suggestReport.ycDown &&
+              !suggestReport.ycMatched && (
+                <Text variant="caption" as="p" tone="secondary">
+                  No YC company hiring now matches this track's titles.
+                </Text>
+              )}
             {rows.length > 0 && (
               <Box>
                 <SegmentedControl

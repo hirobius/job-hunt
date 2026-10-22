@@ -42,7 +42,7 @@ import DiscoverHeader from './DiscoverHeader';
 import { contextLabel, placeLabel, useTrackContext } from './discoverContext';
 import { Panel, PanelBody, PanelRow, PanelRows } from './PipelinePanel';
 import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
-import { teamSearchFor } from './feed/teamTopics';
+import { companySourceFor } from './feed/companySource';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 import { useActiveTitles } from './feed/sweepTitles';
 import { useDreams } from './feed/dreams';
@@ -532,12 +532,18 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const route = useRoute();
   // The title filter's seed (#223): the track's titles, else its ATS roles. One list per track.
   const titleSeed = cat.titles.length ? cat.titles : cat.atsRoles;
-  const teamSearch = useMemo(
-    () => teamSearchFor([...cat.titles, ...cat.atsRoles]),
-    [cat.titles, cat.atsRoles],
+  // The track's company source (#215): GitHub where its terms name a topic, else its starter list
+  // and the YC companies hiring now. Never design-system teams on a track that isn't one.
+  const companySource = useMemo(
+    () =>
+      companySourceFor(
+        { label: cat.label, titles: cat.titles, atsRoles: cat.atsRoles },
+        DISCOVERY_SOURCE_ENABLED,
+      ),
+    [cat.label, cat.titles, cat.atsRoles],
   );
   const dreams = useDreams(cat.id);
-  const search = DISCOVERY_SOURCE_ENABLED.github ? teamSearch : null;
+  const search = companySource.kind === 'github' ? companySource.search : null;
   // The companies list leads where it has something to show: a team search, a watched company or
   // a dream company. A track with none of those opens on Apply now.
   const watchesAny = useMemo(() => boardsFromUrls(boardUrls, Infinity).length > 0, [boardUrls]);
@@ -695,7 +701,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               categoryId={cat.id}
               boardUrls={boardUrls}
               terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
-              search={search}
+              source={companySource}
             />
           </Suspense>
         )}
