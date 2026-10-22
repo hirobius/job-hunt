@@ -108,6 +108,9 @@ describe('To apply queue and Apply mode', () => {
     expect(within(pager).getByRole('button', { name: 'Previous page' })).toBeDisabled();
     await user.click(await screen.findByRole('button', { name: 'Mark applied' }));
     expect(findJobByUrl(A)?.status).toBe('Applied');
+    // rev-3 B: the meta line follows the status: the applied date, not "Saved N days ago".
+    expect(screen.getByText(/Applied today/)).toBeInTheDocument();
+    expect(screen.queryByText(/Saved (today|\d+ days? ago)/)).toBeNull();
     // A short title, the company in the body, and the date as the Pipeline writes it (no ISO).
     const note = screen.getByText(
       /Follow up on (Today|Tomorrow|[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2})\./,

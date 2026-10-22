@@ -5,7 +5,7 @@
 // job; closing changes nothing. The host is mounted once in App, so a row that leaves its list
 // once the follow-up is sent doesn't take the dialog with it.
 import { useState } from 'react';
-import { Copy, ExternalLink } from 'lucide-react';
+import { Copy, ExternalLink, Pencil } from 'lucide-react';
 import {
   Alert,
   Box,
@@ -127,48 +127,60 @@ function FollowUpContent({ job }: { job: Job }) {
   };
 
   return (
-    <Dialog.Content>
+    // The same HDS Dialog chrome as Use template (rjb-dialog: 16px gutter at 390, the body
+    // scrolls under a pinned header and footer).
+    <Dialog.Content className="rjb-dialog">
       <Dialog.Header>
         <Dialog.Title>Follow up</Dialog.Title>
         <Dialog.Description>
           {job.company ? `${title} at ${job.company}` : title}
         </Dialog.Description>
       </Dialog.Header>
-      {sent ? (
-        <Alert tone="success">{`Follow-up sent. Next one due in ${FOLLOWUP_DAYS} days.`}</Alert>
-      ) : (
-        <Stack gap="tight">
-          {edited === null ? (
-            // The message as the template editor shows it: each blank a chip that fills in place
-            // and saves where it belongs (on the job, or on the message), then "N blanks left".
-            <Card bordered padding="px16">
-              <BlankText text={message} job={job} documentId={template?.documentId} />
-            </Card>
-          ) : (
-            <Textarea
-              label="Message"
-              rows={10}
-              value={message}
-              onChange={(e) => {
-                setEdited(e.target.value);
-                setCopied(false); // an edit needs copying again
-              }}
-            />
-          )}
-          {!template && (
-            <Text variant="caption" tone="secondary">
-              No follow-up message yet. Write it here, or add one in Documents.
-            </Text>
-          )}
-          {edited === null && (
-            <Box>
-              <Button variant="tertiary" size="sm" onClick={() => setEdited(message)}>
-                Edit message
-              </Button>
-            </Box>
-          )}
-        </Stack>
-      )}
+      <div className="rjb-dialog-body">
+        {sent ? (
+          <Alert tone="success">{`Follow-up sent. Next one due in ${FOLLOWUP_DAYS} days.`}</Alert>
+        ) : (
+          <Stack gap="tight">
+            {edited === null ? (
+              // The message as the template editor shows it: each blank a chip that fills in place
+              // and saves where it belongs (on the job, or on the message), then "N blanks left"
+              // with Edit message beside it as the card's last row (as in Use template).
+              <Card bordered padding="px16" role="region" aria-label="Preview">
+                <BlankText
+                  text={message}
+                  job={job}
+                  documentId={template?.documentId}
+                  trailing={
+                    <Button
+                      variant="tertiary"
+                      size="md"
+                      iconLeft={<Icon icon={Pencil} />}
+                      onClick={() => setEdited(message)}
+                    >
+                      Edit message
+                    </Button>
+                  }
+                />
+              </Card>
+            ) : (
+              <Textarea
+                label="Message"
+                rows={10}
+                value={message}
+                onChange={(e) => {
+                  setEdited(e.target.value);
+                  setCopied(false); // an edit needs copying again
+                }}
+              />
+            )}
+            {!template && (
+              <Text variant="caption" tone="secondary">
+                No follow-up message yet. Write it here, or add one in Documents.
+              </Text>
+            )}
+          </Stack>
+        )}
+      </div>
       <Dialog.Footer>
         {sent ? (
           <>

@@ -78,6 +78,7 @@ export default function BlankText({
   preview = false,
   head,
   action,
+  trailing,
 }: {
   text: string;
   job?: Job;
@@ -91,6 +92,8 @@ export default function BlankText({
   /** A row's action (Copy), kept on the first line beside the text. The fill field and
    *  "N blanks left" come after the row at full width (rev-3 A), not squeezed beside it. */
   action?: ReactNode;
+  /** The text's last row, right of "N blanks left" (the dialogs' Edit message). */
+  trailing?: ReactNode;
 }) {
   const [picked, setPicked] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -166,7 +169,17 @@ export default function BlankText({
           </Stack>
         </Card>
       )}
-      <BlanksLeft text={text} />
+      {trailing ? (
+        // "N blanks left" left, the action right; the empty span keeps the action right-aligned
+        // once every blank is filled.
+        <Stack direction="row" gap="tight" align="center" justify="space-between">
+          <BlanksLeft text={text} />
+          <span />
+          {trailing}
+        </Stack>
+      ) : (
+        <BlanksLeft text={text} />
+      )}
     </Stack>
   );
 }

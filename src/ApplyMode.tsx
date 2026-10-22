@@ -25,7 +25,7 @@ import { PageHeader } from '@hirobius/design-system/patterns';
 import { BackToPipeline } from './JobHeader';
 import { JobBadges } from './JobRowParts';
 import { MetaCaption } from './MetaCaption';
-import { savedAgo } from './jobState';
+import { statusAgo } from './jobState';
 import { Panel, PanelBody } from './PipelinePanel';
 import BlankText from './BlankText';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
@@ -113,7 +113,8 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   };
 
   const company = job.company?.trim();
-  const saved = savedAgo(job);
+  // rev-3 B: company · location · the applied date once applied, else when it was saved.
+  const saved = statusAgo(job);
   const dueOn = followUpDate(job, new Date());
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>

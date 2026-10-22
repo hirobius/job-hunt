@@ -80,7 +80,6 @@ describe('Inline style allowlist (#93)', () => {
     'App.tsx': 1,
     // HDS Dialog.Content has no size prop; portalled, so a wrapper can't size it
     'ManageTrackDialog.tsx': 1,
-    'UseTemplate.tsx': 1,
     'account/DataToolsProvider.tsx': 1,
     // TrackerView: the Add job Dialog.Content (as above)
     'TrackerView.tsx': 1,
