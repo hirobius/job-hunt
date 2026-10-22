@@ -1,8 +1,9 @@
 {
-  "updatedAt": "2026-10-22T18:00:00Z",
+  "updatedAt": "2026-10-22T22:30:00Z",
   "phase": "live",
   "headline": "Live as RoleForge. Rapid apply (#218) and wide sweep (#220, blob v7) are on main. Companies follows the track in review on claude/teams-first (dream companies, blob v9).",
   "next": [
+    "Security re-check claude/rf-tab-switch (#288, off main 2dd1e49): a tab freezes with 'Reload to continue' when another tab signs out or in as someone else; no sync or track write reaches the other account. verify, verify:ui, e2e run locally. Not merged.",
     "Review release candidate claude/rf-candidate: main (4927b31) merged in, so it is ahead of production. Release review fixed: quick-add URL goes through the route seam (no ~2 s tab stall), a stale tab after a deploy says 'A new version is ready' with Reload, an expired sign-in link says so, and the feedback E2E collapse flake (10/10 alone). verify, verify:ui and e2e green. Not merged; add roleforge-app.vercel.app to Supabase redirect URLs before shipping.",
     "Review claude/rf-quickwins (off claude/rf-batch3): /assets immutable cache, sample data adds a Sample track, lazy supabase-js + route views (first load 319.6 → 246.3 kB gz JS signed out), Starred/Documents/Follow-up due wording, kit note sign-in aware, favicon brand, starter template fixes, main landmark, PWA (titles per route, manifest id + screenshots, favicon.ico, theme-color per scheme, font preload), docs. Not merged.",
     "New production address https://roleforge-app.vercel.app on claude/rf-new-url (off claude/rf-batch3): magic links accept both it and the old job-hunt-jade address; add both to Supabase Auth → URL Configuration before merging. Not merged.",
