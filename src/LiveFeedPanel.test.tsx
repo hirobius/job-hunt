@@ -355,7 +355,7 @@ describe('LiveFeedPanel', () => {
     expect(within(panel).getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
-  it("Remotive's daily limit says so and offers no Retry, which could not succeed", async () => {
+  it("Remotive's daily limit is a quiet note: no Partial warning, no Retry", async () => {
     feed.fetchFeed.mockResolvedValueOnce({
       postings: RESULT.postings,
       sources: [
@@ -373,9 +373,12 @@ describe('LiveFeedPanel', () => {
     const panel = await screen.findByRole('region', { name: 'Openings' });
     expect(
       within(panel).getByText(
-        'Remotive: daily limit reached, back tomorrow. Results below are from the rest.',
+        "Remotive: today's free searches are used up. Showing the rest; more tomorrow.",
       ),
     ).toBeInTheDocument();
+    // Not an error: no warning badge, no "didn't answer".
+    expect(within(panel).queryByText('Partial')).toBeNull();
+    expect(within(panel).queryByText(/didn’t answer/)).toBeNull();
     expect(within(panel).queryByRole('button', { name: 'Retry' })).toBeNull();
   });
 

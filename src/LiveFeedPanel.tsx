@@ -1041,12 +1041,17 @@ function PartialRow({
   // Remotive's daily budget is spent: a Retry cannot succeed, so it gets its own words and none.
   const spent = [...new Set(errors.filter(isBudgetSpent).map(sourceOf))];
   const canRetry = errors.some((e) => !isBudgetSpent(e));
+  // Only a spent daily limit is not a failure: one quiet line, no warning, no Retry.
+  if (spent.length === n)
+    return (
+      <PanelRowBox>
+        <Text variant="caption" as="p" tone="secondary">
+          {`${namesOf(spent)}: today's free searches are used up. Showing the rest; more tomorrow.`}
+        </Text>
+      </PanelRowBox>
+    );
   const detail =
-    spent.length === n
-      ? `${namesOf(spent)}: daily limit reached, back tomorrow.`
-      : n === 1 && errors.length === 1 && errors[0].error
-        ? errors[0].error
-        : `${namesOf(names)}.`;
+    n === 1 && errors.length === 1 && errors[0].error ? errors[0].error : `${namesOf(names)}.`;
   return (
     <PanelRowBox>
       <Stack direction="row" gap="tight" align="center" justify="space-between">

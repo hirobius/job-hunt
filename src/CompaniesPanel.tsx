@@ -15,8 +15,8 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Disclosure,
-  Input as HdsInput,
   InlineLink,
   Stack,
   Tag,
@@ -115,6 +115,8 @@ const OPEN_LINE: Partial<Record<TeamStatus, string>> = {
 };
 const capital = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
+/** How long after GitHub's wait ends the list picks up again by itself. */
+const RESUME_SLACK_MS = 1000;
 const clock = (ms: number) =>
   new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
@@ -139,12 +141,16 @@ export default function CompaniesPanel({
   const { toast } = useToast();
   const targets = useTargets(categoryId);
   const { isWatching, watch } = useWatching(categoryId, boardUrls);
-  const [minStars, setMinStars] = useState(String(MIN_STARS));
+  const [skipSmall, setSkipSmall] = useState(true);
   const [running, setRunning] = useState(false);
   const [found, setFound] = useState<CompanyRow[]>([]);
   const [report, setReport] = useState<RunReport | null>(null);
   const [suggestReport, setSuggestReport] = useState<SuggestReport | null>(null);
   const [ran, setRan] = useState(false);
+  // GitHub's keyless limit is not an error: the run stops, keeps what it found, and picks up once
+  // by itself when the wait is over. A click before then only says the time again.
+  const [early, setEarly] = useState(false);
+  const resumed = useRef(false);
   const [hiringOnly, setHiringOnly] = useState(true);
   const [readAll, setReadAll] = useState(false);
   // One row's roles open at a time (rev-3 mock).
@@ -218,27 +224,34 @@ export default function CompaniesPanel({
   const notFound = hiringOnly ? rows.filter((r) => statusOf(r) === 'none') : [];
   const unread = watchedBoards.filter((b) => !roles[boardKey(b)]).length;
 
-  const find = async () => {
+  const waitUntil = report?.stoppedUntil;
+  const find = async (resume = false) => {
     if (running || !search) return;
+    if (!resume && waitUntil && waitUntil > Date.now()) {
+      setEarly(true);
+      return;
+    }
+    if (!resume) resumed.current = false;
     const ac = new AbortController();
     abort.current = ac;
     const rep = {} as RunReport;
     setRunning(true);
     setRan(true);
-    setFound([]);
+    setEarly(false);
+    // Picking up after a wait keeps the list; a fresh search starts it again.
+    if (!resume) setFound([]);
     setReport(null);
-    const stars = Number(minStars);
     try {
       for await (const o of findDesignSystemOrgs({
         fetchJson: probeFetchJson,
         budget: createGithubBudget(),
         signal: ac.signal,
-        minStars: Number.isFinite(stars) && stars >= 0 ? stars : MIN_STARS,
+        minStars: skipSmall ? MIN_STARS : 0,
         queries: search.queries,
         report: rep,
         limiter,
       })) {
-        setFound((prev) => [...prev, asRow(o)]);
+        setFound((prev) => (prev.some((p) => p.login === o.login) ? prev : [...prev, asRow(o)]));
         setReport({ ...rep });
         if (o.board) loadRoles(o.board, ac.signal);
       }
@@ -247,6 +260,21 @@ export default function CompaniesPanel({
       setRunning(false);
     }
   };
+
+  // Once per stop, carry on by ourselves a moment after the wait is over.
+  useEffect(() => {
+    if (!waitUntil || running || resumed.current) return;
+    const t = setTimeout(
+      () => {
+        resumed.current = true;
+        void find(true);
+      },
+      Math.max(0, waitUntil - Date.now()) + RESUME_SLACK_MS,
+    );
+    return () => clearTimeout(t);
+    // find reads the latest state when the timer fires; only a new stop re-arms it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waitUntil, running]);
 
   // A track with no GitHub topic: its starter list, then the YC companies that match its titles.
   const suggest = async () => {
@@ -498,22 +526,19 @@ export default function CompaniesPanel({
             )}
             {search && (
               <Disclosure label="Refine">
-                <Box sx={{ width: 144 }}>
-                  <HdsInput
-                    size="sm"
-                    label="Minimum stars"
-                    helperText="Used on the next search"
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    value={minStars}
-                    onChange={(e) => setMinStars(e.target.value)}
-                  />
-                </Box>
+                <Checkbox
+                  label={`Skip small teams (fewer than ${MIN_STARS} GitHub stars)`}
+                  checked={skipSmall}
+                  onChange={() => setSkipSmall((v) => !v)}
+                />
               </Disclosure>
             )}
-            {report?.stoppedUntil && (
-              <Alert tone="warning">{`GitHub asks us to wait until ${clock(report.stoppedUntil)}. What was found so far is below; try again after that.`}</Alert>
+            {waitUntil && (
+              <Text variant="caption" as="p" tone="secondary" role="status">
+                {early
+                  ? `Still busy. We'll carry on by ourselves after ${clock(waitUntil)}.`
+                  : `GitHub's free search is busy. Showing what we found; more after ${clock(waitUntil)}.`}
+              </Text>
             )}
             {report?.error && <Alert tone="warning">{report.error}</Alert>}
           </Stack>
