@@ -235,7 +235,7 @@ export default function App() {
                 <Box as="header">
                   <Stack gap="normal">
                     {/* Slim app bar (rev-3): the wordmark on the titleSm step (so a page title is
-                      always the biggest text), the cobalt flame mark left of it · the Account avatar. */}
+                      always the biggest text), the placeholder mark left of it · the Account avatar. */}
                     <Stack direction="row" gap="gap" align="center" justify="space-between">
                       <Stack direction="row" gap="px8" align="center">
                         <BrandMark />

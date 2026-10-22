@@ -114,10 +114,10 @@ describe('app shell (#115 Phase 1)', () => {
     expect(wordmark.className).toMatch(/hds-type-title-sm/);
   });
 
-  it('the cobalt flame mark sits left of the wordmark, hidden from assistive tech', () => {
+  it('the placeholder mark sits left of the wordmark, hidden from assistive tech', () => {
     renderApp();
     const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
-    const mark = wordmark.parentElement?.querySelector('svg.rjb-flame');
+    const mark = wordmark.parentElement?.querySelector('.rjb-brand-mark');
     expect(mark).not.toBeNull();
     expect(mark?.getAttribute('aria-hidden')).toBe('true');
     expect(mark!.compareDocumentPosition(wordmark) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
