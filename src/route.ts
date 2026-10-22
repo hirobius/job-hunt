@@ -250,13 +250,11 @@ function subscribe(cb: () => void): () => void {
 /** Listen for route changes outside React (the save notice drops itself on navigation). */
 export const subscribeRoute = subscribe;
 
-/** Swap the current history entry for a route (keeping its record, dropping any sheet mark). */
-function replaceRoute(h: string) {
+/** Swap the current history entry for a route (keeping its record, dropping any sheet mark).
+ *  `search` replaces the query string too (a quick-add link's params, once handled). */
+function replaceRoute(h: string, search = window.location.search) {
   const e = entry ?? { key: newKey(), trail: [], hash: '' };
-  writeEntry(
-    { key: e.key, trail: e.trail, hash: h },
-    window.location.pathname + window.location.search + h,
-  );
+  writeEntry({ key: e.key, trail: e.trail, hash: h }, window.location.pathname + search + h);
   knownHash = h;
   emit(); // replaceState doesn't fire hashchange
 }
@@ -269,7 +267,13 @@ function replaceRoute(h: string) {
 export function navigate(
   patch: Partial<Route>,
   replace = false,
-  opts: { restore?: boolean } = {},
+  opts: {
+    restore?: boolean;
+    /** Replace the query string as well (`''` drops it; implies replace). Only through here, so
+     *  this module always knows the hash it is on (a raw replaceState left a sheet's pop waiting
+     *  ~2 s for a hashchange that never came). */
+    search?: string;
+  } = {},
 ): void {
   if (pendingBack > 0) {
     afterPops.push(() => navigate(patch, replace, opts));
@@ -290,9 +294,10 @@ export function navigate(
   if (moved && !('from' in patch)) next.from = null;
   if (moved && !('section' in patch)) next.section = null;
   const h = buildHash(next);
-  if (h === window.location.hash) return;
+  const search = opts.search ?? window.location.search;
+  if (h === window.location.hash && search === window.location.search) return;
   if (opts.restore) requestScrollRestore(h);
-  if (replace || entry?.sheet) replaceRoute(h);
+  if (replace || entry?.sheet || opts.search !== undefined) replaceRoute(h, search);
   else window.location.hash = h; // fires hashchange → emit via listener
 }
 

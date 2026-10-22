@@ -170,11 +170,11 @@ export default function App() {
     if (acted) {
       ['add', 'applied', 'status', 'u', 't', 'title'].forEach((k) => qp.delete(k));
       const s = qp.toString();
-      // Keep the entry's state: it holds this tab's return-path record (route.ts).
-      window.history.replaceState(
-        window.history.state,
-        '',
-        window.location.pathname + (s ? '?' + s : '') + '#/' + QUICK_ADD_LANDING,
+      // Through the route seam, so it knows the hash it is on (a sheet's pop would wait otherwise).
+      navigate(
+        { tab: QUICK_ADD_LANDING, sub: null, pillar: null, jobId: null, from: null, section: null },
+        true,
+        { search: s ? '?' + s : '' },
       );
     } else if (!getRoute().tab) {
       navigate({ tab: HOME_ROUTE }, true);

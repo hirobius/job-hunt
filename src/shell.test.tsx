@@ -24,6 +24,7 @@ import App from './App';
 import { BRAND } from './brand';
 import { addJob, getAllJobs, removeJob } from './store';
 import { OFFLINE_MSG } from './cloudMessages';
+import { backInFlight, resetHistoryRecord } from './route';
 
 const fake = () => h.fake!;
 
@@ -416,5 +417,23 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(window.location.hash).toBe('#/queue');
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/9');
+  });
+
+  it('after a quick-add link, a sheet closing and a tab move at once (the URL goes through the route)', async () => {
+    // A fresh load of the link: the hashchange from beforeEach has run, and the route module
+    // starts its record on the URL the browser opened.
+    await act(() => new Promise((r) => setTimeout(r, 0)));
+    window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
+    resetHistoryRecord();
+    renderApp();
+    expect(window.location.search).toBe('');
+    expect(window.location.hash).toBe('#/queue');
+    await openAccount();
+    await userEvent.keyboard('{Escape}');
+    // The menu's entry pops at once: the route knows the hash it is on, so it doesn't wait ~2 s
+    // for a hashchange that never comes.
+    await waitFor(() => expect(backInFlight()).toBe(false), { timeout: 500 });
+    await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
+    await waitFor(() => expect(window.location.hash).toMatch(/^#\/discover/), { timeout: 500 });
   });
 });
