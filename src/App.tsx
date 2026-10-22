@@ -18,6 +18,7 @@ import CompanyPage from './CompanyPage';
 import { JobPageLiveness } from './LivenessViews';
 import { Onboarding, ChooseTrack } from './Onboarding';
 import { BRAND } from './brand';
+import { BrandMark } from './BrandMark';
 import { LEGAL_ROUTE } from './legal';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
@@ -172,11 +173,14 @@ export default function App() {
               <Stack gap="px24">
                 <Stack gap="normal">
                   {/* Slim app bar (rev-3): the wordmark on the titleSm step (so a page title is
-                      always the biggest text) · the Account avatar. */}
+                      always the biggest text), the cobalt flame mark left of it · the Account avatar. */}
                   <Stack direction="row" gap="gap" align="center" justify="space-between">
-                    <Text variant="titleSm" as="h1">
-                      {BRAND.name}
-                    </Text>
+                    <Stack direction="row" gap="px8" align="center">
+                      <BrandMark />
+                      <Text variant="titleSm" as="h1">
+                        {BRAND.name}
+                      </Text>
+                    </Stack>
                     <AccountMenu />
                   </Stack>
                   <TabsList

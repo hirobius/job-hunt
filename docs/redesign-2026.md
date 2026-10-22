@@ -1,4 +1,4 @@
-# Roleforge redesign, 2026: case study
+# RoleForge redesign, 2026: case study
 
 From a tracker that had accreted features to a set of screens that read as one designed product.
 Pure HDS (0.26.2, graphite accent), no local UI layer, held by tests rather than by memory.

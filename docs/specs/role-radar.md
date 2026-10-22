@@ -1,4 +1,4 @@
-# Spec: Role Radar in Roleforge — Phase 0 (capability map)
+# Spec: Role Radar in RoleForge — Phase 0 (capability map)
 
 Status: **first pass built** (2026-10-15). Adrian made Role Radar an exception to the feature lock
 ("one of the primary projects that will be on my portfolio") and asked for a first pass from this
@@ -9,7 +9,7 @@ it, per Adrian's direction below.
 ## Where this comes from
 
 The "Role Radar" artifact (researched 2026-10-12) is a one-off report. Its data is hard-coded, but
-the method behind it is the part worth bringing into Roleforge:
+the method behind it is the part worth bringing into RoleForge:
 
 1. Scan the public job APIs of **several hundred company boards** (Greenhouse, Lever, Ashby), plus
    targeted searches.
@@ -20,11 +20,11 @@ the method behind it is the part worth bringing into Roleforge:
    only the user's public evidence.
 5. Roll up **patterns** across all postings: "~21/26 ask for X". Split them into "covered by
    evidence" and "thin or not shown", and name the portfolio work that closes the biggest gaps.
-6. **Add to tracker** in one tap. The artifact already uses Roleforge's `?add=` link.
+6. **Add to tracker** in one tap. The artifact already uses RoleForge's `?add=` link.
 
-## What Roleforge already has (reuse, don't rebuild)
+## What RoleForge already has (reuse, don't rebuild)
 
-| Artifact step | Roleforge today |
+| Artifact step | RoleForge today |
 |---|---|
 | Board APIs (1) | `src/feed/sources/ats.ts` reads Greenhouse, Lever and Ashby boards. The live postings feed caps a search at `MAX_BOARDS = 25`, and the only boards it reads are the user's "Watched companies". |
 | Location / mode filter (3) | `LocationControl` + `inferMode` (#58) |
@@ -58,7 +58,7 @@ saved jobs.
 ## Assumptions (correct any of these)
 
 1. **No AI.** Fit/Gap is deterministic keyword rules against the evidence profile, like the JD
-   screener. The artifact's notes were written by a model; Roleforge removed AI in #54.
+   screener. The artifact's notes were written by a model; RoleForge removed AI in #54.
 2. **Board APIs only.** The artifact's "targeted web searches" are out of scope: they need a
    search API key and a server.
 3. **Keyless and CORS-open sources only.** These are the ones `src/feed` already uses. Any new

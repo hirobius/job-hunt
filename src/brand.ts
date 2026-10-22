@@ -8,9 +8,9 @@
 // events update instead of duplicating.
 export const BRAND = {
   /** Display name. */
-  name: 'Roleforge',
+  name: 'RoleForge',
   /** Header wordmark: the second part takes the accent colour. Joined, it must equal `name`. */
-  wordmark: ['Role', 'forge'] as const,
+  wordmark: ['Role', 'Forge'] as const,
   /** Lowercase, URL/file-safe: download filenames. */
   slug: 'roleforge',
   /** One line for <meta name="description">. */

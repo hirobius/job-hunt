@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-10-22T01:30:00Z",
+  "updatedAt": "2026-10-22T05:00:00Z",
   "phase": "live",
-  "headline": "Live as Roleforge. Rapid apply (#218) and wide sweep (#220, blob v7) are on main. Companies follows the track in review on claude/teams-first (dream companies, blob v9).",
+  "headline": "Live as RoleForge. Rapid apply (#218) and wide sweep (#220, blob v7) are on main. Companies follows the track in review on claude/teams-first (dream companies, blob v9).",
   "next": [
     "Review batch candidate claude/rf-batch3 (on claude/rf-ship-r2): #172 inline-style ratchet (6) + #171 ATS tests, redesign gaps (OS colour mode on first visit, Page not found, legal back link), #215 company source follows the track, #212 visible feedback, Open posting links beside every listed job, #105 vite 8 + plugin-react 6 + jest-dom 7. Not merged.",
     "Rev-3 mobile redesign: L (Check a list type-ahead: your companies + YC + Wikidata, chip input, Keep as a target) and M (Documents rows) built on claude/rf-gaps-lm off claude/rf-polish. Next: Adrian's review; Wikidata + YC hiring.json are unverified live (check on a preview); legal wording adds Wikidata (needs approval).",

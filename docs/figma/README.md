@@ -24,7 +24,7 @@ The Documents frames are the editor (a cover letter at `#/copy-deck/<documentId>
 at `#/copy-deck` is frame 24:3976 (1440) and 24:4132 (390).
 
 Today (`#/today`) was retired in #236: the route redirects to Companies and its follow-ups live in
-the Pipeline, so it has no frame. The first screenshot-only file ("Roleforge screens",
+the Pipeline, so it has no frame. The first screenshot-only file ("RoleForge screens",
 mJgRxGXwbd4j9jj96qpdFI) is superseded by HDS Apps.
 
 ## References

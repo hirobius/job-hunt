@@ -1,4 +1,4 @@
-# Roleforge screenshots for the HDS case study (#199)
+# RoleForge screenshots for the HDS case study (#199)
 
 PNGs at 1440 and 390 px wide (`NN-name-1440.png`, `NN-name-390.png`), fictional sample data only.
 Taken on `main` at `3e1b05b` (the calm list layout, #234, on HDS 0.26.2), 2026-10-20. Story and decisions:
