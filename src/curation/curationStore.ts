@@ -6,7 +6,6 @@
 // is reported (a toast, Retry sync in the account menu); the next sync replays it (sync.ts).
 import { createStore } from '../createStore';
 import { loadPersisted, savePersisted } from '../persisted';
-import { supabase } from '../supabase';
 import { EMPTY_CURATION, type Category, type Group, type Tile, type CurationState } from './types';
 import {
   categoryToRow,
@@ -27,12 +26,9 @@ import {
   type PendingOp,
 } from './pending';
 import { dropTrackData } from '../trackData';
-import { hasPersistedSession } from '../supabase';
+import { hasPersistedSession, loadedSupabase, loadSupabase } from '../supabase';
 
 const KEY = 'rjb_curation';
-
-/** The app's shared anon client (RLS-scoped), re-exported under its historical name. */
-export const curationClient = supabase;
 
 const newId = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID
@@ -45,10 +41,14 @@ const store = createStore<CurationState>(loadPersisted<CurationState>(KEY, EMPTY
 
 // ---- thin cloud I/O (fire-and-forget; local stays the source of truth) ----
 // getSession reads local storage only (no network), so signed-out callers — and tests —
-// short-circuit before any request and never throw.
+// short-circuit before any request and never throw. With no session stored and none held in this
+// tab, the client isn't even loaded (supabase.ts): there is no one to ask.
 async function currentUserId(): Promise<string | null> {
+  const db =
+    loadedSupabase() ?? (hasPersistedSession() || accountInTab ? await loadSupabase() : null);
+  if (!db) return null;
   try {
-    const { data } = await curationClient.auth.getSession();
+    const { data } = await db.auth.getSession();
     return data.session?.user?.id ?? null;
   } catch {
     return null;
@@ -116,7 +116,9 @@ function upsert<T extends CurationTable>(
   id: string,
   buildRow: (uid: string) => RowForTable<T>,
 ) {
-  mirror(table, id, 'upsert', (uid) => curationClient.from(table).upsert(buildRow(uid)));
+  mirror(table, id, 'upsert', async (uid) =>
+    (await loadSupabase()).from(table).upsert(buildRow(uid)),
+  );
 }
 /** Rows per bulk upsert: a starter pack's ~120 board tiles go up as three requests, not 120. */
 export const TILE_CHUNK = 50;
@@ -156,7 +158,8 @@ function upsertMany<T extends CurationTable>(
       let ok = false;
       try {
         if (uid)
-          ok = !(await curationClient.from(table).upsert(rows.slice(i, i + TILE_CHUNK))).error;
+          ok = !(await (await loadSupabase()).from(table).upsert(rows.slice(i, i + TILE_CHUNK)))
+            .error;
       } catch {
         ok = false;
       }
@@ -167,7 +170,9 @@ function upsertMany<T extends CurationTable>(
   })();
 }
 function remove(table: CurationTable, rowId: string) {
-  mirror(table, rowId, 'delete', () => curationClient.from(table).delete().eq('id', rowId));
+  mirror(table, rowId, 'delete', async () =>
+    (await loadSupabase()).from(table).delete().eq('id', rowId),
+  );
 }
 
 // ---- sortOrder helpers (append to the end of the relevant scope) ----

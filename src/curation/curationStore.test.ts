@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-// The store module constructs a live Supabase client at import time; stub it so these tests
+// The store module uses the app's Supabase client (built lazily, supabase.ts); stub it so these tests
 // never depend on ambient (jsdom-absent) session state and never touch the real project — the
 // seam is explicit here rather than accidental. `vi.hoisted` lets the spies + mutable session
 // exist before `vi.mock`'s factory (itself hoisted above all imports) closes over them.
@@ -40,6 +40,10 @@ import {
 import { EMPTY_CURATION } from './types';
 import { clearAllPending, getPending } from './pending';
 import { onCurationWriteFailed } from './syncStatus';
+import { loadSupabase } from '../supabase';
+
+// The client exists in every test here (as after a sign-in); signed-out cases null the session.
+beforeAll(() => loadSupabase());
 
 // Reset to empty + signed-out after each test since the store and mock client are module
 // singletons shared across tests.

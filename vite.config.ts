@@ -11,11 +11,19 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        // The lazy supabase-js chunk keeps a readable name (it would be "dist-<hash>").
+        chunkFileNames: (c) =>
+          c.moduleIds.some((m) => m.includes('@supabase/supabase-js'))
+            ? 'assets/supabase-[hash].js'
+            : 'assets/[name]-[hash].js',
         // Split heavy vendors out of the app chunk so the initial payload is
         // cacheable and smaller (the app was shipping as one ~657 kB bundle).
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
-          if (id.includes('@supabase')) return 'supabase';
+          // supabase-js is a dynamic import (src/supabase.ts): leave it out of every group so it
+          // gets its own lazy chunk. A named group would also pull in its shared deps (tslib, used
+          // by HDS's radix deps), and vendor would then import the whole chunk at startup.
+          if (/[\\/]node_modules[\\/](@supabase|iceberg-js)[\\/]/.test(id)) return undefined;
           // Exact react/react-dom/scheduler only. A loose includes('react') also caught
           // @radix-ui/react-* and lucide-react (HDS deps), splitting HDS across chunks
           // and creating a circular-init crash ("createContext of undefined").

@@ -3,7 +3,8 @@
 // replace the store → upload the rows that are new on this device. Unlike the per-mutator mirror
 // in curationStore, this reports failure: every Supabase `{ error }` is checked, the outcome
 // lands in syncStatus (which Onboarding reads), and the caller gets a boolean.
-import { curationClient, getCurationState, replaceCurationState } from './curationStore';
+import { getCurationState, replaceCurationState } from './curationStore';
+import { hasPersistedSession, loadedSupabase, loadSupabase } from '../supabase';
 import { applyPending, reconcileCuration } from './merge';
 import { clearDelivered, getPending } from './pending';
 import { foldLegacyTiles, type LegacyTile } from './legacyTiles';
@@ -29,6 +30,7 @@ const check = <T extends Res>(r: T): T => {
 
 /** Read every curation row for a user (RLS also scopes this). Throws on any `{ error }`. */
 async function pullAll(userId: string): Promise<CurationState> {
+  const curationClient = await loadSupabase();
   const [cats, groups, tiles] = await Promise.all([
     curationClient.from('categories').select('*').eq('user_id', userId),
     curationClient.from('groups').select('*').eq('user_id', userId),
@@ -43,6 +45,7 @@ async function pullAll(userId: string): Promise<CurationState> {
 
 /** Upload the local-only rows, parents before children (FKs). Throws on any `{ error }`. */
 async function uploadLocalOnly(userId: string, localOnly: CurationState): Promise<void> {
+  const curationClient = await loadSupabase();
   if (localOnly.categories.length)
     check(
       await curationClient
@@ -110,6 +113,7 @@ export async function syncOnLogin(userId: string): Promise<boolean> {
     replaceCurationState(next);
     await uploadLocalOnly(userId, upload);
     // Re-send deletes the cloud refused earlier, children before parents (FKs).
+    const curationClient = await loadSupabase();
     for (const table of ['tiles', 'groups', 'categories'] as const)
       for (const d of deletes.filter((x) => x.table === table))
         check(await curationClient.from(table).delete().eq('id', d.id));
@@ -130,6 +134,10 @@ export async function syncOnLogin(userId: string): Promise<boolean> {
  */
 export async function pushRestoredCuration(mode: 'merge' | 'replace'): Promise<boolean> {
   try {
+    // No client yet and no stored session: signed out, nothing to mirror (and nothing to load).
+    const curationClient =
+      loadedSupabase() ?? (hasPersistedSession() ? await loadSupabase() : null);
+    if (!curationClient) return true;
     const { data } = await curationClient.auth.getSession();
     const uid = data.session?.user?.id;
     if (!uid) return true;

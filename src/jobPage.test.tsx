@@ -18,6 +18,7 @@ vi.mock('@supabase/supabase-js', async () => {
 });
 
 import { createFakeSupabase } from './test/fakeSupabase';
+import { loadSupabase } from './supabase';
 import { viewport } from './test/viewport';
 import { setPipelineView } from './pipelineView';
 import { ColorModeProvider } from './ColorMode';
@@ -46,7 +47,9 @@ const openJobPage = (url = URL_A) => {
   return renderApp();
 };
 
-beforeEach(() => {
+// The Supabase client loads lazily (supabase.ts); load it as a sign-in would, so `fake()` exists.
+beforeEach(async () => {
+  await loadSupabase();
   h.fake?.reset();
   localStorage.clear();
   window.history.replaceState(null, '', '/');
