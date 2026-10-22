@@ -9,8 +9,19 @@ type Row = Record<string, any>;
 type Op = 'select' | 'upsert' | 'delete';
 type Result = { data: unknown; error: { message: string } | null };
 
-export function createFakeSupabase() {
-  const tables: Record<string, Row[]> = {};
+/**
+ * `linkEvent`: the event setSession fires (an expired link's token is refreshed: TOKEN_REFRESHED).
+ * `linkUser`: the account the server answers for a link's email (a token can name another email).
+ * `tables`: rows the cloud already holds.
+ */
+export function createFakeSupabase(
+  opts: {
+    linkEvent?: string;
+    linkUser?: (email: string) => string;
+    tables?: Record<string, Row[]>;
+  } = {},
+) {
+  const tables: Record<string, Row[]> = structuredClone(opts.tables ?? {});
   const failures: { table: string; op: Op }[] = [];
   // `holdNext` parks the next matching write until its release() is called (an in-flight write).
   const holds: { table: string; op: Op; gate: Promise<void> }[] = [];
@@ -95,8 +106,9 @@ export function createFakeSupabase() {
         const email = tokenEmail(t.access_token);
         if (!email || !t.refresh_token)
           return { data: { user: null, session: null }, error: { message: 'Invalid token' } };
-        session = { user: { id: `id-${email}`, email } };
-        listeners.forEach((l) => l('SIGNED_IN', session));
+        const real = opts.linkUser?.(email) ?? email;
+        session = { user: { id: `id-${real}`, email: real } };
+        listeners.forEach((l) => l(opts.linkEvent ?? 'SIGNED_IN', session));
         return { data: { user: session.user, session }, error: null };
       },
       async signOut() {
@@ -121,9 +133,9 @@ export function createFakeSupabase() {
       holds.push({ table, op, gate });
       return release;
     },
-    signIn(id: string, email = `${id}@example.test`) {
+    signIn(id: string, email = `${id}@example.test`, event = 'SIGNED_IN') {
       session = { user: { id, email } };
-      listeners.forEach((l) => l('SIGNED_IN', session));
+      listeners.forEach((l) => l(event, session));
     },
     reset() {
       for (const k of Object.keys(tables)) delete tables[k];

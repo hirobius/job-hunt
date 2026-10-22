@@ -7,6 +7,7 @@ import { isSample } from '../demo/isSample';
 const starterSnippet = (id: string) => id.startsWith('tpl-');
 const starterDocument = (id: string) => id.startsWith('snippet-tpl-');
 const anyList = (m: Record<string, unknown[]>) => Object.values(m).some((l) => l.length > 0);
+const anyKey = (m: Record<string, unknown>) => Object.keys(m).length > 0;
 
 export interface DeviceData {
   jobs: number;
@@ -27,7 +28,9 @@ export function deviceData(d: SyncData, tracks: number): DeviceData {
     d.triage.dismissed.length > 0 ||
     anyList(d.targets) ||
     anyList(d.filters) ||
-    anyList(d.dreams);
+    anyList(d.dreams) ||
+    anyKey(d.modes) ||
+    anyKey(d.sweeps);
   return { jobs, any };
 }
 

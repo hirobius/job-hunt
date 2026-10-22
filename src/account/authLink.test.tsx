@@ -16,17 +16,18 @@ import {
 } from './authLink';
 import { readAuthTokens, stripAuthFragment } from '../authFragment';
 import { deviceData, mergeQuestion } from './deviceData';
-import { emptyBlob } from '../syncBlob';
+import { emptyBlob, writeBlob } from '../syncBlob';
 import { buildReport } from '../errorReport';
 
 const h = vi.hoisted(() => ({
   fake: null as null | ReturnType<typeof import('../test/fakeSupabase').createFakeSupabase>,
+  opts: {} as Parameters<typeof import('../test/fakeSupabase').createFakeSupabase>[0],
 }));
 vi.mock('@supabase/supabase-js', async () => {
   const { createFakeSupabase } = await import('../test/fakeSupabase');
   return {
     createClient: () => {
-      h.fake = createFakeSupabase();
+      h.fake = createFakeSupabase(h.opts);
       return h.fake.client;
     },
   };
@@ -39,6 +40,7 @@ const linkFor = (email: string) =>
 
 beforeEach(() => {
   h.fake = null;
+  h.opts = {};
   localStorage.clear();
   vi.resetModules(); // authFragment reads the URL once per load: each test boots a fresh app
 });
@@ -122,7 +124,75 @@ describe('an unsolicited sign-in link (no request from this browser)', () => {
   });
 });
 
+describe('a link whose token was refreshed (TOKEN_REFRESHED, not SIGNED_IN)', () => {
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  it('for an account never seen here, still asks before anything is pulled or pushed', async () => {
+    h.opts = { linkEvent: 'TOKEN_REFRESHED' };
+    const store = await boot(linkFor(ATTACKER), { job: true });
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
+    expect(
+      await screen.findByRole('alertdialog', { name: `Add this device's 1 job to ${ATTACKER}?` }),
+    ).toBeInTheDocument();
+    // A focus re-pull and an edit (past the push debounce) send nothing while it asks.
+    window.dispatchEvent(new Event('focus'));
+    store.addJob('https://jobs.example.org/another', 'Another role');
+    await wait(700);
+    expect(h.fake!.tables.tracker ?? []).toEqual([]);
+    await userEvent.click(screen.getByRole('button', { name: "Don't add" }));
+    await waitFor(() => expect(screen.getByText('out')).toBeInTheDocument());
+    window.dispatchEvent(new Event('focus'));
+    await wait(700);
+    expect(h.fake!.tables.tracker ?? []).toEqual([]);
+    expect(
+      store
+        .getAllJobs()
+        .map((j) => j.label)
+        .sort(),
+    ).toEqual(['Another role', 'Secret role']);
+  });
+
+  it('for the account already signed in here, stays silent and keeps syncing', async () => {
+    rememberSignInRequest(ME);
+    localStorage.setItem('rjb_sync_base', JSON.stringify({ uid: `id-${ME}`, keys: {} }));
+    const store = await boot(linkFor(ME), { job: true });
+    await waitFor(() => expect(h.fake!.tables.tracker).toHaveLength(1));
+    h.fake!.signIn(`id-${ME}`, ME, 'TOKEN_REFRESHED');
+    await wait(50);
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByText(`in:${ME}`)).toBeInTheDocument();
+    store.addJob('https://jobs.example.org/another', 'Another role');
+    await waitFor(() => expect(h.fake!.tables.tracker[0].data.jobs).toHaveLength(2));
+  });
+});
+
 describe('a link this browser asked for', () => {
+  it('whose account is not the email asked for pulls nothing, even on an empty device', async () => {
+    const planted = writeBlob({
+      ...emptyBlob(),
+      jobs: [
+        {
+          url: 'https://jobs.example.org/planted',
+          label: 'Planted role',
+          status: 'Saved',
+          added: '2026-10-01T00:00:00.000Z',
+        },
+      ],
+    } as never);
+    h.opts = {
+      linkUser: () => ATTACKER,
+      tables: { tracker: [{ user_id: `id-${ATTACKER}`, data: planted }] },
+    };
+    rememberSignInRequest(ME);
+    const store = await boot(linkFor(ME));
+    expect(await screen.findByText(/could not be used/)).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.getByText('out')).toBeInTheDocument();
+    expect(store.getAllJobs()).toEqual([]);
+    expect(localStorage.getItem('rjb_shortlist') ?? '').not.toContain('planted');
+    expect(h.fake!.tables.tracker).toHaveLength(1);
+  });
+
   it('signs in without the confirm when the email matches', async () => {
     rememberSignInRequest('Me@Example.test');
     await boot(linkFor(ME));
@@ -216,6 +286,11 @@ describe('the pieces', () => {
     } as never;
     expect(deviceData(fresh, 0)).toEqual({ jobs: 0, any: false });
     expect(deviceData(emptyBlob(), 1).any).toBe(true);
+    // Per-track settings are this device's data too (work mode, sweep titles).
+    expect(deviceData({ ...emptyBlob(), modes: { t1: 'remote' } } as never, 0).any).toBe(true);
+    expect(
+      deviceData({ ...emptyBlob(), sweeps: { t1: { titles: [], on: [] } } } as never, 0).any,
+    ).toBe(true);
     expect(mergeQuestion({ jobs: 2, any: true }, ME)).toBe(`Add this device's 2 jobs to ${ME}?`);
     expect(mergeQuestion({ jobs: 0, any: true }, ME)).toBe(
       `Add this device's saved data to ${ME}?`,

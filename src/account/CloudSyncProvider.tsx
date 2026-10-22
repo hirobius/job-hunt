@@ -117,6 +117,13 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Until it is answered nothing is pulled or pushed (adopt waits on it).
   const [mergeAsk, setMergeAsk] = useState<{ user: User; question: string } | null>(null);
   const mergeHeld = useRef<string | null>(null);
+  // The user that passed the whole sign-in path (email check, then the merge guard). Nothing is
+  // pulled or pushed for anyone else, and only their token refreshes skip that path: an expired
+  // crafted link is refreshed by supabase-js (TOKEN_REFRESHED, not SIGNED_IN), security re-check.
+  const handled = useRef<string | null>(null);
+  // While a link's session is being set: the email it was accepted for. Another account is not
+  // taken up at all (acceptLink signs it out), so nothing of it is pulled first.
+  const linkEmail = useRef<string | null>(null);
 
   const localBlob = (): SyncData => ({
     jobs: getAllJobs(),
@@ -145,7 +152,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Returns whether the cloud took it. `lastSynced` moves only on success, so a failed push
   // stays "dirty": the next refresh and sign-out both retry it.
   async function pushNow(u: User): Promise<boolean> {
-    if (!pulledOk.current) return false;
+    if (!pulledOk.current || handled.current !== u.id) return false;
     const sent = localJson();
     const data = writeBlob(localBlob());
     let ok: boolean;
@@ -169,13 +176,14 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   }
   const dirty = () => localJson() !== lastSynced.current;
   async function adopt(seed: boolean, u: User) {
-    if (mergeHeld.current === u.id) return; // the merge question is still open
+    if (handled.current !== u.id) return; // not through the sign-in path (the merge question is open)
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     setPulling(true);
     try {
       // Unsent local edits (a failed push) must go up before a pull would replace them.
       if (!seed && pulledOk.current && dirty() && !(await pushNow(u))) return;
       const cloud = await pull(u.id);
+      if (handled.current !== u.id) return; // signed out (or another account) while it pulled
       const local = localBlob();
       const next = mergeBlob(cloud, local, seed, readSyncBase(u.id));
       writeSyncBase(u.id, keysOf(cloud ?? emptyBlob()));
@@ -235,9 +243,14 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       );
       const { data } = supa.auth.onAuthStateChange((event, session) => {
         const u = session?.user ?? null;
-        setUser(u);
         setAuthResolved(true);
-        if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+        // A link's session for another account than the link named: never taken up here.
+        if (u && linkEmail.current !== null && !sameEmail(u.email, linkEmail.current)) return;
+        setUser(u);
+        // Only a refresh for the user already through the path below is not a new sign-in.
+        const refresh = event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED';
+        if (refresh && u && handled.current === u.id) return;
+        handled.current = null;
         // Opened from the magic link: back to the page the link was asked for on (return paths).
         if (event === 'SIGNED_IN') returnAfterSignIn();
         pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
@@ -262,6 +275,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         }
         mergeHeld.current = null;
         setMergeAsk(null);
+        handled.current = u.id;
         setCurationAccount(true); // only this tab's own sign-out clears it (#169)
         adopt(true, u);
       });
@@ -299,6 +313,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Set the session a link brought, then check it is the account the link named.
   async function acceptLink(tokens: AuthTokens, email: string) {
     clearSignInRequest();
+    linkEmail.current = email;
     try {
       const supa = await loadSupabase();
       const r = await supa.auth.setSession(tokens);
@@ -312,6 +327,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       }
     } catch {
       toast({ title: "Couldn't sign in", description: BAD_LINK_MSG, tone: 'danger' });
+    } finally {
+      linkEmail.current = null;
     }
   }
   const confirmLink = () => {
@@ -327,6 +344,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     setMergeAsk(null);
     if (!ask || mergeHeld.current !== ask.user.id) return;
     mergeHeld.current = null;
+    handled.current = ask.user.id;
     setCurationAccount(true);
     void adopt(true, ask.user);
   };
@@ -342,7 +360,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
 
   // push local changes (debounced); skip when nothing changed since the last sync
   useEffect(() => {
-    if (!user || !pulledOk.current) return;
+    if (!user || !pulledOk.current || handled.current !== user.id) return;
     if (localJson() === lastSynced.current) return;
     setMsg('Saving…');
     clearTimeout(pushTimer.current);

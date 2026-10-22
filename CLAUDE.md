@@ -403,6 +403,10 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   drops it). Then the merge guard: an account this device has no `rjb_sync_base` for, while the
   device holds data (`account/deviceData.ts`), asks "Add this device's N jobs to x@y.com?" before any
   pull or push; Don't add (the default, also Escape/Back) signs out locally and keeps the data.
+  Nothing pulls or pushes for a user until that path has run for them (`handled` ref in
+  `CloudSyncProvider`); a `TOKEN_REFRESHED`/`USER_UPDATED` skips it only for that same user (an expired
+  crafted link arrives as a refresh), and a link's session for another email than it named is never
+  taken up (no pull before the sign-out). The device-data count includes work modes and sweep titles.
   Tests sign in with `addDeviceDataIfAsked()` (`test/renderAccount.tsx`). Pinned in
   `account/authLink.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
   feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
