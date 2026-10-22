@@ -24,8 +24,8 @@ describe('error reports (#47)', () => {
 
   it('strips emails and URL queries from text', () => {
     expect(scrubText('no user ada@example.com here', 100)).toBe('no user [email] here');
-    expect(scrubText('at https://job-hunt-jade.vercel.app/?add=https://x.io/j#/queue/9', 200)).toBe(
-      'at https://job-hunt-jade.vercel.app/',
+    expect(scrubText('at https://roleforge-app.vercel.app/?add=https://x.io/j#/queue/9', 200)).toBe(
+      'at https://roleforge-app.vercel.app/',
     );
     expect(scrubText(`Unexpected token 'A', "Acme Corp notes" is not valid JSON`, 200)).toBe(
       `Unexpected token 'A', "…" is not valid JSON`,

@@ -6,7 +6,11 @@
 // Supabase dashboard's Redirect URLs allow-list (Auth > URL Configuration), which Adrian owns;
 // a redirect Supabase does not allow is replaced by its Site URL whatever the client asks.
 
-export const PRODUCTION_ORIGIN = 'https://job-hunt-jade.vercel.app';
+export const PRODUCTION_ORIGIN = 'https://roleforge-app.vercel.app';
+
+/** The old production address. Still accepted while Adrian moves over (a link opened there
+ *  lands back there); drop it once it redirects to PRODUCTION_ORIGIN. */
+export const LEGACY_ORIGIN = 'https://job-hunt-jade.vercel.app';
 
 /** Vercel deployment URLs of this project: `job-hunt-<9-char id>-<team slug>.vercel.app`.
  *  Branch aliases (`job-hunt-git-<branch>-…`) are left out: a hyphenated branch slug makes
@@ -17,7 +21,8 @@ const PREVIEW_ORIGIN = /^https:\/\/job-hunt-[a-z0-9]{9}-adrian-6234s-projects\.v
 const LOCAL_ORIGIN = /^http:\/\/(?:localhost|127\.0\.0\.1):([0-9]{1,5})$/;
 
 function isAllowedOrigin(origin: string): boolean {
-  if (origin === PRODUCTION_ORIGIN || PREVIEW_ORIGIN.test(origin)) return true;
+  if (origin === PRODUCTION_ORIGIN || origin === LEGACY_ORIGIN || PREVIEW_ORIGIN.test(origin))
+    return true;
   const local = LOCAL_ORIGIN.exec(origin);
   if (!local) return false;
   const port = Number(local[1]);
