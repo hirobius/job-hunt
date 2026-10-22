@@ -1,6 +1,8 @@
 /* global document -- page callbacks run in the browser */
-// App icons, /favicon.ico and the share image (#47): renders public/favicon.svg and a brand card to PNG with
-// headless Chromium, so the installable-app icons and the Open Graph image are reproducible.
+// App icons, /favicon.ico and the share image (#47): writes public/favicon.svg (the still cobalt
+// flame on the graphite tile, from src/flameMark.ts with colours read from HDS's variables.css), then
+// renders it and a brand card to PNG with headless Chromium, so the app icons, /favicon.ico and the
+// Open Graph image are reproducible.
 // Re-run after a brand change and commit the PNGs:
 //
 //   npm run icons
@@ -10,20 +12,27 @@
 import { chromium } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { BRAND } from '../src/brand.ts';
+import { flameSvg } from '../src/flameMark.ts';
+import { hdsColor } from '../src/hdsColor.ts';
 
-const svg = readFileSync('public/favicon.svg', 'utf8');
-const svgUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-// HDS's own face, inlined: a page set with setContent can't load file:// fonts. HDS ships it as
-// one variable file (every weight).
-const FONT = `data:font/woff2;base64,${readFileSync(
+const svg = flameSvg({ tile: true, color: hdsColor });
+writeFileSync('public/favicon.svg', svg);
+console.log('public/favicon.svg');
+const dataUrl = (s) => `data:image/svg+xml;base64,${Buffer.from(s).toString('base64')}`;
+const svgUrl = dataUrl(svg);
+// The bare flame (no tile) for the share card.
+const flameUrl = dataUrl(flameSvg({ color: hdsColor }));
+// HDS's own face (one variable font since HDS 0.30), inlined: a page set with setContent can't
+// load file:// fonts.
+const font = `data:font/woff2;base64,${readFileSync(
   'node_modules/@hirobius/design-system/dist/fonts/plus-jakarta-sans-variable.woff2',
 ).toString('base64')}`;
-// The icon's own colours (favicon.svg): graphite tile, light face.
-const GRAPHITE = '#2a2428';
+// The tile and the card: HDS graphite, light face.
+const GRAPHITE = hdsColor('graphite-900');
 const FACE = '#d4d0d2';
 
 const page = (body, w, h) => `<!doctype html><html><head><style>
-  @font-face { font-family: Brand; src: url(${FONT}) format('woff2'); font-weight: 200 800; }
+  @font-face { font-family: Brand; src: url(${font}) format('woff2'); font-weight: 200 800; }
   html, body { margin: 0; width: ${w}px; height: ${h}px; overflow: hidden; }
   body { background: ${GRAPHITE}; font-family: Brand, sans-serif; }
 </style></head><body>${body}</body></html>`;
@@ -86,9 +95,11 @@ try {
   await p.setContent(
     page(
       `<div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding:0 96px;box-sizing:border-box;color:${FACE}">
-        <img src="${svgUrl}" style="width:128px;height:128px;margin-bottom:48px">
-        <div style="font-size:88px;font-weight:700;line-height:1.1;color:#fff">${BRAND.name}</div>
-        <div style="font-size:36px;line-height:1.35;margin-top:24px;max-width:960px">${BRAND.description}</div>
+        <div style="display:flex;align-items:center;gap:32px">
+          <img src="${flameUrl}" style="width:102px;height:128px">
+          <div style="font-size:104px;font-weight:700;line-height:1.1;color:#fff">${BRAND.name}</div>
+        </div>
+        <div style="font-size:36px;line-height:1.35;margin-top:40px;max-width:960px">${BRAND.description}</div>
       </div>`,
       1200,
       630,

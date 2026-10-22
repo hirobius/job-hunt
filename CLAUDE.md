@@ -1,10 +1,10 @@
-# CLAUDE.md — Roleforge (formerly Apply Board)
+# CLAUDE.md — RoleForge (formerly Apply Board)
 
 Project memory for future Claude Code sessions in this repo.
 
 ## What this is
 
-**Roleforge** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
+**RoleForge** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
 **https://roleforge-app.vercel.app** (repo `hirobius/job-hunt`; the old
 `job-hunt-jade.vercel.app` still serves and is an accepted sign-in origin until it redirects). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
@@ -14,6 +14,14 @@ commit `f15fd52`).
 `%BRAND_*%` placeholders via the `brand-html` Vite plugin), toasts and download filenames read it;
 `src/brand.test.ts` fails on a hard-coded name. Stored identifiers stay fixed on purpose: the backup
 format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
+
+**Brand mark (2026-10-22):** `src/BrandMark.tsx` is the animated cobalt flame left of the wordmark
+(aria-hidden, 24px). Pure SVG + CSS: geometry, HDS cobalt colours and motion live in `src/flameMark.ts`
+(tongue paths morph via CSS `d`, with a scale fallback; fixed `feTurbulence` lick; embers; glow); all
+motion sits behind `prefers-reduced-motion: no-preference` and pauses while hidden/offscreen. `npm run
+icons` writes `public/favicon.svg` from the same module (`src/hdsColor.ts` reads HDS hex values, Node
+only) and renders the PNG icons + og-image; `BrandMark.test.tsx` fails if `favicon.svg` is stale.
+Previews: `docs/brand/`.
 
 ## Stack & conventions
 

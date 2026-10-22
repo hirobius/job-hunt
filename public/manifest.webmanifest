@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Roleforge",
-  "short_name": "Roleforge",
+  "name": "RoleForge",
+  "short_name": "RoleForge",
   "description": "A job-application tracker and discovery board: screen postings, track your pipeline, and generate targeted searches.",
   "start_url": "/",
   "scope": "/",

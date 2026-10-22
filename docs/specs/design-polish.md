@@ -8,7 +8,7 @@ fill/hug, padding, alignment, density, color, states, empty, loading, error, mot
 
 ## Objective
 
-Make Roleforge look designed, not accreted, on every screen that ships, and stop it from drifting back.
+Make RoleForge look designed, not accreted, on every screen that ships, and stop it from drifting back.
 Phase 7 closes #133 (which absorbs #93 and #148) and the in-code half of #146. It adds machine checks so each
 fix is held by a test, not by memory. It also produces the portfolio case study (`docs/redesign-2026.md`).
 View layer only: no store, sync, backup, route-slug or CSP changes.
