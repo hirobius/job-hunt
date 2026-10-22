@@ -161,6 +161,99 @@ describe('the Documents page', () => {
   });
 });
 
+// QA: an edit was thrown away without a word on All documents, the browser's Back or a reload.
+describe('unsaved edits in the editor', () => {
+  const OPEN = '#/copy-deck/snippet-tpl-outreach';
+  /** Type a line at the end of the open message (TokenField is contenteditable). */
+  const typeInMessage = async (line: string) => {
+    const text = await screen.findByRole('textbox', { name: 'Message text' });
+    text.append(document.createTextNode(line));
+    fireEvent.input(text);
+    return text;
+  };
+  beforeEach(() => sessionStorage.clear());
+
+  it('All documents asks first; Keep editing is the default and keeps the edit', async () => {
+    window.location.hash = OPEN;
+    await renderApp();
+    await typeInMessage(' Unsaved line.');
+    await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
+    const ask = await screen.findByRole('alertdialog', { name: 'Discard changes?' });
+    expect(within(ask).getByRole('button', { name: 'Keep editing' })).toHaveFocus();
+    await userEvent.click(within(ask).getByRole('button', { name: 'Keep editing' }));
+    expect(window.location.hash).toBe(OPEN);
+    expect(screen.getByRole('textbox', { name: 'Message text' })).toHaveTextContent(
+      'Unsaved line.',
+    );
+  });
+
+  it('Discard goes back and drops the edit', async () => {
+    window.location.hash = OPEN;
+    const r = await renderApp();
+    await typeInMessage(' Unsaved line.');
+    await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
+    const ask = await screen.findByRole('alertdialog', { name: 'Discard changes?' });
+    await userEvent.click(within(ask).getByRole('button', { name: 'Discard' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
+    r.unmount();
+    window.location.hash = OPEN;
+    await renderApp();
+    expect(await screen.findByRole('textbox', { name: 'Message text' })).not.toHaveTextContent(
+      'Unsaved line.',
+    );
+  });
+
+  it('with nothing unsaved, All documents goes straight back', async () => {
+    window.location.hash = OPEN;
+    await renderApp();
+    await screen.findByRole('textbox', { name: 'Message text' });
+    await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('a reload or a closed tab warns while there is an unsaved edit', async () => {
+    window.location.hash = OPEN;
+    await renderApp();
+    const before = () => {
+      const e = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    await screen.findByRole('textbox', { name: 'Message text' });
+    expect(before()).toBe(false);
+    await typeInMessage(' Unsaved line.');
+    expect(before()).toBe(true);
+  });
+
+  it("leaving by the browser's Back keeps the edit and brings it back, with a notice", async () => {
+    window.location.hash = OPEN;
+    const r = await renderApp();
+    await typeInMessage(' Unsaved line.');
+    // Back: the hash moves on and the editor goes, with no chance to ask.
+    window.location.hash = '#/copy-deck';
+    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Message text' })).toBeNull());
+    r.unmount();
+    window.location.hash = OPEN;
+    await renderApp();
+    expect(await screen.findByRole('textbox', { name: 'Message text' })).toHaveTextContent(
+      'Unsaved line.',
+    );
+    const notices = await screen.findByRole('region', { name: /^Notifications/ });
+    expect(await within(notices).findByText('Restored unsaved changes')).toBeInTheDocument();
+    // Saving makes it the latest Version, and the kept draft goes.
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(
+        getAllDocuments()
+          .find((d) => d.id === 'snippet-tpl-outreach')!
+          .versions.slice(-1)[0].text,
+      ).toContain('Unsaved line.'),
+    );
+    expect(sessionStorage.length).toBe(0);
+  });
+});
+
 describe('editing a message changes what the fill paths use', () => {
   /** Open the follow-up message in the library, add a line, and save it as a new Version. */
   async function editFollowUp() {

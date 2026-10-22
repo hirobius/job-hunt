@@ -19,19 +19,84 @@ const renderTracker = () =>
     </ToastProvider>,
   );
 
+/** Open the Add job dialog from the page (the first-use empty state's button when there are none). */
+async function openAddJob(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getAllByRole('button', { name: 'Add job' })[0]);
+  return screen.findByRole('dialog', { name: 'Add a job' });
+}
+
 describe('TrackerView', () => {
   it('adds a pasted job URL from the Add job dialog', async () => {
     const user = userEvent.setup();
     renderTracker();
-    await user.click(screen.getByRole('button', { name: 'Add job' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a job' });
+    const dialog = await openAddJob(user);
     await user.type(
-      within(dialog).getByLabelText(/job url/i),
+      within(dialog).getByRole('textbox', { name: 'Job link' }),
       'https://boards.greenhouse.io/acme/jobs/42',
     );
-    await user.click(within(dialog).getByRole('button', { name: /^add$/i }));
+    await user.click(within(dialog).getByRole('button', { name: 'Add job' }));
     expect(await screen.findByRole('link', { name: 'Acme · Greenhouse' })).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('Enter in the field adds the job too', async () => {
+    const user = userEvent.setup();
+    renderTracker();
+    const dialog = await openAddJob(user);
+    await user.type(
+      within(dialog).getByRole('textbox', { name: 'Job link' }),
+      'https://jobs.lever.co/acme/1{Enter}',
+    );
+    expect(getAllJobs()).toHaveLength(1);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+// QA (rf-polish): a link that isn't one, or no link, said nothing and the dialog just closed; the
+// rev-3 mock keeps Add job the one primary, never greyed out, with a field error instead.
+describe('Add job dialog', () => {
+  it('Add job is never disabled; an empty link shows a field error and keeps the dialog open', async () => {
+    const user = userEvent.setup();
+    renderTracker();
+    const dialog = await openAddJob(user);
+    const add = within(dialog).getByRole('button', { name: 'Add job' });
+    expect(add).toBeEnabled();
+    await user.click(add);
+    expect(screen.getByRole('dialog', { name: 'Add a job' })).toBeInTheDocument();
+    const field = within(dialog).getByRole('textbox', { name: 'Job link' });
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(field).toHaveAccessibleDescription('Paste a job link');
+  });
+
+  it('a link that is not one says how to fix it, saves nothing and keeps the dialog open', async () => {
+    const user = userEvent.setup();
+    renderTracker();
+    const dialog = await openAddJob(user);
+    const field = within(dialog).getByRole('textbox', { name: 'Job link' });
+    await user.type(field, 'not a url');
+    await user.click(within(dialog).getByRole('button', { name: 'Add job' }));
+    expect(getAllJobs()).toHaveLength(0);
+    expect(screen.getByRole('dialog', { name: 'Add a job' })).toBeInTheDocument();
+    expect(field).toHaveValue('not a url');
+    expect(field).toHaveAccessibleDescription('Paste the full link to the posting, like https://…');
+    // Typing again clears the error.
+    await user.type(field, 'x');
+    expect(field).not.toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('says where the title comes from under the field, and is placed like the other shell sheets', async () => {
+    const user = userEvent.setup();
+    renderTracker();
+    const dialog = await openAddJob(user);
+    expect(within(dialog).getByRole('textbox', { name: 'Job link' })).toHaveAccessibleDescription(
+      'The title fills in from the link. You can edit it after.',
+    );
+    expect(dialog).toHaveClass('rjb-sheet');
+    // Add job first in the DOM (on top on a phone), then Cancel.
+    const names = within(dialog)
+      .getAllByRole('button')
+      .map((b) => b.textContent);
+    expect(names.indexOf('Add job')).toBeLessThan(names.indexOf('Cancel'));
   });
 });
 

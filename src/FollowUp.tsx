@@ -4,7 +4,7 @@
 // message → Mark as sent (undoable) and a quiet Snooze. Only Mark as sent and Snooze change the
 // job; closing changes nothing. The host is mounted once in App, so a row that leaves its list
 // once the follow-up is sent doesn't take the dialog with it.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Copy, ExternalLink, Pencil } from 'lucide-react';
 import {
   Alert,
@@ -95,6 +95,9 @@ function FollowUpContent({ job }: { job: Job }) {
   const [edited, setEdited] = useState<string | null>(template ? null : '');
   const message = edited ?? filled;
   const [copied, setCopied] = useState(false);
+  // The one primary (Copy message, then Mark as sent): focus lands here once the last blank is
+  // filled, not on the dialog (QA).
+  const primary = useRef<HTMLButtonElement>(null);
   // The job's follow-up clock before Mark as sent, for Undo. Set means "sent".
   const [sent, setSent] = useState<Pick<Job, 'followUp' | 'snoozeUntil'> | null>(null);
   const title = titleOf(job);
@@ -150,6 +153,7 @@ function FollowUpContent({ job }: { job: Job }) {
                   text={message}
                   job={job}
                   documentId={template?.documentId}
+                  nextFocus={primary}
                   trailing={
                     <Button
                       variant="tertiary"
@@ -196,11 +200,16 @@ function FollowUpContent({ job }: { job: Job }) {
             <Stack gap="tight">
               <Box sx={{ display: 'flex', '& > *': { flex: '1 1 0%' } }}>
                 {copied ? (
-                  <Button variant="primary" onClick={markSent}>
+                  <Button ref={primary} variant="primary" onClick={markSent}>
                     Mark as sent
                   </Button>
                 ) : (
-                  <Button variant="primary" iconLeft={<Icon icon={Copy} />} onClick={copy}>
+                  <Button
+                    ref={primary}
+                    variant="primary"
+                    iconLeft={<Icon icon={Copy} />}
+                    onClick={copy}
+                  >
                     Copy message
                   </Button>
                 )}

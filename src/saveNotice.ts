@@ -101,12 +101,21 @@ export function notifySaved(urls: string[], _label?: string, restored: string[] 
   });
 }
 
-/** Quick-save a link and say so when it landed in To apply: a new job or a set-aside one brought
- *  back (#219). Returns what the save did. */
+/** Quick-save a link and say what happened: it landed in To apply (a new job, or a set-aside one
+ *  brought back, #219), or it was already in the Pipeline (with Open, so a second paste, a tile
+ *  or a quick-add link never ends in silence). Returns what the save did; 'invalid' is the
+ *  caller's to explain, next to the field it came from. */
 export function saveWithNotice(rawUrl: string, label?: string, note?: string): AddOutcome {
   const out = addJobOutcome(rawUrl, label, note);
-  const job = out === 'added' || out === 'restored' ? findJobByUrl(rawUrl) : undefined;
-  if (job) notifySaved([job.url], label || job.label, out === 'restored' ? [job.url] : []);
+  const job = out === 'invalid' ? undefined : findJobByUrl(rawUrl);
+  if (!job) return out;
+  if (out === 'exists')
+    showNotice({
+      title: 'Already in your Pipeline',
+      description: titleOf(job),
+      actions: [{ label: 'Open', run: () => openJob(jobIdOf(job.url)) }],
+    });
+  else notifySaved([job.url], label || job.label, out === 'restored' ? [job.url] : []);
   return out;
 }
 

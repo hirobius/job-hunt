@@ -168,14 +168,24 @@ describe('create, edit, delete', () => {
     await waitFor(() => expect(section('Résumés')).toHaveTextContent('No résumés yet'));
   });
 
-  it('Back returns to the library without saving', async () => {
+  it('Back with an unsaved edit asks first; Discard returns to the library without saving', async () => {
     const id = createDocument({ kind: 'note', title: 'Prep', base: true, text: 'a' });
     renderLib();
     await openDoc('Prep');
     await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), 'bc');
     await userEvent.click(screen.getByRole('button', { name: 'All documents' }));
-    expect(section('Notes')).toBeInTheDocument();
+    const ask = await screen.findByRole('alertdialog', { name: 'Discard changes?' });
+    await userEvent.click(within(ask).getByRole('button', { name: 'Discard' }));
+    expect(await screen.findByRole('region', { name: 'Notes' })).toBeInTheDocument();
     expect(doc(id).versions).toHaveLength(1);
+  });
+
+  it('a new document with nothing in it goes back without asking', async () => {
+    renderLib();
+    await userEvent.click(screen.getByRole('button', { name: 'New note' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'All documents' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(section('Notes')).toBeInTheDocument();
   });
 });
 

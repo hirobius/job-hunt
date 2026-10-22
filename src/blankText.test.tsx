@@ -1,11 +1,13 @@
 // rev-3 A (slice 3): a blank chip in a filled template fills in place. The four job variables save
 // on the job; any other on the message (Document.values), where the Variables panel saves them.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { useRef } from 'react';
+import { Button } from '@hirobius/design-system';
 import userEvent from '@testing-library/user-event';
 import BlankText from './BlankText';
 import { createDocument, getAllDocuments, replaceDocuments } from './documents';
-import { addJob, getAllJobs, removeJob } from './store';
+import { addJob, getAllJobs, removeJob, useJobs } from './store';
 import { fillSnippet } from './templateFill';
 
 const JOB = 'https://acme.example/jobs/1';
@@ -67,5 +69,58 @@ describe('BlankText', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Fill' }));
     expect(getAllDocuments().find((d) => d.id === id)?.values).toEqual({ pet: 'Rex' });
     expect(job().contact).toBeUndefined();
+  });
+});
+
+// QA: after a fill the field unmounts; focus went to the dialog itself (a heavy outline round the
+// whole Follow up sheet). It goes to the next open blank, else to the copy action.
+describe('focus after a fill', () => {
+  /** The text refills from the live job, as the Follow up dialog and Apply mode do. */
+  function Live({ body, id, action }: { body: string; id: string; action?: boolean }) {
+    const j = useJobs().find((x) => x.url === JOB)!;
+    const copy = useRef<HTMLButtonElement>(null);
+    return (
+      <>
+        <BlankText
+          text={fillSnippet({ body }, j)}
+          job={j}
+          documentId={id}
+          nextFocus={action ? undefined : copy}
+          action={action ? <Button variant="secondary">Copy row</Button> : undefined}
+        />
+        <Button variant="primary" ref={copy}>
+          Copy message
+        </Button>
+      </>
+    );
+  }
+
+  it('moves to the next open blank, then to the copy button', async () => {
+    const id = createDocument({ kind: 'outreach', title: 'Note', base: true, text: '' });
+    render(<Live body="Hi [Contact], about [Angle]" id={id} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Fill Contact' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Contact' }), 'Dana{Enter}');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Fill Angle' })).toHaveFocus());
+    await userEvent.click(screen.getByRole('button', { name: 'Fill Angle' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Angle' }), 'Fab work');
+    await userEvent.click(screen.getByRole('button', { name: 'Fill' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Copy message' })).toHaveFocus());
+  });
+
+  it("with no target given, the row's own action takes focus", async () => {
+    const id = createDocument({ kind: 'outreach', title: 'Note', base: true, text: '' });
+    render(<Live body="Hi [Contact]" id={id} action />);
+    await userEvent.click(screen.getByRole('button', { name: 'Fill Contact' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Contact' }), 'Dana{Enter}');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Copy row' })).toHaveFocus());
+  });
+
+  it('Escape closes the field and gives focus back to its blank', async () => {
+    const id = createDocument({ kind: 'outreach', title: 'Note', base: true, text: '' });
+    render(<Live body="Hi [Contact]" id={id} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Fill Contact' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Contact' }), '{Escape}');
+    expect(screen.queryByRole('textbox', { name: 'Contact' })).toBeNull();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Fill Contact' })).toHaveFocus());
   });
 });

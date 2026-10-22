@@ -5,7 +5,17 @@
 // #239) and the Application kit, as panels of expandable rows (HDS Disclosure variant="row": a
 // one-line preview, Copy beside it, the full text when open). Works one-handed on a phone.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Check, Copy, ExternalLink, ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  ExternalLink,
+  ListChecks,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import {
   Alert,
   Box,
@@ -61,17 +71,20 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   const queue = useMemo(() => toApplyQueue(jobs), [jobs]);
   const job = jobId ? findJobById(jobId, jobs) : undefined;
   usePageTitle(job ? `Apply: ${titleOf(job)}` : 'Apply');
-  // The pager walks the queue with this job held in its place, so "2 of 3" stays put after Mark
-  // applied (the job leaves To apply) and Next still means the one after it.
-  const sequence = useMemo(
-    () =>
-      job
-        ? toApplyQueue(
-            jobs.map((j) => (j.url === job.url ? { ...j, status: 'Saved', archived: false } : j)),
-          )
-        : queue,
-    [jobs, job, queue],
-  );
+  // Every job opened on this visit (Apply mode stays mounted from job to job; leaving it ends the
+  // walk). Kept so a job applied to on the way still counts once you have moved on (QA).
+  const [walked, setWalked] = useState<string[]>([]);
+  if (job && !walked.includes(job.url)) setWalked([...walked, job.url]);
+  // The pager walks the queue with this job, and the ones applied to on this walk, held in their
+  // places: "2 of 3" stays put after Mark applied (the job leaves To apply), Next still means the
+  // one after it, and the count holds as you go. A job set aside as Not a fit leaves the walk.
+  const sequence = useMemo(() => {
+    if (!job) return queue;
+    const held = (j: Job) => j.url === job.url || (!j.archived && walked.includes(j.url));
+    return toApplyQueue(
+      jobs.map((j) => (held(j) ? { ...j, status: 'Saved', archived: false } : j)),
+    );
+  }, [jobs, job, queue, walked]);
   useEffect(() => window.scrollTo(0, 0), [jobId]);
   // When the last Not a fit ran. The view is not keyed by job, so this outlives the job change.
   const lastNotAFit = useRef(0);
@@ -135,16 +148,16 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
 
   const company = job.company?.trim();
   // rev-3 B: company · location · the applied date once applied, else when it was saved.
-  const saved = statusAgo(job);
+  const when = statusAgo(job);
   const dueOn = followUpDate(job, new Date());
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal">
         <Stack direction="row" gap="tight" align="center" justify="space-between">
           <BackToPipeline />
-          {sequence.length > 0 && (
-            // Hug the right edge: the pager is only as wide as its three parts.
-            <Box sx={{ flex: '0 0 auto' }}>
+          {/* Hug the right edge: the pager is only as wide as its three parts. */}
+          <Box sx={{ flex: '0 0 auto' }}>
+            {sequence.length > 1 ? (
               <Pagination
                 variant="compact"
                 label="Jobs to apply"
@@ -152,17 +165,19 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
                 count={sequence.length}
                 onPageChange={(p) => openApply(jobIdOf(sequence[p - 1].url))}
               />
-            </Box>
-          )}
+            ) : (
+              <OnlyPage label="Jobs to apply" />
+            )}
+          </Box>
         </Stack>
         <PageHeader
           level={2}
           metadata={<JobBadges job={job} />}
           title={titleOf(job)}
           description={
-            job.company || job.location || saved ? (
+            job.company || job.location || when ? (
               // PageHeader wraps the description in a <p>: a span keeps the HTML valid.
-              <MetaCaption as="span" items={[company, job.location?.trim(), saved]} />
+              <MetaCaption as="span" items={[company, job.location?.trim(), when]} />
             ) : undefined
           }
         />
@@ -217,6 +232,45 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
         <ApplicationKit job={job} />
       </Stack>
     </Box>
+  );
+}
+
+const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
+
+/** The compact pager for a walk of one: "1 of 1" with both arrows off. HDS Pagination draws nothing
+ *  for a single page, and the top row would change shape when the last job is left (QA). Same
+ *  parts as HDS's compact pager (tertiary sm icon buttons around the ui-size count). */
+function OnlyPage({ label }: { label: string }) {
+  return (
+    <nav aria-label={label}>
+      <Stack as="ul" direction="row" gap="px4" align="center" style={LIST}>
+        <li>
+          <Button
+            iconOnly
+            size="sm"
+            variant="tertiary"
+            label="Previous page"
+            disabled
+            iconLeft={<Icon icon={ChevronLeft} size="small" />}
+          />
+        </li>
+        <li>
+          <Text variant="ui" as="span">
+            1 of 1
+          </Text>
+        </li>
+        <li>
+          <Button
+            iconOnly
+            size="sm"
+            variant="tertiary"
+            label="Next page"
+            disabled
+            iconLeft={<Icon icon={ChevronRight} size="small" />}
+          />
+        </li>
+      </Stack>
+    </nav>
   );
 }
 

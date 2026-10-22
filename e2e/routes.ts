@@ -30,8 +30,9 @@ export async function seed(page: Page) {
   // One job on a company board, so the Jobs panel's liveness row ("Check which are still
   // open") is in every Pipeline shot (QA). External requests are refused, so it never says closed.
   await page.getByRole('button', { name: 'Add job' }).click();
-  await page.getByLabel('Job URL').fill(BOARD_JOB);
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  const add = page.getByRole('dialog', { name: 'Add a job' });
+  await add.getByLabel('Job link').fill(BOARD_JOB);
+  await add.getByRole('button', { name: 'Add job' }).click();
   // The sample adds a Sample track from the first starter pack: no setup needed.
   await go(page, '#/discover/apply');
   await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();

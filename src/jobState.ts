@@ -5,6 +5,7 @@
 // recomputing the rules per render. `now` is injected (defaulted) so the whole
 // module is a deterministic test surface with no clock mocking.
 import { STATUSES, type Job, type Status, type StatusChange } from './types';
+import { shortDate } from './metaLines';
 
 /** Days after the last contact (apply, or last follow-up) before a follow-up falls due. */
 export const FOLLOWUP_DAYS = 7;

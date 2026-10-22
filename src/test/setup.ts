@@ -26,6 +26,9 @@ beforeEach(closeFollowUp);
 // …and so is the Export links dialog's scope.
 beforeEach(closeExportLinks);
 
+// A document's unsaved draft is kept for the tab (docDrafts.ts): no test inherits another's.
+beforeEach(() => sessionStorage.clear());
+
 // HDS Toast (Radix) captures the pointer for swipe-to-dismiss when its actions are clicked; jsdom
 // has no pointer capture.
 Element.prototype.hasPointerCapture ??= () => false;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, FileText, Pencil } from 'lucide-react';
 import {
   Box,
@@ -26,6 +26,8 @@ export default function UseTemplate({ job }: { job: Job }) {
   const [open, setOpen] = useState(false);
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Focus lands on Copy message once the last blank is filled (QA), not on the dialog.
+  const copyButton = useRef<HTMLButtonElement>(null);
 
   // Pinned first (outreachTemplates already orders them).
   const ordered = templates;
@@ -113,6 +115,7 @@ export default function UseTemplate({ job }: { job: Job }) {
                       </Button>
                     )
                   }
+                  nextFocus={copyButton}
                 />
               </Card>
             </Stack>
@@ -124,6 +127,7 @@ export default function UseTemplate({ job }: { job: Job }) {
               scrolling body; the dialog's X is the one Close. */}
           <Box sx={{ flex: '1 1 auto', display: 'flex', '& > *': { flex: '1 1 0%' } }}>
             <Button
+              ref={copyButton}
               variant="primary"
               iconLeft={<Icon icon={copied ? Check : Copy} />}
               onClick={copy}
