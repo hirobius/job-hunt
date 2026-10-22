@@ -105,11 +105,19 @@ export default function DocumentEditor({
   const dirty = doc ? draft !== saved : true;
 
   const back$ = returnTo ? `Back to ${returnTo.label}` : undefined;
+  // A Save that goes back leaves with a pop that lands a moment later; until then this editor is
+  // still on screen, so a second click (a double click) must not save, or go back, again.
+  const leaving = useRef(false);
+  const goBack = () => {
+    leaving.current = true;
+    returnTo?.go();
+  };
   const save = () => {
+    if (leaving.current) return;
     if (!doc) {
       const id = createDocument({ kind, title: title.trim() || label, text: draft, base: true });
       toast({ title: 'Saved', description: back$ ?? (title.trim() || label), tone: 'success' });
-      if (returnTo) returnTo.go();
+      if (returnTo) goBack();
       else onCreated(id);
       return;
     }
@@ -119,7 +127,7 @@ export default function DocumentEditor({
         tone: 'success',
         ...(back$ ? { description: back$ } : {}),
       });
-      returnTo?.go();
+      if (returnTo) goBack();
     }
   };
   const commitTitle = () => {

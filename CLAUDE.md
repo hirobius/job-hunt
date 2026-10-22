@@ -149,7 +149,11 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   `useBack`): it names the origin (`routeLabel.ts`: "← Senior UX Designer", "← Apply mode (2 of
   3)", "← Companies") and calls `route.goBackTo`, which pops to that page when it is an earlier
   entry of this tab (a trail kept in `history.state.rjb`, matched by `pageKey`) and replaces
-  otherwise, so the browser's Back never bounces. Finishing the key action returns there: a Save
+  otherwise, so the browser's Back never bounces. `goBackTo` is **single-flight**: until its pop
+  lands (popstate, then the hashchange), further `goBackTo`/`navigate` calls wait, and one that
+  finds itself on its target page does nothing, so a double click, or a Remove/Delete plus the
+  page's unknown-id fallback (StrictMode runs it twice in dev), goes back once. An editor's Save
+  that goes back ignores a second click. Finishing the key action returns there: a Save
   in an editor opened from a job page or Apply mode (`DocumentsView` `returnTarget`, toast "Back to
   …"), Remove from a job page (Undo reopens it), Retire of a job closed on the board, Undo on Not
   a fit. Never global state: back/forward and reload keep it. **Scroll** (`scrollMemory.ts`, set
@@ -157,8 +161,8 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   comes back on a revisit (Back/Forward), an in-app Back, a top tab or a reload, once the page is
   tall enough, and is held while rows load above it; a new top-level page opens at its top; pages
   that scroll to top on open use `scrollToTop()`. **Top tabs** (`tabMemory.ts`) reopen where they
-  were left (`openTab`; Find the next company uses it too); the open tab tapped again goes to its
-  root. Start applying resumes at the last Apply job ("Resume applying (2 of 3)"). The Apply pager,
+  were left (`openTab`; Find the next company uses it too), except a job page or Apply mode whose
+  job is no longer saved, which reopens the list; the open tab tapped again goes to its root. Start applying resumes at the last Apply job ("Resume applying (2 of 3)"). The Apply pager,
   Not a fit's next job and rail hops move in place (replace). **Sheets** (`useBackCloses.ts`): Add
   job, Follow up, Use template, Manage track, Add a company and the Account menu push a same-URL
   entry, so Back closes them; Use template reopens on its message when its Edit message / Write a

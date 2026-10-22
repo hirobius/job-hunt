@@ -4,7 +4,7 @@
 // just behind in history), finishing the key action returns there with a toast that says so, and
 // the browser's Back closes a sheet instead of leaving the page.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -28,7 +28,8 @@ import { seedPack } from './curation/starterPacks';
 import { setOutreachMessages } from './test/outreach';
 import { notifySaved } from './saveNotice';
 import { liveness } from './livenessStore';
-import { getRoute } from './route';
+import { getRoute, subscribeScrollRestore } from './route';
+import { getAllDocuments } from './documents';
 import { rememberSignInReturn, returnAfterSignIn, takeSignInReturn } from './account/signInReturn';
 
 const A = 'https://acme.example/jobs/1';
@@ -352,6 +353,167 @@ describe('top tabs reopen where they were left', () => {
     await at('#/queue');
     await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
     await at('#/discover/ats');
+  });
+});
+
+// Review blockers (2026-10-22): each of these used to navigate twice (a click handler and a
+// fallback effect, or a double click, before the first pop landed), landing one page too far back.
+// Every test starts with a page in history before the origin, so a second pop has somewhere to go.
+describe('one navigation per Remove, Delete or double click', () => {
+  const settle = () => new Promise((r) => setTimeout(r, 80));
+  /** Start on `first`, then go to `hash` with the app running, so `first` is behind it. */
+  async function startAt(first: string, hash: string) {
+    window.location.hash = first;
+    renderApp();
+    await at(first);
+    await settle();
+    window.location.hash = hash;
+    await at(hash);
+  }
+  const openFromList = async () => {
+    const list = await screen.findByRole('region', { name: 'Jobs' });
+    await userEvent.click(within(list).getAllByRole('link', { name: 'Fabricator' })[0]);
+    await heading('Fabricator');
+  };
+  const remove = async (title: string) => {
+    await userEvent.click(screen.getByRole('button', { name: `More actions: ${title}` }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+  };
+  /** A double click, both clicks in one tick: before the first one's way back has landed. */
+  const doubleClick = (el: HTMLElement) => {
+    for (let i = 0; i < 2; i++) {
+      fireEvent.pointerDown(el, { button: 0 });
+      fireEvent.mouseDown(el, { button: 0 });
+      fireEvent.pointerUp(el, { button: 0 });
+      fireEvent.mouseUp(el, { button: 0 });
+      fireEvent.click(el, { button: 0 });
+    }
+  };
+  /** Lands on `hash` and stays there. */
+  const staysAt = async (hash: string) => {
+    await at(hash);
+    await settle();
+    expect(window.location.hash).toBe(hash);
+  };
+  /** Counts the history traversals the app asks for (jsdom lands two same-tick pops on one
+   *  entry, where Chromium overshoots, so the count is what shows a second pop). */
+  const countPops = () => {
+    const go = vi.spyOn(window.history, 'go');
+    const back = vi.spyOn(window.history, 'back');
+    let seen = 0;
+    return {
+      count: () => seen,
+      stop: () => {
+        // Read before restoring: a restored spy forgets its calls.
+        seen = go.mock.calls.length + back.mock.calls.length;
+        go.mockRestore();
+        back.mockRestore();
+      },
+    };
+  };
+
+  it('Remove on a job opened from its Company page lands on the Company', async () => {
+    await startAt('#/queue', '#/company/acme-metals');
+    await heading('Acme Metals');
+    await userEvent.click(screen.getAllByRole('link', { name: 'Fabricator' })[0]);
+    await heading('Fabricator');
+    const pops = countPops();
+    await remove('Fabricator');
+    await staysAt('#/company/acme-metals');
+    pops.stop();
+    expect(pops.count()).toBe(1);
+  });
+
+  it('Remove on a job opened from the Pipeline pops back to the list, its scroll asked back', async () => {
+    await startAt('#/discover/apply', '#/queue');
+    await openFromList();
+    const restored: string[] = [];
+    const stop = subscribeScrollRestore((hash) => restored.push(hash));
+    await remove('Fabricator');
+    await staysAt('#/queue');
+    stop();
+    expect(restored).toContain('#/queue');
+  });
+
+  it('Delete in a document opened from a library that has its own origin goes back to that library', async () => {
+    await startAt('#/queue', `#/apply/${idA}`);
+    await heading('Fabricator');
+    await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
+    await heading('Documents');
+    const library = window.location.hash;
+    const outreach = screen.getByRole('region', { name: 'Outreach messages' });
+    await userEvent.click(within(outreach).getByRole('button', { name: /Cold intro/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Open Cold intro' }));
+    await screen.findByRole('button', { name: 'All documents' });
+    await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+    const confirm = await screen.findByRole('alertdialog');
+    const pops = countPops();
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Delete' }));
+    await staysAt(library);
+    pops.stop();
+    expect(pops.count()).toBe(1);
+  });
+
+  it('a double click on Back to Pipeline goes back once', async () => {
+    await startAt('#/discover/apply', '#/queue');
+    await openFromList();
+    const pops = countPops();
+    doubleClick(screen.getByRole('button', { name: 'Back to Pipeline' }));
+    await staysAt('#/queue');
+    pops.stop();
+    expect(pops.count()).toBe(1);
+  });
+
+  it('a double tap on the open Pipeline tab goes to its root once', async () => {
+    await startAt('#/discover/apply', '#/queue');
+    await openFromList();
+    const pops = countPops();
+    doubleClick(screen.getByRole('tab', { name: 'Pipeline' }));
+    await staysAt('#/queue');
+    pops.stop();
+    expect(pops.count()).toBe(1);
+  });
+
+  it('a double click on Not a fit on the last job to apply to goes back once', async () => {
+    await startAt('#/discover/apply', '#/queue');
+    await userEvent.click(await screen.findByRole('button', { name: 'Start applying' }));
+    await heading('Fabricator');
+    const pops = countPops();
+    doubleClick(screen.getByRole('button', { name: 'Not a fit' }));
+    await staysAt('#/queue');
+    pops.stop();
+    expect(pops.count()).toBe(1);
+  });
+
+  it('a double click on Save in a new document opened from Apply mode saves one and comes back once', async () => {
+    await startAt('#/queue', `#/apply/${idA}`);
+    await heading('Fabricator');
+    await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
+    await heading('Documents');
+    const before = getAllDocuments().length;
+    await userEvent.click(screen.getByRole('button', { name: 'New résumé' }));
+    await heading('New résumé');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), 'Ten years of welding.');
+    const pops = countPops();
+    doubleClick(screen.getByRole('button', { name: 'Save' }));
+    await staysAt(`#/apply/${idA}`);
+    pops.stop();
+    expect(pops.count()).toBe(1);
+    expect(getAllDocuments()).toHaveLength(before + 1);
+  });
+
+  it('after Remove on a job opened from Companies, the Pipeline tab opens the list', async () => {
+    await startAt('#/queue', '#/discover/apply');
+    act(() => notifySaved([B]));
+    addJob(B, 'Welder');
+    await userEvent.click(within(notice()).getByRole('button', { name: 'Open' }));
+    await heading('Welder');
+    await remove('Welder');
+    await staysAt('#/discover/apply');
+    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await staysAt('#/queue');
+    expect(await heading('Pipeline')).toBeInTheDocument();
   });
 });
 
