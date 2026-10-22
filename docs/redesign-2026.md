@@ -100,8 +100,9 @@ Merged upstream and waiting on the next HDS release: Toast actions (hds#816), `A
   (#236). Nothing in the app draws a chart, so no chart ask is filed. Nor an `ErrorPattern` retry
   ask: the app's one full-page error (`ErrorBoundary`) doesn't use it.
 
-- Inline `style={{` in non-test `.tsx`: 130 (audit), 96 (round 1), 12 now. Each of the 12 is on a
-  per-file allowlist in `hdsOnly.test.ts` with the HDS gap it covers, and any new one fails the test.
+- Inline `style={{` in non-test `.tsx`: 130 (audit), 96 (round 1), 12 (round 2), 6 now. Each of the 6
+  is on a per-file allowlist in `hdsOnly.test.ts` with the HDS gap it covers, any new one fails the
+  test, and the total is capped at 6 (`MAX_INLINE_STYLES`, #172: lower it, never raise it).
 - Lint warnings: 7 (audit) to 0; `npm run lint` fails on any.
 - axe (WCAG A and AA): zero violations on every route, Apply mode included, light and dark, 1440
   and 390 (`e2e/a11y.spec.ts`).

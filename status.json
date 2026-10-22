@@ -1,16 +1,15 @@
 {
-  "updatedAt": "2026-10-22T01:00:00Z",
+  "updatedAt": "2026-10-22T01:30:00Z",
   "phase": "live",
   "headline": "Live as Roleforge. Rapid apply (#218) and wide sweep (#220, blob v7) are on main. Companies follows the track in review on claude/teams-first (dream companies, blob v9).",
   "next": [
-    "Review claude/rf-215-track-companies (#215): the Companies tool's source follows the track (GitHub on design/ServiceNow tracks, else the starter list + matching YC companies hiring now, said in one line).",
-    "Review claude/rf-212-feedback (#212): every action gives visible feedback (toasts with Undo, star pop, row flash/collapse, Duplicate/Pin highlight) + e2e feedback sweep. Not merged.",
+    "Review batch candidate claude/rf-batch3 (on claude/rf-ship-r2): #172 inline-style ratchet (6) + #171 ATS tests, redesign gaps (OS colour mode on first visit, Page not found, legal back link), #215 company source follows the track, #212 visible feedback, #105 vite 8 + plugin-react 6 + jest-dom 7. Not merged.",
     "Rev-3 mobile redesign: L (Check a list type-ahead: your companies + YC + Wikidata, chip input, Keep as a target) and M (Documents rows) built on claude/rf-gaps-lm off claude/rf-polish. Next: Adrian's review; Wikidata + YC hiring.json are unverified live (check on a preview); legal wording adds Wikidata (needs approval).",
     "Review draft PR claude/teams-first: Companies is Discover's default tool (open roles first, Hiring now, inline Save + Undo, dream companies in blob v9; #220 took v7, #214 takes v8).",
     "Merge #181 (polish) and #187 (discovery follow-ups) after review.",
     "Persist all user-edited data across devices: outreach targets, saved searches, evidence, work mode (Adrian, 2026-10-15).",
     "Verify unverified-live sources on a preview: YC mirror, GitHub search, Jobicy, Workable/Recruitee probes, community site: clauses; Remote OK stays off until its legal notice is read.",
-    "After HDS lands: vite 8 + plugin-react 6, npm audit, React 19, jest-dom 7 (#105).",
+    "After HDS lands: npm audit; React 19 waits (reverted for a keyboard-tab regression) (#105).",
     "Human / dashboard: #16 Vercel Analytics, #22 .env.example + revoke old key, #44 Supabase auth hardening, #17 stale branches, #55 name clearance.",
     "Legal (before public launch): #43 Privacy Policy + Terms."
   ],

@@ -112,7 +112,7 @@ describe('Inline style allowlist (#93)', () => {
 
   // The ratchet (#172): the total `style={{` in non-test src/**/*.tsx. Lower it as styles are
   // burned down, never raise it.
-  const MAX_INLINE_STYLES = 7;
+  const MAX_INLINE_STYLES = 6;
   it(`has at most ${MAX_INLINE_STYLES} inline styles in all`, () => {
     const total = Object.values(counts).reduce((a, n) => a + n, 0);
     expect(total).toBeLessThanOrEqual(MAX_INLINE_STYLES);
