@@ -53,7 +53,23 @@ describe('scroll memory', () => {
     expect(y).not.toBe(2577);
     height = 4000;
     await waitFor(() => expect(y).toBe(2577));
-    expect(isRestoring()).toBe(false);
+    await waitFor(() => expect(isRestoring()).toBe(false), { timeout: 2000 });
+  });
+
+  it('holds the position while the page is still settling (rows loading above it)', async () => {
+    window.location.hash = '#/discover';
+    await new Promise((r) => setTimeout(r, 10));
+    height = 3000;
+    await scrollBy(681);
+    window.location.hash = '#/discover/live';
+    await new Promise((r) => setTimeout(r, 10));
+    requestScrollRestore('#/discover');
+    window.location.hash = '#/discover';
+    await waitFor(() => expect(y).toBe(681));
+    // Rows above finish loading: the browser keeps what was on screen in place, moving the scroll.
+    y = 913;
+    height = 3232;
+    await waitFor(() => expect(y).toBe(681));
   });
 
   it('a page never scrolled comes back at its top', async () => {

@@ -20,11 +20,22 @@ const MAX_PAGES = 60;
 const WAIT_MS = 2500;
 /** How long a restore asked for before its navigation waits for the hash to change. */
 const HASH_GRACE_MS = 500;
+/** Once reached, the position is held until the page height has been still this long (rows that
+ *  load above it would otherwise push it down), or the wait runs out. */
+const SETTLE_MS = 400;
 
 const norm = (hash: string) => buildHash(parseHash(hash));
 
 let positions = new Map<string, number>();
-let pending: { hash: string; y: number; asked: number; reveal?: string } | null = null;
+let pending: {
+  hash: string;
+  y: number;
+  asked: number;
+  reveal?: string;
+  /** Once the position is reached: the page height last seen, and when it last changed. */
+  height?: number;
+  changed?: number;
+} | null = null;
 let installed = false;
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -105,13 +116,27 @@ function step() {
     } else raf(step);
     return;
   }
-  const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-  if (max >= p.y - 1 || now - p.asked > WAIT_MS) {
-    window.scrollTo(0, Math.min(p.y, max));
-    pending = null;
+  const height = document.documentElement.scrollHeight;
+  const max = Math.max(0, height - window.innerHeight);
+  const to = Math.min(p.y, max);
+  if (p.changed === undefined) {
+    if (max >= p.y - 1 || now - p.asked > WAIT_MS) {
+      window.scrollTo(0, to);
+      p.height = height;
+      p.changed = now;
+    }
+    raf(step);
     return;
   }
-  raf(step);
+  // Settling: the page grew or shrank (rows loading), or kept what was on screen in place by
+  // moving the scroll: put the position back.
+  if (height !== p.height) {
+    p.height = height;
+    p.changed = now;
+  }
+  if (Math.abs(window.scrollY - to) > 1) window.scrollTo(0, to);
+  if (now - p.changed > SETTLE_MS || now - p.asked > 2 * WAIT_MS) pending = null;
+  else raf(step);
 }
 
 /** The user moved first: leave the page where they put it. */
@@ -130,7 +155,7 @@ export function installScrollMemory(): void {
   }
   positions = load();
   window.addEventListener('scroll', onScroll, { passive: true });
-  for (const ev of ['wheel', 'touchstart', 'keydown'])
+  for (const ev of ['wheel', 'touchstart', 'keydown', 'pointerdown'])
     window.addEventListener(ev, cancel, { passive: true, capture: true });
   subscribeScrollRestore(restore);
   // A new top-level page opens at its top (Companies from the Pipeline's end, a Company page from

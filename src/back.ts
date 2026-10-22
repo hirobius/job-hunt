@@ -15,8 +15,9 @@ export interface Back {
   go: () => void;
 }
 
-/** Where the current page's Back goes, and what it is called. */
-export function useBack(fallback: Route, fallbackLabel: string): Back {
+/** Where the current page's Back goes, and what it is called. `sameAs` names pages that show the
+ *  same view as the fallback (Companies at `#/discover` and `#/discover/teams`). */
+export function useBack(fallback: Route, fallbackLabel: string, sameAs: Route[] = []): Back {
   const route = useRoute();
   const from = route.from ?? null;
   const recorded = useMemo(() => (from ? parseHash('#' + from) : null), [from]);
@@ -27,7 +28,7 @@ export function useBack(fallback: Route, fallbackLabel: string): Back {
     recorded: !!recorded,
     label: recorded ? named : fallbackLabel,
     href: buildHash(origin),
-    go: () => goBackTo(origin),
+    go: () => goBackTo(recorded ? origin : [fallback, ...sameAs]),
   };
 }
 

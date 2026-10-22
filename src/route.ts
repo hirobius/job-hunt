@@ -241,21 +241,23 @@ export function navigate(
 
 /** Go back to `target`: pop to it when it is an earlier entry in this tab's history (matched by
  *  page, so it comes back exactly as it was left), else replace the current entry with it. Either
- *  way its scroll position comes back. */
-export function goBackTo(target: Route): void {
+ *  way its scroll position comes back. A list names pages that are the same view (Companies at
+ *  `#/discover` and `#/discover/teams`): the nearest one behind wins, else the first. */
+export function goBackTo(target: Route | Route[]): void {
   if (pendingBack > 0) {
     afterPops.push(() => goBackTo(target));
     return;
   }
-  const want = pageKey(target);
+  const targets = Array.isArray(target) ? target : [target];
+  const want = new Set(targets.map(pageKey));
   const trail = entry?.trail ?? [];
   for (let i = trail.length - 1; i >= 0; i--) {
-    if (pageKey(parseHash(trail[i])) === want) {
+    if (want.has(pageKey(parseHash(trail[i])))) {
       window.history.go(i - trail.length);
       return;
     }
   }
-  const h = buildHash(target);
+  const h = buildHash(targets[0]);
   requestScrollRestore(h);
   if (h !== window.location.hash) replaceRoute(h);
 }

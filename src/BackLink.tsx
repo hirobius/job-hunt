@@ -15,6 +15,7 @@ export default function BackLink({
   className = 'rjb-back-link',
   text,
   ariaLabel,
+  sameAs,
 }: {
   /** The page's usual Back, used when no origin was recorded. */
   fallback: Route;
@@ -26,8 +27,10 @@ export default function BackLink({
   text?: (back: Back) => string;
   /** The accessible name; `Back to <name>` by default, `null` to let the visible words name it. */
   ariaLabel?: (back: Back) => string | null;
+  /** Pages that show the same view as the fallback (see useBack). */
+  sameAs?: Route[];
 }) {
-  const back = useBack(fallback, fallbackLabel);
+  const back = useBack(fallback, fallbackLabel, sameAs);
   const words = text ? text(back) : back.label;
   const aria = ariaLabel ? ariaLabel(back) : `Back to ${back.label}`;
   // A recorded origin can be a long job title: it ellipsizes rather than wrap the header.

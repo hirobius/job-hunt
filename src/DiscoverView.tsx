@@ -753,6 +753,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
                 More ways panel), and the browser's Back doesn't bounce (return paths). */}
             <BackLink
               fallback={parseHash(defaultTool === 'teams' ? '#/discover' : '#/discover/teams')}
+              sameAs={defaultTool === 'teams' ? [parseHash('#/discover/teams')] : []}
               fallbackLabel="companies"
               text={toCompanies}
               ariaLabel={toCompaniesName}
