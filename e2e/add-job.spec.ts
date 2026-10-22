@@ -51,6 +51,8 @@ test('opens on Companies setup; the sample pipeline lists due follow-ups', async
   await expect(followUps).toBeVisible();
   await followUps.getByRole('button', { name: 'Follow up: UX Researcher' }).click();
   const dialog = page.getByRole('dialog', { name: 'Follow up' });
+  // A first run has no messages (Adrian 2026-10-22): one tap adds the starters and fills it.
+  await dialog.getByRole('button', { name: 'Add starter messages' }).click();
   await expect(dialog).toContainText('UX Researcher role');
   await dialog.getByRole('button', { name: 'Copy message' }).click();
   await dialog.getByRole('button', { name: 'Mark as sent' }).click();
