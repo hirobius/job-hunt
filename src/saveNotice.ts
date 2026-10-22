@@ -1,7 +1,8 @@
 // "Where did my save go?" (rapid apply): every save says it landed in the Pipeline's To apply
-// queue, with Open and Undo. A Remove says so too, with Undo (Recently removed, trash.ts). One
-// notice at a time, so they never stack; any view raises it through `notifySaved` /
-// `removeWithUndo` / `showNotice`, and the shell renders it once (NoticeHost.tsx).
+// queue, with Open and Undo. A Remove says so too, with Undo (a job goes to Recently removed,
+// trash.ts; a to-do, an interview or an outreach target is put back in its place). One notice at a
+// time, so they never stack; any view raises it through `notifySaved` / `removeWithUndo` /
+// `notifyRemoved` / `showNotice`, and the shell renders it once (NoticeHost.tsx).
 import { createStore } from './createStore';
 import {
   addJobOutcome,
@@ -122,11 +123,14 @@ export function restoreWithNotice(url: string) {
     });
 }
 
+/** Say something was removed, with Undo putting it back (#212): a job, a to-do, an interview, an
+ *  outreach target. The caller has already removed it (after its row collapsed). */
+export function notifyRemoved(title: string, undo: () => void, description?: string) {
+  showNotice({ title, description, actions: [{ label: 'Undo', run: undo }] });
+}
+
 /** Remove a job to Recently removed, with Undo. */
 export function removeWithUndo(job: Job) {
   trashJob(job.url);
-  showNotice({
-    title: `Removed “${titleOf(job)}”`,
-    actions: [{ label: 'Undo', run: () => restoreWithNotice(job.url) }],
-  });
+  notifyRemoved(`Removed “${titleOf(job)}”`, () => restoreWithNotice(job.url));
 }

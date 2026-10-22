@@ -4,6 +4,7 @@ import {
   addTargets,
   readTargets,
   removeTarget,
+  restoreTarget,
   sanitizeTargets,
   saveTarget,
   type Target,
@@ -51,6 +52,24 @@ describe('targets', () => {
     saveTarget('a', t('two'));
     expect(removeTarget('a', 'ONE').map((x) => x.login)).toEqual(['two']);
     expect(readTargets('a').map((x) => x.login)).toEqual(['two']);
+  });
+
+  it('restoreTarget puts a removed target back where it was, with its first save time (#212)', () => {
+    addTargets('a', [t('one'), t('two'), t('three')]);
+    const [, two] = readTargets('a');
+    removeTarget('a', 'two');
+    restoreTarget('a', two, 1);
+    expect(readTargets('a').map((x) => x.login)).toEqual(['one', 'two', 'three']);
+    expect(readTargets('a')[1]).toEqual(two);
+    // Still there (a second Undo, or saved again since): not added twice.
+    restoreTarget('a', two, 0);
+    expect(readTargets('a').map((x) => x.login)).toEqual(['one', 'two', 'three']);
+    // The track's last target comes back to a track with none.
+    removeTarget('b', 'x');
+    restoreTarget('b', { ...t('solo'), savedAt: '2026-01-01T00:00:00.000Z' }, 4);
+    expect(readTargets('b')).toEqual([
+      expect.objectContaining({ login: 'solo', savedAt: '2026-01-01T00:00:00.000Z' }),
+    ]);
   });
 
   it('treats storage as untrusted', () => {

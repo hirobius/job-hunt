@@ -8,6 +8,8 @@ import { go, openJob, seed } from './routes';
 // not count. Neither does something going away on its own: picking an item closes its menu whatever
 // the item did, and an earlier toast may leave during the press. So open menus, listboxes and
 // toasts are left out of the page's text; one that appears, or whose text changes, still counts.
+// Every Remove (a Pipeline job, a to-do, an interview, an outreach target) collapses its row and
+// offers Undo.
 test.use({
   permissions: ['clipboard-read', 'clipboard-write'],
   viewport: { width: 1440, height: 900 },
@@ -217,10 +219,28 @@ test('Job page: every header and panel action answers within 300 ms', async ({ p
 
   await press(page, button(page, 'Edit details'), 'Edit details');
   await press(page, button(page, 'Add starter tasks'), 'Add starter tasks');
+  // Delete on a to-do collapses its row, then offers Undo.
+  const todo = 'Research company / role';
+  await press(page, button(page, `Delete “${todo}”`), 'Delete a to-do');
+  await ranIn(page, 'rjb-collapse', todo);
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  await expect(button(page, `Delete “${todo}”`)).toHaveCount(0);
   await press(page, button(page, 'Add a to-do'), 'Add a to-do');
   await closeOverlay(page);
   for (const tab of ['Screening', 'Interviews', 'Overview'])
     await press(page, page.getByRole('tab', { name: tab }), `${tab} tab`);
+
+  // Remove on a booked interview collapses its row, then offers Undo.
+  await page.getByRole('tab', { name: 'Interviews' }).click();
+  const log = page.getByRole('tabpanel');
+  await log.getByLabel('Event date').fill('2030-01-08');
+  await log.getByRole('button', { name: 'Add interview' }).click();
+  const removeInterview = log.getByRole('button', { name: /^Remove interview on / });
+  await press(page, removeInterview, 'Remove an interview');
+  await ranIn(page, 'rjb-collapse', 'Interview');
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  await expect(removeInterview).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Overview' }).click();
 
   await menu(page, more, 'Remove');
   await expect(page).toHaveURL(/#\/queue$/);
@@ -263,6 +283,20 @@ test('Companies: star, roles and the page actions answer within 300 ms', async (
     await press(page, button(page, name), String(name));
     await closeOverlay(page);
   }
+
+  // The Design Systems pack brings outreach targets: Remove on one collapses its row, then offers
+  // Undo.
+  await menu(page, 'New track', 'Design Systems / Design Eng');
+  await go(page, '#/discover/teams');
+  const targets = page.getByRole('list', { name: 'Saved targets' });
+  const remove = targets.getByRole('button', { name: /^Remove / }).first();
+  const company = (await remove.getAttribute('aria-label'))!.replace(/^Remove /, '');
+  await press(page, remove, 'Remove an outreach target');
+  await ranIn(page, 'rjb-collapse', company);
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  await expect(targets.getByRole('button', { name: `Remove ${company}`, exact: true })).toHaveCount(
+    0,
+  );
 });
 
 test.describe('reduced motion', () => {

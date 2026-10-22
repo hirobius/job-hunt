@@ -12,7 +12,13 @@ import {
 import { DESIGN_SYSTEM_SEARCH } from './teamTopics';
 import { memoryKv } from './fetchFeed';
 import { FetchError, type FetchJson } from './sources/http';
-import { boardsForPack } from '../curation/starterPacks';
+import { boardsForPack, STARTER_PACKS } from '../curation/starterPacks';
+import {
+  CONSULTING_PACK,
+  DESIGN_SYSTEMS_PACK,
+  SERVICENOW_PACK,
+  TRADES_PACK,
+} from '../curation/packContent';
 
 const ON = { github: true, yc: true };
 
@@ -48,6 +54,37 @@ describe('companySourceFor', () => {
         ON,
       ),
     ).toMatchObject({ kind: 'suggested', yc: true });
+  });
+
+  it('a physical discipline in the track label rules out the design-system search (#215 review)', () => {
+    const cases: [string, string[]][] = [
+      ['Mechanical engineering', ['Design engineer', 'Project engineer']],
+      ['Mechanical', ['Design engineer']],
+      ['Civil', ['Senior design engineer']],
+    ];
+    for (const [label, titles] of cases)
+      expect(companySourceFor({ label, titles, atsRoles: [] }, ON).kind).toBe('suggested');
+    expect(
+      companySourceFor(
+        { label: 'Design Systems / Design Eng', titles: ['Design engineer'], atsRoles: [] },
+        ON,
+      ),
+    ).toEqual({ kind: 'github', search: DESIGN_SYSTEM_SEARCH });
+  });
+
+  it('each starter pack, with its own label, titles and roles, gets its source', () => {
+    const label = (id: string) => STARTER_PACKS.find((p) => p.id === id)!.label;
+    const kindOf = (id: string, c: { titles: readonly string[]; atsRoles: readonly string[] }) => {
+      const s = companySourceFor(
+        { label: label(id), titles: [...c.titles], atsRoles: [...c.atsRoles] },
+        ON,
+      );
+      return s.kind === 'github' ? s.search.noun : s.kind;
+    };
+    expect(kindOf('consulting', CONSULTING_PACK)).toBe('suggested');
+    expect(kindOf('servicenow', SERVICENOW_PACK)).toBe('ServiceNow');
+    expect(kindOf('designsystems', DESIGN_SYSTEMS_PACK)).toBe('design-system');
+    expect(kindOf('trades', TRADES_PACK)).toBe('suggested');
   });
 
   it('a track outside every pack uses YC alone', () => {

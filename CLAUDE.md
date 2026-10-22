@@ -295,7 +295,9 @@ format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
   tokens only; reduced motion keeps the state and toast, drops the movement). Flash and collapse are an attribute,
   not a class (React rewrites a className it owns, e.g. a starred table row moving to the top), and on an HDS Table
   row (`display: contents`, no box) they mark its cells. Row status / Retire / Mark applied
-  raise a notice with Undo; Remove collapses the row first; Duplicate and Pin flash the row they land on. Pinned
+  raise a notice with Undo; every Remove (a Pipeline job, a job's to-do or interview, an outreach target) collapses
+  the row first, then a notice (`saveNotice.notifyRemoved`) offers Undo that puts it back in its place
+  (`restoreTodo` / `restoreEvent` / `targets.restoreTarget`); Duplicate and Pin flash the row they land on. Pinned
   by `e2e/feedback.spec.ts` (the sweep fails if a press changes nothing visible in 300 ms; a menu closing or an
   earlier toast leaving does not count; it checks the table row's flash and collapse at 1440 and the card's at 390)
   and `src/feedback.test.ts`.
@@ -532,7 +534,9 @@ track-agnostic like everything else in Discover.
   dream companies" re-reads boards fresh and flags openings new since the last check. Pinned in
   `src/outreach.test.tsx`, `discover.test.tsx`, `feed/teamRoles.test.ts`, `feed/dreams.test.ts`.
 - **Company source follows the track (#215).** `feed/companySource.ts` `companySourceFor`: GitHub where
-  `teamSearchFor` finds a topic (unchanged); otherwise **Suggest companies** lists the track's starter-pack
+  `teamSearchFor` finds a topic in the titles/ATS roles; a physical discipline in those or in the track's label
+  ("Mechanical engineering", "Civil", "Skilled Trades") makes a bare "Design engineer" a CAD title, so no
+  design-system search; otherwise **Suggest companies** lists the track's starter-pack
   boards not yet watched (`packIdForLabel` → `boardsForPack`) then YC companies hiring now (`hiring.json`)
   whose one-liner/tags match its titles/ATS roles as phrases (max 15, probed for a board). One caption line
   names the source; never design-system orgs on a non-design track; no new hosts. Pinned in

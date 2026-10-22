@@ -32,6 +32,15 @@ export function deleteTodo(todos: readonly Todo[], id: string): Todo[] {
   return todos.filter((t) => t.id !== id);
 }
 
+/** Put a deleted item back at `at` (its old place; past the end puts it last), for Undo. An item
+ *  still in the list is not added twice. Never mutates the input array. */
+export function restoreTodo(todos: readonly Todo[], todo: Todo, at: number): Todo[] {
+  if (todos.some((t) => t.id === todo.id)) return todos.slice();
+  const list = todos.slice();
+  list.splice(Math.max(0, Math.min(at, list.length)), 0, todo);
+  return list;
+}
+
 /** Build the starter checklist as real Todo objects (so it persists). */
 export function seedStarterTodos(genId: IdGen = uuid): Todo[] {
   return STARTER_TODO_TEXTS.map((text) => ({ id: genId(), text, done: false }));

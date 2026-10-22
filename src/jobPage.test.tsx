@@ -372,6 +372,67 @@ describe('job page tabs (#130 slice 2)', () => {
   });
 });
 
+// Removing a to-do or an interview (#212): the row collapses before it goes, a notice says so, and
+// Undo puts it back where it was.
+describe('job page to-do and interview removal (#212)', () => {
+  /** Motion on: the browser can tell, and no reduced motion is asked for. */
+  const motionOn = () =>
+    (window.matchMedia = vi.fn().mockImplementation((media: string) => ({
+      matches: false,
+      media,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia);
+  const todo = (id: string, text: string) => ({ id, text, done: false });
+  const todoIds = () => getAllJobs()[0].todos?.map((t) => t.id);
+
+  it('Delete on a to-do collapses its row, says so, and Undo puts it back in its place', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, {
+      todos: [todo('t1', 'Research'), todo('t2', 'Tailor'), todo('t3', 'Submit')],
+    });
+    motionOn();
+    openJobPage();
+    const del = screen.getByRole('button', { name: 'Delete “Tailor”' });
+    await userEvent.click(del);
+    expect(del.closest('li')).toHaveAttribute('data-motion', 'collapse');
+    await waitFor(() => expect(todoIds()).toEqual(['t1', 't3']));
+    expect(screen.getByText('Deleted “Tailor”')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(todoIds()).toEqual(['t1', 't2', 't3']);
+  });
+
+  it('two deletes inside one collapse both stick', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, {
+      todos: [todo('t1', 'Research'), todo('t2', 'Tailor'), todo('t3', 'Submit')],
+    });
+    motionOn();
+    openJobPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete “Research”' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete “Submit”' }));
+    await waitFor(() => expect(todoIds()).toEqual(['t2']));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(todoIds()).toEqual(['t2']);
+  });
+
+  it('Remove on an interview says so, and Undo brings it back', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, {
+      events: [{ id: 'e1', kind: 'interview', date: '2030-01-08', time: '14:00', note: 'Panel' }],
+    });
+    openJobPage();
+    await userEvent.click(screen.getByRole('tab', { name: /^Interviews/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Remove interview on / }));
+    expect(getAllJobs()[0].events).toEqual([]);
+    expect(screen.getByText('Removed interview')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs()[0].events).toEqual([
+      { id: 'e1', kind: 'interview', date: '2030-01-08', time: '14:00', note: 'Panel' },
+    ]);
+  });
+});
+
 describe('job page remove (Recently removed)', () => {
   it('Remove is in the header menu; Overview has no delete section', async () => {
     addJob(URL_A, 'Design Engineer');

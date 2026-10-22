@@ -157,6 +157,18 @@ export function removeTarget(categoryId: string, login: string): Target[] {
   return list;
 }
 
+/** Put a removed target back at `at` (its old place; past the end puts it last), keeping its first
+ *  save time, for Undo. A login the track has again (saved since) is left as it is. */
+export function restoreTarget(categoryId: string, t: Target, at: number): Target[] {
+  const all = readAll();
+  const list = [...(all[categoryId] ?? [])];
+  if (list.some((x) => x.login.toLowerCase() === t.login.toLowerCase())) return list;
+  list.splice(Math.max(0, Math.min(at, list.length)), 0, t);
+  all[categoryId] = list.slice(-MAX_TARGETS_PER_TRACK);
+  write(all);
+  return all[categoryId];
+}
+
 /** A track's saved targets, live. */
 export function useTargets(categoryId: string): Target[] {
   const raw = live.useRaw();

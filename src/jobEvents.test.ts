@@ -6,6 +6,7 @@ import {
   hash,
   jobIcsEvents,
   removeEvent,
+  restoreEvent,
   upcomingEvents,
 } from './jobEvents';
 import type { Job, JobEvent } from './types';
@@ -66,6 +67,18 @@ describe('removeEvent', () => {
     const l = [ev('a', '2026-10-20'), ev('b', '2026-10-21')];
     expect(removeEvent(l, 'a').map((e) => e.id)).toEqual(['b']);
     expect(removeEvent(undefined, 'a')).toEqual([]);
+  });
+});
+
+describe('restoreEvent (Undo of a remove, #212)', () => {
+  it('puts the event back in date order', () => {
+    const l = [ev('a', '2026-10-20'), ev('c', '2026-10-22')];
+    expect(restoreEvent(l, ev('b', '2026-10-21')).map((e) => e.id)).toEqual(['a', 'b', 'c']);
+    expect(restoreEvent(undefined, ev('b', '2026-10-21')).map((e) => e.id)).toEqual(['b']);
+  });
+  it('an event still there is not added twice', () => {
+    const l = [ev('a', '2026-10-20')];
+    expect(restoreEvent(l, ev('a', '2026-10-20'))).toEqual(l);
   });
 });
 
