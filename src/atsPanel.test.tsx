@@ -72,14 +72,8 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
     const user = userEvent.setup();
     const { container } = renderApp();
 
-    // Open/select the ATS search tool (DiscoverView is code-split / lazy-loaded).
-    const atsControl =
-      screen.queryByRole('radio', { name: /ATS/i }) ??
-      (await screen.findByRole('radio', { name: /ATS/i }).catch(() => null)) ??
-      (await screen.findByRole('tab', { name: /ATS/i }).catch(() => null));
-    if (atsControl) {
-      await user.click(atsControl);
-    }
+    // `#/discover/ats` opens the ATS search tool on Companies.
+    expect(await screen.findByRole('radio', { name: /ATS search/i })).toBeChecked();
 
     // 1. "Company hiring systems" is a heading over three rows and a Show more; the big boards and
     // the freelance boards are closed rows with counts (rev-3 mock).
@@ -114,11 +108,27 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
     await user.click(screen.getByRole('combobox', { name: /^Engagement/ }));
     await user.click(await screen.findByRole('option', { name: 'Contract only' }));
 
-    // Re-query tile search links after state change (key changes re-mount the tile cards).
-    const updatedSearchLinks = atsLinks();
-    const updatedQuery =
-      new URL(updatedSearchLinks[0].getAttribute('href')!).searchParams.get('q') ?? '';
-    expect(updatedQuery).toContain('(contract OR freelance OR fractional)');
+    // Every Google search re-reads it: each hiring-system and freelance-board row, and both
+    // one-query links.
+    const googleLinks = () =>
+      screen.getAllByRole('link').filter((a) => (a.getAttribute('href') ?? '').includes('site%3A'));
+    expect(atsLinks().length).toBeGreaterThan(3);
+    for (const a of googleLinks())
+      expect(new URL(a.getAttribute('href')!).searchParams.get('q')).toContain(
+        '(contract OR freelance OR fractional)',
+      );
+    for (const name of [/^Search all boards/, /^Search the top \d+ boards/])
+      expect(
+        new URL(screen.getByRole('link', { name }).getAttribute('href')!).searchParams.get('q'),
+      ).toContain('(contract OR freelance OR fractional)');
+
+    // Back to Any role drops it again.
+    await user.click(screen.getByRole('combobox', { name: /^Engagement/ }));
+    await user.click(await screen.findByRole('option', { name: 'Any role' }));
+    for (const a of googleLinks())
+      expect(new URL(a.getAttribute('href')!).searchParams.get('q')).not.toContain(
+        'contract OR freelance',
+      );
 
     // 3. The one-query links (Search all boards, Search the top N) have 32 words or fewer.
     const topNLinks = screen.getAllByRole('link', { name: /Search the top|Search all boards/i });
@@ -136,5 +146,42 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });
     expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
+  });
+
+  it('keeps both one-query searches within 32 words with many long titles and every filter on', async () => {
+    const user = userEvent.setup();
+    replaceCurationState(EMPTY_CURATION);
+    addCategory({
+      label: 'Design Systems',
+      titles: [
+        'senior design systems engineer',
+        'staff design systems designer',
+        'principal design engineer frontend',
+        'design technologist component library',
+        'ui platform engineer design tokens',
+        'lead product designer design systems',
+      ],
+    });
+    renderApp();
+
+    expect(
+      await screen.findByRole('heading', { level: 3, name: 'Company hiring systems' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('combobox', { name: /^Recency/ }));
+    await user.click(await screen.findByRole('option', { name: 'Past week' }));
+    await user.click(screen.getByRole('combobox', { name: /^Engagement/ }));
+    await user.click(await screen.findByRole('option', { name: 'Contract only' }));
+    await user.click(screen.getByRole('button', { name: /^Freelance, startup and remote boards/ }));
+
+    // The cap trims titles first, so "Search all boards" still covers at least three systems.
+    expect(screen.getByText(/with your first \d+ titles/)).toBeInTheDocument();
+    for (const name of [/^Search all boards/, /^Search the top \d+ boards/]) {
+      const q =
+        new URL(screen.getByRole('link', { name }).getAttribute('href')!).searchParams.get('q') ??
+        '';
+      expect(q).toContain('(contract OR freelance OR fractional)');
+      expect((q.match(/site:/g) ?? []).length).toBeGreaterThanOrEqual(3);
+      expect(q.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(32);
+    }
   });
 });
