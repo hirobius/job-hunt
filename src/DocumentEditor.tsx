@@ -216,7 +216,7 @@ export default function DocumentEditor({
   );
 
   return (
-    <Stack gap="normal">
+    <Stack gap="normal" className="rjb-form-full">
       <Box>
         <Button
           variant="tertiary"
@@ -462,7 +462,7 @@ function OutreachText({
       {history}
       <Panel label={docId ? 'Variables' : 'Fill for a job'} title={docId ? 'Variables' : 'Fill for a job'}>
         <PanelBody>
-          <Stack gap="normal">
+          <Stack gap="normal" className="rjb-form-full">
             {docId && names.length > 0 && (
               <Text variant="caption" as="p" tone="secondary">
                 {job

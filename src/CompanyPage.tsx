@@ -21,7 +21,6 @@ import { usePageTitle } from './pageTitle';
 
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 // Fields fill the column (a Box sx, not an inline style: the #133 ratchet).
-const FULL = { '& > *, & textarea': { width: '100%' } } as const;
 const kindLabel = (d: Document) => DOCUMENT_KINDS.find((k) => k.kind === d.kind)?.label ?? d.kind;
 const latest = (d: Document) => d.versions[d.versions.length - 1];
 const versions = (n: number) => (n === 1 ? '1 version' : `${n} versions`);
@@ -87,7 +86,7 @@ function NoteEditor({ note }: { note: Document }) {
   }
   return (
     <Stack gap="tight">
-      <Box sx={FULL}>
+      <Box className="rjb-form-full">
         <Textarea
           aria-label="Note"
           rows={3}
@@ -114,7 +113,7 @@ function NewNote({ company, action }: { company: string; action: string }) {
   const [draft, setDraft] = useState('');
   return (
     <Stack gap="tight">
-      <Box sx={FULL}>
+      <Box className="rjb-form-full">
         <Textarea
           aria-label="New note"
           placeholder="What you learn about this company"

@@ -15,3 +15,10 @@
   background: var(--semantic-color-surface-selected);
   box-shadow: inset 2px 0 0 var(--semantic-color-content-primary);
 }
+
+/* Neutral badges on the open row: in dark, surface-selected is the same grey as the neutral Badge
+   fill, so Applied / Stretch lost their pill there (desktop QA). Lift them onto the page surface;
+   toned badges (Follow-up due) keep their own fill. */
+.job-rail [aria-current='page'] {
+  --component-badge-neutral-bg: var(--semantic-color-surface-page);
+}

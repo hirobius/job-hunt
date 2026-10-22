@@ -48,6 +48,7 @@ the HDS fix out and wait for their screen's redesign slice to migrate.
 | Dismissible tag (Manage track)           | `.rjb-term` / `.rjb-term-x` in `src/theme/base.css` (`ManageTrackDialog`)                                             | a dismiss slot on `Tag` (a static pill whose X alone removes it, with a 40px hit area)                                                                                                            | to file                       |
 | NavList row trailing action          | `src/hds-gaps/NavListActionItem.tsx` + `.css` (`JobRail.tsx`)                                       | a trailing action slot on `NavList.Item`, rendered beside its link, not inside it (the job rail's posting link, Adrian 2026-10-22)                                              | to file          |
 | Disclosure row preview wrap              | `.rjb-disclosure-wrap` in `src/theme/base.css` (`DiscoverView` SectionRow: ATS search, Apply now sections)       | a `wrap` option on Disclosure `variant="row"`'s preview (today it always truncates to one line), for a description that must read in full on a phone                                              | to file                       |
+| Tab strip 1px vertical overflow      | `[role='tablist']` rules in `src/theme/base.css`                                                    | TabsList is `h-10` + 1px border + `overflow-x-auto`: triggers overflow a 39px box (Windows scrollbar); include the border in the box, or `h-[39px]` triggers                    | to file          |
 
 ## Retired
 
