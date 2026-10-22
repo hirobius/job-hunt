@@ -46,6 +46,14 @@ export function removeEvent(events: readonly JobEvent[] | undefined, id: string)
   return (events ?? []).filter((e) => e.id !== id);
 }
 
+/** Put a removed event back, in date + time order, for Undo. An event still in the list is not
+ *  added twice. */
+export function restoreEvent(events: readonly JobEvent[] | undefined, ev: JobEvent): JobEvent[] {
+  const list = events ?? [];
+  if (list.some((e) => e.id === ev.id)) return [...list];
+  return [...list, ev].sort(cmpEvents);
+}
+
 /** Local YYYY-MM-DD on which the job's follow-up falls due, or null when not tracked / archived. */
 export function followUpDate(job: Job, now: Date): string | null {
   if (job.archived || !deriveJobState(job, now).followUp.tracked) return null;

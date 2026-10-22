@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { addTodo, toggleTodo, deleteTodo, seedStarterTodos, STARTER_TODO_TEXTS } from './todos';
+import {
+  addTodo,
+  toggleTodo,
+  deleteTodo,
+  restoreTodo,
+  seedStarterTodos,
+  STARTER_TODO_TEXTS,
+} from './todos';
 import type { Todo } from './types';
 
 // Deterministic id generator for stable assertions.
@@ -60,5 +67,24 @@ describe('seedStarterTodos', () => {
     const seeded = seedStarterTodos(seq());
     expect(seeded.map((s) => s.text)).toEqual([...STARTER_TODO_TEXTS]);
     expect(seeded.every((s) => !s.done && s.id)).toBe(true);
+  });
+});
+
+describe('restoreTodo (Undo of a delete, #212)', () => {
+  const list = [t('a', 'x'), t('c', 'z')];
+  it('puts the to-do back at the place it had', () => {
+    expect(restoreTodo(list, t('b', 'y'), 1).map((x) => x.id)).toEqual(['a', 'b', 'c']);
+    expect(restoreTodo(list, t('b', 'y'), 0).map((x) => x.id)).toEqual(['b', 'a', 'c']);
+  });
+  it('an index past the end puts it last', () => {
+    expect(restoreTodo(list, t('b', 'y'), 9).map((x) => x.id)).toEqual(['a', 'c', 'b']);
+  });
+  it('a to-do still there is not added twice', () => {
+    expect(restoreTodo(list, t('a', 'x'), 1)).toEqual(list);
+  });
+  it('never mutates the input', () => {
+    const before = list.slice();
+    restoreTodo(list, t('b', 'y'), 1);
+    expect(list).toEqual(before);
   });
 });

@@ -1,6 +1,7 @@
 // Where the Companies tool finds companies for a track (#215). The source follows the track:
 //   1. a GitHub topic search where the track's own terms name one (feed/teamTopics.ts: design
-//      systems, ServiceNow), exactly as before;
+//      systems, ServiceNow), unless its label names a physical discipline that makes a bare
+//      "design engineer" a CAD title ("Mechanical engineering");
 //   2. otherwise the track's starter-pack directory (radar/directory.ts, by its label) and the YC
 //      mirror's "hiring now" list (feed/yc.ts) filtered by the track's titles and ATS roles.
 // So a trades or consulting track never lists design-system organisations, and the panel says in
@@ -45,7 +46,7 @@ export function companySourceFor(
   track: TrackLike,
   enabled: { github: boolean; yc: boolean },
 ): CompanySource {
-  const search = teamSearchFor([...track.titles, ...track.atsRoles]);
+  const search = teamSearchFor([...track.titles, ...track.atsRoles], track.label);
   if (search) return enabled.github ? { kind: 'github', search } : { kind: 'none' };
   const packId = packIdForLabel(track.label);
   const packBoards = boardsForPack(packId);

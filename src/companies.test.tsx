@@ -31,7 +31,8 @@ import {
 } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 import { readDreams, starDream } from './feed/dreams';
-import { saveTarget } from './feed/targets';
+import { readTargets, saveTarget } from './feed/targets';
+import { dismissNotice } from './saveNotice';
 import { getAllJobs } from './store';
 
 const renderApp = () =>
@@ -90,6 +91,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  dismissNotice();
 });
 
 describe('Companies as one tool (#237)', () => {
@@ -189,6 +191,20 @@ describe('Companies as one tool (#237)', () => {
     expect(within(panel).getByRole('list', { name: 'Saved targets' })).toHaveTextContent(
       'Quiet Co',
     );
+  });
+
+  it('Remove on an outreach target says so, and Undo puts it back in its place (#212)', async () => {
+    saveTarget(cat, { login: 'quiet', company: 'Quiet Co', repo: 'quiet/tokens' });
+    saveTarget(cat, { login: 'loud', company: 'Loud Co', repo: 'loud/tokens' });
+    const before = readTargets(cat);
+    window.location.hash = '#/discover/teams';
+    renderApp();
+    const list = await screen.findByRole('list', { name: 'Saved targets' });
+    await userEvent.click(within(list).getByRole('button', { name: 'Remove Quiet Co' }));
+    expect(readTargets(cat).map((t) => t.login)).toEqual(['loud']);
+    expect(screen.getByText('Removed “Quiet Co”')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(readTargets(cat)).toEqual(before);
   });
 
   it('a track with nothing to show on Companies still opens on Apply now', async () => {

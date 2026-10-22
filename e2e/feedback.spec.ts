@@ -8,6 +8,8 @@ import { go, openJob, seed } from './routes';
 // not count. Neither does something going away on its own: picking an item closes its menu whatever
 // the item did, and an earlier toast may leave during the press. So open menus, listboxes and
 // toasts are left out of the page's text; one that appears, or whose text changes, still counts.
+// Every Remove (a Pipeline job, a to-do, an interview, a final copy, an outreach target, a track's
+// link or section) collapses its row and offers Undo.
 test.use({
   permissions: ['clipboard-read', 'clipboard-write'],
   viewport: { width: 1440, height: 900 },
@@ -217,10 +219,45 @@ test('Job page: every header and panel action answers within 300 ms', async ({ p
 
   await press(page, button(page, 'Edit details'), 'Edit details');
   await press(page, button(page, 'Add starter tasks'), 'Add starter tasks');
+  // Delete on a to-do collapses its row, then offers Undo.
+  const todo = 'Research company / role';
+  await press(page, button(page, `Delete “${todo}”`), 'Delete a to-do');
+  await ranIn(page, 'rjb-collapse', todo);
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  await expect(button(page, `Delete “${todo}”`)).toHaveCount(0);
   await press(page, button(page, 'Add a to-do'), 'Add a to-do');
   await closeOverlay(page);
   for (const tab of ['Screening', 'Interviews', 'Overview'])
     await press(page, page.getByRole('tab', { name: tab }), `${tab} tab`);
+
+  // Remove on a booked interview collapses its row, then offers Undo.
+  await page.getByRole('tab', { name: 'Interviews' }).click();
+  const log = page.getByRole('tabpanel');
+  await log.getByLabel('Event date').fill('2030-01-08');
+  await log.getByRole('button', { name: 'Add interview' }).click();
+  const removeInterview = log.getByRole('button', { name: /^Remove interview on / });
+  await press(page, removeInterview, 'Remove an interview');
+  await ranIn(page, 'rjb-collapse', 'Interview');
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  await expect(removeInterview).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Overview' }).click();
+
+  // Remove on a final copy collapses its row, then offers Undo, which brings the file back.
+  await page.getByRole('button', { name: /^(All documents|Add a document)/ }).click();
+  await page.getByRole('button', { name: 'Upload a final copy' }).click();
+  await page.getByLabel('Choose a file to upload').setInputFiles({
+    name: 'final-cover.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4 final copy'),
+  });
+  await page.getByRole('button', { name: 'Upload', exact: true }).click();
+  const removeCopy = button(page, 'Remove final-cover.pdf');
+  await press(page, removeCopy, 'Remove a final copy');
+  await ranIn(page, 'rjb-collapse', 'final-cover.pdf');
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await expect(removeCopy).toHaveCount(0);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(button(page, 'Download final-cover.pdf')).toBeVisible();
 
   await menu(page, more, 'Remove');
   await expect(page).toHaveURL(/#\/queue$/);
@@ -263,6 +300,54 @@ test('Companies: star, roles and the page actions answer within 300 ms', async (
     await press(page, button(page, name), String(name));
     await closeOverlay(page);
   }
+
+  // Manage track: Remove on a link and Delete on a section collapse their rows; the dialog offers
+  // Undo, which puts them back.
+  await button(page, 'Manage track').click();
+  const dialog = page.getByRole('dialog', { name: 'Manage track' });
+  const links = dialog.getByRole('list', { name: /^Links in / }).first();
+  const removeLink = links.getByRole('button', { name: /^Remove / }).first();
+  const link = (await removeLink.getAttribute('aria-label'))!.replace(/^Remove /, '');
+  await press(page, removeLink, 'Remove a link');
+  await ranIn(page, 'rjb-collapse', link);
+  await expect(links.getByRole('button', { name: `Remove ${link}`, exact: true })).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Undo' }).click();
+  await expect(links.getByRole('button', { name: `Remove ${link}`, exact: true })).toHaveCount(1);
+  const sections = dialog.getByRole('textbox', { name: 'Section name' });
+  const count = await sections.count();
+  await press(
+    page,
+    dialog
+      .getByRole('listitem')
+      .filter({ has: page.getByRole('list', { name: /^Links in / }) })
+      .first()
+      .getByRole('button', { name: /^Delete .* section$/ }),
+    'Delete a section',
+  );
+  await ranIn(page, 'rjb-collapse', link);
+  await expect(sections).toHaveCount(count - 1);
+  await dialog.getByRole('button', { name: 'Undo' }).click();
+  await expect(sections).toHaveCount(count);
+  await closeOverlay(page);
+
+  // ATS search: Copy the query says so in a toast.
+  await go(page, '#/discover/ats');
+  await press(page, button(page, 'Copy the query'), 'Copy the query');
+  await expect(page.getByText('Copied the query', { exact: true })).toBeVisible();
+
+  // The Design Systems pack brings outreach targets: Remove on one collapses its row, then offers
+  // Undo.
+  await menu(page, 'New track', 'Design Systems / Design Eng');
+  await go(page, '#/discover/teams');
+  const targets = page.getByRole('list', { name: 'Saved targets' });
+  const remove = targets.getByRole('button', { name: /^Remove / }).first();
+  const company = (await remove.getAttribute('aria-label'))!.replace(/^Remove /, '');
+  await press(page, remove, 'Remove an outreach target');
+  await ranIn(page, 'rjb-collapse', company);
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  await expect(targets.getByRole('button', { name: `Remove ${company}`, exact: true })).toHaveCount(
+    0,
+  );
 });
 
 test.describe('reduced motion', () => {

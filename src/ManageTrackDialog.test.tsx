@@ -13,6 +13,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 import ManageTrackDialog from './ManageTrackDialog';
+import NoticeHost from './NoticeHost';
 import {
   addCategory,
   addGroup,
@@ -87,5 +88,86 @@ describe('ManageTrackDialog · section links', () => {
       within(dialog).getByRole('button', { name: 'Remove Travis Pattern & Foundry' }),
     ).toBeInTheDocument();
     expect(within(dialog).getByText('Acme careers').closest('a')).toBeNull();
+  });
+});
+
+// #212: a removed link or a deleted section goes at once, says so, and Undo puts it back in place
+// (a section with its links, in order).
+describe('ManageTrackDialog · remove with Undo', () => {
+  const open = async (id: string) => {
+    render(
+      <ToastProvider>
+        <NoticeHost />
+        <ManageTrackDialog categoryId={id} open onClose={() => {}} onDeleted={() => {}} />
+      </ToastProvider>,
+    );
+    return screen.findByRole('dialog');
+  };
+  const names = (groupId: string) =>
+    getCurationState()
+      .tiles.filter((t) => t.groupId === groupId)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((t) => t.name);
+
+  it('Remove on a link says so, and Undo puts it back in its place', async () => {
+    const id = addCategory({ label: 'Welding', titles: [], atsRoles: [] });
+    const group = addGroup(id, { label: 'Shops' });
+    for (const n of ['Alpha', 'Beta', 'Gamma'])
+      addTile(group, { name: n, url: `https://${n.toLowerCase()}.example/` });
+    const dialog = await open(id);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Remove Beta' }));
+    expect(names(group)).toEqual(['Alpha', 'Gamma']);
+    expect(await screen.findByText('Removed “Beta”')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(names(group)).toEqual(['Alpha', 'Beta', 'Gamma']);
+    expect(within(dialog).getByRole('button', { name: 'Remove Beta' })).toBeInTheDocument();
+  });
+
+  it('Delete section says so, and Undo restores the section in place with its links in order', async () => {
+    const id = addCategory({ label: 'Welding', titles: [], atsRoles: [] });
+    const first = addGroup(id, { label: 'First' });
+    const shops = addGroup(id, { label: 'Shops' });
+    addGroup(id, { label: 'Last' });
+    for (const n of ['Alpha', 'Beta', 'Gamma'])
+      addTile(shops, { name: n, url: `https://${n.toLowerCase()}.example/` });
+    addTile(first, { name: 'Other', url: 'https://other.example/' });
+    const before = getCurationState().groups.find((g) => g.id === shops)!;
+    const dialog = await open(id);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete Shops section' }));
+    expect(getCurationState().groups.map((g) => g.label)).toEqual(['First', 'Last']);
+    expect(await screen.findByText('Deleted the “Shops” section')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    const groups = getCurationState()
+      .groups.filter((g) => g.categoryId === id)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+    expect(groups.map((g) => g.label)).toEqual(['First', 'Shops', 'Last']);
+    expect(groups[1]).toEqual(before);
+    expect(names(shops)).toEqual(['Alpha', 'Beta', 'Gamma']);
+    expect(
+      within(dialog)
+        .getAllByRole('textbox', { name: 'Section name' })
+        .map((i) => (i as HTMLInputElement).value),
+    ).toEqual(['First', 'Shops', 'Last']);
+  });
+});
+
+describe('ManageTrackDialog · Undo after closing', () => {
+  it('a Remove raised in the dialog moves to the toast when it closes', async () => {
+    const id = addCategory({ label: 'Welding', titles: [], atsRoles: [] });
+    const group = addGroup(id, { label: 'Shops' });
+    addTile(group, { name: 'Alpha', url: 'https://alpha.example/' });
+    const ui = (open: boolean) => (
+      <ToastProvider>
+        <NoticeHost />
+        <ManageTrackDialog categoryId={id} open={open} onClose={() => {}} onDeleted={() => {}} />
+      </ToastProvider>
+    );
+    const { rerender } = render(ui(true));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Remove Alpha' }));
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Removed “Alpha”');
+    rerender(ui(false));
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    expect(getCurationState().tiles.map((t) => t.name)).toEqual(['Alpha']);
   });
 });

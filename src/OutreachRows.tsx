@@ -6,9 +6,11 @@ import { Badge, Button, InlineLink, Stack, Text } from '@hirobius/design-system'
 import { PanelRow } from './PipelinePanel';
 import { atsSearchUrl } from './jobsData';
 import type { Board } from './feed/sources/ats';
-import { removeTarget, useTargets, type Target } from './feed/targets';
+import { readTargets, removeTarget, restoreTarget, useTargets, type Target } from './feed/targets';
 import { SOURCE_LABEL } from './feed/types';
 import { useWatching } from './outreachShared';
+import { collapseRow } from './feedback';
+import { notifyRemoved } from './saveNotice';
 
 export type Row = Omit<Target, 'savedAt'>;
 
@@ -38,7 +40,8 @@ export function TargetRow({
   saved: boolean;
   watching: boolean;
   onSave?: () => void;
-  onRemove?: () => void;
+  /** Remove the row; `from` is the pressed button, so the row can collapse first (#212). */
+  onRemove?: (from: Element) => void;
   onWatch: (b: Board) => void;
   /** Replaces the stored open-roles count (the Teams tool reads the board live). */
   rolesLine?: string;
@@ -120,7 +123,7 @@ export function TargetRow({
                 size="sm"
                 variant="tertiary"
                 aria-label={`Remove ${r.company}`}
-                onClick={onRemove}
+                onClick={(e) => onRemove(e.currentTarget)}
               >
                 Remove
               </Button>
@@ -135,6 +138,19 @@ export function TargetRow({
 }
 
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
+
+/** Remove a saved target (#212): its row collapses, then it goes, and a notice offers Undo, which
+ *  puts it back in its place with its first save time. */
+function removeWithUndo(categoryId: string, t: Target, from: Element) {
+  collapseRow(from, () => {
+    const at = readTargets(categoryId).findIndex(
+      (x) => x.login.toLowerCase() === t.login.toLowerCase(),
+    );
+    if (at < 0) return;
+    removeTarget(categoryId, t.login);
+    notifyRemoved(`Removed “${t.company}”`, () => restoreTarget(categoryId, t, at));
+  });
+}
 
 /** The saved targets of a track, as a panel's hairline rows (the caller shows them only when there
  *  is at least one). */
@@ -155,7 +171,7 @@ export function SavedTargets({
           r={t}
           saved
           watching={isWatching(t.board)}
-          onRemove={() => removeTarget(categoryId, t.login)}
+          onRemove={(from) => removeWithUndo(categoryId, t, from)}
           onWatch={watch}
         />
       ))}

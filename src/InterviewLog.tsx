@@ -12,11 +12,13 @@ import {
 import { CalendarPlus, X } from 'lucide-react';
 import { buildIcs } from './ics';
 import { download } from './download';
-import { addEvent, jobIcsEvents, removeEvent } from './jobEvents';
+import { addEvent, jobIcsEvents, KIND_WORD, removeEvent, restoreEvent } from './jobEvents';
 import { dayLabel } from './dayLabel';
 import { timeLabel } from './agendaTime';
-import { updateJob } from './store';
-import type { Job, JobEventKind } from './types';
+import { findJobByUrl, updateJob } from './store';
+import { collapseRow } from './feedback';
+import { notifyRemoved } from './saveNotice';
+import type { Job, JobEvent, JobEventKind } from './types';
 
 const KINDS: { value: JobEventKind; label: string }[] = [
   { value: 'interview', label: 'Interview' },
@@ -35,6 +37,24 @@ const slug = (s: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 40) || 'job';
+
+/** Remove a booked event (#212): its row collapses, then it goes, and a notice ("Removed
+ *  interview", its day) offers Undo, which puts it back. The job is read when the remove lands. */
+function removeWithUndo(url: string, ev: JobEvent, when: string, from: Element) {
+  collapseRow(from, () => {
+    const events = findJobByUrl(url)?.events;
+    if (!events?.some((e) => e.id === ev.id)) return;
+    updateJob(url, { events: removeEvent(events, ev.id) });
+    notifyRemoved(
+      `Removed ${KIND_WORD[ev.kind].toLowerCase()}`,
+      () => {
+        const now = findJobByUrl(url);
+        if (now) updateJob(now.url, { events: restoreEvent(now.events, ev) });
+      },
+      when,
+    );
+  });
+}
 
 /** The .ics export of the job's upcoming events; the Interviews panel's header holds it. */
 export function AddToCalendar({ job }: { job: Job }) {
@@ -111,7 +131,7 @@ export default function InterviewLog({ job }: { job: Job }) {
                     iconOnly
                     iconLeft={<Icon icon={X} />}
                     label={`Remove ${e.kind} on ${when}`}
-                    onClick={() => updateJob(job.url, { events: removeEvent(job.events, e.id) })}
+                    onClick={(click) => removeWithUndo(job.url, e, when, click.currentTarget)}
                   />
                 </Stack>
               </li>

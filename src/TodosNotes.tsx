@@ -12,10 +12,28 @@ import {
   Text,
 } from '@hirobius/design-system';
 import { X, Plus } from 'lucide-react';
-import { updateJob } from './store';
-import { addTodo, toggleTodo, deleteTodo, seedStarterTodos } from './todos';
+import { findJobByUrl, updateJob } from './store';
+import { addTodo, toggleTodo, deleteTodo, restoreTodo, seedStarterTodos } from './todos';
 import { Panel, PanelBody, PanelRow, PanelRows } from './PipelinePanel';
-import type { Job } from './types';
+import { collapseRow } from './feedback';
+import { notifyRemoved } from './saveNotice';
+import type { Job, Todo } from './types';
+
+/** Delete a to-do (#212): its row collapses, then it goes, and a notice offers Undo, which puts it
+ *  back in its place. The job is read when the delete lands, so two deletes inside one collapse
+ *  both stick. */
+function deleteWithUndo(url: string, todo: Todo, from: Element) {
+  collapseRow(from, () => {
+    const todos = findJobByUrl(url)?.todos ?? [];
+    const at = todos.findIndex((t) => t.id === todo.id);
+    if (at < 0) return;
+    updateJob(url, { todos: deleteTodo(todos, todo.id) });
+    notifyRemoved(`Deleted “${todo.text}”`, () => {
+      const now = findJobByUrl(url);
+      if (now) updateJob(now.url, { todos: restoreTodo(now.todos ?? [], todo, at) });
+    });
+  });
+}
 
 /** The job's one Notes field — kept in local state and committed on blur so every keystroke
  *  doesn't thrash the store/Supabase sync. Keyed by job url upstream so it re-seeds when the job
@@ -127,7 +145,7 @@ export function TodosPanel({ job }: { job: Job }) {
                 iconOnly
                 iconLeft={<Icon icon={X} />}
                 label={`Delete “${todo.text}”`}
-                onClick={() => updateJob(job.url, { todos: deleteTodo(todos, todo.id) })}
+                onClick={(e) => deleteWithUndo(job.url, todo, e.currentTarget)}
               />
             </Stack>
           </PanelRow>

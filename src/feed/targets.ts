@@ -1,5 +1,5 @@
-// Outreach targets (method 3): companies worth writing to, with or without an opening. A saved
-// company entry, not a Job (docs/specs/discovery-methods.md): it lives in local storage per track
+// Outreach targets (method 3): companies worth writing to, with or without an opening (or a board).
+// A saved company entry, not a Job (docs/specs/discovery-methods.md): it lives in local storage per track
 // (`rjb_targets`) and syncs with the account in the blob (ADR 0008). Storage is untrusted.
 import { useMemo } from 'react';
 import { liveStorage } from '../liveStorage';
@@ -54,12 +54,14 @@ function sanitizeOne(raw: unknown): Target | null {
   const repo = typeof o.repo === 'string' && o.repo ? o.repo : undefined;
   if (!login) return null;
   const board = sanitizeBoard(o.board);
-  // A target is a GitHub org with its repo, or a company with a known board (a starter pack's).
-  if (!repo && !board) return null;
+  const website = httpUrl(o.website);
+  // A target is a GitHub org with its repo, a company with a known board (a starter pack's), or a
+  // board-less suggested company saved by hand: one with a website or a YC login.
+  if (!repo && !board && !website && !login.startsWith('yc:')) return null;
   return {
     login,
     company: typeof o.company === 'string' && o.company.trim() ? o.company : login,
-    website: httpUrl(o.website),
+    website,
     repo,
     repoUrl: repo ? (httpUrl(o.repoUrl) ?? `https://github.com/${repo}`) : undefined,
     stars: !repo ? undefined : typeof o.stars === 'number' && o.stars >= 0 ? o.stars : 0,
@@ -155,6 +157,18 @@ export function removeTarget(categoryId: string, login: string): Target[] {
   else delete all[categoryId];
   write(all);
   return list;
+}
+
+/** Put a removed target back at `at` (its old place; past the end puts it last), keeping its first
+ *  save time, for Undo. A login the track has again (saved since) is left as it is. */
+export function restoreTarget(categoryId: string, t: Target, at: number): Target[] {
+  const all = readAll();
+  const list = [...(all[categoryId] ?? [])];
+  if (list.some((x) => x.login.toLowerCase() === t.login.toLowerCase())) return list;
+  list.splice(Math.max(0, Math.min(at, list.length)), 0, t);
+  all[categoryId] = list.slice(-MAX_TARGETS_PER_TRACK);
+  write(all);
+  return all[categoryId];
 }
 
 /** A track's saved targets, live. */

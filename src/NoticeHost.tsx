@@ -1,8 +1,9 @@
 // The save notice's view (rapid apply), rendered once in the shell; the state is saveNotice.ts.
 // An HDS Toast with up to two actions (Open, Undo; HDS 0.28, hds#815). One at a time: a new
-// notice, or dismissNotice(), closes the one showing.
+// notice, or dismissNotice(), closes the one showing. A notice raised inside a modal dialog shows
+// in that dialog instead (DialogNotice), where the keyboard and a screen reader can reach its Undo.
 import { useEffect, useRef } from 'react';
-import { useToast, type ToastAction } from '@hirobius/design-system';
+import { Box, Button, Stack, Text, useToast, type ToastAction } from '@hirobius/design-system';
 import { dismissNotice, useNotice } from './saveNotice';
 
 export default function NoticeHost() {
@@ -12,7 +13,7 @@ export default function NoticeHost() {
   useEffect(() => {
     if (shown.current) dismiss(shown.current);
     shown.current = null;
-    if (!n) return;
+    if (!n || n.inDialog) return;
     const actions = n.actions.slice(0, 2).map((a): ToastAction => ({
       label: a.label,
       onSelect: () => {
@@ -29,4 +30,32 @@ export default function NoticeHost() {
     });
   }, [n, toast, dismiss]);
   return null;
+}
+
+/** The current notice, when a modal dialog raised it: its title and actions as one line in the
+ *  dialog (a live region, so it is announced). Nothing otherwise. */
+export function DialogNotice() {
+  const n = useNotice();
+  return (
+    <Box role="status" sx={{ flex: 1, minWidth: 0 }}>
+      {n?.inDialog && (
+        <Stack direction="row" gap="tight" align="center" wrap="wrap">
+          <Text variant="ui">{n.title}</Text>
+          {n.actions.map((a) => (
+            <Button
+              key={a.label}
+              variant="tertiary"
+              size="sm"
+              onClick={() => {
+                dismissNotice();
+                a.run();
+              }}
+            >
+              {a.label}
+            </Button>
+          ))}
+        </Stack>
+      )}
+    </Box>
+  );
 }

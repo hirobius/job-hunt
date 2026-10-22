@@ -34,6 +34,26 @@ describe('teamSearchFor — the Companies search follows the track', () => {
     expect(teamSearchFor(terms)).toBeNull();
   });
 
+  // The track's label counts too (#215 review): a "Mechanical engineering" track's bare "Design
+  // engineer" is a CAD title. The label only rules the software reading out, never in.
+  it.each([
+    ['Mechanical engineering', ['Design engineer', 'Project engineer']],
+    ['Mechanical', ['Design engineer']],
+    ['Civil', ['Senior design engineer']],
+    ['Skilled Trades', ['Design engineer']],
+    ['Construction', ['Lead design engineer']],
+  ])('a %j track: "design engineer" is CAD, no GitHub search', (label, terms) => {
+    expect(teamSearchFor(terms, label)).toBeNull();
+  });
+
+  it('a label never rules out a design-systems title, and a software label keeps its search', () => {
+    expect(teamSearchFor(['Design systems engineer'], 'Mechanical')?.noun).toBe('design-system');
+    expect(teamSearchFor(['Design engineer'], 'Design Systems / Design Eng')?.noun).toBe(
+      'design-system',
+    );
+    expect(teamSearchFor(['Design engineer'], 'Mine')?.noun).toBe('design-system');
+  });
+
   it('searches the design-system topics narrowest first', () => {
     expect(teamSearchFor(['design systems'])?.queries).toEqual([
       ['design-system', 'design-tokens'],
