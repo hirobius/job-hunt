@@ -674,6 +674,13 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
 
   return (
     <Box>
+      {/* Opened by a key action elsewhere (Find more like this): "← <that job>" at the top of the
+          page, like every Back (return paths). */}
+      {from && !secondary && (
+        <Box sx={{ mb: 'xs' }}>
+          <BackLink fallback={COMPANIES} fallbackLabel="Companies" />
+        </Box>
+      )}
       <DiscoverHeader
         categories={categories}
         cat={cat}
@@ -697,8 +704,6 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             secondary view (Live postings, the list checker) is not one of them, so it swaps the
             switch for "Back to companies" instead of stacking a third level under a segment that
             names another page. */}
-        {/* Opened by a key action elsewhere (Find more like this): "← <that job>" (return paths). */}
-        {from && !secondary && <BackLink fallback={COMPANIES} fallbackLabel="Companies" />}
         {!secondary && (
           <SegmentedControl
             aria-label="Search tool"
