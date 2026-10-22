@@ -86,6 +86,13 @@ describe('postedWindow (rev-3 H Calendar fact)', () => {
 });
 
 describe('splitTileName (rev-3 H)', () => {
+  it('names a watched company board by its hiring system, not its host', () => {
+    expect(splitTileName('Figma', 'https://boards.greenhouse.io/figma').source).toBe('Greenhouse');
+    expect(splitTileName('Ramp', 'https://jobs.ashbyhq.com/ramp').source).toBe('Ashby');
+    expect(splitTileName('Acme', 'https://acme.recruitee.com/').source).toBe('Recruitee');
+    expect(splitTileName('Acme', 'https://www.acme.com/careers').source).toBe('acme.com');
+  });
+
   it('splits the source and strips a trailing place the facts row now carries', () => {
     expect(
       splitTileName('LinkedIn · Implementation Consultant (Remote)', 'https://linkedin.com'),

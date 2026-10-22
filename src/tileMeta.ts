@@ -3,6 +3,9 @@
 // the tile card parses it at render: pay, place and contact become chips, everything else a note.
 // Anything that doesn't parse stays in `notes` / `raw`, so no text is ever lost.
 
+import { parseBoardUrl } from './feed/sources/ats';
+import { SOURCE_LABEL } from './feed/types';
+
 export interface MetaChip {
   kind: 'pay' | 'place' | 'contact';
   text: string;
@@ -86,7 +89,14 @@ export function splitTileName(
   url: string,
 ): { source: string; title: string; place?: string } {
   const m = /^([^·]{1,24}?)\s+·\s+(.+)$/.exec(name);
-  const source = m ? m[1].trim() : hostname(url).replace(/^www\./, '');
+  // A company board (a watched company) is named by its hiring system ("Greenhouse"), the same
+  // names Live postings uses; any other link by its host.
+  const board = m ? null : parseBoardUrl(url);
+  const source = m
+    ? m[1].trim()
+    : board
+      ? SOURCE_LABEL[board.kind]
+      : hostname(url).replace(/^www\./, '');
   const full = m ? m[2].trim() : name;
   const p = TRAILING_PLACE.exec(full);
   return p

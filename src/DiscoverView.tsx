@@ -33,6 +33,7 @@ import {
 } from './jobsData';
 import { useJobs } from './store';
 import { partitionTiles } from './tileState';
+import { splitTileName } from './tileMeta';
 import { useTileTriage } from './tileTriage';
 import { consumeDiscoverSeed } from './discoverSeed';
 import { useCategories, useGroups, useTiles, addCategory } from './curation/curationStore';
@@ -62,6 +63,14 @@ const CompaniesPanel = lazy(() => import('./CompaniesPanel'));
 const ACTIVE_CATEGORY_KEY = 'rjb_active_category';
 /** Hiring-system rows shown before "Show N more" (rev-3 mock: three quiet rows). */
 const ATS_SHOWN = 3;
+// About four mono lines at phone width: a longer query is clamped with a "Show full query" toggle.
+const QUERY_CLAMP_CHARS = 160;
+
+/** A closed section's preview line: its links' titles, once each (the row clamps it to a line). */
+const sectionPreview = (tiles: Tile[]): string =>
+  tiles.length === 0
+    ? 'No links yet'
+    : [...new Set(tiles.map((t) => splitTileName(t.name, t.url).title))].join(', ');
 
 // Curated group tiles: saved ones removed (issue #57), pin/set-aside triage kept (decision D2).
 function GroupPanel({
@@ -151,6 +160,7 @@ function AtsPanel({
   const [contract, setContract] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [showAllAts, setShowAllAts] = useState(false);
+  const [fullQuery, setFullQuery] = useState(false);
   if (titles.length === 0)
     return (
       <EmptyState
@@ -268,12 +278,35 @@ function AtsPanel({
             <Text variant="caption" as="p" tone="secondary">
               {`Results open in Google: no hiring system has a search across companies, so this is one Google query over the top ${searchAllCount(ATS, fit)}${many && fitTitles < active.length ? `, with your first ${fitTitles} titles` : ''}.`}
             </Text>
+            {/* The query gets the card's full width under its Copy (a phone fits ~4 mono lines
+                beside nothing else); breaks fall on spaces and ORs, four lines until opened. */}
             <Card bordered padding="px16">
-              <Stack direction="row" gap="tight" align="start" justify="space-between">
-                <Text variant="mono" as="p" className="rjb-prewrap">
+              <Stack gap="px8">
+                <Stack direction="row" gap="px8" align="center" justify="space-between">
+                  <Text variant="caption" as="span" tone="secondary">
+                    Google query
+                  </Text>
+                  <CopyQuery text={allQuery} />
+                </Stack>
+                <Text
+                  variant="mono"
+                  as="p"
+                  className={fullQuery ? 'rjb-query' : 'rjb-query rjb-clamp-4'}
+                >
                   {allQuery}
                 </Text>
-                <CopyQuery text={allQuery} />
+                {allQuery.length > QUERY_CLAMP_CHARS && (
+                  <Box>
+                    <Button
+                      variant="tertiary"
+                      size="sm"
+                      className="rjb-quiet rjb-back-link"
+                      onClick={() => setFullQuery(!fullQuery)}
+                    >
+                      {fullQuery ? 'Show less' : 'Show full query'}
+                    </Button>
+                  </Box>
+                )}
               </Stack>
             </Card>
           </Stack>
@@ -350,6 +383,56 @@ function CopyQuery({ text }: { text: string }) {
   );
 }
 
+/** A closed row with its name, a count badge and a one-line preview, opening downward (rev-3
+ *  mock: ATS search's board lists, Apply now's other sections). The row's text starts on the
+ *  PanelRow inset (md), so it lines up with the link rows beside it. */
+function SectionRow({
+  label,
+  count,
+  countLabel,
+  preview,
+  open,
+  onOpenChange,
+  children,
+}: {
+  label: string;
+  count: number;
+  countLabel: string;
+  preview: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <Card bordered padding="none" className="rjb-disclosure-vertical">
+      <Box sx={{ px: 'md' }}>
+        <Disclosure
+          variant="row"
+          label={
+            // The badge stays beside the name: the name truncates, the badge never wraps alone.
+            // A Box, not Stack: the label sits in a grid cell, so the row needs min-width 0.
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 'xs', minWidth: 0 }}>
+              <Box
+                as="span"
+                className="rjb-semibold rjb-truncate"
+                sx={{ display: 'block', minWidth: 0 }}
+              >
+                {label}
+              </Box>
+              <Badge count={count} label={countLabel} />
+            </Box>
+          }
+          preview={preview}
+          {...(open !== undefined ? { open } : {})}
+          {...(onOpenChange ? { onOpenChange } : {})}
+        >
+          {children}
+        </Disclosure>
+      </Box>
+    </Card>
+  );
+}
+
 /** A closed list of board links (rev-3 mock): one row with the name and a count, opened in place. */
 function BoardSection({
   label,
@@ -363,22 +446,9 @@ function BoardSection({
   children: ReactNode;
 }) {
   return (
-    <Card bordered padding="none">
-      <Box sx={{ px: 'sm' }}>
-        <Disclosure
-          variant="row"
-          label={
-            // Inline, so the count follows the last word when a long name wraps.
-            <span>
-              {label} <Badge count={count} label={`${count} boards`} />
-            </span>
-          }
-          preview={preview}
-        >
-          {children}
-        </Disclosure>
-      </Box>
-    </Card>
+    <SectionRow label={label} count={count} countLabel={`${count} boards`} preview={preview}>
+      {children}
+    </SectionRow>
   );
 }
 
@@ -417,7 +487,8 @@ function LinkRows({ tiles, bare = false }: { tiles: Tile[]; bare?: boolean }) {
     rows
   ) : (
     <Card bordered padding="none">
-      {rows}
+      {/* The card draws the only outline: no row hairline on its rounded top edge. */}
+      <Box sx={{ '& > ul > li:first-of-type': { borderTop: 0 } }}>{rows}</Box>
     </Card>
   );
 }
@@ -628,19 +699,17 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
                     />
                   </Stack>
                 ) : (
-                  <Card key={sc.key} bordered padding="none">
-                    <Box sx={{ px: 'sm' }}>
-                      <Disclosure
-                        variant="row"
-                        label={sc.label}
-                        preview={`${sc.tiles.length} ${sc.tiles.length === 1 ? 'link' : 'links'}`}
-                        open={false}
-                        onOpenChange={(o) => o && navigate({ sub: sectionSub(sc.key) })}
-                      >
-                        {null}
-                      </Disclosure>
-                    </Box>
-                  </Card>
+                  <SectionRow
+                    key={sc.key}
+                    label={sc.label}
+                    count={sc.tiles.length}
+                    countLabel={`${sc.tiles.length} links`}
+                    preview={sectionPreview(sc.tiles)}
+                    open={false}
+                    onOpenChange={(o) => o && navigate({ sub: sectionSub(sc.key) })}
+                  >
+                    {null}
+                  </SectionRow>
                 ),
               )}
             </Stack>
