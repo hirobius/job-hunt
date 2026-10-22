@@ -3,7 +3,7 @@
 // name, where it goes, and that it opens a new tab.
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { PostingLink } from './PostingLink';
+import { JobPostingTitle, PostingLink, PostingTitle } from './PostingLink';
 
 afterEach(cleanup);
 
@@ -47,5 +47,41 @@ describe('PostingLink', () => {
       </>,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('PostingTitle', () => {
+  it('puts the posting link right after the title, beside it and never inside it', () => {
+    render(
+      <PostingTitle url={URL} title="Design Engineer" company="Acme">
+        <a href="#/queue/1">Design Engineer</a>
+      </PostingTitle>,
+    );
+    const title = screen.getByRole('link', { name: 'Design Engineer' });
+    const posting = screen.getByRole('link', { name: 'Open posting for Design Engineer at Acme' });
+    expect(title.compareDocumentPosition(posting) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(title.contains(posting)).toBe(false);
+  });
+
+  it('is the title alone without a web address', () => {
+    render(
+      <PostingTitle url="mailto:jobs@acme.example" title="Design Engineer">
+        <span>Design Engineer</span>
+      </PostingTitle>,
+    );
+    expect(screen.getByText('Design Engineer')).toBeInTheDocument();
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
+  it('names a saved job by its title and company', () => {
+    render(
+      <JobPostingTitle job={{ url: URL, label: 'Welder', company: 'Zenith', status: 'Saved' }}>
+        <span>Welder</span>
+      </JobPostingTitle>,
+    );
+    expect(screen.getByRole('link', { name: 'Open posting for Welder at Zenith' })).toHaveAttribute(
+      'href',
+      URL,
+    );
   });
 });

@@ -1,12 +1,15 @@
 // The job page's list rail at lg and up (#130): the jobs the Pipeline list showed, as compact
-// links, with the open one marked. It reads the Pipeline's shared filter and sort (pipelineView);
-// only the search is editable here, and "Change filters" goes back to the list.
+// links, with the open one marked, each with its posting link beside it (Adrian 2026-10-22). It
+// reads the Pipeline's shared filter and sort (pipelineView); only the search is editable here, and
+// "Change filters" goes back to the list.
 import { Search } from 'lucide-react';
 import { Box, Input, InlineLink, NavList, Stack, Text } from '@hirobius/design-system';
 import { useJobs, jobIdOf } from './store';
 import { jobHash } from './route';
 import { rowView } from './jobRow';
 import { JobBadges } from './JobRowParts';
+import { JobPostingLink } from './PostingLink';
+import { NavListActionItem } from './hds-gaps/NavListActionItem';
 import { FILTER_LABEL, setPipelineView, usePipelineView, visibleJobs } from './pipelineView';
 import type { Job } from './types';
 import './JobRail.css';
@@ -39,11 +42,17 @@ export default function JobRail({ openId }: { openId: string }) {
   // The open job stays on screen even when the filter or search would hide it.
   const hidden = !!open && !shown.some((j) => j.url === open.url);
 
-  // Rows are links (each job has its own route), so NavList's link mode, not its select mode.
+  // Rows are links (each job has its own route), as NavList's link mode. The posting link sits
+  // beside each row's link, not in it: NavList.Item has no slot for that (hds-gaps).
   const item = (j: Job) => (
-    <NavList.Item key={j.url} href={jobHash(jobIdOf(j.url))} current={jobIdOf(j.url) === openId}>
+    <NavListActionItem
+      key={j.url}
+      href={jobHash(jobIdOf(j.url))}
+      current={jobIdOf(j.url) === openId}
+      action={<JobPostingLink job={j} />}
+    >
       <RowBody job={j} />
-    </NavList.Item>
+    </NavListActionItem>
   );
 
   return (

@@ -12,6 +12,13 @@ import type { Job, Verdict } from './types';
 /** A row's title: the saved label, else one derived from the URL. */
 export const titleOf = (job: Job) => job.label || prettyTitle(job.url);
 
+/** What names a saved job's posting link (PostingLink): its URL, title and company. */
+export const postingOf = (job: Job) => ({
+  url: job.url,
+  title: titleOf(job),
+  company: job.company,
+});
+
 /** The one next step a row offers: apply to a saved job, or log a due follow-up. */
 export type NextStep = 'apply' | 'followup';
 

@@ -11,7 +11,7 @@ import { jobHash } from './route';
 import { rowView } from './jobRow';
 import { JobBadges, RowMenu, RowPrimaryAction } from './JobRowParts';
 import { PanelRow } from './PipelinePanel';
-import { JobPostingLink } from './PostingLink';
+import { JobPostingTitle } from './PostingLink';
 import { shortDate } from './metaLines';
 import { savedAgo } from './jobState';
 import type { Job } from './types';
@@ -44,22 +44,13 @@ export default function JobListCard({ job }: { job: Job }) {
             {/* Body size, not Card.Title's title size: the page title stays the biggest text. */}
             <Stack gap="px4">
               {/* The title opens the job's page; the posting is one tap away right beside it. */}
-              <Stack direction="row" gap="px4" align="center">
-                <Box sx={{ minWidth: 0 }}>
-                  <Text
-                    variant="body"
-                    as="h3"
-                    weight="bold"
-                    className="rjb-card-title"
-                    id={titleId}
-                  >
-                    <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
-                      {row.title}
-                    </InlineLink>
-                  </Text>
-                </Box>
-                <JobPostingLink job={job} />
-              </Stack>
+              <JobPostingTitle job={job}>
+                <Text variant="body" as="h3" weight="bold" className="rjb-card-title" id={titleId}>
+                  <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
+                    {row.title}
+                  </InlineLink>
+                </Text>
+              </JobPostingTitle>
               {job.company && (
                 <Text variant="ui" as="p">
                   {job.company}

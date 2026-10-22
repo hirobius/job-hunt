@@ -398,11 +398,17 @@ describe('job page remove (Recently removed)', () => {
 });
 
 const rail = () => screen.getByRole('navigation', { name: 'Jobs' });
-/** The job rows in the rail, not its Change filters link. */
+/** The job rows in the rail, not its Change filters link or the rows' posting links. */
 const railRows = () =>
   within(rail())
     .getAllByRole('link')
     .filter((l) => l.getAttribute('href')?.startsWith('#/queue/'));
+/** One job's row link in the rail (its posting link beside it names the title too). */
+const railRow = (title: string) => {
+  const row = railRows().find((l) => l.textContent?.includes(title));
+  if (!row) throw new Error(`no rail row for ${title}`);
+  return row;
+};
 
 describe('job page two-pane (#130 slice 5)', () => {
   beforeEach(() => {
@@ -416,11 +422,33 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
     const current = within(rail()).getByRole('link', { current: 'page' });
     expect(current).toHaveTextContent('Design Engineer');
-    expect(within(rail()).getByRole('link', { name: /Welder/ })).not.toHaveAttribute(
-      'aria-current',
-    );
+    expect(railRow('Welder')).not.toHaveAttribute('aria-current');
     // The rail replaces the Back link.
     expect(screen.queryByRole('button', { name: /Back to Pipeline/ })).toBeNull();
+  });
+
+  it('every rail row opens its own posting in one tap, beside its row link (Adrian 2026-10-22)', () => {
+    updateJob(URL_A, { company: 'Acme' });
+    viewport(1280);
+    openJobPage(URL_A);
+    const rows = within(rail()).getAllByRole('listitem');
+    expect(rows).toHaveLength(2);
+    for (const [url, title, name] of [
+      [URL_A, 'Design Engineer', 'Open posting for Design Engineer at Acme'],
+      [URL_B, 'Welder', 'Open posting for Welder'],
+    ]) {
+      const row = railRow(title);
+      const item = row.closest('li') as HTMLElement;
+      const posting = within(item).getByRole('link', { name });
+      expect(posting).toHaveAttribute('href', url);
+      expect(posting).toHaveAttribute('target', '_blank');
+      // A sibling of the row's link, never inside it (no link in a link).
+      expect(row.contains(posting)).toBe(false);
+      expect(posting.contains(row)).toBe(false);
+    }
+    // The open job's row is still the current page; the posting links are not rows.
+    expect(within(rail()).getByRole('link', { current: 'page' })).toBe(railRow('Design Engineer'));
+    expect(railRows()).toHaveLength(2);
   });
 
   it('below lg there is only the job, with Back', () => {
@@ -433,7 +461,7 @@ describe('job page two-pane (#130 slice 5)', () => {
   it('clicking another rail row swaps the job without leaving the page', async () => {
     viewport(1280);
     openJobPage(URL_A);
-    await userEvent.click(within(rail()).getByRole('link', { name: /Welder/ }));
+    await userEvent.click(railRow('Welder'));
     expect(await screen.findByRole('heading', { level: 2, name: 'Welder' })).toBeInTheDocument();
     expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_B)}`);
     expect(within(rail()).getByRole('link', { current: 'page' })).toHaveTextContent('Welder');
@@ -460,7 +488,7 @@ describe('job page two-pane (#130 slice 5)', () => {
     viewport(1280);
     openJobPage(URL_A);
     await userEvent.type(within(rail()).getByRole('textbox', { name: 'Search jobs' }), 'Welder');
-    expect(within(rail()).getByRole('link', { name: /Welder/ })).toBeInTheDocument();
+    expect(railRow('Welder')).toBeInTheDocument();
     // The open job stays, pinned, because the search hides it.
     expect(within(rail()).getByText('Not in this filter')).toBeInTheDocument();
   });
@@ -524,10 +552,9 @@ describe('job page polish and guards (#130 slice 6)', () => {
     const scroll = vi.fn();
     window.scrollTo = scroll as unknown as typeof window.scrollTo;
     openJobPage(URL_A);
-    const link = within(rail()).getByRole('link', { name: /Welder/ });
-    await userEvent.click(link);
+    await userEvent.click(railRow('Welder'));
     await screen.findByRole('heading', { level: 2, name: 'Welder' });
     expect(scroll).toHaveBeenCalledWith({ top: 0 });
-    expect(within(rail()).getByRole('link', { name: /Welder/ })).toHaveFocus();
+    expect(railRow('Welder')).toHaveFocus();
   });
 });

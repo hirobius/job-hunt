@@ -34,6 +34,7 @@ the HDS fix out and wait for their screen's redesign slice to migrate.
 | Company type-ahead (rev-3 L)         | `FindBoardsPanel.tsx` (typed text read from the bubbling change event)                              | `onInputChange` on creatable `Combobox` for async options, and a rich option (leading logo/initial, a second line)                                                              | to file          |
 | Documents row preview (rev-3 M)      | `.rjb-doc-preview` in `base.css`; chips in the row label (`DocumentsLibrary.tsx`)                   | a multi-line `preview` on `Disclosure variant="row"` that can stay while open                                                                                                   | to file          |
 | framer-motion pin                    | `overrides` in `package.json` (framer-motion 12.23.24, motion-dom 12.23.23, motion-utils 12.23.6)   | pin `motion` → framer-motion: 12.42 wraps every AnimatePresence child in PopChild and reads `children.props.ref`, a React 18 console error on each Disclosure open              | to file          |
+| NavList row trailing action          | `src/hds-gaps/NavListActionItem.tsx` + `.css` (`JobRail.tsx`)                                       | a trailing action slot on `NavList.Item`, rendered beside its link, not inside it (the job rail's posting link, Adrian 2026-10-22)                                              | to file          |
 
 ## Retired
 
