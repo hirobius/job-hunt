@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import { applyBrand } from './src/brandHtml';
+import { applyBrand } from './src/brandHtml.ts';
 
 export default defineConfig({
   // brand-html: index.html's %BRAND_*% placeholders come from src/brand.ts (#55).
