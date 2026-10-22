@@ -102,25 +102,48 @@ export default function DocumentsLibrary({
   openId,
   onOpen,
   header,
+  newKind,
+  onNew,
+  onCreated,
+  editorBack,
+  returnTo,
 }: {
   /** The open document's id, when a route holds it. */
   openId?: string | null;
   onOpen?: (id: string | null) => void;
   /** The library's page head; a plain "Documents" heading when left out. */
   header?: ReactNode;
+  /** A New editor's kind, when a route holds it (`#/copy-deck/new/<kind>`), with `onNew` opening
+   *  one and `onCreated` taking its first Save. Left out, New is local state here. */
+  newKind?: DocumentKind | null;
+  onNew?: (kind: DocumentKind) => void;
+  onCreated?: (id: string) => void;
+  /** The editor's Back, when the page draws it (return paths). */
+  editorBack?: ReactNode;
+  /** Where a Save in the editor goes straight back to (a job or Apply mode, return paths). */
+  returnTo?: { label: string; go: () => void };
 } = {}) {
   const docs = useDocuments();
   const [local, setLocal] = useState<Open>(null);
   // One row open at a time (rev-3 M).
   const [expanded, setExpanded] = useState<string | null>(null);
   const controlled = openId !== undefined;
-  const open: Open = controlled ? (openId ? { id: openId } : local) : local;
-  // A New editor is always local state; an open document goes to the caller when it holds one.
+  const open: Open = newKind
+    ? { kind: newKind }
+    : controlled
+      ? openId
+        ? { id: openId }
+        : local
+      : local;
+  // A New editor is local state unless the caller routes it; an open document goes to the caller
+  // when it holds one.
   const go = (next: Open) => {
+    if (next && 'kind' in next && onNew) return onNew(next.kind);
     if (!controlled || (next && 'kind' in next)) return setLocal(next);
     setLocal(null);
     onOpen?.(next ? next.id : null);
   };
+  const created = (id: string) => (onCreated ? onCreated(id) : go({ id }));
 
   if (open && 'kind' in open)
     return (
@@ -128,7 +151,9 @@ export default function DocumentsLibrary({
         key={`new-${open.kind}`}
         kind={open.kind}
         onBack={() => go(null)}
-        onCreated={(id) => go({ id })}
+        onCreated={created}
+        back={editorBack}
+        returnTo={returnTo}
       />
     );
   const current = open && docs.find((d) => d.id === open.id);
@@ -139,7 +164,9 @@ export default function DocumentsLibrary({
         doc={current}
         kind={current.kind}
         onBack={() => go(null)}
-        onCreated={(id) => go({ id })}
+        onCreated={created}
+        back={editorBack}
+        returnTo={returnTo}
       />
     );
 

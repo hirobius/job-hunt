@@ -1,7 +1,8 @@
 // A saved job's own page (#127, #130): `#/queue/<jobId>`, inside the Pipeline tab. A header
-// (badges, title, one next step, menu) over the job's three sections as tabs. The open tab is local
-// state, not in the URL, and resets to Overview when the job changes.
-import { useEffect, useState } from 'react';
+// (badges, title, one next step, menu) over the job's three sections as tabs. The open section is in
+// the URL (`?section=screening`, Overview left out; return paths), written in place, so coming back
+// to the job (Back from its Company page, from Find more like this) opens the section it was on.
+import { useEffect } from 'react';
 import {
   Badge,
   Box,
@@ -16,7 +17,8 @@ import {
   useAtLeast,
 } from '@hirobius/design-system';
 import { findJobById, useJobs } from './store';
-import { openJob } from './route';
+import { goBackTo, navigate, openJob, originOf, useRoute } from './route';
+import { scrollToTop } from './scrollMemory';
 import { useCloudSync } from './account/accountContext';
 import JobHeader from './JobHeader';
 import JobOverview from './JobOverview';
@@ -70,10 +72,15 @@ function JobSections({
   );
 }
 
-/** The header over the tabs. The open tab is local state here, so the header's Add interview can
- *  switch to Interviews; keyed by job, so it resets to Overview when the job changes. */
+const SECTIONS = ['overview', 'screening', 'interviews'];
+
+/** The header over the tabs. The open section comes from the route, so the header's Add interview
+ *  can switch to Interviews and a link can open one (Next 7 days opens Interviews). */
 function JobDetail({ job, showBack }: { job: Job; showBack: boolean }) {
-  const [tab, setTab] = useState('overview');
+  const section = useRoute().section;
+  const tab = section && SECTIONS.includes(section) ? section : 'overview';
+  // In place: a section is a view of this entry, not a step Back walks through.
+  const setTab = (t: string) => navigate({ section: t === 'overview' ? null : t }, true);
   return (
     <Box>
       <JobHeader job={job} showBack={showBack} onAddInterview={() => setTab('interviews')} />
@@ -100,16 +107,24 @@ function JobPageSkeleton() {
 export default function JobPage({ jobId }: { jobId: string }) {
   const job = findJobById(jobId, useJobs());
   // An unknown id may just not have synced onto this device yet: wait until sync has settled,
-  // then fall back to the Pipeline without a new history entry.
+  // then fall back to the page that linked here (else the Pipeline) without a new history entry.
   const { settled } = useCloudSync();
+  const route = useRoute();
+  const origin = originOf(route);
 
   useEffect(() => {
-    if (!job && settled) openJob(null, true);
+    if (job || !settled) return;
+    const back = originOf(route);
+    if (back) goBackTo(back);
+    else openJob(null, true);
+    // Only when the job or sync changes: the route is read as it is then.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job, settled]);
 
-  // Opening a job from far down the list should start at its top, not at the list's scroll offset.
+  // Opening a job from far down the list should start at its top, not at the list's scroll offset
+  // (coming back to it restores where it was instead).
   useEffect(() => {
-    window.scrollTo?.({ top: 0 });
+    scrollToTop();
   }, [jobId]);
 
   // HDS Sidebar only wraps with CSS, so below lg it would stack the list above the job: choose in
@@ -120,8 +135,9 @@ export default function JobPage({ jobId }: { jobId: string }) {
   // above has already sent us back to the Pipeline.
   if (!job) return <JobPageSkeleton />;
 
-  // Keyed by job, so the open tab and every field's draft reset when the job changes.
-  const detail = <JobDetail key={job.url} job={job} showBack={!wide} />;
+  // Keyed by job, so every field's draft resets when the job changes. At lg the rail stands in for
+  // Back to the Pipeline, but a job opened from elsewhere (Companies, a Company page) shows its Back.
+  const detail = <JobDetail key={job.url} job={job} showBack={!wide || !!origin} />;
   if (wide)
     return (
       <Sidebar side="start" sideWidth="22rem" contentMin="50%" gap="normal">

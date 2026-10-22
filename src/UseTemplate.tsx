@@ -12,6 +12,8 @@ import {
   useToast,
 } from '@hirobius/design-system';
 import { documentHref, useOutreachTemplates } from './outreachTemplates';
+import { linkTo, parseHash, useRoute } from './route';
+import { useBackCloses } from './useBackCloses';
 import { fillSnippet } from './templateFill';
 import BlankText from './BlankText';
 import { useApplyKit } from './applyKit';
@@ -19,17 +21,29 @@ import { copyFilled } from './templateCopy';
 import type { Job } from './types';
 
 // Fill an Outreach message (a Base document in the library, #227) from a job's
-// company/role/contact/angle and copy it.
+// company/role/contact/angle and copy it. Return paths: Back closes the sheet; Edit message (or Write
+// a message, with none yet) opens the editor remembering this job, and coming back (Back, or
+// saving there) reopens the sheet on the same message, refilled.
 export default function UseTemplate({ job }: { job: Job }) {
   const templates = useOutreachTemplates();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const route = useRoute();
 
   // Pinned first (outreachTemplates already orders them).
   const ordered = templates;
   const picked = ordered.find((s) => s.id === pickedId) ?? ordered[0];
+  useBackCloses(open, () => setOpen(false), `use-template:${job.url}`, {
+    data: picked?.id,
+    reopen: (id) => {
+      setPickedId(id ?? null);
+      setOpen(true);
+    },
+  });
+  // The editor, remembering this job page (its section too).
+  const editorHref = (sub: string) => linkTo({ tab: 'copy-deck', sub }, route);
   // Every job card mounts one of these — only fill while the dialog is actually open.
   const kitName = useApplyKit().fields.name;
   const filled = open && picked ? fillSnippet(picked, job, kitName) : '';
@@ -70,9 +84,17 @@ export default function UseTemplate({ job }: { job: Job }) {
         </Dialog.Header>
         <div className="rjb-dialog-body">
           {ordered.length === 0 ? (
-            <Text variant="caption" as="p" tone="secondary">
-              No outreach messages yet. Write one in Documents first.
-            </Text>
+            <Stack gap="normal" align="start">
+              <Text variant="caption" as="p" tone="secondary">
+                No outreach messages yet. Write one, and it fills in here for this job.
+              </Text>
+              <Button asChild variant="secondary" size="md">
+                <a href={editorHref('new/outreach')}>
+                  <Icon icon={Pencil} />
+                  Write a message
+                </a>
+              </Button>
+            </Stack>
           ) : (
             <Stack gap="normal">
               {/* The messages as HDS toggle chips (Tag: aria-pressed, the active pill marks the
@@ -106,7 +128,7 @@ export default function UseTemplate({ job }: { job: Job }) {
                     picked && (
                       // HDS Button asChild drops iconLeft, so the pencil is the link's own child.
                       <Button asChild variant="tertiary" size="md">
-                        <a href={documentHref(picked.documentId)}>
+                        <a href={editorHref(parseHash(documentHref(picked.documentId)).sub ?? '')}>
                           <Icon icon={Pencil} />
                           Edit message
                         </a>

@@ -1,23 +1,23 @@
 // The Privacy policy and Terms pages (#43): `#/legal/privacy` and `#/legal/terms`, opened from the
 // Menu. Like Documents they have no tab: the page names itself and links back to Companies. The
 // text is data in `legal.ts`; while it is unapproved (`LEGAL_DRAFT`) the page says it is a draft.
-import { ArrowLeft } from 'lucide-react';
-import { Alert, Box, Button, Icon, InlineLink, Stack, Text } from '@hirobius/design-system';
+import { Alert, Box, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { PageHeader } from '@hirobius/design-system/patterns';
-import {
-  CONTACT_EMAIL,
-  LEGAL_DRAFT,
-  LEGAL_ROUTE,
-  LEGAL_UPDATED,
-  legalDocFor,
-  PRIVACY,
-  TERMS,
-} from './legal';
-import { useRoute } from './route';
+import { CONTACT_EMAIL, LEGAL_DRAFT, LEGAL_UPDATED, legalDocFor, PRIVACY, TERMS } from './legal';
+import { buildHash, navigate, useRoute, type Route } from './route';
+import BackLink from './BackLink';
+import { inPlaceClick } from './back';
+
+const COMPANIES: Route = { tab: 'discover', sub: null, pillar: null, jobId: null };
 
 export default function LegalPage() {
-  const doc = legalDocFor(useRoute().sub);
+  const route = useRoute();
+  const doc = legalDocFor(route.sub);
   const other = doc === TERMS ? PRIVACY : TERMS;
+  // The two pages swap in place and keep where they were first opened from, so Back still goes
+  // there, not to the other legal page (return paths).
+  const swap = () => navigate({ sub: other.slug, from: route.from ?? null }, true);
+  const otherHref = buildHash({ ...route, sub: other.slug });
   return (
     // The 760 content measure, like the job page and Documents: this is prose.
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
@@ -27,14 +27,9 @@ export default function LegalPage() {
             level={2}
             breadcrumb={
               // "← Companies" (rev-3 #s-legal), flush on the page gutter like Documents' and the
-              // Company page's Back (`.rjb-back-link`). HDS Button asChild drops iconLeft, so the
-              // arrow is the link's own child.
-              <Button asChild className="rjb-back-link" variant="tertiary" size="md">
-                <a href="#/discover" aria-label="Back to Companies">
-                  <Icon icon={ArrowLeft} />
-                  Companies
-                </a>
-              </Button>
+              // Company page's Back (`.rjb-back-link`); opened from another page (the Account
+              // menu, anywhere), it names that page and goes back there (return paths).
+              <BackLink fallback={COMPANIES} fallbackLabel="Companies" />
             }
             title={doc.title}
           />
@@ -45,8 +40,11 @@ export default function LegalPage() {
             <Alert tone="info">This is a draft under review and may change before launch.</Alert>
           )}
           <Text variant="body" as="p">
-            See also the{' '}
-            <InlineLink href={`#/${LEGAL_ROUTE}/${other.slug}`}>{other.title}</InlineLink>.
+            See also the {/* InlineLink takes no onClick: the link's click bubbles to this span. */}
+            <span onClick={inPlaceClick(swap)}>
+              <InlineLink href={otherHref}>{other.title}</InlineLink>
+            </span>
+            .
           </Text>
         </Stack>
         {doc.sections.map((s) => (

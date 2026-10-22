@@ -18,7 +18,7 @@ import { removeWithUndo, showNotice } from './saveNotice';
 import { collapseRow, flashRow, starClass } from './feedback';
 import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
-import { navigate } from './route';
+import { buildHash, getRoute, navigate, withOrigin } from './route';
 import { setDiscoverSeed } from './discoverSeed';
 import { primaryAction, rowView, titleOf } from './jobRow';
 import { normStatus } from './jobState';
@@ -160,12 +160,16 @@ export function RowMenu({
   job,
   size = 'sm',
   onRemoved,
+  onRetired,
   research = false,
 }: {
   job: Job;
   size?: Size;
-  /** Runs after Remove (the job page goes back to the Pipeline). */
+  /** Runs after Remove (the job page goes back to where it was opened from); Undo then reopens
+   *  the page as it was. */
   onRemoved?: () => void;
+  /** Runs after Retire (a closed job's page goes back where it was opened from). */
+  onRetired?: () => void;
   /** The job page's menu also holds the research links (rev-3 review: off the Details panel). */
   research?: boolean;
 }) {
@@ -234,23 +238,25 @@ export function RowMenu({
           {job.priority ? 'Unstar' : 'Star'}
         </Menu.Item>
         <Menu.Item
-          onSelect={() =>
+          onSelect={() => {
             changeWithUndo(
               job,
               job.archived ? 'Unretired' : 'Retired',
               () => updateJob(job.url, { archived: !job.archived }),
               anchor.current,
-            )
-          }
+            );
+            if (!job.archived) onRetired?.();
+          }}
         >
           {job.archived ? 'Unretire' : 'Retire'}
         </Menu.Item>
         <Menu.Separator />
-        {/* Reverse interop (#57): seed Discover's search links (ATS tool) with this job's title. */}
+        {/* Reverse interop (#57): seed Discover's search links (ATS tool) with this job's title.
+            The search page remembers where it was opened from, so its Back returns here. */}
         <Menu.Item
           onSelect={() => {
             setDiscoverSeed(title);
-            navigate({ tab: 'discover', sub: 'ats' });
+            navigate(withOrigin({ tab: 'discover', sub: 'ats' }, getRoute()));
           }}
         >
           Find more like this
@@ -274,7 +280,7 @@ export function RowMenu({
         <Menu.Item
           onSelect={() => {
             if (onRemoved) {
-              removeWithUndo(job);
+              removeWithUndo(job, buildHash(getRoute()));
               onRemoved();
             } else collapseRow(anchor.current, () => removeWithUndo(job));
           }}

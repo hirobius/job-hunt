@@ -12,7 +12,8 @@ import { clearLocalData } from '../localReset';
 import { useColorMode } from '../ColorMode';
 import { refocusAccount, useCloudSync, useDataTools } from './accountContext';
 import { useUnsynced } from './useUnsynced';
-import { navigate } from '../route';
+import { getRoute, navigate, withOrigin } from '../route';
+import { useBackCloses } from '../useBackCloses';
 import { LEGAL_ROUTE } from '../legal';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
@@ -26,6 +27,9 @@ export default function AccountMenu() {
   const unsynced = useUnsynced();
   const { mode, toggle } = useColorMode();
   const [resetting, setResetting] = useState(false);
+  // Controlled, so the browser's Back closes the open menu instead of leaving the page.
+  const [open, setOpen] = useState(false);
+  useBackCloses(open, () => setOpen(false), 'account-menu');
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   /** Run an item that opens a dialog; the dialog gives focus back to this trigger on close. */
   const opensDialog = (open: () => void) => () => {
@@ -42,7 +46,7 @@ export default function AccountMenu() {
   return (
     <>
       {/* Non-modal, so a dialog opened from an item (sign-in, restore) takes focus cleanly. */}
-      <Menu modal={false}>
+      <Menu modal={false} open={open} onOpenChange={setOpen}>
         <Menu.Trigger asChild>
           <Button
             ref={(el: HTMLButtonElement | null) => {
@@ -82,8 +86,9 @@ export default function AccountMenu() {
             </>
           )}
           <Menu.Separator />
-          {/* Documents (was Templates, #227) has no tab (#240); it opens from here and the Apply sheet. */}
-          <Menu.Item onSelect={() => navigate({ tab: 'copy-deck', sub: null, jobId: null })}>
+          {/* Documents (was Templates, #227) has no tab (#240); it opens from here and the Apply
+              sheet, remembering the page it was opened from so its Back returns there. */}
+          <Menu.Item onSelect={() => navigate(withOrigin({ tab: 'copy-deck' }, getRoute()))}>
             Documents
           </Menu.Item>
           <Menu.Item onSelect={data.backup}>Back up</Menu.Item>
@@ -96,7 +101,9 @@ export default function AccountMenu() {
           <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>
             Send feedback
           </Menu.Item>
-          <Menu.Item onSelect={() => navigate({ tab: LEGAL_ROUTE, sub: 'privacy', jobId: null })}>
+          <Menu.Item
+            onSelect={() => navigate(withOrigin({ tab: LEGAL_ROUTE, sub: 'privacy' }, getRoute()))}
+          >
             Privacy and terms
           </Menu.Item>
           <Menu.Separator />

@@ -16,7 +16,15 @@ import {
 import { restoreJob, trashJob } from './trash';
 import { titleOf } from './jobRow';
 import type { Job } from './types';
-import { buildHash, getRoute, navigate, openJob, subscribeRoute } from './route';
+import {
+  buildHash,
+  getRoute,
+  navigate,
+  openJob,
+  parseHash,
+  subscribeRoute,
+  withOrigin,
+} from './route';
 
 export interface NoticeAction {
   label: string;
@@ -79,6 +87,7 @@ function watchForStale() {
 export function notifySaved(urls: string[], _label?: string, restored: string[] = []) {
   if (!urls.length) return;
   const one = urls.length === 1;
+  const savedOn = getRoute();
   showNotice({
     title: one ? 'Saved to Pipeline · To apply' : `Saved ${urls.length} to Pipeline · To apply`,
     tone: 'success',
@@ -86,7 +95,12 @@ export function notifySaved(urls: string[], _label?: string, restored: string[] 
     actions: [
       {
         label: 'Open',
-        run: () => (one ? openJob(jobIdOf(urls[0])) : navigate({ tab: 'queue', sub: null })),
+        // The job page remembers the page the save was made on (Companies' tool or section, Live
+        // postings), so its Back returns there (return paths).
+        run: () =>
+          one
+            ? navigate(withOrigin({ tab: 'queue', jobId: jobIdOf(urls[0]) }, savedOn))
+            : navigate({ tab: 'queue', sub: null }),
       },
       {
         label: 'Undo',
@@ -122,11 +136,25 @@ export function restoreWithNotice(url: string) {
     });
 }
 
-/** Remove a job to Recently removed, with Undo. */
-export function removeWithUndo(job: Job) {
+/** Remove a job to Recently removed, with Undo. Removed from its own page (`reopen`, that page's
+ *  hash), Undo also reopens the page as it was: its section, its origin, its scroll. */
+export function removeWithUndo(job: Job, reopen?: string) {
   trashJob(job.url);
   showNotice({
     title: `Removed “${titleOf(job)}”`,
-    actions: [{ label: 'Undo', run: () => restoreWithNotice(job.url) }],
+    actions: [
+      {
+        label: 'Undo',
+        run: () => {
+          restoreWithNotice(job.url);
+          if (reopen) {
+            const r = parseHash(reopen);
+            navigate({ ...r, from: r.from ?? null, section: r.section ?? null }, false, {
+              restore: true,
+            });
+          }
+        },
+      },
+    ],
   });
 }

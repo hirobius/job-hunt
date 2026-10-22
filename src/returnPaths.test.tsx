@@ -1,0 +1,377 @@
+// Return paths (Adrian 2026-10-22): "whenever someone navigates away with a key action, they should
+// be able to get back easily enough / automatically." Tested at the route seam, through App: a page
+// opened by a jump names where it came from on its Back and goes there (a pop when that page is
+// just behind in history), finishing the key action returns there with a toast that says so, and
+// the browser's Back closes a sheet instead of leaving the page.
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { ToastProvider } from '@hirobius/design-system';
+
+const h = vi.hoisted(() => ({ fake: null as null | ReturnType<typeof createFakeSupabase> }));
+vi.mock('@supabase/supabase-js', async () => {
+  const { createFakeSupabase } = await import('./test/fakeSupabase');
+  return {
+    createClient: () => {
+      h.fake = createFakeSupabase();
+      return h.fake.client;
+    },
+  };
+});
+
+import { createFakeSupabase } from './test/fakeSupabase';
+import { ColorModeProvider } from './ColorMode';
+import App from './App';
+import { addJob, dedupKey, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
+import { replaceCurationState } from './curation/curationStore';
+import { seedPack } from './curation/starterPacks';
+import { setOutreachMessages } from './test/outreach';
+import { notifySaved } from './saveNotice';
+import { liveness } from './livenessStore';
+import { getRoute } from './route';
+import { rememberSignInReturn, returnAfterSignIn, takeSignInReturn } from './account/signInReturn';
+
+const A = 'https://acme.example/jobs/1';
+const B = 'https://acme.example/jobs/2';
+const C = 'https://acme.example/jobs/3';
+const idA = jobIdOf(A);
+
+const renderApp = () =>
+  render(
+    <ColorModeProvider>
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    </ColorModeProvider>,
+  );
+const at = (hash: string) => waitFor(() => expect(window.location.hash).toBe(hash));
+const heading = (name: string | RegExp) => screen.findByRole('heading', { level: 2, name });
+const notice = () => screen.getByRole('region', { name: /^Notifications/ });
+
+beforeEach(() => {
+  h.fake?.reset();
+  localStorage.clear();
+  window.history.replaceState(null, '', '/');
+  window.location.hash = '';
+  setOutreachMessages([
+    { id: 'intro', label: 'Cold intro', body: 'Hi [Company] team, about the [Role] role.' },
+  ]);
+  addJob(A, 'Fabricator');
+  updateJob(A, { company: 'Acme Metals' });
+});
+afterEach(() => {
+  cleanup();
+  getAllJobs()
+    .slice()
+    .forEach((j) => removeJob(j.url));
+  replaceCurationState({ categories: [], groups: [], tiles: [] });
+  liveness.set({});
+});
+
+describe('a job page goes back to where it was opened from', () => {
+  it('from the Pipeline: Back pops to the list instead of pushing it again', async () => {
+    window.location.hash = '#/queue';
+    renderApp();
+    const list = await screen.findByRole('region', { name: 'Jobs' });
+    await userEvent.click(within(list).getAllByRole('link', { name: 'Fabricator' })[0]);
+    await heading('Fabricator');
+    const length = window.history.length;
+    await userEvent.click(screen.getByRole('button', { name: 'Back to Pipeline' }));
+    await at('#/queue');
+    expect(window.history.length).toBe(length);
+    expect(await heading('Pipeline')).toBeInTheDocument();
+  });
+
+  it('from its Company page and back: each Back names the page it returns to', async () => {
+    window.location.hash = `#/queue/${idA}`;
+    renderApp();
+    await userEvent.click(await screen.findByRole('link', { name: 'Acme Metals' }));
+    await heading('Acme Metals');
+    const back = screen.getByRole('link', { name: 'Back to Fabricator' });
+    expect(back).toHaveTextContent(/^Fabricator$/);
+    // The job is the page the Company came from: its link goes back without nesting.
+    expect(screen.getAllByRole('link', { name: 'Fabricator' })[0]).toHaveAttribute(
+      'href',
+      `#/queue/${idA}`,
+    );
+    await userEvent.click(back);
+    await at(`#/queue/${idA}`);
+    expect(await heading('Fabricator')).toBeInTheDocument();
+  });
+
+  it('opened from a Company page, Back returns to the Company', async () => {
+    window.location.hash = '#/company/acme-metals';
+    renderApp();
+    await heading('Acme Metals');
+    await userEvent.click(screen.getAllByRole('link', { name: 'Fabricator' })[0]);
+    await heading('Fabricator');
+    await userEvent.click(screen.getByRole('button', { name: 'Back to Acme Metals' }));
+    await at('#/company/acme-metals');
+  });
+
+  it('opened from a save notice on Companies, Back returns to that Companies view', async () => {
+    window.location.hash = '#/discover/apply';
+    renderApp();
+    await at('#/discover/apply');
+    act(() => notifySaved([B]));
+    addJob(B, 'Welder');
+    await userEvent.click(within(notice()).getByRole('button', { name: 'Open' }));
+    await heading('Welder');
+    await userEvent.click(screen.getByRole('button', { name: 'Back to Companies' }));
+    await at('#/discover/apply');
+  });
+
+  it('Find more like this from the Screening tab: the search names the job and goes back to that tab', async () => {
+    seedPack('consulting');
+    window.location.hash = `#/queue/${idA}`;
+    renderApp();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Screening' }));
+    await at(`#/queue/${idA}?section=screening`);
+    await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Find more like this' }));
+    await waitFor(() => expect(getRoute()).toMatchObject({ tab: 'discover', sub: 'ats' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'Back to Fabricator' }));
+    await at(`#/queue/${idA}?section=screening`);
+    expect(await screen.findByRole('tab', { name: 'Screening', selected: true })).toBeVisible();
+  });
+
+  it('Remove goes back to the origin; Undo reopens the job page', async () => {
+    window.location.hash = '#/company/acme-metals';
+    renderApp();
+    await heading('Acme Metals');
+    await userEvent.click(screen.getAllByRole('link', { name: 'Fabricator' })[0]);
+    await heading('Fabricator');
+    await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await at('#/company/acme-metals');
+    await userEvent.click(within(notice()).getByRole('button', { name: 'Undo' }));
+    expect(await heading('Fabricator')).toBeInTheDocument();
+    expect(getRoute()).toMatchObject({ tab: 'queue', jobId: idA, from: '/company/acme-metals' });
+  });
+
+  it('retiring a job closed on the board goes back to the list it was opened from', async () => {
+    liveness.set({ [dedupKey(A)]: { state: 'closed', checkedAt: '2026-10-20T00:00:00Z' } });
+    window.location.hash = '#/queue';
+    renderApp();
+    await heading('Pipeline');
+    await userEvent.click(screen.getAllByRole('link', { name: 'Fabricator' })[0]);
+    await heading('Fabricator');
+    await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Retire' }));
+    await at('#/queue');
+  });
+});
+
+describe('Apply mode', () => {
+  beforeEach(() => {
+    addJob(B, 'Welder');
+    addJob(C, 'Machinist');
+  });
+
+  it('the pager moves in place: one Back leaves Apply mode', async () => {
+    window.location.hash = '#/queue';
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: 'Start applying' }));
+    const pager = await screen.findByRole('navigation', { name: 'Jobs to apply' });
+    const length = window.history.length;
+    await userEvent.click(within(pager).getByRole('button', { name: 'Next page' }));
+    await waitFor(() => expect(within(pager).getByText('2 of 3')).toBeInTheDocument());
+    expect(window.history.length).toBe(length);
+    await userEvent.click(screen.getByRole('button', { name: 'Back to Pipeline' }));
+    await at('#/queue');
+    // Start applying picks up where Apply mode was left.
+    await userEvent.click(await screen.findByRole('button', { name: 'Resume applying (2 of 3)' }));
+    expect(
+      await within(await screen.findByRole('navigation', { name: 'Jobs to apply' })).findByText(
+        '2 of 3',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('Undo on Not a fit reopens that job in Apply mode', async () => {
+    window.location.hash = `#/apply/${jobIdOf(C)}`;
+    renderApp();
+    await heading('Machinist');
+    await userEvent.click(screen.getByRole('button', { name: 'Not a fit' }));
+    await waitFor(() => expect(getRoute().sub).not.toBe(jobIdOf(C)));
+    await userEvent.click(within(notice()).getByRole('button', { name: 'Undo' }));
+    await at(`#/apply/${jobIdOf(C)}`);
+    expect(await heading('Machinist')).toBeInTheDocument();
+  });
+
+  it('Edit documents: Documents names Apply mode, and saving a message comes straight back', async () => {
+    window.location.hash = `#/apply/${jobIdOf(C)}`;
+    renderApp();
+    await heading('Machinist');
+    await userEvent.click(screen.getByRole('link', { name: 'Edit documents' }));
+    await heading('Documents');
+    expect(screen.getByRole('link', { name: 'Back to Apply mode (1 of 3)' })).toBeVisible();
+    const outreach = screen.getByRole('region', { name: 'Outreach messages' });
+    await userEvent.click(within(outreach).getByRole('button', { name: /Cold intro/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Open Cold intro' }));
+    // From the library, the editor goes back to the library.
+    expect(await screen.findByRole('button', { name: 'All documents' })).toBeVisible();
+    const field = screen.getByRole('textbox', { name: 'Message text' });
+    await userEvent.type(field, ' Thanks!');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await at(`#/apply/${jobIdOf(C)}`);
+    expect(await screen.findByText('Back to Apply mode (1 of 3)')).toBeInTheDocument();
+    const list = await screen.findByRole('list', { name: 'Your templates' });
+    expect(within(list).getByText(/Thanks!/)).toBeInTheDocument();
+  });
+});
+
+describe('Use template on a job page', () => {
+  it('Edit message: the editor names the job; saving comes back with the sheet open, refilled', async () => {
+    window.location.hash = `#/queue/${idA}`;
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: 'Use template' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'Edit message' }));
+    await waitFor(() => expect(getRoute().tab).toBe('copy-deck'));
+    expect(await screen.findByRole('button', { name: 'Back to Fabricator' })).toBeVisible();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Message text' }), ' Cheers.');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await at(`#/queue/${idA}`);
+    const preview = await screen.findByRole('region', { name: 'Preview' });
+    // Refilled for the job, with the edit in it (jsdom types at the field's start).
+    expect(preview).toHaveTextContent(/Hi Acme Metals team, about the Fabricator role\./);
+    expect(preview).toHaveTextContent(/Cheers\./);
+  });
+
+  it('with no messages yet, Write a message comes back with the new one picked', async () => {
+    setOutreachMessages([]);
+    window.location.hash = `#/queue/${idA}`;
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: 'Use template' }));
+    await userEvent.click(await screen.findByRole('link', { name: 'Write a message' }));
+    await heading('New outreach message');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Title' }), 'Hello');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Message text' }), 'Hello [[Company]');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await at(`#/queue/${idA}`);
+    expect(await screen.findByRole('region', { name: 'Preview' })).toHaveTextContent(
+      'Hello Acme Metals',
+    );
+    expect(screen.getByRole('button', { name: 'Hello' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+describe('pages opened from the Account menu', () => {
+  it('Documents from a job page on its Interviews tab names the job and goes back to that tab', async () => {
+    window.location.hash = `#/queue/${idA}?section=interviews`;
+    renderApp();
+    await heading('Fabricator');
+    await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Documents' }));
+    await heading('Documents');
+    await userEvent.click(screen.getByRole('link', { name: 'Back to Fabricator' }));
+    await at(`#/queue/${idA}?section=interviews`);
+    expect(await screen.findByRole('tab', { name: /Interviews/, selected: true })).toBeVisible();
+  });
+
+  it('Privacy and terms from the Pipeline goes back there, also after swapping to the Terms', async () => {
+    window.location.hash = '#/queue';
+    renderApp();
+    await heading('Pipeline');
+    await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Privacy and terms' }));
+    await heading('Privacy policy');
+    const length = window.history.length;
+    await userEvent.click(screen.getByRole('link', { name: 'Terms of use' }));
+    await heading('Terms of use');
+    expect(window.history.length).toBe(length);
+    await userEvent.click(screen.getByRole('link', { name: 'Back to Pipeline' }));
+    await at('#/queue');
+  });
+});
+
+describe('the browser Back closes a sheet and stays on the page', () => {
+  it('Add job', async () => {
+    window.location.hash = '#/queue';
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: 'Add job' }));
+    await screen.findByRole('dialog', { name: 'Add a job' });
+    window.history.back();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(window.location.hash).toBe('#/queue');
+    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+  });
+
+  it('Follow up, over the page it was opened on', async () => {
+    updateJob(A, { status: 'Applied', applied: '2026-01-01' });
+    window.location.hash = '#/queue';
+    renderApp();
+    await heading('Pipeline');
+    const followUp = await screen.findAllByRole('button', { name: /^Follow up/ });
+    await userEvent.click(followUp[0]);
+    await screen.findByRole('dialog');
+    window.history.back();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(window.location.hash).toBe('#/queue');
+  });
+
+  it('the Account menu', async () => {
+    window.location.hash = '#/queue';
+    renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: /^Account/ }));
+    await screen.findByRole('menu');
+    window.history.back();
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    expect(window.location.hash).toBe('#/queue');
+  });
+
+  it('closing it on screen leaves no extra step for Back', async () => {
+    window.location.hash = '#/queue';
+    renderApp();
+    const length = window.history.length;
+    await userEvent.click(await screen.findByRole('button', { name: 'Add job' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    // The sheet's entry was popped: what is ahead of this one is only its forward step.
+    await new Promise((r) => setTimeout(r, 30));
+    expect(window.history.length).toBe(length + 1);
+    expect(window.location.hash).toBe('#/queue');
+  });
+});
+
+describe('top tabs reopen where they were left', () => {
+  it('the open tab, tapped again, goes to its root', async () => {
+    window.location.hash = `#/queue/${idA}`;
+    renderApp();
+    await heading('Fabricator');
+    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await at('#/queue');
+    expect(await heading('Pipeline')).toBeInTheDocument();
+  });
+
+  it('Companies comes back on the tool it was on', async () => {
+    seedPack('consulting');
+    window.location.hash = '#/discover/ats';
+    renderApp();
+    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await at('#/queue');
+    await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
+    await at('#/discover/ats');
+  });
+});
+
+describe('sign-in from a link returns to where it was asked for', () => {
+  it('remembers the page, once, and goes there in place', async () => {
+    window.location.hash = '#/company/acme-metals';
+    await at('#/company/acme-metals');
+    rememberSignInReturn();
+    window.location.hash = '#/discover';
+    await at('#/discover');
+    returnAfterSignIn(true);
+    expect(window.location.hash).toBe('#/company/acme-metals');
+    expect(takeSignInReturn()).toBeNull();
+  });
+
+  it('a stale or missing return goes nowhere', () => {
+    rememberSignInReturn(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    expect(takeSignInReturn()).toBeNull();
+    window.location.hash = '#/discover';
+    returnAfterSignIn(false);
+    expect(takeSignInReturn()).toBeNull();
+  });
+});

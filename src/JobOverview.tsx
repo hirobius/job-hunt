@@ -18,7 +18,7 @@ import {
   Text,
 } from '@hirobius/design-system';
 import { jobIdOf, setJobUrl, updateJob } from './store';
-import { companyHash, openJob } from './route';
+import { companyHash, getRoute, linkTo, navigate, parseHash, useRoute, type Route } from './route';
 import { companySlug, relinkCompanyNotes } from './companies';
 import { jobFacts } from './jobFacts';
 import { useSavedFlash } from './useSavedFlash';
@@ -77,7 +77,8 @@ function LinkField({ job }: { job: Job }) {
     if (draft.trim() === job.url) return setError(false);
     const next = setJobUrl(job.url, draft);
     setError(!next);
-    if (next) openJob(jobIdOf(next), true);
+    // In place, the page follows the job to its new id and keeps where it was opened from.
+    if (next) navigate({ jobId: jobIdOf(next), from: getRoute().from ?? null }, true);
   };
   return (
     <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
@@ -144,11 +145,12 @@ function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
   );
 }
 
-/** A company name as a link to its Company page; the bare name when it has no page (no slug). */
-function companyLink(name: string) {
+/** A company name as a link to its Company page; the bare name when it has no page (no slug). The
+ *  Company page remembers this job (its section too), so its Back returns here (return paths). */
+function companyLink(name: string, from: Route) {
   const slug = companySlug(name);
   return slug ? (
-    <InlineLink href={companyHash(slug)} externalIcon={false}>
+    <InlineLink href={linkTo(parseHash(companyHash(slug)), from)} externalIcon={false}>
       {name}
     </InlineLink>
   ) : (
@@ -175,6 +177,7 @@ function postingLink(job: Job, domain: string) {
  *  the header's menu (rev-3 review). */
 function DetailsPanel({ job }: { job: Job }) {
   const [editing, setEditing] = useState(!(job.label && job.company));
+  const route = useRoute();
   const facts = jobFacts(job);
   return (
     <Panel
@@ -204,7 +207,7 @@ function DetailsPanel({ job }: { job: Job }) {
               term: f.term,
               description:
                 f.term === 'Company'
-                  ? companyLink(f.description)
+                  ? companyLink(f.description, route)
                   : f.term === 'Link'
                     ? postingLink(job, f.description)
                     : f.description,

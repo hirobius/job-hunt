@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Check, Copy, ExternalLink, Link, ListPlus, Plus, Search } from 'lucide-react';
+import { Check, Copy, ExternalLink, Link, ListPlus, Plus, Search } from 'lucide-react';
 import {
   Button,
   Icon,
@@ -17,7 +17,10 @@ import {
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
 import TileGrid from './TileGrid';
-import { useRoute, navigate } from './route';
+import { useRoute, navigate, parseHash } from './route';
+import BackLink from './BackLink';
+import { useBackCloses } from './useBackCloses';
+import type { Back } from './back';
 import {
   BOARDS,
   ATS,
@@ -512,6 +515,11 @@ const SECONDARY_VIEWS: Record<Secondary, string> = {
   boards: 'Check a list of companies',
 };
 
+const COMPANIES = parseHash('#/discover');
+// "Back to companies" keeps its words; a recorded origin is named instead.
+const toCompanies = (b: Back) => (b.recorded ? b.label : 'Back to companies');
+const toCompaniesName = (b: Back) => (b.recorded ? `Back to ${b.label}` : null);
+
 export default function DiscoverView() {
   const categories = useCategories();
   // No tracks → the shell shows onboarding instead of this view (App.tsx, #128).
@@ -537,6 +545,8 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const [seed] = useState(() => consumeDiscoverSeed());
   const [activeId, setActiveId] = useState(() => loadActiveCategory(categories));
   const [manageOpen, setManageOpen] = useState(false);
+  // The browser's Back closes Manage track and stays on Companies (return paths).
+  useBackCloses(manageOpen, () => setManageOpen(false), 'manage-track');
 
   const cat = categories.find((c) => c.id === activeId) ?? categories[0];
   const trackContext = useTrackContext(cat.id);
@@ -644,6 +654,9 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
       (!sub ? defaultTool : fallback));
   const section = sections.find((sc) => sc.key === sub) ?? sections[0];
   const toolSub = (v: string) => (v === defaultTool ? null : v);
+  // A view opened from elsewhere (Find more like this from a job) keeps that origin as the tools
+  // and sections change, so its Back still goes there (return paths).
+  const from = route.from ?? null;
   // The first section's own slug when Apply now isn't the default (`apply` then names it).
   const sectionSub = (v: string) =>
     v === sections[0].key ? (defaultTool === 'apply' ? null : 'apply') : v;
@@ -673,13 +686,15 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             secondary view (Live postings, the list checker) is not one of them, so it swaps the
             switch for "Back to companies" instead of stacking a third level under a segment that
             names another page. */}
+        {/* Opened by a key action elsewhere (Find more like this): "← <that job>" (return paths). */}
+        {from && !secondary && <BackLink fallback={COMPANIES} fallbackLabel="Companies" />}
         {!secondary && (
           <SegmentedControl
             aria-label="Search tool"
             size="sm"
             fullWidth
             value={tool}
-            onChange={(v) => navigate({ sub: toolSub(v) })}
+            onChange={(v) => navigate({ sub: toolSub(v), from })}
             options={tools.map((t) => ({ value: t.key, label: t.label }))}
           />
         )}
@@ -712,7 +727,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
                     countLabel={`${sc.tiles.length} links`}
                     preview={sectionPreview(sc.tiles)}
                     open={false}
-                    onOpenChange={(o) => o && navigate({ sub: sectionSub(sc.key) })}
+                    onOpenChange={(o) => o && navigate({ sub: sectionSub(sc.key), from })}
                   >
                     {null}
                   </SectionRow>
@@ -734,14 +749,14 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
           <Stack gap="px4">
             {/* "← Back to companies", the job page's Back pattern (rev-3), with no leading
                 padding so the arrow lines up with the heading (`.rjb-back-link`). */}
-            <Box>
-              <Button className="rjb-back-link" variant="tertiary" size="md" asChild>
-                <a href={defaultTool === 'teams' ? '#/discover' : '#/discover/teams'}>
-                  <Icon icon={ArrowLeft} />
-                  Back to companies
-                </a>
-              </Button>
-            </Box>
+            {/* A pop when the list is just behind, so it comes back at the scroll it had (the
+                More ways panel), and the browser's Back doesn't bounce (return paths). */}
+            <BackLink
+              fallback={parseHash(defaultTool === 'teams' ? '#/discover' : '#/discover/teams')}
+              fallbackLabel="companies"
+              text={toCompanies}
+              ariaLabel={toCompaniesName}
+            />
             {/* Live postings goes straight from Back to the search row (rev-3 mock): its name
                 stays in the outline for assistive tech only. Check a list of companies names
                 itself in its panel's header (rev-3 L). */}

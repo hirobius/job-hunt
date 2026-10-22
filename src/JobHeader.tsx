@@ -2,36 +2,27 @@
 // a due follow-up, Closed, then fit), the title with its posting link beside it, company ·
 // location · applied date, then one row of actions: the star, the job's one primary next step (it
 // takes the row's room) and the menu of everything else (Remove included). The same column at
-// every width. Back goes to the Pipeline.
+// every width. Back goes to the page the job was opened from (the Pipeline by default).
 // An Interviewing job's primary is Add interview (opens the Interviews tab); a job with no next
 // step (Offer, Rejected, retired, applied and not yet due) has none, so Star and More sit together.
-import { ArrowLeft } from 'lucide-react';
-import { Box, Button, Icon, Stack, Text } from '@hirobius/design-system';
+import { Box, Button, Stack, Text } from '@hirobius/design-system';
 import { MetaCaption } from './MetaCaption';
 import { shortDate } from './metaLines';
 import { primaryAction, titleOf } from './jobRow';
-import { openJob } from './route';
+import { goBack, type Route } from './route';
+import BackLink from './BackLink';
+import { checkFor, useLiveness } from './livenessStore';
 import { JobBadges, RowMenu, RowPrimaryAction, StarButton } from './JobRowParts';
 import { JobPostingLink } from './PostingLink';
 import type { Job } from './types';
 
-/** "← Pipeline": a quiet link-like button back to the list. Its name says where it goes. */
+const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
+
+/** "← Pipeline": a quiet link-like button back to where the page was opened from (return paths):
+ *  the Pipeline by default, else the page that opened it, by name ("← Companies", "← Acme
+ *  Metals"). Its name says where it goes. Apply mode uses it too. */
 export function BackToPipeline() {
-  return (
-    // No inline-start padding, so the arrow sits on the page gutter like the title (rev-3).
-    <Box>
-      <Button
-        className="rjb-back"
-        variant="tertiary"
-        size="md"
-        iconLeft={<Icon icon={ArrowLeft} />}
-        aria-label="Back to Pipeline"
-        onClick={() => openJob(null)}
-      >
-        Pipeline
-      </Button>
-    </Box>
-  );
+  return <BackLink as="button" className="rjb-back" fallback={PIPELINE} fallbackLabel="Pipeline" />;
 }
 
 export default function JobHeader({
@@ -53,6 +44,9 @@ export default function JobHeader({
       </Button>
     ) : null;
   const primary = next ? <RowPrimaryAction job={job} variant="primary" size="md" /> : addInterview;
+  // A job closed on the board was opened to clear it out: retiring it goes back to where it was
+  // opened from (the Pipeline's closed list), like Remove does for any job.
+  const closed = checkFor(useLiveness(), job.url)?.state === 'closed';
   return (
     <Box as="header" sx={{ mb: 'lg' }}>
       <Stack gap="normal">
@@ -89,7 +83,13 @@ export default function JobHeader({
               {primary}
             </Box>
           )}
-          <RowMenu job={job} size="md" research onRemoved={() => openJob(null, true)} />
+          <RowMenu
+            job={job}
+            size="md"
+            research
+            onRemoved={() => goBack(PIPELINE)}
+            onRetired={closed ? () => goBack(PIPELINE) : undefined}
+          />
         </Box>
       </Stack>
     </Box>

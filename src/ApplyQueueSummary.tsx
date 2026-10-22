@@ -7,6 +7,7 @@ import { Button, Stack, Text } from '@hirobius/design-system';
 import { toApplyQueue } from './applyQueue';
 import { jobIdOf } from './store';
 import { openApply } from './route';
+import { lastApplyJobId } from './tabMemory';
 import { FollowUpSection, NextDaysSection } from './PipelineAgenda';
 import { Panel, PanelBody } from './PipelinePanel';
 import type { Job } from './types';
@@ -16,6 +17,10 @@ const jobs$ = (n: number) => `${n} ${n === 1 ? 'job' : 'jobs'}`;
 export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
   const queue = useMemo(() => toApplyQueue(jobs), [jobs]);
   const now = new Date();
+  // Back from Apply mode at "2 of 3": Start applying picks up there (return paths).
+  const lastId = lastApplyJobId();
+  const resumeAt = lastId ? queue.findIndex((j) => jobIdOf(j.url) === lastId) : -1;
+  const start = queue[Math.max(0, resumeAt)];
   return (
     <>
       <Panel
@@ -34,9 +39,11 @@ export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
             <Button
               variant="primary"
               disabled={!queue.length}
-              onClick={() => queue[0] && openApply(jobIdOf(queue[0].url))}
+              onClick={() => start && openApply(jobIdOf(start.url))}
             >
-              Start applying
+              {resumeAt > 0
+                ? `Resume applying (${resumeAt + 1} of ${queue.length})`
+                : 'Start applying'}
             </Button>
           </Stack>
         </PanelBody>

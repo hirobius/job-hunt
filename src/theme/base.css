@@ -239,6 +239,17 @@ p {
   padding-inline-start: 0;
 }
 
+/* A Back that names the page it returns to (return paths): a long job title ellipsizes on one line
+ * instead of wrapping the header. */
+.rjb-back-label {
+  display: inline-block;
+  max-width: min(36ch, 70vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
 /* An outlined danger action (rev-3 .btn.danger: Reset local data in its confirm and on the error
  * page): HDS secondary's border and height, red text. HDS `tone="danger"` on a secondary drops the
  * border for a tinted fill, so the host sets the colour on a plain secondary (HDS gap registry). */

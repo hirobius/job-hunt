@@ -214,9 +214,10 @@ describe('editing a message changes what the fill paths use', () => {
     const writeText = vi.spyOn(navigator.clipboard, 'writeText');
     await user.click(within(list).getByRole('button', { name: 'Copy Follow-up after applying' }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('P.S. Acme Metals rocks.'));
+    // Documents remembers Apply mode (return paths): its Back and a Save come back here.
     expect(screen.getByRole('link', { name: 'Edit documents' })).toHaveAttribute(
       'href',
-      '#/copy-deck',
+      `#/copy-deck?from=%2Fapply%2F${jobIdOf(JOB)}`,
     );
   });
 });
@@ -234,9 +235,10 @@ describe('the Company page (#230)', () => {
       await screen.findByRole('heading', { level: 2, name: 'Acme Metals' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
+    // The job page remembers the Company page, so its Back returns here (return paths).
     expect(screen.getByRole('link', { name: 'Fabricator' })).toHaveAttribute(
       'href',
-      `#/queue/${jobIdOf(JOB)}`,
+      `#/queue/${jobIdOf(JOB)}?from=%2Fcompany%2Facme-metals`,
     );
   });
 
@@ -244,7 +246,7 @@ describe('the Company page (#230)', () => {
     window.location.hash = `#/queue/${jobIdOf(JOB)}`;
     await renderApp();
     const link = await screen.findByRole('link', { name: 'Acme Metals' });
-    expect(link).toHaveAttribute('href', '#/company/acme-metals');
+    expect(link).toHaveAttribute('href', `#/company/acme-metals?from=%2Fqueue%2F${jobIdOf(JOB)}`);
     await userEvent.click(link);
     expect(
       await screen.findByRole('heading', { level: 2, name: 'Acme Metals' }),

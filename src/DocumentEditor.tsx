@@ -49,6 +49,7 @@ import { Panel, PanelBody } from './PipelinePanel';
 import { copyFilled } from './templateCopy';
 import { metaLines } from './metaLines';
 import { BlanksLeft, WithChips } from './BlankText';
+import { scrollToTop } from './scrollMemory';
 
 const NO_JOB = 'none';
 const FULL = { width: '100%' } as const;
@@ -70,12 +71,19 @@ export default function DocumentEditor({
   kind,
   onBack,
   onCreated,
+  back,
+  returnTo,
 }: {
   /** The document to edit; left out for a new one, which is created on its first Save. */
   doc?: Document;
   kind: DocumentKind;
   onBack: () => void;
   onCreated: (id: string) => void;
+  /** The page's Back in place of "All documents" (return paths: it names a job or Apply mode). */
+  back?: ReactNode;
+  /** Opened from a job or Apply mode (return paths): a Save goes straight back there, and the
+   *  toast says so. */
+  returnTo?: { label: string; go: () => void };
 }) {
   const { toast } = useToast();
   const label = labelOf(kind);
@@ -91,20 +99,28 @@ export default function DocumentEditor({
   const [confirming, setConfirming] = useState(false);
   // Opened from a scrolled list, the editor starts at its head (like JobPage and ApplyMode).
   useEffect(() => {
-    window.scrollTo?.({ top: 0 });
+    scrollToTop();
   }, [doc?.id, kind]);
   const outreach = kind === 'outreach';
   const dirty = doc ? draft !== saved : true;
 
+  const back$ = returnTo ? `Back to ${returnTo.label}` : undefined;
   const save = () => {
     if (!doc) {
       const id = createDocument({ kind, title: title.trim() || label, text: draft, base: true });
-      toast({ title: 'Saved', description: title.trim() || label, tone: 'success' });
-      onCreated(id);
+      toast({ title: 'Saved', description: back$ ?? (title.trim() || label), tone: 'success' });
+      if (returnTo) returnTo.go();
+      else onCreated(id);
       return;
     }
-    if (saveVersion(doc.id, draft))
-      toast({ title: `Saved as version ${doc.versions.length + 1}`, tone: 'success' });
+    if (saveVersion(doc.id, draft)) {
+      toast({
+        title: `Saved as version ${doc.versions.length + 1}`,
+        tone: 'success',
+        ...(back$ ? { description: back$ } : {}),
+      });
+      returnTo?.go();
+    }
   };
   const commitTitle = () => {
     if (doc && title.trim() !== doc.title) renameDocument(doc.id, title);
@@ -160,16 +176,18 @@ export default function DocumentEditor({
 
   return (
     <Stack gap="normal">
-      <Box>
-        <Button
-          variant="tertiary"
-          className="rjb-back"
-          iconLeft={<Icon icon={ArrowLeft} />}
-          onClick={onBack}
-        >
-          All documents
-        </Button>
-      </Box>
+      {back ?? (
+        <Box>
+          <Button
+            variant="tertiary"
+            className="rjb-back"
+            iconLeft={<Icon icon={ArrowLeft} />}
+            onClick={onBack}
+          >
+            All documents
+          </Button>
+        </Box>
+      )}
       <Stack gap="px4">
         <Text variant="title" as="h2">
           {doc ? doc.title || 'Untitled' : `New ${label.charAt(0).toLowerCase()}${label.slice(1)}`}
@@ -378,7 +396,10 @@ function OutreachText({
       </Stack>
       {actions}
       {history}
-      <Panel label={docId ? 'Variables' : 'Fill for a job'} title={docId ? 'Variables' : 'Fill for a job'}>
+      <Panel
+        label={docId ? 'Variables' : 'Fill for a job'}
+        title={docId ? 'Variables' : 'Fill for a job'}
+      >
         <PanelBody>
           <Stack gap="normal">
             {docId && names.length > 0 && (

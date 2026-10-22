@@ -1,5 +1,15 @@
-import { lazy, Suspense, useEffect } from 'react';
-import { useRoute, navigate, getRoute, isAuthCallback, COMPANY_TAB } from './route';
+import { lazy, Suspense, useEffect, useRef } from 'react';
+import {
+  useRoute,
+  navigate,
+  getRoute,
+  goBackTo,
+  isAuthCallback,
+  pageKey,
+  parseHash,
+  COMPANY_TAB,
+} from './route';
+import { openTab, type TopTab } from './tabMemory';
 import {
   Tabs as HdsTabs,
   TabsList,
@@ -92,6 +102,30 @@ export default function App() {
   );
   const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
 
+  // Top tabs (return paths): another tab reopens where it was left (openTab); the open tab, tapped
+  // again, goes to its root, and at its root back to the top. Radix selects on mouse down, so
+  // whether the tab was already open is read before that, on pointer or key down.
+  const tappedOpen = useRef<TopTab | null>(null);
+  const pressed = (slug: TopTab) => () => {
+    tappedOpen.current = !noTab && TAB_SLUGS[tab] === slug ? slug : null;
+  };
+  const tapped = (slug: TopTab) => () => {
+    if (tappedOpen.current !== slug) return;
+    tappedOpen.current = null;
+    if (pageKey(getRoute()) === `${slug}/`) window.scrollTo({ top: 0, behavior: 'smooth' });
+    else goBackTo(parseHash(`#/${slug}`));
+  };
+  const trigger = (slug: TopTab) => ({
+    onPointerDown: pressed(slug),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        pressed(slug)();
+        tapped(slug)();
+      }
+    },
+    onClick: tapped(slug),
+  });
+
   // The onboarding gate (#128) lives here, not in a view. Companies can't work without a track,
   // and on a first run (no tracks and no jobs) it also offers sample data, so nobody lands on an
   // empty home. The Pipeline and Documents never gate: quick-add and sample data work before setup.
@@ -124,8 +158,9 @@ export default function App() {
     if (acted) {
       ['add', 'applied', 'status', 'u', 't', 'title'].forEach((k) => qp.delete(k));
       const s = qp.toString();
+      // Keep the entry's state: it holds this tab's return-path record (route.ts).
       window.history.replaceState(
-        null,
+        window.history.state,
         '',
         window.location.pathname + (s ? '?' + s : '') + '#/' + QUICK_ADD_LANDING,
       );
@@ -163,9 +198,7 @@ export default function App() {
             <HdsTabs
               value={noTab ? '' : TAB_SLUGS[tab]}
               activationMode={noTab ? 'manual' : 'automatic'}
-              onValueChange={(v) =>
-                navigate({ tab: v as (typeof TAB_SLUGS)[number], sub: null, jobId: null })
-              }
+              onValueChange={(v) => openTab(v as TopTab)}
             >
               {/* The shell owns the page rhythm (rev-3 .wrap): 24 from the tabs to the first thing on
                   every page (its back link or its title); views add no top margin of their own. */}
@@ -184,8 +217,12 @@ export default function App() {
                     className="rjb-top-tabs"
                     aria-label="Sections"
                   >
-                    <TabsTrigger value="discover">Companies</TabsTrigger>
-                    <TabsTrigger value="queue">Pipeline</TabsTrigger>
+                    <TabsTrigger value="discover" {...trigger('discover')}>
+                      Companies
+                    </TabsTrigger>
+                    <TabsTrigger value="queue" {...trigger('queue')}>
+                      Pipeline
+                    </TabsTrigger>
                   </TabsList>
                 </Stack>
                 <TabsContent value="queue" variant="bare">

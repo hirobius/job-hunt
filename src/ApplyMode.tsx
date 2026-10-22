@@ -29,9 +29,11 @@ import { statusAgo } from './jobState';
 import { Panel, PanelBody } from './PipelinePanel';
 import BlankText from './BlankText';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
-import { openApply, openJob } from './route';
+import { getRoute, goBack, linkTo, openApply, useRoute, type Route } from './route';
+import { scrollToTop } from './scrollMemory';
+import { useRemembered } from './viewMemory';
 import { titleOf } from './jobRow';
-import { toApplyQueue } from './applyQueue';
+import { applySequence, toApplyQueue } from './applyQueue';
 import { followUpDate } from './jobEvents';
 import { dayLabel } from './dayLabel';
 import {
@@ -51,22 +53,16 @@ import { copyFilled } from './templateCopy';
 import { showNotice } from './saveNotice';
 import type { Job } from './types';
 
+const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
+
 export default function ApplyMode({ jobId }: { jobId: string | null }) {
   const jobs = useJobs();
   const queue = useMemo(() => toApplyQueue(jobs), [jobs]);
   const job = jobId ? findJobById(jobId, jobs) : undefined;
   // The pager walks the queue with this job held in its place, so "2 of 3" stays put after Mark
   // applied (the job leaves To apply) and Next still means the one after it.
-  const sequence = useMemo(
-    () =>
-      job
-        ? toApplyQueue(
-            jobs.map((j) => (j.url === job.url ? { ...j, status: 'Saved', archived: false } : j)),
-          )
-        : queue,
-    [jobs, job, queue],
-  );
-  useEffect(() => window.scrollTo(0, 0), [jobId]);
+  const sequence = useMemo(() => (job ? applySequence(jobs, job) : queue), [jobs, job, queue]);
+  useEffect(() => scrollToTop(), [jobId]);
 
   if (!job) {
     return (
@@ -95,19 +91,30 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
 
   const idx = sequence.findIndex((j) => j.url === job.url);
   const others = queue.filter((j) => j.url !== job.url);
-  // After this one: the next job still to apply to, else the first, else back to the Pipeline.
+  // After this one: the next job still to apply to, else the first, else back to where Apply mode
+  // was opened from (the Pipeline). In place: Back skips a job set aside (return paths).
   const next = sequence.slice(idx + 1).find((j) => others.includes(j)) ?? others[0] ?? undefined;
-  const goNext = () => (next ? openApply(jobIdOf(next.url)) : openJob(null));
+  const goNext = () => (next ? openApply(jobIdOf(next.url), true) : goBack(PIPELINE));
 
   const markApplied = () => {
     setStatus(job.url, 'Applied');
   };
   const notAFit = () => {
     updateJob(job.url, { archived: true });
+    const id = jobIdOf(job.url);
     showNotice({
       title: 'Set aside as not a fit',
       description: titleOf(job),
-      actions: [{ label: 'Undo', run: () => updateJob(job.url, { archived: false }) }],
+      // Undo puts the job back in To apply and reopens it here, at its place in the walk.
+      actions: [
+        {
+          label: 'Undo',
+          run: () => {
+            updateJob(job.url, { archived: false });
+            openApply(id, getRoute().tab === 'apply');
+          },
+        },
+      ],
     });
     goNext();
   };
@@ -129,7 +136,8 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
                 label="Jobs to apply"
                 page={idx + 1}
                 count={sequence.length}
-                onPageChange={(p) => openApply(jobIdOf(sequence[p - 1].url))}
+                // In place: one Back leaves Apply mode, not every job paged through.
+                onPageChange={(p) => openApply(jobIdOf(sequence[p - 1].url), true)}
               />
             </Box>
           )}
@@ -186,7 +194,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
         )}
         {job.status !== 'Saved' && !next && (
           <Box>
-            <Button variant="secondary" size="md" onClick={() => openJob(null)}>
+            <Button variant="secondary" size="md" onClick={() => goBack(PIPELINE)}>
               To apply is empty · back to Pipeline
             </Button>
           </Box>
@@ -324,15 +332,26 @@ function DisclosureItem({
   preview,
   actions,
   children,
+  remember,
 }: {
   label: string;
   preview: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
+  /** Keeps the row open or closed across a trip to Documents and back (return paths). */
+  remember: string;
 }) {
+  const [open, setOpen] = useRemembered(`apply:${remember}`, false);
   return (
     <Box as="li" aria-label={label} sx={{ py: 'xs' }}>
-      <Disclosure variant="row" label={label} preview={preview} actions={actions}>
+      <Disclosure
+        variant="row"
+        label={label}
+        preview={preview}
+        actions={actions}
+        open={open}
+        onOpenChange={setOpen}
+      >
         {children}
       </Disclosure>
     </Box>
@@ -343,15 +362,20 @@ function DisclosureItem({
 function ApplyTemplates({ job }: { job: Job }) {
   const kit = useApplyKit();
   const snippets = useOutreachTemplates();
+  const route = useRoute();
   const rows = useMemo(
     () => filledTemplates(snippets, job, kit.fields.name),
     [snippets, job, kit.fields.name],
   );
+  // Documents remembers this job in Apply mode (return paths): its Back reads "← Apply mode (2 of
+  // 3)", and saving a message comes straight back here with the row refilled. With no message yet,
+  // the link opens a new one.
+  const editHref = linkTo({ tab: 'copy-deck', sub: rows.length ? null : 'new/outreach' }, route);
   const edit = (label: string) => (
     <Box>
       {/* HDS Button asChild drops iconLeft, so the pencil is the link's own child. */}
       <Button asChild variant="secondary" size="md">
-        <a href="#/copy-deck">
+        <a href={editHref}>
           <Icon icon={Pencil} />
           {label}
         </a>
@@ -436,6 +460,7 @@ function ApplicationKit({ job }: { job: Job }) {
         {/* Empty fields fold into one row, so the filled ones stay in reach (rev-3 mock). */}
         {missing.length > 0 && (
           <DisclosureItem
+            remember="more"
             label={`Fill in ${missing.length} more`}
             preview={missing.map((f) => f.label).join(', ')}
           >
@@ -460,6 +485,7 @@ function ApplicationKit({ job }: { job: Job }) {
           return (
             <DisclosureItem
               key={slot}
+              remember={slot}
               label={label}
               preview={text ? previewOf(text) : 'Pick a template to fill'}
               actions={text ? <CopyButton label={label} value={text} /> : undefined}
@@ -479,6 +505,7 @@ function ApplicationKit({ job }: { job: Job }) {
           );
         })}
         <DisclosureItem
+          remember="answers"
           label="Custom answers"
           preview={
             answered

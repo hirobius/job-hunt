@@ -20,6 +20,13 @@ export interface Route {
   /** The job a `#/queue/<jobId>` route opens (store.jobIdOf), or null. Its own field — the second
    *  segment means a job under `queue` and a sub-tab everywhere else (#127). */
   jobId: string | null;
+  /** The page this one was opened from, as a hash path (`/queue/k3x9a1?section=screening`), when a
+   *  key action jumped here (return paths, Adrian 2026-10-22). The page's Back names it and goes
+   *  there; left out, Back goes to the page's default. In the URL, so back/forward and reload keep
+   *  it. Built by `withOrigin`, read by `originOf`. */
+  from?: string | null;
+  /** A job page's open section (`screening`, `interviews`; Overview is the default and left out). */
+  section?: string | null;
 }
 
 /** The tab whose second segment is a job id: #/queue/<jobId>. */
@@ -28,17 +35,26 @@ const JOB_TAB = 'queue';
 /** Parse a raw `location.hash` string into a Route. Pure — exported for tests. */
 export function parseHash(hash: string): Route {
   const raw = hash.replace(/^#\/?/, '');
-  const [path, query] = raw.split('?');
+  const at = raw.indexOf('?');
+  const path = at < 0 ? raw : raw.slice(0, at);
+  const query = at < 0 ? '' : raw.slice(at + 1);
   const seg = path.split('/').filter(Boolean);
-  const qp = new URLSearchParams(query || '');
+  const qp = new URLSearchParams(query);
   const tab = seg[0] || '';
-  const second = seg[1] || null;
+  // Every segment after the tab is the sub (`#/copy-deck/new/outreach`); ids and slugs are escaped,
+  // so they never hold a slash of their own.
+  const second = seg.slice(1).join('/') || null;
   const isJob = tab === JOB_TAB && second !== null;
+  const from = qp.get('from');
+  const section = isJob ? qp.get('section') : null;
   return {
     tab,
     sub: isJob ? null : second,
     pillar: qp.get('pillar'),
     jobId: isJob ? second : null,
+    // Only when present, so a plain route reads as it always has.
+    ...(from ? { from } : {}),
+    ...(section ? { section } : {}),
   };
 }
 
@@ -55,6 +71,8 @@ export function buildHash(r: Route): string {
   const path = [r.tab, second].filter(Boolean).join('/');
   const qp = new URLSearchParams();
   if (r.pillar) qp.set('pillar', r.pillar);
+  if (r.section && r.tab === JOB_TAB && r.jobId) qp.set('section', r.section);
+  if (r.from) qp.set('from', r.from);
   const q = qp.toString();
   return '#/' + path + (q ? '?' + q : '');
 }
@@ -62,8 +80,102 @@ export function buildHash(r: Route): string {
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
+// ---- History entries (return paths) --------------------------------------------------------------
+// Each history entry this tab makes carries a small record in `history.state.rjb`: a key, the hashes
+// of the entries before it (the trail, newest last) and its own hash. Back uses the trail to pop to
+// the page it returns to when that page is just behind (so the browser's Back doesn't bounce into
+// the page just left), and a hash change onto an entry that already has a record is a revisit
+// (back/forward), whose scroll position is restored. A sheet (a dialog or menu) can push an entry
+// of its own with the same URL, so the browser's Back closes it instead of leaving the page.
+interface Entry {
+  key: string;
+  trail: string[];
+  hash: string;
+  /** Set on an entry a sheet pushed: the sheet's id and what it needs to reopen as it was. */
+  sheet?: string;
+  data?: unknown;
+}
+const TRAIL_MAX = 12;
+let keySeq = 0;
+const newKey = () => `${Date.now().toString(36)}.${++keySeq}`;
+let entry: Entry | null = null;
+/** Sheet entries this module asked the browser to pop that it hasn't popped yet. */
+let pendingBack = 0;
+/** Navigations waiting for those pops (a push now would land before them). */
+let afterPops: (() => void)[] = [];
+const restoreListeners = new Set<(hash: string) => void>();
+/** The page was reloaded onto an entry this tab had already marked (its scroll can come back). */
+let reloadedEntry = false;
+
+const stateObject = (): Record<string, unknown> => {
+  const s: unknown = typeof window !== 'undefined' ? window.history.state : null;
+  return s && typeof s === 'object' ? (s as Record<string, unknown>) : {};
+};
+function readEntry(): Entry | null {
+  const e = stateObject().rjb as Entry | undefined;
+  return e && typeof e.key === 'string' && Array.isArray(e.trail) ? e : null;
+}
+function writeEntry(e: Entry, url?: string) {
+  window.history.replaceState({ ...stateObject(), rjb: e }, '', url);
+  entry = e;
+}
+const hashOf = (url: string | undefined): string | null => {
+  if (url == null) return null;
+  const i = url.indexOf('#');
+  const h = i < 0 ? '' : url.slice(i);
+  return h === '#' ? '' : h;
+};
+/** Ask for the scroll position a page had (a revisit, a Back, a tab reopening where it was). */
+export function requestScrollRestore(hash: string): void {
+  restoreListeners.forEach((l) => l(hash));
+}
+/** The scroll memory listens here (scrollMemory.ts). */
+export function subscribeScrollRestore(cb: (hash: string) => void): () => void {
+  restoreListeners.add(cb);
+  return () => {
+    restoreListeners.delete(cb);
+  };
+}
+/** True when this load is a reload of an entry this tab had already visited. */
+export const wasReloaded = () => reloadedEntry;
+
 if (typeof window !== 'undefined') {
-  window.addEventListener('hashchange', emit);
+  const found = readEntry();
+  if (found) {
+    entry = { ...found, hash: window.location.hash };
+    reloadedEntry = true;
+  } else writeEntry({ key: newKey(), trail: [], hash: window.location.hash });
+
+  window.addEventListener('popstate', () => {
+    const e = readEntry();
+    if (e) entry = e;
+    else if (entry && window.location.hash === entry.hash)
+      // An entry with this URL that this tab never marked: start a record for it.
+      writeEntry({ key: newKey(), trail: [], hash: window.location.hash });
+    if (pendingBack > 0 && --pendingBack === 0) {
+      const run = afterPops;
+      afterPops = [];
+      run.forEach((f) => f());
+    }
+  });
+
+  window.addEventListener('hashchange', (ev) => {
+    const found = readEntry();
+    if (found) {
+      // Back or forward onto a page already visited: bring its scroll back.
+      entry = found;
+      requestScrollRestore(window.location.hash);
+    } else {
+      const oldHash = hashOf((ev as HashChangeEvent).oldURL) ?? entry?.hash ?? '';
+      const base = entry && entry.hash === oldHash ? entry.trail : [];
+      writeEntry({
+        key: newKey(),
+        trail: [...base, oldHash].slice(-TRAIL_MAX),
+        hash: window.location.hash,
+      });
+    }
+    emit();
+  });
 }
 
 // Cache the parsed snapshot so useSyncExternalStore gets a stable reference between changes.
@@ -89,21 +201,104 @@ function subscribe(cb: () => void): () => void {
 /** Listen for route changes outside React (the save notice drops itself on navigation). */
 export const subscribeRoute = subscribe;
 
+/** Swap the current history entry for a route (keeping its record, dropping any sheet mark). */
+function replaceRoute(h: string) {
+  const e = entry ?? { key: newKey(), trail: [], hash: '' };
+  writeEntry(
+    { key: e.key, trail: e.trail, hash: h },
+    window.location.pathname + window.location.search + h,
+  );
+  emit(); // replaceState doesn't fire hashchange
+}
+
 /** Merge a partial route into the current one and write it to the URL hash.
- *  `replace` swaps the history entry (no new back-stack step) instead of pushing. */
-export function navigate(patch: Partial<Route>, replace = false): void {
+ *  `replace` swaps the history entry (no new back-stack step) instead of pushing; `restore` brings
+ *  back the scroll position the page had. An origin (`from`) and a job's section belong to their
+ *  page: moving to another page drops them unless the patch names them. A navigation from an open
+ *  sheet replaces the sheet's own entry, so Back doesn't reopen it. */
+export function navigate(
+  patch: Partial<Route>,
+  replace = false,
+  opts: { restore?: boolean } = {},
+): void {
+  if (pendingBack > 0) {
+    afterPops.push(() => navigate(patch, replace, opts));
+    return;
+  }
   const cur = getSnapshot();
-  const next = { ...cur, ...patch };
+  const next: Route = { ...cur, ...patch };
   // A job id belongs to the tab it was opened in: switching tabs without naming a job drops it.
   if (patch.tab !== undefined && patch.tab !== cur.tab && !('jobId' in patch)) next.jobId = null;
+  const moved = pageKey(next) !== pageKey(cur);
+  if (moved && !('from' in patch)) next.from = null;
+  if (moved && !('section' in patch)) next.section = null;
   const h = buildHash(next);
   if (h === window.location.hash) return;
-  if (replace) {
-    window.history.replaceState(null, '', window.location.pathname + window.location.search + h);
-    emit(); // replaceState doesn't fire hashchange
-  } else {
-    window.location.hash = h; // fires hashchange → emit via listener
+  if (opts.restore) requestScrollRestore(h);
+  if (replace || entry?.sheet) replaceRoute(h);
+  else window.location.hash = h; // fires hashchange → emit via listener
+}
+
+/** Go back to `target`: pop to it when it is an earlier entry in this tab's history (matched by
+ *  page, so it comes back exactly as it was left), else replace the current entry with it. Either
+ *  way its scroll position comes back. */
+export function goBackTo(target: Route): void {
+  if (pendingBack > 0) {
+    afterPops.push(() => goBackTo(target));
+    return;
   }
+  const want = pageKey(target);
+  const trail = entry?.trail ?? [];
+  for (let i = trail.length - 1; i >= 0; i--) {
+    if (pageKey(parseHash(trail[i])) === want) {
+      window.history.go(i - trail.length);
+      return;
+    }
+  }
+  const h = buildHash(target);
+  requestScrollRestore(h);
+  if (h !== window.location.hash) replaceRoute(h);
+}
+
+/** Go back from the current page: to its recorded origin, else to `fallback` (its default). */
+export function goBack(fallback: Route): void {
+  goBackTo(originOf(getSnapshot()) ?? fallback);
+}
+
+// ---- Sheets ----------------------------------------------------------------------------------------
+/** Push an entry for an open sheet (same URL), so the browser's Back closes it (useBackCloses). */
+export function pushSheet(id: string, data?: unknown): void {
+  const cur = entry ?? { key: newKey(), trail: [], hash: window.location.hash };
+  const e: Entry = {
+    key: newKey(),
+    trail: [...cur.trail, cur.hash].slice(-TRAIL_MAX),
+    hash: window.location.hash,
+    sheet: id,
+    data,
+  };
+  window.history.pushState({ ...stateObject(), rjb: e }, '', window.location.href);
+  entry = e;
+}
+/** The sheet whose entry is the current one, or null. */
+export const currentSheet = (): string | null => entry?.sheet ?? null;
+/** What the current sheet entry holds to reopen as it was. */
+export const currentSheetData = (): unknown => entry?.data;
+/** Update what an open sheet's entry holds (its pick changed). */
+export function setSheetData(id: string, data: unknown): void {
+  if (entry?.sheet === id) writeEntry({ ...entry, data });
+}
+/** Start this tab's history record afresh on the current entry (tests start clean). */
+export function resetHistoryRecord(): void {
+  pendingBack = 0;
+  afterPops = [];
+  writeEntry({ key: newKey(), trail: [], hash: window.location.hash });
+}
+
+/** A sheet closed on screen: pop its entry, so Back doesn't land on it. */
+export function popSheet(id: string): void {
+  if (entry?.sheet !== id) return;
+  pendingBack++;
+  window.history.back();
 }
 
 /** Read the current route, re-rendering on any hash change. */
@@ -116,9 +311,9 @@ export function getRoute(): Route {
   return getSnapshot();
 }
 
-/** The hash of a saved job's page (#/queue/<jobId>), for links. */
-export function jobHash(jobId: string): string {
-  return buildHash({ tab: JOB_TAB, sub: null, pillar: null, jobId });
+/** The hash of a saved job's page (#/queue/<jobId>), for links; `section` opens one of its tabs. */
+export function jobHash(jobId: string, section?: string): string {
+  return buildHash({ tab: JOB_TAB, sub: null, pillar: null, jobId, section });
 }
 
 /** Open a saved job's page, or (null) go back to the Pipeline list. */
@@ -126,9 +321,16 @@ export function openJob(jobId: string | null, replace = false): void {
   navigate({ tab: JOB_TAB, jobId }, replace);
 }
 
-/** Open Apply mode on a saved job (#/apply/<jobId>, rapid apply). */
-export function openApply(jobId: string): void {
-  navigate({ tab: 'apply', sub: jobId, jobId: null });
+/** Open Apply mode on a saved job (#/apply/<jobId>, rapid apply). `replace` moves within Apply
+ *  mode in place (the pager, the next job after Not a fit), keeping where Apply mode was opened
+ *  from, so one Back leaves it. */
+export function openApply(jobId: string, replace = false): void {
+  const cur = getSnapshot();
+  const within = replace && cur.tab === 'apply';
+  navigate(
+    { tab: 'apply', sub: jobId, jobId: null, ...(within ? { from: cur.from ?? null } : {}) },
+    replace,
+  );
 }
 
 /** The tab whose second segment is a Company slug: #/company/<slug> (#230). */
@@ -142,4 +344,72 @@ export function companyHash(slug: string): string {
 /** Open a Company's page (#/company/<slug>). */
 export function openCompany(slug: string): void {
   navigate({ tab: COMPANY_TAB, sub: encodeURIComponent(slug), jobId: null });
+}
+
+// ---- Return paths (Adrian 2026-10-22) ------------------------------------------------------------
+// "Whenever someone navigates away with a key action, they should be able to get back." A page
+// opened by a jump carries its origin in the route (`from`), so its Back names that page and goes
+// there, and finishing the key action returns there; browser back/forward and reload keep it.
+
+const DOCUMENTS_TAB = 'copy-deck';
+const LEGAL_TAB = 'legal';
+const PIPELINE_HASH = '#/queue';
+
+/** The full route for a partial one (missing fields null). */
+const full = (r: Partial<Route> & { tab: string }): Route => ({
+  sub: null,
+  pillar: null,
+  jobId: null,
+  ...r,
+});
+
+/** Which page a route shows, ignoring its origin, section and pillar: two routes with the same
+ *  key are the same page (history entries are matched on it). */
+export function pageKey(r: Route): string {
+  return `${r.tab}/${(r.tab === JOB_TAB ? r.jobId : r.sub) ?? ''}`;
+}
+
+/** Where a page's Back goes when nothing recorded an origin: the job page, Apply mode, a Company
+ *  and Documents go to the Pipeline list, an open document to the library, the legal pages to
+ *  Companies. Null for the top-level lists, which have no Back. */
+export function defaultBack(r: Route): string | null {
+  if (r.tab === JOB_TAB) return r.jobId ? PIPELINE_HASH : null;
+  if (r.tab === 'apply' || r.tab === COMPANY_TAB) return PIPELINE_HASH;
+  if (r.tab === DOCUMENTS_TAB) return r.sub ? `#/${DOCUMENTS_TAB}` : PIPELINE_HASH;
+  if (r.tab === LEGAL_TAB) return '#/discover';
+  return null;
+}
+
+/** The route a page was opened from, or null when none was recorded. */
+export function originOf(r: Route): Route | null {
+  return r.from ? parseHash('#' + r.from) : null;
+}
+
+/** A route as an origin: its own origin kept one level deep (so two Backs work and the URL stays
+ *  bounded), its pillar dropped. */
+function asOrigin(r: Route): Route {
+  const up = originOf(r);
+  const { pillar: _pillar, ...rest } = r;
+  const from = up ? buildHash({ ...up, from: null }).slice(1) : null;
+  return { ...rest, pillar: null, from };
+}
+
+/** `dest` opened from `origin`: the origin is recorded in `from` unless it is the destination's
+ *  default way back. Going on to the page the origin itself came from reuses that page's own
+ *  origin instead of nesting (a job → its Company → the same job is not a loop). */
+export function withOrigin(dest: Partial<Route> & { tab: string }, origin: Route): Route {
+  const d = full({ ...dest, from: null });
+  // No route yet (the app's first paint): nothing to name.
+  if (!origin.tab || isAuthCallback(origin)) return d;
+  const up = originOf(origin);
+  if (pageKey(origin) === pageKey(d)) return { ...d, from: origin.from ?? null };
+  if (up && pageKey(up) === pageKey(d)) return { ...d, from: up.from ?? null };
+  const o = asOrigin(origin);
+  const hash = buildHash(o);
+  return { ...d, from: hash === defaultBack(d) ? null : hash.slice(1) };
+}
+
+/** A link's href for `dest` opened from `origin` (see withOrigin). */
+export function linkTo(dest: Partial<Route> & { tab: string }, origin: Route): string {
+  return buildHash(withOrigin(dest, origin));
 }
