@@ -156,6 +156,39 @@ describe('an account switch in another tab (#288)', () => {
     expect(tabFrozen()).toBe('switched');
   });
 
+  it('a session it cannot read (offline, the refresh failed) skips the send but never stops the tab', async () => {
+    await tabASignedInAsX();
+    // The laptop wakes offline after an hour: supabase-js's refresh fails, so getSession returns
+    // no session plus an error. That says nothing about another tab.
+    const getSession = vi
+      .spyOn(fake().client.auth, 'getSession')
+      .mockResolvedValue({ data: { session: null }, error: new Error('Failed to fetch') } as never);
+    await tabAEditsLater();
+    expect(tabFrozen()).toBeNull();
+    expect(screen.queryByText(TAB_SIGNED_OUT)).toBeNull();
+    expect(trackerUrls('x')).toEqual(['https://x.example/jobs/1']);
+    expect(localStorage.getItem('rjb_shortlist')).toContain('jobs/2');
+
+    // The network comes back: tab A's own refresh goes through and the edit reaches X.
+    getSession.mockRestore();
+    tabB('x', { event: 'TOKEN_REFRESHED' });
+    await tabAEditsLater();
+    expect(tabFrozen()).toBeNull();
+    await waitFor(() => expect(trackerUrls('x')).toContain('https://x.example/jobs/2'));
+    act(() => {
+      addJob('https://x.example/jobs/3', 'Later still');
+    });
+    expect(localStorage.getItem('rjb_shortlist')).toContain('jobs/3');
+  });
+
+  it('a definite sign-out seen only at a send (no event, no error) still stops the tab', async () => {
+    await tabASignedInAsX();
+    tabB(null, { relay: false, storage: false });
+    await tabAEditsLater();
+    expect(tabFrozen()).toBe('signedOut');
+    expect(trackerUrls('x')).toEqual(['https://x.example/jobs/1']);
+  });
+
   it('a same-user token refresh in tab B changes nothing in tab A', async () => {
     await tabASignedInAsX();
     tabB('x', { event: 'TOKEN_REFRESHED' });

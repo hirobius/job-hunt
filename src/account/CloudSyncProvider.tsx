@@ -158,12 +158,16 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const localJson = () => JSON.stringify(writeBlob(localBlob()));
 
   // The shared session still names `u` (#288): another tab may have signed out or in as someone
-  // else since. If not, this tab freezes (tabAccount.ts) and nothing more is sent or adopted.
+  // else since. If not, this tab freezes (tabAccount.ts) and nothing more is sent or adopted. A
+  // session it can't read (offline, a failed refresh: no session plus an error) says nothing about
+  // another tab: that send is skipped and retried later, and the tab keeps going.
   async function sessionIsStill(u: User): Promise<boolean> {
     if (tabFrozen()) return false;
     const supa = await loadSupabase();
-    const s = (await supa.auth.getSession()).data.session;
+    const { data, error } = await supa.auth.getSession();
+    const s = data.session;
     if (s?.user?.id === u.id) return !tabFrozen();
+    if (error && !s) return false;
     if (tabAccount() === u.id) freezeTab(s ? 'switched' : 'signedOut');
     return false;
   }
