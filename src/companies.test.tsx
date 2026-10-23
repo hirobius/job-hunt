@@ -396,6 +396,21 @@ describe('Companies as one tool (#237)', () => {
       expect(window.location.hash).toBe('#/discover/live');
       expect(await screen.findByRole('heading', { name: 'Live postings' })).toBeVisible();
     });
+
+    it('a design systems track also offers the companies with public design systems (Adele)', async () => {
+      setMustInclude(cat, { terms: ['design system'] });
+      window.location.hash = '#/discover/teams';
+      renderApp();
+      const more = await screen.findByRole('region', { name: 'More ways to find companies' });
+      const rows = within(more).getAllByRole('listitem');
+      expect(rows).toHaveLength(3);
+      expect(
+        within(rows[2]).getByRole('button', {
+          name: /^Add companies with public design systems \(\d+\)$/,
+        }),
+      ).toBeEnabled();
+      expect(within(rows[2]).getByRole('link', { name: /Adele on GitHub/ })).toBeVisible();
+    });
   });
 });
 

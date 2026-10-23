@@ -10,7 +10,7 @@
 // way onto the list; dream companies sit under it (DreamCompanies.tsx), then outreach targets (only
 // once one is saved), and
 // Live postings and the list checker stay one link away (DiscoverView's secondary views).
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { recall, remember, useRemembered } from './viewMemory';
 import {
   Alert,
@@ -60,7 +60,8 @@ import {
 } from './feed/teamRoles';
 import AddCompany from './AddCompany';
 import DreamCompanies from './DreamCompanies';
-import { useMustInclude } from './feed/mustInclude';
+import { hasRelatedTitles, useMustInclude } from './feed/mustInclude';
+import AdeleSeed from './AdeleSeed';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
 import { useRoleTypes } from './feed/roleTypePref';
 import CompanyLogo from './CompanyLogo';
@@ -641,7 +642,13 @@ export default function CompaniesPanel({
         </Panel>
       )}
 
-      <MoreWays />
+      <MoreWays>
+        {/* A design systems track (its must include, or its GitHub search) can seed its list from
+            Adele's public design systems (feed/adele.ts). */}
+        {(hasRelatedTitles(include) || search?.noun === 'design-system') && (
+          <AdeleSeed categoryId={categoryId} boardUrls={boardUrls} />
+        )}
+      </MoreWays>
     </Stack>
   );
 }
@@ -661,7 +668,7 @@ const MORE_WAYS = [
   },
 ] as const;
 
-function MoreWays() {
+function MoreWays({ children }: { children?: ReactNode }) {
   return (
     <Panel label="More ways to find companies" title="More ways to find companies">
       <ul style={LIST}>
@@ -684,6 +691,7 @@ function MoreWays() {
             </Stack>
           </PanelRow>
         ))}
+        {children}
       </ul>
     </Panel>
   );

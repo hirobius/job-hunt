@@ -347,6 +347,15 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   Frontend Platform when the description says "design system(s)"; Design Engineer when it also names AI-assisted
   work (`AI_TERMS`). Calibrate's "Related titles" switch beside the two, then a chip per title with
   `relatedCounts`. Applies everywhere `passesInclude` does (Live postings, Companies, dreams).
+- **Adele seed (2026-10-23):** `src/feed/data/adele.json` is a one-time snapshot of UXPin's public design systems
+  list (github.com/uxpin/adele, **MIT**; company name + design system site; re-take it by hand from `ADELE.file`).
+  No runtime host. On a design systems track (`hasRelatedTitles` or the GitHub design-system search) Companies' More
+  ways to find companies has "Add companies with public design systems (N)" (`AdeleSeed.tsx`): the names go through
+  `discoverBoards` (the probe's limits, its own limiter so a 429 never stops the panel's role reads; public bodies
+  left out) and each live board is watched as it is found (`watchAdeleBoards`), with no review step. The run belongs
+  to the track, not the row (leaving Companies keeps it going; Cancel keeps what it watched). Credited in the row
+  with a link to the repo; the MIT notice rides in the JSON (`licenseText`). Pinned in `feed/adele.test.ts`,
+  `AdeleSeed.test.tsx`, `companies.test.tsx`.
 - **Title filter (#223):** the sweep's list _is_ the track's title filter (seed: the track's titles, else
   its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
   titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**

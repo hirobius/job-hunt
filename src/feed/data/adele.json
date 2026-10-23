@@ -1,0 +1,413 @@
+{
+  "source": "https://github.com/uxpin/adele",
+  "file": "https://raw.githubusercontent.com/uxpin/adele/master/src/data/data.json",
+  "license": "MIT, Copyright (c) 2018 Marcin Treder",
+  "licenseText": "MIT License\n\nCopyright (c) 2018 Marcin Treder\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+  "snapshot": "2026-10-23",
+  "companies": [
+    {
+      "name": "Dropbox",
+      "site": "http://dropbox.github.io/scooter/index.html"
+    },
+    {
+      "name": "Royal Canin",
+      "site": "http://developer.royalcanin.com/"
+    },
+    {
+      "name": "Instacart",
+      "site": "https://instacart.github.io/Snacks/"
+    },
+    {
+      "name": "Consumer Financial Protection Bureau",
+      "site": "https://cfpb.github.io/design-manual/index.html"
+    },
+    {
+      "name": "Auth0",
+      "site": "https://styleguide.auth0.com"
+    },
+    {
+      "name": "Priceline",
+      "site": "https://pricelinelabs.github.io/design-system/"
+    },
+    {
+      "name": "Mozilla Firefox",
+      "site": "http://design.firefox.com/"
+    },
+    {
+      "name": "Family Search",
+      "site": "https://www.familysearch.org/frontier/styleguide/"
+    },
+    {
+      "name": "Appear Here",
+      "site": "http://bloom.appearhere.co.uk/"
+    },
+    {
+      "name": "Estonia",
+      "site": "https://brand.estonia.ee/"
+    },
+    {
+      "name": "Help Scout",
+      "site": "http://style.helpscout.com/"
+    },
+    {
+      "name": "Trello",
+      "site": "https://design.trello.com/"
+    },
+    {
+      "name": "CA Technologies",
+      "site": "https://mineral-ui.netlify.app/"
+    },
+    {
+      "name": "Mixpanel",
+      "site": "https://design.mixpanel.com/"
+    },
+    {
+      "name": "Duolingo",
+      "site": "https://www.duolingo.com/design/"
+    },
+    {
+      "name": "Envato",
+      "site": "https://envato.github.io/foundation-design-system/"
+    },
+    {
+      "name": "Buzzfeed",
+      "site": "http://solid.buzzfeed.com/"
+    },
+    {
+      "name": "Bring & Posten",
+      "site": "https://hedwig-docs.herokuapp.com/"
+    },
+    {
+      "name": "Future Learn",
+      "site": "https://www.futurelearn.com/pattern-library"
+    },
+    {
+      "name": "GOV.UK",
+      "site": "https://design-system.service.gov.uk/"
+    },
+    {
+      "name": "Heroku",
+      "site": "https://purple3.herokuapp.com/"
+    },
+    {
+      "name": "HP enterprise",
+      "site": "http://grommet.io/"
+    },
+    {
+      "name": "BBC",
+      "site": "http://www.bbc.co.uk/gel"
+    },
+    {
+      "name": "Lonely Planet",
+      "site": "http://rizzo.lonelyplanet.com/styleguide/design-elements/colours"
+    },
+    {
+      "name": "Cloudflare",
+      "site": "https://cloudflare.github.io/cf-ui/"
+    },
+    {
+      "name": "Morningstar",
+      "site": "http://designsystem.morningstar.com/"
+    },
+    {
+      "name": "Automattic",
+      "site": "https://dotcombrand.wordpress.com/"
+    },
+    {
+      "name": "National Instruments",
+      "site": "https://ni.github.io/design-system/"
+    },
+    {
+      "name": "openAQ",
+      "site": "https://github.com/openaq/openaq-design-system"
+    },
+    {
+      "name": "Pluralsight",
+      "site": "http://design-system.pluralsight.com/"
+    },
+    {
+      "name": "Rei",
+      "site": "http://rei.github.io/rei-cedar/"
+    },
+    {
+      "name": "Audi",
+      "site": "http://www.audi.com/ci/en/guides/user-interface/introduction.html"
+    },
+    {
+      "name": "Co-op",
+      "site": "https://coop-design-manual.herokuapp.com/"
+    },
+    {
+      "name": "Seek",
+      "site": "https://seek-oss.github.io/seek-style-guide/"
+    },
+    {
+      "name": "Shopify",
+      "site": "https://polaris.shopify.com"
+    },
+    {
+      "name": "Skyscanner",
+      "site": "https://backpack.github.io/"
+    },
+    {
+      "name": "USAJobs",
+      "site": "http://usajobs.github.io/design-system/"
+    },
+    {
+      "name": "Atlassian",
+      "site": "https://atlassian.design/"
+    },
+    {
+      "name": "Salesforce",
+      "site": "https://www.lightningdesignsystem.com/"
+    },
+    {
+      "name": "IBM",
+      "site": "http://carbondesignsystem.com/"
+    },
+    {
+      "name": "GE Digital",
+      "site": "https://www.predix-ui.com"
+    },
+    {
+      "name": "Quicken Loans",
+      "site": "https://sparkdesignsystem.com"
+    },
+    {
+      "name": "Liferay",
+      "site": "https://lexicondesign.io/"
+    },
+    {
+      "name": "18F",
+      "site": "https://designsystem.digital.gov/"
+    },
+    {
+      "name": "Pegasystems",
+      "site": "https://design.pega.com/"
+    },
+    {
+      "name": "Altinn",
+      "site": "http://altinn.no/designsystem"
+    },
+    {
+      "name": "Ant Financial",
+      "site": "https://ant.design"
+    },
+    {
+      "name": "ACL",
+      "site": "http://design.acl.com/page/Home"
+    },
+    {
+      "name": "Pivotal Software",
+      "site": "https://styleguide.pivotal.io/"
+    },
+    {
+      "name": "Financial Times",
+      "site": "http://origami.ft.com/"
+    },
+    {
+      "name": "Stack Overflow",
+      "site": "https://stackoverflow.design/"
+    },
+    {
+      "name": "Intuit",
+      "site": ""
+    },
+    {
+      "name": "JetBrains",
+      "site": "http://www.jetbrains.org/ring-ui/index.html"
+    },
+    {
+      "name": "Github",
+      "site": "https://primer.style/"
+    },
+    {
+      "name": "Hubspot",
+      "site": "https://canvas.hubspot.com/"
+    },
+    {
+      "name": "Meetup",
+      "site": "https://meetup.github.io/swarm-design-system/"
+    },
+    {
+      "name": "Brainly",
+      "site": "https://styleguide.brainly.com/130.0.1/docs/"
+    },
+    {
+      "name": "Pusher",
+      "site": "https://pusher.github.io/chameleon/"
+    },
+    {
+      "name": "Mesosphere",
+      "site": "http://mesosphere.github.io/cnvs/"
+    },
+    {
+      "name": "Wonderbly",
+      "site": "http://design-system.lostmy.name/"
+    },
+    {
+      "name": "Opower",
+      "site": "https://ux.opower.com/opattern"
+    },
+    {
+      "name": "Mapbox",
+      "site": "https://www.mapbox.com/base/"
+    },
+    {
+      "name": "Barricade",
+      "site": "https://styleguide.barricade.io/index.html"
+    },
+    {
+      "name": "Eurostar",
+      "site": "https://style.eurostar.com/"
+    },
+    {
+      "name": "uSwitch",
+      "site": "https://ustyle.guide"
+    },
+    {
+      "name": "VMware",
+      "site": "https://vmware.github.io/clarity/"
+    },
+    {
+      "name": "mongoDB",
+      "site": "http://mongodb.design/#/ui-design-system/welcome"
+    },
+    {
+      "name": "Microsoft",
+      "site": "https://developer.microsoft.com/en-us/fabric"
+    },
+    {
+      "name": "MYOB",
+      "site": "http://feelix.myob.com/"
+    },
+    {
+      "name": "StudyPortals",
+      "site": "https://styleguide.studyportals.com"
+    },
+    {
+      "name": "Hudl",
+      "site": "http://uniform.hudl.com/"
+    },
+    {
+      "name": "Workday",
+      "site": "https://design.workday.com/"
+    },
+    {
+      "name": "GitLab",
+      "site": "https://design.gitlab.com"
+    },
+    {
+      "name": "SpareBank 1",
+      "site": "https://design.sparebank1.no/"
+    },
+    {
+      "name": "Zendesk",
+      "site": "https://garden.zendesk.com/"
+    },
+    {
+      "name": "Pinterest",
+      "site": "https://pinterest.github.io/gestalt/#/"
+    },
+    {
+      "name": "Alfa-Bank",
+      "site": "https://design.alfabank.ru/"
+    },
+    {
+      "name": "Digital Transformation Agency",
+      "site": "https://designsystem.gov.au"
+    },
+    {
+      "name": "Mozilla",
+      "site": "https://protocol.mozilla.org/"
+    },
+    {
+      "name": "VTEX",
+      "site": "http://styleguide.vtex.com"
+    },
+    {
+      "name": "Government of Canada",
+      "site": "https://design.gccollab.ca/"
+    },
+    {
+      "name": "Bridge",
+      "site": "https://bold.bridge.ufsc.br/"
+    },
+    {
+      "name": "Canonical",
+      "site": "https://vanillaframework.io/"
+    },
+    {
+      "name": "ServiceTitan",
+      "site": "http://anvil.servicetitan.com"
+    },
+    {
+      "name": "TOTVS",
+      "site": "https://portinari.io"
+    },
+    {
+      "name": "LocalTapiola Services Ltd",
+      "site": "https://www.duetds.com/"
+    },
+    {
+      "name": "SUSE",
+      "site": "https://eosdesignsystem.com/"
+    },
+    {
+      "name": "ENGIE",
+      "site": "https://www.engie.design/"
+    },
+    {
+      "name": "Sellerscale",
+      "site": "https://numl.tenphi.now.sh"
+    },
+    {
+      "name": "Sainsbury's",
+      "site": "https://luna.sainsburys.co.uk/"
+    },
+    {
+      "name": "iStreamPlanet",
+      "site": "https://pebble.istreamplanet.net/"
+    },
+    {
+      "name": "Nulogy",
+      "site": "http://nulogy.design"
+    },
+    {
+      "name": "Red Hat",
+      "site": "https://www.patternfly.org/"
+    },
+    {
+      "name": "Buildit | Wipro Digital",
+      "site": "http://style.buildit.digital/"
+    },
+    {
+      "name": "Drawbotics",
+      "site": "https://drawbotics.github.io/drylus"
+    },
+    {
+      "name": "Finastra",
+      "site": "https://design.fusionfabric.cloud/"
+    },
+    {
+      "name": "Twilio",
+      "site": "https://paste.twilio.design/"
+    },
+    {
+      "name": "Sipgate",
+      "site": "https://panda.sipgatedesign.com"
+    },
+    {
+      "name": "Telefónica",
+      "site": "https://brandfactory.telefonica.com/mistica"
+    },
+    {
+      "name": "Elia Group",
+      "site": "https://nova.eliagroup.io"
+    },
+    {
+      "name": "Kajabi",
+      "site": "https://sage.kajabi.com"
+    }
+  ]
+}

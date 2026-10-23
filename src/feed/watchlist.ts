@@ -92,11 +92,11 @@ export function addBoardTiles(categoryId: string, urls: readonly string[]): numb
   // One bulk write: a pack's ~120 boards go up as a few requests, not one per tile (#178).
   addTiles(
     group,
-    fresh.map(({ board }, i) => ({
+    // addTiles numbers them after the group's last tile.
+    fresh.map(({ board }) => ({
       name: `${boardLabel(board)} jobs`,
       url: canonicalBoardUrl(board),
       meta: `${SOURCE_LABEL[board.kind]} board · pulled into Live postings`,
-      sortOrder: i,
     })),
   );
   return fresh.length;
