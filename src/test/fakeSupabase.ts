@@ -137,6 +137,12 @@ export function createFakeSupabase(
       session = { user: { id, email } };
       listeners.forEach((l) => l(event, session));
     },
+    /** Another tab changed the shared session (#288): what this tab's client now reads. `relay`
+     *  passes the event on as supabase-js's cross-tab broadcast does; off, only storage knows. */
+    otherTab(id: string | null, event = id ? 'SIGNED_IN' : 'SIGNED_OUT', relay = true) {
+      session = id ? { user: { id, email: `${id}@example.test` } } : null;
+      if (relay) listeners.forEach((l) => l(event, session));
+    },
     reset() {
       for (const k of Object.keys(tables)) delete tables[k];
       failures.length = 0;

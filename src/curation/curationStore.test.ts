@@ -35,12 +35,12 @@ import {
   removeTile,
   getCurationState,
   replaceCurationState,
-  setCurationAccount,
 } from './curationStore';
 import { EMPTY_CURATION } from './types';
 import { clearAllPending, getPending } from './pending';
 import { onCurationWriteFailed } from './syncStatus';
 import { loadSupabase } from '../supabase';
+import { resetTabAccount, setTabAccount } from '../tabAccount';
 
 // The client exists in every test here (as after a sign-in); signed-out cases null the session.
 beforeAll(() => loadSupabase());
@@ -50,7 +50,7 @@ beforeAll(() => loadSupabase());
 afterEach(() => {
   replaceCurationState(EMPTY_CURATION);
   cloud.session = null;
-  setCurationAccount(false);
+  resetTabAccount();
   clearAllPending();
   cloud.upsertSpy.mockClear();
   cloud.deleteEqSpy.mockClear();
@@ -167,6 +167,7 @@ describe('cloud sync seam', () => {
 
   it('calls upsert and delete once a stubbed session is signed in', async () => {
     cloud.session = { user: { id: 'user-1' } };
+    setTabAccount('user-1'); // through CloudSync's sign-in path (#288)
     const id = addCategory({ label: 'Welding' });
     await vi.waitFor(() => expect(cloud.upsertSpy).toHaveBeenCalledTimes(1));
     expect(cloud.upsertSpy.mock.calls[0][0]).toMatchObject({
@@ -192,7 +193,7 @@ describe('signed out elsewhere while this tab was signed in', () => {
     await vi.waitFor(() => expect(getPending()).toEqual([]));
     const reported = vi.fn();
     const off = onCurationWriteFailed(reported);
-    setCurationAccount(true);
+    setTabAccount('u1');
     edit(id);
     await vi.waitFor(() =>
       expect(getPending()).toEqual([expect.objectContaining({ table, failed: true })]),
@@ -205,12 +206,12 @@ describe('signed out elsewhere while this tab was signed in', () => {
   it('a row already waiting for the next sign-in stays waiting after a reload and another edit', async () => {
     const id = addCategory({ label: 'X' });
     await vi.waitFor(() => expect(getPending()).toEqual([]));
-    setCurationAccount(true);
+    setTabAccount('u1');
     updateCategory(id, { label: 'First' });
     await vi.waitFor(() =>
       expect(getPending()).toEqual([expect.objectContaining({ id, failed: true })]),
     );
-    setCurationAccount(false); // a reload: the in-tab flag is gone, the journal is not
+    setTabAccount(null); // a reload: the in-tab flag is gone, the journal is not
     updateCategory(id, { label: 'Second' });
     addTiles('g1', [{ name: 'Co', url: 'https://x.test/1' }]); // an unrelated row stays local
     await new Promise((r) => setTimeout(r, 20));
@@ -220,8 +221,8 @@ describe('signed out elsewhere while this tab was signed in', () => {
   });
 
   it("after this tab's own sign-out, edits are purely local again", async () => {
-    setCurationAccount(true);
-    setCurationAccount(false);
+    setTabAccount('u1');
+    setTabAccount(null);
     addCategory({ label: 'Local' });
     await vi.waitFor(() => expect(getPending()).toEqual([]));
   });
@@ -237,6 +238,7 @@ describe('addTiles (bulk)', () => {
 
   it('adds every tile in one store write and sends them in chunks', async () => {
     cloud.session = { user: { id: 'user-1' } };
+    setTabAccount('user-1'); // through CloudSync's sign-in path (#288)
     const ids = addTiles('g1', partials(120));
     expect(ids).toHaveLength(120);
     expect(getCurationState().tiles.map((t) => t.id)).toEqual(ids);
@@ -248,6 +250,7 @@ describe('addTiles (bulk)', () => {
 
   it('keeps only a refused chunk in the journal, marked failed, and reports once', async () => {
     cloud.session = { user: { id: 'user-1' } };
+    setTabAccount('user-1'); // through CloudSync's sign-in path (#288)
     const reported = vi.fn();
     const off = onCurationWriteFailed(reported);
     cloud.upsertSpy
@@ -268,6 +271,7 @@ describe('addTiles (bulk)', () => {
 
   it('treats a chunk that throws like a refused one: its rows stay failed, the rest clear', async () => {
     cloud.session = { user: { id: 'user-1' } };
+    setTabAccount('user-1'); // through CloudSync's sign-in path (#288)
     const reported = vi.fn();
     const off = onCurationWriteFailed(reported);
     cloud.upsertSpy
