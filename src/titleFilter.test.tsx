@@ -47,7 +47,7 @@ beforeEach(() => {
   localStorage.clear();
   feed.fetchFeed.mockReset().mockResolvedValue({ postings: POSTINGS, sources: [] });
   replaceCurationState(EMPTY_CURATION);
-  cat = addCategory({ label: 'Design Systems', titles: TITLES, atsRoles: ['design system'] });
+  cat = addCategory({ label: 'Design work', titles: TITLES, atsRoles: ['design system'] });
   // These pin the title filter, not role types: keep the engineering-heavy roles in the list.
   writeShowEngineering(cat, true);
   window.history.replaceState(null, '', '/');

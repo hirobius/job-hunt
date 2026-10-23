@@ -352,7 +352,7 @@ test('Companies: star, roles and the page actions answer within 300 ms', async (
 
   // The Design Systems pack brings outreach targets: Remove on one collapses its row, then offers
   // Undo.
-  await menu(page, 'New track', 'Design Systems / Design Eng');
+  await menu(page, 'New track', 'Design Systems');
   await go(page, '#/discover/teams');
   const targets = page.getByRole('list', { name: 'Saved targets' });
   const remove = targets.getByRole('button', { name: /^Remove / }).first();

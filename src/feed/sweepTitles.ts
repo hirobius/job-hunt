@@ -127,6 +127,20 @@ export function setTitleOn(
   return true;
 }
 
+/** Switch off every title `keep` refuses; the titles stay listed, so each can be ticked again.
+ *  Returns how many were switched off. */
+export function switchOffTitles(
+  categoryId: string,
+  seed: string[],
+  keep: (title: string) => boolean,
+): number {
+  const cur = sweepFor(readAll(), categoryId, seed);
+  const off = new Set(cur.off.map(norm));
+  const drop = cur.titles.filter((t) => !off.has(norm(t)) && !keep(t));
+  if (drop.length) edit(categoryId, seed, (s) => ({ ...s, off: [...s.off, ...drop] }));
+  return drop.length;
+}
+
 /** Add a title (on when there is room, else off). A title already listed is left alone. */
 export function addTitle(categoryId: string, seed: string[], title: string): void {
   const t = title.trim();

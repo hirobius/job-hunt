@@ -17,6 +17,7 @@ import {
   type RolesState,
 } from './feed/teamRoles';
 import { foldRoles } from './feed/roleType';
+import { keepIncluded } from './feed/mustInclude';
 import { SOURCE_LABEL } from './feed/types';
 import { Panel, PanelBody, PanelRow } from './PipelinePanel';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
@@ -33,6 +34,7 @@ export default function DreamCompanies({
   limiter,
   roles = {},
   roleTypes = { ranked: false, fold: false },
+  include = [],
 }: {
   categoryId: string;
   terms: string[];
@@ -41,6 +43,8 @@ export default function DreamCompanies({
   roles?: Record<string, RolesState>;
   /** A design-systems track tags role types and folds the engineering-heavy roles (roleType.ts). */
   roleTypes?: { ranked: boolean; fold: boolean };
+  /** The track's must-include terms: a role that never says one is not counted or flagged new. */
+  include?: string[];
 }) {
   const dreams = useDreams(categoryId);
   const [checked, setChecked] = useState<Record<string, Checked>>({});
@@ -74,7 +78,8 @@ export default function DreamCompanies({
             return;
           }
           // New openings are counted among the roles shown, not the folded engineering-heavy ones.
-          const found = newSince(foldRoles(r.roles, roleTypes.fold).shown, d.seen);
+          const kept = keepIncluded(r.roles, include);
+          const found = newSince(foldRoles(kept, roleTypes.fold).shown, d.seen);
           fresh += found.length;
           markDreamChecked(
             categoryId,
@@ -84,7 +89,7 @@ export default function DreamCompanies({
           );
           setChecked((c) => ({
             ...c,
-            [d.key]: { roles: r.roles, fresh: new Set(found.map((x) => x.id)) },
+            [d.key]: { roles: kept, fresh: new Set(found.map((x) => x.id)) },
           }));
         }),
     );
@@ -140,6 +145,7 @@ export default function DreamCompanies({
             checked={checked[d.key]}
             read={d.board ? roles[boardKey(d.board)] : undefined}
             roleTypes={roleTypes}
+            include={include}
           />
         ))}
       </ul>
@@ -167,14 +173,16 @@ function DreamRow({
   checked: allChecked,
   read: allRead,
   roleTypes,
+  include,
 }: {
   d: Dream;
   categoryId: string;
   checked?: Checked;
   read?: RolesState;
   roleTypes: { ranked: boolean; fold: boolean };
+  include: string[];
 }) {
-  const read = foldRolesState(allRead, roleTypes.fold).roles;
+  const read = foldRolesState(allRead, roleTypes.fold, include).roles;
   const split =
     allChecked && allChecked !== 'unknown' ? foldRoles(allChecked.roles, roleTypes.fold) : null;
   const checked: Checked | undefined =

@@ -30,7 +30,7 @@ wipes every `rjb_` key, so signing out, or opening a second device, lost them.
    `discoverContext.ts` so the blob module need not import the curation layer). `CloudSyncProvider`
    subscribes to them, so a change pushes on the same 500 ms debounce as jobs, and a pull calls
    `replace*` so the open UI re-renders. `DataToolsProvider` backs up and restores them the same way.
-4a. **An old-deploy tab can strip the v5 fields** (its v4 `writeBlob` omits them). After a merge
+   4a. **An old-deploy tab can strip the v5 fields** (its v4 `writeBlob` omits them). After a merge
    where the cloud copy is older than v5, the provider pushes at once instead of marking local as synced.
 5. **Sign-out** still wipes this browser, which is safe because the data comes back on sign-in, but
    only after the blob is flushed: sign-out cancels the push debounce and awaits a push if local
@@ -108,3 +108,16 @@ shared with the refresh merge). Known limits: a delete beats an edit made elsewh
 entry; re-adding on a stale device the very same entry another device deleted (same job URL, same
 answer id) loses the re-add; and the base is written after a pull even if this device then fails
 to store the merged copy, so a later load can treat entries it never stored as deleted here.
+
+## Addendum (2026-10-23): blob v11, must include
+
+Must include (`rjb_must_include`, `src/feed/mustInclude.ts`) is per track: the words a posting has
+to mention, in its title or description, to be listed anywhere for the track (Live postings, the
+companies list's matching roles, dream companies' new openings), plus the ATS roles switched off.
+Same pattern as the sweep titles (v7): optional on read, cloud wins per track on the seed merge
+(local-only tracks kept), cloud wins on refresh only from a v11+ copy (an older copy keeps this
+device's), dropped with its track, included in backups. It takes its own field and version rather
+than riding inside `sweeps`: a v10 tab would rewrite `sweeps` without it and, as a v10+ copy, win
+on refresh. An entry with no terms is kept (the user cleared it), so the one-time systems-only move
+(`src/feed/systemsOnly.ts`), which runs only for a Design Systems track with no entry after sync
+settles, never comes back on this or another device.

@@ -81,7 +81,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
   **Supabase** (table `tracker`, one JSON blob per user; keys in `src/config.ts`,
-  publishable + RLS-protected). **Blob v10 (ADR 0008 + addenda)** adds Documents (`src/documents.ts`, `rjb_documents`, #226: Versions,
+  publishable + RLS-protected). **Blob v11 (ADR 0008 + addenda)** adds must include per track (`rjb_must_include`) on top of v10's Documents (`src/documents.ts`, `rjb_documents`, #226: Versions,
   one locked Sent per kind per Job, dropped by Delete forever) on top of v9's dream companies (`rjb_dreams`) on top of
   v8's Recently removed (`src/trash.ts`, `rjb_trash`, 30 days; also in backups), v7's wide-sweep titles and
   v6's Application kit; v5 carries jobs, snippets, set-aside tiles **and the
@@ -328,6 +328,18 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `modes: ['remote','any']`, shown through `boardsFor(mode)`): `https://www.remoterocketship.com/?sort=DateAdded&jobTitle=<first ticked title>`.
   Link only: no API (its paid one needs a personal key; a later bring-your-own-key slice), no fetch, so CSP and
   `legal.ts` are unchanged. The query form is **unverified live** (the host was unreachable from the build container).
+- **Must include / systems-only (Adrian 2026-10-23):** per track, `feed/mustInclude.ts` (`rjb_must_include`,
+  blob **v11**, ADR 0008 addendum): a posting is listed only when its title or description says a term as whole
+  words (`termRegex`: "systems" ↔ "design system", never "ecosystem"). Applied in `applyTargeting` (Live postings,
+  sweep, Save all; "N hidden by must include"), `foldRolesState(…, include)` (Companies' matching roles, counts,
+  Hiring now) and `DreamCompanies` (new openings). Edited in Calibrate (`ChipEditor`, shared with Manage track).
+  The entry also holds `atsOff` (ATS roles switched off; `activeAtsRoles` in DiscoverView; Calibrate's "Switched
+  off" chips turn one back on). The Design Systems pack (label "Design Systems"; `FORMER_LABELS` keeps "Design
+  Systems / Design Eng" in `packIdForLabel`) is systems-only titles/ATS roles and seeds must include `systems`.
+  `App`'s `SystemsOnlyMigration` runs `migrateSystemsOnly` after sync settles: a pack track with no entry gets
+  `systems`, its sweep titles and ATS roles without "system" switched off (never deleted), and one toast. Pinned
+  in `feed/mustInclude.test.ts`, `feed/systemsOnly.test.ts`, `LiveFeedMustInclude.test.tsx`, `companies.test.tsx`,
+  `systemsOnlyNotice.test.tsx`.
 - **Title filter (#223):** the sweep's list _is_ the track's title filter (seed: the track's titles, else
   its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
   titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**

@@ -35,7 +35,7 @@ describe('Onboarding pack picker a11y (#104)', () => {
       .getAllByRole('checkbox')
       .forEach((b) => expect(b).not.toBeChecked());
     expect(within(group).getByText('Suggested')).toBeInTheDocument();
-    const box = within(group).getByRole('checkbox', { name: 'Design Systems / Design Eng' });
+    const box = within(group).getByRole('checkbox', { name: 'Design Systems' });
     expect(box).not.toBeChecked();
     expect(box).toHaveAccessibleDescription(/design-systems/i);
     box.focus();
@@ -95,12 +95,12 @@ describe('Onboarding pack picker a11y (#104)', () => {
   it('a pack set up with no location searches anywhere: no "Remote" default', async () => {
     const user = userEvent.setup();
     render(<Onboarding />);
-    await user.click(screen.getByRole('checkbox', { name: 'Design Systems / Design Eng' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Design Systems' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('button', { name: 'Finish' }));
     expect(getCurationState().categories.map((c) => [c.label, c.location])).toEqual([
-      ['Design Systems / Design Eng', ''],
+      ['Design Systems', ''],
     ]);
   });
 

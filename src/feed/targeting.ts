@@ -4,6 +4,7 @@
 // and a posting with no stated pay is kept unless the user asks for pay to be shown.
 import type { Seniority } from '../curation/types';
 import { termRegex } from './match';
+import { mentionsAny } from './mustInclude';
 import type { RankedPosting } from './types';
 
 export interface Targeting {
@@ -17,11 +18,15 @@ export interface Targeting {
   /** The track's title filter (#223): ticked titles lead; an unticked one hides a posting whose
    * title names it and no ticked one. Titles only, never the body. */
   titles?: { on: string[]; off: string[] };
+  /** Must include (2026-10-23): a posting is listed only when its title or body mentions one of
+   * these as whole words ("systems", never "ecosystem"). Empty: no rule. */
+  include?: string[];
 }
 
 export const NO_TARGETING: Targeting = { exclude: [], seniority: 'any', salaryOnly: false };
 
 export interface HiddenCounts {
+  include: number;
   exclude: number;
   seniority: number;
   salary: number;
@@ -51,12 +56,17 @@ export function applyTargeting<P extends RankedPosting>(
   postings: P[],
   t: Targeting,
 ): { postings: P[]; hidden: HiddenCounts } {
-  const hidden: HiddenCounts = { exclude: 0, seniority: 0, salary: 0, titles: 0 };
+  const hidden: HiddenCounts = { include: 0, exclude: 0, seniority: 0, salary: 0, titles: 0 };
+  const include = (t.include ?? []).filter((x) => x.trim());
   const excludes = excludeRegexes(t.exclude);
   const onRes = excludeRegexes(t.titles?.on ?? []);
   const offRes = excludeRegexes(t.titles?.off ?? []);
   const ticked = (p: P) => onRes.some((re) => re.test(p.title));
   const kept = postings.filter((p) => {
+    if (include.length && !mentionsAny(include, p.title, p.text)) {
+      hidden.include++;
+      return false;
+    }
     if (offRes.some((re) => re.test(p.title)) && !ticked(p)) {
       hidden.titles++;
       return false;

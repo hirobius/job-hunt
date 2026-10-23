@@ -73,6 +73,7 @@ const backupFile = (jobs: Job[]) =>
             documents: [],
             kit: { fields: {}, answers: [] },
             sweeps: {},
+            mustInclude: {},
           },
           new Date('2026-10-12T00:00:00Z'),
         ),

@@ -19,6 +19,8 @@ export interface PackContent {
   boards: readonly string[];
   /** Target companies seeded as the track's outreach targets (#198); most packs have none. */
   targets?: readonly PackCompany[];
+  /** The track's must-include terms (feed/mustInclude.ts), set when it is seeded. */
+  mustInclude?: readonly string[];
 }
 
 const byId: Record<string, Group> = Object.fromEntries(GROUPS.map((g) => [g.id, g]));
@@ -35,47 +37,34 @@ export const TRADES_PACK: PackContent = {
   boards: DIRECTORY_BY_PACK.trades,
 };
 
-// Titles first: the Live postings feed searches the first title on open. The token / design-
-// technologist titles come from Adrian's 2026-10 search (AI-ready tokens + MCP angle).
+// Titles first: the Live postings feed searches the first title on open. Systems-only (Adrian
+// 2026-10-23: "if the posting doesn't have 'systems' in the title or the main description, I have
+// zero interest"): no generic Design Engineer, UX Engineer, Product Designer or Frontend titles,
+// and the pack's must-include rule hides any posting that never says system(s).
 const DESIGN_SYSTEMS_TITLES = [
   'Design Systems Engineer',
-  'Design Systems Lead',
-  'Design Technologist',
-  'Design System Technologist',
   'Design Systems Designer',
-  'Design Systems Architect',
-  'Token Architect',
-  'Design Engineer',
-  'Staff Design Engineer',
+  'Design Systems Lead',
   'Design Systems Manager',
-  'UI Platform Engineer',
-  'Frontend Platform Engineer',
-  'Design Infrastructure Engineer',
-  'UI Engineer',
-  'Component Library Engineer',
-  'Frontend Engineer',
-  'Staff Frontend Engineer',
-  'Product Designer',
+  'Design Systems Architect',
+  'Design Systems Technologist',
+  'UI Systems Designer',
+  'UI Systems Engineer',
   // #198: the senior searches, phrase-matched so they catch designer and engineer titles alike.
   'Staff Design Systems',
   'Principal Design Systems',
 ];
 const DESIGN_SYSTEMS_ATS_ROLES = [
   'design systems',
+  'design systems designer',
+  'design systems engineer',
   'design systems lead',
+  'design systems manager',
   'design system technologist',
-  'design technologist',
-  'design tokens',
-  'token architect',
-  'design engineer',
-  'UI platform',
-  'design infrastructure',
-  'component library',
-  'frontend engineer',
-  'UI engineer',
+  'UI systems',
 ];
 
-// ---- Design Systems / Design Eng (remote, experienced) ----
+// ---- Design Systems (remote, experienced; systems roles only) ----
 export const DESIGN_SYSTEMS_PACK: PackContent = {
   id: 'designsystems',
   label: 'Design Systems',
@@ -85,6 +74,7 @@ export const DESIGN_SYSTEMS_PACK: PackContent = {
   groups: pick('ds-brief', 'ds-watch'),
   boards: DIRECTORY_BY_PACK.designsystems,
   targets: TARGETS_BY_PACK.designsystems,
+  mustInclude: ['systems'],
 };
 
 const CONSULTING_TITLES = [

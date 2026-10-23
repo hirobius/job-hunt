@@ -72,7 +72,7 @@ const titlesIn = (list: HTMLElement) =>
 
 describe('Live postings on a design-systems track', () => {
   beforeEach(() => {
-    cat = addCategory({ label: 'Design Systems', titles: DS_TERMS });
+    cat = addCategory({ label: 'Design work', titles: DS_TERMS });
   });
 
   it('design systems first, then product design; engineering-heavy roles fold behind one row', async () => {
@@ -150,7 +150,7 @@ describe('Companies rows on a design-systems track', () => {
       'fetch',
       vi.fn(async () => new Response(JSON.stringify(board), { status: 200 })),
     );
-    cat = addCategory({ label: 'Design Systems', titles: DS_TERMS, atsRoles: DS_TERMS });
+    cat = addCategory({ label: 'Design work', titles: DS_TERMS, atsRoles: DS_TERMS });
     const g = addGroup(cat, { label: 'Watched companies' });
     addTile(g, { name: 'Acme', url: 'https://jobs.ashbyhq.com/acme', meta: '' });
     window.location.hash = '#/discover';

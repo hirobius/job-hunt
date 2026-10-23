@@ -52,6 +52,7 @@ import { DISCOVERY_SOURCE_ENABLED } from './feed/discoverySources';
 import { companySourceFor } from './feed/companySource';
 import { WATCH_GROUP_LABEL, boardUrlsFor } from './feed/watchlist';
 import { useActiveTitles } from './feed/sweepTitles';
+import { activeAtsRoles, useMustInclude } from './feed/mustInclude';
 import { useDreams } from './feed/dreams';
 import { boardsFromUrls } from './feed/sources/ats';
 import { displayGroupLabel } from './curation/groupLabel';
@@ -633,6 +634,14 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const seed = useMemo(() => seedFor(route.from ?? null), [route.from]);
   // The title filter's seed (#223): the track's titles, else its ATS roles. One list per track.
   const titleSeed = cat.titles.length ? cat.titles : cat.atsRoles;
+  // The track's search terms: its ATS roles that are on (the systems-only move switches some off,
+  // feed/mustInclude.ts), else its titles. Must include filters every list of postings below.
+  const mustInclude = useMustInclude(cat.id);
+  const atsOn = useMemo(
+    () => activeAtsRoles(cat.atsRoles, mustInclude),
+    [cat.atsRoles, mustInclude],
+  );
+  const searchTerms = atsOn.length ? atsOn : cat.titles;
   // The track's company source (#215): GitHub where its terms name a topic, else its starter list
   // and the YC companies hiring now. Never design-system teams on a track that isn't one.
   const companySource = useMemo(
@@ -815,7 +824,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               key={cat.id}
               categoryId={cat.id}
               boardUrls={boardUrls}
-              terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
+              terms={searchTerms}
               source={companySource}
             />
           </Suspense>
@@ -825,7 +834,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
             <LiveFeedPanel
               key={cat.id}
               categoryId={cat.id}
-              terms={cat.atsRoles.length ? cat.atsRoles : cat.titles}
+              terms={searchTerms}
               sweepSeed={titleSeed}
               boardUrls={boardUrls}
               calibrate={calibrate}

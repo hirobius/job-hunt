@@ -30,6 +30,7 @@ import { getAllDreams, replaceDreams } from '../feed/dreams';
 import { getAllDocuments, replaceDocuments } from '../documents';
 import { getApplyKit, replaceApplyKit } from '../applyKit';
 import { getAllSweeps, replaceSweeps } from '../feed/sweepTitles';
+import { getAllMustInclude, replaceMustInclude } from '../feed/mustInclude';
 import { BRAND } from '../brand';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
@@ -53,6 +54,7 @@ function currentState(): AccountState {
     documents: getAllDocuments(),
     kit: getApplyKit(),
     sweeps: getAllSweeps(),
+    mustInclude: getAllMustInclude(),
   };
 }
 
@@ -75,6 +77,7 @@ function applyState(next: AccountState) {
   replaceDocuments(next.documents);
   replaceApplyKit(next.kit);
   replaceSweeps(next.sweeps);
+  replaceMustInclude(next.mustInclude);
 }
 
 export default function DataToolsProvider({ children }: { children: ReactNode }) {

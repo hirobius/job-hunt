@@ -94,9 +94,9 @@ describe('readBlob — tolerant of every historical shape', () => {
 describe('writeBlob — v4 shape', () => {
   it('writes only jobs, copydeck and set-aside (no pillars, userTiles or pins)', () => {
     const out = writeBlob(blob({ jobs: [job('a')], triage: { dismissed: ['d'] } }));
-    expect(BLOB_VERSION).toBe(10);
+    expect(BLOB_VERSION).toBe(11);
     expect(out).toEqual({
-      v: 10,
+      v: 11,
       jobs: [job('a')],
       copydeck: [],
       triage: { dismissed: ['d'] },
@@ -109,6 +109,7 @@ describe('writeBlob — v4 shape', () => {
       trash: [],
       dreams: {},
       documents: [],
+      mustInclude: {},
     });
   });
 
@@ -123,8 +124,9 @@ describe('writeBlob — v4 shape', () => {
       trash: [removed('b')],
       dreams: { t1: [dream('Acme')] },
       documents: [document('d1', 'https://a.example/1')],
+      mustInclude: { t1: { terms: ['systems'], atsOff: ['design tokens'] } },
     });
-    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 10 });
+    expect(readBlob(writeBlob(data))).toEqual({ ...data, sourceV: 11 });
   });
 });
 

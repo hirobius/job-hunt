@@ -38,7 +38,7 @@ describe('ManageTrackDialog · starter-pack update', () => {
     );
     const dialog = await screen.findByRole('dialog');
     await user.click(within(dialog).getByRole('button', { name: /Update from a starter pack/ }));
-    await user.click(within(dialog).getByRole('button', { name: 'Design Systems / Design Eng' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Design Systems' }));
     const cat = getCurationState().categories.find((c) => c.id === id)!;
     expect(cat.titles[0]).toBe('My own title');
     expect(cat.titles.length).toBeGreaterThan(1);

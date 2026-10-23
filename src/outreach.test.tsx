@@ -135,7 +135,7 @@ beforeEach(() => {
   fakeFetch.mockClear();
   vi.stubGlobal('fetch', fakeFetch);
   replaceCurationState(EMPTY_CURATION);
-  cat = addCategory({ label: 'Design systems', titles: ['Design engineer'], atsRoles: ['design'] });
+  cat = addCategory({ label: 'Design work', titles: ['Design engineer'], atsRoles: ['design'] });
   window.history.replaceState(null, '', '/');
   window.location.hash = '#/discover/teams';
 });
@@ -446,7 +446,7 @@ describe('a non-design track (#215)', () => {
   }, 30_000);
 
   it('a design-systems track still searches GitHub', async () => {
-    addCategory({ label: 'Design systems', titles: ['Design engineer'], atsRoles: ['design'] });
+    addCategory({ label: 'Design work', titles: ['Design engineer'], atsRoles: ['design'] });
     localStorage.setItem('rjb_active_category', getCurationState().categories[1].id);
     renderApp();
     expect(await screen.findByRole('button', { name: 'Find design-system teams' })).toBeVisible();

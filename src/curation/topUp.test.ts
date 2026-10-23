@@ -34,8 +34,8 @@ describe('topUpFromPack', () => {
     // Kept the user's title, did not duplicate the case-insensitive match, added the rest.
     expect(cat.titles).toContain('My Own Title');
     expect(cat.titles.filter((t) => t.toLowerCase() === 'design systems engineer')).toHaveLength(1);
-    expect(cat.titles).toContain('Token Architect');
-    expect(cat.atsRoles).toContain('design tokens');
+    expect(cat.titles).toContain('Design Systems Lead');
+    expect(cat.atsRoles).toContain('UI systems');
     // Existing group reused, user tile kept, pack tiles added; the watch group created.
     const groups = s.groups.filter((x) => x.categoryId === id);
     // The pack's group is 'Apply now' now; an older synced 'Apply Now' is the same group.

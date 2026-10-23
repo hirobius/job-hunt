@@ -3,6 +3,7 @@
 // limiter as the board probe (probe.ts), then filtered by the track's terms with match.ts. Pure apart
 // from `readRoles`, which takes its fetcher and limiter so tests never hit the network.
 import { rankPostings } from './match';
+import { keepIncluded } from './mustInclude';
 import { createLimiter, hostKey, type Limiter } from './probe';
 import { foldRoles, isDesignSystemsTrack, orderByRoleType } from './roleType';
 import { boardApiUrl, fetchBoard, type Board } from './sources/ats';
@@ -108,13 +109,18 @@ export const newSince = (roles: Role[], seen: readonly string[]): Role[] => {
   return roles.filter((r) => !s.has(r.id));
 };
 
-/** A board's answer with the engineering-heavy roles taken out (when `fold`): what its row counts,
- *  orders and lists, and the folded roles for its "N engineering-heavy roles" disclosure. */
+/** A board's answer with the roles that fail the track's must-include rule dropped (feed/
+ *  mustInclude.ts) and the engineering-heavy roles taken out (when `fold`): what its row counts,
+ *  orders and lists ("N matching roles", Hiring now), and the folded roles for its "N
+ *  engineering-heavy roles" disclosure. */
 export function foldRolesState(
   rs: RolesState | undefined,
   fold: boolean,
+  include: string[] = [],
 ): { roles?: RolesState; folded: Role[] } {
   if (!rs || rs.state !== 'ok') return { roles: rs, folded: [] };
+  const kept = keepIncluded(rs.roles, include);
+  if (kept.length !== rs.roles.length) rs = { ...rs, roles: kept };
   const { shown, folded } = foldRoles(rs.roles, fold);
   return { roles: folded.length ? { ...rs, roles: shown } : rs, folded };
 }

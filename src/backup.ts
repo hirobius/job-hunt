@@ -27,6 +27,7 @@ import {
 } from './documents';
 import { mergeKit, sanitizeKit, type ApplyKit } from './applyKit';
 import { mergeSweeps, sanitizeSweeps, type SweepTitles } from './feed/sweepTitles';
+import { mergeMustInclude, sanitizeMustInclude, type MustInclude } from './feed/mustInclude';
 
 export interface AccountState {
   jobs: Job[];
@@ -47,6 +48,8 @@ export interface AccountState {
   /** The Application kit (blob v6) and wide-sweep titles (v7) (#47). Older backups lack them. */
   kit: ApplyKit;
   sweeps: Record<string, SweepTitles>;
+  /** Must-include terms per track (blob v11). Older backups lack them. */
+  mustInclude: Record<string, MustInclude>;
 }
 
 export interface Backup extends AccountState {
@@ -79,6 +82,7 @@ export function buildBackup(state: AccountState, now: Date): Backup {
     documents: withoutSampleDocuments(state.documents, state.jobs),
     kit: state.kit,
     sweeps: state.sweeps,
+    mustInclude: state.mustInclude,
   };
 }
 
@@ -303,6 +307,7 @@ export function parseBackup(text: string): ParseResult {
       documents: sanitizeDocuments(data.documents),
       kit: sanitizeKit(data.kit),
       sweeps: sanitizeSweeps(data.sweeps),
+      mustInclude: sanitizeMustInclude(data.mustInclude),
     },
   };
 }
@@ -328,6 +333,7 @@ export function applyBackup(
       documents: backup.documents,
       kit: backup.kit,
       sweeps: backup.sweeps,
+      mustInclude: backup.mustInclude,
     };
   }
   const jobs = mergeJobs(backup.jobs, current.jobs);
@@ -345,6 +351,7 @@ export function applyBackup(
     documents: mergeDocuments(backup.documents, current.documents),
     kit: mergeKit(backup.kit, current.kit),
     sweeps: mergeSweeps(backup.sweeps, current.sweeps),
+    mustInclude: mergeMustInclude(backup.mustInclude, current.mustInclude),
   };
 }
 

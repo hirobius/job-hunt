@@ -44,7 +44,7 @@ describe('applyTargeting', () => {
     const list = [rp(), rp({ id: 'x:2', title: 'Senior Engineer' })];
     const r = applyTargeting(list, NO_TARGETING);
     expect(r.postings).toHaveLength(2);
-    expect(r.hidden).toEqual({ exclude: 0, seniority: 0, salary: 0, titles: 0 });
+    expect(r.hidden).toEqual({ include: 0, exclude: 0, seniority: 0, salary: 0, titles: 0 });
   });
 
   describe('exclusions', () => {
@@ -134,7 +134,7 @@ describe('applyTargeting', () => {
       [rp({ title: 'Senior Manager', salaryMax: 10 })],
       t({ exclude: ['manager'], seniority: 'entry', salaryFloor: 100 }),
     );
-    expect(r.hidden).toEqual({ exclude: 1, seniority: 0, salary: 0, titles: 0 });
+    expect(r.hidden).toEqual({ include: 0, exclude: 1, seniority: 0, salary: 0, titles: 0 });
   });
 });
 
@@ -171,5 +171,46 @@ describe('applyTargeting: titles', () => {
     const { postings, hidden } = applyTargeting(posts, t({ titles: on }));
     expect(postings).toHaveLength(4);
     expect(hidden.titles).toBe(0);
+  });
+});
+
+describe('must include (systems only, 2026-10-23)', () => {
+  const sys = ['systems'];
+  it.each([
+    ['Design Systems Designer', 'Own the library.', true],
+    ['Senior Product Designer', 'You will grow our design system.', true],
+    ['Systems Designer', '', true],
+    ['UI Systems Engineer', '', true],
+    ['DESIGN SYSTEM LEAD', '', true],
+    ['Design-systems engineer', '', true],
+    ['Design Engineer', 'Help design the system-level UI.', true],
+    ['Product Designer', 'Join our ecosystem of partners.', false],
+    ['Ecosystem Designer', 'Subsystems and ecosystems.', false],
+    ['Senior Product Designer', 'Build delightful flows.', false],
+  ])('%s / %s → shown %s', (title, text, shown) => {
+    const r = applyTargeting([rp({ title, text })], t({ include: sys }));
+    expect(r.postings.length === 1).toBe(shown);
+    expect(r.hidden.include).toBe(shown ? 0 : 1);
+  });
+
+  it('counts each hidden posting once, under must include first', () => {
+    const list = [
+      rp({ id: 'a', title: 'Senior Product Designer', text: 'Flows.' }),
+      rp({ id: 'b', title: 'Design Systems Engineer' }),
+    ];
+    const r = applyTargeting(list, t({ include: sys, exclude: ['product'] }));
+    expect(r.postings.map((p) => p.id)).toEqual(['b']);
+    expect(r.hidden).toMatchObject({ include: 1, exclude: 0 });
+  });
+
+  it('no terms (or blank ones) is no rule', () => {
+    const list = [rp({ title: 'Product Designer', text: 'Flows.' })];
+    expect(applyTargeting(list, t({ include: [] })).postings).toHaveLength(1);
+    expect(applyTargeting(list, t({ include: [' '] })).postings).toHaveLength(1);
+  });
+
+  it('any one of several terms is enough', () => {
+    const list = [rp({ title: 'Token Architect', text: '' })];
+    expect(applyTargeting(list, t({ include: ['systems', 'tokens'] })).postings).toHaveLength(1);
   });
 });

@@ -33,6 +33,7 @@ import { EMPTY_CURATION } from './curation/types';
 import { readDreams, starDream } from './feed/dreams';
 import { readTargets, saveTarget } from './feed/targets';
 import { dismissNotice } from './saveNotice';
+import { setMustInclude } from './feed/mustInclude';
 import { getAllJobs, removeJob } from './store';
 
 const renderApp = () =>
@@ -57,6 +58,11 @@ const LIVE: Record<string, unknown> = {
     leverJob('northwind', 'n2', 'Accountant'),
   ],
   'https://boards-api.greenhouse.io/v1/boards/figma/jobs': { jobs: [] },
+  'https://api.lever.co/v0/postings/systemsco?mode=json': [
+    { ...leverJob('systemsco', 's1', 'Welder'), descriptionPlain: 'Weld our cooling systems.' },
+    { ...leverJob('systemsco', 's2', 'Welder II'), descriptionPlain: 'A great ecosystem.' },
+    leverJob('systemsco', 's3', 'Welder, Systems Lead'),
+  ],
   'https://api.lever.co/v0/postings/eastgate?mode=json': [1, 2, 3, 4].map((n) =>
     leverJob('eastgate', `e${n}`, `Welder ${n}`),
   ),
@@ -159,6 +165,24 @@ describe('Companies as one tool (#237)', () => {
     expect(within(list).getByText('Greenhouse · no matching roles')).toBeVisible();
     await userEvent.click(within(panel).getByRole('button', { name: 'Roles at Figma' }));
     expect(within(list).getByText('No open role matches this track right now.')).toBeVisible();
+  });
+
+  it('must include (systems only): roles that never say systems are not counted, listed or hiring', async () => {
+    setMustInclude(cat, { terms: ['systems'] });
+    watch('https://jobs.lever.co/systemsco');
+    watch('https://jobs.lever.co/eastgate');
+    renderApp();
+    const panel = await screen.findByRole('region', { name: 'Watched' });
+    const list = within(panel).getByRole('list', { name: 'Companies' });
+    expect(await within(list).findByText('Lever · 2 matching roles')).toBeVisible();
+    // Eastgate's four welders never say systems: it is not hiring for this track.
+    await waitFor(() => expect(within(list).queryByText('Eastgate')).toBeNull());
+    expect(within(panel).getByText(/1 hiring now/)).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Roles at Systemsco' }));
+    const roles = await screen.findByRole('list', { name: 'Open roles at Systemsco' });
+    expect(within(roles).getByText('Welder')).toBeVisible();
+    expect(within(roles).getByText('Welder, Systems Lead')).toBeVisible();
+    expect(within(roles).queryByText('Welder II')).toBeNull(); // "ecosystem" is not "systems"
   });
 
   it('starred companies and the one-button check sit on the Companies home', async () => {

@@ -30,7 +30,8 @@ export function deviceData(d: SyncData, tracks: number): DeviceData {
     anyList(d.filters) ||
     anyList(d.dreams) ||
     anyKey(d.modes) ||
-    anyKey(d.sweeps);
+    anyKey(d.sweeps) ||
+    anyKey(d.mustInclude);
   return { jobs, any };
 }
 

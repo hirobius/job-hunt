@@ -53,7 +53,7 @@ beforeEach(() => {
   feed.fetchFeed.mockReset().mockResolvedValue({ postings: POSTINGS, sources: [] });
   replaceCurationState(EMPTY_CURATION);
   cat = addCategory({
-    label: 'Design Systems',
+    label: 'Design work',
     titles: ['design engineer', 'design technologist', 'design system'],
     atsRoles: ['design system'],
   });

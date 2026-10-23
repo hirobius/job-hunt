@@ -16,6 +16,7 @@ import { readEvidence, replaceEvidence, useEvidence } from '../radar/evidenceSto
 import { getAllModes, replaceModes, useAllModes } from '../trackModes';
 import { getApplyKit, replaceApplyKit, useApplyKit } from '../applyKit';
 import { getAllSweeps, replaceSweeps, useAllSweeps } from '../feed/sweepTitles';
+import { getAllMustInclude, replaceMustInclude, useAllMustInclude } from '../feed/mustInclude';
 import { getTrash, replaceTrash, useTrash } from '../trash';
 import { getAllDreams, replaceDreams, useAllDreams } from '../feed/dreams';
 import { getAllDocuments, replaceDocuments, useDocuments } from '../documents';
@@ -89,6 +90,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const modes = useAllModes();
   const kit = useApplyKit();
   const sweeps = useAllSweeps();
+  const mustInclude = useAllMustInclude();
   const trash = useTrash();
   const dreams = useAllDreams();
   const documents = useDocuments();
@@ -136,6 +138,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     modes: getAllModes(),
     kit: getApplyKit(),
     sweeps: getAllSweeps(),
+    mustInclude: getAllMustInclude(),
     trash: getTrash(),
     dreams: getAllDreams(),
     documents: getAllDocuments(),
@@ -199,6 +202,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       replaceModes(next.modes);
       replaceApplyKit(next.kit);
       replaceSweeps(next.sweeps);
+      replaceMustInclude(next.mustInclude);
       replaceTrash(next.trash);
       replaceDreams(next.dreams);
       replaceDocuments(next.documents);
@@ -377,6 +381,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     modes,
     kit,
     sweeps,
+    mustInclude,
     trash,
     dreams,
     documents,

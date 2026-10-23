@@ -7,6 +7,7 @@
 import { parseBoardUrl } from '../feed/sources/ats';
 import { addTargets, type Target } from '../feed/targets';
 import { addBoardTiles } from '../feed/watchlist';
+import { setMustInclude } from '../feed/mustInclude';
 import type { PackCompany } from '../radar/directory';
 import { addCategory, addGroup, addTiles, getCurationState, updateCategory } from './curationStore';
 import {
@@ -38,8 +39,8 @@ export const STARTER_PACKS: StarterPack[] = [
   },
   {
     id: 'designsystems',
-    label: 'Design Systems / Design Eng',
-    blurb: 'Remote design-systems & design-engineering roles',
+    label: 'Design Systems',
+    blurb: 'Remote design-systems roles only: every posting says system or systems',
   },
   {
     id: 'trades',
@@ -96,6 +97,7 @@ export function seedPack(
   // The pack's company boards, filed as the track's own editable "Watched companies" group.
   if (content?.boards.length) addBoardTiles(categoryId, content.boards);
   addPackTargets(categoryId, content?.targets);
+  if (content?.mustInclude) setMustInclude(categoryId, { terms: [...content.mustInclude] });
   return categoryId;
 }
 
@@ -109,15 +111,21 @@ function addPackTargets(categoryId: string, companies: readonly PackCompany[] = 
   return addTargets(categoryId, rows);
 }
 
-/** The starter pack a track's label belongs to (matching the onboarding label or the pack's own,
- *  ignoring case), so Live postings can suggest that pack's boards to a track made earlier. */
+/** Labels a pack's tracks were seeded with before a rename: those tracks still belong to it. */
+const FORMER_LABELS: Record<string, readonly string[]> = {
+  designsystems: ['Design Systems / Design Eng'],
+};
+
+/** The starter pack a track's label belongs to (matching the onboarding label, the pack's own or a
+ *  former one, ignoring case), so Live postings can suggest that pack's boards to a track made
+ *  earlier. */
 export function packIdForLabel(label: string): string | undefined {
   const want = label.trim().toLowerCase();
   if (!want) return undefined;
   return Object.entries(CONTENT_FOR).find(
     ([id, c]) =>
       c &&
-      [STARTER_PACKS.find((p) => p.id === id)?.label, c.label].some(
+      [STARTER_PACKS.find((p) => p.id === id)?.label, c.label, ...(FORMER_LABELS[id] ?? [])].some(
         (l) => l?.toLowerCase() === want,
       ),
   )?.[0];

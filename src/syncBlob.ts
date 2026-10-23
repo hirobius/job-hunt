@@ -6,6 +6,7 @@
 // v8 (ADR 0008 addendum) adds Recently removed: jobs removed in the last 30 days (`src/trash.ts`).
 // v9 adds dream companies per track (src/feed/dreams.ts), same pattern as the v5 stores.
 // v10 adds Documents with their Versions (src/documents.ts, #226), same pattern.
+// v11 adds must-include terms per track (src/feed/mustInclude.ts), same pattern as v7.
 // v7 adds the wide sweep's titles per track (#213), optional on read.
 // v6 adds the Application kit (rapid apply: profile fields + saved answers), optional on read.
 // v5 (ADR 0008) adds the user-edited stores that used to live only in this browser: outreach
@@ -27,6 +28,7 @@ import { mergeModes, sanitizeModes } from './trackModes';
 import { emptyKit, mergeKit, sanitizeKit, type ApplyKit } from './applyKit';
 import { mergeSweeps, sanitizeSweeps, type SweepTitles } from './feed/sweepTitles';
 import { mergeDreams, sanitizeDreams, type Dream } from './feed/dreams';
+import { mergeMustInclude, sanitizeMustInclude, type MustInclude } from './feed/mustInclude';
 import type { WorkMode } from './jobsData';
 import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
@@ -72,13 +74,15 @@ export interface SyncData {
   dreams: Record<string, Dream[]>;
   /** Documents and their Versions (v10). */
   documents: Document[];
+  /** Must-include terms and switched-off ATS roles per track (v11). */
+  mustInclude: Record<string, MustInclude>;
   /** The blob version this was read from (0 = not read from a blob). A pre-v5 cloud copy says
    *  nothing about the v5 fields, so a refresh must not let its emptiness wipe local values. */
   sourceV: number;
 }
 
 /** Blob schema version written to the cloud. */
-export const BLOB_VERSION = 10;
+export const BLOB_VERSION = 11;
 
 export function emptyBlob(): SyncData {
   return {
@@ -95,6 +99,7 @@ export function emptyBlob(): SyncData {
     trash: [],
     dreams: {},
     documents: [],
+    mustInclude: {},
     sourceV: 0,
   };
 }
@@ -124,6 +129,7 @@ export function readBlob(data: unknown): SyncData {
     trash: sanitizeTrash(o.trash),
     dreams: sanitizeDreams(o.dreams),
     documents: sanitizeDocuments(o.documents),
+    mustInclude: sanitizeMustInclude(o.mustInclude),
     sourceV: typeof o.v === 'number' ? o.v : 0,
   };
 }
@@ -144,6 +150,7 @@ export function writeBlob(d: SyncData) {
     trash: d.trash.filter((r) => !isSample(r.job)),
     dreams: d.dreams,
     documents: withoutSampleDocuments(d.documents, d.jobs),
+    mustInclude: d.mustInclude,
   };
 }
 
@@ -185,6 +192,7 @@ export function mergeBlob(
     trash: mergeTrash(cloud.trash, local.trash),
     dreams: mergeDreams(cloud.dreams, local.dreams),
     documents: mergeDocuments(cloud.documents, local.documents),
+    mustInclude: mergeMustInclude(cloud.mustInclude, local.mustInclude),
     sourceV: cloud.sourceV,
   };
   const merged = base ? withoutDeleted(union, cloud, local, base) : union;

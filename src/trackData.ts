@@ -1,4 +1,4 @@
-// Per-track user data (outreach targets, saved searches, work mode, sweep titles, dream companies) is
+// Per-track user data (outreach targets, saved searches, work mode, sweep titles, dream companies, must include) is
 // keyed by track id. When a track is explicitly deleted, its entries go too (ADR 0008). There is deliberately no sweep of
 // "unknown" tracks after a sync: another device's track upload may still be in flight, and an orphan
 // is harmless while a pruned entry is lost for good. Evidence is
@@ -8,6 +8,7 @@ import { getAllFilters, replaceFilters } from './feed/savedFilters';
 import { getAllModes, replaceModes } from './trackModes';
 import { getAllSweeps, replaceSweeps } from './feed/sweepTitles';
 import { getAllDreams, replaceDreams } from './feed/dreams';
+import { getAllMustInclude, replaceMustInclude } from './feed/mustInclude';
 
 function filterKeys<T>(
   all: Record<string, T>,
@@ -29,6 +30,8 @@ function prune(keep: (id: string) => boolean) {
   if (w) replaceSweeps(w);
   const d = filterKeys(getAllDreams(), keep);
   if (d) replaceDreams(d);
+  const i = filterKeys(getAllMustInclude(), keep);
+  if (i) replaceMustInclude(i);
 }
 
 /** A track was deleted. */

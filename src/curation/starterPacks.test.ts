@@ -12,6 +12,7 @@ import { getCurationState, replaceCurationState } from './curationStore';
 import { packIdForLabel, seedPack, STARTER_PACKS, topUpFromPack } from './starterPacks';
 import { DIRECTORY_BY_PACK, TARGETS_BY_PACK } from '../radar/directory';
 import { readTargets, saveTarget } from '../feed/targets';
+import { hasMustInclude, readMustInclude } from '../feed/mustInclude';
 import { parseBoardUrl } from '../feed/sources/ats';
 import { placeKey } from './localize';
 import { CONSULTING_PACK, DESIGN_SYSTEMS_PACK, SERVICENOW_PACK, TRADES_PACK } from './packContent';
@@ -156,13 +157,30 @@ describe('design systems targets track (#198)', () => {
       expect.arrayContaining([
         'Design Systems Designer',
         'Design Systems Engineer',
-        'Design Technologist',
+        'Design Systems Technologist',
         'Staff Design Systems',
         'Principal Design Systems',
       ]),
     );
     // Live postings searches the first title on open; that stays the same.
     expect(cat.titles[0]).toBe('Design Systems Engineer');
+  });
+
+  it('is systems-only (2026-10-23): every title and ATS role says system, must include is set', () => {
+    const id = seedPack('designsystems');
+    const cat = getCurationState().categories.find((c) => c.id === id)!;
+    expect(cat.label).toBe('Design Systems');
+    for (const t of [...cat.titles, ...cat.atsRoles]) expect(t).toMatch(/\bsystems?\b/i);
+    for (const gone of ['Design Engineer', 'UI Engineer', 'Product Designer', 'Frontend Engineer'])
+      expect(cat.titles).not.toContain(gone);
+    expect(readMustInclude(id).terms).toEqual(['systems']);
+    // Other packs get no rule.
+    expect(hasMustInclude(seedPack('trades'))).toBe(false);
+  });
+
+  it('a track made under the old pack label still belongs to the pack', () => {
+    expect(packIdForLabel('Design Systems / Design Eng')).toBe('designsystems');
+    expect(packIdForLabel('design systems')).toBe('designsystems');
   });
 
   it('an existing track picks the targets up from the pack update, keeping its own', () => {

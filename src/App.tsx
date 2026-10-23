@@ -41,6 +41,7 @@ import StaleBuildNotice from './StaleBuildNotice';
 import { authLinkErrorMessage } from './account/authLinkError';
 import { saveWithNotice } from './saveNotice';
 import { useCategories } from './curation/curationStore';
+import { migrateSystemsOnly, SYSTEMS_ONLY_NOTICE } from './feed/systemsOnly';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
@@ -79,6 +80,19 @@ function SnippetMigration() {
   useEffect(() => {
     if (settled) migrateSnippetStore();
   }, [settled, snippets]);
+  return null;
+}
+
+/** The one-time move of a Design Systems track to systems-only (feed/systemsOnly.ts), after sync
+ *  settles so a track moved on another device is left alone. Says so once, the time it moves one. */
+function SystemsOnlyMigration() {
+  const { settled } = useCloudSync();
+  const categories = useCategories();
+  const { toast } = useToast();
+  useEffect(() => {
+    if (settled && migrateSystemsOnly(categories) > 0)
+      toast({ title: SYSTEMS_ONLY_NOTICE, tone: 'info', duration: 10000 });
+  }, [settled, categories, toast]);
   return null;
 }
 
@@ -204,6 +218,7 @@ export default function App() {
   return (
     <CloudSyncProvider>
       <SnippetMigration />
+      <SystemsOnlyMigration />
       <DataToolsProvider>
         {/* The portfolio's shell (Adrian 2026-10-22): 1180 in all, gutters that grow with the
             viewport, so content stops near 1052. Header, tabs and every page share it. */}

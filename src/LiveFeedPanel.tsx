@@ -55,6 +55,8 @@ import { mergeRetry } from './feed/mergeFeed';
 import { AsyncState, type AsyncStatus } from '@hirobius/design-system/patterns';
 import { rankPostings } from './feed/match';
 import { applyTargeting, NO_TARGETING } from './feed/targeting';
+import { setMustInclude, useMustInclude } from './feed/mustInclude';
+import { ChipEditor } from './ChipEditor';
 import type { Seniority } from './curation/types';
 import { useCategories, useGroups, useTiles } from './curation/curationStore';
 import { postedAgo } from './feed/format';
@@ -154,6 +156,13 @@ export default function LiveFeedPanel({
   const [seniority, setSeniority] = useRemembered<Seniority>(kept('seniority'), trackSeniority);
   const [floorText, setFloorText] = useRemembered(kept('floor'), '');
   const [salaryOnly, setSalaryOnly] = useRemembered(kept('salaryOnly'), false);
+  // Must include (2026-10-23): per track and synced, unlike the leave-out words above.
+  const mustInclude = useMustInclude(categoryId);
+  // The track's ATS roles switched off (the systems-only move): tap one to search for it again.
+  const atsOff = useMemo(() => {
+    const off = new Set(mustInclude.atsOff.map((x) => x.toLowerCase()));
+    return (track?.atsRoles ?? []).filter((r) => off.has(r.toLowerCase()));
+  }, [track?.atsRoles, mustInclude.atsOff]);
   const saved = useFilters(categoryId);
   const [saveName, setSaveName] = useState('');
   const evidence = useMemo(() => parseEvidence(evidenceText), [evidenceText]);
@@ -272,14 +281,16 @@ export default function LiveFeedPanel({
       salaryFloor: floor > 0 ? floor : undefined,
       salaryOnly,
       titles: { on: sweepTitles, off: titleFilter.off },
+      include: mustInclude.terms,
     }),
-    [excludeText, seniority, floor, salaryOnly, sweepTitles, titleFilter.off],
+    [excludeText, seniority, floor, salaryOnly, sweepTitles, titleFilter.off, mustInclude.terms],
   );
   const { postings: ranked, hidden } = useMemo(
     () => applyTargeting(matched, targeting),
     [matched, targeting],
   );
   const hiddenNotes = [
+    hidden.include > 0 && `${hidden.include} hidden by must include`,
     hidden.exclude > 0 && `${hidden.exclude} hidden by what you left out`,
     hidden.seniority > 0 && `${hidden.seniority} hidden by level`,
     hidden.salary > 0 && `${hidden.salary} hidden by pay`,
@@ -768,11 +779,17 @@ export default function LiveFeedPanel({
                 Calibrate
               </Text>
             }
-            preview="Titles, leave-out words, pay floor, level"
+            preview="Must include, titles, leave-out words, pay floor, level"
             open={calibrateOpen}
             onOpenChange={setCalibrateOpen}
           >
             <Stack gap="normal">
+              <ChipEditor
+                label="Must include (in the title or description)"
+                placeholder="Add a word"
+                values={mustInclude.terms}
+                onChange={(next) => setMustInclude(categoryId, { terms: next })}
+              />
               <SweepTitlesEditor categoryId={categoryId} seed={sweepSeed} bare />
               {terms.length > 0 && (
                 <Stack gap="px8">
@@ -790,6 +807,30 @@ export default function LiveFeedPanel({
                         }}
                       >
                         {t}
+                      </Tag>
+                    ))}
+                  </Stack>
+                </Stack>
+              )}
+              {atsOff.length > 0 && (
+                <Stack gap="px8">
+                  <Text variant="ui" as="span">
+                    Switched off
+                  </Text>
+                  <Stack direction="row" wrap="wrap" gap="px8" align="center">
+                    {atsOff.map((r) => (
+                      <Tag
+                        key={r}
+                        aria-label={`Search for ${r} again`}
+                        onClick={() =>
+                          setMustInclude(categoryId, {
+                            atsOff: mustInclude.atsOff.filter(
+                              (x) => x.toLowerCase() !== r.toLowerCase(),
+                            ),
+                          })
+                        }
+                      >
+                        {r}
                       </Tag>
                     ))}
                   </Stack>

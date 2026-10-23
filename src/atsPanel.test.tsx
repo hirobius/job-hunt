@@ -41,7 +41,7 @@ beforeEach(() => {
   h.fake?.reset();
   localStorage.clear();
   replaceCurationState(EMPTY_CURATION);
-  addCategory({ label: 'Design Systems', atsRoles: ['design systems'] });
+  addCategory({ label: 'Design work', atsRoles: ['design systems'] });
   window.history.replaceState(null, '', '/');
   window.location.hash = '#/discover/ats';
 });
@@ -162,7 +162,7 @@ describe('ATS search panel (Discover → AtsPanel)', () => {
     const user = userEvent.setup();
     replaceCurationState(EMPTY_CURATION);
     addCategory({
-      label: 'Design Systems',
+      label: 'Design work',
       titles: [
         'senior design systems engineer',
         'staff design systems designer',

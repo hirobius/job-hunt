@@ -60,6 +60,7 @@ import {
 } from './feed/teamRoles';
 import AddCompany from './AddCompany';
 import DreamCompanies from './DreamCompanies';
+import { useMustInclude } from './feed/mustInclude';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
 import { useRoleTypes } from './feed/roleTypePref';
 import CompanyLogo from './CompanyLogo';
@@ -183,6 +184,7 @@ export default function CompaniesPanel({
   const [roles, setRoles] = useRemembered<Record<string, RolesState>>(kept('roles'), rolesKept);
   // A design-systems track ranks and tags role types and folds the engineering-heavy roles.
   const roleTypes = useRoleTypes(categoryId, terms);
+  const include = useMustInclude(categoryId).terms;
   // One politeness budget for the board probes, the role reads and the dream checks.
   const [limiter] = useState(() => createLimiter());
   const abort = useRef<AbortController | null>(null);
@@ -234,9 +236,10 @@ export default function CompaniesPanel({
     ...watchedBoards.filter((b) => !teamBoards.has(boardKey(b))).map(watchedRow),
   ];
 
-  // What a row counts and lists: its board's roles less the folded engineering-heavy ones.
+  // What a row counts and lists: its board's roles that pass must include (feed/mustInclude.ts),
+  // less the folded engineering-heavy ones.
   const foldOf = (r: Row) =>
-    foldRolesState(r.board ? roles[boardKey(r.board)] : undefined, roleTypes.fold);
+    foldRolesState(r.board ? roles[boardKey(r.board)] : undefined, roleTypes.fold, include);
   const rolesOf = (r: Row) => foldOf(r).roles;
   const statusOf = (r: CompanyRow): TeamStatus =>
     r.board && !rolesOf(r)
@@ -605,6 +608,7 @@ export default function CompaniesPanel({
         limiter={limiter}
         roles={roles}
         roleTypes={roleTypes}
+        include={include}
       />
 
       {/* No empty section: it shows once a company is saved as a target. */}
