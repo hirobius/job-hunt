@@ -63,7 +63,7 @@ import DreamCompanies from './DreamCompanies';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
 import { useRoleTypes } from './feed/roleTypePref';
 import CompanyLogo from './CompanyLogo';
-import { addFound } from './feed/foundTeams';
+import { addFound, loadFound, saveFound } from './feed/foundTeams';
 
 /** Watched boards read on arrival; the rest wait for "Check open roles". A starter pack can file
  *  a hundred boards, and each read is a whole board. */
@@ -155,7 +155,21 @@ export default function CompaniesPanel({
   const kept = (k: string) => `companies:${categoryId}:${k}`;
   const [skipSmall, setSkipSmall] = useRemembered(kept('skipSmall'), true);
   const [running, setRunning] = useState(false);
-  const [found, setFound] = useRemembered<CompanyRow[]>(kept('found'), []);
+  // The found list is also kept on this device per track (feed/foundTeams.ts), so a reload keeps it.
+  const [found, setFound] = useRemembered<CompanyRow[]>(kept('found'), () =>
+    loadFound<CompanyRow>(categoryId),
+  );
+  const [foundDropped, setFoundDropped] = useRemembered(kept('foundDropped'), 0);
+  useEffect(() => {
+    if (found.length === 0) return; // nothing to add; an empty list never overwrites the store
+    const out = saveFound(categoryId, found);
+    if (out.dropped > 0) {
+      setFoundDropped((n) => n + out.dropped);
+      setFound(out.list);
+    }
+    // setFound/setFoundDropped are stable for a track; only the list or the track re-saves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [found, categoryId]);
   const [report, setReport] = useRemembered<RunReport | null>(kept('report'), null);
   const [suggestReport, setSuggestReport] = useRemembered<SuggestReport | null>(
     kept('suggestReport'),
@@ -577,6 +591,11 @@ export default function CompaniesPanel({
                 {early
                   ? `Still busy. We'll carry on by ourselves after ${clock(waitUntil)}.`
                   : `GitHub's free search is busy. Showing what we found; more after ${clock(waitUntil)}.`}
+              </Text>
+            )}
+            {foundDropped > 0 && (
+              <Text variant="caption" as="p" tone="secondary" role="status">
+                {`The list keeps the newest 500; ${foundDropped} older ${foundDropped === 1 ? 'one was' : 'ones were'} dropped.`}
               </Text>
             )}
             {report?.error && <Alert tone="warning">{report.error}</Alert>}

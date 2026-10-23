@@ -1,6 +1,7 @@
 // Discover → Teams (slug `teams`; docs/specs/discovery-methods.md, method 3): design-system
 // organisations from GitHub, open roles first, quick save, dream companies and outreach targets, pinned
 // at the route seam with a stubbed `fetch` for GitHub and the ATSs.
+import { resetViewMemory } from './viewMemory';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -453,6 +454,23 @@ describe('Find more keeps what was found', () => {
     expect(
       within(screen.getByRole('list', { name: 'Companies' })).getAllByText(/^Acme Design/),
     ).toHaveLength(1);
+  });
+
+  it('keeps the list across a reload and a rate-limited first run (device only)', async () => {
+    const first = renderApp();
+    await find();
+    await screen.findByText(/3 companies, 1 hiring now\./);
+    expect(JSON.parse(localStorage.getItem(`rjb_found_teams:${cat}`)!)).toHaveLength(3);
+    first.unmount();
+    resetViewMemory(); // a reload: in-memory view state is gone, storage stays
+    newDay();
+    gh.limited = true;
+    renderApp();
+    await screen.findByText(/3 companies/);
+    await find();
+    await screen.findByText(/GitHub's free search is busy/);
+    expect(JSON.parse(localStorage.getItem(`rjb_found_teams:${cat}`)!)).toHaveLength(3);
+    expect(screen.getByRole('region', { name: 'Watched' })).toHaveTextContent(/3 companies/);
   });
 
   it('never touches what syncs: watched boards, saved targets and dream companies stay', async () => {

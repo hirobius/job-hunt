@@ -22,11 +22,13 @@ const f = {
   salaryOnly: false,
   contractOnly: false,
 };
+import { saveFound, foundKey } from './feed/foundTeams';
 const fill = (ids: string[]) =>
   ids.forEach((id) => {
     saveTarget(id, t);
     saveFilter(id, f);
     writeMode(id, 'remote');
+    saveFound(id, [{ login: 'acme' }]);
   });
 
 beforeEach(() => {
@@ -49,5 +51,14 @@ describe('per-track data follows its track', () => {
     removeCategory(id);
     expect(Object.keys(getAllTargets())).toEqual(['other']);
     expect(getAllModes()[id]).toBeUndefined();
+  });
+});
+
+describe('found teams key', () => {
+  it('goes when the track is deleted, others stay', () => {
+    fill(['a', 'b']);
+    dropTrackData('a');
+    expect(localStorage.getItem(foundKey('a'))).toBeNull();
+    expect(localStorage.getItem(foundKey('b'))).not.toBeNull();
   });
 });
