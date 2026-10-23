@@ -55,7 +55,13 @@ import { mergeRetry } from './feed/mergeFeed';
 import { AsyncState, type AsyncStatus } from '@hirobius/design-system/patterns';
 import { rankPostings } from './feed/match';
 import { applyTargeting, NO_TARGETING } from './feed/targeting';
-import { setMustInclude, useMustInclude } from './feed/mustInclude';
+import {
+  hasRelatedTitles,
+  RELATED_TITLES,
+  relatedCounts,
+  setMustInclude,
+  useMustInclude,
+} from './feed/mustInclude';
 import { ChipEditor } from './ChipEditor';
 import type { Seniority } from './curation/types';
 import { useCategories, useGroups, useTiles } from './curation/curationStore';
@@ -288,6 +294,13 @@ export default function LiveFeedPanel({
   const { postings: ranked, hidden } = useMemo(
     () => applyTargeting(matched, targeting),
     [matched, targeting],
+  );
+  // Related titles (2026-10-23): what each would let in among the postings read, on or off.
+  const showRelated = hasRelatedTitles(mustInclude);
+  const relatedOn = showRelated && mustInclude.related !== false;
+  const perRelated = useMemo(
+    () => (relatedOn ? relatedCounts(matched, mustInclude) : {}),
+    [relatedOn, matched, mustInclude],
   );
   const hiddenNotes = [
     hidden.include > 0 && `${hidden.include} hidden by must include`,
@@ -803,7 +816,49 @@ export default function LiveFeedPanel({
                   checked={mustInclude.inText !== false}
                   onChange={(on) => setMustInclude(categoryId, { inText: on })}
                 />
+                {showRelated && (
+                  <Toggle
+                    label="Related titles"
+                    checked={relatedOn}
+                    onChange={(on) => setMustInclude(categoryId, { related: on })}
+                  />
+                )}
               </Stack>
+              {/* Each related title as a toggle chip with what it lets in (or would) among the
+                  postings read; Design Technologist on its title alone, the rest only when the
+                  description says "design system(s)", Design Engineer with AI-assisted work too. */}
+              {relatedOn && (
+                <Stack gap="px8">
+                  <Text variant="caption" as="p" tone="secondary">
+                    Also list these titles when the description says design system (Design
+                    Technologist on its title alone; Design Engineer when it also mentions AI tools)
+                  </Text>
+                  <Stack direction="row" wrap="wrap" gap="px8" align="center">
+                    {RELATED_TITLES.map(({ id }) => {
+                      const off = mustInclude.relatedOff ?? [];
+                      const on = !off.includes(id);
+                      return (
+                        <Tag
+                          key={id}
+                          active={on}
+                          aria-pressed={on}
+                          aria-label={`${id}, ${perRelated[id] ?? 0}`}
+                          onClick={() =>
+                            setMustInclude(categoryId, {
+                              relatedOff: on ? [...off, id] : off.filter((x) => x !== id),
+                            })
+                          }
+                        >
+                          <Stack as="span" direction="row" gap="px8" align="center">
+                            {id}
+                            <Badge count={perRelated[id] ?? 0} />
+                          </Stack>
+                        </Tag>
+                      );
+                    })}
+                  </Stack>
+                </Stack>
+              )}
               {mustInclude.inTitle === false && mustInclude.inText === false && (
                 <Text variant="caption" tone="secondary">
                   Both off: matching the title only.

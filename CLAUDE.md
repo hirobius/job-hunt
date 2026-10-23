@@ -340,6 +340,13 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `systems`, its sweep titles and ATS roles without "system" switched off (never deleted), and one toast. Pinned
   in `feed/mustInclude.test.ts`, `feed/systemsOnly.test.ts`, `LiveFeedMustInclude.test.tsx`, `companies.test.tsx`,
   `systemsOnlyNotice.test.tsx`.
+  **Phrases break at separators** (2026-10-23): a spaced hyphen, en/em dash, `, | / : ; & · •` end a phrase
+  ("Manager, Design - Systems & Infrastructure" is not "design systems"); a hyphen inside a word joins.
+  **Related titles** (same entry, `related` absent = on, `relatedOff` ids): on a rule that asks for "design
+  system(s)", `RELATED_TITLES` also pass: Design Technologist on its title alone; UI Platform, Component Library,
+  Frontend Platform when the description says "design system(s)"; Design Engineer when it also names AI-assisted
+  work (`AI_TERMS`). Calibrate's "Related titles" switch beside the two, then a chip per title with
+  `relatedCounts`. Applies everywhere `passesInclude` does (Live postings, Companies, dreams).
 - **Title filter (#223):** the sweep's list _is_ the track's title filter (seed: the track's titles, else
   its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
   titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**

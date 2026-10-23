@@ -122,4 +122,54 @@ describe('must include in Live postings', () => {
     expect(titles()).toEqual(['Product Designer']);
     expect(feed.fetchFeed.mock.calls.length).toBe(reads);
   });
+  it('related titles: a switch beside the two, chips with counts, re-filter at once and kept', async () => {
+    const user = userEvent.setup();
+    feed.fetchFeed.mockResolvedValue({
+      ...RESULT,
+      postings: [
+        post('1', 'Design Systems Designer', 'Own the library.'),
+        post('5', 'Design Technologist', 'Prototype in code with designers.'),
+        post('6', 'UI Platform Engineer', 'Own our design system with designers.'),
+        post('7', 'UI Platform Engineer, Infra', 'Own the platform with designers.'),
+        post('8', 'Design Engineer', 'Grow the design system with Claude Code with designers.'),
+      ],
+    });
+    setMustInclude(cat, { terms: ['design system'], inText: false });
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    const reads = feed.fetchFeed.mock.calls.length;
+    const all = [
+      'Design Engineer',
+      'Design Systems Designer',
+      'Design Technologist',
+      'UI Platform Engineer',
+    ];
+    expect(titles().sort()).toEqual(all);
+    const sw = screen.getByRole('switch', { name: 'Related titles' });
+    expect(sw).toBeChecked();
+    const chip = screen.getByRole('button', { name: 'Design Technologist, 1' });
+    expect(chip).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'UI Platform, 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Component Library, 0' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Design Engineer, 1' })).toBeInTheDocument();
+    await user.click(chip);
+    expect(readMustInclude(cat).relatedOff).toEqual(['Design Technologist']);
+    expect(chip).toHaveAttribute('aria-pressed', 'false');
+    expect(titles()).not.toContain('Design Technologist');
+    await user.click(sw);
+    expect(readMustInclude(cat).related).toBe(false);
+    expect(titles()).toEqual(['Design Systems Designer']);
+    expect(screen.queryByRole('button', { name: 'UI Platform, 1' })).not.toBeInTheDocument();
+    await user.click(sw);
+    await user.click(screen.getByRole('button', { name: 'Design Technologist, 1' }));
+    expect(titles().sort()).toEqual(all);
+    expect(feed.fetchFeed.mock.calls.length).toBe(reads);
+  });
+
+  it('related titles only show on a design system rule', async () => {
+    setMustInclude(cat, { terms: ['systems'] });
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    expect(screen.queryByRole('switch', { name: 'Related titles' })).not.toBeInTheDocument();
+  });
 });

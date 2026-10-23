@@ -6,6 +6,8 @@ import {
   mentionsAny,
   mergeMustInclude,
   readMustInclude,
+  relatedCounts,
+  RELATED_TITLES,
   sanitizeMustInclude,
   setMustInclude,
 } from './mustInclude';
@@ -177,5 +179,108 @@ describe('in the sync blob (v11)', () => {
   it('a v11 cloud copy wins on refresh', () => {
     const cloud = readBlob({ v: 11, jobs: [], mustInclude: { t: { terms: [] } } });
     expect(mergeBlob(cloud, local, false).mustInclude).toEqual({ t: { terms: [], atsOff: [] } });
+  });
+});
+
+describe('related titles (2026-10-23)', () => {
+  // Title only, so the description never passes a posting on its own: the related path is all
+  // that can let a non-phrase title in.
+  const rule = { terms: ['design system'], inText: false };
+  const DS = 'You will grow our design system.';
+  const AI = 'We build with Claude Code and Cursor every day.';
+  it.each([
+    ['Design Technologist', '', true],
+    ['Senior Design Technologist', 'Nothing about it.', true],
+    ['UI Platform Engineer', DS, true],
+    ['UI Platform Engineer', 'Own the platform.', false],
+    ['Component Library Engineer', DS, true],
+    ['Frontend Platform Engineer', DS, true],
+    ['Front-end Platform Engineer', DS, true],
+    ['Frontend Platform Engineer', 'Own the platform.', false],
+    ['Design Engineer', `${DS} ${AI}`, true],
+    ['Design Engineer', DS, false],
+    ['Design Engineer', AI, false],
+    ['Design Engineer', `${DS} An AI-assisted workflow.`, true],
+    ['Design Engineer', `${DS} Comfort with LLMs.`, true],
+    ['Design Engineer', `${DS} Agentic tools.`, true],
+    ['Design Engineer', `${DS} Copilot is fine.`, true],
+    ['Design Engineer', `${DS} AI tools daily.`, true],
+    ['Design Engineer', `${DS} Claude.`, true],
+    ['Design Engineer', `${DS} Precursors of the web.`, false],
+    ['Design Engineering Manager', `${DS} ${AI}`, false],
+    ['Product Designer', `${DS} ${AI}`, false],
+    // "system design", never the phrase, in the description
+    ['UI Platform Engineer', 'Strong system design skills.', false],
+  ])('%s · %s → %s', (title, text, want) => {
+    expect(passesInclude(rule, title, text)).toBe(want);
+  });
+
+  it('a title switched off no longer passes; the control off turns them all off', () => {
+    expect(
+      passesInclude({ ...rule, relatedOff: ['Design Technologist'] }, 'Design Technologist'),
+    ).toBe(false);
+    expect(passesInclude({ ...rule, related: false }, 'UI Platform Engineer', DS)).toBe(false);
+    expect(passesInclude({ ...rule, related: false }, 'Design Technologist')).toBe(false);
+  });
+
+  it('only on a rule that asks for design system(s); a bare list has no related path', () => {
+    expect(passesInclude({ terms: ['welding'], inText: false }, 'Design Technologist')).toBe(false);
+    expect(passesInclude({ terms: ['design systems'], inText: false }, 'Design Technologist')).toBe(
+      true,
+    );
+    expect(passesInclude(['design system'], 'Design Technologist')).toBe(false);
+  });
+
+  it('Companies and dream rows (keepIncluded) take the related titles too', () => {
+    const roles = [
+      { id: 'a', title: 'Design Technologist', text: '' },
+      { id: 'b', title: 'Backend Engineer', text: DS },
+    ];
+    expect(keepIncluded(roles, rule).map((r) => r.id)).toEqual(['a']);
+  });
+
+  it('counts what each title would let in, on or off', () => {
+    const ps = [
+      { title: 'Design Technologist', text: '' },
+      { title: 'Design Technologist II', text: '' },
+      { title: 'UI Platform Engineer', text: DS },
+      { title: 'UI Platform Engineer', text: 'nope' },
+      { title: 'Design Systems Lead', text: '' }, // passes on its own: not counted
+      { title: 'Design Engineer', text: `${DS} ${AI}` },
+    ];
+    expect(relatedCounts(ps, { ...rule, relatedOff: ['UI Platform'] })).toEqual({
+      'Design Technologist': 2,
+      'UI Platform': 1,
+      'Component Library': 0,
+      'Frontend Platform': 0,
+      'Design Engineer': 1,
+    });
+  });
+
+  it('keeps the control and the off list in the entry (absent = on)', () => {
+    setMustInclude('t', { related: false, relatedOff: ['UI Platform', 'UI Platform', 'Bogus'] });
+    expect(readMustInclude('t')).toEqual({
+      terms: [],
+      atsOff: [],
+      related: false,
+      relatedOff: ['UI Platform'],
+    });
+    setMustInclude('t', { related: true, relatedOff: [] });
+    expect(readMustInclude('t')).toEqual({ terms: [], atsOff: [] });
+    expect(RELATED_TITLES.map((r) => r.id)).toEqual([
+      'Design Technologist',
+      'UI Platform',
+      'Component Library',
+      'Frontend Platform',
+      'Design Engineer',
+    ]);
+  });
+
+  it('rides the sync blob', () => {
+    const local = {
+      ...emptyBlob(),
+      mustInclude: { t: { terms: ['design system'], atsOff: [], relatedOff: ['UI Platform'] } },
+    };
+    expect(readBlob(writeBlob(local)).mustInclude).toEqual(local.mustInclude);
   });
 });

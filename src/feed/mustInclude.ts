@@ -30,10 +30,49 @@ export interface MustInclude {
   inText?: boolean;
   /** The one-time move of the pack's bare "systems" to "design system" has run (phraseMove.ts). */
   phrase?: boolean;
+  /** Related titles let a posting in on a design system rule (absent = on; RELATED_TITLES). */
+  related?: boolean;
+  /** Related titles switched off, by id. */
+  relatedOff?: string[];
 }
 
 /** What a filter needs: the terms and the fields to look in. A bare list searches both. */
-export type IncludeRule = string[] | Pick<MustInclude, 'terms' | 'inTitle' | 'inText'>;
+export type IncludeRule =
+  string[] | Pick<MustInclude, 'terms' | 'inTitle' | 'inText' | 'related' | 'relatedOff'>;
+
+/** Related titles (Adrian 2026-10-23): on a rule that asks for "design system(s)", a posting
+ *  whose title names one of these passes too, when its description says "design system(s)" as a
+ *  phrase (Design Technologist: its title alone), and for Design Engineer also mentions
+ *  AI-assisted work. All on by default; each can be switched off. */
+export interface RelatedTitle {
+  id: string;
+  /** Phrases the title is matched against (same phrase rules as must include). */
+  phrases: string[];
+  /** Passes on the title alone. */
+  titleAlone?: boolean;
+  /** The description must also mention one of AI_TERMS. */
+  needsAi?: boolean;
+}
+
+export const RELATED_TITLES: RelatedTitle[] = [
+  { id: 'Design Technologist', phrases: ['design technologist'], titleAlone: true },
+  { id: 'UI Platform', phrases: ['ui platform'] },
+  { id: 'Component Library', phrases: ['component library'] },
+  { id: 'Frontend Platform', phrases: ['frontend platform', 'front end platform'] },
+  { id: 'Design Engineer', phrases: ['design engineer'], needsAi: true },
+];
+
+export const AI_TERMS = [
+  'AI-assisted',
+  'Claude',
+  'Claude Code',
+  'Cursor',
+  'Copilot',
+  'LLM',
+  'AI tools',
+  'agentic',
+];
+const RELATED_IDS = new Set(RELATED_TITLES.map((r) => r.id));
 
 const UNSAFE = ['__proto__', 'constructor', 'prototype'];
 const norm = (s: string) => s.trim().toLowerCase();
@@ -61,6 +100,9 @@ function sanitizeOne(raw: unknown): MustInclude | null {
   if (o.inTitle === false) out.inTitle = false;
   if (o.inText === false) out.inText = false;
   if (o.phrase === true) out.phrase = true;
+  if (o.related === false) out.related = false;
+  const relatedOff = cleanList(o.relatedOff).filter((id) => RELATED_IDS.has(id));
+  if (relatedOff.length) out.relatedOff = relatedOff;
   return out;
 }
 
@@ -150,8 +192,9 @@ export function phraseRegex(term: string): RegExp | null {
   return new RegExp(`(?<![a-z0-9])${body}(?![a-z0-9])`);
 }
 
+// A bare list is a plain phrase test: no related titles.
 const ruleOf = (rule: IncludeRule) =>
-  Array.isArray(rule) ? { terms: rule, inTitle: true, inText: true } : rule;
+  Array.isArray(rule) ? { terms: rule, inTitle: true, inText: true, related: false } : rule;
 
 /** The fields a rule searches: both off reads as title only. */
 export function includeFields(rule: IncludeRule): { title: boolean; text: boolean } {
@@ -161,20 +204,66 @@ export function includeFields(rule: IncludeRule): { title: boolean; text: boolea
   return !title && !text ? { title: true, text: false } : { title, text };
 }
 
-/** True when the title or description (whichever the rule searches) says one of its phrases.
- *  No terms: true. */
-export function passesInclude(rule: IncludeRule, title: string, text = ''): boolean {
-  const res = ruleOf(rule)
-    .terms.map(phraseRegex)
-    .filter((r): r is RegExp => r !== null);
-  if (!res.length) return true;
+const regexesOf = (terms: string[]) =>
+  terms.map(phraseRegex).filter((r): r is RegExp => r !== null);
+
+const DS_RE = phraseRegex('design system') as RegExp;
+const AI_RES = regexesOf(AI_TERMS);
+const RELATED_RES = RELATED_TITLES.map((r) => regexesOf(r.phrases));
+
+/** Says the phrase "design system(s)", hyphen or not, never "system design". */
+export const saysDesignSystem = (s: string) => DS_RE.test(normalizeForPhrase(s));
+
+/** The rule's own phrases, title and description as it says. */
+function passesTerms(rule: IncludeRule, res: RegExp[], title: string, text: string): boolean {
   const f = includeFields(rule);
   const fields = [f.title ? normalizeForPhrase(title) : '', f.text ? normalizeForPhrase(text) : ''];
   return res.some((re) => fields.some((t) => t && re.test(t)));
 }
 
-/** Says the phrase "design system(s)", hyphen or not, never "system design". */
-export const saysDesignSystem = (s: string) => passesInclude(['design system'], s);
+/** The related titles that would let this posting in, on or off (none on a rule without a
+ *  design system phrase). */
+function relatedMatches(rule: IncludeRule, title: string, text: string): RelatedTitle[] {
+  const r = ruleOf(rule);
+  if (r.related === false || !r.terms.some(saysDesignSystem)) return [];
+  const t = normalizeForPhrase(title);
+  const hits = RELATED_TITLES.filter((_, i) => RELATED_RES[i].some((re) => re.test(t)));
+  if (!hits.length) return [];
+  const d = normalizeForPhrase(text);
+  const ds = DS_RE.test(d);
+  const ai = AI_RES.some((re) => re.test(d));
+  return hits.filter((h) => h.titleAlone || (ds && (!h.needsAi || ai)));
+}
+
+/** True when the title or description (whichever the rule searches) says one of its phrases, or
+ *  a related title that is on lets it in. No terms: true. */
+export function passesInclude(rule: IncludeRule, title: string, text = ''): boolean {
+  const res = regexesOf(ruleOf(rule).terms);
+  if (!res.length) return true;
+  if (passesTerms(rule, res, title, text)) return true;
+  const off = new Set(ruleOf(rule).relatedOff ?? []);
+  return relatedMatches(rule, title, text).some((h) => !off.has(h.id));
+}
+
+/** Per related title, how many postings it lets in (or would, when off) that the rule's own
+ *  phrases do not. */
+export function relatedCounts(
+  postings: { title: string; text: string }[],
+  rule: IncludeRule,
+): Record<string, number> {
+  const out = Object.fromEntries(RELATED_TITLES.map((r) => [r.id, 0]));
+  const res = regexesOf(ruleOf(rule).terms);
+  if (!res.length || Array.isArray(rule)) return out;
+  const r = { ...ruleOf(rule), related: true };
+  for (const p of postings) {
+    if (passesTerms(rule, res, p.title, p.text)) continue;
+    for (const h of relatedMatches(r, p.title, p.text)) out[h.id]++;
+  }
+  return out;
+}
+
+/** Whether the related titles control applies to the rule (it asks for design system(s)). */
+export const hasRelatedTitles = (rule: IncludeRule) => ruleOf(rule).terms.some(saysDesignSystem);
 
 /** Any of `terms` in any of `texts` (both fields on). */
 export function mentionsAny(terms: string[], ...texts: string[]): boolean {
