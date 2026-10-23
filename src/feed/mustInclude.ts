@@ -123,13 +123,18 @@ export const activeAtsRoles = (atsRoles: string[], m: MustInclude): string[] => 
   return atsRoles.filter((r) => !off.has(norm(r)));
 };
 
-/** Text as the phrase matcher reads it: tags stripped, lower case, every run of whitespace and
- *  hyphens one space ("Design-Systems" → "design systems"). */
+/** Text as the phrase matcher reads it: tags stripped, lower case, a hyphen inside a word one
+ *  space ("Design-Systems" → "design systems"). A separator breaks a phrase: a spaced hyphen, an
+ *  en or em dash, , | / : ; & · • become " | ", so "Design - Systems" is not "design systems". */
 export function normalizeForPhrase(text: string): string {
   const plain = /<[a-z!/]/i.test(text) ? htmlToText(text) : text;
   return ` ${plain
     .toLowerCase()
-    .replace(/[\s\-\u2010-\u2015]+/g, ' ')
+    .replace(
+      /\s+[-\u2010-\u2012]+\s*|[-\u2010-\u2012]+\s+|[\u2013-\u2015,|/:;&\u00b7\u2022]/g,
+      ' | ',
+    )
+    .replace(/[\s\-\u2010-\u2012]+/g, ' ')
     .trim()} `;
 }
 

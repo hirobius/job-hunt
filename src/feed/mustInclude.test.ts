@@ -41,7 +41,10 @@ describe('phrase matching (design system)', () => {
     ['design-system tooling', true],
     ['Design-Systems team', true],
     ['DESIGN   SYSTEMS', true],
-    ['design \u2011 system', true],
+    ['design\u2011system', true],
+    ['Design System(s)', true],
+    ['design systems.', true],
+    ['Design Systems & Infrastructure', true],
     ['designs scalable systems', false],
     ['design and system', false],
     ['system design', false],
@@ -51,6 +54,40 @@ describe('phrase matching (design system)', () => {
     ['designs system', false],
     ['redesign systems', false],
   ])('%s → %s', (text, want) => expect(passesInclude(['design system'], text)).toBe(want));
+
+  // A separator between the two words breaks the phrase (Figma's "Manager, Design - Systems &
+  // Infrastructure" passed). A hyphen inside a word still joins it.
+  it.each([
+    'Manager, Design - Systems & Infrastructure',
+    'Design – Systems',
+    'Design–Systems',
+    'Design — Systems',
+    'Design—Systems',
+    'Design, Systems',
+    'Design | Systems',
+    'Design / Systems',
+    'Design/Systems',
+    'Design: Systems',
+    'Design & Systems',
+    'Design -Systems',
+    'Design- Systems',
+    'design ‑ system',
+  ])('%s does not say the phrase', (text) => {
+    expect(passesInclude(['design system'], text)).toBe(false);
+    expect(passesInclude(['design system'], 'Product Designer', text)).toBe(false);
+  });
+
+  it.each([
+    'Design Systems Engineer',
+    'design-system',
+    'Design System(s)',
+    'Senior Engineer, Design Systems',
+    'Design Systems - Platform',
+    'Lead | Design Systems & Infrastructure',
+  ])('%s still says the phrase', (text) => {
+    expect(passesInclude(['design system'], text)).toBe(true);
+    expect(passesInclude(['design system'], 'Product Designer', text)).toBe(true);
+  });
 
   // Adrian's phone, 2026-10-23: these passed on a bare "systems" in the description.
   it.each([
