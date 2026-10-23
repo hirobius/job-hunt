@@ -90,7 +90,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   the Application kit (v6), sweep titles (v7, #220), the trash (v8, #214) and dream companies
   (`rjb_dreams`, v9)**
   — rule: whatever the user manipulates is persistent; each store has `getAll*/replace*/merge*/use*`.
-  Caches and device UI prefs (`rjb_liveness`, `rjb_probe`, `rjb_gh_*`, `rjb_feed_remotive`, `rjb_ui_*`, pins)
+  Caches and device UI prefs (`rjb_liveness`, `rjb_probe`, `rjb_found_teams:<trackId>` (Companies' found list, add-only, newest 500, `feed/foundTeams.ts`; dropped with its track), `rjb_gh_*`, `rjb_feed_remotive`, `rjb_ui_*`, pins)
   stay local. Deletes stay deleted across devices: the seed merge runs on every load and is three-way against the device-local `rjb_sync_base` (`src/syncBase.ts`, #219). Sign-out flushes the blob first (confirms if the push fails); evidence is capped at 20,000
   chars; per-track data is dropped when its track is deleted (`src/trackData.ts`; no sweep after sync, orphans are harmless). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
   content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
@@ -667,6 +667,9 @@ track-agnostic like everything else in Discover.
   more"); the first 10 watched boards are read on arrival, the rest on "Check open roles at N
   companies". **Add a company** (`AddCompany.tsx`, a Dialog) is the one way on: a board link is watched
   at once, a name goes through `discoverBoards` (watch what it finds, or star it if there is no board).
+  **Find more / Suggest again only add to the list** (`feed/foundTeams.ts` `addFound`, by login; a repeat that
+  knows less keeps what was known): it was emptied before each run, so a run GitHub held back left only the
+  watched boards (2026-10-23, "160 → 125"). The found list is per page load (viewMemory), never synced.
   Dream companies + "Check dream companies" sit on top. It leads `#/discover` when it has a team search,
   a watched or a dream company; else Apply now leads. **Live postings and Find boards are not tools**:
   `#/discover/live` and `#/discover/boards` open them as secondary views (Teams selected, "Back to

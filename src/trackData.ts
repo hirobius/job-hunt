@@ -7,6 +7,7 @@ import { getAllTargets, replaceTargets } from './feed/targets';
 import { getAllFilters, replaceFilters } from './feed/savedFilters';
 import { getAllModes, replaceModes } from './trackModes';
 import { getAllSweeps, replaceSweeps } from './feed/sweepTitles';
+import { clearFound, FOUND_KEY_PREFIX } from './feed/foundTeams';
 import { getAllDreams, replaceDreams } from './feed/dreams';
 import { getAllMustInclude, replaceMustInclude } from './feed/mustInclude';
 
@@ -32,6 +33,14 @@ function prune(keep: (id: string) => boolean) {
   if (d) replaceDreams(d);
   const i = filterKeys(getAllMustInclude(), keep);
   if (i) replaceMustInclude(i);
+  // Found teams are a device cache, one key per track (not a store); only a deletion drops them.
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith(FOUND_KEY_PREFIX) && !keep(k.slice(FOUND_KEY_PREFIX.length)))
+      .forEach((k) => clearFound(k.slice(FOUND_KEY_PREFIX.length)));
+  } catch {
+    /* storage blocked */
+  }
 }
 
 /** A track was deleted. */
