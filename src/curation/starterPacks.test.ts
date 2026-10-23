@@ -219,6 +219,19 @@ describe('starter links follow the track location (Adrian 2026-10-22)', () => {
     expect(tiles.some((t) => t.url.includes('l=Remote'))).toBe(true);
   });
 
+  it('topping up a track whose location came back null from the database does not throw', () => {
+    const id = seedPack('trades', 'Boise, ID');
+    replaceCurationState({
+      ...getCurationState(),
+      categories: getCurationState().categories.map((c) =>
+        c.id === id ? ({ ...c, location: null } as unknown as typeof c) : c,
+      ),
+      tiles: getCurationState().tiles.filter((t) => !/indeed/.test(t.url)),
+    });
+    expect(() => topUpFromPack(id, 'trades')).not.toThrow();
+    expect(getCurationState().tiles.some((t) => /indeed/.test(t.url))).toBe(true);
+  });
+
   it('topping up a track uses the track location too', () => {
     const id = seedPack('trades', 'Boise, ID');
     replaceCurationState({

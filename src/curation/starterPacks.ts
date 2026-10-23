@@ -181,7 +181,7 @@ export function topUpFromPack(categoryId: string, packId: string): TopUpResult {
       const key = placeKey(raw.url);
       if (urls.has(key)) return [];
       urls.add(key);
-      const tile = localizeTile(raw, cat.location);
+      const tile = localizeTile(raw, cat.location ?? '');
       return [{ ...tile, sortOrder: 1000 + ti }];
     });
     addTiles(groupId, fresh);
