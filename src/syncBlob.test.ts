@@ -394,3 +394,29 @@ describe('blob v10 — Documents (#226)', () => {
     expect(out.documents.map((d) => d.id)).toEqual(['r', 'base']);
   });
 });
+
+describe('a clean first run on a new device (no starter messages added)', () => {
+  // A signed-in user's messages arrive from the cloud; this device starts with an empty deck and
+  // no documents, so the merge is exactly the cloud's: nothing re-added, nothing of theirs removed.
+  it('the seed merge keeps the cloud deck and documents as they are', () => {
+    const doc = (id: string): Document => ({
+      id,
+      kind: 'outreach',
+      title: id,
+      base: true,
+      createdAt: '2026-10-01T00:00:00.000Z',
+      versions: [{ id: `${id}-v1`, text: 'Hi', savedAt: '2026-10-01T00:00:00.000Z' }],
+    });
+    const cloud: SyncData = {
+      ...emptyBlob(),
+      // The user kept one starter (edited) and deleted the rest long ago.
+      copydeck: [{ id: 'tpl-outreach', label: 'Mine', body: 'edited', migrated: true }],
+      documents: [doc('snippet-tpl-outreach'), doc('own')],
+      sourceV: BLOB_VERSION,
+    };
+    const local: SyncData = { ...emptyBlob(), sourceV: BLOB_VERSION };
+    const out = mergeBlob(cloud, local, true);
+    expect(out.copydeck).toEqual(cloud.copydeck);
+    expect(out.documents.map((d) => d.id)).toEqual(['snippet-tpl-outreach', 'own']);
+  });
+});

@@ -29,7 +29,7 @@ export function Panel({
   children?: ReactNode;
 }) {
   return (
-    <Card as="section" aria-label={label} padding="none" bordered>
+    <Card as="section" aria-label={label} padding="none">
       <Box sx={{ px: 'md', pt: 'md', pb: children ? 'xs' : 'md' }}>
         <Stack direction="row" gap="px8" align="center" justify="space-between">
           <Stack gap="px4">

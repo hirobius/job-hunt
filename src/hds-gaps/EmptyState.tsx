@@ -4,7 +4,7 @@
 //   - HDS's empty state is a left-aligned typographic line with a bare icon. The rev-3 mock's
 //     teaching empty (Pipeline, empty; filtered to nothing) is centred: an icon tile, a bold title,
 //     one sentence and the actions in one centred column. `centered` draws that; `framed` also
-//     puts it in one bordered panel when it sits loose on the page (not inside a Panel already).
+//     puts it in one panel (a raised fill, no outline) when it sits loose on the page (not inside a Panel already).
 //   - HDS's children sit gap-1 (4px) apart, so the actions crowd the sentence; centred empties put
 //     16px more above the actions (rev-3: about 16-20px).
 // Every app empty state imports this one, not HDS's, so the italic can't come back on a new screen.
@@ -32,7 +32,7 @@ export function EmptyState({
 }: EmptyStateProps & {
   /** Centre it with an icon tile and a bold title (rev-3 teaching empty). */
   centered?: boolean;
-  /** Also frame it in one bordered panel (implies `centered`). */
+  /** Also frame it in one panel (implies `centered`). */
   framed?: boolean;
 }) {
   if (!centered && !framed)
@@ -78,7 +78,7 @@ export function EmptyState({
   );
   if (!framed) return body;
   return (
-    <Card bordered padding="none">
+    <Card padding="none">
       <Box sx={{ px: 'md', py: 'lg' }}>{body}</Box>
     </Card>
   );

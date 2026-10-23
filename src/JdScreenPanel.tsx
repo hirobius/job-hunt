@@ -66,7 +66,7 @@ export default function JdScreenPanel({ job }: { job: Job }) {
                 label="Job description"
                 rows={8}
                 value={text}
-                placeholder="Paste the full job description…"
+                placeholder="Job description"
                 onChange={(e) => setText(e.target.value.slice(0, MAX_JD))}
               />
 

@@ -17,6 +17,7 @@ import {
   type PackContent,
 } from './packContent';
 import { sameGroupLabel } from './groupLabel';
+import { localizeTile, placeKey } from './localize';
 
 export interface StarterPack {
   id: string;
@@ -61,7 +62,8 @@ const CONTENT_FOR: Record<string, PackContent | undefined> = {
 };
 
 /** Seed one starter pack into the curation store as a Category (+ its groups/tiles). Returns the
- *  new category id. `location`, when non-blank, overrides the pack's default (onboarding sets it);
+ *  new category id. `location` is the track's (onboarding sets it); blank means anywhere, with no
+ *  pack default (Adrian 2026-10-22), and the pack's local search links follow it (`localizeTile`);
  *  `opts.titles`, when non-empty, replaces the pack's title chips ("Build your own" needs one);
  *  `opts.label` names the track (the sample track is "Sample"). */
 export function seedPack(
@@ -76,7 +78,7 @@ export function seedPack(
     (packId === 'blank'
       ? opts.titles?.[0]?.trim() || 'My track'
       : (STARTER_PACKS.find((p) => p.id === packId)?.label ?? 'My track'));
-  const loc = (location ?? '').trim() || content?.location || '';
+  const loc = (location ?? '').trim();
   const categoryId = addCategory({
     label,
     titles: opts.titles?.length ? [...opts.titles] : content ? [...content.titles] : [],
@@ -88,7 +90,7 @@ export function seedPack(
     const groupId = addGroup(categoryId, { label: g.label, sortOrder: gi, archived: !!g.archived });
     addTiles(
       groupId,
-      g.tiles.map((t, ti) => ({ name: t.name, url: t.url, meta: t.meta, sortOrder: ti })),
+      g.tiles.map((t, ti) => ({ ...localizeTile(t, loc), sortOrder: ti })),
     );
   });
   // The pack's company boards, filed as the track's own editable "Watched companies" group.
@@ -159,8 +161,10 @@ export function topUpFromPack(categoryId: string, packId: string): TopUpResult {
   if (t.added || a.added) updateCategory(categoryId, { titles: t.next, atsRoles: a.next });
 
   const groups = state.groups.filter((g) => g.categoryId === categoryId);
+  // By place-free key: a link seeded before links followed the location (raw Spokane), or under
+  // another location, is the same tile as the pack link localized now (review of ef40fc6).
   const urls = new Set(
-    state.tiles.filter((x) => groups.some((g) => g.id === x.groupId)).map((x) => x.url),
+    state.tiles.filter((x) => groups.some((g) => g.id === x.groupId)).map((x) => placeKey(x.url)),
   );
   content.groups.forEach((pg, gi) => {
     // Case-insensitive: an older synced 'Apply Now' is the pack's 'Apply now' group.
@@ -173,10 +177,12 @@ export function topUpFromPack(categoryId: string, packId: string): TopUpResult {
       });
       res.groups++;
     }
-    const fresh = pg.tiles.flatMap((tile, ti) => {
-      if (urls.has(tile.url)) return [];
-      urls.add(tile.url);
-      return [{ name: tile.name, url: tile.url, meta: tile.meta, sortOrder: 1000 + ti }];
+    const fresh = pg.tiles.flatMap((raw, ti) => {
+      const key = placeKey(raw.url);
+      if (urls.has(key)) return [];
+      urls.add(key);
+      const tile = localizeTile(raw, cat.location ?? '');
+      return [{ ...tile, sortOrder: 1000 + ti }];
     });
     addTiles(groupId, fresh);
     res.tiles += fresh.length;

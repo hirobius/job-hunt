@@ -3,21 +3,29 @@
 // Version, with a Version history), delete behind an AlertDialog, and for Outreach messages the
 // token chips and the preview filled for a picked job.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import DocumentsLibrary from './DocumentsLibrary';
 import { createDocument, getAllDocuments, replaceDocuments, setDocumentPinned } from './documents';
 import { addJob, getAllJobs, removeJob, updateJob } from './store';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 
 const JOB = 'https://acme.example/jobs/1';
 
-const renderLib = () =>
+const renderRaw = () =>
   render(
     <ToastProvider>
       <DocumentsLibrary />
     </ToastProvider>,
   );
+/** The library with its sections showing: an empty one opens on its empty state, so start blank. */
+const renderLib = () => {
+  const r = renderRaw();
+  const blank = screen.queryByRole('button', { name: 'Start from scratch' });
+  if (blank) fireEvent.click(blank);
+  return r;
+};
 const section = (name: string) => screen.getByRole('region', { name });
 const doc = (id: string) => getAllDocuments().find((d) => d.id === id)!;
 /** A row expands (rev-3 M); its Open button opens the editor. */
@@ -44,6 +52,72 @@ afterEach(() => {
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
+});
+
+describe('a clean first run (Adrian 2026-10-22: nothing the user did not create)', () => {
+  it('an empty library is one empty state with one setup action, and no sections or starters', () => {
+    renderRaw();
+    expect(screen.getByText('No documents yet')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add starter messages' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start from scratch' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Outreach messages' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Résumés' })).toBeNull();
+    expect(getAllDocuments()).toEqual([]);
+  });
+
+  it('Add starter messages adds the starters once, each under its kind', async () => {
+    renderRaw();
+    await userEvent.click(screen.getByRole('button', { name: 'Add starter messages' }));
+    expect(getAllDocuments().map((d) => d.id)).toEqual([
+      'snippet-tpl-outreach',
+      'snippet-tpl-cover',
+      'snippet-tpl-followup',
+      'snippet-tpl-thanks',
+      'snippet-tpl-intro-call',
+    ]);
+    expect(within(section('Outreach messages')).getByText('Outreach note')).toBeInTheDocument();
+    expect(within(section('Cover letters')).getByText('Cover letter')).toBeInTheDocument();
+    expect(screen.queryByText('No documents yet')).toBeNull();
+  });
+
+  it('Start from scratch shows the sections, each with its New button', async () => {
+    renderRaw();
+    await userEvent.click(screen.getByRole('button', { name: 'Start from scratch' }));
+    expect(
+      within(section('Résumés')).getByRole('button', { name: 'New résumé' }),
+    ).toBeInTheDocument();
+    expect(getAllDocuments()).toEqual([]);
+  });
+});
+
+describe('waits for cloud sync before offering starters (review, finding 3)', () => {
+  const withSync = (settled: boolean) => (
+    <CloudSyncContext.Provider value={{ settled } as CloudSyncApi}>
+      <ToastProvider>
+        <DocumentsLibrary />
+      </ToastProvider>
+    </CloudSyncContext.Provider>
+  );
+
+  it('a new device shows no empty state and no Add starter messages until sync settles', () => {
+    const r = render(withSync(false));
+    expect(screen.queryByText('No documents yet')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add starter messages' })).toBeNull();
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+    r.rerender(withSync(true));
+    expect(screen.getByText('No documents yet')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add starter messages' })).toBeInTheDocument();
+  });
+
+  it('the cloud messages that arrive meanwhile show instead of the empty state', () => {
+    const r = render(withSync(false));
+    act(() => {
+      createDocument({ kind: 'outreach', title: 'My edited intro', base: true, text: 'Hi' });
+    });
+    r.rerender(withSync(true));
+    expect(screen.queryByText('No documents yet')).toBeNull();
+    expect(screen.getByText('My edited intro')).toBeInTheDocument();
+  });
 });
 
 describe('library', () => {
@@ -165,7 +239,7 @@ describe('create, edit, delete', () => {
       within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
     );
     expect(getAllDocuments()).toHaveLength(0);
-    await waitFor(() => expect(section('Résumés')).toHaveTextContent('No résumés yet'));
+    await waitFor(() => expect(screen.getByText('No documents yet')).toBeInTheDocument());
   });
 
   it('Back with an unsaved edit asks first; Discard returns to the library without saving', async () => {

@@ -497,7 +497,7 @@ function OutreachText({
           aria-label="Message text"
           rows={8}
           value={value}
-          placeholder="Paste or write your message…"
+          placeholder="Message"
           onChange={onChange}
           helperText="Type a name in square brackets, like [Hiring manager], to make your own variable."
         />
@@ -534,8 +534,6 @@ function OutreachText({
                 role="region"
                 aria-label="Preview"
                 sx={{
-                  border: 'thin solid',
-                  borderColor: 'border.default',
                   borderRadius: 'md',
                   bgcolor: 'var(--semantic-color-surface-sunken)',
                   p: 'sm',

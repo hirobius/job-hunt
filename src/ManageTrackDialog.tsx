@@ -79,7 +79,7 @@ function ChipEditor({
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 'xs' }}>
         {/* A term is a static pill; only its X removes it (rev-3 mock), so a stray tap on the
             text can't drop a term. HDS Tag is always one whole button, so this is a Box pill
-            with an icon Button: `.rjb-term` / `.rjb-term-x` in base.css. */}
+            with an icon Button: `.rjb-term` / `.rjb-term-x` in base.css. Tag's soft fill, no edge (HDS 0.31). */}
         {values.map((v) => (
           <Box
             key={v}
@@ -88,8 +88,7 @@ function ChipEditor({
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
-              border: 'thin solid',
-              borderColor: 'border.default',
+              bgcolor: 'var(--semantic-color-surface-muted)',
               borderRadius: 'pill',
               pl: 'sm',
               maxWidth: '100%',

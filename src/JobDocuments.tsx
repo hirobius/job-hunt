@@ -73,7 +73,7 @@ function NewDocumentForm({ job, onDone }: { job: Job; onDone: () => void }) {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   return (
-    <Card bordered padding="component">
+    <Card padding="component">
       <Stack gap="normal">
         <Switcher gap="tight">
           <Box sx={FULL}>
@@ -127,7 +127,7 @@ function UseBaseForm({ job, bases, onDone }: { job: Job; bases: Document[]; onDo
   const [id, setId] = useState(bases[0]?.id ?? '');
   const base = bases.find((b) => b.id === id);
   return (
-    <Card bordered padding="component">
+    <Card padding="component">
       <Stack gap="normal">
         <Box sx={FULL}>
           <Select
@@ -244,7 +244,7 @@ function DocumentCard({
   const label = kindLabel(doc.kind);
 
   return (
-    <Card bordered padding="component">
+    <Card padding="component">
       <section aria-labelledby={headingId}>
         <Stack gap="normal">
           <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">

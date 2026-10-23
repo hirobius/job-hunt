@@ -164,13 +164,7 @@ export default function BlankText({
         body
       )}
       {fillable && picked && (
-        <Card
-          bordered
-          padding="px16"
-          className="rjb-fillbox"
-          role="group"
-          aria-label={`Fill ${picked}`}
-        >
+        <Card padding="px16" className="rjb-fillbox" role="group" aria-label={`Fill ${picked}`}>
           <Stack gap="px8">
             <Stack direction="row" gap="px8" align="end">
               <Box

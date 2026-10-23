@@ -103,7 +103,7 @@ export function SweepTitlesEditor({
           <HdsInput
             size="sm"
             label="Add a title"
-            placeholder="Design technologist"
+            placeholder="Job title"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
           />

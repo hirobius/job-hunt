@@ -117,24 +117,12 @@ p {
   }
 }
 
-/* Tab strips (desktop QA): HDS TabsList is `h-10 overflow-x-auto` with a 1px bottom border, so its
- * triggers overflow a 39px client box by 1px; overflow-x auto makes overflow-y auto too, and a
- * classic (non-overlay) scrollbar, as on Windows Chrome/Edge, shows under every tab bar. Clip the
- * vertical axis (phones keep the horizontal scroll); from 640 (where HDS's h-10 is 40, not the
- * phone 44) the border goes outside the 40px box and each trigger fills it, so the triggers are
- * 40px targets and nothing overflows. Upstream ask: docs/hds-upstream-asks-0.9.md. */
-[data-hds] [role='tablist'] {
-  overflow-y: hidden;
-}
-
+/* Tab triggers are 40px targets from 640 up too (HDS's trigger is py-2 on the ui line, ~38px).
+ * Part of the phone touch-size ask above (hds#750). HDS 0.31 dropped TabsList's bottom border, so
+ * the old 1px overflow fix (overflow-y hidden, content-box) is retired. */
 @media (min-width: 640px) {
-  [data-hds] [role='tablist'] {
-    box-sizing: content-box;
-  }
-
   [data-hds] [role='tablist'] > [role='tab'] {
     min-height: var(--primitive-space-10);
-    margin-bottom: 0;
   }
 }
 
@@ -181,7 +169,7 @@ p {
 }
 
 /* Template blanks (rev-3 A, N): a read-only blank in a filled text is the template editor's chip
- * (HDS TokenField's look, from the same tokens). A blank that fills in place is an HDS Tag set in
+ * (HDS 0.31 TokenField's look, from the same tokens: a soft muted fill, no edge). A blank that fills in place is an HDS Tag set in
  * the line (`.rjb-blank`): its component tokens take the chip's shape, and on a phone its 40px hit
  * area overhangs the line instead of pushing the lines apart. Upstream ask: an inline, tappable
  * token chip (HDS gap registry, "Inline fillable blank"). */
@@ -189,9 +177,8 @@ p {
   display: inline-block;
   margin-inline: 1px;
   padding-inline: var(--semantic-space-subgrid-gap);
-  border: thin solid var(--semantic-color-border-default);
   border-radius: var(--semantic-radius-control);
-  background: var(--semantic-color-surface-raised);
+  background: var(--semantic-color-surface-muted);
   color: var(--semantic-color-content-primary);
   font-size: var(--semantic-typography-caption-font-size);
   line-height: var(--semantic-typography-caption-line-height);
@@ -204,8 +191,8 @@ p {
   --component-tag-radius: var(--semantic-radius-control);
   --component-tag-paddingX: var(--semantic-space-subgrid-gap);
   --component-tag-paddingY: 0;
-  --component-tag-border: var(--semantic-color-border-default);
-  --component-tag-background: var(--semantic-color-surface-raised);
+  --component-tag-border: var(--semantic-color-surface-muted);
+  --component-tag-background: var(--semantic-color-surface-muted);
   --component-tag-text: var(--semantic-color-content-primary);
   min-width: 0;
   margin-inline: 1px;

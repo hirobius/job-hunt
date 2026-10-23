@@ -67,6 +67,8 @@ export const BOARDS: {
   name: string;
   tag: string;
   build: (term: string, loc: SearchLoc) => string;
+  /** The work modes it is shown for; left out, every mode. */
+  modes?: readonly WorkMode[];
 }[] = [
   {
     name: 'Indeed',
@@ -117,7 +119,27 @@ export const BOARDS: {
       return `https://www.snagajob.com/search?q=${encc(term)}${w ? `&w=${encc(w)}` : ''}`;
     },
   },
+  {
+    // Remote-only, so it shows for Remote and Any. A link out only: no API (its paid one needs a
+    // personal key), no fetch, so CSP and legal.ts are unchanged. Its title filter takes one
+    // title, so the link carries the first ticked one. The `jobTitle` + `sort` query is the form
+    // its own search page uses (unverified live from here: the host was not reachable).
+    name: 'Remote Rocketship',
+    tag: 'Remote only',
+    modes: ['remote', 'any'],
+    build: (term) => {
+      // No title (an empty clause like `""`): the plain newest-first list, no jobTitle param.
+      const quoted = [...term.matchAll(/"([^"]*)"/g)].map((m) => m[1].trim());
+      const first = quoted.length ? (quoted.find(Boolean) ?? '') : term.trim();
+      const base = 'https://www.remoterocketship.com/?sort=DateAdded';
+      return first ? `${base}&jobTitle=${encc(first)}` : base;
+    },
+  },
 ];
+
+/** The big boards to show for a work mode. */
+export const boardsFor = (mode: WorkMode) =>
+  BOARDS.filter((b) => !b.modes || b.modes.includes(mode));
 
 // ---- ATS hidden-jobs generator ----
 export const ATS_ROLES = [
@@ -455,7 +477,8 @@ export const GROUPS: Group[] = [
   {
     // Implementation Consulting "Apply Now" — the other parallel (non-trades) track: software
     // implementation / onboarding / professional-services roles, generalist across ecosystems.
-    // Curates BOTH remote and Spokane-area live searches (the pillar is remote+Spokane), plus
+    // Curates BOTH remote and local live searches (the local ones follow the track's location when
+    // seeded, curation/localize.ts), plus
     // ATS Google-dorks for the low-competition hidden-jobs angle. Board rule holds: live
     // searches + durable dorks only, no one-off postings.
     id: 'ic-brief',
@@ -483,7 +506,7 @@ export const GROUPS: Group[] = [
       ),
       t(
         'Indeed · Implementation / Onboarding (Spokane)',
-        'Live Spokane-area implementation & onboarding postings',
+        'Live local implementation & onboarding postings',
         'https://www.indeed.com/jobs?q=implementation+OR+%22onboarding+specialist%22&l=Spokane%2C+WA',
       ),
       t(
@@ -617,7 +640,7 @@ export const GROUPS: Group[] = [
       ),
       t(
         'Indeed · Fabricator (Spokane)',
-        'All live Spokane fab + sheet-metal postings',
+        'All live fab + sheet-metal postings',
         'https://www.indeed.com/jobs?q=fabricator+OR+%22sheet+metal%22&l=Spokane%2C+WA',
       ),
     ],
@@ -882,7 +905,7 @@ export const GROUPS: Group[] = [
       ),
       t(
         'Indeed · CNC machinist (Spokane)',
-        'Live Spokane CNC + machine-operator postings',
+        'Live CNC + machine-operator postings',
         'https://www.indeed.com/jobs?q=CNC+OR+machinist&l=Spokane%2C+WA',
       ),
     ],

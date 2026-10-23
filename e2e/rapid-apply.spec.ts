@@ -40,10 +40,8 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
 
   // A track first (Discover needs one): the first starter pack, three steps.
   await page.goto('/#/discover');
-  // The Suggested (first) pack starts ticked (rev-3).
-  await expect(
-    page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first(),
-  ).toBeChecked();
+  // Every pack starts unticked (Adrian 2026-10-22): tick the Suggested (first) one.
+  await page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first().check();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Finish' }).click();
@@ -104,6 +102,11 @@ test('Apply sheet: templates filled for the job, copyable at 390', async ({ page
   await expect(page.getByRole('region', { name: 'To apply (1)' })).toBeVisible();
   await page.getByRole('button', { name: 'Start applying' }).click();
   await expect(page).toHaveURL(/#\/apply\//);
+  // A first run has no messages (Adrian 2026-10-22): one tap adds the starters here.
+  await page
+    .getByRole('region', { name: 'Documents' })
+    .getByRole('button', { name: 'Add starter messages' })
+    .click();
 
   const list = page.getByRole('list', { name: 'Your templates' });
   await expect(list.getByRole('listitem').first()).toBeVisible();

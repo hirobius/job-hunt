@@ -23,6 +23,7 @@ import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, removeJob } from './store';
 import { getCurationState, replaceCurationState } from './curation/curationStore';
+import { getAllDocuments } from './documents';
 
 const renderApp = () =>
   render(
@@ -37,8 +38,13 @@ const click = (name: string | RegExp, role = 'button') =>
   userEvent.click(screen.getByRole(role, { name }));
 const step = (n: number) =>
   expect(screen.getByRole('progressbar', { name: `Step ${n} of 3` })).toBeInTheDocument();
-// The lead (Suggested) pack starts ticked (rev-3), so "picking" it is checking it is still on.
-const pickFirstPack = async () => expect(screen.getAllByRole('checkbox')[0]).toBeChecked();
+// Every pack starts unticked, the Suggested one too (Adrian 2026-10-22): picking it ticks it.
+const pickFirstPack = async () => {
+  const box = screen.getAllByRole('checkbox')[0];
+  expect(box).not.toBeChecked();
+  await userEvent.click(box);
+  expect(box).toBeChecked();
+};
 
 beforeEach(() => {
   h.fake?.reset();
@@ -64,10 +70,10 @@ describe('step 1: pick a track', () => {
     expect(screen.getByText('Just looking?')).toBeInTheDocument();
     const first = screen.getAllByRole('checkbox')[0];
     expect(first).toHaveAccessibleName('Implementation Consulting');
-    expect(first).toBeChecked(); // the Suggested pack starts ticked
+    expect(first).not.toBeChecked(); // suggested, but unticked (Adrian 2026-10-22)
     expect(
       screen.getAllByRole('checkbox').filter((c) => (c as HTMLInputElement).checked),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expect(first.closest('li')).toHaveTextContent('Suggested');
     expect(screen.getAllByText('Suggested')).toHaveLength(1);
   });
@@ -173,6 +179,45 @@ describe('steps 2 and 3', () => {
     await waitFor(() => expect(getCurationState().categories).toHaveLength(1));
     expect(getCurationState().categories).toHaveLength(1);
     expect(getAllJobs()).toHaveLength(0);
+  });
+});
+
+describe('a clean first run (Adrian 2026-10-22: nothing the user did not create)', () => {
+  /** Every visible text field's placeholder, by its label. */
+  const placeholders = () =>
+    screen
+      .queryAllByRole('textbox')
+      .map((el) => [
+        el.getAttribute('aria-label') ?? (el as HTMLInputElement).labels?.[0]?.textContent,
+        el.getAttribute('placeholder'),
+      ]);
+
+  it('each field shows only its own name as the placeholder: no "e.g." and no made-up example', async () => {
+    renderApp();
+    await click('Build your own', 'checkbox');
+    expect(screen.getByLabelText(/First job title/)).toHaveAttribute('placeholder', 'Job title');
+    await userEvent.type(screen.getByLabelText(/First job title/), 'Welder');
+    await click('Continue');
+    expect(screen.getByRole('textbox', { name: 'City, state or Remote' })).toHaveAttribute(
+      'placeholder',
+      'City, state or Remote',
+    );
+    await click('Continue');
+    expect(screen.getByRole('textbox', { name: 'Job link' })).toHaveAttribute(
+      'placeholder',
+      'Job link',
+    );
+    for (const [, ph] of placeholders()) expect(ph ?? '').not.toMatch(/e\.g\.|example|acme/i);
+  });
+
+  it('finishing setup adds no starter messages or documents', async () => {
+    renderApp();
+    await pickFirstPack();
+    await click('Continue');
+    await click('Continue');
+    await click("I'll do it later");
+    await waitFor(() => expect(getCurationState().categories).toHaveLength(1));
+    expect(getAllDocuments()).toEqual([]);
   });
 });
 

@@ -26,13 +26,15 @@ describe('Onboarding sync gate (#99)', () => {
 });
 
 describe('Onboarding pack picker a11y (#104)', () => {
-  it('each pack is a keyboard-operable checkbox in a "Starter tracks" group, the Suggested one ticked', async () => {
+  it('each pack is a keyboard-operable checkbox in a "Starter tracks" group, none ticked (Suggested too)', async () => {
     const user = userEvent.setup();
     render(<Onboarding />);
     const group = screen.getByRole('group', { name: 'Starter tracks' });
-    expect(
-      within(group).getByRole('checkbox', { name: 'Implementation Consulting' }),
-    ).toBeChecked();
+    // Adrian 2026-10-22: the Suggested pack keeps its badge but starts unticked.
+    within(group)
+      .getAllByRole('checkbox')
+      .forEach((b) => expect(b).not.toBeChecked());
+    expect(within(group).getByText('Suggested')).toBeInTheDocument();
     const box = within(group).getByRole('checkbox', { name: 'Design Systems / Design Eng' });
     expect(box).not.toBeChecked();
     expect(box).toHaveAccessibleDescription(/design-systems/i);
@@ -45,7 +47,6 @@ describe('Onboarding pack picker a11y (#104)', () => {
   it('"Build your own" requires a first job title, and seeds the track with it', async () => {
     const user = userEvent.setup();
     render(<Onboarding />);
-    await user.click(screen.getByRole('checkbox', { name: 'Implementation Consulting' }));
     await user.click(screen.getByRole('checkbox', { name: 'Build your own' }));
     // Never disabled: pressing Continue without the title says what is missing and stays put.
     await user.click(screen.getByRole('button', { name: 'Continue' }));
@@ -64,7 +65,6 @@ describe('Onboarding pack picker a11y (#104)', () => {
   it('with nothing ticked, Continue says "Pick at least one track" instead of being disabled', async () => {
     const user = userEvent.setup();
     render(<Onboarding />);
-    await user.click(screen.getByRole('checkbox', { name: 'Implementation Consulting' }));
     const cont = screen.getByRole('button', { name: 'Continue' });
     expect(cont).toBeEnabled();
     await user.click(cont);
@@ -72,6 +72,36 @@ describe('Onboarding pack picker a11y (#104)', () => {
     expect(screen.getByRole('progressbar', { name: 'Step 1 of 3' })).toBeInTheDocument();
     await user.click(screen.getByRole('checkbox', { name: 'ServiceNow' }));
     expect(screen.queryByText('Pick at least one track')).toBeNull();
+  });
+
+  it('the "Pick at least one track" alert describes the track list and focus goes to the first track (review, finding 4)', async () => {
+    const user = userEvent.setup();
+    render(<Onboarding />);
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    const alert = screen.getByRole('alert');
+    const list = screen.getByRole('group', { name: 'Starter tracks' });
+    expect(alert.id).not.toBe('');
+    expect(list.getAttribute('aria-describedby')?.split(' ')).toContain(alert.id);
+    expect(list).toHaveAccessibleDescription('Pick at least one track');
+    expect(screen.getAllByRole('checkbox')[0]).toHaveFocus();
+    // Pressed again from the button: focus goes back to the first track.
+    screen.getByRole('button', { name: 'Continue' }).focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getAllByRole('checkbox')[0]).toHaveFocus();
+    await user.click(screen.getByRole('checkbox', { name: 'ServiceNow' }));
+    expect(list).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('a pack set up with no location searches anywhere: no "Remote" default', async () => {
+    const user = userEvent.setup();
+    render(<Onboarding />);
+    await user.click(screen.getByRole('checkbox', { name: 'Design Systems / Design Eng' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Finish' }));
+    expect(getCurationState().categories.map((c) => [c.label, c.location])).toEqual([
+      ['Design Systems / Design Eng', ''],
+    ]);
   });
 
   it('has no WCAG A/AA violations', async () => {

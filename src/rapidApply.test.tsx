@@ -283,6 +283,34 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
       `#/copy-deck/new/outreach?from=%2Fapply%2F${jobIdOf(A)}`,
     );
   });
+
+  it('with no messages, one tap adds the starters and lists them filled for the job', async () => {
+    const user = userEvent.setup();
+    setOutreachMessages([]);
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const docs = await screen.findByRole('region', { name: 'Documents' });
+    await user.click(within(docs).getByRole('button', { name: 'Add starter messages' }));
+    const list = await screen.findByRole('list', { name: 'Your templates' });
+    expect(within(list).getByRole('listitem', { name: 'Outreach note' })).toHaveTextContent(
+      'the Acme Designer opening at Acme',
+    );
+    expect(within(docs).queryByRole('button', { name: 'Add starter messages' })).toBeNull();
+  });
+
+  it('the kit letters with no templates offer the same one-tap add, never an empty picker', async () => {
+    const user = userEvent.setup();
+    setOutreachMessages([]);
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const kit = await screen.findByRole('region', { name: 'Application kit' });
+    await user.click(within(kit).getByRole('button', { name: /^Cover note/ }));
+    expect(within(kit).queryByRole('combobox', { name: /^Cover note template/ })).toBeNull();
+    await user.click(within(kit).getAllByRole('button', { name: 'Add starter messages' })[0]);
+    expect(
+      await within(kit).findByRole('combobox', { name: /^Cover note template/ }),
+    ).toBeInTheDocument();
+  });
 });
 
 describe('Apply mode header keeps to two items per dotted line (#192)', () => {

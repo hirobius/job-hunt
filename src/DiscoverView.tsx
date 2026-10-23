@@ -15,6 +15,7 @@ import {
   Stack,
   VisuallyHidden,
   useToast,
+  useAtLeast,
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
 import TileGrid from './TileGrid';
@@ -23,7 +24,7 @@ import BackLink from './BackLink';
 import { useBackCloses } from './useBackCloses';
 import type { Back } from './back';
 import {
-  BOARDS,
+  boardsFor,
   ATS,
   HIDDEN_BOARDS,
   atsSearchUrl,
@@ -187,7 +188,7 @@ function AtsPanel({
     );
   const entry = seniority === 'entry';
   const term = titleClause(many ? active : [role]);
-  const boardTiles: Tile[] = BOARDS.map((b) => {
+  const boardTiles: Tile[] = boardsFor(mode).map((b) => {
     const url = b.build(term, { where, mode });
     return { name: b.name, meta: b.tag, url: entry ? entryLevelize(url) : url };
   });
@@ -290,7 +291,7 @@ function AtsPanel({
             </Text>
             {/* The query gets the card's full width under its Copy (a phone fits ~4 mono lines
                 beside nothing else); breaks fall on spaces and ORs, four lines until opened. */}
-            <Card bordered padding="px16">
+            <Card padding="px16">
               <Stack gap="px8">
                 <Stack direction="row" gap="px8" align="center" justify="space-between">
                   <Text variant="caption" as="span" tone="secondary">
@@ -423,7 +424,7 @@ function SectionRow({
   children: ReactNode;
 }) {
   return (
-    <Card bordered padding="none" className="rjb-disclosure-vertical rjb-disclosure-wrap">
+    <Card padding="none" className="rjb-disclosure-vertical rjb-disclosure-wrap">
       <Box sx={{ px: 'md' }}>
         <Disclosure
           variant="row"
@@ -506,7 +507,7 @@ function LinkRows({ tiles, bare = false }: { tiles: Tile[]; bare?: boolean }) {
   return bare ? (
     rows
   ) : (
-    <Card bordered padding="none">
+    <Card padding="none">
       {/* The card draws the only outline: no row hairline on its rounded top edge. */}
       <Box sx={{ '& > ul > li:first-of-type': { borderTop: 0 } }}>{rows}</Box>
     </Card>
@@ -663,6 +664,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
     if (fromTitles) navigate({ sub: 'live' }, true);
   }, [fromTitles]);
   const sub = fromTitles ? 'live' : route.sub;
+  const roomyTools = useAtLeast('sm');
   const secondary = sub === 'live' || sub === 'boards' ? (sub as Secondary) : null;
   // No sub → the default tool; a section id → Apply now on that section.
   const fallback: ToolKey = sections.length ? 'apply' : 'ats';
@@ -708,7 +710,9 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         </Suspense>
       )}
       <Stack gap="inset">
-        {/* Full width, full names (rev-3 G): the tools are the second and last nav level. A
+        {/* Full names (rev-3 G), full width on a phone and as wide as its labels from sm up (a
+            1052px strip of three words read as a progress bar, Adrian 2026-10-22). The tools are
+            the second and last nav level. A
             secondary view (Live postings, the list checker) is not one of them, so it swaps the
             switch for "Back to companies" instead of stacking a third level under a segment that
             names another page. */}
@@ -716,7 +720,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
           <SegmentedControl
             aria-label="Search tool"
             size="sm"
-            fullWidth
+            fullWidth={!roomyTools}
             value={tool}
             onChange={(v) => navigate({ sub: toolSub(v), from })}
             options={tools.map((t) => ({ value: t.key, label: t.label }))}

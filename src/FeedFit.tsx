@@ -128,9 +128,9 @@ export function PatternsSummary({ patterns }: { patterns: Patterns }) {
       </Stack>
     </Box>
   );
-  // The same bordered row as Calibrate and Refine (rev-3 J): a bold name over a one-line preview.
+  // The same row as Calibrate and Refine (rev-3 J): a bold name over a one-line preview.
   return (
-    <Card bordered padding="none" className="rjb-disclosure-vertical">
+    <Card padding="none" className="rjb-disclosure-vertical">
       <Box sx={{ px: 'sm', pb: open ? 'sm' : 0 }}>
         <Disclosure
           variant="row"

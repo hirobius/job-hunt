@@ -54,7 +54,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.30.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.31.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
   `.npmrc` maps `@hirobius` there, so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`). GitHub
   Packages stops at design-system 0.26.2, so the lockfile resolves it from registry.npmjs.org and `.npmrc` sets
@@ -256,11 +256,16 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
   `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
   `pipelineFollowUps.test.tsx`.
-- **Pipeline rows (#129):** the shell is HDS page width (`Container maxWidth="max"`, 1200). The
-  Pipeline table and Discover's tile grid use it; the job page and Documents sit at
+- **Shell width (Adrian 2026-10-22, the portfolio's):** `src/hds-gaps/PageShell` = HDS `Container`
+  at 1180 in all with a `clamp(1.25rem, 5vw, 4rem)` gutter (20 on a phone, 64 from 1280), so content
+  is at most 1052; header, tabs and every page share it. **No outlines on surfaces (HDS 0.31 soft
+  surfaces):** Cards and panels are borderless (raised fill + spacing); never pass `bordered`.
+  Inputs, focus, selected/current, overlays, row dividers and feedback tones keep theirs.
+  `e2e/no-outlines.spec.ts` fails on a Card or container box that draws an edge.
+- **Pipeline rows (#129):** the Pipeline table and Discover's tile grid use the shell width; the job page and Documents sit at
   the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders
   `JobsTable` (HDS `Table`, sortable headers through `jobRow.nextSort` → the same `SortKey` as the
-  toolbar) at ≥ the HDS `lg` breakpoint and `JobListCard` (title on its own row) below it, chosen
+  toolbar) at ≥ the HDS `xl` breakpoint (1280; at `lg` the 920 measure wrapped titles to three lines) and `JobListCard` (title on its own row) below it, chosen
   by HDS `useAtLeast` (no `matchMedia` → cards). Both render `jobRow.rowView` with
   `JobRowParts.tsx`: one next step per row (Mark applied / Follow up, secondary so Add job stays
   the page's one primary) + the row `Menu` (also on the job page's header, minus Remove); 40px controls on
@@ -319,6 +324,10 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   track), edited in `SweepTitles.tsx` behind a "Titles (N)" disclosure. Title and ATS search get an
   "All selected (N)" chip that ORs them (`jobsData.titleClause`). Saves go through `notifySaved` → To
   apply. Pinned in `wideSweep.test.tsx`, `feed/sweep*.test.ts`, `e2e/wide-sweep.spec.ts`.
+- **Remote Rocketship (2026-10-22):** a "Big job boards" link (`BOARDS`, tag "Remote only",
+  `modes: ['remote','any']`, shown through `boardsFor(mode)`): `https://www.remoterocketship.com/?sort=DateAdded&jobTitle=<first ticked title>`.
+  Link only: no API (its paid one needs a personal key; a later bring-your-own-key slice), no fetch, so CSP and
+  `legal.ts` are unchanged. The query form is **unverified live** (the host was unreachable from the build container).
 - **Title filter (#223):** the sweep's list _is_ the track's title filter (seed: the track's titles, else
   its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
   titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**
@@ -388,6 +397,22 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   (`linksFilename`: `<slug>-links-YYYY-MM-DD.txt`). `buildLinkList` skips non-web links (counted),
   dedupes, keeps order. Pinned in `exportLinks.test.ts`, `exportLinksDialog.test.tsx`,
   `e2e/export-links.spec.ts`.
+- **Clean first run (Adrian 2026-10-22):** a new user sees nothing they didn't create. Placeholders are
+  the field's own name ("Job title", "Job link", "Company"), never an "e.g." or a made-up name
+  (`placeholders.test.ts` scans the source). Empty sections hide (Dream companies, the Pipeline's
+  panels). The snippet store starts **empty** (`copyDeckStore` no longer falls back to the starters), so
+  no starter messages are migrated in on a first run or a new device; `AddStarterMessages`
+  (`StarterMessages.tsx` → `addStarters.ts` → `restoreStarterOutreach`) adds them in one tap from
+  Documents' empty state ("No documents yet": Add starter messages | Start from scratch), the
+  follow-up dialog (an empty message box until then), the Apply sheet and the kit's letters. Sample
+  data stays opt-in and adds no messages. Setup defaults (Adrian 2026-10-22): every starter pack starts
+  unticked (Suggested keeps its badge); a track with no location means anywhere (packs have no
+  "Remote" default); the packs' Spokane search links follow the track's location when seeded or topped
+  up (`curation/localize.ts`; blank drops the place; only the place param is rewritten, the rest of the URL
+  stays byte for byte), employer pages stay as they are. Top-up dedupes by `placeKey` (URL without its place, params
+  decoded), so a link seeded on the live release (raw Spokane) never comes back as a second, localized copy. Documents'
+  empty state and Add starter messages wait for `settled` and the snippet move (a new device's messages arrive first). Pinned in `firstRun`, `emptyStates`, `documentsLibrary`,
+  `pipelineFollowUps`, `rapidApply`, `copyDeckStore`, `syncBlob` tests; e2e seeds call `addStarters`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links. The URL is cleaned through the route seam

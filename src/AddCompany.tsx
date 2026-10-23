@@ -135,7 +135,7 @@ function AddCompanyContent({
           <Input
             label="Company name or job-board link"
             value={text}
-            placeholder="Acme Labs or a board link"
+            placeholder="Company or board link"
             helperText="We look for its board on Greenhouse, Lever, Ashby and 5 more, or paste the board link."
             onChange={(e) => setText(e.target.value)}
             error={!!error}

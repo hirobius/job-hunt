@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entryLevelize, BOARDS, SearchLoc } from './jobsData';
+import { entryLevelize, BOARDS, boardsFor, SearchLoc } from './jobsData';
 
 describe('entryLevelize', () => {
   it('returns empty/falsy string unchanged', () => {
@@ -146,6 +146,40 @@ describe('entryLevelize', () => {
       const twice = entryLevelize(once);
       expect(twice).toBe(once);
     });
+  });
+});
+
+describe('Remote Rocketship (a remote-only board, link only)', () => {
+  const rr = BOARDS.find((b) => b.name === 'Remote Rocketship')!;
+
+  it('is one of the big boards, named like the others', () => {
+    expect(rr).toBeDefined();
+    expect(rr.tag).toBe('Remote only');
+  });
+
+  it('searches its title filter with the first ticked title (one title per search there)', () => {
+    expect(rr.build('"Product Designer"', { where: '', mode: 'remote' })).toBe(
+      'https://www.remoterocketship.com/?sort=DateAdded&jobTitle=Product%20Designer',
+    );
+    expect(
+      rr.build('("Design Engineer" OR "Product Designer")', { where: 'Spokane, WA', mode: 'any' }),
+    ).toBe('https://www.remoterocketship.com/?sort=DateAdded&jobTitle=Design%20Engineer');
+  });
+
+  it('with no title, leaves the jobTitle param out (review, finding 5)', () => {
+    for (const term of ['', '""', '  ', '("" OR "")']) {
+      expect(rr.build(term, { where: '', mode: 'remote' })).toBe(
+        'https://www.remoterocketship.com/?sort=DateAdded',
+      );
+    }
+  });
+
+  it('shows only where remote work is on the table: Remote or Any, not Hybrid or On-site', () => {
+    expect(boardsFor('remote').some((b) => b.name === 'Remote Rocketship')).toBe(true);
+    expect(boardsFor('any').some((b) => b.name === 'Remote Rocketship')).toBe(true);
+    expect(boardsFor('hybrid').some((b) => b.name === 'Remote Rocketship')).toBe(false);
+    expect(boardsFor('onsite').some((b) => b.name === 'Remote Rocketship')).toBe(false);
+    expect(boardsFor('onsite').map((b) => b.name)).toContain('Indeed');
   });
 });
 
