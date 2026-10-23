@@ -4,7 +4,7 @@
 // Teams entry points; Live postings and the list checker stay reachable as secondary views; every old
 // #/discover/* slug still lands somewhere.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -210,7 +210,12 @@ describe('Companies as one tool (#237)', () => {
     expect(within(panel).getByText(/1 hiring now/)).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Roles at Dsco' }));
     const roles = await screen.findByRole('list', { name: 'Open roles at Dsco' });
-    expect(within(roles).getByText('Senior Design Systems Engineer')).toBeVisible();
+    expect(within(roles).getByText('Senior Design Systems Engineer')).toBeVisible(); // Descriptions on: the loaded roles re-filter at once, with no new read.
+    const reads = fakeFetch.mock.calls.length;
+    act(() => setMustInclude(cat, { inText: true }));
+    expect(within(list).getByText('Chime')).toBeVisible();
+    expect(within(list).getByText('Lever · 4 matching roles')).toBeVisible();
+    expect(fakeFetch.mock.calls.length).toBe(reads);
   });
 
   it('starred companies and the one-button check sit on the Companies home', async () => {
