@@ -40,7 +40,8 @@ import { setCurationSyncedAt } from '../curation/syncStatus';
 import { clearAllPending, getPending } from '../curation/pending';
 import { categoryToRow } from '../curation/map';
 import { addJob, getAllJobs, removeJob } from '../store';
-import { OFFLINE_MSG, OFFLINE_TITLE } from '../cloudMessages';
+import { OFFLINE_MSG, OFFLINE_TITLE, TAB_SIGNED_OUT } from '../cloudMessages';
+import { resetTabAccount } from '../tabAccount';
 import { saveTarget, readTargets } from '../feed/targets';
 import { readDreams, starDream } from '../feed/dreams';
 import { saveFilter, readFilters } from '../feed/savedFilters';
@@ -416,10 +417,12 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
   it('an edit made after another tab signed out is kept and sent at the next sign-in (#169)', async () => {
     const id = await signedInWithSyncedTrack();
     // Another tab signs out: the stored session is gone and this tab hears SIGNED_OUT, but this
-    // tab never ran its own sign-out (no wipe, no reload), so its board is still on screen.
+    // tab never ran its own sign-out (no wipe, no reload), so its board is still on screen. It
+    // stops syncing and says to reload (#288).
     await act(async () => {
       await fake().client.auth.signOut();
     });
+    expect(await screen.findByText(TAB_SIGNED_OUT)).toBeInTheDocument();
     act(() => updateCategory(id, { label: 'Design Engineering' }));
     await waitFor(() =>
       expect(getPending()).toEqual([
@@ -427,6 +430,18 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       ]),
     );
     expect(cloudLabels()).toEqual(['Design Systems']);
+    // Even a sign-in heard in this tab now waits for the reload…
+    act(() => fake().signIn('u1'));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(cloudLabels()).toEqual(['Design Systems']);
+    // …which starts from what this tab kept in storage, and the sign-in sends the edit.
+    cleanup();
+    resetTabAccount();
+    fake().reset();
+    fake().tables.categories = [
+      categoryToRow({ ...getCurationState().categories[0], label: 'Design Systems' }, 'u1'),
+    ];
+    renderAccount();
     act(() => fake().signIn('u1'));
     await addDeviceDataIfAsked();
     await waitFor(() => expect(cloudLabels()).toEqual(['Design Engineering']));

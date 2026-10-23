@@ -27,6 +27,7 @@ import {
 } from './pending';
 import { dropTrackData } from '../trackData';
 import { hasPersistedSession, loadedSupabase, loadSupabase } from '../supabase';
+import { freezeTab, mayWriteAs, tabAccount, tabFrozen } from '../tabAccount';
 
 const KEY = 'rjb_curation';
 
@@ -45,7 +46,7 @@ const store = createStore<CurationState>(loadPersisted<CurationState>(KEY, EMPTY
 // tab, the client isn't even loaded (supabase.ts): there is no one to ask.
 async function currentUserId(): Promise<string | null> {
   const db =
-    loadedSupabase() ?? (hasPersistedSession() || accountInTab ? await loadSupabase() : null);
+    loadedSupabase() ?? (hasPersistedSession() || tabAccount() ? await loadSupabase() : null);
   if (!db) return null;
   try {
     const { data } = await db.auth.getSession();
@@ -63,17 +64,23 @@ type RowForTable<T extends CurationTable> = T extends 'categories'
     ? GroupRow
     : TileRow;
 
-// Signed in during this page view, and not signed out by this tab since (#169). Another tab's
-// sign-out (or a lost stored session) leaves this tab's board on screen with no session; an edit
-// then belongs to the account, so it is journalled as failed and the next sign-in sends it,
-// instead of counting as local-only and losing to the cloud copy. This tab's own sign-out clears
-// it first (and then wipes and reloads).
-let accountInTab = false;
-export function setCurationAccount(signedIn: boolean) {
-  accountInTab = signedIn;
-}
+// The account this tab signed in to during this page view, not signed out by this tab since
+// (#169; tabAccount.ts, #288). Another tab's sign-out (or a lost stored session) leaves this tab's
+// board on screen with no session; an edit then belongs to the account, so it is journalled as
+// failed and the next sign-in sends it, instead of counting as local-only and losing to the cloud
+// copy. This tab's own sign-out clears it first (and then wipes and reloads).
+const accountInTab = () => tabAccount() !== null;
 /** No session and none stored, and this tab never held one: purely local, nothing to send. */
-const purelyLocal = (uid: string | null) => !uid && !hasPersistedSession() && !accountInTab;
+const purelyLocal = (uid: string | null) => !uid && !hasPersistedSession() && !accountInTab();
+/** Whether a write the stored session `uid` would carry may go out (#288). A session for another
+ *  account than this tab's means another tab switched: freeze, send nothing. A session this tab
+ *  has not taken through the sign-in path yet (merge guard open, or another tab just signed in):
+ *  wait, journalled, for that path's sync. */
+function sendable(uid: string | null): boolean {
+  if (uid && accountInTab() && uid !== tabAccount()) freezeTab('switched');
+  return mayWriteAs(uid);
+}
+
 /** Rows already waiting for the next sign-in. The journal outlives a reload (the flag above does
  *  not), so a later edit to one of them stays waiting instead of settling as local. Read before
  *  a write re-journals the row. */
@@ -103,12 +110,13 @@ function mirror(
       if (purelyLocal(uid) && !held) return settlePending(table, id, v, true);
       // Signed out elsewhere: kept for the next sign-in, quietly (the menu already says sign in).
       if (!uid && !hasPersistedSession()) return settlePending(table, id, v, false);
+      if (uid && !sendable(uid)) return settlePending(table, id, v, false);
       if (uid) ok = !(await write(uid)).error;
     } catch {
       ok = false;
     }
     settlePending(table, id, v, ok);
-    if (!ok) reportCurationWriteFailed();
+    if (!ok && !tabFrozen()) reportCurationWriteFailed();
   })();
 }
 function upsert<T extends CurationTable>(
@@ -154,13 +162,15 @@ function upsertMany<T extends CurationTable>(
       );
     }
     if (!uid && !hasPersistedSession()) return settlePendingMany(table, writes, false);
+    if (uid && !sendable(uid)) return settlePendingMany(table, writes, false);
     const rows = uid ? buildRows(uid) : [];
     let failed = false;
     for (let i = 0; i < writes.length; i += TILE_CHUNK) {
       const chunk = writes.slice(i, i + TILE_CHUNK);
       let ok = false;
       try {
-        if (uid)
+        // Re-checked per chunk: a switch in another tab mid-batch stops the rest.
+        if (uid && mayWriteAs(uid))
           ok = !(await (await loadSupabase()).from(table).upsert(rows.slice(i, i + TILE_CHUNK)))
             .error;
       } catch {
@@ -169,7 +179,7 @@ function upsertMany<T extends CurationTable>(
       settlePendingMany(table, chunk, ok);
       if (!ok) failed = true;
     }
-    if (failed) reportCurationWriteFailed();
+    if (failed && !tabFrozen()) reportCurationWriteFailed();
   })();
 }
 function remove(table: CurationTable, rowId: string) {

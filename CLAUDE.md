@@ -445,7 +445,13 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   crafted link arrives as a refresh), and a link's session for another email than it named is never
   taken up (no pull before the sign-out). The device-data count includes work modes and sweep titles.
   Tests sign in with `addDeviceDataIfAsked()` (`test/renderAccount.tsx`). Pinned in
-  `account/authLink.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
+  `account/authLink.test.tsx`. **Other tabs (#288):** `src/tabAccount.ts` holds the account this
+  tab took through that path; when another tab signs out or in as someone else (Supabase's auth
+  broadcast, the `sb-…-auth-token` storage event, or a send that finds the shared session naming
+  someone else), the tab freezes: no pull/push/track write, a "Reload to continue" toast + menu
+  line, and after a switch its `rjb_` writes are dropped (a sign-out keeps them: the wiped sync
+  base makes the next sign-in ask; any sign-in heard while stopped, the same account too, drops them from then on, and Sign out / Delete my data re-check the session after their confirms, so they never end another tab's account). Same-user refreshes change nothing. Pinned in
+  `account/tabSwitch.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
   feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
   `unsafeUrls.test.tsx`.
 - **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;

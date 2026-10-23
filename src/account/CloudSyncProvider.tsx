@@ -30,7 +30,18 @@ import {
 } from '../syncBlob';
 import { keysOf, readSyncBase, writeSyncBase } from '../syncBase';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
-import { getCurationState, setCurationAccount } from '../curation/curationStore';
+import { getCurationState } from '../curation/curationStore';
+import {
+  freezeTab,
+  isAuthKey,
+  onTabFrozen,
+  sessionChange,
+  setTabAccount,
+  sessionWhileFrozen,
+  storedSessionUser,
+  tabAccount,
+  tabFrozen,
+} from '../tabAccount';
 import {
   getCurationSyncStatus,
   onCurationWriteFailed,
@@ -45,6 +56,9 @@ import {
   UNSYNCED_SIGN_OUT,
   UNSYNCED_CHANGES_SIGN_OUT,
   RELOAD_ACTION,
+  TAB_FROZEN_TITLE,
+  TAB_SIGNED_OUT,
+  TAB_SWITCHED,
 } from '../cloudMessages';
 import { getPending, useFailedCount } from '../curation/pending';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
@@ -146,6 +160,21 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   });
   const localJson = () => JSON.stringify(writeBlob(localBlob()));
 
+  // The shared session still names `u` (#288): another tab may have signed out or in as someone
+  // else since. If not, this tab freezes (tabAccount.ts) and nothing more is sent or adopted. A
+  // session it can't read (offline, a failed refresh: no session plus an error) says nothing about
+  // another tab: that send is skipped and retried later, and the tab keeps going.
+  async function sessionIsStill(u: User): Promise<boolean> {
+    if (tabFrozen()) return false;
+    const supa = await loadSupabase();
+    const { data, error } = await supa.auth.getSession();
+    const s = data.session;
+    if (s?.user?.id === u.id) return !tabFrozen();
+    if (error && !s) return false;
+    if (tabAccount() === u.id) freezeTab(s ? 'switched' : 'signedOut');
+    return false;
+  }
+
   async function pull(uid: string): Promise<SyncData | null> {
     const supa = await loadSupabase();
     const r = await supa.from('tracker').select('data').eq('user_id', uid).maybeSingle();
@@ -155,11 +184,12 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Returns whether the cloud took it. `lastSynced` moves only on success, so a failed push
   // stays "dirty": the next refresh and sign-out both retry it.
   async function pushNow(u: User): Promise<boolean> {
-    if (!pulledOk.current || handled.current !== u.id) return false;
+    if (!pulledOk.current || handled.current !== u.id || tabFrozen()) return false;
     const sent = localJson();
     const data = writeBlob(localBlob());
     let ok: boolean;
     try {
+      if (!(await sessionIsStill(u))) return false;
       const supa = await loadSupabase();
       const r = await supa.from('tracker').upsert({
         user_id: u.id,
@@ -174,19 +204,22 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       lastSynced.current = sent;
       writeSyncBase(u.id, keysOf(readBlob(data))); // what the cloud now holds (#219)
     }
-    setMsg(ok ? `Synced · ${u.email}` : OFFLINE_MSG);
+    if (!tabFrozen()) setMsg(ok ? `Synced · ${u.email}` : OFFLINE_MSG); // else the notice stays
     return ok;
   }
   const dirty = () => localJson() !== lastSynced.current;
   async function adopt(seed: boolean, u: User) {
-    if (handled.current !== u.id) return; // not through the sign-in path (the merge question is open)
+    // Not through the sign-in path (the merge question is open), or stopped by another tab (#288).
+    if (handled.current !== u.id || tabFrozen()) return;
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     setPulling(true);
     try {
       // Unsent local edits (a failed push) must go up before a pull would replace them.
       if (!seed && pulledOk.current && dirty() && !(await pushNow(u))) return;
+      if (!(await sessionIsStill(u))) return;
       const cloud = await pull(u.id);
-      if (handled.current !== u.id) return; // signed out (or another account) while it pulled
+      // Signed out (or another account, here or in another tab) while it pulled.
+      if (handled.current !== u.id || !(await sessionIsStill(u))) return;
       const local = localBlob();
       const next = mergeBlob(cloud, local, seed, readSyncBase(u.id));
       writeSyncBase(u.id, keysOf(cloud ?? emptyBlob()));
@@ -211,21 +244,23 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       pulledOk.current = true;
       if (seed) seedPending.current = false;
       // Tracks live in their own tables: pull + reconcile + upload what's new here (#99).
+      if (!(await sessionIsStill(u))) return;
       let curationOk = await syncOnLogin(u.id);
       // Retired user tiles (v3 cloud blob / this device's old store) fold into "My links" AFTER
       // the pull, so the fold sees the cloud's tracks + URLs; a second pass uploads the new rows.
       const legacy = [...next.legacyUserTiles, ...takeLocalLegacyTiles()];
-      if (curationOk && legacy.length) {
+      if (curationOk && legacy.length && (await sessionIsStill(u))) {
         foldIntoStore(legacy);
         curationOk = await syncOnLogin(u.id);
       }
       // An older cloud copy lacks the newer fields (an old tab rewrote it): re-upload them now.
       if (seed || next.legacyUserTiles.length || next.sourceV < BLOB_VERSION) await pushNow(u);
+      if (tabFrozen()) return; // the notice stays in the menu (#288)
       if (!curationOk) setMsg(OFFLINE_MSG);
       else if (!seed) setMsg(`Synced · ${u.email}`);
     } catch {
       setCurationSyncStatus('error');
-      setMsg(OFFLINE_MSG);
+      if (!tabFrozen()) setMsg(OFFLINE_MSG);
     } finally {
       setPulling(false);
     }
@@ -248,6 +283,20 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       const { data } = supa.auth.onAuthStateChange((event, session) => {
         const u = session?.user ?? null;
         setAuthResolved(true);
+        // Until the reload, this tab follows no one (#288); anyone signing in elsewhere after a
+        // sign-out there, this tab's own account too, keeps this tab's edits out of shared storage.
+        if (tabFrozen()) {
+          if (u) sessionWhileFrozen(u.id);
+          return;
+        }
+        // Another tab signed out, or in as someone else (supabase-js relays its sign-in here): this
+        // tab's copy is the old account's, so it stops instead of following (tabAccount.ts). Its
+        // own changes of account (sign-out, a confirmed link) clear tabAccount or set linkEmail.
+        const owner = tabAccount();
+        if (owner !== null && u?.id !== owner && linkEmail.current === null) {
+          freezeTab(u ? 'switched' : 'signedOut');
+          return;
+        }
         // A link's session for another account than the link named: never taken up here.
         if (u && linkEmail.current !== null && !sameEmail(u.email, linkEmail.current)) return;
         setUser(u);
@@ -255,6 +304,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         const refresh = event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED';
         if (refresh && u && handled.current === u.id) return;
         handled.current = null;
+        setTabAccount(null); // until the path below has run for this user
         // Opened from the magic link: back to the page the link was asked for on (return paths).
         if (event === 'SIGNED_IN') returnAfterSignIn();
         pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
@@ -280,7 +330,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         mergeHeld.current = null;
         setMergeAsk(null);
         handled.current = u.id;
-        setCurationAccount(true); // only this tab's own sign-out clears it (#169)
+        setTabAccount(u.id); // only this tab's own sign-out clears it (#169)
         adopt(true, u);
       });
       unsubscribe = () => data.subscription.unsubscribe();
@@ -301,9 +351,18 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       signedOut();
       void Promise.resolve().then(() => setAuthResolved(true));
     }
-    // Another tab signed in (it stored a session): load the client so this tab follows.
+    // Another tab changed the stored session. Signed in here: a different account (or none) stops
+    // this tab before its next sync (#288); the same account (a token refresh) changes nothing.
+    // Stopped here: any sign-in keeps this tab's edits out of shared storage (sessionWhileFrozen).
+    // Signed out here: load the client so this tab follows the sign-in through the whole path.
     const onStorage = (e: StorageEvent) => {
-      if (e.newValue && /^sb-.+-auth-token$/.test(e.key ?? '')) void loadSupabase().catch(() => {});
+      if (!isAuthKey(e.key)) return;
+      const why = sessionChange(e.newValue);
+      const uid = storedSessionUser(e.newValue);
+      if (why) freezeTab(why);
+      else if (tabFrozen()) {
+        if (uid) sessionWhileFrozen(uid);
+      } else if (e.newValue) void loadSupabase().catch(() => {});
     };
     window.addEventListener('storage', onStorage);
     return () => {
@@ -349,7 +408,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     if (!ask || mergeHeld.current !== ask.user.id) return;
     mergeHeld.current = null;
     handled.current = ask.user.id;
-    setCurationAccount(true);
+    setTabAccount(ask.user.id);
     void adopt(true, ask.user);
   };
   // The default: sign out of that account and keep this device's data here, untouched.
@@ -364,7 +423,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
 
   // push local changes (debounced); skip when nothing changed since the last sync
   useEffect(() => {
-    if (!user || !pulledOk.current || handled.current !== user.id) return;
+    if (!user || !pulledOk.current || handled.current !== user.id || tabFrozen()) return;
     if (localJson() === lastSynced.current) return;
     setMsg('Saving…');
     clearTimeout(pushTimer.current);
@@ -401,6 +460,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Sign out clears local data (then reloads to a clean slate). Cloud data is untouched
   // and restored on next sign-in; this only protects shared devices.
   const signOut = async () => {
+    // Frozen (#288): the shared session is another tab's now; signing it out would sign that tab
+    // out. A reload is what this tab needs.
+    if (tabFrozen()) return location.reload();
     // Flush edits still inside the push debounce (or a failed push) before the wipe.
     clearTimeout(pushTimer.current);
     if (user) {
@@ -410,7 +472,11 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }
     // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
     if (getPending().length > 0 && !window.confirm(UNSYNCED_SIGN_OUT)) return;
-    setCurationAccount(false);
+    // Another tab may have signed in as someone else meanwhile (the flush or a confirm found it):
+    // the shared session is that tab's now, and signing it out would sign that account out.
+    if (tabFrozen() || (user && !(await sessionIsStill(user)))) return location.reload();
+    setTabAccount(null); // this tab's own sign-out: not a change made in another tab
+    handled.current = null;
     await (await loadSupabase()).auth.signOut();
     clearLocalData();
     location.reload();
@@ -418,13 +484,16 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
 
   // Delete removes the cloud row (RLS-scoped to this user) AND local data, then signs out.
   const deleteMyData = async () => {
-    if (!user) return;
+    if (!user || tabFrozen()) return;
     if (
       !window.confirm(
         'Delete all your synced data (jobs, categories, and boards) from the cloud and this device? This cannot be undone.',
       )
     )
       return;
+    // The confirm may have stayed open while another tab switched account (#288): then the
+    // deletes would run under that account's session, and the sign-out below would end it.
+    if (!(await sessionIsStill(user))) return;
     setMsg('Deleting…');
     // Erase curated content (child → parent) plus the sync blob. RLS scopes each delete to this
     // user; the FK cascade would cover the children, but we delete them explicitly so erasure
@@ -432,6 +501,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     const failed: string[] = [];
     const supa = await loadSupabase();
     for (const table of DELETE_ORDER) {
+      if (!(await sessionIsStill(user))) return; // the freeze notice says why; local copy kept
       try {
         const r = await supa.from(table).delete().eq('user_id', user.id);
         if (r.error) failed.push(table);
@@ -452,7 +522,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       return;
     }
     clearLocalData();
-    setCurationAccount(false);
+    setTabAccount(null);
+    handled.current = null;
     await supa.auth.signOut();
     location.reload();
   };
@@ -502,6 +573,28 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     });
   }, [msg]);
 
+  // Another tab changed who is signed in (#288): say so once, and keep saying it in the menu.
+  const frozenToasted = useRef(false);
+  useEffect(
+    () =>
+      onTabFrozen((why) => {
+        clearTimeout(pushTimer.current);
+        const description = why === 'switched' ? TAB_SWITCHED : TAB_SIGNED_OUT;
+        setMsg(description);
+        setPulling(false);
+        if (frozenToasted.current) return; // a sign-out freeze turned switch: the menu line says it
+        frozenToasted.current = true;
+        toastRef.current({
+          title: TAB_FROZEN_TITLE,
+          description,
+          tone: 'warning',
+          duration: Infinity,
+          actions: [RELOAD_ACTION],
+        });
+      }),
+    [],
+  );
+
   // A track change the cloud refused: one toast per burst (a starter pack writes many rows), with
   // Retry sync in the account menu until every refused write is delivered (the next sync replays
   // them, sync.ts). A new burst after that toasts again.
@@ -531,7 +624,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       status: msg,
       offline,
       sendLink,
-      retry: () => user && void adopt(seedPending.current, user),
+      retry: () =>
+        tabFrozen() ? location.reload() : user && void adopt(seedPending.current, user),
       signOut: () => void signOut(),
       deleteMyData: () => void deleteMyData(),
       signInOpen,

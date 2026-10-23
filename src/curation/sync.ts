@@ -5,6 +5,7 @@
 // lands in syncStatus (which Onboarding reads), and the caller gets a boolean.
 import { getCurationState, replaceCurationState } from './curationStore';
 import { hasPersistedSession, loadedSupabase, loadSupabase } from '../supabase';
+import { freezeTab, mayWriteAs, tabAccount } from '../tabAccount';
 import { applyPending, reconcileCuration } from './merge';
 import { clearDelivered, getPending } from './pending';
 import { foldLegacyTiles, type LegacyTile } from './legacyTiles';
@@ -141,6 +142,10 @@ export async function pushRestoredCuration(mode: 'merge' | 'replace'): Promise<b
     const { data } = await curationClient.auth.getSession();
     const uid = data.session?.user?.id;
     if (!uid) return true;
+    // Only for this tab's own account (#288): another account's session means another tab
+    // switched, and a session this tab has not taken through sign-in yet gets its rows from that.
+    if (tabAccount() !== null && uid !== tabAccount()) freezeTab('switched');
+    if (!mayWriteAs(uid)) return false;
     const startedAt = new Date().toISOString();
     if (mode === 'replace')
       for (const table of ['tiles', 'groups', 'categories'] as const)
