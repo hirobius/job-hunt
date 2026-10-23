@@ -7,7 +7,9 @@ import {
   mergeMustInclude,
   readMustInclude,
   relatedCounts,
+  relatedIsOn,
   RELATED_TITLES,
+  toggleRelated,
   sanitizeMustInclude,
   setMustInclude,
 } from './mustInclude';
@@ -212,7 +214,69 @@ describe('related titles (2026-10-23)', () => {
     // "system design", never the phrase, in the description
     ['UI Platform Engineer', 'Strong system design skills.', false],
   ])('%s · %s → %s', (title, text, want) => {
-    expect(passesInclude(rule, title, text)).toBe(want);
+    // Design Engineer is off by default (Adrian 2026-10-23): these rows are with its chip on.
+    expect(passesInclude({ ...rule, relatedOn: ['Design Engineer'] }, title, text)).toBe(want);
+  });
+
+  it('Design Engineer is off by default: a chip he can turn on, a stored default reads as off', () => {
+    const both = `${DS} ${AI}`;
+    expect(passesInclude(rule, 'Design Engineer', both)).toBe(false);
+    expect(relatedIsOn(rule, 'Design Engineer')).toBe(false);
+    expect(relatedIsOn(rule, 'Design Technologist')).toBe(true);
+    // An entry stored before the change (Design Engineer not in relatedOff) gets the new default.
+    expect(
+      relatedIsOn({ terms: ['design system'], relatedOff: ['UI Platform'] }, 'Design Engineer'),
+    ).toBe(false);
+    expect(relatedIsOn({ ...rule, relatedOn: ['Design Engineer'] }, 'Design Engineer')).toBe(true);
+    expect(
+      passesInclude({ ...rule, relatedOn: ['Design Engineer'] }, 'Design Engineer', both),
+    ).toBe(true);
+  });
+
+  it('toggling a chip writes only what differs from its default', () => {
+    expect(toggleRelated(rule, 'Design Engineer')).toEqual({
+      relatedOff: [],
+      relatedOn: ['Design Engineer'],
+    });
+    const on = { ...rule, relatedOn: ['Design Engineer'] };
+    expect(toggleRelated(on, 'Design Engineer')).toEqual({ relatedOff: [], relatedOn: [] });
+    expect(toggleRelated(rule, 'UI Platform')).toEqual({
+      relatedOff: ['UI Platform'],
+      relatedOn: [],
+    });
+    expect(toggleRelated({ ...rule, relatedOff: ['UI Platform'] }, 'UI Platform')).toEqual({
+      relatedOff: [],
+      relatedOn: [],
+    });
+  });
+
+  // Ashby's roles Adrian still saw in Companies (2026-10-23): their descriptions say design
+  // system, so Match in description let them in. A title that is only an off related title stays out.
+  describe('an off related title keeps its postings out, Match in description too', () => {
+    const withText = { terms: ['design system'] };
+    it.each([
+      'Design Engineer – Americas',
+      'Design Engineer – Canada',
+      'Design Engineer – EU',
+      'Design Engineer – UK',
+      'Staff Design Engineer',
+      'Senior Design Engineer',
+      'Design Engineer',
+    ])('%s', (title) => {
+      expect(passesInclude(withText, title, `${DS} ${AI}`)).toBe(false);
+      expect(passesInclude({ ...withText, related: false }, title, DS)).toBe(false);
+      expect(passesInclude({ ...withText, relatedOn: ['Design Engineer'] }, title, DS)).toBe(true);
+    });
+    it('a title that says design system itself still passes; other titles still match the text', () => {
+      expect(passesInclude(withText, 'Staff Design Engineer, Design Systems', '')).toBe(true);
+      expect(passesInclude(withText, 'Product Designer', DS)).toBe(true);
+      expect(
+        passesInclude({ ...withText, relatedOff: ['UI Platform'] }, 'UI Platform Engineer', DS),
+      ).toBe(false);
+      // A bare list (mentionsAny) has no related titles, so nothing is excluded.
+      expect(passesInclude(['design system'], 'Design Engineer', DS)).toBe(true);
+      expect(keepIncluded([{ title: 'Staff Design Engineer', text: DS }], withText)).toEqual([]);
+    });
   });
 
   it('a title switched off no longer passes; the control off turns them all off', () => {
@@ -265,7 +329,10 @@ describe('related titles (2026-10-23)', () => {
       related: false,
       relatedOff: ['UI Platform'],
     });
-    setMustInclude('t', { related: true, relatedOff: [] });
+    // relatedOn keeps only the titles that are off by default.
+    setMustInclude('t', { relatedOn: ['Design Engineer', 'UI Platform', 'Bogus'] });
+    expect(readMustInclude('t').relatedOn).toEqual(['Design Engineer']);
+    setMustInclude('t', { related: true, relatedOff: [], relatedOn: [] });
     expect(readMustInclude('t')).toEqual({ terms: [], atsOff: [] });
     expect(RELATED_TITLES.map((r) => r.id)).toEqual([
       'Design Technologist',

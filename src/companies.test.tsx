@@ -76,6 +76,22 @@ const LIVE: Record<string, unknown> = {
   'https://api.lever.co/v0/postings/dsco?mode=json': [
     { ...leverJob('dsco', 'd1', 'Senior Design Systems Engineer'), descriptionPlain: 'Welder.' },
   ],
+  // Ashby's Design Engineer roles (Adrian 2026-10-23): their descriptions say design system.
+  'https://api.ashbyhq.com/posting-api/job-board/acmeds': {
+    jobs: [
+      'Design Engineer – Americas',
+      'Design Engineer – Canada',
+      'Design Engineer – EU',
+      'Design Engineer – UK',
+      'Staff Design Engineer',
+      'Senior Design Systems Engineer',
+    ].map((title, i) => ({
+      id: `a${i}`,
+      title,
+      jobUrl: `https://jobs.ashbyhq.com/acmeds/a${i}`,
+      descriptionPlain: 'Welder friendly. Grow our design system with Claude Code and Cursor.',
+    })),
+  },
   'https://api.lever.co/v0/postings/eastgate?mode=json': [1, 2, 3, 4].map((n) =>
     leverJob('eastgate', `e${n}`, `Welder ${n}`),
   ),
@@ -216,6 +232,22 @@ describe('Companies as one tool (#237)', () => {
     expect(within(list).getByText('Chime')).toBeVisible();
     expect(within(list).getByText('Lever · 4 matching roles')).toBeVisible();
     expect(fakeFetch.mock.calls.length).toBe(reads);
+  });
+
+  it('Design Engineer roles stay out by default, Match in description too; its chip lets them in', async () => {
+    setMustInclude(cat, { terms: ['design system'] });
+    watch('https://jobs.ashbyhq.com/acmeds');
+    renderApp();
+    const panel = await screen.findByRole('region', { name: 'Watched' });
+    const list = within(panel).getByRole('list', { name: 'Companies' });
+    expect(await within(list).findByText('Ashby · 1 matching role')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Roles at Acmeds' }));
+    const roles = await screen.findByRole('list', { name: 'Open roles at Acmeds' });
+    expect(within(roles).getByText('Senior Design Systems Engineer')).toBeVisible();
+    for (const t of ['Design Engineer – Americas', 'Design Engineer – UK', 'Staff Design Engineer'])
+      expect(within(roles).queryByText(t)).toBeNull();
+    act(() => setMustInclude(cat, { relatedOn: ['Design Engineer'] }));
+    expect(within(list).getByText('Ashby · 6 matching roles')).toBeVisible();
   });
 
   it('starred companies and the one-button check sit on the Companies home', async () => {

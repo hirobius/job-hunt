@@ -59,6 +59,8 @@ import {
   hasRelatedTitles,
   RELATED_TITLES,
   relatedCounts,
+  relatedIsOn,
+  toggleRelated,
   setMustInclude,
   useMustInclude,
 } from './feed/mustInclude';
@@ -831,23 +833,19 @@ export default function LiveFeedPanel({
                 <Stack gap="px8">
                   <Text variant="caption" as="p" tone="secondary">
                     Also list these titles when the description says design system (Design
-                    Technologist on its title alone; Design Engineer when it also mentions AI tools)
+                    Technologist on its title alone; Design Engineer, off until you turn it on, when
+                    it also mentions AI tools)
                   </Text>
                   <Stack direction="row" wrap="wrap" gap="px8" align="center">
                     {RELATED_TITLES.map(({ id }) => {
-                      const off = mustInclude.relatedOff ?? [];
-                      const on = !off.includes(id);
+                      const on = relatedIsOn(mustInclude, id);
                       return (
                         <Tag
                           key={id}
                           active={on}
                           aria-pressed={on}
                           aria-label={`${id}, ${perRelated[id] ?? 0}`}
-                          onClick={() =>
-                            setMustInclude(categoryId, {
-                              relatedOff: on ? [...off, id] : off.filter((x) => x !== id),
-                            })
-                          }
+                          onClick={() => setMustInclude(categoryId, toggleRelated(mustInclude, id))}
                         >
                           <Stack as="span" direction="row" gap="px8" align="center">
                             {id}

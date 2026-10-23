@@ -138,12 +138,7 @@ describe('must include in Live postings', () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     const reads = feed.fetchFeed.mock.calls.length;
-    const all = [
-      'Design Engineer',
-      'Design Systems Designer',
-      'Design Technologist',
-      'UI Platform Engineer',
-    ];
+    const all = ['Design Systems Designer', 'Design Technologist', 'UI Platform Engineer'];
     expect(titles().sort()).toEqual(all);
     const sw = screen.getByRole('switch', { name: 'Related titles' });
     expect(sw).toBeChecked();
@@ -151,7 +146,11 @@ describe('must include in Live postings', () => {
     expect(chip).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'UI Platform, 1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Component Library, 0' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Design Engineer, 1' })).toBeInTheDocument();
+    // Off by default (2026-10-23): counted, not listed.
+    expect(screen.getByRole('button', { name: 'Design Engineer, 1' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     await user.click(chip);
     expect(readMustInclude(cat).relatedOff).toEqual(['Design Technologist']);
     expect(chip).toHaveAttribute('aria-pressed', 'false');
@@ -164,6 +163,34 @@ describe('must include in Live postings', () => {
     await user.click(screen.getByRole('button', { name: 'Design Technologist, 1' }));
     expect(titles().sort()).toEqual(all);
     expect(feed.fetchFeed.mock.calls.length).toBe(reads);
+  });
+
+  it("Design Engineer is off by default: Ashby's Design Engineer roles stay out, Match in description too", async () => {
+    const user = userEvent.setup();
+    const text = 'Grow our design system with designers, Claude Code and Cursor.';
+    feed.fetchFeed.mockResolvedValue({
+      ...RESULT,
+      postings: [
+        post('1', 'Design Systems Designer', 'Own the library.'),
+        post('a', 'Design Engineer – Americas', text),
+        post('c', 'Design Engineer – Canada', text),
+        post('e', 'Design Engineer – EU', text),
+        post('u', 'Design Engineer – UK', text),
+        post('s', 'Staff Design Engineer', text),
+      ],
+    });
+    setMustInclude(cat, { terms: ['design system'] });
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    expect(titles()).toEqual(['Design Systems Designer']);
+    const chip = screen.getByRole('button', { name: 'Design Engineer, 5' });
+    expect(chip).toHaveAttribute('aria-pressed', 'false');
+    await user.click(chip);
+    expect(readMustInclude(cat).relatedOn).toEqual(['Design Engineer']);
+    expect(titles()).toHaveLength(6);
+    await user.click(screen.getByRole('button', { name: 'Design Engineer, 5' }));
+    expect(readMustInclude(cat).relatedOn).toBeUndefined();
+    expect(titles()).toEqual(['Design Systems Designer']);
   });
 
   it('related titles only show on a design system rule', async () => {

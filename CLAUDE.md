@@ -347,6 +347,10 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   Frontend Platform when the description says "design system(s)"; Design Engineer when it also names AI-assisted
   work (`AI_TERMS`). Calibrate's "Related titles" switch beside the two, then a chip per title with
   `relatedCounts`. Applies everywhere `passesInclude` does (Live postings, Companies, dreams).
+  **Design Engineer is off by default** (`defaultOff`; turned on in `relatedOn`, so a stored entry without
+  it reads as off, no data move; `relatedIsOn` / `toggleRelated`). A chip that is off also keeps out a
+  posting whose title names only off related titles, even when Match in description would let it in
+  (Ashby's "Design Engineer – UK", "Staff Design Engineer"), unless the title itself says the phrase.
 - **Adele seed (2026-10-23):** `src/feed/data/adele.json` is a one-time snapshot of UXPin's public design systems
   list (github.com/uxpin/adele, **MIT**; company name + design system site; re-take it by hand from `ADELE.file`).
   No runtime host. On a design systems track (`hasRelatedTitles` or the GitHub design-system search) Companies' More
