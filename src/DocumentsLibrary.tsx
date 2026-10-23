@@ -22,6 +22,7 @@ import {
   Badge,
   Box,
   Button,
+  Card,
   Disclosure,
   Icon,
   Menu,
@@ -43,7 +44,7 @@ import {
 import { documentIdForSnippet, kindForSnippet, restoreStarterOutreach } from './snippetMigration';
 import { STARTER_SNIPPETS } from './copyDeckStore';
 import type { Document, DocumentKind } from './documents';
-import { Panel, PanelBody, PanelRows } from './PipelinePanel';
+import { CardList, Panel, PanelBody } from './PipelinePanel';
 import { WithChips } from './BlankText';
 import { postedAgo } from './feed/format';
 import { metaLines } from './metaLines';
@@ -271,7 +272,7 @@ export default function DocumentsLibrary({
                 </PanelBody>
               )}
               {items.length > 0 && (
-                <PanelRows>
+                <CardList label={PLURAL[kind]}>
                   {items.map((d) => (
                     <DocumentRow
                       key={d.id}
@@ -281,7 +282,7 @@ export default function DocumentsLibrary({
                       onEdit={() => go({ id: d.id })}
                     />
                   ))}
-                </PanelRows>
+                </CardList>
               )}
             </Panel>
           );
@@ -334,121 +335,124 @@ function DocumentRow({
     highlightNew(doc.id);
     toast({ title: doc.pinned ? 'Unpinned' : 'Pinned', description: title });
   };
-  const highlight = useHighlight<HTMLElement>(doc.id);
+  const highlight = useHighlight<HTMLDivElement>(doc.id);
+  // A card of its kind's list (Adrian 2026-10-23: cards, not hairlines).
   return (
-    <Box
+    <Card
       as="li"
       ref={highlight}
       aria-label={title}
-      className="rjb-doc-row"
-      sx={{ px: 'md', py: 'xs', borderTop: 'thin solid', borderColor: 'border.default' }}
+      padding="none"
+      className="rjb-doc-row rjb-card-inset"
     >
-      <Disclosure
-        variant="row"
-        open={open}
-        onOpenChange={onOpenChange}
-        label={
-          <Stack gap="px4" align="start">
-            {doc.pinned && <Badge>Pinned</Badge>}
-            <span>{title}</span>
-            {doc.kind !== 'outreach' && (
-              <Text variant="caption" tone="secondary">
-                {meta}
-              </Text>
-            )}
-            {names.length > 0 ? (
-              <Stack direction="row" gap="px4" wrap="wrap">
-                {chips.shown.map((n) => (
-                  <span key={n} className="rjb-chip">
-                    {n}
-                  </span>
-                ))}
-                {chips.more > 0 && <span className="rjb-chip">+{chips.more}</span>}
-              </Stack>
-            ) : (
-              doc.kind === 'outreach' && (
-                <Text variant="caption" tone="secondary" className="rjb-truncate">
+      <Box sx={{ px: 4, py: 1 }}>
+        <Disclosure
+          variant="row"
+          open={open}
+          onOpenChange={onOpenChange}
+          label={
+            <Stack gap="px4" align="start">
+              {doc.pinned && <Badge>Pinned</Badge>}
+              <span>{title}</span>
+              {doc.kind !== 'outreach' && (
+                <Text variant="caption" tone="secondary">
                   {meta}
                 </Text>
-              )
-            )}
-          </Stack>
-        }
-      >
-        {/* Only the open row renders its preview and actions. */}
-        {open && (
-          <Stack gap="normal">
-            <Text variant="ui" as="p" className="rjb-doc-preview">
-              <WithChips text={openText(text) || 'Empty'} />
-            </Text>
-            <Stack direction="row" gap="tight" align="center" justify="space-between">
-              <Stack direction="row" gap="tight" align="center">
-                <Button
-                  variant="secondary"
-                  size="md"
-                  iconLeft={<Icon icon={Copy} />}
-                  onClick={copy}
-                >
-                  Copy
-                </Button>
-                <Button variant="secondary" size="md" label={`Open ${title}`} onClick={onEdit}>
-                  Open
-                </Button>
-              </Stack>
-              <Menu modal={false} {...menu}>
-                <Menu.Trigger asChild>
+              )}
+              {names.length > 0 ? (
+                <Stack direction="row" gap="px4" wrap="wrap">
+                  {chips.shown.map((n) => (
+                    <span key={n} className="rjb-chip">
+                      {n}
+                    </span>
+                  ))}
+                  {chips.more > 0 && <span className="rjb-chip">+{chips.more}</span>}
+                </Stack>
+              ) : (
+                doc.kind === 'outreach' && (
+                  <Text variant="caption" tone="secondary" className="rjb-truncate">
+                    {meta}
+                  </Text>
+                )
+              )}
+            </Stack>
+          }
+        >
+          {/* Only the open row renders its preview and actions. */}
+          {open && (
+            <Stack gap="normal">
+              <Text variant="ui" as="p" className="rjb-doc-preview">
+                <WithChips text={openText(text) || 'Empty'} />
+              </Text>
+              <Stack direction="row" gap="tight" align="center" justify="space-between">
+                <Stack direction="row" gap="tight" align="center">
                   <Button
                     variant="secondary"
                     size="md"
-                    iconOnly
-                    iconLeft={<Icon icon={Ellipsis} />}
-                    label={`More actions for ${title}`}
-                  />
-                </Menu.Trigger>
-                <Menu.Content align="end">
-                  <Menu.Item onSelect={pin}>{doc.pinned ? 'Unpin' : 'Pin'}</Menu.Item>
-                  <Menu.Item onSelect={duplicate}>Duplicate</Menu.Item>
-                  <Menu.Separator />
-                  <Menu.Item onSelect={() => setConfirming(true)} tone="danger">
-                    Delete
-                  </Menu.Item>
-                </Menu.Content>
-              </Menu>
+                    iconLeft={<Icon icon={Copy} />}
+                    onClick={copy}
+                  >
+                    Copy
+                  </Button>
+                  <Button variant="secondary" size="md" label={`Open ${title}`} onClick={onEdit}>
+                    Open
+                  </Button>
+                </Stack>
+                <Menu modal={false} {...menu}>
+                  <Menu.Trigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      iconOnly
+                      iconLeft={<Icon icon={Ellipsis} />}
+                      label={`More actions for ${title}`}
+                    />
+                  </Menu.Trigger>
+                  <Menu.Content align="end">
+                    <Menu.Item onSelect={pin}>{doc.pinned ? 'Unpin' : 'Pin'}</Menu.Item>
+                    <Menu.Item onSelect={duplicate}>Duplicate</Menu.Item>
+                    <Menu.Separator />
+                    <Menu.Item onSelect={() => setConfirming(true)} tone="danger">
+                      Delete
+                    </Menu.Item>
+                  </Menu.Content>
+                </Menu>
+              </Stack>
             </Stack>
-          </Stack>
-        )}
-      </Disclosure>
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialog.Content>
-          <AlertDialog.Header>
-            <AlertDialog.Title>Delete “{title}”?</AlertDialog.Title>
-            <AlertDialog.Description>
-              Every version goes with it. This can't be undone.
-            </AlertDialog.Description>
-          </AlertDialog.Header>
-          <AlertDialog.Footer>
-            <AlertDialog.Cancel asChild>
-              <Button variant="secondary">Cancel</Button>
-            </AlertDialog.Cancel>
-            <AlertDialog.Action asChild>
-              <Button
-                variant="secondary"
-                tone="danger"
-                onClick={() => {
-                  if (!removeDocument(doc.id))
-                    toast({
-                      title: "Couldn't delete",
-                      description: 'A sent document is locked.',
-                      tone: 'danger',
-                    });
-                }}
-              >
-                Delete
-              </Button>
-            </AlertDialog.Action>
-          </AlertDialog.Footer>
-        </AlertDialog.Content>
-      </AlertDialog>
-    </Box>
+          )}
+        </Disclosure>
+        <AlertDialog open={confirming} onOpenChange={setConfirming}>
+          <AlertDialog.Content>
+            <AlertDialog.Header>
+              <AlertDialog.Title>Delete “{title}”?</AlertDialog.Title>
+              <AlertDialog.Description>
+                Every version goes with it. This can't be undone.
+              </AlertDialog.Description>
+            </AlertDialog.Header>
+            <AlertDialog.Footer>
+              <AlertDialog.Cancel asChild>
+                <Button variant="secondary">Cancel</Button>
+              </AlertDialog.Cancel>
+              <AlertDialog.Action asChild>
+                <Button
+                  variant="secondary"
+                  tone="danger"
+                  onClick={() => {
+                    if (!removeDocument(doc.id))
+                      toast({
+                        title: "Couldn't delete",
+                        description: 'A sent document is locked.',
+                        tone: 'danger',
+                      });
+                  }}
+                >
+                  Delete
+                </Button>
+              </AlertDialog.Action>
+            </AlertDialog.Footer>
+          </AlertDialog.Content>
+        </AlertDialog>
+      </Box>
+    </Card>
   );
 }

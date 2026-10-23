@@ -82,11 +82,14 @@ p {
   --hds-form-control-max-width: none;
 }
 
-/* Calm list rows (#241): a company list is flat rows on the page, split by hairlines, not cards
- * or a loose gap. */
-.rjb-rows > li {
-  padding-block: var(--primitive-space-4);
-  border-top: thin solid var(--semantic-color-border-default);
+/* Cards, not hairlines (Adrian 2026-10-23): a list's cards (PipelinePanel CardList / ListCard) sit
+ * on a raised panel, so they take the page fill to read as separate surfaces; a card inside one of
+ * those goes back to raised. Borderless, like every HDS 0.31 surface. */
+[data-hds] .rjb-card-inset {
+  background-color: var(--semantic-color-surface-page);
+}
+[data-hds] .rjb-card-inset .rjb-card-inset {
+  background-color: var(--semantic-color-surface-raised);
 }
 
 /* Apply mode copy rows: keep a saved answer's line breaks. */

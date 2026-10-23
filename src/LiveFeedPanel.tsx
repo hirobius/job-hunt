@@ -65,6 +65,7 @@ import {
   useMustInclude,
 } from './feed/mustInclude';
 import { ChipEditor } from './ChipEditor';
+import { CardList, ListCard } from './PipelinePanel';
 import type { Seniority } from './curation/types';
 import { useCategories, useGroups, useTiles } from './curation/curationStore';
 import { postedAgo } from './feed/format';
@@ -645,7 +646,7 @@ export default function LiveFeedPanel({
           />
         </PanelRowBox>
       ) : (
-        <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-label="Live postings">
+        <CardList label="Live postings" inset="sm">
           {visible.slice(0, shown).map((p) => (
             <PostingRow
               key={p.id}
@@ -658,7 +659,7 @@ export default function LiveFeedPanel({
               typeTag={roleTypes.ranked ? roleTypeTag(roleTypeOf(p)) : ''}
             />
           ))}
-        </Box>
+        </CardList>
       )}
       {visible.length > shown && (
         <PanelRowBox>
@@ -672,11 +673,7 @@ export default function LiveFeedPanel({
           <Disclosure
             label={`${folded.length} engineering-heavy ${folded.length === 1 ? 'role' : 'roles'}`}
           >
-            <Box
-              as="ul"
-              sx={{ listStyle: 'none', m: 0, p: 0 }}
-              aria-label="Engineering-heavy roles"
-            >
+            <CardList label="Engineering-heavy roles" inset="none">
               {folded.map((p) => (
                 <PostingRow
                   key={p.id}
@@ -689,7 +686,7 @@ export default function LiveFeedPanel({
                   typeTag={roleTypeTag('design-engineering')}
                 />
               ))}
-            </Box>
+            </CardList>
           </Disclosure>
         </PanelRowBox>
       )}
@@ -704,16 +701,16 @@ export default function LiveFeedPanel({
         slow && 'Still trying: slow sources are skipped after 15 s',
       ]}
     >
-      <Box as="ul" sx={{ listStyle: 'none', m: 0, p: 0 }} aria-hidden="true">
+      <CardList inset="sm" hidden>
         {Array.from({ length: SKELETON_ROWS }, (_, i) => (
-          <PanelRowBox key={i} as="li">
+          <ListCard key={i}>
             <Stack gap="px8">
               <Skeleton variant="text" width="60%" />
               <Skeleton variant="text" width="30%" />
             </Stack>
-          </PanelRowBox>
+          </ListCard>
         ))}
-      </Box>
+      </CardList>
     </OpeningsPanel>
   );
 
@@ -1189,16 +1186,10 @@ function OpeningsPanel({
   );
 }
 
-/** One padded row of the Openings panel, with the hairline above it (none below the last). */
-function PanelRowBox({ children, as = 'div' }: { children: ReactNode; as?: 'div' | 'li' }) {
-  return (
-    <Box
-      as={as}
-      sx={{ px: 'sm', py: 'sm', borderTop: 'thin solid', borderColor: 'border.default' }}
-    >
-      {children}
-    </Box>
-  );
+/** One padded block of the Openings panel under its header (no hairline: the openings are
+ *  cards, Adrian 2026-10-23). */
+function PanelRowBox({ children }: { children: ReactNode }) {
+  return <Box sx={{ px: 'sm', pb: 'sm' }}>{children}</Box>;
 }
 
 /** "Remotive and Jobicy", "A, B and C", "A, B +4 more". */
@@ -1403,7 +1394,7 @@ function PostingRow({
   const matched =
     sweepTitles > 1 ? p.titles.filter((t) => t.toLowerCase() !== p.title.trim().toLowerCase()) : [];
   return (
-    <PanelRowBox as="li">
+    <ListCard>
       <Stack direction="row" gap="tight" align="center" justify="space-between">
         <Box sx={{ minWidth: 0, flex: '1 1 0%', overflowWrap: 'anywhere' }}>
           <Stack gap="px4">
@@ -1497,6 +1488,6 @@ function PostingRow({
           )}
         </Dialog>
       )}
-    </PanelRowBox>
+    </ListCard>
   );
 }

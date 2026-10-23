@@ -95,7 +95,8 @@ describe('InterviewLog', () => {
     expect(rows[0]).toHaveTextContent('Tue, Oct 20, 2:00 PM');
     expect(rows[0]).toHaveTextContent('Interview · Portfolio');
     expect(rows[1]).toHaveTextContent('Wed, Oct 21');
-    expect(rows[0].closest('ul')).toHaveClass('rjb-rows');
+    // Cards, not hairlines (Adrian 2026-10-23): each event is an HDS Card.
+    for (const r of rows) expect(r).toHaveAttribute('data-variant', 'default');
   });
 
   it('disables Add to calendar when nothing is upcoming', () => {

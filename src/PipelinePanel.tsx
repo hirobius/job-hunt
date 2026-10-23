@@ -1,7 +1,9 @@
 // One Pipeline panel (rev-3 mock, mobile slice 1): an HDS Card with a header (the section's name,
 // its count as an HDS Badge, an optional trailing control) over padded content and hairline rows.
+// Lists of things (companies, roles, openings, jobs, documents, the Apply sheet) are cards, not
+// hairline rows (Adrian 2026-10-23): `CardList` of `ListCard`s.
 // Getting started, To apply, Follow up, Next 7 days and Jobs all use it, so they read as one set.
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Badge, Box, Card, Stack, Text } from '@hirobius/design-system';
 
 export function Panel({
@@ -92,5 +94,68 @@ export function PanelRow({
     >
       {children}
     </Box>
+  );
+}
+
+/** A list as separate HDS Card surfaces, 8 apart (Adrian 2026-10-23: cards, not hairlines). Inset
+ *  from the panel's edges like its header (`inset`), or flush inside something already padded. */
+export function CardList({
+  children,
+  label,
+  as = 'ul',
+  inset = 'md',
+  hidden,
+  style,
+}: {
+  children: ReactNode;
+  label?: string;
+  as?: 'ul' | 'div';
+  inset?: 'md' | 'sm' | 'none';
+  /** aria-hidden, for a skeleton. */
+  hidden?: boolean;
+  style?: CSSProperties;
+}) {
+  return (
+    <Box
+      as={as}
+      aria-label={label}
+      aria-hidden={hidden || undefined}
+      className="rjb-cards"
+      style={style}
+      sx={{
+        listStyle: 'none',
+        m: 0,
+        p: 0,
+        ...(inset === 'none' ? {} : { px: inset, pb: inset }),
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
+/** One item of a CardList: an HDS Card, filled so it reads on the raised panel it sits in. */
+export function ListCard({
+  children,
+  as = 'li',
+  label,
+  dense = false,
+  flush = false,
+}: {
+  children: ReactNode;
+  as?: 'li' | 'div' | 'article';
+  label?: string;
+  /** Less vertical padding: the child already stands 40px+ tall (an HDS Disclosure row). */
+  dense?: boolean;
+  /** No padding: the child (an HDS Card's parts) pads itself. */
+  flush?: boolean;
+}) {
+  return (
+    <Card as={as} aria-label={label} padding="none" className="rjb-card-inset">
+      {flush ? children : <Box sx={{ px: 4, py: dense ? 1 : 3 }}>{children}</Box>}
+    </Card>
   );
 }

@@ -21,7 +21,7 @@ import { roleTypeOf, roleTypeTag } from './feed/roleType';
 import { saysDesignSystem } from './feed/mustInclude';
 import { dreamKey, starDream, unstarDream, useDreams } from './feed/dreams';
 import type { Board } from './feed/sources/ats';
-import { listStyle } from './outreachShared';
+import { CardList, ListCard } from './PipelinePanel';
 
 /** A team's matching roles. Save adds one to the Pipeline and raises the shared save notice
  *  (saveNotice.ts: Open, Undo). The title links out: the only step that leaves the app is Apply. */
@@ -48,7 +48,7 @@ export function RoleList({
     if (url) notifySaved([url], fields.label);
   };
   return (
-    <ul aria-label={label} style={listStyle}>
+    <CardList label={label} inset="none">
       {roles.map((r) => {
         const saved = savedKeys.has(dedupKey(r.url));
         // "Design systems" only when the title says it (2026-10-23): a body that mentions the
@@ -57,7 +57,7 @@ export function RoleList({
         const tag =
           type === 'design-systems' && !saysDesignSystem(r.title) ? '' : roleTypeTag(type);
         return (
-          <li key={r.id}>
+          <ListCard key={r.id}>
             {/* No wrap: the title column shrinks so Save sits on the right of every role, the
                 same at 390 as at 1440 (PR #257 review). */}
             <Stack direction="row" gap="px8" align="center" justify="space-between">
@@ -87,10 +87,10 @@ export function RoleList({
                 {saved ? 'Saved' : 'Save'}
               </Button>
             </Stack>
-          </li>
+          </ListCard>
         );
       })}
-    </ul>
+    </CardList>
   );
 }
 

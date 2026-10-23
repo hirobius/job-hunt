@@ -31,7 +31,7 @@ import JobsTable from './JobsTable';
 import ApplyQueueSummary from './ApplyQueueSummary';
 import GettingStarted from './GettingStarted';
 import JobListCard from './JobListCard';
-import { Panel, PanelBody } from './PipelinePanel';
+import { CardList, Panel, PanelBody } from './PipelinePanel';
 import { PipelineLiveness } from './LivenessViews';
 import { RecentlyRemovedLink } from './RecentlyRemoved';
 import { useTrash } from './trash';
@@ -342,7 +342,11 @@ export default function TrackerView() {
                 <JobsTable jobs={shown} sort={sort} onSort={setSort} />
               </PanelBody>
             ) : (
-              shown.map((j) => <JobListCard key={j.url} job={j} />)
+              <CardList as="div">
+                {shown.map((j) => (
+                  <JobListCard key={j.url} job={j} />
+                ))}
+              </CardList>
             )}
           </Panel>
         )}

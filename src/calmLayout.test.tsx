@@ -2,7 +2,9 @@
 // - The app name never competes with a page title: a body-size wordmark at every width (rev-3
 //   mock), the one h1, named by BRAND.
 // - The Pipeline is panels (rev-3 mock): To apply, Follow up and Jobs are HDS Cards with a count
-//   Badge; no tinted banner boxes. The Documents list stays flat rows.
+//   Badge; no tinted banner boxes.
+// - Lists are cards, not hairlines (Adrian 2026-10-23): the Documents library and the Pipeline's
+//   phone jobs are one HDS Card per item, 8 apart (desktop tables stay tables).
 // - Rev-3 rhythm: the Pipeline's panels stack 24 apart.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -45,8 +47,7 @@ function viewport(width: number) {
   });
 }
 
-/** HDS Card marks its root with data-padding + data-variant; Callout is a tinted bg-muted box. */
-const cardsIn = (el: Element) => el.querySelectorAll('[data-padding][data-variant]');
+/** Callout is a tinted bg-muted box. */
 const tintedBoxesIn = (el: Element) => el.querySelectorAll('.bg-muted[data-tone]');
 
 beforeEach(() => {
@@ -107,7 +108,7 @@ describe('Pipeline panels (rev-3)', () => {
     expect(toApply.parentElement).toHaveAttribute('data-hds-metrics', 'gap:px24');
   });
 
-  it('the Documents library is flat rows, not a card per document (#227)', async () => {
+  it('the Documents library is a card per document, 8 apart, no hairlines (Adrian 2026-10-23)', async () => {
     viewport(1440);
     addStarterMessages(); // a clean first run has none (Adrian 2026-10-22)
     window.location.hash = '#/copy-deck';
@@ -116,6 +117,22 @@ describe('Pipeline panels (rev-3)', () => {
     await waitFor(() =>
       expect(within(outreach).getAllByRole('listitem').length).toBeGreaterThan(0),
     );
-    expect(cardsIn(outreach)).toHaveLength(0);
+    const items = within(outreach).getAllByRole('listitem');
+    for (const li of items) expect(li).toHaveAttribute('data-variant', 'default');
+    expect(items[0].parentElement).toHaveClass('rjb-cards');
+  });
+
+  it('the Pipeline on a phone is a card per job in a card list', async () => {
+    viewport(390);
+    loadSample();
+    window.location.hash = '#/queue';
+    renderApp();
+    const jobs = await screen.findByRole('region', { name: /^Jobs$/ });
+    const cards = within(jobs).getAllByRole('article');
+    expect(cards.length).toBeGreaterThan(1);
+    for (const c of cards) {
+      expect(c).toHaveAttribute('data-variant', 'default');
+      expect(c.parentElement).toHaveClass('rjb-cards');
+    }
   });
 });

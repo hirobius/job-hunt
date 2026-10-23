@@ -17,6 +17,7 @@ import { dayLabel } from './dayLabel';
 import { timeLabel } from './agendaTime';
 import { findJobByUrl, updateJob } from './store';
 import { collapseRow } from './feedback';
+import { CardList, ListCard } from './PipelinePanel';
 import { notifyRemoved } from './saveNotice';
 import type { Job, JobEvent, JobEventKind } from './types';
 
@@ -105,14 +106,14 @@ export default function InterviewLog({ job }: { job: Job }) {
 
   return (
     <Stack gap="normal" className="rjb-form-full">
-      {/* One row per event, split by the Calm list hairline (.rjb-rows): the day over its kind
-          and note, the remove button at the end. */}
+      {/* One card per event (Adrian 2026-10-23: cards, not hairlines): the day over its kind and
+          note, the remove button at the end. */}
       {events.length > 0 && (
-        <Box as="ul" className="rjb-rows" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+        <CardList label="Interviews and calls" inset="none">
           {events.map((e) => {
             const when = whenOf(e.date, e.time, now);
             return (
-              <li key={e.id}>
+              <ListCard key={e.id}>
                 <Stack direction="row" gap="px8" align="center" wrap="nowrap">
                   <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
                     <Stack gap="px4">
@@ -134,10 +135,10 @@ export default function InterviewLog({ job }: { job: Job }) {
                     onClick={(click) => removeWithUndo(job.url, e, when, click.currentTarget)}
                   />
                 </Stack>
-              </li>
+              </ListCard>
             );
           })}
-        </Box>
+        </CardList>
       )}
 
       <Grid layout="auto-fit" minItemWidth="200px" gap="medium" align="end">

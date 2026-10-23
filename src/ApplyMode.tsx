@@ -36,7 +36,7 @@ import { BackToPipeline } from './JobHeader';
 import { JobBadges } from './JobRowParts';
 import { MetaCaption } from './MetaCaption';
 import { statusAgo } from './jobState';
-import { Panel, PanelBody } from './PipelinePanel';
+import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import BlankText from './BlankText';
 import { findJobById, jobIdOf, setStatus, updateJob, useJobs } from './store';
 import { getRoute, goBack, linkTo, navigate, openApply, useRoute, type Route } from './route';
@@ -344,8 +344,8 @@ function CopyRow({
     setEditing(false);
   };
   const Field = multiline ? Textarea : HdsInput;
-  return (
-    <Box as={as} sx={{ py: 'xs' }} aria-label={label}>
+  const body = (
+    <>
       {editing ? (
         <Stack gap="tight">
           <Field
@@ -395,22 +395,21 @@ function CopyRow({
           </Stack>
         </Stack>
       )}
+    </>
+  );
+  // A kit field is one card of its list (Adrian 2026-10-23); an answer's own row stays in its card.
+  return as === 'li' ? (
+    <ListCard label={label}>{body}</ListCard>
+  ) : (
+    <Box sx={{ py: 'xs' }} aria-label={label}>
+      {body}
     </Box>
   );
 }
 
-/** A list inside a panel: rows split by hairlines, padded like the panel's header. */
+/** A list inside a panel: a card per row (Adrian 2026-10-23: cards, not hairlines). */
 function Rows({ label, children }: { label?: string; children: ReactNode }) {
-  return (
-    <Box
-      as="ul"
-      aria-label={label}
-      sx={{ listStyle: 'none', m: 0, p: 0, '& > li': { px: 'md' } }}
-      className="rjb-rows"
-    >
-      {children}
-    </Box>
-  );
+  return <CardList label={label}>{children}</CardList>;
 }
 
 /** An expandable row (HDS Disclosure variant="row") as one list item. */
@@ -430,7 +429,7 @@ function DisclosureItem({
 }) {
   const [open, setOpen] = useRemembered(`apply:${remember}`, false);
   return (
-    <Box as="li" aria-label={label} sx={{ py: 'xs' }}>
+    <ListCard label={label} dense>
       <Disclosure
         variant="row"
         label={label}
@@ -441,7 +440,7 @@ function DisclosureItem({
       >
         {children}
       </Disclosure>
-    </Box>
+    </ListCard>
   );
 }
 
@@ -495,7 +494,7 @@ function ApplyTemplates({ job }: { job: Job }) {
               the row's one action, so there is no chevron (rev-3 review). The whole text is in
               Documents. */}
           {rows.map((r) => (
-            <Box as="li" key={r.id} aria-label={r.label} sx={{ py: 'xs' }}>
+            <ListCard key={r.id} label={r.label}>
               <BlankText
                 preview
                 text={r.text}
@@ -508,7 +507,7 @@ function ApplyTemplates({ job }: { job: Job }) {
                 }
                 action={<CopyButton label={r.label} value={r.text} />}
               />
-            </Box>
+            </ListCard>
           ))}
         </Rows>
       )}
@@ -563,15 +562,10 @@ function ApplicationKit({ job }: { job: Job }) {
             label={`Fill in ${missing.length} more`}
             preview={missing.map((f) => f.label).join(', ')}
           >
-            {/* Nested rows split by hairlines, like the panel's own rows. */}
-            <Box
-              as="ul"
-              aria-label="More fields"
-              sx={{ listStyle: 'none', m: 0, p: 0 }}
-              className="rjb-rows"
-            >
+            {/* Nested cards, like the panel's own rows. */}
+            <CardList label="More fields" inset="none">
               {missing.map((f) => fieldRow(f))}
-            </Box>
+            </CardList>
           </DisclosureItem>
         )}
         {(

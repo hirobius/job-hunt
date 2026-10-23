@@ -5,7 +5,7 @@
 // coming back shows where it is; Cancel stops it and keeps what it watched.
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { Button, InlineLink, Stack, Text, useToast } from '@hirobius/design-system';
-import { PanelRow } from './PipelinePanel';
+import { ListCard } from './PipelinePanel';
 import { probeFetchJson } from './feed/probeFetch';
 import { ADELE, ADELE_CREDIT, adeleNames, watchAdeleBoards, type AdeleRun } from './feed/adele';
 
@@ -102,7 +102,7 @@ export default function AdeleSeed({
           : `${s.state === 'stopped' ? `Stopped after ${s.run.done} of ${s.run.total}. ` : ''}${adeleSummary(s.run)}`;
 
   return (
-    <PanelRow>
+    <ListCard>
       <Stack gap="px8">
         <Stack direction="row" gap="px8" align="center" justify="space-between">
           <Stack gap="px4">
@@ -134,6 +134,6 @@ export default function AdeleSeed({
           {line}
         </Text>
       </Stack>
-    </PanelRow>
+    </ListCard>
   );
 }

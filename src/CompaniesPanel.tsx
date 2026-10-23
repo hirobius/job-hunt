@@ -27,7 +27,7 @@ import {
 import { SavedTargets, type Row } from './OutreachRows';
 import { atsSearchUrl } from './jobsData';
 import { SOURCE_LABEL } from './feed/types';
-import { Panel, PanelBody, PanelRow } from './PipelinePanel';
+import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { useWatching } from './outreachShared';
 import {
   findDesignSystemOrgs,
@@ -70,12 +70,10 @@ import { addFound, loadFound, saveFound } from './feed/foundTeams';
 /** Watched boards read on arrival; the rest wait for "Check open roles". A starter pack can file
  *  a hundred boards, and each read is a whole board. */
 const AUTO_READ = 10;
-/** A panel's hairline list (the rows are PanelRows). */
-const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 /** The company rows reorder as their boards answer (open roles first). The browser's scroll
  *  anchoring would follow a row that moved and drag the page with it, under the user and on the
  *  way back to this page (return paths): it anchors on what is around the list instead. */
-const COMPANY_LIST = { ...LIST, overflowAnchor: 'none' } as const;
+const COMPANY_LIST = { overflowAnchor: 'none' } as const;
 
 type CompanyRow = Row & { boardCheck?: OrgTarget['boardCheck']; watched?: boolean };
 
@@ -377,7 +375,7 @@ export default function CompaniesPanel({
     const careers = atsSearchUrl(`"${r.company}"`, { role: 'careers', where: '', mode: 'any' });
     const watching = isWatching(r.board);
     return (
-      <PanelRow key={r.login}>
+      <ListCard key={r.login}>
         {/* 12 from the row's caption to its open roles (rev-3 mock). Compact density's "xs" is
             2px, so rows use the px steps. */}
         <Stack gap="px12">
@@ -483,7 +481,7 @@ export default function CompaniesPanel({
             </Box>
           )}
         </Stack>
-      </PanelRow>
+      </ListCard>
     );
   };
 
@@ -606,18 +604,18 @@ export default function CompaniesPanel({
           </Stack>
         </PanelBody>
         {shown.length > 0 && (
-          <ul aria-label="Companies" style={COMPANY_LIST}>
+          <CardList label="Companies" style={COMPANY_LIST}>
             {shown.map(companyRow)}
-          </ul>
+          </CardList>
         )}
         {notFound.length > 0 && (
-          <PanelRow as="div">
+          <PanelBody>
             <Disclosure label={`Board not found (${notFound.length})`}>
-              <ul aria-label="Board not found" style={COMPANY_LIST}>
+              <CardList label="Board not found" inset="none" style={COMPANY_LIST}>
                 {notFound.map(companyRow)}
-              </ul>
+              </CardList>
             </Disclosure>
-          </PanelRow>
+          </PanelBody>
         )}
       </Panel>
 
@@ -653,8 +651,8 @@ export default function CompaniesPanel({
   );
 }
 
-// "More ways to find companies" (rev-3 mock): the shared Panel, like Watched, with full-bleed
-// hairline rows, each a title, a caption and an Open button (a 40px target), not bare text links.
+// "More ways to find companies" (rev-3 mock): the shared Panel, like Watched, with a card per way,
+// each a title, a caption and an Open button (a 40px target), not bare text links.
 const MORE_WAYS = [
   {
     title: 'Live postings from job boards',
@@ -671,9 +669,9 @@ const MORE_WAYS = [
 function MoreWays({ children }: { children?: ReactNode }) {
   return (
     <Panel label="More ways to find companies" title="More ways to find companies">
-      <ul style={LIST}>
+      <CardList label="More ways to find companies">
         {MORE_WAYS.map((w) => (
-          <PanelRow key={w.href}>
+          <ListCard key={w.href}>
             <Stack direction="row" gap="px8" align="center" justify="space-between">
               <Stack gap="px4">
                 <Text variant="ui" as="span">
@@ -689,10 +687,10 @@ function MoreWays({ children }: { children?: ReactNode }) {
                 </a>
               </Button>
             </Stack>
-          </PanelRow>
+          </ListCard>
         ))}
         {children}
-      </ul>
+      </CardList>
     </Panel>
   );
 }

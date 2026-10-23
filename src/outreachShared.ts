@@ -13,10 +13,6 @@ export const listStyle = {
   gap: 'var(--primitive-space-3)',
 } as const;
 
-/** A list of companies (#241, Calm list): flat rows split by hairlines (`.rjb-rows` in base.css)
- *  instead of a gap. Pair with `className={ROWS_CLASS}`. */
-export const rowsStyle = { ...listStyle, gap: 0 } as const;
-export const ROWS_CLASS = 'rjb-rows';
 
 /** Hook: what the track already watches and the watch action, shared by both surfaces. */
 export function useWatching(categoryId: string, boardUrls: string[]) {

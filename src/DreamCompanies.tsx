@@ -19,13 +19,12 @@ import {
 import { foldRoles } from './feed/roleType';
 import { keepIncluded, type IncludeRule } from './feed/mustInclude';
 import { SOURCE_LABEL } from './feed/types';
-import { Panel, PanelBody, PanelRow } from './PipelinePanel';
+import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
 import CompanyLogo from './CompanyLogo';
 
 type Checked = { roles: Role[]; fresh: Set<string> } | 'unknown';
 
-const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 export default function DreamCompanies({
@@ -136,7 +135,7 @@ export default function DreamCompanies({
           </Stack>
         </PanelBody>
       )}
-      <ul aria-label="Dream companies" style={LIST}>
+      <CardList label="Dream companies">
         {dreams.map((d) => (
           <DreamRow
             key={d.key}
@@ -148,7 +147,7 @@ export default function DreamCompanies({
             include={include}
           />
         ))}
-      </ul>
+      </CardList>
     </Panel>
   );
 }
@@ -191,7 +190,7 @@ function DreamRow({
       : allChecked;
   const careers = atsSearchUrl(`"${d.company}"`, { role: 'careers', where: '', mode: 'any' });
   return (
-    <PanelRow>
+    <ListCard>
       {/* Compact density's "xs" is 2px: 12 to the roles, 8 between actions. */}
       <Stack gap="px12">
         <Stack direction="row" gap="px8" align="center" justify="space-between" wrap="wrap">
@@ -243,6 +242,6 @@ function DreamRow({
         )}
         {split && <FoldedRoles company={d.company} roles={split.folded} />}
       </Stack>
-    </PanelRow>
+    </ListCard>
   );
 }

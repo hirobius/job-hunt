@@ -202,10 +202,14 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   menus and a quiet **Clear filters** when non-default; phone rows are HDS entity cards (`Card.Header`
   metadata = badge row above the title, fit first, then status, then Follow-up due; `Card.Facts` with
   location and applied date; `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
-  margins. Elsewhere still no card patterns: the Documents
-  list, company lists (`rowsStyle` + `.rjb-rows` hairlines) and the loading skeletons are flat rows
-  on the page. Cards stay only where they hold a form or a choice (job Details, Onboarding picks).
-  Pinned in `src/calmLayout.test.tsx`.
+  margins. **Lists are cards, not hairlines (Adrian changed it on 2026-10-23):** the Companies list
+  and its inline roles, dream companies, saved targets, More ways to find companies, Live postings'
+  Openings, the Pipeline's phone jobs, the Apply sheet's Templates, the Application kit, the
+  Documents library and the interview log are `PipelinePanel` `CardList` (8 apart, `.rjb-cards`) of
+  `ListCard` (an HDS `Card`, `.rjb-card-inset`: the page fill so it reads on the raised panel; a card
+  inside one goes back to raised). `.rjb-rows` and `rowsStyle` are gone. Desktop tables stay tables;
+  panel rows that are not lists of things (Getting started, Follow up, Next 7 days, to-dos) keep
+  their hairlines. Pinned in `src/calmLayout.test.tsx`.
 - **Today is gone (Calm list 2/7, #236):** `#/today` redirects to Companies (`navigate(…, true)`,
   so Back skips it); `TodayView`, `TodayNotice` and `rjb_ui_today_home_seen` are deleted. Its lists
   live at the top of the Pipeline (`ApplyQueueSummary` → `PipelineAgenda.tsx`): under To apply, one

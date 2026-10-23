@@ -3,7 +3,7 @@
 // rows (Panel rows: CompaniesPanel puts them in an "Outreach targets" panel once one is saved).
 import type { ReactNode } from 'react';
 import { Badge, Button, InlineLink, Stack, Text } from '@hirobius/design-system';
-import { PanelRow } from './PipelinePanel';
+import { CardList, ListCard } from './PipelinePanel';
 import { atsSearchUrl } from './jobsData';
 import type { Board } from './feed/sources/ats';
 import { readTargets, removeTarget, restoreTarget, useTargets, type Target } from './feed/targets';
@@ -52,7 +52,7 @@ export function TargetRow({
 }) {
   const careers = atsSearchUrl(`"${r.company}"`, { role: 'careers', where: '', mode: 'any' });
   return (
-    <PanelRow>
+    <ListCard>
       {/* Compact density's "xs" is 2px: rows use the px steps (8 between actions, 12 to roles). */}
       <Stack gap="px12">
         <Stack direction="row" gap="px8" align="center" justify="space-between" wrap="wrap">
@@ -133,11 +133,9 @@ export function TargetRow({
         </Stack>
         {children}
       </Stack>
-    </PanelRow>
+    </ListCard>
   );
 }
-
-const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 
 /** Remove a saved target (#212): its row collapses, then it goes, and a notice offers Undo, which
  *  puts it back in its place with its first save time. */
@@ -152,7 +150,7 @@ function removeWithUndo(categoryId: string, t: Target, from: Element) {
   });
 }
 
-/** The saved targets of a track, as a panel's hairline rows (the caller shows them only when there
+/** The saved targets of a track, as a panel's cards (the caller shows them only when there
  *  is at least one). */
 export function SavedTargets({
   categoryId,
@@ -164,7 +162,7 @@ export function SavedTargets({
   const targets = useTargets(categoryId);
   const { isWatching, watch } = useWatching(categoryId, boardUrls);
   return (
-    <ul aria-label="Saved targets" style={LIST}>
+    <CardList label="Saved targets">
       {targets.map((t) => (
         <TargetRow
           key={t.login}
@@ -175,6 +173,6 @@ export function SavedTargets({
           onWatch={watch}
         />
       ))}
-    </ul>
+    </CardList>
   );
 }
