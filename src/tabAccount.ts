@@ -55,14 +55,23 @@ const guarded = (key: string) => key.startsWith('rjb_') && key !== 'rjb_color_mo
 
 /** Stop this tab for good (until reload). A sign-out elsewhere still lets this tab keep its edits
  *  in shared storage: that sign-out wiped the sync base, so the next sign-in (any account) asks
- *  before taking them (the merge guard, #169). Another account signed in elsewhere has passed that
- *  guard already, so from then on this tab's edits stay in this tab: a sign-out freeze becomes a
- *  switch freeze when a session for someone else turns up. */
+ *  before taking them (the merge guard, #169). A sign-in elsewhere after that has passed the guard
+ *  already, so from then on this tab's edits stay in this tab (`sessionWhileFrozen`). */
 export function freezeTab(why: FrozenReason): void {
   if (frozen === why || frozen === 'switched') return;
   frozen = why;
   if (why === 'switched') guardStorage();
   listeners.forEach((l) => l(why));
+}
+
+/** A session turned up in another tab while this one is stopped. Someone else's: a switch. This
+ *  tab's own account again: that tab has stored the cloud copy and the sync base, and this tab's
+ *  copy is older, so written to shared storage it would make the next load read what that tab
+ *  pulled as removed here, and remove it from the cloud. Either way this tab's edits now stay here. */
+export function sessionWhileFrozen(uid: string): void {
+  if (frozen === null) return;
+  if (uid !== owner) freezeTab('switched');
+  else guardStorage();
 }
 
 // Edits made here from now on must not reach shared storage: the other tab (or this one, after

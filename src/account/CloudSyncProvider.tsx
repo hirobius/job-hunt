@@ -36,6 +36,8 @@ import {
   onTabFrozen,
   sessionChange,
   setTabAccount,
+  sessionWhileFrozen,
+  storedSessionUser,
   tabAccount,
   tabFrozen,
 } from '../tabAccount';
@@ -273,10 +275,10 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       const { data } = supa.auth.onAuthStateChange((event, session) => {
         const u = session?.user ?? null;
         setAuthResolved(true);
-        // Until the reload, this tab follows no one (#288); someone else signing in elsewhere
-        // after a sign-out there keeps this tab's edits out of shared storage too.
+        // Until the reload, this tab follows no one (#288); anyone signing in elsewhere after a
+        // sign-out there, this tab's own account too, keeps this tab's edits out of shared storage.
         if (tabFrozen()) {
-          if (u && u.id !== tabAccount()) freezeTab('switched');
+          if (u) sessionWhileFrozen(u.id);
           return;
         }
         // Another tab signed out, or in as someone else (supabase-js relays its sign-in here): this
@@ -343,12 +345,16 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }
     // Another tab changed the stored session. Signed in here: a different account (or none) stops
     // this tab before its next sync (#288); the same account (a token refresh) changes nothing.
+    // Stopped here: any sign-in keeps this tab's edits out of shared storage (sessionWhileFrozen).
     // Signed out here: load the client so this tab follows the sign-in through the whole path.
     const onStorage = (e: StorageEvent) => {
       if (!isAuthKey(e.key)) return;
       const why = sessionChange(e.newValue);
+      const uid = storedSessionUser(e.newValue);
       if (why) freezeTab(why);
-      else if (e.newValue && !tabFrozen()) void loadSupabase().catch(() => {});
+      else if (tabFrozen()) {
+        if (uid) sessionWhileFrozen(uid);
+      } else if (e.newValue) void loadSupabase().catch(() => {});
     };
     window.addEventListener('storage', onStorage);
     return () => {
@@ -457,6 +463,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }
     // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
     if (getPending().length > 0 && !window.confirm(UNSYNCED_SIGN_OUT)) return;
+    // Another tab may have signed in as someone else meanwhile (the flush or a confirm found it):
+    // the shared session is that tab's now, and signing it out would sign that account out.
+    if (tabFrozen() || (user && !(await sessionIsStill(user)))) return location.reload();
     setTabAccount(null); // this tab's own sign-out: not a change made in another tab
     handled.current = null;
     await (await loadSupabase()).auth.signOut();
@@ -473,6 +482,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       )
     )
       return;
+    // The confirm may have stayed open while another tab switched account (#288): then the
+    // deletes would run under that account's session, and the sign-out below would end it.
+    if (!(await sessionIsStill(user))) return;
     setMsg('Deleting…');
     // Erase curated content (child → parent) plus the sync blob. RLS scopes each delete to this
     // user; the FK cascade would cover the children, but we delete them explicitly so erasure
@@ -480,6 +492,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     const failed: string[] = [];
     const supa = await loadSupabase();
     for (const table of DELETE_ORDER) {
+      if (!(await sessionIsStill(user))) return; // the freeze notice says why; local copy kept
       try {
         const r = await supa.from(table).delete().eq('user_id', user.id);
         if (r.error) failed.push(table);

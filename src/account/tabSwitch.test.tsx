@@ -19,7 +19,7 @@ vi.mock('@supabase/supabase-js', async () => {
   };
 });
 
-import { renderAccount, addDeviceDataIfAsked } from '../test/renderAccount';
+import { renderAccount, addDeviceDataIfAsked, chooseAccountItem } from '../test/renderAccount';
 import { addCategory, getCurationState, replaceCurationState } from '../curation/curationStore';
 import { addJob, getAllJobs, removeJob } from '../store';
 import { TAB_SIGNED_OUT, TAB_SWITCHED } from '../cloudMessages';
@@ -101,6 +101,7 @@ afterEach(() => {
     .forEach((j) => removeJob(j.url));
   localStorage.removeItem(AUTH_KEY);
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('an account switch in another tab (#288)', () => {
@@ -165,5 +166,73 @@ describe('an account switch in another tab (#288)', () => {
       expect(trackerUrls('x')).toEqual(['https://x.example/jobs/1', 'https://x.example/jobs/2']),
     );
     await waitFor(() => expect(rowsFor('categories', 'x')).toHaveLength(2));
+  });
+
+  it.each([
+    ['relayed by the auth broadcast and the storage event', { relay: true, storage: true }],
+    ['seen only as a storage event', { relay: false, storage: true }],
+    ['seen only as the auth broadcast', { relay: true, storage: false }],
+  ])(
+    'the same account signing in again elsewhere keeps tab A out of shared storage too (%s)',
+    async (_how, opts) => {
+      await tabASignedInAsX();
+      tabB(null, opts);
+      // X signs in again in another tab, which pulls the cloud copy (a job added on the phone) and
+      // stores it along with X's sync base. Tab A's copy predates that job: writing it to shared
+      // storage would make the next load read the phone's job as removed here, and remove it.
+      const phone = JSON.stringify([
+        { url: 'https://x.example/jobs/1', label: 'Before', status: 'Saved' },
+        { url: 'https://x.example/jobs/phone', label: 'From the phone', status: 'Saved' },
+      ]);
+      localStorage.setItem('rjb_shortlist', phone);
+      tabB('x', opts);
+      act(() => {
+        addJob('https://x.example/jobs/later', 'Later in tab A');
+      });
+      expect(localStorage.getItem('rjb_shortlist')).toBe(phone);
+      expect(tabFrozen()).not.toBeNull();
+    },
+  );
+
+  /** Tab A's own sign-out and reload, watched: tab B's account must stay signed in. */
+  function watchSignOut() {
+    const signOut = vi.spyOn(fake().client.auth, 'signOut');
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
+    return { signOut, reload };
+  }
+
+  it('Delete my data confirmed after tab B switched to Y deletes nothing and keeps Y signed in', async () => {
+    await tabASignedInAsX();
+    const { signOut, reload } = watchSignOut();
+    // The person leaves the confirm open, switches account in tab B, comes back and says OK.
+    vi.spyOn(window, 'confirm').mockImplementation(() => {
+      tabB('y');
+      return true;
+    });
+    await chooseAccountItem('Delete my data');
+    await settle();
+    expect(signOut).not.toHaveBeenCalled();
+    expect(trackerUrls('x')).toEqual(['https://x.example/jobs/1']);
+    expect(rowsFor('categories', 'x')).toHaveLength(1);
+    expect(rowsFor('tracker', 'y')).toEqual([{ user_id: 'y', data: { v: 10, jobs: [] } }]);
+    expect(reload).not.toHaveBeenCalled();
+    expect(await screen.findByText(TAB_SWITCHED)).toBeInTheDocument();
+  });
+
+  it('Sign out after tab B switched to Y, unheard until the flush, reloads without signing Y out', async () => {
+    await tabASignedInAsX();
+    const { signOut, reload } = watchSignOut();
+    act(() => {
+      addJob('https://x.example/jobs/2', 'Not sent yet');
+    });
+    tabB('y', { relay: false, storage: false });
+    vi.spyOn(window, 'confirm').mockReturnValue(true); // sign out with unsynced changes: yes
+    await chooseAccountItem('Sign out');
+    await settle();
+    expect(signOut).not.toHaveBeenCalled();
+    expect(trackerUrls('y')).toEqual([]);
+    expect(tabFrozen()).toBe('switched');
+    expect(reload).toHaveBeenCalled();
   });
 });
