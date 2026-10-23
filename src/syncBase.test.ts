@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { emptyBlob, mergeBlob, type SyncData } from './syncBlob';
-import { keysOf, readSyncBase, writeSyncBase } from './syncBase';
+import {
+  hashEntry,
+  hashesOf,
+  keysOf,
+  readSyncBase,
+  readSyncHashes,
+  writeSyncBase,
+} from './syncBase';
 import type { Job } from './types';
 
 const job = (url: string): Job => ({ url, label: url, status: 'Saved' });
@@ -165,5 +172,86 @@ describe('the stored sync base', () => {
     expect(readSyncBase('u1')).toBeNull();
     localStorage.setItem('rjb_sync_base', '{bad');
     expect(readSyncBase('u1')).toBeNull();
+  });
+});
+
+describe('seed merge with entry hashes (audit 2026-10-23: an unpushed edit is not reverted)', () => {
+  const synced = blob({
+    sourceV: 10,
+    jobs: [job(u('a')), job(u('b'))],
+    evidence: 'old evidence',
+    modes: { t1: 'remote' },
+    kit: { fields: { name: 'Sam', phone: '555' }, answers: [answer('q1')] },
+  });
+  const merge = (cloud: SyncData, local: SyncData) =>
+    mergeBlob(cloud, local, true, keysOf(synced), hashesOf(synced));
+  const notes = (d: SyncData, s: string) => d.jobs.find((j) => j.url === u(s))?.notes;
+
+  it("this device's edit wins over a cloud copy that did not change the entry", () => {
+    const local = { ...synced, jobs: [{ ...job(u('a')), notes: 'mine' }, job(u('b'))] };
+    expect(notes(merge(synced, local), 'a')).toBe('mine');
+  });
+
+  it("the cloud's edit wins over an entry this device left alone", () => {
+    const cloud = { ...synced, jobs: [job(u('a')), { ...job(u('b')), notes: 'theirs' }] };
+    const local = { ...synced, jobs: [{ ...job(u('a')), notes: 'mine' }, job(u('b'))] };
+    const out = merge(cloud, local);
+    expect(notes(out, 'a')).toBe('mine');
+    expect(notes(out, 'b')).toBe('theirs');
+  });
+
+  it("both changed the same entry: the store's own rule stands (cloud first)", () => {
+    const cloud = { ...synced, jobs: [{ ...job(u('a')), notes: 'theirs' }, job(u('b'))] };
+    const local = { ...synced, jobs: [{ ...job(u('a')), notes: 'mine' }, job(u('b'))] };
+    expect(notes(merge(cloud, local), 'a')).toBe('theirs');
+  });
+
+  it('kit fields, evidence and work modes keep the side that changed them, a cleared one too', () => {
+    const local = {
+      ...synced,
+      evidence: 'new evidence',
+      kit: { ...synced.kit, fields: { name: 'Sam Lee' } }, // phone cleared here
+    };
+    const cloud = { ...synced, modes: { t1: 'onsite' as const } };
+    const out = merge(cloud, local);
+    expect(out.kit.fields).toEqual({ name: 'Sam Lee' });
+    expect(out.evidence).toBe('new evidence'); // not both texts joined
+    expect(out.modes).toEqual({ t1: 'onsite' });
+  });
+
+  it('must include (v11) keeps an unpushed edit here and a change made there', () => {
+    const was = { terms: ['systems'], atsOff: [] };
+    const base = { ...synced, sourceV: 11, mustInclude: { t1: was, t2: was } };
+    const mine = { terms: ['systems', 'tokens'], atsOff: [] };
+    const theirs = { terms: [], atsOff: ['r1'] };
+    const local = { ...base, mustInclude: { t1: mine, t2: was } };
+    const cloud = { ...base, mustInclude: { t1: was, t2: theirs } };
+    const out = mergeBlob(cloud, local, true, keysOf(base), hashesOf(base));
+    expect(out.mustInclude).toEqual({ t1: mine, t2: theirs });
+  });
+
+  it('deletes still win: an entry removed on either side stays removed', () => {
+    const cloud = { ...synced, jobs: [job(u('a'))] };
+    const local = { ...synced, jobs: [{ ...job(u('a')), notes: 'mine' }, job(u('b'))] };
+    expect(urls(merge(cloud, local))).toEqual([u('a')]);
+    const goneHere = { ...synced, jobs: [job(u('b'))] };
+    const editedThere = { ...synced, jobs: [{ ...job(u('a')), notes: 'x' }, job(u('b'))] };
+    expect(urls(merge(editedThere, goneHere))).toEqual([u('b')]);
+  });
+
+  it('a base without hashes (written before them) merges as before', () => {
+    const local = { ...synced, jobs: [{ ...job(u('a')), notes: 'mine' }, job(u('b'))] };
+    expect(notes(mergeBlob(synced, local, true, keysOf(synced), null), 'a')).toBeUndefined();
+  });
+
+  it('hashes ignore key order and keep across a write and read', () => {
+    expect(hashEntry({ a: 1, b: 2 })).toBe(hashEntry({ b: 2, a: 1 }));
+    expect(hashEntry({ a: 1 })).not.toBe(hashEntry({ a: 2 }));
+    expect(hashEntry('')).toBe('');
+    writeSyncBase('u1', keysOf(synced), hashesOf(synced));
+    expect(readSyncHashes('u1')).toEqual(hashesOf(synced));
+    expect(readSyncHashes('u2')).toBeNull();
+    writeSyncBase('u1', keysOf(synced));
+    expect(readSyncHashes('u1')).toBeNull();
   });
 });

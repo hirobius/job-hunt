@@ -33,7 +33,7 @@ import type { WorkMode } from './jobsData';
 import type { Job } from './types';
 import { isSample, withoutSample } from './demo/isSample';
 import { mergeTrash, sanitizeTrash, type Removed } from './trash';
-import { withoutDeleted, type SyncKeys } from './syncBase';
+import { withEdits, withoutDeleted, type SyncHashes, type SyncKeys } from './syncBase';
 import { carries, FIELD_SINCE, type VersionedField } from './blobFields';
 import {
   mergeDocuments,
@@ -157,13 +157,16 @@ export function writeBlob(d: SyncData) {
 /** Resolve cloud vs local into the blob to adopt.
  *  - seed (sign-in, incl. every page load with a session): merge each field, so nothing on this
  *    device is lost. With this device's sync `base` (#219) an entry deleted on either side since
- *    the last sync stays deleted; without one it is the plain union.
+ *    the last sync stays deleted; without one it is the plain union. With the base's entry
+ *    `hashes`, an entry changed on one side only keeps that side's change (withEdits): an edit
+ *    not yet pushed is not reverted by the cloud's older copy.
  *  - refresh (focus re-pull): cloud is the source of truth if present, else keep local. */
 export function mergeBlob(
   cloud: SyncData | null,
   local: SyncData,
   seed: boolean,
   base: SyncKeys | null = null,
+  hashes: SyncHashes | null = null,
 ): SyncData {
   if (!cloud) return seed ? { ...local, legacyUserTiles: [] } : local;
   if (!seed) {
@@ -195,7 +198,8 @@ export function mergeBlob(
     mustInclude: mergeMustInclude(cloud.mustInclude, local.mustInclude),
     sourceV: cloud.sourceV,
   };
-  const merged = base ? withoutDeleted(union, cloud, local, base) : union;
+  const kept = base ? withoutDeleted(union, cloud, local, base) : union;
+  const merged = base && hashes ? withEdits(kept, cloud, local, hashes) : kept;
   // A job saved on either side is not also listed as removed.
   const saved = new Set(merged.jobs.map((j) => dedupKey(j.url)));
   return { ...merged, trash: merged.trash.filter((r) => !saved.has(dedupKey(r.job.url))) };
