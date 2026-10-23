@@ -27,7 +27,7 @@ import {
   BLOB_VERSION,
   type SyncData,
 } from '../syncBlob';
-import { keysOf, readSyncBase, writeSyncBase } from '../syncBase';
+import { hashesOf, keysOf, readSyncBase, readSyncHashes, writeSyncBase } from '../syncBase';
 import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sync';
 import { getCurationState } from '../curation/curationStore';
 import {
@@ -79,6 +79,20 @@ import { LinkConfirmDialog, MergeConfirmDialog } from './AuthGuards';
 
 const BAD_LINK_MSG = 'That sign-in link could not be used. Send a new one from Account.';
 
+/** The cloud row as this tab last read or wrote it: whether there is one, and its stamp. */
+type RowStamp = { row: boolean; at: string | null };
+/** How many times a push merges a newer cloud copy in and sends again before it gives up. */
+const PUSH_TRIES = 3;
+/** A stamp after `at`, even when this device's clock is behind the one that wrote it. */
+function nextStamp(at: string | null): string {
+  const last = at ? Date.parse(at) : NaN;
+  return new Date(Number.isNaN(last) ? Date.now() : Math.max(Date.now(), last + 1)).toISOString();
+}
+/** What the cloud holds, as the base the next merge compares against (#219, entry hashes). */
+function rememberBase(uid: string, d: SyncData) {
+  writeSyncBase(uid, keysOf(d), hashesOf(d));
+}
+
 // Wipe this device's app data (keeps the color-mode preference). Used on sign-out and
 // delete so a shared browser can't carry one person's jobs/pillars/résumé to the next.
 function clearLocalData() {
@@ -125,6 +139,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // this device's local-only jobs after a failed first pull.
   const seedPending = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // The cloud row's stamp as of this tab's last pull or push (null until a pull lands). A push
+  // only writes over that version: another device's newer save is merged in first, never wiped.
+  const known = useRef<RowStamp | null>(null);
   // A sign-in link nobody asked for in this browser, waiting on "Sign in as x@y.com?".
   const [linkAsk, setLinkAsk] = useState<{ email: string; tokens: AuthTokens } | null>(null);
   // An account this device never synced with, while it holds data: "Add this device's N jobs?".
@@ -172,39 +189,123 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     return false;
   }
 
-  async function pull(uid: string): Promise<SyncData | null> {
+  async function pull(uid: string): Promise<{ blob: SyncData | null; stamp: RowStamp }> {
     const supa = await loadSupabase();
-    const r = await supa.from('tracker').select('data').eq('user_id', uid).maybeSingle();
+    const r = await supa
+      .from('tracker')
+      .select('data, updated_at')
+      .eq('user_id', uid)
+      .maybeSingle();
     if (r.error) throw new Error(r.error.message);
-    return r.data ? readBlob(r.data.data) : null;
+    if (!r.data) return { blob: null, stamp: { row: false, at: null } };
+    return {
+      blob: readBlob(r.data.data),
+      stamp: { row: true, at: (r.data.updated_at as string | null) ?? null },
+    };
+  }
+  // Write the row only over the version this tab last saw (optimistic concurrency): a conditional
+  // update on its stamp, or an insert when there was no row. Postgres re-checks the condition
+  // under the row lock, so two devices sending at once can't both win. 'conflict' = another
+  // device wrote first.
+  async function writeRow(uid: string, data: unknown): Promise<'ok' | 'conflict' | 'fail'> {
+    const was = known.current;
+    if (!was) return 'fail';
+    const supa = await loadSupabase();
+    const updated_at = nextStamp(was.at);
+    let rows: { updated_at?: string | null }[] | null;
+    if (!was.row) {
+      const r = await supa
+        .from('tracker')
+        .insert({ user_id: uid, data, updated_at })
+        .select('updated_at');
+      if (r.error) return r.error.code === '23505' ? 'conflict' : 'fail';
+      rows = r.data;
+    } else {
+      const q = supa.from('tracker').update({ data, updated_at }).eq('user_id', uid);
+      const r = await (
+        was.at === null ? q.is('updated_at', null) : q.eq('updated_at', was.at)
+      ).select('updated_at');
+      if (r.error) return 'fail';
+      if (!r.data?.length) return 'conflict';
+      rows = r.data;
+    }
+    known.current = { row: true, at: rows?.[0]?.updated_at ?? updated_at };
+    return 'ok';
   }
   // Returns whether the cloud took it. `lastSynced` moves only on success, so a failed push
-  // stays "dirty": the next refresh and sign-out both retry it.
+  // stays "dirty": the next refresh and sign-out both retry it. When another device saved since
+  // this tab's last read, its copy is merged in (three-way, against the base) and sent again.
   async function pushNow(u: User): Promise<boolean> {
     if (!pulledOk.current || handled.current !== u.id || tabFrozen()) return false;
-    const sent = localJson();
-    const data = writeBlob(localBlob());
-    let ok: boolean;
-    try {
-      if (!(await sessionIsStill(u))) return false;
-      const supa = await loadSupabase();
-      const r = await supa.from('tracker').upsert({
-        user_id: u.id,
-        data,
-        updated_at: new Date().toISOString(),
-      });
-      ok = !r.error;
-    } catch {
-      ok = false;
-    }
-    if (ok) {
-      lastSynced.current = sent;
-      writeSyncBase(u.id, keysOf(readBlob(data))); // what the cloud now holds (#219)
+    let ok = false;
+    for (let i = 0; i < PUSH_TRIES && !ok; i++) {
+      const sent = localJson();
+      const data = writeBlob(localBlob());
+      let r: 'ok' | 'conflict' | 'fail';
+      try {
+        if (!(await sessionIsStill(u))) return false;
+        r = await writeRow(u.id, data);
+      } catch {
+        r = 'fail';
+      }
+      if (r === 'ok') {
+        ok = true;
+        lastSynced.current = sent;
+        rememberBase(u.id, readBlob(data)); // what the cloud now holds (#219)
+      } else if (r === 'fail') break;
+      else {
+        try {
+          if (!(await mergeIn(u, true))) return false;
+        } catch {
+          break;
+        }
+      }
     }
     if (!tabFrozen()) setMsg(ok ? `Synced · ${u.email}` : OFFLINE_MSG); // else the notice stays
     return ok;
   }
   const dirty = () => localJson() !== lastSynced.current;
+
+  function applyBlob(next: SyncData) {
+    replaceAll(next.jobs);
+    replaceSnippets(next.copydeck);
+    replaceTriage(next.triage);
+    replaceTargets(next.targets);
+    replaceFilters(next.filters);
+    replaceEvidence(next.evidence);
+    replaceModes(next.modes);
+    replaceApplyKit(next.kit);
+    replaceSweeps(next.sweeps);
+    replaceTrash(next.trash);
+    replaceDreams(next.dreams);
+    replaceDocuments(next.documents);
+  }
+
+  // Pull the cloud copy and merge it into this device's stores. `both` (a sign-in, or a push the
+  // cloud turned down) merges both sides; else the cloud copy is the truth, unless an edit landed
+  // here while the pull was out: then both sides merge too, so the edit is not replaced (audit 3).
+  // Returns null when the account changed meanwhile; `merged` says whether both sides merged.
+  async function mergeIn(
+    u: User,
+    both: boolean,
+  ): Promise<{ next: SyncData; merged: boolean } | null> {
+    if (!(await sessionIsStill(u))) return null;
+    const { blob: cloud, stamp } = await pull(u.id);
+    // Signed out (or another account, here or in another tab) while it pulled.
+    if (handled.current !== u.id || !(await sessionIsStill(u))) return null;
+    const merged = both || (pulledOk.current && dirty());
+    const local = localBlob();
+    const next = mergeBlob(cloud, local, merged, readSyncBase(u.id), readSyncHashes(u.id));
+    rememberBase(u.id, cloud ?? emptyBlob());
+    known.current = stamp;
+    // A merge that keeps both evidence texts can pass the cap: say so, don't cut silently.
+    if (merged && cloud && evidenceMergeOverflows(cloud.evidence, local.evidence))
+      toast({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });
+    applyBlob(next);
+    // Record what we just adopted so the resulting store changes don't echo a push.
+    lastSynced.current = localJson();
+    return { next, merged };
+  }
   async function adopt(seed: boolean, u: User) {
     // Not through the sign-in path (the merge question is open), or stopped by another tab (#288).
     if (handled.current !== u.id || tabFrozen()) return;
@@ -213,30 +314,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     try {
       // Unsent local edits (a failed push) must go up before a pull would replace them.
       if (!seed && pulledOk.current && dirty() && !(await pushNow(u))) return;
-      if (!(await sessionIsStill(u))) return;
-      const cloud = await pull(u.id);
-      // Signed out (or another account, here or in another tab) while it pulled.
-      if (handled.current !== u.id || !(await sessionIsStill(u))) return;
-      const local = localBlob();
-      const next = mergeBlob(cloud, local, seed, readSyncBase(u.id));
-      writeSyncBase(u.id, keysOf(cloud ?? emptyBlob()));
-      // A first-sign-in merge that keeps both evidence texts can pass the cap: say so, don't cut silently.
-      if (seed && cloud && evidenceMergeOverflows(cloud.evidence, local.evidence))
-        toast({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });
-      replaceAll(next.jobs);
-      replaceSnippets(next.copydeck);
-      replaceTriage(next.triage);
-      replaceTargets(next.targets);
-      replaceFilters(next.filters);
-      replaceEvidence(next.evidence);
-      replaceModes(next.modes);
-      replaceApplyKit(next.kit);
-      replaceSweeps(next.sweeps);
-      replaceTrash(next.trash);
-      replaceDreams(next.dreams);
-      replaceDocuments(next.documents);
-      // Record what we just adopted so the resulting store changes don't echo a push.
-      lastSynced.current = localJson();
+      const got = await mergeIn(u, seed);
+      if (!got) return;
+      const { next, merged } = got;
       pulledOk.current = true;
       if (seed) seedPending.current = false;
       // Tracks live in their own tables: pull + reconcile + upload what's new here (#99).
@@ -250,7 +330,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         curationOk = await syncOnLogin(u.id);
       }
       // An older cloud copy lacks the newer fields (an old tab rewrote it): re-upload them now.
-      if (seed || next.legacyUserTiles.length || next.sourceV < BLOB_VERSION) await pushNow(u);
+      if (merged || next.legacyUserTiles.length || next.sourceV < BLOB_VERSION) await pushNow(u);
       if (tabFrozen()) return; // the notice stays in the menu (#288)
       if (!curationOk) setMsg(OFFLINE_MSG);
       else if (!seed) setMsg(`Synced · ${u.email}`);
@@ -304,6 +384,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
         // Opened from the magic link: back to the page the link was asked for on (return paths).
         if (event === 'SIGNED_IN') returnAfterSignIn();
         pulledOk.current = false; // new sign-in or sign-out: the next pull must land before any push
+        known.current = null;
         seedPending.current = !!u; // a sign-in owes a seed merge; sign-out or a user change resets it
         if (!u) {
           mergeHeld.current = null;

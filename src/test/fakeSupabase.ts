@@ -1,12 +1,14 @@
 // An in-memory stand-in for the slice of supabase-js the app uses: from(table).select/eq/
-// maybeSingle/upsert/delete + a minimal auth. Rows are keyed by `id` (or `user_id` for tracker).
-// `failNext(table, op)` makes the next matching call resolve `{ error }` — supabase-js reports
-// RLS / network failures that way rather than throwing. `createClient` calls are counted.
+// maybeSingle/upsert/insert/update/delete + a minimal auth. Rows are keyed by `id` (or `user_id`
+// for tracker). `failNext(table, op)` makes the next matching call resolve `{ error }` —
+// supabase-js reports RLS / network failures that way rather than throwing; 'upsert' stands for
+// any row write (upsert, insert or update). `createClient` calls are counted.
 import { tokenEmail } from '../account/authLink';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- rows are loosely typed test data
 type Row = Record<string, any>;
 type Op = 'select' | 'upsert' | 'delete';
+const WRITES = ['upsert', 'insert', 'update'];
 type Result = { data: unknown; error: { message: string } | null };
 
 /**
@@ -25,16 +27,20 @@ export function createFakeSupabase(
   const failures: { table: string; op: Op }[] = [];
   // `holdNext` parks the next matching write until its release() is called (an in-flight write).
   const holds: { table: string; op: Op; gate: Promise<void> }[] = [];
-  const held = async (table: string, op: Op) => {
-    const i = holds.findIndex((h) => h.table === table && h.op === op);
+  const held = async (table: string, op: Op | 'insert' | 'update') => {
+    const i = holds.findIndex(
+      (h) => h.table === table && (h.op === op || (h.op === 'upsert' && WRITES.includes(op))),
+    );
     if (i < 0) return;
     const [h] = holds.splice(i, 1);
     await h.gate;
   };
   const keyOf = (table: string, r: Row) => String(table === 'tracker' ? r.user_id : r.id);
   const rows = (t: string) => (tables[t] ??= []);
-  const fail = (table: string, op: Op): Result | null => {
-    const i = failures.findIndex((f) => f.table === table && f.op === op);
+  const fail = (table: string, op: Op | 'insert' | 'update'): Result | null => {
+    const i = failures.findIndex(
+      (f) => f.table === table && (f.op === op || (f.op === 'upsert' && WRITES.includes(op))),
+    );
     if (i < 0) return null;
     failures.splice(i, 1);
     return { data: null, error: { message: `${op} ${table} failed` } };
@@ -59,6 +65,7 @@ export function createFakeSupabase(
               return q;
             },
             async maybeSingle(): Promise<Result> {
+              await held(table, 'select');
               const r = run();
               return r.error ? r : { data: (r.data as Row[])[0] ?? null, error: null };
             },
@@ -79,6 +86,48 @@ export function createFakeSupabase(
             else t.push({ ...r });
           }
           return { data: null, error: null };
+        },
+        /** Resolves `{ error: { code: '23505' } }` when the key is taken, as Postgres does. */
+        insert(input: Row) {
+          const go = async (): Promise<
+            Result & { error: { message: string; code?: string } | null }
+          > => {
+            await held(table, 'insert');
+            const f = fail(table, 'insert');
+            if (f) return f;
+            if (rows(table).some((x) => keyOf(table, x) === keyOf(table, input)))
+              return { data: null, error: { message: 'duplicate key', code: '23505' } };
+            rows(table).push({ ...input });
+            return { data: [{ ...input }], error: null };
+          };
+          return { select: () => go(), then: <T>(ok: (r: Result) => T) => go().then(ok) };
+        },
+        /** update(patch).eq(k, v).is(k, null)….select(): the rows it changed. */
+        update(patch: Row) {
+          const filters: [string, unknown][] = [];
+          const go = async (): Promise<Result> => {
+            await held(table, 'update');
+            const f = fail(table, 'update');
+            if (f) return f;
+            const hit = rows(table).filter((r) =>
+              filters.every(([k, v]) => (v === null ? r[k] == null : r[k] === v)),
+            );
+            hit.forEach((r) => Object.assign(r, structuredClone(patch)));
+            return { data: hit.map((r) => ({ ...r })), error: null };
+          };
+          const q = {
+            eq(k: string, v: unknown) {
+              filters.push([k, v]);
+              return q;
+            },
+            is(k: string, v: null) {
+              filters.push([k, v]);
+              return q;
+            },
+            select: () => go(),
+            then: <T>(ok: (r: Result) => T) => go().then(ok),
+          };
+          return q;
         },
         delete() {
           return {

@@ -108,3 +108,28 @@ shared with the refresh merge). Known limits: a delete beats an edit made elsewh
 entry; re-adding on a stale device the very same entry another device deleted (same job URL, same
 answer id) loses the re-add; and the base is written after a pull even if this device then fails
 to store the merged copy, so a later load can treat entries it never stored as deleted here.
+
+## Addendum (2026-10-23): no blind push, no cloud-wins over an unpushed edit (data-safety audit)
+
+Three ways an edit was lost: a push overwrote the cloud row without looking (another device's
+newer save was wiped), the seed merge on load let the cloud win on an entry both sides had (an edit
+not yet pushed, from a reload inside the 500 ms debounce or offline, was reverted), and a focus
+re-pull replaced the stores (an edit made while it was in flight was lost).
+
+- **Optimistic concurrency.** The tab keeps the cloud row's `updated_at` from its last pull or
+  push. A push is a conditional `update … where user_id = me and updated_at = known` (an `insert`
+  when there was no row; a duplicate key is a conflict). Postgres re-checks the condition under the
+  row lock, so two devices can't both win. On a conflict the tab pulls, merges three-way, and sends
+  again (up to 3 times). The stamp is client-written but always moves forward (`max(now, known +
+  1 ms)`). No schema change, no RPC: the column and the RLS update policy already exist.
+- **Entry hashes in the sync base.** `rjb_sync_base` also keeps a short hash (cyrb53 of canonical
+  JSON) of each entry as the cloud held it: jobs, Recently removed, snippets, kit answers, kit
+  fields and letter picks, targets, saved searches, dream companies, Documents, work modes, sweeps
+  and the evidence text. In the seed merge an entry changed on one side only keeps that side's
+  change; changed on both, each store's own rule stands (cloud first), as before. Deletes are still
+  `withoutDeleted`'s, so a delete still beats an edit made elsewhere. A base written before hashes
+  merges as before until the next sync writes them. Device-local, never synced.
+- **Re-pull race.** A refresh that finds this device dirty after its pull merges both sides
+  (seed rules, with the base) and pushes, instead of adopting the cloud copy.
+
+The blob format is unchanged (no version bump).
