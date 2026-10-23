@@ -63,6 +63,7 @@ import DreamCompanies from './DreamCompanies';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
 import { useRoleTypes } from './feed/roleTypePref';
 import CompanyLogo from './CompanyLogo';
+import { addFound } from './feed/foundTeams';
 
 /** Watched boards read on arrival; the rest wait for "Check open roles". A starter pack can file
  *  a hundred boards, and each read is a whole board. */
@@ -270,8 +271,7 @@ export default function CompaniesPanel({
     setRunning(true);
     setRan(true);
     setEarly(false);
-    // Picking up after a wait keeps the list; a fresh search starts it again.
-    if (!resume) setFound([]);
+    // Every run adds to the list: a search GitHub holds back must never empty it.
     setReport(null);
     try {
       for await (const o of findDesignSystemOrgs({
@@ -283,7 +283,7 @@ export default function CompaniesPanel({
         report: rep,
         limiter,
       })) {
-        setFound((prev) => (prev.some((p) => p.login === o.login) ? prev : [...prev, asRow(o)]));
+        setFound((prev) => addFound(prev, asRow(o)));
         setReport({ ...rep });
         if (o.board) loadRoles(o.board, ac.signal);
       }
@@ -316,7 +316,6 @@ export default function CompaniesPanel({
     const rep: SuggestReport = { ycMatched: 0 };
     setRunning(true);
     setRan(true);
-    setFound([]);
     setSuggestReport(null);
     try {
       for await (const c of suggestTrackCompanies(suggested, {
@@ -327,7 +326,7 @@ export default function CompaniesPanel({
         signal: ac.signal,
         report: rep,
       })) {
-        setFound((prev) => [...prev, suggestedRow(c)]);
+        setFound((prev) => addFound(prev, suggestedRow(c)));
         if (c.board) loadRoles(c.board, ac.signal);
       }
     } finally {

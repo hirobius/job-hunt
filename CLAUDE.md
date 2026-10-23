@@ -649,6 +649,9 @@ track-agnostic like everything else in Discover.
   more"); the first 10 watched boards are read on arrival, the rest on "Check open roles at N
   companies". **Add a company** (`AddCompany.tsx`, a Dialog) is the one way on: a board link is watched
   at once, a name goes through `discoverBoards` (watch what it finds, or star it if there is no board).
+  **Find more / Suggest again only add to the list** (`feed/foundTeams.ts` `addFound`, by login; a repeat that
+  knows less keeps what was known): it was emptied before each run, so a run GitHub held back left only the
+  watched boards (2026-10-23, "160 → 125"). The found list is per page load (viewMemory), never synced.
   Dream companies + "Check dream companies" sit on top. It leads `#/discover` when it has a team search,
   a watched or a dream company; else Apply now leads. **Live postings and Find boards are not tools**:
   `#/discover/live` and `#/discover/boards` open them as secondary views (Teams selected, "Back to

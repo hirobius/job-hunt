@@ -21,11 +21,19 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
+import {
+  addCategory,
+  addGroup,
+  addTile,
+  getCurationState,
+  replaceCurationState,
+} from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 import { GH_BUDGET_KEY } from './feed/githubBudget';
+import { GH_CACHE_KEY } from './feed/dsOrgs';
 import { TARGETS_KEY, getAllTargets, readTargets } from './feed/targets';
-import { readDreams } from './feed/dreams';
+import { readDreams, starDream } from './feed/dreams';
+import { saveTarget } from './feed/targets';
 import { getAllJobs } from './store';
 
 const renderApp = () =>
@@ -48,7 +56,13 @@ const repo = (login: string, stars: number, extra: Record<string, unknown> = {})
   ...extra,
 });
 
-const gh = { limited: false, retryAfter: '', boardless: false };
+const gh = {
+  limited: false,
+  retryAfter: '',
+  boardless: false,
+  /** Repositories a later search finds besides the usual ones. */
+  extra: [] as ReturnType<typeof repo>[],
+};
 const leverJob = (id: string, text: string) => ({
   id,
   text,
@@ -77,6 +91,7 @@ const fakeFetch = vi.fn(async (url: string) => {
         repo('quiet', 300),
         repo('forky', 800, { fork: true }),
         repo('tiny', 3),
+        ...gh.extra,
       ],
     });
   }
@@ -86,6 +101,8 @@ const fakeFetch = vi.fn(async (url: string) => {
     return json({ name: 'Quiet Co', blog: 'quiet.example' });
   if (url === 'https://api.github.com/orgs/dtcg')
     return json({ name: 'Design Tokens Community Group', blog: 'design-tokens.org' });
+  if (url === 'https://api.github.com/orgs/newco')
+    return json({ name: 'NewCo', blog: 'newco.example' });
   if (url === 'https://api.github.com/orgs/flaky')
     return json({ name: 'Flaky', blog: 'flaky.example' });
   // Flaky's boards never answer: "Couldn't check", never "no board".
@@ -132,6 +149,7 @@ beforeEach(() => {
   gh.limited = false;
   gh.retryAfter = '';
   gh.boardless = false;
+  gh.extra = [];
   fakeFetch.mockClear();
   vi.stubGlobal('fetch', fakeFetch);
   replaceCurationState(EMPTY_CURATION);
@@ -373,6 +391,93 @@ describe('Teams (design-system teams)', () => {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });
     expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
+  });
+});
+
+// 2026-10-23: "I had 160 watched, but they reset once I clicked Find more." Find more emptied the
+// list of teams before searching again, so a run that GitHub held back (rate limit, a search page
+// cache past its day) left only the watched boards. It adds to the list now.
+describe('Find more keeps what was found', () => {
+  const findMore = async () => {
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Find more design-system teams' }),
+    );
+  };
+  /** The search pages are cached for a day; a new day's run asks GitHub again. */
+  const newDay = () => localStorage.removeItem(GH_CACHE_KEY);
+
+  it('a run GitHub holds back keeps every team already listed', async () => {
+    renderApp();
+    await find();
+    await screen.findByText(/3 companies, 1 hiring now\./);
+    // (An earlier test's fresh read may have cached Acme's board with a second role.)
+    const acmeLine = /^Lever · \d matching roles?$/;
+    const line = (await screen.findByText(acmeLine)).textContent;
+    const reads = () =>
+      fakeFetch.mock.calls.filter(([u]) => String(u).includes('api.lever.co/v0/postings/acme'))
+        .length;
+    const read = reads();
+    newDay();
+    gh.limited = true;
+    await findMore();
+    await screen.findByText(/GitHub's free search is busy/);
+    expect(screen.getByRole('region', { name: 'Watched' })).toHaveTextContent(/3 companies/);
+    expect(screen.getByText(/3 companies, 1 hiring now\./)).toBeVisible();
+    // The board already read keeps its answer (no second read of it).
+    expect(screen.getByText(acmeLine)).toHaveTextContent(line!);
+    expect(reads()).toBe(read);
+  });
+
+  it('adds the teams a new run finds and keeps the old ones', async () => {
+    renderApp();
+    await find();
+    await screen.findByText(/3 companies, 1 hiring now\./);
+    newDay();
+    gh.extra = [repo('newco', 250)];
+    await findMore();
+    await screen.findByText(/4 companies, 1 hiring now\./);
+    await showAll();
+    const list = screen.getByRole('list', { name: 'Companies' });
+    for (const name of ['Acme Design', 'Flaky', 'Quiet Co', 'NewCo'])
+      expect(list).toHaveTextContent(name);
+  });
+
+  it('a re-run finds nothing new and lists each team once', async () => {
+    renderApp();
+    await find();
+    await screen.findByText(/3 companies, 1 hiring now\./);
+    await findMore();
+    await findMore();
+    await screen.findByText(/3 companies, 1 hiring now\./);
+    await showAll();
+    expect(
+      within(screen.getByRole('list', { name: 'Companies' })).getAllByText(/^Acme Design/),
+    ).toHaveLength(1);
+  });
+
+  it('never touches what syncs: watched boards, saved targets and dream companies stay', async () => {
+    const group = addGroup(cat, { label: 'Watched companies' });
+    addTile(group, { name: 'Acme', url: 'https://jobs.lever.co/acme' });
+    saveTarget(cat, { login: 'quiet', company: 'Quiet Co', repo: 'quiet/ds', stars: 300 });
+    starDream(cat, { company: 'Flaky' });
+    const before = {
+      tiles: getCurationState().tiles,
+      targets: getAllTargets(),
+      dreams: readDreams(cat),
+    };
+    renderApp();
+    await find();
+    await screen.findByText(/companies, 1 hiring now\./);
+    newDay();
+    gh.limited = true;
+    await findMore();
+    await screen.findByText(/GitHub's free search is busy/);
+    expect(getCurationState().tiles).toEqual(before.tiles);
+    expect(getAllTargets()).toEqual(before.targets);
+    expect(readDreams(cat)).toEqual(before.dreams);
+    expect(
+      screen.getAllByRole('button', { name: 'Star Flaky as a dream company', pressed: true }),
+    ).not.toHaveLength(0);
   });
 });
 
