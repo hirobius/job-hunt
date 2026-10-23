@@ -38,7 +38,7 @@ describe('migrateSystemsOnly', () => {
     expect(migrateSystemsOnly([OLD])).toBe(1);
     const m = readMustInclude('ds1');
     expect(m.terms).toEqual(['design system']);
-    expect(m.inText).toBe(false);
+    expect(m.inText).toBeUndefined(); // title only is the default
     expect(m.atsOff).toEqual(['design tokens', 'design engineer']);
     expect(activeAtsRoles(OLD.atsRoles, m)).toEqual([
       'design systems',
@@ -108,7 +108,7 @@ describe('migrateSystemsOnly', () => {
       migrateSystemsOnly([OLD]);
       const m = readMustInclude('ds1');
       expect(m.terms).toEqual(after);
-      expect(m.inText).toBe(false);
+      expect(m.inText).toBeUndefined();
       expect(m.phrase).toBe(true);
       expect(m.atsOff).toEqual(['design tokens']);
     });
@@ -129,7 +129,7 @@ describe('migrateSystemsOnly', () => {
       migrateSystemsOnly([OLD]);
       setMustInclude('ds1', { inText: true });
       migrateSystemsOnly([OLD]);
-      expect(readMustInclude('ds1').inText).toBeUndefined();
+      expect(readMustInclude('ds1').inText).toBe(true);
     });
   });
 });

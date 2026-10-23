@@ -1,14 +1,15 @@
 // Must include (Calibrate, 2026-10-23): per track, the words a posting has to mention, in its title
-// or its description, to be listed at all. The Design Systems track holds "systems": a posting
-// that never says system or systems is of no interest (Adrian). Kept in `rjb_must_include` and
-// synced in the blob (v11, ADR 0008 addendum). An entry is the user's own: one with no terms means
-// they cleared it, so the one-time move to systems-only (systemsOnly.ts) never runs again. It
-// also holds the ATS roles switched off (`atsOff`), which leave every search but stay on the track.
+// or its description, to be listed at all. The Design Systems track holds "design system". Kept in
+// `rjb_must_include` and synced in the blob (v11, ADR 0008 addendum). An entry is the user's own:
+// one with no terms means they cleared it, so the one-time move to systems-only (systemsOnly.ts)
+// never runs again. It also holds the ATS roles switched off (`atsOff`), which leave every search
+// but stay on the track.
 // Terms are exact phrases (Adrian 2026-10-23: "'design system' needs to be worded exactly that
 // way"): "design system" matches design systems / design-system, never "system design" or the two
-// words apart. Two per-track toggles pick the fields searched (title, description); both off reads
-// as title only. The toggles ride in the same v11 entry as optional fields (absent = on), so an
-// older client just ignores them.
+// words apart. Two per-track toggles pick the fields searched: title (absent = on) and description
+// (absent = off; Adrian 2026-10-23, so an entry stored while it defaulted on now reads off); both
+// off reads as title only. A rule that asks for "design system(s)" reads the title only, whatever
+// the toggles say: the only roles wanted are titled design system(s) or Design Technologist.
 // Storage is untrusted: anything malformed reads as "no entry".
 import { useMemo } from 'react';
 import { liveStorage } from '../liveStorage';
@@ -26,7 +27,7 @@ export interface MustInclude {
   atsOff: string[];
   /** Search the title (absent = on). */
   inTitle?: boolean;
-  /** Search the description (absent = on). */
+  /** Search the description (absent = off). Never on a design system rule. */
   inText?: boolean;
   /** The one-time move of the pack's bare "systems" to "design system" has run (phraseMove.ts). */
   phrase?: boolean;
@@ -34,54 +35,25 @@ export interface MustInclude {
   related?: boolean;
   /** Related titles switched off, by id. */
   relatedOff?: string[];
-  /** Related titles that are off by default (`defaultOff`) switched on, by id. */
-  relatedOn?: string[];
 }
 
 /** What a filter needs: the terms and the fields to look in. A bare list searches both. */
 export type IncludeRule =
-  | string[]
-  | Pick<MustInclude, 'terms' | 'inTitle' | 'inText' | 'related' | 'relatedOff' | 'relatedOn'>;
+  string[] | Pick<MustInclude, 'terms' | 'inTitle' | 'inText' | 'related' | 'relatedOff'>;
 
 /** Related titles (Adrian 2026-10-23): on a rule that asks for "design system(s)", a posting
- *  whose title names one of these passes too, when its description says "design system(s)" as a
- *  phrase (Design Technologist: its title alone), and for Design Engineer also mentions
- *  AI-assisted work. Each can be switched on or off. A title that is off also keeps out a posting
- *  whose title names only it, even when its description says the phrase (Adrian 2026-10-23: no
- *  Design Engineer roles, Ashby's "Design Engineer – UK" came in through Match in description). */
+ *  titled one of these passes on its title alone. Design Technologist is the only one (Design
+ *  Engineer, UI Platform, Component Library and Frontend Platform were cut the same day). */
 export interface RelatedTitle {
   id: string;
   /** Phrases the title is matched against (same phrase rules as must include). */
   phrases: string[];
-  /** Passes on the title alone. */
-  titleAlone?: boolean;
-  /** The description must also mention one of AI_TERMS. */
-  needsAi?: boolean;
-  /** Off until switched on (`relatedOn`). An entry stored before the default changed has no
-   *  `relatedOn`, so it reads as off with no data move. */
-  defaultOff?: boolean;
 }
 
 export const RELATED_TITLES: RelatedTitle[] = [
-  { id: 'Design Technologist', phrases: ['design technologist'], titleAlone: true },
-  { id: 'UI Platform', phrases: ['ui platform'] },
-  { id: 'Component Library', phrases: ['component library'] },
-  { id: 'Frontend Platform', phrases: ['frontend platform', 'front end platform'] },
-  { id: 'Design Engineer', phrases: ['design engineer'], needsAi: true, defaultOff: true },
-];
-
-export const AI_TERMS = [
-  'AI-assisted',
-  'Claude',
-  'Claude Code',
-  'Cursor',
-  'Copilot',
-  'LLM',
-  'AI tools',
-  'agentic',
+  { id: 'Design Technologist', phrases: ['design technologist'] },
 ];
 const RELATED_IDS = new Set(RELATED_TITLES.map((r) => r.id));
-const DEFAULT_OFF = new Set(RELATED_TITLES.filter((r) => r.defaultOff).map((r) => r.id));
 
 const UNSAFE = ['__proto__', 'constructor', 'prototype'];
 const norm = (s: string) => s.trim().toLowerCase();
@@ -107,13 +79,11 @@ function sanitizeOne(raw: unknown): MustInclude | null {
   };
   // Only the non-default values are kept, so an entry without them reads (and syncs) as before.
   if (o.inTitle === false) out.inTitle = false;
-  if (o.inText === false) out.inText = false;
+  if (o.inText === true) out.inText = true;
   if (o.phrase === true) out.phrase = true;
   if (o.related === false) out.related = false;
   const relatedOff = cleanList(o.relatedOff).filter((id) => RELATED_IDS.has(id));
   if (relatedOff.length) out.relatedOff = relatedOff;
-  const relatedOn = cleanList(o.relatedOn).filter((id) => DEFAULT_OFF.has(id));
-  if (relatedOn.length) out.relatedOn = relatedOn;
   return out;
 }
 
@@ -203,86 +173,65 @@ export function phraseRegex(term: string): RegExp | null {
   return new RegExp(`(?<![a-z0-9])${body}(?![a-z0-9])`);
 }
 
-// A bare list is a plain phrase test: no related titles.
+// A bare list is a plain phrase test over both fields: no related titles.
 const ruleOf = (rule: IncludeRule) =>
   Array.isArray(rule) ? { terms: rule, inTitle: true, inText: true, related: false } : rule;
-
-/** The fields a rule searches: both off reads as title only. */
-export function includeFields(rule: IncludeRule): { title: boolean; text: boolean } {
-  const r = ruleOf(rule);
-  const title = r.inTitle !== false;
-  const text = r.inText !== false;
-  return !title && !text ? { title: true, text: false } : { title, text };
-}
 
 const regexesOf = (terms: string[]) =>
   terms.map(phraseRegex).filter((r): r is RegExp => r !== null);
 
 const DS_RE = phraseRegex('design system') as RegExp;
-const AI_RES = regexesOf(AI_TERMS);
 const RELATED_RES = RELATED_TITLES.map((r) => regexesOf(r.phrases));
 
 /** Says the phrase "design system(s)", hyphen or not, never "system design". */
 export const saysDesignSystem = (s: string) => DS_RE.test(normalizeForPhrase(s));
 
-/** The rule's own phrases, title and description as it says. */
-function passesTerms(rule: IncludeRule, res: RegExp[], title: string, text: string): boolean {
-  const f = includeFields(rule);
-  const fields = [f.title ? normalizeForPhrase(title) : '', f.text ? normalizeForPhrase(text) : ''];
-  return res.some((re) => fields.some((t) => t && re.test(t)));
+/** Whether the rule asks for "design system(s)": it reads titles only and has related titles. */
+export const hasRelatedTitles = (rule: IncludeRule) =>
+  !Array.isArray(rule) && rule.terms.some(saysDesignSystem);
+
+/** The fields a rule searches: both off reads as title only; a design system rule, title only. */
+export function includeFields(rule: IncludeRule): { title: boolean; text: boolean } {
+  if (hasRelatedTitles(rule)) return { title: true, text: false };
+  const r = ruleOf(rule);
+  const title = r.inTitle !== false;
+  const text = r.inText === true;
+  return !title && !text ? { title: true, text: false } : { title, text };
 }
 
-/** Whether a related title's chip is on in the rule (its default unless switched). */
+/** Whether a related title's chip is on in the rule. */
 export function relatedIsOn(rule: IncludeRule, id: string): boolean {
-  if (Array.isArray(rule)) return false;
-  if (rule.relatedOff?.includes(id)) return false;
-  return !DEFAULT_OFF.has(id) || (rule.relatedOn ?? []).includes(id);
+  return !Array.isArray(rule) && !(rule.relatedOff ?? []).includes(id);
 }
 
-/** The patch that flips one chip, keeping only what differs from each title's default. */
+/** The patch that flips one chip. */
 export function toggleRelated(
   rule: Exclude<IncludeRule, string[]>,
   id: string,
-): Pick<MustInclude, 'relatedOff' | 'relatedOn'> {
-  const on = !relatedIsOn(rule, id);
-  const relatedOff = (rule.relatedOff ?? []).filter((x) => x !== id);
-  const relatedOn = (rule.relatedOn ?? []).filter((x) => x !== id);
-  if (on && DEFAULT_OFF.has(id)) relatedOn.push(id);
-  if (!on && !DEFAULT_OFF.has(id)) relatedOff.push(id);
-  return { relatedOff, relatedOn };
+): Pick<MustInclude, 'relatedOff'> {
+  const off = (rule.relatedOff ?? []).filter((x) => x !== id);
+  return { relatedOff: relatedIsOn(rule, id) ? [...off, id] : off };
 }
 
-/** The related titles a title names (none on a bare list or a rule without a design system
- *  phrase). */
-function relatedInTitle(rule: IncludeRule, title: string): RelatedTitle[] {
-  if (Array.isArray(rule) || !rule.terms.some(saysDesignSystem)) return [];
+/** The related titles a title names that are on (none on a rule without a design system phrase
+ *  or with the control off). */
+function relatedPass(rule: IncludeRule, title: string): RelatedTitle[] {
+  if (!hasRelatedTitles(rule) || ruleOf(rule).related === false) return [];
   const t = normalizeForPhrase(title);
-  return RELATED_TITLES.filter((_, i) => RELATED_RES[i].some((re) => re.test(t)));
-}
-
-/** The related titles that would let this posting in, on or off (none on a rule without a
- *  design system phrase). */
-function relatedMatches(rule: IncludeRule, title: string, text: string): RelatedTitle[] {
-  if (ruleOf(rule).related === false) return [];
-  const hits = relatedInTitle(rule, title);
-  if (!hits.length) return [];
-  const d = normalizeForPhrase(text);
-  const ds = DS_RE.test(d);
-  const ai = AI_RES.some((re) => re.test(d));
-  return hits.filter((h) => h.titleAlone || (ds && (!h.needsAi || ai)));
+  return RELATED_TITLES.filter(
+    (h, i) => relatedIsOn(rule, h.id) && RELATED_RES[i].some((re) => re.test(t)),
+  );
 }
 
 /** True when the title or description (whichever the rule searches) says one of its phrases, or
- *  a related title that is on lets it in. A title naming only related titles that are off is out
- *  unless the title itself says a phrase. No terms: true. */
+ *  a related title that is on names the title. No terms: true. */
 export function passesInclude(rule: IncludeRule, title: string, text = ''): boolean {
   const res = regexesOf(ruleOf(rule).terms);
   if (!res.length) return true;
-  if (includeFields(rule).title && passesTerms(rule, res, title, '')) return true;
-  const named = relatedInTitle(rule, title);
-  if (named.length && named.every((h) => !relatedIsOn(rule, h.id))) return false;
-  if (passesTerms(rule, res, title, text)) return true;
-  return relatedMatches(rule, title, text).some((h) => relatedIsOn(rule, h.id));
+  const f = includeFields(rule);
+  const fields = [f.title ? normalizeForPhrase(title) : '', f.text ? normalizeForPhrase(text) : ''];
+  if (res.some((re) => fields.some((t) => t && re.test(t)))) return true;
+  return relatedPass(rule, title).length > 0;
 }
 
 /** Per related title, how many postings it lets in (or would, when off): those that pass with
@@ -292,20 +241,16 @@ export function relatedCounts(
   rule: IncludeRule,
 ): Record<string, number> {
   const out = Object.fromEntries(RELATED_TITLES.map((r) => [r.id, 0]));
-  if (Array.isArray(rule) || !regexesOf(rule.terms).length) return out;
-  const r = { ...rule, related: true };
-  for (const p of postings) {
-    for (const h of relatedInTitle(r, p.title)) {
-      const flip = { ...r, ...toggleRelated(r, h.id) };
-      const [on, off] = relatedIsOn(r, h.id) ? [r, flip] : [flip, r];
-      if (passesInclude(on, p.title, p.text) && !passesInclude(off, p.title, p.text)) out[h.id]++;
-    }
+  if (!hasRelatedTitles(rule) || Array.isArray(rule)) return out;
+  for (const h of RELATED_TITLES) {
+    const on = { ...rule, related: true, relatedOff: [] };
+    const off = { ...on, relatedOff: [h.id] };
+    out[h.id] = postings.filter(
+      (p) => passesInclude(on, p.title, p.text) && !passesInclude(off, p.title, p.text),
+    ).length;
   }
   return out;
 }
-
-/** Whether the related titles control applies to the rule (it asks for design system(s)). */
-export const hasRelatedTitles = (rule: IncludeRule) => ruleOf(rule).terms.some(saysDesignSystem);
 
 /** Any of `terms` in any of `texts` (both fields on). */
 export function mentionsAny(terms: string[], ...texts: string[]): boolean {

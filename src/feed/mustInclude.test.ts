@@ -111,21 +111,30 @@ describe('phrase matching (design system)', () => {
     ).toBe(true);
   });
 
-  const title = 'Product Designer';
-  const body = 'Grow our design system.';
+  const title = 'Welder';
+  const body = 'Weld our cooling systems.';
   // [phrase in title, neither, phrase only in the description]
   it.each([
-    ['both on', {}, [true, false, true]],
-    ['title only', { inText: false }, [true, false, false]],
-    ['description only', { inTitle: false }, [false, false, true]],
+    ['default: title only', {}, [true, false, false]],
+    ['both on', { inText: true }, [true, false, true]],
+    ['description only', { inTitle: false, inText: true }, [false, false, true]],
     ['both off = title only', { inTitle: false, inText: false }, [true, false, false]],
   ] as const)('%s', (_n, f, want) => {
-    const rule = { terms: ['design system'], ...f };
+    const rule = { terms: ['systems'], ...f };
     expect([
-      passesInclude(rule, 'Design Systems Lead', ''),
+      passesInclude(rule, 'Welder, Systems Lead', ''),
       passesInclude(rule, title, ''),
       passesInclude(rule, title, body),
     ]).toEqual(want);
+  });
+
+  it('a design system rule reads the title only, whatever the toggles say', () => {
+    for (const f of [{}, { inText: true }, { inTitle: false, inText: true }]) {
+      const rule = { terms: ['design system'], ...f };
+      expect(includeFields(rule)).toEqual({ title: true, text: false });
+      expect(passesInclude(rule, 'Design Systems Lead', '')).toBe(true);
+      expect(passesInclude(rule, 'Product Designer', 'Grow our design system.')).toBe(false);
+    }
   });
 
   it('both off reads as title only', () =>
@@ -185,120 +194,60 @@ describe('in the sync blob (v11)', () => {
 });
 
 describe('related titles (2026-10-23)', () => {
-  // Title only, so the description never passes a posting on its own: the related path is all
-  // that can let a non-phrase title in.
-  const rule = { terms: ['design system'], inText: false };
-  const DS = 'You will grow our design system.';
-  const AI = 'We build with Claude Code and Cursor every day.';
+  // Description on: it must never let a title in on a design system rule (Adrian 2026-10-23: only
+  // titles saying design system(s) or Design Technologist).
+  const rule = { terms: ['design system'], inText: true };
+  const DS = 'You will grow our design system with Claude Code and Cursor.';
   it.each([
     ['Design Technologist', '', true],
     ['Senior Design Technologist', 'Nothing about it.', true],
-    ['UI Platform Engineer', DS, true],
-    ['UI Platform Engineer', 'Own the platform.', false],
-    ['Component Library Engineer', DS, true],
-    ['Frontend Platform Engineer', DS, true],
-    ['Front-end Platform Engineer', DS, true],
-    ['Frontend Platform Engineer', 'Own the platform.', false],
-    ['Design Engineer', `${DS} ${AI}`, true],
+    ['Staff Design Engineer, Design Systems', '', true],
+    // Live postings (Adrian's phone) and Ashby's roles in Companies → Watched.
+    ['Senior Design Engineer', DS, false],
+    ['Staff Design Engineer', DS, false],
+    ['Design Engineer – Americas', DS, false],
+    ['Design Engineer – Canada', DS, false],
+    ['Design Engineer – EU', DS, false],
+    ['Design Engineer – UK', DS, false],
     ['Design Engineer', DS, false],
-    ['Design Engineer', AI, false],
-    ['Design Engineer', `${DS} An AI-assisted workflow.`, true],
-    ['Design Engineer', `${DS} Comfort with LLMs.`, true],
-    ['Design Engineer', `${DS} Agentic tools.`, true],
-    ['Design Engineer', `${DS} Copilot is fine.`, true],
-    ['Design Engineer', `${DS} AI tools daily.`, true],
-    ['Design Engineer', `${DS} Claude.`, true],
-    ['Design Engineer', `${DS} Precursors of the web.`, false],
-    ['Design Engineering Manager', `${DS} ${AI}`, false],
-    ['Product Designer', `${DS} ${AI}`, false],
-    // "system design", never the phrase, in the description
-    ['UI Platform Engineer', 'Strong system design skills.', false],
+    ['UI Platform Engineer', DS, false],
+    ['Component Library Engineer', DS, false],
+    ['Frontend Platform Engineer', DS, false],
+    ['Product Designer', DS, false],
   ])('%s · %s → %s', (title, text, want) => {
-    // Design Engineer is off by default (Adrian 2026-10-23): these rows are with its chip on.
-    expect(passesInclude({ ...rule, relatedOn: ['Design Engineer'] }, title, text)).toBe(want);
+    expect(passesInclude(rule, title, text)).toBe(want);
+    expect(passesInclude({ terms: ['design system'] }, title, text)).toBe(want);
   });
 
-  it('Design Engineer is off by default: a chip he can turn on, a stored default reads as off', () => {
-    const both = `${DS} ${AI}`;
-    expect(passesInclude(rule, 'Design Engineer', both)).toBe(false);
-    expect(relatedIsOn(rule, 'Design Engineer')).toBe(false);
-    expect(relatedIsOn(rule, 'Design Technologist')).toBe(true);
-    // An entry stored before the change (Design Engineer not in relatedOff) gets the new default.
-    expect(
-      relatedIsOn({ terms: ['design system'], relatedOff: ['UI Platform'] }, 'Design Engineer'),
-    ).toBe(false);
-    expect(relatedIsOn({ ...rule, relatedOn: ['Design Engineer'] }, 'Design Engineer')).toBe(true);
-    expect(
-      passesInclude({ ...rule, relatedOn: ['Design Engineer'] }, 'Design Engineer', both),
-    ).toBe(true);
-  });
-
-  it('toggling a chip writes only what differs from its default', () => {
-    expect(toggleRelated(rule, 'Design Engineer')).toEqual({
-      relatedOff: [],
-      relatedOn: ['Design Engineer'],
-    });
-    const on = { ...rule, relatedOn: ['Design Engineer'] };
-    expect(toggleRelated(on, 'Design Engineer')).toEqual({ relatedOff: [], relatedOn: [] });
-    expect(toggleRelated(rule, 'UI Platform')).toEqual({
-      relatedOff: ['UI Platform'],
-      relatedOn: [],
-    });
-    expect(toggleRelated({ ...rule, relatedOff: ['UI Platform'] }, 'UI Platform')).toEqual({
-      relatedOff: [],
-      relatedOn: [],
-    });
-  });
-
-  // Ashby's roles Adrian still saw in Companies (2026-10-23): their descriptions say design
-  // system, so Match in description let them in. A title that is only an off related title stays out.
-  describe('an off related title keeps its postings out, Match in description too', () => {
-    const withText = { terms: ['design system'] };
-    it.each([
-      'Design Engineer – Americas',
-      'Design Engineer – Canada',
-      'Design Engineer – EU',
-      'Design Engineer – UK',
-      'Staff Design Engineer',
-      'Senior Design Engineer',
-      'Design Engineer',
-    ])('%s', (title) => {
-      expect(passesInclude(withText, title, `${DS} ${AI}`)).toBe(false);
-      expect(passesInclude({ ...withText, related: false }, title, DS)).toBe(false);
-      expect(passesInclude({ ...withText, relatedOn: ['Design Engineer'] }, title, DS)).toBe(true);
-    });
-    it('a title that says design system itself still passes; other titles still match the text', () => {
-      expect(passesInclude(withText, 'Staff Design Engineer, Design Systems', '')).toBe(true);
-      expect(passesInclude(withText, 'Product Designer', DS)).toBe(true);
-      expect(
-        passesInclude({ ...withText, relatedOff: ['UI Platform'] }, 'UI Platform Engineer', DS),
-      ).toBe(false);
-      // A bare list (mentionsAny) has no related titles, so nothing is excluded.
-      expect(passesInclude(['design system'], 'Design Engineer', DS)).toBe(true);
-      expect(keepIncluded([{ title: 'Staff Design Engineer', text: DS }], withText)).toEqual([]);
-    });
+  it('Design Technologist is the only related title', () => {
+    expect(RELATED_TITLES.map((r) => r.id)).toEqual(['Design Technologist']);
   });
 
   it('a title switched off no longer passes; the control off turns them all off', () => {
     expect(
       passesInclude({ ...rule, relatedOff: ['Design Technologist'] }, 'Design Technologist'),
     ).toBe(false);
-    expect(passesInclude({ ...rule, related: false }, 'UI Platform Engineer', DS)).toBe(false);
     expect(passesInclude({ ...rule, related: false }, 'Design Technologist')).toBe(false);
+    expect(relatedIsOn(rule, 'Design Technologist')).toBe(true);
+    expect(toggleRelated(rule, 'Design Technologist')).toEqual({
+      relatedOff: ['Design Technologist'],
+    });
+    expect(
+      toggleRelated({ ...rule, relatedOff: ['Design Technologist'] }, 'Design Technologist'),
+    ).toEqual({ relatedOff: [] });
   });
 
   it('only on a rule that asks for design system(s); a bare list has no related path', () => {
-    expect(passesInclude({ terms: ['welding'], inText: false }, 'Design Technologist')).toBe(false);
-    expect(passesInclude({ terms: ['design systems'], inText: false }, 'Design Technologist')).toBe(
-      true,
-    );
+    expect(passesInclude({ terms: ['welding'] }, 'Design Technologist')).toBe(false);
+    expect(passesInclude({ terms: ['design systems'] }, 'Design Technologist')).toBe(true);
     expect(passesInclude(['design system'], 'Design Technologist')).toBe(false);
   });
 
-  it('Companies and dream rows (keepIncluded) take the related titles too', () => {
+  it('Companies and dream rows (keepIncluded) take the same rule', () => {
     const roles = [
       { id: 'a', title: 'Design Technologist', text: '' },
       { id: 'b', title: 'Backend Engineer', text: DS },
+      { id: 'c', title: 'Staff Design Engineer', text: DS },
     ];
     expect(keepIncluded(roles, rule).map((r) => r.id)).toEqual(['a']);
   });
@@ -307,46 +256,42 @@ describe('related titles (2026-10-23)', () => {
     const ps = [
       { title: 'Design Technologist', text: '' },
       { title: 'Design Technologist II', text: '' },
-      { title: 'UI Platform Engineer', text: DS },
-      { title: 'UI Platform Engineer', text: 'nope' },
       { title: 'Design Systems Lead', text: '' }, // passes on its own: not counted
-      { title: 'Design Engineer', text: `${DS} ${AI}` },
+      { title: 'Design Engineer', text: DS },
     ];
-    expect(relatedCounts(ps, { ...rule, relatedOff: ['UI Platform'] })).toEqual({
+    expect(relatedCounts(ps, { ...rule, relatedOff: ['Design Technologist'] })).toEqual({
       'Design Technologist': 2,
-      'UI Platform': 1,
-      'Component Library': 0,
-      'Frontend Platform': 0,
-      'Design Engineer': 1,
     });
   });
 
-  it('keeps the control and the off list in the entry (absent = on)', () => {
-    setMustInclude('t', { related: false, relatedOff: ['UI Platform', 'UI Platform', 'Bogus'] });
+  it('keeps the control and the off list in the entry (absent = on); retired ids are dropped', () => {
+    setMustInclude('t', {
+      related: false,
+      relatedOff: ['Design Technologist', 'Design Technologist', 'UI Platform'],
+    });
     expect(readMustInclude('t')).toEqual({
       terms: [],
       atsOff: [],
       related: false,
-      relatedOff: ['UI Platform'],
+      relatedOff: ['Design Technologist'],
     });
-    // relatedOn keeps only the titles that are off by default.
-    setMustInclude('t', { relatedOn: ['Design Engineer', 'UI Platform', 'Bogus'] });
-    expect(readMustInclude('t').relatedOn).toEqual(['Design Engineer']);
-    setMustInclude('t', { related: true, relatedOff: [], relatedOn: [] });
+    setMustInclude('t', { related: true, relatedOff: [] });
     expect(readMustInclude('t')).toEqual({ terms: [], atsOff: [] });
-    expect(RELATED_TITLES.map((r) => r.id)).toEqual([
-      'Design Technologist',
-      'UI Platform',
-      'Component Library',
-      'Frontend Platform',
-      'Design Engineer',
-    ]);
+  });
+
+  it('Match in description defaults off: a stored default (absent) reads off, only true is kept', () => {
+    expect(sanitizeMustInclude({ t: { terms: ['x'] } }).t.inText).toBeUndefined();
+    expect(sanitizeMustInclude({ t: { terms: ['x'], inText: false } }).t.inText).toBeUndefined();
+    expect(sanitizeMustInclude({ t: { terms: ['x'], inText: true } }).t.inText).toBe(true);
+    expect(includeFields({ terms: ['x'] })).toEqual({ title: true, text: false });
   });
 
   it('rides the sync blob', () => {
     const local = {
       ...emptyBlob(),
-      mustInclude: { t: { terms: ['design system'], atsOff: [], relatedOff: ['UI Platform'] } },
+      mustInclude: {
+        t: { terms: ['design system'], atsOff: [], relatedOff: ['Design Technologist'] },
+      },
     };
     expect(readBlob(writeBlob(local)).mustInclude).toEqual(local.mustInclude);
   });

@@ -342,15 +342,14 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `systemsOnlyNotice.test.tsx`.
   **Phrases break at separators** (2026-10-23): a spaced hyphen, en/em dash, `, | / : ; & · •` end a phrase
   ("Manager, Design - Systems & Infrastructure" is not "design systems"); a hyphen inside a word joins.
-  **Related titles** (same entry, `related` absent = on, `relatedOff` ids): on a rule that asks for "design
-  system(s)", `RELATED_TITLES` also pass: Design Technologist on its title alone; UI Platform, Component Library,
-  Frontend Platform when the description says "design system(s)"; Design Engineer when it also names AI-assisted
-  work (`AI_TERMS`). Calibrate's "Related titles" switch beside the two, then a chip per title with
-  `relatedCounts`. Applies everywhere `passesInclude` does (Live postings, Companies, dreams).
-  **Design Engineer is off by default** (`defaultOff`; turned on in `relatedOn`, so a stored entry without
-  it reads as off, no data move; `relatedIsOn` / `toggleRelated`). A chip that is off also keeps out a
-  posting whose title names only off related titles, even when Match in description would let it in
-  (Ashby's "Design Engineer – UK", "Staff Design Engineer"), unless the title itself says the phrase.
+  **Match in description is off by default** (Adrian 2026-10-23: `inText` absent = off, only `true` is kept, so a
+  stored default now reads off). **A design system rule reads the title only** (`hasRelatedTitles`, whatever the
+  toggles say; Calibrate hides the two toggles there): the only roles wanted are titled "design system(s)" or Design
+  Technologist, so Design Engineers ("Design Engineer – UK", "Staff Design Engineer") never come in through a
+  description. **Related titles** (same entry, `related` absent = on, `relatedOff` ids): Design Technologist only,
+  on its title alone (Design Engineer, UI Platform, Component Library, Frontend Platform were cut the same day; a
+  stored id for them is dropped). Calibrate's "Related titles" switch, then its chip with `relatedCounts`. Applies
+  everywhere `passesInclude` does (Live postings, Companies, dreams).
 - **Adele seed (2026-10-23):** `src/feed/data/adele.json` is a one-time snapshot of UXPin's public design systems
   list (github.com/uxpin/adele, **MIT**; company name + design system site; re-take it by hand from `ADELE.file`).
   No runtime host. On a design systems track (`hasRelatedTitles` or the GitHub design-system search) Companies' More

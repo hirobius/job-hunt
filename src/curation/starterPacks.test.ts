@@ -173,7 +173,7 @@ describe('design systems targets track (#198)', () => {
     for (const t of [...cat.titles, ...cat.atsRoles]) expect(saysDesignSystem(t)).toBe(true);
     for (const gone of ['Design Engineer', 'UI Engineer', 'Product Designer', 'Frontend Engineer'])
       expect(cat.titles).not.toContain(gone);
-    expect(readMustInclude(id)).toMatchObject({ terms: ['design system'], inText: false });
+    expect(readMustInclude(id)).toMatchObject({ terms: ['design system'] });
     // Other packs get no rule.
     expect(hasMustInclude(seedPack('trades'))).toBe(false);
   });

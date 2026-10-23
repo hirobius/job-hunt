@@ -805,19 +805,24 @@ export default function LiveFeedPanel({
                 values={mustInclude.terms}
                 onChange={(next) => setMustInclude(categoryId, { terms: next })}
               />
-              {/* Where must include looks (2026-10-23): title and description, each on its own;
-                  both off reads as title only, and says so. */}
+              {/* Where must include looks (2026-10-23): title and description (off by default),
+                  each on its own; both off reads as title only, and says so. A design system rule
+                  reads titles only, so it has no toggles for the two. */}
               <Stack direction="row" wrap="wrap" gap="normal" align="center">
-                <Toggle
-                  label="Match in title"
-                  checked={mustInclude.inTitle !== false}
-                  onChange={(on) => setMustInclude(categoryId, { inTitle: on })}
-                />
-                <Toggle
-                  label="Match in description"
-                  checked={mustInclude.inText !== false}
-                  onChange={(on) => setMustInclude(categoryId, { inText: on })}
-                />
+                {!showRelated && (
+                  <>
+                    <Toggle
+                      label="Match in title"
+                      checked={mustInclude.inTitle !== false}
+                      onChange={(on) => setMustInclude(categoryId, { inTitle: on })}
+                    />
+                    <Toggle
+                      label="Match in description"
+                      checked={mustInclude.inText === true}
+                      onChange={(on) => setMustInclude(categoryId, { inText: on })}
+                    />
+                  </>
+                )}
                 {showRelated && (
                   <Toggle
                     label="Related titles"
@@ -826,15 +831,17 @@ export default function LiveFeedPanel({
                   />
                 )}
               </Stack>
+              {showRelated && (
+                <Text variant="caption" as="p" tone="secondary">
+                  Matching job titles only: a title has to say design system or design systems.
+                </Text>
+              )}
               {/* Each related title as a toggle chip with what it lets in (or would) among the
-                  postings read; Design Technologist on its title alone, the rest only when the
-                  description says "design system(s)", Design Engineer with AI-assisted work too. */}
+                  postings read, on its title alone. */}
               {relatedOn && (
                 <Stack gap="px8">
                   <Text variant="caption" as="p" tone="secondary">
-                    Also list these titles when the description says design system (Design
-                    Technologist on its title alone; Design Engineer, off until you turn it on, when
-                    it also mentions AI tools)
+                    Also list these titles
                   </Text>
                   <Stack direction="row" wrap="wrap" gap="px8" align="center">
                     {RELATED_TITLES.map(({ id }) => {
@@ -857,7 +864,7 @@ export default function LiveFeedPanel({
                   </Stack>
                 </Stack>
               )}
-              {mustInclude.inTitle === false && mustInclude.inText === false && (
+              {!showRelated && mustInclude.inTitle === false && mustInclude.inText !== true && (
                 <Text variant="caption" tone="secondary">
                   Both off: matching the title only.
                 </Text>

@@ -197,7 +197,7 @@ describe('Companies as one tool (#237)', () => {
   });
 
   it('must include (systems only): roles that never say systems are not counted, listed or hiring', async () => {
-    setMustInclude(cat, { terms: ['systems'] });
+    setMustInclude(cat, { terms: ['systems'], inText: true });
     watch('https://jobs.lever.co/systemsco');
     watch('https://jobs.lever.co/eastgate');
     renderApp();
@@ -214,8 +214,8 @@ describe('Companies as one tool (#237)', () => {
     expect(within(roles).queryByText('Welder II')).toBeNull(); // "ecosystem" is not "systems"
   });
 
-  it('design system in the title only: Chime (only its descriptions say it) is not hiring', async () => {
-    setMustInclude(cat, { terms: ['design system'], inText: false });
+  it('design system is matched in the title only: Chime (only its descriptions say it) is not hiring', async () => {
+    setMustInclude(cat, { terms: ['design system'] });
     watch('https://jobs.lever.co/chime');
     watch('https://jobs.lever.co/dsco');
     renderApp();
@@ -226,16 +226,15 @@ describe('Companies as one tool (#237)', () => {
     expect(within(panel).getByText(/1 hiring now/)).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Roles at Dsco' }));
     const roles = await screen.findByRole('list', { name: 'Open roles at Dsco' });
-    expect(within(roles).getByText('Senior Design Systems Engineer')).toBeVisible(); // Descriptions on: the loaded roles re-filter at once, with no new read.
-    const reads = fakeFetch.mock.calls.length;
+    expect(within(roles).getByText('Senior Design Systems Engineer')).toBeVisible();
+    // A stored description on changes nothing on a design system rule (Adrian 2026-10-23).
     act(() => setMustInclude(cat, { inText: true }));
-    expect(within(list).getByText('Chime')).toBeVisible();
-    expect(within(list).getByText('Lever · 4 matching roles')).toBeVisible();
-    expect(fakeFetch.mock.calls.length).toBe(reads);
+    expect(within(list).queryByText('Chime')).toBeNull();
+    expect(within(list).getByText('Lever · 1 matching role')).toBeVisible();
   });
 
-  it('Design Engineer roles stay out by default, Match in description too; its chip lets them in', async () => {
-    setMustInclude(cat, { terms: ['design system'] });
+  it("Ashby's Design Engineer roles stay out after Check open roles, a stored description on too", async () => {
+    setMustInclude(cat, { terms: ['design system'], inText: true });
     watch('https://jobs.ashbyhq.com/acmeds');
     renderApp();
     const panel = await screen.findByRole('region', { name: 'Watched' });
@@ -244,10 +243,14 @@ describe('Companies as one tool (#237)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Roles at Acmeds' }));
     const roles = await screen.findByRole('list', { name: 'Open roles at Acmeds' });
     expect(within(roles).getByText('Senior Design Systems Engineer')).toBeVisible();
-    for (const t of ['Design Engineer – Americas', 'Design Engineer – UK', 'Staff Design Engineer'])
+    for (const t of [
+      'Design Engineer – Americas',
+      'Design Engineer – Canada',
+      'Design Engineer – EU',
+      'Design Engineer – UK',
+      'Staff Design Engineer',
+    ])
       expect(within(roles).queryByText(t)).toBeNull();
-    act(() => setMustInclude(cat, { relatedOn: ['Design Engineer'] }));
-    expect(within(list).getByText('Ashby · 6 matching roles')).toBeVisible();
   });
 
   it('starred companies and the one-button check sit on the Companies home', async () => {

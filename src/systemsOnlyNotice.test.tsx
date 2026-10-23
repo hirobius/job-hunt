@@ -67,7 +67,6 @@ describe('systems-only move (2026-10-23)', () => {
     expect(readMustInclude(ds)).toEqual({
       terms: ['design system'],
       atsOff: ['design engineer'],
-      inText: false,
       phrase: true,
     });
     expect(getCurationState().tiles).toHaveLength(tiles);
