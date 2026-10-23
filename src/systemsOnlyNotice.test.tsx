@@ -1,5 +1,5 @@
 // The one-time move to systems-only (feed/systemsOnly.ts), at the App seam: an existing Design
-// Systems track gets must include "systems" and one notice, once; a reload says nothing again.
+// Systems track gets must include "design system" (title only) and one notice, once; a reload says nothing again.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
@@ -64,7 +64,12 @@ describe('systems-only move (2026-10-23)', () => {
     renderApp();
     expect(await screen.findByText(SYSTEMS_ONLY_NOTICE)).toBeInTheDocument();
     expect(screen.getAllByText(SYSTEMS_ONLY_NOTICE)).toHaveLength(1);
-    expect(readMustInclude(ds)).toEqual({ terms: ['systems'], atsOff: ['design engineer'] });
+    expect(readMustInclude(ds)).toEqual({
+      terms: ['design system'],
+      atsOff: ['design engineer'],
+      inText: false,
+      phrase: true,
+    });
     expect(getCurationState().tiles).toHaveLength(tiles);
     cleanup();
     renderApp();

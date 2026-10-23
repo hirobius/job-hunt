@@ -12,7 +12,7 @@ import { getCurationState, replaceCurationState } from './curationStore';
 import { packIdForLabel, seedPack, STARTER_PACKS, topUpFromPack } from './starterPacks';
 import { DIRECTORY_BY_PACK, TARGETS_BY_PACK } from '../radar/directory';
 import { readTargets, saveTarget } from '../feed/targets';
-import { hasMustInclude, readMustInclude } from '../feed/mustInclude';
+import { hasMustInclude, readMustInclude, saysDesignSystem } from '../feed/mustInclude';
 import { parseBoardUrl } from '../feed/sources/ats';
 import { placeKey } from './localize';
 import { CONSULTING_PACK, DESIGN_SYSTEMS_PACK, SERVICENOW_PACK, TRADES_PACK } from './packContent';
@@ -166,14 +166,14 @@ describe('design systems targets track (#198)', () => {
     expect(cat.titles[0]).toBe('Design Systems Engineer');
   });
 
-  it('is systems-only (2026-10-23): every title and ATS role says system, must include is set', () => {
+  it('is design-system-only (2026-10-23): every title and ATS role says the phrase, title only', () => {
     const id = seedPack('designsystems');
     const cat = getCurationState().categories.find((c) => c.id === id)!;
     expect(cat.label).toBe('Design Systems');
-    for (const t of [...cat.titles, ...cat.atsRoles]) expect(t).toMatch(/\bsystems?\b/i);
+    for (const t of [...cat.titles, ...cat.atsRoles]) expect(saysDesignSystem(t)).toBe(true);
     for (const gone of ['Design Engineer', 'UI Engineer', 'Product Designer', 'Frontend Engineer'])
       expect(cat.titles).not.toContain(gone);
-    expect(readMustInclude(id).terms).toEqual(['systems']);
+    expect(readMustInclude(id)).toMatchObject({ terms: ['design system'], inText: false });
     // Other packs get no rule.
     expect(hasMustInclude(seedPack('trades'))).toBe(false);
   });

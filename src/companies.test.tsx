@@ -63,6 +63,19 @@ const LIVE: Record<string, unknown> = {
     { ...leverJob('systemsco', 's2', 'Welder II'), descriptionPlain: 'A great ecosystem.' },
     leverJob('systemsco', 's3', 'Welder, Systems Lead'),
   ],
+  // Chime's roles say "design system" only in their description (Adrian 2026-10-23).
+  'https://api.lever.co/v0/postings/chime?mode=json': [
+    'Product Manager, App Experience and Platform',
+    'Director Engineering',
+    'Principal Product Designer, Lending',
+    'Tech Lead Manager, Data Integration Platform',
+  ].map((t, i) => ({
+    ...leverJob('chime', `c${i}`, t),
+    descriptionPlain: 'Welder friendly. Work with our design system team.',
+  })),
+  'https://api.lever.co/v0/postings/dsco?mode=json': [
+    { ...leverJob('dsco', 'd1', 'Senior Design Systems Engineer'), descriptionPlain: 'Welder.' },
+  ],
   'https://api.lever.co/v0/postings/eastgate?mode=json': [1, 2, 3, 4].map((n) =>
     leverJob('eastgate', `e${n}`, `Welder ${n}`),
   ),
@@ -183,6 +196,21 @@ describe('Companies as one tool (#237)', () => {
     expect(within(roles).getByText('Welder')).toBeVisible();
     expect(within(roles).getByText('Welder, Systems Lead')).toBeVisible();
     expect(within(roles).queryByText('Welder II')).toBeNull(); // "ecosystem" is not "systems"
+  });
+
+  it('design system in the title only: Chime (only its descriptions say it) is not hiring', async () => {
+    setMustInclude(cat, { terms: ['design system'], inText: false });
+    watch('https://jobs.lever.co/chime');
+    watch('https://jobs.lever.co/dsco');
+    renderApp();
+    const panel = await screen.findByRole('region', { name: 'Watched' });
+    const list = within(panel).getByRole('list', { name: 'Companies' });
+    expect(await within(list).findByText('Lever · 1 matching role')).toBeVisible();
+    await waitFor(() => expect(within(list).queryByText('Chime')).toBeNull());
+    expect(within(panel).getByText(/1 hiring now/)).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Roles at Dsco' }));
+    const roles = await screen.findByRole('list', { name: 'Open roles at Dsco' });
+    expect(within(roles).getByText('Senior Design Systems Engineer')).toBeVisible();
   });
 
   it('starred companies and the one-button check sit on the Companies home', async () => {

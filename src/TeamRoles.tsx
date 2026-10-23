@@ -18,6 +18,7 @@ import { notifySaved } from './saveNotice';
 import { jobFieldsFor } from './feed/toJob';
 import type { Role } from './feed/teamRoles';
 import { roleTypeOf, roleTypeTag } from './feed/roleType';
+import { saysDesignSystem } from './feed/mustInclude';
 import { dreamKey, starDream, unstarDream, useDreams } from './feed/dreams';
 import type { Board } from './feed/sources/ats';
 import { listStyle } from './outreachShared';
@@ -50,7 +51,11 @@ export function RoleList({
     <ul aria-label={label} style={listStyle}>
       {roles.map((r) => {
         const saved = savedKeys.has(dedupKey(r.url));
-        const tag = typed ? roleTypeTag(roleTypeOf(r)) : '';
+        // "Design systems" only when the title says it (2026-10-23): a body that mentions the
+        // design system does not make a Product Manager a design-systems role.
+        const type = typed ? roleTypeOf(r) : 'other';
+        const tag =
+          type === 'design-systems' && !saysDesignSystem(r.title) ? '' : roleTypeTag(type);
         return (
           <li key={r.id}>
             {/* No wrap: the title column shrinks so Save sits on the right of every role, the

@@ -199,7 +199,7 @@ export default function CompaniesPanel({
   const [roles, setRoles] = useRemembered<Record<string, RolesState>>(kept('roles'), rolesKept);
   // A design-systems track ranks and tags role types and folds the engineering-heavy roles.
   const roleTypes = useRoleTypes(categoryId, terms);
-  const include = useMustInclude(categoryId).terms;
+  const include = useMustInclude(categoryId);
   // One politeness budget for the board probes, the role reads and the dream checks.
   const [limiter] = useState(() => createLimiter());
   const abort = useRef<AbortController | null>(null);

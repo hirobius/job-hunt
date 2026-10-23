@@ -3,7 +3,7 @@
 // limiter as the board probe (probe.ts), then filtered by the track's terms with match.ts. Pure apart
 // from `readRoles`, which takes its fetcher and limiter so tests never hit the network.
 import { rankPostings } from './match';
-import { keepIncluded } from './mustInclude';
+import { keepIncluded, type IncludeRule } from './mustInclude';
 import { createLimiter, hostKey, type Limiter } from './probe';
 import { foldRoles, isDesignSystemsTrack, orderByRoleType } from './roleType';
 import { boardApiUrl, fetchBoard, type Board } from './sources/ats';
@@ -116,7 +116,7 @@ export const newSince = (roles: Role[], seen: readonly string[]): Role[] => {
 export function foldRolesState(
   rs: RolesState | undefined,
   fold: boolean,
-  include: string[] = [],
+  include: IncludeRule = [],
 ): { roles?: RolesState; folded: Role[] } {
   if (!rs || rs.state !== 'ok') return { roles: rs, folded: [] };
   const kept = keepIncluded(rs.roles, include);

@@ -97,7 +97,12 @@ export function seedPack(
   // The pack's company boards, filed as the track's own editable "Watched companies" group.
   if (content?.boards.length) addBoardTiles(categoryId, content.boards);
   addPackTargets(categoryId, content?.targets);
-  if (content?.mustInclude) setMustInclude(categoryId, { terms: [...content.mustInclude] });
+  if (content?.mustInclude)
+    setMustInclude(categoryId, {
+      terms: [...content.mustInclude],
+      phrase: true,
+      ...(content.mustIncludeTitleOnly ? { inText: false } : {}),
+    });
   return categoryId;
 }
 

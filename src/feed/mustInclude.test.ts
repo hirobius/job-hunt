@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  includeFields,
   keepIncluded,
+  passesInclude,
   mentionsAny,
   mergeMustInclude,
   readMustInclude,
@@ -30,6 +32,54 @@ describe('mentionsAny', () => {
   });
 
   it('no terms is no rule', () => expect(mentionsAny([], 'anything')).toBe(true));
+});
+
+describe('phrase matching (design system)', () => {
+  it.each([
+    ['Design System Lead', true],
+    ['Senior Design Systems Engineer', true],
+    ['design-system tooling', true],
+    ['Design-Systems team', true],
+    ['DESIGN   SYSTEMS', true],
+    ['design \u2011 system', true],
+    ['designs scalable systems', false],
+    ['design and system', false],
+    ['system design', false],
+    ['Systems Design Engineer', false],
+    ['design ecosystem', false],
+    ['UI Systems', false],
+    ['designs system', false],
+    ['redesign systems', false],
+  ])('%s → %s', (text, want) => expect(passesInclude(['design system'], text)).toBe(want));
+
+  it('strips HTML from the description first', () => {
+    expect(
+      passesInclude(['design system'], 'Designer', '<p>Own the <b>design</b> system</p>'),
+    ).toBe(true);
+  });
+
+  const title = 'Product Designer';
+  const body = 'Grow our design system.';
+  // [phrase in title, neither, phrase only in the description]
+  it.each([
+    ['both on', {}, [true, false, true]],
+    ['title only', { inText: false }, [true, false, false]],
+    ['description only', { inTitle: false }, [false, false, true]],
+    ['both off = title only', { inTitle: false, inText: false }, [true, false, false]],
+  ] as const)('%s', (_n, f, want) => {
+    const rule = { terms: ['design system'], ...f };
+    expect([
+      passesInclude(rule, 'Design Systems Lead', ''),
+      passesInclude(rule, title, ''),
+      passesInclude(rule, title, body),
+    ]).toEqual(want);
+  });
+
+  it('both off reads as title only', () =>
+    expect(includeFields({ terms: [], inTitle: false, inText: false })).toEqual({
+      title: true,
+      text: false,
+    }));
 });
 
 describe('keepIncluded', () => {

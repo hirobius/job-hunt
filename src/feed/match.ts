@@ -12,7 +12,7 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** One word of a term, singular/plural-tolerant: library ↔ libraries, system ↔ systems,
  *  process ↔ processes. Short or non-alphabetic words ("UI", "front-end") match exactly, and
  *  words that only look plural ("status", "analysis") never lose their final s. */
-function inflect(word: string): string {
+export function inflect(word: string): string {
   if (word.length < 3 || /[^a-z]/i.test(word)) return escapeRe(word);
   if (/[^aeiou]y$/i.test(word)) return escapeRe(word.slice(0, -1)) + '(?:y|ies)';
   if (/[^aeiou]ies$/i.test(word)) return escapeRe(word.slice(0, -3)) + '(?:y|ies)';

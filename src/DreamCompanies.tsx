@@ -17,7 +17,7 @@ import {
   type RolesState,
 } from './feed/teamRoles';
 import { foldRoles } from './feed/roleType';
-import { keepIncluded } from './feed/mustInclude';
+import { keepIncluded, type IncludeRule } from './feed/mustInclude';
 import { SOURCE_LABEL } from './feed/types';
 import { Panel, PanelBody, PanelRow } from './PipelinePanel';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
@@ -44,7 +44,7 @@ export default function DreamCompanies({
   /** A design-systems track tags role types and folds the engineering-heavy roles (roleType.ts). */
   roleTypes?: { ranked: boolean; fold: boolean };
   /** The track's must-include terms: a role that never says one is not counted or flagged new. */
-  include?: string[];
+  include?: IncludeRule;
 }) {
   const dreams = useDreams(categoryId);
   const [checked, setChecked] = useState<Record<string, Checked>>({});
@@ -180,7 +180,7 @@ function DreamRow({
   checked?: Checked;
   read?: RolesState;
   roleTypes: { ranked: boolean; fold: boolean };
-  include: string[];
+  include: IncludeRule;
 }) {
   const read = foldRolesState(allRead, roleTypes.fold, include).roles;
   const split =

@@ -21,6 +21,8 @@ export interface PackContent {
   targets?: readonly PackCompany[];
   /** The track's must-include terms (feed/mustInclude.ts), set when it is seeded. */
   mustInclude?: readonly string[];
+  /** Must include looks in the title only (the description toggle starts off). */
+  mustIncludeTitleOnly?: boolean;
 }
 
 const byId: Record<string, Group> = Object.fromEntries(GROUPS.map((g) => [g.id, g]));
@@ -40,7 +42,8 @@ export const TRADES_PACK: PackContent = {
 // Titles first: the Live postings feed searches the first title on open. Systems-only (Adrian
 // 2026-10-23: "if the posting doesn't have 'systems' in the title or the main description, I have
 // zero interest"): no generic Design Engineer, UX Engineer, Product Designer or Frontend titles,
-// and the pack's must-include rule hides any posting that never says system(s).
+// and the pack's must-include rule hides any posting that never says the phrase "design system(s)"
+// (2026-10-23: no "UI Systems" either). ATS queries quote each role (jobsData.titleClause).
 const DESIGN_SYSTEMS_TITLES = [
   'Design Systems Engineer',
   'Design Systems Designer',
@@ -48,8 +51,6 @@ const DESIGN_SYSTEMS_TITLES = [
   'Design Systems Manager',
   'Design Systems Architect',
   'Design Systems Technologist',
-  'UI Systems Designer',
-  'UI Systems Engineer',
   // #198: the senior searches, phrase-matched so they catch designer and engineer titles alike.
   'Staff Design Systems',
   'Principal Design Systems',
@@ -61,7 +62,6 @@ const DESIGN_SYSTEMS_ATS_ROLES = [
   'design systems lead',
   'design systems manager',
   'design system technologist',
-  'UI systems',
 ];
 
 // ---- Design Systems (remote, experienced; systems roles only) ----
@@ -74,7 +74,8 @@ export const DESIGN_SYSTEMS_PACK: PackContent = {
   groups: pick('ds-brief', 'ds-watch'),
   boards: DIRECTORY_BY_PACK.designsystems,
   targets: TARGETS_BY_PACK.designsystems,
-  mustInclude: ['systems'],
+  mustInclude: ['design system'],
+  mustIncludeTitleOnly: true,
 };
 
 const CONSULTING_TITLES = [

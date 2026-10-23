@@ -281,9 +281,9 @@ export default function LiveFeedPanel({
       salaryFloor: floor > 0 ? floor : undefined,
       salaryOnly,
       titles: { on: sweepTitles, off: titleFilter.off },
-      include: mustInclude.terms,
+      include: mustInclude,
     }),
-    [excludeText, seniority, floor, salaryOnly, sweepTitles, titleFilter.off, mustInclude.terms],
+    [excludeText, seniority, floor, salaryOnly, sweepTitles, titleFilter.off, mustInclude],
   );
   const { postings: ranked, hidden } = useMemo(
     () => applyTargeting(matched, targeting),
@@ -785,11 +785,30 @@ export default function LiveFeedPanel({
           >
             <Stack gap="normal">
               <ChipEditor
-                label="Must include (in the title or description)"
-                placeholder="Add a word"
+                label="Must include (exact phrase)"
+                placeholder="Add a phrase"
                 values={mustInclude.terms}
                 onChange={(next) => setMustInclude(categoryId, { terms: next })}
               />
+              {/* Where must include looks (2026-10-23): title and description, each on its own;
+                  both off reads as title only, and says so. */}
+              <Stack direction="row" wrap="wrap" gap="normal" align="center">
+                <Toggle
+                  label="Match in title"
+                  checked={mustInclude.inTitle !== false}
+                  onChange={(on) => setMustInclude(categoryId, { inTitle: on })}
+                />
+                <Toggle
+                  label="Match in description"
+                  checked={mustInclude.inText !== false}
+                  onChange={(on) => setMustInclude(categoryId, { inText: on })}
+                />
+              </Stack>
+              {mustInclude.inTitle === false && mustInclude.inText === false && (
+                <Text variant="caption" tone="secondary">
+                  Both off: matching the title only.
+                </Text>
+              )}
               <SweepTitlesEditor categoryId={categoryId} seed={sweepSeed} bare />
               {terms.length > 0 && (
                 <Stack gap="px8">

@@ -82,7 +82,7 @@ describe('must include in Live postings', () => {
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
     expect(titles()).toHaveLength(4);
-    const field = screen.getByRole('textbox', { name: 'Add a word' });
+    const field = screen.getByRole('textbox', { name: 'Add a phrase' });
     await user.type(field, 'systems{Enter}');
     expect(readMustInclude(cat).terms).toEqual(['systems']);
     expect(titles()).toHaveLength(3);
@@ -100,5 +100,26 @@ describe('must include in Live postings', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Save all (3)' }));
     expect(getAllJobs().map((j) => j.label)).not.toContain('Product Designer, Growth');
     expect(getAllJobs()).toHaveLength(3);
+  });
+
+  it('the phrase and the title/description toggles re-filter what is loaded, with no new read', async () => {
+    const user = userEvent.setup();
+    setMustInclude(cat, { terms: ['design system'] });
+    renderPanel();
+    await screen.findByRole('list', { name: /live postings/i });
+    const reads = feed.fetchFeed.mock.calls.length;
+    // "UI Systems" is not the phrase; "design system" in a body counts while descriptions are on.
+    expect(titles().sort()).toEqual(['Design Systems Designer', 'Product Designer']);
+    await user.click(screen.getByRole('switch', { name: 'Match in description' }));
+    expect(readMustInclude(cat).inText).toBe(false);
+    expect(titles()).toEqual(['Design Systems Designer']);
+    expect(screen.getByText(/3 hidden by must include/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('switch', { name: 'Match in title' }));
+    // Both off reads as title only, and says so.
+    expect(screen.getByText('Both off: matching the title only.')).toBeInTheDocument();
+    expect(titles()).toEqual(['Design Systems Designer']);
+    await user.click(screen.getByRole('switch', { name: 'Match in description' }));
+    expect(titles()).toEqual(['Product Designer']);
+    expect(feed.fetchFeed.mock.calls.length).toBe(reads);
   });
 });
