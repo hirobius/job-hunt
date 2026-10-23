@@ -641,7 +641,9 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
     () => activeAtsRoles(cat.atsRoles, mustInclude),
     [cat.atsRoles, mustInclude],
   );
-  const searchTerms = atsOn.length ? atsOn : cat.titles;
+  // Unticked titles never feed a search (2026-10-23): the fallback is the ticked ones.
+  const tickedTitles = useActiveTitles(cat.id, titleSeed);
+  const searchTerms = atsOn.length ? atsOn : tickedTitles;
   // The track's company source (#215): GitHub where its terms name a topic, else its starter list
   // and the YC companies hiring now. Never design-system teams on a track that isn't one.
   const companySource = useMemo(

@@ -52,6 +52,18 @@ describe('phrase matching (design system)', () => {
     ['redesign systems', false],
   ])('%s → %s', (text, want) => expect(passesInclude(['design system'], text)).toBe(want));
 
+  // Adrian's phone, 2026-10-23: these passed on a bare "systems" in the description.
+  it.each([
+    ['Senior Design Engineer', 'Frontcareers builds scalable systems for our design team.'],
+    ['Staff Design Engineer', 'Mixpanel: own UI systems and design tooling.'],
+  ])(
+    '%s with "systems" (not the phrase) in its description is hidden, descriptions on or off',
+    (t, d) => {
+      expect(passesInclude(['design system'], t, d)).toBe(false);
+      expect(passesInclude({ terms: ['design system'], inText: false }, t, d)).toBe(false);
+    },
+  );
+
   it('strips HTML from the description first', () => {
     expect(
       passesInclude(['design system'], 'Designer', '<p>Own the <b>design</b> system</p>'),
