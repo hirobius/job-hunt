@@ -13,7 +13,7 @@ A job seeker opens a saved job and sees one clear page, not one long inline form
 - `src/App.tsx`: renders `route.jobId ? <JobPage jobId/> : <TrackerView/>` inside `Container maxWidth="max"`.
 - `src/JobPage.tsx` (56 lines): resolves `findJobById`, waits for `useCloudSync().settled`, then `openJob(null, true)`; shows `PageHeader` (back button as `breadcrumb`) over `<JobCard defaultDetailsOpen/>` at the 760 content measure. While unknown and unsettled it shows an `EmptyState` "Job not found".
 - `src/JobCard.tsx` (380 lines): does everything: eyebrow, title, status badge, pin, `RowMenu`, icon facts, screening chips, source host, actions (Mark applied, `UseTemplate`, Follow-up), `TodosNotes`, and a `Disclosure` "Details" holding field inputs, `ScreeningEditor`, `InterviewLog`, Notes, contact/résumé, research links. Owns the "Saved ✓" flash.
-- `src/TrackerView.tsx`: owns filter, search and sort state locally; picks `JobsTable` (at `useAtLeast('lg')`) or `JobListCard`. Titles link to `jobHash(jobIdOf(url))`.
+- `src/TrackerView.tsx`: owns filter, search and sort state locally; renders `JobListCard` at every width (the table was cut 2026-10-24). Titles link to `jobHash(jobIdOf(url))`.
 - `src/jobRow.ts`: `rowView`, `titleOf`, `primaryAction`, `STATUS_TONE`. `src/JobRowParts.tsx`: `RowMenu` (includes Delete via `removeJob`), `RowPrimaryAction`, `StatusBadge`.
 - `src/hds-gaps/useBreakpoint.ts`: `useAtLeast('sm' | 'md' | 'lg')` via `matchMedia`; narrow layout when there is no `matchMedia`.
 - Tests: `src/jobRoute.test.tsx` (route seam through `App`), `src/pipeline.test.tsx`.

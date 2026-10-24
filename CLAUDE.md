@@ -266,17 +266,15 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   surfaces):** Cards and panels are borderless (raised fill + spacing); never pass `bordered`.
   Inputs, focus, selected/current, overlays, row dividers and feedback tones keep theirs.
   `e2e/no-outlines.spec.ts` fails on a Card or container box that draws an edge.
-- **Pipeline rows (#129):** the Pipeline table and Discover's tile grid use the shell width; the job page and Documents sit at
-  the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders
-  `JobsTable` (HDS `Table`, sortable headers through `jobRow.nextSort` → the same `SortKey` as the
-  toolbar) at ≥ the HDS `xl` breakpoint (1280; at `lg` the 920 measure wrapped titles to three lines) and `JobListCard` (title on its own row) below it, chosen
-  by HDS `useAtLeast` (no `matchMedia` → cards). Both render `jobRow.rowView` with
-  `JobRowParts.tsx`: one next step per row (Mark applied / Follow up, secondary so Add job stays
-  the page's one primary) + the row `Menu` (also on the job page's header, minus Remove); 40px controls on
-  cards. A non-default filter or search shows a quiet Clear filters button.
-  Titles link to `#/queue/<jobId>`; details, to-dos, the screener and templates live on the job
-  page (tabs, #130). The filter/search/sort survive opening a job and Back (`pipelineView.ts`).
-  Pinned in `src/pipeline.test.tsx`.
+- **Pipeline rows (#129):** the Pipeline and Discover's tile grid use the shell width; the job page and Documents sit at
+  the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders `JobListCard` at
+  **every width** (Adrian 2026-10-24: the 920 shell wrapped the table's titles to three lines, so `JobsTable` and
+  the column-sort helpers were deleted). Cards render `jobRow.rowView` with `JobRowParts.tsx`: one next step per
+  card (Mark applied / Follow up, secondary so Add job stays the page's one primary) + the row `Menu` (also on the
+  job page's header, minus Remove); 40px controls. Sorting is the toolbar's Sort menu only. A non-default filter
+  or search shows a quiet Clear filters button. Titles link to `#/queue/<jobId>`; details, to-dos, the screener
+  and templates live on the job page (tabs, #130). The filter/search/sort survive opening a job and Back
+  (`pipelineView.ts`). Pinned in `src/pipeline.test.tsx`.
 - **Discover (#131, `docs/specs/discover.md`):** `DiscoverHeader` = `PageHeader` (track name, Manage
   track, New track `Menu`) + the track `Combobox` + one context `Popover` button ("Spokane, Hybrid")
   holding the only `LocationControl`. **Location is `Category.location`; work mode is per track and syncs,
@@ -405,7 +403,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   which the toast behind a modal is not), and it moves to the toast when the dialog closes (`noticeToToast`).
   ATS search's Copy the query toasts "Copied the query"; Duplicate and Pin flash the row they land on. Pinned
   by `e2e/feedback.spec.ts` (the sweep fails if a press changes nothing visible in 300 ms; a menu closing or an
-  earlier toast leaving does not count; it checks the table row's flash and collapse at 1440 and the card's at 390)
+  earlier toast leaving does not count; it checks the card's flash and collapse at 1440 and 390)
   and `src/feedback.test.ts`.
 - **Posting links (Adrian 2026-10-22: anywhere a job is listed, its posting is one tap away).** A
   saved job's title opens its page in the app; `PostingLink.tsx` (`JobPostingLink` for a Job) is the
