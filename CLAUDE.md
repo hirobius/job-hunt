@@ -515,9 +515,10 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   / `lint` / `test` / `build` + headless Chromium) **plus the Vercel deploy**. Never add or rely on
   an Actions workflow; don't treat Actions checks as a merge gate.
 - `npm install`, `npm run dev`, `npm run build`, `npm run typecheck`.
-- **Deploy gate (#95):** `vercel.json`'s `buildCommand` is `npm run verify` (typecheck → lint →
-  vitest → build), so a red check fails the Vercel build and the previous deploy stays live.
-  **`main` is the live production site** — run `npm run verify` before pushing. Branch pushes only
+- **Deploy gate (#95; moved off Vercel 2026-10-24):** `vercel.json`'s `buildCommand` is `npm run build`
+  (Adrian: ~3 min → ~30-60 s per deploy). Vercel no longer runs the checks, so **`npm run verify`
+  (typecheck → lint → vitest → build) must pass locally before every push to `main`**; `main` is the
+  live production site. `deployGate.test.ts` pins both halves. Branch pushes only
   build a preview when the commit message contains `[preview]`. E2E in cloud sessions:
   `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
 - **CSP (#97 → enforcing in #106):** `Content-Security-Policy` in `vercel.json`, pinned by
