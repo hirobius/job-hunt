@@ -146,12 +146,28 @@ function passesFilters(p: Posting, where: string, mode: WorkMode): boolean {
 }
 
 export function rankPostings(postings: Posting[], o: RankOptions): RankedPosting[] {
+  return rankWith(postings, o, (p) => matchTerm(p, o.term));
+}
+
+/** Every posting that passes the location and work mode, with no term to match: on a scored
+ *  track (src/tracks) the scorer decides what is listed, not the search term. Ranked and deduped
+ *  like `rankPostings`, the term's hit left out of the score. */
+export function rankAll(postings: Posting[], o: Omit<RankOptions, 'term'>): RankedPosting[] {
+  return rankWith(postings, { ...o, term: '' }, () => 'title', 0);
+}
+
+function rankWith(
+  postings: Posting[],
+  o: RankOptions,
+  hitOf: (p: Posting) => 'title' | 'text' | null,
+  hitScore?: number,
+): RankedPosting[] {
   const ranked: RankedPosting[] = [];
   for (const p of postings) {
-    const hit = matchTerm(p, o.term);
+    const hit = hitOf(p);
     if (!hit || !passesFilters(p, o.where, o.mode)) continue;
     const signals = detectSignals(`${p.title}\n${p.text}`);
-    let score = SCORE[hit];
+    let score = hitScore ?? SCORE[hit];
     for (const s of signals) score += SCORE[s.id];
     const t = p.postedAt ? Date.parse(p.postedAt) : NaN;
     if (!Number.isNaN(t)) {

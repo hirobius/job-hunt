@@ -22,6 +22,7 @@ import { saysDesignSystem } from './feed/mustInclude';
 import { dreamKey, starDream, unstarDream, useDreams } from './feed/dreams';
 import type { Board } from './feed/sources/ats';
 import { CardList, ListCard } from './PipelinePanel';
+import { reasonsLine } from './tracks/scoreForTrack';
 
 /** A team's matching roles. Save adds one to the Pipeline and raises the shared save notice
  *  (saveNotice.ts: Open, Undo). The title links out: the only step that leaves the app is Apply. */
@@ -73,6 +74,11 @@ export function RoleList({
                   {r.location && (
                     <Text variant="caption" tone="secondary">
                       {r.location}
+                    </Text>
+                  )}
+                  {r.trackScore && (
+                    <Text variant="caption" as="p" tone="secondary">
+                      {reasonsLine(r.trackScore)}
                     </Text>
                   )}
                 </Stack>

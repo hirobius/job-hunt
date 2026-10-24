@@ -1,6 +1,7 @@
 // Live postings feed (Discover → "Live postings") — the shared model every source adapter
 // normalizes into. A Posting is a raw opening pulled from a public, keyless, CORS-open API at view
 // time; it is never stored. Saving one turns it into a tracked Job (src/types.ts) by URL.
+import type { ScoreResult } from '../tracks/score.ts';
 import type { JobMode } from '../types';
 
 export type FeedSourceId =
@@ -52,6 +53,8 @@ export interface Posting {
   salaryMax?: number;
   /** ISO currency code ('USD'); absent when the source doesn't say. */
   currency?: string;
+  /** The track scorer's verdict and reasons (src/tracks), on a scored track only. */
+  trackScore?: ScoreResult;
 }
 
 export type SignalId = 'contract' | 'founding';

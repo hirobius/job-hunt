@@ -53,7 +53,9 @@ import { notifySaved } from './saveNotice';
 import { fetchFeed, type FeedResult } from './feed/fetchFeed';
 import { mergeRetry } from './feed/mergeFeed';
 import { AsyncState, type AsyncStatus } from '@hirobius/design-system/patterns';
-import { rankPostings } from './feed/match';
+import { rankAll, rankPostings } from './feed/match';
+import { SCORED_TRACK_COPY, scorerFor } from './tracks/forTrack';
+import { reasonsLine } from './tracks/scoreForTrack';
 import { applyTargeting, NO_TARGETING } from './feed/targeting';
 import {
   hasRelatedTitles,
@@ -167,6 +169,9 @@ export default function LiveFeedPanel({
   const [salaryOnly, setSalaryOnly] = useRemembered(kept('salaryOnly'), false);
   // Must include (2026-10-23): per track and synced, unlike the leave-out words above.
   const mustInclude = useMustInclude(categoryId);
+  // A scored track (src/tracks): the scorer replaces must include, related titles and the title
+  // filter, lists what it queues by score and holds the rest for review, each with its reasons.
+  const scorer = scorerFor(mustInclude);
   // The track's ATS roles switched off (the systems-only move): tap one to search for it again.
   const atsOff = useMemo(() => {
     const off = new Set(mustInclude.atsOff.map((x) => x.toLowerCase()));
@@ -274,10 +279,13 @@ export default function LiveFeedPanel({
   const matched = useMemo<SweptPosting[]>(() => {
     if (!current?.result) return [];
     const o = { where, mode, now: current.at };
+    // No term gate on a scored track: the term (or the sweep) picks what is read, the scorer what
+    // is listed.
+    if (scorer) return rankAll(current.result.postings, o).map((p) => ({ ...p, titles: [] }));
     return sweeping
       ? sweepRank(current.result.postings, sweepKey.split('\n'), o)
       : rankPostings(current.result.postings, { ...o, term }).map((p) => ({ ...p, titles: [] }));
-  }, [current, term, where, mode, sweeping, sweepKey]);
+  }, [current, term, where, mode, sweeping, sweepKey, scorer]);
   const floor = Number(floorText.replace(/[^\d.]/g, ''));
   const targeting = useMemo(
     () => ({
@@ -294,19 +302,23 @@ export default function LiveFeedPanel({
     }),
     [excludeText, seniority, floor, salaryOnly, sweepTitles, titleFilter.off, mustInclude],
   );
-  const { postings: ranked, hidden } = useMemo(
-    () => applyTargeting(matched, targeting),
-    [matched, targeting],
-  );
+  const {
+    postings: ranked,
+    hidden,
+    review,
+  } = useMemo(() => applyTargeting(matched, targeting), [matched, targeting]);
   // Related titles (2026-10-23): what each would let in among the postings read, on or off.
-  const showRelated = hasRelatedTitles(mustInclude);
+  const showRelated = !scorer && hasRelatedTitles(mustInclude);
   const relatedOn = showRelated && mustInclude.related !== false;
   const perRelated = useMemo(
     () => (relatedOn ? relatedCounts(matched, mustInclude) : {}),
     [relatedOn, matched, mustInclude],
   );
   const hiddenNotes = [
-    hidden.include > 0 && `${hidden.include} hidden by must include`,
+    hidden.include > 0 &&
+      (scorer
+        ? `${hidden.include} left out by the scorer`
+        : `${hidden.include} hidden by must include`),
     hidden.exclude > 0 && `${hidden.exclude} hidden by what you left out`,
     hidden.seniority > 0 && `${hidden.seniority} hidden by level`,
     hidden.salary > 0 && `${hidden.salary} hidden by pay`,
@@ -338,17 +350,19 @@ export default function LiveFeedPanel({
   // With evidence the list leads with the best fits (stable: relevance breaks ties). On a
   // design-systems track the role type leads, fit and relevance order each type.
   const byFit = useMemo(() => {
+    // A scored track keeps the scorer's order: best score, then newest.
+    if (scorer) return ranked;
     const fitted = fits.size
       ? [...ranked].sort(
           (a, b) => TIER_RANK[fits.get(a.id)!.tier] - TIER_RANK[fits.get(b.id)!.tier],
         )
       : ranked;
     return roleTypes.ranked ? orderByRoleType(fitted) : fitted;
-  }, [ranked, fits, roleTypes.ranked]);
-  const foldedCount = useMemo(
-    () => foldRoles(ranked, roleTypes.fold).folded.length,
-    [ranked, roleTypes.fold],
-  );
+  }, [ranked, fits, roleTypes.ranked, scorer]);
+  // A scored track folds nothing away and tags no role type: the scorer's reasons say what it is.
+  const fold = roleTypes.fold && !scorer;
+  const typed = roleTypes.ranked && !scorer;
+  const foldedCount = useMemo(() => foldRoles(ranked, fold).folded.length, [ranked, fold]);
   const shownTitles =
     sweeping && onlyTitle
       ? withoutHidden(byFit, new Set(sweepTitles.filter((t) => t !== onlyTitle)))
@@ -359,7 +373,7 @@ export default function LiveFeedPanel({
       : focus === 'strong'
         ? shownTitles.filter((p) => fits.get(p.id)?.tier === 'strong')
         : shownTitles.filter((p) => p.signals.some((s) => s.id === focus));
-  const { shown: visible, folded } = foldRoles(focused, roleTypes.fold);
+  const { shown: visible, folded } = foldRoles(focused, fold);
   /** A title chip shows only that title's rows; the active one again (or All) shows every row. */
   const showOnly = (t: string | null) => {
     setOnlyTitle((cur) => (t === cur ? null : t));
@@ -570,9 +584,11 @@ export default function LiveFeedPanel({
   const captionItems = [
     reading
       ? `Read ${reading.done} of ${reading.total} boards…`
-      : fits.size
-        ? 'Sorted by fit'
-        : 'Sorted by relevance',
+      : scorer
+        ? 'Sorted by score'
+        : fits.size
+          ? 'Sorted by fit'
+          : 'Sorted by relevance',
     focus !== 'all' && `Showing ${focusLabel.toLowerCase()}`,
     ...hiddenNotes,
   ];
@@ -656,7 +672,7 @@ export default function LiveFeedPanel({
               fit={fits.get(p.id)}
               onSave={() => save(p)}
               sweepTitles={sweeping ? sweepTitles.length : 0}
-              typeTag={roleTypes.ranked ? roleTypeTag(roleTypeOf(p)) : ''}
+              typeTag={typed ? roleTypeTag(roleTypeOf(p)) : ''}
             />
           ))}
         </CardList>
@@ -684,6 +700,34 @@ export default function LiveFeedPanel({
                   onSave={() => save(p)}
                   sweepTitles={sweeping ? sweepTitles.length : 0}
                   typeTag={roleTypeTag('design-engineering')}
+                />
+              ))}
+            </CardList>
+          </Disclosure>
+        </PanelRowBox>
+      )}
+      {/* A scored track's review bucket: an adjacent title with too little body evidence, or
+          body evidence with no title signal. Kept out of the list, one tap away, with reasons. */}
+      {review.length > 0 && (
+        <PanelRowBox>
+          <Disclosure
+            label={
+              <Stack as="span" direction="row" gap="px8" align="center">
+                Review
+                <Badge count={review.length} />
+              </Stack>
+            }
+          >
+            <CardList label="Held for review" inset="none">
+              {review.map((p) => (
+                <PostingRow
+                  key={p.id}
+                  p={p}
+                  now={current!.at}
+                  saved={savedKeys.has(dedupKey(p.url))}
+                  fit={fits.get(p.id)}
+                  onSave={() => save(p)}
+                  sweepTitles={0}
                 />
               ))}
             </CardList>
@@ -806,7 +850,7 @@ export default function LiveFeedPanel({
                   each on its own; both off reads as title only, and says so. A design system rule
                   reads titles only, so it has no toggles for the two. */}
               <Stack direction="row" wrap="wrap" gap="normal" align="center">
-                {!showRelated && (
+                {!showRelated && !scorer && (
                   <>
                     <Toggle
                       label="Match in title"
@@ -831,6 +875,11 @@ export default function LiveFeedPanel({
               {showRelated && (
                 <Text variant="caption" as="p" tone="secondary">
                   Matching job titles only: a title has to say design system or design systems.
+                </Text>
+              )}
+              {scorer && (
+                <Text variant="caption" as="p" tone="secondary">
+                  {SCORED_TRACK_COPY}
                 </Text>
               )}
               {/* Each related title as a toggle chip with what it lets in (or would) among the
@@ -861,11 +910,14 @@ export default function LiveFeedPanel({
                   </Stack>
                 </Stack>
               )}
-              {!showRelated && mustInclude.inTitle === false && mustInclude.inText !== true && (
-                <Text variant="caption" tone="secondary">
-                  Both off: matching the title only.
-                </Text>
-              )}
+              {!showRelated &&
+                !scorer &&
+                mustInclude.inTitle === false &&
+                mustInclude.inText !== true && (
+                  <Text variant="caption" tone="secondary">
+                    Both off: matching the title only.
+                  </Text>
+                )}
               <SweepTitlesEditor categoryId={categoryId} seed={sweepSeed} bare />
               {terms.length > 0 && (
                 <Stack gap="px8">
@@ -1427,6 +1479,11 @@ function PostingRow({
             {p.company && (
               <Text variant="ui" as="p">
                 {p.company}
+              </Text>
+            )}
+            {p.trackScore && (
+              <Text variant="caption" as="p" tone="secondary">
+                {reasonsLine(p.trackScore)}
               </Text>
             )}
             {(facts.length > 0 || p.signals.length > 0) && (

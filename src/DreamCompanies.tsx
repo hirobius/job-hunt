@@ -17,7 +17,8 @@ import {
   type RolesState,
 } from './feed/teamRoles';
 import { foldRoles } from './feed/roleType';
-import { keepIncluded, type IncludeRule } from './feed/mustInclude';
+import type { IncludeRule } from './feed/mustInclude';
+import { keepForTrack, scorerFor } from './tracks/forTrack';
 import { SOURCE_LABEL } from './feed/types';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
@@ -69,6 +70,7 @@ export default function DreamCompanies({
             limiter,
             signal: ac.signal,
             fresh: true,
+            include,
           });
           if (ac.signal.aborted) return;
           if (r.state !== 'ok') {
@@ -77,8 +79,11 @@ export default function DreamCompanies({
             return;
           }
           // New openings are counted among the roles shown, not the folded engineering-heavy ones.
-          const kept = keepIncluded(r.roles, include);
-          const found = newSince(foldRoles(kept, roleTypes.fold).shown, d.seen);
+          const kept = keepForTrack(r.roles, include);
+          const found = newSince(
+            foldRoles(kept, roleTypes.fold && !scorerFor(include)).shown,
+            d.seen,
+          );
           fresh += found.length;
           markDreamChecked(
             categoryId,

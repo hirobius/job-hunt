@@ -219,7 +219,7 @@ export default function CompaniesPanel({
     if (asked.current.has(k)) return;
     asked.current.add(k);
     setRoles((m) => ({ ...m, [k]: { state: 'loading' } }));
-    void readRoles(b, terms, { fetchJson: liveFetchJson, limiter, signal }).then((r) => {
+    void readRoles(b, terms, { fetchJson: liveFetchJson, limiter, signal, include }).then((r) => {
       // Cut short: forget the ask so it can be made again, but keep the "Couldn't check" answer, so
       // a cancelled team's row stays visible (a watched board is re-read by the effect below).
       if (signal.aborted) asked.current.delete(k);
