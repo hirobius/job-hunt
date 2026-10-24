@@ -1,12 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   appliedAgo,
-  COLUMN_SORT,
   followUpOf,
-  nextSort,
   primaryAction,
   rowView,
-  sortDirectionOf,
 } from './jobRow';
 import type { Job } from './types';
 
@@ -36,32 +33,6 @@ describe('primaryAction: one obvious next step per row (#129)', () => {
     ['retired → nothing, even when saved', job({ archived: true }), null],
   ] as const)('%s', (_name, j, expected) => {
     expect(primaryAction(j, NOW)).toBe(expected);
-  });
-});
-
-describe('sortable columns map onto the jobSort keys (#129)', () => {
-  it('each sortable column has a sort key', () => {
-    expect(COLUMN_SORT).toEqual({
-      job: 'az',
-      status: 'status',
-      fit: 'fit',
-      applied: 'applied',
-      followup: 'followup',
-    });
-  });
-
-  it('a column reads as sorted only under its own key, in that key’s direction', () => {
-    expect(sortDirectionOf('job', 'az')).toBe('ascending');
-    expect(sortDirectionOf('applied', 'applied')).toBe('descending'); // most recent first
-    expect(sortDirectionOf('followup', 'followup')).toBe('ascending'); // soonest first
-    expect(sortDirectionOf('job', 'recent')).toBe('none');
-    expect(sortDirectionOf('status', 'az')).toBe('none');
-  });
-
-  it('clicking a column sorts by it; clicking it again goes back to recently added', () => {
-    expect(nextSort('job', 'recent')).toBe('az');
-    expect(nextSort('job', 'az')).toBe('recent');
-    expect(nextSort('fit', 'az')).toBe('fit');
   });
 });
 

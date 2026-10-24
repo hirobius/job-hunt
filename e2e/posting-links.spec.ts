@@ -235,10 +235,8 @@ for (const width of [390, 1440] as const) {
 
     test('every job the Pipeline lists opens its posting in one tap', async ({ page }) => {
       await loadSample(page);
-      // The Jobs panel: phone cards, or the desktop table's rows.
-      const jobRows = phone
-        ? page.getByRole('region', { name: /^Jobs/ }).getByRole('article')
-        : page.getByRole('table', { name: 'Saved jobs' }).locator('[role="row"]:has(a)');
+      // The Jobs panel: job cards at every width (Adrian 2026-10-24).
+      const jobRows = page.getByRole('region', { name: /^Jobs/ }).getByRole('article');
       await expectPostingLinks(page, jobRows, phone);
       // The agenda panels above it.
       await expectPostingLinks(

@@ -1,10 +1,10 @@
-// Badges are neutral except what needs attention (rev-3 B): the desktop table, the job rail and
+// Badges are neutral except what needs attention (rev-3 B): the Pipeline's cards, the job rail and
 // the Company page show status and fit in the neutral tone, like the job header and the phone
 // cards. Only a due follow-up (and Closed on the board) is a warning.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
-import JobsTable from './JobsTable';
+import JobListCard from './JobListCard';
 import JobRail from './JobRail';
 import CompanyPage from './CompanyPage';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
@@ -37,11 +37,13 @@ afterEach(() => {
 });
 
 describe('neutral badges on desktop (rev-3 B)', () => {
-  it('the Pipeline table shows status and fit neutral', () => {
+  it('the Pipeline cards show status and fit neutral', () => {
     seed();
     const { container } = render(
       <ToastProvider>
-        <JobsTable jobs={getAllJobs()} sort="recent" onSort={() => {}} />
+        {getAllJobs().map((j) => (
+          <JobListCard key={j.url} job={j} />
+        ))}
       </ToastProvider>,
     );
     expect(container.querySelectorAll('[data-tone]').length).toBeGreaterThan(0);

@@ -2,7 +2,7 @@
 
 Every local stand-in for something HDS doesn't do yet, with its upstream ask. Rule: when an HDS
 release ships the fix, the upgrade PR deletes the workaround and moves its row to "Retired". HDS is
-pinned at **0.31.1** (public npm; GitHub Packages stops at 0.26.2). Rows marked _shipped_ have
+pinned at **0.32.0** (public npm; GitHub Packages stops at 0.26.2). Rows marked _shipped_ have
 the HDS fix out and wait for their screen's redesign slice to migrate.
 
 ## Open

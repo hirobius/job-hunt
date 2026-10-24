@@ -1,5 +1,4 @@
-// The pieces one job row is made of (#129), shared by the desktop table (JobsTable), the phone
-// cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
+// The pieces one job row is made of (#129), shared by the Pipeline's job cards (JobListCard) and the job page's header (JobHeader): the status badge, the row's one next
 // step, and the menu that holds everything else. What a row offers is decided in jobRow.ts.
 import { useRef, useState } from 'react';
 import { Check, Ellipsis, Star } from 'lucide-react';

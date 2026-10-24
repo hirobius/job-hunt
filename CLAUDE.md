@@ -54,7 +54,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   accent**. There is **no local colour override** — the jade `brand-jade.css` was removed, and
   `hdsOnly.test.ts` fails if a `src/theme/brand-*.css` or an accent-token remap comes back. No ALL CAPS anywhere (HDS never sets it; `hdsOnly.test.ts` checks).
 - **Design system:** `@hirobius/design-system` (HDS) is consumed **directly from public
-  npm** (exact-pinned `0.31.1`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
+  npm** (exact-pinned `0.32.0`; `hdsOnly.test.ts` enforces the exact pin) — see `docs/adr/0005` and `docs/adr/0007`.
   The HDS ESLint plugin comes from the private `@hirobius/hds-toolkit` (GitHub Packages, hirobius/ops#691):
   `.npmrc` maps `@hirobius` there, so installs need `HDS_PACKAGES_TOKEN` (classic, `read:packages`). GitHub
   Packages stops at design-system 0.26.2, so the lockfile resolves it from registry.npmjs.org and `.npmrc` sets
@@ -261,22 +261,20 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
   `pipelineFollowUps.test.tsx`.
 - **Shell width (Adrian 2026-10-22, the portfolio's):** `src/hds-gaps/PageShell` = HDS `Container`
-  at 1180 in all with a `clamp(1.25rem, 5vw, 4rem)` gutter (20 on a phone, 64 from 1280), so content
-  is at most 1052; header, tabs and every page share it. **No outlines on surfaces (HDS 0.31 soft
+  at 1048 in all (Adrian 2026-10-24, was 1180) with a `clamp(1.25rem, 5vw, 4rem)` gutter (20 on a phone, 64 from 1280), so content
+  is at most 920; header, tabs and every page share it. **No outlines on surfaces (HDS 0.31 soft
   surfaces):** Cards and panels are borderless (raised fill + spacing); never pass `bordered`.
   Inputs, focus, selected/current, overlays, row dividers and feedback tones keep theirs.
   `e2e/no-outlines.spec.ts` fails on a Card or container box that draws an edge.
-- **Pipeline rows (#129):** the Pipeline table and Discover's tile grid use the shell width; the job page and Documents sit at
-  the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders
-  `JobsTable` (HDS `Table`, sortable headers through `jobRow.nextSort` → the same `SortKey` as the
-  toolbar) at ≥ the HDS `xl` breakpoint (1280; at `lg` the 920 measure wrapped titles to three lines) and `JobListCard` (title on its own row) below it, chosen
-  by HDS `useAtLeast` (no `matchMedia` → cards). Both render `jobRow.rowView` with
-  `JobRowParts.tsx`: one next step per row (Mark applied / Follow up, secondary so Add job stays
-  the page's one primary) + the row `Menu` (also on the job page's header, minus Remove); 40px controls on
-  cards. A non-default filter or search shows a quiet Clear filters button.
-  Titles link to `#/queue/<jobId>`; details, to-dos, the screener and templates live on the job
-  page (tabs, #130). The filter/search/sort survive opening a job and Back (`pipelineView.ts`).
-  Pinned in `src/pipeline.test.tsx`.
+- **Pipeline rows (#129):** the Pipeline and Discover's tile grid use the shell width; the job page and Documents sit at
+  the 760 content measure (`var(--semantic-layout-width-content)`). `TrackerView` renders `JobListCard` at
+  **every width** (Adrian 2026-10-24: the 920 shell wrapped the table's titles to three lines, so `JobsTable` and
+  the column-sort helpers were deleted). Cards render `jobRow.rowView` with `JobRowParts.tsx`: one next step per
+  card (Mark applied / Follow up, secondary so Add job stays the page's one primary) + the row `Menu` (also on the
+  job page's header, minus Remove); 40px controls. Sorting is the toolbar's Sort menu only. A non-default filter
+  or search shows a quiet Clear filters button. Titles link to `#/queue/<jobId>`; details, to-dos, the screener
+  and templates live on the job page (tabs, #130). The filter/search/sort survive opening a job and Back
+  (`pipelineView.ts`). Pinned in `src/pipeline.test.tsx`.
 - **Discover (#131, `docs/specs/discover.md`):** `DiscoverHeader` = `PageHeader` (track name, Manage
   track, New track `Menu`) + the track `Combobox` + one context `Popover` button ("Spokane, Hybrid")
   holding the only `LocationControl`. **Location is `Category.location`; work mode is per track and syncs,
@@ -421,7 +419,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   which the toast behind a modal is not), and it moves to the toast when the dialog closes (`noticeToToast`).
   ATS search's Copy the query toasts "Copied the query"; Duplicate and Pin flash the row they land on. Pinned
   by `e2e/feedback.spec.ts` (the sweep fails if a press changes nothing visible in 300 ms; a menu closing or an
-  earlier toast leaving does not count; it checks the table row's flash and collapse at 1440 and the card's at 390)
+  earlier toast leaving does not count; it checks the card's flash and collapse at 1440 and 390)
   and `src/feedback.test.ts`.
 - **Posting links (Adrian 2026-10-22: anywhere a job is listed, its posting is one tap away).** A
   saved job's title opens its page in the app; `PostingLink.tsx` (`JobPostingLink` for a Job) is the
@@ -533,9 +531,10 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   / `lint` / `test` / `build` + headless Chromium) **plus the Vercel deploy**. Never add or rely on
   an Actions workflow; don't treat Actions checks as a merge gate.
 - `npm install`, `npm run dev`, `npm run build`, `npm run typecheck`.
-- **Deploy gate (#95):** `vercel.json`'s `buildCommand` is `npm run verify` (typecheck → lint →
-  vitest → build), so a red check fails the Vercel build and the previous deploy stays live.
-  **`main` is the live production site** — run `npm run verify` before pushing. Branch pushes only
+- **Deploy gate (#95; moved off Vercel 2026-10-24):** `vercel.json`'s `buildCommand` is `npm run build`
+  (Adrian: ~3 min → ~30-60 s per deploy). Vercel no longer runs the checks, so **`npm run verify`
+  (typecheck → lint → vitest → build) must pass locally before every push to `main`**; `main` is the
+  live production site. `deployGate.test.ts` pins both halves. Branch pushes only
   build a preview when the commit message contains `[preview]`. E2E in cloud sessions:
   `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
 - **CSP (#97 → enforcing in #106):** `Content-Security-Policy` in `vercel.json`, pinned by
@@ -751,3 +750,11 @@ file; (b) before ending any session that changed project state, update
 root status.json (updatedAt, phase, headline, next, blocked) — the ops
 dashboard renders it; (c) read the ops HANDOFF before cross-project
 decisions.
+
+## PR previews: screenshots, not Vercel (Adrian 2026-10-24, all repos)
+
+Vercel preview builds are OFF (production only). Every PR carries its own preview:
+1. Run the production build locally (`pnpm build` / `npm run build`) and serve the built app (`pnpm preview` / `npm run preview`, or the repo's screenshot tooling).
+2. Attach screenshots of the affected routes only: 390x844, light AND dark, plus a desktop shot if the route is used on desktop. At most ~6 images, inline in the PR body or a PR comment. Adrian reviews on his phone: no zips, nothing he has to build.
+3. Backend/infra PRs with no visual change: write "no visual change" instead.
+4. Never re-enable Vercel preview builds (or add `[preview]`) to get screenshots.

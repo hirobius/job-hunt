@@ -1,6 +1,6 @@
 // Phase 3 of the redesign (#129): the Pipeline list. Tested at the route seam through App and
-// driven by role + name. A phone gets compact cards whose title owns its row; a desktop gets a
-// sortable table. Either way each job links to its page and has one primary action, with the
+// driven by role + name. Every width gets the job cards (Adrian 2026-10-24: the 920 shell wrapped
+// table titles to three lines): each job links to its page and has one primary action, with the
 // rest in its menu.
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { rowView } from './jobRow';
@@ -190,15 +190,15 @@ describe('Retired jobs stay readable', () => {
     expect(faded(card)).toBe(false);
   });
 
-  it('a retired table row says so in words without fading its cells', async () => {
+  it('a retired card on a desktop says so in words too, without fading its text', async () => {
     viewport(1440);
     renderApp();
     await showRetired();
-    const row = within(screen.getByRole('table', { name: 'Saved jobs' })).getByRole('row', {
-      name: /Design Engineer/,
-    });
-    expect(within(row).getByText(/^Retired · Acme/)).toBeInTheDocument();
-    expect(faded(row)).toBe(false);
+    expect(screen.queryByRole('table')).toBeNull();
+    const card = screen.getByRole('article', { name: 'Design Engineer' });
+    expect(within(card).getByText('Retired')).toBeInTheDocument();
+    expect(within(card).getByText('Acme')).toBeInTheDocument();
+    expect(faded(card)).toBe(false);
   });
 });
 
@@ -248,85 +248,77 @@ describe('Pipeline filter (#129)', () => {
   });
 });
 
-describe('Pipeline on a desktop (#129)', () => {
+describe('Pipeline on a desktop: cards too (Adrian 2026-10-24)', () => {
   beforeEach(() => viewport(1440));
 
-  it('is a table: job, status, fit, applied, follow-up, and one action per row', () => {
+  it('is the card list, not a table: status, follow-up and one action per card', () => {
     renderApp();
-    const table = screen.getByRole('table', { name: 'Saved jobs' });
-    const headers = within(table)
-      .getAllByRole('columnheader')
-      .map((c) => c.textContent?.trim());
-    expect(headers).toEqual(['Job', 'Status', 'Fit', 'Applied', 'Follow-up', 'Actions']);
-    const row = within(table).getByRole('row', { name: /Zenith Product Designer/ });
-    expect(within(row).getByRole('link', { name: 'Zenith Product Designer' })).toHaveAttribute(
+    expect(screen.queryByRole('table')).toBeNull();
+    const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    expect(within(card).getByRole('link', { name: 'Zenith Product Designer' })).toHaveAttribute(
       'href',
       `#/queue/${jobIdOf(APPLIED)}`,
     );
-    expect(within(row).getByText('Applied')).toBeInTheDocument();
-    expect(within(row).getByText('10d ago')).toBeInTheDocument();
-    expect(within(row).getByText('Follow-up due')).toBeInTheDocument();
+    expect(within(card).getByText('Applied')).toBeInTheDocument();
+    expect(within(card).getByText('Follow-up due')).toBeInTheDocument();
     expect(
-      within(row).getByRole('button', { name: 'Follow up: Zenith Product Designer' }),
+      within(card).getByRole('button', { name: 'Follow up: Zenith Product Designer' }),
     ).toBeInTheDocument();
   });
 
-  it('each row opens its posting in one tap from beside the title (Adrian 2026-10-22)', () => {
+  it('each card opens its posting in one tap from beside the title (Adrian 2026-10-22)', () => {
     renderApp();
-    const table = screen.getByRole('table', { name: 'Saved jobs' });
-    const row = within(table).getByRole('row', { name: /Design Engineer/ });
-    const posting = within(row).getByRole('link', {
+    const card = screen.getByRole('article', { name: 'Design Engineer' });
+    const posting = within(card).getByRole('link', {
       name: 'Open posting for Design Engineer at Acme',
     });
     expect(posting).toHaveAttribute('href', SAVED);
     expect(posting).toHaveAttribute('rel', 'noopener noreferrer');
-    // In the Job cell, with the title, not in the actions cell.
-    expect(within(row).getAllByRole('cell')[0]).toContainElement(posting);
+    // Beside the title, never inside its heading or its link.
+    expect(posting.closest('h3')).toBeNull();
+    expect(posting.parentElement!.closest('a')).toBeNull();
   });
 
-  it('marks starred rows (they float in every sort) and retired ones', async () => {
+  it('marks starred cards (they float in every sort) and retired ones', async () => {
     updateJob(SAVED, { archived: true });
     renderApp();
-    const table = screen.getByRole('table', { name: 'Saved jobs' });
-    const starredRow = within(table).getByRole('row', { name: /Zenith/ });
-    const starred = within(starredRow).getByText('Starred');
-    expect(starred).toBeInTheDocument();
-    // The star trails the title, so starred and unstarred titles share one left edge (desktop QA).
-    const title = within(starredRow).getByRole('link', { name: 'Zenith Product Designer' });
-    expect(title.compareDocumentPosition(starred) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const starredCard = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    expect(within(starredCard).getByText('Starred')).toBeInTheDocument();
     // Retired jobs show under the Retired view, with their real status and a Retired note.
     await userEvent.click(screen.getByRole('button', { name: /^Status:/ }));
     await userEvent.click(
       within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Retired/ }),
     );
-    const row = within(screen.getByRole('table', { name: 'Saved jobs' })).getByRole('row', {
-      name: /Design Engineer/,
-    });
-    expect(within(row).getByText('Saved')).toBeInTheDocument();
-    expect(within(row).getByText(/^Retired · Acme/)).toBeInTheDocument();
+    const card = screen.getByRole('article', { name: 'Design Engineer' });
+    expect(within(card).getByText('Saved')).toBeInTheDocument();
+    expect(within(card).getByText('Retired')).toBeInTheDocument();
+    expect(within(card).queryByText('Starred')).toBeNull();
   });
 
-  it('sorts by a column header through the same sort as the toolbar, and back', async () => {
+  it('sorts through the toolbar Sort menu, and back', async () => {
     addJob('https://acme.example/jobs/3', 'Writer'); // the newest, but last A–Z
     renderApp();
-    const table = () => screen.getByRole('table', { name: 'Saved jobs' });
     const titles = () =>
-      within(table())
-        .getAllByRole('link')
-        // The job-page links; each row also has its posting link beside the title.
-        .filter((l) => l.getAttribute('href')?.startsWith('#/queue/'))
-        .map((l) => l.textContent);
+      screen.getAllByRole('article').map((a) => within(a).getByRole('heading').textContent);
+    const pickSort = async (name: string) => {
+      await userEvent.click(screen.getByRole('button', { name: /^Sort:/ }));
+      await userEvent.click(
+        within(await screen.findByRole('menu')).getByRole('menuitemradio', { name }),
+      );
+    };
     // Default: the pinned job with a due follow-up first, then most recently added.
     expect(titles()).toEqual(['Zenith Product Designer', 'Writer', 'Design Engineer']);
-    const jobHeader = within(table()).getByRole('columnheader', { name: /Job/ });
-    await userEvent.click(within(jobHeader).getByRole('button'));
-    await waitFor(() => expect(jobHeader).toHaveAttribute('aria-sort', 'ascending'));
-    expect(screen.getByRole('button', { name: 'Sort: A–Z' })).toBeInTheDocument();
+    await pickSort('A–Z');
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Sort: A–Z' })).toBeInTheDocument(),
+    );
     // Priority still floats in every sort (jobSort's invariant); A–Z orders the rest.
     expect(titles()).toEqual(['Zenith Product Designer', 'Design Engineer', 'Writer']);
-    await userEvent.click(within(jobHeader).getByRole('button'));
-    await waitFor(() => expect(jobHeader).toHaveAttribute('aria-sort', 'none'));
-    expect(screen.getByRole('button', { name: 'Sort: Newest' })).toBeInTheDocument();
+    await pickSort('Recently added');
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Sort: Newest' })).toBeInTheDocument(),
+    );
+    expect(titles()).toEqual(['Zenith Product Designer', 'Writer', 'Design Engineer']);
   });
 });
 
@@ -370,7 +362,8 @@ describe('the Pipeline ends with "Find the next company" (#238)', () => {
     const btn = findNext();
     // It follows the list: the last thing the Pipeline offers.
     expect(
-      screen.getByRole('table').compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING,
+      screen.getAllByRole('article').slice(-1)[0].compareDocumentPosition(btn) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     await userEvent.click(btn);
     await waitFor(() => expect(window.location.hash).toBe('#/discover'));

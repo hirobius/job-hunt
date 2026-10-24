@@ -27,7 +27,7 @@
     "verify:ui": "npm run hds:check && playwright test e2e/layout-rules.spec.ts e2e/visual.spec.ts"
   },
   "dependencies": {
-    "@hirobius/design-system": "0.31.1",
+    "@hirobius/design-system": "0.32.0",
     "@supabase/supabase-js": "^2.117.3",
     "@vercel/analytics": "^2.0.1",
     "react": "^18.3.1",

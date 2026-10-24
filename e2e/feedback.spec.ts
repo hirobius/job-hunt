@@ -180,8 +180,8 @@ test('Pipeline: every row and page action answers within 300 ms', async ({ page 
     page.getByText('Marked applied · Follow up in 7 days', { exact: true }),
   ).toBeVisible();
 
-  // The desktop table's rows have no box (HDS Table: `display: contents`), so the row's cells
-  // flash and collapse; the toast alone is not the item's feedback.
+  // The job's card flashes and collapses (cards at every width, Adrian 2026-10-24); the toast
+  // alone is not the item's feedback.
   await menu(page, 'More actions: Senior Product Designer', 'Star');
   await ranIn(page, 'rjb-flash', 'Senior Product Designer');
   await menu(page, 'More actions: Senior Product Designer', 'Unstar');

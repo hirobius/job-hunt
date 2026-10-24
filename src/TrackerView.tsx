@@ -27,7 +27,6 @@ import {
   type Filter,
 } from './pipelineView';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
-import JobsTable from './JobsTable';
 import ApplyQueueSummary from './ApplyQueueSummary';
 import GettingStarted from './GettingStarted';
 import ScoredQueue from './ScoredQueue';
@@ -83,10 +82,6 @@ export default function TrackerView() {
   const statusSheet = useBackSheet('pipeline-status');
   const sortSheet = useBackSheet('pipeline-sort');
   const moreSheet = useBackSheet('pipeline-more');
-  // A sortable table where there's room for its six columns (the shell's full 1052 measure, from
-  // HDS xl); compact cards below that (#129). At lg the shell's content is ~920 and titles wrapped
-  // to three lines.
-  const wide = useAtLeast('xl');
   // Export links sits beside Status and Sort; on a phone it folds into a ⋯ menu so they keep room.
   const roomy = useAtLeast('sm');
 
@@ -340,11 +335,9 @@ export default function TrackerView() {
                   )}
                 </PanelBody>
               </Box>
-            ) : wide ? (
-              <PanelBody>
-                <JobsTable jobs={shown} sort={sort} onSort={setSort} />
-              </PanelBody>
             ) : (
+              // Cards at every width (Adrian 2026-10-24): the 920 shell wrapped table titles to
+              // three lines.
               <CardList as="div">
                 {shown.map((j) => (
                   <JobListCard key={j.url} job={j} />
