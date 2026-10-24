@@ -16,7 +16,6 @@ import {
   TabsTrigger,
   TabsContent,
   Box,
-  Text,
   Stack,
   useToast,
 } from '@hirobius/design-system';
@@ -24,9 +23,8 @@ import { FollowUpHost } from './FollowUp';
 import { ApplyMode, CompanyPage, JobPage, TrackerView } from './routeViews';
 import { JobPageLiveness } from './LivenessViews';
 import { Onboarding, ChooseTrack } from './Onboarding';
-import { BRAND } from './brand';
 import { usePageTitle } from './pageTitle';
-import { BrandMark } from './BrandMark';
+import { BrandLogo } from './components/brand/BrandFlame';
 import { LEGAL_ROUTE } from './legal';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
@@ -239,15 +237,10 @@ export default function App() {
                     landmark-one-main / region). */}
                 <Box as="header">
                   <Stack gap="normal">
-                    {/* Slim app bar (rev-3): the wordmark on the titleSm step (so a page title is
-                      always the biggest text), the placeholder mark left of it · the Account avatar. */}
+                    {/* Slim app bar: the brand lockup (live flame + Sora wordmark, the page's one h1;
+                      Adrian 2026-10-24) · the Account avatar. */}
                     <Stack direction="row" gap="gap" align="center" justify="space-between">
-                      <Stack direction="row" gap="px8" align="center">
-                        <BrandMark />
-                        <Text variant="titleSm" as="h1">
-                          {BRAND.name}
-                        </Text>
-                      </Stack>
+                      <BrandLogo fontSize={19} />
                       <AccountMenu />
                     </Stack>
                     <TabsList

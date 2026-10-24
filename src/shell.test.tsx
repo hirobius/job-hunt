@@ -108,18 +108,18 @@ describe('app shell (#115 Phase 1)', () => {
     ).toBeInTheDocument();
   });
 
-  it('the wordmark is an app-bar label, smaller than any page title', () => {
+  it('the wordmark is the brand lockup at 19px, never a page-title step', () => {
     renderApp();
     const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
-    // rev-3 .brand: the display family on the titleSm step, under the title step a page head uses.
-    expect(wordmark.className).not.toMatch(/hds-type-(title|display)(?!-sm)\b/);
-    expect(wordmark.className).toMatch(/hds-type-title-sm/);
+    expect(wordmark.className).toBe('rjb-logo-word');
+    expect(wordmark.className).not.toMatch(/hds-type-(title|display)/);
+    expect((wordmark.parentElement as HTMLElement).style.getPropertyValue('--rjb-logo-size')).toBe('19px');
   });
 
-  it('the placeholder mark sits left of the wordmark, hidden from assistive tech', () => {
+  it('the flame sits left of the wordmark, hidden from assistive tech', () => {
     renderApp();
     const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
-    const mark = wordmark.parentElement?.querySelector('.rjb-brand-mark');
+    const mark = wordmark.parentElement?.querySelector('svg.rjb-flame');
     expect(mark).not.toBeNull();
     expect(mark?.getAttribute('aria-hidden')).toBe('true');
     expect(mark!.compareDocumentPosition(wordmark) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
