@@ -77,9 +77,11 @@ export function RoleList({
                     </Text>
                   )}
                   {r.trackScore && (
-                    <Text variant="caption" as="p" tone="secondary">
-                      {reasonsLine(r.trackScore)}
-                    </Text>
+                    <Box sx={{ overflowWrap: 'anywhere' }}>
+                      <Text variant="caption" as="p" tone="secondary">
+                        {reasonsLine(r.trackScore)}
+                      </Text>
+                    </Box>
                   )}
                 </Stack>
               </Box>

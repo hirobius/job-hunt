@@ -7,6 +7,7 @@
 import { useContext, useEffect, useState } from 'react';
 import {
   Badge,
+  Box,
   Button,
   Disclosure,
   InlineLink,
@@ -152,9 +153,12 @@ function PostingCard({ p, onSkip }: { p: StoredPosting; onSkip: () => void }) {
             {httpUrl(p.url) ? <InlineLink href={p.url}>{p.title}</InlineLink> : p.title}
           </Text>
           <MetaCaption items={[p.company, p.location]} />
-          <Text variant="caption" as="p" tone="secondary">
-            {reasonsLine(p)}
-          </Text>
+          {/* A reason can be one long pattern with no spaces: it breaks anywhere, never overflows. */}
+          <Box sx={{ overflowWrap: 'anywhere' }}>
+            <Text variant="caption" as="p" tone="secondary">
+              {reasonsLine(p)}
+            </Text>
+          </Box>
         </Stack>
         <Stack direction="row" gap="px8" align="center">
           <Button
