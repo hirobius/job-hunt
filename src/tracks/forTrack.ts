@@ -53,9 +53,13 @@ export function scoreAll<P extends Posting>(
   const review: Scored<P>[] = [];
   let rejected = 0;
   for (const p of postings) {
-    const trackScore = p.trackScore ?? scoreForTrack(toNormalized(p), track);
-    if (trackScore.verdict === 'reject') rejected++;
-    else (trackScore.verdict === 'queue' ? queue : review).push({ ...p, trackScore });
+    // Already scored (a role read on this track): kept as is, so a list re-filtered on every
+    // render keeps its rows' identity.
+    const scored = p.trackScore
+      ? (p as Scored<P>)
+      : { ...p, trackScore: scoreForTrack(toNormalized(p), track) };
+    if (scored.trackScore.verdict === 'reject') rejected++;
+    else (scored.trackScore.verdict === 'queue' ? queue : review).push(scored);
   }
   const order = (a: Scored<P>, b: Scored<P>) =>
     byScoreThenNewest(
