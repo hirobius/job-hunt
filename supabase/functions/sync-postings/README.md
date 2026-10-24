@@ -14,7 +14,8 @@ Nothing here has been applied or deployed. The steps below are for Adrian.
 3. Deploy with JWT checks off (the function checks `x-sync-secret` itself):
    `supabase functions deploy sync-postings --no-verify-jwt`
    The function imports `src/tracks/*.ts` by relative path. If the bundler refuses files outside
-   `supabase/functions`, copy `src/tracks/{score,scoreForTrack,sources,sync,track-config}.ts`
+   `supabase/functions`, copy `src/tracks/{score,scoreForTrack,sources,sync,track-config}.ts`,
+   `src/feed/html.ts` and `src/httpUrl.ts`
    into `supabase/functions/_shared/` and point the imports there.
 4. Store the two values the cron reads in Vault (SQL editor):
    `select vault.create_secret('https://nelrcmbkimjjmfmgnixj.supabase.co', 'project_url');`
