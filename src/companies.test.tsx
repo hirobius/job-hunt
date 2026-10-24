@@ -227,6 +227,8 @@ describe('Companies as one tool (#237)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Roles at Dsco' }));
     const roles = await screen.findByRole('list', { name: 'Open roles at Dsco' });
     expect(within(roles).getByText('Senior Design Systems Engineer')).toBeVisible();
+    // The scorer (src/tracks) lists it, and the row says why.
+    expect(within(roles).getByText(/^Queued because: title match: /)).toBeVisible();
     // A stored description on changes nothing on a design system rule (Adrian 2026-10-23).
     act(() => setMustInclude(cat, { inText: true }));
     expect(within(list).queryByText('Chime')).toBeNull();

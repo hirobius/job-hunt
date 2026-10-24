@@ -4,6 +4,7 @@
 // and a posting with no stated pay is kept unless the user asks for pay to be shown.
 import type { Seniority } from '../curation/types';
 import { termRegex } from './match';
+import { scoreAll, scorerFor } from '../tracks/forTrack';
 import { passesInclude, type IncludeRule } from './mustInclude';
 import type { RankedPosting } from './types';
 
@@ -19,7 +20,9 @@ export interface Targeting {
    * title names it and no ticked one. Titles only, never the body. */
   titles?: { on: string[]; off: string[] };
   /** Must include (2026-10-23): a posting is listed only when the fields the rule searches (title,
-   * description) say one of its phrases ("design system", never "system design"). Empty: no rule. */
+   * description) say one of its phrases ("design system", never "system design"). Empty: no rule.
+   * A rule that asks for "design system(s)" makes the track a scored one (src/tracks): the scorer
+   * replaces must include and the title filter, and `include` counts what it rejected. */
   include?: IncludeRule;
 }
 
@@ -55,9 +58,22 @@ const usd = (p: RankedPosting) => !p.currency || p.currency.toUpperCase() === 'U
 export function applyTargeting<P extends RankedPosting>(
   postings: P[],
   t: Targeting,
-): { postings: P[]; hidden: HiddenCounts } {
+): { postings: P[]; hidden: HiddenCounts; review: P[] } {
   const hidden: HiddenCounts = { include: 0, exclude: 0, seniority: 0, salary: 0, titles: 0 };
   const include = t.include ?? [];
+  const track = scorerFor(include);
+  if (track) {
+    // A scored track: the scorer decides (and orders); the leave-out, level and pay rules still
+    // narrow both the queue and the review bucket.
+    const scored = scoreAll(postings, track);
+    hidden.include = scored.rejected;
+    const rest = { ...t, include: [], titles: undefined };
+    const queue = applyTargeting(scored.queue, rest);
+    const review = applyTargeting(scored.review, rest);
+    for (const k of ['exclude', 'seniority', 'salary'] as const)
+      hidden[k] = queue.hidden[k] + review.hidden[k];
+    return { postings: queue.postings, hidden, review: review.postings };
+  }
   const hasInclude = (Array.isArray(include) ? include : include.terms).some((x) => x.trim());
   const excludes = excludeRegexes(t.exclude);
   const onRes = excludeRegexes(t.titles?.on ?? []);
@@ -101,5 +117,5 @@ export function applyTargeting<P extends RankedPosting>(
   });
   // Ticked titles lead; each half keeps its ranked order.
   const ordered = onRes.length ? [...kept.filter(ticked), ...kept.filter((p) => !ticked(p))] : kept;
-  return { postings: ordered, hidden };
+  return { postings: ordered, hidden, review: [] };
 }

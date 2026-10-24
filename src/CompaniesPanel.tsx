@@ -61,6 +61,7 @@ import {
 import AddCompany from './AddCompany';
 import DreamCompanies from './DreamCompanies';
 import { hasRelatedTitles, useMustInclude } from './feed/mustInclude';
+import { scorerFor } from './tracks/forTrack';
 import AdeleSeed from './AdeleSeed';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
 import { useRoleTypes } from './feed/roleTypePref';
@@ -204,6 +205,16 @@ export default function CompaniesPanel({
   const abort = useRef<AbortController | null>(null);
   const life = useRef<AbortController | null>(null);
   const asked = useRef(new Set<string>(Object.keys(rolesKept)));
+  // Roles are read differently on a scored track (src/tracks: every opening, scored) than by the
+  // track's terms, so a must-include change that turns the scorer on or off reads them again.
+  const scored = !!scorerFor(include);
+  const readScored = useRef(scored);
+  useEffect(() => {
+    if (readScored.current === scored) return;
+    readScored.current = scored;
+    asked.current.clear();
+    setRoles({});
+  }, [scored, setRoles]);
   useEffect(() => {
     life.current = new AbortController();
     return () => {
@@ -219,7 +230,7 @@ export default function CompaniesPanel({
     if (asked.current.has(k)) return;
     asked.current.add(k);
     setRoles((m) => ({ ...m, [k]: { state: 'loading' } }));
-    void readRoles(b, terms, { fetchJson: liveFetchJson, limiter, signal }).then((r) => {
+    void readRoles(b, terms, { fetchJson: liveFetchJson, limiter, signal, include }).then((r) => {
       // Cut short: forget the ask so it can be made again, but keep the "Couldn't check" answer, so
       // a cancelled team's row stays visible (a watched board is re-read by the effect below).
       if (signal.aborted) asked.current.delete(k);

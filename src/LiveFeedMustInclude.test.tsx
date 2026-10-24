@@ -125,9 +125,12 @@ describe('must include in Live postings', () => {
     expect(feed.fetchFeed.mock.calls.length).toBe(reads);
   });
 
-  // Adrian 2026-10-23: the only roles wanted are titled design system(s) or Design Technologist.
-  // Live postings showed Frontcareers' and Mixpanel's Design Engineers; Ashby's came in Companies.
-  it('a design system rule lists titles only: Design Engineers are out, a stored description on too', async () => {
+  // Muse Phase 1 (2026-10-24): a design system rule makes the track a scored one. The scorer
+  // (src/tracks) replaces related titles and the field toggles; Design Engineers stay out unless
+  // the title is a design-system one (Adrian 2026-10-23), and every card says why it is listed.
+  it('a design system rule is scored: queue by score with reasons, review apart, the rest left out', async () => {
+    const user = userEvent.setup();
+    const ds = 'Own our design system and component library, and the design tokens.';
     const text = 'Grow our design system with designers, Claude Code and Cursor.';
     feed.fetchFeed.mockResolvedValue({
       ...RESULT,
@@ -135,58 +138,33 @@ describe('must include in Live postings', () => {
         post('1', 'Design Systems Designer', 'Own the library.'),
         post('2', 'Product Designer', text),
         post('f', 'Senior Design Engineer', `Frontcareers. ${text}`),
-        post('m', 'Staff Design Engineer', `Mixpanel. ${text}`),
-        post('a', 'Design Engineer – Americas', text),
-        post('c', 'Design Engineer – Canada', text),
-        post('e', 'Design Engineer – EU', text),
         post('u', 'Design Engineer – UK', text),
         post('p', 'UI Platform Engineer', text),
         post('t', 'Design Technologist', 'Prototype with designers.'),
+        post('t2', 'Design Technologist, Web', ds),
+        post('r', 'Staff Product Designer, Platform', 'Contribute to our design system.'),
+        post('m', 'Senior Mechanical Design Engineer', ds),
+        post('i', 'Design Systems Intern', ds),
       ],
     });
     setMustInclude(cat, { terms: ['design system'], inText: true });
     renderPanel();
     await screen.findByRole('list', { name: /live postings/i });
-    expect(titles().sort()).toEqual(['Design Systems Designer', 'Design Technologist']);
+    // Strong title first (88+), then the promoted adjacent title.
+    expect(titles()).toEqual(['Design Systems Designer', 'Design Technologist, Web']);
+    const cards = within(screen.getByRole('list', { name: 'Live postings' })).getAllByRole(
+      'listitem',
+    );
+    for (const c of cards) expect(within(c).getByText(/^Queued because: /)).toBeInTheDocument();
+    expect(screen.getByText(/7 left out by the scorer/)).toBeInTheDocument();
+    expect(screen.getByText(/scored on title \+ posting evidence/)).toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'Match in description' })).not.toBeInTheDocument();
-    expect(screen.getByText(/Matching job titles only/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Design Engineer,/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^UI Platform,/ })).not.toBeInTheDocument();
-  });
-
-  it('related titles: a switch and one chip (Design Technologist) with its count, re-filter at once and kept', async () => {
-    const user = userEvent.setup();
-    feed.fetchFeed.mockResolvedValue({
-      ...RESULT,
-      postings: [
-        post('1', 'Design Systems Designer', 'Own the library.'),
-        post('5', 'Design Technologist', 'Prototype in code with designers.'),
-      ],
-    });
-    setMustInclude(cat, { terms: ['design system'] });
-    renderPanel();
-    await screen.findByRole('list', { name: /live postings/i });
-    const reads = feed.fetchFeed.mock.calls.length;
-    const all = ['Design Systems Designer', 'Design Technologist'];
-    expect(titles().sort()).toEqual(all);
-    const sw = screen.getByRole('switch', { name: 'Related titles' });
-    expect(sw).toBeChecked();
-    const chip = screen.getByRole('button', { name: 'Design Technologist, 1' });
-    expect(chip).toHaveAttribute('aria-pressed', 'true');
-    await user.click(chip);
-    expect(readMustInclude(cat).relatedOff).toEqual(['Design Technologist']);
-    expect(chip).toHaveAttribute('aria-pressed', 'false');
-    expect(titles()).toEqual(['Design Systems Designer']);
-    await user.click(screen.getByRole('button', { name: 'Design Technologist, 1' }));
-    await user.click(sw);
-    expect(readMustInclude(cat).related).toBe(false);
-    expect(titles()).toEqual(['Design Systems Designer']);
-    expect(
-      screen.queryByRole('button', { name: 'Design Technologist, 1' }),
-    ).not.toBeInTheDocument();
-    await user.click(sw);
-    expect(titles().sort()).toEqual(all);
-    expect(feed.fetchFeed.mock.calls.length).toBe(reads);
+    expect(screen.queryByRole('switch', { name: 'Related titles' })).not.toBeInTheDocument();
+    // Review is its own bucket, with a count.
+    await user.click(screen.getByRole('button', { name: /Review/ }));
+    const held = screen.getByRole('list', { name: 'Held for review' });
+    expect(within(held).getByText('Staff Product Designer, Platform')).toBeInTheDocument();
+    expect(within(held).getByText(/^Held for review because: /)).toBeInTheDocument();
   });
 
   it('related titles only show on a design system rule', async () => {

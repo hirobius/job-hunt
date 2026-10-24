@@ -29,6 +29,7 @@ import {
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import ApplyQueueSummary from './ApplyQueueSummary';
 import GettingStarted from './GettingStarted';
+import ScoredQueue from './ScoredQueue';
 import JobListCard from './JobListCard';
 import { CardList, Panel, PanelBody } from './PipelinePanel';
 import { PipelineLiveness } from './LivenessViews';
@@ -150,6 +151,8 @@ export default function TrackerView() {
         <SampleBanner jobs={jobs} />
       </Stack>
       <Stack gap="px24">
+        {/* What the sync scored and queued (signed in; hidden while there is nothing). */}
+        <ScoredQueue />
         {jobs.length > 0 && (
           <>
             {/* Shown after your first job until dismissed (#132; moved from Today in #236). */}

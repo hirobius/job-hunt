@@ -19,6 +19,7 @@
     "icons": "node scripts/make-icons.mjs",
     "screenshots": "node scripts/make-screenshots.mjs",
     "audit": "npm audit --omit=dev --audit-level=high",
+    "sync:dry-run": "node --experimental-strip-types --no-warnings scripts/dry-run-sync.ts",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
     "hds:check": "node scripts/hds-check.mjs",
     "test:layout": "playwright test e2e/layout-rules.spec.ts",

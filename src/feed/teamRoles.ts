@@ -2,8 +2,10 @@
 // team's board is read with the same parsers as Live postings (sources/ats.ts) and the same politeness
 // limiter as the board probe (probe.ts), then filtered by the track's terms with match.ts. Pure apart
 // from `readRoles`, which takes its fetcher and limiter so tests never hit the network.
-import { rankPostings } from './match';
-import { keepIncluded, type IncludeRule } from './mustInclude';
+import { keepForTrack, scoreAll, scorerFor } from '../tracks/forTrack';
+import type { TrackConfig } from '../tracks/track-config';
+import { rankAll, rankPostings } from './match';
+import type { IncludeRule } from './mustInclude';
 import { createLimiter, hostKey, type Limiter } from './probe';
 import { foldRoles, isDesignSystemsTrack, orderByRoleType } from './roleType';
 import { boardApiUrl, fetchBoard, type Board } from './sources/ats';
@@ -36,7 +38,15 @@ export function matchRoles(postings: Posting[], terms: string[], now: number): R
   return isDesignSystemsTrack(terms) ? orderByRoleType(byScore) : byScore;
 }
 
-/** Read one board and keep the roles that match. Any failure is 'unknown', never "no roles". */
+/** A scored track's roles (src/tracks): every opening on the board, scored, the queued ones kept
+ *  (best score, then newest). No term has to match: the scorer decides. */
+export function scoredRoles(postings: Posting[], track: TrackConfig, now: number): Role[] {
+  const all = rankAll(postings, { where: '', mode: 'any', now }).map((p) => ({ ...p, term: '' }));
+  return scoreAll(all, track).queue;
+}
+
+/** Read one board and keep the roles that match (or, on a scored track, that the scorer queues).
+ *  Any failure is 'unknown', never "no roles". */
 export async function readRoles(
   board: Board,
   terms: string[],
@@ -46,6 +56,8 @@ export async function readRoles(
     signal?: AbortSignal;
     now?: number;
     fresh?: boolean;
+    /** The track's must-include rule: a design-system one scores the roles (forTrack.ts). */
+    include?: IncludeRule;
   },
 ): Promise<RolesState> {
   const limiter = o.limiter ?? createLimiter();
@@ -55,7 +67,9 @@ export async function readRoles(
     const ran = await limiter.run(host, () => fetchBoard(board, get), o.signal);
     if (!ran.ran) return { state: 'unknown' };
     limiter.ok(host);
-    const roles = matchRoles(ran.value, terms, o.now ?? Date.now());
+    const track = scorerFor(o.include);
+    const now = o.now ?? Date.now();
+    const roles = track ? scoredRoles(ran.value, track, now) : matchRoles(ran.value, terms, now);
     return { state: 'ok', roles, total: ran.value.length };
   } catch (e) {
     if (e instanceof FetchError && e.status === 429) limiter.strike(host);
@@ -110,7 +124,7 @@ export const newSince = (roles: Role[], seen: readonly string[]): Role[] => {
 };
 
 /** A board's answer with the roles that fail the track's must-include rule dropped (feed/
- *  mustInclude.ts) and the engineering-heavy roles taken out (when `fold`): what its row counts,
+ *  mustInclude.ts; on a scored track, the ones the scorer does not queue, src/tracks) and the engineering-heavy roles taken out (when `fold`): what its row counts,
  *  orders and lists ("N matching roles", Hiring now), and the folded roles for its "N
  *  engineering-heavy roles" disclosure. */
 export function foldRolesState(
@@ -119,8 +133,11 @@ export function foldRolesState(
   include: IncludeRule = [],
 ): { roles?: RolesState; folded: Role[] } {
   if (!rs || rs.state !== 'ok') return { roles: rs, folded: [] };
-  const kept = keepIncluded(rs.roles, include);
-  if (kept.length !== rs.roles.length) rs = { ...rs, roles: kept };
-  const { shown, folded } = foldRoles(rs.roles, fold);
+  const read = rs.roles;
+  const kept = keepForTrack(read, include);
+  if (kept.length !== read.length || kept.some((r, i) => r !== read[i]))
+    rs = { ...rs, roles: kept };
+  // A scored track lists what the scorer queued: nothing is folded away.
+  const { shown, folded } = foldRoles(rs.roles, fold && !scorerFor(include));
   return { roles: folded.length ? { ...rs, roles: shown } : rs, folded };
 }

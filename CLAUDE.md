@@ -352,6 +352,22 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   on its title alone (Design Engineer, UI Platform, Component Library, Frontend Platform were cut the same day; a
   stored id for them is dropped). Calibrate's "Related titles" switch, then its chip with `relatedCounts`. Applies
   everywhere `passesInclude` does (Live postings, Companies, dreams).
+- **Track scorer (Muse handoff, 2026-10-24, branch `claude/rf-track-scorer`):** `src/tracks/` is pure and shared by
+  the app and the sync edge function: `score.ts` + `track-config.ts` (+ `score.test.ts`) are ported as given; tune a track
+  only through its config (one tune: "design engineer" is out of `titleAdjacent`, Adrian 2026-10-23). `scoreForTrack`
+  = scorer then `fitRejectReason` (no interns). A track is **scored** when its must include asks for "design system(s)"
+  (`forTrack.scorerFor`): the scorer then replaces must include, related titles, the title filter, role-type ordering and
+  the engineering-heavy fold in Live postings (no term gate: `match.rankAll`; Review (N) disclosure; "N left out by the
+  scorer"), Companies' roles (`readRoles(…, { include })` → `scoredRoles`) and dreams (`keepForTrack`); every card shows
+  `reasonsLine` ("Queued because: …"). Other tracks keep the phrase rules. The Pipeline's `ScoredQueue` (signed in) reads
+  the user's `postings` rows (`tracks/postings.ts`): verdict queue by score then newest, Review with a count, Skip → `skips`
+  (Undo deletes it); hidden when empty or before the tables exist. Server: migrations `2026102410*` (watched_companies
+  seeded from the DS track's Watched group via `board_from_url` + `tracks/verified.ts`; postings with track_slug, score,
+  verdict, reasons, matched_signals, fingerprint, unique (user, source, source_id); skips; sync_log; per-user RLS;
+  `mark_missed_postings` closes after 2 missed answered reads) and `supabase/functions/sync-postings` (2× daily cron,
+  Ashby sequential, 404 disables + logs, RSS designsystems.jobs on the morning run). Not applied or deployed: see its
+  README. `npm run sync:dry-run` runs the read + score with no database. Pinned in `src/tracks/*.test.ts`,
+  `scoredQueue.test.tsx`, `LiveFeedMustInclude.test.tsx`, `companies.test.tsx`.
 - **Adele seed (2026-10-23):** `src/feed/data/adele.json` is a one-time snapshot of UXPin's public design systems
   list (github.com/uxpin/adele, **MIT**; company name + design system site; re-take it by hand from `ADELE.file`).
   No runtime host. On a design systems track (`hasRelatedTitles` or the GitHub design-system search) Companies' More

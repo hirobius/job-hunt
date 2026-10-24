@@ -8,6 +8,7 @@ import { parseBoardUrl } from '../feed/sources/ats';
 import { addTargets, type Target } from '../feed/targets';
 import { addBoardTiles } from '../feed/watchlist';
 import { setMustInclude } from '../feed/mustInclude';
+import { SCORED_TRACK_COPY } from '../tracks/forTrack';
 import type { PackCompany } from '../radar/directory';
 import { addCategory, addGroup, addTiles, getCurationState, updateCategory } from './curationStore';
 import {
@@ -40,7 +41,7 @@ export const STARTER_PACKS: StarterPack[] = [
   {
     id: 'designsystems',
     label: 'Design Systems',
-    blurb: 'Remote design-systems roles only: every posting says system or systems',
+    blurb: SCORED_TRACK_COPY,
   },
   {
     id: 'trades',
