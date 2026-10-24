@@ -3,7 +3,9 @@
 // handoff; each fetcher returns [] when the answer is not ok. One addition: `onFail` hears the
 // status, so the sync can disable a watched company on a 404 instead of reading it as "no jobs".
 // Pure apart from the injected fetch; never imported by the app bundle.
-import type { NormalizedPosting } from './score.ts';
+import { decodeEntities } from '../feed/html.ts';
+import { httpUrl } from '../httpUrl.ts';
+import { fingerprint, type NormalizedPosting } from './score.ts';
 
 export type Ats = 'greenhouse' | 'lever' | 'ashby';
 
@@ -61,7 +63,8 @@ export async function fetchGreenhouse(
     company: c.company,
     location: j.location?.name,
     url: j.absolute_url,
-    descriptionText: stripHtml(j.content ?? ''),
+    // Greenhouse sends the body entity-encoded (&lt;p&gt;…): decode, then strip the tags.
+    descriptionText: stripHtml(decodeEntities(j.content ?? '')),
     postedAt: j.updated_at,
   }));
 }
@@ -157,7 +160,7 @@ export async function fetchDesignSystemsJobsFeed(
     return [];
   }
   const xml = await r.text();
-  return [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/g)].map((m) => {
+  const items = [...xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/g)].map((m) => {
     const block = m[1];
     const full = stripHtml(tagOf(block, 'title'));
     const at = full.lastIndexOf(' at ');
@@ -181,4 +184,11 @@ export async function fetchDesignSystemsJobsFeed(
       postedAt: posted && !Number.isNaN(posted.getTime()) ? posted.toISOString() : undefined,
     };
   });
+  // An item with no guid and no link still needs a key of its own (one upsert can't hold the same
+  // key twice): its fingerprint.
+  for (const p of items) if (!p.sourceId) p.sourceId = `fp:${fingerprint(p)}`;
+  return items;
 }
+
+/** Postings whose link is a web page (an http(s) URL): anything else never becomes an href. */
+export const webOnly = (postings: NormalizedPosting[]) => postings.filter((p) => httpUrl(p.url));

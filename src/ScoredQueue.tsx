@@ -18,6 +18,7 @@ import { CloudSyncContext } from './account/accountContext';
 import { MetaCaption } from './MetaCaption';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { notifyRemoved, notifySaved } from './saveNotice';
+import { httpUrl } from './httpUrl';
 import { addJobDetailed, dedupKey, useJobs } from './store';
 import {
   loadScoredPostings,
@@ -148,7 +149,7 @@ function PostingCard({ p, onSkip }: { p: StoredPosting; onSkip: () => void }) {
         <Stack gap="px4">
           {/* Not saved yet, so no page in the app: the title is the posting link. */}
           <Text variant="body" as="h4" weight="bold" className="rjb-card-title">
-            <InlineLink href={p.url}>{p.title}</InlineLink>
+            {httpUrl(p.url) ? <InlineLink href={p.url}>{p.title}</InlineLink> : p.title}
           </Text>
           <MetaCaption items={[p.company, p.location]} />
           <Text variant="caption" as="p" tone="secondary">

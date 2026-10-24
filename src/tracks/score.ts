@@ -26,7 +26,13 @@ export interface ScoreResult {
   matchedSignals: string[];
 }
 
-const rx = (pattern: string) => new RegExp(pattern, 'i');
+// Compiled once per pattern (no g flag, so a shared RegExp keeps no state between tests).
+const compiled = new Map<string, RegExp>();
+const rx = (pattern: string) => {
+  let re = compiled.get(pattern);
+  if (!re) compiled.set(pattern, (re = new RegExp(pattern, 'i')));
+  return re;
+};
 
 export function scorePosting(posting: NormalizedPosting, track: TrackConfig): ScoreResult {
   const title = posting.title ?? '';

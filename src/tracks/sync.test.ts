@@ -93,6 +93,32 @@ describe('sources', () => {
     expect(onFail).toHaveBeenCalledWith(404);
   });
 
+  it("decodes Greenhouse's entity-encoded body before the scorer reads it", async () => {
+    const f = async () =>
+      json({
+        jobs: [
+          {
+            id: 9,
+            title: 'Design Technologist',
+            absolute_url: 'https://g/9',
+            content:
+              '&lt;p&gt;Own the &lt;strong&gt;design system&lt;/strong&gt; and Storybook.&lt;/p&gt;',
+          },
+        ],
+      });
+    const [p] = await fetchGreenhouse({ company: 'G', ats: 'greenhouse', slug: 'g' }, f);
+    expect(p.descriptionText).toBe('Own the design system and Storybook.');
+  });
+
+  it('a feed item with no guid or link still gets a key; non-web links never get stored', async () => {
+    const xml = `<rss><item><title>Design Systems Lead at A</title></item>
+      <item><title>Design Systems Engineer at B</title><link>javascript:alert(1)</link></item></rss>`;
+    const reads = await readAll([], { fetch: async () => new Response(xml), rss: true });
+    expect(reads[0].postings).toEqual([]);
+    const raw = await fetchDesignSystemsJobsFeed(async () => new Response(xml));
+    expect(raw[0].sourceId).toBe('fp:a::design systems');
+  });
+
   it('reads designsystems.jobs: "Role at Company", the guid, the country, remote', async () => {
     const out = await fetchDesignSystemsJobsFeed(fakeFetch);
     expect(out[0]).toMatchObject({

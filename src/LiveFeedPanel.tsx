@@ -363,8 +363,10 @@ export default function LiveFeedPanel({
   const fold = roleTypes.fold && !scorer;
   const typed = roleTypes.ranked && !scorer;
   const foldedCount = useMemo(() => foldRoles(ranked, fold).folded.length, [ranked, fold]);
+  // A scored track's rows carry no matched titles (the scorer lists them), so it has no title
+  // chips to narrow by.
   const shownTitles =
-    sweeping && onlyTitle
+    sweeping && onlyTitle && !scorer
       ? withoutHidden(byFit, new Set(sweepTitles.filter((t) => t !== onlyTitle)))
       : byFit;
   const focused =
@@ -769,7 +771,7 @@ export default function LiveFeedPanel({
     emptyState
   );
 
-  const sweepChips = sweeping && sweepTitles.length > 1 && status === 'ready' && (
+  const sweepChips = sweeping && !scorer && sweepTitles.length > 1 && status === 'ready' && (
     <SweepChips
       titles={sweepTitles}
       counts={perTitle}

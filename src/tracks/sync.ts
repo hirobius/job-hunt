@@ -4,7 +4,12 @@
 // read one at a time (their payloads are huge); Greenhouse and Lever a few at a time.
 import { dedupe, fingerprint, type NormalizedPosting, type Verdict } from './score.ts';
 import { scoreForTrack } from './scoreForTrack.ts';
-import { fetchCompany, fetchDesignSystemsJobsFeed, type WatchedCompany } from './sources.ts';
+import {
+  fetchCompany,
+  fetchDesignSystemsJobsFeed,
+  webOnly,
+  type WatchedCompany,
+} from './sources.ts';
 import type { TrackConfig } from './track-config.ts';
 
 type Fetch = (url: string) => Promise<Response>;
@@ -28,7 +33,7 @@ const PARALLEL = 4;
 async function readOne<C extends WatchedCompany>(c: C, f: Fetch): Promise<ReadOutcome<C>> {
   let status: number | undefined;
   try {
-    const postings = await fetchCompany(c, f, (s) => (status = s));
+    const postings = webOnly(await fetchCompany(c, f, (s) => (status = s)));
     return { company: c, board: boardOf(c), ok: status === undefined, status, postings };
   } catch (e) {
     return { company: c, board: boardOf(c), ok: false, error: String(e), postings: [] };
@@ -48,7 +53,7 @@ export async function readAll<C extends WatchedCompany>(
   if (o.rss) {
     let status: number | undefined;
     try {
-      const postings = await fetchDesignSystemsJobsFeed(o.fetch, (s) => (status = s));
+      const postings = webOnly(await fetchDesignSystemsJobsFeed(o.fetch, (s) => (status = s)));
       out.push({ company: null, board: 'rss', ok: status === undefined, status, postings });
     } catch (e) {
       out.push({ company: null, board: 'rss', ok: false, error: String(e), postings: [] });

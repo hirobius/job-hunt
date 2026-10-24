@@ -31,6 +31,8 @@ const RANK: Record<string, number> = {
   hn: 3,
 };
 const CHUNK = 500;
+/** Fingerprints per lookup: they ride in the query string. */
+const LOOKUP = 50;
 const MAX_TEXT = 20_000;
 
 interface WatchedRow extends WatchedCompany {
@@ -144,18 +146,27 @@ Deno.serve(async (req) => {
     const answered = mine.filter((r) => r.ok);
     let scored = scoreBatch(answered, track);
 
-    // Fingerprint dedupe across runs: an open row with the same fingerprint from a source that
-    // ranks the same or better keeps its place, and the copy is not stored.
+    // One row per key in a batch (an upsert can't touch a row twice).
+    const keys = new Set<string>();
+    scored = scored.filter((s) => {
+      const key = `${s.posting.source}|${s.posting.sourceId}`;
+      return !keys.has(key) && !!keys.add(key);
+    });
+    // Fingerprint dedupe across runs: an open row with the same fingerprint from a better source
+    // (an ATS original over the RSS copy) keeps its place, and the copy is not stored. The same
+    // source posting it again under a new id (a repost) is stored.
     const prints = [...new Set(scored.map((s) => s.fingerprint))];
     const existing = new Map<string, { source: string; source_id: string }[]>();
-    for (let i = 0; i < prints.length; i += 200) {
-      const { data: old } = await db
+    let lookupFailed = false;
+    for (let i = 0; i < prints.length; i += LOOKUP) {
+      const { data: old, error: lookupError } = await db
         .from('postings')
         .select('source, source_id, fingerprint')
         .eq('user_id', userId)
         .eq('track_slug', trackSlug)
         .is('closed_at', null)
-        .in('fingerprint', prints.slice(i, i + 200));
+        .in('fingerprint', prints.slice(i, i + LOOKUP));
+      if (lookupError) lookupFailed = true;
       for (const o of (old ?? []) as { source: string; source_id: string; fingerprint: string }[])
         existing.set(o.fingerprint, [...(existing.get(o.fingerprint) ?? []), o]);
     }
@@ -164,9 +175,17 @@ Deno.serve(async (req) => {
         !(existing.get(s.fingerprint) ?? []).some(
           (o) =>
             !(o.source === s.posting.source && o.source_id === s.posting.sourceId) &&
-            RANK[o.source] <= RANK[s.posting.source],
+            RANK[o.source] < RANK[s.posting.source],
         ),
     );
+    if (lookupFailed)
+      logs.push({
+        user_id: userId,
+        kind: 'failed',
+        board: null,
+        status: null,
+        message: 'fingerprint lookup failed: copies across runs may be stored twice',
+      });
 
     const seen = new Date().toISOString();
     const upserts = scored.map((s) => ({
@@ -221,6 +240,27 @@ Deno.serve(async (req) => {
       });
       closed = typeof n === 'number' ? n : 0;
     }
+    // A board no longer read (a 404 disabled it, or the user stopped watching it) never answers
+    // again, so its open postings are closed now instead of waiting for misses that never come.
+    const live = rows.filter((w) => byBoard.get(boardOf(w))?.status !== 404).map(boardOf);
+    const { data: gone, error: goneError } = await db
+      .from('postings')
+      .update({ verdict: 'reject', reasons: ['posting closed'], closed_at: seen })
+      .eq('user_id', userId)
+      .eq('track_slug', trackSlug)
+      .is('closed_at', null)
+      .neq('board', 'rss')
+      .not('board', 'in', `(${(live.length ? live : ['']).map((b) => `"${b}"`).join(',')})`)
+      .select('id');
+    if (goneError)
+      logs.push({
+        user_id: userId,
+        kind: 'failed',
+        board: null,
+        status: null,
+        message: `closing unwatched boards: ${goneError.message}`.slice(0, 2000),
+      });
+    else closed += gone?.length ?? 0;
     const split = { queue: 0, review: 0, reject: 0 };
     for (const s of scored) split[s.verdict]++;
     const line = {

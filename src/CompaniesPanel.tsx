@@ -61,6 +61,7 @@ import {
 import AddCompany from './AddCompany';
 import DreamCompanies from './DreamCompanies';
 import { hasRelatedTitles, useMustInclude } from './feed/mustInclude';
+import { scorerFor } from './tracks/forTrack';
 import AdeleSeed from './AdeleSeed';
 import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
 import { useRoleTypes } from './feed/roleTypePref';
@@ -204,6 +205,16 @@ export default function CompaniesPanel({
   const abort = useRef<AbortController | null>(null);
   const life = useRef<AbortController | null>(null);
   const asked = useRef(new Set<string>(Object.keys(rolesKept)));
+  // Roles are read differently on a scored track (src/tracks: every opening, scored) than by the
+  // track's terms, so a must-include change that turns the scorer on or off reads them again.
+  const scored = !!scorerFor(include);
+  const readScored = useRef(scored);
+  useEffect(() => {
+    if (readScored.current === scored) return;
+    readScored.current = scored;
+    asked.current.clear();
+    setRoles({});
+  }, [scored, setRoles]);
   useEffect(() => {
     life.current = new AbortController();
     return () => {
