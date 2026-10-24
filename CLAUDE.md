@@ -261,8 +261,8 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
   `pipelineFollowUps.test.tsx`.
 - **Shell width (Adrian 2026-10-22, the portfolio's):** `src/hds-gaps/PageShell` = HDS `Container`
-  at 1180 in all with a `clamp(1.25rem, 5vw, 4rem)` gutter (20 on a phone, 64 from 1280), so content
-  is at most 1052; header, tabs and every page share it. **No outlines on surfaces (HDS 0.31 soft
+  at 1048 in all (Adrian 2026-10-24, was 1180) with a `clamp(1.25rem, 5vw, 4rem)` gutter (20 on a phone, 64 from 1280), so content
+  is at most 920; header, tabs and every page share it. **No outlines on surfaces (HDS 0.31 soft
   surfaces):** Cards and panels are borderless (raised fill + spacing); never pass `bordered`.
   Inputs, focus, selected/current, overlays, row dividers and feedback tones keep theirs.
   `e2e/no-outlines.spec.ts` fails on a Card or container box that draws an edge.

@@ -1,8 +1,8 @@
-/* HDS gap (PageShell.tsx): the portfolio's shell. 1180px in all, the gutter inside it, so content
-   is at most 1180 - 2 x 64 = 1052px; the gutter is 20px on a phone, 5vw between, 64px from 1280.
+/* HDS gap (PageShell.tsx): the portfolio's shell. 1048px in all (Adrian 2026-10-24: closer to designsystemsjobs.com), the gutter inside it, so content
+   is at most 1048 - 2 x 64 = 920px; the gutter is 20px on a phone, 5vw between, 64px from 1280.
    Container sets its 1200 as an inline max-width, so the shell width needs !important to win. */
 [data-hds] .rjb-shell {
-  --rjb-shell-width: 1180px;
+  --rjb-shell-width: 1048px;
   --rjb-shell-gutter: clamp(1.25rem, 5vw, 4rem);
   width: 100%;
   max-width: var(--rjb-shell-width) !important;

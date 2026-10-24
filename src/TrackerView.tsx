@@ -82,7 +82,7 @@ export default function TrackerView() {
   const statusSheet = useBackSheet('pipeline-status');
   const sortSheet = useBackSheet('pipeline-sort');
   const moreSheet = useBackSheet('pipeline-more');
-  // A sortable table where there's room for its six columns (the shell's full 1052 measure, from
+  // A sortable table where there's room for its six columns (the shell's full 920 measure, from
   // HDS xl); compact cards below that (#129). At lg the shell's content is ~920 and titles wrapped
   // to three lines.
   const wide = useAtLeast('xl');

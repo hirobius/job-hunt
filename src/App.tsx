@@ -220,8 +220,8 @@ export default function App() {
       <SnippetMigration />
       <SystemsOnlyMigration />
       <DataToolsProvider>
-        {/* The portfolio's shell (Adrian 2026-10-22): 1180 in all, gutters that grow with the
-            viewport, so content stops near 1052. Header, tabs and every page share it. */}
+        {/* The portfolio's shell (Adrian 2026-10-22): 1048 in all (narrowed 2026-10-24), gutters that grow with the
+            viewport, so content stops near 920. Header, tabs and every page share it. */}
         <PageShell>
           <Box sx={{ py: 'md' }}>
             {/* On the Documents, legal and not-found pages no tab is selected (and no tab panel mounts).
