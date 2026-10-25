@@ -165,8 +165,10 @@ function probe(page: Page) {
         if (ownText && cs.fontStyle === 'italic') out.push(`italic: ${label(el)}`);
         if (ownText && parseFloat(cs.fontSize) < CAPTION - 0.1)
           out.push(`text size: ${label(el)} ${cs.fontSize} < caption ${CAPTION}px`);
+        // The logo wordmark is a brand mark at its own size (Adrian 2026-10-24: 19px), not a ramp step.
         if (
           /^H[1-6]$/.test(el.tagName) &&
+          !el.classList.contains('rjb-logo-word') &&
           !RAMP.some((s) => Math.abs(s - parseFloat(cs.fontSize)) < 0.1)
         )
           out.push(`ramp: ${label(el)} ${cs.fontSize} is not an HDS type size`);
