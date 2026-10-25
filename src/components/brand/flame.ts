@@ -42,14 +42,14 @@ function drop(cx: number, cy: number, r: number, lean: number, sx = 1, sy = 1, k
 
 // Version E's settings, as locked in the artifact.
 export const S = {
-  fps: 6, intensity: 0.95, emberSize: 1.4, width: 1.44, height: 1.12, motion: 0.4, bulge: 0,
-  sharp: 0.7, rand: 2, lag: 1, evar: 1, embers: 3,
+  fps: 10, intensity: 0.2, emberSize: 1.4, width: 1.36, height: 1, motion: 0.7, bulge: 0.04,
+  sharp: 0.7, rand: 1.4, lag: 3, evar: 2.5, embers: 2,
   l1x: -3, l1y: 10, l1s: 1.12, l1p: 1, l1c: 0,
-  l2x: 2.5, l2y: 3, l2s: 1.06, l2p: 1, l2c: 0,
-  l3x: 4.5, l3y: 0, l3s: 1.36, l3p: 2, l3c: 20,
-  fx: 0, fy: 15.5, fs: 1.2,
+  l2x: 2.5, l2y: 3, l2s: 1.16, l2p: 1, l2c: 0,
+  l3x: 4.5, l3y: 0, l3s: 1.42, l3p: 1, l3c: 0,
+  fx: 0, fy: 13, fs: 1,
   tSkew: 2.5, tFade: 0.05,
-  eDist: 19.5, eGap: 6, eLife: 6, eDrift: 7.5, eScatX: 14, eScatY: 18.5, eVarW: 0.3, eVarH: 0.65, eTilt: 0.3,
+  eDist: 16, eGap: 16.5, eLife: 4, eDrift: 7.5, eScatX: 25, eScatY: 19.5, eVarW: 0.6, eVarH: 0.65, eTilt: 0.3,
   seed: 11,
 } as const;
 

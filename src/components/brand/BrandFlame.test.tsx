@@ -47,7 +47,7 @@ describe('BrandLogo', () => {
     vi.useFakeTimers();
     const { container } = render(<BrandLogo />);
     const first = paths(container);
-    act(() => vi.advanceTimersByTime(1000 / 6 + 1));
+    act(() => vi.advanceTimersByTime(1000 / 10 + 1));
     expect(paths(container)).not.toEqual(first);
   });
 
