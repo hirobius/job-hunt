@@ -684,3 +684,74 @@ describe('job page polish and guards (#130 slice 6)', () => {
     expect(railRow('Welder')).toHaveFocus();
   });
 });
+
+// Decks per job (#287): links only, http(s) only, on the Overview; remove is soft with Undo.
+describe('job page Decks (#287)', () => {
+  const decksPanel = () => screen.getByRole('region', { name: 'Decks' });
+  const decksOf = () => getAllJobs()[0].decks;
+
+  it('adds a deck link with a label and a Sent on day', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const panel = decksPanel();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    await userEvent.type(within(panel).getByLabelText('Deck link'), 'https://pitch.com/v/acme');
+    await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme pitch');
+    await userEvent.type(within(panel).getByLabelText('Sent on (optional)'), '2026-10-20');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add deck' }));
+    expect(decksOf()).toEqual([
+      expect.objectContaining({
+        url: 'https://pitch.com/v/acme',
+        label: 'Acme pitch',
+        sentOn: '2026-10-20',
+      }),
+    ]);
+    const link = within(panel).getByRole('link', { name: /Acme pitch/ });
+    expect(link).toHaveAttribute('href', 'https://pitch.com/v/acme');
+    expect(within(panel).getByText(/^Sent on /)).toBeInTheDocument();
+  });
+
+  it('refuses a link that is not http(s) and saves nothing', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const panel = decksPanel();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    await userEvent.type(within(panel).getByLabelText('Deck link'), 'javascript:alert(1)');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add deck' }));
+    expect(within(panel).getByText(/starts with https:/)).toBeInTheDocument();
+    expect(decksOf()).toBeUndefined();
+  });
+
+  it('edits a deck in place', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { decks: [{ id: 'd1', url: 'https://slides.example/1', label: 'Old' }] });
+    openJobPage();
+    const panel = decksPanel();
+    expect(within(panel).getByText('Not sent yet')).toBeInTheDocument();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Old”' }));
+    const label = within(panel).getByLabelText('Label (optional)');
+    await userEvent.clear(label);
+    await userEvent.type(label, 'Portfolio');
+    await userEvent.type(within(panel).getByLabelText('Sent on (optional)'), '2026-10-21');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Save' }));
+    expect(decksOf()).toEqual([
+      { id: 'd1', url: 'https://slides.example/1', label: 'Portfolio', sentOn: '2026-10-21' },
+    ]);
+    expect(within(panel).getByRole('link', { name: /Portfolio/ })).toBeInTheDocument();
+  });
+
+  it('Remove says so, and Undo puts the deck back in its place', async () => {
+    addJob(URL_A, 'Design Engineer');
+    const decks = [
+      { id: 'd1', url: 'https://slides.example/1', label: 'One' },
+      { id: 'd2', url: 'https://slides.example/2', label: 'Two' },
+    ];
+    updateJob(URL_A, { decks });
+    openJobPage();
+    await userEvent.click(within(decksPanel()).getByRole('button', { name: 'Remove “One”' }));
+    await waitFor(() => expect(decksOf()?.map((d) => d.id)).toEqual(['d2']));
+    expect(screen.getByText('Removed “One”')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(decksOf()).toEqual(decks);
+  });
+});

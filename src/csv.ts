@@ -4,6 +4,7 @@
 import { deriveJobState } from './jobState';
 import type { Job } from './types';
 import { withoutSample } from './demo/isSample';
+import { decksCell } from './decks';
 
 const FORMULA_START = /^[=+\-@\t\r]/;
 
@@ -47,6 +48,7 @@ const COLUMNS: [string, (j: Job) => string][] = [
         .map((e) => [e.kind, e.date, e.time, e.note].filter(Boolean).join(' '))
         .join(' | '),
   ],
+  ['decks', (j) => decksCell(j.decks)],
 ];
 
 export const CSV_COLUMNS: readonly string[] = COLUMNS.map(([name]) => name);

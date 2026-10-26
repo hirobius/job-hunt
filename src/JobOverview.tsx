@@ -1,5 +1,5 @@
-// The job page's Overview (#130; rev-3 F, three tabs): Details, To-dos, Notes and Documents as
-// panels. Details reads as a facts list; Edit turns the same panel into its fields (title,
+// The job page's Overview (#130; rev-3 F, three tabs): Details, To-dos, Notes, Documents and Decks
+// (#287) as panels. Details reads as a facts list; Edit turns the same panel into its fields (title,
 // company, location, pay, link, contact, with seniority and résumé version under More fields).
 // A job saved from a bare link has nothing to read yet, so its card starts in edit. Remove lives
 // in the header's menu. The company links to its Company page (#230, `#/company/<slug>`).
@@ -27,6 +27,7 @@ import { Panel, PanelBody } from './PipelinePanel';
 import { NotesPanel, TodosPanel } from './TodosNotes';
 import JobDocuments from './JobDocuments';
 import JobFinalCopies from './JobFinalCopies';
+import DecksPanel from './JobDecks';
 import { DocumentDownload } from './DocumentDownload';
 import { useDocuments } from './documents';
 import { documentsForJob, sentSummary } from './jobDocuments';
@@ -261,6 +262,7 @@ export default function JobOverview({ job }: { job: Job }) {
       <TodosPanel job={job} />
       <NotesPanel job={job} />
       <DocumentsPanel job={job} />
+      <DecksPanel job={job} />
     </Stack>
   );
 }
