@@ -81,11 +81,14 @@ export type SendReport = (report: ErrorReport) => PromiseLike<unknown>;
 
 /** Posts straight to Supabase's REST endpoint with the public key only. The shared client would
  *  attach a signed-in user's session token, and Supabase's request logs would then tie the report
- *  to their account; this way a report is anonymous for everyone. */
+ *  to their account; this way a report is anonymous for everyone.
+ *  It calls the `report_client_error` RPC rather than inserting directly (#285): the function's
+ *  global per-minute cap is the abuse limit, and the table has no direct-insert policy anymore
+ *  (supabase/migrations/20261026100200_client_errors_rate_limited_rpc.sql). */
 export const supabaseSender =
   (fetchImpl: typeof fetch = fetch): SendReport =>
   (report) =>
-    fetchImpl(`${SUPABASE_URL}/rest/v1/client_errors`, {
+    fetchImpl(`${SUPABASE_URL}/rest/v1/rpc/report_client_error`, {
       method: 'POST',
       headers: {
         apikey: SUPABASE_ANON_KEY,
@@ -93,7 +96,13 @@ export const supabaseSender =
         'Content-Type': 'application/json',
         Prefer: 'return=minimal',
       },
-      body: JSON.stringify(report),
+      body: JSON.stringify({
+        p_kind: report.kind,
+        p_message: report.message,
+        p_stack: report.stack,
+        p_route: report.route,
+        p_browser: report.browser,
+      }),
       credentials: 'omit',
       keepalive: true,
     });
