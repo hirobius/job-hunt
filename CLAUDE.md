@@ -581,11 +581,21 @@ re-litigate decisions already in `docs/adr/`.
   `src/account/authRedirect.ts` (`PRODUCTION_ORIGIN`, `LEGACY_ORIGIN`).
 - Keep personal contact info OUT of this public repo (letters/snippets ship with a
   "add your name + contact" placeholder).
-- **AI is fully removed (2026-07).** The résumé-tailor went first (`TailorDialog`/`tailor-core.ts`/
-  `api/tailor.ts`); then **"Add with AI" too (#54)** — `src/ai/` and `api/extract.ts` are gone,
-  `@anthropic-ai/sdk` is dropped, and there is no Anthropic key / server AI endpoint anymore. The
-  JD screener (#61) is **rules-based, client-side** — no AI. `docs/adr/0002` + `README`/`FEATURES`
-  still describe the old AI design as historical context.
+- **AI is back for Documents only (#232, `docs/adr/0009`).** It was fully removed in 2026-07 (the
+  résumé tailor, then "Add with AI" in #54; `docs/adr/0002` is history). Now **Draft with AI** (a
+  closed `Disclosure` above the editor's text, `src/AiDraft.tsx`) calls the one Vercel function
+  `api/draft.ts`, the only holder of `ANTHROPIC_API_KEY` (`@anthropic-ai/sdk`, model in
+  `src/aiDraft/server.ts` `DRAFT_MODEL`). Logic is `src/aiDraft/server.ts`, pure over injected deps
+  (provider, Supabase, env stubbed in `server.test.ts`); `contract.ts` holds the named errors (not set
+  up / not signed in / cap reached / provider failure / bad input) and limits. Signed-in only (the
+  token is checked by Supabase `auth.getUser`). The **$10/month cap** (`AI_MONTHLY_CAP_USD`, optional
+  per-user `AI_USER_MONTHLY_CAP_USD`) is held server-side in the service-role-only `ai_draft_usage`
+  table (`supabase/migrations/20261026100000_ai_draft_usage.sql`): reserve the worst case under an
+  advisory lock, call, settle at the real cost. **Ships dark:** without `ANTHROPIC_API_KEY` +
+  `SUPABASE_SERVICE_ROLE_KEY` (or before the migration) GET says not configured and the UI hides
+  Draft. Every draft is a new Version (unsaved edits saved first; a Sent Version is never touched).
+  The browser calls only same-origin `/api/draft`, so CSP is unchanged; Anthropic is listed in
+  `legal.ts` THIRD_PARTIES with no hosts. The JD screener (#61) stays **rules-based, client-side**.
 
 ## 2026-07 — agnostic-product pivot + screening pipeline
 

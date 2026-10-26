@@ -27,6 +27,7 @@
     "verify:ui": "npm run hds:check && playwright test e2e/layout-rules.spec.ts e2e/visual.spec.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0",
     "@hirobius/design-system": "0.32.0",
     "@supabase/supabase-js": "^2.117.3",
     "@vercel/analytics": "^2.0.1",

@@ -61,9 +61,13 @@ describe('legal pages (#43)', () => {
     expect(ddg.purpose).toMatch(/never the page or job/);
   });
 
-  it('does not list AI processing: AI is removed (2026-07)', () => {
-    const all = text(PRIVACY) + text(TERMS);
-    expect(all).not.toMatch(/Anthropic|Claude|OpenAI|\bAI\b/);
+  it('lists AI processing for Documents drafting only (#232, ADR 0009), and no other AI provider', () => {
+    const ai = THIRD_PARTIES.find((t) => t.name === 'Anthropic')!;
+    // Server-side only: the browser never contacts Anthropic, so it adds no connect-src host.
+    expect(ai.hosts).toEqual([]);
+    expect(ai.purpose).toMatch(/AI drafting in Documents/);
+    expect(ai.purpose).toMatch(/never your email, account, jobs or other documents/);
+    expect(text(PRIVACY) + text(TERMS)).not.toMatch(/OpenAI|Gemini/);
   });
 
   it('privacy covers stored PII, local storage, export and erasure', () => {

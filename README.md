@@ -105,5 +105,6 @@ Architecture decision records, oldest first:
 - [`docs/adr/0006`](docs/adr/0006-pivot-to-agnostic-pillar-driven-product.md): from a personal board to a track-driven product.
 - [`docs/adr/0007`](docs/adr/0007-track-hds-latest-with-the-upgrade-tool.md): track HDS with its upgrade tool.
 - [`docs/adr/0008`](docs/adr/0008-sync-user-edited-stores-in-blob-v5.md): user-edited stores sync in blob v5.
+- [`docs/adr/0009`](docs/adr/0009-ai-drafting-returns-via-a-capped-server-function.md): AI drafting in Documents, through one capped server function.
 
 Domain words are in [`CONTEXT.md`](CONTEXT.md). The backlog is GitHub Issues.

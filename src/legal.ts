@@ -49,6 +49,12 @@ export const THIRD_PARTIES: ThirdParty[] = [
     hosts: [],
   },
   {
+    name: 'Anthropic',
+    purpose:
+      'AI drafting in Documents, only when you are signed in and press Draft or Rewrite. Our server sends Anthropic the text of that one document and what you asked for, never your email, account, jobs or other documents. Anthropic does not use it to train its models.',
+    hosts: [],
+  },
+  {
     name: 'Public job sources',
     purpose:
       'When you search for openings, check a company or check whether a saved job is still open, your browser may ask these services directly: Hacker News (via Algolia), Remotive, Jobicy, Remote OK, and the Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio job boards. They receive your IP address and which search or company board the app is checking, never your notes, documents or account.',

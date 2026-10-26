@@ -41,6 +41,7 @@ import {
 } from './documents';
 import type { Document, DocumentKind } from './documents';
 import { DocumentDownload } from './DocumentDownload';
+import { AiDraft } from './AiDraft';
 import { updateJob, useJobs } from './store';
 import type { Job } from './types';
 import { useApplyKit } from './applyKit';
@@ -202,6 +203,30 @@ export default function DocumentEditor({
       if (returnTo) goBack();
     }
   };
+  // Draft with AI (#232): the answer is always a new Version. Unsaved edits are saved first as
+  // their own Version, so nothing the user typed is lost under the draft.
+  const applyDraft = (text: string) => {
+    if (goingBack.current) return;
+    if (!doc) {
+      const name = title.trim() || label;
+      const id = createDocument({
+        kind,
+        title: name,
+        text: draft.trim() ? draft : text,
+        base: true,
+      });
+      if (draft.trim()) saveVersion(id, text);
+      toast({ title: 'Drafted', description: name, tone: 'success' });
+      onCreated(id);
+      return;
+    }
+    if (draft !== saved) saveVersion(doc.id, draft);
+    const latest = getAllDocuments().find((d) => d.id === doc.id);
+    if (saveVersion(doc.id, text)) {
+      setDraft(text);
+      toast({ title: `Drafted as version ${(latest?.versions.length ?? 0) + 1}`, tone: 'success' });
+    }
+  };
   const commitTitle = () => {
     if (doc && title.trim() !== doc.title) renameDocument(doc.id, title);
   };
@@ -286,6 +311,7 @@ export default function DocumentEditor({
         onChange={(e) => setTitle(e.target.value)}
         onBlur={commitTitle}
       />
+      <AiDraft kind={kind} title={title} text={draft} onDrafted={applyDraft} />
       {outreach ? (
         <OutreachText
           value={draft}
