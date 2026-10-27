@@ -89,6 +89,7 @@ import { useRemembered } from './viewMemory';
 import { foldRoles, orderByRoleType, roleTypeOf, roleTypeTag } from './feed/roleType';
 import { useRoleTypes, writeShowEngineering } from './feed/roleTypePref';
 import { useBackCloses, useBackSheet } from './useBackCloses';
+import { flash } from './feedback';
 
 type Focus = 'all' | 'strong' | SignalId;
 /** Rows rendered per page — the rest sit behind "Show more". */
@@ -433,8 +434,11 @@ export default function LiveFeedPanel({
     setTerm(t.trim());
     setShown(PAGE);
   };
+  const resultsRef = useRef<HTMLDivElement>(null);
   const onSearch = (e: FormEvent) => {
     e.preventDefault();
+    // The same term reads nothing new, so the results it already shows flash instead (#212).
+    if (input.trim() === term) flash(resultsRef.current);
     search(input);
   };
 
@@ -1165,7 +1169,7 @@ export default function LiveFeedPanel({
       {status === 'ready' && evidence.length > 0 && <PatternsSummary patterns={patterns} />}
 
       {/* rjb-inline-alerts: the all-failed Alert's title reads at body size, not as a page head. */}
-      <Box className="rjb-inline-alerts">
+      <Box ref={resultsRef} className="rjb-inline-alerts">
         <AsyncState
           status={loading ? 'ready' : status}
           label="Live openings"
