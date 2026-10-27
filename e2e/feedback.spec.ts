@@ -198,7 +198,7 @@ test('Pipeline: every row and page action answers within 300 ms', async ({ page 
     await press(page, button(page, name), name);
     await closeOverlay(page);
   }
-  for (const name of ['Add job', 'Follow up: UX Researcher']) {
+  for (const name of ['Add job', 'Follow up: UX Researcher', 'Export links', 'Clear sample data']) {
     await press(page, button(page, name), name);
     await closeOverlay(page);
   }
@@ -242,6 +242,20 @@ test('Job page: every header and panel action answers within 300 ms', async ({ p
   await expect(button(page, `Delete “${todo}”`)).toHaveCount(0);
   await press(page, button(page, 'Add a to-do'), 'Add a to-do');
   await closeOverlay(page);
+  const followUp = (await page
+    .getByRole('button', { name: /^Follow up: / })
+    .first()
+    .getAttribute('aria-label'))!;
+  for (const name of [followUp, 'Use template']) {
+    await press(page, button(page, name), name);
+    await closeOverlay(page);
+  }
+  await press(
+    page,
+    page.getByRole('button', { name: /^(All documents|Add a document)/ }),
+    'Documents row',
+  );
+  await page.getByRole('button', { name: /^(All documents|Add a document)/ }).click();
   for (const tab of ['Screening', 'Interviews', 'Overview'])
     await press(page, page.getByRole('tab', { name: tab }), `${tab} tab`);
 
@@ -301,8 +315,24 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
   await menu(page, more, 'Delete');
   await closeOverlay(page);
   await press(page, button(page, 'Open Follow-up after applying'), 'Open');
-  await go(page, '#/copy-deck');
-  await press(page, button(page, 'New résumé'), 'New résumé');
+  for (const name of ['New résumé', 'New cover letter', 'New outreach message', 'New note']) {
+    await go(page, '#/copy-deck');
+    await press(page, button(page, name), name);
+  }
+
+  // The editor: its menus, the variables panel and Save.
+  await go(page, '#/copy-deck/tpl-outreach');
+  for (const name of ['Insert variable', 'More actions', /^Version history/]) {
+    await press(page, button(page, name), String(name));
+    await closeOverlay(page);
+  }
+  await press(page, page.getByRole('combobox', { name: /^Fill for: / }), 'Fill for');
+  await closeOverlay(page);
+  await press(page, button(page, 'Copy filled text'), 'Copy filled text');
+  await press(page, button(page, 'Company'), 'Variable chip');
+  await page.getByRole('textbox').first().press('End');
+  await page.keyboard.type(' more');
+  await press(page, button(page, 'Save'), 'Save');
 });
 
 test('Companies: star, roles and the page actions answer within 300 ms', async ({ page }) => {
@@ -345,10 +375,38 @@ test('Companies: star, roles and the page actions answer within 300 ms', async (
   await expect(sections).toHaveCount(count);
   await closeOverlay(page);
 
-  // ATS search: Copy the query says so in a toast.
+  // The tools, the list's filter and Suggest companies.
+  await go(page, '#/discover/teams');
+  for (const name of ['All', 'Hiring now', 'Suggest companies'])
+    await press(page, button(page, name), name);
+  for (const name of ['Apply now', 'ATS search', 'Watched'])
+    await press(page, page.getByRole('radio', { name }).or(button(page, name)).first(), name);
+
+  // Apply now: a tile's Save and Set aside.
+  await go(page, '#/discover/apply');
+  await press(page, button(page, 'Set aside'), 'Set aside');
+  await press(page, button(page, 'Save'), 'Save a tile');
+
+  // ATS search: Copy the query says so in a toast; the chips, menus and disclosures answer.
   await go(page, '#/discover/ats');
   await press(page, button(page, 'Copy the query'), 'Copy the query');
   await expect(page.getByText('Copied the query', { exact: true })).toBeVisible();
+  for (const name of [/^Recency: /, /^Engagement: /]) {
+    await press(page, page.getByRole('combobox', { name }), String(name));
+    await closeOverlay(page);
+  }
+  for (const name of [
+    'Implementation Specialist',
+    'Show full query',
+    /^Show \d+ more$/,
+    /^Big job boards/,
+  ])
+    await press(page, button(page, name), String(name));
+
+  // Live postings: Calibrate, Refine, Search and Retry.
+  await go(page, '#/discover/live');
+  for (const name of [/^Calibrate/, /^Refine/, 'Search', 'Retry'])
+    await press(page, button(page, name), String(name));
 
   // The Design Systems pack brings outreach targets: Remove on one collapses its row, then offers
   // Undo.

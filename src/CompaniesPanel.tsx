@@ -67,6 +67,7 @@ import { DreamStar, FoldedRoles, RoleList } from './TeamRoles';
 import { useRoleTypes } from './feed/roleTypePref';
 import CompanyLogo from './CompanyLogo';
 import { addFound, loadFound, saveFound } from './feed/foundTeams';
+import { flash } from './feedback';
 
 /** Watched boards read on arrival; the rest wait for "Check open roles". A starter pack can file
  *  a hundred boards, and each read is a whole board. */
@@ -581,11 +582,24 @@ export default function CompaniesPanel({
                 role="group"
                 aria-label="Show companies"
               >
-                <Tag active={hiringOnly} onClick={() => setHiringOnly(true)}>
+                {/* Each chip flashes when pressed (#212): the list it filters may not change. */}
+                <Tag
+                  active={hiringOnly}
+                  onClick={(e) => {
+                    setHiringOnly(true);
+                    flash(e.currentTarget);
+                  }}
+                >
                   Hiring now
                 </Tag>
                 {/* What Hiring now hides (no matching role, or not checked yet) is counted here. */}
-                <Tag active={!hiringOnly} onClick={() => setHiringOnly(false)}>
+                <Tag
+                  active={!hiringOnly}
+                  onClick={(e) => {
+                    setHiringOnly(false);
+                    flash(e.currentTarget);
+                  }}
+                >
                   {hiringOnly && hidden > 0 ? `All (${hidden} more)` : 'All'}
                 </Tag>
               </Stack>
