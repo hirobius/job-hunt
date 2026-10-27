@@ -6,7 +6,7 @@ import { createStore } from './createStore';
 import { mergeByKey } from './mergeByKey';
 import { loadPersisted, savePersisted } from './persisted';
 import { addJob, dedupKey, getAllJobs, removeJob, replaceAll, sanitizeJobs } from './store';
-import { dropDocumentsForJob } from './documents';
+import { dropDocumentsForJob, getAllDocuments, restoreDocument } from './documents';
 import type { Job } from './types';
 
 export const TRASH_KEY = 'rjb_trash';
@@ -55,22 +55,30 @@ export const replaceTrash = (next: Removed[]) => store.set(sanitizeTrash(next));
 export const mergeTrash = (cloud: Removed[] | null, local: Removed[]): Removed[] =>
   sanitizeTrash(mergeByKey((r) => dedupKey(r.job.url), cloud, local));
 
-/** Remove a job: out of the list, into the trash. */
-export function trashJob(url: string) {
-  const job = getAllJobs().find((j) => j.url === url);
-  if (!job) return;
-  removeJob(url);
-  const key = dedupKey(url);
-  replaceTrash([
-    { job, removedAt: new Date().toISOString() },
-    ...getTrash().filter((r) => dedupKey(r.job.url) !== key),
-  ]);
-}
-
 const notesOf = (j: Job) => (j.notes ?? j.note ?? '').trim();
+const isBlank = (v: unknown) =>
+  v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0);
+// Merged on their own below, or the saved copy's to keep (set aside stays as the user left it).
+const OWN: ReadonlySet<string> = new Set([
+  'url',
+  'label',
+  'status',
+  'applied',
+  'followUp',
+  'snoozeUntil',
+  'archived',
+  'history',
+  'note',
+  'notes',
+  'todos',
+  'events',
+  'decks',
+]);
 
-/** The removed copy's notes, to-dos, interviews and decks folded into the copy saved since. The saved
- *  copy's own fields win; nothing either copy holds is dropped. */
+/** The removed copy folded into the copy saved since. The saved copy's own fields win; a field
+ *  only the removed copy holds (contact, pay, screening…) comes across, and a copy saved again
+ *  that is still Saved takes the removed copy's further status with its dates. Notes, to-dos,
+ *  interviews, decks and status history are joined. Nothing either copy holds is dropped. */
 function mergeRemovedInto(saved: Job, removed: Job): Job {
   const a = notesOf(saved);
   const b = notesOf(removed);
@@ -82,13 +90,51 @@ function mergeRemovedInto(saved: Job, removed: Job): Job {
   const todos = byId(saved.todos, removed.todos);
   const events = byId(saved.events, removed.events);
   const decks = byId(saved.decks, removed.decks);
+  const seen = new Set((saved.history ?? []).map((h) => `${h.status}|${h.at}`));
+  const history = [
+    ...(saved.history ?? []),
+    ...(removed.history ?? []).filter((h) => !seen.has(`${h.status}|${h.at}`)),
+  ].sort((x, y) => x.at.localeCompare(y.at));
+  const filled: Partial<Job> = {};
+  for (const [k, v] of Object.entries(removed)) {
+    if (OWN.has(k) || isBlank(v) || !isBlank(saved[k as keyof Job])) continue;
+    (filled as Record<string, unknown>)[k] = v;
+  }
+  const behind = saved.status === 'Saved' && removed.status !== 'Saved';
   return {
     ...saved,
+    ...filled,
+    ...(behind
+      ? {
+          status: removed.status,
+          ...(removed.applied ? { applied: removed.applied } : {}),
+          ...(removed.followUp ? { followUp: removed.followUp } : {}),
+          ...(removed.snoozeUntil ? { snoozeUntil: removed.snoozeUntil } : {}),
+        }
+      : {}),
     ...(notes ? { notes } : {}),
     ...(todos.length ? { todos } : {}),
     ...(events.length ? { events } : {}),
     ...(decks.length ? { decks } : {}),
+    ...(history.length ? { history } : {}),
   };
+}
+
+/** Remove a job: out of the list, into the trash. A posting removed before keeps that copy's
+ *  notes, to-dos and the rest, folded into this one (one entry per job). */
+export function trashJob(url: string) {
+  const job = getAllJobs().find((j) => j.url === url);
+  if (!job) return;
+  removeJob(url);
+  const key = dedupKey(url);
+  const earlier = getTrash().find((r) => dedupKey(r.job.url) === key);
+  replaceTrash([
+    {
+      job: earlier ? mergeRemovedInto(job, earlier.job) : job,
+      removedAt: new Date().toISOString(),
+    },
+    ...getTrash().filter((r) => dedupKey(r.job.url) !== key),
+  ]);
 }
 
 /** Put a removed job back. If the posting was saved again since, the removed copy's notes,
@@ -120,9 +166,20 @@ export function purgeJob(url: string) {
 /** Delete forever (the Recently removed button): the job and its Documents are gone. Purging
  *  after a restore goes through purgeJob and keeps them. If the posting was saved again since,
  *  its Documents belong to the saved job and stay. Documents of a job that ages out of the
- *  trash stay as harmless orphans (no sweep, like per-track data). */
-export function deleteForever(url: string) {
-  purgeJob(url);
+ *  trash stay as harmless orphans (no sweep, like per-track data). Returns the Undo (#212): the
+ *  entry and its Documents back in their places. */
+export function deleteForever(url: string): () => void {
   const key = dedupKey(url);
-  if (!getAllJobs().some((j) => dedupKey(j.url) === key)) dropDocumentsForJob(url);
+  const entry = getTrash().find((r) => dedupKey(r.job.url) === key);
+  const docs = getAllDocuments()
+    .map((d, at) => ({ d, at }))
+    .filter(({ d }) => d.jobUrl && dedupKey(d.jobUrl) === key);
+  purgeJob(url);
+  const saved = getAllJobs().some((j) => dedupKey(j.url) === key);
+  if (!saved) dropDocumentsForJob(url);
+  return () => {
+    if (entry && !getTrash().some((r) => dedupKey(r.job.url) === key))
+      replaceTrash([...getTrash(), entry]);
+    if (!saved) for (const { d, at } of docs) restoreDocument(d, at);
+  };
 }

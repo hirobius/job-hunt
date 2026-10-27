@@ -505,6 +505,49 @@ describe('job page remove (Recently removed)', () => {
     expect(screen.queryByRole('button', { name: /Recently removed/ })).toBeNull();
   });
 
+  it('Delete forever offers Undo inside the dialog, and Undo puts the job back in the list', async () => {
+    addJob(URL_A, 'Design Engineer');
+    addJob(URL_B, 'Welder');
+    updateJob(URL_A, { notes: 'Ask about the shop floor' });
+    window.location.hash = '#/queue';
+    renderApp();
+    for (const name of ['Design Engineer', 'Welder']) {
+      await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    }
+    await userEvent.click(screen.getByRole('button', { name: 'Recently removed (2)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Delete forever: Design Engineer' }),
+    );
+    await waitFor(() =>
+      expect(within(dialog).queryByRole('button', { name: 'Restore: Design Engineer' })).toBeNull(),
+    );
+    const status = within(dialog).getByRole('status');
+    expect(status).toHaveTextContent('Deleted “Design Engineer” for good');
+    await userEvent.click(within(status).getByRole('button', { name: 'Undo' }));
+    await userEvent.click(
+      await within(dialog).findByRole('button', { name: 'Restore: Design Engineer' }),
+    );
+    expect(getAllJobs().map((j) => j.notes)).toContain('Ask about the shop floor');
+  });
+
+  it('deleting the last one closes the dialog and its Undo moves to the toast', async () => {
+    addJob(URL_A, 'Design Engineer');
+    window.location.hash = '#/queue';
+    renderApp();
+    await userEvent.click(screen.getByRole('button', { name: 'More actions: Design Engineer' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Recently removed (1)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Delete forever: Design Engineer' }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    expect(await screen.findByRole('button', { name: 'Recently removed (1)' })).toBeInTheDocument();
+  });
+
   it('a removed job still opens its posting from Recently removed (Adrian 2026-10-22)', async () => {
     addJob(URL_B, 'Welder');
     replaceTrash([
