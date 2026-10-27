@@ -755,3 +755,98 @@ describe('job page Decks (#287)', () => {
     expect(decksOf()).toEqual(decks);
   });
 });
+
+// Audit (2026-10-27): every inline editor on the page used to drop focus to <body> when it opened,
+// closed or removed a row, so a keyboard or screen reader user lost their place.
+describe('job page keeps focus where the work is', () => {
+  const todo = (id: string, text: string) => ({ id, text, done: false });
+
+  it('Edit moves focus into the fields and Done returns it to Edit', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { company: 'Acme' });
+    openJobPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit details' }));
+    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.getByRole('button', { name: 'Edit details' })).toHaveFocus();
+  });
+
+  it('Saved is announced, not only shown', async () => {
+    addJob(URL_A);
+    openJobPage();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Company' }), 'A');
+    expect(screen.getByRole('status')).toHaveTextContent('Saved');
+  });
+
+  it('a new link keeps the fields open, with focus on Link', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { company: 'Acme' });
+    openJobPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit details' }));
+    const link = screen.getByRole('textbox', { name: 'Link' });
+    await userEvent.clear(link);
+    await userEvent.type(link, 'https://acme.example/jobs/8{Enter}');
+    await waitFor(() =>
+      expect(window.location.hash).toBe(`#/queue/${jobIdOf('https://acme.example/jobs/8')}`),
+    );
+    expect(screen.getByRole('textbox', { name: 'Link' })).toHaveFocus();
+    expect(screen.getByRole('textbox', { name: 'Title' })).toBeInTheDocument();
+  });
+
+  it('Escape closes the new to-do field and focus returns to Add a to-do', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Add a to-do' }));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: 'Add a to-do' })).toHaveFocus();
+  });
+
+  it('deleting a to-do moves focus to the next one, then to Add a to-do', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { todos: [todo('t1', 'Research'), todo('t2', 'Tailor')] });
+    openJobPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete “Research”' }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Delete “Tailor”' })).toHaveFocus(),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Delete “Tailor”' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add a to-do' })).toHaveFocus());
+  });
+
+  it('a deck form gives focus back: Add to Add a deck link, Save and Cancel to its Edit', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const panel = screen.getByRole('region', { name: 'Decks' });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    await userEvent.type(within(panel).getByLabelText('Deck link'), 'https://pitch.com/v/acme');
+    await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add deck' }));
+    expect(within(panel).getByRole('button', { name: 'Add a deck link' })).toHaveFocus();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Cancel' }));
+    expect(within(panel).getByRole('button', { name: 'Edit “Acme”' })).toHaveFocus();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Save' }));
+    expect(within(panel).getByRole('button', { name: 'Edit “Acme”' })).toHaveFocus();
+  });
+
+  it('removing a deck moves focus to the next deck, then to Add a deck link', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, {
+      decks: [
+        { id: 'd1', url: 'https://slides.example/1', label: 'One' },
+        { id: 'd2', url: 'https://slides.example/2', label: 'Two' },
+      ],
+    });
+    openJobPage();
+    const panel = screen.getByRole('region', { name: 'Decks' });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Remove “One”' }));
+    await waitFor(() =>
+      expect(within(panel).getByRole('button', { name: 'Remove “Two”' })).toHaveFocus(),
+    );
+    await userEvent.click(within(panel).getByRole('button', { name: 'Remove “Two”' }));
+    await waitFor(() =>
+      expect(within(panel).getByRole('button', { name: 'Add a deck link' })).toHaveFocus(),
+    );
+  });
+});
