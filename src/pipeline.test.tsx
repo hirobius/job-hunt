@@ -171,6 +171,86 @@ describe('Pipeline on a phone (#129)', () => {
   });
 });
 
+describe('focus stays in the list when a row leaves it (audit 2026-10-27)', () => {
+  beforeEach(() => viewport(390));
+  const THIRD = 'https://orbit.example/jobs/3';
+  beforeEach(() => {
+    addJob(THIRD, 'Orbit Researcher');
+  });
+
+  it('Mark applied by keyboard moves focus to the next card, not the page top', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const all = screen.getAllByRole('article');
+    // The first Saved card (the starred Applied job sorts first).
+    const i = all.findIndex((a) => within(a).queryByRole('button', { name: /^Mark applied:/ }));
+    const firstName = within(all[i]).getByRole('heading').textContent!;
+    const nextName = within(all[i + 1]).getByRole('heading').textContent!;
+    within(all[i])
+      .getByRole('button', { name: /^Mark applied:/ })
+      .focus();
+    await user.keyboard('{Enter}');
+    expect(screen.queryByRole('article', { name: firstName })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('link', { name: nextName }));
+  });
+
+  it('Mark applied on a starred job (it stays Active) keeps focus on its own card', async () => {
+    const user = userEvent.setup();
+    updateJob(SAVED, { priority: true });
+    renderApp();
+    const card = screen.getByRole('article', { name: 'Design Engineer' });
+    within(card).getByRole('button', { name: 'Mark applied: Design Engineer' }).focus();
+    await user.keyboard('{Enter}');
+    const after = screen.getByRole('article', { name: 'Design Engineer' });
+    expect(document.activeElement).toBe(
+      within(after).getByRole('link', { name: 'Design Engineer' }),
+    );
+  });
+
+  it('Remove from the last card moves focus to the card before it', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const all = screen.getAllByRole('article');
+    const last = all[all.length - 1];
+    const lastName = within(last).getByRole('heading').textContent!;
+    const prevName = within(all[all.length - 2]).getByRole('heading').textContent!;
+    await user.click(within(last).getByRole('button', { name: /^More actions:/ }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await waitFor(() => expect(screen.queryByRole('article', { name: lastName })).toBeNull());
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('link', { name: prevName })),
+    );
+  });
+
+  it('Clear filters gives focus to the search, and the shown count is announced', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const search = screen.getByRole('textbox', { name: 'Search saved jobs' });
+    await user.type(search, 'zzz');
+    await waitFor(() =>
+      expect(screen.getAllByRole('status').some((s) => s.textContent === '0 jobs shown')).toBe(
+        true,
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(document.activeElement).toBe(search);
+    await waitFor(() =>
+      expect(screen.getAllByRole('status').some((s) => s.textContent === '3 jobs shown')).toBe(
+        true,
+      ),
+    );
+  });
+
+  it('Clear search in the empty list gives focus to the search', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const search = screen.getByRole('textbox', { name: 'Search saved jobs' });
+    await user.type(search, 'zzz');
+    await user.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(document.activeElement).toBe(search);
+  });
+});
+
 describe('Retired jobs stay readable', () => {
   beforeEach(() => updateJob(SAVED, { archived: true, verdict: 'match' }));
   const showRetired = async () => {
