@@ -15,7 +15,7 @@ import {
 import { setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
 import { changeWithUndo } from './jobUndo';
-import { collapseRow, flashRow, starClass } from './feedback';
+import { collapseRow, starClass } from './feedback';
 import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
 import { buildHash, getRoute, navigate, withOrigin } from './route';
