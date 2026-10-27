@@ -45,13 +45,12 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
   const syncStatus = useCurationSyncStatus();
   // The step's panel: a step change focuses its heading, a refused link focuses the field.
   const panel = useRef<HTMLDivElement>(null);
-  const opened = useRef(false);
+  const shownStep = useRef(step);
   useEffect(() => {
     // Not on the first visit: only a step change moves focus (the panel swaps under the button).
-    if (!opened.current) {
-      opened.current = true;
-      return;
-    }
+    // Compared with the step last shown, not a "mounted" flag: StrictMode runs this twice on mount.
+    if (shownStep.current === step) return;
+    shownStep.current = step;
     const heading = panel.current?.querySelector<HTMLElement>('h3');
     if (!heading) return;
     heading.tabIndex = -1;

@@ -310,4 +310,17 @@ describe('a11y', () => {
     renderApp();
     expect(document.body).toHaveFocus();
   });
+
+  // Dev runs under StrictMode (main.tsx), which runs a mount effect twice.
+  it('the first visit does not steal focus under StrictMode either', () => {
+    render(
+      <ColorModeProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </ColorModeProvider>,
+      { reactStrictMode: true },
+    );
+    expect(document.body).toHaveFocus();
+  });
 });
