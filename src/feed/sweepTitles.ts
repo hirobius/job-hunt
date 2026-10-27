@@ -175,7 +175,8 @@ export function removeTitle(categoryId: string, seed: string[], title: string): 
 }
 
 /** Put a removed title back at `at` with its tick state, for Remove's Undo (#354). A title
- *  listed again since is left alone. */
+ *  listed again since is left alone, and one that was on comes back off when MAX_SWEEP_ON are
+ *  on by now (a title added meanwhile took its place), so the cap holds. */
 export function restoreTitle(
   categoryId: string,
   seed: string[],
@@ -187,9 +188,10 @@ export function restoreTitle(
     if (s.titles.some((x) => norm(x) === norm(title))) return s;
     const titles = [...s.titles];
     titles.splice(Math.min(Math.max(at, 0), titles.length), 0, title);
+    const off = wasOff || activeTitles(s).length >= MAX_SWEEP_ON;
     return {
       titles,
-      off: wasOff ? [...s.off, title] : s.off.filter((x) => norm(x) !== norm(title)),
+      off: off ? [...s.off, title] : s.off.filter((x) => norm(x) !== norm(title)),
     };
   });
 }

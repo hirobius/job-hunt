@@ -74,6 +74,18 @@ describe('sweep titles store', () => {
     expect(activeTitles(sweepFor(getAllSweeps(), 't1', SEED))).toEqual(['Design Technologist']);
   });
 
+  it('a title that was on comes back off when the cap filled up meanwhile', () => {
+    const many = Array.from({ length: MAX_SWEEP_ON }, (_, i) => `Title ${i}`);
+    removeTitle('t3', many, 'Title 0');
+    expect(addTitle('t3', many, 'Newcomer')).toBe('added');
+    restoreTitle('t3', many, 'Title 0', 0, false);
+    const s = sweepFor(getAllSweeps(), 't3', many);
+    expect(s.titles[0]).toBe('Title 0');
+    expect(s.off).toEqual(['Title 0']);
+    expect(activeTitles(s)).toHaveLength(MAX_SWEEP_ON);
+    expect(activeTitles(s)).toContain('Newcomer');
+  });
+
   it('reads malformed storage as nothing saved', () => {
     localStorage.setItem(SWEEP_KEY, '{"t1":{"titles":"x"},"__proto__":{"titles":["a"]}}');
     expect(getAllSweeps()).toEqual({});
