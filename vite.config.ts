@@ -22,7 +22,8 @@ export default defineConfig({
       },
     },
     // size-budget: the build fails when the first-paint JS/CSS or a lazy chunk outgrows
-    // src/sizeBudget.ts.
+    // src/sizeBudget.ts. Locally only (`npm run verify`, the gate before a push): on Vercel it
+    // warns, so a budget miss never blocks a production deploy (like `npm run audit`).
     {
       name: 'size-budget',
       apply: 'build',
@@ -33,7 +34,11 @@ export default defineConfig({
             : { fileName: f.fileName, code: f.source },
         );
         const { initialJs, initialCss, over } = checkBudget(files);
-        if (over.length) this.error(`Size budget (src/sizeBudget.ts): ${over.join('; ')}`);
+        if (over.length) {
+          const msg = `Size budget (src/sizeBudget.ts): ${over.join('; ')}`;
+          if (process.env.VERCEL) return this.warn(msg);
+          this.error(msg);
+        }
         this.info(
           `size budget ok: initial JS ${(initialJs / 1000).toFixed(1)} kB gzip, CSS ${(initialCss / 1000).toFixed(1)} kB gzip`,
         );
