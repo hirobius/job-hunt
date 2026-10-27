@@ -43,6 +43,20 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
   const [jobUrl, setJobUrl] = useState('');
   const [jobError, setJobError] = useState('');
   const syncStatus = useCurationSyncStatus();
+  // The step's panel: a step change focuses its heading, a refused link focuses the field.
+  const panel = useRef<HTMLDivElement>(null);
+  const opened = useRef(false);
+  useEffect(() => {
+    // Not on the first visit: only a step change moves focus (the panel swaps under the button).
+    if (!opened.current) {
+      opened.current = true;
+      return;
+    }
+    const heading = panel.current?.querySelector<HTMLElement>('h3');
+    if (!heading) return;
+    heading.tabIndex = -1;
+    heading.focus();
+  }, [step]);
   const toggle = (id: string) => {
     setPickError(false);
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -65,8 +79,10 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
     const url = withJob ? jobUrl.trim() : '';
     if (url) {
       addJob(url);
-      if (!findJobByUrl(url))
+      if (!findJobByUrl(url)) {
+        panel.current?.querySelector<HTMLInputElement>('input[type="url"]')?.focus();
         return setJobError("That doesn't look like a link. Paste the job's web address.");
+      }
     }
     picked.forEach((id) =>
       seedPack(id, location, id === 'blank' ? { titles: [firstTitle.trim()] } : undefined),
@@ -129,69 +145,71 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
             </Stack>
             <Progress value={step} max={STEPS} label={`Step ${step} of ${STEPS}`} />
           </Stack>
-          <Panel label={heading} title={heading}>
-            {step === 1 ? (
-              <PickTrack
-                picked={picked}
-                onToggle={toggle}
-                firstTitle={firstTitle}
-                onFirstTitle={setFirstTitle}
-                showError={pickError}
-                attempt={pickAttempt}
-              />
-            ) : (
-              <PanelBody>
-                {step === 2 ? (
-                  <HdsInput
-                    label="City, state or Remote"
-                    placeholder="City, state or Remote"
-                    helperText="Leave it blank to search anywhere. Work mode is set later in Companies."
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-                ) : (
-                  <HdsInput
-                    label="Job link"
-                    type="url"
-                    placeholder="Job link"
-                    helperText="Optional. It lands in your Pipeline."
-                    value={jobUrl}
-                    onChange={(e) => {
-                      setJobUrl(e.target.value);
-                      setJobError('');
-                    }}
-                    error={!!jobError}
-                    errorMessage={jobError}
-                  />
-                )}
-              </PanelBody>
-            )}
-            {/* rev-3: Skip (step 1) or Back on the left edge; Skip and the one primary on the right.
+          <Box ref={panel}>
+            <Panel label={heading} title={heading}>
+              {step === 1 ? (
+                <PickTrack
+                  picked={picked}
+                  onToggle={toggle}
+                  firstTitle={firstTitle}
+                  onFirstTitle={setFirstTitle}
+                  showError={pickError}
+                  attempt={pickAttempt}
+                />
+              ) : (
+                <PanelBody>
+                  {step === 2 ? (
+                    <HdsInput
+                      label="City, state or Remote"
+                      placeholder="City, state or Remote"
+                      helperText="Leave it blank to search anywhere. Work mode is set later in Companies."
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                    />
+                  ) : (
+                    <HdsInput
+                      label="Job link"
+                      type="url"
+                      placeholder="Job link"
+                      helperText="Optional. It lands in your Pipeline."
+                      value={jobUrl}
+                      onChange={(e) => {
+                        setJobUrl(e.target.value);
+                        setJobError('');
+                      }}
+                      error={!!jobError}
+                      errorMessage={jobError}
+                    />
+                  )}
+                </PanelBody>
+              )}
+              {/* rev-3: Skip (step 1) or Back on the left edge; Skip and the one primary on the right.
                 The primary is never shown disabled. */}
-            <PanelRow as="div">
-              <Stack direction="row" justify="space-between" align="center">
-                {step === 1 ? (
-                  <Button type="button" variant="tertiary" onClick={skip}>
-                    Skip
-                  </Button>
-                ) : (
-                  <Button type="button" variant="tertiary" onClick={() => setStep(step - 1)}>
-                    Back
-                  </Button>
-                )}
-                <Stack direction="row" gap="tight" align="center">
-                  {step > 1 && (
-                    <Button type="button" variant="secondary" onClick={skip}>
-                      {lastStep ? "I'll do it later" : 'Skip'}
+              <PanelRow as="div">
+                <Stack direction="row" justify="space-between" align="center">
+                  {step === 1 ? (
+                    <Button type="button" variant="tertiary" onClick={skip}>
+                      Skip
+                    </Button>
+                  ) : (
+                    <Button type="button" variant="tertiary" onClick={() => setStep(step - 1)}>
+                      Back
                     </Button>
                   )}
-                  <Button type="submit" variant="primary">
-                    {lastStep ? 'Finish' : 'Continue'}
-                  </Button>
+                  <Stack direction="row" gap="tight" align="center">
+                    {step > 1 && (
+                      <Button type="button" variant="secondary" onClick={skip}>
+                        {lastStep ? "I'll do it later" : 'Skip'}
+                      </Button>
+                    )}
+                    <Button type="submit" variant="primary">
+                      {lastStep ? 'Finish' : 'Continue'}
+                    </Button>
+                  </Stack>
                 </Stack>
-              </Stack>
-            </PanelRow>
-          </Panel>
+              </PanelRow>
+            </Panel>
+          </Box>
           {/* Never offered signed in (a signed-in tracker syncs), so neither is its caption. */}
           {step === 1 && offerSample && !hasCloudSession() && (
             <Stack direction="row" wrap="wrap" gap="tight" align="center">
@@ -226,7 +244,8 @@ function PickTrack({
   onFirstTitle: (v: string) => void;
   /** Continue was pressed with nothing ready: say why (the primary is never disabled). */
   showError: boolean;
-  /** Counts refused Continues: each one moves focus to the first track when none is picked. */
+  /** Counts refused Continues: each one moves focus to the first track when none is picked, else
+   *  to the missing first title. */
   attempt: number;
 }) {
   const needsTitle = picked.includes('blank');
@@ -234,8 +253,11 @@ function PickTrack({
   // Box types its ref as a div; it is the fieldset, only queried.
   const list = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (attempt && picked.length === 0)
+    if (!attempt) return;
+    if (picked.length === 0)
       list.current?.querySelector<HTMLInputElement>('input[type="checkbox"]')?.focus();
+    else if (needsTitle && firstTitle.trim() === '')
+      list.current?.querySelector<HTMLInputElement>('input:not([type="checkbox"])')?.focus();
     // Only a refused Continue moves focus, not a tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt]);
