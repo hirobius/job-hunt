@@ -174,7 +174,6 @@ export function RowMenu({
   research?: boolean;
 }) {
   const title = titleOf(job);
-  const toggleStar = useToggleStar();
   // The row the menu sits in, for its feedback: a flash on a change, a collapse on Remove.
   const anchor = useRef<HTMLButtonElement>(null);
   // The browser's Back closes the open menu and stays on the page (return paths).
@@ -231,11 +230,18 @@ export function RowMenu({
           })}
         </Menu.Group>
         <Menu.Separator />
+        {/* Star is a row change like the rest (#212, #361): the shared notice with Undo, not a
+            plain toast — under Starred an Unstar takes the card out with no way back otherwise.
+            changeWithUndo flashes the card when the change keeps it in the list. */}
         <Menu.Item
-          onSelect={() => {
-            toggleStar(job);
-            flashRow(anchor.current);
-          }}
+          onSelect={() =>
+            changeWithUndo(
+              job,
+              job.priority ? 'Unstarred' : 'Starred',
+              () => updateJob(job.url, { priority: !job.priority }),
+              anchor.current,
+            )
+          }
         >
           {job.priority ? 'Unstar' : 'Star'}
         </Menu.Item>
