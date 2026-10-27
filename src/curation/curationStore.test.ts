@@ -87,6 +87,30 @@ describe('categories', () => {
     removeCategory(a);
     expect(getCurationState().categories.map((c) => c.id)).toEqual([b]);
   });
+
+  // #346: a deleted track's sections and links used to stay in local storage (and so in
+  // backups) on a signed-out device. The delete takes them with it; the other track's rows
+  // are untouched, so the backup links count (backup.ts countsOf reads curation.tiles.length)
+  // matches what's visible.
+  it('removes the track’s groups and tiles with it, signed out', () => {
+    const a = addCategory();
+    const aG1 = addGroup(a);
+    const aG2 = addGroup(a);
+    addTile(aG1, { name: 'A1', url: 'https://a1.example' });
+    addTile(aG1, { name: 'A2', url: 'https://a2.example' });
+    addTile(aG2, { name: 'A3', url: 'https://a3.example' });
+    const b = addCategory();
+    const bG = addGroup(b);
+    const bTile = addTile(bG, { name: 'B1', url: 'https://b1.example' });
+
+    removeCategory(a);
+
+    const s = getCurationState();
+    expect(s.categories.map((c) => c.id)).toEqual([b]);
+    expect(s.groups.map((g) => g.id)).toEqual([bG]);
+    expect(s.tiles.map((t) => t.id)).toEqual([bTile]);
+    expect(s.tiles).toHaveLength(1); // the links count a backup would report
+  });
 });
 
 describe('groups', () => {
@@ -179,6 +203,26 @@ describe('cloud sync seam', () => {
     removeCategory(id);
     await vi.waitFor(() => expect(cloud.deleteEqSpy).toHaveBeenCalledTimes(1));
     expect(cloud.deleteEqSpy).toHaveBeenCalledWith('id', id);
+  });
+
+  // #346: signed in, only the track's own delete is sent — its sections and links are dropped
+  // by the cloud FK cascade (on delete cascade on groups.category_id / tiles.group_id), not
+  // journalled one by one.
+  it('sends only the track delete for a track with sections and links (cloud cascades)', async () => {
+    cloud.session = { user: { id: 'user-1' } };
+    setTabAccount('user-1'); // through CloudSync's sign-in path (#288)
+    const id = addCategory({ label: 'Welding' });
+    const g = addGroup(id);
+    addTile(g, { name: 'A', url: 'https://a.example' });
+    await vi.waitFor(() => expect(cloud.upsertSpy).toHaveBeenCalledTimes(3));
+    cloud.deleteEqSpy.mockClear();
+
+    removeCategory(id);
+    await vi.waitFor(() => expect(cloud.deleteEqSpy).toHaveBeenCalledTimes(1));
+    expect(cloud.deleteEqSpy).toHaveBeenCalledWith('id', id);
+    await new Promise((r) => setTimeout(r, 20)); // no child delete follows
+    expect(cloud.deleteEqSpy).toHaveBeenCalledTimes(1);
+    expect(getCurationState()).toEqual(EMPTY_CURATION);
   });
 });
 
