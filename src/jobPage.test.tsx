@@ -793,6 +793,21 @@ describe('job page keeps focus where the work is', () => {
     expect(screen.getByRole('textbox', { name: 'Title' })).toBeInTheDocument();
   });
 
+  it('Done right after a new link closes the fields in one click', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { company: 'Acme' });
+    openJobPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit details' }));
+    const link = screen.getByRole('textbox', { name: 'Link' });
+    await userEvent.clear(link);
+    await userEvent.type(link, 'https://acme.example/jobs/9');
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    await waitFor(() =>
+      expect(window.location.hash).toBe(`#/queue/${jobIdOf('https://acme.example/jobs/9')}`),
+    );
+    expect(screen.queryByRole('textbox', { name: 'Link' })).not.toBeInTheDocument();
+  });
+
   it('Escape closes the new to-do field and focus returns to Add a to-do', async () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();

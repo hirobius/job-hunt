@@ -83,11 +83,14 @@ let relinked: string | null = null;
 function LinkField({ job, autoFocus }: { job: Job; autoFocus?: boolean }) {
   const [draft, setDraft] = useState(job.url);
   const [error, setError] = useState(false);
-  const commit = () => {
+  // `leavingTo` is where focus is going: leaving for Done closes the editor on the new page,
+  // so Done needs no second click.
+  const commit = (leavingTo?: EventTarget | null) => {
     if (draft.trim() === job.url) return setError(false);
     const next = setJobUrl(job.url, draft);
     setError(!next);
-    if (next) relinked = next;
+    const toDone = leavingTo instanceof Element && !!leavingTo.closest('[data-details-done]');
+    if (next && !toDone) relinked = next;
     // In place, the page follows the job to its new id and keeps where it was opened from.
     if (next) navigate({ jobId: jobIdOf(next), from: getRoute().from ?? null }, true);
   };
@@ -102,7 +105,7 @@ function LinkField({ job, autoFocus }: { job: Job; autoFocus?: boolean }) {
         error={error}
         errorMessage={error ? 'Use a full link that no other saved job has.' : undefined}
         onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
+        onBlur={(e) => commit(e.relatedTarget)}
         onKeyDown={(e) => e.key === 'Enter' && commit()}
       />
     </Box>
@@ -160,7 +163,7 @@ function DetailsEditor({ job, onDone, focus }: { job: Job; onDone: () => void; f
           >
             Saved ✓
           </Text>
-          <Button size="md" variant="secondary" onClick={onDone}>
+          <Button size="md" variant="secondary" onClick={onDone} data-details-done="">
             Done
           </Button>
         </Stack>
