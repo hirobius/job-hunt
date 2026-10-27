@@ -11,7 +11,7 @@ export interface AuthErrorLike {
 export const SIGN_IN_ERRORS = {
   empty: 'Enter an email address',
   invalid: 'Enter an email address like name@example.com',
-  rateLimit: 'Too many tries. Wait a minute and try again.',
+  rateLimit: 'Too many sign-in emails were sent. Try again later; this can take up to an hour.',
   offline: "Couldn't connect. Check your connection and try again.",
   other: "Couldn't send the link. Try again in a minute.",
 } as const;

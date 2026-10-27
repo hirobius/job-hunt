@@ -37,3 +37,11 @@ describe('signInErrorMessage', () => {
     expect(signInErrorMessage({ message: 'supabase: boom' })).not.toMatch(/supabase/i);
   });
 });
+
+describe('rate-limit copy (#278)', () => {
+  it('names the real wait: up to an hour, never "a minute"', () => {
+    // The email limit is per hour (2 on Supabase's built-in sender, 60 on Resend SMTP).
+    expect(SIGN_IN_ERRORS.rateLimit).not.toMatch(/minute/i);
+    expect(SIGN_IN_ERRORS.rateLimit).toMatch(/up to an hour/);
+  });
+});
