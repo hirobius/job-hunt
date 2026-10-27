@@ -3,7 +3,7 @@
 // moves it to the new page's heading. jsdom has no layout, so "shown" is stubbed to true.
 import { afterEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
-import { installFocusRescue, pageHeading, spotOf, successor } from './focusRescue';
+import { findMark, installFocusRescue, pageHeading, spotOf, successor } from './focusRescue';
 
 const shown = () => true;
 const $ = (sel: string) => document.querySelector<HTMLElement>(sel)!;
@@ -99,5 +99,34 @@ describe('installFocusRescue', () => {
     window.location.hash = '#/queue/abc';
     await waitFor(() => expect(document.activeElement?.id).toBe('job'));
     expect($('#job').getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('coming back to a page focuses the control that left it, once it is listed again', async () => {
+    installFocusRescue(shown);
+    window.location.hash = '#/queue';
+    await new Promise((r) => setTimeout(r, 50));
+    list();
+    $('#a2').focus();
+    // The route changes first, then React renders the new page.
+    window.location.hash = '#/queue/two';
+    await new Promise((r) => setTimeout(r, 0));
+    document.body.innerHTML = `<main><h2 id="job">Two</h2></main>`;
+    await waitFor(() => expect(document.activeElement?.id).toBe('job'));
+    // Back: the list comes in after the page's heading.
+    window.location.hash = '#/queue';
+    await new Promise((r) => setTimeout(r, 0));
+    document.body.innerHTML = `<main><h2 id="p">Pipeline</h2></main>`;
+    await waitFor(() => expect(document.activeElement?.id).toBe('p'));
+    list();
+    await waitFor(() => expect(document.activeElement?.id).toBe('a2'));
+  });
+});
+
+describe('findMark', () => {
+  it('finds a link by its target, anything else by its name', () => {
+    list();
+    expect(findMark({ tag: 'A', href: '#b', name: 'renamed' }, shown)?.id).toBe('a2');
+    expect(findMark({ tag: 'BUTTON', href: null, name: 'Mark applied' }, shown)?.id).toBe('b1');
+    expect(findMark({ tag: 'A', href: '#gone', name: 'Two' }, shown)).toBeNull();
   });
 });

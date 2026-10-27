@@ -248,10 +248,13 @@ for (const width of [390, 1440] as const) {
       // The heading takes focus but is not a tab stop: no ring, nothing to press.
       const heading = page.getByRole('heading', { level: 2, name: title });
       expect(await heading.evaluate((h) => getComputedStyle(h).outlineStyle)).toBe('none');
-      // The browser's Back is a page change too.
+      // The browser's Back is a page change too: it lands on the title that opened the job (#359).
       await page.goBack();
       await expect(page).toHaveURL(/#\/queue$/);
-      await expect.poll(() => focused(page)).toBe('H2 Pipeline');
+      await expect.poll(() => focused(page)).toBe(`A ${title}`);
+      // A page never seen before gets its heading.
+      await go(page, '#/legal/terms');
+      await expect.poll(() => focused(page)).toBe('H2 Terms of use');
       // A top tab keeps focus on the tab (it is still there).
       await page.getByRole('tab', { name: 'Companies' }).focus();
       await page.keyboard.press('Enter');

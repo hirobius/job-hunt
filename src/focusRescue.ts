@@ -3,7 +3,9 @@
 // of the page. Two cases come back here:
 // - a page change (a job's title, a Back link, the browser's Back) moves focus to the new page's
 //   heading, so its name is read and Tab goes on from the top of it. The heading takes focus
-//   (tabindex -1) but is no tab stop and draws no ring (base.css `[data-focus-heading]`);
+//   (tabindex -1) but is no tab stop and draws no ring (base.css `[data-focus-heading]`). Coming
+//   back to a page (Back, a top tab) focuses the control that left it, the job title that was
+//   opened, once it is listed again (return paths, #359);
 // - a row that leaves a list (Mark applied, Remove, Not a fit) hands focus to what took its place,
 //   else to the control before it, else to the page's heading.
 // Dialogs and menus are left to Radix, which returns focus to their trigger first; when that
@@ -16,6 +18,29 @@ const FOCUSABLE =
 /** Open overlays: focus inside one never becomes the spot (its trigger's spot is kept). */
 const OVERLAY =
   '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper]';
+/** What a control that left its page is found by again: its link target, else its tag and name. */
+type Mark = { tag: string; href: string | null; name: string };
+
+const markOf = (el: Element): Mark => ({
+  tag: el.tagName,
+  href: el.getAttribute('href'),
+  name: (el.getAttribute('aria-label') ?? el.textContent ?? '').trim(),
+});
+
+/** The control in main a mark names, if it is on the page. */
+export function findMark(mark: Mark, shown = shownInBrowser): HTMLElement | null {
+  const main = document.querySelector('main');
+  if (!main) return null;
+  for (const el of main.querySelectorAll<HTMLElement>(mark.tag)) {
+    const m = markOf(el);
+    if ((mark.href ? m.href === mark.href : m.name === mark.name) && shown(el)) return el;
+  }
+  return null;
+}
+
+/** How many pages' controls are remembered. */
+const MAX_MARKS = 30;
+
 /** How long a page change waits for its heading (a lazy view on a slow link, a job still loading);
  *  a click or anything taking focus first ends the wait. */
 const HEADING_WAIT_MS = 10_000;
@@ -102,14 +127,25 @@ export function installFocusRescue(shown = shownInBrowser): void {
   let pageChanged = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
+  /** Per page, the control that had focus when it was left. */
+  const marks = new Map<string, Mark>();
+
   const check = () => {
     timer = undefined;
-    if (!lost()) return;
+    const onHeading = document.activeElement?.hasAttribute('data-focus-heading');
+    if (!lost() && !onHeading) return;
     if (pageChanged && Date.now() - pageChanged < HEADING_WAIT_MS) {
-      // No heading yet (a lazy view, a job still loading): the page's next change looks again.
-      focusHeading(shown);
+      // Back on a page: the control that left it, once its row is listed again; meanwhile (and
+      // on a new page) the heading. The page's next change looks again (the observer below).
+      const mark = marks.get(page);
+      const back = mark ? findMark(mark, shown) : null;
+      if (back) {
+        back.focus({ preventScroll: true });
+        pageChanged = 0;
+      } else if (!onHeading) focusHeading(shown);
       return;
     }
+    if (onHeading) return;
     pageChanged = 0;
     if (spot && !spot[0].node.isConnected) {
       const to = successor(spot, shown);
@@ -144,6 +180,12 @@ export function installFocusRescue(shown = shownInBrowser): void {
   subscribeRoute(() => {
     const next = pageKey(getRoute());
     if (next === page) return;
+    const left = spot?.[0].node;
+    if (left?.isConnected && left.closest('main')) {
+      marks.delete(page);
+      marks.set(page, markOf(left));
+      if (marks.size > MAX_MARKS) marks.delete(marks.keys().next().value!);
+    }
     page = next;
     pageChanged = Date.now();
     spot = null;
