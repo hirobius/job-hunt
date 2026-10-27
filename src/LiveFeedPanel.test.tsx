@@ -21,7 +21,7 @@ vi.mock('./feed/fetchFeed', () => feed);
 
 import LiveFeedPanel from './LiveFeedPanel';
 import { DIRECTORY_BY_PACK } from './radar/directory';
-import { getAllJobs, removeJob } from './store';
+import { addJobDetailed, getAllJobs, removeJob } from './store';
 import { addCategory, getCurationState, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
@@ -220,6 +220,19 @@ describe('LiveFeedPanel', () => {
     // Saved is a status in Save's place, not a disabled control (rev-3 K: readable, 3:1+).
     expect(within(ramp).queryByRole('button', { name: /^Save/ })).toBeNull();
     expect(within(ramp).getByText('Saved')).toBeInTheDocument();
+    // v1.5 motion (#279): the status just made arrives and its check pops (base.css).
+    expect(within(ramp).getByText('Saved').parentElement).toHaveClass('rjb-arrive');
+    expect(within(ramp).getByText('Saved').parentElement!.querySelector('.rjb-pop')).not.toBeNull();
+  });
+
+  it('a posting saved before the panel opened shows Saved still, with no motion', async () => {
+    addJobDetailed('https://jobs.ashbyhq.com/ramp/1', { label: 'Design Systems Lead' });
+    renderPanel();
+    const list = await screen.findByRole('list', { name: /live postings/i });
+    const ramp = within(list).getByText('Design Systems Lead').closest('li')!;
+    const saved = within(ramp).getByText('Saved').parentElement!;
+    expect(saved).not.toHaveClass('rjb-arrive');
+    expect(saved.querySelector('.rjb-pop')).toBeNull();
   });
 
   it('each opening title opens the posting in a new tab, with the external-link icon (Adrian 2026-10-22)', async () => {

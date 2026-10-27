@@ -5,7 +5,7 @@
 // still, a collapse is skipped). Flash and collapse mark an attribute, not a class: React owns the
 // className of what it renders and rewrites it on any change (a starred table row floats to the top
 // and its cells' divider class changes), which would wipe a class mid-flash.
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { createStore } from './createStore';
 
 /** Motion is on: the browser can tell, and the user has not asked for less. Without matchMedia
@@ -99,4 +99,16 @@ export function useHighlight<T extends HTMLElement>(key: string) {
 export function starClass(on: boolean, animate = false): string | undefined {
   const cls = [on && 'rjb-icon-filled', animate && (on ? 'rjb-pop' : 'rjb-pop-off')];
   return cls.filter(Boolean).join(' ') || undefined;
+}
+
+/** True while a state this view shows has just turned on (v1.5 motion, #279): a posting just
+ *  saved, a job just marked applied. False for a state that was already on when the view opened,
+ *  and again when `key` moves to another item (Apply mode's pager), so only the action itself
+ *  arrives with motion. The caller puts `.rjb-arrive` (base.css) on what appeared. */
+export function useArrived(on: boolean, key = ''): boolean {
+  const [seen, setSeen] = useState({ key, on, arrived: false });
+  // Adjusting state while rendering (React's pattern for a value that follows a prop).
+  if (seen.key !== key) setSeen({ key, on, arrived: false });
+  else if (seen.on !== on) setSeen({ key, on, arrived: on });
+  return seen.arrived;
 }

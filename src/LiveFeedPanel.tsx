@@ -86,6 +86,7 @@ import { SweepTitlesEditor } from './SweepTitles';
 import { activeTitles, useSweep } from './feed/sweepTitles';
 import { metaLines } from './metaLines';
 import { useRemembered } from './viewMemory';
+import { useArrived } from './feedback';
 import { foldRoles, orderByRoleType, roleTypeOf, roleTypeTag } from './feed/roleType';
 import { useRoleTypes, writeShowEngineering } from './feed/roleTypePref';
 import { useBackCloses, useBackSheet } from './useBackCloses';
@@ -1441,6 +1442,8 @@ function PostingRow({
 }) {
   const [why, setWhy] = useState(false);
   useBackCloses(why, () => setWhy(false), `feed-why:${p.id}`);
+  // Save here: the Saved status arrives and its check pops (not for one saved before).
+  const justSaved = useArrived(saved, p.id);
   const place = p.location || (p.mode ? modeLabel(p.mode) : '');
   const posted = postedAgo(p.postedAt, now);
   const pay = payLabel(p);
@@ -1523,9 +1526,10 @@ function PostingRow({
         {saved ? (
           // A status in Save's slot, not a disabled control (disabled text fails 3:1 here).
           <Box
+            className={justSaved ? 'rjb-arrive' : undefined}
             sx={{ display: 'flex', alignItems: 'center', gap: 'px4', minHeight: 36, flexShrink: 0 }}
           >
-            <Icon icon={Check} size="small" />
+            <Icon icon={Check} size="small" className={justSaved ? 'rjb-pop' : undefined} />
             <Text variant="ui" as="span">
               Saved
             </Text>
