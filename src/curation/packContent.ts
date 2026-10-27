@@ -39,6 +39,19 @@ export const TRADES_PACK: PackContent = {
   boards: DIRECTORY_BY_PACK.trades,
 };
 
+// ---- Contracts (#275): federal solicitations from SAM.gov, by NAICS code, not by title ----
+// No titles, ATS roles, sections or boards: Live postings reads SAM.gov through /api/sam with the
+// track's NAICS codes (feed/mustInclude.ts `naics`, DEFAULT_NAICS until edited) and location.
+export const CONTRACTS_PACK: PackContent = {
+  id: 'contracts',
+  label: 'Contracts',
+  titles: [],
+  atsRoles: [],
+  seniority: 'any',
+  groups: [],
+  boards: [],
+};
+
 // Titles first: the Live postings feed searches the first title on open. Systems-only (Adrian
 // 2026-10-23: "if the posting doesn't have 'systems' in the title or the main description, I have
 // zero interest"): no generic Design Engineer, UX Engineer, Product Designer or Frontend titles,

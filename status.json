@@ -1,8 +1,9 @@
 {
-  "updatedAt": "2026-10-24T07:00:00Z",
+  "updatedAt": "2026-10-27T03:00:00Z",
   "phase": "live",
   "headline": "Live as RoleForge. Rapid apply (#218) and wide sweep (#220, blob v7) are on main. Companies follows the track in review on claude/teams-first (dream companies, blob v9).",
   "next": [
+    "Review PR claude/contracts-track (#275): Contracts track reads SAM.gov via /api/sam, shipped off. Adrian: free SAM.gov API key (sam.gov → Account details → API key), then SAM_GOV_API_KEY in Vercel → Settings → Environment Variables. Not merged.",
     "Review draft PR claude/rf-track-scorer: the Muse track scorer replaces the systems-only rule on the Design Systems track (Live postings, Companies, dreams, reasons on cards, Review bucket), the Pipeline's scored queue + Skip, and the postings sync (migrations + sync-postings edge function + 2x daily cron + designsystems.jobs RSS). Migrations not applied, function not deployed (Adrian). Veto-able: 'design engineer' dropped from titleAdjacent.",
     "Security re-check 3 of claude/rf-tab-switch (#288): the must-fix is fixed test-first (a session getSession can't read, offline or a failed refresh, skips that send and never stops the tab; a definite sign-out or other user still does). main (f33442f) merged in; verify, verify:ui, e2e run locally. Not merged.",
     "Review claude/rf-watched-loss (off main): Companies 'Find more' emptied the found GitHub teams before each run, so a run GitHub held back left only the watched boards (Adrian's 160 -> 125). Runs now only add (feed/foundTeams.ts). Nothing synced was deleted. verify, verify:ui, e2e green. Not merged.",
