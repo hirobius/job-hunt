@@ -24,6 +24,7 @@ import App from './App';
 import { addJob, findJobByUrl, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { getApplyKit, replaceApplyKit, emptyKit, setKitField } from './applyKit';
 import { setOutreachMessages } from './test/outreach';
+import { getSnippets, replaceSnippets } from './copyDeckStore';
 import { addDeviceDataIfAsked } from './test/renderAccount';
 import { notifySaved, dismissNotice, saveWithNotice } from './saveNotice';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
@@ -357,6 +358,22 @@ describe('Application kit: a deleted template pick (#314)', () => {
       (within(kit).getByRole('combobox', { name: /^Why this company template/ }) as HTMLSelectElement)
         .value,
     ).toBe('');
+  });
+});
+
+describe('Application kit: a pick on a snippet not moved yet (#314 review)', () => {
+  afterEach(() => setOutreachMessages([]));
+
+  it('keeps the pick while the snippet waits for its move into the library', async () => {
+    // A device that never ran the move: the picked message is still a legacy snippet.
+    setOutreachMessages([]);
+    replaceSnippets([{ id: 'why-legacy', label: 'Why Acme', body: 'Because [Company]' }]);
+    replaceApplyKit({ ...emptyKit(), whyTemplate: 'why-legacy' });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('region', { name: 'Application kit' });
+    await waitFor(() => expect(getSnippets().every((s) => s.migrated)).toBe(true));
+    expect(getApplyKit().whyTemplate).toBe('why-legacy');
   });
 });
 
