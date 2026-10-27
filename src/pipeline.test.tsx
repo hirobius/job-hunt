@@ -385,3 +385,56 @@ describe('the Pipeline ends with "Find the next company" (#238)', () => {
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
   });
 });
+
+describe('Active empty action and Star Undo (#361)', () => {
+  beforeEach(() => viewport(390));
+  const notice = () => screen.getByRole('region', { name: /^Notifications/ });
+
+  it('the Active empty offers Show applied: it sets the filter to Applied and keeps focus in the panel', async () => {
+    const user = userEvent.setup();
+    // Nothing is Active: both jobs are Applied and neither is starred.
+    markAppliedByUrl(SAVED, 'Design Engineer');
+    updateJob(APPLIED, { priority: false });
+    renderApp();
+    expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Show applied' }));
+    const status = screen.getByRole('button', { name: /^Status: Applied/ });
+    expect(status).toBeInTheDocument();
+    expect(screen.getByRole('article', { name: 'Design Engineer' })).toBeInTheDocument();
+    expect(screen.getByRole('article', { name: 'Zenith Product Designer' })).toBeInTheDocument();
+    // The empty state unmounted, but focus stayed in the panel — on the Status select.
+    expect(document.activeElement).toBe(status);
+  });
+
+  it('Unstar from a card menu under Starred raises the shared notice, and Undo brings the card back', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(screen.getByRole('button', { name: /^Status:/ }));
+    await user.click(
+      within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Starred/ }),
+    );
+    const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    await user.click(within(card).getByRole('button', { name: 'More actions: Zenith Product Designer' }));
+    await user.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Unstar' }));
+    expect(getAllJobs().find((j) => j.url === APPLIED)?.priority).toBeFalsy();
+    expect(screen.queryByRole('article', { name: 'Zenith Product Designer' })).toBeNull();
+    expect(within(notice()).getByText('Unstarred')).toBeInTheDocument();
+    await user.click(within(notice()).getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs().find((j) => j.url === APPLIED)?.priority).toBe(true);
+    expect(screen.getByRole('article', { name: 'Zenith Product Designer' })).toBeInTheDocument();
+  });
+
+  it('Star from a card menu raises the shared notice with Undo, and the card flashes and stays', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const card = screen.getByRole('article', { name: 'Design Engineer' });
+    await user.click(within(card).getByRole('button', { name: 'More actions: Design Engineer' }));
+    await user.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Star' }));
+    expect(getAllJobs().find((j) => j.url === SAVED)?.priority).toBe(true);
+    expect(screen.getByRole('article', { name: 'Design Engineer' })).toBeInTheDocument();
+    expect(card.getAttribute('data-motion')).toBe('flash');
+    expect(within(notice()).getByText('Starred')).toBeInTheDocument();
+    await user.click(within(notice()).getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs().find((j) => j.url === SAVED)?.priority).toBeFalsy();
+  });
+});
