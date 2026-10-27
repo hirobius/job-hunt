@@ -220,3 +220,71 @@ test.describe('keyboard only', () => {
     await expect(add).toBeFocused();
   });
 });
+
+/** What has focus: `BODY` when nothing does (focus was dropped), else the element's tag and name. */
+const focused = (page: Page) =>
+  page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el || el === document.body || !el.isConnected) return 'BODY';
+    return `${el.tagName} ${(el.getAttribute('aria-label') ?? el.textContent ?? '').trim()}`;
+  });
+
+// Focus is never dropped to the page (2026-10-27 audit): a page change moves it to the new page's
+// heading, so a screen reader names the page and Tab goes on from the top of it; a row that leaves
+// a list (Mark applied, Remove) hands it to the row that took its place.
+for (const width of [390, 1440] as const) {
+  test.describe(`focus is never dropped ${width}`, () => {
+    test.use({ viewport: { width, height: width > 600 ? 900 : 844 } });
+
+    test('a page change moves focus to the new page heading', async ({ page }) => {
+      await seed(page);
+      await go(page, '#/queue');
+      const link = page.locator('a[href^="#/queue/"]').first();
+      const title = (await link.textContent())!.trim();
+      await link.focus();
+      await page.keyboard.press('Enter');
+      await expect(page).toHaveURL(/#\/queue\/./);
+      await expect.poll(() => focused(page)).toBe(`H2 ${title}`);
+      // The heading takes focus but is not a tab stop: no ring, nothing to press.
+      const heading = page.getByRole('heading', { level: 2, name: title });
+      expect(await heading.evaluate((h) => getComputedStyle(h).outlineStyle)).toBe('none');
+      // The browser's Back is a page change too.
+      await page.goBack();
+      await expect(page).toHaveURL(/#\/queue$/);
+      await expect.poll(() => focused(page)).toBe('H2 Pipeline');
+      // A top tab keeps focus on the tab (it is still there).
+      await page.getByRole('tab', { name: 'Companies' }).focus();
+      await page.keyboard.press('Enter');
+      await expect(page).toHaveURL(/#\/discover/);
+      await expect.poll(() => focused(page)).toBe('BUTTON Companies');
+    });
+
+    test('a row that leaves the list hands focus on, and the notice is announced', async ({
+      page,
+    }) => {
+      await seed(page);
+      await go(page, '#/queue');
+      // Record what live regions say: Radix's announcer is only on the page for a second.
+      await page.evaluate(() => {
+        const said: string[] = ((window as unknown as { said: string[] }).said = []);
+        new MutationObserver(() => {
+          document
+            .querySelectorAll('[aria-live="polite"], [aria-live="assertive"], [role="status"]')
+            .forEach((r) => said.push(r.textContent ?? ''));
+        }).observe(document.body, { childList: true, subtree: true, characterData: true });
+      });
+      const mark = page.getByRole('button', { name: /^Mark applied/ }).first();
+      await mark.focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByText(/^Marked applied/).first()).toBeVisible();
+      await page.waitForTimeout(800);
+      expect(await focused(page)).not.toBe('BODY');
+      expect(
+        await page.evaluate(() => document.querySelector('main')!.contains(document.activeElement)),
+      ).toBe(true);
+      // The toast's text reaches a live region (HDS Toast, Radix's announcer).
+      const said = await page.evaluate(() => (window as unknown as { said: string[] }).said);
+      expect(said.some((t) => t.includes('Marked applied'))).toBe(true);
+    });
+  });
+}
