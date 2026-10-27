@@ -473,6 +473,18 @@ describe('Find more keeps what was found', () => {
     expect(screen.getByRole('region', { name: 'Watched' })).toHaveTextContent(/3 companies/);
   });
 
+  it('after a reload, the kept teams’ boards are read again: Hiring now still lists them', async () => {
+    const first = renderApp();
+    await find();
+    await screen.findByText(/3 companies, 1 hiring now\./);
+    first.unmount();
+    resetViewMemory(); // a reload: the roles read are gone, the found list stays on the device
+    renderApp();
+    // No new search: the kept list's boards are read on arrival, like the watched ones.
+    expect(await screen.findByText(/3 companies, 1 hiring now\./)).toBeVisible();
+    expect(screen.getByRole('list', { name: 'Companies' })).toHaveTextContent('Acme Design');
+  });
+
   it('never touches what syncs: watched boards, saved targets and dream companies stay', async () => {
     const group = addGroup(cat, { label: 'Watched companies' });
     addTile(group, { name: 'Acme', url: 'https://jobs.lever.co/acme' });
