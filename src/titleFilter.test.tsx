@@ -18,7 +18,7 @@ import App from './App';
 import { writeShowEngineering } from './feed/roleTypePref';
 import { addCategory, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
-import { getAllSweeps, setTitleOn } from './feed/sweepTitles';
+import { addTitle, getAllSweeps, MAX_SWEEP_ON, setTitleOn } from './feed/sweepTitles';
 import type { Posting } from './feed/types';
 
 const post = (id: string, title: string): Posting => ({
@@ -124,6 +124,25 @@ describe('Calibrate: the ticked titles', () => {
     expect(rest.filter((u) => u.includes('"product designer" OR "design system"')).length).toBe(
       rest.filter((u) => u.includes('designer')).length,
     );
+  });
+
+  // #354: a title added past the on-cap starts switched off, and the add says so.
+  it('adding a title past the cap toasts that it was added, switched off', async () => {
+    for (let i = TITLES.length; i < MAX_SWEEP_ON; i++) addTitle(cat, TITLES, `extra title ${i}`);
+    expect(getAllSweeps()[cat].titles).toHaveLength(MAX_SWEEP_ON);
+    window.location.hash = '#/discover/live';
+    const user = userEvent.setup();
+    renderApp();
+    expect(await screen.findByRole('heading', { name: /^Design Engineer/ })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
+    await user.type(screen.getByRole('textbox', { name: 'Add a title' }), 'one title too many');
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    expect(
+      await screen.findByText('Added, switched off: up to 12 titles can be on'),
+    ).toBeInTheDocument();
+    const s = getAllSweeps()[cat];
+    expect(s.titles).toHaveLength(MAX_SWEEP_ON + 1);
+    expect(s.off).toEqual(['one title too many']);
   });
 
   it('with every title ticked, the links search all of them', async () => {
