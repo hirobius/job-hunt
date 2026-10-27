@@ -49,6 +49,7 @@ import { dayLabel } from './dayLabel';
 import {
   KIT_FIELDS,
   addAnswer,
+  clearStaleKitTemplates,
   filledTemplates,
   removeAnswer,
   setKitField,
@@ -542,7 +543,13 @@ function ApplicationKit({ job }: { job: Job }) {
     />
   );
   const answered = kit.answers.length;
-  const { user } = useCloudSync(); // signed out, the kit stays on this device
+  const { user, settled } = useCloudSync(); // signed out, the kit stays on this device
+  // #314: a pick whose message was deleted reads as "No template" (the Select value below only
+  // ever names a live message), and once sync has settled the stale id is cleared from the kit
+  // itself, so it stops syncing and re-adding the starters cannot silently re-link it.
+  useEffect(() => {
+    if (settled) clearStaleKitTemplates(snippets.map((s) => s.id));
+  }, [settled, snippets]);
   return (
     <Panel
       label="Application kit"
@@ -598,7 +605,7 @@ function ApplicationKit({ job }: { job: Job }) {
                   <Select
                     label={`${label} template`}
                     options={options}
-                    value={kit[slot] ?? ''}
+                    value={template(kit[slot]) ? (kit[slot] ?? '') : ''}
                     onChange={(v) => setKitTemplate(slot, v)}
                   />
                 ) : (
