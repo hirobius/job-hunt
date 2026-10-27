@@ -12,9 +12,10 @@ import {
   VisuallyHidden,
   useToast,
 } from '@hirobius/design-system';
-import { getAllJobs, setStatus, updateJob } from './store';
-import { removeWithUndo, showNotice } from './saveNotice';
-import { collapseRow, flashRow, starClass } from './feedback';
+import { setStatus, updateJob } from './store';
+import { removeWithUndo } from './saveNotice';
+import { changeWithUndo } from './jobUndo';
+import { collapseRow, starClass } from './feedback';
 import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
 import { buildHash, getRoute, navigate, withOrigin } from './route';
@@ -74,27 +75,6 @@ function useToggleStar() {
         : { title: 'Starred', description: 'Shows first in your Pipeline' },
     );
   };
-}
-
-/** Change a job and say so, with Undo putting back the fields the change touched (#212). A row
- *  the change keeps in the list flashes; one it filters out leaves the notice behind. */
-function changeWithUndo(job: Job, title: string, change: () => void, from: Element | null) {
-  change();
-  flashRow(from);
-  showNotice({
-    title,
-    description: titleOf(job),
-    actions: [{ label: 'Undo', run: () => updateJob(job.url, undoPatch(job)) }],
-  });
-}
-
-/** A patch that puts a job back as it was: every field it had, and the ones it gained cleared. */
-function undoPatch(before: Job): Partial<Job> {
-  const now = getAllJobs().find((j) => j.url === before.url);
-  const patch: Partial<Job> = { ...before };
-  for (const k of Object.keys(now ?? {}) as (keyof Job)[])
-    if (!(k in before)) (patch as Record<string, unknown>)[k] = undefined;
-  return patch;
 }
 
 /** The job page's star toggle: a 40px icon button named Star or Starred, so the state reads
