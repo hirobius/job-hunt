@@ -178,7 +178,8 @@ describe('decks ride with the job', () => {
     const [head, row] = toCsv([
       { url: URL, label: 'D', status: 'Saved', decks: [deck('a', { label: 'Portfolio' })] },
     ]).split('\r\n');
-    expect(head.split(',').pop()).toBe('"decks"');
-    expect(row.split(',').pop()).toBe('"Portfolio https://slides.example/a"');
+    const at = head.split(',').indexOf('"decks"');
+    expect(at).toBe(CSV_COLUMNS.indexOf('decks'));
+    expect(row.split(',')[at]).toBe('"Portfolio https://slides.example/a"');
   });
 });
