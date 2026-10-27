@@ -144,6 +144,8 @@ describe('To apply queue and Apply mode', () => {
     );
     const alert = note.closest('.rjb-inline-alerts') as HTMLElement;
     expect(within(alert).getByText('Applied')).toBeInTheDocument();
+    // v1.5 motion (#279): the note just made arrives with motion (base.css .rjb-arrive).
+    expect(alert).toHaveClass('rjb-arrive');
     expect(screen.queryByText(/\d{4}-\d{2}-\d{2}/)).toBeNull();
     // The applied job holds its place, so the pager still reads 1 of 3.
     expect(within(pager).getByText('1 of 3')).toBeInTheDocument();
@@ -186,6 +188,14 @@ describe('To apply queue and Apply mode', () => {
     await user.click(screen.getByRole('button', { name: 'Mark applied' }));
     expect(header).toHaveTextContent('Applied today');
     expect(header).not.toHaveTextContent(/Saved \d+ days ago/);
+  });
+
+  it('a job opened already applied shows its Applied note still: only Mark applied moves it', async () => {
+    updateJob(A, { status: 'Applied' });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const note = await screen.findByText(/It's under Follow up in the Pipeline/);
+    expect(note.closest('.rjb-inline-alerts')).not.toHaveClass('rjb-arrive');
   });
 
   it('a double tap on Not a fit sets aside one job, not the next one too', async () => {

@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Illustration directions</title>
+    <!--
+      v1.5 (#279): three illustration directions for Adrian to pick from, shown in situ in the three
+      places where an illustration earns its space: the first run, the empty Pipeline and the error
+      page. Self-contained: no fetches, inline SVG only. Colours are HDS 0.32 semantic tokens,
+      resolved from @hirobius/design-system/dist/variables.css (light :root, dark [data-theme=dark]),
+      so nothing here is a new colour. Staging only: nothing is wired into the app.
+    -->
+    <style>
+      :root {
+        --surface-page: #ffffff;
+        --surface-raised: #fafafa;
+        --surface-muted: #f5f5f5;
+        --surface-sunken: #e5e5e5;
+        --surface-accent: #4a4146;
+        --content-primary: #111111;
+        --content-secondary: #525252;
+        --content-tertiary: #737373;
+        --border-default: #cbc6c9;
+        --border-strong: #b2abae;
+        --feedback-success: #047857;
+        --feedback-bg-success: #ecfdf5;
+        --feedback-warning: #92400e;
+        --feedback-bg-warning: #fffbeb;
+        --feedback-error: #b91c1c;
+        --feedback-bg-error: #fef2f2;
+        --on-accent: #ffffff;
+        color-scheme: light;
+      }
+      [data-theme='dark'] {
+        --surface-page: #000000;
+        --surface-raised: #1a1a1a;
+        --surface-muted: #262626;
+        --surface-sunken: #404040;
+        --surface-accent: #cbc6c9;
+        --content-primary: #f5f5f5;
+        --content-secondary: #b4b4b4;
+        --content-tertiary: #909090;
+        --border-default: #525252;
+        --border-strong: #525252;
+        --feedback-success: #34d399;
+        --feedback-bg-success: #022c22;
+        --feedback-warning: #fbbf24;
+        --feedback-bg-warning: #451a03;
+        --feedback-error: #f87171;
+        --feedback-bg-error: #450a0a;
+        --on-accent: #111111;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--surface-page);
+        color: var(--content-primary);
+        font:
+          15px/1.5 'Plus Jakarta Sans',
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+      }
+      .page {
+        max-width: 1048px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+      h1 {
+        font-size: 24px;
+        line-height: 1.25;
+        margin: 0 0 8px;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 0;
+      }
+      p {
+        margin: 0;
+      }
+      .lede {
+        color: var(--content-secondary);
+        max-width: 60ch;
+      }
+      .direction {
+        margin-top: 32px;
+        display: grid;
+        gap: 12px;
+      }
+      .direction > p {
+        color: var(--content-secondary);
+        max-width: 60ch;
+      }
+      .themes {
+        display: grid;
+        gap: 12px;
+      }
+      @media (min-width: 900px) {
+        .themes {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .theme {
+        background: var(--surface-page);
+        color: var(--content-primary);
+        border-radius: 16px;
+        padding: 12px;
+        display: grid;
+        gap: 12px;
+        border: 1px solid var(--border-default);
+      }
+      .theme-label {
+        font-size: 13px;
+        color: var(--content-secondary);
+      }
+      .places {
+        display: grid;
+        gap: 12px;
+      }
+      @media (min-width: 600px) {
+        .places {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      /* One place, drawn as the app draws it: a raised panel, the illustration, the title, one line
+         and the one action. */
+      .place {
+        background: var(--surface-raised);
+        border-radius: 12px;
+        padding: 16px;
+        display: grid;
+        justify-items: center;
+        text-align: center;
+        gap: 8px;
+        align-content: start;
+      }
+      .place-tag {
+        justify-self: start;
+        font-size: 13px;
+        color: var(--content-tertiary);
+      }
+      .place svg {
+        width: 160px;
+        height: 120px;
+        display: block;
+      }
+      .place b {
+        font-weight: 600;
+      }
+      .place .line {
+        font-size: 13px;
+        color: var(--content-secondary);
+        max-width: 28ch;
+      }
+      .btn {
+        margin-top: 4px;
+        font: inherit;
+        font-size: 14px;
+        border: 0;
+        border-radius: 8px;
+        padding: 8px 16px;
+        min-height: 40px;
+        background: var(--surface-accent);
+        color: var(--on-accent);
+      }
+      .btn.secondary {
+        background: var(--surface-muted);
+        color: var(--content-primary);
+      }
+      .picks {
+        margin-top: 32px;
+        padding: 16px;
+        border-radius: 12px;
+        background: var(--surface-raised);
+      }
+      .picks ul {
+        margin: 8px 0 0;
+        padding-left: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>Illustration directions</h1>
+      <p class="lede">
+        Three styles for the three places an illustration earns its space. Each is shown in light
+        and dark, in HDS colours only. Pick one; nothing is in the app yet.
+      </p>
+
+      <div id="directions"></div>
+
+      <div class="picks">
+        <h2>The three places</h2>
+        <ul>
+          <li>First run: the welcome step of Onboarding (pick a track).</li>
+          <li>Empty Pipeline: no jobs saved yet (the Briefcase EmptyState today).</li>
+          <li>Error page: the ErrorBoundary's "Something broke" screen.</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // Each direction draws the same three scenes, so they compare like for like.
+      const DIRECTIONS = [
+        {
+          id: 'line',
+          name: 'A. Line',
+          about:
+            'Monoline drawings in the secondary text colour, 2px round strokes, one detail in the graphite accent. The quietest: it reads like the icons, only bigger.',
+        },
+        {
+          id: 'soft',
+          name: 'B. Soft shapes',
+          about:
+            'Flat filled shapes in the surface greys with no outlines (like HDS 0.31 soft surfaces), and one small feedback tone for meaning: green for a start, amber for a wobble.',
+        },
+        {
+          id: 'tile',
+          name: 'C. Tile',
+          about:
+            'A grown-up version of today’s centred empty-state icon tile: rounded tiles stacked in surface greys, rings in the border colour, a bold glyph in the primary text colour.',
+        },
+      ];
+
+      const PLACES = [
+        {
+          id: 'first',
+          tag: 'First run',
+          title: 'Where do you want to work?',
+          line: 'Pick a track and we’ll fill Companies with places to start.',
+          action: 'Pick a track',
+        },
+        {
+          id: 'empty',
+          tag: 'Empty Pipeline',
+          title: 'No jobs yet',
+          line: 'Save a job from Companies or paste a link.',
+          action: 'Add job',
+        },
+        {
+          id: 'error',
+          tag: 'Error page',
+          title: 'Something broke',
+          line: 'Your data is safe. Reload to carry on.',
+          action: 'Reload',
+          secondary: true,
+        },
+      ];
+
+      const line = (d, extra = '') =>
+        `<path d="${d}" fill="none" stroke="var(--content-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
+
+      const SVG = {
+        // A. Line: monoline, one accent detail.
+        line: {
+          first: `
+            ${line('M20 98 C 50 98, 46 62, 78 62 S 112 30, 136 30')}
+            ${line('M20 98 h0', 'stroke-width="8"')}
+            ${line('M136 30 V 8')}
+            <path d="M136 8 h18 l-5 6 l5 6 h-18 z" fill="var(--surface-accent)"/>
+            ${line('M60 108 h40', 'stroke="var(--border-strong)"')}
+            ${line('M110 108 h14', 'stroke="var(--border-strong)"')}`,
+          empty: `
+            ${line('M36 44 h88 a6 6 0 0 1 6 6 v52 a6 6 0 0 1 -6 6 h-88 a6 6 0 0 1 -6 -6 v-52 a6 6 0 0 1 6 -6 z')}
+            ${line('M62 44 v-8 a6 6 0 0 1 6 -6 h24 a6 6 0 0 1 6 6 v8')}
+            ${line('M30 66 h100')}
+            <rect x="72" y="60" width="16" height="12" rx="3" fill="var(--surface-accent)"/>
+            ${line('M140 22 v12 M134 28 h12', 'stroke="var(--border-strong)"')}
+            ${line('M18 22 h0', 'stroke-width="5" stroke="var(--border-strong)"')}`,
+          error: `
+            ${line('M14 70 h40 a8 8 0 0 0 8 -8 v-4 h14 v24 h-14 v-4 a8 8 0 0 0 -8 -8')}
+            ${line('M76 62 h6 M76 74 h6')}
+            ${line('M146 70 h-34 v-12 h-10 v24 h10 v-12')}
+            <circle cx="94" cy="44" r="4" fill="var(--surface-accent)"/>
+            ${line('M94 30 v4 M84 36 l3 3 M104 36 l-3 3', 'stroke="var(--border-strong)"')}`,
+        },
+        // B. Soft shapes: filled greys, one feedback tone.
+        soft: {
+          first: `
+            <ellipse cx="80" cy="102" rx="66" ry="10" fill="var(--surface-sunken)"/>
+            <path d="M24 100 C 52 100, 48 64, 80 64 S 112 40, 132 40" fill="none" stroke="var(--surface-sunken)" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="24" cy="98" r="9" fill="var(--feedback-success)"/>
+            <rect x="128" y="10" width="6" height="34" rx="3" fill="var(--content-tertiary)"/>
+            <path d="M134 12 h18 a3 3 0 0 1 2 5 l-3 4 l3 4 a3 3 0 0 1 -2 5 h-18 z" fill="var(--feedback-bg-success)" stroke="var(--feedback-success)" stroke-width="2"/>`,
+          empty: `
+            <ellipse cx="80" cy="106" rx="62" ry="8" fill="var(--surface-sunken)"/>
+            <rect x="34" y="52" width="92" height="48" rx="10" fill="var(--surface-sunken)"/>
+            <rect x="44" y="34" width="72" height="30" rx="8" fill="var(--surface-muted)" stroke="var(--border-default)" stroke-width="2"/>
+            <rect x="54" y="44" width="34" height="5" rx="2.5" fill="var(--content-tertiary)"/>
+            <rect x="54" y="53" width="22" height="4" rx="2" fill="var(--border-default)"/>
+            <circle cx="126" cy="34" r="12" fill="var(--feedback-bg-success)"/>
+            <path d="M126 28 v12 M120 34 h12" stroke="var(--feedback-success)" stroke-width="2.5" stroke-linecap="round"/>`,
+          error: `
+            <ellipse cx="80" cy="106" rx="62" ry="8" fill="var(--surface-sunken)"/>
+            <g transform="rotate(-8 80 64)">
+              <rect x="38" y="30" width="84" height="64" rx="10" fill="var(--surface-sunken)"/>
+              <rect x="48" y="42" width="40" height="6" rx="3" fill="var(--content-tertiary)"/>
+              <rect x="48" y="54" width="60" height="5" rx="2.5" fill="var(--border-default)"/>
+              <rect x="48" y="64" width="50" height="5" rx="2.5" fill="var(--border-default)"/>
+            </g>
+            <circle cx="122" cy="34" r="14" fill="var(--feedback-bg-warning)"/>
+            <path d="M122 26 v10" stroke="var(--feedback-warning)" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="122" cy="42" r="2" fill="var(--feedback-warning)"/>`,
+        },
+        // C. Tile: stacked tiles, rings, a bold glyph.
+        tile: (glyph) => `
+            <circle cx="80" cy="60" r="54" fill="none" stroke="var(--border-default)" stroke-width="1"/>
+            <circle cx="80" cy="60" r="40" fill="none" stroke="var(--border-default)" stroke-width="1" stroke-dasharray="3 5"/>
+            <rect x="58" y="42" width="48" height="48" rx="12" fill="var(--surface-sunken)" transform="rotate(8 82 66)"/>
+            <rect x="54" y="34" width="52" height="52" rx="12" fill="var(--surface-muted)" stroke="var(--border-default)" stroke-width="1"/>
+            <g transform="translate(68 48)" fill="none" stroke="var(--content-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${glyph}</g>`,
+      };
+      // The glyphs are drawn on a 24px grid, like the app's lucide icons.
+      const GLYPH = {
+        first: '<path d="M4 22 V4 M4 4 h12 l-3 4 l3 4 H4"/>',
+        empty:
+          '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7 V5 a2 2 0 0 1 2 -2 h4 a2 2 0 0 1 2 2 v2 M2 13 h20"/>',
+        error:
+          '<path d="M12 3 L22 20 H2 Z"/><path d="M12 10 v4"/><circle cx="12" cy="17" r="0.6" fill="var(--content-primary)"/>',
+      };
+
+      const svgFor = (dir, place) =>
+        dir === 'tile' ? SVG.tile(GLYPH[place]) : SVG[dir][place];
+
+      const placeHtml = (dir, p) => `
+        <div class="place">
+          <span class="place-tag">${p.tag}</span>
+          <svg viewBox="0 0 160 120" role="img" aria-label="${p.tag} illustration">${svgFor(dir, p.id)}</svg>
+          <b>${p.title}</b>
+          <p class="line">${p.line}</p>
+          <button class="btn${p.secondary ? ' secondary' : ''}" type="button">${p.action}</button>
+        </div>`;
+
+      const themeHtml = (dir, theme) => `
+        <div class="theme" data-theme="${theme}">
+          <span class="theme-label">${theme === 'dark' ? 'Dark' : 'Light'}</span>
+          <div class="places">${PLACES.map((p) => placeHtml(dir, p)).join('')}</div>
+        </div>`;
+
+      // ?theme=light or ?theme=dark shows one theme only (the PR's 390 screenshots); the page
+      // itself then takes that theme too.
+      const only = new URLSearchParams(location.search).get('theme');
+      const themes = only === 'light' || only === 'dark' ? [only] : ['light', 'dark'];
+      if (themes.length === 1) document.documentElement.dataset.theme = only;
+
+      document.getElementById('directions').innerHTML = DIRECTIONS.map(
+        (d) => `
+        <section class="direction" id="${d.id}">
+          <h2>${d.name}</h2>
+          <p class="about">${d.about}</p>
+          <div class="themes">${themes.map((t) => themeHtml(d.id, t)).join('')}</div>
+        </section>`,
+      ).join('');
+    </script>
+  </body>
+</html>

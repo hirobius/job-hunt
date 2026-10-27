@@ -65,6 +65,7 @@ import { showNotice } from './saveNotice';
 import { useCloudSync } from './account/accountContext';
 import { usePageTitle } from './pageTitle';
 import type { Job } from './types';
+import { useArrived } from './feedback';
 
 const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
 /** How long after a Not a fit another one is ignored (the second tap of a double tap). */
@@ -92,6 +93,8 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   useEffect(() => scrollToTop(), [jobId]);
   // When the last Not a fit ran. The view is not keyed by job, so this outlives the job change.
   const lastNotAFit = useRef(0);
+  // Mark applied here: the Applied note arrives with motion (not when a job opens applied).
+  const applied = useArrived(!!job && job.status !== 'Saved', job?.url);
 
   if (!job) {
     return (
@@ -224,7 +227,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
         ) : (
           // A short title (the body step inside .rjb-inline-alerts); the company and the date,
           // written as the Pipeline writes it, go in the body.
-          <Box className="rjb-inline-alerts">
+          <Box className={applied ? 'rjb-inline-alerts rjb-arrive' : 'rjb-inline-alerts'}>
             <Alert tone="success" title="Applied">
               {[
                 company ? `Applied to ${company}.` : '',
