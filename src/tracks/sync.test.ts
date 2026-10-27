@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fetchDesignSystemsJobsFeed, fetchGreenhouse, fetchLever, stripHtml } from './sources';
-import { readAll, scoreBatch } from './sync';
+import { MAX_WATCHED_PER_TRACK, readAll, readWatched, scoreBatch } from './sync';
 import { designSystemsTrack } from './track-config';
 
 const json = (body: unknown, status = 200) =>
@@ -197,5 +197,54 @@ describe('readAll + scoreBatch (one sync, no database)', () => {
       rss: false,
     });
     expect(reads[0]).toMatchObject({ ok: false, postings: [] });
+  });
+});
+
+describe('readWatched (security review: one select stopped at 1000 rows, no per-user bound)', () => {
+  type Row = { id: number; user_id: string; track_slug: string };
+  const table = (rows: Row[]) => {
+    const calls: [number, number][] = [];
+    const page = async (from: number, to: number) => {
+      calls.push([from, to]);
+      // PostgREST's max_rows: never more than 1000 rows to one request.
+      return { data: rows.slice(from, Math.min(to + 1, from + 1000)), error: null };
+    };
+    return { page, calls };
+  };
+  const rowsFor = (user: string, n: number, start = 0): Row[] =>
+    Array.from({ length: n }, (_, i) => ({
+      id: start + i,
+      user_id: user,
+      track_slug: 'design-systems',
+    }));
+
+  it('reads every row past the first 1000', async () => {
+    const all = [...Array.from({ length: 6 }, (_, u) => rowsFor(`u${u}`, 400, u * 400))].flat();
+    const { page, calls } = table(all);
+    const { rows, error } = await readWatched(page);
+    expect(error).toBeNull();
+    expect(rows).toHaveLength(2400);
+    expect(calls).toEqual([
+      [0, 999],
+      [1000, 1999],
+      [2000, 2999],
+    ]);
+  });
+
+  it("caps one user's track so it can't crowd out or multiply the run", async () => {
+    const flood = rowsFor('attacker', 5000);
+    const victim = rowsFor('victim', 3, 5000);
+    const { rows } = await readWatched(table([...flood, ...victim]).page);
+    expect(rows.filter((r) => r.user_id === 'attacker')).toHaveLength(MAX_WATCHED_PER_TRACK);
+    expect(rows.filter((r) => r.user_id === 'victim')).toHaveLength(3);
+  });
+
+  it('gives up on a failed page instead of reading part of the list', async () => {
+    const { rows, error } = await readWatched<Row>(async () => ({
+      data: null,
+      error: { message: 'boom' },
+    }));
+    expect(rows).toEqual([]);
+    expect(error).toBe('boom');
   });
 });
