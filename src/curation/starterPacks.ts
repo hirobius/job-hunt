@@ -13,6 +13,7 @@ import type { PackCompany } from '../radar/directory';
 import { addCategory, addGroup, addTiles, getCurationState, updateCategory } from './curationStore';
 import {
   CONSULTING_PACK,
+  CONTRACTS_PACK,
   DESIGN_SYSTEMS_PACK,
   SERVICENOW_PACK,
   TRADES_PACK,
@@ -49,6 +50,11 @@ export const STARTER_PACKS: StarterPack[] = [
     blurb: 'Hands-on trades — sheet metal, welding, fabrication',
   },
   {
+    id: 'contracts',
+    label: 'Contracts',
+    blurb: 'Federal contract opportunities from SAM.gov: sheet metal, software and design',
+  },
+  {
     id: 'blank',
     label: 'Build your own',
     blurb: 'Start empty and add your own titles + links',
@@ -60,6 +66,7 @@ const CONTENT_FOR: Record<string, PackContent | undefined> = {
   servicenow: SERVICENOW_PACK,
   designsystems: DESIGN_SYSTEMS_PACK,
   trades: TRADES_PACK,
+  contracts: CONTRACTS_PACK,
   // 'blank' → no content (empty category).
 };
 
@@ -136,6 +143,9 @@ export function packIdForLabel(label: string): string | undefined {
       ),
   )?.[0];
 }
+
+/** A Contracts track (#275): Live postings reads SAM.gov by NAICS code instead of job sources. */
+export const isContractsTrack = (label: string) => packIdForLabel(label) === 'contracts';
 
 /** The board urls suggested for a pack id; empty when it has none. */
 export const boardsForPack = (packId: string | undefined): readonly string[] =>

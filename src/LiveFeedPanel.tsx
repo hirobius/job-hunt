@@ -63,6 +63,7 @@ import {
   relatedCounts,
   relatedIsOn,
   toggleRelated,
+  naicsOf,
   setMustInclude,
   useMustInclude,
 } from './feed/mustInclude';
@@ -74,7 +75,9 @@ import { postedAgo } from './feed/format';
 import { boardsFromUrls } from './feed/sources/ats';
 import { deleteFilter, saveFilter, useFilters, type SavedFilter } from './feed/savedFilters';
 import { addBoardTiles, countUnwatched, watchBoard } from './feed/watchlist';
-import { boardsForPack, packIdForLabel } from './curation/starterPacks';
+import { boardsForPack, isContractsTrack, packIdForLabel } from './curation/starterPacks';
+import { stateCodeFor } from './contracts/sam';
+import { ContractsSource, type ContractsStatus } from './ContractsSource';
 import { jobFieldsFor } from './feed/toJob';
 import { modeLabel, verdictLabel } from './screening';
 import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
@@ -187,7 +190,10 @@ export default function LiveFeedPanel({
   const roleTypes = useRoleTypes(categoryId, terms);
   // The wide sweep: one search across every title that is on. `onlyTitle` (a title chip) only
   // filters what is on screen (no re-fetch); the on/off list itself is per track and synced.
-  const [sweeping, setSweeping] = useRemembered(kept('sweeping'), false);
+  // A Contracts track (#275) reads SAM.gov by its NAICS codes and the track's state, never a sweep.
+  const contracts = isContractsTrack(track?.label ?? '');
+  const [sweepOn, setSweeping] = useRemembered(kept('sweeping'), false);
+  const sweeping = sweepOn && !contracts;
   const [onlyTitle, setOnlyTitle] = useRemembered<string | null>(kept('onlyTitle'), null);
   const [zeroTitlesShown, setZeroTitlesShown] = useRemembered(kept('zeroTitles'), false);
   // The track's title filter (#223) is the sweep's list: what it searches, and what ranks and
@@ -195,11 +201,23 @@ export default function LiveFeedPanel({
   const titleFilter = useSweep(categoryId, sweepSeed);
   const sweepTitles = useMemo(() => activeTitles(titleFilter), [titleFilter]);
   const sweepKey = sweepTitles.join('\n');
-  /** What the feed is reading: one term, or the sweep's titles. */
-  const query = sweeping ? `sweep:${sweepKey}` : term;
-  const queryReq = (): { term?: string; terms?: string[] } =>
-    sweeping ? { terms: sweepKey ? sweepKey.split('\n') : [] } : { term };
-  const hasQuery = sweeping ? sweepTitles.length > 0 : !!term.trim();
+  // On a Contracts track the term only narrows what is shown, so typing one reads nothing new.
+  const naics = useMemo(() => naicsOf(mustInclude), [mustInclude]);
+  const samState = stateCodeFor(where);
+  const naicsKey = naics.join(',');
+  /** What the feed is reading: one term, the sweep's titles, or a Contracts track's codes. */
+  const query = contracts
+    ? `contracts:${naicsKey}|${samState ?? ''}`
+    : sweeping
+      ? `sweep:${sweepKey}`
+      : term;
+  const queryReq = (): Pick<Parameters<typeof fetchFeed>[0], 'term' | 'terms' | 'contracts'> =>
+    contracts
+      ? { contracts: { naics: naicsKey ? naicsKey.split(',') : [], state: samState } }
+      : sweeping
+        ? { terms: sweepKey ? sweepKey.split('\n') : [] }
+        : { term };
+  const hasQuery = contracts ? naics.length > 0 : sweeping ? sweepTitles.length > 0 : !!term.trim();
 
   // The track's own watched boards, every distinct one (deduped in fetchFeed; there is no cap).
   const boardsKey = boardUrls.join('\n');
@@ -281,13 +299,21 @@ export default function LiveFeedPanel({
   const matched = useMemo<SweptPosting[]>(() => {
     if (!current?.result) return [];
     const o = { where, mode, now: current.at };
+    // SAM.gov already read the track's state: the term, when there is one, only narrows the list.
+    if (contracts) {
+      const all = { where: '', mode: 'any' as const, now: current.at };
+      const list = term.trim()
+        ? rankPostings(current.result.postings, { ...all, term })
+        : rankAll(current.result.postings, all);
+      return list.map((p) => ({ ...p, titles: [] }));
+    }
     // No term gate on a scored track: the term (or the sweep) picks what is read, the scorer what
     // is listed.
     if (scorer) return rankAll(current.result.postings, o).map((p) => ({ ...p, titles: [] }));
     return sweeping
       ? sweepRank(current.result.postings, sweepKey.split('\n'), o)
       : rankPostings(current.result.postings, { ...o, term }).map((p) => ({ ...p, titles: [] }));
-  }, [current, term, where, mode, sweeping, sweepKey, scorer]);
+  }, [current, term, where, mode, sweeping, sweepKey, scorer, contracts]);
   const floor = Number(floorText.replace(/[^\d.]/g, ''));
   const targeting = useMemo(
     () => ({
@@ -478,6 +504,16 @@ export default function LiveFeedPanel({
     notifySaved(list.map(saveOne).filter((u): u is string => !!u));
 
   const errors = current?.result?.sources.filter((s) => s.error) ?? [];
+  const samSource = current?.result?.sources.find((x) => x.key === 'sam');
+  const samStatus: ContractsStatus = !hasQuery
+    ? { kind: 'idle' }
+    : current?.error
+      ? { kind: 'error', message: current.error }
+      : samSource?.error
+        ? { kind: 'error', message: samSource.error.replace(/^SAM\.gov: /, '') }
+        : samSource
+          ? { kind: 'ok', count: samSource.fetched }
+          : { kind: 'reading' };
   const allFailed =
     !reading &&
     !!current?.result?.sources.length &&
@@ -525,7 +561,24 @@ export default function LiveFeedPanel({
       .catch(() => {})
       .finally(() => setRetrying((r) => r.filter((k) => !keys.includes(k))));
   };
-  const emptyState = !hasQuery ? (
+  const emptyState = contracts ? (
+    <EmptyState
+      centered
+      icon={SearchX}
+      title={
+        !hasQuery
+          ? 'No NAICS codes to search'
+          : ranked.length === 0 && matched.length > 0
+            ? 'Everything is hidden by your filters'
+            : 'No open solicitations for these codes right now'
+      }
+      description={
+        !hasQuery
+          ? 'Add a NAICS code on the SAM.gov row above.'
+          : `SAM.gov lists federal solicitations posted in the last 30 days. Add a code, or clear the track's location to search all states.`
+      }
+    />
+  ) : !hasQuery ? (
     <EmptyState
       centered
       icon={SearchX}
@@ -640,7 +693,7 @@ export default function LiveFeedPanel({
       caption={captionItems}
       trailing={
         <Stack direction="row" gap="px8" align="center">
-          {!sweeping && (
+          {!sweeping && !contracts && (
             <Button size="sm" variant="secondary" onClick={() => startSweep(true)}>
               Find more
             </Button>
@@ -830,6 +883,14 @@ export default function LiveFeedPanel({
             Search
           </Button>
         </Box>
+      )}
+      {contracts && (
+        <ContractsSource
+          categoryId={categoryId}
+          naics={naics}
+          state={samState}
+          status={samStatus}
+        />
       )}
       {/* Calibrate (#223): the track's ticked titles beside the other targeting, then the saved
           searches. A row with what it holds under its name (rev-3 J), like Refine. */}
@@ -1110,8 +1171,9 @@ export default function LiveFeedPanel({
             {/* One label style (UI 14/500) and one gap between label, field and helper. */}
             <Stack gap="normal">
               <Text variant="caption" as="p" tone="secondary">
-                Openings come from Hacker News, Remotive, Jobicy and the company boards you watch.
-                Nothing is kept until you save one.
+                {contracts
+                  ? 'Openings come from SAM.gov and the company boards you watch. Nothing is kept until you save one.'
+                  : 'Openings come from Hacker News, Remotive, Jobicy and the company boards you watch. Nothing is kept until you save one.'}
               </Text>
               <Box as="form" className="rjb-form-full" onSubmit={onWatch}>
                 <Stack gap="px8">
@@ -1175,8 +1237,16 @@ export default function LiveFeedPanel({
           status={loading ? 'ready' : status}
           label="Live openings"
           onRetry={retryAll}
-          errorTitle={current?.error ?? "Couldn't reach any source"}
-          error={current?.error ? undefined : 'Check your internet connection or try again later.'}
+          errorTitle={
+            contracts ? 'SAM.gov didn’t answer' : (current?.error ?? "Couldn't reach any source")
+          }
+          error={
+            contracts
+              ? 'Why is on the SAM.gov row above.'
+              : current?.error
+                ? undefined
+                : 'Check your internet connection or try again later.'
+          }
           empty={emptyBlock}
         >
           {loading ? loadingPanel : readyPanel}
