@@ -58,6 +58,17 @@ describe('toCsv', () => {
     expect(row).toContain('"interview 2026-10-15 14:00"');
   });
 
+  it('carries a contract deadline and a snoozed follow-up, appended so older columns keep their place', () => {
+    const contract: Job = { ...job, deadline: '2026-11-20', snoozeUntil: '2026-11-03' };
+    const [head, row] = toCsv([contract]).split('\r\n');
+    const cols = head.split(',');
+    expect(cols.slice(-2)).toEqual(['"deadline"', '"snooze_until"']);
+    expect(cols.indexOf('"decks"')).toBe(cols.length - 3);
+    const cells = row.split(',');
+    expect(cells.slice(-2)).toEqual(['"2026-11-20"', '"2026-11-03"']);
+    expect(toCsv([job]).split('\r\n')[1].endsWith(',"",""')).toBe(true);
+  });
+
   it('one row per job, CRLF separated', () => {
     expect(toCsv([job, { ...job, url: 'https://x.co/2' }]).split('\r\n')).toHaveLength(3);
   });

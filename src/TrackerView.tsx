@@ -84,6 +84,9 @@ export default function TrackerView() {
   const addOpener = useRef<HTMLElement | null>(null);
   // The browser's Back closes the sheet and stays on the Pipeline (return paths).
   useBackCloses(addOpen, () => setAddOpen(false), 'add-job');
+  // The Status select: the Active empty's "Show applied" hands focus back to it, so focus
+  // stays in the panel when the empty state unmounts (#361).
+  const statusTrigger = useRef<HTMLButtonElement>(null);
   const statusSheet = useBackSheet('pipeline-status');
   const sortSheet = useBackSheet('pipeline-sort');
   const moreSheet = useBackSheet('pipeline-more');
@@ -213,6 +216,7 @@ export default function TrackerView() {
                     <HdsMenu {...statusSheet}>
                       <HdsMenu.Trigger asChild>
                         <UiButton
+                          ref={statusTrigger}
                           variant="secondary"
                           iconRight={<ChevronDown size={16} />}
                           label={`Status: ${FILTER_LABEL[filter]}`}
@@ -339,6 +343,17 @@ export default function TrackerView() {
                       icon={Search}
                       title="Nothing left to apply to"
                       description="Check Applied, or add more jobs."
+                      action={
+                        <UiButton
+                          variant="secondary"
+                          onClick={() => {
+                            setFilter('Applied');
+                            statusTrigger.current?.focus();
+                          }}
+                        >
+                          Show applied
+                        </UiButton>
+                      }
                     />
                   ) : (
                     <EmptyState
