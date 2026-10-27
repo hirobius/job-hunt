@@ -2,7 +2,7 @@
 // ticked list of titles (src/feed/sweepTitles.ts, synced) that Live postings, the ATS tool and the
 // big-board links all read. It is edited in Live postings' Calibrate control.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -135,5 +135,20 @@ describe('Calibrate: the ticked titles', () => {
         u.includes('("product designer" OR "design system" OR "design engineer")'),
       ),
     ).toBe(true);
+  });
+
+  it('a picked title that is then unticked is not searched: the first ticked one is (audit)', async () => {
+    window.location.hash = '#/discover/ats';
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'design engineer' }));
+    act(() => {
+      setTitleOn(cat, TITLES, 'design engineer', false);
+    });
+    await openAllBoards();
+    const all = hrefs();
+    expect(all.some((u) => u.includes('design engineer'))).toBe(false);
+    expect(all.some((u) => u.includes('"product designer"'))).toBe(true);
+    expect(screen.getByRole('button', { name: 'product designer', pressed: true })).toBeVisible();
   });
 });
