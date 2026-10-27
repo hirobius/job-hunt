@@ -37,7 +37,7 @@ import { useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
 import StaleBuildNotice from './StaleBuildNotice';
 import { authLinkErrorMessage } from './account/authLinkError';
-import { saveWithNotice } from './saveNotice';
+import { QUICK_ADD_INVALID, saveWithNotice } from './saveNotice';
 import { useCategories } from './curation/curationStore';
 import { migrateSystemsOnly, SYSTEMS_ONLY_NOTICE } from './feed/systemsOnly';
 import { STATUSES } from './types';
@@ -170,30 +170,26 @@ export default function App() {
     const linkError = authLinkErrorMessage(window.location.hash);
     const qp = new URLSearchParams(window.location.search);
     const label = qp.get('t') || qp.get('title') || '';
-    let acted = false;
-    if (qp.get('add')) {
-      saveWithNotice(qp.get('add')!, label);
-      acted = true;
-    }
-    if (qp.get('applied')) {
-      markAppliedByUrl(qp.get('applied')!, label);
-      acted = true;
-    }
-    const st = qp.get('status'),
+    const add = qp.get('add'),
+      applied = qp.get('applied'),
+      st = qp.get('status'),
       su = qp.get('u');
-    if (st && su && (STATUSES as string[]).includes(st)) {
-      setStatusByUrl(su, st as never, label);
-      acted = true;
-    }
-    if (acted) {
+    const setsStatus = !!(st && su && (STATUSES as string[]).includes(st));
+    if (add || applied || setsStatus) {
       ['add', 'applied', 'status', 'u', 't', 'title'].forEach((k) => qp.delete(k));
       const s = qp.toString();
-      // Through the route seam, so it knows the hash it is on (a sheet's pop would wait otherwise).
+      // Land first, then save: the save notice drops itself on any move away from the page it was
+      // raised on, so raised before the landing it was gone at once. Through the route seam, so it
+      // knows the hash it is on (a sheet's pop would wait otherwise).
       navigate(
         { tab: QUICK_ADD_LANDING, sub: null, pillar: null, jobId: null, from: null, section: null },
         true,
         { search: s ? '?' + s : '' },
       );
+      if (add && saveWithNotice(add, label) === 'invalid')
+        toast({ title: QUICK_ADD_INVALID, tone: 'warning', duration: 10000 });
+      if (applied) markAppliedByUrl(applied, label);
+      if (setsStatus) setStatusByUrl(su!, st as never, label);
     } else if (linkError) {
       // An expired or refused sign-in link (#error=…): say so, and replace the error with Companies.
       toast({ title: linkError, tone: 'warning', duration: 10000 });
