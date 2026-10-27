@@ -34,6 +34,7 @@ import { EmptyState } from './hds-gaps/EmptyState';
 import { PageHeader } from '@hirobius/design-system/patterns';
 import { BackToPipeline } from './JobHeader';
 import { JobBadges } from './JobRowParts';
+import { changeWithUndo } from './jobUndo';
 import { MetaCaption } from './MetaCaption';
 import { statusAgo } from './jobState';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
@@ -50,7 +51,9 @@ import {
   KIT_FIELDS,
   addAnswer,
   filledTemplates,
+  getApplyKit,
   removeAnswer,
+  restoreAnswer,
   setKitField,
   setKitTemplate,
   updateAnswer,
@@ -61,11 +64,11 @@ import { useOutreachTemplates } from './outreachTemplates';
 import { AddStarterMessages } from './StarterMessages';
 import { fillSnippet, previewText } from './templateFill';
 import { copyFilled } from './templateCopy';
-import { showNotice } from './saveNotice';
+import { notifyRemoved, showNotice } from './saveNotice';
 import { useCloudSync } from './account/accountContext';
 import { usePageTitle } from './pageTitle';
 import type { Job } from './types';
-import { useArrived } from './feedback';
+import { collapseRow, useArrived } from './feedback';
 
 const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
 /** How long after a Not a fit another one is ignored (the second tap of a double tap). */
@@ -136,9 +139,14 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   const next = sequence.slice(idx + 1).find((j) => others.includes(j)) ?? others[0] ?? undefined;
   const goNext = () => (next ? openApply(jobIdOf(next.url), true) : goBack(PIPELINE));
 
-  const markApplied = () => {
-    setStatus(job.url, 'Applied');
-  };
+  // A notice with Undo, as every Mark applied (#212); the Applied note below is the state change.
+  const markApplied = () =>
+    changeWithUndo(
+      job,
+      'Marked applied · Follow up in 7 days',
+      () => setStatus(job.url, 'Applied'),
+      null,
+    );
   const notAFit = () => {
     // A double tap's second tap lands on the next job's Not a fit, which renders under the finger.
     // Ignore Not a fit for a moment after one runs, so a double tap sets aside one job.
@@ -648,6 +656,17 @@ function ApplicationKit({ job }: { job: Job }) {
   );
 }
 
+/** Remove is soft (#212): the row collapses, then the answer goes, and Undo puts it back in its
+ *  place. Its place is read when the remove lands, so two removes inside one collapse both stick. */
+function removeWithUndo(a: KitAnswer, from: Element) {
+  collapseRow(from, () => {
+    const at = getApplyKit().answers.findIndex((x) => x.id === a.id);
+    if (at < 0) return;
+    removeAnswer(a.id);
+    notifyRemoved(`Removed “${a.q.trim() || 'Untitled question'}”`, () => restoreAnswer(a, at));
+  });
+}
+
 function AnswerRow({ a }: { a: KitAnswer }) {
   return (
     <Box as="li" sx={{ pb: 'xs' }}>
@@ -667,7 +686,7 @@ function AnswerRow({ a }: { a: KitAnswer }) {
             iconOnly
             iconLeft={<Icon icon={Trash2} />}
             label={a.q.trim() ? `Remove question ${a.q}` : 'Remove this question'}
-            onClick={() => removeAnswer(a.id)}
+            onClick={(e) => removeWithUndo(a, e.currentTarget)}
           />
         </Stack>
         <CopyRow

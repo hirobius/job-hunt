@@ -244,7 +244,21 @@ export function updateCategory(id: string, patch: Partial<Category>) {
 export function removeCategory(id: string) {
   const s = store.get();
   if (!s.categories.some((c) => c.id === id)) return;
-  store.set({ ...s, categories: s.categories.filter((c) => c.id !== id) });
+  // The track's sections and links go with it (#346): removing only the track row left them
+  // orphaned in local storage — forever on a signed-out device, where they still counted in
+  // Back up / Restore's links and rode in the backup file. Only the track's own delete is
+  // journalled and mirrored: signed in, the cloud FK cascade (groups.category_id and
+  // tiles.group_id are `on delete cascade`) drops the children with it, and the sync layer
+  // never resurrects them (reconcileCuration drops parentless rows; applyPending skips a
+  // child upsert whose parent is gone). Journalling every child delete instead would mean
+  // ~120 extra pending entries for a starter-pack track, re-sent one by one for no gain.
+  const groupIds = new Set(s.groups.filter((g) => g.categoryId === id).map((g) => g.id));
+  store.set({
+    ...s,
+    categories: s.categories.filter((c) => c.id !== id),
+    groups: s.groups.filter((g) => !groupIds.has(g.id)),
+    tiles: s.tiles.filter((t) => !groupIds.has(t.groupId)),
+  });
   remove('categories', id);
   dropTrackData(id); // its targets, saved searches and work mode go with it
 }

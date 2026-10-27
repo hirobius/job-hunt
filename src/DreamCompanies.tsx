@@ -187,8 +187,11 @@ function DreamRow({
   include: IncludeRule;
 }) {
   const read = foldRolesState(allRead, roleTypes.fold, include).roles;
+  // A scored track lists what the scorer queued: nothing is folded away (as `check` counts it).
   const split =
-    allChecked && allChecked !== 'unknown' ? foldRoles(allChecked.roles, roleTypes.fold) : null;
+    allChecked && allChecked !== 'unknown'
+      ? foldRoles(allChecked.roles, roleTypes.fold && !scorerFor(include))
+      : null;
   const checked: Checked | undefined =
     allChecked && allChecked !== 'unknown'
       ? { roles: split!.shown, fresh: allChecked.fresh }

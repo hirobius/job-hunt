@@ -260,7 +260,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
 - **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
   first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the first-run gate goes
-  to `#/discover`). Sample data is a step 1 offer on a first run. Discover with no track shows
+  to `#/discover`). Sample data is a step 1 offer on a first run. A sign-in drops its Sample track first (`demo/sampleTrack.ts`): never asked about, never uploaded. Discover with no track shows
   `ChooseTrack` first. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in
   Discover, Documents and the Pipeline (`TrackerView`, with the Briefcase icon). The Pipeline
   gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
