@@ -23,11 +23,14 @@ export function inflect(word: string): string {
 }
 
 /** Phrase regex for a search term: its words in order, whitespace or a hyphen between them,
- *  whole words only, each word singular/plural-tolerant. "system design" is NOT "design system". */
+ *  whole words only, each word singular/plural-tolerant. "system design" is NOT "design system".
+ *  The edges are lookarounds, not `\b`, so a term that starts or ends on a symbol (C++, C#, .NET)
+ *  still matches, and + or # continue a word: "C" is not "C++", ".NET" is not "ASP.NET". */
 export function termRegex(term: string): RegExp | null {
-  const words = term.trim().split(/\s+/).filter(Boolean);
+  // A hyphen between words reads like a space: "front-end" also finds "Front End".
+  const words = term.trim().split(/\s+|(?<=\w)-(?=\w)/).filter(Boolean);
   if (words.length === 0) return null;
-  return new RegExp(`\\b${words.map(inflect).join('[\\s-]+')}\\b`, 'i');
+  return new RegExp(`(?<![\\w+#])${words.map(inflect).join('[\\s-]+')}(?![\\w+#])`, 'i');
 }
 
 /** Where (if anywhere) a posting mentions the term. Title wins over body. */
