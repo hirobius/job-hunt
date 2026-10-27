@@ -248,6 +248,12 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `e2e/documents.spec.ts`, `e2e/template-variables.spec.ts`. Final copies (#231, uploaded PDF/Word)
   live in the synced blob, capped at 500 KB per file and 1 MB per account. Removing an unsent one has no
   confirm: it collapses and Undo re-adds it (`documents.restoreDocument`, the file with it).
+- **Decks per job (#287):** the job page's Overview ends with a **Decks** panel (`JobDecks.tsx`, pure helpers
+  in `decks.ts`): deck links (Google Slides, Figma, Pitch…) with an optional label and a Sent on day; add / edit
+  inline, Remove soft with Undo. Only http(s) (`httpUrl`; `sanitizeDecks` in `sanitizeJobs` drops the rest from
+  storage, cloud and backups). `Job.decks` rides in the synced blob (no version bump: an additive Job field), Back
+  up and the CSV's `decks` column; Recently removed merges them back by id. **Links only:** uploads need a Supabase
+  Storage bucket (Adrian). Pinned in `decks.test.ts` and `jobPage.test.tsx`.
 - **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
   `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
   Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).

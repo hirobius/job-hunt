@@ -69,7 +69,7 @@ export function trashJob(url: string) {
 
 const notesOf = (j: Job) => (j.notes ?? j.note ?? '').trim();
 
-/** The removed copy's notes, to-dos and interviews folded into the copy saved since. The saved
+/** The removed copy's notes, to-dos, interviews and decks folded into the copy saved since. The saved
  *  copy's own fields win; nothing either copy holds is dropped. */
 function mergeRemovedInto(saved: Job, removed: Job): Job {
   const a = notesOf(saved);
@@ -81,11 +81,13 @@ function mergeRemovedInto(saved: Job, removed: Job): Job {
   };
   const todos = byId(saved.todos, removed.todos);
   const events = byId(saved.events, removed.events);
+  const decks = byId(saved.decks, removed.decks);
   return {
     ...saved,
     ...(notes ? { notes } : {}),
     ...(todos.length ? { todos } : {}),
     ...(events.length ? { events } : {}),
+    ...(decks.length ? { decks } : {}),
   };
 }
 

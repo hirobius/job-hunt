@@ -10,6 +10,7 @@ import {
   snoozeFollowUp as applySnooze,
 } from './jobState';
 import { normalizeScreening } from './screening';
+import { sanitizeDecks } from './decks';
 import { parseBoardUrl } from './feed/sources/ats';
 import { prettySlug } from './feed/sources/http';
 
@@ -138,12 +139,15 @@ export function sanitizeJobs(arr: unknown): Job[] {
     if (seen.has(key)) continue; // first occurrence wins
     seen.add(key);
     const label = (it.label || '').replace(/[<>]/g, '').trim();
-    const { snoozeUntil: rawSnooze, ...rest } = it;
+    const { snoozeUntil: rawSnooze, decks: rawDecks, ...rest } = it;
     const snoozeUntil = normSnooze(rawSnooze);
+    // Deck links become hrefs: only well-formed http(s) ones are kept (#287).
+    const decks = sanitizeDecks(rawDecks);
     out.push(
       normalizeScreening({
         ...rest,
         ...(snoozeUntil ? { snoozeUntil } : {}),
+        ...(decks.length ? { decks } : {}),
         url,
         status: normStatus(it.status),
         label: label && label !== 'Saved job' ? label : prettyTitle(url), // backfill weak titles

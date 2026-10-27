@@ -32,6 +32,14 @@ export interface JobEvent {
   note?: string;
 }
 
+/** A link to a deck sent for this role (#287). `url` is always http(s); `sentOn` is YYYY-MM-DD. */
+export interface Deck {
+  id: string;
+  url: string;
+  label?: string;
+  sentOn?: string;
+}
+
 /** A single per-role checklist item. */
 export interface Todo {
   id: string;
@@ -67,4 +75,5 @@ export interface Job {
   // --- Pipeline + calendar (additive; old records lack them). ---
   history?: StatusChange[]; // dated status changes, oldest first (backfilled from `applied`)
   events?: JobEvent[]; // interviews / calls, any order
+  decks?: Deck[]; // deck links sent for this role (#287, additive; old records lack them)
 }
