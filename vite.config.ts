@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { applyBrand } from './src/brandHtml.ts';
 import { fontPreloadTag } from './src/fontPreload.ts';
+import { checkBudget } from './src/sizeBudget.ts';
 
 export default defineConfig({
   // brand-html: index.html's %BRAND_*% placeholders come from src/brand.ts (#55).
@@ -18,6 +19,24 @@ export default defineConfig({
           const tag = fontPreloadTag(Object.keys(ctx.bundle ?? {}));
           return tag ? html.replace('</title>', `</title>\n    ${tag}`) : html;
         },
+      },
+    },
+    // size-budget: the build fails when the first-paint JS/CSS or a lazy chunk outgrows
+    // src/sizeBudget.ts.
+    {
+      name: 'size-budget',
+      apply: 'build',
+      generateBundle(_options, bundle) {
+        const files = Object.values(bundle).map((f) =>
+          f.type === 'chunk'
+            ? { fileName: f.fileName, code: f.code, isEntry: f.isEntry, imports: f.imports }
+            : { fileName: f.fileName, code: f.source },
+        );
+        const { initialJs, initialCss, over } = checkBudget(files);
+        if (over.length) this.error(`Size budget (src/sizeBudget.ts): ${over.join('; ')}`);
+        this.info(
+          `size budget ok: initial JS ${(initialJs / 1000).toFixed(1)} kB gzip, CSS ${(initialCss / 1000).toFixed(1)} kB gzip`,
+        );
       },
     },
   ],

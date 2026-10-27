@@ -72,6 +72,7 @@ import { flash } from './feedback';
 /** Watched boards read on arrival; the rest wait for "Check open roles". A starter pack can file
  *  a hundred boards, and each read is a whole board. */
 const AUTO_READ = 10;
+const LOADING: RolesState = { state: 'loading' };
 /** The company rows reorder as their boards answer (open roles first). The browser's scroll
  *  anchoring would follow a row that moved and drag the page with it, under the user and on the
  *  way back to this page (return paths): it anchors on what is around the list instead. */
@@ -255,6 +256,12 @@ export default function CompaniesPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wanted, roles]);
 
+  // A board read on arrival counts as loading from the first paint, not only once the effect has
+  // asked: otherwise the first frame shows "Check open roles" and no rows, and the list then jumps.
+  const wantedKeys = useMemo(() => new Set(wanted.map(boardKey)), [wanted]);
+  const rolesFor = (k: string): RolesState | undefined =>
+    roles[k] ?? (wantedKeys.has(k) ? LOADING : undefined);
+
   // One list: GitHub teams first (they carry a repo), then watched boards not already among them.
   const teamBoards = new Set(found.flatMap((r) => (r.board ? [boardKey(r.board)] : [])));
   const rows: CompanyRow[] = [
@@ -265,7 +272,7 @@ export default function CompaniesPanel({
   // What a row counts and lists: its board's roles that pass must include (feed/mustInclude.ts),
   // less the folded engineering-heavy ones.
   const foldOf = (r: Row) =>
-    foldRolesState(r.board ? roles[boardKey(r.board)] : undefined, roleTypes.fold, include);
+    foldRolesState(r.board ? rolesFor(boardKey(r.board)) : undefined, roleTypes.fold, include);
   const rolesOf = (r: Row) => foldOf(r).roles;
   const statusOf = (r: CompanyRow): TeamStatus =>
     r.board && !rolesOf(r)
@@ -283,7 +290,7 @@ export default function CompaniesPanel({
   // No board found on the systems we check is not "no openings": under Hiring now these sit below,
   // collapsed, rather than hidden.
   const notFound = hiringOnly ? rows.filter((r) => statusOf(r) === 'none') : [];
-  const unread = watchedBoards.filter((b) => !roles[boardKey(b)]).length;
+  const unread = watchedBoards.filter((b) => !rolesFor(boardKey(b))).length;
 
   const waitUntil = report?.stoppedUntil;
   const find = async (resume = false) => {
