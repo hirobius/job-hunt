@@ -85,11 +85,17 @@ describe('error reports (#47)', () => {
     const report = buildReport('error', new Error('x'), where);
     await supabaseSender(fetchImpl as unknown as typeof fetch)(report);
     const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toMatch(/\/rest\/v1\/client_errors$/);
+    expect(url).toMatch(/\/rest\/v1\/rpc\/report_client_error$/);
     const headers = init.headers as Record<string, string>;
     expect(headers.Authorization).toBe(`Bearer ${SUPABASE_ANON_KEY}`);
     expect(headers.apikey).toBe(SUPABASE_ANON_KEY);
     expect(init.credentials).toBe('omit');
-    expect(JSON.parse(init.body as string)).toEqual(report);
+    expect(JSON.parse(init.body as string)).toEqual({
+      p_kind: report.kind,
+      p_message: report.message,
+      p_stack: report.stack,
+      p_route: report.route,
+      p_browser: report.browser,
+    });
   });
 });
