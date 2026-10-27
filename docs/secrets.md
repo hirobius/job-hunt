@@ -9,13 +9,16 @@ and in the host that needs them. Agents never read or write `.env*` files.
 
 The browser app is keyless. `src/config.ts` holds the Supabase URL and **publishable** key,
 which are public by design (data is behind row-level security + email sign-in). Job sources
-are keyless public APIs; key-backed aggregators were declined (#87, 2026-10-27).
+are keyless public APIs; key-backed aggregators were declined (#87, 2026-10-27). The one keyed
+source, SAM.gov (Contracts track, #275), is read server-side through `/api/sam`, so its key never
+reaches the browser.
 
 ## Names
 
 | Name | Secret? | Where it is set | Used by | If missing |
 | --- | --- | --- | --- | --- |
 | `HDS_PACKAGES_TOKEN` | yes (classic PAT, `read:packages` only) | Vercel env, cloud session env | `.npmrc` (private `@hirobius/hds-toolkit`) | `npm install` fails with a 401 from npm.pkg.github.com |
+| `SAM_GOV_API_KEY` | yes (SAM.gov public API key, read-only) | Vercel env (Production) | `api/sam.ts` → `src/contracts/samHandler.ts` | `/api/sam` answers 503 naming the var; the Contracts source row shows it |
 | `SYNC_SECRET` | yes | `supabase secrets set` | `supabase/functions/sync-postings` (`x-sync-secret` check) | falls back to the pinned hash; a wrong header gets 403 |
 | `sync_postings_secret` | yes (same value as `SYNC_SECRET`) | Supabase Vault | the sync cron migration | the cron call gets 403 |
 | `project_url` | no | Supabase Vault | the sync cron migration | the cron has no URL to call |
