@@ -141,15 +141,29 @@ export function switchOffTitles(
   return drop.length;
 }
 
+/** What an add did, so the caller can say so (#354): added on, added but switched off (the
+ *  sweep already had MAX_SWEEP_ON on), or already listed (nothing changed). */
+export type AddTitleOutcome = 'added' | 'added-off' | 'duplicate';
+
 /** Add a title (on when there is room, else off). A title already listed is left alone. */
-export function addTitle(categoryId: string, seed: string[], title: string): void {
+export function addTitle(
+  categoryId: string,
+  seed: string[],
+  title: string,
+): AddTitleOutcome | undefined {
   const t = title.trim();
-  if (!t) return;
+  if (!t) return undefined;
+  const cur = sweepFor(readAll(), categoryId, seed);
+  if (cur.titles.some((x) => norm(x) === norm(t))) return 'duplicate';
+  const full = activeTitles(cur).length >= MAX_SWEEP_ON;
   edit(categoryId, seed, (s) => {
     if (s.titles.some((x) => norm(x) === norm(t))) return s;
-    const full = activeTitles(s).length >= MAX_SWEEP_ON;
-    return { titles: [...s.titles, t], off: full ? [...s.off, t] : s.off };
+    return {
+      titles: [...s.titles, t],
+      off: activeTitles(s).length >= MAX_SWEEP_ON ? [...s.off, t] : s.off,
+    };
   });
+  return full ? 'added-off' : 'added';
 }
 
 /** Remove a title from the track's sweep list. */
@@ -158,6 +172,28 @@ export function removeTitle(categoryId: string, seed: string[], title: string): 
     titles: s.titles.filter((x) => norm(x) !== norm(title)),
     off: s.off.filter((x) => norm(x) !== norm(title)),
   }));
+}
+
+/** Put a removed title back at `at` with its tick state, for Remove's Undo (#354). A title
+ *  listed again since is left alone, and one that was on comes back off when MAX_SWEEP_ON are
+ *  on by now (a title added meanwhile took its place), so the cap holds. */
+export function restoreTitle(
+  categoryId: string,
+  seed: string[],
+  title: string,
+  at: number,
+  wasOff: boolean,
+): void {
+  edit(categoryId, seed, (s) => {
+    if (s.titles.some((x) => norm(x) === norm(title))) return s;
+    const titles = [...s.titles];
+    titles.splice(Math.min(Math.max(at, 0), titles.length), 0, title);
+    const off = wasOff || activeTitles(s).length >= MAX_SWEEP_ON;
+    return {
+      titles,
+      off: off ? [...s.off, title] : s.off.filter((x) => norm(x) !== norm(title)),
+    };
+  });
 }
 
 /** Every track's sweep titles, live. */

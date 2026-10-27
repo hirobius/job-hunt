@@ -21,9 +21,46 @@ import {
   addTitle,
   MAX_SWEEP_ON,
   removeTitle,
+  restoreTitle,
   setTitleOn,
   useSweep,
 } from './feed/sweepTitles';
+import { collapseRow, highlightNew, useHighlight } from './feedback';
+import { notifyRemoved } from './saveNotice';
+
+/** One title row: its tick box and its Remove X. A duplicate add asks for this row's flash
+ *  (feedback's highlight, keyed by the title's spelling). */
+function TitleRow({
+  title,
+  checked,
+  onToggle,
+  onRemove,
+}: {
+  title: string;
+  checked: boolean;
+  onToggle: (next: boolean) => void;
+  onRemove: (from: Element) => void;
+}) {
+  const highlight = useHighlight<HTMLDivElement>(title);
+  return (
+    <Box as="li" ref={highlight}>
+      {/* Every remove X lines up on the panel's right edge, not after its label. */}
+      <Stack direction="row" gap="tight" align="center" justify="space-between">
+        <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
+          <HdsCheckbox label={title} checked={checked} onChange={onToggle} />
+        </Box>
+        <Button
+          size="sm"
+          variant="tertiary"
+          iconOnly
+          iconLeft={<Icon icon={X} />}
+          label={`Remove title ${title}`}
+          onClick={(e) => onRemove(e.currentTarget)}
+        />
+      </Stack>
+    </Box>
+  );
+}
 
 export function SweepTitlesEditor({
   categoryId,
@@ -46,13 +83,36 @@ export function SweepTitlesEditor({
 
   const onAdd = (e: FormEvent) => {
     e.preventDefault();
-    if (!draft.trim()) return;
-    addTitle(categoryId, seed, draft);
+    const t = draft.trim();
+    if (!t) return;
+    const outcome = addTitle(categoryId, seed, t);
+    if (outcome === 'duplicate') {
+      // Say so and flash the row that's already there, instead of silent nothing (#354).
+      const existing = sweep.titles.find((x) => x.toLowerCase() === t.toLowerCase()) ?? t;
+      highlightNew(existing);
+      toast({ title: `${existing} is already in the list` });
+    } else if (outcome === 'added-off') {
+      toast({
+        title: `Added, switched off: up to ${MAX_SWEEP_ON} titles can be on`,
+        tone: 'warning',
+      });
+    }
     setDraft('');
   };
   const toggle = (t: string, next: boolean) => {
     if (!setTitleOn(categoryId, seed, t, next))
       toast({ title: `Up to ${MAX_SWEEP_ON} titles can be on at once`, tone: 'warning' });
+  };
+  /** Remove is soft (#212): the row collapses, then the notice offers Undo, which puts the
+   *  title back in its place with its tick state (#354). */
+  const remove = (t: string, from: Element) => {
+    const at = sweep.titles.indexOf(t);
+    const wasOff = !on.has(t.toLowerCase());
+    collapseRow(from, () => {
+      if (at < 0) return;
+      removeTitle(categoryId, seed, t);
+      notifyRemoved(`Removed “${t}”`, () => restoreTitle(categoryId, seed, t, at, wasOff));
+    });
   };
 
   const body = (
@@ -75,26 +135,13 @@ export function SweepTitlesEditor({
         )}
         <Box as="ul" aria-label="Titles" sx={{ listStyle: 'none', m: 0, p: 0 }}>
           {sweep.titles.map((t) => (
-            <Box as="li" key={t}>
-              {/* Every remove X lines up on the panel's right edge, not after its label. */}
-              <Stack direction="row" gap="tight" align="center" justify="space-between">
-                <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
-                  <HdsCheckbox
-                    label={t}
-                    checked={on.has(t.toLowerCase())}
-                    onChange={(v) => toggle(t, v)}
-                  />
-                </Box>
-                <Button
-                  size="sm"
-                  variant="tertiary"
-                  iconOnly
-                  iconLeft={<Icon icon={X} />}
-                  label={`Remove title ${t}`}
-                  onClick={() => removeTitle(categoryId, seed, t)}
-                />
-              </Stack>
-            </Box>
+            <TitleRow
+              key={t}
+              title={t}
+              checked={on.has(t.toLowerCase())}
+              onToggle={(v) => toggle(t, v)}
+              onRemove={(from) => remove(t, from)}
+            />
           ))}
         </Box>
       </Stack>

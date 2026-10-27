@@ -15,6 +15,7 @@ import { shortDate } from './metaLines';
 import { savedAgo } from './jobState';
 import type { Job } from './types';
 import CompanyLogo from './CompanyLogo';
+import { JOB_ATTR } from './listFocus';
 
 export default function JobListCard({ job }: { job: Job }) {
   const titleId = useId();
@@ -34,7 +35,13 @@ export default function JobListCard({ job }: { job: Job }) {
     // HDS entity card anatomy (0.30): Header (badges above the title), the company, Facts, then
     // Footer with the actions. One card of the Jobs panel's card list (Adrian 2026-10-23: cards,
     // not hairlines), filled so it reads on the raised panel.
-    <Card as="article" aria-labelledby={titleId} padding="none" className="rjb-card-inset">
+    <Card
+      as="article"
+      aria-labelledby={titleId}
+      padding="none"
+      className="rjb-card-inset"
+      {...{ [JOB_ATTR]: job.url }}
+    >
       {/* Rev-3 card rhythm: 12 top and bottom, 8 between the badge row, the title block, the
             facts and the actions' line (12 above the actions). Card's own parts pad 16 apiece and
             Card.Facts adds its own block, which made the card about 205px tall instead of ~180,
