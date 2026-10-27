@@ -2,7 +2,7 @@
 // ticked list of titles (src/feed/sweepTitles.ts, synced) that Live postings, the ATS tool and the
 // big-board links all read. It is edited in Live postings' Calibrate control.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -18,7 +18,7 @@ import App from './App';
 import { writeShowEngineering } from './feed/roleTypePref';
 import { addCategory, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
-import { getAllSweeps, setTitleOn } from './feed/sweepTitles';
+import { addTitle, getAllSweeps, MAX_SWEEP_ON, setTitleOn } from './feed/sweepTitles';
 import type { Posting } from './feed/types';
 
 const post = (id: string, title: string): Posting => ({
@@ -126,6 +126,25 @@ describe('Calibrate: the ticked titles', () => {
     );
   });
 
+  // #354: a title added past the on-cap starts switched off, and the add says so.
+  it('adding a title past the cap toasts that it was added, switched off', async () => {
+    for (let i = TITLES.length; i < MAX_SWEEP_ON; i++) addTitle(cat, TITLES, `extra title ${i}`);
+    expect(getAllSweeps()[cat].titles).toHaveLength(MAX_SWEEP_ON);
+    window.location.hash = '#/discover/live';
+    const user = userEvent.setup();
+    renderApp();
+    expect(await screen.findByRole('heading', { name: /^Design Engineer/ })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
+    await user.type(screen.getByRole('textbox', { name: 'Add a title' }), 'one title too many');
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    expect(
+      await screen.findByText('Added, switched off: up to 12 titles can be on'),
+    ).toBeInTheDocument();
+    const s = getAllSweeps()[cat];
+    expect(s.titles).toHaveLength(MAX_SWEEP_ON + 1);
+    expect(s.off).toEqual(['one title too many']);
+  });
+
   it('with every title ticked, the links search all of them', async () => {
     window.location.hash = '#/discover/ats';
     renderApp();
@@ -135,5 +154,20 @@ describe('Calibrate: the ticked titles', () => {
         u.includes('("product designer" OR "design system" OR "design engineer")'),
       ),
     ).toBe(true);
+  });
+
+  it('a picked title that is then unticked is not searched: the first ticked one is (audit)', async () => {
+    window.location.hash = '#/discover/ats';
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'design engineer' }));
+    act(() => {
+      setTitleOn(cat, TITLES, 'design engineer', false);
+    });
+    await openAllBoards();
+    const all = hrefs();
+    expect(all.some((u) => u.includes('design engineer'))).toBe(false);
+    expect(all.some((u) => u.includes('"product designer"'))).toBe(true);
+    expect(screen.getByRole('button', { name: 'product designer', pressed: true })).toBeVisible();
   });
 });
