@@ -307,12 +307,6 @@ p {
   }
 }
 
-/* A long free-text field the user can make taller (Your evidence, rev-3 J). */
-.rjb-resize,
-.rjb-resize textarea {
-  resize: vertical;
-}
-
 /* A status alert inside a panel (Live postings' "Some sources didn't respond" / "Couldn't reach any
    source"): HDS Alert sets its title on the titleSm step (20px+), which reads as a page heading and
    wraps at 390. Inside `.rjb-inline-alerts` the title takes the body step, bold, by re-pointing the
