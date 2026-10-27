@@ -10,6 +10,7 @@ import {
   Box,
   Stack,
   Text,
+  VisuallyHidden,
   useAtLeast,
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
@@ -40,6 +41,7 @@ import { useVisualViewportVars } from './hds-gaps/useVisualViewportVars';
 import './account/sheet.css';
 import { openTab } from './tabMemory';
 import { useBackCloses, useBackSheet } from './useBackCloses';
+import { useListFocusKeeper } from './listFocus';
 
 // The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
 // chevron right. HDS Button has no stretch or alignment prop.
@@ -65,6 +67,9 @@ export default function TrackerView() {
   const setFilter = (filter: Filter) => setPipelineView({ filter });
   const setSort = (sort: SortKey) => setPipelineView({ sort });
   const setQ = (q: string) => setPipelineView({ q });
+  // A control that clears the view unmounts as it does, so focus goes to the search (audit).
+  const searchField = useRef<HTMLInputElement>(null);
+  const focusSearch = () => searchField.current?.focus();
   // Something is non-default: Clear shows, and the selects drop their Status / Sort key (rev-3).
   const cleared = filter !== 'active' || q.trim() !== '';
   const [url, setUrl] = useState('');
@@ -79,6 +84,9 @@ export default function TrackerView() {
   const addOpener = useRef<HTMLElement | null>(null);
   // The browser's Back closes the sheet and stays on the Pipeline (return paths).
   useBackCloses(addOpen, () => setAddOpen(false), 'add-job');
+  // The Status select: the Active empty's "Show applied" hands focus back to it, so focus
+  // stays in the panel when the empty state unmounts (#361).
+  const statusTrigger = useRef<HTMLButtonElement>(null);
   const statusSheet = useBackSheet('pipeline-status');
   const sortSheet = useBackSheet('pipeline-sort');
   const moreSheet = useBackSheet('pipeline-more');
@@ -86,6 +94,9 @@ export default function TrackerView() {
   const roomy = useAtLeast('sm');
 
   const shown = useMemo(() => visibleJobs(jobs, view), [jobs, view]);
+  const shownUrls = useMemo(() => shown.map((j) => j.url), [shown]);
+  // Mark applied, Remove or a status change that takes a card out keeps focus in the list.
+  useListFocusKeeper(shownUrls, searchField);
   const sortDef = SORTS.find((s) => s.key === sort);
   // The trigger shows the short form; its name says the same words (WCAG label in name).
   const sortLabel = sortDef?.short ?? sortDef?.label ?? '';
@@ -178,7 +189,10 @@ export default function TrackerView() {
                   variant="tertiary"
                   size="sm"
                   label="Clear filters"
-                  onClick={() => setPipelineView({ filter: 'active', q: '' })}
+                  onClick={() => {
+                    setPipelineView({ filter: 'active', q: '' });
+                    focusSearch();
+                  }}
                 >
                   Clear
                 </UiButton>
@@ -191,6 +205,7 @@ export default function TrackerView() {
               <Box className="rjb-form-full">
                 <Stack gap="tight">
                   <HdsInput
+                    ref={searchField}
                     aria-label="Search saved jobs"
                     placeholder="Search jobs"
                     value={q}
@@ -201,6 +216,7 @@ export default function TrackerView() {
                     <HdsMenu {...statusSheet}>
                       <HdsMenu.Trigger asChild>
                         <UiButton
+                          ref={statusTrigger}
                           variant="secondary"
                           iconRight={<ChevronDown size={16} />}
                           label={`Status: ${FILTER_LABEL[filter]}`}
@@ -297,6 +313,8 @@ export default function TrackerView() {
                 </Stack>
               </Box>
             </PanelBody>
+            {/* The count badge is not re-read as the search or filter changes: say it (audit). */}
+            <VisuallyHidden role="status">{`${shown.length} ${shown.length === 1 ? 'job' : 'jobs'} shown`}</VisuallyHidden>
             {shown.length === 0 ? (
               // Its own section under the toolbar, a hairline above (rev-3 filtered-empty).
               <Box sx={{ borderTop: 'thin solid', borderColor: 'border.default', py: 'lg' }}>
@@ -308,7 +326,13 @@ export default function TrackerView() {
                       title={`No jobs match "${q.trim()}"`}
                       description="Try a shorter word, or clear the search."
                       action={
-                        <UiButton variant="secondary" onClick={() => setQ('')}>
+                        <UiButton
+                          variant="secondary"
+                          onClick={() => {
+                            setQ('');
+                            focusSearch();
+                          }}
+                        >
                           Clear search
                         </UiButton>
                       }
@@ -319,6 +343,17 @@ export default function TrackerView() {
                       icon={Search}
                       title="Nothing left to apply to"
                       description="Check Applied, or add more jobs."
+                      action={
+                        <UiButton
+                          variant="secondary"
+                          onClick={() => {
+                            setFilter('Applied');
+                            statusTrigger.current?.focus();
+                          }}
+                        >
+                          Show applied
+                        </UiButton>
+                      }
                     />
                   ) : (
                     <EmptyState
@@ -327,7 +362,13 @@ export default function TrackerView() {
                       title={`Nothing under “${FILTER_LABEL[filter]}”`}
                       description="Try another status."
                       action={
-                        <UiButton variant="secondary" onClick={() => setFilter('active')}>
+                        <UiButton
+                          variant="secondary"
+                          onClick={() => {
+                            setFilter('active');
+                            focusSearch();
+                          }}
+                        >
                           Show active
                         </UiButton>
                       }
