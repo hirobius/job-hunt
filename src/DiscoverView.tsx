@@ -31,6 +31,7 @@ import {
   entryLevelize,
   searchAllCount,
   searchAllUrl,
+  fitQuery,
   titleClause,
   type HiddenQuery,
   type HiddenSite,
@@ -165,7 +166,10 @@ function AtsPanel({
   const { where, mode } = useTrackContext(categoryId);
   const active = useActiveTitles(categoryId, titles);
   // Kept for this page load, so the search comes back as it was left (return paths).
-  const [role, setRole] = useRemembered(`${remember}:role`, initialTitle || active[0] || '');
+  const [picked, setRole] = useRemembered(`${remember}:role`, initialTitle || active[0] || '');
+  // A picked title unticked since (in Calibrate) is no longer searched: the first ticked one is.
+  // A seeded title stays, though it is not on the list.
+  const role = picked === initialTitle || active.includes(picked) ? picked : (active[0] ?? picked);
   const [all, setAll] = useRemembered(`${remember}:all`, !initialTitle);
   const many = all && active.length > 1;
   const [recency, setRecency] = useRemembered<'' | 'w' | 'm'>(`${remember}:recency`, '');
@@ -210,9 +214,7 @@ function AtsPanel({
     }));
   // One Google query has a 32-word cap: with many titles ticked, keep the first ones that leave
   // room for at least three hiring systems, so "Search all boards" never searches none.
-  let fit = query;
-  while (fit.roles && fit.roles.length > 1 && searchAllCount(ATS, fit) < 3)
-    fit = { ...fit, roles: fit.roles.slice(0, -1) };
+  const fit = fitQuery(ATS, query, 3);
   const fitTitles = fit.roles?.length ?? 1;
   const atsTiles = tilesFor(ATS);
   const allUrl = searchAllUrl(ATS, fit);

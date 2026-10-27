@@ -278,4 +278,49 @@ describe('a11y', () => {
     await click('Continue');
     await audit(container);
   });
+
+  // A step change swaps the panel under the pressed button: focus goes to the new step's heading,
+  // so a screen reader hears where it is and Tab starts at the top of the step.
+  it('Continue and Back move focus to the step they open', async () => {
+    renderApp();
+    await pickFirstPack();
+    await click('Continue');
+    expect(screen.getByRole('heading', { name: 'Where do you want to work?' })).toHaveFocus();
+    await click('Continue');
+    expect(screen.getByRole('heading', { name: 'Add your first job' })).toHaveFocus();
+    await click('Back');
+    expect(screen.getByRole('heading', { name: 'Where do you want to work?' })).toHaveFocus();
+  });
+
+  it('a refused Continue or Finish puts focus on the field that needs fixing', async () => {
+    renderApp();
+    await click('Build your own', 'checkbox');
+    await click('Continue');
+    expect(screen.getByLabelText(/First job title/)).toHaveFocus();
+    await userEvent.type(screen.getByLabelText(/First job title/), 'Design Engineer');
+    await click('Continue');
+    await click('Continue');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Job link' }), 'not a link');
+    await click('Finish');
+    expect(await screen.findByText(/doesn't look like a link/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Job link' })).toHaveFocus();
+  });
+
+  it('the first visit does not steal focus', () => {
+    renderApp();
+    expect(document.body).toHaveFocus();
+  });
+
+  // Dev runs under StrictMode (main.tsx), which runs a mount effect twice.
+  it('the first visit does not steal focus under StrictMode either', () => {
+    render(
+      <ColorModeProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </ColorModeProvider>,
+      { reactStrictMode: true },
+    );
+    expect(document.body).toHaveFocus();
+  });
 });

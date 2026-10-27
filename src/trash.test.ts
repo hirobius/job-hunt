@@ -78,6 +78,70 @@ describe('trash (Recently removed)', () => {
     expect(getTrash()).toHaveLength(0); // nothing lost, so the entry can go
   });
 
+  it('restoring into a copy saved again keeps what only the removed copy knew (status, dates, contact, screening)', () => {
+    addJob(A, 'Design Engineer');
+    updateJob(A, {
+      status: 'Applied',
+      applied: '2026-10-01',
+      followUp: '2026-10-08',
+      history: [{ status: 'Applied', at: '2026-10-01' }],
+      contact: 'sam@acme.example',
+      salary: '$150k',
+      verdict: 'match',
+      angle: 'Led the component library',
+      blockers: ['clearance'],
+    });
+    trashJob(A);
+    // Seen again on Live postings and saved: a bare Saved copy with a newer title.
+    addJob(A, 'Senior Design Engineer');
+    updateJob(A, { location: 'Remote' });
+    expect(restoreJob(A)).toBe('merged');
+    const [job] = getAllJobs();
+    expect(job.label).toBe('Senior Design Engineer'); // the saved copy's own fields win
+    expect(job.location).toBe('Remote');
+    expect(job.status).toBe('Applied'); // further along than the bare Saved copy
+    expect(job.applied).toBe('2026-10-01');
+    expect(job.followUp).toBe('2026-10-08');
+    expect(job.history?.map((h) => h.status)).toContain('Applied');
+    expect(job.contact).toBe('sam@acme.example');
+    expect(job.salary).toBe('$150k');
+    expect(job.verdict).toBe('match');
+    expect(job.angle).toBe('Led the component library');
+    expect(job.blockers).toEqual(['clearance']);
+  });
+
+  it('removing a posting again keeps what its earlier removed copy held', () => {
+    addJob(A, 'Design Engineer');
+    updateJob(A, {
+      status: 'Applied',
+      applied: '2026-10-01',
+      notes: 'call Sam',
+      todos: [{ id: 't1', text: 'Tailor résumé', done: true }],
+    });
+    trashJob(A);
+    addJob(A, 'Design Engineer');
+    updateJob(A, { notes: 'saw it again' });
+    trashJob(A);
+    expect(getTrash()).toHaveLength(1);
+    const { job } = getTrash()[0];
+    expect(job.notes).toContain('call Sam');
+    expect(job.notes).toContain('saw it again');
+    expect(job.todos?.map((t) => t.id)).toEqual(['t1']);
+    expect(job.status).toBe('Applied');
+  });
+
+  it('a saved copy that moved on keeps its own status', () => {
+    addJob(A);
+    updateJob(A, { status: 'Applied', applied: '2026-10-01' });
+    trashJob(A);
+    addJob(A);
+    updateJob(A, { status: 'Interviewing', applied: '2026-10-05' });
+    restoreJob(A);
+    const [job] = getAllJobs();
+    expect(job.status).toBe('Interviewing');
+    expect(job.applied).toBe('2026-10-05');
+  });
+
   it('merging never doubles what both copies already share', () => {
     addJob(A, 'Design Engineer');
     updateJob(A, { notes: 'same', todos: [{ id: 't1', text: 'x', done: false }] });
@@ -131,6 +195,28 @@ describe('trash (Recently removed)', () => {
     expect(getTrash()).toHaveLength(0);
     expect(getAllJobs()).toHaveLength(1);
     expect(getAllDocuments().map((d) => d.title)).toEqual(['Cover']);
+  });
+
+  it('Delete forever can be undone: the entry and its documents come back in place', () => {
+    replaceDocuments([]);
+    addJob(A);
+    addJob(B);
+    updateJob(A, { notes: 'call Sam' });
+    createDocument({ kind: 'cover', title: 'For B', jobUrl: B, text: 'y' });
+    createDocument({ kind: 'cover', title: 'For A', jobUrl: A, text: 'x' });
+    trashJob(B);
+    trashJob(A);
+    const undo = deleteForever(A);
+    expect(getTrash().map((r) => r.job.url)).toEqual([B]);
+    expect(getAllDocuments().map((d) => d.title)).toEqual(['For B']);
+    undo();
+    expect(
+      getTrash()
+        .map((r) => r.job.url)
+        .sort(),
+    ).toEqual([A, B]);
+    expect(getTrash().find((r) => r.job.url === A)?.job.notes).toBe('call Sam');
+    expect(getAllDocuments().map((d) => d.title)).toEqual(['For B', 'For A']);
   });
 
   it('newest first, one entry per job', () => {
