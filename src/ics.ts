@@ -7,6 +7,9 @@
 //   - All-day events use VALUE=DATE with an exclusive next-day DTEND.
 import { BRAND } from './brand';
 
+/** How long a timed event lasts when it has no duration, in the .ics and the agenda alike. */
+export const DEFAULT_EVENT_MIN = 60;
+
 export interface IcsEvent {
   /** Stable per-event id (gets `@uidDomain` appended). */
   uid: string;
@@ -15,7 +18,7 @@ export interface IcsEvent {
   date: string;
   /** HH:MM (local). Absent → all-day. */
   time?: string;
-  /** Timed events only; default 60. */
+  /** Timed events only; default DEFAULT_EVENT_MIN. */
   durationMin?: number;
   description?: string;
   url?: string;
@@ -27,6 +30,11 @@ export interface IcsOptions {
 }
 
 /** Escape a TEXT property value. */
+/** A value written as is (URL, UID): no line breaks or other control characters, so stored data
+ *  can never start a property of its own. */
+// eslint-disable-next-line no-control-regex
+const oneLine = (s: string) => s.replace(/[\u0000-\u001f\u007f]/g, '');
+
 export function escapeText(s: string): string {
   return s
     .replace(/\\/g, '\\\\')
@@ -73,10 +81,10 @@ function wall(date: string, time = '00:00'): Date {
 }
 
 function vevent(e: IcsEvent, stamp: string, domain: string): string[] {
-  const lines = ['BEGIN:VEVENT', `UID:${e.uid}@${domain}`, `DTSTAMP:${stamp}`];
+  const lines = ['BEGIN:VEVENT', `UID:${oneLine(e.uid)}@${domain}`, `DTSTAMP:${stamp}`];
   if (e.time) {
     const start = wall(e.date, e.time);
-    const end = new Date(start.getTime() + (e.durationMin ?? 60) * 60000);
+    const end = new Date(start.getTime() + (e.durationMin ?? DEFAULT_EVENT_MIN) * 60000);
     lines.push(`DTSTART:${ymd(start)}T${hms(start)}`, `DTEND:${ymd(end)}T${hms(end)}`);
   } else {
     const start = wall(e.date);
@@ -85,7 +93,7 @@ function vevent(e: IcsEvent, stamp: string, domain: string): string[] {
   }
   lines.push(`SUMMARY:${escapeText(e.summary)}`);
   if (e.description) lines.push(`DESCRIPTION:${escapeText(e.description)}`);
-  if (e.url) lines.push(`URL:${e.url}`);
+  if (e.url) lines.push(`URL:${oneLine(e.url)}`);
   lines.push('END:VEVENT');
   return lines;
 }

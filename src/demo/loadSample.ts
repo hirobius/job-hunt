@@ -8,29 +8,16 @@ import { getAllJobs, replaceAll } from '../store';
 import { getCurationState } from '../curation/curationStore';
 import { seedPack, STARTER_PACKS } from '../curation/starterPacks';
 import { withoutSample } from './isSample';
-import { dropSampleTrack, rememberSampleTrack } from './sampleTrack';
+import { rememberSampleTrack } from './sampleTrack';
 import { sampleJobs } from './sampleData';
 
 export { withoutSample };
+// The Pipeline's sample controls read only these, apart from the starter pack (#372).
+export { clearSample, hasCloudSession } from './sampleSession';
 
 /** The sample to store, or null when the tracker holds anything at all (archived included). */
 export function seedIfEmpty(existing: Job[], sample: Job[]): Job[] | null {
   return existing.length === 0 ? sample : null;
-}
-
-/** Whether a Supabase session is stored in this browser. The sample is never offered then: a
- *  signed-in tracker syncs, and its cloud pull may not have landed yet, so an "empty" tracker
- *  isn't really empty and seeded records would merge into the account. Reads the persisted
- *  auth key (`sb-<ref>-auth-token`) directly so the demo needs no hook into CloudSync. */
-export function hasCloudSession(storage: Pick<Storage, 'length' | 'key'> = localStorage): boolean {
-  try {
-    for (let i = 0; i < storage.length; i++) {
-      if (/^sb-.+-auth-token$/.test(storage.key(i) ?? '')) return true;
-    }
-  } catch {
-    /* storage unavailable → treat as signed out */
-  }
-  return false;
 }
 
 export const SAMPLE_TRACK_LABEL = 'Sample';
@@ -45,15 +32,4 @@ export function loadSample(now: Date = new Date()): boolean {
     rememberSampleTrack(id);
   }
   return true;
-}
-
-/** Remove the sample records (and the Sample track); returns how many jobs were removed. Real
- *  records are untouched. */
-export function clearSample(): number {
-  dropSampleTrack();
-  const jobs = getAllJobs();
-  const kept = withoutSample(jobs);
-  if (kept.length === jobs.length) return 0;
-  replaceAll(kept);
-  return jobs.length - kept.length;
 }

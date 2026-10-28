@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { SUPABASE_URL } from './config';
+import { legalTitleFor } from './legalRoute';
 import {
   CONTACT_EMAIL,
   LEGAL_DOCS,
@@ -103,5 +104,14 @@ describe('legal pages (#43)', () => {
     expect(legalDocFor(null)).toBe(PRIVACY);
     expect(legalDocFor('nope')).toBe(PRIVACY);
     expect(Object.keys(LEGAL_DOCS)).toEqual(['privacy', 'terms']);
+  });
+});
+
+describe('legal route titles (legalRoute.ts)', () => {
+  it('name each document as its page does', () => {
+    expect(legalTitleFor('terms')).toBe(TERMS.title);
+    expect(legalTitleFor('privacy')).toBe(PRIVACY.title);
+    expect(legalTitleFor(null)).toBe(PRIVACY.title);
+    expect(legalTitleFor('nope')).toBe(PRIVACY.title);
   });
 });

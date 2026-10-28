@@ -31,3 +31,15 @@ describe('htmlToText', () => {
     expect(htmlToText('a<style>.x{}</style>b<script>alert(1)</script>c')).toBe('a b c');
   });
 });
+
+describe('a hostile body (security review 2026-10-28)', () => {
+  it('drops scripts and styles, closed or not', () => {
+    expect(htmlToText('a<script>x</script>b<STYLE x>y</style >c<script>z')).toBe('a b c');
+  });
+
+  it('many unclosed script tags stay fast', () => {
+    const t = Date.now();
+    htmlToText('<script>'.repeat(50_000));
+    expect(Date.now() - t).toBeLessThan(200);
+  });
+});

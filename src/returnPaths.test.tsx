@@ -486,7 +486,7 @@ describe('top tabs reopen where they were left', () => {
     window.location.hash = `#/queue/${idA}`;
     renderApp();
     await heading('Fabricator');
-    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     await at('#/queue');
     expect(await heading('Pipeline')).toBeInTheDocument();
   });
@@ -495,7 +495,7 @@ describe('top tabs reopen where they were left', () => {
     seedPack('consulting');
     window.location.hash = '#/discover/ats';
     renderApp();
-    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     await at('#/queue');
     await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
     await at('#/discover/ats');
@@ -592,10 +592,9 @@ describe('one navigation per Remove, Delete or double click', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Open Cold intro' }));
     await screen.findByRole('button', { name: 'All documents' });
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    const confirm = await screen.findByRole('alertdialog');
+    // Delete is soft (#329): no confirm, it goes at once and offers Undo.
     const pops = countPops();
-    await userEvent.click(within(confirm).getByRole('button', { name: 'Delete' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
     await staysAt(library);
     pops.stop();
     expect(pops.count()).toBe(1);
@@ -615,7 +614,7 @@ describe('one navigation per Remove, Delete or double click', () => {
     await startAt('#/discover/apply', '#/queue');
     await openFromList();
     const pops = countPops();
-    doubleClick(screen.getByRole('tab', { name: 'Pipeline' }));
+    doubleClick(screen.getByRole('tab', { name: 'Jobs' }));
     await staysAt('#/queue');
     pops.stop();
     expect(pops.count()).toBe(1);
@@ -657,7 +656,7 @@ describe('one navigation per Remove, Delete or double click', () => {
     await heading('Welder');
     await remove('Welder');
     await staysAt('#/discover/apply');
-    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     await staysAt('#/queue');
     expect(await heading('Pipeline')).toBeInTheDocument();
   });

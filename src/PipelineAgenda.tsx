@@ -8,7 +8,14 @@ import { Panel, PanelRow, PanelRows } from './PipelinePanel';
 import { FollowUpButton } from './FollowUp';
 import { deriveJobState } from './jobState';
 import { followUpJobs } from './applyQueue';
-import { dueFollowUps, followUpDate, KIND_WORD, UPCOMING_DAYS, upcomingEvents } from './jobEvents';
+import {
+  dueFollowUps,
+  followUpDate,
+  KIND_WORD,
+  respondByJobs,
+  UPCOMING_DAYS,
+  upcomingEvents,
+} from './jobEvents';
 import { dayLabel } from './dayLabel';
 import { jobIdOf } from './store';
 import { jobHash } from './route';
@@ -69,12 +76,14 @@ function AgendaRow({
 
 const jobs$ = (n: number, noun = 'job') => `${n} ${noun}${n === 1 ? '' : 's'}`;
 
-/** Applied or interviewing jobs: the due ones first (most overdue first), then the rest by date. */
+/** Applied or interviewing jobs: the due ones first (most overdue first), then saved
+ *  solicitations to respond to this week (#308), then the rest by date. */
 export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
   const due = dueFollowUps(jobs, now).map((d) => d.job);
   const dueUrls = new Set(due.map((j) => j.url));
+  const respond = respondByJobs(jobs, now);
   const waiting = followUpJobs(jobs, now).filter((j) => !dueUrls.has(j.url));
-  const count = due.length + waiting.length;
+  const count = due.length + respond.length + waiting.length;
   if (count === 0) return null;
   return (
     <Panel label={`Follow up (${count})`} title="Follow up" count={count} countLabel={jobs$(count)}>
@@ -91,6 +100,19 @@ export function FollowUpSection({ jobs, now }: { jobs: Job[]; now: Date }) {
               badge={<Badge tone="warning">Follow-up due</Badge>}
               notes={metaLines([job.company, sinceNote(job, now)])}
               trailing={<FollowUpButton job={job} />}
+            />
+          </PanelRow>
+        ))}
+        {respond.map(({ job, dueDate }) => (
+          <PanelRow key={job.url}>
+            <AgendaRow
+              title={
+                <InlineLink href={jobHref(job.url)} externalIcon={false}>
+                  {titleOf(job)}
+                </InlineLink>
+              }
+              posting={postingOf(job)}
+              notes={metaLines([job.company, `Respond by ${dayLabel(dueDate, now)}`])}
             />
           </PanelRow>
         ))}

@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
 import { addJob, getAllJobs, removeJob, updateJob } from './store';
 import { createDocument, getAllDocuments, replaceDocuments } from './documents';
 import {
@@ -11,6 +12,8 @@ import {
   sanitizeTrash,
   trashJob,
   TRASH_KEY,
+  daysLeft,
+  useTrash,
 } from './trash';
 
 const A = 'https://acme.example/jobs/1';
@@ -254,5 +257,43 @@ describe('trash (Recently removed)', () => {
       [A, 'cloud'],
       [B, 'local'],
     ]);
+  });
+});
+
+describe('Recently removed ages out at read time (#307)', () => {
+  afterEach(() => vi.useRealTimers());
+  const entry = (url: string, daysAgo: number) => ({
+    job: { url, label: 'Job', status: 'Saved' as const },
+    removedAt: new Date(Date.now() - daysAgo * DAY).toISOString(),
+  });
+
+  it('an entry crossing 30 days leaves getTrash without a write', () => {
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+    replaceTrash([entry(A, 29.5), entry(B, 1)]);
+    const writes = vi.spyOn(Storage.prototype, 'setItem');
+    expect(getTrash().map((r) => r.job.url)).toEqual([B, A]);
+    vi.setSystemTime(NOW.getTime() + DAY);
+    expect(getTrash().map((r) => r.job.url)).toEqual([B]);
+    expect(getTrash()).toBe(getTrash());
+    expect(writes).not.toHaveBeenCalled();
+  });
+
+  it('useTrash drops it when it expires, and the store forgets it (so sync does too)', async () => {
+    vi.useFakeTimers({ now: NOW });
+    replaceTrash([entry(A, 29.5), entry(B, 1)]);
+    const { result } = renderHook(() => useTrash());
+    expect(result.current).toHaveLength(2);
+    await act(async () => {
+      vi.advanceTimersByTime(DAY / 2 + 1000);
+    });
+    expect(result.current.map((r) => r.job.url)).toEqual([B]);
+    expect(JSON.parse(localStorage.getItem(TRASH_KEY) ?? '[]')).toHaveLength(1);
+  });
+
+  it('daysLeft counts down to the drop', () => {
+    const removedAt = new Date(NOW.getTime() - 27 * DAY).toISOString();
+    expect(daysLeft(removedAt, NOW.getTime())).toBe(3);
+    expect(daysLeft(new Date(NOW.getTime() - 29.9 * DAY).toISOString(), NOW.getTime())).toBe(1);
+    expect(daysLeft(NOW.toISOString(), NOW.getTime())).toBe(30);
   });
 });

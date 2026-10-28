@@ -9,7 +9,7 @@
 //
 // The steps find things by role + visible name and skip what a build doesn't have, so the same
 // script shoots the old UI and the redesigned one. Chromium: PW_CHROMIUM_PATH (cloud sessions:
-// /opt/pw-browsers/chromium-1194/chrome-linux/chrome), else Playwright's own.
+// /opt/pw-browsers/chromium), else Playwright's own.
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -28,7 +28,7 @@ const OUT = args.out || 'gallery';
 const LABEL = args.label || 'current';
 const PORT = Number(args.port || 4179);
 const WIDTHS = [1440, 390];
-const CLOUD_CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CLOUD_CHROMIUM = '/opt/pw-browsers/chromium';
 // --pack=<regex> picks the starter track by name instead of the first (the case-study set uses it).
 const PACK = args.pack ? new RegExp(args.pack, 'i') : undefined;
 const packBox = (page) => {

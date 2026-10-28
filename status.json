@@ -1,8 +1,10 @@
 {
-  "updatedAt": "2026-10-26T23:00:00Z",
+  "updatedAt": "2026-10-28T12:00:00Z",
   "phase": "live",
-  "headline": "Live as RoleForge. Rapid apply (#218) and wide sweep (#220, blob v7) are on main. Companies follows the track in review on claude/teams-first (dream companies, blob v9).",
+  "headline": "Ship 1028 on main: security review (#399), the six lanes (#400-#406), perf (#409) and simplify slices 1-3 (#407 sync guard, #408 Find box, #410 Today home). Tabs are Today · Companies · Jobs.",
   "next": [
+    "Simplify follow-ups: #382 breadth guard (only the forward guard shipped), #385 Add sources sheet + Find box on Today (#408 shipped the box only), Jobs under More (#410 shipped it as a tab).",
+    "Security follow-ups filed by #399: #391-#394. Before deploying sync-postings, the cron Vault secret must equal SYNC_SECRET.",
     "Review PR claude/job-decks (#287): Decks panel on the job page (deck links with label + Sent on, http(s) only, soft remove + Undo), on the Job so it syncs, rides in Back up and the CSV decks column. Links only, no storage change. verify + verify:ui green. Not merged.",
     "Review draft PR claude/rf-track-scorer: the Muse track scorer replaces the systems-only rule on the Design Systems track (Live postings, Companies, dreams, reasons on cards, Review bucket), the Pipeline's scored queue + Skip, and the postings sync (migrations + sync-postings edge function + 2x daily cron + designsystems.jobs RSS). Migrations not applied, function not deployed (Adrian). Veto-able: 'design engineer' dropped from titleAdjacent.",
     "Security re-check 3 of claude/rf-tab-switch (#288): the must-fix is fixed test-first (a session getSession can't read, offline or a failed refresh, skips that send and never stops the tab; a definite sign-out or other user still does). main (f33442f) merged in; verify, verify:ui, e2e run locally. Not merged.",

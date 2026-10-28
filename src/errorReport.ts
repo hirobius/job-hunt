@@ -24,6 +24,10 @@ export const MAX_PER_PAGE = 5;
 const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
 // Query strings and fragments can carry the quick-add link or a job id: keep only the path.
 const URL_TAIL = /(https?:\/\/[^\s?#)]+)[?#][^\s)]*/g;
+// A link's path can name a posting (boards.greenhouse.io/acme/jobs/123): only a script's path (a
+// stack frame) is kept; any other link keeps its host alone.
+const URL_PATH = /(https?:\/\/[^\s/?#)]+)(\/[^\s?#)]*)/g;
+const keepPath = (path: string) => path === '/' || /\.(m?js|tsx?)(:\d+)*$/.test(path);
 // Session tokens (a magic link's fragment) never leave the browser, wherever a message echoes one.
 const TOKEN = /\b(access_token|refresh_token|provider_token|provider_refresh_token)=[^\s&#"')]*/g;
 // The same tokens bare: a JWT (header.payload.signature, base64url) or a Bearer header's value.
@@ -42,6 +46,7 @@ export function scrubText(text: string, max: number): string {
     .replace(JWT, '[token]')
     .replace(EMAIL, '[email]')
     .replace(URL_TAIL, '$1')
+    .replace(URL_PATH, (m, origin: string, path: string) => (keepPath(path) ? m : `${origin}/…`))
     .replace(QUOTED, '"…"')
     .slice(0, max);
 }

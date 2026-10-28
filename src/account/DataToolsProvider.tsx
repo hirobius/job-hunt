@@ -2,18 +2,12 @@
 // (merge or replace, with a safety backup first on replace), and export the job list as CSV.
 // The account menu triggers them through DataToolsContext; this owns the hidden file picker and
 // the restore confirm dialog, and reports failures as toasts.
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button, Dialog, Stack, Text, useToast } from '@hirobius/design-system';
 import { returnFocus } from './returnFocus';
 import { useBackCloses } from '../useBackCloses';
-import {
-  applyBackup,
-  buildBackup,
-  parseBackup,
-  summarizeRestore,
-  type AccountState,
-  type Backup,
-} from '../backup';
+import type { AccountState, Backup } from '../backup';
+import { importFresh } from '../staleBuild';
 import { toCsv } from '../csv';
 import { download } from '../download';
 import { getAllJobs, replaceAll, useJobs } from '../store';
@@ -34,9 +28,15 @@ import { getAllMustInclude, replaceMustInclude } from '../feed/mustInclude';
 import { BRAND } from '../brand';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
-import { ExportLinksHost } from '../ExportLinksDialog';
+import { ExportLinksHost } from '../ExportLinksHost';
+import { listWords, writesThatFailed } from './restoreWrites';
 
 const JSON_MIME = 'application/json';
+const BACKUP_PREFETCH_MS = 5000;
+// The backup format loads when a backup or restore starts, not with the app (#371).
+type BackupLib = typeof import('../backup');
+let backupLib: BackupLib | null = null;
+const loadBackup = importFresh(() => import('../backup').then((lib) => (backupLib = lib)));
 const day = () => new Date().toISOString().slice(0, 10);
 
 function currentState(): AccountState {
@@ -58,33 +58,39 @@ function currentState(): AccountState {
   };
 }
 
-function downloadBackup(prefix: string) {
-  const text = JSON.stringify(buildBackup(currentState(), new Date()), null, 2);
+/** Downloads the backup; false when it is too large for Restore to take back (#340). */
+function downloadBackup(lib: BackupLib, prefix: string): boolean {
+  const text = JSON.stringify(lib.buildBackup(currentState(), new Date()), null, 2);
   download(`${prefix}-${day()}.json`, text, JSON_MIME);
+  return !lib.backupTooLarge(text);
 }
 
-function applyState(next: AccountState) {
-  replaceAll(next.jobs);
-  replaceSnippets(next.copydeck);
-  replaceCurationState(next.curation);
-  replaceTriage(next.triage);
-  replaceTargets(next.targets);
-  replaceFilters(next.filters);
-  replaceEvidence(next.evidence);
-  replaceModes(next.modes);
-  replaceTrash(next.trash);
-  replaceDreams(next.dreams);
-  replaceDocuments(next.documents);
-  replaceApplyKit(next.kit);
-  replaceSweeps(next.sweeps);
-  replaceMustInclude(next.mustInclude);
+/** Write the restored state; returns what didn't reach storage (#339). Legacy messages
+ *  (snippets) become Documents, so a failed write of either is "documents". */
+function applyState(next: AccountState): string[] {
+  return writesThatFailed([
+    ['jobs', () => replaceAll(next.jobs)],
+    ['documents', () => replaceSnippets(next.copydeck)],
+    ['tracks', () => replaceCurationState(next.curation)],
+    ['set-aside links', () => replaceTriage(next.triage)],
+    ['saved targets', () => replaceTargets(next.targets)],
+    ['saved searches', () => replaceFilters(next.filters)],
+    ['evidence', () => replaceEvidence(next.evidence)],
+    ['work modes', () => replaceModes(next.modes)],
+    ['removed jobs', () => replaceTrash(next.trash)],
+    ['dream companies', () => replaceDreams(next.dreams)],
+    ['documents', () => replaceDocuments(next.documents)],
+    ['Application kit', () => replaceApplyKit(next.kit)],
+    ['title lists', () => replaceSweeps(next.sweeps)],
+    ['must-include lists', () => replaceMustInclude(next.mustInclude)],
+  ]);
 }
 
 export default function DataToolsProvider({ children }: { children: ReactNode }) {
   const jobs = useJobs();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [pending, setPending] = useState<Backup | null>(null);
+  const [pending, setPending] = useState<{ backup: Backup; lib: BackupLib } | null>(null);
   // The browser's Back closes the Restore dialog and stays on the page (return paths).
   useBackCloses(pending !== null, () => setPending(null), 'restore-backup');
   const fail = (title: string, description: string) =>
@@ -94,8 +100,10 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
     const file = e.target.files?.[0];
     e.target.value = ''; // let the same file be chosen again
     if (!file) return;
-    const parsed = parseBackup(await file.text());
-    if (parsed.ok) setPending(parsed.backup);
+    const lib = await loadBackup().catch(() => null); // a gone chunk: the stale-build notice says so
+    if (!lib) return;
+    const parsed = lib.parseBackup(await file.text());
+    if (parsed.ok) setPending({ backup: parsed.backup, lib });
     else {
       setPending(null);
       fail("Can't restore that file", parsed.reason);
@@ -104,10 +112,20 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
 
   const restore = (mode: 'merge' | 'replace') => {
     if (!pending) return;
-    if (mode === 'replace') downloadBackup(`${BRAND.slug}-before-restore`);
+    const { backup, lib } = pending;
+    if (mode === 'replace') downloadBackup(lib, `${BRAND.slug}-before-restore`);
     const before = currentState();
-    applyState(applyBackup(before, pending, mode));
-    if (mode === 'merge' && evidenceMergeOverflows(pending.evidence, before.evidence))
+    const unsaved = applyState(lib.applyBackup(before, backup, mode));
+    // The screen shows the restore, but storage doesn't hold all of it: say so, and how to get
+    // back to what was kept (a reload) or what was there before (Replace's safety copy).
+    if (unsaved.length)
+      toast({
+        title: "Restore didn't fully save",
+        description: `Your browser's storage is full, so your ${listWords(unsaved)} weren't saved. Reload to check what was kept.${mode === 'replace' ? ' The safety copy of your data from before is in your downloads.' : ''}`,
+        tone: 'danger',
+        duration: 20000,
+      });
+    if (mode === 'merge' && evidenceMergeOverflows(backup.evidence, before.evidence))
       toast({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });
     setPending(null);
     // Tracks live in their own cloud tables: mirror the restore there too, or the next sync
@@ -121,10 +139,38 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
     });
   };
 
-  const summary = pending ? summarizeRestore(currentState(), pending) : null;
+  // Fetch the backup code once the app is idle, so Back up needs no round trip. Quietly: a failed
+  // prefetch (offline) is not a stale build; Back up's own load says so if it still fails.
+  useEffect(() => {
+    const t = setTimeout(
+      () =>
+        void import('../backup').then(
+          (lib) => (backupLib ??= lib),
+          () => {},
+        ),
+      BACKUP_PREFETCH_MS,
+    );
+    return () => clearTimeout(t);
+  }, []);
+
+  const summary = pending ? pending.lib.summarizeRestore(currentState(), pending.backup) : null;
 
   const api: DataToolsApi = {
-    backup: () => downloadBackup(`${BRAND.slug}-backup`),
+    // Once fetched (shortly after start, below) the download runs in the click itself, as browsers
+    // (iOS Safari) want for a download. A chunk that won't load raises the stale-build notice.
+    backup: () => {
+      const run = (lib: BackupLib) => {
+        if (!downloadBackup(lib, `${BRAND.slug}-backup`))
+          toast({
+            title: 'This backup is too large to restore',
+            description: `It downloaded, but Restore takes files up to ${lib.MAX_BACKUP_MB} MB. Remove final copies or old jobs you no longer need, then back up again.`,
+            tone: 'warning',
+            duration: 15000,
+          });
+      };
+      if (backupLib) run(backupLib);
+      else void loadBackup().then(run, () => {});
+    },
     chooseRestore: () => fileRef.current?.click(),
     exportCsv: () => download(`${BRAND.slug}.csv`, toCsv(getAllJobs()), 'text/csv'),
     canExport: jobs.length > 0,
@@ -157,14 +203,8 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
           </Dialog.Header>
           {summary && (
             <Stack gap="tight">
-              <Text variant="body">
-                Backup: {summary.next.jobs} jobs, {summary.next.snippets} snippets,{' '}
-                {summary.next.tracks} tracks, {summary.next.links} links
-              </Text>
-              <Text variant="body">
-                Now: {summary.current.jobs} jobs, {summary.current.snippets} snippets,{' '}
-                {summary.current.tracks} tracks, {summary.current.links} links
-              </Text>
+              <Text variant="body">Backup: {summary.next}</Text>
+              <Text variant="body">Now: {summary.current}</Text>
             </Stack>
           )}
           <Dialog.Footer>
@@ -174,7 +214,10 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
             <Button variant="secondary" onClick={() => restore('merge')}>
               Merge into my data
             </Button>
-            <Button onClick={() => restore('replace')}>Replace my data</Button>
+            {/* Replace overwrites everything: the app's one destructive style (secondary + danger). */}
+            <Button variant="secondary" tone="danger" onClick={() => restore('replace')}>
+              Replace my data
+            </Button>
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog>

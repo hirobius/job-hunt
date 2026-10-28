@@ -88,3 +88,20 @@ describe('buildIcs', () => {
     expect(unfold(late)).toContain('DTEND:20270101T003000');
   });
 });
+
+describe('stored data never starts a property of its own (security review 2026-10-28)', () => {
+  it('drops line breaks from a URL and a UID', () => {
+    const ics = buildIcs(
+      [
+        {
+          uid: 'a\r\nX-EVIL:1',
+          summary: 's',
+          date: '2030-01-01',
+          url: 'https://a.com/x\r\nATTACH:https://e.test',
+        },
+      ],
+      { now: new Date(0) },
+    );
+    expect(ics).not.toMatch(/\r\n(ATTACH|X-EVIL):/);
+  });
+});
