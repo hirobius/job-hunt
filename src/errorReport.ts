@@ -26,6 +26,9 @@ const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
 const URL_TAIL = /(https?:\/\/[^\s?#)]+)[?#][^\s)]*/g;
 // Session tokens (a magic link's fragment) never leave the browser, wherever a message echoes one.
 const TOKEN = /\b(access_token|refresh_token|provider_token|provider_refresh_token)=[^\s&#"')]*/g;
+// The same tokens bare: a JWT (header.payload.signature, base64url) or a Bearer header's value.
+const JWT = /\beyJ[\w-]+\.[\w-]+\.[\w-]*/g;
+const BEARER = /\b(Bearer )[^\s"')]+/g;
 
 // Double-quoted runs are where engines echo data (`"Acme Corp…" is not valid JSON`); single quotes
 // name code (`reading 'title'`), which is what a fix needs, so those stay.
@@ -35,6 +38,8 @@ const QUOTED = /"[^"\n]*"/g;
 export function scrubText(text: string, max: number): string {
   return text
     .replace(TOKEN, '$1=[token]')
+    .replace(BEARER, '$1[token]')
+    .replace(JWT, '[token]')
     .replace(EMAIL, '[email]')
     .replace(URL_TAIL, '$1')
     .replace(QUOTED, '"…"')

@@ -236,6 +236,15 @@ const notSaved = (trash: Removed[], jobs: Job[]) => {
   return trash.filter((r) => !saved.has(dedupKey(r.job.url)));
 };
 
+/** A template's variable values (#221): own string values under safe keys; none → undefined. */
+function cleanValues(raw: unknown): Record<string, string> | undefined {
+  if (!isRec(raw)) return undefined;
+  const entries = Object.entries(raw).filter(
+    (e): e is [string, string] => safeId(e[0]) && isStr(e[1]),
+  );
+  return entries.length ? Object.fromEntries(entries) : undefined;
+}
+
 function cleanSnippets(raw: unknown): Snippet[] {
   const out: Snippet[] = [];
   for (const s of arr(raw)) {
@@ -245,6 +254,8 @@ function cleanSnippets(raw: unknown): Snippet[] {
     if (typeof s.pinned === 'boolean') snip.pinned = s.pinned;
     if (Array.isArray(s.pillars)) snip.pillars = s.pillars.filter(isStr);
     if (s.migrated === true) snip.migrated = true;
+    const values = cleanValues(s.values);
+    if (values) snip.values = values;
     out.push(snip);
   }
   return out;
