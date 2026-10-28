@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Design-system job sources</title>
+    <style>
+      :root {
+        --bg: #f6f6f4;
+        --card: #fff;
+        --ink: #1b1b1a;
+        --muted: #5d5d58;
+        --line: #e2e2dc;
+        --ok: #1d6b3a;
+        --warn: #8a5a00;
+        --no: #a3261d;
+        --chip: #efefea;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #141413;
+          --card: #1f1f1d;
+          --ink: #ededea;
+          --muted: #a9a9a2;
+          --line: #33332f;
+          --ok: #6fcf8f;
+          --warn: #e8b54d;
+          --no: #f08a80;
+          --chip: #2a2a27;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #141413;
+        --card: #1f1f1d;
+        --ink: #ededea;
+        --muted: #a9a9a2;
+        --line: #33332f;
+        --ok: #6fcf8f;
+        --warn: #e8b54d;
+        --no: #f08a80;
+        --chip: #2a2a27;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.5 system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 24px 16px 64px;
+      }
+      h1 {
+        font-size: 26px;
+        line-height: 1.2;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 36px 0 12px;
+      }
+      h3 {
+        font-size: 16px;
+        margin: 0 0 6px;
+      }
+      p {
+        margin: 0 0 12px;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 12px;
+        padding: 16px;
+        margin: 0 0 12px;
+      }
+      .big {
+        font-size: 15px;
+        border-left: 4px solid var(--ok);
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 8px 0;
+      }
+      .chip {
+        background: var(--chip);
+        border-radius: 999px;
+        padding: 2px 10px;
+        font-size: 13px;
+      }
+      .ok {
+        color: var(--ok);
+      }
+      .warn {
+        color: var(--warn);
+      }
+      .no {
+        color: var(--no);
+      }
+      .num {
+        display: inline-block;
+        min-width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--ink);
+        color: var(--bg);
+        text-align: center;
+        line-height: 28px;
+        font-weight: 600;
+        margin-right: 8px;
+      }
+      ul {
+        margin: 6px 0 0;
+        padding-left: 20px;
+      }
+      li {
+        margin: 3px 0;
+      }
+      .scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        background: var(--card);
+        border-radius: 12px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14px;
+        min-width: 520px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        font-weight: 600;
+      }
+      code {
+        font-size: 13px;
+        background: var(--chip);
+        border-radius: 4px;
+        padding: 0 4px;
+        word-break: break-all;
+      }
+      details {
+        background: var(--card);
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin: 0 0 10px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      a {
+        color: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Design-system job sources</h1>
+      <p class="muted">
+        Researched 2026-10-28. Full detail: <code>docs/research/ds-job-sources.md</code>. “Live” =
+        checked from the build container that day.
+      </p>
+
+      <div class="card big">
+        <p>
+          <strong>The short version.</strong> Design-system jobs sit on company job boards
+          (Greenhouse, Lever, Ashby, Workday) and on two niche boards that read those. General
+          remote and design boards carry almost none: Remotive gave <strong>0 of 10</strong> for
+          “design system” (live).
+        </p>
+        <p style="margin: 0">
+          So getting <em>every</em> job means covering more companies, not adding more job boards.
+        </p>
+      </div>
+
+      <h2>Next 5 to add</h2>
+
+      <div class="card">
+        <h3><span class="num">1</span>designsystems.jobs, full list</h3>
+        <p>
+          The app reads its RSS, which shows only the newest <strong>20</strong>. Its sitemap lists
+          all <strong>112</strong> live jobs, and each job page carries structured job data (live).
+        </p>
+        <div class="chips">
+          <span class="chip">+92 jobs now</span><span class="chip">~10 new a week</span
+          ><span class="chip">No key</span><span class="chip">Server</span
+          ><span class="chip">Under a day</span>
+        </div>
+        <ul>
+          <li>
+            Read <code>sitemap.xml</code>, keep job URLs, fetch only new or changed ones (1 per
+            second).
+          </li>
+          <li>
+            Parse the page's <code>JobPosting</code> data: title, date, company + website, location,
+            type, description.
+          </li>
+          <li>A URL that leaves the sitemap counts as closed. Credit and link to the board.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3><span class="num">2</span>Design-system company lists → watched boards</h3>
+        <p>
+          designsystems.jobs has <strong>689</strong> company pages and awesome-design-systems lists
+          <strong>153</strong> (live). Find each company's job board and watch it, so every future
+          design-system role there comes straight from the source.
+        </p>
+        <div class="chips">
+          <span class="chip">Biggest long-term gain</span><span class="chip">No key</span
+          ><span class="chip">1–3 days</span>
+        </div>
+        <ul>
+          <li>Same flow as the Adele seed: name → board probe → watch.</li>
+          <li>
+            Also teach the server sync the 5 job-board types only the browser reads today (Workable,
+            Recruitee, SmartRecruiters, Teamtailor, Personio).
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3><span class="num">3</span>Into Design Systems job board</h3>
+        <p>
+          The largest curated list (225–259 roles, per its own report). It has a free, keyless
+          read-only connector for AI agents.
+        </p>
+        <div class="chips">
+          <span class="chip">+100–200 (est.)</span><span class="chip">No key</span
+          ><span class="chip warn">Ask the owner first</span>
+        </div>
+        <ul>
+          <li>Email the owner; build only on a yes. Until then, a link.</li>
+          <li>Daily read, new postings only, credit and link back.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3><span class="num">4</span>TheirStack free tier</h3>
+        <p>
+          Searches job titles across many companies' boards, including ones nobody watches yet.
+          Free: 200 jobs a month.
+        </p>
+        <div class="chips">
+          <span class="chip">New companies</span><span class="chip">Free key</span
+          ><span class="chip">Server</span><span class="chip">Under a day</span>
+        </div>
+        <ul>
+          <li>
+            Titles: “design system(s)”, “design technologist”. 20 rows every 3 days, stop at 180.
+          </li>
+          <li>
+            Each find also adds that company's board to the watch list, so it's free forever after.
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3><span class="num">5</span>Fix the HN freelancer thread</h3>
+        <p>
+          Bug (live): the monthly “Freelancer? Seeking freelancer?” thread changed poster in late
+          2025, so the app has read only the October 2025 thread since.
+        </p>
+        <div class="chips">
+          <span class="chip">+0–3 a month</span><span class="chip">A few lines</span>
+        </div>
+        <ul>
+          <li>Find the thread by its title, not its poster.</li>
+        </ul>
+      </div>
+
+      <h2>Ranking: new jobs per effort</h2>
+      <div class="scroll">
+        <table>
+          <tr>
+            <th>#</th>
+            <th>Source</th>
+            <th>New jobs</th>
+            <th>Effort</th>
+            <th>Key</th>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>designsystems.jobs full list</td>
+            <td>+92 now</td>
+            <td>Small</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Company lists → boards</td>
+            <td>High, ongoing</td>
+            <td>Medium</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Into Design Systems</td>
+            <td>+100–200</td>
+            <td>Small</td>
+            <td>No, needs OK</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>TheirStack</td>
+            <td>New companies</td>
+            <td>Small</td>
+            <td>Free</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>HN freelancer fix</td>
+            <td>+0–3/mo</td>
+            <td>Tiny</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Server sync, 5 more board types</td>
+            <td>Follows #2</td>
+            <td>Medium</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Gem job boards</td>
+            <td>Startups</td>
+            <td>Medium</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Himalayas</td>
+            <td>+2–8</td>
+            <td>Small</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>Adzuna</td>
+            <td>+30–150, many repeats</td>
+            <td>Medium</td>
+            <td>Free</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>Common Crawl / crt.sh company lists</td>
+            <td>Widest, mostly non-design</td>
+            <td>Large</td>
+            <td>No</td>
+          </tr>
+        </table>
+      </div>
+
+      <h2>Already in the app</h2>
+      <div class="card">
+        <p>
+          <strong>Browser:</strong> HN hiring + freelancer threads, Remotive, Jobicy, Remote OK
+          (off), SAM.gov; company boards on Greenhouse, Lever, Ashby, Workable, Recruitee,
+          SmartRecruiters, Teamtailor, Personio; company finders (GitHub orgs, YC list, Adele).
+        </p>
+        <p style="margin: 0">
+          <strong>Server sync (not deployed):</strong> Greenhouse, Lever, Ashby and the
+          designsystems.jobs RSS.
+        </p>
+      </div>
+
+      <h2>Every source checked</h2>
+
+      <details>
+        <summary>Niche design-system boards</summary>
+        <ul>
+          <li>
+            <strong>designsystems.jobs</strong>: 112 live, no terms page, robots allow all, server
+            only. <span class="ok">Add (#1)</span>
+          </li>
+          <li>
+            <strong>Into Design Systems</strong>: 225–259, keyless agent connector.
+            <span class="warn">Ask first (#3)</span>
+          </li>
+          <li>designbetter.careers: a few dozen, web pages only. Link.</li>
+          <li>
+            weloveproduct, @DSJobBoard, DS House, zeroheight/Supernova: none or dormant. Skip.
+          </li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Design boards</summary>
+        <ul>
+          <li>
+            Dribbble, Behance, Working Not Working, UXJobsBoard, IxDA, Smashing, Uxcel: under 10
+            each, no feed. <span class="no">Links only</span>
+          </li>
+          <li>Coroflot, Authentic Jobs: RSS, 0–3 each. Maybe later.</li>
+          <li>Krop: closed in 2024.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Remote boards</summary>
+        <ul>
+          <li>Remotive: 0 found (live). In app.</li>
+          <li>Jobicy, Remote OK: 0–3. In app.</li>
+          <li>Himalayas: 2–8, keyless, read terms first. #8.</li>
+          <li>We Work Remotely, 4dayweek, Working Nomads, The Muse: 0–3 each. Low value.</li>
+          <li>Arc, Remote.co, JustRemote, NoDesk, Arbeitnow: none. Skip.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Startup boards</summary>
+        <ul>
+          <li>
+            Wellfound, Otta/Welcome to the Jungle, Built In, Levels.fyi: 3–15 each, no API,
+            Wellfound bans bots. <span class="no">Links only</span>
+          </li>
+          <li>YC Work at a Startup: use the community company list (in app).</li>
+          <li>HN Jobs: 0 ever. Skip.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Aggregators</summary>
+        <ul>
+          <li>
+            <strong>TheirStack</strong>: best title search, free 200/month.
+            <span class="ok">Add (#4)</span>
+          </li>
+          <li>
+            Adzuna: free key, 2,500 calls a month, must show “Jobs by Adzuna”, commercial use needs
+            a licence. Maybe.
+          </li>
+          <li>Jooble, Careerjet: free keys, unclear terms. Maybe.</li>
+          <li>Fantastic.jobs: about $1 per 1,000 jobs. Cheapest paid.</li>
+          <li>Google Jobs resellers (SerpApi etc.): Google is suing SerpApi. Risky.</li>
+          <li>
+            <span class="no">Not allowed:</span> LinkedIn (incl. its guest search), Indeed,
+            Glassdoor, scraping Google, JobSpy-style scrapers.
+          </li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Company job-board systems (ATS)</summary>
+        <ul>
+          <li>
+            Greenhouse, Lever, Ashby: keyless, browser-safe (live: Figma 142, Spotify 89, Ramp 172).
+            In app and server.
+          </li>
+          <li>Workable, Recruitee, SmartRecruiters: keyless. Browser only today.</li>
+          <li>
+            Teamtailor: the app's path isn't documented anywhere; check it. Personio: add the
+            documented <code>/xml</code> feed as a fallback.
+          </li>
+          <li>Gem: public job board API, startup-heavy. #7.</li>
+          <li>BambooHR, Breezy, Pinpoint: keyless, small companies. Low.</li>
+          <li>Rippling, JazzHR, Dover, Polymer: no confirmed feed. Skip.</li>
+          <li>
+            Workday: undocumented and bot-protected. <span class="no">Links only</span>. iCIMS,
+            Jobvite, Taleo, SuccessFactors: customer keys. Links only.
+          </li>
+          <li>
+            <strong>Finding companies:</strong> Common Crawl index (Greenhouse, Lever, Ashby,
+            Workable, Gem) and certificate logs (Recruitee, Teamtailor, BambooHR, Breezy, Personio),
+            run offline, then confirm with the app's probe.
+          </li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Community</summary>
+        <ul>
+          <li>HN “Who is hiring?”: 1–2 a month (live). In app. Freelancer thread: broken (#5).</li>
+          <li>
+            Reddit: needs sign-in for the API; commercial use needs enterprise access. Under 5 a
+            month. Skip.
+          </li>
+          <li>
+            Slack and Discord job channels: <span class="no">not allowed</span> without the
+            community's own bot.
+          </li>
+          <li>Newsletters: no job listings found.</li>
+          <li>Bluesky search: keyless, low volume. Maybe as an experiment.</li>
+          <li>LinkedIn posts, X: <span class="no">not allowed</span>.</li>
+          <li>
+            GitHub design-system orgs: in app (company finder). awesome-design-systems: add as a
+            seed (#2).
+          </li>
+        </ul>
+      </details>
+    </main>
+  </body>
+</html>
