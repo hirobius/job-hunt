@@ -9,7 +9,7 @@ import { fetchMastodon } from './sources/mastodon';
 import { fetchRemoteOk } from './sources/remoteok';
 import { FetchError, type FetchJson } from './sources/http';
 import { fetchProxied } from './sources/proxied';
-import { PROXIED_SEARCH, PROXIED_SOURCES, type ProxiedId } from './sources/proxiedIds';
+import { PROXIED_SEARCH, PROXIED_SOURCES } from './sources/proxiedIds';
 import { fetchRemotive } from './sources/remotive';
 import { fetchSam, SourceMessageError, type SamRequest } from './sources/sam';
 import { SOURCE_LABEL, type Posting } from './types';
