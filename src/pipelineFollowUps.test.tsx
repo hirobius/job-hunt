@@ -22,7 +22,8 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob } from './store';
+import { addJob, addJobDetailed, getAllJobs, jobIdOf, markAppliedByUrl, removeJob } from './store';
+import { ymd } from './jobEvents';
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
@@ -261,6 +262,24 @@ describe('empty sections render nothing (#236)', () => {
     expect(within(row).queryByText('Follow-up due')).toBeNull();
     expect(within(row).queryByRole('button')).toBeNull();
     expect(screen.queryByRole('region', { name: /^Next 7 days/ })).toBeNull();
+  });
+});
+
+describe('a solicitation’s response deadline (#308)', () => {
+  const inDays = (n: number) => {
+    const d = new Date();
+    return ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
+  };
+  it('a Saved job due to respond today, tomorrow or within the week is under Follow up with its day; day 8 is not', () => {
+    addJobDetailed('https://sam.gov/opp/a/view', { label: 'Bid today', deadline: inDays(0) });
+    addJobDetailed('https://sam.gov/opp/b/view', { label: 'Bid tomorrow', deadline: inDays(1) });
+    addJobDetailed('https://sam.gov/opp/c/view', { label: 'Bid next week', deadline: inDays(7) });
+    renderApp();
+    const rows = within(followUps()).getAllByRole('listitem');
+    expect(rows.map(titleOf)).toEqual(['Bid today', 'Bid tomorrow']);
+    expect(rows[0]).toHaveTextContent('Respond by Today');
+    expect(rows[1]).toHaveTextContent('Respond by Tomorrow');
+    expect(followUps()).not.toHaveTextContent('Bid next week');
   });
 });
 

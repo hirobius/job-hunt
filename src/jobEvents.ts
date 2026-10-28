@@ -54,13 +54,19 @@ export function restoreEvent(events: readonly JobEvent[] | undefined, ev: JobEve
   return [...list, ev].sort(cmpEvents);
 }
 
-/** Local YYYY-MM-DD on which the job's follow-up falls due, or null when not tracked / archived. */
+/** A saved solicitation's (#275) response deadline, today or later; null once it has passed (there
+ *  is nothing left to respond to), once applied, or when set aside. */
+export function respondByDate(job: Job, now: Date): string | null {
+  if (job.archived || !job.deadline || deriveJobState(job, now).status !== 'Saved') return null;
+  return job.deadline >= ymd(now) ? job.deadline : null;
+}
+
+/** Local YYYY-MM-DD on which the job's follow-up falls due, or null when not tracked / archived.
+ *  A saved solicitation follows up on its response deadline until it is applied. */
 export function followUpDate(job: Job, now: Date): string | null {
   if (job.archived) return null;
   const { status, followUp } = deriveJobState(job, now);
-  // A saved solicitation (#275) follows up on its response deadline until it is applied; once
-  // the deadline has passed there is nothing left to respond to.
-  if (status === 'Saved' && job.deadline) return job.deadline >= ymd(now) ? job.deadline : null;
+  if (status === 'Saved' && job.deadline) return respondByDate(job, now);
   if (!followUp.tracked) return null;
   const ref = job.followUp || job.applied;
   const m = ref ? DATE_RE.exec(ref.slice(0, 10)) : null;
@@ -104,7 +110,7 @@ export function jobIcsEvents(job: Job, now: Date): IcsEvent[] {
   if (fu) {
     out.push({
       uid: `${key}-followup`,
-      summary: `Follow up: ${job.label}${where}`,
+      summary: `${respondByDate(job, now) ? 'Respond by' : 'Follow up'}: ${job.label}${where}`,
       date: fu < today ? today : fu,
       description: job.url,
       url: job.url,
@@ -163,6 +169,22 @@ export function upcomingEvents(
 export interface DueFollowUp {
   job: Job;
   dueDate: string;
+}
+
+/** Saved solicitations whose response deadline falls from today through the next `days - 1`
+ *  days, soonest first (#308). `dueDate` is the deadline. */
+export function respondByJobs(
+  jobs: readonly Job[],
+  now: Date,
+  days = UPCOMING_DAYS,
+): DueFollowUp[] {
+  const end = ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + days - 1));
+  const out: DueFollowUp[] = [];
+  for (const job of jobs) {
+    const dueDate = respondByDate(job, now);
+    if (dueDate && dueDate <= end) out.push({ job, dueDate });
+  }
+  return out.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
 
 /** Jobs whose follow-up is due now, most overdue first. */

@@ -4,7 +4,7 @@
 // DST zone with the clock faked; the zone is put back after.
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { daysSince, deriveJobState, snoozeFollowUp } from './jobState';
-import { dueFollowUps, followUpDate, jobIcsEvents, ymd } from './jobEvents';
+import { dueFollowUps, followUpDate, jobIcsEvents, respondByJobs, ymd } from './jobEvents';
 import type { Job } from './types';
 
 const job = (over: Partial<Job>): Job => ({
@@ -81,5 +81,41 @@ describe('a solicitation’s deadline as its follow-up date', () => {
     expect(followUpDate(saved('2026-10-26'), NOW)).toBeNull();
     // No "Follow up" event moved up to today for an expired solicitation.
     expect(jobIcsEvents(saved('2026-10-26'), NOW)).toEqual([]);
+  });
+});
+
+describe('a solicitation’s deadline on the Pipeline (#308)', () => {
+  const saved = (deadline: string, over: Partial<Job> = {}) =>
+    job({ url: `https://sam.gov/opp/${deadline}/view`, status: 'Saved', deadline, ...over });
+  const NOW = new Date(2026, 9, 27, 15, 0);
+
+  // [deadline, listed]: today and the next 6 days are in; day 8 (a week out) is not.
+  const cases: [string, boolean][] = [
+    ['2026-10-26', false], // yesterday: passed
+    ['2026-10-27', true], // today
+    ['2026-10-28', true], // tomorrow
+    ['2026-11-02', true], // day 7
+    ['2026-11-03', false], // day 8
+  ];
+  it.each(cases)('deadline %s → listed %s', (deadline, listed) => {
+    expect(respondByJobs([saved(deadline)], NOW).map((d) => d.dueDate)).toEqual(
+      listed ? [deadline] : [],
+    );
+  });
+
+  it('only Saved jobs that are not set aside, soonest first', () => {
+    const jobs = [
+      saved('2026-10-30'),
+      saved('2026-10-28'),
+      saved('2026-10-29', { status: 'Applied', applied: '2026-10-27' }),
+      saved('2026-10-31', { archived: true }),
+    ];
+    expect(respondByJobs(jobs, NOW).map((d) => d.dueDate)).toEqual(['2026-10-28', '2026-10-30']);
+  });
+
+  it('reads "Respond by" in the calendar, not "Follow up"', () => {
+    const [ev] = jobIcsEvents(saved('2026-10-30', { label: 'Fab shop bid' }), NOW);
+    expect(ev.summary).toBe('Respond by: Fab shop bid');
+    expect(ev.date).toBe('2026-10-30');
   });
 });

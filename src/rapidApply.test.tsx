@@ -28,6 +28,7 @@ import { getSnippets, replaceSnippets } from './copyDeckStore';
 import { addDeviceDataIfAsked } from './test/renderAccount';
 import { notifySaved, dismissNotice, saveWithNotice } from './saveNotice';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
+import { ymd } from './jobEvents';
 
 const A = 'https://acme.example/jobs/1';
 const B = 'https://bolt.example/jobs/2';
@@ -204,6 +205,18 @@ describe('To apply queue and Apply mode', () => {
     await user.click(screen.getByRole('button', { name: 'Mark applied' }));
     expect(header).toHaveTextContent('Applied today');
     expect(header).not.toHaveTextContent(/Saved \d+ days ago/);
+  });
+
+  it('a solicitation says when to respond by, not when to follow up (#308)', async () => {
+    const d = new Date();
+    updateJob(A, { deadline: ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const header = (await screen.findByRole('heading', { name: 'Acme Designer' })).closest(
+      'header',
+    )!;
+    expect(header).toHaveTextContent('Respond by Tomorrow');
+    expect(screen.queryByText(/Follow up on/)).toBeNull();
   });
 
   it('a job opened already applied shows its Applied note still: only Mark applied moves it', async () => {

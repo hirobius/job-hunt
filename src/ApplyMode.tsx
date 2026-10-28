@@ -45,7 +45,7 @@ import { scrollToTop } from './scrollMemory';
 import { useRemembered } from './viewMemory';
 import { titleOf } from './jobRow';
 import { toApplyQueue } from './applyQueue';
-import { followUpDate } from './jobEvents';
+import { followUpDate, respondByDate } from './jobEvents';
 import { dayLabel } from './dayLabel';
 import {
   KIT_FIELDS,
@@ -178,6 +178,8 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   // rev-3 B: company · location · the applied date once applied, else when it was saved.
   const when = statusAgo(job);
   const dueOn = followUpDate(job, new Date());
+  // A saved solicitation's deadline is a day to respond by, not to follow up on (#308).
+  const respondBy = respondByDate(job, new Date());
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal">
@@ -204,9 +206,17 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
           metadata={<JobBadges job={job} />}
           title={titleOf(job)}
           description={
-            job.company || job.location || when ? (
+            job.company || job.location || when || respondBy ? (
               // PageHeader wraps the description in a <p>: a span keeps the HTML valid.
-              <MetaCaption as="span" items={[company, job.location?.trim(), when]} />
+              <MetaCaption
+                as="span"
+                items={[
+                  company,
+                  job.location?.trim(),
+                  when,
+                  respondBy && `Respond by ${dayLabel(respondBy, new Date())}`,
+                ]}
+              />
             ) : undefined
           }
         />
