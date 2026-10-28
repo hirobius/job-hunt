@@ -450,6 +450,52 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(getAllJobs()[0].status).toBe('Applied');
   });
 
+  it('an ?applied= link says what it did, with Open (#333)', async () => {
+    window.history.replaceState(null, '', '/?applied=https://acme.example/jobs/9&t=Designer');
+    renderApp();
+    expect(await screen.findByText('Marked applied')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(getAllJobs()[0].status).toBe('Applied');
+  });
+
+  it('a ?status= link says what it did, with Open (#333)', async () => {
+    window.history.replaceState(null, '', '/?status=Interviewing&u=https://acme.example/jobs/9');
+    renderApp();
+    expect(await screen.findByText('Set to Interviewing')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(window.location.hash).toBe('#/queue');
+    expect(getAllJobs()[0].status).toBe('Interviewing');
+  });
+
+  it('a ?status= link with an unknown status says so and leaves no params behind (#333)', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/?status=Bogus&u=https://acme.example/jobs/9&keep=1#/queue',
+    );
+    renderApp();
+    expect(await screen.findByText(/“Bogus” is not a status/)).toBeInTheDocument();
+    expect(window.location.search).toBe('?keep=1');
+    expect(window.location.hash).toBe('#/queue');
+    expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('a ?status= link with no job link says so and leaves no params behind (#333)', async () => {
+    window.history.replaceState(null, '', '/?status=Applied');
+    renderApp();
+    expect(await screen.findByText(QUICK_ADD_INVALID)).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('a lone ?t= or ?u= is cleaned from the URL too (#333)', () => {
+    window.history.replaceState(null, '', '/?t=Designer&u=https://acme.example/jobs/9');
+    renderApp();
+    expect(window.location.search).toBe('');
+  });
+
   it('an expired sign-in link says so in a toast and leaves no error in the URL', async () => {
     await act(() => new Promise((r) => setTimeout(r, 0)));
     window.history.replaceState(

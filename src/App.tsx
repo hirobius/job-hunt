@@ -30,17 +30,22 @@ import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInDialog from './account/SignInDialog';
-import { markAppliedByUrl, setStatusByUrl, useJobs } from './store';
+import { useJobs } from './store';
 import { useSnippets } from './copyDeckStore';
 import { migrateSnippetStore } from './outreachTemplates';
 import { useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
 import StaleBuildNotice from './StaleBuildNotice';
 import { authLinkErrorMessage } from './account/authLinkError';
-import { QUICK_ADD_INVALID, saveWithNotice } from './saveNotice';
+import {
+  QUICK_ADD_INVALID,
+  quickAddBadStatus,
+  saveWithNotice,
+  setStatusWithNotice,
+} from './saveNotice';
 import { useCategories } from './curation/curationStore';
 import { migrateSystemsOnly, SYSTEMS_ONLY_NOTICE } from './feed/systemsOnly';
-import { STATUSES } from './types';
+import { STATUSES, type Status } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
 import { PageShell } from './hds-gaps/PageShell';
@@ -66,6 +71,8 @@ const DOCUMENTS_ROUTE = 'copy-deck';
 const HOME_ROUTE = 'discover';
 const QUICK_ADD_LANDING = 'queue';
 const APPLY_ROUTE = 'apply';
+// The quick-add link's params (shortcut, bookmarklet, Gmail-scan links): read once, then removed.
+const QUICK_ADD_PARAMS = ['add', 'applied', 'status', 'u', 't', 'title'];
 // The old Trades tab's slug: its bookmarks still land on Companies, like an empty hash.
 const LEGACY_HOME = 'apprenticeships';
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
@@ -174,22 +181,39 @@ export default function App() {
       applied = qp.get('applied'),
       st = qp.get('status'),
       su = qp.get('u');
-    const setsStatus = !!(st && su && (STATUSES as string[]).includes(st));
-    if (add || applied || setsStatus) {
-      ['add', 'applied', 'status', 'u', 't', 'title'].forEach((k) => qp.delete(k));
+    const knownStatus = !!st && (STATUSES as string[]).includes(st);
+    const setsStatus = knownStatus && !!su;
+    const warn = (title: string) => toast({ title, tone: 'warning', duration: 10000 });
+    if (QUICK_ADD_PARAMS.some((k) => qp.has(k))) {
+      // Every quick-add param leaves the URL, whether the link was usable or not (#333).
+      QUICK_ADD_PARAMS.forEach((k) => qp.delete(k));
       const s = qp.toString();
+      const acts = !!(add || applied || setsStatus);
       // Land first, then save: the save notice drops itself on any move away from the page it was
       // raised on, so raised before the landing it was gone at once. Through the route seam, so it
-      // knows the hash it is on (a sheet's pop would wait otherwise).
+      // knows the hash it is on (a sheet's pop would wait otherwise). A link that does nothing
+      // stays on the page it named.
       navigate(
-        { tab: QUICK_ADD_LANDING, sub: null, pillar: null, jobId: null, from: null, section: null },
+        acts
+          ? {
+              tab: QUICK_ADD_LANDING,
+              sub: null,
+              pillar: null,
+              jobId: null,
+              from: null,
+              section: null,
+            }
+          : getRoute().tab
+            ? getRoute()
+            : { tab: HOME_ROUTE },
         true,
         { search: s ? '?' + s : '' },
       );
-      if (add && saveWithNotice(add, label) === 'invalid')
-        toast({ title: QUICK_ADD_INVALID, tone: 'warning', duration: 10000 });
-      if (applied) markAppliedByUrl(applied, label);
-      if (setsStatus) setStatusByUrl(su!, st as never, label);
+      if (add && saveWithNotice(add, label) === 'invalid') warn(QUICK_ADD_INVALID);
+      if (applied && !setStatusWithNotice(applied, 'Applied', label)) warn(QUICK_ADD_INVALID);
+      if (setsStatus && !setStatusWithNotice(su!, st as Status, label)) warn(QUICK_ADD_INVALID);
+      if (st && !knownStatus) warn(quickAddBadStatus(st));
+      else if (st && !su) warn(QUICK_ADD_INVALID);
     } else if (linkError) {
       // An expired or refused sign-in link (#error=…): say so, and replace the error with Companies.
       toast({ title: linkError, tone: 'warning', duration: 10000 });
