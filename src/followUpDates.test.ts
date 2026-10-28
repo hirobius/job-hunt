@@ -8,6 +8,7 @@ import {
   dueFollowUps,
   followUpDate,
   jobIcsEvents,
+  nextEventEnd,
   respondByJobs,
   upcomingEvents,
   ymd,
@@ -170,6 +171,12 @@ describe('a timestamped applied / followUp reads its local day (#310)', () => {
 
   it('keeps a bare day and drops what is not a date', () => {
     expect(localDay('2026-10-20')).toBe('2026-10-20');
+    // A day with trailing words keeps its day, as the old 10-character read did.
+    expect(localDay('2026-10-20 (approx)')).toBe('2026-10-20');
+    // A bare day exported as UTC midnight is that day, not the evening before west of UTC.
+    inZone('America/Los_Angeles', () => {
+      expect(localDay('2026-10-20T00:00:00.000Z')).toBe('2026-10-20');
+    });
     expect(localDay('soon')).toBeUndefined();
     expect(localDay(undefined)).toBeUndefined();
   });
@@ -209,6 +216,16 @@ describe('Next 7 days drops a timed event once it has ended (#311)', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 9, 27, h, mi));
     expect(upcomingEvents([withEvents], new Date()).map((e) => e.id)).toEqual(ids);
+  });
+
+  it('names the next moment the list changes: the soonest end still to come today', () => {
+    expect(nextEventEnd([withEvents], new Date(2026, 9, 27, 8, 0))).toEqual(
+      new Date(2026, 9, 27, 10, 0),
+    );
+    expect(nextEventEnd([withEvents], new Date(2026, 9, 27, 10, 0))).toEqual(
+      new Date(2026, 9, 27, 13, 30),
+    );
+    expect(nextEventEnd([withEvents], new Date(2026, 9, 27, 13, 30))).toBeNull();
   });
 
   it('keeps tomorrow’s timed events whatever the time today', () => {

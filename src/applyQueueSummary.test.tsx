@@ -51,6 +51,19 @@ describe('the agenda keeps up with the clock (#309)', () => {
     expect(nextDays()).toHaveTextContent('Today, all day');
   });
 
+  it('a call that ends while the tab is open leaves Next 7 days then (#311)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 27, 13, 50));
+    const call = {
+      ...applied,
+      events: [{ id: 'c', kind: 'call', date: '2026-10-27', time: '13:00', durationMin: 60 }],
+    } as Job;
+    render(<ApplyQueueSummary jobs={[call]} />);
+    expect(nextDays()).toHaveTextContent('Today, 1:00 PM');
+    act(() => vi.advanceTimersByTime(10 * 60_000));
+    expect(screen.queryByRole('region', { name: /^Next 7 days/ })).toBeNull();
+  });
+
   it('coming back to the tab reads the clock again', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 26, 12, 0));

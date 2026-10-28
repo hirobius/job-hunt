@@ -19,7 +19,7 @@ const jobs$ = (n: number) => `${n} ${n === 1 ? 'job' : 'jobs'}`;
 export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
   const queue = useMemo(() => toApplyQueue(jobs), [jobs]);
   // Re-read at midnight and on return to the tab, so the agenda never shows yesterday (#309).
-  const now = useAgendaNow();
+  const now = useAgendaNow(jobs);
   // Every distinct company waiting, one mark each (their logos, else their letters); the group
   // shows 3 and "+N" for the rest.
   const waiting: Job[] = [];

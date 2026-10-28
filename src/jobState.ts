@@ -38,9 +38,13 @@ export function normSnooze(s: unknown): string | undefined {
  *  falls due agree in any time zone. */
 export function localDay(s: string | undefined): string | undefined {
   if (!s) return undefined;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const day = /^\d{4}-\d{2}-\d{2}/.exec(s)?.[0];
+  // A bare day, or one exported as UTC midnight (`toISOString()` of a date): the day as written.
+  if (day && (s.length === 10 || /^T00:00(:00(\.0+)?)?Z$/.test(s.slice(10)))) return day;
   const t = Date.parse(s);
-  return isNaN(t) ? undefined : today(new Date(t));
+  if (!isNaN(t)) return today(new Date(t));
+  // A day with words after it ("2026-10-20 (approx)") keeps its day.
+  return day;
 }
 
 /** Whole calendar days (local) between an ISO-ish date string and `now`; null for missing/invalid

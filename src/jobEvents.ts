@@ -1,6 +1,6 @@
 // Interview / call log on a Job, plus the calendar views derived from it: .ics export events and
 // the Pipeline's agenda (due follow-ups, the next 7 days; Today's until #236). Pure and DOM-free; `now` is always injected (local time).
-import type { IcsEvent } from './ics';
+import { DEFAULT_EVENT_MIN, type IcsEvent } from './ics';
 import { deriveJobState, FOLLOWUP_DAYS, localDay } from './jobState';
 import type { Job, JobEvent, JobEventKind } from './types';
 
@@ -135,16 +135,34 @@ export interface AgendaItem {
   company?: string;
 }
 
-/** How long a timed event is taken to last when it has no duration. */
-export const DEFAULT_EVENT_MIN = 60;
-
-/** A timed event today whose end (time + duration) has passed. All-day events last the day. */
-function endedToday(e: JobEvent, now: Date, today: string): boolean {
-  if (e.date !== today || !e.time || !TIME_RE.test(e.time)) return false;
+/** When a timed event today ends (time + duration); null for all-day events, which last the
+ *  day, and for any other day's. */
+function endToday(e: JobEvent, now: Date, today: string): Date | null {
+  if (e.date !== today || !e.time || !TIME_RE.test(e.time)) return null;
   const [h, m] = e.time.split(':').map(Number);
   const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
-  end.setMinutes(end.getMinutes() + (e.durationMin || DEFAULT_EVENT_MIN));
-  return now >= end;
+  end.setMinutes(end.getMinutes() + (e.durationMin ?? DEFAULT_EVENT_MIN));
+  return end;
+}
+
+const endedToday = (e: JobEvent, now: Date, today: string) => {
+  const end = endToday(e, now, today);
+  return end != null && now >= end;
+};
+
+/** The soonest end still to come of a timed event today: the next moment Next N days changes
+ *  before midnight, or null. */
+export function nextEventEnd(jobs: readonly Job[], now: Date): Date | null {
+  const today = ymd(now);
+  let next: Date | null = null;
+  for (const job of jobs) {
+    if (job.archived) continue;
+    for (const e of job.events ?? []) {
+      const end = endToday(e, now, today);
+      if (end && end > now && (!next || end < next)) next = end;
+    }
+  }
+  return next;
 }
 
 /** Interviews, calls and other events from today through the next `days - 1` days (a rolling
