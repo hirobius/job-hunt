@@ -17,11 +17,16 @@ export const SAM_SEARCH_URL = 'https://api.sam.gov/opportunities/v2/search';
  *  key's daily SAM.gov quota. */
 export const RATE_LIMIT = 20;
 export const RATE_WINDOW_MS = 10 * 60 * 1000;
-/** A search's answer is reused this long (SAM.gov's free keys allow few requests a day). */
+/** Each code's answer (per state) is reused this long, in any set of codes (SAM.gov's free keys
+ *  allow few requests a day, so a new mix of known codes must not spend them again). */
 export const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+/** SAM.gov calls one function instance makes in a rolling day, across all callers: varying the
+ *  codes or the state from many IPs can't spend the key's whole quota. */
+export const DAILY_UPSTREAM_CAP = 100;
+const DAY_MS = 24 * 60 * 60 * 1000;
 /** Bounded memory: the oldest entries go first. */
 const MAX_CALLERS = 2000;
-const MAX_CACHED = 200;
+const MAX_CACHED = 500;
 const UPSTREAM_TIMEOUT_MS = 12_000;
 /** Results per NAICS code. */
 const PAGE = 100;
@@ -57,11 +62,9 @@ const samDate = (t: number) => {
   return `${p(d.getUTCMonth() + 1)}/${p(d.getUTCDate())}/${d.getUTCFullYear()}`;
 };
 
-/** The caller's IP as Vercel's edge sets it (the first hop of x-forwarded-for). */
-const callerOf = (req: Request) =>
-  (req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown')
-    .trim()
-    .slice(0, 64);
+/** The caller's IP as Vercel's edge sets it. Never x-forwarded-for: a client can send its own
+ *  first hop, so without x-real-ip every caller shares one bucket. */
+const callerOf = (req: Request) => (req.headers.get('x-real-ip') || 'unknown').trim().slice(0, 64);
 
 /** What a SAM.gov failure means to the person reading the source row. */
 function upstreamMessage(status: number): string {
@@ -80,7 +83,8 @@ class Upstream extends Error {
 
 export function createSamHandler({ getKey, fetchImpl = fetch, now = Date.now }: SamHandlerDeps) {
   const calls = new Map<string, number[]>();
-  const cache = new Map<string, { at: number; body: SamAnswer }>();
+  const cache = new Map<string, { at: number; rows: unknown[] }>();
+  const upstream: number[] = [];
 
   const limited = (caller: string, t: number): number | null => {
     const recent = (calls.get(caller) ?? []).filter((at) => t - at < RATE_WINDOW_MS);
@@ -144,16 +148,33 @@ export function createSamHandler({ getKey, fetchImpl = fetch, now = Date.now }: 
     const key = getKey()?.trim();
     if (!key) return fail(503, NO_KEY_MESSAGE);
 
-    const cacheKey = `${[...naics].sort().join(',')}|${state ?? ''}`;
-    const hit = cache.get(cacheKey);
-    if (hit && t - hit.at < CACHE_TTL_MS) return json(200, hit.body);
+    const keyOf = (code: string) => `${code}|${state ?? ''}`;
+    const fresh = (code: string) => {
+      const hit = cache.get(keyOf(code));
+      return hit && t - hit.at < CACHE_TTL_MS ? hit.rows : null;
+    };
+    const missing = naics.filter((code) => !fresh(code));
+    while (upstream.length && t - upstream[0] >= DAY_MS) upstream.shift();
+    if (upstream.length + missing.length > DAILY_UPSTREAM_CAP)
+      return fail(429, 'Contract searches for today are used up: try again tomorrow.');
+    upstream.push(...missing.map(() => t));
 
-    let rows: unknown[][];
-    try {
-      rows = await Promise.all(naics.map((code) => readOne(key, code, state, t)));
-    } catch (e) {
-      return fail(502, upstreamMessage(e instanceof Upstream ? e.status : 502));
-    }
+    // Each answered code is kept, so a retry after a partial failure only asks for the rest.
+    const reads = await Promise.allSettled(
+      missing.map(async (code) => {
+        const rows = await readOne(key, code, state, t);
+        cache.delete(keyOf(code));
+        cache.set(keyOf(code), { at: t, rows });
+        while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value as string);
+      }),
+    );
+    const failed = reads.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failed)
+      return fail(
+        502,
+        upstreamMessage(failed.reason instanceof Upstream ? failed.reason.status : 502),
+      );
+    const rows = naics.map((code) => fresh(code) ?? []);
     const today = new Date(t).toISOString().slice(0, 10);
     const seen = new Set<string>();
     const opportunities: SamOpportunity[] = [];
@@ -164,9 +185,6 @@ export function createSamHandler({ getKey, fetchImpl = fetch, now = Date.now }: 
       opportunities.push(o);
     }
     const body: SamAnswer = { opportunities };
-    cache.delete(cacheKey);
-    cache.set(cacheKey, { at: t, body });
-    while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value as string);
     return json(200, body);
   };
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fetchDesignSystemsJobsFeed, fetchGreenhouse, fetchLever, stripHtml } from './sources';
-import { MAX_WATCHED_PER_TRACK, readAll, readWatched, scoreBatch } from './sync';
+import { MAX_WATCHED_PER_TRACK, forWatcher, readAll, readWatched, scoreBatch } from './sync';
 import { designSystemsTrack } from './track-config';
 
 const json = (body: unknown, status = 200) =>
@@ -246,5 +246,24 @@ describe('readWatched (security review: one select stopped at 1000 rows, no per-
     }));
     expect(rows).toEqual([]);
     expect(error).toBe('boom');
+  });
+});
+
+describe('a board several users watch', () => {
+  it("gives each watcher their own company name, never the first watcher's", async () => {
+    const gh = async (u: string) => json(GH[u.split('/boards/')[1].split('/')[0]] ?? {}, 200);
+    const [r] = await readAll(
+      [{ company: 'Stripe: verify at evil.example', ats: 'greenhouse', slug: 'stripe' }],
+      {
+        fetch: gh,
+        rss: false,
+      },
+    );
+    expect(r.postings.length).toBeGreaterThan(0);
+    const mine = forWatcher(r, { company: 'Stripe', ats: 'greenhouse', slug: 'stripe' });
+    expect(mine.postings.every((p) => p.company === 'Stripe')).toBe(true);
+    expect(mine.company?.company).toBe('Stripe');
+    // The read itself is left as it was (the next watcher maps it again).
+    expect(r.postings[0].company).toBe('Stripe: verify at evil.example');
   });
 });

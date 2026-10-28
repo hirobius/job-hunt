@@ -161,3 +161,11 @@ describe('fetchBoard: Workable and Recruitee', () => {
     await expect(fetchBoard({ kind: 'recruitee', slug: 'acme' }, async () => [])).rejects.toThrow();
   });
 });
+
+describe('Recruitee links (security review 2026-10-28)', () => {
+  it('drops a posting whose link is not http(s)', () => {
+    expect(
+      parseRecruiteeJob({ id: 1, title: 'x', careers_url: 'javascript:alert(1)' }, 'acme'),
+    ).toBeNull();
+  });
+});
