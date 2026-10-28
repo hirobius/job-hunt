@@ -11,7 +11,13 @@
 // Vault secret holds), so the function works before the dashboard secret is set.
 // Deploy and secrets: README.md beside this file.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
-import { boardOf, readAll, scoreBatch, type ReadOutcome } from '../../../src/tracks/sync.ts';
+import {
+  boardOf,
+  readAll,
+  readWatched,
+  scoreBatch,
+  type ReadOutcome,
+} from '../../../src/tracks/sync.ts';
 import type { WatchedCompany } from '../../../src/tracks/sources.ts';
 import { designSystemsTrack, type TrackConfig } from '../../../src/tracks/track-config.ts';
 
@@ -198,12 +204,18 @@ Deno.serve(async (req) => {
   });
   const runStart = body.runStart ?? new Date().toISOString();
 
-  const { data, error } = await db
-    .from('watched_companies')
-    .select('id, user_id, track_slug, company, ats, slug')
-    .eq('enabled', true);
-  if (error) return json({ error: error.message }, 500);
-  const watched = ((data ?? []) as WatchedRow[]).filter((w) => TRACKS[w.track_slug]);
+  // Paged (one select stops at 1000 rows) and capped per user and track (readWatched).
+  const { rows, error } = await readWatched<WatchedRow>(
+    async (from, to) =>
+      (await db
+        .from('watched_companies')
+        .select('id, user_id, track_slug, company, ats, slug')
+        .eq('enabled', true)
+        .order('id')
+        .range(from, to)) as { data: WatchedRow[] | null; error: { message: string } | null },
+  );
+  if (error) return json({ error }, 500);
+  const watched = rows.filter((w) => TRACKS[w.track_slug]);
 
   // Each board once, however many users watch it; who watches each board.
   const distinct = new Map<string, WatchedRow>();
