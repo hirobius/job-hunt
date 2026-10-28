@@ -166,6 +166,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
   const company = useCompany(slug);
   usePageTitle(company?.name ?? 'Company');
   const back = useBack(PIPELINE, 'Pipeline');
+  const route = useRoute();
   // Read the context directly: this page also renders on its own in tests, outside the provider.
   const settled = useContext(CloudSyncContext)?.settled ?? true;
   if (!company && !settled) return <CompanyPageSkeleton />;
@@ -237,7 +238,13 @@ export default function CompanyPage({ slug }: { slug: string }) {
                 <PanelRow key={d.id}>
                   <Stack gap="px2">
                     <Text variant="ui" as="span">
-                      {d.title || kindLabel(d)}
+                      {/* One tap to the editor, whose Back names this company (return paths). */}
+                      <InlineLink
+                        href={linkTo({ tab: 'copy-deck', sub: encodeURIComponent(d.id) }, route)}
+                        externalIcon={false}
+                      >
+                        {d.title || kindLabel(d)}
+                      </InlineLink>
                     </Text>
                     <Text variant="caption" as="span" tone="secondary">
                       {`${kindLabel(d)} · ${versions(d.versions.length)}`}
