@@ -12,14 +12,14 @@ import {
 } from '@hirobius/design-system';
 import { Star } from 'lucide-react';
 import { useState } from 'react';
-import { starClass } from './feedback';
+import { collapseRow, starClass } from './feedback';
 import { addJobDetailed, dedupKey, useJobs } from './store';
-import { notifySaved } from './saveNotice';
+import { notifyRemoved, notifySaved } from './saveNotice';
 import { jobFieldsFor } from './feed/toJob';
 import type { Role } from './feed/teamRoles';
 import { roleTypeOf, roleTypeTag } from './feed/roleType';
 import { saysDesignSystem } from './feed/mustInclude';
-import { dreamKey, starDream, unstarDream, useDreams } from './feed/dreams';
+import { dreamKey, restoreDream, starDream, unstarDream, useDreams } from './feed/dreams';
 import type { Board } from './feed/sources/ats';
 import { CardList, ListCard } from './PipelinePanel';
 import { reasonsLine } from './tracks/scoreForTrack';
@@ -138,6 +138,19 @@ export function DreamStar({
   const on = dreams.some((d) => d.key === key);
   // Pops on each toggle (#212); a star already on when the page opens holds still.
   const [touched, setTouched] = useState(false);
+  /** Unstarring is a soft Remove (#212, #324): the row collapses first, then a notice offers
+   *  Undo, which puts the company back in its place with its check history (`seen`,
+   *  `checkedAt`, `starredAt`), so a mis-tap doesn't mark every opening as new on the
+   *  next check. */
+  const unstar = (from: Element | null) => {
+    const at = dreams.findIndex((d) => d.key === key);
+    const dream = dreams[at];
+    if (!dream) return;
+    collapseRow(from, () => {
+      unstarDream(categoryId, key);
+      notifyRemoved(`Removed “${company}”`, () => restoreDream(categoryId, dream, at));
+    });
+  };
   return (
     <Button
       size="sm"
@@ -146,9 +159,9 @@ export function DreamStar({
       iconLeft={<Icon icon={Star} className={starClass(on, touched)} />}
       label={`Star ${company} as a dream company`}
       aria-pressed={on}
-      onClick={() => {
+      onClick={(e) => {
         setTouched(true);
-        if (on) unstarDream(categoryId, key);
+        if (on) unstar(e.currentTarget);
         else starDream(categoryId, { company, website, board });
       }}
     />

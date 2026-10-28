@@ -340,6 +340,11 @@ test('Companies: star, roles and the page actions answer within 300 ms', async (
   const star = page.getByRole('button', { name: 'Star Ensono as a dream company' }).first();
   await press(page, star, 'Dream star');
   await expect(star.locator('svg')).toHaveClass(/rjb-pop/);
+  // Unstarring is a soft Remove (#324): the notice offers Undo, and Undo puts the star back.
+  await press(page, star, 'Dream unstar');
+  await expect(page.getByText('Removed “Ensono”', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(star).toHaveAttribute('aria-pressed', 'true');
   await press(page, button(page, 'Roles at Okta'), 'Roles');
   for (const name of ['Add a company', /^Change where/, 'Manage track', 'New track']) {
     await press(page, button(page, name), String(name));
