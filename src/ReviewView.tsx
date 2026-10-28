@@ -1,15 +1,17 @@
-// Review new (simplify 5/9, #386; docs/specs/simplify.md): the Feed's undecided postings from every
-// source, two ways. Browse (the default) is one list to sort and filter, with each title a link
-// into the posting and Save / Skip / Not this company on the row; "Load more" pages it. Deck is
-// the same postings one card at a time. The scorer's Review bucket is its own section under
-// Browse, never dropped. Skip hides that one posting; Not this company mutes the company; Save
-// makes a Job and follows its company. Every one of them says so with an Undo.
+// Review new (simplify 5/9, #386; docs/specs/simplify.md): every undecided design-system posting
+// from every source, two ways. Browse (the default) is one list, newest first, to sort and filter;
+// tapping a title opens a short preview (details, why it is listed, Save / Skip / Not this company,
+// Open posting); "Load more" pages it. Deck is the same postings one card at a time. No fit tiers
+// (Adrian 2026-10-28): nothing is held back in a review section. Skip hides that one posting; Not
+// this company mutes the company; Save makes a Job and follows its company. Every one of them says
+// so with an Undo.
 import { useMemo, type ReactNode } from 'react';
 import {
   Badge,
   Box,
   Button,
   Card,
+  Dialog,
   Icon,
   InlineLink,
   Pagination,
@@ -19,9 +21,11 @@ import {
   Tag,
   Text,
 } from '@hirobius/design-system';
-import { Banknote, MapPin, RefreshCw, SearchX, type LucideIcon } from 'lucide-react';
+import { Banknote, ExternalLink, MapPin, RefreshCw, SearchX, type LucideIcon } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { metaLines } from './metaLines';
+import { PostingTitle } from './PostingLink';
+import { useBackCloses } from './useBackCloses';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
@@ -51,7 +55,7 @@ import type { Source } from './feed/profile';
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
 const FILTERS: FeedFilter[] = ['new', 'contract', 'founding', 'remote'];
-const SORTS: FeedSort[] = ['score', 'newest', 'company'];
+const SORTS: FeedSort[] = ['newest', 'score', 'company'];
 type Mode = 'browse' | 'deck';
 
 export default function ReviewView({ categoryId }: { categoryId: string }) {
@@ -59,23 +63,18 @@ export default function ReviewView({ categoryId }: { categoryId: string }) {
   const { view } = feed;
   const kept = (k: string) => `review:${categoryId}:${k}`;
   const [mode, setMode] = useRemembered<Mode>(kept('mode'), 'browse');
-  const [sort, setSort] = useRemembered<FeedSort>(kept('sort'), 'score');
+  const [sort, setSort] = useRemembered<FeedSort>(kept('sort'), 'newest');
   const [on, setOn] = useRemembered<FeedFilter[]>(kept('filters'), []);
   const [shown, setShown] = useRemembered(kept('shown'), REVIEW_PAGE);
-  const [reviewShown, setReviewShown] = useRemembered(kept('reviewShown'), REVIEW_PAGE);
   const [card, setCard] = useRemembered(kept('card'), 0);
 
   const rows = useMemo(() => (view ? sortRows(view.rows, sort) : []), [view, sort]);
   const listed = useMemo(() => filterRows(rows, on), [rows, on]);
-  const review = useMemo(
-    () => (view ? filterRows(sortRows(view.review, sort), on) : []),
-    [view, sort, on],
-  );
-  const counts = useMemo(
-    () => filterCounts([...(view?.rows ?? []), ...(view?.review ?? [])]),
-    [view],
-  );
-  const deck = useMemo(() => [...listed, ...review], [listed, review]);
+  const counts = useMemo(() => filterCounts(view?.rows ?? []), [view]);
+  // The open preview, by posting (it closes once its posting leaves the list).
+  const [previewFp, setPreviewFp] = useRemembered<string | null>(kept('preview'), null);
+  const preview = previewFp ? (view?.rows.find((r) => r.fingerprint === previewFp) ?? null) : null;
+  useBackCloses(!!preview, () => setPreviewFp(null), `review-preview:${categoryId}`);
 
   const toggle = (f: FeedFilter) => {
     setOn((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
@@ -167,9 +166,8 @@ export default function ReviewView({ categoryId }: { categoryId: string }) {
         )
       ) : mode === 'deck' ? (
         <Deck
-          rows={deck}
-          reviewFrom={listed.length}
-          at={Math.min(card, Math.max(0, deck.length - 1))}
+          rows={listed}
+          at={Math.min(card, Math.max(0, listed.length - 1))}
           onAt={setCard}
           now={feed.at}
           actions={actions}
@@ -203,6 +201,7 @@ export default function ReviewView({ categoryId }: { categoryId: string }) {
                 onMore={() => setShown((n) => n + REVIEW_PAGE)}
                 now={feed.at}
                 actions={actions}
+                onOpen={(r) => setPreviewFp(r.fingerprint)}
               />
             ) : (
               <PanelBody>
@@ -221,7 +220,7 @@ export default function ReviewView({ categoryId }: { categoryId: string }) {
                       ? 'Turn a filter off to see more.'
                       : decidedAny(view.hidden)
                         ? 'Every posting from your sources is saved or skipped. Refresh later for new ones.'
-                        : 'Nothing from your sources matches your titles right now. Refresh later, or watch more companies.'
+                        : 'No design-system posting from your sources right now. Refresh later, or watch more companies.'
                   }
                   action={
                     on.length ? (
@@ -234,29 +233,15 @@ export default function ReviewView({ categoryId }: { categoryId: string }) {
               </PanelBody>
             )}
           </Panel>
-          {view.review.length > 0 && (
-            <Panel
-              label="Review"
-              title="Review"
-              count={review.length}
-              countLabel={`${review.length} held for review`}
-              description="Held by the scorer: close to what you want, one signal short. Each says why."
-            >
-              {review.length > 0 && (
-                <RowList
-                  label="Held for review"
-                  rows={review}
-                  shown={reviewShown}
-                  onMore={() => setReviewShown((n) => n + REVIEW_PAGE)}
-                  now={feed.at}
-                  actions={actions}
-                />
-              )}
-            </Panel>
-          )}
         </>
       )}
       <MutedCompanies />
+      <PostingPreview
+        r={preview}
+        now={feed.at}
+        actions={actions}
+        onClose={() => setPreviewFp(null)}
+      />
     </Stack>
   );
 }
@@ -296,8 +281,7 @@ function hiddenLine(h: {
     h.saved > 0 && `${h.saved} saved`,
     h.decided > 0 && `${h.decided} skipped`,
     h.muted > 0 && `${h.muted} from muted companies`,
-    h.include > 0 && `${h.include} left out by the profile`,
-    h.titles > 0 && `${h.titles} by titles switched off`,
+    h.include > 0 && `${h.include} not design-system roles`,
     h.seniority > 0 && `${h.seniority} by level`,
     h.exclude > 0 && `${h.exclude} by words left out`,
     h.salary > 0 && `${h.salary} by pay`,
@@ -352,6 +336,7 @@ function RowList({
   onMore,
   now,
   actions,
+  onOpen,
 }: {
   label: string;
   rows: FeedRow[];
@@ -359,6 +344,7 @@ function RowList({
   onMore: () => void;
   now: number;
   actions: RowActions;
+  onOpen: (r: FeedRow) => void;
 }) {
   const left = rows.length - shown;
   return (
@@ -366,7 +352,7 @@ function RowList({
       <CardList label={label}>
         {rows.slice(0, shown).map((r) => (
           <ListCard key={r.fingerprint}>
-            <PostingSummary r={r} now={now} />
+            <PostingSummary r={r} now={now} onOpen={onOpen} />
             <Box sx={{ pt: 'xs' }}>
               <RowButtons r={r} actions={actions} />
             </Box>
@@ -439,8 +425,20 @@ function Fact({ icon, text }: { icon: LucideIcon; text: string }) {
 
 /** One posting (Adrian 2026-10-28): the title as the link into the posting; company, place and
  *  pay; one short line of why it matched; then New, freshness and the source, small. */
-function PostingSummary({ r, now }: { r: FeedRow; now: number }) {
-  const place = r.location || (r.mode ? modeLabel(r.mode) : '');
+function PostingSummary({
+  r,
+  now,
+  onOpen,
+  noTitle = false,
+}: {
+  r: FeedRow;
+  now: number;
+  /** In a list: the title opens the preview, with Open posting beside it. */
+  onOpen?: (r: FeedRow) => void;
+  /** The preview names the posting in its own header. */
+  noTitle?: boolean;
+}) {
+  const place = r.location || (r.mode ? modeLabel(r.mode) : 'Location not stated');
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
   const small = [
@@ -450,11 +448,27 @@ function PostingSummary({ r, now }: { r: FeedRow; now: number }) {
   return (
     <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <Stack gap="px4">
-        <Text variant="body" as="h4" weight="bold" className="rjb-card-title">
-          <InlineLink href={r.url}>{r.title}</InlineLink>
-        </Text>
+        {noTitle ? null : onOpen ? (
+          <PostingTitle url={r.url} title={r.title} company={r.company}>
+            <Text variant="body" as="h4" weight="bold" className="rjb-card-title">
+              <Button
+                variant="tertiary"
+                size="sm"
+                className="rjb-preview-title"
+                aria-haspopup="dialog"
+                onClick={() => onOpen(r)}
+              >
+                {r.title}
+              </Button>
+            </Text>
+          </PostingTitle>
+        ) : (
+          <Text variant="body" as="h4" weight="bold" className="rjb-card-title">
+            <InlineLink href={r.url}>{r.title}</InlineLink>
+          </Text>
+        )}
         <Stack direction="row" wrap="wrap" gap="tight" align="center">
-          {r.company && (
+          {r.company && !noTitle && (
             <Text variant="ui" as="span">
               {r.company}
             </Text>
@@ -480,14 +494,12 @@ function PostingSummary({ r, now }: { r: FeedRow; now: number }) {
  *  the deck, so the next one takes its place. */
 function Deck({
   rows,
-  reviewFrom,
   at,
   onAt,
   now,
   actions,
 }: {
   rows: FeedRow[];
-  reviewFrom: number;
   at: number;
   onAt: (n: number) => void;
   now: number;
@@ -505,8 +517,7 @@ function Deck({
   const r = rows[at];
   return (
     <Stack gap="tight">
-      <Stack direction="row" gap="tight" align="center" justify="space-between">
-        {at >= reviewFrom ? <Badge tone="warning">Review</Badge> : <span />}
+      <Stack direction="row" gap="tight" align="center" justify="end">
         {rows.length > 1 && (
           <Pagination
             variant="compact"
@@ -524,11 +535,6 @@ function Deck({
       >
         <DeckBody>
           <PostingSummary r={r} now={now} />
-          {r.reasons && (
-            <Text variant="caption" as="p" tone="secondary">
-              {r.reasons}
-            </Text>
-          )}
           {r.snippet && (
             <Text variant="body" as="p" tone="secondary">
               {r.snippet}
@@ -599,4 +605,63 @@ function MutedCompanies() {
       </CardList>
     </Panel>
   );
+}
+
+/** The short in-app preview a row's title opens (Adrian 2026-10-28): the posting's details, why it
+ *  is listed and a first look at its text, with Save, Skip and Not this company, and Open posting
+ *  one tap away. A decision closes it. */
+function PostingPreview({
+  r,
+  now,
+  actions,
+  onClose,
+}: {
+  r: FeedRow | null;
+  now: number;
+  actions: RowActions;
+  onClose: () => void;
+}) {
+  const decided = (run: (row: FeedRow, from: Element | null) => void) => (row: FeedRow) => {
+    onClose();
+    run(row, null);
+  };
+  const close: RowActions = {
+    save: decided(actions.save),
+    skip: decided(actions.skip),
+    mute: decided(actions.mute),
+  };
+  return (
+    <Dialog open={!!r} onOpenChange={(o) => !o && onClose()}>
+      {r && (
+        <Dialog.Content>
+          <Dialog.Header>
+            <Dialog.Title>{r.title}</Dialog.Title>
+            <Dialog.Description>{r.company || SOURCE_LABEL[r.source]}</Dialog.Description>
+          </Dialog.Header>
+          <Stack gap="normal">
+            <PostingSummary r={r} now={now} noTitle />
+            {r.text.trim() && (
+              <Text variant="body" as="p" tone="secondary">
+                {excerpt(r.text)}
+              </Text>
+            )}
+            <Button variant="secondary" iconRight={<Icon icon={ExternalLink} />} asChild>
+              <a href={r.url} target="_blank" rel="noopener noreferrer">
+                Open posting
+              </a>
+            </Button>
+            <RowButtons r={r} actions={close} big />
+          </Stack>
+        </Dialog.Content>
+      )}
+    </Dialog>
+  );
+}
+
+/** The first ~500 characters of a posting's text, cut on a word. */
+function excerpt(text: string, max = 500): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  if (flat.length <= max) return flat;
+  const cut = flat.slice(0, max);
+  return `${cut.slice(0, cut.lastIndexOf(' ') > 0 ? cut.lastIndexOf(' ') : max)}…`;
 }

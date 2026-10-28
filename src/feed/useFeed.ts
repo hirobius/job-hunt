@@ -27,7 +27,7 @@ export function useFeedInputs(categoryId: string): { profile: SearchProfile; sou
   const titleSeed = track ? (track.titles.length ? track.titles : track.atsRoles) : [];
   const sweep = useSweep(categoryId, titleSeed);
   const include = useMustInclude(categoryId);
-  const { where, mode } = useTrackContext(categoryId);
+  const { where } = useTrackContext(categoryId);
   const dreams = useDreams(categoryId);
   const targets = useTargets(categoryId);
   const decided = useDecided();
@@ -39,9 +39,8 @@ export function useFeedInputs(categoryId: string): { profile: SearchProfile; sou
         sweep,
         include,
         where,
-        mode,
       }),
-    [track?.atsRoles, track?.seniority, sweep, include, where, mode],
+    [track?.atsRoles, track?.seniority, sweep, include, where],
   );
   const sources = useMemo(
     () =>
@@ -59,6 +58,9 @@ export function useFeedInputs(categoryId: string): { profile: SearchProfile; sou
 
 interface Read {
   key: string;
+  /** What this read asked for, so a source or title added later is read on its own. */
+  terms: string[];
+  boardUrls: string[];
   attempt: number;
   at: number;
   result?: FeedResult;
@@ -103,34 +105,58 @@ export function useFeed(categoryId: string, reader: PostingReader = defaultReade
     const startedAt = Date.now();
     // First-seen days as they stood before this read (noted again once it fully answers).
     const seenBefore = readSeen();
+    // A company or title added since the last full read (Adrian 2026-10-28: a new company's jobs
+    // show straight away): read only what was added and fold it into the rows already up.
+    const base =
+      read?.result && !read.progress && !read.error && read.attempt === attempt ? read : null;
+    const added = base && {
+      terms: req.terms.filter((t) => !base.terms.includes(t)),
+      boardUrls: req.boardUrls.filter((u) => !base.boardUrls.includes(u)),
+    };
+    const onlyAdded =
+      !!base &&
+      !!added &&
+      base.terms.every((t) => req.terms.includes(t)) &&
+      base.boardUrls.every((u) => req.boardUrls.includes(u));
+    const ask = onlyAdded && added ? added : req;
+    const fold = (r: FeedResult): FeedResult =>
+      onlyAdded && base?.result ? mergeReads(base.result, r) : r;
+    const done = (result: FeedResult, at: number, progress?: Read['progress']) =>
+      setRead({
+        key,
+        terms: req.terms,
+        boardUrls: req.boardUrls,
+        attempt,
+        at,
+        result,
+        ...(progress
+          ? { progress, seen: seenBefore }
+          : { seen: noteSeen(fingerprintsOf(result), at) }),
+      });
     reader
-      .read(req, (p) => {
+      .read(ask, (p) => {
         if (!alive || timer) return;
         timer = setTimeout(() => {
           timer = undefined;
           if (alive)
-            setRead({
-              key,
-              attempt,
-              at: startedAt,
-              result: { postings: p.postings, sources: p.sources },
-              progress: { done: p.boardsDone, total: p.boardsTotal },
-              seen: seenBefore,
+            done(fold({ postings: p.postings, sources: p.sources }), startedAt, {
+              done: p.boardsDone,
+              total: p.boardsTotal,
             });
         }, REPAINT_MS);
       })
       .then((result) => {
         clearTimeout(timer);
         timer = undefined;
-        if (!alive) return;
-        const at = Date.now();
-        setRead({ key, attempt, at, result, seen: noteSeen(fingerprintsOf(result), at) });
+        if (alive) done(fold(result), Date.now());
       })
       .catch(() => {
         clearTimeout(timer);
         if (alive)
           setRead({
             key,
+            terms: req.terms,
+            boardUrls: req.boardUrls,
             attempt,
             at: Date.now(),
             error: 'The feed failed unexpectedly. Try again.',
@@ -144,7 +170,9 @@ export function useFeed(categoryId: string, reader: PostingReader = defaultReade
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, attempt, hasQuery, reader]);
 
-  const current = read && read.key === key ? read : null;
+  // The rows of the last read stay up while a changed request is read (never a blank list).
+  const current = read?.result || read?.key === key ? read : null;
+  const updating = !!current && (current.key !== key || !!current.progress);
   const saved = useMemo(() => new Set(jobs.map((j) => dedupKey(j.url))), [jobs]);
   const view = useMemo(
     () =>
@@ -162,8 +190,9 @@ export function useFeed(categoryId: string, reader: PostingReader = defaultReade
     view,
     profile,
     sources,
-    loading: hasQuery && (!current || (!!current.progress && !view?.rows.length)),
-    progress: current?.progress,
+    loading: hasQuery && (!current || (updating && !view?.rows.length)),
+    progress:
+      current?.progress ?? (updating ? { done: 0, total: req.boardUrls.length } : undefined),
     error: current?.error,
     at: current?.at ?? 0,
     refresh: () => setAttempt((n) => n + 1),
@@ -171,3 +200,14 @@ export function useFeed(categoryId: string, reader: PostingReader = defaultReade
 }
 
 const defaultReader = browserReader();
+
+/** A read of only what was added, folded into the one before it: its postings after the old
+ *  ones (a posting read twice kept once), its sources' statuses added. */
+export function mergeReads(before: FeedResult, added: FeedResult): FeedResult {
+  const have = new Set(before.postings.map((p) => p.id));
+  const keys = new Set(added.sources.map((s) => s.key));
+  return {
+    postings: [...before.postings, ...added.postings.filter((p) => !have.has(p.id))],
+    sources: [...before.sources.filter((s) => !keys.has(s.key)), ...added.sources],
+  };
+}

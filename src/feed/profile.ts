@@ -12,6 +12,7 @@ import {
   hasRelatedTitles,
   relatedIsOn,
   RELATED_TITLES,
+  saysDesignSystem,
   type MustInclude,
 } from './mustInclude';
 import { boardLabel, boardsFromUrls, canonicalBoardUrl, type Board } from './sources/ats';
@@ -21,12 +22,17 @@ import type { Dream } from './dreams';
 import type { Target } from './targets';
 import { companyKey } from './decided';
 
+/** The profile's work mode (Adrian 2026-10-28: remote-only jobs for now). A remote profile drops a
+ *  posting its source marks on-site or hybrid, and keeps one that does not say (shown as "Location
+ *  not stated" when it names no place either). */
+export const PROFILE_MODE: WorkMode = 'remote';
+
 export interface SearchProfile {
   /** Every title the Feed searches for: the wide sweep always covers all of them. */
   titles: string[];
   /** Titles switched off: a posting titled only by one is hidden (the title filter, #223). */
   offTitles: string[];
-  /** Must include, with its related titles (the scorer's config when it asks for design systems). */
+  /** The design-system inclusion check every posting must pass (`designSystemRule`). */
   include: MustInclude;
   exclude: string[];
   level: Seniority;
@@ -57,15 +63,29 @@ const dedupe = (list: string[]) => {
 /** The profile from a track and its stores. Titles: the ticked sweep titles, every ATS role that is
  *  on and each related title that is on (a design system rule), so the Feed reads at least what
  *  any one Live postings search or sweep did. */
+/** The design-system inclusion check (Adrian 2026-10-28): a title that says "design system(s)",
+ *  or a related title that is on (Design Technologist). The track's own design system phrases are
+ *  kept; any other track gets the plain one. Titles only, as on a design system rule. */
+export function designSystemRule(include: MustInclude): MustInclude {
+  const terms = include.terms.filter(saysDesignSystem);
+  return {
+    terms: terms.length ? terms : ['design system'],
+    atsOff: [],
+    ...(include.related === false ? { related: false } : {}),
+    ...(include.relatedOff?.length ? { relatedOff: include.relatedOff } : {}),
+  };
+}
+
 export function profileFrom(input: {
   atsRoles: string[];
   seniority: Seniority;
   sweep: SweepTitles;
   include: MustInclude;
   where: string;
-  mode: WorkMode;
+  /** Remote unless asked otherwise: remote-only for now (Adrian 2026-10-28). */
+  mode?: WorkMode;
 }): SearchProfile {
-  const { include } = input;
+  const include = designSystemRule(input.include);
   const related =
     hasRelatedTitles(include) && include.related !== false
       ? RELATED_TITLES.filter((r) => relatedIsOn(include, r.id)).map((r) => r.id)
@@ -73,7 +93,7 @@ export function profileFrom(input: {
   return {
     titles: dedupe([
       ...activeTitles(input.sweep),
-      ...activeAtsRoles(input.atsRoles, include),
+      ...activeAtsRoles(input.atsRoles, input.include),
       ...related,
     ]),
     offTitles: input.sweep.off,
@@ -81,7 +101,7 @@ export function profileFrom(input: {
     exclude: [],
     level: input.seniority,
     where: input.where,
-    mode: input.mode,
+    mode: input.mode ?? PROFILE_MODE,
   };
 }
 

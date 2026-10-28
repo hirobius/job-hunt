@@ -326,16 +326,23 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
 - **Feed + Review new (simplify 5/9, #386):** `#/discover/review` (a Companies secondary view, "Review new
   postings" first under More ways; Today's "Review new" points here once #383 lands). `feed/feed.ts` is the Feed:
-  `buildFeed(read, profile, sources, …)` → Browse rows + the scorer's Review bucket (its own section), minus saved
-  jobs, Skips (by posting fingerprint, `tracks/score.ts` `fingerprint`) and muted companies. Reads go through the
-  `PostingReader` seam (`feed/reader.ts`; `browserReader` = `fetchFeed` sweeping every profile title). Inputs come
-  from today's stores via `feed/profile.ts` (`profileFrom`: ticked sweep titles + ATS roles on + related titles;
-  `sourcesFrom`: tiles + dream and target boards + feeds) until #384/#385's `useProfile`/`useSources`.
-  `feed/decided.ts` (`rjb_decided`: skips, muted, followed; local until blob v12) and `rjb_feed_seen` (first-seen
-  days, "N new today"). Save = `notifySaved` + `follow.ts` (a board posting watches its board, else follows the
-  company; Undo takes both back). Live postings' list is `feed/liveList.ts`, so the **breadth guard**
-  (`feed/breadth.test.ts` on `breadth.fixture.ts`) counts it through the panel's own code and fails if the Feed
-  loses a posting. Pinned in `feed/feed.test.ts`, `review.test.tsx`, `e2e/review.spec.ts`.
+  `buildFeed(read, profile, sources, …)` lists **every design-system posting, newest first, no fit tiers** (Adrian
+  2026-10-28): every posting read that passes the work mode (no term gate; **remote-only for now**, `profile.PROFILE_MODE`:
+  on-site/hybrid out, a posting that does not say stays and reads "Location not stated"), then the plain inclusion check
+  (`profile.designSystemRule`: the design-system phrase on the title, or a related title that is on; `targeting.phrases`
+  keeps the scorer out) and the profile filters; minus saved jobs, Skips (by posting fingerprint, `tracks/score.ts`
+  `fingerprint`) and muted companies; the rest are counted ("N not design-system roles"). Reads go through the
+  `PostingReader` seam (`feed/reader.ts`; `browserReader` = `fetchFeed` sweeping every profile title); `useFeed` keeps
+  the rows up while a changed request reads, and a source or title added since reads only what was added
+  (`mergeReads`), so a new company's jobs show at once. Inputs come from today's stores via `feed/profile.ts`
+  (`profileFrom`: ticked sweep titles + ATS roles on + related titles; `sourcesFrom`: tiles + dream and target boards +
+  feeds) until #384/#385's `useProfile`/`useSources`. `feed/decided.ts` (`rjb_decided`: skips, muted, followed; local
+  until blob v12) and `rjb_feed_seen` (first-seen days, "N new today"). A row's title opens an in-app preview
+  (`PostingPreview`, Back closes it) with Open posting beside the title and in the preview. Save = `notifySaved` +
+  `follow.ts` (a board posting watches its board, else follows the company; Undo takes both back). **Breadth guard**
+  (`feed/breadth.test.ts` on `breadth.fixture.ts`): Live postings' list (`feed/liveList.ts`, the panel's own code) at
+  its widest; the Feed must list every design-system posting it lists, and every one the recorded answers hold; it
+  fails otherwise. Pinned in `feed/feed.test.ts`, `review.test.tsx`, `e2e/review.spec.ts`.
 - **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
   title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys
   `hn|<term>`), merged/deduped/tagged by `feed/sweep.ts` `sweepRank` ("Matched …" on each row). Per-title

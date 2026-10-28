@@ -100,6 +100,16 @@ interface BoardJob {
  *  and epsilon an outreach target's, which Live postings never read. */
 export const BOARDS: Record<string, BoardJob[]> = {
   'greenhouse:acme': [
+    // Not remote: left out of a remote-only profile.
+    {
+      title: 'Design Systems Designer',
+      location: 'Hybrid, Seattle',
+      body: 'Design system work, three days in the office.',
+      days: 1,
+    },
+    { title: 'Design Systems Lead', location: 'On-site, Austin', body: 'Design system.', days: 2 },
+    // No place stated: kept, marked "Location not stated".
+    { title: 'Senior Design System Engineer', location: '', body: 'Design tokens.', days: 3 },
     {
       title: 'Staff Design Systems Engineer',
       location: 'Remote',

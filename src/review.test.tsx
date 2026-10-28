@@ -1,7 +1,7 @@
 // Review new (simplify 5/9, #386): Browse by default, the Deck as a toggle, Skip hides only that
 // posting, Not this company mutes the company, Save makes a Job and follows its company.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import { axe } from 'vitest-axe';
@@ -30,9 +30,8 @@ import { addCategory, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 import { getAllJobs, replaceAll } from './store';
 import { starDream } from './feed/dreams';
-import { setMustInclude } from './feed/mustInclude';
 import { getAllDecided } from './feed/decided';
-import { boardUrlsFor } from './feed/watchlist';
+import { boardUrlsFor, watchBoard } from './feed/watchlist';
 
 const now = new Date().toISOString();
 const post = (id: string, title: string, company: string, o: Partial<Posting> = {}): Posting => ({
@@ -44,7 +43,7 @@ const post = (id: string, title: string, company: string, o: Partial<Posting> = 
   location: 'Remote',
   mode: 'remote',
   postedAt: now,
-  text: 'Product designer role',
+  text: 'Own the design system.',
   ...o,
 });
 const result = (postings: Posting[]): FeedResult => ({
@@ -56,9 +55,9 @@ const result = (postings: Posting[]): FeedResult => ({
   ],
 });
 const BASIC = [
-  post('hn:1', 'Product Designer', 'Acme'),
-  post('hn:2', 'Senior Product Designer, Growth', 'Acme'),
-  post('hn:3', 'Product Designer', 'Beta'),
+  post('hn:1', 'Design Systems Designer', 'Acme'),
+  post('hn:2', 'Design Systems Engineer, Web', 'Acme'),
+  post('hn:3', 'Design Systems Designer', 'Beta'),
 ];
 
 let cat: string;
@@ -67,7 +66,7 @@ beforeEach(() => {
   replaceAll([]);
   dismissNotice();
   replaceCurationState(EMPTY_CURATION);
-  cat = addCategory({ label: 'Product design', titles: ['Product Designer'] });
+  cat = addCategory({ label: 'Product design', titles: ['Design Systems Designer'] });
   feed.fetchFeed.mockReset().mockResolvedValue(result(BASIC));
 });
 afterEach(cleanup);
@@ -92,14 +91,15 @@ describe('Review new: Browse', () => {
     expect(titles(ul)).toHaveLength(3);
     expect(screen.getByText('3 new today from 2 sources')).toBeInTheDocument();
     expect(screen.getByText(/^Jobicy: timed out/)).toBeInTheDocument();
-    // The title is the link into the posting.
-    expect(within(ul).getAllByRole('link')[0]).toHaveAttribute(
-      'href',
-      expect.stringMatching(/^https:\/\/news\.ycombinator\.com/),
-    );
-    // One read: every title and board in one sweep.
+    // The posting is one tap away beside each title.
+    expect(
+      within(ul).getByRole('link', { name: 'Open posting for Design Systems Designer at Beta' }),
+    ).toHaveAttribute('href', expect.stringMatching(/^https:\/\/news\.ycombinator\.com/));
+    // One read: every title (and the related one) and board in one sweep.
     expect(feed.fetchFeed).toHaveBeenCalledTimes(1);
-    expect(feed.fetchFeed.mock.calls[0][0]).toMatchObject({ terms: ['Product Designer'] });
+    expect(feed.fetchFeed.mock.calls[0][0]).toMatchObject({
+      terms: ['Design Systems Designer', 'Design Technologist'],
+    });
     const results = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });
@@ -110,9 +110,11 @@ describe('Review new: Browse', () => {
     const user = userEvent.setup();
     renderReview();
     const ul = await list();
-    await user.click(within(ul).getByRole('button', { name: 'Skip Product Designer at Acme' }));
+    await user.click(
+      within(ul).getByRole('button', { name: 'Skip Design Systems Designer at Acme' }),
+    );
     await waitFor(() => expect(titles(ul)).toHaveLength(2));
-    expect(within(ul).getByText('Senior Product Designer, Growth')).toBeInTheDocument();
+    expect(within(ul).getByText('Design Systems Engineer, Web')).toBeInTheDocument();
     expect(getAllDecided().decided).toHaveLength(1);
     await user.click(await screen.findByRole('button', { name: 'Undo' }));
     await waitFor(() => expect(titles(ul)).toHaveLength(3));
@@ -123,7 +125,7 @@ describe('Review new: Browse', () => {
     renderReview();
     const ul = await list();
     await user.click(within(ul).getAllByRole('button', { name: 'Not this company: Acme' })[0]);
-    await waitFor(() => expect(titles(ul)).toEqual(['Product Designer']));
+    await waitFor(() => expect(titles(ul)).toEqual(['Design Systems Designer']));
     const muted = screen.getByRole('region', { name: 'Muted companies' });
     await user.click(within(muted).getByRole('button', { name: 'Unmute Acme' }));
     await waitFor(() => expect(titles(ul)).toHaveLength(3));
@@ -133,7 +135,9 @@ describe('Review new: Browse', () => {
     const user = userEvent.setup();
     renderReview();
     const ul = await list();
-    await user.click(within(ul).getByRole('button', { name: 'Save Product Designer at Beta' }));
+    await user.click(
+      within(ul).getByRole('button', { name: 'Save Design Systems Designer at Beta' }),
+    );
     await waitFor(() => expect(titles(ul)).toHaveLength(2));
     expect(getAllJobs().map((j) => j.company)).toEqual(['Beta']);
     expect(getAllDecided().followed).toEqual(['Beta']);
@@ -148,7 +152,7 @@ describe('Review new: Browse', () => {
     starDream(cat, { company: 'Delta', board: { kind: 'ashby', slug: 'delta' } });
     feed.fetchFeed.mockResolvedValue(
       result([
-        post('ashby:delta:1', 'Product Designer', 'Delta', {
+        post('ashby:delta:1', 'Design Systems Designer', 'Delta', {
           source: 'ashby',
           url: 'https://jobs.ashbyhq.com/delta/1',
         }),
@@ -159,7 +163,9 @@ describe('Review new: Browse', () => {
     const ul = await list();
     // The dream's board is read, though no tile watches it.
     expect(feed.fetchFeed.mock.calls[0][0].boardUrls).toEqual(['https://jobs.ashbyhq.com/delta']);
-    await user.click(within(ul).getByRole('button', { name: 'Save Product Designer at Delta' }));
+    await user.click(
+      within(ul).getByRole('button', { name: 'Save Design Systems Designer at Delta' }),
+    );
     await waitFor(() => expect(boardUrlsFor(cat)).toEqual(['https://jobs.ashbyhq.com/delta']));
     // The board moved from the dream to a watched tile: the same request, no second read.
     expect(feed.fetchFeed).toHaveBeenCalledTimes(1);
@@ -167,22 +173,29 @@ describe('Review new: Browse', () => {
 
   it('sorts, filters with chips and loads more', async () => {
     const many = Array.from({ length: REVIEW_PAGE + 5 }, (_, i) =>
-      post(`hn:${i + 10}`, `Product Designer ${i}`, `Co ${String(i).padStart(2, '0')}`, {
-        postedAt: new Date(Date.now() - i * 864e5 * 3).toISOString(),
-        text: i === 7 ? 'Product designer, contract role' : 'Product designer role',
-      }),
+      post(
+        `hn:${i + 10}`,
+        `Design Systems Designer ${i}`,
+        `Co ${String(29 - i).padStart(2, '0')}`,
+        {
+          postedAt: new Date(Date.now() - i * 864e5 * 3).toISOString(),
+          text: i === 7 ? 'A contract role' : 'A full-time role',
+        },
+      ),
     );
     feed.fetchFeed.mockResolvedValue(result(many));
     const user = userEvent.setup();
     renderReview();
     const ul = await list();
     expect(titles(ul)).toHaveLength(REVIEW_PAGE);
+    // Newest first by default.
+    expect(titles(ul)[0]).toBe('Design Systems Designer 0');
     await user.click(screen.getByRole('button', { name: 'Load more (5)' }));
     expect(titles(ul)).toHaveLength(REVIEW_PAGE + 5);
     await user.click(screen.getByRole('radio', { name: 'Company' }));
-    expect(titles(ul)[0]).toBe('Product Designer 0');
+    expect(titles(ul)[0]).toBe('Design Systems Designer 29');
     await user.click(screen.getByRole('button', { name: /^Contract, 1/ }));
-    expect(titles(await list())).toEqual(['Product Designer 7']);
+    expect(titles(await list())).toEqual(['Design Systems Designer 7']);
   });
 });
 
@@ -202,25 +215,75 @@ describe('Review new: Deck', () => {
   });
 });
 
-describe('Review new: the scorer', () => {
-  it('keeps the Review bucket as its own section, with reasons', async () => {
-    setMustInclude(cat, { terms: ['design systems'] });
+describe('Review new: every design-system posting, no tiers', () => {
+  it('lists each one that passes the inclusion check, newest first, and counts the rest', async () => {
     feed.fetchFeed.mockResolvedValue(
       result([
-        post('hn:1', 'Design Systems Engineer', 'Orbit', { text: 'design tokens' }),
-        post('hn:2', 'UX Engineer', 'Kite', { text: 'our design system' }),
-        post('hn:3', 'Backend Engineer', 'Nimbus'),
+        post('hn:1', 'Design Systems Engineer', 'Orbit', { postedAt: '2026-10-01T00:00:00Z' }),
+        post('hn:2', 'Design Technologist', 'Glyph', { postedAt: '2026-10-20T00:00:00Z' }),
+        post('hn:3', 'UX Engineer', 'Kite', { text: 'our design system' }),
+        post('hn:4', 'Backend Engineer', 'Nimbus'),
+      ]),
+    );
+    renderReview();
+    const ul = await list();
+    expect(titles(ul)).toEqual(['Design Technologist', 'Design Systems Engineer']);
+    expect(screen.queryByRole('region', { name: 'Review' })).toBeNull();
+    expect(screen.getByText(/2 not design-system roles/)).toBeInTheDocument();
+    expect(within(ul).getByText('Related title')).toBeInTheDocument();
+  });
+
+  it('remote only: a posting that names no place says so', async () => {
+    feed.fetchFeed.mockResolvedValue(
+      result([
+        post('hn:1', 'Design Systems Engineer', 'Orbit', { location: '', mode: undefined }),
+        post('hn:2', 'Design Systems Lead', 'Kite', { location: 'Austin, TX', mode: 'onsite' }),
       ]),
     );
     renderReview();
     const ul = await list();
     expect(titles(ul)).toEqual(['Design Systems Engineer']);
-    expect(
-      within(ul).getByText('Design-system title; mentions design tokens'),
-    ).toBeInTheDocument();
-    const review = screen.getByRole('list', { name: 'Held for review' });
-    expect(titles(review)).toEqual(['UX Engineer']);
-    // The related title is searched too.
-    expect(feed.fetchFeed.mock.calls[0][0].terms).toContain('Design Technologist');
+    expect(within(ul).getByText('Location not stated')).toBeInTheDocument();
+  });
+
+  it('a title opens the preview: details, Open posting, and Save / Skip / Not this company', async () => {
+    const user = userEvent.setup();
+    renderReview();
+    const ul = await list();
+    await user.click(within(ul).getByRole('button', { name: 'Design Systems Engineer, Web' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Design Systems Engineer, Web' });
+    expect(within(dialog).getByText('Own the design system.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: /Open posting/ })).toHaveAttribute(
+      'href',
+      'https://news.ycombinator.com/item?id=hn2',
+    );
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Skip Design Systems Engineer, Web at Acme' }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(titles(ul)).toHaveLength(2));
+  });
+
+  it('a company watched since the last read shows its jobs at once, reading only its board', async () => {
+    renderReview();
+    const ul = await list();
+    feed.fetchFeed.mockResolvedValueOnce({
+      postings: [
+        post('ashby:zeta:1', 'Design System Lead', 'Zeta', {
+          source: 'ashby',
+          url: 'https://jobs.ashbyhq.com/zeta/1',
+        }),
+      ],
+      sources: [{ key: 'ashby:zeta', label: 'Zeta (Ashby)', fetched: 1 }],
+    });
+    act(() => void watchBoard(cat, 'https://jobs.ashbyhq.com/zeta'));
+    // The rows already up stay while the new board is read.
+    expect(titles(ul)).toHaveLength(3);
+    await waitFor(() => expect(titles(ul)).toHaveLength(4));
+    expect(feed.fetchFeed).toHaveBeenCalledTimes(2);
+    expect(feed.fetchFeed.mock.calls[1][0]).toMatchObject({
+      terms: [],
+      boardUrls: ['https://jobs.ashbyhq.com/zeta'],
+    });
   });
 });

@@ -74,20 +74,29 @@ for (const width of [390, 1440]) {
     await expect(page.getByText(/^Read \d+ of \d+ boards$/)).toHaveCount(0, { timeout: 15_000 });
     const list = page.getByRole('list', { name: 'New postings' });
     await expect(list.getByRole('listitem')).toHaveCount(3);
-    // The scorer's Review bucket is its own section.
-    await expect(
-      page.getByRole('list', { name: 'Held for review' }).getByRole('listitem'),
-    ).toHaveCount(1);
+    // No fit tiers: every design-system posting is in the one list; the rest are counted.
+    await expect(page.getByText(/2 not design-system roles/)).toBeVisible();
     for (const scheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme: scheme });
       await page.screenshot({ path: `test-results/review-${width}-${scheme}.png`, fullPage: true });
     }
     await page.emulateMedia({ colorScheme: 'light' });
 
+    // A title opens the in-app preview, with Open posting one tap away.
+    await list.getByRole('button', { name: 'Design Systems Designer', exact: true }).click();
+    const preview = page.getByRole('dialog', { name: 'Design Systems Designer' });
+    await expect(preview.getByRole('link', { name: /Open posting/ })).toBeVisible();
+    await page.screenshot({ path: `test-results/review-preview-${width}.png` });
+    await page.goBack();
+    await expect(preview).toBeHidden();
+    await expect(page).toHaveURL(/#\/discover\/review$/);
+
     // Skip hides only that posting: Orbit's other one stays.
     await list.getByRole('button', { name: 'Skip Design Systems Engineer at Orbit' }).click();
     await expect(list.getByRole('listitem')).toHaveCount(2);
-    await expect(list.getByText('Design Systems Designer')).toBeVisible();
+    await expect(
+      list.getByRole('button', { name: 'Design Systems Designer', exact: true }),
+    ).toBeVisible();
 
     await list.getByRole('button', { name: 'Save Design Systems Lead at Lumen' }).click();
     const notice = page.getByRole('region', { name: /^Notifications/ }).getByRole('listitem');
@@ -102,7 +111,7 @@ for (const width of [390, 1440]) {
       .getByRole('article')
       .getByRole('button', { name: /^Skip / })
       .click();
-    await expect(page.getByRole('article')).toHaveAttribute('aria-label', 'UX Engineer at Kite');
+    await expect(page.getByText('You’re all caught up')).toBeVisible();
 
     // Back on the Pipeline, the save is in To apply.
     await page.goto('/#/queue');

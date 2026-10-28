@@ -10,7 +10,13 @@ import {
   sortRows,
   type FeedRow,
 } from './feed';
-import { profileFrom, sourcesFrom, type SearchProfile, type Source } from './profile';
+import {
+  designSystemRule,
+  profileFrom,
+  sourcesFrom,
+  type SearchProfile,
+  type Source,
+} from './profile';
 import {
   decide,
   getAllDecided,
@@ -68,9 +74,9 @@ const build = (
   });
 
 describe('buildFeed', () => {
-  const a1 = p('1', 'Product Designer', 'Acme');
-  const a2 = p('2', 'Senior Product Designer, Growth', 'Acme');
-  const b1 = p('3', 'Product Designer', 'Beta');
+  const a1 = p('1', 'Design Systems Designer', 'Acme');
+  const a2 = p('2', 'Design Systems Engineer, Web', 'Acme');
+  const b1 = p('3', 'Design Systems Designer', 'Beta');
 
   it('Skip hides only that posting, never its company', () => {
     decide(a1, 'skipped');
@@ -111,29 +117,40 @@ describe('buildFeed', () => {
   });
 
   it('keeps one row per posting across sources', () => {
-    const copy = p('9', 'Product Designer', 'Acme', { source: 'hn', url: 'https://x.test/a' });
+    const copy = p('9', 'Design Systems Designer', 'Acme', {
+      source: 'hn',
+      url: 'https://x.test/a',
+    });
     expect(build([a1, copy]).rows).toHaveLength(1);
   });
 
-  it('a scored profile lists the queue in Browse and keeps Review apart, with reasons', () => {
-    const ds = profileFrom({
-      atsRoles: [],
-      seniority: 'any',
-      sweep: { titles: ['Design Systems Engineer'], off: [] },
-      include: { terms: ['design systems'], atsOff: [] },
-      where: '',
-      mode: 'any',
+  it('lists every design-system posting, newest first, with no fit tiers', () => {
+    const old = p('1', 'Design Systems Engineer', 'Acme', { postedAt: '2026-10-01' });
+    const tech = p('2', 'Design Technologist', 'Beta', { postedAt: '2026-10-20' });
+    const mid = p('3', 'Senior Designer, Design System', 'Kite', { postedAt: '2026-10-10' });
+    const other = p('4', 'Product Designer', 'Quill', { postedAt: '2026-10-27' });
+    const body = p('5', 'UX Engineer', 'Orbit', { text: 'our design system' });
+    const view = build([old, tech, mid, other, body]);
+    expect(view.rows.map((x) => x.id)).toEqual(['2', '3', '1']);
+    expect(view.hidden.include).toBe(2);
+    expect(view.rows.find((x) => x.id === '2')?.why).toBe('Related title');
+    expect(view.rows.find((x) => x.id === '1')?.why).toBe('Design-system title');
+    // Related titles ride in the profile's titles, so the sweep searches for them.
+    expect(phraseProfile.titles).toContain('Design Technologist');
+  });
+
+  it('keeps the track’s own design system phrase and its related-title switch', () => {
+    expect(
+      designSystemRule({ terms: ['design systems', 'figma'], atsOff: ['x'], related: false }),
+    ).toEqual({
+      terms: ['design systems'],
+      atsOff: [],
+      related: false,
     });
-    const q = p('1', 'Design Systems Engineer', 'Acme', { text: 'design tokens' });
-    const r = p('2', 'UX Engineer', 'Beta', { text: 'design system work' });
-    const view = build([q, r], {}, [], ds);
-    expect(view.rows.map((x) => x.id)).toEqual(['1']);
-    expect(view.rows[0].reasons).toMatch(/^Queued because/);
-    expect(view.rows[0].why).toBe('Design-system title; mentions design tokens');
-    expect(view.review[0].why).toBe('Related title; mentions design system');
-    expect(view.review.map((x) => x.id)).toEqual(['2']);
-    // The related title rides in the profile's titles, so the sweep searches for it.
-    expect(ds.titles).toContain('Design Technologist');
+    expect(designSystemRule({ terms: [], atsOff: [] })).toEqual({
+      terms: ['design system'],
+      atsOff: [],
+    });
   });
 });
 
@@ -263,22 +280,18 @@ describe('decided store', () => {
 
 describe('row words', () => {
   const base = {
-    ...p('1', 'Product Designer', 'Acme'),
+    ...p('1', 'Design Systems Designer', 'Acme'),
     score: 0,
     hit: 'title' as const,
     snippet: '',
     titles: [],
     signals: [],
   };
-  it('says why a phrase-rule posting matched, with its signals', () => {
+  it('says why a posting is listed, with its signals', () => {
     expect(
-      whyLine({
-        ...base,
-        titles: ['Product Designer', 'UX Designer', 'Designer'],
-        signals: [{ id: 'contract', label: 'Contract', evidence: '' }],
-      }),
-    ).toBe('Matches Product Designer, UX Designer +1; contract');
-    expect(whyLine({ ...base, hit: 'text' })).toBe('Mentioned in the posting');
+      whyLine({ ...base, signals: [{ id: 'contract', label: 'Contract', evidence: '' }] }),
+    ).toBe('Design-system title; contract');
+    expect(whyLine({ ...base, title: 'Design Technologist' })).toBe('Related title');
   });
   it('states pay only as the source gives it', () => {
     expect(payLabel({ salaryMin: 95000, salaryMax: 120000 })).toBe('$95k to $120k');
