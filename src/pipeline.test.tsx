@@ -171,6 +171,86 @@ describe('Pipeline on a phone (#129)', () => {
   });
 });
 
+describe('focus stays in the list when a row leaves it (audit 2026-10-27)', () => {
+  beforeEach(() => viewport(390));
+  const THIRD = 'https://orbit.example/jobs/3';
+  beforeEach(() => {
+    addJob(THIRD, 'Orbit Researcher');
+  });
+
+  it('Mark applied by keyboard moves focus to the next card, not the page top', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const all = screen.getAllByRole('article');
+    // The first Saved card (the starred Applied job sorts first).
+    const i = all.findIndex((a) => within(a).queryByRole('button', { name: /^Mark applied:/ }));
+    const firstName = within(all[i]).getByRole('heading').textContent!;
+    const nextName = within(all[i + 1]).getByRole('heading').textContent!;
+    within(all[i])
+      .getByRole('button', { name: /^Mark applied:/ })
+      .focus();
+    await user.keyboard('{Enter}');
+    expect(screen.queryByRole('article', { name: firstName })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('link', { name: nextName }));
+  });
+
+  it('Mark applied on a starred job (it stays Active) keeps focus on its own card', async () => {
+    const user = userEvent.setup();
+    updateJob(SAVED, { priority: true });
+    renderApp();
+    const card = screen.getByRole('article', { name: 'Design Engineer' });
+    within(card).getByRole('button', { name: 'Mark applied: Design Engineer' }).focus();
+    await user.keyboard('{Enter}');
+    const after = screen.getByRole('article', { name: 'Design Engineer' });
+    expect(document.activeElement).toBe(
+      within(after).getByRole('link', { name: 'Design Engineer' }),
+    );
+  });
+
+  it('Remove from the last card moves focus to the card before it', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const all = screen.getAllByRole('article');
+    const last = all[all.length - 1];
+    const lastName = within(last).getByRole('heading').textContent!;
+    const prevName = within(all[all.length - 2]).getByRole('heading').textContent!;
+    await user.click(within(last).getByRole('button', { name: /^More actions:/ }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await waitFor(() => expect(screen.queryByRole('article', { name: lastName })).toBeNull());
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('link', { name: prevName })),
+    );
+  });
+
+  it('Clear filters gives focus to the search, and the shown count is announced', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const search = screen.getByRole('textbox', { name: 'Search saved jobs' });
+    await user.type(search, 'zzz');
+    await waitFor(() =>
+      expect(screen.getAllByRole('status').some((s) => s.textContent === '0 jobs shown')).toBe(
+        true,
+      ),
+    );
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(document.activeElement).toBe(search);
+    await waitFor(() =>
+      expect(screen.getAllByRole('status').some((s) => s.textContent === '3 jobs shown')).toBe(
+        true,
+      ),
+    );
+  });
+
+  it('Clear search in the empty list gives focus to the search', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const search = screen.getByRole('textbox', { name: 'Search saved jobs' });
+    await user.type(search, 'zzz');
+    await user.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(document.activeElement).toBe(search);
+  });
+});
+
 describe('Retired jobs stay readable', () => {
   beforeEach(() => updateJob(SAVED, { archived: true, verdict: 'match' }));
   const showRetired = async () => {
@@ -383,5 +463,58 @@ describe('the Pipeline ends with "Find the next company" (#238)', () => {
     await userEvent.click(btn);
     await waitFor(() => expect(window.location.hash).toBe('#/discover'));
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
+  });
+});
+
+describe('Active empty action and Star Undo (#361)', () => {
+  beforeEach(() => viewport(390));
+  const notice = () => screen.getByRole('region', { name: /^Notifications/ });
+
+  it('the Active empty offers Show applied: it sets the filter to Applied and keeps focus in the panel', async () => {
+    const user = userEvent.setup();
+    // Nothing is Active: both jobs are Applied and neither is starred.
+    markAppliedByUrl(SAVED, 'Design Engineer');
+    updateJob(APPLIED, { priority: false });
+    renderApp();
+    expect(screen.getByText('Nothing left to apply to')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Show applied' }));
+    const status = screen.getByRole('button', { name: /^Status: Applied/ });
+    expect(status).toBeInTheDocument();
+    expect(screen.getByRole('article', { name: 'Design Engineer' })).toBeInTheDocument();
+    expect(screen.getByRole('article', { name: 'Zenith Product Designer' })).toBeInTheDocument();
+    // The empty state unmounted, but focus stayed in the panel — on the Status select.
+    expect(document.activeElement).toBe(status);
+  });
+
+  it('Unstar from a card menu under Starred raises the shared notice, and Undo brings the card back', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(screen.getByRole('button', { name: /^Status:/ }));
+    await user.click(
+      within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Starred/ }),
+    );
+    const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    await user.click(within(card).getByRole('button', { name: 'More actions: Zenith Product Designer' }));
+    await user.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Unstar' }));
+    expect(getAllJobs().find((j) => j.url === APPLIED)?.priority).toBeFalsy();
+    expect(screen.queryByRole('article', { name: 'Zenith Product Designer' })).toBeNull();
+    expect(within(notice()).getByText('Unstarred')).toBeInTheDocument();
+    await user.click(within(notice()).getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs().find((j) => j.url === APPLIED)?.priority).toBe(true);
+    expect(screen.getByRole('article', { name: 'Zenith Product Designer' })).toBeInTheDocument();
+  });
+
+  it('Star from a card menu raises the shared notice with Undo, and the card flashes and stays', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const card = screen.getByRole('article', { name: 'Design Engineer' });
+    await user.click(within(card).getByRole('button', { name: 'More actions: Design Engineer' }));
+    await user.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Star' }));
+    expect(getAllJobs().find((j) => j.url === SAVED)?.priority).toBe(true);
+    expect(screen.getByRole('article', { name: 'Design Engineer' })).toBeInTheDocument();
+    expect(card.getAttribute('data-motion')).toBe('flash');
+    expect(within(notice()).getByText('Starred')).toBeInTheDocument();
+    await user.click(within(notice()).getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs().find((j) => j.url === SAVED)?.priority).toBeFalsy();
   });
 });

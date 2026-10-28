@@ -17,6 +17,7 @@ import { addTodo, toggleTodo, deleteTodo, restoreTodo, seedStarterTodos } from '
 import { Panel, PanelBody, PanelRow, PanelRows } from './PipelinePanel';
 import { collapseRow } from './feedback';
 import { notifyRemoved } from './saveNotice';
+import { nextFocus, useFocusAfter } from './useFocusAfter';
 import type { Job, Todo } from './types';
 
 /** Delete a to-do (#212): its row collapses, then it goes, and a notice offers Undo, which puts it
@@ -116,6 +117,12 @@ export function TodosPanel({ job }: { job: Job }) {
   const [adding, setAdding] = useState(false);
   const todos = job.todos ?? [];
   const open = todos.filter((t) => !t.done).length;
+  // A deleted to-do hands focus to the next one (else Add a to-do); closing the field, to Add.
+  const { ref, focus } = useFocusAfter();
+  const close = () => {
+    setAdding(false);
+    focus('add');
+  };
 
   const commitAdd = () => {
     const next = addTodo(todos, draft);
@@ -174,7 +181,17 @@ export function TodosPanel({ job }: { job: Job }) {
                 iconOnly
                 iconLeft={<Icon icon={X} />}
                 label={`Delete “${todo.text}”`}
-                onClick={(e) => deleteWithUndo(job.url, todo, e.currentTarget)}
+                ref={ref(todo.id)}
+                onClick={(e) => {
+                  focus(
+                    nextFocus(
+                      todos.map((t) => t.id),
+                      todos.indexOf(todo),
+                      'add',
+                    ),
+                  );
+                  deleteWithUndo(job.url, todo, e.currentTarget);
+                }}
               />
             </Stack>
           </PanelRow>
@@ -194,7 +211,7 @@ export function TodosPanel({ job }: { job: Job }) {
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') commitAdd();
-                    if (e.key === 'Escape') setAdding(false);
+                    if (e.key === 'Escape') close();
                   }}
                   onBlur={() => {
                     if (!draft.trim()) setAdding(false);
@@ -212,6 +229,7 @@ export function TodosPanel({ job }: { job: Job }) {
                 size="md"
                 variant="tertiary"
                 iconLeft={<Icon icon={Plus} />}
+                ref={ref('add')}
                 onClick={() => setAdding(true)}
               >
                 Add a to-do

@@ -122,11 +122,14 @@ async function remotiveWithinBudget(
   );
   writeRemotive(kv, { calls: [...calls, now], terms });
   const postings = await fetchRemotive(term, fetchJson);
-  terms[key] = {
+  // Read again: a sweep's other terms counted their calls (and stored their copies) while this
+  // one was in flight, and writing the snapshot from before the await would undo them.
+  const after = readRemotive(kv);
+  after.terms[key] = {
     at: now,
     postings: postings.map((p) => ({ ...p, text: p.text.slice(0, STORED_TEXT_MAX) })),
   };
-  writeRemotive(kv, { calls: [...calls, now], terms });
+  writeRemotive(kv, after);
   return postings;
 }
 
