@@ -258,6 +258,9 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
   Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).
   An unknown slug shows a skeleton until `useCloudSync().settled`, then "No company here" (#303).
+  Each Documents row links to its editor via `linkTo` (Back says "← <Company>"; an uploaded final copy is
+  text only, #304). Notes are "Note 2 of 3" when several, each with a soft Remove + Undo; a notes-only
+  company's last note goes back from the page and Undo reopens it (#305).
 - **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
   first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the first-run gate goes
@@ -431,7 +434,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   not a class (React rewrites a className it owns, e.g. a starred table row moving to the top), and on an HDS Table
   row (`display: contents`, no box) they mark its cells. Row status / Retire / Mark applied
   raise a notice with Undo; **Remove is soft everywhere**: every Remove (a Pipeline job, a job's to-do or interview,
-  a final copy, an outreach target, Manage track's links and sections) collapses the row first, then a notice
+  a final copy, a company note, an outreach target, Manage track's links and sections) collapses the row first, then a notice
   (`saveNotice.notifyRemoved`) offers Undo that puts it back in its place (`restoreTodo` / `restoreEvent` /
   `targets.restoreTarget` / `documents.restoreDocument` / `curationStore.restoreTile` / `restoreGroup`, a section
   with its links in order, its row sent before its links). Inside a modal dialog (Manage track) the notice is

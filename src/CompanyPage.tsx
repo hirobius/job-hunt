@@ -11,6 +11,7 @@ import { addCompanyNote, useCompany } from './companies';
 import {
   DOCUMENT_KINDS,
   getAllDocuments,
+  isFinalCopy,
   removeDocument,
   restoreDocument,
   saveVersion,
@@ -18,7 +19,7 @@ import {
 } from './documents';
 import { collapseRow } from './feedback';
 import { notifyRemoved, showNotice } from './saveNotice';
-import { linkTo, useRoute, type Route } from './route';
+import { buildHash, linkTo, navigate, parseHash, useRoute, type Route } from './route';
 import BackLink from './BackLink';
 import { backClick, useBack } from './back';
 import { jobIdOf } from './store';
@@ -90,25 +91,38 @@ const Quiet = ({ children }: { children: ReactNode }) => (
 );
 
 /** Remove a company Note (#305, soft like every Remove): its row collapses, then it goes, and a
- *  notice offers Undo, which puts it back in its place. Read when the removal lands. */
-function removeNote(note: Document, from: Element) {
+ *  notice offers Undo, which puts it back in its place. Read when the removal lands. A notes-only
+ *  company's last note takes its page with it: `last` goes back from there, and Undo reopens it. */
+function removeNote(id: string, from: Element, last?: { back: () => void; reopen: string }) {
   collapseRow(from, () => {
-    const at = getAllDocuments().findIndex((x) => x.id === note.id);
-    if (at < 0 || !removeDocument(note.id)) return;
+    const all = getAllDocuments();
+    const at = all.findIndex((x) => x.id === id);
+    const note = all[at];
+    if (!note || !removeDocument(id)) return;
+    last?.back();
     notifyRemoved('Removed the note', () => {
       if (!restoreDocument(note, at))
-        showNotice({
+        return showNotice({
           title: "The note couldn't be put back",
           description: "This device's storage is full.",
           actions: [],
         });
+      if (last) navigate(parseHash(last.reopen), false, { restore: true });
     });
   });
 }
 
 /** One company Note: its latest text, saved as a new Version when it changes. `name` tells it
  *  apart from the others ("Note 2 of 3"), for its field and its Remove. */
-function NoteEditor({ note, name }: { note: Document; name: string }) {
+function NoteEditor({
+  note,
+  name,
+  last,
+}: {
+  note: Document;
+  name: string;
+  last?: { back: () => void; reopen: string };
+}) {
   const text = latest(note).text;
   const [draft, setDraft] = useState(text);
   // A newer Version synced in: an untouched draft follows it, so Save never re-saves older text.
@@ -140,7 +154,7 @@ function NoteEditor({ note, name }: { note: Document; name: string }) {
           variant="tertiary"
           size="sm"
           aria-label={`Remove ${name.toLowerCase()}`}
-          onClick={(e) => removeNote(note, e.currentTarget)}
+          onClick={(e) => removeNote(note.id, e.currentTarget, last)}
         >
           Remove
         </Button>
@@ -224,6 +238,8 @@ export default function CompanyPage({ slug }: { slug: string }) {
     );
 
   const docs = company.documents.length;
+  // The one note is all that keeps this page: removing it goes back (like Remove on a job page).
+  const onlyNote = !company.jobs.length && !docs && company.notes.length === 1;
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal">
@@ -274,12 +290,17 @@ export default function CompanyPage({ slug }: { slug: string }) {
                   <Stack gap="px2">
                     <Text variant="ui" as="span">
                       {/* One tap to the editor, whose Back names this company (return paths). */}
-                      <InlineLink
-                        href={linkTo({ tab: 'copy-deck', sub: encodeURIComponent(d.id) }, route)}
-                        externalIcon={false}
-                      >
-                        {d.title || kindLabel(d)}
-                      </InlineLink>
+                      {isFinalCopy(d) ? (
+                        // An uploaded file: the text editor has nothing to edit (its job has it).
+                        d.title || kindLabel(d)
+                      ) : (
+                        <InlineLink
+                          href={linkTo({ tab: 'copy-deck', sub: encodeURIComponent(d.id) }, route)}
+                          externalIcon={false}
+                        >
+                          {d.title || kindLabel(d)}
+                        </InlineLink>
+                      )}
                     </Text>
                     <Text variant="caption" as="span" tone="secondary">
                       {`${kindLabel(d)} · ${versions(d.versions.length)}`}
@@ -305,6 +326,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
                       <NoteEditor
                         note={n}
                         name={all.length > 1 ? `Note ${i + 1} of ${all.length}` : 'Note'}
+                        last={onlyNote ? { back: back.go, reopen: buildHash(route) } : undefined}
                       />
                     </li>
                   ))}

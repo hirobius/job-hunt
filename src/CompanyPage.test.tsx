@@ -1,7 +1,7 @@
 // The Company page (#230), rendered standalone: its Jobs, Documents and Notes, and Notes that can
 // be added and edited (each save a Version). The shell route (#/company/<slug>) wires it in later.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -9,7 +9,7 @@ import CompanyPage from './CompanyPage';
 import DocumentsView from './DocumentsView';
 import NoticeHost from './NoticeHost';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
-import { createDocument, getAllDocuments, replaceDocuments } from './documents';
+import { addFinalCopy, createDocument, getAllDocuments, replaceDocuments } from './documents';
 import { addCompanyNote } from './companies';
 import { jobHash } from './route';
 import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
@@ -184,6 +184,37 @@ describe('Company page (#230)', () => {
         .filter((d) => d.kind === 'note')
         .map((d) => d.id)[1],
     ).toBe(two);
+  });
+
+  it("removing a notes-only company's last note goes back; Undo reopens the page (#305)", async () => {
+    const id = addCompanyNote('Bolt', 'Only');
+    window.location.hash = '#/company/bolt';
+    render(
+      <ToastProvider>
+        <NoticeHost />
+        <CompanyPage slug="bolt" />
+      </ToastProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Remove note' }));
+    expect(getAllDocuments().some((d) => d.id === id)).toBe(false);
+    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    expect(getAllDocuments().some((d) => d.id === id)).toBe(true);
+    await waitFor(() => expect(window.location.hash).toBe('#/company/bolt'));
+  });
+
+  it('an uploaded final copy is listed but not linked to the text editor', () => {
+    seedAcme();
+    addFinalCopy({
+      kind: 'resume',
+      jobUrl: URL_A,
+      file: { name: 'cv.pdf', type: 'application/pdf', size: 3, data: 'AAAA' },
+    });
+    render(<CompanyPage slug="acme" />);
+    const docs = screen.getByRole('region', { name: 'Documents' });
+    expect(within(docs).getByText('cv.pdf')).toBeInTheDocument();
+    expect(within(docs).queryByRole('link', { name: 'cv.pdf' })).toBeNull();
+    expect(within(docs).getByRole('link', { name: 'Acme cover' })).toBeInTheDocument();
   });
 
   it('a company with only notes still has its page (nothing orphaned after a rename)', () => {
