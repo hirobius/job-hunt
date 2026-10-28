@@ -24,6 +24,11 @@ export const BOARD_KINDS: readonly BoardKind[] = [
   'smartrecruiters',
   'teamtailor',
   'personio',
+  'bamboohr',
+  'rippling',
+  'gem',
+  'pinpoint',
+  'breezy',
 ];
 /** The keyless feeds the Feed reads (HN covers Who is hiring and Freelancer). */
 export const FEED_REFS = ['hn', 'remotive', 'jobicy', 'remoteok', 'designsystems-rss'] as const;
