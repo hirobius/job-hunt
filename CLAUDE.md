@@ -507,7 +507,10 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   someone else), the tab freezes: no pull/push/track write, a "Reload to continue" toast + menu
   line, and after a switch its `rjb_` writes are dropped (a sign-out keeps them: the wiped sync
   base makes the next sign-in ask; any sign-in heard while stopped, the same account too, drops them from then on, and Sign out / Delete my data re-check the session after their confirms, so they never end another tab's account). Same-user refreshes change nothing. Pinned in
-  `account/tabSwitch.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
+  `account/tabSwitch.test.tsx`. **Forward guard (#382):** a pull that reads a blob `v` above `BLOB_VERSION`
+  freezes the tab the same way (`'newerVersion'`: nothing adopted or pushed, storage guarded, "Reload to
+  continue"); Sign out and Delete my data still work there (`liftNewerVersionFreeze`). Pinned in
+  `account/forwardGuard.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
   feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
   `unsafeUrls.test.tsx`.
 - **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;
