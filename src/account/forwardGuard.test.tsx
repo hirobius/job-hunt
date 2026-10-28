@@ -155,6 +155,19 @@ describe('a newer blob version in the cloud (#382)', () => {
     expect(row()).toBeUndefined();
   });
 
+  it('a Delete my data that fails to delete the blob stays stopped (no push over it)', async () => {
+    await stoppedByNewer();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    fake().failNext('tracker', 'delete');
+    await chooseAccountItem('Delete my data');
+    await waitFor(() => expect(tabFrozen()).toBe('newerVersion'));
+    act(() => {
+      addJob('https://x.example/jobs/after-delete', 'After');
+    });
+    await settle();
+    expect(row()!.data).toEqual(NEWER);
+  });
+
   it('an account switch in another tab after it still says so', async () => {
     await stoppedByNewer();
     act(() => freezeTab('switched'));

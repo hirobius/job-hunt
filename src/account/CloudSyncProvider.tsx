@@ -595,6 +595,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       return;
     // The confirm may have stayed open while another tab switched account (#288): then the
     // deletes would run under that account's session, and the sign-out below would end it.
+    const stoppedByNewer = tabFrozen() === 'newerVersion';
     liftNewerVersionFreeze(); // a newer version's blob is deleted like any other (#382)
     if (!(await sessionIsStill(user))) return;
     setMsg('Deleting…');
@@ -614,6 +615,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }
     if (failed.length) {
       // Keep this device's copy so nothing is lost while the cloud copy is only partly gone.
+      // The newer version's blob may still be there: stay stopped, or the next push rewrites it.
+      if (stoppedByNewer) freezeTab('newerVersion');
       const why = deleteFailedMsg(failed);
       setMsg(why);
       toast({
