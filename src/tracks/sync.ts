@@ -30,6 +30,40 @@ export const boardOf = (c: WatchedCompany) => `${c.ats}:${c.slug.toLowerCase()}`
 
 const PARALLEL = 4;
 
+/** Rows per select: PostgREST answers at most 1000 rows to one request (its max_rows), the
+ *  service role too, so a single select silently dropped every watched row past the first 1000. */
+export const WATCHED_PAGE = 1000;
+/** Boards read per user and track in one run (security review, 2026-10-27). Any signed-in user can
+ *  insert watched rows, and each one is an outbound read the sync makes on their behalf; past this
+ *  the newest rows wait. Far above a real list (a pack's boards + the Adele seed + verified). */
+export const MAX_WATCHED_PER_TRACK = 500;
+
+type Page<R> = (
+  from: number,
+  to: number,
+) => PromiseLike<{ data: R[] | null; error: { message: string } | null }>;
+
+/** Every enabled watched row, page by page (`page` must order by id), at most
+ *  MAX_WATCHED_PER_TRACK per user and track (the oldest first). */
+export async function readWatched<R extends { user_id: string; track_slug: string }>(
+  page: Page<R>,
+): Promise<{ rows: R[]; error: string | null }> {
+  const rows: R[] = [];
+  const per = new Map<string, number>();
+  for (let from = 0; ; from += WATCHED_PAGE) {
+    const { data, error } = await page(from, from + WATCHED_PAGE - 1);
+    if (error) return { rows: [], error: error.message };
+    for (const r of data ?? []) {
+      const k = `${r.user_id}|${r.track_slug}`;
+      const n = per.get(k) ?? 0;
+      if (n >= MAX_WATCHED_PER_TRACK) continue;
+      per.set(k, n + 1);
+      rows.push(r);
+    }
+    if (!data || data.length < WATCHED_PAGE) return { rows, error: null };
+  }
+}
+
 async function readOne<C extends WatchedCompany>(c: C, f: Fetch): Promise<ReadOutcome<C>> {
   let status: number | undefined;
   try {

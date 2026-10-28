@@ -5,10 +5,10 @@
 // (and the Pipeline's Find the next company) has something to show; Clear removes it by id.
 import type { Job } from '../types';
 import { getAllJobs, replaceAll } from '../store';
-import { getCurationState, removeCategory } from '../curation/curationStore';
+import { getCurationState } from '../curation/curationStore';
 import { seedPack, STARTER_PACKS } from '../curation/starterPacks';
-import { loadPersisted, savePersisted } from '../persisted';
 import { withoutSample } from './isSample';
+import { dropSampleTrack, rememberSampleTrack } from './sampleTrack';
 import { sampleJobs } from './sampleData';
 
 export { withoutSample };
@@ -34,8 +34,6 @@ export function hasCloudSession(storage: Pick<Storage, 'length' | 'key'> = local
 }
 
 export const SAMPLE_TRACK_LABEL = 'Sample';
-/** The id of the track the sample added (device-local: the sample is only offered signed out). */
-const SAMPLE_TRACK_KEY = 'rjb_sample_track';
 
 /** Seed the sample into an empty tracker. Returns false (and changes nothing) otherwise. */
 export function loadSample(now: Date = new Date()): boolean {
@@ -44,23 +42,15 @@ export function loadSample(now: Date = new Date()): boolean {
   replaceAll(next);
   if (getCurationState().categories.length === 0) {
     const id = seedPack(STARTER_PACKS[0].id, undefined, { label: SAMPLE_TRACK_LABEL });
-    savePersisted(SAMPLE_TRACK_KEY, id);
+    rememberSampleTrack(id);
   }
   return true;
-}
-
-/** Remove the track the sample added, if it is still there. */
-function clearSampleTrack() {
-  const id = loadPersisted<string | null>(SAMPLE_TRACK_KEY, null);
-  if (!id) return;
-  removeCategory(id); // a no-op when the user already deleted it
-  savePersisted(SAMPLE_TRACK_KEY, null);
 }
 
 /** Remove the sample records (and the Sample track); returns how many jobs were removed. Real
  *  records are untouched. */
 export function clearSample(): number {
-  clearSampleTrack();
+  dropSampleTrack();
   const jobs = getAllJobs();
   const kept = withoutSample(jobs);
   if (kept.length === jobs.length) return 0;

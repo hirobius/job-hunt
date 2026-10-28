@@ -3,7 +3,7 @@
 // company, location, pay, link, contact, with seniority and résumé version under More fields).
 // A job saved from a bare link has nothing to read yet, so its card starts in edit. Remove lives
 // in the header's menu. The company links to its Company page (#230, `#/company/<slug>`).
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ExternalLink, Pencil } from 'lucide-react';
 import {
   Box,
@@ -16,6 +16,7 @@ import {
   Stack,
   Switcher,
   Text,
+  VisuallyHidden,
 } from '@hirobius/design-system';
 import { jobIdOf, setJobUrl, updateJob } from './store';
 import { companyHash, getRoute, linkTo, navigate, parseHash, useRoute, type Route } from './route';
@@ -31,6 +32,7 @@ import DecksPanel from './JobDecks';
 import { DocumentDownload } from './DocumentDownload';
 import { useDocuments } from './documents';
 import { documentsForJob, sentSummary } from './jobDocuments';
+import { useFocusAfter } from './useFocusAfter';
 import type { Job } from './types';
 
 /** A text field that writes straight through to the job and tells the page it saved. */
@@ -39,11 +41,13 @@ function JobField({
   field,
   label,
   onSaved,
+  autoFocus,
 }: {
   job: Job;
   field: keyof Job;
   label: string;
   onSaved: () => void;
+  autoFocus?: boolean;
 }) {
   // The company name as it was when the field was entered: on leaving it, that name's company
   // Notes follow the rename when no other job keeps it (#230, companies.ts).
@@ -53,6 +57,7 @@ function JobField({
       <Input
         size="sm"
         label={label}
+        autoFocus={autoFocus}
         value={(job[field] as string) || ''}
         onFocus={(e) => {
           before.current = e.target.value;
@@ -69,15 +74,23 @@ function JobField({
   );
 }
 
+/** The job whose link was just changed here: its page opens again with the fields open and focus
+ *  on Link (the page remounts under the new id), so the edit carries on where it was. */
+let relinked: string | null = null;
+
 /** The job's link. It is the job's identity (its page id comes from it), so it saves on blur and
  *  the page follows the job to its new id. */
-function LinkField({ job }: { job: Job }) {
+function LinkField({ job, autoFocus }: { job: Job; autoFocus?: boolean }) {
   const [draft, setDraft] = useState(job.url);
   const [error, setError] = useState(false);
-  const commit = () => {
+  // `leavingTo` is where focus is going: leaving for Done closes the editor on the new page,
+  // so Done needs no second click.
+  const commit = (leavingTo?: EventTarget | null) => {
     if (draft.trim() === job.url) return setError(false);
     const next = setJobUrl(job.url, draft);
     setError(!next);
+    const toDone = leavingTo instanceof Element && !!leavingTo.closest('[data-details-done]');
+    if (next && !toDone) relinked = next;
     // In place, the page follows the job to its new id and keeps where it was opened from.
     if (next) navigate({ jobId: jobIdOf(next), from: getRoute().from ?? null }, true);
   };
@@ -87,21 +100,32 @@ function LinkField({ job }: { job: Job }) {
         size="sm"
         type="url"
         label="Link"
+        autoFocus={autoFocus}
         value={draft}
         error={error}
         errorMessage={error ? 'Use a full link that no other saved job has.' : undefined}
         onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
+        onBlur={(e) => commit(e.relatedTarget)}
         onKeyDown={(e) => e.key === 'Enter' && commit()}
       />
     </Box>
   );
 }
 
-function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
+/** Which field takes focus as the editor opens: Title from Edit, Link after a new link, none when
+ *  the page itself opened in edit (a bare link: focus stays with the page). */
+type OpenFocus = 'title' | 'link' | null;
+
+function DetailsEditor({ job, onDone, focus }: { job: Job; onDone: () => void; focus: OpenFocus }) {
   const { saved, flash } = useSavedFlash();
   const field = (key: keyof Job, label: string) => (
-    <JobField job={job} field={key} label={label} onSaved={flash} />
+    <JobField
+      job={job}
+      field={key}
+      label={label}
+      onSaved={flash}
+      autoFocus={key === 'label' && focus === 'title'}
+    />
   );
   // No form-control cap: the single fields (Title, Link) line up with the paired rows.
   return (
@@ -116,7 +140,7 @@ function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
           {field('salary', 'Pay')}
           {field('contact', 'Contact')}
         </Switcher>
-        <LinkField job={job} />
+        <LinkField job={job} autoFocus={focus === 'link'} />
         <Disclosure label="More fields" variant="nav">
           <Switcher gap="tight">
             {field('seniority', 'Seniority')}
@@ -124,11 +148,13 @@ function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
           </Switcher>
         </Disclosure>
         <Stack direction="row" gap="tight" align="center" justify="end">
+          {/* Announced as well as shown: the visible tick fades, the status says it once. */}
+          <VisuallyHidden role="status">{saved ? 'Saved' : ''}</VisuallyHidden>
           <Text
             variant="caption"
             as="span"
             tone="success"
-            aria-hidden={!saved}
+            aria-hidden
             style={{
               opacity: saved ? 1 : 0,
               transition:
@@ -137,7 +163,7 @@ function DetailsEditor({ job, onDone }: { job: Job; onDone: () => void }) {
           >
             Saved ✓
           </Text>
-          <Button size="md" variant="secondary" onClick={onDone}>
+          <Button size="md" variant="secondary" onClick={onDone} data-details-done="">
             Done
           </Button>
         </Stack>
@@ -177,7 +203,16 @@ function postingLink(job: Job, domain: string) {
 /** The Details panel: the facts as a two-column list, Edit in its header. Research links sit in
  *  the header's menu (rev-3 review). */
 function DetailsPanel({ job }: { job: Job }) {
-  const [editing, setEditing] = useState(!(job.label && job.company));
+  const [editing, setEditing] = useState<false | { focus: OpenFocus }>(() => {
+    if (relinked === job.url) return { focus: 'link' };
+    return job.label && job.company ? false : { focus: null };
+  });
+  // Cleared once mounted, not in the initializer (StrictMode runs that twice).
+  useEffect(() => {
+    if (relinked === job.url) relinked = null;
+  }, [job.url]);
+  // Done gives focus back to Edit.
+  const { ref, focus } = useFocusAfter();
   const route = useRoute();
   const facts = jobFacts(job);
   return (
@@ -191,7 +226,8 @@ function DetailsPanel({ job }: { job: Job }) {
             variant="secondary"
             iconLeft={<Icon icon={Pencil} />}
             aria-label="Edit details"
-            onClick={() => setEditing(true)}
+            ref={ref('edit')}
+            onClick={() => setEditing({ focus: 'title' })}
           >
             Edit
           </Button>
@@ -200,7 +236,14 @@ function DetailsPanel({ job }: { job: Job }) {
     >
       <PanelBody>
         {editing ? (
-          <DetailsEditor job={job} onDone={() => setEditing(false)} />
+          <DetailsEditor
+            job={job}
+            focus={editing.focus}
+            onDone={() => {
+              setEditing(false);
+              focus('edit');
+            }}
+          />
         ) : (
           <MetadataList
             orientation="horizontal"

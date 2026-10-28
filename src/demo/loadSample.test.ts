@@ -125,6 +125,12 @@ describe('the Sample track', () => {
     expect(getCurationState().categories).toHaveLength(2);
   });
 
+  it('clear takes its sections and links with it (no orphans left in storage or a backup)', () => {
+    loadSample(NOW);
+    clearSample();
+    expect(getCurationState()).toEqual({ categories: [], groups: [], tiles: [] });
+  });
+
   it('clear after the user deleted the Sample track changes nothing else', () => {
     loadSample(NOW);
     replaceCurationState({ categories: [], groups: [], tiles: [] });
