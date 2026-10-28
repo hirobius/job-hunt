@@ -70,6 +70,7 @@ import { notifyRemoved, showNotice } from './saveNotice';
 import { useCloudSync } from './account/accountContext';
 import { usePageTitle } from './pageTitle';
 import type { Job } from './types';
+import { useFocusAfter } from './useFocusAfter';
 import { collapseRow, useArrived } from './feedback';
 
 const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
@@ -352,9 +353,17 @@ function CopyRow({
 }) {
   const [editing, setEditing] = useRemembered(`kit-edit:${remember}`, false);
   const [draft, setDraft] = useRemembered(`kit-draft:${remember}`, value);
+  // Closing the field hands focus back to its Edit / Add button (#312).
+  const { ref, focus } = useFocusAfter();
   const done = () => {
     onSave(draft.trim());
     setEditing(false);
+    focus('edit');
+  };
+  const cancel = () => {
+    setDraft(value);
+    setEditing(false);
+    focus('edit');
   };
   const Field = multiline ? Textarea : HdsInput;
   const body = (
@@ -369,14 +378,19 @@ function CopyRow({
               setDraft(e.target.value)
             }
             onKeyDown={(e: React.KeyboardEvent) => {
-              if (!multiline && e.key === 'Enter') done();
+              // Handled here, so Enter never reaches the button focus moves to.
+              if (!multiline && e.key === 'Enter') {
+                e.preventDefault();
+                done();
+              }
+              if (e.key === 'Escape') cancel();
             }}
           />
           <Stack direction="row" gap="tight">
             <Button size="md" variant="secondary" onClick={done}>
               Done
             </Button>
-            <Button size="md" variant="tertiary" onClick={() => setEditing(false)}>
+            <Button size="md" variant="tertiary" onClick={cancel}>
               Cancel
             </Button>
           </Stack>
@@ -397,6 +411,7 @@ function CopyRow({
               size="sm"
               variant="secondary"
               aria-label={`${value ? 'Edit' : 'Add'} ${label}`}
+              ref={ref('edit')}
               onClick={() => {
                 setDraft(value);
                 setEditing(true);

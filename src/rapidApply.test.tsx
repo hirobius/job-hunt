@@ -127,6 +127,26 @@ describe('To apply queue and Apply mode', () => {
     expect(await screen.findByRole('button', { name: 'Copied Name' })).toBeInTheDocument();
   });
 
+  it('Escape cancels a kit field edit: the value stays, focus returns to its button (#312)', async () => {
+    const user = userEvent.setup();
+    setKitField('name', 'Sam');
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'Edit Name' }));
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Typo{Escape}');
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(getApplyKit().fields.name).toBe('Sam');
+    expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
+    // Opened again, the dropped draft is gone.
+    await user.click(screen.getByRole('button', { name: 'Edit Name' }));
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Sam');
+    // Enter saves and hands focus back the same way, without reopening the field.
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Lee{Enter}');
+    expect(getApplyKit().fields.name).toBe('Sam Lee');
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
+  });
+
   it('Mark applied → follow-up date → pager Next; Not a fit sets aside with Undo', async () => {
     const user = userEvent.setup();
     window.location.hash = `#/apply/${jobIdOf(A)}`;
