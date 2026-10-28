@@ -8,6 +8,7 @@ import {
   mergeDreams,
   readDreams,
   replaceDreams,
+  restoreDream,
   sanitizeDreams,
   starDream,
   unstarDream,
@@ -86,6 +87,19 @@ describe('star, check, unstar', () => {
     starDream('t', { company: 'Acme' });
     unstarDream('t', 'acme');
     expect(getAllDreams()).toEqual({});
+  });
+  it('restoreDream puts an unstarred company back in its place, history intact (#324)', () => {
+    starDream('t', { company: 'Acme', board: { kind: 'lever', slug: 'acme' } });
+    starDream('t', { company: 'Beta' });
+    markDreamChecked('t', 'acme', ['a', 'b'], '2026-10-17T00:00:00Z');
+    const before = readDreams('t');
+    unstarDream('t', 'acme');
+    expect(readDreams('t').map((d) => d.key)).toEqual(['beta']);
+    restoreDream('t', before[0], 0);
+    expect(readDreams('t')).toEqual(before);
+    // Restoring over a re-star does not duplicate the company.
+    restoreDream('t', before[0], 0);
+    expect(readDreams('t')).toEqual(before);
   });
   it('a live hook follows changes and replace', () => {
     const { result } = renderHook(() => useDreams('t'));
