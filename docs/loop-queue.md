@@ -26,7 +26,7 @@ iteration. Stop conditions below.
    **New logic ships with table-driven tests.** Vercel runs this same script as its build
    command, so a red gate also fails the deploy (#95). Prettier is not part of the gate yet.
    (The old `typecheck:api` step went away with `api/` — there is no server code left.)
-2. **Flows:** `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`
+2. **Flows:** `npm run test:e2e`
    (the env var points Playwright at the pre-installed Chromium; unset = Playwright's own).
 3. **UI changes:** headless Chromium (`/opt/pw-browsers/chromium` + `vite preview`) — screenshot at
    desktop **and** 390px, **click the new controls**, confirm no console errors (ignore the known

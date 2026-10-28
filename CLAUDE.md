@@ -554,8 +554,9 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   (Adrian: ~3 min → ~30-60 s per deploy). Vercel no longer runs the checks, so **`npm run verify`
   (typecheck → lint → vitest → build) must pass locally before every push to `main`**; `main` is the
   live production site. `deployGate.test.ts` pins both halves. Branch pushes only
-  build a preview when the commit message contains `[preview]`. E2E in cloud sessions:
-  `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
+  build a preview when the commit message contains `[preview]`. E2E in cloud sessions: plain
+  `npm run test:e2e` (`playwright.config.ts` falls back to the stable `/opt/pw-browsers/chromium`
+  link; set `PW_CHROMIUM_PATH` only to use another build).
 - **CSP (#97 → enforcing in #106):** `Content-Security-Policy` in `vercel.json`, pinned by
   `src/csp.test.ts`. **Any new fetch host must go in `connect-src`, the test and `legal.ts` `THIRD_PARTIES`, or it's blocked.**
   Fonts are HDS's self-hosted `fonts.css`, so `font-src`/`style-src` are `'self'` only — no font CDN (#115).

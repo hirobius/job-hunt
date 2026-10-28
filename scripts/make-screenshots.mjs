@@ -6,7 +6,7 @@
 //
 //   npm run screenshots
 //
-// Chromium: PW_CHROMIUM_PATH (cloud sessions: /opt/pw-browsers/chromium-1194/chrome-linux/chrome),
+// Chromium: PW_CHROMIUM_PATH (cloud sessions: /opt/pw-browsers/chromium),
 // else Playwright's own.
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
