@@ -146,13 +146,13 @@ export function saveWithNotice(rawUrl: string, label?: string, note?: string): A
 
 /** Put a removed job back and say what happened: back in the Pipeline, or folded into the copy
  *  saved since (restoreJob never drops either copy). */
-export function restoreWithNotice(url: string) {
+export function restoreWithNotice(url: string, opts: { inDialog?: boolean } = {}) {
   const outcome = restoreJob(url);
   if (outcome === 'merged')
     showNotice({
+      ...(opts.inDialog ? { inDialog: true as const } : {}),
       title: 'Merged into the saved copy',
-      description:
-        'This posting was saved again, so its notes, to-dos and interviews were added there.',
+      description: 'This posting was saved again, so what the removed copy held was added there.',
       actions: [{ label: 'Open', run: () => openJob(jobIdOf(url)) }],
     });
 }
