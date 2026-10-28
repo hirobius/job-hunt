@@ -7,7 +7,7 @@
 // other value on the message, `Document.values`, not a Version), and the preview filled through
 // templateFill.fillSnippet (job fields, then the message's own values, then the kit name). Layout
 // is the rev-3 mock's editor (slice 3): the document's title as the page head, Save, Version
-// history and the menu in one row. Delete sits in the menu and asks first. Unsaved text is never
+// history and the menu in one row. Delete sits in the menu: soft, with Undo (#329). Unsaved text is never
 // lost without a word (QA): All documents asks first, a reload warns, and a draft left by the
 // browser's Back is kept for the tab (docDrafts) and brought back with a notice.
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
@@ -34,7 +34,6 @@ import {
   DOCUMENT_KINDS,
   getAllDocuments,
   isFinalCopy,
-  removeDocument,
   renameDocument,
   saveVersion,
   setDocumentPinned,
@@ -42,6 +41,7 @@ import {
 } from './documents';
 import type { Document, DocumentKind } from './documents';
 import { DocumentDownload } from './DocumentDownload';
+import { removeDocumentWithUndo } from './documentRemove';
 import { updateJob, useJobs } from './store';
 import type { Job } from './types';
 import { useApplyKit } from './applyKit';
@@ -109,10 +109,8 @@ export default function DocumentEditor({
     if (draft === seen) setDraft(saved);
     setSeen(saved);
   }
-  const [confirming, setConfirming] = useState(false);
-  // The browser's Back closes the menu or the confirm and stays on the page (return paths).
+  // The browser's Back closes the menu and stays on the page (return paths).
   const menu = useBackSheet('document-menu');
-  useBackCloses(confirming, () => setConfirming(false), 'document-delete');
   // Opened from a scrolled list, the editor starts at its head (like JobPage and ApplyMode).
   useEffect(() => {
     scrollToTop();
@@ -203,6 +201,19 @@ export default function DocumentEditor({
       if (returnTo) goBack();
     }
   };
+  // Soft, like every other Remove (#329): back to the library, with Undo there.
+  const remove = () => {
+    if (!doc) return;
+    if (removeDocumentWithUndo(doc)) {
+      dropDocDraft(doc.id);
+      onBack();
+    } else
+      toast({
+        title: "Couldn't delete",
+        description: 'A sent document is locked.',
+        tone: 'danger',
+      });
+  };
   const commitTitle = () => {
     if (doc && title.trim() !== doc.title) renameDocument(doc.id, title);
   };
@@ -262,7 +273,7 @@ export default function DocumentEditor({
               {doc.pinned ? 'Unpin' : 'Pin'}
             </Menu.Item>
             <Menu.Separator />
-            <Menu.Item onSelect={() => setConfirming(true)} tone="danger">
+            <Menu.Item onSelect={remove} tone="danger">
               Delete
             </Menu.Item>
           </Menu.Content>
@@ -351,42 +362,6 @@ export default function DocumentEditor({
           </AlertDialog.Footer>
         </AlertDialog.Content>
       </AlertDialog>
-      {doc && (
-        <AlertDialog open={confirming} onOpenChange={setConfirming}>
-          <AlertDialog.Content>
-            <AlertDialog.Header>
-              <AlertDialog.Title>Delete “{doc.title || 'Untitled'}”?</AlertDialog.Title>
-              <AlertDialog.Description>
-                Every version goes with it. This can't be undone.
-              </AlertDialog.Description>
-            </AlertDialog.Header>
-            <AlertDialog.Footer>
-              <AlertDialog.Cancel asChild>
-                <Button variant="secondary">Cancel</Button>
-              </AlertDialog.Cancel>
-              <AlertDialog.Action asChild>
-                <Button
-                  variant="secondary"
-                  tone="danger"
-                  onClick={() => {
-                    if (removeDocument(doc.id)) {
-                      dropDocDraft(doc.id);
-                      onBack();
-                    } else
-                      toast({
-                        title: "Couldn't delete",
-                        description: 'A sent document is locked.',
-                        tone: 'danger',
-                      });
-                  }}
-                >
-                  Delete
-                </Button>
-              </AlertDialog.Action>
-            </AlertDialog.Footer>
-          </AlertDialog.Content>
-        </AlertDialog>
-      )}
     </Stack>
   );
 }

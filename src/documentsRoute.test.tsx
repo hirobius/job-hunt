@@ -137,9 +137,6 @@ describe('the Documents page', () => {
     await screen.findByRole('textbox', { name: 'Title' });
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    await userEvent.click(
-      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
-    );
     await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
     expect(ids()).not.toContain('snippet-tpl-cover');
     // A reload runs the startup move again: the snippet was moved once, so nothing comes back.

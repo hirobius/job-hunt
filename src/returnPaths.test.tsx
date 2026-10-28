@@ -592,10 +592,9 @@ describe('one navigation per Remove, Delete or double click', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Open Cold intro' }));
     await screen.findByRole('button', { name: 'All documents' });
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    const confirm = await screen.findByRole('alertdialog');
+    // Delete is soft (#329): no confirm, it goes at once and offers Undo.
     const pops = countPops();
-    await userEvent.click(within(confirm).getByRole('button', { name: 'Delete' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
     await staysAt(library);
     pops.stop();
     expect(pops.count()).toBe(1);

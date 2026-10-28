@@ -8,11 +8,14 @@ import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import DocumentsLibrary from './DocumentsLibrary';
 import DocumentEditor from './DocumentEditor';
+import NoticeHost from './NoticeHost';
+import { dismissNotice } from './saveNotice';
 import {
   addFinalCopy,
   createDocument,
   getAllDocuments,
   replaceDocuments,
+  saveVersion,
   setDocumentPinned,
 } from './documents';
 import { addJob, getAllJobs, removeJob, updateJob } from './store';
@@ -29,6 +32,18 @@ const renderRaw = () =>
 /** The library with its sections showing: an empty one opens on its empty state, so start blank. */
 const renderLib = () => {
   const r = renderRaw();
+  const blank = screen.queryByRole('button', { name: 'Start from scratch' });
+  if (blank) fireEvent.click(blank);
+  return r;
+};
+/** The library with the shell's notice host, for Delete's Undo. */
+const renderLibWithNotices = () => {
+  const r = render(
+    <ToastProvider>
+      <DocumentsLibrary />
+      <NoticeHost />
+    </ToastProvider>,
+  );
   const blank = screen.queryByRole('button', { name: 'Start from scratch' });
   if (blank) fireEvent.click(blank);
   return r;
@@ -56,6 +71,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  dismissNotice();
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
@@ -258,27 +274,30 @@ describe('create, edit, delete', () => {
     expect(doc(id).versions).toHaveLength(1);
   });
 
-  it('delete asks first, then removes the document and returns to the library', async () => {
-    createDocument({ kind: 'resume', title: 'Old CV', base: true, text: 't' });
-    renderLib();
+  it('Delete removes at once and returns to the library; Undo brings it back with every Version (#329)', async () => {
+    createDocument({ kind: 'resume', title: 'Other CV', base: true, text: 'o' });
+    const id = createDocument({ kind: 'resume', title: 'Old CV', base: true, text: 't' });
+    saveVersion(id, 't2');
+    const kept = doc(id);
+    renderLibWithNotices();
     await openDoc('Old CV');
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    const dialog = await screen.findByRole('alertdialog');
-    // The bordered danger button, like every other confirm in the app (rev-3 mock .btn.danger).
-    expect(within(dialog).getByRole('button', { name: 'Delete' })).toHaveAttribute(
-      'data-variant',
-      'secondary',
+    // No "can't be undone" confirm: it goes at once, with Undo (#212).
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(getAllDocuments().map((d) => d.id)).not.toContain(id);
+    expect(await screen.findByRole('region', { name: 'Résumés' })).toBeInTheDocument();
+    expect(await screen.findByText('Deleted “Old CV”')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    // Back in its place, with both Versions.
+    expect(getAllDocuments().map((d) => d.id)).toEqual([expect.any(String), id]);
+    expect(doc(id)).toEqual(kept);
+    await waitFor(() =>
+      expect(screen.getByRole('listitem', { name: 'Old CV' })).toHaveAttribute(
+        'data-motion',
+        'flash',
+      ),
     );
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
-    expect(getAllDocuments()).toHaveLength(1);
-    await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    await userEvent.click(
-      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
-    );
-    expect(getAllDocuments()).toHaveLength(0);
-    await waitFor(() => expect(screen.getByText('No documents yet')).toBeInTheDocument());
   });
 
   it('Back with an unsaved edit asks first; Discard returns to the library without saving', async () => {
@@ -580,21 +599,19 @@ describe('expandable rows', () => {
     expect(prev!.textContent).toBe('One\nTwo');
   });
 
-  it('the row menu duplicates and deletes (after asking)', async () => {
+  it('the row menu duplicates and deletes, with Undo (#329)', async () => {
     createDocument({ kind: 'note', title: 'Story', base: true, text: 'Once' });
-    renderLib();
+    renderLibWithNotices();
     await userEvent.click(screen.getByRole('button', { name: /Story/ }));
     await userEvent.click(screen.getByRole('button', { name: 'More actions for Story' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Duplicate' }));
     expect(getAllDocuments().map((d) => d.title)).toEqual(['Story', 'Story (copy)']);
     await userEvent.click(screen.getByRole('button', { name: 'More actions for Story' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    const confirm = within(await screen.findByRole('alertdialog')).getByRole('button', {
-      name: 'Delete',
-    });
-    expect(confirm).toHaveAttribute('data-variant', 'secondary');
-    await userEvent.click(confirm);
-    expect(getAllDocuments().map((d) => d.title)).toEqual(['Story (copy)']);
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    await waitFor(() => expect(getAllDocuments().map((d) => d.title)).toEqual(['Story (copy)']));
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    expect(getAllDocuments().map((d) => d.title)).toEqual(['Story', 'Story (copy)']);
   });
 });
 

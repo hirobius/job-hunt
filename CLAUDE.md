@@ -430,7 +430,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   not a class (React rewrites a className it owns, e.g. a starred table row moving to the top), and on an HDS Table
   row (`display: contents`, no box) they mark its cells. Row status / Retire / Mark applied
   raise a notice with Undo; **Remove is soft everywhere**: every Remove (a Pipeline job, a job's to-do or interview,
-  a final copy, an outreach target, Manage track's links and sections) collapses the row first, then a notice
+  a final copy, a Base document (Documents' row and editor Delete, #329, `documentRemove.ts`), an outreach target, Manage track's links and sections) collapses the row first, then a notice
   (`saveNotice.notifyRemoved`) offers Undo that puts it back in its place (`restoreTodo` / `restoreEvent` /
   `targets.restoreTarget` / `documents.restoreDocument` / `curationStore.restoreTile` / `restoreGroup`, a section
   with its links in order, its row sent before its links). Inside a modal dialog (Manage track) the notice is
