@@ -55,7 +55,7 @@ test('export links: open, switch scope and format, copy and download', async ({ 
 
   // Copy puts the list on the clipboard and says how many.
   await dialog.getByRole('button', { name: 'Copy' }).click();
-  await expect(page.getByText('Copied 2 links')).toBeVisible();
+  await expect(page.getByText('Copied 2 links', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(titled);
 
   // Download .txt saves the same text under the brand + date name.
