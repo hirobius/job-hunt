@@ -2,14 +2,26 @@
 // server. The app says a new version is ready, with Reload, instead of crashing; the crash reporter
 // only hears about it when the reload didn't fix it.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import { isChunkLoadError, STALE_RELOAD_KEY, staleReloadFailed } from './chunkError';
 import { importFresh, reloadForNewVersion, resetStaleBuild, STALE_MSG } from './staleBuild';
 import StaleBuildNotice from './StaleBuildNotice';
-import { ErrorBoundary } from './ErrorBoundary';
+import { ErrorBoundary, PageErrorBoundary } from './ErrorBoundary';
 import { createReporter } from './errorReport';
+import { ColorModeProvider } from './ColorMode';
+import App from './App';
+
+// The Privacy and terms page's chunk is gone after a deploy (#331): its lazy view throws the
+// browser's chunk error, as React.lazy does once the import has failed.
+vi.mock('./LegalPage', () => ({
+  default: function LegalPageGone(): never {
+    throw new TypeError(
+      'Failed to fetch dynamically imported module: https://roleforge-app.vercel.app/assets/LegalPage-abc123.js',
+    );
+  },
+}));
 
 const chromeChunk = new TypeError(
   'Failed to fetch dynamically imported module: https://roleforge-app.vercel.app/assets/JobPage-abc123.js',
@@ -94,5 +106,44 @@ describe('stale tab after a deploy', () => {
     await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
     // Long after that reload, a new deploy gets its own quiet reload again.
     expect(staleReloadFailed(Date.now() + 10 * 60 * 1000)).toBe(false);
+  });
+
+  it('a page whose chunk is gone shows the notice in the page area; the tabs still work (#331)', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    window.history.replaceState(null, '', '/#/legal/privacy');
+    render(
+      <ErrorBoundary>
+        <ColorModeProvider>
+          <ToastProvider>
+            <App />
+          </ToastProvider>
+        </ColorModeProvider>
+      </ErrorBoundary>,
+    );
+    const main = screen.getByRole('main');
+    expect(await within(main).findByText(STALE_MSG)).toBeInTheDocument();
+    expect(within(main).getByRole('button', { name: 'Reload' })).toBeInTheDocument();
+    // The shell is still there: the header, the tabs, the Account button.
+    expect(screen.getByRole('banner')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await waitFor(() => expect(within(screen.getByRole('main')).queryByText(STALE_MSG)).toBeNull());
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
+    spy.mockRestore();
+  });
+
+  it('any other crash in a page still reaches the top-level "Something broke" (#331)', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    function Broken(): never {
+      throw new Error('boom');
+    }
+    render(
+      <ErrorBoundary>
+        <PageErrorBoundary resetKey="a">
+          <Broken />
+        </PageErrorBoundary>
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('Something broke')).toBeInTheDocument();
+    spy.mockRestore();
   });
 });

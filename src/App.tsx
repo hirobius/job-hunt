@@ -49,6 +49,7 @@ import { STATUSES, type Status } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
 import { PageShell } from './hds-gaps/PageShell';
+import { PageErrorBoundary } from './ErrorBoundary';
 
 // Code-split every route view: Discover, Documents and the rest here, the Pipeline, job page,
 // Apply mode and Company page through routeViews.ts (they render without a Suspense step once
@@ -278,51 +279,55 @@ export default function App() {
                   </Stack>
                 </Box>
                 <Box as="main">
-                  <Stack gap="px24">
-                    <TabsContent value="queue" variant="bare" tabIndex={-1}>
-                      <Suspense fallback={<PipelineSkeleton />}>
-                        {applying ? (
-                          <ApplyMode jobId={route.sub} />
-                        ) : company ? (
-                          <CompanyPage slug={route.sub ?? ''} />
-                        ) : route.jobId ? (
-                          <>
-                            <JobPageLiveness jobId={route.jobId} />
-                            <JobPage jobId={route.jobId} />
-                          </>
-                        ) : (
-                          // No sync banner: the Account menu's sync line says where data lives.
-                          <TrackerView />
-                        )}
-                      </Suspense>
-                    </TabsContent>
-                    <TabsContent value="discover" variant="bare" tabIndex={-1}>
-                      {firstRun ? (
-                        <Onboarding offerSample />
-                      ) : hasTracks ? (
-                        <Suspense fallback={<DiscoverSkeleton />}>
-                          <DiscoverView />
+                  {/* A page whose chunk is gone after a deploy says so here, not over the shell
+                      (#331); a move to another page clears it. */}
+                  <PageErrorBoundary resetKey={pageKey(route)}>
+                    <Stack gap="px24">
+                      <TabsContent value="queue" variant="bare" tabIndex={-1}>
+                        <Suspense fallback={<PipelineSkeleton />}>
+                          {applying ? (
+                            <ApplyMode jobId={route.sub} />
+                          ) : company ? (
+                            <CompanyPage slug={route.sub ?? ''} />
+                          ) : route.jobId ? (
+                            <>
+                              <JobPageLiveness jobId={route.jobId} />
+                              <JobPage jobId={route.jobId} />
+                            </>
+                          ) : (
+                            // No sync banner: the Account menu's sync line says where data lives.
+                            <TrackerView />
+                          )}
                         </Suspense>
-                      ) : (
-                        <ChooseTrack />
+                      </TabsContent>
+                      <TabsContent value="discover" variant="bare" tabIndex={-1}>
+                        {firstRun ? (
+                          <Onboarding offerSample />
+                        ) : hasTracks ? (
+                          <Suspense fallback={<DiscoverSkeleton />}>
+                            <DiscoverView />
+                          </Suspense>
+                        ) : (
+                          <ChooseTrack />
+                        )}
+                      </TabsContent>
+                      {documents && (
+                        <Suspense fallback={<CopyDeckSkeleton />}>
+                          <DocumentsView />
+                        </Suspense>
                       )}
-                    </TabsContent>
-                    {documents && (
-                      <Suspense fallback={<CopyDeckSkeleton />}>
-                        <DocumentsView />
-                      </Suspense>
-                    )}
-                    {legal && (
-                      <Suspense fallback={null}>
-                        <LegalPage />
-                      </Suspense>
-                    )}
-                    {notFound && (
-                      <Suspense fallback={null}>
-                        <NotFoundPage />
-                      </Suspense>
-                    )}
-                  </Stack>
+                      {legal && (
+                        <Suspense fallback={null}>
+                          <LegalPage />
+                        </Suspense>
+                      )}
+                      {notFound && (
+                        <Suspense fallback={null}>
+                          <NotFoundPage />
+                        </Suspense>
+                      )}
+                    </Stack>
+                  </PageErrorBoundary>
                 </Box>
               </Stack>
             </HdsTabs>
