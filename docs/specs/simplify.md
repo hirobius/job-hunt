@@ -59,7 +59,13 @@ The server keeps three tables: `tracker`, `postings` and `sync_log`. `watched_co
 - **New:** a past interview also restarts the clock, with a thank-you note the next day and a check-in 7 days later.
 - **Today:** Follow up shows what is due today, with dates, plus an "Upcoming: N this week" count.
 - **Jobs:** every job card shows its next follow-up date, and the Follow up and Next 7 days sections stay.
-- **Open question:** Q5 removes the Interviews log from the job page. Should "Add interview" stay in the job's menu?
+- **Decided:** "Add interview" stays as one line in the job's menu, so interview dates still feed Next 7 days and the after-interview follow-up.
+
+## Remote only (for now)
+
+- The Search profile's work mode defaults to **Remote**, and Adrian's profile is remote-only for now.
+- Non-remote postings are counted as "N not remote", never silently hidden.
+- This reverses the "no remote default" rule from #58 for the profile default. Mode stays one switch in the profile.
 
 ## What Adrian loses
 
