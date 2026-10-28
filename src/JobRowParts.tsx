@@ -218,7 +218,7 @@ export function RowMenu({
         <Menu.Separator />
         {/* The Interviews log left the job page (#416); booking one stays here, so its date
             feeds Next 7 days and the follow-up clock. */}
-        <Menu.Item onSelect={() => openAddInterview(job.url)}>Add interview…</Menu.Item>
+        <Menu.Item onSelect={() => openAddInterview(job.url, anchor.current)}>Add interview…</Menu.Item>
         <Menu.Separator />
         {/* Star is a row change like the rest (#212, #361): the shared notice with Undo, not a
             plain toast — under Starred an Unstar takes the card out with no way back otherwise.

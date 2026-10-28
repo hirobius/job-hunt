@@ -33,7 +33,7 @@ export default function JobHeader({ job, showBack = true }: { job: Job; showBack
   const next = primaryAction(job);
   const addInterview =
     !next && !job.archived && job.status === 'Interviewing' ? (
-      <Button variant="primary" size="md" onClick={() => openAddInterview(job.url)}>
+      <Button variant="primary" size="md" onClick={(e) => openAddInterview(job.url, e.currentTarget)}>
         Add interview
       </Button>
     ) : null;

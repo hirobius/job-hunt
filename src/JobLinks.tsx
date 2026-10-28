@@ -43,7 +43,8 @@ function LinkForm({
   const [url, setUrl] = useState('');
   const [label, setLabel] = useState('');
   const [error, setError] = useState(false);
-  const add = () => setError(!onAdd(url, label));
+  // Enter on an empty Link does nothing, as the disabled Add link button does.
+  const add = () => url.trim() && setError(!onAdd(url, label));
   const keys = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
       e.preventDefault();

@@ -13,7 +13,7 @@ import {
   Text,
   useToast,
 } from '@hirobius/design-system';
-import { closeAddInterview, useAddInterviewTarget } from './jobDialogs';
+import { closeAddInterview, focusInterviewOpener, useAddInterviewTarget } from './jobDialogs';
 import { addEvent } from './jobEvents';
 import { dayLabel } from './dayLabel';
 import { timeLabel } from './agendaTime';
@@ -47,13 +47,16 @@ function AddInterviewContent({ job }: { job: Job }) {
   const [time, setTime] = useState('');
   const [kind, setKind] = useState<JobEventKind>('interview');
   const [note, setNote] = useState('');
+  const [error, setError] = useState(false);
 
   const add = () => {
     if (!date) return;
     // Read the job as it is now: a sync may have landed since the dialog opened.
     const events = findJobByUrl(job.url)?.events;
     const next = addEvent(events, { kind, date, time: time || undefined, note });
-    if (next.length !== (events?.length ?? 0)) updateJob(job.url, { events: next });
+    // A day the browser let through but addEvent refuses (no date picker): say so, save nothing.
+    if (next.length === (events?.length ?? 0)) return setError(true);
+    updateJob(job.url, { events: next });
     closeAddInterview();
     const when = time
       ? `${dayLabel(date, new Date())}, ${timeLabel(time)}`
@@ -62,14 +65,24 @@ function AddInterviewContent({ job }: { job: Job }) {
   };
 
   return (
-    <Dialog.Content className="rjb-dialog">
+    <Dialog.Content className="rjb-dialog" onCloseAutoFocus={focusInterviewOpener}>
       <Dialog.Header>
         <Dialog.Title>Add interview</Dialog.Title>
         <Dialog.Description>{titleOf(job)}</Dialog.Description>
       </Dialog.Header>
       <Stack gap="normal" className="rjb-form-full">
         <Grid layout="auto-fit" minItemWidth="200px" gap="medium" align="end">
-          <Input type="date" label="Date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Input
+            type="date"
+            label="Date"
+            value={date}
+            error={error}
+            errorMessage={error ? 'Use a date like 2026-11-03' : undefined}
+            onChange={(e) => {
+              setDate(e.target.value);
+              setError(false);
+            }}
+          />
           <Input
             type="time"
             label="Time (optional)"

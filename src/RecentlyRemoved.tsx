@@ -31,7 +31,7 @@ const ageLine = (iso: string, now = Date.now()) => {
 /** The last entry restored or deleted closes the dialog and takes its trigger with it, so focus
  *  would fall to <body> (#306). Once Radix has tried its trigger (and focus rescue has picked the
  *  next control along), focus the restored job's title in the list, else the Jobs panel's
- *  heading, else the page's heading: where the job went, or the top of the list. */
+ *  heading, else the Account button it was opened from, else the page's heading: where the job went, or the top of the list. */
 function focusAfterEmpty(restored: string | null) {
   const run = () => {
     const main = document.querySelector('main');
@@ -42,8 +42,11 @@ function focusAfterEmpty(restored: string | null) {
       (main?.querySelector<HTMLElement>(`section[aria-label="Jobs"] ${href}`) ??
         main?.querySelector<HTMLElement>(href));
     if (link) return link.focus();
-    const heading =
-      main?.querySelector<HTMLElement>('section[aria-label="Jobs"] h3') ?? pageHeading();
+    const jobs = main?.querySelector<HTMLElement>('section[aria-label="Jobs"] h3');
+    // Opened from the Account menu on another page (#416): back to the Account button.
+    const account = document.querySelector<HTMLElement>('.rjb-account');
+    if (!jobs && account) return account.focus();
+    const heading = jobs ?? pageHeading();
     if (!heading) return;
     // A heading takes focus without becoming a tab stop or drawing a ring (base.css).
     if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
@@ -128,11 +131,19 @@ export function RecentlyRemovedHost() {
     if (openRef.current) focusAfterEmpty(restoredRef.current);
     setShown(false);
   }, [empty]);
-  // Closed (or gone): an Undo it was showing moves to the toast, so it stays in reach.
+  // Closed (or gone): an Undo it was showing moves to the toast, so it stays in reach. Only on
+  // its own close: the host is always mounted, so it never touches another dialog's notice.
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (!open) noticeToToast();
-    return noticeToToast;
+    if (wasOpen.current && !open) noticeToToast();
+    wasOpen.current = open;
   }, [open]);
+  useEffect(
+    () => () => {
+      if (wasOpen.current) noticeToToast();
+    },
+    [],
+  );
   if (empty) return null;
   return (
     <Dialog open={open} onOpenChange={setShown}>

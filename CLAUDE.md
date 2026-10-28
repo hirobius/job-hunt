@@ -195,7 +195,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   anchoring moves it; a new top-level page opens at its top; pages that scroll to top on open use
   `scrollToTop()`. Companies' rows reorder as their boards answer, so their lists opt out of scroll
   anchoring (`overflow-anchor: none`). **Focus** (`focusRescue.ts`, set up in `main.tsx`) is never dropped to `<body>`: a page change focuses the new page's main heading (tabindex -1, no ring), coming back focuses the control that left it (#359), a row that leaves a list hands focus to what took its place (pinned in `e2e/a11y-flows.spec.ts`). **Top tabs** (`tabMemory.ts`) reopen where they
-  were left (`openTab`; Find the next company uses it too), except a job page or Apply mode whose
+  were left (`openTab`), except a job page or Apply mode whose
   job is no longer saved, which reopens the list; the open tab tapped again goes to its root. Start applying resumes at the last Apply job ("Resume applying (2 of 3)"). The Apply pager,
   Not a fit's next job and rail hops move in place (replace). **Sheets** (`useBackCloses.ts`):
   every dialog, menu and popover pushes a same-URL entry, so Back closes it and stays on the page
@@ -222,7 +222,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `discover`, home, hosts the first-run gate) and an empty hash lands there. "Try with sample data"
   lands on the Pipeline. (Its closing **Find the next company** button, #238, was cut in #416.)
 - **Pipeline panels (rev-3 mobile slice 1, `docs/staging/all-states.html` on `claude/staging-states`):**
-  Getting started, To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
+  To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
   `Badge count`), 24 apart. The Jobs panel holds the full-width search, Status and Sort as select-style
   menus and a quiet **Clear filters** when non-default; phone rows are HDS entity cards (`Card.Header`
   metadata = badge row above the title, fit first, then status, then Follow-up due, then the closing date; `Card.Facts` with
@@ -240,7 +240,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   live at the top of the Pipeline (`ApplyQueueSummary` → `PipelineAgenda.tsx`): under To apply, one
   **Follow up (M)** section (due first from `dueFollowUps`, Due badge + the one Follow up button,
   then the rest of `followUpJobs` with their day) and **Next 7 days (N)** (`upcomingEvents`); a
-  section with nothing in it renders nothing. `GettingStarted` sits over them. Quick-add is the Pipeline's Add job dialog. HDS-gap stand-ins
+  section with nothing in it renders nothing. (`GettingStarted` was cut in #416.) Quick-add is the Pipeline's Add job dialog. HDS-gap stand-ins
   live in `src/hds-gaps/`, each naming its upstream ask. **The onboarding gate lives in the
   shell:** Companies shows `Onboarding` on a first run (no tracks and no jobs; it offers sample data
   there) and `ChooseTrack` whenever there are no tracks; Pipeline and Documents never gate. Pinned
@@ -307,9 +307,8 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the first-run gate goes
   to `#/discover`). Sample data is a step 1 offer on a first run. A sign-in drops its Sample track first (`demo/sampleTrack.ts`): never asked about, never uploaded. Discover with no track shows
   `ChooseTrack` first. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in
-  Discover, Documents and the Pipeline (`TrackerView`, with the Briefcase icon). The Pipeline
-  gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
-  `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
+  Discover, Documents and the Pipeline (`TrackerView`, with the Briefcase icon). (The Pipeline's
+  `GettingStarted` card was cut in #416.) Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
   `pipelineFollowUps.test.tsx`.
 - **Shell width (Adrian 2026-10-22, the portfolio's):** `src/hds-gaps/PageShell` = HDS `Container`
   at 1048 in all (Adrian 2026-10-24, was 1180) with a `clamp(1.25rem, 5vw, 4rem)` gutter (20 on a phone, 64 from 1280), so content
@@ -410,7 +409,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   (`forTrack.scorerFor`): the scorer then replaces must include, related titles, the title filter, role-type ordering and
   the engineering-heavy fold in Live postings (no term gate: `match.rankAll`; Review (N) disclosure; "N left out by the
   scorer"), Companies' roles (`readRoles(…, { include })` → `scoredRoles`) and dreams (`keepForTrack`); every card shows
-  `reasonsLine` ("Queued because: …"). Other tracks keep the phrase rules. The Pipeline's `ScoredQueue` (signed in) reads
+  `reasonsLine` ("Queued because: …"). Other tracks keep the phrase rules. The Pipeline's `ScoredQueue` (cut in #416; the rows still reach Live postings through the PostingReader) read
   the user's `postings` rows (`tracks/postings.ts`): verdict queue by score then newest, Review with a count, Skip →
   Decided by posting fingerprint (`feed/decided.ts`, `rjb_decided`, device-local until blob v12 #384; Undo removes it);
   hidden when empty or before the tables exist. **Server (Simplify 6/9, #387):** `sync-postings` reads each user's

@@ -271,4 +271,36 @@ describe('Add interview is one item in the job menu', () => {
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Design Engineer' }));
     expect(await screen.findByRole('menuitem', { name: 'Add interview…' })).toBeInTheDocument();
   });
+
+  it('closing it gives focus back to the ⋯ button that opened it', async () => {
+    addJob(URL_A, 'Design Engineer');
+    window.location.hash = '#/queue';
+    renderApp();
+    const more = screen.getByRole('button', { name: 'More actions: Design Engineer' });
+    await userEvent.click(more);
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Add interview…' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Add interview' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(more).toHaveFocus());
+  });
+});
+
+describe('Recently removed from another page', () => {
+  it('emptying it hands focus back to the Account button', async () => {
+    replaceTrash([
+      {
+        job: { url: URL_A, label: 'Design Engineer', status: 'Saved' },
+        removedAt: new Date().toISOString(),
+      },
+    ]);
+    window.location.hash = '#/copy-deck';
+    renderApp();
+    const menu = await openAccount();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Recently removed (1)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Delete forever: Design Engineer' }),
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Account/ })).toHaveFocus());
+  });
 });
