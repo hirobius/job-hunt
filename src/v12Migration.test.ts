@@ -3,7 +3,7 @@
 // goes through the move, and every board, dream, target and title must come out the other side.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CurationState } from './curation/types';
-import { replaceCurationState } from './curation/curationStore';
+import { getCurationState as getAllCuration, replaceCurationState } from './curation/curationStore';
 import { boardsFromUrls, canonicalBoardUrl, parseBoardUrl } from './feed/sources/ats';
 import { boardUrlsFor } from './feed/watchlist';
 import { sweepFor } from './feed/sweepTitles';
@@ -20,6 +20,7 @@ import { getProfile, getProfiles, replaceProfiles, updateProfile } from './profi
 import { getSources, muteSource, sourceKey, sourceBoard, starSource, type Source } from './sources';
 import { SAMPLE_TRACK_KEY } from './demo/sampleTrack';
 import {
+  EVIDENCE_NOTE_ID,
   linksText,
   moveV11,
   profileFromV11,
@@ -519,6 +520,82 @@ describe('runV12Move (the stores)', () => {
     const by = new Map(getSources().map((x) => [sourceKey(x), x]));
     expect(by.get('ashby:vercel')?.star).toBeUndefined();
     expect(by.get('greenhouse:gone')?.muted).toBeUndefined();
+  });
+
+  it('lifts a mute the move set once the board is live again; a mute the person set stays', () => {
+    runV12Move(new Date(AT));
+    const get = (k: string) => getSources().find((x) => sourceKey(x) === k);
+    expect(get('greenhouse:gone')).toMatchObject({ muted: true, movedMute: true });
+    expect(get('lever:oldco')?.muted).toBe(true);
+    muteSource('lever:oldco', false);
+    muteSource('lever:oldco', true); // the person's own mute now
+    // The section and the old track come back.
+    const c = getAllCuration();
+    replaceCurationState({
+      ...c,
+      categories: c.categories.map((x) => (x.id === 'old' ? { ...x, archived: false } : x)),
+      groups: c.groups.map((g) => (g.id === 'g-ds-archived' ? { ...g, archived: false } : g)),
+    });
+    runV12Move(new Date(AT));
+    expect(get('greenhouse:gone')?.muted).toBeUndefined();
+    expect(get('greenhouse:gone')?.movedMute).toBeUndefined();
+    expect(get('lever:oldco')?.muted).toBe(true);
+  });
+
+  it('lifts a move mute when the board is watched on a live track', () => {
+    runV12Move(new Date(AT));
+    const c = getAllCuration();
+    replaceCurationState({
+      ...c,
+      tiles: [...c.tiles, tile('g-tr-watch', 'Gone jobs', 'https://boards.greenhouse.io/gone')],
+    });
+    runV12Move(new Date(AT));
+    expect(getSources().find((x) => sourceKey(x) === 'greenhouse:gone')?.muted).toBeUndefined();
+  });
+
+  it('turns on a title the move put off once v11 searches it; the person’s off stays', () => {
+    runV12Move(new Date(AT));
+    expect(getProfile()?.titlesOff).toContain('UX Designer'); // archived track
+    expect(getProfile()?.movedOff).toContain('UX Designer');
+    updateProfile({ titlesOff: [...getProfile()!.titlesOff, 'Welder'] });
+    const c = getAllCuration();
+    replaceCurationState({
+      ...c,
+      categories: c.categories.map((x) => (x.id === 'old' ? { ...x, archived: false } : x)),
+    });
+    runV12Move(new Date(AT));
+    expect(getProfile()?.titlesOff).not.toContain('UX Designer');
+    expect(getProfile()?.movedOff ?? []).not.toContain('UX Designer');
+    expect(getProfile()?.titlesOff).toContain('Welder');
+  });
+
+  it('stars a dream starred after the move on a board already watched, once', () => {
+    runV12Move(new Date(AT));
+    const get = () => getSources().find((x) => sourceKey(x) === 'greenhouse:boeing');
+    expect(get()?.star).toBeUndefined();
+    replaceDreams({
+      ...getAllDreams(),
+      trades: [
+        ...getAllDreams().trades,
+        {
+          key: 'boeing',
+          company: 'Boeing',
+          board: { kind: 'greenhouse', slug: 'boeing' },
+          seen: [],
+          starredAt: '2026-10-02T00:00:00.000Z',
+        },
+      ],
+    });
+    runV12Move(new Date(AT));
+    expect(get()?.star).toBe(true);
+    starSource('greenhouse:boeing', false);
+    runV12Move(new Date(AT));
+    expect(get()?.star).toBeUndefined();
+  });
+
+  it('gives the evidence note a fixed id, so two devices keep one', () => {
+    runV12Move(new Date(AT));
+    expect(getAllDocuments().find((d) => d.kind === 'note')?.id).toBe(EVIDENCE_NOTE_ID);
   });
 
   it('writes nothing when there is nothing new', () => {

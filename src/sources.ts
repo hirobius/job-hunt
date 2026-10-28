@@ -44,6 +44,13 @@ export interface Source {
   star?: true;
   /** "Not this company": kept, never read. */
   muted?: true;
+  /** The v11 move muted it (a board only on an archived track or section), not the person: the
+   *  move's top-up lifts the mute once a live copy appears. Dropped when the person mutes or
+   *  unmutes it, so their choice sticks. Only kept alongside `muted`. */
+  movedMute?: true;
+  /** The v11 move starred it (a dream company) once: the top-up never stars it again, so an
+   *  unstar sticks. */
+  movedStar?: true;
   /** Lever's EU host. */
   eu?: true;
   website?: string;
@@ -90,6 +97,8 @@ function sanitizeOne(raw: unknown): Source | null {
   const out: Source = { kind, ref, label };
   if (o.star === true) out.star = true;
   if (o.muted === true) out.muted = true;
+  if (o.muted === true && o.movedMute === true) out.movedMute = true;
+  if (o.movedStar === true) out.movedStar = true;
   if (o.eu === true && kind === 'lever') out.eu = true;
   const website = httpUrl(o.website);
   if (website) out.website = website;
@@ -145,7 +154,10 @@ export function withSources(
     }
     const cur = out[at];
     const next = combine(cur, s);
-    if (star && s.star) next.star = true;
+    if (star && s.star) {
+      next.star = true;
+      if (s.movedStar) next.movedStar = true;
+    }
     out[at] = next;
   }
   return { list: out.slice(0, MAX_SOURCES), added };
@@ -171,13 +183,23 @@ export function replaceSources(all: Source[]): void {
 export function addSources(add: readonly Source[]): number {
   const clean = sanitizeSources(add);
   const at = new Date().toISOString();
-  const cur = readAll();
-  const { list, added } = withSources(
-    cur,
-    clean.map((s) => ({ ...s, addedAt: s.addedAt ?? at })),
-  );
-  if (JSON.stringify(list) !== JSON.stringify(cur)) write(list);
+  let added = 0;
+  updateSources((cur) => {
+    const r = withSources(
+      cur,
+      clean.map((s) => ({ ...s, addedAt: s.addedAt ?? at })),
+    );
+    added = r.added;
+    return r.list;
+  });
   return added;
+}
+
+/** Change the whole list in one write; nothing is written when nothing changes. */
+export function updateSources(change: (cur: Source[]) => Source[]): void {
+  const cur = readAll();
+  const next = sanitizeSources(change(cur));
+  if (JSON.stringify(next) !== JSON.stringify(cur)) write(next);
 }
 
 function patch(key: string, change: (s: Source) => Source) {
@@ -201,7 +223,7 @@ export const starSource = (key: string, on: boolean) =>
 /** "Not this company" (or undo it), by key. A muted Source stays listed and is never read. */
 export const muteSource = (key: string, on: boolean) =>
   patch(key, (s) => {
-    const { muted: _, ...rest } = s;
+    const { muted: _, movedMute: __, ...rest } = s;
     return on ? { ...rest, muted: true } : rest;
   });
 

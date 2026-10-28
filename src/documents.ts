@@ -299,10 +299,12 @@ export function createDocument(input: {
   jobUrl?: string;
   company?: string;
   base?: boolean;
+  /** A fixed id (the v11 move's Evidence note, so two devices' copies are one). */
+  id?: string;
 }): string {
   const now = new Date().toISOString();
   const d: Document = {
-    id: newId(),
+    id: input.id ?? newId(),
     kind: input.kind,
     title: input.title.trim(),
     createdAt: now,

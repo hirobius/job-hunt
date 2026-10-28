@@ -5,7 +5,8 @@
 import { useEffect } from 'react';
 import { useToast } from '@hirobius/design-system';
 import { useCloudSync } from './account/accountContext';
-import { useCategories } from './curation/curationStore';
+import { useCategories, useGroups, useTiles } from './curation/curationStore';
+import { useAllMustInclude } from './feed/mustInclude';
 import { useAllDreams } from './feed/dreams';
 import { useAllTargets } from './feed/targets';
 import { useAllSweeps } from './feed/sweepTitles';
@@ -20,6 +21,9 @@ export default function V12Migration() {
   const { settled } = useCloudSync();
   const { toast } = useToast();
   const categories = useCategories();
+  const groups = useGroups();
+  const tiles = useTiles();
+  const mustInclude = useAllMustInclude();
   const jobs = useJobs();
   const dreams = useAllDreams();
   const targets = useAllTargets();
@@ -49,6 +53,6 @@ export default function V12Migration() {
     return () => {
       live = false;
     };
-  }, [settled, categories, jobs, dreams, targets, sweeps, toast]);
+  }, [settled, categories, groups, tiles, mustInclude, jobs, dreams, targets, sweeps, toast]);
   return null;
 }

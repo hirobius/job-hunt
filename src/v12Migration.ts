@@ -3,13 +3,16 @@
 // (the Sample track aside) of every watched board tile, dream company (starred), outreach target
 // and the board of every saved job, plus the keyless feeds; the profile takes its settings from
 // the scored track, else the busiest one, and its titles from EVERY track (that track's first).
-// Board tiles on an archived track or section were not read before: they come in muted.
+// Board tiles on an archived track or section were not read before: they come in muted
+// (`movedMute`), and titles v11 did not search come in off (`movedOff`). The top-up lifts those
+// once an old screen makes them live again; a mute or switch the person sets stays.
 // The v11 stores are read, never changed. Links that are not boards are offered once as a .txt.
 // The evidence text becomes a Note document.
 //
 // The move runs after sync settles (App's V12Migration). The profile is made once (a profile
 // exists = moved); the Sources and titles are topped up, add-only, on every run while the old
 // screens can still add to the v11 stores, so nothing they add is lost before #389 removes them.
+// A dream starred after the move stars its Source once (`movedStar`), even when it already exists.
 import { createDocument, getAllDocuments } from './documents';
 import { getCurationState } from './curation/curationStore';
 import type { CurationState, Tile } from './curation/types';
@@ -32,7 +35,14 @@ import {
   type Profile,
 } from './profile';
 import { readEvidence } from './radar/evidenceStore';
-import { addSources, boardSource, withSources, type FeedRef, type Source } from './sources';
+import {
+  boardSource,
+  sourceKey,
+  updateSources,
+  withSources,
+  type FeedRef,
+  type Source,
+} from './sources';
 import { getAllJobs } from './store';
 import { getAllModes } from './trackModes';
 import { scorerFor } from './tracks/forTrack';
@@ -62,6 +72,8 @@ export interface LeftoverLink {
 
 const PROFILE_ID = 'main';
 const EVIDENCE_TITLE = 'Evidence';
+/** Fixed, so two devices that each move their evidence end up with one note (a union by id). */
+export const EVIDENCE_NOTE_ID = 'note-evidence';
 const norm = (s: string) => s.trim().toLowerCase();
 /** "Figma jobs" (how Watch names a tile) → "Figma". */
 const tileLabel = (t: Tile) => t.name.replace(/\s+jobs$/i, '').trim();
@@ -86,7 +98,11 @@ const feed = (ref: FeedRef): Source => ({
 });
 
 function dreamSource(d: Dream): Source {
-  const extra: Partial<Source> = { star: true, ...(d.website && { website: d.website }) };
+  const extra: Partial<Source> = {
+    star: true,
+    movedStar: true,
+    ...(d.website && { website: d.website }),
+  };
   if (d.board) return boardSource(d.board, d.company, extra);
   return { kind: 'company', ref: d.key, label: d.company, ...extra };
 }
@@ -114,7 +130,13 @@ export function sourcesFromV11(s: V11State): Source[] {
     tiles.flatMap(({ tile, live: l }) => {
       const b = l === live ? parseBoardUrl(tile.url) : null;
       return b
-        ? [boardSource(b, tileLabel(tile) || boardLabel(b), live ? {} : { muted: true })]
+        ? [
+            boardSource(
+              b,
+              tileLabel(tile) || boardLabel(b),
+              live ? {} : { muted: true, movedMute: true },
+            ),
+          ]
         : [];
     });
   const jobBoards = s.jobs.flatMap((j) => {
@@ -139,6 +161,36 @@ export function sourcesFromV11(s: V11State): Source[] {
     ...boardTiles(false),
   ];
   return withSources([], all, { star: true }).list;
+}
+
+/** Every dream of a real track. */
+const dreamsOf = (s: V11State) => {
+  const tracks = new Set(realTracks(s).map((c) => c.id));
+  return Object.entries(s.dreams).flatMap(([id, list]) => (tracks.has(id) ? list : []));
+};
+
+/** The top-up on a Sources list, pure: add what the account implies; lift a mute the move set
+ *  once that Source is live in v11; star a dream starred after `since` (every dream with no
+ *  `since`) unless the move starred it before (so an unstar sticks). */
+export function topUpSources(list: Source[], s: V11State, since?: string, at?: string): Source[] {
+  const implied = sourcesFromV11(s).map((x) => (x.addedAt || !at ? x : { ...x, addedAt: at }));
+  const live = new Set(implied.filter((x) => !x.muted).map(sourceKey));
+  const after = since ? Date.parse(since) : -Infinity;
+  const stars = new Set(
+    dreamsOf(s)
+      .filter((d) => !(Date.parse(d.starredAt) <= after))
+      .map((d) => sourceKey(dreamSource(d))),
+  );
+  return withSources(list, implied).list.map((x) => {
+    const k = sourceKey(x);
+    let out = x;
+    if (out.movedMute && live.has(k)) {
+      const { muted: _, movedMute: __, ...rest } = out;
+      out = rest;
+    }
+    if (stars.has(k) && !out.movedStar) out = { ...out, star: true, movedStar: true };
+    return out;
+  });
 }
 
 /** A track's sweep (its stored entry, else its titles, else its ATS roles, all on). */
@@ -214,6 +266,7 @@ export function profileFromV11(s: V11State, now: string): Profile | null {
     label: best.label,
     titles: t.titles.slice(0, MAX_PROFILE_TITLES),
     titlesOff: t.titlesOff,
+    ...(t.titlesOff.length && { movedOff: t.titlesOff }),
     atsRoles: t.atsRoles.slice(0, MAX_PROFILE_TITLES),
     atsOff: t.atsOff,
     include: {
@@ -275,29 +328,39 @@ export function readV11(): V11State {
   };
 }
 
+/** The titles top-up, pure: titles the old screens added since come in (off when v11 does not
+ *  search them), and a title the move put off turns on once v11 searches it. The profile keeps
+ *  the person's own on/off. Null when nothing changes. */
+export function topUpTitles(cur: Profile, s: V11State): Profile | null {
+  const have = new Set(cur.titles.map(norm));
+  const t = allTitles(s, ordered(realTracks(s), cur.fromTrack));
+  const off = new Set(t.titlesOff.map(norm));
+  const on = new Set(t.titles.filter((x) => !off.has(norm(x))).map(norm));
+  const fresh = t.titles.filter((x) => !have.has(norm(x)));
+  const freshOff = fresh.filter((x) => off.has(norm(x)));
+  const moved = cur.movedOff ?? [];
+  const lift = new Set(moved.filter((x) => on.has(norm(x))).map(norm));
+  if (!fresh.length && !lift.size) return null;
+  const movedOff = [...moved.filter((x) => !lift.has(norm(x))), ...freshOff];
+  const { movedOff: _, ...rest } = cur;
+  return {
+    ...rest,
+    titles: [...cur.titles, ...fresh],
+    titlesOff: [...cur.titlesOff.filter((x) => !lift.has(norm(x))), ...freshOff],
+    ...(movedOff.length && { movedOff }),
+  };
+}
+
 /** Run the move on this device's stores. `moved` is true the one time it makes the profile;
  *  `links` are then the links to offer. Every run tops up Sources and titles, add-only. */
 export function runV12Move(now = new Date()): { moved: boolean; links: LeftoverLink[] } {
   const s = readV11();
   const profiles = getProfiles();
   if (!realTracks(s).length && !profiles.length) return { moved: false, links: [] };
-  addSources(sourcesFromV11(s));
+  updateSources((cur) => topUpSources(cur, s, profiles[0]?.createdAt, now.toISOString()));
   if (profiles.length) {
-    // Titles the old screens added since: on the profile too (it keeps its own on/off).
-    const cur = profiles[0];
-    const have = new Set(cur.titles.map(norm));
-    const t = allTitles(s, ordered(realTracks(s), cur.fromTrack));
-    const off = new Set(t.titlesOff.map(norm));
-    const fresh = t.titles.filter((x) => !have.has(norm(x)));
-    if (fresh.length)
-      replaceProfiles([
-        {
-          ...cur,
-          titles: [...cur.titles, ...fresh],
-          titlesOff: [...cur.titlesOff, ...fresh.filter((x) => off.has(norm(x)))],
-        },
-        ...profiles.slice(1),
-      ]);
+    const next = topUpTitles(profiles[0], s);
+    if (next) replaceProfiles([next, ...profiles.slice(1)]);
     return { moved: false, links: [] };
   }
   const { profile, links } = moveV11(s, now.toISOString());
@@ -305,8 +368,11 @@ export function runV12Move(now = new Date()): { moved: boolean; links: LeftoverL
   replaceProfiles([profile]);
   const text = s.evidence.trim();
   const noted = getAllDocuments().some(
-    (d) => d.kind === 'note' && d.versions.some((v) => v.text.trim() === text),
+    (d) =>
+      d.id === EVIDENCE_NOTE_ID ||
+      (d.kind === 'note' && d.versions.some((v) => v.text.trim() === text)),
   );
-  if (text && !noted) createDocument({ kind: 'note', title: EVIDENCE_TITLE, text: s.evidence });
+  if (text && !noted)
+    createDocument({ id: EVIDENCE_NOTE_ID, kind: 'note', title: EVIDENCE_TITLE, text: s.evidence });
   return { moved: true, links };
 }

@@ -41,6 +41,9 @@ export interface Profile {
   titles: string[];
   /** Titles in `titles` switched off (kept, not searched). */
   titlesOff: string[];
+  /** Titles in `titlesOff` the v11 move put off (not searched there), not the person: the move's
+   *  top-up turns one on once an old screen searches it. Turning one on drops it from here. */
+  movedOff?: string[];
   /** ATS hidden-jobs search terms. */
   atsRoles: string[];
   /** ATS roles switched off. */
@@ -117,6 +120,8 @@ function sanitizeOne(raw: unknown): Profile | null {
     mode: MODES.includes(o.mode as WorkMode) ? (o.mode as WorkMode) : 'any',
     createdAt: typeof o.createdAt === 'string' ? o.createdAt : new Date(0).toISOString(),
   };
+  const movedOff = within(cleanList(o.movedOff, MAX_PROFILE_TITLES), out.titlesOff);
+  if (movedOff.length) out.movedOff = movedOff;
   if (typeof o.payFloor === 'number' && o.payFloor > 0) out.payFloor = o.payFloor;
   if (o.payOnly === true) out.payOnly = true;
   if ((SCORERS as readonly string[]).includes(o.scorer as string))
