@@ -6,14 +6,8 @@ import { useRef, useState, type ReactNode } from 'react';
 import { Button, Dialog, Stack, Text, useToast } from '@hirobius/design-system';
 import { returnFocus } from './returnFocus';
 import { useBackCloses } from '../useBackCloses';
-import {
-  applyBackup,
-  buildBackup,
-  parseBackup,
-  summarizeRestore,
-  type AccountState,
-  type Backup,
-} from '../backup';
+import type { AccountState, Backup } from '../backup';
+import { importFresh } from '../staleBuild';
 import { toCsv } from '../csv';
 import { download } from '../download';
 import { getAllJobs, replaceAll, useJobs } from '../store';
@@ -34,9 +28,12 @@ import { getAllMustInclude, replaceMustInclude } from '../feed/mustInclude';
 import { BRAND } from '../brand';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
-import { ExportLinksHost } from '../ExportLinksDialog';
+import { ExportLinksHost } from '../ExportLinksHost';
 
 const JSON_MIME = 'application/json';
+// The backup format loads when a backup or restore starts, not with the app (#371).
+const loadBackup = importFresh(() => import('../backup'));
+type BackupLib = Awaited<ReturnType<typeof loadBackup>>;
 const day = () => new Date().toISOString().slice(0, 10);
 
 function currentState(): AccountState {
@@ -58,8 +55,8 @@ function currentState(): AccountState {
   };
 }
 
-function downloadBackup(prefix: string) {
-  const text = JSON.stringify(buildBackup(currentState(), new Date()), null, 2);
+function downloadBackup(lib: BackupLib, prefix: string) {
+  const text = JSON.stringify(lib.buildBackup(currentState(), new Date()), null, 2);
   download(`${prefix}-${day()}.json`, text, JSON_MIME);
 }
 
@@ -84,7 +81,7 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
   const jobs = useJobs();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [pending, setPending] = useState<Backup | null>(null);
+  const [pending, setPending] = useState<{ backup: Backup; lib: BackupLib } | null>(null);
   // The browser's Back closes the Restore dialog and stays on the page (return paths).
   useBackCloses(pending !== null, () => setPending(null), 'restore-backup');
   const fail = (title: string, description: string) =>
@@ -94,8 +91,10 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
     const file = e.target.files?.[0];
     e.target.value = ''; // let the same file be chosen again
     if (!file) return;
-    const parsed = parseBackup(await file.text());
-    if (parsed.ok) setPending(parsed.backup);
+    const lib = await loadBackup().catch(() => null); // a gone chunk: the stale-build notice says so
+    if (!lib) return;
+    const parsed = lib.parseBackup(await file.text());
+    if (parsed.ok) setPending({ backup: parsed.backup, lib });
     else {
       setPending(null);
       fail("Can't restore that file", parsed.reason);
@@ -104,10 +103,11 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
 
   const restore = (mode: 'merge' | 'replace') => {
     if (!pending) return;
-    if (mode === 'replace') downloadBackup(`${BRAND.slug}-before-restore`);
+    const { backup, lib } = pending;
+    if (mode === 'replace') downloadBackup(lib, `${BRAND.slug}-before-restore`);
     const before = currentState();
-    applyState(applyBackup(before, pending, mode));
-    if (mode === 'merge' && evidenceMergeOverflows(pending.evidence, before.evidence))
+    applyState(lib.applyBackup(before, backup, mode));
+    if (mode === 'merge' && evidenceMergeOverflows(backup.evidence, before.evidence))
       toast({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });
     setPending(null);
     // Tracks live in their own cloud tables: mirror the restore there too, or the next sync
@@ -121,10 +121,15 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
     });
   };
 
-  const summary = pending ? summarizeRestore(currentState(), pending) : null;
+  const summary = pending ? pending.lib.summarizeRestore(currentState(), pending.backup) : null;
 
   const api: DataToolsApi = {
-    backup: () => downloadBackup(`${BRAND.slug}-backup`),
+    // A chunk that won't load raises the stale-build notice (importFresh).
+    backup: () =>
+      void loadBackup().then(
+        (lib) => downloadBackup(lib, `${BRAND.slug}-backup`),
+        () => {},
+      ),
     chooseRestore: () => fileRef.current?.click(),
     exportCsv: () => download(`${BRAND.slug}.csv`, toCsv(getAllJobs()), 'text/csv'),
     canExport: jobs.length > 0,
