@@ -1,36 +1,42 @@
-// Dry run of the postings sync (Muse Phase 2 + 2.5), no database: reads the companies we can name
-// without one (the brief's verified list, plus the design systems starter boards in
-// src/radar/directory.ts) and the designsystems.jobs feed, scores everything with the Design
-// Systems track, and prints counts per source, the queue/review/reject split and the first 20
-// queued titles. A host the network refuses is named.
+// Dry run of the postings sync (Muse Phase 2 + 2.5; Simplify 6/9), no database: plans the run from
+// a v11-shaped blob holding the companies we can name without one (the design systems starter
+// boards and targets in src/radar/directory.ts; the plan adds the brief's verified list), the same
+// way the edge function plans each user's run (src/tracks/plan.ts). Then it reads those boards, HN
+// and Jobicy for the plan's titles (never Remotive: its daily budget is for the app) and the
+// designsystems.jobs feed, scores everything with the plan's config, and prints counts per source,
+// the queue/review/reject split and the first 20 queued titles. A host the network refuses is
+// named.
 //   node --experimental-strip-types scripts/dry-run-sync.ts
 // (behind a proxy: NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=<bundle>)
+import { boardApiUrl } from '../src/feed/sources/ats.ts';
 import { DIRECTORY_BY_PACK, TARGETS_BY_PACK } from '../src/radar/directory.ts';
+import { planFromBlob } from '../src/tracks/plan.ts';
 import { readAll, scoreBatch } from '../src/tracks/sync.ts';
-import type { WatchedCompany } from '../src/tracks/sources.ts';
-import { designSystemsTrack } from '../src/tracks/track-config.ts';
-import { VERIFIED_COMPANIES } from '../src/tracks/verified.ts';
-import { watchedFromUrl } from '../src/tracks/watched.ts';
 
-const seen = new Set<string>();
-const companies: WatchedCompany[] = [];
-const add = (c: WatchedCompany | null) => {
-  const k = c && `${c.ats}:${c.slug.toLowerCase()}`;
-  if (!c || !k || seen.has(k)) return;
-  seen.add(k);
-  companies.push(c);
+const blob = {
+  v: 11,
+  mustInclude: { ds: { terms: ['design system'], atsOff: [] } },
+  sweeps: { ds: { titles: ['Design Systems Engineer', 'Design Technologist'], off: [] } },
+  targets: { ds: [] },
 };
-VERIFIED_COMPANIES.forEach(add);
-TARGETS_BY_PACK.designsystems.forEach((c) => add(watchedFromUrl(c.url, c.company)));
-DIRECTORY_BY_PACK.designsystems.forEach((u) => add(watchedFromUrl(u)));
+const tiles = [
+  ...TARGETS_BY_PACK.designsystems.map((c) => ({ url: c.url, name: c.company })),
+  ...DIRECTORY_BY_PACK.designsystems.map((url) => ({ url, name: '' })),
+];
+const plan = planFromBlob(blob, tiles)!;
+const companies = plan.boards;
 
 const started = Date.now();
-const reads = await readAll(companies, { fetch: (u) => fetch(u), rss: true });
-const scored = scoreBatch(reads, designSystemsTrack);
+const reads = await readAll(companies, {
+  fetch: (u) => fetch(u),
+  rss: plan.feeds.has('rss'),
+  terms: { hn: plan.terms, jobicy: plan.terms },
+});
+const scored = scoreBatch(reads, plan.config);
 
 const bySource: Record<string, { boards: number; ok: number; postings: number }> = {};
 for (const r of reads) {
-  const src = r.company?.ats ?? 'rss (designsystems.jobs)';
+  const src = r.company?.ats ?? (r.board === 'rss' ? 'rss (designsystems.jobs)' : r.board);
   const s = (bySource[src] ??= { boards: 0, ok: 0, postings: 0 });
   s.boards++;
   if (r.ok) s.ok++;
@@ -39,12 +45,11 @@ for (const r of reads) {
 const failed = reads.filter((r) => !r.ok);
 const hosts = new Map<string, string[]>();
 for (const r of failed) {
-  const host =
-    r.board === 'rss'
+  const host = r.company
+    ? new URL(boardApiUrl({ kind: r.company.ats, slug: r.company.slug, eu: r.company.eu })).host
+    : r.board === 'rss'
       ? 'designsystems.jobs'
-      : { greenhouse: 'boards-api.greenhouse.io', lever: 'api.lever.co', ashby: 'api.ashbyhq.com' }[
-          r.company!.ats
-        ];
+      : r.board;
   const why = r.status ? `HTTP ${r.status}` : (r.error ?? 'failed').slice(0, 80);
   (hosts.get(host) ?? hosts.set(host, []).get(host)!).push(`${r.board} (${why})`);
 }
@@ -59,7 +64,7 @@ const queued = scored
 
 const out: string[] = [];
 out.push(
-  `Dry run ${new Date().toISOString()} · ${companies.length} companies + RSS · ${((Date.now() - started) / 1000).toFixed(0)} s`,
+  `Dry run ${new Date().toISOString()} · ${companies.length} companies, feeds for "${plan.terms.join('", "')}" + RSS · ${((Date.now() - started) / 1000).toFixed(0)} s`,
 );
 out.push('', 'Per source (boards read ok / boards, postings):');
 for (const [src, s] of Object.entries(bySource))

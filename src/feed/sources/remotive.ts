@@ -1,10 +1,10 @@
 // Remotive — a curated remote-jobs board with a public, keyless, CORS-open API. Its terms ask that
 // we link back to the Remotive URL and credit Remotive as the source: the posting URL is theirs and
 // the feed badges every row with its source, so both hold. Search is fuzzy; match.ts filters.
-import { htmlToText } from '../html';
-import { httpUrl } from '../../httpUrl';
-import type { Posting } from '../types';
-import { arr, obj, str, type FetchJson } from './http';
+import { htmlToText } from '../html.ts';
+import { httpUrl } from '../../httpUrl.ts';
+import type { Posting } from '../types.ts';
+import { arr, obj, str, type FetchJson } from './http.ts';
 
 export function parseRemotiveJob(j: unknown): Posting | null {
   const o = obj(j);

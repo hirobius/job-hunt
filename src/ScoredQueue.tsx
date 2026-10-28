@@ -1,38 +1,24 @@
 // The scored queue on the Pipeline (Muse Phase 1, 2026-10-24): what the sync stored for the
 // signed-in user (src/tracks/postings.ts), the queue first (best score, then newest), each card
 // saying why it is there ("Queued because: …"), then Review as its own bucket with a count. Save
-// adds the posting to the Pipeline; Skip records it with its reasons (the tuning loop) and Undo
-// takes the skip back. Signed out, before the sync's tables exist, or with nothing stored, it
+// adds the posting to the Pipeline; Skip records it in Decided by posting (src/decided.ts), never
+// its company, and Undo takes the skip back. Signed out, before the sync's tables exist, or with nothing stored, it
 // shows nothing (empty sections hide).
 import { useContext, useEffect, useState } from 'react';
-import {
-  Badge,
-  Box,
-  Button,
-  Disclosure,
-  InlineLink,
-  Stack,
-  Text,
-  useToast,
-} from '@hirobius/design-system';
+import { Badge, Box, Button, Disclosure, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { CloudSyncContext } from './account/accountContext';
 import { MetaCaption } from './MetaCaption';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { notifyRemoved, notifySaved } from './saveNotice';
 import { httpUrl } from './httpUrl';
 import { addJobDetailed, dedupKey, useJobs } from './store';
-import {
-  loadScoredPostings,
-  skipPosting,
-  splitQueue,
-  unskipPosting,
-  type StoredPosting,
-} from './tracks/postings';
+import { decided as decidedStore } from './decided';
+import { loadScoredPostings, splitQueue, type StoredPosting } from './tracks/postings';
 import { reasonsLine } from './tracks/scoreForTrack';
 
 const SHOWN = 10;
 
-type Loaded = { userId: string; rows: StoredPosting[]; skipped: Set<number> };
+type Loaded = { userId: string; rows: StoredPosting[] };
 
 export default function ScoredQueue() {
   // Read softly: a Pipeline rendered without the account seam (a unit test) has no account.
@@ -41,7 +27,7 @@ export default function ScoredQueue() {
   const user = sync?.user ?? null;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [more, setMore] = useState(false);
-  const { toast } = useToast();
+  const decided = decidedStore.use();
   const userId = user?.id ?? null;
 
   useEffect(() => {
@@ -50,7 +36,7 @@ export default function ScoredQueue() {
     loadScoredPostings().then(
       (r) => alive && setLoaded({ userId, ...r }),
       // The tables not there yet, or offline: nothing to show, no nag.
-      () => alive && setLoaded({ userId, rows: [], skipped: new Set() }),
+      () => alive && setLoaded({ userId, rows: [] }),
     );
     return () => {
       alive = false;
@@ -58,33 +44,16 @@ export default function ScoredQueue() {
   }, [userId, settled]);
 
   if (!userId || loaded?.userId !== userId) return null;
-  const { queue, review } = splitQueue(loaded.rows, loaded.skipped);
+  const { queue, review } = splitQueue(
+    loaded.rows,
+    new Set([...decided.values()].filter((d) => d.verdict === 'skipped').map((d) => d.fingerprint)),
+  );
   if (!queue.length && !review.length) return null;
 
-  const setSkipped = (id: number, on: boolean) =>
-    setLoaded((l) => {
-      if (!l) return l;
-      const skipped = new Set(l.skipped);
-      if (on) skipped.add(id);
-      else skipped.delete(id);
-      return { ...l, skipped };
-    });
   const skip = (p: StoredPosting) => {
-    setSkipped(p.id, true);
-    skipPosting(p).then(
-      () =>
-        notifyRemoved(`Skipped ${p.title}`, () => {
-          setSkipped(p.id, false);
-          unskipPosting(p.id).catch(() => {
-            setSkipped(p.id, true);
-            toast({ title: "Couldn't undo the skip. Try again.", tone: 'error' });
-          });
-        }),
-      () => {
-        setSkipped(p.id, false);
-        toast({ title: "Couldn't skip that posting. Try again.", tone: 'error' });
-      },
-    );
+    const prev = decidedStore.get(p.fingerprint);
+    decidedStore.set(p.fingerprint, 'skipped');
+    notifyRemoved(`Skipped ${p.title}`, () => decidedStore.undo(p.fingerprint, prev));
   };
 
   const shown = more ? queue : queue.slice(0, SHOWN);

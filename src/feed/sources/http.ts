@@ -5,12 +5,16 @@ export type FetchJson = (url: string, opts?: { fresh?: boolean }) => Promise<unk
 
 /** A fetch failure carrying the HTTP status (0 = never reached the server). */
 export class FetchError extends Error {
-  constructor(
-    readonly status: number,
-    readonly url: string,
-    readonly isTimeout: boolean = false,
-  ) {
+  // Plain fields, not parameter properties: Node's type stripping (the dry-run script) can't run
+  // those.
+  readonly status: number;
+  readonly url: string;
+  readonly isTimeout: boolean;
+  constructor(status: number, url: string, isTimeout = false) {
     super(isTimeout ? 'timed out' : status ? `HTTP ${status}` : 'network error');
+    this.status = status;
+    this.url = url;
+    this.isTimeout = isTimeout;
   }
 }
 

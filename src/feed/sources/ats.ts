@@ -4,12 +4,12 @@
 // keyless, CORS-open JSON API per company. Which companies to watch comes from the track itself: any
 // tile whose URL is a board (e.g. https://jobs.ashbyhq.com/ramp) is pulled live. Durable portal in,
 // fresh openings out — so the board never holds a stale one-off posting.
-import { decodeEntities, htmlToText } from '../html';
-import { inferMode } from '../match';
-import type { JobMode } from '../../types';
-import { httpUrl } from '../../httpUrl';
-import type { Posting } from '../types';
-import { arr, obj, prettySlug, str, type FetchJson } from './http';
+import { decodeEntities, htmlToText } from '../html.ts';
+import { inferMode } from '../mode.ts';
+import type { JobMode } from '../../types.ts';
+import { httpUrl } from '../../httpUrl.ts';
+import type { Posting } from '../types.ts';
+import { arr, obj, prettySlug, str, type FetchJson } from './http.ts';
 
 export type BoardKind =
   | 'greenhouse'

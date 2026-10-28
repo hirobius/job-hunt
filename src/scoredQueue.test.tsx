@@ -8,8 +8,6 @@ import type { StoredPosting } from './tracks/postings';
 
 const api = vi.hoisted(() => ({
   loadScoredPostings: vi.fn(),
-  skipPosting: vi.fn(),
-  unskipPosting: vi.fn(),
 }));
 vi.mock('./tracks/postings', async (orig) => ({
   ...(await orig<typeof import('./tracks/postings')>()),
@@ -20,12 +18,16 @@ import ScoredQueue from './ScoredQueue';
 import NoticeHost from './NoticeHost';
 import { dismissNotice } from './saveNotice';
 import { getAllJobs, replaceAll } from './store';
+import { decided, getDecided, replaceDecided } from './decided';
 
 const row = (id: number, title: string, over: Partial<StoredPosting> = {}): StoredPosting => ({
   id,
   trackSlug: 'design-systems',
+  source: 'greenhouse',
+  sourceId: `greenhouse:stripe:${id}`,
   company: 'Stripe',
   title,
+  fingerprint: `stripe::${title.toLowerCase()}`,
   location: 'Remote',
   url: `https://boards.greenhouse.io/stripe/jobs/${id}`,
   score: 90,
@@ -61,10 +63,9 @@ beforeEach(() => {
       }),
       row(5, 'Skipped before', { score: 99 }),
     ],
-    skipped: new Set([5]),
   });
-  api.skipPosting.mockReset().mockResolvedValue(undefined);
-  api.unskipPosting.mockReset().mockResolvedValue(undefined);
+  replaceDecided([]);
+  decided.set('stripe::skipped before', 'skipped');
 });
 afterEach(() => {
   cleanup();
@@ -102,18 +103,21 @@ describe('the scored queue on the Pipeline', () => {
     expect(within(held).getByText(/^Held for review because: adjacent title/)).toBeVisible();
   });
 
-  it('Skip writes the posting and its reasons, and Undo takes it back', async () => {
+  it('Skip records that posting in Decided (never its company), and Undo takes it back', async () => {
     const user = userEvent.setup();
     renderQueue();
     await screen.findByRole('list', { name: 'Queued postings' });
     await user.click(screen.getByRole('button', { name: 'Skip Design Systems Lead' }));
-    expect(api.skipPosting).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 3, reasons: ['title match: /design systems?/'] }),
-    );
+    expect(getDecided().map((d) => [d.fingerprint, d.verdict])).toContainEqual([
+      'stripe::design systems lead',
+      'skipped',
+    ]);
     expect(titles()).not.toContain('Design Systems Lead');
+    // The same company's other postings stay.
+    expect(titles()).toContain('Design Systems Engineer');
     await user.click(await screen.findByRole('button', { name: 'Undo' }));
-    expect(api.unskipPosting).toHaveBeenCalledWith(3);
     await waitFor(() => expect(titles()).toContain('Design Systems Lead'));
+    expect(getDecided().map((d) => d.fingerprint)).not.toContain('stripe::design systems lead');
   });
 
   it('Save adds the posting to the Pipeline', async () => {
