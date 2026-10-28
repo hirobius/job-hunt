@@ -64,6 +64,22 @@ describe('the agenda keeps up with the clock (#309)', () => {
     expect(screen.queryByRole('region', { name: /^Next 7 days/ })).toBeNull();
   });
 
+  it('a call running past midnight does not hold back the midnight tick', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 26, 23, 50));
+    const late = {
+      ...applied,
+      events: [
+        { id: 'l', kind: 'call', date: '2026-10-26', time: '23:30', durationMin: 60 },
+        { id: 'e', kind: 'call', date: '2026-10-27' },
+      ],
+    } as Job;
+    render(<ApplyQueueSummary jobs={[late]} />);
+    expect(nextDays()).toHaveTextContent('Tomorrow, all day');
+    act(() => vi.advanceTimersByTime(11 * 60_000));
+    expect(nextDays()).toHaveTextContent('Today, all day');
+  });
+
   it('coming back to the tab reads the clock again', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 26, 12, 0));

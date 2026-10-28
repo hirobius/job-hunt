@@ -22,7 +22,13 @@ export function useAgendaNow(jobs: readonly Job[]): Date {
     // Re-armed after each tick, so every midnight is caught, not only the first.
     const now = new Date();
     const end = nextEventEnd(jobs, now);
-    const timer = setTimeout(bump, end ? end.getTime() - now.getTime() : msToMidnight(now) + 1);
+    // Whichever comes first: an event that runs past midnight (23:30 + 60 min) must not hold the
+    // midnight tick back.
+    const toMidnight = msToMidnight(now) + 1;
+    const timer = setTimeout(
+      bump,
+      end ? Math.min(end.getTime() - now.getTime(), toMidnight) : toMidnight,
+    );
     const onVisible = () => {
       if (document.visibilityState === 'visible') bump();
     };
