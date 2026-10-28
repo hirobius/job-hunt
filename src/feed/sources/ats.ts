@@ -252,7 +252,7 @@ export function parseWorkableJob(j: unknown, slug: string): Posting | null {
 export function parseRecruiteeJob(j: unknown, slug: string): Posting | null {
   const o = obj(j);
   const id = String(o.id ?? '');
-  const url = str(o.careers_url);
+  const url = httpUrl(str(o.careers_url));
   if (!id || !url) return null;
   const location = str(o.location);
   const employment = str(o.employment_type_code);

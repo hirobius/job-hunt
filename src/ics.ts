@@ -27,6 +27,11 @@ export interface IcsOptions {
 }
 
 /** Escape a TEXT property value. */
+/** A value written as is (URL, UID): no line breaks or other control characters, so stored data
+ *  can never start a property of its own. */
+// eslint-disable-next-line no-control-regex
+const oneLine = (s: string) => s.replace(/[\u0000-\u001f\u007f]/g, '');
+
 export function escapeText(s: string): string {
   return s
     .replace(/\\/g, '\\\\')
@@ -73,7 +78,7 @@ function wall(date: string, time = '00:00'): Date {
 }
 
 function vevent(e: IcsEvent, stamp: string, domain: string): string[] {
-  const lines = ['BEGIN:VEVENT', `UID:${e.uid}@${domain}`, `DTSTAMP:${stamp}`];
+  const lines = ['BEGIN:VEVENT', `UID:${oneLine(e.uid)}@${domain}`, `DTSTAMP:${stamp}`];
   if (e.time) {
     const start = wall(e.date, e.time);
     const end = new Date(start.getTime() + (e.durationMin ?? 60) * 60000);
@@ -85,7 +90,7 @@ function vevent(e: IcsEvent, stamp: string, domain: string): string[] {
   }
   lines.push(`SUMMARY:${escapeText(e.summary)}`);
   if (e.description) lines.push(`DESCRIPTION:${escapeText(e.description)}`);
-  if (e.url) lines.push(`URL:${e.url}`);
+  if (e.url) lines.push(`URL:${oneLine(e.url)}`);
   lines.push('END:VEVENT');
   return lines;
 }

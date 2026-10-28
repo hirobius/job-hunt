@@ -11,6 +11,7 @@ import {
 import { isSample } from './demo/isSample';
 import type { Job } from './types';
 import type { Document } from './documents';
+import { sanitizeJobs } from './store';
 
 const NOW = new Date('2026-10-12T10:00:00.000Z');
 const job = (url: string, label = 'A job'): Job => ({ url, label, status: 'Saved' }) as Job;
@@ -538,5 +539,25 @@ describe('backup covers the Application kit and sweep titles (#47)', () => {
     const merged = applyBackup(current, backup, 'merge');
     expect(merged.kit.fields).toEqual({ name: 'Sam Doe', email: 'sam@example.test', phone: '555' });
     expect(Object.keys(merged.sweeps).sort()).toEqual(['c1', 'c9']);
+  });
+});
+
+describe('a tampered backup (security review 2026-10-28)', () => {
+  it('drops jobs whose link or title is not a string instead of failing the restore', () => {
+    const r = parseBackup(
+      JSON.stringify({
+        app: 'apply-board',
+        kind: 'backup',
+        v: 1,
+        jobs: [{ url: 5 }, { url: {} }, { url: 'https://a.com/1', label: 7 }],
+      }),
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it('strips control characters from a stored link', () => {
+    const [j] = sanitizeJobs([{ url: 'https://a.com/x\r\nATTACH:y', label: 't' }]);
+    expect(j.url).not.toMatch(/[\r\n]/);
+    expect(() => sanitizeJobs([{ url: {} }, 'x', null])).not.toThrow();
   });
 });

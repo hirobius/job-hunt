@@ -29,11 +29,29 @@ export function decodeEntities(s: string): string {
   });
 }
 
+/** Drops script and style elements in one pass (a lazy regex over many unclosed `<script` tags
+ *  took time quadratic in the body: a hostile posting froze the tab). An unclosed one runs to the
+ *  end. */
+function dropScripts(html: string): string {
+  const lower = html.toLowerCase();
+  const open = /<(script|style)\b/g;
+  let out = '';
+  let from = 0;
+  for (let m = open.exec(lower); m; m = open.exec(lower)) {
+    out += html.slice(from, m.index) + ' ';
+    const end = lower.indexOf(`</${m[1]}`, open.lastIndex);
+    if (end < 0) return out;
+    const close = lower.indexOf('>', end);
+    from = close < 0 ? html.length : close + 1;
+    open.lastIndex = from;
+  }
+  return out + html.slice(from);
+}
+
 /** Strip tags, keeping block boundaries as newlines; decode entities; tidy whitespace. */
 export function htmlToText(html: string): string {
   return decodeEntities(
-    html
-      .replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ')
+    dropScripts(html)
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/?(p|div|li|ul|ol|h[1-6]|tr|section|article)\b[^>]*>/gi, '\n')
       .replace(/<[^>]+>/g, ''),

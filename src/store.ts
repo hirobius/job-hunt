@@ -53,7 +53,8 @@ export function prettyTitle(u: string): string {
     const labels = host.split('.');
     let li = 0;
     while (li < labels.length && GENERIC_HOST_LABELS.has(labels[li])) li++;
-    const brandLabel = li < labels.length - 1 ? labels[li] : li === 0 && labels.length === 1 ? labels[0] : '';
+    const brandLabel =
+      li < labels.length - 1 ? labels[li] : li === 0 && labels.length === 1 ? labels[0] : '';
     const brand = brandLabel ? brandLabel.charAt(0).toUpperCase() + brandLabel.slice(1) : '';
     let title = company || brand;
     let words = decodeURIComponent((company ? segments.slice(1) : segments).pop() || '')
@@ -81,7 +82,11 @@ export function companyFromUrl(u: string): string {
   return b ? prettySlug(b.slug) : '';
 }
 export function cleanUrl(u: string): string {
-  u = (u || '')
+  u = (typeof u === 'string' ? u : '')
+    // Control characters (a decoded %0D%0A) never stay in a link: `new URL` drops them silently,
+    // so a check would pass while the stored text could still break a line in a .ics or CSV.
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f]/g, '')
     .trim()
     .replace(/[<>]/g, '')
     .replace(/^["'(\s]+/, '')
@@ -139,14 +144,16 @@ export function sanitizeJobs(arr: unknown): Job[] {
   const out: Job[] = [];
   const seen = new Set<string>();
   for (const it of arr as Job[]) {
-    if (!it || !it.url) continue;
+    // A tampered blob or backup can hold anything: a job that is not an object with a string
+    // link is dropped, never thrown on (a throw here stops restore and every sync merge).
+    if (!it || typeof it !== 'object' || typeof it.url !== 'string' || !it.url) continue;
     const url = cleanUrl(it.url);
     // A synced or restored job's link becomes an href: `javascript:` / `data:` never load.
     if (!url || RETIRED[url] || !safeJobUrl(url)) continue;
     const key = dedupKey(url);
     if (seen.has(key)) continue; // first occurrence wins
     seen.add(key);
-    const label = (it.label || '').replace(/[<>]/g, '').trim();
+    const label = (typeof it.label === 'string' ? it.label : '').replace(/[<>]/g, '').trim();
     const { snoozeUntil: rawSnooze, decks: rawDecks, deadline: rawDeadline, ...rest } = it;
     const snoozeUntil = normSnooze(rawSnooze);
     // Deck links become hrefs: only well-formed http(s) ones are kept (#287).

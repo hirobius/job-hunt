@@ -108,3 +108,20 @@ describe('error reports (#47)', () => {
     });
   });
 });
+
+describe('links in a crash report (security review 2026-10-28)', () => {
+  it("keeps a link's host but not a path that names a posting", () => {
+    const s = scrubText(
+      'URL constructor: https://boards.greenhouse.io/acme/jobs/123 is not valid',
+      300,
+    );
+    expect(s).not.toContain('acme');
+    expect(s).toContain('https://boards.greenhouse.io/');
+  });
+
+  it("keeps a stack frame's script path", () => {
+    expect(scrubText('at f (https://a.app/assets/x-1a.js:1:2)', 300)).toContain(
+      '/assets/x-1a.js:1:2',
+    );
+  });
+});
