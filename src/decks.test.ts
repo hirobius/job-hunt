@@ -161,6 +161,9 @@ describe('decks ride with the job', () => {
         kit: { fields: {}, answers: [] },
         sweeps: {},
         mustInclude: {},
+        profiles: [],
+        sources: [],
+        decided: [],
       } as unknown as Parameters<typeof buildBackup>[0],
       new Date('2026-10-26T00:00:00Z'),
     );

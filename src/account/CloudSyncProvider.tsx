@@ -20,6 +20,9 @@ import { getAllMustInclude, replaceMustInclude, useAllMustInclude } from '../fee
 import { getTrash, replaceTrash, useTrash } from '../trash';
 import { getAllDreams, replaceDreams, useAllDreams } from '../feed/dreams';
 import { getAllDocuments, replaceDocuments, useDocuments } from '../documents';
+import { getProfiles, replaceProfiles, useProfiles } from '../profile';
+import { getSources, replaceSources, useSources } from '../sources';
+import { decided as decidedStore, getDecided, replaceDecided } from '../decided';
 import {
   readBlob,
   writeBlob,
@@ -123,6 +126,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   const trash = useTrash();
   const dreams = useAllDreams();
   const documents = useDocuments();
+  const profiles = useProfiles();
+  const sources = useSources();
+  const decided = decidedStore.use();
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState('Sign in to sync across your devices');
   const [signInOpen, setSignInOpen] = useState(false);
@@ -174,6 +180,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     trash: getTrash(),
     dreams: getAllDreams(),
     documents: getAllDocuments(),
+    profiles: getProfiles(),
+    sources: getSources(),
+    decided: getDecided(),
     sourceV: BLOB_VERSION,
   });
   const localJson = () => JSON.stringify(writeBlob(localBlob()));
@@ -284,6 +293,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     replaceTrash(next.trash);
     replaceDreams(next.dreams);
     replaceDocuments(next.documents);
+    replaceProfiles(next.profiles);
+    replaceSources(next.sources);
+    replaceDecided(next.decided);
   }
 
   // Pull the cloud copy and merge it into this device's stores. `both` (a sign-in, or a push the
@@ -544,6 +556,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     trash,
     dreams,
     documents,
+    profiles,
+    sources,
+    decided,
     user,
   ]);
 

@@ -7,6 +7,9 @@
 // v9 adds dream companies per track (src/feed/dreams.ts), same pattern as the v5 stores.
 // v10 adds Documents with their Versions (src/documents.ts, #226), same pattern.
 // v11 adds must-include terms per track (src/feed/mustInclude.ts), same pattern as v7.
+// v12 (simplify spec) adds the Search profile (src/profile.ts), Sources (src/sources.ts) and decided
+// postings (src/decided.ts). The v11 per-track fields stay and still read; the one-time move
+// (src/v12Migration.ts) fills the new ones from them.
 // v7 adds the wide sweep's titles per track (#213), optional on read.
 // v6 adds the Application kit (rapid apply: profile fields + saved answers), optional on read.
 // v5 (ADR 0008) adds the user-edited stores that used to live only in this browser: outreach
@@ -35,6 +38,9 @@ import { isSample, withoutSample } from './demo/isSample';
 import { mergeTrash, sanitizeTrash, type Removed } from './trash';
 import { withEdits, withoutDeleted, type SyncHashes, type SyncKeys } from './syncBase';
 import { carries, FIELD_SINCE, type VersionedField } from './blobFields';
+import { mergeProfiles, sanitizeProfiles, type Profile } from './profile';
+import { mergeSources, sanitizeSources, type Source } from './sources';
+import { mergeDecided, sanitizeDecided, type Decided } from './decided';
 import {
   mergeDocuments,
   sanitizeDocuments,
@@ -76,13 +82,19 @@ export interface SyncData {
   documents: Document[];
   /** Must-include terms and switched-off ATS roles per track (v11). */
   mustInclude: Record<string, MustInclude>;
+  /** The Search profile, one entry (v12). */
+  profiles: Profile[];
+  /** Every Source: boards, followed companies, feeds (v12). */
+  sources: Source[];
+  /** Postings decided in Review new, by fingerprint (v12). */
+  decided: Decided[];
   /** The blob version this was read from (0 = not read from a blob). A pre-v5 cloud copy says
    *  nothing about the v5 fields, so a refresh must not let its emptiness wipe local values. */
   sourceV: number;
 }
 
 /** Blob schema version written to the cloud. */
-export const BLOB_VERSION = 11;
+export const BLOB_VERSION = 12;
 
 export function emptyBlob(): SyncData {
   return {
@@ -100,6 +112,9 @@ export function emptyBlob(): SyncData {
     dreams: {},
     documents: [],
     mustInclude: {},
+    profiles: [],
+    sources: [],
+    decided: [],
     sourceV: 0,
   };
 }
@@ -130,6 +145,9 @@ export function readBlob(data: unknown): SyncData {
     dreams: sanitizeDreams(o.dreams),
     documents: sanitizeDocuments(o.documents),
     mustInclude: sanitizeMustInclude(o.mustInclude),
+    profiles: sanitizeProfiles(o.profiles),
+    sources: sanitizeSources(o.sources),
+    decided: sanitizeDecided(o.decided),
     sourceV: typeof o.v === 'number' ? o.v : 0,
   };
 }
@@ -151,6 +169,9 @@ export function writeBlob(d: SyncData) {
     dreams: d.dreams,
     documents: withoutSampleDocuments(d.documents, d.jobs),
     mustInclude: d.mustInclude,
+    profiles: d.profiles,
+    sources: d.sources,
+    decided: d.decided,
   };
 }
 
@@ -196,6 +217,9 @@ export function mergeBlob(
     dreams: mergeDreams(cloud.dreams, local.dreams),
     documents: mergeDocuments(cloud.documents, local.documents),
     mustInclude: mergeMustInclude(cloud.mustInclude, local.mustInclude),
+    profiles: mergeProfiles(cloud.profiles, local.profiles),
+    sources: mergeSources(cloud.sources, local.sources),
+    decided: mergeDecided(cloud.decided, local.decided),
     sourceV: cloud.sourceV,
   };
   const kept = base ? withoutDeleted(union, cloud, local, base) : union;

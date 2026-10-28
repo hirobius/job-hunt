@@ -9,16 +9,9 @@ import { FetchError, type FetchJson } from './sources/http';
 import { fetchRemotive } from './sources/remotive';
 import { fetchSam, SourceMessageError, type SamRequest } from './sources/sam';
 import { SOURCE_LABEL, type Posting } from './types';
+import { SOURCE_ENABLED } from './sourceEnabled';
 
-/** Per-source switch for the keyless aggregators we have not yet seen answer from a browser (no CORS
- *  proof from the build sandbox). Turn one off here if its first deployed check shows it blocked.
- *  A failure is already isolated and named per source either way. Remote OK stays off until its
- *  API's own legal notice has been read from a network that reaches it and its terms are checked
- *  against this adapter (#178): an attribution source does not ship on a guess of its terms. */
-export const SOURCE_ENABLED: Record<'jobicy' | 'remoteok', boolean> = {
-  jobicy: true,
-  remoteok: false,
-};
+export { SOURCE_ENABLED };
 
 /** Boards read at once — polite to the ATSs and kind to a phone's connection. There is no cap on
  *  how many boards a search reads (Adrian, 2026-10-15): every distinct watched board is read, this

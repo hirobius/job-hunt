@@ -28,6 +28,9 @@ import {
 import { mergeKit, sanitizeKit, type ApplyKit } from './applyKit';
 import { mergeSweeps, sanitizeSweeps, type SweepTitles } from './feed/sweepTitles';
 import { mergeMustInclude, sanitizeMustInclude, type MustInclude } from './feed/mustInclude';
+import { mergeProfiles, sanitizeProfiles, type Profile } from './profile';
+import { mergeSources, sanitizeSources, type Source } from './sources';
+import { mergeDecided, sanitizeDecided, type Decided } from './decided';
 
 export interface AccountState {
   jobs: Job[];
@@ -50,6 +53,10 @@ export interface AccountState {
   sweeps: Record<string, SweepTitles>;
   /** Must-include terms per track (blob v11). Older backups lack them. */
   mustInclude: Record<string, MustInclude>;
+  /** The Search profile, Sources and decided postings (blob v12). Older backups lack them. */
+  profiles: Profile[];
+  sources: Source[];
+  decided: Decided[];
 }
 
 export interface Backup extends AccountState {
@@ -57,6 +64,8 @@ export interface Backup extends AccountState {
   kind: 'backup';
   v: 1;
   exportedAt: string;
+  /** Read from a file made before blob v12 (none of profiles / sources / decided). Never written. */
+  before12?: true;
 }
 
 export type ParseResult = { ok: true; backup: Backup } | { ok: false; reason: string };
@@ -93,6 +102,9 @@ export function buildBackup(state: AccountState, now: Date): Backup {
     kit: state.kit,
     sweeps: state.sweeps,
     mustInclude: state.mustInclude,
+    profiles: state.profiles,
+    sources: state.sources,
+    decided: state.decided,
   };
 }
 
@@ -368,6 +380,12 @@ export function parseBackup(text: string): ParseResult {
       kit: sanitizeKit(data.kit),
       sweeps: sanitizeSweeps(data.sweeps),
       mustInclude: sanitizeMustInclude(data.mustInclude),
+      profiles: sanitizeProfiles(data.profiles),
+      sources: sanitizeSources(data.sources),
+      decided: sanitizeDecided(data.decided),
+      ...(!('profiles' in data || 'sources' in data || 'decided' in data) && {
+        before12: true as const,
+      }),
     },
   };
 }
@@ -375,7 +393,7 @@ export function parseBackup(text: string): ParseResult {
 /** Replace = the backup's data. Merge = the backup plays "cloud" (it wins on shared keys). */
 export function applyBackup(
   current: AccountState,
-  backup: AccountState,
+  backup: AccountState & Pick<Backup, 'before12'>,
   mode: 'merge' | 'replace',
 ): AccountState {
   if (mode === 'replace') {
@@ -394,6 +412,11 @@ export function applyBackup(
       kit: backup.kit,
       sweeps: backup.sweeps,
       mustInclude: backup.mustInclude,
+      // A backup from before v12 has none of these: Replace keeps this device's (its stars, mutes
+      // and profile edits), and the v12 move tops Sources up from the restored tracks.
+      ...(backup.before12
+        ? { profiles: current.profiles, sources: current.sources, decided: current.decided }
+        : { profiles: backup.profiles, sources: backup.sources, decided: backup.decided }),
     };
   }
   const jobs = mergeJobs(backup.jobs, current.jobs);
@@ -412,6 +435,9 @@ export function applyBackup(
     kit: mergeKit(backup.kit, current.kit),
     sweeps: mergeSweeps(backup.sweeps, current.sweeps),
     mustInclude: mergeMustInclude(backup.mustInclude, current.mustInclude),
+    profiles: mergeProfiles(backup.profiles, current.profiles),
+    sources: mergeSources(backup.sources, current.sources),
+    decided: mergeDecided(backup.decided, current.decided),
   };
 }
 
