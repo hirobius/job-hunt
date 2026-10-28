@@ -92,10 +92,10 @@ _Avoid_: attachment, upload (as a noun in code)
 
 ## Proposed (simplify spec, `docs/specs/simplify.html`)
 
-Not built yet; these terms take effect only if Adrian picks the recommended design. Until then the terms above stand.
+Adrian picked design C with no loss of breadth (2026-10-28). These terms are not built yet; until their slices land, the terms above stand.
 
 **Today**:
-The proposed home page: three counts in a fixed order (Review new, Apply, Follow up), each opening a one-at-a-time walk. Replaces Companies as home; the Pipeline moves under More as Jobs.
+The home page: three counts in a fixed order (Review new, Apply, Follow up) under "N new today from M sources". Replaces Companies as home; the Pipeline moves under More as Jobs.
 _Avoid_: dashboard, home, inbox
 
 **Find**:
@@ -103,21 +103,33 @@ The one paste box on Today. A job link saves a Job, a board or company link or n
 _Avoid_: add, quick-add, watch, search (as a feature name)
 
 **Source**:
-Anything the user follows for new Postings: a company board, a company with no board yet, or a keyless feed (HN, Remotive). One synced list; a star marks a favourite. Replaces Watched company, dream company and outreach target.
+Anything the user follows for new Postings: a company board of any kind, a company with no board yet, or a feed (HN, Remotive, Jobicy, designsystems.jobs). Can be starred or muted. One synced list; a star marks a favourite. Replaces Watched company, dream company and outreach target.
 _Avoid_: watched company, dream, target, subscription
 
 **Search profile**:
-What the user is looking for: titles, must-include terms, leave-out terms, location, work mode. One per account (stored as a list of one). Replaces the track as the frame for discovery.
+What the user is looking for: titles (the wide sweep covers all of them), related titles, must-include and leave-out terms, pay floor, level, location, work mode; the scorer's config comes from it. One per account (stored as a list of one). Replaces the track as the frame for discovery.
 _Avoid_: track, pillar, filter, calibration
 
 **Feed**:
 The one module that turns Sources and the Search profile into ranked Postings, read in the browser when signed out and from the server sync when signed in.
 _Avoid_: live postings, sweep, scored queue
 
+**Browse**:
+The default view of Review new: every undecided Posting from the Feed as one list you can sort and filter, open, and Save or Skip inline.
+_Avoid_: live postings, results, inbox
+
 **Deck**:
-The Feed's undecided Postings shown one card at a time under Review new: Save (makes a Job and follows its company), Skip, or Not this company.
+The optional view of Review new: the same undecided Postings one card at a time. Save makes a Job and follows its company. Skip hides that Posting only. Not this company mutes its Source.
 _Avoid_: inbox, queue, swipe list
 
+**Add sources**:
+The helpers that suggest Sources (Check a list, YC, GitHub design-system orgs, the Adele seed). They only ever add to the Sources list.
+_Avoid_: discovery tools, find boards
+
+**Breadth guard**:
+The fixture test that counts distinct Postings from the same recorded inputs through the old pipeline and the Feed, and fails if the Feed returns fewer.
+_Avoid_: coverage test
+
 **Decided**:
-The remembered verdicts on Postings (saved, skipped, company muted) so a Posting never comes back to the Deck.
+The remembered verdicts on Postings (saved or skipped), kept by Posting so it never comes back to Review new. Never a company: muting a company is a flag on its Source.
 _Avoid_: dismissed, set aside, skips

@@ -45,13 +45,24 @@ ol.slices li{margin-bottom:8px}
 <p class="lede">Spec, 2026-10-28. Draft for Adrian's pick: no code changes yet. Branch <code>claude/rf-simplify-spec</code>.</p>
 
 <div class="card pick">
-<strong>Recommendation in one breath.</strong> One home page, <strong>Today</strong>, with three buttons:
-<strong>Review new</strong> (one card at a time: Save or Skip), <strong>Apply</strong> (Apply mode as it is) and
-<strong>Follow up</strong>. One <strong>Find</strong> box takes anything you paste: a job link, a company, a board or a title.
-Everything you follow is one <strong>Sources</strong> list; one <strong>Search profile</strong> replaces tracks;
-one <strong>Feed</strong> turns sources into cards, from the browser when signed out and from the server sync when signed in.
-About <strong>14k lines</strong> (40% of the app) go. You lose multiple tracks, the curated tile boards, GitHub/YC/Adele
-discovery, Calibrate's knobs and SAM.gov.
+<strong>Picked: C, with no loss of breadth (amended 2026-10-28).</strong> One home page, <strong>Today</strong>, with three buttons:
+<strong>Review new</strong> (a <strong>Browse list</strong> by default, the one-card deck as an option), <strong>Apply</strong> (Apply mode as it is) and
+<strong>Follow up</strong>. One <strong>Find</strong> box takes anything you paste. Everything you follow is one <strong>Sources</strong> list;
+one <strong>Search profile</strong> replaces tracks; one <strong>Feed</strong> reads <em>every</em> job source there is today.
+Only the old screens go (about <strong>5k lines</strong> net); every source and company-finding helper stays.
+A <strong>breadth guard</strong> test fails if the new Feed ever returns fewer distinct postings than today's.
+You lose multiple tracks, the curated tile boards, SAM.gov, and Calibrate's separate knobs (folded into the profile).
+</div>
+
+<div class="card">
+<strong>Adrian's conditions on C</strong> (the amendment; sections 7 to 9 follow them)
+<ol>
+<li><strong>Review has two views of the same Feed:</strong> a Browse list (default: sort, filter, open any posting, Save or Skip inline) and the one-card deck as an option.</li>
+<li><strong>Every job source stays:</strong> HN (Who is hiring + Freelancer), Remotive, Jobicy, the designsystems.jobs RSS, every watched board kind (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor, Personio), the wide sweep over all profile titles, related titles, and the scorer's Review bucket. Big job boards and ATS search stay as <em>Search elsewhere</em> links.</li>
+<li><strong>Company-finding helpers stay</strong> (GitHub org search, Adele seed, YC, Check a list) as <em>Add sources</em> helpers that feed the one Sources list. Only their old screens go.</li>
+<li><strong>Breadth guard:</strong> a fixture test counts distinct postings from the same recorded inputs through today's pipeline and the new Feed, and fails if the new one returns fewer. Today shows "N new today from M sources".</li>
+<li><strong>Skip hides that posting only, never its company.</strong> "Not this company" is a separate, explicit action.</li>
+</ol>
 </div>
 
 <nav><strong>On this page</strong>
@@ -62,7 +73,7 @@ discovery, Calibrate's knobs and SAM.gov.
 <li><a href="#b">Design B: One list, client-first</a></li>
 <li><a href="#c">Design C: Today deck</a></li>
 <li><a href="#compare">Side by side</a></li>
-<li><a href="#rec">Recommendation (C, with B's sources and A's Find box)</a></li>
+<li><a href="#rec">Recommendation, as amended (C, no loss of breadth)</a></li>
 <li><a href="#slices">Slice plan</a></li>
 <li><a href="#loses">What Adrian loses, and why it's worth it</a></li>
 </ol></nav>
@@ -259,58 +270,113 @@ Storybook
 </table>
 </div>
 
-<h2 id="rec">7. Recommendation: C, with B's Sources and A's Find box</h2>
+<h2 id="rec">7. Recommendation, as amended: C with no loss of breadth</h2>
+<p class="small">Adrian picked C on 2026-10-28 on one hard condition: no loss of breadth. He wants as many distinct design-system openings as possible, in a list he can click through and apply from, not the same four jobs every day. This section is the amended design.</p>
 <div class="card pick">
 <ol>
-<li><strong>Home = Today</strong> (C): Review new, Apply, Follow up. The Pipeline becomes <em>Jobs</em> under More, unchanged inside.</li>
-<li><strong>One Find box</strong> (A) at the top of Today. Paste anything: a job link saves a Job (works signed out, replaces the separate quick-add form); a board or company becomes a Source; words update the Search profile's titles.</li>
-<li><strong>One Sources list</strong> (B) in the synced blob, not a server table: boards, followed companies (with or without a board), and the two keyless feeds (HN, Remotive). Saving a job follows its company (C). Dreams = a star on a Source.</li>
-<li><strong>One Search profile</strong> (C): titles, must include, leave out, location, mode. The design-systems scorer stays as the profile's tuned config. Stored as <code>profiles[]</code> with one entry, so a second hunt can come back later without a migration.</li>
-<li><strong>One Feed</strong> with two adapters: the browser (today's <code>fetchFeed</code>, signed out) and the server (<code>postings</code>, signed in). <code>sync-postings</code> reads Sources and the profile from the blob, so there is one source of truth and <code>watched_companies</code> / <code>skips</code> are never deployed.</li>
+<li><strong>Home = Today</strong>: Review new, Apply, Follow up, under the line <em>"N new today from M sources"</em>. The Pipeline becomes <em>Jobs</em> under More, unchanged inside.</li>
+<li><strong>Review new has two views of the same Feed.</strong> <strong>Browse</strong> (default) is a list: sort by score, newest or company; filter by text, source, work mode and Queue/Review; open any posting; Save or Skip inline. <strong>Deck</strong> is the one-card option for a quick pass. The two views share one list and one set of verdicts.</li>
+<li><strong>One Find box</strong> at the top of Today. Paste anything: a job link saves a Job (works signed out); a board or company link or name becomes a Source; words add titles to the Search profile.</li>
+<li><strong>One Sources list</strong> in the synced blob: boards of every kind, followed companies (with or without a board) and feeds. Saving a job follows its company. Dreams become a star on a Source. <strong>Add sources</strong> helpers fill it: Check a list (paste or YC batch), YC suggestions, GitHub design-system orgs and the Adele seed. They are the same code as today in a smaller sheet.</li>
+<li><strong>One Search profile</strong>: titles (the wide sweep runs over all of them), related titles, must include, leave out, location, mode, pay floor and level. The design-systems scorer stays as the profile's tuned config, Review bucket included. Stored as <code>profiles[]</code> with one entry, so a second hunt can come back later without a migration.</li>
+<li><strong>One Feed reading every source there is today.</strong> It reads HN Who is hiring and Freelancer, Remotive, Jobicy and the designsystems.jobs RSS. It reads every watched board kind: Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio. It has two adapters: the browser (today's <code>fetchFeed</code>, signed out) and the server (<code>postings</code>, signed in). The designsystems.jobs RSS is read on the server, as today; reading it in the browser too would need a CSP and <code>legal.ts</code> entry, so that waits for a separate decision. <code>sync-postings</code> reads Sources and the profile from the blob, so there is one source of truth and <code>watched_companies</code> / <code>skips</code> are never deployed.</li>
+<li><strong>Search elsewhere</strong>: Big job boards (Remote Rocketship included) and the ATS Google search, as links built from the profile's titles and location, under Review.</li>
+<li><strong>Skip hides that posting only.</strong> It is stored by posting fingerprint in <code>decided</code> and never touches the company. <strong>Not this company</strong> is its own action, in the posting's menu: it mutes the Source, and Undo or the Sources list unmutes it.</li>
 </ol>
 </div>
-<p><strong>Why this mix.</strong> C is the only design whose home <em>is</em> Adrian's three controls; its deck makes "keep it pushing" a 10-minute habit instead of a list to scan. B's single Sources store is what makes "companies are a property of jobs" true: one place, one shape. A's paste-anything Find box removes four entry points (Add a company, Check a list, Add job, Watch a company) with one. A's server-only stance is rejected: it would turn off discovery for signed-out users and bet everything on a function that has never run.</p>
+<div class="mocks">
+<figure><pre>Today                   (o) More
+[ Paste a link, company, title ]
+38 new today from 52 sources
+┌──────────────────────────────┐
+│ Review new               38  │
+│            [ Browse ] [Deck] │
+└──────────────────────────────┘
+┌──────────────────────────────┐
+│ Apply                     5  │
+│            [ Start applying ]│
+└──────────────────────────────┘
+┌──────────────────────────────┐
+│ Follow up                 2  │
+│ Due today: Figma, Vercel     │
+│                 [ Follow up ]│
+└──────────────────────────────┘</pre><figcaption>Today: amended (Browse is the default)</figcaption></figure>
+<figure><pre>&lt;- Today        Review new · 38
+[ Browse ] [ Deck ]
+[Filter postings  ] [Sort: Score v]
+Queue 24 · Review 14 · Source v
+──────────────────────────────
+Shopify · Remote          94
+Staff Eng, Design Systems  ↗
+Greenhouse · 2d · tokens, a11y
+           [ Skip ] [ Save ] ⋯
+──────────────────────────────
+Ramp · New York           88
+Design Technologist        ↗
+Ashby · today · related title
+           [ Skip ] [ Save ] ⋯
+──────────────────────────────
+Acme · Remote             71
+Design Systems Lead        ↗
+HN Freelancer · 5d
+           [ Skip ] [ Save ] ⋯
+Search elsewhere (9)          ›</pre><figcaption>Review: Browse list (⋯ holds Not this company)</figcaption></figure>
+</div>
+
+<h3>Breadth guard</h3>
+<p>Breadth is a test, not a promise. A recorded fixture holds a fixed set of inputs: the sources' answers (HN, Remotive, Jobicy, RSS and one board of each kind) and a profile with several titles and related titles on. Two counts run over it:</p>
+<ul>
+<li><strong>Before:</strong> today's pipeline (<code>fetchFeed</code>, wide sweep over every title, related titles, the scorer's Queue and Review). It counts distinct postings by fingerprint.</li>
+<li><strong>After:</strong> the new Feed with the same inputs.</li>
+</ul>
+<p>The test fails if After &lt; Before. The baseline number is pinned in the fixture, so a later change that drops a source or tightens a filter fails too until someone updates it on purpose. Today's "N new today from M sources" line counts from the same Feed, so a quiet day shows up as a number, not a feeling.</p>
+
+<p><strong>Why this mix.</strong> C's home <em>is</em> Adrian's three controls. The Browse list keeps the breadth and click-through he relies on, and the deck stays as a quick-pass option. One Sources list makes "companies are a property of jobs" true. The paste-anything Find box replaces four entry points (Add a company, Check a list, Add job, Watch a company) with one, and the helpers still feed it. What goes is the duplication: 19 entry points across two tabs, two secondary views, Refine, Calibrate and Manage track become 3 buttons, one paste box, one Sources list and one profile. The sources themselves all stay.</p>
 <p><strong>The data shape after:</strong></p>
 <pre>blob v12
   jobs, documents, kit, trash, copydeck (legacy)   kept
-  profiles[1]   titles, mustInclude, leaveOut, location, mode
-  sources[]     { kind: board|company|feed, ref, label, star? }
-  decided[]     { id, verdict, at }   newest 3,000
+  profiles[1]   titles, related, mustInclude, leaveOut,
+                payFloor, level, location, mode
+  sources[]     { kind: board|company|feed, ref, label,
+                  star?, muted? }
+  decided[]     { fingerprint, verdict: saved|skipped, at }
+                newest 5,000 (never a company)
 server
   tracker (blob)   postings   sync_log      // nothing else</pre>
 <p><strong>Migration from v11</strong> (one-time, after sync settles, like <code>SnippetMigration</code>):</p>
 <ul>
-<li>Profile from the scored track, else the track with most saved jobs. Other tracks' titles are listed in the notice, not merged.</li>
-<li>Sources = watched-board tiles + dreams (starred) + targets + boards of saved jobs, deduped by company key. GitHub-only targets keep their website as a company Source.</li>
+<li>The profile comes from the scored track, else the track with the most saved jobs. It takes its sweep titles, related titles, must include, and the newest saved search's leave out, pay and level. The notice lists the other tracks' titles; they are not merged.</li>
+<li>Sources are the union across <em>all</em> tracks of: watched-board tiles, dreams (starred), targets, found GitHub teams the user saved, and the boards of saved jobs. They are deduped by company key. Turned-on feeds stay on.</li>
 <li>Set-aside tiles and saved jobs seed <code>decided</code>. Evidence text becomes a Note document.</li>
-<li>Non-board tiles (Apply now sections, search links) are offered once as a "Download your links (.txt)" file, then dropped.</li>
-<li>Dropped: <code>filters</code>, <code>sweeps</code>, <code>modes</code>, <code>targets</code>, <code>dreams</code>, <code>mustInclude</code>, <code>triage</code>, <code>evidence</code> (after conversion). Curation tables frozen, dropped 30 days later.</li>
-<li>Before any of this: a <strong>forward guard</strong>. Today an older tab can rewrite the blob at v11 and silently drop new fields.</li>
+<li>Non-board tiles (Apply now sections, curated search links) are offered once as a "Download your links (.txt)" file, then dropped.</li>
+<li>Dropped after conversion: <code>filters</code>, <code>sweeps</code>, <code>modes</code>, <code>targets</code>, <code>dreams</code>, <code>mustInclude</code> (NAICS goes with SAM.gov), <code>triage</code> and <code>evidence</code>. The curation tables are frozen and dropped 30 days later.</li>
+<li>Before any of this, a <strong>forward guard</strong>: today an older tab can rewrite the blob at v11 and silently drop newer fields.</li>
 </ul>
+<p><strong>Size, re-estimated:</strong> the old screens go (<code>DiscoverView</code>, <code>DiscoverHeader</code>, <code>CompaniesPanel</code>, <code>LiveFeedPanel</code>, <code>TileGrid</code>, <code>ManageTrackDialog</code>, <code>SweepTitles</code>, <code>DreamCompanies</code>, <code>ScoredQueue</code>, <code>FindBoardsPanel</code> and <code>AdeleSeed</code> shells), along with curation, tracks and Contracts. That is roughly −7.5k lines. Browse, the deck, the Find box, the Add sources sheet and the profile form add roughly +2.5k. The net is about <strong>−5k</strong>. Everything in <code>src/feed/</code> and <code>src/tracks/</code> stays behind the Feed seam.</p>
 
-<h2 id="slices">8. Slice plan</h2>
-<p class="small">Each slice ships on its own and leaves the app working. Nothing is deleted until the replacement has been used for a week.</p>
+<h2 id="slices">8. Slice plan (amended)</h2>
+<p class="small">Each slice ships on its own and leaves the app working. Nothing is deleted until the replacement has been used for a week, and never while the breadth guard is red. Issue numbers in brackets.</p>
 <ol class="slices">
-<li><strong>Sync forward guard.</strong> A tab that reads a newer blob version stops pushing and shows "Reload to continue".</li>
-<li><strong>Today home.</strong> <code>today.ts</code> read model and a three-section home; Pipeline becomes Jobs under More. Nothing removed.</li>
-<li><strong>One Find box.</strong> Paste a job link (save), a board or company (follow), or words (titles). Replaces Add job, Add a company and Watch a company as entry points; old screens stay.</li>
-<li><strong>Blob v12: profiles, sources, decided + migration.</strong> One-time move from v11 with the links download and a notice. Old fields still read.</li>
-<li><strong>Feed module + Review deck (browser adapter).</strong> Save, Skip, Not this company over <code>fetchFeed</code>; saving follows the company. Works signed out.</li>
-<li><strong>Server adapter.</strong> <code>sync-postings</code> reads sources and profile from the blob; <code>watched_companies</code> and <code>skips</code> removed from the undeployed migrations; deploy and seed check (Adrian runs the deploy steps).</li>
-<li><strong>Onboarding = profile form.</strong> Title + location, starter companies followed, deck opens.</li>
-<li><strong>Delete Companies, Discover and tracks.</strong> Live postings UI, Companies, Find boards, GitHub, YC, Adele, ATS links, Calibrate, sweep, curation, Contracts. CSP and <code>legal.ts</code> shrink (wording needs Adrian's re-approval).</li>
-<li><strong>Cleanup.</strong> Stop reading v11 fields, drop curation tables, rewrite CLAUDE.md, CONTEXT.md, add an ADR.</li>
+<li><strong>Safety rails: sync forward guard + breadth guard</strong> (#382). A tab that reads a newer blob version stops pushing and shows "Reload to continue". The recorded fixture pins today's distinct-posting count across every source.</li>
+<li><strong>Today home</strong> (#383). A <code>today.ts</code> read model and the three-section home, with "N new today from M sources". The Pipeline becomes Jobs under More. Nothing is removed.</li>
+<li><strong>Blob v12: profiles, sources, decided + migration</strong> (#384). The one-time move from v11, with the links download and a notice. Old fields are still read.</li>
+<li><strong>One Find box + Add sources sheet</strong> (#385). Paste a job link (save), a board or company (follow) or words (titles). Check a list, YC, GitHub orgs and Adele move into one Add sources sheet that writes <code>sources</code>. The old screens stay for now.</li>
+<li><strong>Feed module + Review: Browse list and deck</strong> (#386). The browser adapter reads every source, with the wide sweep, related titles and the Review bucket. Browse (default) has sort, filter, open, and Save/Skip inline; the deck is the option. Skip hides one posting; Not this company mutes the Source. The breadth guard must stay green.</li>
+<li><strong>Server adapter</strong> (#387). <code>sync-postings</code> reads sources and the profile from the blob and covers every board kind and feed. <code>watched_companies</code> and <code>skips</code> come out of the undeployed migrations. Adrian runs the deploy and the seed check. The breadth guard runs against the server's scoring too.</li>
+<li><strong>Onboarding = Search profile form</strong> (#388). Title and location; the matching starter companies are followed and Review opens.</li>
+<li><strong>Remove the old screens</strong> (#389). Companies, Discover, the Live postings panel, Find boards and Adele shells, tile boards, Manage track, Calibrate and sweep UI, tracks and curation, and Contracts/SAM.gov. Sources, helpers and Search elsewhere stay. No CSP host is removed (SAM.gov is same-origin); <code>legal.ts</code> drops its SAM.gov line.</li>
+<li><strong>Cleanup</strong> (#390). Stop reading the v11 fields, drop the curation tables, rewrite CLAUDE.md and CONTEXT.md, and add an ADR.</li>
 </ol>
 
 <h2 id="loses">9. What Adrian loses, and why it's worth it</h2>
 <ul>
-<li><strong>More than one track.</strong> One profile at a time (switchable later via <code>profiles[]</code>). Contracts and the trades boards go.</li>
-<li><strong>Curated tile boards</strong> (Apply now sections, Manage track). Offered as a links file once.</li>
-<li><strong>Hunting tools:</strong> GitHub org search, YC batches and type-ahead, Adele seed, Check a list of 500, ATS Google search and Big job boards.</li>
-<li><strong>Calibrate's knobs:</strong> pay floor, level, related titles, sweep chips, saved searches, "N hidden by" counts. Leave out and must include stay in the profile.</li>
-<li><strong>Browsing all postings as one long list.</strong> The deck is one card at a time; Jobs under More is still a list.</li>
+<li><strong>More than one track.</strong> One Search profile at a time; <code>profiles[]</code> leaves room to switch later. The trades and Contracts tracks go.</li>
+<li><strong>Curated tile boards</strong> (Apply now sections, Manage track). They are offered once as a links file.</li>
+<li><strong>SAM.gov contracts</strong>, the 2-week test.</li>
+<li><strong>Calibrate as its own panel.</strong> Its knobs (leave out, pay floor, level, related titles, must include) fold into the profile. Saved searches go: the Browse list's filter replaces them.</li>
 </ul>
-<p><strong>Why it's worth it.</strong> Every one of these was built for a real need, but together they make the first question "which of 19 tools do I use?" instead of "what's next?". The three things that actually move a hunt forward (look at new openings, apply, follow up) are already the best-built parts of the app; this spec puts them on the front page and hides nothing they need. The cut is about 40% of the code and 8 of the 13 synced fields, which also makes every later change cheaper and the sync safer. The tuned design-systems scorer survives as the profile's config, so Adrian's own results should not get worse.</p>
+<p><strong>Not lost:</strong> every job source, every board kind, the wide sweep, related titles, the scorer and its Review bucket, a click-through list of every posting, GitHub, YC, Adele and Check a list (as Add sources helpers), and Big job boards and ATS search (as Search elsewhere). The breadth guard holds this.</p>
+<p><strong>Why it's worth it.</strong> The first question stops being "which of 19 tools do I use?" and becomes "what's new, what do I apply to, who do I follow up with?". The breadth stays the same, and a test enforces it. The shells and the duplicate stores go: 8 of the 13 synced fields fold into 3. That makes every later change cheaper and the sync safer.</p>
 
 <p class="small">Source notes: inventory line counts from <code>wc -l</code> on main at 017b869. Designs A, B and C were drafted in parallel ("design it twice") and compared here. Glossary changes are in <code>CONTEXT.md</code> under "Proposed (simplify spec)".</p>
 </main>
