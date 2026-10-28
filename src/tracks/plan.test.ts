@@ -7,28 +7,41 @@ import {
   feedReadsFor,
   planFromBlob,
 } from './plan';
-import type { ReadOutcome } from './sync';
+import { boardOf, type ReadOutcome } from './sync';
+import { sanitizeProfiles } from '../profileModel';
+import { sanitizeSources } from '../sourcesModel';
 import { scorePosting } from './score';
 import { designSystemsTrack } from './track-config';
 
-const v12 = (extra: Record<string, unknown> = {}) => ({
+// Fixtures in #411's real v12 shapes: what its sanitizers keep is what the app writes.
+const profile = (o: Record<string, unknown> = {}) =>
+  sanitizeProfiles([{ id: 'p1', label: 'Search profile', ...o }])[0];
+const dsProfile = (o: Record<string, unknown> = {}) =>
+  profile({
+    titles: ['Design Systems Engineer', 'Design Technologist'],
+    include: { terms: ['design systems'] },
+    scorer: 'design-systems',
+    ...o,
+  });
+const v12 = (o: { profiles?: unknown[]; sources?: unknown[]; [k: string]: unknown } = {}) => ({
   v: 12,
   jobs: [],
-  profiles: [{ titles: ['Design Systems Engineer'], mustInclude: ['design systems'] }],
-  sources: [],
-  ...extra,
+  ...o,
+  profiles: sanitizeProfiles(o.profiles ?? [dsProfile()]),
+  sources: sanitizeSources(o.sources ?? []),
 });
 
 describe('planFromBlob: v12 (sources + profile)', () => {
-  it('reads every board kind from sources, by link or by slug, with the label as the company', () => {
+  it('reads every board kind from sources, with the label as the company and Lever EU kept', () => {
     const plan = planFromBlob(
       v12({
         sources: [
-          { kind: 'greenhouse', ref: 'https://boards.greenhouse.io/figma', label: 'Figma' },
+          { kind: 'greenhouse', ref: 'figma', label: 'Figma' },
           { kind: 'workable', ref: 'acme', label: 'Acme' },
-          { kind: 'board', ref: 'https://jobs.eu.lever.co/eurocorp', label: 'Euro' },
-          { kind: 'personio', ref: 'https://acme.jobs.personio.de', label: 'Acme DE' },
-          { kind: 'company', ref: 'Nobody Inc', label: 'Nobody Inc' },
+          { kind: 'lever', ref: 'eurocorp', label: 'Euro', eu: true },
+          { kind: 'personio', ref: 'acme', label: 'Acme DE' },
+          { kind: 'company', ref: 'nobody inc', label: 'Nobody Inc' },
+          { kind: 'github', ref: 'shopify', label: 'Shopify', repo: 'shopify/polaris' },
         ],
       }),
     );
@@ -39,74 +52,110 @@ describe('planFromBlob: v12 (sources + profile)', () => {
       { company: 'Euro', ats: 'lever', slug: 'eurocorp', eu: true },
       { company: 'Acme DE', ats: 'personio', slug: 'acme' },
     ]);
+    // The EU board is read (and closed) under its own id, never the US host's.
+    expect(boardOf(plan!.boards[2])).toBe('lever.eu:eurocorp');
   });
 
-  it('skips a muted Source; a muted feed turns that feed off; the rest stay on', () => {
+  it("skips a muted Source; #411's feed refs mute their feed (designsystems-rss is rss)", () => {
     const plan = planFromBlob(
       v12({
         sources: [
           { kind: 'greenhouse', ref: 'figma', label: 'Figma', muted: true },
           { kind: 'ashby', ref: 'ramp', label: 'Ramp', star: true },
           { kind: 'feed', ref: 'remotive', label: 'Remotive', muted: true },
+          { kind: 'feed', ref: 'designsystems-rss', label: 'designsystems.jobs', muted: true },
+          { kind: 'feed', ref: 'remoteok', label: 'Remote OK', muted: true },
+          { kind: 'feed', ref: 'hn', label: 'Hacker News' },
         ],
       }),
     );
     expect(plan?.boards.map((b) => b.slug)).toEqual(['ramp']);
-    expect([...(plan?.feeds ?? [])].sort()).toEqual(['hn', 'jobicy', 'rss']);
+    expect([...(plan?.feeds ?? [])].sort()).toEqual(['hn', 'jobicy']);
   });
 
-  it('a profile that asks for design systems gets the tuned config; leave-out rejects a title', () => {
-    const plan = planFromBlob(
-      v12({
-        profiles: [
-          {
-            titles: ['Design Systems Engineer'],
-            mustInclude: ['design system'],
-            leaveOut: ['manager'],
-          },
-        ],
-      }),
-    );
+  it("scorer: 'design-systems' is the switch for the tuned config; leave-out rejects a title", () => {
+    const plan = planFromBlob(v12({ profiles: [dsProfile({ leaveOut: ['manager'] })] }));
     expect(plan?.config.slug).toBe('design-systems');
     expect(plan?.config.descriptionSignals).toBe(designSystemsTrack.descriptionSignals);
+    expect(plan?.terms).toEqual(['Design Systems Engineer', 'design systems']);
     const p = { source: 'greenhouse' as const, sourceId: '1', company: 'A', url: 'https://a' };
     expect(
       scorePosting({ ...p, title: 'Design Manager', descriptionText: '' }, plan!.config).verdict,
     ).toBe('reject');
     // Leave-out never turns off the config's own patterns.
     expect(designSystemsTrack.titleNegative).not.toContain(expect.stringContaining('manager'));
+    // Without the scorer, "design systems" in titles or must include is phrase-scored.
+    const plain = planFromBlob(v12({ profiles: [dsProfile({ scorer: undefined })] }));
+    expect(plain?.config.slug).toBe('profile');
+    expect(plain?.feeds.has('rss')).toBe(false);
   });
 
-  it('any other profile is scored on its own titles, and reads no design systems feed', () => {
+  it('related titles switched off leave the design systems config without them', () => {
+    const on = planFromBlob(v12())!.config;
+    expect(on.titleAdjacent).toContain('design technologist');
+    for (const include of [
+      { terms: ['design systems'], related: false },
+      { terms: ['design systems'], relatedOff: ['Design Technologist'] },
+    ]) {
+      const off = planFromBlob(v12({ profiles: [dsProfile({ include })] }))!.config;
+      expect(off.titleAdjacent).not.toContain('design technologist');
+      expect(off.titleAdjacent).toContain('ux engineer');
+    }
+  });
+
+  it('any other profile is scored on its titles that are on, and must include in the body', () => {
     const plan = planFromBlob(
-      v12({ profiles: [{ titles: ['Welder', 'Sheet metal fabricator'], related: ['Fitter'] }] }),
+      v12({
+        profiles: [
+          profile({
+            titles: ['Welder', 'Sheet metal fabricator', 'Accountant'],
+            titlesOff: ['Accountant'],
+            include: { terms: ['TIG'] },
+          }),
+        ],
+      }),
     );
     expect(plan?.config.slug).toBe('profile');
+    expect(plan?.terms).toEqual(['Welder', 'Sheet metal fabricator']);
     expect(plan?.feeds.has('rss')).toBe(false);
+    expect(plan?.config.descriptionSignals.map((d) => d.label)).toEqual([
+      'welder',
+      'sheet metal fabricator',
+      'tig',
+    ]);
     const p = { source: 'lever' as const, sourceId: '1', company: 'A', url: 'https://a' };
     expect(
       scorePosting({ ...p, title: 'Senior Welder', descriptionText: '' }, plan!.config).verdict,
-    ).toBe('queue');
-    expect(
-      scorePosting(
-        { ...p, title: 'Fitter', descriptionText: 'welder, sheet metal fabricator' },
-        plan!.config,
-      ).verdict,
     ).toBe('queue');
     expect(
       scorePosting({ ...p, title: 'Accountant', descriptionText: '' }, plan!.config).verdict,
     ).toBe('reject');
   });
 
-  it('nothing to score against (no titles, no design systems) is no plan', () => {
-    expect(planFromBlob(v12({ profiles: [{ titles: [] }] }))).toBeNull();
+  it('a profile with no titles on and no scorer is no plan', () => {
+    expect(planFromBlob(v12({ profiles: [profile({ titles: [] })] }))).toBeNull();
+    expect(
+      planFromBlob(v12({ profiles: [profile({ titles: ['Welder'], titlesOff: ['welder'] })] })),
+    ).toBeNull();
+  });
+
+  it('a v12 blob with no profile yet is read as v11 (never closes every open posting)', () => {
+    const plan = planFromBlob(
+      v12({
+        profiles: [],
+        sources: [{ kind: 'greenhouse', ref: 'figma', label: 'Figma' }],
+        sweeps: { t: { titles: ['Welder'], off: [] } },
+      }),
+    );
+    expect(plan?.from).toBe('v11');
+    expect(plan?.terms).toEqual(['Welder']);
     expect(planFromBlob(v12({ profiles: [] }))).toBeNull();
   });
 
   it(`caps a user at ${MAX_BOARDS_PER_USER} boards and ${MAX_TERMS_PER_USER} feed terms`, () => {
     const plan = planFromBlob(
       v12({
-        profiles: [{ titles: ['Design Systems', 'A b', 'C d', 'E f', 'G h'] }],
+        profiles: [profile({ titles: ['Design Systems', 'A b', 'C d', 'E f', 'G h'] })],
         sources: Array.from({ length: 2000 }, (_, i) => ({
           kind: 'greenhouse',
           ref: `co${i}`,
@@ -118,16 +167,17 @@ describe('planFromBlob: v12 (sources + profile)', () => {
     expect(plan?.terms).toHaveLength(MAX_TERMS_PER_USER);
   });
 
-  it('never takes a slug that could leave the board host', () => {
-    const plan = planFromBlob(
-      v12({
-        sources: [
-          { kind: 'recruitee', ref: 'evil.example/x', label: 'x' },
-          { kind: 'teamtailor', ref: '../admin', label: 'y' },
-          { kind: 'greenhouse', ref: 'javascript:alert(1)', label: 'z' },
-        ],
-      }),
-    );
+  it('reads an unsanitized blob through the same sanitizers: no slug can leave the board host', () => {
+    const plan = planFromBlob({
+      v: 12,
+      profiles: [dsProfile()],
+      sources: [
+        { kind: 'recruitee', ref: 'evil.example/x', label: 'x' },
+        { kind: 'teamtailor', ref: '../admin', label: 'y' },
+        { kind: 'greenhouse', ref: 'javascript:alert(1)', label: 'z' },
+        { kind: 'board', ref: 'https://jobs.lever.co/acme', label: 'not a kind' },
+      ],
+    });
     expect(plan?.boards).toEqual([]);
   });
 });
@@ -199,11 +249,12 @@ describe('compileProfile', () => {
 });
 
 describe('feeds: what counts as answered (a missed posting closes after 2 answered reads)', () => {
-  const plan = planFromBlob({
-    v: 12,
-    profiles: [{ titles: ['Design Systems Engineer', 'Design Technologist'] }],
-    sources: [{ kind: 'feed', ref: 'jobicy', muted: true }],
-  })!;
+  const plan = planFromBlob(
+    v12({
+      profiles: [dsProfile({ titles: ['Design Systems Engineer', 'Design System Lead'] })],
+      sources: [{ kind: 'feed', ref: 'jobicy', label: 'Jobicy', muted: true }],
+    }),
+  )!;
   const read = (board: string, term: string | undefined, ok = true): ReadOutcome => ({
     company: null,
     board,
@@ -226,11 +277,15 @@ describe('feeds: what counts as answered (a missed posting closes after 2 answer
   });
 
   it('a feed whose run left out one of my titles, or failed on one, is not answered', () => {
-    const both = [read('hn', 'design systems engineer'), read('hn', 'Design Technologist')];
+    const both = [
+      read('hn', 'design systems engineer'),
+      read('hn', 'Design System Lead'),
+      read('hn', 'design systems'),
+    ];
     expect(answeredFeeds(plan, both)).toEqual(['hn']);
     // The per-run cap kept only one of the two titles.
     expect(answeredFeeds(plan, both.slice(0, 1))).toEqual([]);
-    expect(answeredFeeds(plan, [both[0], read('hn', 'Design Technologist', false)])).toEqual([]);
+    expect(answeredFeeds(plan, [...both, read('hn', 'Design System Lead', false)])).toEqual([]);
     expect(answeredFeeds(plan, [read('rss', undefined)])).toEqual(['rss']);
     expect(answeredFeeds(plan, [read('rss', undefined, false)])).toEqual([]);
   });

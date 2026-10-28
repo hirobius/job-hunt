@@ -1,7 +1,7 @@
 // The scored queue on the Pipeline (Muse Phase 1, 2026-10-24): what the sync stored for the
 // signed-in user (src/tracks/postings.ts), the queue first (best score, then newest), each card
 // saying why it is there ("Queued because: …"), then Review as its own bucket with a count. Save
-// adds the posting to the Pipeline; Skip records it in Decided by posting (feed/decided.ts), never
+// adds the posting to the Pipeline; Skip records it in Decided by posting (src/decided.ts), never
 // its company, and Undo takes the skip back. Signed out, before the sync's tables exist, or with nothing stored, it
 // shows nothing (empty sections hide).
 import { useContext, useEffect, useState } from 'react';
@@ -12,7 +12,7 @@ import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { notifyRemoved, notifySaved } from './saveNotice';
 import { httpUrl } from './httpUrl';
 import { addJobDetailed, dedupKey, useJobs } from './store';
-import { decide, skippedSet, undecide, useDecided } from './feed/decided';
+import { decided as decidedStore } from './decided';
 import { loadScoredPostings, splitQueue, type StoredPosting } from './tracks/postings';
 import { reasonsLine } from './tracks/scoreForTrack';
 
@@ -27,7 +27,7 @@ export default function ScoredQueue() {
   const user = sync?.user ?? null;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [more, setMore] = useState(false);
-  const decided = useDecided();
+  const decided = decidedStore.use();
   const userId = user?.id ?? null;
 
   useEffect(() => {
@@ -44,12 +44,16 @@ export default function ScoredQueue() {
   }, [userId, settled]);
 
   if (!userId || loaded?.userId !== userId) return null;
-  const { queue, review } = splitQueue(loaded.rows, skippedSet(decided));
+  const { queue, review } = splitQueue(
+    loaded.rows,
+    new Set([...decided.values()].filter((d) => d.verdict === 'skipped').map((d) => d.fingerprint)),
+  );
   if (!queue.length && !review.length) return null;
 
   const skip = (p: StoredPosting) => {
-    decide(p.fingerprint, 'skip');
-    notifyRemoved(`Skipped ${p.title}`, () => undecide(p.fingerprint));
+    const prev = decidedStore.get(p.fingerprint);
+    decidedStore.set(p.fingerprint, 'skipped');
+    notifyRemoved(`Skipped ${p.title}`, () => decidedStore.undo(p.fingerprint, prev));
   };
 
   const shown = more ? queue : queue.slice(0, SHOWN);

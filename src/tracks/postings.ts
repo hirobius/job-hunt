@@ -1,7 +1,7 @@
 // The scored postings the sync stored (Muse Phase 1 UI, 2026-10-24; Simplify 6/9, #387): the
 // signed-in user's own rows of `postings` (RLS), split into the queue (verdict 'queue', best score
 // then newest) and Review, with the ones they skipped left out. A Skip is a Decided entry by
-// posting fingerprint (feed/decided.ts), never a server write. The same rows feed the Feed's
+// posting fingerprint (src/decided.ts), never a server write. The same rows feed the Feed's
 // server adapter (feed/postingReader.ts). Signed out there is nothing to read.
 import { loadSupabase } from '../supabase';
 import type { Verdict } from './score.ts';

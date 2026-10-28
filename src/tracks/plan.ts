@@ -3,9 +3,13 @@
 // into a server table. Blob v12 (#384) holds `sources[]` and `profiles[]`; an older blob (v11)
 // is read as a fallback: watched board tiles (passed in: they live in the curation tables), dream
 // companies, outreach targets and the boards of saved jobs, across every track, with the scored
-// track's config or the tracks' sweep titles. Pure, no app imports: the edge function, the
-// dry-run script and the tests load it.
+// track's config or the tracks' sweep titles. A v12 blob with no profile yet (the move has not
+// run on any device) is read as v11 too. v12 is read through the app's own sanitizers
+// (profileModel.ts, sourcesModel.ts: pure, React-free), so the server sees exactly what the app
+// wrote. Pure, no React or storage: the edge function, the dry-run script and the tests load it.
 import { parseBoardUrl, type Board, type BoardKind } from '../feed/sources/ats.ts';
+import { profileTitles, sanitizeProfiles, type Profile } from '../profileModel.ts';
+import { sanitizeSources, sourceBoard, type FeedRef } from '../sourcesModel.ts';
 import type { WatchedCompany } from './sources.ts';
 import { TERM_FEEDS, type ReadOutcome, type TermFeed } from './sync.ts';
 import { designSystemsTrack, type TrackConfig } from './track-config.ts';
@@ -73,22 +77,32 @@ const phrase = (s: string) =>
     .map(escape)
     .join('[\\s-]+')}(?![a-z0-9])`;
 
-/** What a profile reads as a scorer config. A profile that asks for design systems (in must include
- *  or its titles) gets the tuned design systems config, Review bucket included; any other is scored
- *  on its own titles (strong), related titles (adjacent, needing the body to say a title) and the
- *  title phrases in the body. Leave-out terms reject a title either way. */
+/** feed/mustInclude.ts RELATED_TITLES (not imported: that module is the app's store): the related
+ *  titles a design systems rule lets in, by id, with the scorer pattern each one is. */
+const RELATED_ADJACENT: Record<string, string> = { 'design technologist': 'design technologist' };
+
+/** What a profile reads as a scorer config. `scorer: 'design-systems'` gets the tuned design
+ *  systems config, Review bucket included (related titles switched off are dropped from its
+ *  adjacent titles); any other is scored on its own titles (strong), related titles (adjacent,
+ *  needing the body to say a title) and the title and must-include phrases in the body. Leave-out
+ *  terms reject a title either way. Null: nothing to score against. */
 export function compileProfile(p: {
   titles: string[];
+  scorer?: string;
   related?: string[];
+  relatedOff?: string[];
   mustInclude?: string[];
   leaveOut?: string[];
 }): TrackConfig | null {
   const leaveOut = (p.leaveOut ?? []).filter(Boolean).map(phrase);
-  if ([...(p.mustInclude ?? []), ...p.titles].some(saysDesignSystem))
+  if (p.scorer === designSystemsTrack.slug) {
+    const off = new Set((p.relatedOff ?? []).map((id) => RELATED_ADJACENT[id.toLowerCase()]));
     return {
       ...designSystemsTrack,
+      titleAdjacent: designSystemsTrack.titleAdjacent.filter((t) => !off.has(t)),
       titleNegative: [...designSystemsTrack.titleNegative, ...leaveOut],
     };
+  }
   const titles = p.titles.filter(Boolean);
   if (!titles.length) return null;
   return {
@@ -108,6 +122,29 @@ export function compileProfile(p: {
   };
 }
 
+/** A v12 profile as a scorer config. Related titles count only on a design systems scorer (the
+ *  app's rule: mustInclude.ts lets them in on a "design system(s)" rule only). */
+export function configForProfile(p: Profile): TrackConfig | null {
+  const relatedOff =
+    p.include.related === false ? Object.keys(RELATED_ADJACENT) : (p.include.relatedOff ?? []);
+  return compileProfile({
+    titles: profileTitles(p),
+    scorer: p.scorer,
+    relatedOff,
+    mustInclude: p.include.terms,
+    leaveOut: p.leaveOut,
+  });
+}
+
+/** A v12 feed Source's ref as the sync's feed id. Remote OK is not read by the sync: no id. */
+const FEED_OF_REF: Record<FeedRef, Feed | null> = {
+  hn: 'hn',
+  remotive: 'remotive',
+  jobicy: 'jobicy',
+  remoteok: null,
+  'designsystems-rss': 'rss',
+};
+
 /** A stored board ({ kind, slug, eu? }), or undefined. */
 function storedBoard(v: unknown): Board | undefined {
   const b = obj(v);
@@ -115,15 +152,6 @@ function storedBoard(v: unknown): Board | undefined {
   const slug = str(b.slug);
   return BOARD_KINDS.includes(kind) && SLUG.test(slug)
     ? { kind, slug, ...(b.eu === true && { eu: true as const }) }
-    : undefined;
-}
-
-/** A v12 Source's board: its `ref` as a board link, or a slug under a board kind. */
-function sourceBoard(kind: string, ref: string): Board | undefined {
-  const fromUrl = parseBoardUrl(ref);
-  if (fromUrl) return fromUrl;
-  return BOARD_KINDS.includes(kind as BoardKind) && SLUG.test(ref)
-    ? { kind: kind as BoardKind, slug: ref }
     : undefined;
 }
 
@@ -158,37 +186,36 @@ const isV12 = (o: O) =>
 /** The user's plan from their blob, or null when there is nothing to score against. */
 export function planFromBlob(data: unknown, tiles: WatchedTile[] = []): SyncPlan | null {
   const o = obj(data);
-  return isV12(o) ? planV12(o) : planV11(o, tiles);
+  const v12 = isV12(o) ? planV12(o) : undefined;
+  return v12 === undefined ? planV11(o, tiles) : v12;
 }
 
-function planV12(o: O): SyncPlan | null {
-  const p = obj(arr(o.profiles)[0]);
-  const titles = strs(p.titles);
-  const related = Array.isArray(p.related) ? strs(p.related) : [];
-  const config = compileProfile({
-    titles,
-    related,
-    mustInclude: strs(p.mustInclude),
-    leaveOut: strs(p.leaveOut),
-  });
+/** The v12 plan; undefined when the blob has no profile yet (read as v11 then, or every open
+ *  posting would close). */
+function planV12(o: O): SyncPlan | null | undefined {
+  const p = sanitizeProfiles(o.profiles)[0];
+  if (!p) return undefined;
+  const config = configForProfile(p);
   if (!config) return null;
   const boards = new Boards();
   const feeds = new Set<Feed>(FEEDS);
-  for (const raw of arr(o.sources)) {
-    const s = obj(raw);
-    const kind = str(s.kind);
-    const ref = str(s.ref);
-    const feed = isFeed(kind) ? kind : kind === 'feed' && isFeed(ref) ? ref : null;
-    if (feed) {
-      if (s.muted === true) feeds.delete(feed);
+  for (const s of sanitizeSources(o.sources)) {
+    if (s.kind === 'feed') {
+      const feed = FEED_OF_REF[s.ref as FeedRef];
+      if (feed && s.muted) feeds.delete(feed);
       continue;
     }
-    if (s.muted === true) continue;
-    boards.add(sourceBoard(kind, ref), str(s.label));
+    if (s.muted) continue;
+    boards.add(sourceBoard(s), s.label);
   }
   // designsystems.jobs is about design systems: only that config reads it.
   if (config.slug !== designSystemsTrack.slug) feeds.delete('rss');
-  return { from: 'v12', config, boards: boards.list, terms: cleanTerms(titles), feeds };
+  const titles = profileTitles(p);
+  const terms =
+    config.slug === designSystemsTrack.slug
+      ? titles.filter(saysDesignSystem).concat('design systems')
+      : titles;
+  return { from: 'v12', config, boards: boards.list, terms: cleanTerms(terms), feeds };
 }
 
 function planV11(o: O, tiles: WatchedTile[]): SyncPlan | null {

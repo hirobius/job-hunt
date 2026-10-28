@@ -75,8 +75,11 @@ const TERMS_PER_RUN: Record<TermFeed, number> = {
   // Remotive asks for at most ~4 requests a day; the feeds run once a day.
   remotive: 2,
 };
-/** The boards that are not company boards: never closed as "unfollowed". */
-const FEED_BOARDS = [...TERM_FEEDS, 'rss'];
+/** Each outbound read's cap: one hung board must not spend the slice's whole wall-clock budget. */
+const FETCH_TIMEOUT_MS = 15_000;
+const timedFetch = (u: string) => fetch(u, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+/** How long the next-slice call waits for its answer before letting go (it keeps running). */
+const CHAIN_WAIT_MS = 3000;
 
 interface Follower extends WatchedCompany {
   user_id: string;
@@ -240,6 +243,37 @@ async function writeGroup(
   for (const s of scored) totals[s.verdict]++;
 }
 
+/** Start the next slice in its own invocation (its own CPU budget). Waits only until the request
+ *  is on its way (CHAIN_WAIT_MS): the callee keeps running after this caller lets go, so a timeout
+ *  is the normal case. An answer that is an error, or a call that never left, is tried once more;
+ *  returns why the chain broke, or null. req.url is the runtime's internal address: call the
+ *  public one. */
+async function chainNext(
+  supabaseUrl: string,
+  secret: string,
+  payload: { rss?: boolean; after: string; runStart: string },
+): Promise<string | null> {
+  let why = '';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetch(`${supabaseUrl}/functions/v1/sync-postings`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-sync-secret': secret },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(CHAIN_WAIT_MS),
+      });
+      if (r.ok) return null;
+      why = `HTTP ${r.status}`;
+      // 403: the secret is wrong; trying again changes nothing.
+      if (r.status === 403) return why;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'TimeoutError') return null;
+      why = String(e);
+    }
+  }
+  return why;
+}
+
 Deno.serve(async (req) => {
   if (!(await authorized(req.headers.get('x-sync-secret'))))
     return json({ error: 'forbidden' }, 403);
@@ -332,168 +366,184 @@ Deno.serve(async (req) => {
   const boards = rest.slice(0, SLICE);
   const last = rest.length <= SLICE;
   const next = last ? null : boardOf(boards[boards.length - 1]);
-  for (let i = 0; i < boards.length; i += BOARD_BATCH) {
-    const reads = await readAll(boards.slice(i, i + BOARD_BATCH), {
-      fetch: (u) => fetch(u),
-      rss: false,
-    });
-    const perUser = new Map<string, ReadOutcome[]>();
-    for (const r of reads) {
-      if (!r.ok) failedBoards.add(r.board);
-      for (const w of followers.get(r.board) ?? []) {
-        if (!r.ok) {
-          logs.push({
-            user_id: w.user_id,
-            kind: 'failed',
-            board: r.board,
-            status: r.status ?? null,
-            message: (r.status === 404
-              ? `${w.company}: board not found (404), its postings closed. Remove it from Sources if it is gone.`
-              : `${w.company}: ${r.error ?? `HTTP ${r.status}`}`
-            ).slice(0, 2000),
-          });
-          // A 404 is an answer (the board is gone or the slug is wrong): nothing on it is open.
-          // Any other failure closes nothing.
-          if (r.status === 404)
-            await db
-              .from('postings')
-              .update(closing())
-              .eq('user_id', w.user_id)
-              .eq('board', r.board)
-              .is('closed_at', null);
-        } else {
-          answeredBy.set(w.user_id, [...(answeredBy.get(w.user_id) ?? []), r.board]);
-          perUser.set(w.user_id, [...(perUser.get(w.user_id) ?? []), forWatcher(r, w)]);
+  let feedsRead = 0;
+  const summary: Record<string, unknown>[] = [];
+  // Whatever breaks in this slice, the next one still starts (below): one bad board or write must
+  // not stop every board after it until the next cron run.
+  try {
+    for (let i = 0; i < boards.length; i += BOARD_BATCH) {
+      const reads = await readAll(boards.slice(i, i + BOARD_BATCH), {
+        fetch: timedFetch,
+        rss: false,
+      });
+      const perUser = new Map<string, ReadOutcome[]>();
+      for (const r of reads) {
+        if (!r.ok) failedBoards.add(r.board);
+        for (const w of followers.get(r.board) ?? []) {
+          if (!r.ok) {
+            logs.push({
+              user_id: w.user_id,
+              kind: 'failed',
+              board: r.board,
+              status: r.status ?? null,
+              message: (r.status === 404
+                ? `${w.company}: board not found (404), its postings closed. Remove it from Sources if it is gone.`
+                : `${w.company}: ${r.error ?? `HTTP ${r.status}`}`
+              ).slice(0, 2000),
+            });
+            // A 404 is an answer (the board is gone or the slug is wrong): nothing on it is open.
+            // Any other failure closes nothing.
+            if (r.status === 404)
+              await db
+                .from('postings')
+                .update(closing())
+                .eq('user_id', w.user_id)
+                .eq('board', r.board)
+                .is('closed_at', null);
+          } else {
+            answeredBy.set(w.user_id, [...(answeredBy.get(w.user_id) ?? []), r.board]);
+            perUser.set(w.user_id, [...(perUser.get(w.user_id) ?? []), forWatcher(r, w)]);
+          }
         }
       }
+      for (const [userId, answered] of perUser)
+        await writeGroup(db, userId, plans.get(userId)!.config, answered, logs, totalsOf(userId));
     }
-    for (const [userId, answered] of perUser)
-      await writeGroup(db, userId, plans.get(userId)!.config, answered, logs, totalsOf(userId));
-  }
 
-  // The feeds, once a day (the morning run), on the last slice: each title once across users.
-  let feedsRead = 0;
-  if (body.rss === true && last) {
-    const terms: Partial<Record<TermFeed, string[]>> = {};
-    for (const feed of TERM_FEEDS) {
-      const seen = new Map<string, string>();
-      for (const plan of plans.values())
-        if (plan.feeds.has(feed))
-          for (const t of plan.terms) if (!seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t);
-      terms[feed] = [...seen.values()].slice(0, TERMS_PER_RUN[feed]);
-    }
-    const wantsRss = [...plans.values()].some((p) => p.feeds.has('rss'));
-    const reads = await readAll([], { fetch: (u) => fetch(u), rss: wantsRss, terms });
-    feedsRead = reads.length;
-    for (const r of reads.filter((x) => !x.ok))
-      logs.push({
-        user_id: null,
-        kind: 'failed',
-        board: r.board,
-        status: r.status ?? null,
-        message:
-          `${r.board}${r.term ? ` "${r.term}"` : ''}: ${r.error ?? `HTTP ${r.status}`}`.slice(
-            0,
-            2000,
-          ),
-      });
-    for (const [userId, plan] of plans) {
-      const mine = feedReadsFor(plan, reads);
-      for (const feed of answeredFeeds(plan, mine))
-        answeredBy.set(userId, [...(answeredBy.get(userId) ?? []), feed]);
-      const ok = mine.filter((r) => r.ok);
-      if (ok.length) await writeGroup(db, userId, plan.config, ok, logs, totalsOf(userId));
-    }
-  }
-
-  // Closing, per user.
-  const summary: Record<string, unknown>[] = [];
-  for (const [userId, plan] of plans) {
-    const trackSlug = plan.config.slug;
-    const t = totalsOf(userId);
-    const answered = answeredBy.get(userId) ?? [];
-    let closed = 0;
-    // Not after a failed write (a posting that did not land would read as missing).
-    if (!t.failed && answered.length) {
-      const { data: n } = await db.rpc('mark_missed_postings', {
-        p_user: userId,
-        p_track: trackSlug,
-        p_boards: answered,
-        p_run: runStart,
-      });
-      closed = typeof n === 'number' ? n : 0;
-    }
-    // A board no longer followed never answers again, so its open postings are closed now
-    // instead of waiting for misses that never come; so are rows scored under an old profile. Not
-    // when a v11 user's watched tiles could not be read: their boards would all look unfollowed.
-    if (last && !(plan.from === 'v11' && tiles.error)) {
-      const { data: n, error } = await db.rpc('close_unfollowed_postings', {
-        p_user: userId,
-        p_track: trackSlug,
-        p_keep: [...plan.boards.map(boardOf), ...FEED_BOARDS],
-      });
-      if (error)
+    // The feeds, once a day (the morning run), on the last slice: each title once across users.
+    if (body.rss === true && last) {
+      const terms: Partial<Record<TermFeed, string[]>> = {};
+      for (const feed of TERM_FEEDS) {
+        const seen = new Map<string, string>();
+        for (const plan of plans.values())
+          if (plan.feeds.has(feed))
+            for (const t of plan.terms)
+              if (!seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t);
+        terms[feed] = [...seen.values()].slice(0, TERMS_PER_RUN[feed]);
+      }
+      const wantsRss = [...plans.values()].some((p) => p.feeds.has('rss'));
+      const reads = await readAll([], { fetch: timedFetch, rss: wantsRss, terms });
+      feedsRead = reads.length;
+      for (const r of reads.filter((x) => !x.ok))
         logs.push({
-          user_id: userId,
+          user_id: null,
           kind: 'failed',
-          board: null,
-          status: null,
-          message: `closing unfollowed boards: ${error.message}`.slice(0, 2000),
+          board: r.board,
+          status: r.status ?? null,
+          message:
+            `${r.board}${r.term ? ` "${r.term}"` : ''}: ${r.error ?? `HTTP ${r.status}`}`.slice(
+              0,
+              2000,
+            ),
         });
-      else closed += typeof n === 'number' ? n : 0;
+      for (const [userId, plan] of plans) {
+        const mine = feedReadsFor(plan, reads);
+        for (const feed of answeredFeeds(plan, mine))
+          answeredBy.set(userId, [...(answeredBy.get(userId) ?? []), feed]);
+        const ok = mine.filter((r) => r.ok);
+        if (ok.length) await writeGroup(db, userId, plan.config, ok, logs, totalsOf(userId));
+      }
     }
-    if (!answered.length && !t.failed && !last) continue;
-    const line = {
-      user_id: userId,
-      profile: trackSlug,
-      blob: plan.from,
-      slice: `${boards.length} boards after '${after}' (${rest.length} left of ${all.length})`,
-      answered: answered.length,
-      queue: t.queue,
-      review: t.review,
-      reject: t.reject,
-      closed,
-      failed: t.failed,
-    };
-    summary.push(line);
+
+    // Closing, per user.
+    for (const [userId, plan] of plans) {
+      const trackSlug = plan.config.slug;
+      const t = totalsOf(userId);
+      const answered = answeredBy.get(userId) ?? [];
+      let closed = 0;
+      // Not after a failed write (a posting that did not land would read as missing).
+      if (!t.failed && answered.length) {
+        const { data: n } = await db.rpc('mark_missed_postings', {
+          p_user: userId,
+          p_track: trackSlug,
+          p_boards: answered,
+          p_run: runStart,
+        });
+        closed = typeof n === 'number' ? n : 0;
+      }
+      // A board no longer followed never answers again, so its open postings are closed now
+      // instead of waiting for misses that never come; so are rows scored under an old profile, and
+      // a feed the user muted (only the feeds they have on are kept). Not when a v11 user's watched
+      // tiles could not be read: their boards would all look unfollowed.
+      if (last && !(plan.from === 'v11' && tiles.error)) {
+        const { data: n, error } = await db.rpc('close_unfollowed_postings', {
+          p_user: userId,
+          p_track: trackSlug,
+          p_keep: [...plan.boards.map(boardOf), ...plan.feeds],
+        });
+        if (error)
+          logs.push({
+            user_id: userId,
+            kind: 'failed',
+            board: null,
+            status: null,
+            message: `closing unfollowed boards: ${error.message}`.slice(0, 2000),
+          });
+        else closed += typeof n === 'number' ? n : 0;
+      }
+      if (!answered.length && !t.failed && !last) continue;
+      const line = {
+        user_id: userId,
+        profile: trackSlug,
+        blob: plan.from,
+        slice: `${boards.length} boards after '${after}' (${rest.length} left of ${all.length})`,
+        answered: answered.length,
+        queue: t.queue,
+        review: t.review,
+        reject: t.reject,
+        closed,
+        failed: t.failed,
+      };
+      summary.push(line);
+      logs.push({
+        user_id: userId,
+        kind: 'run',
+        board: null,
+        status: null,
+        message: JSON.stringify(line),
+      });
+    }
+    if (last)
+      for (const userId of planless) {
+        const { error } = await db.rpc('close_unfollowed_postings', {
+          p_user: userId,
+          p_track: null,
+          p_keep: [],
+        });
+        if (error)
+          logs.push({
+            user_id: userId,
+            kind: 'failed',
+            board: null,
+            status: null,
+            message: `closing (no search profile): ${error.message}`.slice(0, 2000),
+          });
+      }
+  } catch (e) {
     logs.push({
-      user_id: userId,
-      kind: 'run',
+      user_id: null,
+      kind: 'failed',
       board: null,
       status: null,
-      message: JSON.stringify(line),
+      message: `slice after '${after}' stopped: ${String(e)}`.slice(0, 2000),
     });
   }
-  if (last)
-    for (const userId of planless) {
-      const { error } = await db.rpc('close_unfollowed_postings', {
-        p_user: userId,
-        p_track: null,
-        p_keep: [],
-      });
-      if (error)
-        logs.push({
-          user_id: userId,
-          kind: 'failed',
-          board: null,
-          status: null,
-          message: `closing (no search profile): ${error.message}`.slice(0, 2000),
-        });
-    }
   if (logs.length) await db.from('sync_log').insert(logs);
   if (next) {
-    // The next slice runs in its own invocation (its own CPU budget). Wait only until the request
-    // is on its way; the callee keeps running after this caller lets go.
-    // req.url is the runtime's internal address; call the public one.
-    await fetch(`${supabaseUrl}/functions/v1/sync-postings`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-sync-secret': req.headers.get('x-sync-secret')!,
-      },
-      body: JSON.stringify({ rss: body.rss, after: next, runStart }),
-      signal: AbortSignal.timeout(3000),
-    }).catch(() => undefined);
+    const broke = await chainNext(supabaseUrl, req.headers.get('x-sync-secret')!, {
+      rss: body.rss,
+      after: next,
+      runStart,
+    });
+    // Logged, so a run that stopped part way says where (the cron's next run starts over).
+    if (broke)
+      await db.from('sync_log').insert({
+        user_id: null,
+        kind: 'failed',
+        board: null,
+        status: null,
+        message: `next slice (after '${next}') not started: ${broke}`.slice(0, 2000),
+      });
   }
   return json({
     ranAt: runStart,

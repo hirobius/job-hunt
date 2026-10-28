@@ -18,7 +18,7 @@ import ScoredQueue from './ScoredQueue';
 import NoticeHost from './NoticeHost';
 import { dismissNotice } from './saveNotice';
 import { getAllJobs, replaceAll } from './store';
-import { decide, getDecided, resetDecided } from './feed/decided';
+import { decided, getDecided, replaceDecided } from './decided';
 
 const row = (id: number, title: string, over: Partial<StoredPosting> = {}): StoredPosting => ({
   id,
@@ -64,8 +64,8 @@ beforeEach(() => {
       row(5, 'Skipped before', { score: 99 }),
     ],
   });
-  resetDecided();
-  decide('stripe::skipped before', 'skip');
+  replaceDecided([]);
+  decided.set('stripe::skipped before', 'skipped');
 });
 afterEach(() => {
   cleanup();
@@ -110,7 +110,7 @@ describe('the scored queue on the Pipeline', () => {
     await user.click(screen.getByRole('button', { name: 'Skip Design Systems Lead' }));
     expect(getDecided().map((d) => [d.fingerprint, d.verdict])).toContainEqual([
       'stripe::design systems lead',
-      'skip',
+      'skipped',
     ]);
     expect(titles()).not.toContain('Design Systems Lead');
     // The same company's other postings stay.
