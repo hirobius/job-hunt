@@ -138,7 +138,7 @@ describe('upcomingEvents', () => {
     const j = job({
       events: [
         ev('yesterday', '2026-10-13'),
-        ev('today', '2026-10-14', '09:00'),
+        ev('today', '2026-10-14', '11:00'),
         ev('in-6', '2026-10-20', '17:00', 'call'),
         ev('in-7', '2026-10-21'),
       ],
