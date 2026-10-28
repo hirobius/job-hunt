@@ -7,7 +7,14 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 import DocumentsLibrary from './DocumentsLibrary';
-import { createDocument, getAllDocuments, replaceDocuments, setDocumentPinned } from './documents';
+import DocumentEditor from './DocumentEditor';
+import {
+  addFinalCopy,
+  createDocument,
+  getAllDocuments,
+  replaceDocuments,
+  setDocumentPinned,
+} from './documents';
 import { addJob, getAllJobs, removeJob, updateJob } from './store';
 import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 
@@ -617,5 +624,23 @@ describe('Restore starters answers (#327, #212)', () => {
     expect(await screen.findByText('Added the starter cover letter')).toBeInTheDocument();
     const row = within(section('Cover letters')).getByRole('listitem');
     await waitFor(() => expect(row).toHaveAttribute('data-motion', 'flash'));
+  });
+});
+
+describe('the editor and a final copy (#328)', () => {
+  it('shows no Save for a document saveVersion would refuse', () => {
+    const r = addFinalCopy({
+      kind: 'resume',
+      jobUrl: JOB,
+      file: { name: 'cv.pdf', type: 'application/pdf', size: 3, data: 'YWJj' },
+    });
+    if (!r.ok) throw new Error(r.error);
+    render(
+      <ToastProvider>
+        <DocumentEditor doc={doc(r.id)} kind="resume" onBack={() => {}} onCreated={() => {}} />
+      </ToastProvider>,
+    );
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Version history/ })).toBeInTheDocument();
   });
 });

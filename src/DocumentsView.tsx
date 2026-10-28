@@ -12,9 +12,10 @@ import { Box } from '@hirobius/design-system';
 import { PageHeader } from '@hirobius/design-system/patterns';
 import DocumentsLibrary from './DocumentsLibrary';
 import { DOCUMENT_KINDS, useDocuments, type DocumentKind } from './documents';
-import { resolveDocumentId } from './outreachTemplates';
+import { documentJobUrl, resolveDocumentId } from './outreachTemplates';
 import { useSnippets } from './copyDeckStore';
-import { goBackTo, navigate, originOf, useRoute, withOrigin, type Route } from './route';
+import { findJobById, jobIdOf } from './store';
+import { goBackTo, navigate, openJob, originOf, useRoute, withOrigin, type Route } from './route';
 import { useRouteLabel } from './routeLabel';
 import BackLink from './BackLink';
 import type { Back } from './back';
@@ -57,6 +58,9 @@ export default function DocumentsView() {
     if (!sub || newKind) return;
     if (named && named !== sub) navigate({ sub: named, from: route.from ?? null }, true);
     else if (!named && (sub.startsWith(NEW) || (settled && !moving))) {
+      // A job's own document or final copy (#328): its job page holds it.
+      const jobUrl = documentJobUrl(sub, docs);
+      if (jobUrl && findJobById(jobIdOf(jobUrl))) return openJob(jobIdOf(jobUrl), true);
       // Unknown or deleted: back to the page that linked here, else the library.
       const back = originOf(route);
       if (back) goBackTo(back);

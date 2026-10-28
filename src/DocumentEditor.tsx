@@ -33,6 +33,7 @@ import {
   createDocument,
   DOCUMENT_KINDS,
   getAllDocuments,
+  isFinalCopy,
   removeDocument,
   renameDocument,
   saveVersion,
@@ -224,9 +225,12 @@ export default function DocumentEditor({
   // Save, Version history and the menu in one row, right under the text (rev-3 mock).
   const actions = (
     <Stack direction="row" gap="tight" align="center" wrap="wrap">
-      <Button variant="primary" onClick={save} disabled={!dirty}>
-        Save
-      </Button>
+      {/* A final copy takes no text (saveVersion refuses it, #328): no Save to press in vain. */}
+      {!(doc && isFinalCopy(doc)) && (
+        <Button variant="primary" onClick={save} disabled={!dirty}>
+          Save
+        </Button>
+      )}
       {doc && (
         <Button
           variant="secondary"
