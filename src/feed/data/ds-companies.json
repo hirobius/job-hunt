@@ -46,7 +46,7 @@
  "counts": {
   "companies": 898,
   "boards": 282,
-  "confirmed": 227
+  "confirmed": 219
  },
  "companies": [
   {
@@ -1226,7 +1226,7 @@
     "kind": "greenhouse",
     "slug": "stripe",
     "url": "https://boards.greenhouse.io/stripe",
-    "jobs": 714,
+    "jobs": 715,
     "confirmed": "title"
    },
    "state": "found",
@@ -1707,27 +1707,6 @@
    ]
   },
   {
-   "name": "Basis",
-   "website": "",
-   "board": {
-    "kind": "lever",
-    "slug": "basis",
-    "url": "https://jobs.lever.co/basis",
-    "jobs": 5,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "awesome",
-     "url": "https://basis.now.sh"
-    }
-   ],
-   "licence": [
-    "Unlicense (public domain)"
-   ]
-  },
-  {
    "name": "Betterment",
    "website": "",
    "board": {
@@ -1809,27 +1788,6 @@
    ],
    "licence": [
     "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "BLiP",
-   "website": "",
-   "board": {
-    "kind": "greenhouse",
-    "slug": "blip",
-    "url": "https://boards.greenhouse.io/blip",
-    "jobs": 2,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "awesome",
-     "url": "https://takenet.github.io/blip-ds/"
-    }
-   ],
-   "licence": [
-    "Unlicense (public domain)"
    ]
   },
   {
@@ -2001,27 +1959,6 @@
    ]
   },
   {
-   "name": "Cedar",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "cedar",
-    "url": "https://jobs.ashbyhq.com/cedar",
-    "jobs": 1,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "awesome",
-     "url": "https://rei.github.io/rei-cedar-docs/"
-    }
-   ],
-   "licence": [
-    "Unlicense (public domain)"
-   ]
-  },
-  {
    "name": "Celonis",
    "website": "",
    "board": {
@@ -2061,27 +1998,6 @@
    ],
    "licence": [
     "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Cloudflare",
-   "website": "",
-   "board": {
-    "kind": "greenhouse",
-    "slug": "cloudflare",
-    "url": "https://boards.greenhouse.io/cloudflare",
-    "jobs": 461,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "adele",
-     "url": "https://cloudflare.github.io/cf-ui/"
-    }
-   ],
-   "licence": [
-    "MIT, Copyright (c) 2018 Marcin Treder"
    ]
   },
   {
@@ -2468,27 +2384,6 @@
    ]
   },
   {
-   "name": "Evergreen",
-   "website": "",
-   "board": {
-    "kind": "greenhouse",
-    "slug": "evergreen",
-    "url": "https://boards.greenhouse.io/evergreen",
-    "jobs": 1,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "awesome",
-     "url": "https://evergreen.surge.sh"
-    }
-   ],
-   "licence": [
-    "Unlicense (public domain)"
-   ]
-  },
-  {
    "name": "Everlaw",
    "website": "",
    "board": {
@@ -2654,27 +2549,6 @@
    ],
    "licence": [
     "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "GitLab",
-   "website": "",
-   "board": {
-    "kind": "greenhouse",
-    "slug": "gitlab",
-    "url": "https://boards.greenhouse.io/gitlab",
-    "jobs": 237,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "adele",
-     "url": "https://design.gitlab.com"
-    }
-   ],
-   "licence": [
-    "MIT, Copyright (c) 2018 Marcin Treder"
    ]
   },
   {
@@ -3334,27 +3208,6 @@
    ]
   },
   {
-   "name": "Mesh",
-   "website": "https://meshdesignsystem.com",
-   "board": {
-    "kind": "greenhouse",
-    "slug": "mesh",
-    "url": "https://boards.greenhouse.io/mesh",
-    "jobs": 25,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "awesome",
-     "url": "https://www.meshdesignsystem.com/"
-    }
-   ],
-   "licence": [
-    "Unlicense (public domain)"
-   ]
-  },
-  {
    "name": "Miro",
    "website": "",
    "board": {
@@ -3870,32 +3723,6 @@
    ],
    "licence": [
     "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Pivotal",
-   "website": "",
-   "board": {
-    "kind": "lever",
-    "slug": "pivotal",
-    "url": "https://jobs.lever.co/pivotal",
-    "jobs": 26,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "awesome",
-     "url": "https://pivotal-cf.github.io/pivotal-ui/"
-    },
-    {
-     "source": "adele",
-     "url": "https://styleguide.pivotal.io/"
-    }
-   ],
-   "licence": [
-    "Unlicense (public domain)",
-    "MIT, Copyright (c) 2018 Marcin Treder"
    ]
   },
   {
@@ -6012,6 +5839,27 @@
    ]
   },
   {
+   "name": "Basis",
+   "website": "",
+   "board": {
+    "kind": "lever",
+    "slug": "basis",
+    "url": "https://jobs.lever.co/basis",
+    "jobs": 5,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "awesome",
+     "url": "https://basis.now.sh"
+    }
+   ],
+   "licence": [
+    "Unlicense (public domain)"
+   ]
+  },
+  {
    "name": "Bayer",
    "website": "",
    "board": null,
@@ -6245,6 +6093,27 @@
    ],
    "licence": [
     "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "BLiP",
+   "website": "",
+   "board": {
+    "kind": "greenhouse",
+    "slug": "blip",
+    "url": "https://boards.greenhouse.io/blip",
+    "jobs": 2,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "awesome",
+     "url": "https://takenet.github.io/blip-ds/"
+    }
+   ],
+   "licence": [
+    "Unlicense (public domain)"
    ]
   },
   {
@@ -6883,6 +6752,27 @@
    ]
   },
   {
+   "name": "Cedar",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "cedar",
+    "url": "https://jobs.ashbyhq.com/cedar",
+    "jobs": 1,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "awesome",
+     "url": "https://rei.github.io/rei-cedar-docs/"
+    }
+   ],
+   "licence": [
+    "Unlicense (public domain)"
+   ]
+  },
+  {
    "name": "Chakra",
    "website": "https://chakra-ui.com",
    "board": null,
@@ -7166,6 +7056,27 @@
    ]
   },
   {
+   "name": "Cloudflare",
+   "website": "",
+   "board": {
+    "kind": "greenhouse",
+    "slug": "cloudflare",
+    "url": "https://boards.greenhouse.io/cloudflare",
+    "jobs": 461,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "adele",
+     "url": "https://cloudflare.github.io/cf-ui/"
+    }
+   ],
+   "licence": [
+    "MIT, Copyright (c) 2018 Marcin Treder"
+   ]
+  },
+  {
    "name": "Cloudflare Kumo",
    "website": "https://kumo-ui.com",
    "board": null,
@@ -7240,7 +7151,7 @@
    "name": "Co-op Experience Library",
    "website": "https://coop.co.uk",
    "board": null,
-   "state": "missed",
+   "state": "shared",
    "evidence": [
     {
      "source": "awesome",
@@ -8292,6 +8203,27 @@
    ]
   },
   {
+   "name": "Evergreen",
+   "website": "",
+   "board": {
+    "kind": "greenhouse",
+    "slug": "evergreen",
+    "url": "https://boards.greenhouse.io/evergreen",
+    "jobs": 1,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "awesome",
+     "url": "https://evergreen.surge.sh"
+    }
+   ],
+   "licence": [
+    "Unlicense (public domain)"
+   ]
+  },
+  {
    "name": "Exmox Gmbh",
    "website": "",
    "board": null,
@@ -8979,6 +8911,27 @@
     "MIT, Copyright (c) 2018 Marcin Treder",
     "Unlicense (public domain)",
     "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "GitLab",
+   "website": "",
+   "board": {
+    "kind": "greenhouse",
+    "slug": "gitlab",
+    "url": "https://boards.greenhouse.io/gitlab",
+    "jobs": 237,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "adele",
+     "url": "https://design.gitlab.com"
+    }
+   ],
+   "licence": [
+    "MIT, Copyright (c) 2018 Marcin Treder"
    ]
   },
   {
@@ -10954,6 +10907,27 @@
    ]
   },
   {
+   "name": "Mesh",
+   "website": "https://meshdesignsystem.com",
+   "board": {
+    "kind": "greenhouse",
+    "slug": "mesh",
+    "url": "https://boards.greenhouse.io/mesh",
+    "jobs": 25,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "awesome",
+     "url": "https://www.meshdesignsystem.com/"
+    }
+   ],
+   "licence": [
+    "Unlicense (public domain)"
+   ]
+  },
+  {
    "name": "Mesosphere",
    "website": "",
    "board": null,
@@ -11151,7 +11125,7 @@
    "name": "Monzo",
    "website": "",
    "board": null,
-   "state": "missed",
+   "state": "shared",
    "evidence": [
     {
      "source": "dsjobs",
@@ -11693,7 +11667,7 @@
    "name": "Okta",
    "website": "",
    "board": null,
-   "state": "missed",
+   "state": "shared",
    "evidence": [
     {
      "source": "dsjobs",
@@ -12177,18 +12151,44 @@
    ]
   },
   {
+   "name": "Pivotal",
+   "website": "",
+   "board": null,
+   "state": "shared",
+   "evidence": [
+    {
+     "source": "awesome",
+     "url": "https://pivotal-cf.github.io/pivotal-ui/"
+    }
+   ],
+   "licence": [
+    "Unlicense (public domain)"
+   ]
+  },
+  {
    "name": "Pivotal Software",
    "website": "https://pivotal.io",
-   "board": null,
-   "state": "missed",
+   "board": {
+    "kind": "lever",
+    "slug": "pivotal",
+    "url": "https://jobs.lever.co/pivotal",
+    "jobs": 26,
+    "confirmed": null
+   },
+   "state": "found",
    "evidence": [
     {
      "source": "adele",
      "url": "https://styleguide.pivotal.io/"
+    },
+    {
+     "source": "awesome",
+     "url": "https://pivotal-cf.github.io/pivotal-ui/"
     }
    ],
    "licence": [
-    "MIT, Copyright (c) 2018 Marcin Treder"
+    "MIT, Copyright (c) 2018 Marcin Treder",
+    "Unlicense (public domain)"
    ]
   },
   {
