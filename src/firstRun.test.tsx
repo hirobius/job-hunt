@@ -104,15 +104,6 @@ describe('step 1: pick a track', () => {
     expect(getCurationState().categories.map((c) => c.label)).toEqual(['Sample']);
   });
 
-  it('after sample data, Find the next company opens a board, not the first-run gate', async () => {
-    renderApp();
-    await click('Try with sample data');
-    await click('Find the next company');
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
-    expect(screen.queryByRole('progressbar', { name: /Step 1 of 3/ })).toBeNull();
-    expect(await screen.findByRole('heading', { name: 'Sample' })).toBeInTheDocument();
-  });
-
   it('Clear sample data removes the Sample track with the sample jobs', async () => {
     renderApp();
     await click('Try with sample data');

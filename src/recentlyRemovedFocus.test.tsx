@@ -36,8 +36,11 @@ const removed = (url: string, label: string, daysAgo = 0) => ({
   removedAt: new Date(Date.now() - daysAgo * DAY).toISOString(),
 });
 
+// The Account menu opens it (#416: off the Jobs page).
 const openRemoved = async () => {
-  await userEvent.click(screen.getByRole('button', { name: /^Recently removed/ }));
+  await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
+  const menu = await screen.findByRole('menu');
+  await userEvent.click(within(menu).getByRole('menuitem', { name: /^Recently removed/ }));
   return screen.findByRole('dialog', { name: 'Recently removed' });
 };
 

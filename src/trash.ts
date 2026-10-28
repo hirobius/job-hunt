@@ -120,12 +120,13 @@ const OWN: ReadonlySet<string> = new Set([
   'todos',
   'events',
   'decks',
+  'docLinks',
 ]);
 
 /** The removed copy folded into the copy saved since. The saved copy's own fields win; a field
  *  only the removed copy holds (contact, pay, screening…) comes across, and a copy saved again
  *  that is still Saved takes the removed copy's further status with its dates. Notes, to-dos,
- *  interviews, decks and status history are joined. Nothing either copy holds is dropped. */
+ *  interviews, decks, document links and status history are joined. Nothing either copy holds is dropped. */
 function mergeRemovedInto(saved: Job, removed: Job): Job {
   const a = notesOf(saved);
   const b = notesOf(removed);
@@ -137,6 +138,7 @@ function mergeRemovedInto(saved: Job, removed: Job): Job {
   const todos = byId(saved.todos, removed.todos);
   const events = byId(saved.events, removed.events);
   const decks = byId(saved.decks, removed.decks);
+  const docLinks = byId(saved.docLinks, removed.docLinks);
   const seen = new Set((saved.history ?? []).map((h) => `${h.status}|${h.at}`));
   const history = [
     ...(saved.history ?? []),
@@ -163,6 +165,7 @@ function mergeRemovedInto(saved: Job, removed: Job): Job {
     ...(todos.length ? { todos } : {}),
     ...(events.length ? { events } : {}),
     ...(decks.length ? { decks } : {}),
+    ...(docLinks.length ? { docLinks } : {}),
     ...(history.length ? { history } : {}),
   };
 }

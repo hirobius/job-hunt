@@ -123,20 +123,6 @@ describe('a job page goes back to where it was opened from', () => {
     await at('#/discover/apply');
   });
 
-  it('Find more like this from the Screening tab: the search names the job and goes back to that tab', async () => {
-    seedPack('consulting');
-    window.location.hash = `#/queue/${idA}`;
-    renderApp();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Screening' }));
-    await at(`#/queue/${idA}?section=screening`);
-    await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Find more like this' }));
-    await waitFor(() => expect(getRoute()).toMatchObject({ tab: 'discover', sub: 'ats' }));
-    await userEvent.click(await screen.findByRole('link', { name: 'Back to Fabricator' }));
-    await at(`#/queue/${idA}?section=screening`);
-    expect(await screen.findByRole('tab', { name: 'Screening', selected: true })).toBeVisible();
-  });
-
   it('Find more like this: the search keeps its title and filters after a trip away and Back', async () => {
     seedPack('consulting');
     window.location.hash = `#/queue/${idA}`;
@@ -275,52 +261,17 @@ describe('Apply mode', () => {
   });
 });
 
-describe('Use template on a job page', () => {
-  it('Edit message: the editor names the job; saving comes back with the sheet open, refilled', async () => {
-    window.location.hash = `#/queue/${idA}`;
-    renderApp();
-    await userEvent.click(await screen.findByRole('button', { name: 'Use template' }));
-    await userEvent.click(await screen.findByRole('link', { name: 'Edit message' }));
-    await waitFor(() => expect(getRoute().tab).toBe('copy-deck'));
-    expect(await screen.findByRole('button', { name: 'Back to Fabricator' })).toBeVisible();
-    await userEvent.type(screen.getByRole('textbox', { name: 'Message text' }), ' Cheers.');
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    await at(`#/queue/${idA}`);
-    const preview = await screen.findByRole('region', { name: 'Preview' });
-    // Refilled for the job, with the edit in it (jsdom types at the field's start).
-    expect(preview).toHaveTextContent(/Hi Acme Metals team, about the Fabricator role\./);
-    expect(preview).toHaveTextContent(/Cheers\./);
-  });
-
-  it('with no messages yet, Write a message comes back with the new one picked', async () => {
-    setOutreachMessages([]);
-    window.location.hash = `#/queue/${idA}`;
-    renderApp();
-    await userEvent.click(await screen.findByRole('button', { name: 'Use template' }));
-    await userEvent.click(await screen.findByRole('link', { name: 'Write a message' }));
-    await heading('New outreach message');
-    await userEvent.type(screen.getByRole('textbox', { name: 'Title' }), 'Hello');
-    await userEvent.type(screen.getByRole('textbox', { name: 'Message text' }), 'Hello [[Company]');
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    await at(`#/queue/${idA}`);
-    expect(await screen.findByRole('region', { name: 'Preview' })).toHaveTextContent(
-      'Hello Acme Metals',
-    );
-    expect(screen.getByRole('button', { name: 'Hello' })).toHaveAttribute('aria-pressed', 'true');
-  });
-});
-
 describe('pages opened from the Account menu', () => {
-  it('Documents from a job page on its Interviews tab names the job and goes back to that tab', async () => {
-    window.location.hash = `#/queue/${idA}?section=interviews`;
+  it('Documents from a job page names the job and goes back to it', async () => {
+    window.location.hash = `#/queue/${idA}`;
     renderApp();
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Documents' }));
     await heading('Documents');
     await userEvent.click(screen.getByRole('link', { name: 'Back to Fabricator' }));
-    await at(`#/queue/${idA}?section=interviews`);
-    expect(await screen.findByRole('tab', { name: /Interviews/, selected: true })).toBeVisible();
+    await at(`#/queue/${idA}`);
+    await heading('Fabricator');
   });
 
   it('Privacy and terms from the Pipeline goes back there, also after swapping to the Terms', async () => {
@@ -444,8 +395,23 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     addJob(B, 'Welder');
     trashJob(B);
     await over('#/discover/apply', '#/queue');
-    await userEvent.click(await screen.findByRole('button', { name: /^Recently removed/ }));
+    // In the Account menu since #416.
+    await userEvent.click(await screen.findByRole('button', { name: /^Account/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /^Recently removed/ }));
+    await screen.findByRole('dialog', { name: 'Recently removed' });
     await closesOnBack(() => screen.queryByRole('dialog', { name: 'Recently removed' }), '#/queue');
+  });
+
+  it('Add interview (#416)', async () => {
+    await over('#/discover/apply', `#/queue/${idA}`);
+    await heading('Fabricator');
+    await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Add interview…' }));
+    await screen.findByRole('dialog', { name: 'Add interview' });
+    await closesOnBack(
+      () => screen.queryByRole('dialog', { name: 'Add interview' }),
+      `#/queue/${idA}`,
+    );
   });
 
   it("a row's More actions menu", async () => {

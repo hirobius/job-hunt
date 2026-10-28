@@ -1,92 +1,25 @@
 // A saved job's own page (#127, #130): `#/queue/<jobId>`, inside the Pipeline tab. A header
-// (badges, title, one next step, menu) over the job's three sections as tabs. The open section is in
-// the URL (`?section=screening`, Overview left out; return paths), written in place, so coming back
-// to the job (Back from its Company page, from Find more like this) opens the section it was on.
+// (badges, title, one next step, menu) over one page (#416: Details, Notes, Documents, Decks).
 import { useEffect } from 'react';
-import {
-  Badge,
-  Box,
-  Skeleton,
-  Stack,
-  Text,
-  Sidebar,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  useAtLeast,
-} from '@hirobius/design-system';
+import { Box, Skeleton, Stack, Text, Sidebar, useAtLeast } from '@hirobius/design-system';
 import { findJobById, useJobs } from './store';
 import { titleOf } from './jobRow';
 import { usePageTitle } from './pageTitle';
-import { goBackTo, navigate, openJob, originOf, useRoute } from './route';
+import { goBackTo, openJob, originOf, useRoute } from './route';
 import { scrollToTop } from './scrollMemory';
 import { useCloudSync } from './account/accountContext';
 import JobHeader from './JobHeader';
 import JobOverview from './JobOverview';
 import JobRail from './JobRail';
-import JobScreening from './JobScreening';
-import JobInterviews from './JobInterviews';
 import type { Job } from './types';
 
-// Three sections (rev-3 F, Adrian 2026-10-21): Overview holds the details, to-dos, notes and the
-// job's documents; then Screening and Interviews. Few enough for a 390px phone, and HDS TabsList
-// fades its own edge and keeps the selected tab in view if they ever outrun it.
-function JobSections({
-  job,
-  tab,
-  setTab,
-}: {
-  job: Job;
-  tab: string;
-  setTab: (tab: string) => void;
-}) {
-  const n = job.events?.length ?? 0;
-  return (
-    <Tabs value={tab} onValueChange={setTab}>
-      <TabsList aria-label="Job sections" className="rjb-job-tabs">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="screening">Screening</TabsTrigger>
-        {/* Every count is the small neutral pill (rev-2 #2), as on the panels. */}
-        <TabsTrigger value="interviews">
-          <Stack as="span" direction="row" gap="px8" align="center">
-            Interviews
-            {n > 0 && <Badge count={n} label={`${n} booked`} />}
-          </Stack>
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="overview" variant="bare">
-        <Box sx={{ pt: 'sm' }}>
-          <JobOverview job={job} />
-        </Box>
-      </TabsContent>
-      <TabsContent value="screening" variant="bare">
-        <Box sx={{ pt: 'sm' }}>
-          <JobScreening job={job} />
-        </Box>
-      </TabsContent>
-      <TabsContent value="interviews" variant="bare">
-        <Box sx={{ pt: 'sm' }}>
-          <JobInterviews job={job} />
-        </Box>
-      </TabsContent>
-    </Tabs>
-  );
-}
-
-const SECTIONS = ['overview', 'screening', 'interviews'];
-
-/** The header over the tabs. The open section comes from the route, so the header's Add interview
- *  can switch to Interviews and a link can open one (Next 7 days opens Interviews). */
+/** The header over the one page (#416, Adrian's Q5: no tabs). An old `?section=` link opens it
+ *  as is. */
 function JobDetail({ job, showBack }: { job: Job; showBack: boolean }) {
-  const section = useRoute().section;
-  const tab = section && SECTIONS.includes(section) ? section : 'overview';
-  // In place: a section is a view of this entry, not a step Back walks through.
-  const setTab = (t: string) => navigate({ section: t === 'overview' ? null : t }, true);
   return (
     <Box>
-      <JobHeader job={job} showBack={showBack} onAddInterview={() => setTab('interviews')} />
-      <JobSections job={job} tab={tab} setTab={setTab} />
+      <JobHeader job={job} showBack={showBack} />
+      <JobOverview job={job} />
     </Box>
   );
 }

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-// Export links (2026-10-22) end to end: the dialog opens from the Pipeline's Jobs panel (on This
-// view) and from the Account menu (on All saved jobs), switches scope and format, copies to the
-// clipboard and downloads a .txt. Two fictional jobs are seeded; every non-local host is refused.
+// Export links (2026-10-22) end to end: the dialog opens from the Account menu only (#416, on All
+// saved jobs; This view is the Jobs list), switches scope and format, copies to the clipboard and
+// downloads a .txt. Two fictional jobs are seeded; every non-local host is refused.
 const ACME = 'https://acme.example/jobs/welder';
 const ZENITH = 'https://zenith.example/jobs/fitter';
 const JOBS = [
@@ -36,13 +36,12 @@ test('export links: open, switch scope and format, copy and download', async ({ 
   await page.goto('/#/queue');
   await expect(page.getByRole('heading', { name: 'Pipeline' })).toBeVisible();
 
-  // The Jobs panel opens it on this view: Active holds Acme only.
-  await page
-    .getByRole('region', { name: 'Jobs' })
-    .getByRole('button', { name: 'Export links' })
-    .click();
+  // The Account menu opens it; This view is the Jobs list: Active holds Acme only.
+  await page.getByRole('button', { name: /^Account/ }).click();
+  await page.getByRole('menuitem', { name: 'Export links' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export links' });
   const preview = dialog.getByRole('textbox', { name: 'Preview' });
+  await dialog.getByRole('radio', { name: 'This view (1)' }).click();
   await expect(dialog.getByRole('radio', { name: 'This view (1)' })).toBeChecked();
   await expect(preview).toHaveValue(ACME);
 
@@ -77,14 +76,10 @@ test('export links opens from the Account menu on all saved jobs', async ({ page
   await expect(dialog.getByRole('radio', { name: 'All saved jobs (2)' })).toBeChecked();
 });
 
-test('export links sits in a ⋯ menu on a phone, with 40px targets', async ({ page }) => {
+test('export links on a phone has 40px targets', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/queue');
-  const more = page
-    .getByRole('region', { name: 'Jobs' })
-    .getByRole('button', { name: 'More job actions' });
-  expect((await more.boundingBox())?.height).toBeGreaterThanOrEqual(40);
-  await more.click();
+  await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: 'Export links' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export links' });
   await expect(dialog).toBeVisible();

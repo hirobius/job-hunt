@@ -166,32 +166,6 @@ for (const width of [390, 1440] as const) {
       await expect(page.getByRole('heading', { level: 2, name: job })).toBeVisible();
     });
 
-    test('Use template → Edit message → Save comes back to the job with the sheet open', async ({
-      page,
-    }) => {
-      await go(page, '#/queue');
-      const link = jobsPanel(page).locator('a[href^="#/queue/"]').first();
-      const title = (await link.textContent())!.trim();
-      await link.click();
-      await expect(page.getByRole('heading', { level: 2, name: title })).toBeVisible();
-      await page.getByRole('button', { name: 'Use template' }).click();
-      await page.getByRole('link', { name: 'Edit message' }).click();
-      await expect(page).toHaveURL(/#\/copy-deck\//);
-      await expect(page.getByRole('button', { name: `Back to ${title}` })).toBeVisible();
-      const field = page.getByRole('textbox', { name: 'Message text' });
-      await field.click();
-      await page.keyboard.press('End');
-      await page.keyboard.type(' Talk soon.');
-      await page.getByRole('button', { name: 'Save', exact: true }).click();
-      await expect(page).toHaveURL(/#\/queue\//);
-      await expect(page.getByRole('dialog', { name: 'Use a template' })).toBeVisible();
-      await expect(page.getByRole('region', { name: 'Preview' })).toContainText('Talk soon.');
-      // The browser's Back closes the sheet and stays on the job.
-      await page.goBack();
-      await expect(page.getByRole('dialog')).toHaveCount(0);
-      await expect(page.getByRole('heading', { level: 2, name: title })).toBeVisible();
-    });
-
     test('Live postings: Back to companies lands on the More ways panel again', async ({
       page,
     }) => {
@@ -281,7 +255,9 @@ for (const width of [390, 1440] as const) {
         .first()
         .click();
       await page.getByRole('menuitem', { name: 'Remove' }).click();
-      await page.getByRole('button', { name: /^Recently removed/ }).click();
+      // Recently removed is in the Account menu (#416).
+      await page.getByRole('button', { name: /^Account/ }).click();
+      await page.getByRole('menuitem', { name: /^Recently removed/ }).click();
       await closesOnBack(page.getByRole('dialog', { name: 'Recently removed' }), queue);
 
       // Companies: where and how you want to work.

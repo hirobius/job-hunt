@@ -32,7 +32,8 @@ export interface JobEvent {
   note?: string;
 }
 
-/** A link to a deck sent for this role (#287). `url` is always http(s); `sentOn` is YYYY-MM-DD. */
+/** A link on a job (#287 decks; #416 document links). `url` is always http(s); `sentOn` is
+ *  YYYY-MM-DD (decks only; kept in storage, no longer edited on the page). */
 export interface Deck {
   id: string;
   url: string;
@@ -77,6 +78,7 @@ export interface Job {
   history?: StatusChange[]; // dated status changes, oldest first (backfilled from `applied`)
   events?: JobEvent[]; // interviews / calls, any order
   decks?: Deck[]; // deck links sent for this role (#287, additive; old records lack them)
+  docLinks?: Deck[]; // document links for this role: résumé, letter… (#416, additive, same shape)
   // --- Dates (#419, additive; normalized on read in src/jobDates.ts). ISO datetime or YYYY-MM-DD. ---
   postedAt?: string; // when the employer posted it, as the source said
   discoveredAt?: string; // when the feed first read it in this browser

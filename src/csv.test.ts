@@ -62,11 +62,11 @@ describe('toCsv', () => {
     const contract: Job = { ...job, deadline: '2026-11-20', snoozeUntil: '2026-11-03' };
     const [head, row] = toCsv([contract]).split('\r\n');
     const cols = head.split(',');
-    expect(cols.slice(-6, -4)).toEqual(['"deadline"', '"snooze_until"']);
-    expect(cols.indexOf('"decks"')).toBe(cols.length - 7);
+    expect(cols.slice(-7, -5)).toEqual(['"deadline"', '"snooze_until"']);
+    expect(cols.indexOf('"decks"')).toBe(cols.length - 8);
     const cells = row.split(',');
-    expect(cells.slice(-6, -4)).toEqual(['"2026-11-20"', '"2026-11-03"']);
-    expect(toCsv([job]).split('\r\n')[1].endsWith(',"","","","","",""')).toBe(true);
+    expect(cells.slice(-7, -5)).toEqual(['"2026-11-20"', '"2026-11-03"']);
+    expect(toCsv([job]).split('\r\n')[1].endsWith(',"","","","","","",""')).toBe(true);
   });
 
   it('one row per job, CRLF separated', () => {
@@ -90,7 +90,7 @@ describe('sample data (#110)', () => {
 });
 
 describe('job dates (#419)', () => {
-  it('appends posted, discovered, saved and closed dates as the last four columns', () => {
+  it('appends posted, discovered, saved and closed dates after the older columns', () => {
     const dated: Job = {
       url: 'https://acme.example/jobs/1',
       label: 'Designer',
@@ -101,17 +101,31 @@ describe('job dates (#419)', () => {
       closedAt: '2026-10-28T12:00:00.000Z',
     };
     const [head, row] = toCsv([dated]).split('\r\n');
-    expect(head.split(',').slice(-4)).toEqual([
+    expect(head.split(',').slice(-5, -1)).toEqual([
       '"posted_at"',
       '"discovered_at"',
       '"saved_at"',
       '"closed_at"',
     ]);
-    expect(row.split(',').slice(-4)).toEqual([
+    expect(row.split(',').slice(-5, -1)).toEqual([
       '"2026-10-25"',
       '"2026-10-27T09:00:00.000Z"',
       '"2026-10-27T10:00:00.000Z"',
       '"2026-10-28T12:00:00.000Z"',
     ]);
+  });
+});
+
+describe('document links (#416)', () => {
+  it('appends a doc_links column, after the dates, so older columns keep their place', () => {
+    const linked: Job = {
+      url: 'https://acme.example/jobs/1',
+      label: 'Designer',
+      status: 'Saved',
+      docLinks: [{ id: 'a', url: 'https://docs.example/cv', label: 'Résumé' }],
+    };
+    const [head, row] = toCsv([linked]).split('\r\n');
+    expect(head.split(',').slice(-1)[0]).toBe('"doc_links"');
+    expect(row.split(',').slice(-1)[0]).toBe('"Résumé https://docs.example/cv"');
   });
 });

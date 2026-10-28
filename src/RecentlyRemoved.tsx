@@ -1,4 +1,4 @@
-// Recently removed (src/trash.ts) in the UI: the quiet link under the Pipeline list that opens
+// Recently removed (src/trash.ts) in the UI: an Account menu item (#416: off the Jobs page) opens
 // the list of removed jobs, each with its posting link, Restore and Delete forever. The Undo after
 // a Remove is a save notice (saveNotice.removeWithUndo), so it never stacks with another notice.
 // Delete forever has its own Undo (#212), shown in the dialog's footer while it is open
@@ -7,13 +7,15 @@ import { useEffect, useRef } from 'react';
 import { Box, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
-import { daysLeft, deleteForever, getTrash, TRASH_DAYS, useTrash, type Removed } from './trash';
+import { daysLeft, deleteForever, TRASH_DAYS, useTrash, type Removed } from './trash';
 import { jobIdOf } from './store';
 import { pageHeading } from './focusRescue';
 import { noticeToToast, notifyRemoved, restoreWithNotice } from './saveNotice';
 import { DialogNotice } from './NoticeHost';
 import { JobPostingTitle } from './PostingLink';
-import { useBackSheet } from './useBackCloses';
+import { useBackCloses } from './useBackCloses';
+import { closeRecentlyRemoved, openRecentlyRemoved, useRecentlyRemovedOpen } from './jobDialogs';
+import { returnFocus } from './account/returnFocus';
 
 const daysAgo = (iso: string, now = Date.now()) => {
   const d = Math.floor((now - Date.parse(iso)) / 86_400_000);
@@ -105,14 +107,17 @@ function RemovedRow({
   );
 }
 
-/** The quiet link under the Pipeline list; nothing when the trash is empty. */
-export function RecentlyRemovedLink() {
+const setShown = (open: boolean) => (open ? openRecentlyRemoved() : closeRecentlyRemoved());
+
+/** The Recently removed dialog, mounted once (DataToolsProvider); nothing while the trash is
+ *  empty. */
+export function RecentlyRemovedHost() {
   const trash = useTrash();
+  const open = useRecentlyRemovedOpen();
   // The browser's Back closes it (return paths); emptied (the last one restored or deleted), it
   // closes too, so its entry goes with it.
-  const sheet = useBackSheet('recently-removed');
+  useBackCloses(open, () => setShown(false), 'recently-removed');
   const empty = trash.length === 0;
-  const { onOpenChange, open } = sheet;
   const openRef = useRef(open);
   useEffect(() => {
     openRef.current = open;
@@ -121,15 +126,8 @@ export function RecentlyRemovedLink() {
   useEffect(() => {
     if (!empty) return;
     if (openRef.current) focusAfterEmpty(restoredRef.current);
-    onOpenChange(false);
-  }, [empty, onOpenChange]);
-  // With jobs in the list, the Pipeline drops this link in the same render it empties.
-  useEffect(
-    () => () => {
-      if (openRef.current && getTrash().length === 0) focusAfterEmpty(restoredRef.current);
-    },
-    [],
-  );
+    setShown(false);
+  }, [empty]);
   // Closed (or gone): an Undo it was showing moves to the toast, so it stays in reach.
   useEffect(() => {
     if (!open) noticeToToast();
@@ -137,13 +135,9 @@ export function RecentlyRemovedLink() {
   }, [open]);
   if (empty) return null;
   return (
-    <Dialog {...sheet}>
-      <Dialog.Trigger asChild>
-        <Button size="sm" variant="tertiary">
-          {`Recently removed (${trash.length})`}
-        </Button>
-      </Dialog.Trigger>
-      <Dialog.Content>
+    <Dialog open={open} onOpenChange={setShown}>
+      {/* No trigger of its own: focus goes back to the Account button it was opened from. */}
+      <Dialog.Content onCloseAutoFocus={returnFocus}>
         <Dialog.Header>
           <Dialog.Title>Recently removed</Dialog.Title>
           <Dialog.Description>

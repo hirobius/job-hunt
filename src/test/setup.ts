@@ -3,6 +3,7 @@ import { preloadViews } from '../routeViews';
 import { resetPipelineView } from '../pipelineView';
 import { closeExportLinks } from '../exportLinks';
 import { closeFollowUp } from '../followUpFlow';
+import { closeAddInterview, closeRecentlyRemoved } from '../jobDialogs';
 import { configure } from '@testing-library/react';
 import { resetTabMemory } from '../tabMemory';
 import { resetViewMemory } from '../viewMemory';
@@ -32,6 +33,9 @@ beforeAll(() =>
 beforeEach(closeFollowUp);
 // …and so is the Export links dialog's scope.
 beforeEach(closeExportLinks);
+// …and the Add interview and Recently removed dialogs' open state (#416).
+beforeEach(closeAddInterview);
+beforeEach(closeRecentlyRemoved);
 
 // A document's unsaved draft is kept for the tab (docDrafts.ts): no test inherits another's.
 beforeEach(() => sessionStorage.clear());

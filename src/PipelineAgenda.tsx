@@ -172,10 +172,10 @@ export function NextDaysSection({ jobs, now }: { jobs: Job[]; now: Date }) {
                   r.event.note,
                 ])}
                 trailing={
-                  // Opens the job on its Interviews tab, where the event lives.
+                  // Opens the job's page (one page since #416; the event stays on the job).
                   <Button asChild variant="secondary">
                     <a
-                      href={jobHash(jobIdOf(r.event.jobUrl), 'interviews')}
+                      href={jobHash(jobIdOf(r.event.jobUrl))}
                       aria-label={`Open job: ${r.event.label}`}
                     >
                       Open

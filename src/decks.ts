@@ -88,3 +88,14 @@ export function decksCell(decks: readonly Deck[] | undefined): string {
     .map((d) => [d.label, d.url, d.sentOn && `sent ${d.sentOn}`].filter(Boolean).join(' '))
     .join(' | ');
 }
+
+/** Which link list on the job page (#416: Documents and Decks are plain lists of links): its
+ *  field and the words its panel uses ("Add a document link", "2 documents"). */
+export interface LinkKind {
+  field: 'docLinks' | 'decks';
+  title: string;
+  noun: string;
+}
+
+export const DOC_LINKS: LinkKind = { field: 'docLinks', title: 'Documents', noun: 'document' };
+export const DECK_LINKS: LinkKind = { field: 'decks', title: 'Decks', noun: 'deck' };

@@ -189,6 +189,7 @@ const JOB_KEY_LIST: Record<keyof Job, true> = {
   history: true,
   events: true,
   decks: true,
+  docLinks: true,
   postedAt: true,
   discoveredAt: true,
   savedAt: true,

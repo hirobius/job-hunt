@@ -118,7 +118,7 @@ describe('a11y — Documents (#227)', () => {
   });
 });
 
-describe('a11y — the three first-run steps and Getting started (#132)', () => {
+describe('a11y — the three first-run steps and the Pipeline after the first job (#132)', () => {
   it('each step of the guided first run', async () => {
     const { container, getByRole } = withTheme(<Onboarding offerSample />);
     await auditA11y(container);
@@ -129,10 +129,11 @@ describe('a11y — the three first-run steps and Getting started (#132)', () => 
     await auditA11y(container);
   });
 
-  it('the Getting started card on the Pipeline', async () => {
+  // Getting started left the Pipeline (#416); the page after the first job is still audited.
+  it('the Pipeline after the first job', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     const { container, getByRole } = withTheme(<TrackerView />);
-    expect(getByRole('region', { name: 'Getting started' })).toBeInTheDocument();
+    expect(getByRole('region', { name: /To apply/ })).toBeInTheDocument();
     await auditA11y(container);
   });
 });

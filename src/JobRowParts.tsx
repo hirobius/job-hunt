@@ -17,6 +17,7 @@ import { removeWithUndo } from './saveNotice';
 import { changeWithUndo } from './jobUndo';
 import { collapseRow, starClass } from './feedback';
 import { FollowUpButton } from './FollowUp';
+import { openAddInterview } from './jobDialogs';
 import { buildHash, getRoute, navigate, withOrigin } from './route';
 import { setDiscoverSeed } from './discoverSeed';
 import { closingOf } from './jobDates';
@@ -162,7 +163,9 @@ export function RowMenu({
   // The browser's Back closes the open menu and stays on the page (return paths).
   const sheet = useBackSheet(`job-menu:${job.url}`);
   return (
-    <Menu {...sheet}>
+    // Non-modal, so Add interview's dialog opens cleanly from an item: a modal menu plus a dialog
+    // left the page unclickable (as the Account menu and the editor menus found).
+    <Menu modal={false} {...sheet}>
       <Menu.Trigger asChild>
         {/* A bordered 40px button on a phone card (rev-3 mock); quiet in the dense table. */}
         <Button
@@ -212,6 +215,10 @@ export function RowMenu({
             );
           })}
         </Menu.Group>
+        <Menu.Separator />
+        {/* The Interviews log left the job page (#416); booking one stays here, so its date
+            feeds Next 7 days and the follow-up clock. */}
+        <Menu.Item onSelect={() => openAddInterview(job.url)}>Add interview…</Menu.Item>
         <Menu.Separator />
         {/* Star is a row change like the rest (#212, #361): the shared notice with Undo, not a
             plain toast — under Starred an Unstar takes the card out with no way back otherwise.

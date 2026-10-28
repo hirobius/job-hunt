@@ -159,6 +159,7 @@ export function sanitizeJobs(arr: unknown): Job[] {
     const {
       snoozeUntil: rawSnooze,
       decks: rawDecks,
+      docLinks: rawDocLinks,
       deadline: rawDeadline,
       postedAt: _p,
       discoveredAt: _d,
@@ -169,12 +170,14 @@ export function sanitizeJobs(arr: unknown): Job[] {
     const snoozeUntil = normSnooze(rawSnooze);
     // Deck links become hrefs: only well-formed http(s) ones are kept (#287).
     const decks = sanitizeDecks(rawDecks);
+    const docLinks = sanitizeDecks(rawDocLinks); // the same rule for document links (#416)
     const deadline = normSnooze(rawDeadline); // the same YYYY-MM-DD rule
     out.push(
       normalizeScreening({
         ...rest,
         ...(snoozeUntil ? { snoozeUntil } : {}),
         ...(decks.length ? { decks } : {}),
+        ...(docLinks.length ? { docLinks } : {}),
         ...(deadline ? { deadline } : {}),
         ...normJobDates(it),
         url,

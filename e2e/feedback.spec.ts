@@ -198,15 +198,12 @@ test('Pipeline: every row and page action answers within 300 ms', async ({ page 
     await press(page, button(page, name), name);
     await closeOverlay(page);
   }
-  for (const name of ['Add job', 'Follow up: UX Researcher', 'Export links', 'Clear sample data']) {
+  for (const name of ['Add job', 'Follow up: UX Researcher', 'Clear sample data']) {
     await press(page, button(page, name), name);
     await closeOverlay(page);
   }
   await press(page, button(page, 'Check which are still open'), 'Check which are still open');
-  await press(page, button(page, 'Dismiss'), 'Dismiss getting started');
   await press(page, button(page, 'Start applying'), 'Start applying');
-  await go(page, '#/queue');
-  await press(page, button(page, 'Find the next company'), 'Find the next company');
 });
 
 test('Pipeline cards (390): Remove collapses the card before it goes', async ({ page }) => {
@@ -233,60 +230,28 @@ test('Job page: every header and panel action answers within 300 ms', async ({ p
   await menu(page, more, 'Interviewing');
 
   await press(page, button(page, 'Edit details'), 'Edit details');
-  await press(page, button(page, 'Add starter tasks'), 'Add starter tasks');
-  // Delete on a to-do collapses its row, then offers Undo.
-  const todo = 'Research company / role';
-  await press(page, button(page, `Delete “${todo}”`), 'Delete a to-do');
-  await ranIn(page, 'rjb-collapse', todo);
-  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
-  await expect(button(page, `Delete “${todo}”`)).toHaveCount(0);
-  await press(page, button(page, 'Add a to-do'), 'Add a to-do');
   await closeOverlay(page);
   const followUp = (await page
     .getByRole('button', { name: /^Follow up: / })
     .first()
     .getAttribute('aria-label'))!;
-  for (const name of [followUp, 'Use template']) {
-    await press(page, button(page, name), name);
-    await closeOverlay(page);
-  }
-  await press(
-    page,
-    page.getByRole('button', { name: /^(All documents|Add a document)/ }),
-    'Documents row',
-  );
-  await page.getByRole('button', { name: /^(All documents|Add a document)/ }).click();
-  for (const tab of ['Screening', 'Interviews', 'Overview'])
-    await press(page, page.getByRole('tab', { name: tab }), `${tab} tab`);
+  await press(page, button(page, followUp), followUp);
+  await closeOverlay(page);
+  // Add interview is one item in the job's menu (#416): it opens its dialog.
+  await menu(page, more, 'Add interview…');
+  await expect(page.getByRole('dialog', { name: 'Add interview' })).toBeVisible();
+  await closeOverlay(page);
 
-  // Remove on a booked interview collapses its row, then offers Undo.
-  await page.getByRole('tab', { name: 'Interviews' }).click();
-  const log = page.getByRole('tabpanel');
-  await log.getByLabel('Event date').fill('2030-01-08');
-  await log.getByRole('button', { name: 'Add interview' }).click();
-  const removeInterview = log.getByRole('button', { name: /^Remove interview on / });
-  await press(page, removeInterview, 'Remove an interview');
-  await ranIn(page, 'rjb-collapse', 'Interview');
+  // A document link (#416): Add opens the form; Remove collapses its card, then offers Undo.
+  const docs = page.getByRole('region', { name: 'Documents' });
+  await press(page, button(page, 'Add a document link'), 'Add a document link');
+  await docs.getByLabel('Link').fill('https://docs.example/cv');
+  await docs.getByRole('button', { name: 'Add link' }).click();
+  const removeLink = button(page, 'Remove “docs.example”');
+  await press(page, removeLink, 'Remove a document link');
+  await ranIn(page, 'rjb-collapse', 'docs.example');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
-  await expect(removeInterview).toHaveCount(0);
-  await page.getByRole('tab', { name: 'Overview' }).click();
-
-  // Remove on a final copy collapses its row, then offers Undo, which brings the file back.
-  await page.getByRole('button', { name: /^(All documents|Add a document)/ }).click();
-  await page.getByRole('button', { name: 'Upload a final copy' }).click();
-  await page.getByLabel('Choose a file to upload').setInputFiles({
-    name: 'final-cover.pdf',
-    mimeType: 'application/pdf',
-    buffer: Buffer.from('%PDF-1.4 final copy'),
-  });
-  await page.getByRole('button', { name: 'Upload', exact: true }).click();
-  const removeCopy = button(page, 'Remove final-cover.pdf');
-  await press(page, removeCopy, 'Remove a final copy');
-  await ranIn(page, 'rjb-collapse', 'final-cover.pdf');
-  await expect(page.getByRole('alertdialog')).toHaveCount(0);
-  await expect(removeCopy).toHaveCount(0);
-  await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(button(page, 'Download final-cover.pdf')).toBeVisible();
+  await expect(removeLink).toHaveCount(0);
 
   await menu(page, more, 'Remove');
   await expect(page).toHaveURL(/#\/queue$/);

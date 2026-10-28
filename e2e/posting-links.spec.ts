@@ -300,7 +300,9 @@ for (const width of [390, 1440] as const) {
       expect(await targetOffences(page.locator('#root'))).toEqual([]);
       // Recently removed.
       await page.evaluate(() => (location.hash = '#/queue'));
-      await page.getByRole('button', { name: 'Recently removed (3)' }).click();
+      // In the Account menu since #416.
+      await page.getByRole('button', { name: /^Account/ }).click();
+      await page.getByRole('menuitem', { name: 'Recently removed (3)' }).click();
       const dialog = page.getByRole('dialog', { name: 'Recently removed' });
       await expect(dialog.getByRole('link', { name: /^Open posting for / })).toHaveCount(3);
       expect(await targetOffences(dialog)).toEqual([]);
@@ -319,7 +321,9 @@ for (const width of [390, 1440] as const) {
       if (!phone)
         expect(await longTitleOffences(page.getByRole('navigation', { name: 'Jobs' }))).toEqual([]);
       await page.evaluate(() => (location.hash = '#/queue'));
-      await page.getByRole('button', { name: 'Recently removed (3)' }).click();
+      // In the Account menu since #416.
+      await page.getByRole('button', { name: /^Account/ }).click();
+      await page.getByRole('menuitem', { name: 'Recently removed (3)' }).click();
       const dialog = page.getByRole('dialog', { name: 'Recently removed' });
       await expect(dialog.getByRole('link', { name: /^Open posting for / })).toHaveCount(3);
       expect(await longTitleOffences(dialog)).toEqual([]);

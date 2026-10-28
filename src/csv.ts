@@ -56,6 +56,7 @@ const COLUMNS: [string, (j: Job) => string][] = [
   ['discovered_at', (j) => opt(j.discoveredAt)],
   ['saved_at', (j) => opt(j.savedAt)],
   ['closed_at', (j) => opt(j.closedAt)],
+  ['doc_links', (j) => decksCell(j.docLinks)],
 ];
 
 export const CSV_COLUMNS: readonly string[] = COLUMNS.map(([name]) => name);

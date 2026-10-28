@@ -150,7 +150,8 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   **Job page (#130; rev-3 mobile slice 2):** `JobPage.tsx` = `JobHeader` ("← Pipeline", one
   `JobBadges` row above the title (fit first, status, Follow-up due), company · location, then one
   row: 40px icon Star ("Star"/"Starred"), the one primary next step, the menu, which holds Remove)
-  over **three** `Tabs` (rev-3 F): Overview (`JobOverview`: `PipelinePanel` panels — Details, the
+  over **one page, no tabs since #416** (see Simplify Jobs below; the rest of this paragraph is
+  the older three-tab layout, kept for history): Overview (`JobOverview`: `PipelinePanel` panels — Details, the
   `jobFacts` `MetadataList` that turns into its fields on Edit: title, company, location, pay, link
   (saves on blur, the page follows the new id), contact, with seniority and résumé under More
   fields; starts in edit for a job without title and company; research links under the facts ·
@@ -219,8 +220,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
 - **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1):** the tabs are
   **Companies · Pipeline** (Templates lost its tab in #240); Companies is the old Discover (slug
   `discover`, home, hosts the first-run gate) and an empty hash lands there. "Try with sample data"
-  lands on the Pipeline. The Pipeline always ends with a secondary **Find the next company** button
-  (→ `#/discover`, empty or not; Calm list 4/7, #238, pinned in `pipeline.test.tsx`).
+  lands on the Pipeline. (Its closing **Find the next company** button, #238, was cut in #416.)
 - **Pipeline panels (rev-3 mobile slice 1, `docs/staging/all-states.html` on `claude/staging-states`):**
   Getting started, To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
   `Badge count`), 24 apart. The Jobs panel holds the full-width search, Status and Sort as select-style
@@ -273,12 +273,28 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `e2e/documents.spec.ts`, `e2e/template-variables.spec.ts`. Final copies (#231, uploaded PDF/Word)
   live in the synced blob, capped at 500 KB per file and 1 MB per account. Removing an unsent one has no
   confirm: it collapses and Undo re-adds it (`documents.restoreDocument`, the file with it).
-- **Decks per job (#287):** the job page's Overview ends with a **Decks** panel (`JobDecks.tsx`, pure helpers
-  in `decks.ts`): deck links (Google Slides, Figma, Pitch…) with an optional label and a Sent on day; add / edit
-  inline, Remove soft with Undo. Only http(s) (`httpUrl`; `sanitizeDecks` in `sanitizeJobs` drops the rest from
+- **Decks per job (#287):** the job page ends with a **Decks** panel (`JobLinks.tsx` since #416, pure helpers
+  in `decks.ts`): deck links (Google Slides, Figma, Pitch…) with an optional label (an older Sent on day stays in
+  storage, no longer edited); Add, Remove soft with Undo. Only http(s) (`httpUrl`; `sanitizeDecks` in `sanitizeJobs` drops the rest from
   storage, cloud and backups). `Job.decks` rides in the synced blob (no version bump: an additive Job field), Back
   up and the CSV's `decks` column; Recently removed merges them back by id. **Links only:** uploads need a Supabase
   Storage bucket (Adrian). Pinned in `decks.test.ts` and `jobPage.test.tsx`.
+- **Simplify Jobs (#416, Adrian 2026-10-28; spec `docs/specs/simplify.html` on `claude/rf-simplify-spec`):**
+  the Jobs page (`TrackerView`) is To apply + Start applying, Follow up, Next 7 days and the Jobs list
+  (search, Status incl. Closing soon / Closed from #423, Sort) and nothing else: `GettingStarted`,
+  `ScoredQueue` and Find the next company are deleted (`gettingStarted.ts` and `rjb_ui_getting_started_done`
+  are left, unused). **Recently removed** is an Account menu item ("Recently removed (N)", only when the trash
+  has some; `RecentlyRemovedHost` in `DataToolsProvider`, open state in `jobDialogs.ts`); **Export links** is
+  Account menu only. The **job page is one page** (`JobPage` → `JobHeader` + `JobOverview`): Details, Notes,
+  then **Documents** (`Job.docLinks`, additive, same shape and `sanitizeDecks` rule as `decks`, CSV `doc_links`
+  appended last, Back up, Recently removed merge) and **Decks**, both `JobLinks.tsx` `LinksPanel` (a label and
+  an http(s) link, Add, Remove with Undo). To-dos, Screening (Fit, JD screener), the Interviews log, Use
+  template and the per-job document library are off the page; **their data (`todos`, screening fields,
+  `events`, documents) is never deleted** and stays in storage, sync, Back up and the CSV. An old
+  `?section=` link opens the one page. **Add interview…** is one item in every job's ⋯ menu (`RowMenu`, now
+  `modal={false}` so its dialog opens cleanly) and an Interviewing job's header primary: one
+  `AddInterviewHost` dialog (App) writes `events`, which feed Next 7 days. Each card shows one date (Posted,
+  else Found) plus the closing-date badge (#423). Pinned in `simplifyJobs.test.tsx`.
 - **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
   `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
   Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).
@@ -508,9 +524,8 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   every target: each pixel takes the tap, no overlap with another control; long titles at 390).
 - **Company logos (2026-10-22):** `CompanyLogo.tsx` is an HDS `Avatar` per company (the To apply stack, Pipeline table and cards, job header, job rail, Company page, Companies and dream rows): letter first, the logo only once `new Image()` has loaded it at 16px or more (lazy, no referrer; errors and DuckDuckGo's tiny placeholder keep the letter). `companyLogo.ts` is the one table-tested rule for the domain (company website first, then the posting's host; never a job board, ATS or aggregator host, `*.example.com`, localhost, IPs). Icons come from `icons.duckduckgo.com` (`img-src`, `legal.ts` THIRD_PARTIES, `csp.test.ts`); e2e specs abort that host, so baselines show letters.
 - **Export links (2026-10-22):** one `ExportLinksHost` dialog (mounted in `DataToolsProvider`, open
-  scope in `exportLinks.ts`) opened from the Jobs panel (a tertiary "Export links" beside Status/Sort;
-  below `sm` a ⋯ "More job actions" menu) on **This view** (`visibleJobs`) and from the Account menu
-  (after Export CSV) on **All saved jobs**. Format Links only / With title and company; read-only
+  scope in `exportLinks.ts`) opened from the Account menu only (after Export CSV; #416 took it off the Jobs
+  panel) on **All saved jobs**; its **This view** scope is the Jobs list as filtered (`visibleJobs`). Format Links only / With title and company; read-only
   Preview; Copy (`copyFilled`, falls back to selecting the text) and Download .txt
   (`linksFilename`: `<slug>-links-YYYY-MM-DD.txt`). `buildLinkList` skips non-web links (counted),
   dedupes, keeps order. Pinned in `exportLinks.test.ts`, `exportLinksDialog.test.tsx`,

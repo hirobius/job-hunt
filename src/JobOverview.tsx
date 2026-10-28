@@ -1,5 +1,6 @@
-// The job page's Overview (#130; rev-3 F, three tabs): Details, To-dos, Notes, Documents and Decks
-// (#287) as panels. Details reads as a facts list; Edit turns the same panel into its fields (title,
+// The job page's body (#130; one page since #416, Adrian's Q5): Details, Notes, then Documents and
+// Decks as plain lists of external links. To-dos, screening and interviews left the page; their
+// data stays on the Job (storage, sync, Back up, CSV). Details reads as a facts list; Edit turns the same panel into its fields (title,
 // company, location, pay, link, contact, with seniority and résumé version under More fields).
 // A job saved from a bare link has nothing to read yet, so its card starts in edit. Remove lives
 // in the header's menu. The company links to its Company page (#230, `#/company/<slug>`).
@@ -23,15 +24,10 @@ import { companyHash, getRoute, linkTo, navigate, parseHash, useRoute, type Rout
 import { companySlug, relinkCompanyNotes } from './companies';
 import { jobFacts } from './jobFacts';
 import { useSavedFlash } from './useSavedFlash';
-import UseTemplate from './UseTemplate';
 import { Panel, PanelBody } from './PipelinePanel';
-import { NotesPanel, TodosPanel } from './TodosNotes';
-import JobDocuments from './JobDocuments';
-import JobFinalCopies from './JobFinalCopies';
-import DecksPanel from './JobDecks';
-import { DocumentDownload } from './DocumentDownload';
-import { useDocuments } from './documents';
-import { documentsForJob, sentSummary } from './jobDocuments';
+import { NotesPanel } from './TodosNotes';
+import LinksPanel from './JobLinks';
+import { DECK_LINKS, DOC_LINKS } from './decks';
 import { useFocusAfter } from './useFocusAfter';
 import type { Job } from './types';
 
@@ -289,49 +285,13 @@ function DetailsPanel({ job }: { job: Job }) {
   );
 }
 
-/** The job's documents (#228): what went out, Use template, and every document with its
- *  Versions and final copies behind one row, so the Overview stays short on a phone. */
-function DocumentsPanel({ job }: { job: Job }) {
-  const docs = documentsForJob(useDocuments(), job.url);
-  const sent = sentSummary(docs);
-  return (
-    <Panel
-      label="Documents"
-      title="Documents"
-      count={docs.length}
-      countLabel={`${docs.length} documents`}
-      trailing={<UseTemplate job={job} />}
-      description={sent ? `Sent: ${sent}` : undefined}
-    >
-      <PanelBody>
-        {/* Every document behind one row. With none yet there is no "None yet" filler: a quiet
-            line opens New document, Use a Base document and Upload a final copy (rev-3 review). */}
-        <Disclosure
-          variant={docs.length ? 'row' : 'nav'}
-          label={docs.length ? 'All documents' : 'Add a document'}
-          preview={docs.length ? 'Versions, Sent copies and final files' : undefined}
-        >
-          <JobDocuments
-            job={job}
-            versionActions={(doc, version) => (
-              <DocumentDownload doc={doc} version={version} job={job} />
-            )}
-            uploadSlot={<JobFinalCopies jobUrl={job.url} />}
-          />
-        </Disclosure>
-      </PanelBody>
-    </Panel>
-  );
-}
-
 export default function JobOverview({ job }: { job: Job }) {
   return (
     <Stack gap="px24">
       <DetailsPanel job={job} />
-      <TodosPanel job={job} />
       <NotesPanel job={job} />
-      <DocumentsPanel job={job} />
-      <DecksPanel job={job} />
+      <LinksPanel job={job} kind={DOC_LINKS} />
+      <LinksPanel job={job} kind={DECK_LINKS} />
     </Stack>
   );
 }
