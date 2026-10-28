@@ -39,6 +39,7 @@ export function routeLabel(r: Route, ctx: { jobs: Job[]; docs: Document[] }): st
       return (r.sub && companyBySlug(r.sub, ctx.jobs, ctx.docs)?.name) || 'Company';
     case 'discover':
       if (r.sub === 'live') return 'Live postings';
+      if (r.sub === 'review') return 'Review new';
       if (r.sub === 'boards') return 'Check a list';
       return 'Companies';
     case 'copy-deck': {

@@ -777,3 +777,21 @@ p {
   transform-origin: 50% 100%;
   white-space: pre;
 }
+
+/* Review new: a posting's title opens its in-app preview (#386). An HDS tertiary Button set as
+ * the card's title: no padding, left-aligned, wrapping, in the title's own type; still 40px tall
+ * on a phone for the tap. */
+.rjb-card-title .rjb-preview-title {
+  padding-inline: 0;
+  height: auto;
+  min-height: var(--primitive-space-10);
+  justify-content: flex-start;
+  text-align: left;
+  white-space: normal;
+  font: inherit;
+  color: var(--semantic-color-content-primary);
+}
+
+.rjb-card-title .rjb-preview-title:hover {
+  text-decoration: underline;
+}

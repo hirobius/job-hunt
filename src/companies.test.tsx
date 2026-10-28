@@ -415,13 +415,17 @@ describe('Companies as one tool (#237)', () => {
       expect(screen.queryByText('Apply Now')).toBeNull();
     });
 
-    it('Companies links to Live postings and the list checker as more ways to find companies', async () => {
+    it('Companies links to Review new, Live postings and the list checker as more ways to find companies', async () => {
       window.location.hash = '#/discover/teams';
       renderApp();
       // Rows in a panel (rev-3 mock): a title, a caption and an Open button each, not bare links.
       const more = await screen.findByRole('region', { name: 'More ways to find companies' });
-      const rows = within(more).getAllByRole('listitem');
+      const [review, ...rows] = within(more).getAllByRole('listitem');
       expect(rows).toHaveLength(2);
+      expect(within(review).getByText('Review new postings')).toBeVisible();
+      expect(
+        within(review).getByRole('link', { name: 'Open Review new postings' }),
+      ).toHaveAttribute('href', '#/discover/review');
       expect(within(rows[0]).getByText('Live postings from job boards')).toBeVisible();
       expect(
         within(rows[0]).getByText(/HN, Remotive, Jobicy and your watched boards/),
@@ -438,19 +442,27 @@ describe('Companies as one tool (#237)', () => {
       expect(await screen.findByRole('heading', { name: 'Live postings' })).toBeVisible();
     });
 
+    it('#/discover/review opens Review new under Companies, with Back to companies', async () => {
+      window.location.hash = '#/discover/review';
+      renderApp();
+      expect(await screen.findByRole('heading', { name: 'Review new' })).toBeVisible();
+      expect(await screen.findByRole('radiogroup', { name: 'Review view' })).toBeVisible();
+      expect(screen.getByRole('link', { name: /Back to companies/ })).toBeVisible();
+    });
+
     it('a design systems track also offers the companies with public design systems (Adele)', async () => {
       setMustInclude(cat, { terms: ['design system'] });
       window.location.hash = '#/discover/teams';
       renderApp();
       const more = await screen.findByRole('region', { name: 'More ways to find companies' });
       const rows = within(more).getAllByRole('listitem');
-      expect(rows).toHaveLength(3);
+      expect(rows).toHaveLength(4);
       expect(
-        within(rows[2]).getByRole('button', {
+        within(rows[3]).getByRole('button', {
           name: /^Add companies with public design systems \(\d+\)$/,
         }),
       ).toBeEnabled();
-      expect(within(rows[2]).getByRole('link', { name: /Adele on GitHub/ })).toBeVisible();
+      expect(within(rows[3]).getByRole('link', { name: /Adele on GitHub/ })).toBeVisible();
     });
   });
 });
