@@ -6,27 +6,16 @@
 // field with a one-line helper, Add the one primary.
 import { useBackCloses } from './useBackCloses';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import {
-  Alert,
-  Badge,
-  Button,
-  Dialog,
-  Icon,
-  Input,
-  Stack,
-  Text,
-  useToast,
-} from '@hirobius/design-system';
+import { Button, Dialog, Icon, Input, Stack, Text, useToast } from '@hirobius/design-system';
 import { Form } from '@hirobius/design-system/patterns';
-import { Plus, Star } from 'lucide-react';
-import { discoverBoards, type DiscoverResult } from './feed/discoverBoards';
-import { probeFetchJson } from './feed/probeFetch';
+import { Plus } from 'lucide-react';
+import type { DiscoverResult } from './feed/discoverBoards';
 import { parseCompanyLine } from './feed/probe';
-import { boardsFromUrls, canonicalBoardUrl, parseBoardUrl, type Board } from './feed/sources/ats';
-import { SOURCE_LABEL } from './feed/types';
+import { canonicalBoardUrl, parseBoardUrl, type Board } from './feed/sources/ats';
 import { watchBoard } from './feed/watchlist';
 import { starDream } from './feed/dreams';
-import { listStyle } from './outreachShared';
+import { CompanyLookupResults } from './CompanyLookupResults';
+import { lookUpCompany } from './companyLookup';
 
 export default function AddCompany({
   categoryId,
@@ -72,7 +61,6 @@ function AddCompanyContent({
   const [running, setRunning] = useState(false);
   const [asked, setAsked] = useState('');
   const [result, setResult] = useState<DiscoverResult | null>(null);
-  const [watchedNow, setWatchedNow] = useState<string[]>([]);
   const abort = useRef<AbortController | null>(null);
   useEffect(() => () => abort.current?.abort(), []);
 
@@ -104,19 +92,12 @@ function AddCompanyContent({
     setAsked(line);
     setResult(null);
     try {
-      setResult(
-        await discoverBoards([line], {
-          fetchJson: probeFetchJson,
-          signal: ac.signal,
-          watched: boardsFromUrls(boardUrls, Infinity),
-        }),
-      );
+      setResult(await lookUpCompany(line, categoryId, ac.signal, boardUrls));
     } finally {
       setRunning(false);
     }
   };
 
-  const key = (b: Board) => `${b.kind}:${b.slug}`;
   const star = () => {
     starDream(categoryId, { company: asked });
     // Where it landed, in the same words as Find boards'.
@@ -148,64 +129,8 @@ function AddCompanyContent({
               {`Looking for ${asked}'s board…`}
             </Text>
           )}
-          {result && result.found.length > 0 && (
-            <ul aria-label="Boards found" style={listStyle}>
-              {result.found.map((f) => {
-                const done = watchedNow.includes(key(f.board));
-                return (
-                  <li key={key(f.board)}>
-                    <Stack direction="row" gap="px8" align="center" justify="space-between">
-                      <Stack direction="row" gap="px8" align="center" wrap="wrap">
-                        <Text variant="ui" as="span">
-                          {f.company}
-                        </Text>
-                        <Badge>{SOURCE_LABEL[f.board.kind]}</Badge>
-                      </Stack>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={done}
-                        aria-label={`${done ? 'Watching' : 'Watch'} ${f.company}`}
-                        onClick={() => {
-                          if (watchOne(f.board)) setWatchedNow((w) => [...w, key(f.board)]);
-                        }}
-                      >
-                        {done ? 'Watching' : 'Watch'}
-                      </Button>
-                    </Stack>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {result && result.alreadyWatched.length > 0 && (
-            <Text
-              variant="ui"
-              as="p"
-            >{`Already watching ${result.alreadyWatched.join(', ')}.`}</Text>
-          )}
-          {result && result.missed.length > 0 && (
-            <Stack gap="px8">
-              <Text variant="ui" as="p">
-                {`No public board found for ${asked} on the systems we check. It may hire elsewhere; keep it as a target to stay on your list.`}
-              </Text>
-              <div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  iconLeft={<Icon icon={Star} />}
-                  aria-label={`Keep ${asked} as a target`}
-                  onClick={star}
-                >
-                  Keep as a target
-                </Button>
-              </div>
-            </Stack>
-          )}
-          {result && result.unknown.length > 0 && (
-            <Alert tone="warning">
-              {`We couldn't check ${asked} right now (rate-limited, offline or blocked). Try again in a minute.`}
-            </Alert>
+          {result && (
+            <CompanyLookupResults asked={asked} result={result} watchOne={watchOne} onStar={star} />
           )}
         </Stack>
       </Form>
