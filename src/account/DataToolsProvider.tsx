@@ -8,7 +8,9 @@ import { returnFocus } from './returnFocus';
 import { useBackCloses } from '../useBackCloses';
 import {
   applyBackup,
+  backupTooLarge,
   buildBackup,
+  MAX_BACKUP_MB,
   parseBackup,
   summarizeRestore,
   type AccountState,
@@ -59,9 +61,11 @@ function currentState(): AccountState {
   };
 }
 
-function downloadBackup(prefix: string) {
+/** Downloads the backup; false when it is too large for Restore to take back (#340). */
+function downloadBackup(prefix: string): boolean {
   const text = JSON.stringify(buildBackup(currentState(), new Date()), null, 2);
   download(`${prefix}-${day()}.json`, text, JSON_MIME);
+  return !backupTooLarge(text);
 }
 
 /** Write the restored state; returns what didn't reach storage (#339). Legacy messages
@@ -138,7 +142,15 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
   const summary = pending ? summarizeRestore(currentState(), pending) : null;
 
   const api: DataToolsApi = {
-    backup: () => downloadBackup(`${BRAND.slug}-backup`),
+    backup: () => {
+      if (!downloadBackup(`${BRAND.slug}-backup`))
+        toast({
+          title: 'This backup is too large to restore',
+          description: `It downloaded, but Restore takes files up to ${MAX_BACKUP_MB} MB. Remove final copies or old jobs you no longer need, then back up again.`,
+          tone: 'warning',
+          duration: 15000,
+        });
+    },
     chooseRestore: () => fileRef.current?.click(),
     exportCsv: () => download(`${BRAND.slug}.csv`, toCsv(getAllJobs()), 'text/csv'),
     canExport: jobs.length > 0,

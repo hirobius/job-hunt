@@ -16,7 +16,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 import { renderAccount, openAccount, chooseAccountItem } from '../test/renderAccount';
-import { buildBackup, parseBackup } from '../backup';
+import { buildBackup, MAX_BACKUP_CHARS, parseBackup } from '../backup';
 import { getAllJobs, replaceAll } from '../store';
 import { replaceSnippets } from '../copyDeckStore';
 import { replaceCurationState } from '../curation/curationStore';
@@ -97,6 +97,16 @@ describe('DataToolsProvider (via the account menu)', () => {
     );
     const r = parseBackup(await downloads[0].blob.text());
     expect(r.ok && r.backup.jobs.map((j) => j.url)).toEqual(['https://example.com/a']);
+  });
+
+  it('Back up warns when the file is over what Restore takes (#340)', async () => {
+    replaceAll([
+      { ...job('https://example.com/a', 'A'), notes: 'x'.repeat(MAX_BACKUP_CHARS) } as Job,
+    ]);
+    setup();
+    await chooseAccountItem('Back up');
+    expect(downloads).toHaveLength(1);
+    expect(await screen.findByText('This backup is too large to restore')).toBeTruthy();
   });
 
   it('toasts the reason for an invalid file', async () => {

@@ -3,6 +3,8 @@ import { BRAND } from './brand';
 import {
   applyBackup,
   buildBackup,
+  backupTooLarge,
+  LOCAL_STORAGE_CHARS,
   MAX_BACKUP_CHARS,
   parseBackup,
   summarizeRestore,
@@ -218,6 +220,29 @@ describe('applyBackup', () => {
     expect(m.copydeck.map((s) => s.id).sort()).toEqual(['s1', 's2']);
     expect(m.curation.categories.map((c) => c.id)).toEqual(['c1']);
     expect(m.triage).toEqual({ dismissed: ['https://shop.example/'] });
+  });
+});
+
+describe('backup size vs the restore limit (#340)', () => {
+  it('the largest account browser storage can hold backs up into a file Restore takes', () => {
+    // Worst case for the pretty-printed file: storage full (~5M chars) of tiny nested objects,
+    // where indentation and line breaks add the most per character of data.
+    const todos = Array.from({ length: 2000 }, (_, i) => ({ id: `t${i}`, text: '', done: false }));
+    const perJob = JSON.stringify({ ...job('https://example.com/j/0000'), todos }).length;
+    const jobs = Array.from({ length: Math.ceil(LOCAL_STORAGE_CHARS / perJob) }, (_, i) => ({
+      ...job(`https://example.com/j/${i}`),
+      todos,
+    }));
+    expect(JSON.stringify(jobs).length).toBeGreaterThanOrEqual(LOCAL_STORAGE_CHARS);
+    const text = JSON.stringify(buildBackup(state({ jobs }), NOW), null, 2);
+    expect(text.length).toBeLessThanOrEqual(MAX_BACKUP_CHARS);
+    const r = parseBackup(text);
+    expect(r.ok && r.backup.jobs.length).toBe(jobs.length);
+  });
+
+  it('backupTooLarge flags a file over the limit', () => {
+    expect(backupTooLarge('x'.repeat(MAX_BACKUP_CHARS))).toBe(false);
+    expect(backupTooLarge('x'.repeat(MAX_BACKUP_CHARS + 1))).toBe(true);
   });
 });
 

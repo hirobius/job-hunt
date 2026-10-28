@@ -61,7 +61,17 @@ export interface Backup extends AccountState {
 
 export type ParseResult = { ok: true; backup: Backup } | { ok: false; reason: string };
 
-export const MAX_BACKUP_CHARS = 5 * 1024 * 1024;
+/** What one origin's localStorage holds in the browsers we support (about 5M characters), and
+ *  so the most a whole account can be: every store, final copies included, lives there. */
+export const LOCAL_STORAGE_CHARS = 5 * 1024 * 1024;
+/** The restore limit (#340). Back up pretty-prints, which at worst (storage full of tiny nested
+ *  objects) about triples the size (backup.test.ts pins it), so 20 MB takes the largest account
+ *  a browser can hold, and still refuses a runaway file. */
+export const MAX_BACKUP_CHARS = 20 * 1024 * 1024;
+export const MAX_BACKUP_MB = MAX_BACKUP_CHARS / 1024 / 1024;
+
+/** A backup file Restore would refuse: Back up warns instead of handing over a dead file. */
+export const backupTooLarge = (text: string) => text.length > MAX_BACKUP_CHARS;
 
 export function buildBackup(state: AccountState, now: Date): Backup {
   return {
@@ -322,8 +332,8 @@ function cleanTriage(raw: unknown): Triage {
 }
 
 export function parseBackup(text: string): ParseResult {
-  if (text.length > MAX_BACKUP_CHARS) {
-    return { ok: false, reason: 'That file is too large (over 5 MB).' };
+  if (backupTooLarge(text)) {
+    return { ok: false, reason: `That file is too large (over ${MAX_BACKUP_MB} MB).` };
   }
   let data: unknown;
   try {
