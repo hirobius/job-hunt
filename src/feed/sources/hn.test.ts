@@ -33,9 +33,36 @@ describe('pickHiringThreads', () => {
         },
         { objectID: '5', title: 'Ask HN: Who is hiring? (October 2026)', created_at: '2026-10-01' },
         { objectID: '1', title: 'Ask HN: Who is hiring? (August 2026)', created_at: '2026-08-01' },
+        { objectID: '0', title: 'Ask HN: Who is hiring? (July 2026)', created_at: '2026-07-01' },
       ],
     };
-    expect(pickHiringThreads(listing).map((t) => t.id)).toEqual(['5', '3']);
+    // The last three months; "Who wants to be hired?" (#4) is never read.
+    expect(pickHiringThreads(listing).map((t) => t.id)).toEqual(['5', '3', '1']);
+  });
+  it("reads a month's busiest freelancer thread when it was posted twice", () => {
+    const listing = {
+      hits: [
+        {
+          objectID: '9',
+          title: 'Ask HN: Freelancer? Seeking freelancer? (September 2026)',
+          created_at: '2026-09-01T10:00',
+          num_comments: 2,
+        },
+        {
+          objectID: '8',
+          title: 'Ask HN: Freelancer? Seeking freelancer? (September 2026)',
+          created_at: '2026-09-01T09:00',
+          num_comments: 24,
+        },
+        {
+          objectID: '7',
+          title: 'Ask HN: Freelancer? Seeking freelancer? (October 2026)',
+          created_at: '2026-10-01',
+          num_comments: 22,
+        },
+      ],
+    };
+    expect(pickFreelancerThreads(listing).map((t) => t.id)).toEqual(['7', '8']);
   });
   it('tolerates a malformed listing', () => {
     expect(pickHiringThreads(null)).toEqual([]);
@@ -173,13 +200,28 @@ describe('fetchHn', () => {
           ],
         };
       return {
-        hits: [comment({ story_id: 7, parent_id: 7, comment_text: 'Acme | UI Engineer | Remote' })],
+        hits: [
+          comment({
+            story_id: 7,
+            parent_id: 7,
+            comment_text: 'Acme | UI Engineer | Remote<p>Own our design systems.',
+          }),
+          // Algolia's word match: "design" and "system" apart, not the phrase. Dropped.
+          comment({
+            objectID: '101',
+            story_id: 7,
+            parent_id: 7,
+            comment_text: 'Beta | Engineer | Remote<p>We design the billing system.',
+          }),
+        ],
       };
     };
     const out = await fetchHn('design systems', fetchJson);
-    expect(out).toHaveLength(1);
-    expect(calls[1]).toContain('tags=comment,story_7');
-    expect(calls[1]).toContain('query=design%20systems');
+    expect(out.map((p) => p.id)).toEqual(['hn:100']);
+    expect(calls[0]).toContain('hitsPerPage=15');
+    const search = calls.find((c) => c.includes('tags=comment'))!;
+    expect(search).toContain('tags=comment,story_7');
+    expect(search).toContain('query=design%20systems');
   });
 });
 
@@ -281,14 +323,16 @@ describe('Freelancer? Seeking freelancer? thread', () => {
             objectID: '51',
             story_id: 5,
             parent_id: 5,
-            comment_text: 'Acme | UI Engineer | Remote',
+            comment_text: 'Acme | Design Systems Engineer | Remote',
           }),
         ],
       };
     };
     const out = await fetchHn('design systems', fetchJson);
     expect(out.map((p) => p.id).sort()).toEqual(['hn:51', 'hn:61']);
-    expect(calls.filter((c) => c.includes('search_by_date'))).toHaveLength(1);
+    // One listing for each kind: the freelancer thread is no longer posted by whoishiring.
+    expect(calls.filter((c) => c.includes('search_by_date'))).toHaveLength(2);
+    expect(calls.some((c) => c.includes('restrictSearchableAttributes=title'))).toBe(true);
     expect(calls.some((c) => c.includes('story_6'))).toBe(true);
   });
 });

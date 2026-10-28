@@ -16,7 +16,7 @@ import { FetchError } from './sources/http';
 // fetchFeed's default Remotive budget lives in localStorage — never let it leak between tests.
 beforeEach(() => localStorage.clear());
 
-const NO_AGGREGATORS = { jobicy: false, remoteok: false };
+const NO_AGGREGATORS = { jobicy: false, remoteok: false, bluesky: false, mastodon: false };
 const res = (status: number, body: unknown = {}) =>
   ({
     ok: status >= 200 && status < 300,
@@ -136,7 +136,7 @@ describe('fetchFeed', () => {
       if (url.includes('search_by_date')) return hnListing;
       if (url.includes('hn.algolia.com'))
         return {
-          hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | UI Engineer' }],
+          hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | Design Engineer' }],
         };
       if (url.includes('remotive.com')) throw new FetchError(429, url);
       if (url.includes('ashbyhq'))
@@ -278,7 +278,9 @@ describe('fetchFeed', () => {
       if (url.includes('hn.algolia.com'))
         return Promise.resolve(
           res(200, {
-            hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | UI Engineer' }],
+            hits: [
+              { objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | Design Engineer' },
+            ],
           }),
         );
       if (url.includes('remotive.com')) {
@@ -561,5 +563,25 @@ describe('fetchFeed — the wide sweep (#213)', () => {
     expect(calls.filter((u) => u.includes('lever.co'))).toHaveLength(1);
     // Remotive answered the same job for both terms: it is in the pool once.
     expect(out.postings.filter((p) => p.source === 'remotive')).toHaveLength(1);
+  });
+});
+
+describe('community sources', () => {
+  it('reads Bluesky and Mastodon by default and never Reddit (its terms need OAuth)', async () => {
+    const calls: string[] = [];
+    const out = await fetchFeed(
+      { term: 'design systems', boardUrls: [] },
+      async (u) => {
+        calls.push(u);
+        return {};
+      },
+      { kv: memoryKv() },
+    );
+    const keys = out.sources.map((s) => s.key);
+    expect(keys).toEqual(expect.arrayContaining(['bluesky', 'mastodon']));
+    expect(keys).not.toContain('reddit');
+    expect(calls.some((u) => u.includes('reddit.com'))).toBe(false);
+    expect(calls.some((u) => u.startsWith('https://public.api.bsky.app/'))).toBe(true);
+    expect(calls.some((u) => u.startsWith('https://hachyderm.io/'))).toBe(true);
   });
 });

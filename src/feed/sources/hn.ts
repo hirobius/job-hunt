@@ -5,15 +5,24 @@
 // The monthly "Freelancer? Seeking freelancer?" thread is read the same way (contract design-systems
 // work is posted there): only the "SEEKING FREELANCER" side is a posting, "SEEKING WORK" is a person
 // offering themselves and is skipped, and each kept post is marked as freelance for the contract
-// signal.
+// signal. "Ask HN: Who wants to be hired?" (people offering themselves) is never read.
+// Each comment is kept only when it says the term as a phrase (match.ts `matchTerm`, on the parsed
+// title or the comment text): Algolia's plain query matches the words in any order, so "design
+// system" alone would also return every post that says "design" and "system" apart.
 import { htmlToText } from '../html';
-import { inferMode } from '../match';
+import { inferMode, matchTerm } from '../match';
 import type { Posting } from '../types';
 import { arr, obj, str, type FetchJson } from './http';
 
 const API = 'https://hn.algolia.com/api/v1';
-/** Threads to read — this month and last (openings stay live for weeks; DS roles are sparse). */
-const THREADS = 2;
+/** "Who is hiring?" threads to read — the last three months (openings stay live for weeks; DS
+ *  roles are sparse). */
+export const HIRING_THREADS = 3;
+/** Freelancer threads to read — this month and last. */
+export const FREELANCER_THREADS = 2;
+/** whoishiring posts three stories a month (hiring, wants to be hired, freelancer): this listing
+ *  reaches back past HIRING_THREADS months. */
+const LISTING_SIZE = 15;
 
 const FREELANCE_JOB_TYPE = 'Job type: Freelance (HN freelancer thread)';
 
@@ -23,23 +32,32 @@ export interface HnThread {
 }
 
 /** The newest "Who is hiring?" threads from a whoishiring story listing (newest first). */
-export function pickHiringThreads(listing: unknown, n = THREADS): HnThread[] {
+export function pickHiringThreads(listing: unknown, n = HIRING_THREADS): HnThread[] {
   return pickThreads(listing, /^ask hn: who is hiring\?/i, n);
 }
 
-/** The newest "Freelancer? Seeking freelancer?" threads from the same listing. */
-export function pickFreelancerThreads(listing: unknown, n = THREADS): HnThread[] {
+/** The newest "Freelancer? Seeking freelancer?" threads. whoishiring stopped posting them (checked
+ *  live 2026-10-28: another account posts them now, and a month can have a stray second copy), so
+ *  they come from a title search, and a month's busiest copy is the one read. */
+export function pickFreelancerThreads(listing: unknown, n = FREELANCER_THREADS): HnThread[] {
   return pickThreads(listing, /^ask hn: freelancer\? seeking freelancer\?/i, n);
 }
 
 function pickThreads(listing: unknown, title: RegExp, n: number): HnThread[] {
-  return arr(obj(listing).hits)
-    .map(obj)
-    .filter((h) => title.test(str(h.title)))
+  const byTitle = new Map<string, Record<string, unknown>>();
+  for (const h of arr(obj(listing).hits).map(obj)) {
+    const t = str(h.title);
+    if (!title.test(t)) continue;
+    const had = byTitle.get(t.toLowerCase());
+    if (!had || num(h.num_comments) > num(had.num_comments)) byTitle.set(t.toLowerCase(), h);
+  }
+  return [...byTitle.values()]
     .sort((a, b) => str(b.created_at).localeCompare(str(a.created_at)))
     .slice(0, n)
     .map((h) => ({ id: str(h.objectID), title: str(h.title) }));
 }
+
+const num = (v: unknown) => (typeof v === 'number' ? v : 0);
 
 const ROLE_RE =
   /\b(engineer|engineering|designer|developer|technologist|architect|lead|manager|head of|director|founding|staff|principal|frontend|front-end|design|ux|ui|cto|consultant|specialist|analyst|implementation|solutions|success|support|onboarding)\b/i;
@@ -163,9 +181,12 @@ function parseComment(hit: unknown, freelance: boolean): Posting | null {
 }
 
 export async function fetchHn(term: string, fetchJson: FetchJson): Promise<Posting[]> {
-  const listing = await fetchJson(
-    `${API}/search_by_date?tags=story,author_whoishiring&hitsPerPage=10`,
-  );
+  const [listing, freelancerListing] = await Promise.all([
+    fetchJson(`${API}/search_by_date?tags=story,author_whoishiring&hitsPerPage=${LISTING_SIZE}`),
+    fetchJson(
+      `${API}/search_by_date?tags=story&query=${encodeURIComponent('Freelancer? Seeking freelancer?')}&restrictSearchableAttributes=title&hitsPerPage=${LISTING_SIZE}`,
+    ),
+  ]);
   // Algolia's plain query is a superset of the phrase (all words, any order); match.ts then keeps
   // only real phrase hits. A quoted query would be exact but drops plurals ("design systems").
   const q = encodeURIComponent(term);
@@ -175,11 +196,13 @@ export async function fetchHn(term: string, fetchJson: FetchJson): Promise<Posti
         fetchJson(`${API}/search?tags=comment,story_${t.id}&hitsPerPage=500&query=${q}`),
       ),
     );
-    return pages.flatMap((p) => arr(obj(p).hits).map(parse)).filter((p): p is Posting => !!p);
+    return pages
+      .flatMap((p) => arr(obj(p).hits).map(parse))
+      .filter((p): p is Posting => !!p && !!matchTerm(p, term));
   };
   const [hiring, freelance] = await Promise.all([
     read(pickHiringThreads(listing), parseHnComment),
-    read(pickFreelancerThreads(listing), parseFreelancerComment),
+    read(pickFreelancerThreads(freelancerListing), parseFreelancerComment),
   ]);
   return [...hiring, ...freelance];
 }

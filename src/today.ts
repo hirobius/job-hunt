@@ -11,10 +11,10 @@ import { titleOf } from './jobRow';
 import type { Category } from './curation/types';
 import type { Job } from './types';
 
-/** The feeds a search reads with no board of its own: HN, Remotive and Jobicy (the aggregators
- *  switched on in fetchFeed.ts SOURCE_ENABLED; today.test.ts keeps the two in step). Each is one
+/** The feeds a search reads with no board of its own: HN, Remotive, Jobicy, Bluesky and Mastodon
+ *  (the sources switched on in fetchFeed.ts SOURCE_ENABLED; today.test.ts keeps the two in step). Each is one
  *  source. Not imported from there: Today stays light and the feed's test mocks stay whole. */
-export const KEYLESS_FEEDS = 3;
+export const KEYLESS_FEEDS = 5;
 
 /** The track Companies last showed (DiscoverView keeps it in `rjb_active_category`), else the first. */
 export function activeTrackId(categories: readonly Category[]): string | null {

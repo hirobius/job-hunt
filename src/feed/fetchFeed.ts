@@ -2,8 +2,11 @@
 // board never blanks the feed), and turn each failure into a message that says WHICH source broke
 // and what to do about it. Network goes through `FetchJson` so tests run on canned payloads.
 import { boardLabel, boardsFromUrls, fetchBoard, type Board } from './sources/ats';
+import { fetchBluesky } from './sources/bluesky';
 import { fetchHn } from './sources/hn';
 import { fetchJobicy } from './sources/jobicy';
+import { fetchMastodon } from './sources/mastodon';
+import { fetchReddit } from './sources/reddit';
 import { fetchRemoteOk } from './sources/remoteok';
 import { FetchError, type FetchJson } from './sources/http';
 import { fetchRemotive } from './sources/remotive';
@@ -14,11 +17,21 @@ import { SOURCE_LABEL, type Posting } from './types';
  *  proof from the build sandbox). Turn one off here if its first deployed check shows it blocked.
  *  A failure is already isolated and named per source either way. Remote OK stays off until its
  *  API's own legal notice has been read from a network that reaches it and its terms are checked
- *  against this adapter (#178): an attribution source does not ship on a guess of its terms. */
-export const SOURCE_ENABLED: Record<'jobicy' | 'remoteok', boolean> = {
+ *  against this adapter (#178): an attribution source does not ship on a guess of its terms.
+ *  Reddit stays off: its Data API Terms need a registered OAuth app, never keyless browser reads
+ *  (sources/reddit.ts says how to turn it on). */
+export const SOURCE_ENABLED: Record<
+  'jobicy' | 'remoteok' | 'bluesky' | 'mastodon' | 'reddit',
+  boolean
+> = {
   jobicy: true,
   remoteok: false,
+  bluesky: true,
+  mastodon: true,
+  reddit: false,
 };
+/** The social sources: each a term source read like Jobicy, shown only when SOURCE_ENABLED. */
+const SOCIAL = { bluesky: fetchBluesky, mastodon: fetchMastodon, reddit: fetchReddit } as const;
 
 /** Boards read at once — polite to the ATSs and kind to a phone's connection. There is no cap on
  *  how many boards a search reads (Adrian, 2026-10-15): every distinct watched board is read, this
@@ -369,6 +382,13 @@ export async function fetchFeed(
             },
           ]
         : []),
+      ...(Object.keys(SOCIAL) as (keyof typeof SOCIAL)[])
+        .filter((id) => enabled[id])
+        .map((id) => ({
+          key: k(id),
+          label: l(SOURCE_LABEL[id]),
+          run: () => SOCIAL[id](term, fetchJson),
+        })),
     ];
   };
 
