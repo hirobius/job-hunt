@@ -16,7 +16,7 @@ import { FetchError } from './sources/http';
 // fetchFeed's default Remotive budget lives in localStorage — never let it leak between tests.
 beforeEach(() => localStorage.clear());
 
-const NO_AGGREGATORS = { jobicy: false, remoteok: false };
+const NO_AGGREGATORS = { jobicy: false, remoteok: false, bluesky: false, mastodon: false };
 const res = (status: number, body: unknown = {}) =>
   ({
     ok: status >= 200 && status < 300,
@@ -136,7 +136,7 @@ describe('fetchFeed', () => {
       if (url.includes('search_by_date')) return hnListing;
       if (url.includes('hn.algolia.com'))
         return {
-          hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | UI Engineer' }],
+          hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | Design Engineer' }],
         };
       if (url.includes('remotive.com')) throw new FetchError(429, url);
       if (url.includes('ashbyhq'))
@@ -278,7 +278,9 @@ describe('fetchFeed', () => {
       if (url.includes('hn.algolia.com'))
         return Promise.resolve(
           res(200, {
-            hits: [{ objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | UI Engineer' }],
+            hits: [
+              { objectID: '1', story_id: 7, parent_id: 7, comment_text: 'A | Design Engineer' },
+            ],
           }),
         );
       if (url.includes('remotive.com')) {
@@ -613,5 +615,28 @@ describe('boards read through /api/boards', () => {
       { kv: memoryKv(), sources, readSam: async () => [] },
     );
     expect(urls).toEqual([]);
+  });
+});
+
+describe('community sources', () => {
+  it('reads Mastodon by default, Bluesky only when switched on, and never Reddit', async () => {
+    const calls: string[] = [];
+    const fetchJson = async (u: string) => {
+      calls.push(u);
+      return {};
+    };
+    const req = { term: 'design systems', boardUrls: [] };
+    const off = await fetchFeed(req, fetchJson, { kv: memoryKv() });
+    const keys = off.sources.map((s) => s.key);
+    expect(keys).toContain('mastodon');
+    expect(keys).not.toContain('bluesky');
+    expect(calls.some((u) => u.startsWith('https://hachyderm.io/'))).toBe(true);
+    const on = await fetchFeed(req, fetchJson, {
+      kv: memoryKv(),
+      sources: { ...SOURCE_ENABLED, bluesky: true },
+    });
+    expect(on.sources.map((s) => s.key)).toContain('bluesky');
+    expect(calls.some((u) => u.startsWith('https://public.api.bsky.app/'))).toBe(true);
+    expect(calls.some((u) => u.includes('reddit.com'))).toBe(false);
   });
 });

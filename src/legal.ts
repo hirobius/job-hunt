@@ -6,8 +6,8 @@ import { BRAND } from './brand';
 import { LEGAL_TITLES } from './legalRoute';
 
 /** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
- *  on 2026-10-20; set it back to true while a revision is under review. */
-export const LEGAL_DRAFT = false;
+ *  on 2026-10-20; true again while the Bluesky / Mastodon revision (PR #420) is under review. */
+export const LEGAL_DRAFT = true;
 export const LEGAL_UPDATED = '20 October 2026';
 export const OPERATOR = 'Hirobius';
 export const CONTACT_EMAIL = 'hello@hirobius.com';
@@ -52,12 +52,15 @@ export const THIRD_PARTIES: ThirdParty[] = [
   {
     name: 'Public job sources',
     purpose:
-      'When you search for openings, check a company or check whether a saved job is still open, your browser may ask these services directly: Hacker News (via Algolia), Remotive, Jobicy, Remote OK, and the Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor, Personio, BambooHR, Rippling, Gem, Pinpoint and Breezy HR job boards. They receive your IP address and which search or company board the app is checking, never your notes, documents or account.',
+      'When you search for openings, check a company or check whether a saved job is still open, your browser may ask these services directly: Hacker News (via Algolia), Remotive, Jobicy, Remote OK, Bluesky and Mastodon (mastodon.social and hachyderm.io) public posts, and the Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor, Personio, BambooHR, Rippling, Gem, Pinpoint and Breezy HR job boards. They receive your IP address and which search or company board the app is checking, never your notes, documents or account.',
     hosts: [
       'https://hn.algolia.com',
       'https://remotive.com',
       'https://jobicy.com',
       'https://remoteok.com',
+      'https://public.api.bsky.app',
+      'https://mastodon.social',
+      'https://hachyderm.io',
       'https://boards-api.greenhouse.io',
       'https://api.lever.co',
       'https://api.eu.lever.co',

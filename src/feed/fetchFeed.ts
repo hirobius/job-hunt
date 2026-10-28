@@ -2,8 +2,10 @@
 // board never blanks the feed), and turn each failure into a message that says WHICH source broke
 // and what to do about it. Network goes through `FetchJson` so tests run on canned payloads.
 import { boardLabel, boardsFromUrls, fetchBoard, type Board } from './sources/ats';
+import { fetchBluesky } from './sources/bluesky';
 import { fetchHn } from './sources/hn';
 import { fetchJobicy } from './sources/jobicy';
+import { fetchMastodon } from './sources/mastodon';
 import { fetchRemoteOk } from './sources/remoteok';
 import { FetchError, type FetchJson } from './sources/http';
 import { fetchProxied } from './sources/proxied';
@@ -14,6 +16,8 @@ import { SOURCE_LABEL, type Posting } from './types';
 import { SOURCE_ENABLED } from './sourceEnabled';
 
 export { SOURCE_ENABLED };
+/** The social sources: each a term source read like Jobicy, shown only when SOURCE_ENABLED. */
+const SOCIAL = { bluesky: fetchBluesky, mastodon: fetchMastodon } as const;
 
 /** Boards read at once — polite to the ATSs and kind to a phone's connection. There is no cap on
  *  how many boards a search reads (Adrian, 2026-10-15): every distinct watched board is read, this
@@ -371,6 +375,13 @@ export async function fetchFeed(
           key: k(id),
           label: l(SOURCE_LABEL[id]),
           run: () => fetchProxied(id, fetchJson, term),
+        })),
+      ...(Object.keys(SOCIAL) as (keyof typeof SOCIAL)[])
+        .filter((id) => enabled[id])
+        .map((id) => ({
+          key: k(id),
+          label: l(SOURCE_LABEL[id]),
+          run: () => SOCIAL[id](term, fetchJson),
         })),
     ];
   };

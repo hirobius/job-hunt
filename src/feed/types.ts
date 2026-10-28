@@ -28,6 +28,9 @@ export type FeedSourceId =
   | 'pinpoint'
   | 'breezy'
   | 'sam'
+  | 'bluesky'
+  | 'mastodon'
+  | 'reddit'
   // designsystems.jobs: read on the server only (the sync), so it reaches the app as a stored row.
   | 'rss';
 
@@ -56,6 +59,9 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   breezy: 'Breezy HR',
   sam: 'SAM.gov',
   rss: 'designsystems.jobs',
+  bluesky: 'Bluesky',
+  mastodon: 'Mastodon',
+  reddit: 'Reddit',
 };
 
 export interface Posting {

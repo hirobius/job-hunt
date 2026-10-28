@@ -19,6 +19,9 @@ const FEED_HOSTS = [
   'https://remotive.com',
   'https://jobicy.com',
   'https://remoteok.com',
+  'https://public.api.bsky.app',
+  'https://mastodon.social',
+  'https://hachyderm.io',
   'https://boards-api.greenhouse.io',
   'https://api.lever.co',
   'https://api.eu.lever.co',
@@ -136,12 +139,15 @@ describe('security headers', () => {
   // Accepted risk: anyone can register a subdomain on these hosts, so after an XSS they could
   // take data out. script-src 'self' is what stops the XSS; a same-origin proxy would close it.
   // Pinned so no other wildcard joins them without the same call being made.
-  it('allows tenant wildcards only for the three boards that need them', () => {
+  it('allows tenant wildcards only for the boards hosted on a per-company subdomain', () => {
     const csp = policy();
     expect((csp.get('connect-src') ?? []).filter((s) => s.includes('*'))).toEqual([
       'https://*.recruitee.com',
       'https://*.teamtailor.com',
       'https://*.jobs.personio.de',
+      'https://*.bamboohr.com',
+      'https://*.pinpointhq.com',
+      'https://*.breezy.hr',
     ]);
   });
 });
