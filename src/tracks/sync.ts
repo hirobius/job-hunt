@@ -1,82 +1,116 @@
-// The sync's pure half (Muse Phase 2): read every watched company and the RSS feed, then score
-// and dedupe what came back. The edge function (supabase/functions/sync-postings) adds the
-// database; scripts/dry-run-sync.ts runs the same two steps with no database. Ashby boards are
-// read one at a time (their payloads are huge); Greenhouse and Lever a few at a time.
+// The sync's pure half (Muse Phase 2; Simplify 6/9, #387): read every followed board, the term
+// feeds and the RSS feed, then score and dedupe what came back. The edge function
+// (supabase/functions/sync-postings) adds the database; scripts/dry-run-sync.ts runs the same two
+// steps with no database. Boards are read with the app's own parsers (src/feed/sources), so every
+// board kind the browser reads, the server reads too. Ashby boards are read one at a time (their
+// payloads are huge); the rest a few at a time.
+import { fetchBoard } from '../feed/sources/ats.ts';
+import { fetchHn } from '../feed/sources/hn.ts';
+import { FetchError, type FetchJson } from '../feed/sources/http.ts';
+import { fetchJobicy } from '../feed/sources/jobicy.ts';
+import { fetchRemotive } from '../feed/sources/remotive.ts';
+import type { Posting } from '../feed/types.ts';
 import { dedupe, fingerprint, type NormalizedPosting, type Verdict } from './score.ts';
 import { scoreForTrack } from './scoreForTrack.ts';
-import {
-  fetchCompany,
-  fetchDesignSystemsJobsFeed,
-  webOnly,
-  type WatchedCompany,
-} from './sources.ts';
+import { fetchDesignSystemsJobsFeed, webOnly, type WatchedCompany } from './sources.ts';
 import type { TrackConfig } from './track-config.ts';
+
+export type { WatchedCompany };
 
 type Fetch = (url: string) => Promise<Response>;
 
-/** One read: a watched company's board (`company` set) or the RSS feed. A read that failed
- *  (`ok` false) never closes a posting; a 404 disables the company. */
+/** The feeds searched by the profile's titles. */
+export type TermFeed = 'hn' | 'remotive' | 'jobicy';
+export const TERM_FEEDS: readonly TermFeed[] = ['hn', 'remotive', 'jobicy'];
+
+/** One read: a followed board (`company` set), a term feed (`term` set) or the RSS feed. A read
+ *  that failed (`ok` false) never closes a posting. */
 export interface ReadOutcome<C extends WatchedCompany = WatchedCompany> {
   company: C | null;
-  /** `${ats}:${slug}`, or 'rss'. */
+  /** `${ats}:${slug}` (Lever EU: `lever.eu:${slug}`), a term feed's id, or 'rss'. */
   board: string;
+  term?: string;
   ok: boolean;
   status?: number;
   error?: string;
   postings: NormalizedPosting[];
 }
 
-export const boardOf = (c: WatchedCompany) => `${c.ats}:${c.slug.toLowerCase()}`;
+export const boardOf = (c: Pick<WatchedCompany, 'ats' | 'slug' | 'eu'>) =>
+  `${c.ats === 'lever' && c.eu ? 'lever.eu' : c.ats}:${c.slug.toLowerCase()}`;
+
+/** A shared board read as one watcher sees it: each board is read once, under its first
+ *  watcher's row, so the postings carry that user's own `company` text. Every other watcher gets
+ *  their own name back, never another user's (security review 2026-10-28). */
+export function forWatcher<C extends WatchedCompany>(r: ReadOutcome, w: C): ReadOutcome<C> {
+  return { ...r, company: w, postings: r.postings.map((p) => ({ ...p, company: w.company })) };
+}
 
 const PARALLEL = 4;
 
-/** Rows per select: PostgREST answers at most 1000 rows to one request (its max_rows), the
- *  service role too, so a single select silently dropped every watched row past the first 1000. */
-export const WATCHED_PAGE = 1000;
-/** Boards read per user and track in one run (security review, 2026-10-27). Any signed-in user can
- *  insert watched rows, and each one is an outbound read the sync makes on their behalf; past this
- *  the newest rows wait. Far above a real list (a pack's boards + the Adele seed + verified). */
-export const MAX_WATCHED_PER_TRACK = 500;
+/** A live Posting (src/feed) as the scorer reads it. The source id is the Posting's own id
+ *  (`greenhouse:stripe:123`), so the browser and the server name a posting the same way. */
+export function normalize(p: Posting): NormalizedPosting {
+  return {
+    source: p.source === 'remoteok' || p.source === 'sam' ? 'manual' : p.source,
+    sourceId: p.id,
+    title: p.title,
+    company: p.company,
+    location: p.location || undefined,
+    remote: p.mode === 'remote' || undefined,
+    url: p.url,
+    descriptionText: p.text,
+    postedAt: p.postedAt,
+  };
+}
 
-type Page<R> = (
-  from: number,
-  to: number,
-) => PromiseLike<{ data: R[] | null; error: { message: string } | null }>;
+/** The feed parsers' fetch: JSON, or a FetchError carrying the status. */
+const fetchJsonWith =
+  (f: Fetch): FetchJson =>
+  async (url) => {
+    const r = await f(url);
+    if (!r.ok) throw new FetchError(r.status, url);
+    return r.json();
+  };
 
-/** Every enabled watched row, page by page (`page` must order by id), at most
- *  MAX_WATCHED_PER_TRACK per user and track (the oldest first). */
-export async function readWatched<R extends { user_id: string; track_slug: string }>(
-  page: Page<R>,
-): Promise<{ rows: R[]; error: string | null }> {
-  const rows: R[] = [];
-  const per = new Map<string, number>();
-  for (let from = 0; ; from += WATCHED_PAGE) {
-    const { data, error } = await page(from, from + WATCHED_PAGE - 1);
-    if (error) return { rows: [], error: error.message };
-    for (const r of data ?? []) {
-      const k = `${r.user_id}|${r.track_slug}`;
-      const n = per.get(k) ?? 0;
-      if (n >= MAX_WATCHED_PER_TRACK) continue;
-      per.set(k, n + 1);
-      rows.push(r);
-    }
-    if (!data || data.length < WATCHED_PAGE) return { rows, error: null };
+async function readOne<C extends WatchedCompany>(c: C, f: Fetch): Promise<ReadOutcome<C>> {
+  const board = boardOf(c);
+  try {
+    const found = await fetchBoard(
+      { kind: c.ats, slug: c.slug, ...(c.eu && { eu: true }) },
+      fetchJsonWith(f),
+    );
+    const postings = webOnly(found.map(normalize)).map((p) => ({ ...p, company: c.company }));
+    return { company: c, board, ok: true, postings };
+  } catch (e) {
+    const status = e instanceof FetchError && e.status ? e.status : undefined;
+    return { company: c, board, ok: false, status, error: String(e), postings: [] };
   }
 }
 
-async function readOne<C extends WatchedCompany>(c: C, f: Fetch): Promise<ReadOutcome<C>> {
-  let status: number | undefined;
+const FEED_READERS: Record<TermFeed, (term: string, fj: FetchJson) => Promise<Posting[]>> = {
+  hn: fetchHn,
+  remotive: fetchRemotive,
+  jobicy: fetchJobicy,
+};
+
+async function readFeed<C extends WatchedCompany>(
+  feed: TermFeed,
+  term: string,
+  f: Fetch,
+): Promise<ReadOutcome<C>> {
   try {
-    const postings = webOnly(await fetchCompany(c, f, (s) => (status = s)));
-    return { company: c, board: boardOf(c), ok: status === undefined, status, postings };
+    const postings = webOnly((await FEED_READERS[feed](term, fetchJsonWith(f))).map(normalize));
+    return { company: null, board: feed, term, ok: true, postings };
   } catch (e) {
-    return { company: c, board: boardOf(c), ok: false, error: String(e), postings: [] };
+    const status = e instanceof FetchError && e.status ? e.status : undefined;
+    return { company: null, board: feed, term, ok: false, status, error: String(e), postings: [] };
   }
 }
 
 export async function readAll<C extends WatchedCompany>(
   companies: C[],
-  o: { fetch: Fetch; rss: boolean },
+  o: { fetch: Fetch; rss: boolean; terms?: Partial<Record<TermFeed, string[]>> },
 ): Promise<ReadOutcome<C>[]> {
   const out: ReadOutcome<C>[] = [];
   const pooled = companies.filter((c) => c.ats !== 'ashby');
@@ -84,6 +118,9 @@ export async function readAll<C extends WatchedCompany>(
     out.push(...(await Promise.all(pooled.slice(i, i + PARALLEL).map((c) => readOne(c, o.fetch)))));
   // Ashby, sequentially.
   for (const c of companies.filter((x) => x.ats === 'ashby')) out.push(await readOne(c, o.fetch));
+  // Term feeds one request at a time: they are shared public APIs.
+  for (const feed of TERM_FEEDS)
+    for (const term of o.terms?.[feed] ?? []) out.push(await readFeed(feed, term, o.fetch));
   if (o.rss) {
     let status: number | undefined;
     try {

@@ -2,7 +2,6 @@
 // screener, src/jdScreener.ts). Every Posting a source returns passes through here: it must mention
 // the search term as a PHRASE (not loose words — "system design" is not "design system"), survive
 // the location/work-mode filter, and is then scored so the openings worth acting on float up.
-import type { JobMode } from '../types';
 import type { WorkMode } from '../jobsData';
 import { dedupKey } from '../store';
 import type { Posting, RankedPosting, Signal, SignalId } from './types';
@@ -99,16 +98,7 @@ export function detectSignals(text: string): Signal[] {
   return out;
 }
 
-/** Work mode from a short location-ish string. Only a single unambiguous mode counts — "ONSITE or
- *  REMOTE" says nothing. Call it on a location line, never a whole description (which mentions
- *  "remote" in a dozen unrelated ways). */
-export function inferMode(s: string): JobMode | undefined {
-  const found: JobMode[] = [];
-  if (/\bremote\b/i.test(s)) found.push('remote');
-  if (/\bhybrid\b/i.test(s)) found.push('hybrid');
-  if (/\bon[- ]?site\b|\bin[- ]office\b/i.test(s)) found.push('onsite');
-  return found.length === 1 ? found[0] : undefined;
-}
+export { inferMode } from './mode';
 
 /** ~`max` chars of `text` centred on the first term hit (head of the text when there's none). */
 export function snippetAround(text: string, term: string, max = 200): string {

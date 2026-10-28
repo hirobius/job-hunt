@@ -1,45 +1,53 @@
-// The postings sync (Muse Phase 2 + 2.5, 2026-10-24): a Supabase edge function run twice a day by
-// pg_cron (supabase/migrations/20261024100200_sync_postings_cron.sql). It reads every enabled
-// watched company once (Ashby one board at a time), and the designsystems.jobs feed on the morning
-// run, scores each posting with its track's config (src/tracks), dedupes by fingerprint and
-// upserts on (user, source, source_id). A 404 disables that company and logs it; it never throws
-// the batch away. A posting missing from 2 answered reads in a row is rejected as "posting closed".
+// The postings sync (Muse Phase 2 + 2.5; Simplify 6/9, #387): a Supabase edge function run twice a
+// day by pg_cron (supabase/migrations/20261024100200_sync_postings_cron.sql). It reads what each
+// user follows straight from their synced `tracker` blob (src/tracks/plan.ts: v12 sources and the
+// Search profile, else the v11 fields and their watched tiles), so the blob is the one source of
+// truth. Every board is read once however many users follow it (Ashby one board at a time), the
+// term feeds (HN, Remotive, Jobicy) and designsystems.jobs on the morning run. Each posting is
+// scored with the user's profile config (src/tracks), deduped by fingerprint and upserted on
+// (user, source, source_id). A failed read (a 404 too) is logged and never closes anything; a
+// posting missing from 2 answered reads in a row is rejected as "posting closed". The sync never
+// writes the blob: the user removes a dead board from their Sources.
 // One invocation reads SLICE boards (the worker's CPU budget is ~2 s, and the first full run ran
-// out), then calls itself for the next slice. Closing unwatched boards and the RSS feed run on the
+// out), then calls itself for the next slice. The feeds and closing unfollowed boards run on the
 // last slice; each slice closes postings missed on the boards it read.
-// Auth: x-sync-secret must equal SYNC_SECRET, or hash to SYNC_SECRET_SHA256 (the value the cron's
-// Vault secret holds), so the function works before the dashboard secret is set.
-// Deploy and secrets: README.md beside this file.
+// Auth: x-sync-secret must equal SYNC_SECRET (compared as SHA-256 digests, without an early exit).
+// Nothing is accepted until SYNC_SECRET is set. Deploy and secrets: README.md beside this file.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { planFromBlob, type SyncPlan, type WatchedTile } from '../../../src/tracks/plan.ts';
 import {
   boardOf,
+  forWatcher,
   readAll,
-  readWatched,
   scoreBatch,
+  TERM_FEEDS,
   type ReadOutcome,
+  type TermFeed,
 } from '../../../src/tracks/sync.ts';
 import type { WatchedCompany } from '../../../src/tracks/sources.ts';
-import { designSystemsTrack, type TrackConfig } from '../../../src/tracks/track-config.ts';
+import type { TrackConfig } from '../../../src/tracks/track-config.ts';
 
 declare const Deno: {
   env: { get(name: string): string | undefined };
   serve(handler: (req: Request) => Response | Promise<Response>): void;
 };
 
-const SYNC_SECRET_SHA256 = 'e724f1f43ed29028c4e8e5ae4f54c283a50f8020587a16ee004eabd993d0b72d';
-const TRACKS: Record<string, TrackConfig> = { [designSystemsTrack.slug]: designSystemsTrack };
-/** The feed is about design systems: only that track reads it. */
-const RSS_TRACKS = new Set([designSystemsTrack.slug]);
 /** score.ts `dedupe`'s source order: an ATS original beats a copy. */
 const RANK: Record<string, number> = {
   greenhouse: 0,
   lever: 0,
   ashby: 0,
+  workable: 0,
+  recruitee: 0,
+  smartrecruiters: 0,
+  teamtailor: 0,
+  personio: 0,
   rss: 1,
   manual: 1,
   adzuna: 2,
   jsearch: 2,
   remotive: 3,
+  jobicy: 3,
   hn: 3,
 };
 const CHUNK = 500;
@@ -50,11 +58,22 @@ const MAX_TEXT = 20_000;
 const BOARD_BATCH = 4;
 /** Boards per invocation. */
 const SLICE = 8;
+/** Blobs per select (each holds a user's whole job list). */
+const BLOB_PAGE = 100;
+/** Rows per select of the tile list: PostgREST answers at most 1000 to one request. */
+const TILE_PAGE = 1000;
+/** Distinct titles searched per feed and run, across every user. */
+const TERMS_PER_RUN: Record<TermFeed, number> = {
+  hn: 20,
+  jobicy: 20,
+  // Remotive asks for at most ~4 requests a day; the feeds run once a day.
+  remotive: 2,
+};
+/** The boards that are not company boards: never closed as "unfollowed". */
+const FEED_BOARDS = [...TERM_FEEDS, 'rss'];
 
-interface WatchedRow extends WatchedCompany {
-  id: number;
+interface Follower extends WatchedCompany {
   user_id: string;
-  track_slug: string;
 }
 
 type Log = {
@@ -86,23 +105,52 @@ const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const;
 /** Names (never values) of required env vars that are unset or empty. */
 const missingEnv = () => REQUIRED_ENV.filter((name) => !Deno.env.get(name));
 
+/** Equal-length hex digests compared without an early exit. */
+const sameDigest = (a: string, b: string) => {
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < Math.min(a.length, b.length); i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+};
+
+/** The caller's secret against SYNC_SECRET, compared as digests. There is no committed fallback:
+ *  until the secret is set, nothing is accepted. */
 async function authorized(given: string | null): Promise<boolean> {
-  if (!given) return false;
   const secret = Deno.env.get('SYNC_SECRET');
-  if (secret && given === secret) return true;
-  return (await sha256(given)) === SYNC_SECRET_SHA256;
+  if (!secret) {
+    console.error('sync-postings: SYNC_SECRET is not set (see docs/secrets.md)');
+    return false;
+  }
+  if (!given) return false;
+  return sameDigest(await sha256(given), await sha256(secret));
 }
 
-/** Score, dedupe and upsert one user's track from this pass's answered reads. */
+type Page<R> = (
+  from: number,
+  to: number,
+) => PromiseLike<{ data: R[] | null; error: { message: string } | null }>;
+
+/** Every row, page by page (`page` must order the rows). */
+async function readPaged<R>(page: Page<R>, size: number) {
+  const rows: R[] = [];
+  for (let from = 0; ; from += size) {
+    const { data, error } = await page(from, from + size - 1);
+    if (error) return { rows: [] as R[], error: error.message };
+    rows.push(...(data ?? []));
+    if (!data || data.length < size) return { rows, error: null };
+  }
+}
+
+/** Score, dedupe and upsert one user's postings from this pass's answered reads. */
 async function writeGroup(
   db: SupabaseClient,
   userId: string,
-  trackSlug: string,
+  config: TrackConfig,
   answered: ReadOutcome[],
   logs: Log[],
   totals: Totals,
 ) {
-  let scored = scoreBatch(answered, TRACKS[trackSlug]);
+  const trackSlug = config.slug;
+  let scored = scoreBatch(answered, config);
   // One row per key in a batch (an upsert can't touch a row twice).
   const keys = new Set<string>();
   scored = scored.filter((s) => {
@@ -150,7 +198,7 @@ async function writeGroup(
     source: s.posting.source,
     source_id: s.posting.sourceId,
     board: s.board,
-    company: s.posting.company ?? '',
+    company: (s.posting.company ?? '').slice(0, 200),
     title: s.posting.title,
     location: s.posting.location ?? null,
     remote: s.posting.remote ?? null,
@@ -189,9 +237,13 @@ async function writeGroup(
 Deno.serve(async (req) => {
   if (!(await authorized(req.headers.get('x-sync-secret'))))
     return json({ error: 'forbidden' }, 403);
-  const body = (await req.json().catch(() => ({}))) as { rss?: boolean; after?: string; runStart?: string };
-  // A cursor, not an offset: a slice that disables a 404 board shrinks the list the next one reads.
-  const after = body.after ?? '';
+  const body = (await req.json().catch(() => ({}))) as {
+    rss?: boolean;
+    after?: string;
+    runStart?: string;
+  };
+  // A cursor, not an offset: a user who drops a board shrinks the list the next slice reads.
+  const after = typeof body.after === 'string' ? body.after : '';
   // Fail loud: name what is missing instead of a vague client error deep in the run.
   const missing = missingEnv();
   if (missing.length) {
@@ -203,44 +255,64 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
   const runStart = body.runStart ?? new Date().toISOString();
-
-  // Paged (one select stops at 1000 rows) and capped per user and track (readWatched).
-  const { rows, error } = await readWatched<WatchedRow>(
-    async (from, to) =>
-      (await db
-        .from('watched_companies')
-        .select('id, user_id, track_slug, company, ats, slug')
-        .eq('enabled', true)
-        .order('id')
-        .range(from, to)) as { data: WatchedRow[] | null; error: { message: string } | null },
-  );
-  if (error) return json({ error }, 500);
-  const watched = rows.filter((w) => TRACKS[w.track_slug]);
-
-  // Each board once, however many users watch it; who watches each board.
-  const distinct = new Map<string, WatchedRow>();
-  const watchers = new Map<string, WatchedRow[]>();
-  for (const w of watched) {
-    const b = boardOf(w);
-    if (!distinct.has(b)) distinct.set(b, w);
-    watchers.set(b, [...(watchers.get(b) ?? []), w]);
-  }
-  const groups = new Map<string, WatchedRow[]>();
-  for (const w of watched) {
-    const k = `${w.user_id}|${w.track_slug}`;
-    groups.set(k, [...(groups.get(k) ?? []), w]);
-  }
-
   const logs: Log[] = [];
-  const answeredBy = new Map<string, string[]>(); // group key → boards that answered
-  const status404 = new Set<string>();
+
+  // v11 blobs keep their watched boards in the curation tables (service role only).
+  const tiles = await readPaged<WatchedTile & { user_id: string }>(
+    async (from, to) =>
+      (await db.rpc('watched_tile_urls').range(from, to)) as {
+        data: (WatchedTile & { user_id: string })[] | null;
+        error: { message: string } | null;
+      },
+    TILE_PAGE,
+  );
+  if (tiles.error)
+    logs.push({
+      user_id: null,
+      kind: 'failed',
+      board: null,
+      status: null,
+      message: `watched tiles (v11 fallback): ${tiles.error}`.slice(0, 2000),
+    });
+  const tilesOf = new Map<string, WatchedTile[]>();
+  for (const t of tiles.rows) tilesOf.set(t.user_id, [...(tilesOf.get(t.user_id) ?? []), t]);
+
+  // Every user's plan, from their blob.
+  const blobs = await readPaged<{ user_id: string; data: unknown }>(
+    async (from, to) =>
+      (await db.from('tracker').select('user_id, data').order('user_id').range(from, to)) as {
+        data: { user_id: string; data: unknown }[] | null;
+        error: { message: string } | null;
+      },
+    BLOB_PAGE,
+  );
+  if (blobs.error) return json({ error: blobs.error }, 500);
+  const plans = new Map<string, SyncPlan>();
+  for (const b of blobs.rows) {
+    const plan = planFromBlob(b.data, tilesOf.get(b.user_id) ?? []);
+    if (plan) plans.set(b.user_id, plan);
+  }
+
+  // Each board once, however many users follow it; who follows each board.
+  const distinct = new Map<string, Follower>();
+  const followers = new Map<string, Follower[]>();
+  for (const [userId, plan] of plans)
+    for (const c of plan.boards) {
+      const f = { ...c, user_id: userId };
+      const b = boardOf(f);
+      if (!distinct.has(b)) distinct.set(b, f);
+      followers.set(b, [...(followers.get(b) ?? []), f]);
+    }
+
+  const answeredBy = new Map<string, string[]>(); // user → boards that answered
+  const failedBoards = new Set<string>();
   const totals = new Map<string, Totals>();
   const totalsOf = (k: string) => {
     if (!totals.has(k)) totals.set(k, { queue: 0, review: 0, reject: 0, failed: 0 });
     return totals.get(k)!;
   };
 
-  // Board passes: read BOARD_BATCH boards, record health, write each watching group's postings.
+  // Board passes: read BOARD_BATCH boards, log failures, write each follower's postings.
   const all = [...distinct.values()].sort((a, b) => boardOf(a).localeCompare(boardOf(b)));
   const rest = all.filter((w) => boardOf(w) > after);
   const boards = rest.slice(0, SLICE);
@@ -251,80 +323,81 @@ Deno.serve(async (req) => {
       fetch: (u) => fetch(u),
       rss: false,
     });
-    const now = new Date().toISOString();
-    const perGroup = new Map<string, ReadOutcome[]>();
+    const perUser = new Map<string, ReadOutcome[]>();
     for (const r of reads) {
-      for (const w of watchers.get(r.board) ?? []) {
-        const k = `${w.user_id}|${w.track_slug}`;
-        if (r.status === 404) {
-          status404.add(r.board);
-          await db
-            .from('watched_companies')
-            .update({ enabled: false, disabled_reason: `404 on ${now.slice(0, 10)}`, last_status: 404 })
-            .eq('id', w.id);
-          logs.push({
-            user_id: w.user_id,
-            kind: 'disabled',
-            board: r.board,
-            status: 404,
-            message: `${w.company}: board not found (404), disabled`,
-          });
-        } else if (!r.ok) {
-          await db.from('watched_companies').update({ last_status: r.status ?? null }).eq('id', w.id);
+      if (!r.ok) failedBoards.add(r.board);
+      for (const w of followers.get(r.board) ?? []) {
+        if (!r.ok)
           logs.push({
             user_id: w.user_id,
             kind: 'failed',
             board: r.board,
             status: r.status ?? null,
-            message: `${w.company}: ${r.error ?? `HTTP ${r.status}`}`.slice(0, 2000),
+            message: (r.status === 404
+              ? `${w.company}: board not found (404). Remove it from Sources if it is gone.`
+              : `${w.company}: ${r.error ?? `HTTP ${r.status}`}`
+            ).slice(0, 2000),
           });
-        } else {
-          await db
-            .from('watched_companies')
-            .update({ last_status: 200, last_synced_at: now })
-            .eq('id', w.id);
-          answeredBy.set(k, [...(answeredBy.get(k) ?? []), r.board]);
-          perGroup.set(k, [...(perGroup.get(k) ?? []), r]);
+        else {
+          answeredBy.set(w.user_id, [...(answeredBy.get(w.user_id) ?? []), r.board]);
+          perUser.set(w.user_id, [...(perUser.get(w.user_id) ?? []), forWatcher(r, w)]);
         }
       }
     }
-    for (const [k, answered] of perGroup) {
-      const [userId, trackSlug] = k.split('|');
-      await writeGroup(db, userId, trackSlug, answered, logs, totalsOf(k));
-    }
+    for (const [userId, answered] of perUser)
+      await writeGroup(db, userId, plans.get(userId)!.config, answered, logs, totalsOf(userId));
   }
 
-  // The feed, once, for the tracks that read it.
-  let rssOk = false;
+  // The feeds, once a day (the morning run), on the last slice: each title once across users.
+  let feedsRead = 0;
   if (body.rss === true && last) {
-    const [rssRead] = await readAll([], { fetch: (u) => fetch(u), rss: true });
-    rssOk = rssRead.ok;
-    if (!rssRead.ok)
+    const terms: Partial<Record<TermFeed, string[]>> = {};
+    for (const feed of TERM_FEEDS) {
+      const seen = new Map<string, string>();
+      for (const plan of plans.values())
+        if (plan.feeds.has(feed))
+          for (const t of plan.terms) if (!seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t);
+      terms[feed] = [...seen.values()].slice(0, TERMS_PER_RUN[feed]);
+    }
+    const wantsRss = [...plans.values()].some((p) => p.feeds.has('rss'));
+    const reads = await readAll([], { fetch: (u) => fetch(u), rss: wantsRss, terms });
+    feedsRead = reads.length;
+    for (const r of reads.filter((x) => !x.ok))
       logs.push({
         user_id: null,
         kind: 'failed',
-        board: 'rss',
-        status: rssRead.status ?? null,
-        message: `designsystems.jobs: ${rssRead.error ?? `HTTP ${rssRead.status}`}`.slice(0, 2000),
+        board: r.board,
+        status: r.status ?? null,
+        message:
+          `${r.board}${r.term ? ` "${r.term}"` : ''}: ${r.error ?? `HTTP ${r.status}`}`.slice(
+            0,
+            2000,
+          ),
       });
-    else
-      for (const k of groups.keys()) {
-        const [userId, trackSlug] = k.split('|');
-        if (!RSS_TRACKS.has(trackSlug)) continue;
-        answeredBy.set(k, [...(answeredBy.get(k) ?? []), 'rss']);
-        await writeGroup(db, userId, trackSlug, [rssRead], logs, totalsOf(k));
-      }
+    for (const [userId, plan] of plans) {
+      const mine = reads.filter(
+        (r) =>
+          plan.feeds.has(r.board as TermFeed | 'rss') &&
+          (r.board === 'rss' || plan.terms.some((t) => t.toLowerCase() === r.term?.toLowerCase())),
+      );
+      // A feed counts as answered only when every title read on it answered.
+      for (const feed of new Set(mine.map((r) => r.board)))
+        if (mine.filter((r) => r.board === feed).every((r) => r.ok))
+          answeredBy.set(userId, [...(answeredBy.get(userId) ?? []), feed]);
+      const ok = mine.filter((r) => r.ok);
+      if (ok.length) await writeGroup(db, userId, plan.config, ok, logs, totalsOf(userId));
+    }
   }
 
-  // Closing, per group, once every board has been read.
+  // Closing, per user.
   const summary: Record<string, unknown>[] = [];
-  for (const [k, rows] of groups) {
-    const [userId, trackSlug] = k.split('|');
-    const t = totalsOf(k);
-    const answered = answeredBy.get(k) ?? [];
+  for (const [userId, plan] of plans) {
+    const trackSlug = plan.config.slug;
+    const t = totalsOf(userId);
+    const answered = answeredBy.get(userId) ?? [];
     let closed = 0;
     // Not after a failed write (a posting that did not land would read as missing).
-    if (!t.failed) {
+    if (!t.failed && answered.length) {
       const { data: n } = await db.rpc('mark_missed_postings', {
         p_user: userId,
         p_track: trackSlug,
@@ -333,33 +406,49 @@ Deno.serve(async (req) => {
       });
       closed = typeof n === 'number' ? n : 0;
     }
-    // A board no longer read (a 404 disabled it, or the user stopped watching it) never answers
-    // again, so its open postings are closed now instead of waiting for misses that never come.
-    // Last slice only: the boards a 404 disabled are no longer in `watched` by then.
-    const live = rows.map(boardOf).filter((b) => !status404.has(b));
-    const seen = new Date().toISOString();
-    const { data: gone, error: goneError } = !last ? { data: [], error: null } : await db
-      .from('postings')
-      .update({ verdict: 'reject', reasons: ['posting closed'], closed_at: seen })
-      .eq('user_id', userId)
-      .eq('track_slug', trackSlug)
-      .is('closed_at', null)
-      .neq('board', 'rss')
-      .not('board', 'in', `(${(live.length ? live : ['']).map((b) => `"${b}"`).join(',')})`)
-      .select('id');
-    if (goneError)
-      logs.push({
-        user_id: userId,
-        kind: 'failed',
-        board: null,
-        status: null,
-        message: `closing unwatched boards: ${goneError.message}`.slice(0, 2000),
-      });
-    else closed += gone?.length ?? 0;
+    if (last) {
+      // A board no longer followed never answers again, so its open postings are closed now
+      // instead of waiting for misses that never come; so are rows scored under an old profile.
+      // A board whose read failed this run keeps its rows (a 404 too: the user decides).
+      const keep = [...plan.boards.map(boardOf), ...FEED_BOARDS].map((b) => `"${b}"`).join(',');
+      const closing = {
+        verdict: 'reject',
+        reasons: ['posting closed'],
+        closed_at: new Date().toISOString(),
+      };
+      const [gone, old] = await Promise.all([
+        db
+          .from('postings')
+          .update(closing)
+          .eq('user_id', userId)
+          .eq('track_slug', trackSlug)
+          .is('closed_at', null)
+          .not('board', 'in', `(${keep})`)
+          .select('id'),
+        db
+          .from('postings')
+          .update(closing)
+          .eq('user_id', userId)
+          .neq('track_slug', trackSlug)
+          .is('closed_at', null)
+          .select('id'),
+      ]);
+      for (const r of [gone, old])
+        if (r.error)
+          logs.push({
+            user_id: userId,
+            kind: 'failed',
+            board: null,
+            status: null,
+            message: `closing unfollowed boards: ${r.error.message}`.slice(0, 2000),
+          });
+        else closed += r.data?.length ?? 0;
+    }
     if (!answered.length && !t.failed && !last) continue;
     const line = {
       user_id: userId,
-      track: trackSlug,
+      profile: trackSlug,
+      blob: plan.from,
       slice: `${boards.length} boards after '${after}' (${rest.length} left of ${all.length})`,
       answered: answered.length,
       queue: t.queue,
@@ -369,7 +458,13 @@ Deno.serve(async (req) => {
       failed: t.failed,
     };
     summary.push(line);
-    logs.push({ user_id: userId, kind: 'run', board: null, status: null, message: JSON.stringify(line) });
+    logs.push({
+      user_id: userId,
+      kind: 'run',
+      board: null,
+      status: null,
+      message: JSON.stringify(line),
+    });
   }
   if (logs.length) await db.from('sync_log').insert(logs);
   if (next) {
@@ -378,10 +473,25 @@ Deno.serve(async (req) => {
     // req.url is the runtime's internal address; call the public one.
     await fetch(`${supabaseUrl}/functions/v1/sync-postings`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-sync-secret': req.headers.get('x-sync-secret')! },
+      headers: {
+        'content-type': 'application/json',
+        'x-sync-secret': req.headers.get('x-sync-secret')!,
+      },
       body: JSON.stringify({ rss: body.rss, after: next, runStart }),
       signal: AbortSignal.timeout(3000),
     }).catch(() => undefined);
   }
-  return json({ ranAt: runStart, boards: all.length, after, next, read: boards.length, left: rest.length, last, rss: rssOk, summary });
+  return json({
+    ranAt: runStart,
+    users: plans.size,
+    boards: all.length,
+    after,
+    next,
+    read: boards.length,
+    left: rest.length,
+    last,
+    feeds: feedsRead,
+    failedBoards: failedBoards.size,
+    summary,
+  });
 });

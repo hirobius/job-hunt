@@ -1,35 +1,13 @@
--- Scored postings (Muse Phase 1 + 2, 2026-10-24). The sync edge function (supabase/functions/
--- sync-postings) reads each user's watched companies and the designsystems.jobs feed twice a day,
--- scores every posting with the track's config (src/tracks/score.ts), and upserts it here. The app
--- reads its own rows: the Pipeline's queue is verdict = 'queue' (score, then newest), Review is
--- verdict = 'review'. A Skip writes the posting and its reasons to `skips` (the tuning loop; no ML).
+-- Scored postings (Muse Phase 1 + 2, 2026-10-24; Simplify 6/9, #387). The sync edge function
+-- (supabase/functions/sync-postings) reads what each user follows from their synced `tracker` blob
+-- (Sources and the Search profile; a v11 blob's watched tiles through `watched_tile_urls` below)
+-- twice a day, scores every posting with the profile's config (src/tracks/score.ts), and upserts
+-- it here. The app reads its own rows: the queue is verdict = 'queue' (score, then newest), Review
+-- is verdict = 'review'. A Skip is kept in the blob by posting (`decided`), never here.
 -- RLS is per user, like `tracker` and the curation tables: a user reads only their own rows. Only
 -- the sync (service role, which bypasses RLS) writes postings and the log.
-
--- ---- watched companies: the boards the sync reads ----
-create table if not exists public.watched_companies (
-  id              bigint generated always as identity primary key,
-  user_id         uuid not null default auth.uid() references auth.users on delete cascade,
-  track_slug      text not null default 'design-systems',
-  company         text not null check (char_length(company) between 1 and 200),
-  ats             text not null check (ats in ('greenhouse', 'lever', 'ashby')),
-  slug            text not null check (slug ~ '^[A-Za-z0-9][A-Za-z0-9._-]*$'),
-  enabled         boolean not null default true,
-  -- Why the sync turned it off (a 404: the board is gone or the slug is wrong).
-  disabled_reason text,
-  last_status     int,
-  last_synced_at  timestamptz,
-  created_at      timestamptz not null default now(),
-  unique (user_id, ats, slug)
-);
-
-alter table public.watched_companies enable row level security;
-
-drop policy if exists "own rows only" on public.watched_companies;
-create policy "own rows only" on public.watched_companies
-  for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+-- Never applied before #387, so `watched_companies` and `skips` were taken out in place: the blob
+-- is the one source of truth.
 
 -- ---- postings: every posting the sync read, scored ----
 create table if not exists public.postings (
@@ -37,10 +15,12 @@ create table if not exists public.postings (
   user_id          uuid not null references auth.users on delete cascade,
   track_slug       text not null,
   source           text not null
-                   check (source in ('greenhouse', 'lever', 'ashby', 'jsearch', 'adzuna',
-                                     'remotive', 'hn', 'rss', 'manual')),
+                   check (source in ('greenhouse', 'lever', 'ashby', 'workable', 'recruitee',
+                                     'smartrecruiters', 'teamtailor', 'personio', 'jsearch',
+                                     'adzuna', 'remotive', 'jobicy', 'hn', 'rss', 'manual')),
   source_id        text not null,
-  -- `${ats}:${slug}` for a board, 'rss' for the feed: what a "missed sync" is counted against.
+  -- `${kind}:${slug}` for a board (`lever.eu:` for Lever's EU host), the feed's id ('hn',
+  -- 'remotive', 'jobicy', 'rss') otherwise: what a "missed sync" is counted against.
   board            text not null,
   company          text not null default '',
   title            text not null,
@@ -73,42 +53,6 @@ alter table public.postings enable row level security;
 drop policy if exists "read own rows" on public.postings;
 create policy "read own rows" on public.postings
   for select
-  using (auth.uid() = user_id);
-
--- ---- skips: a Skip on a queued posting, with the reasons it was queued for ----
-create table if not exists public.skips (
-  id          bigint generated always as identity primary key,
-  user_id     uuid not null default auth.uid() references auth.users on delete cascade,
-  posting_id  bigint references public.postings on delete set null,
-  track_slug  text not null,
-  verdict     text check (verdict in ('queue', 'review', 'reject')),
-  score       int,
-  reasons     jsonb not null default '[]'::jsonb,
-  title       text not null default '' check (char_length(title) <= 500),
-  company     text not null default '' check (char_length(company) <= 200),
-  created_at  timestamptz not null default now(),
-  unique (user_id, posting_id)
-);
-
-alter table public.skips enable row level security;
-
-drop policy if exists "read own rows" on public.skips;
-create policy "read own rows" on public.skips
-  for select
-  using (auth.uid() = user_id);
-
-drop policy if exists "skip own postings" on public.skips;
-create policy "skip own postings" on public.skips
-  for insert
-  with check (
-    auth.uid() = user_id
-    and exists (select 1 from public.postings p where p.id = posting_id and p.user_id = auth.uid())
-  );
-
--- Undo of a Skip.
-drop policy if exists "unskip own rows" on public.skips;
-create policy "unskip own rows" on public.skips
-  for delete
   using (auth.uid() = user_id);
 
 -- ---- sync log: a disabled company (404), a failed read, a run's totals ----
@@ -159,6 +103,32 @@ revoke all on function public.mark_missed_postings(uuid, text, text[], timestamp
   from public, anon, authenticated;
 grant execute on function public.mark_missed_postings(uuid, text, text[], timestamptz)
   to service_role;
+
+-- ---- a v11 blob's watched boards: the tiles under each "Watched companies" section ----
+-- Read by the sync only (service role), for blobs older than v12 (Sources). plpgsql, so the body is
+-- not checked against the curation tables when this file runs before their migration.
+create or replace function public.watched_tile_urls()
+returns table (user_id uuid, url text, name text)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  return query
+    select t.user_id, t.url, t.name
+      from public.tiles t
+      join public.groups g on g.id = t.group_id and g.user_id = t.user_id
+      join public.categories c on c.id = g.category_id and c.user_id = t.user_id
+     where lower(btrim(g.label)) = 'watched companies'
+       and not g.archived
+       and not c.archived
+     order by t.user_id, t.sort_order, t.id;
+end;
+$$;
+
+revoke all on function public.watched_tile_urls() from public, anon, authenticated;
+grant execute on function public.watched_tile_urls() to service_role;
 
 -- Keep the log to 90 days.
 create extension if not exists pg_cron;

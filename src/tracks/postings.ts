@@ -1,7 +1,8 @@
-// The scored postings the sync stored (Muse Phase 1 UI, 2026-10-24): the signed-in user's own
-// rows of `postings` (RLS), split into the queue (verdict 'queue', best score then newest) and
-// Review, with the ones they skipped left out. A Skip writes the posting and the reasons it was
-// queued for to `skips`, the tuning loop. Signed out there is nothing to read.
+// The scored postings the sync stored (Muse Phase 1 UI, 2026-10-24; Simplify 6/9, #387): the
+// signed-in user's own rows of `postings` (RLS), split into the queue (verdict 'queue', best score
+// then newest) and Review, with the ones they skipped left out. A Skip is a Decided entry by
+// posting fingerprint (feed/decided.ts), never a server write. The same rows feed the Feed's
+// server adapter (feed/postingReader.ts). Signed out there is nothing to read.
 import { loadSupabase } from '../supabase';
 import type { Verdict } from './score.ts';
 import { byScoreThenNewest } from './scoreForTrack.ts';
@@ -9,106 +10,92 @@ import { byScoreThenNewest } from './scoreForTrack.ts';
 export interface StoredPosting {
   id: number;
   trackSlug: string;
+  /** The board kind or feed it came from ('greenhouse', 'hn', 'rss', …). */
+  source: string;
+  /** The Posting's own id (`greenhouse:stripe:123`); the guid for the RSS feed. */
+  sourceId: string;
   company: string;
   title: string;
   location: string;
+  remote?: boolean;
   url: string;
   postedAt?: string;
   score: number;
   verdict: Verdict;
   reasons: string[];
+  fingerprint: string;
 }
 
 interface Row {
   id: number;
   track_slug: string;
+  source: string;
+  source_id: string;
   company: string | null;
   title: string;
   location: string | null;
+  remote: boolean | null;
   url: string;
   posted_at: string | null;
   score: number;
   verdict: Verdict;
   reasons: unknown;
+  fingerprint: string;
 }
 
-const LIMIT = 300;
+/** PostgREST's most rows to one request. */
+const LIMIT = 1000;
 
 export function fromRow(r: Row): StoredPosting {
   return {
     id: r.id,
     trackSlug: r.track_slug,
+    source: r.source,
+    sourceId: r.source_id,
     company: r.company ?? '',
     title: r.title,
     location: r.location ?? '',
+    ...(r.remote !== null && r.remote !== undefined && { remote: r.remote }),
     url: r.url,
     postedAt: r.posted_at ?? undefined,
     score: r.score,
     verdict: r.verdict,
     reasons: Array.isArray(r.reasons) ? r.reasons.filter((x) => typeof x === 'string') : [],
+    fingerprint: r.fingerprint,
   };
 }
 
 /** The queue (verdict 'queue') and Review, each best score first then newest, skips left out. */
 export function splitQueue(
   rows: StoredPosting[],
-  skipped: ReadonlySet<number>,
+  skipped: ReadonlySet<string>,
 ): { queue: StoredPosting[]; review: StoredPosting[] } {
-  const open = rows.filter((r) => !skipped.has(r.id));
+  const open = rows.filter((r) => !skipped.has(r.fingerprint));
   return {
     queue: open.filter((r) => r.verdict === 'queue').sort(byScoreThenNewest),
     review: open.filter((r) => r.verdict === 'review').sort(byScoreThenNewest),
   };
 }
 
-/** The user's open queued and review postings, and the ids they skipped. Throws on an error
- *  (the table not there yet reads as one). */
-export async function loadScoredPostings(): Promise<{
-  rows: StoredPosting[];
-  skipped: Set<number>;
-}> {
+/** The user's open queued and review postings, best first. Throws on an error (the table not
+ *  there yet reads as one). */
+export async function loadServerRows(): Promise<StoredPosting[]> {
   const db = await loadSupabase();
-  const [postings, skips] = await Promise.all([
-    db
-      .from('postings')
-      .select('id, track_slug, company, title, location, url, posted_at, score, verdict, reasons')
-      .in('verdict', ['queue', 'review'])
-      .is('closed_at', null)
-      .order('score', { ascending: false })
-      .order('posted_at', { ascending: false, nullsFirst: false })
-      .limit(LIMIT),
-    db.from('skips').select('posting_id'),
-  ]);
-  if (postings.error) throw new Error(postings.error.message);
-  if (skips.error) throw new Error(skips.error.message);
-  return {
-    rows: ((postings.data ?? []) as Row[]).map(fromRow),
-    skipped: new Set(
-      ((skips.data ?? []) as { posting_id: number | null }[])
-        .map((s) => s.posting_id)
-        .filter((id): id is number => typeof id === 'number'),
-    ),
-  };
+  const { data, error } = await db
+    .from('postings')
+    .select(
+      'id, track_slug, source, source_id, company, title, location, remote, url, posted_at, score, verdict, reasons, fingerprint',
+    )
+    .in('verdict', ['queue', 'review'])
+    .is('closed_at', null)
+    .order('score', { ascending: false })
+    .order('posted_at', { ascending: false, nullsFirst: false })
+    .limit(LIMIT);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Row[]).map(fromRow);
 }
 
-/** Skip one: its id, verdict, score and the reasons it was listed for go to `skips`. */
-export async function skipPosting(p: StoredPosting): Promise<void> {
-  const db = await loadSupabase();
-  const { error } = await db.from('skips').insert({
-    posting_id: p.id,
-    track_slug: p.trackSlug,
-    verdict: p.verdict,
-    score: p.score,
-    reasons: p.reasons,
-    title: p.title.slice(0, 500),
-    company: p.company.slice(0, 200),
-  });
-  if (error) throw new Error(error.message);
-}
-
-/** Undo a Skip. */
-export async function unskipPosting(id: number): Promise<void> {
-  const db = await loadSupabase();
-  const { error } = await db.from('skips').delete().eq('posting_id', id);
-  if (error) throw new Error(error.message);
+/** The scored queue's read: the rows (skips are the caller's, from Decided). */
+export async function loadScoredPostings(): Promise<{ rows: StoredPosting[] }> {
+  return { rows: await loadServerRows() };
 }

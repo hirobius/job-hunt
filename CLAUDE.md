@@ -366,13 +366,21 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   the engineering-heavy fold in Live postings (no term gate: `match.rankAll`; Review (N) disclosure; "N left out by the
   scorer"), Companies' roles (`readRoles(…, { include })` → `scoredRoles`) and dreams (`keepForTrack`); every card shows
   `reasonsLine` ("Queued because: …"). Other tracks keep the phrase rules. The Pipeline's `ScoredQueue` (signed in) reads
-  the user's `postings` rows (`tracks/postings.ts`): verdict queue by score then newest, Review with a count, Skip → `skips`
-  (Undo deletes it); hidden when empty or before the tables exist. Server: migrations `2026102410*` (watched_companies
-  seeded from the DS track's Watched group via `board_from_url` + `tracks/verified.ts`; postings with track_slug, score,
-  verdict, reasons, matched_signals, fingerprint, unique (user, source, source_id); skips; sync_log; per-user RLS;
-  `mark_missed_postings` closes after 2 missed answered reads) and `supabase/functions/sync-postings` (2× daily cron,
-  Ashby sequential, 404 disables + logs, RSS designsystems.jobs on the morning run). Not applied or deployed: see its
-  README. `npm run sync:dry-run` runs the read + score with no database. Pinned in `src/tracks/*.test.ts`,
+  the user's `postings` rows (`tracks/postings.ts`): verdict queue by score then newest, Review with a count, Skip →
+  Decided by posting fingerprint (`feed/decided.ts`, `rjb_decided`, device-local until blob v12 #384; Undo removes it);
+  hidden when empty or before the tables exist. **Server (Simplify 6/9, #387):** `sync-postings` reads each user's
+  Sources and Search profile from their `tracker` blob (`tracks/plan.ts` `planFromBlob`: v12 `sources[]` + `profiles[0]`,
+  else v11 dreams, targets, saved jobs' boards and the Watched tiles via the `watched_tile_urls()` RPC, + `verified.ts`
+  for a DS user); `compileProfile` gives the DS config when the profile asks for design systems, else one from its
+  titles. Boards of every kind and HN/Remotive/Jobicy are read with the app's own parsers (`src/feed/sources/*` and
+  their imports use explicit `.ts` specifiers so Deno and Node load them; `inferMode` lives in `feed/mode.ts`). No
+  `watched_companies` or `skips` table: the blob is the one source of truth, and the sync never writes it (a 404 is
+  logged). Migrations `2026102410*`: postings (every board kind's source), sync_log, `mark_missed_postings`,
+  `watched_tile_urls`, the cron. Auth is `SYNC_SECRET` only (digest compare, no committed hash). The Feed's
+  **PostingReader** seam (`feed/postingReader.ts`): `serverReader` reads the rows, `mergePostings` keeps every browser
+  posting and adds the server's by id/link, so signed in is never fewer. Not applied or deployed: see its README.
+  `npm run sync:dry-run` plans from a sample blob, reads + scores with no database. Pinned in `src/tracks/*.test.ts`,
+  `feed/postingReader.test.ts`, `feed/decided.test.ts`,
   `scoredQueue.test.tsx`, `LiveFeedMustInclude.test.tsx`, `companies.test.tsx`.
 - **Contracts track (#275, a cheap test: drop it if nothing useful shows in ~2 weeks):** the "Contracts" starter
   pack (`isContractsTrack`, no titles/sections/boards). Its Live postings reads **SAM.gov only**, through the

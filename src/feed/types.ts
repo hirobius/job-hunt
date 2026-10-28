@@ -2,7 +2,7 @@
 // normalizes into. A Posting is a raw opening pulled from a public, keyless, CORS-open API at view
 // time; it is never stored. Saving one turns it into a tracked Job (src/types.ts) by URL.
 import type { ScoreResult } from '../tracks/score.ts';
-import type { JobMode } from '../types';
+import type { JobMode } from '../types.ts';
 
 export type FeedSourceId =
   | 'hn'
@@ -17,7 +17,9 @@ export type FeedSourceId =
   | 'smartrecruiters'
   | 'teamtailor'
   | 'personio'
-  | 'sam';
+  | 'sam'
+  // designsystems.jobs: read on the server only (the sync), so it reaches the app as a stored row.
+  | 'rss';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
@@ -33,6 +35,7 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   teamtailor: 'Teamtailor',
   personio: 'Personio',
   sam: 'SAM.gov',
+  rss: 'designsystems.jobs',
 };
 
 export interface Posting {

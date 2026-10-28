@@ -6,10 +6,10 @@
 // work is posted there): only the "SEEKING FREELANCER" side is a posting, "SEEKING WORK" is a person
 // offering themselves and is skipped, and each kept post is marked as freelance for the contract
 // signal.
-import { htmlToText } from '../html';
-import { inferMode } from '../match';
-import type { Posting } from '../types';
-import { arr, obj, str, type FetchJson } from './http';
+import { htmlToText } from '../html.ts';
+import { inferMode } from '../mode.ts';
+import type { Posting } from '../types.ts';
+import { arr, obj, str, type FetchJson } from './http.ts';
 
 const API = 'https://hn.algolia.com/api/v1';
 /** Threads to read — this month and last (openings stay live for weeks; DS roles are sparse). */
