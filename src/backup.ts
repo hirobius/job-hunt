@@ -28,6 +28,9 @@ import {
 import { mergeKit, sanitizeKit, type ApplyKit } from './applyKit';
 import { mergeSweeps, sanitizeSweeps, type SweepTitles } from './feed/sweepTitles';
 import { mergeMustInclude, sanitizeMustInclude, type MustInclude } from './feed/mustInclude';
+import { mergeProfiles, sanitizeProfiles, type Profile } from './profile';
+import { mergeSources, sanitizeSources, type Source } from './sources';
+import { mergeDecided, sanitizeDecided, type Decided } from './decided';
 
 export interface AccountState {
   jobs: Job[];
@@ -50,6 +53,10 @@ export interface AccountState {
   sweeps: Record<string, SweepTitles>;
   /** Must-include terms per track (blob v11). Older backups lack them. */
   mustInclude: Record<string, MustInclude>;
+  /** The Search profile, Sources and decided postings (blob v12). Older backups lack them. */
+  profiles: Profile[];
+  sources: Source[];
+  decided: Decided[];
 }
 
 export interface Backup extends AccountState {
@@ -83,6 +90,9 @@ export function buildBackup(state: AccountState, now: Date): Backup {
     kit: state.kit,
     sweeps: state.sweeps,
     mustInclude: state.mustInclude,
+    profiles: state.profiles,
+    sources: state.sources,
+    decided: state.decided,
   };
 }
 
@@ -358,6 +368,9 @@ export function parseBackup(text: string): ParseResult {
       kit: sanitizeKit(data.kit),
       sweeps: sanitizeSweeps(data.sweeps),
       mustInclude: sanitizeMustInclude(data.mustInclude),
+      profiles: sanitizeProfiles(data.profiles),
+      sources: sanitizeSources(data.sources),
+      decided: sanitizeDecided(data.decided),
     },
   };
 }
@@ -384,6 +397,9 @@ export function applyBackup(
       kit: backup.kit,
       sweeps: backup.sweeps,
       mustInclude: backup.mustInclude,
+      profiles: backup.profiles,
+      sources: backup.sources,
+      decided: backup.decided,
     };
   }
   const jobs = mergeJobs(backup.jobs, current.jobs);
@@ -402,6 +418,9 @@ export function applyBackup(
     kit: mergeKit(backup.kit, current.kit),
     sweeps: mergeSweeps(backup.sweeps, current.sweeps),
     mustInclude: mergeMustInclude(backup.mustInclude, current.mustInclude),
+    profiles: mergeProfiles(backup.profiles, current.profiles),
+    sources: mergeSources(backup.sources, current.sources),
+    decided: mergeDecided(backup.decided, current.decided),
   };
 }
 

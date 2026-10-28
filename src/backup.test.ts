@@ -60,6 +60,9 @@ const state = (over: Partial<AccountState> = {}): AccountState => ({
   kit: { fields: {}, answers: [] },
   sweeps: {},
   mustInclude: {},
+  profiles: [],
+  sources: [],
+  decided: [],
   ...over,
 });
 
@@ -355,6 +358,9 @@ describe('sample data (#110)', () => {
         kit: { fields: {}, answers: [] },
         sweeps: {},
         mustInclude: {},
+        profiles: [],
+        sources: [],
+        decided: [],
       },
       new Date(2026, 9, 13),
     );

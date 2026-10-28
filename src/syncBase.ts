@@ -16,6 +16,7 @@ import { dedupKey } from './store';
 import { carries, type VersionedField } from './blobFields';
 import type { SyncData } from './syncBlob';
 import type { KitFieldKey } from './applyKit';
+import { sourceKey } from './sources';
 
 /** The keys of each keyed collection in the blob. */
 export type SyncKeys = Record<string, string[]>;
@@ -38,6 +39,9 @@ const KEYS: Record<string, (d: SyncData) => string[]> = {
   filters: (d) => perTrack(d.filters, (f) => lower(f.name)),
   dreams: (d) => perTrack(d.dreams, (x) => x.key),
   documents: (d) => d.documents.map((x) => x.id),
+  profiles: (d) => d.profiles.map((p) => p.id),
+  sources: (d) => d.sources.map(sourceKey),
+  decided: (d) => d.decided.map((x) => x.fingerprint),
 };
 
 /** The blob field each collection lives in (for the version that first carried it). */
@@ -51,6 +55,9 @@ const FIELD: Record<string, VersionedField> = {
   filters: 'filters',
   dreams: 'dreams',
   documents: 'documents',
+  profiles: 'profiles',
+  sources: 'sources',
+  decided: 'decided',
 };
 
 export function keysOf(d: SyncData): SyncKeys {
@@ -97,6 +104,9 @@ export function withoutDeleted(
     filters: keepTrack('filters', merged.filters, (f) => lower(f.name)),
     dreams: keepTrack('dreams', merged.dreams, (x) => x.key),
     documents: merged.documents.filter(keep('documents', (x) => x.id)),
+    profiles: merged.profiles.filter(keep('profiles', (p) => p.id)),
+    sources: merged.sources.filter(keep('sources', sourceKey)),
+    decided: merged.decided.filter(keep('decided', (x) => x.fingerprint)),
   };
 }
 
@@ -180,6 +190,17 @@ const COLLECTIONS: Record<string, Collection> = {
     field: 'documents',
     get: (d) => listOf(d.documents, (x) => x.id),
     put: (d, e) => ({ ...d, documents: swap(d.documents, (x) => x.id, e) }),
+  },
+  profiles: {
+    field: 'profiles',
+    get: (d) => listOf(d.profiles, (p) => p.id),
+    put: (d, e) => ({ ...d, profiles: swap(d.profiles, (p) => p.id, e) }),
+  },
+  // A Source's star and mute: one side's change is not undone by the other's older copy.
+  sources: {
+    field: 'sources',
+    get: (d) => listOf(d.sources, sourceKey),
+    put: (d, e) => ({ ...d, sources: swap(d.sources, sourceKey, e) }),
   },
   modes: {
     field: 'modes',

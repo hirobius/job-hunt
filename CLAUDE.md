@@ -95,6 +95,20 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   chars; per-track data is dropped when its track is deleted (`src/trackData.ts`; no sweep after sync, orphans are harmless). Cloud sync lives in `src/account/` (see the account seam below). Per-account curated
   content (the Discover/Apprenticeships board) lives separately in normalized RLS tables
   `categories`/`groups`/`tiles` — the curation data layer, `src/curation/`.
+- **Blob v12 (simplify 4/9):** three synced stores on top of v11, each `getAll/replace/merge/use`:
+  `src/profile.ts` (`rjb_profiles`, `profiles[]` with one entry: titles + on/off, ATS roles, must include,
+  leave out, pay floor, level, location, mode, `scorer`; `useProfile`), `src/sources.ts` (`rjb_sources`:
+  `{ kind, ref, label, star?, muted? }`, boards of all 8 kinds, `company`, `github`, `yc`, `feed`; key
+  `kind:ref` ignoring case; `useSources`, `addSources`, `starSource`, `muteSource`; no delete while the old
+  screens can re-add: mute) and `src/decided.ts` (`rjb_decided`, by posting fingerprint only, never by
+  company; `decided.get/has/set/undo/use`). All three are in the sync base (deletes stick), backups and the
+  merge guard. **The v11 move** (`src/v12Migration.ts`, run by `V12Migration` in App after sync settles, a
+  lazy chunk): the profile once (scored track, else the busiest; titles from EVERY track, its own first);
+  Sources = the union across all tracks of watched board tiles (archived ones muted), dreams (starred),
+  targets and saved jobs' boards, plus the keyless feeds; topped up add-only on every run until the old
+  screens go (#389). Non-board tiles are offered once as a links .txt; evidence becomes a Note. v11
+  fields are never changed and still read. Pinned in `v12Migration.test.ts` (rich v11 fixture: nothing
+  lost), `v12Stores.test.ts`, `v12MigrationNotice.test.tsx`.
 - **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Trades** (tab label; slug
   is still `apprenticeships` for URL back-compat) → `ApprenticeshipsView.tsx` +
   `apprenticeships.ts`, the curated Spokane board. **Trades pivot (2026-07):** hands-on

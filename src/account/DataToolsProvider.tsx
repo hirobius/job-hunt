@@ -27,6 +27,9 @@ import { readEvidence, replaceEvidence } from '../radar/evidenceStore';
 import { getTrash, replaceTrash } from '../trash';
 import { getAllModes, replaceModes } from '../trackModes';
 import { getAllDreams, replaceDreams } from '../feed/dreams';
+import { getProfiles, replaceProfiles } from '../profile';
+import { getSources, replaceSources } from '../sources';
+import { getDecided, replaceDecided } from '../decided';
 import { getAllDocuments, replaceDocuments } from '../documents';
 import { getApplyKit, replaceApplyKit } from '../applyKit';
 import { getAllSweeps, replaceSweeps } from '../feed/sweepTitles';
@@ -55,6 +58,9 @@ function currentState(): AccountState {
     kit: getApplyKit(),
     sweeps: getAllSweeps(),
     mustInclude: getAllMustInclude(),
+    profiles: getProfiles(),
+    sources: getSources(),
+    decided: getDecided(),
   };
 }
 
@@ -78,6 +84,9 @@ function applyState(next: AccountState) {
   replaceApplyKit(next.kit);
   replaceSweeps(next.sweeps);
   replaceMustInclude(next.mustInclude);
+  replaceProfiles(next.profiles);
+  replaceSources(next.sources);
+  replaceDecided(next.decided);
 }
 
 export default function DataToolsProvider({ children }: { children: ReactNode }) {

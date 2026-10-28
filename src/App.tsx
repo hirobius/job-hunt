@@ -43,6 +43,7 @@ import { migrateSystemsOnly, SYSTEMS_ONLY_NOTICE } from './feed/systemsOnly';
 import { STATUSES } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
+import V12Migration from './V12Migration';
 import { PageShell } from './hds-gaps/PageShell';
 
 // Code-split every route view: Discover, Documents and the rest here, the Pipeline, job page,
@@ -213,6 +214,7 @@ export default function App() {
     <CloudSyncProvider>
       <SnippetMigration />
       <SystemsOnlyMigration />
+      <V12Migration />
       <DataToolsProvider>
         {/* The portfolio's shell (Adrian 2026-10-22): 1048 in all (narrowed 2026-10-24), gutters that grow with the
             viewport, so content stops near 920. Header, tabs and every page share it. */}
