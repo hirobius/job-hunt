@@ -3,11 +3,13 @@
 // a Remove is a save notice (saveNotice.removeWithUndo), so it never stacks with another notice.
 // Delete forever has its own Undo (#212), shown in the dialog's footer while it is open
 // (DialogNotice) and in the toast once it closes.
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Box, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
-import { daysLeft, deleteForever, TRASH_DAYS, useTrash, type Removed } from './trash';
+import { daysLeft, deleteForever, getTrash, TRASH_DAYS, useTrash, type Removed } from './trash';
+import { jobIdOf } from './store';
+import { pageHeading } from './focusRescue';
 import { noticeToToast, notifyRemoved, restoreWithNotice } from './saveNotice';
 import { DialogNotice } from './NoticeHost';
 import { JobPostingTitle } from './PostingLink';
@@ -24,7 +26,30 @@ const ageLine = (iso: string, now = Date.now()) => {
   return `${daysAgo(iso, now)} · Deleted in ${left} ${left === 1 ? 'day' : 'days'}`;
 };
 
-function RemovedRow({ entry }: { entry: Removed }) {
+/** The last entry restored or deleted closes the dialog and takes its trigger with it, so focus
+ *  would fall to <body> (#306). Once Radix has tried its trigger, focus the restored job's title
+ *  in the list, else the Jobs panel's heading, else the page's heading. */
+function focusAfterEmpty(restored: string | null) {
+  const run = () => {
+    const a = document.activeElement;
+    if (a && a !== document.body && a.isConnected) return; // something already took it
+    const main = document.querySelector('main');
+    const link =
+      restored && main?.querySelector<HTMLElement>(`a[href="#/queue/${jobIdOf(restored)}"]`);
+    if (link) return link.focus();
+    const heading =
+      main?.querySelector<HTMLElement>('section[aria-label="Jobs"] h3') ?? pageHeading();
+    if (!heading) return;
+    // A heading takes focus without becoming a tab stop or drawing a ring (base.css).
+    if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
+    heading.setAttribute('data-focus-heading', '');
+    heading.focus({ preventScroll: true });
+  };
+  // Radix returns focus on a timer when the dialog unmounts: go after it.
+  setTimeout(() => setTimeout(run));
+}
+
+function RemovedRow({ entry, onRestore }: { entry: Removed; onRestore: (url: string) => void }) {
   const title = titleOf(entry.job);
   return (
     <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
@@ -46,7 +71,10 @@ function RemovedRow({ entry }: { entry: Removed }) {
           size="sm"
           variant="secondary"
           aria-label={`Restore: ${title}`}
-          onClick={() => restoreWithNotice(entry.job.url, { inDialog: true })}
+          onClick={() => {
+            onRestore(entry.job.url);
+            restoreWithNotice(entry.job.url, { inDialog: true });
+          }}
         >
           Restore
         </Button>
@@ -75,9 +103,23 @@ export function RecentlyRemovedLink() {
   const sheet = useBackSheet('recently-removed');
   const empty = trash.length === 0;
   const { onOpenChange, open } = sheet;
+  const openRef = useRef(open);
   useEffect(() => {
-    if (empty) onOpenChange(false);
+    openRef.current = open;
+  }, [open]);
+  const restoredRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!empty) return;
+    if (openRef.current) focusAfterEmpty(restoredRef.current);
+    onOpenChange(false);
   }, [empty, onOpenChange]);
+  // With jobs in the list, the Pipeline drops this link in the same render it empties.
+  useEffect(
+    () => () => {
+      if (openRef.current && getTrash().length === 0) focusAfterEmpty(restoredRef.current);
+    },
+    [],
+  );
   // Closed (or gone): an Undo it was showing moves to the toast, so it stays in reach.
   useEffect(() => {
     if (!open) noticeToToast();
@@ -100,7 +142,11 @@ export function RecentlyRemovedLink() {
         </Dialog.Header>
         <Stack gap="normal">
           {trash.map((r) => (
-            <RemovedRow key={r.job.url} entry={r} />
+            <RemovedRow
+              key={r.job.url}
+              entry={r}
+              onRestore={(url) => (restoredRef.current = url)}
+            />
           ))}
         </Stack>
         <Dialog.Footer>
