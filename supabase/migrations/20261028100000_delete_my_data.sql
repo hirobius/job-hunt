@@ -24,10 +24,16 @@ begin
     raise exception 'not your account' using errcode = '42501';
   end if;
   -- Children first, so erasure never depends on the FK cascade.
-  delete from public.skips where user_id = uid;
+  -- skips and watched_companies were dropped from the scorer schema (Simplify 6/9); a database
+  -- that still has them from an earlier draft is cleared too.
+  if to_regclass('public.skips') is not null then
+    execute 'delete from public.skips where user_id = $1' using uid;
+  end if;
   delete from public.postings where user_id = uid;
   delete from public.sync_log where user_id = uid;
-  delete from public.watched_companies where user_id = uid;
+  if to_regclass('public.watched_companies') is not null then
+    execute 'delete from public.watched_companies where user_id = $1' using uid;
+  end if;
   delete from public.tiles where user_id = uid;
   delete from public.groups where user_id = uid;
   delete from public.categories where user_id = uid;

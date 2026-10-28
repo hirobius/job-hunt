@@ -29,7 +29,7 @@ const body = fnFile ? sql(fnFile) : '';
 describe('delete_my_data covers every per-user table', () => {
   it('finds the per-user tables (the parse still works)', () => {
     expect(userTables()).toEqual(
-      expect.arrayContaining(['tracker', 'categories', 'tiles', 'postings', 'skips', 'sync_log']),
+      expect.arrayContaining(['tracker', 'categories', 'tiles', 'postings', 'sync_log']),
     );
   });
 
@@ -40,6 +40,15 @@ describe('delete_my_data covers every per-user table', () => {
 
   it.each(userTables())('deletes %s rows of the caller', (t) => {
     expect(body).toMatch(new RegExp(`delete from public\\.${t} where user_id = uid;`));
+  });
+
+  it('also clears the dropped draft tables where a database still has them', () => {
+    for (const t of ['skips', 'watched_companies'])
+      expect(body).toMatch(
+        new RegExp(
+          `to_regclass\\('public\\.${t}'\\)[\\s\\S]*?delete from public\\.${t} where user_id = \\$1`,
+        ),
+      );
   });
 
   it('runs as definer for signed-in users only', () => {
