@@ -4,6 +4,7 @@ import {
   BOARD_ADAPTERS,
   CACHE_TTL_MS,
   createBoardsHandler,
+  MAX_BODY_CHARS,
   RATE_LIMIT,
   TEXT_MAX,
 } from './boardsHandler';
@@ -53,6 +54,19 @@ describe('/api/boards', () => {
     expect((await get('?url=https://evil.example')).status).toBe(400);
     expect((await get('?src=dsjobs&url=https://evil.example')).status).toBe(200);
     expect(fetchImpl.mock.calls.map((c) => c[0])).toEqual([DSJOBS_FEED]);
+  });
+
+  it('refuses a body whose stated length is over the cap, without reading it', async () => {
+    const text = vi.fn(async () => DSJOBS);
+    const { get } = setup(() => {
+      const r = new Response(DSJOBS, {
+        headers: { 'content-length': String(MAX_BODY_CHARS + 1) },
+      });
+      Object.defineProperty(r, 'text', { value: text });
+      return r;
+    });
+    expect((await get('?src=dsjobs')).status).toBe(502);
+    expect(text).not.toHaveBeenCalled();
   });
 
   it('keeps an answer an hour, then reads again', async () => {

@@ -595,10 +595,10 @@ describe('boards read through /api/boards', () => {
     expect(out.postings.map((p) => p.id)).toEqual([dsRow.id]);
   });
 
-  it('ships with designsystems.jobs and We Work Remotely on, the unchecked three off', () => {
+  it('ships with designsystems.jobs on, We Work Remotely and the unchecked three off', () => {
     expect(SOURCE_ENABLED).toMatchObject({
       dsjobs: true,
-      wwr: true,
+      wwr: false,
       workingnomads: false,
       himalayas: false,
       authenticjobs: false,

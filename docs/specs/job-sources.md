@@ -234,7 +234,7 @@ listed, as for every source. Switches in `SOURCE_ENABLED` (`fetchFeed.ts`).
 | Source | Feed | State | Terms kept |
 | --- | --- | --- | --- |
 | designsystems.jobs (`dsjobs`) | `designsystems.jobs/feed` (RSS, newest ~20) | **On.** Verified live 2026-10-28 | Links to its own page, named on every row; hourly |
-| We Work Remotely (`wwr`) | Design + Front-End Programming category RSS | **On.** Unverified live | "Attribute the links back to WWR": its link as given, named on every row; hourly |
+| We Work Remotely (`wwr`) | Design + Front-End Programming category RSS | **Off.** Feed and terms unverified live (an attribution source doesn't ship on a guess, #178) | "Attribute the links back to WWR": its link as given, named on every row; hourly |
 | Remote OK (`remoteok`) | `remoteok.com/api` (direct, CORS-open) | **Off.** Live `legal` notice still unread (sandbox network refuses the host) | Followed link to its URL, "Remote OK" named, no logo |
 | Working Nomads (`workingnomads`) | `workingnomads.com/api/exposed_jobs/` (JSON) | **Off.** Unverified live, terms not found | Its link, named on every row |
 | Himalayas (`himalayas`) | `himalayas.app/jobs/api/search?q=` (JSON, search) | **Off.** Reported terms bar redistribution to aggregators: read them first | Link to the Himalayas page, named |

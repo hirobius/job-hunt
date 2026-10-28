@@ -20,11 +20,12 @@ import { SOURCE_LABEL, type Posting } from './types';
 export const SOURCE_ENABLED: Record<'jobicy' | 'remoteok' | ProxiedId, boolean> = {
   jobicy: true,
   remoteok: false,
-  // Read through /api/boards (sources/proxied.ts). designsystems.jobs is verified live; We Work
-  // Remotely's feed page invites any use with links back. The other three wait on their terms or
-  // their feed being read live (each adapter's header says which).
+  // Read through /api/boards (sources/proxied.ts). designsystems.jobs is verified live. We Work
+  // Remotely is off by the rule above: its RSS feeds and their terms ("attribute the links back")
+  // have not been read from a network that reaches the host, so it waits like Remote OK. The other
+  // three wait on their terms or their feed being read live (each adapter's header says which).
   dsjobs: true,
-  wwr: true,
+  wwr: false,
   workingnomads: false,
   himalayas: false,
   authenticjobs: false,

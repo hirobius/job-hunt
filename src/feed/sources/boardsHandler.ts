@@ -90,6 +90,8 @@ export function createBoardsHandler({
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Refuse a stated oversize body before reading it; the length check below catches the rest.
+    if (Number(res.headers.get('content-length')) > MAX_BODY_CHARS) throw new Error('too big');
     const text = await res.text();
     if (text.length > MAX_BODY_CHARS) throw new Error('too big');
     return a.parse(text, url);
