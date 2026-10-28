@@ -8,6 +8,7 @@ import {
   summarizeRestore,
   type AccountState,
 } from './backup';
+import { isSample } from './demo/isSample';
 import type { Job } from './types';
 import type { Document } from './documents';
 
@@ -290,6 +291,42 @@ describe('parseBackup — nested job fields + orphans (review)', () => {
     if (!r.ok) throw new Error(r.reason);
     expect(r.backup.curation.groups.map((g) => g.id)).toEqual(['g1']);
     expect(r.backup.curation.tiles.map((t) => t.id)).toEqual(['t1']);
+  });
+});
+
+describe('parseBackup drops unknown job keys and unchecked booleans (#341)', () => {
+  it('keeps only known Job keys (incl. dropping demo) and boolean-only priority/archived', () => {
+    const r = parseBackup(
+      wrap({
+        jobs: [
+          {
+            url: 'https://example.com/real',
+            label: 'Real role',
+            status: 'Saved',
+            demo: true,
+            foreignKey: 'x',
+            priority: 'yes',
+            archived: 1,
+          },
+          {
+            url: 'https://example.com/flagged',
+            label: 'Flagged role',
+            status: 'Saved',
+            priority: true,
+            archived: false,
+          },
+        ],
+      }),
+    );
+    if (!r.ok) throw new Error(r.reason);
+    const [real, flagged] = r.backup.jobs;
+    expect(real).not.toHaveProperty('demo');
+    expect(real).not.toHaveProperty('foreignKey');
+    expect(real).not.toHaveProperty('priority');
+    expect(real).not.toHaveProperty('archived');
+    expect(isSample(real)).toBe(false);
+    expect(flagged.priority).toBe(true);
+    expect(flagged.archived).toBe(false);
   });
 });
 

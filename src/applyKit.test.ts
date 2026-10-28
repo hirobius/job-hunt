@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { emptyKit, filledTemplates, mergeKit, sanitizeKit } from './applyKit';
+import {
+  emptyKit,
+  filledTemplates,
+  getApplyKit,
+  mergeKit,
+  pruneKitTemplates,
+  removeAnswer,
+  replaceApplyKit,
+  restoreAnswer,
+  sanitizeKit,
+} from './applyKit';
 import { followUpJobs, toApplyQueue } from './applyQueue';
 import * as applyQueue from './applyQueue';
 import { mergeBlob, readBlob, writeBlob, emptyBlob, BLOB_VERSION } from './syncBlob';
@@ -71,6 +81,24 @@ describe('application kit', () => {
     expect(m.answers.map((x) => x.a)).toEqual(['cloud', 'b']);
   });
 
+  it('prunes template picks whose message no longer exists (#314)', () => {
+    const kit = {
+      fields: { name: 'Sam' },
+      answers: [],
+      whyTemplate: 'gone',
+      coverTemplate: 'still-here',
+    };
+    expect(pruneKitTemplates(kit, ['still-here'])).toEqual({
+      fields: { name: 'Sam' },
+      answers: [],
+      whyTemplate: undefined,
+      coverTemplate: 'still-here',
+    });
+    // Both picks live (or absent): the kit is returned untouched.
+    expect(pruneKitTemplates(kit, new Set(['gone', 'still-here']))).toBe(kit);
+    expect(pruneKitTemplates(emptyKit(), [])).toEqual(emptyKit());
+  });
+
   it('rides in the sync blob (since v6); an older cloud copy keeps this device kit on refresh', () => {
     expect(BLOB_VERSION).toBe(11);
     const local = { ...emptyBlob(), kit: { fields: { name: 'Sam' }, answers: [] } };
@@ -106,5 +134,20 @@ describe('Apply sheet templates (#239)', () => {
     expect(filledTemplates([{ id: 'x', label: ' ', body: 'b' }], job('u'))[0].label).toBe(
       'Untitled',
     );
+  });
+});
+
+describe('restoreAnswer (Undo of a Remove)', () => {
+  const qa = (id: string) => ({ id, q: id, a: '' });
+  it('puts the answer back at its place, once, and clamps a place past the end', () => {
+    replaceApplyKit({ ...emptyKit(), answers: [qa('a'), qa('b'), qa('c')] });
+    removeAnswer('b');
+    restoreAnswer(qa('b'), 1);
+    restoreAnswer(qa('b'), 1);
+    expect(getApplyKit().answers.map((x) => x.id)).toEqual(['a', 'b', 'c']);
+    removeAnswer('c');
+    removeAnswer('b');
+    restoreAnswer(qa('c'), 2);
+    expect(getApplyKit().answers.map((x) => x.id)).toEqual(['a', 'c']);
   });
 });

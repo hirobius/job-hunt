@@ -11,7 +11,13 @@
 // Vault secret holds), so the function works before the dashboard secret is set.
 // Deploy and secrets: README.md beside this file.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
-import { boardOf, readAll, scoreBatch, type ReadOutcome } from '../../../src/tracks/sync.ts';
+import {
+  boardOf,
+  readAll,
+  readWatched,
+  scoreBatch,
+  type ReadOutcome,
+} from '../../../src/tracks/sync.ts';
 import type { WatchedCompany } from '../../../src/tracks/sources.ts';
 import { designSystemsTrack, type TrackConfig } from '../../../src/tracks/track-config.ts';
 
@@ -73,6 +79,12 @@ const sha256 = async (s: string) =>
   [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))]
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
+
+/** Env vars this function needs; set by Supabase (URL, service role) — see docs/secrets.md. */
+const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const;
+
+/** Names (never values) of required env vars that are unset or empty. */
+const missingEnv = () => REQUIRED_ENV.filter((name) => !Deno.env.get(name));
 
 async function authorized(given: string | null): Promise<boolean> {
   if (!given) return false;
@@ -180,19 +192,30 @@ Deno.serve(async (req) => {
   const body = (await req.json().catch(() => ({}))) as { rss?: boolean; after?: string; runStart?: string };
   // A cursor, not an offset: a slice that disables a 404 board shrinks the list the next one reads.
   const after = body.after ?? '';
-  const db = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    { auth: { persistSession: false } },
-  );
+  // Fail loud: name what is missing instead of a vague client error deep in the run.
+  const missing = missingEnv();
+  if (missing.length) {
+    console.error(`sync-postings: missing env ${missing.join(', ')} (see docs/secrets.md)`);
+    return json({ error: `missing env: ${missing.join(', ')}` }, 500);
+  }
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const db = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
+    auth: { persistSession: false },
+  });
   const runStart = body.runStart ?? new Date().toISOString();
 
-  const { data, error } = await db
-    .from('watched_companies')
-    .select('id, user_id, track_slug, company, ats, slug')
-    .eq('enabled', true);
-  if (error) return json({ error: error.message }, 500);
-  const watched = ((data ?? []) as WatchedRow[]).filter((w) => TRACKS[w.track_slug]);
+  // Paged (one select stops at 1000 rows) and capped per user and track (readWatched).
+  const { rows, error } = await readWatched<WatchedRow>(
+    async (from, to) =>
+      (await db
+        .from('watched_companies')
+        .select('id, user_id, track_slug, company, ats, slug')
+        .eq('enabled', true)
+        .order('id')
+        .range(from, to)) as { data: WatchedRow[] | null; error: { message: string } | null },
+  );
+  if (error) return json({ error }, 500);
+  const watched = rows.filter((w) => TRACKS[w.track_slug]);
 
   // Each board once, however many users watch it; who watches each board.
   const distinct = new Map<string, WatchedRow>();
@@ -353,7 +376,7 @@ Deno.serve(async (req) => {
     // The next slice runs in its own invocation (its own CPU budget). Wait only until the request
     // is on its way; the callee keeps running after this caller lets go.
     // req.url is the runtime's internal address; call the public one.
-    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/sync-postings`, {
+    await fetch(`${supabaseUrl}/functions/v1/sync-postings`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-sync-secret': req.headers.get('x-sync-secret')! },
       body: JSON.stringify({ rss: body.rss, after: next, runStart }),

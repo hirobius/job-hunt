@@ -425,6 +425,39 @@ describe('Remotive request budget (its API terms: at most ~4 requests a day)', (
     await fetchFeed({ term: 'next day', boardUrls: [] }, remotiveOnly(calls), opts);
     expect(calls).toHaveLength(REMOTIVE_DAILY_MAX + 1);
   });
+
+  it('a sweep counts every call it made, whichever answer lands last', async () => {
+    // Terms run at once; the first one asked answers last. Its write must not roll the stored
+    // count back to one call (or drop the other terms' copies), or the next search overspends.
+    const calls: string[] = [];
+    const kv = memoryKv();
+    const opts = { kv, now: () => 0, sources: NO_AGGREGATORS };
+    const gates: (() => void)[] = [];
+    const slowFirst = async (url: string) => {
+      if (url.includes('search_by_date')) return { hits: [] };
+      calls.push(url);
+      const n = calls.length;
+      if (n === 1) await new Promise<void>((r) => gates.push(r));
+      return { jobs: [{ id: n, url: `https://remotive.com/remote-jobs/${n}`, title: 'x' }] };
+    };
+    const sweep = fetchFeed(
+      { terms: ['term a', 'term b', 'term c'], boardUrls: [] },
+      slowFirst,
+      opts,
+    );
+    await vi.waitFor(() => expect(gates).toHaveLength(1));
+    await new Promise((r) => setTimeout(r, 0));
+    gates[0]();
+    await sweep;
+    // 3 of the 4 calls are spent: one more term goes out, the next is over budget.
+    await fetchFeed({ term: 'term d', boardUrls: [] }, slowFirst, opts);
+    const over = await fetchFeed({ term: 'term e', boardUrls: [] }, slowFirst, opts);
+    expect(calls).toHaveLength(REMOTIVE_DAILY_MAX);
+    expect(over.sources.find((s) => s.key === 'remotive')?.error).toMatch(/daily limit/i);
+    // Every term's copy was kept: asking for term b again makes no call.
+    await fetchFeed({ term: 'term b', boardUrls: [] }, slowFirst, opts);
+    expect(calls).toHaveLength(REMOTIVE_DAILY_MAX);
+  });
 });
 
 describe('per-source hard timeout and single-source retry (#131)', () => {
