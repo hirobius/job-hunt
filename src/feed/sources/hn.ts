@@ -13,7 +13,7 @@ import { htmlToText } from '../html.ts';
 import { inferMode } from '../mode.ts';
 import { matchTerm } from '../term.ts';
 import type { Posting } from '../types.ts';
-import { arr, num, obj, str, type FetchJson } from './http.ts';
+import { arr, num, obj, stampSeen, str, type FetchJson } from './http.ts';
 
 const API = 'https://hn.algolia.com/api/v1';
 /** "Who is hiring?" threads to read — the last three months (openings stay live for weeks; DS
@@ -210,5 +210,5 @@ export async function fetchHn(term: string, fetchJson: FetchJson): Promise<Posti
       (): Posting[] => [],
     ),
   ]);
-  return [...hiring, ...freelance];
+  return stampSeen([...hiring, ...freelance]);
 }

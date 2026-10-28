@@ -25,6 +25,8 @@ import { useBackCloses } from '../useBackCloses';
 import { LEGAL_ROUTE } from '../legalRoute';
 import { openExportLinks } from '../exportLinks';
 import { CompaniesDialog, useLoadedWhen } from '../lazyDialogs';
+import { openRecentlyRemoved } from '../jobDialogs';
+import { useTrash } from '../trash';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
 
@@ -53,6 +55,8 @@ export default function AccountMenu() {
   // The trigger is the HDS Avatar (rev-3 P): your initial when signed in, a neutral person icon
   // when not. No unsynced dot (Adrian 2026-10-22): the menu's sync line says where data lives.
   const initial = sync.user?.email?.trim()[0]?.toUpperCase();
+  // Recently removed moved here from the Jobs page (#416); shown only when there is something.
+  const removed = useTrash().length;
 
   // Header lines are Menu.Labels (not focusable, not clickable). The email is plain text;
   // index.html's format-detection meta stops iOS turning it into a mailto link.
@@ -111,6 +115,11 @@ export default function AccountMenu() {
           <Menu.Item onSelect={() => openExportLinks('all')} disabled={!data.canExport}>
             Export links
           </Menu.Item>
+          {removed > 0 && (
+            <Menu.Item onSelect={opensDialog(openRecentlyRemoved)}>
+              {`Recently removed (${removed})`}
+            </Menu.Item>
+          )}
           <Menu.Separator />
           <Menu.Item onSelect={toggle}>{mode === 'dark' ? 'Light' : 'Dark'} theme</Menu.Item>
           <Menu.Item onSelect={() => window.open(FEEDBACK_URL, '_blank', 'noopener')}>

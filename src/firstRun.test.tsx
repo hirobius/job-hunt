@@ -104,15 +104,6 @@ describe('step 1: pick a track', () => {
     expect(getCurationState().categories.map((c) => c.label)).toEqual(['Sample']);
   });
 
-  it('after sample data, Review new postings opens Today, not the first-run gate', async () => {
-    renderApp();
-    await click('Try with sample data');
-    await click('Review new postings');
-    await waitFor(() => expect(window.location.hash).toBe('#/today'));
-    expect(screen.queryByRole('progressbar', { name: /Step 1 of 3/ })).toBeNull();
-    expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument();
-  });
-
   it('Clear sample data removes the Sample track with the sample jobs', async () => {
     renderApp();
     await click('Try with sample data');

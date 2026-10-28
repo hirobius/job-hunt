@@ -235,7 +235,7 @@ describe('To apply queue and Apply mode', () => {
     const header = (await screen.findByRole('heading', { name: 'Acme Designer' })).closest(
       'header',
     )!;
-    expect(header).toHaveTextContent('Respond by Tomorrow');
+    expect(header).toHaveTextContent('Apply by Tomorrow');
     expect(screen.queryByText(/Follow up on/)).toBeNull();
   });
 

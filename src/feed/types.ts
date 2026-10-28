@@ -84,12 +84,14 @@ export interface Posting {
   salaryMax?: number;
   /** ISO currency code ('USD'); absent when the source doesn't say. */
   currency?: string;
-  /** A solicitation's response deadline (YYYY-MM-DD, SAM.gov only): saved as the job's
-   *  follow-up date. */
+  /** When applications close (YYYY-MM-DD), where the source says: SAM.gov's response deadline,
+   *  Greenhouse's application deadline, Teamtailor's end date. Saved as the job's `deadline`. */
   deadline?: string;
   /** Remote only (feed/autoScan.ts): the posting states no work mode or place, so it may not be
    *  remote. Shown as "Remote not stated". */
   remoteUnstated?: true;
+  /** When this browser's feed first read it (ISO), stamped by the source's fetch (#419). */
+  discoveredAt?: string;
   /** The track scorer's verdict and reasons (src/tracks), on a scored track only. */
   trackScore?: ScoreResult;
 }

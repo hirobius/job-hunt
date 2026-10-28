@@ -20,6 +20,7 @@ import {
   useToast,
 } from '@hirobius/design-system';
 import { FollowUpHost } from './FollowUp';
+import { AddInterviewHost } from './AddInterview';
 import {
   ApplyMode,
   ChooseTrack,
@@ -373,6 +374,7 @@ export default function App() {
         </PageShell>
         <SignInHost />
         <FollowUpHost />
+        <AddInterviewHost />
         <NoticeHost />
         <StaleBuildNotice />
       </DataToolsProvider>

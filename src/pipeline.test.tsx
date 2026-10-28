@@ -138,7 +138,13 @@ describe('Pipeline on a phone (#129)', () => {
     const items = within(await screen.findByRole('menu'))
       .getAllByRole('menuitem')
       .map((i) => i.textContent?.trim());
-    expect(items).toEqual(['Open posting', 'Star', 'Retire', 'Remove']);
+    expect(items).toEqual([
+      'Open posting',
+      'Add interview…',
+      'Star',
+      'Retire',
+      'Remove',
+    ]);
     // One inset for every item: the stages are plain items marked by a trailing check, still
     // radio items for assistive tech (rev-3 mock).
     const stages = within(screen.getByRole('menu')).getAllByRole('menuitemradio');
@@ -321,6 +327,8 @@ describe('Pipeline filter (#129)', () => {
       'Applied',
       'Interviewing',
       'Offer',
+      'Closing soon',
+      'Closed',
       'Rejected',
       'Retired',
       'All',
@@ -430,39 +438,6 @@ describe('Pipeline rows keep to two items per dotted line (#192)', () => {
       .filter((e) => e.children.length === 0)
       .map((e) => e.textContent ?? '');
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
-  });
-});
-
-describe('the Pipeline ends with "Review new postings" (#238)', () => {
-  const findNext = () => screen.getByRole('button', { name: 'Review new postings' });
-
-  it('with jobs: an action after the list opens Today', async () => {
-    viewport(1440);
-    renderApp();
-    const btn = findNext();
-    // It follows the list: the last thing the Pipeline offers.
-    expect(
-      screen.getAllByRole('article').slice(-1)[0].compareDocumentPosition(btn) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    await userEvent.click(btn);
-    await waitFor(() => expect(window.location.hash).toBe('#/today'));
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
-  });
-
-  it('empty: shown under the empty state, secondary beside the primary Add job', async () => {
-    getAllJobs()
-      .slice()
-      .forEach((j) => removeJob(j.url));
-    viewport(390);
-    renderApp();
-    const add = screen.getByRole('button', { name: 'Add job' });
-    const btn = findNext();
-    expect(add.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(btn.className).not.toBe(add.className);
-    await userEvent.click(btn);
-    await waitFor(() => expect(window.location.hash).toBe('#/today'));
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
   });
 });
 

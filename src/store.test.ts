@@ -202,3 +202,41 @@ describe('setJobUrl', () => {
     expect(getAllJobs()[0].url).toBe('https://a.example/1');
   });
 });
+
+describe('job dates (#419)', () => {
+  it('a save stamps savedAt; a detailed save carries the posted and discovered dates', () => {
+    addJob('https://acme.example/jobs/1');
+    expect(Date.parse(findJobByUrl('https://acme.example/jobs/1')!.savedAt!)).not.toBeNaN();
+    const url = addJobDetailed('https://acme.example/jobs/2', {
+      postedAt: '2026-10-25T08:00:00Z',
+      discoveredAt: '2026-10-27T09:00:00.000Z',
+    })!;
+    const saved = findJobByUrl(url)!;
+    expect(saved.postedAt).toBe('2026-10-25T08:00:00Z');
+    expect(saved.discoveredAt).toBe('2026-10-27T09:00:00.000Z');
+    expect(Date.parse(saved.savedAt!)).not.toBeNaN();
+  });
+
+  it('sanitize keeps well-formed dates, drops the rest and backfills savedAt from the history', () => {
+    const [a, b] = sanitizeJobs([
+      {
+        url: 'https://acme.example/jobs/1',
+        label: 'A',
+        status: 'Applied',
+        postedAt: '2026-10-01',
+        discoveredAt: 'yesterday',
+        closedAt: 42,
+        history: [
+          { status: 'Saved', at: '2026-10-02' },
+          { status: 'Applied', at: '2026-10-04' },
+        ],
+      },
+      { url: 'https://acme.example/jobs/2', label: 'B', status: 'Applied', applied: '2026-10-04' },
+    ]);
+    expect(a.postedAt).toBe('2026-10-01');
+    expect(a.savedAt).toBe('2026-10-02');
+    expect('discoveredAt' in a).toBe(false);
+    expect('closedAt' in a).toBe(false);
+    expect('savedAt' in b).toBe(false); // nothing says when it was saved
+  });
+});

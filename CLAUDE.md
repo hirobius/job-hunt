@@ -150,7 +150,8 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   **Job page (#130; rev-3 mobile slice 2):** `JobPage.tsx` = `JobHeader` ("← Pipeline", one
   `JobBadges` row above the title (fit first, status, Follow-up due), company · location, then one
   row: 40px icon Star ("Star"/"Starred"), the one primary next step, the menu, which holds Remove)
-  over **three** `Tabs` (rev-3 F): Overview (`JobOverview`: `PipelinePanel` panels — Details, the
+  over **one page, no tabs since #416** (see Simplify Jobs below; the rest of this paragraph is
+  the older three-tab layout, kept for history): Overview (`JobOverview`: `PipelinePanel` panels — Details, the
   `jobFacts` `MetadataList` that turns into its fields on Edit: title, company, location, pay, link
   (saves on blur, the page follows the new id), contact, with seniority and résumé under More
   fields; starts in edit for a job without title and company; research links under the facts ·
@@ -194,7 +195,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   anchoring moves it; a new top-level page opens at its top; pages that scroll to top on open use
   `scrollToTop()`. Companies' rows reorder as their boards answer, so their lists opt out of scroll
   anchoring (`overflow-anchor: none`). **Focus** (`focusRescue.ts`, set up in `main.tsx`) is never dropped to `<body>`: a page change focuses the new page's main heading (tabindex -1, no ring), coming back focuses the control that left it (#359), a row that leaves a list hands focus to what took its place (pinned in `e2e/a11y-flows.spec.ts`). **Top tabs** (`tabMemory.ts`) reopen where they
-  were left (`openTab`; Find the next company uses it too), except a job page or Apply mode whose
+  were left (`openTab`), except a job page or Apply mode whose
   job is no longer saved, which reopens the list; the open tab tapped again goes to its root. Start applying resumes at the last Apply job ("Resume applying (2 of 3)"). The Apply pager,
   Not a fit's next job and rail hops move in place (replace). **Sheets** (`useBackCloses.ts`):
   every dialog, menu and popover pushes a same-URL entry, so Back closes it and stays on the page
@@ -230,14 +231,13 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   shell above):** the tabs were
   **Companies · Pipeline** (Templates lost its tab in #240); Companies is the old Discover (slug
   `discover`, home, hosts the first-run gate) and an empty hash lands there. "Try with sample data"
-  lands on the Pipeline. The Pipeline always ends with a secondary **Find the next company** button
-  (→ `#/discover`, empty or not; Calm list 4/7, #238, pinned in `pipeline.test.tsx`).
+  lands on the Pipeline. (Its closing **Find the next company** button, #238, was cut in #416.)
 - **Pipeline panels (rev-3 mobile slice 1, `docs/staging/all-states.html` on `claude/staging-states`):**
-  Getting started, To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
+  To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
   `Badge count`), 24 apart. The Jobs panel holds the full-width search, Status and Sort as select-style
   menus and a quiet **Clear filters** when non-default; phone rows are HDS entity cards (`Card.Header`
-  metadata = badge row above the title, fit first, then status, then Follow-up due; `Card.Facts` with
-  location and applied date; `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
+  metadata = badge row above the title, fit first, then status, then Follow-up due, then the closing date; `Card.Facts` with
+  location and the job's one date (#419); `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
   margins. **Lists are cards, not hairlines (Adrian changed it on 2026-10-23):** the Companies list
   and its inline roles, dream companies, saved targets, More ways to find companies, Live postings'
   Openings, the Pipeline's phone jobs, the Apply sheet's Templates, the Application kit, the
@@ -251,7 +251,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   live at the top of the Pipeline (`ApplyQueueSummary` → `PipelineAgenda.tsx`): under To apply, one
   **Follow up (M)** section (due first from `dueFollowUps`, Due badge + the one Follow up button,
   then the rest of `followUpJobs` with their day) and **Next 7 days (N)** (`upcomingEvents`); a
-  section with nothing in it renders nothing. `GettingStarted` sits over them. Quick-add is the Pipeline's Add job dialog. HDS-gap stand-ins
+  section with nothing in it renders nothing. (`GettingStarted` was cut in #416.) Quick-add is the Pipeline's Add job dialog. HDS-gap stand-ins
   live in `src/hds-gaps/`, each naming its upstream ask. **The onboarding gate lives in the
   shell:** Companies shows `Onboarding` on a first run (no tracks and no jobs; it offers sample data
   there) and `ChooseTrack` whenever there are no tracks; Pipeline and Documents never gate. Pinned
@@ -284,12 +284,28 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `e2e/documents.spec.ts`, `e2e/template-variables.spec.ts`. Final copies (#231, uploaded PDF/Word)
   live in the synced blob, capped at 500 KB per file and 1 MB per account. Removing an unsent one has no
   confirm: it collapses and Undo re-adds it (`documents.restoreDocument`, the file with it).
-- **Decks per job (#287):** the job page's Overview ends with a **Decks** panel (`JobDecks.tsx`, pure helpers
-  in `decks.ts`): deck links (Google Slides, Figma, Pitch…) with an optional label and a Sent on day; add / edit
-  inline, Remove soft with Undo. Only http(s) (`httpUrl`; `sanitizeDecks` in `sanitizeJobs` drops the rest from
+- **Decks per job (#287):** the job page ends with a **Decks** panel (`JobLinks.tsx` since #416, pure helpers
+  in `decks.ts`): deck links (Google Slides, Figma, Pitch…) with an optional label (an older Sent on day stays in
+  storage, no longer edited); Add, Remove soft with Undo. Only http(s) (`httpUrl`; `sanitizeDecks` in `sanitizeJobs` drops the rest from
   storage, cloud and backups). `Job.decks` rides in the synced blob (no version bump: an additive Job field), Back
   up and the CSV's `decks` column; Recently removed merges them back by id. **Links only:** uploads need a Supabase
   Storage bucket (Adrian). Pinned in `decks.test.ts` and `jobPage.test.tsx`.
+- **Simplify Jobs (#416, Adrian 2026-10-28; spec `docs/specs/simplify.html` on `claude/rf-simplify-spec`):**
+  the Jobs page (`TrackerView`) is To apply + Start applying, Follow up, Next 7 days and the Jobs list
+  (search, Status incl. Closing soon / Closed from #423, Sort) and nothing else: `GettingStarted`,
+  `ScoredQueue` and Find the next company are deleted (`gettingStarted.ts` and `rjb_ui_getting_started_done`
+  are left, unused). **Recently removed** is an Account menu item ("Recently removed (N)", only when the trash
+  has some; `RecentlyRemovedHost` in `DataToolsProvider`, open state in `jobDialogs.ts`); **Export links** is
+  Account menu only. The **job page is one page** (`JobPage` → `JobHeader` + `JobOverview`): Details, Notes,
+  then **Documents** (`Job.docLinks`, additive, same shape and `sanitizeDecks` rule as `decks`, CSV `doc_links`
+  appended last, Back up, Recently removed merge) and **Decks**, both `JobLinks.tsx` `LinksPanel` (a label and
+  an http(s) link, Add, Remove with Undo). To-dos, Screening (Fit, JD screener), the Interviews log, Use
+  template and the per-job document library are off the page; **their data (`todos`, screening fields,
+  `events`, documents) is never deleted** and stays in storage, sync, Back up and the CSV. An old
+  `?section=` link opens the one page. **Add interview…** is one item in every job's ⋯ menu (`RowMenu`, now
+  `modal={false}` so its dialog opens cleanly) and an Interviewing job's header primary: one
+  `AddInterviewHost` dialog (App) writes `events`, which feed Next 7 days. Each card shows one date (Posted,
+  else Found) plus the closing-date badge (#423). Pinned in `simplifyJobs.test.tsx`.
 - **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
   `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
   Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).
@@ -302,9 +318,8 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the first-run gate goes
   to `#/discover`). Sample data is a step 1 offer on a first run. A sign-in drops its Sample track first (`demo/sampleTrack.ts`): never asked about, never uploaded. Discover with no track shows
   `ChooseTrack` first. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in
-  Discover, Documents and the Pipeline (`TrackerView`, with the Briefcase icon). The Pipeline
-  gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
-  `rjb_ui_getting_started_done`). Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
+  Discover, Documents and the Pipeline (`TrackerView`, with the Briefcase icon). (The Pipeline's
+  `GettingStarted` card was cut in #416.) Pinned in `firstRun.test.tsx`, `emptyStates.test.tsx`,
   `pipelineFollowUps.test.tsx`.
 - **Shell width (Adrian 2026-10-22, the portfolio's):** `src/hds-gaps/PageShell` = HDS `Container`
   at 1048 in all (Adrian 2026-10-24, was 1180) with a `clamp(1.25rem, 5vw, 4rem)` gutter (20 on a phone, 64 from 1280), so content
@@ -424,7 +439,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   (`forTrack.scorerFor`): the scorer then replaces must include, related titles, the title filter, role-type ordering and
   the engineering-heavy fold in Live postings (no term gate: `match.rankAll`; Review (N) disclosure; "N left out by the
   scorer"), Companies' roles (`readRoles(…, { include })` → `scoredRoles`) and dreams (`keepForTrack`); every card shows
-  `reasonsLine` ("Queued because: …"). Other tracks keep the phrase rules. The Pipeline's `ScoredQueue` (signed in) reads
+  `reasonsLine` ("Queued because: …"). Other tracks keep the phrase rules. The Pipeline's `ScoredQueue` (cut in #416; the rows still reach Live postings through the PostingReader) read
   the user's `postings` rows (`tracks/postings.ts`): verdict queue by score then newest, Review with a count, Skip →
   Decided by posting fingerprint (`feed/decided.ts`, `rjb_decided`, device-local until blob v12 #384; Undo removes it);
   hidden when empty or before the tables exist. **Server (Simplify 6/9, #387):** `sync-postings` reads each user's
@@ -554,9 +569,8 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   every target: each pixel takes the tap, no overlap with another control; long titles at 390).
 - **Company logos (2026-10-22):** `CompanyLogo.tsx` is an HDS `Avatar` per company (the To apply stack, Pipeline table and cards, job header, job rail, Company page, Companies and dream rows): letter first, the logo only once `new Image()` has loaded it at 16px or more (lazy, no referrer; errors and DuckDuckGo's tiny placeholder keep the letter). `companyLogo.ts` is the one table-tested rule for the domain (company website first, then the posting's host; never a job board, ATS or aggregator host, `*.example.com`, localhost, IPs). Icons come from `icons.duckduckgo.com` (`img-src`, `legal.ts` THIRD_PARTIES, `csp.test.ts`); e2e specs abort that host, so baselines show letters.
 - **Export links (2026-10-22):** one `ExportLinksHost` dialog (mounted in `DataToolsProvider`, open
-  scope in `exportLinks.ts`) opened from the Jobs panel (a tertiary "Export links" beside Status/Sort;
-  below `sm` a ⋯ "More job actions" menu) on **This view** (`visibleJobs`) and from the Account menu
-  (after Export CSV) on **All saved jobs**. Format Links only / With title and company; read-only
+  scope in `exportLinks.ts`) opened from the Account menu only (after Export CSV; #416 took it off the Jobs
+  panel) on **All saved jobs**; its **This view** scope is the Jobs list as filtered (`visibleJobs`). Format Links only / With title and company; read-only
   Preview; Copy (`copyFilled`, falls back to selecting the text) and Download .txt
   (`linksFilename`: `<slug>-links-YYYY-MM-DD.txt`). `buildLinkList` skips non-web links (counted),
   dedupes, keeps order. Pinned in `exportLinks.test.ts`, `exportLinksDialog.test.tsx`,
@@ -577,6 +591,19 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   decoded), so a link seeded on the live release (raw Spokane) never comes back as a second, localized copy. Documents'
   empty state and Add starter messages wait for `settled` and the snippet move (a new device's messages arrive first). Pinned in `firstRun`, `emptyStates`, `documentsLibrary`,
   `pipelineFollowUps`, `rapidApply`, `copyDeckStore`, `syncBlob` tests; e2e seeds call `addStarters`.
+- **Job dates (#419, `src/jobDates.ts`):** additive Job fields `postedAt` (the source's), `discoveredAt` (when this
+  page load's feed first read it: `stampSeen` in `feed/sources/http.ts`), `savedAt` (stamped on save; `sanitizeJobs`
+  backfills it from a Saved history entry, else blank) and `closedAt` (stamped by `runLivenessCheck` →
+  `recordBoardChecks` when a posting is gone from its board, every board kind; cleared when it is back). Sanitize,
+  Back up (`JOB_KEY_LIST`) and CSV (four appended columns) carry them; no blob bump. **One date per job (Adrian
+  2026-10-28):** `dateLabel` = "Posted 3d ago", else "Found 3d ago"; saved/found are stored, not shown. The closing
+  date is the job's `deadline` (sources: Greenhouse `application_deadline`, read live; SAM.gov; Teamtailor `end-date`,
+  unverified; or the job page's "Applications close" date input, saved on blur), shown as a badge by `closingOf`:
+  "Closes Nov 3" (warning within today + 6 days, while Saved), "Closed" (gone from the board while Saved/Applied, or
+  past its day while Saved). Pipeline filters **Closing soon** and **Closed** (group "Closing date"; the old "Closed"
+  group is "Ended"). Saved jobs closing in the window are in Next 7 days ("Applications close · …"), no longer in Follow
+  up; the calendar and Apply mode say "Apply by". Pinned in `jobDates.test.ts`, `jobDatesUi.test.tsx`,
+  `pipelineView.test.ts`, `pipelineFollowUps.test.tsx`, `jobPage.test.tsx`, `feed/liveness.test.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links. The URL is cleaned through the route seam

@@ -22,7 +22,15 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, addJobDetailed, getAllJobs, jobIdOf, markAppliedByUrl, removeJob } from './store';
+import {
+  addJob,
+  addJobDetailed,
+  getAllJobs,
+  jobIdOf,
+  markAppliedByUrl,
+  removeJob,
+  updateJob,
+} from './store';
 import { ymd } from './jobEvents';
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
@@ -189,7 +197,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     expect(dueNames()).toContain('UX Researcher');
   });
 
-  it('lists the interviews and calls in the next 7 days; Open job goes to its Interviews tab', async () => {
+  it('lists the interviews and calls in the next 7 days; Open job opens its page', async () => {
     renderApp();
     const rows = within(region(/^Next 7 days/)).getAllByRole('listitem');
     expect(rows.map((r) => r.textContent)).toEqual([
@@ -201,11 +209,13 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     );
     await waitFor(() =>
       expect(window.location.hash).toBe(
-        `#/queue/${jobIdOf('https://meridianoak.example.com/careers/clinical-systems-analyst')}?section=interviews`,
+        `#/queue/${jobIdOf('https://meridianoak.example.com/careers/clinical-systems-analyst')}`,
       ),
     );
-    // The event lives on the Interviews tab, so that is the one that opens (return paths).
-    expect(await screen.findByRole('tab', { name: /Interviews/, selected: true })).toBeVisible();
+    // One page since #416: the job opens on its header and Details.
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Clinical Systems Analyst' }),
+    ).toBeVisible();
   });
 
   it('every Follow up and Next 7 days row opens its posting in one tap (Adrian 2026-10-22)', () => {
@@ -265,16 +275,29 @@ describe('a solicitation’s response deadline (#308)', () => {
     const d = new Date();
     return ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
   };
-  it('a Saved job due to respond today, tomorrow or within the week is under Follow up with its day; day 8 is not', () => {
+  it('a Saved job closing today, tomorrow or within the week is under Next 7 days with its day; day 8 is not (#419)', () => {
     addJobDetailed('https://sam.gov/opp/a/view', { label: 'Bid today', deadline: inDays(0) });
     addJobDetailed('https://sam.gov/opp/b/view', { label: 'Bid tomorrow', deadline: inDays(1) });
     addJobDetailed('https://sam.gov/opp/c/view', { label: 'Bid next week', deadline: inDays(7) });
     renderApp();
-    const rows = within(followUps()).getAllByRole('listitem');
-    expect(rows.map(titleOf)).toEqual(['Bid today', 'Bid tomorrow']);
-    expect(rows[0]).toHaveTextContent('Respond by Today');
-    expect(rows[1]).toHaveTextContent('Respond by Tomorrow');
-    expect(followUps()).not.toHaveTextContent('Bid next week');
+    const next = region(/^Next 7 days/);
+    const rows = within(next).getAllByRole('listitem');
+    expect(rows.map(titleOf)).toEqual([
+      'Applications close · Bid today',
+      'Applications close · Bid tomorrow',
+    ]);
+    expect(rows[0]).toHaveTextContent('Today');
+    expect(rows[1]).toHaveTextContent('Tomorrow');
+    expect(next).not.toHaveTextContent('Bid next week');
+    // Shown once: Follow up no longer repeats them.
+    expect(screen.queryByRole('region', { name: /^Follow up/ })).toBeNull();
+  });
+
+  it('a job gone from its board drops out of Next 7 days', () => {
+    addJobDetailed('https://sam.gov/opp/a/view', { label: 'Bid today', deadline: inDays(1) });
+    updateJob(getAllJobs()[0].url, { closedAt: new Date().toISOString() });
+    renderApp();
+    expect(screen.queryByRole('region', { name: /^Next 7 days/ })).toBeNull();
   });
 });
 
@@ -326,50 +349,5 @@ describe('first-run gate in the shell', () => {
     renderApp();
     expect(screen.queryByRole('heading', { name: 'Set up your board' })).toBeNull();
     expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
-  });
-});
-
-// The "Getting started" card (#132) moved from Today to the Pipeline (#236). Ticks come from real
-// state; Dismiss is remembered per device (rjb_ui_getting_started_done).
-describe('Getting started card on the Pipeline', () => {
-  const card = () => screen.queryByRole('region', { name: 'Getting started' });
-  // Display-only rows (rev-3): no disabled checkbox (its opacity failed AA); each row says
-  // "done" / "not done" to assistive tech in a list named by the panel.
-  const ticks = () => {
-    expect(within(card()!).queryByRole('checkbox')).toBeNull();
-    return within(within(card()!).getByRole('list', { name: 'Getting started steps' }))
-      .getAllByRole('listitem')
-      .map((li) => [li.textContent, !/not done/.test(li.textContent ?? '')]);
-  };
-
-  it('is not shown before there is a job of your own, nor for sample data alone', () => {
-    seedPack('consulting');
-    const { unmount } = renderApp();
-    expect(card()).toBeNull();
-    unmount();
-    loadSample();
-    renderApp();
-    expect(card()).toBeNull();
-  });
-
-  it('after the first job it lists three steps and ticks the ones that are true', () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    renderApp();
-    expect(ticks()).toEqual([
-      [expect.stringMatching(/Save a job/), true],
-      [expect.stringMatching(/Log a follow-up or mark a job applied/), false],
-      [expect.stringMatching(/Sign in to sync/), false],
-    ]);
-  });
-
-  it('Dismiss hides it and it stays gone', async () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    const { unmount } = renderApp();
-    await userEvent.click(within(card()!).getByRole('button', { name: 'Dismiss' }));
-    expect(card()).toBeNull();
-    expect(localStorage.getItem('rjb_ui_getting_started_done')).toBe('1');
-    unmount();
-    renderApp();
-    expect(card()).toBeNull();
   });
 });

@@ -216,7 +216,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
                   company,
                   job.location?.trim(),
                   when,
-                  respondBy && `Respond by ${dayLabel(respondBy, now)}`,
+                  respondBy && `Apply by ${dayLabel(respondBy, now)}`,
                 ]}
               />
             ) : undefined

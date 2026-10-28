@@ -151,6 +151,10 @@ const JOB_STRING_KEYS = [
   'screenedAt',
   'mode',
   'verdict',
+  'postedAt',
+  'discoveredAt',
+  'savedAt',
+  'closedAt',
 ] as const;
 
 /** Every key on the Job model (src/types.ts). A restored job keeps only these (#341):
@@ -185,6 +189,11 @@ const JOB_KEY_LIST: Record<keyof Job, true> = {
   history: true,
   events: true,
   decks: true,
+  docLinks: true,
+  postedAt: true,
+  discoveredAt: true,
+  savedAt: true,
+  closedAt: true,
 };
 const JOB_KEYS = new Set(Object.keys(JOB_KEY_LIST));
 

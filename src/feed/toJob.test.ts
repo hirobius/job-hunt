@@ -58,3 +58,25 @@ describe('jobFieldsFor', () => {
     expect(jobFieldsFor(p, 'design systems')).toMatchObject(expected);
   });
 });
+
+describe('jobFieldsFor dates (#419)', () => {
+  it('carries the posted, first-seen and closing dates; only SAM.gov says "Response due"', () => {
+    const f = jobFieldsFor(
+      ranked({
+        postedAt: '2026-10-25T08:00:00Z',
+        discoveredAt: '2026-10-27T09:00:00.000Z',
+        deadline: '2026-11-01',
+      }),
+      '',
+    );
+    expect(f).toMatchObject({
+      postedAt: '2026-10-25T08:00:00Z',
+      discoveredAt: '2026-10-27T09:00:00.000Z',
+      deadline: '2026-11-01',
+      note: 'Found in Live postings · Ashby',
+    });
+    expect(jobFieldsFor(ranked({ source: 'sam', deadline: '2026-11-01' }), '').note).toContain(
+      'Response due 2026-11-01',
+    );
+  });
+});

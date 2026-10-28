@@ -120,7 +120,7 @@ describe('Pipeline toolbar', () => {
 
     await user.click(screen.getByRole('button', { name: /^Status:/ }));
     const menu = await screen.findByRole('menu');
-    for (const group of ['Views', 'In progress', 'Closed'])
+    for (const group of ['Views', 'In progress', 'Closing date', 'Ended'])
       expect(within(menu).getByText(group)).toBeInTheDocument();
     await user.click(within(menu).getByRole('menuitemradio', { name: /^Applied\s*1$/ }));
 

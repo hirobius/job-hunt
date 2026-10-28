@@ -98,9 +98,10 @@ describe('JobLivenessNote', () => {
     expect(screen.getByText(/Checked live Oct 15/)).toBeInTheDocument();
     expect(screen.queryByText('Closed on the board')).toBeNull();
     cleanup();
-    render(<JobBadges job={job(A, 'Designer')} />);
+    // The badge reads the job's synced closedAt, which the check stamps (#419).
+    render(<JobBadges job={{ ...job(A, 'Designer'), closedAt: '2026-10-15T12:00:00.000Z' }} />);
     const badges = [...document.querySelectorAll('span')].map((s) => s.textContent);
-    expect(badges.indexOf('Saved')).toBeLessThan(badges.indexOf('Closed on the board'));
+    expect(badges.indexOf('Saved')).toBeLessThan(badges.indexOf('Closed')); // #419: one word
   });
 
   it('an open job shows the date only', () => {

@@ -124,21 +124,6 @@ describe('job page header and Overview (#130 slice 1)', () => {
     expect(screen.queryByRole('button', { name: /^Mark applied/ })).toBeNull();
   });
 
-  it("an Interviewing job's one primary is Add interview, which opens the Interviews tab", async () => {
-    addJob(URL_A, 'Design Engineer');
-    updateJob(URL_A, { status: 'Interviewing', applied: todayYmd() });
-    openJobPage();
-    const header = screen
-      .getByRole('heading', { level: 2, name: 'Design Engineer' })
-      .closest('header') as HTMLElement;
-    await userEvent.click(within(header).getByRole('button', { name: 'Add interview' }));
-    expect(
-      within(screen.getByRole('tablist', { name: 'Job sections' })).getByRole('tab', {
-        name: /^Interviews/,
-      }),
-    ).toHaveAttribute('aria-selected', 'true');
-  });
-
   it('with no next step the action row is just Star and More, no empty slot between', () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { status: 'Offer', applied: todayYmd() });
@@ -225,120 +210,21 @@ describe('job page header and Overview (#130 slice 1)', () => {
     );
   });
 
-  it('keeps templates on Overview and research links in the header menu', async () => {
+  it('keeps research links in the header menu', async () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { company: 'Acme' });
     openJobPage();
-    expect(screen.getByRole('button', { name: 'Use template' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /^Glassdoor/ })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: /^More actions/ }));
     expect(await screen.findByRole('menuitem', { name: /^Glassdoor/ })).toBeInTheDocument();
   });
 });
 
-/** The job page's own tabs, not the shell's "Sections". */
-const sectionTabs = () => screen.getByRole('tablist', { name: 'Job sections' });
-const tab = (name: string | RegExp) => within(sectionTabs()).getByRole('tab', { name });
-
-describe('job page tabs (#130 slice 2)', () => {
-  it('has three tabs, Overview first and selected (rev-3 F)', () => {
-    addJob(URL_A, 'Design Engineer');
-    openJobPage();
-    const names = within(sectionTabs())
-      .getAllByRole('tab')
-      .map((t) => t.textContent);
-    expect(names).toEqual(['Overview', 'Screening', 'Interviews']);
-    expect(tab('Overview')).toHaveAttribute('aria-selected', 'true');
-  });
-
-  it('counts interviews on the tab and open to-dos on the panel', () => {
-    addJob(URL_A, 'Design Engineer');
-    updateJob(URL_A, {
-      company: 'Acme',
-      events: [{ id: 'e1', kind: 'interview', date: '2026-10-20' }],
-      todos: [
-        { id: 't1', text: 'One', done: false },
-        { id: 't2', text: 'Two', done: false },
-        { id: 't3', text: 'Three', done: true },
-      ],
-    });
-    openJobPage();
-    // The count is the neutral pill Badge (rev-2 #2), not "(1)" text.
-    const interviews = tab(/^Interviews/);
-    expect(interviews.textContent).not.toContain('(');
-    expect(within(interviews).getByRole('img', { name: '1 booked' })).toHaveTextContent('1');
-    expect(within(screen.getByRole('region', { name: 'To-dos' })).getByText('2')).toBeVisible();
-  });
-
-  it('Screening is one click away: the Fit panel holds the editor', async () => {
-    addJob(URL_A, 'Design Engineer');
-    updateJob(URL_A, {
-      verdict: 'match',
-      mode: 'hybrid',
-      blockers: ['clearance'],
-    });
-    openJobPage();
-    await userEvent.click(tab('Screening'));
-    const fit = screen.getByRole('region', { name: 'Fit' });
-    expect(within(fit).getByText('Strong fit')).toBeInTheDocument();
-    expect(within(fit).queryByText(/travel|applied/)).toBeNull();
-    expect(screen.getByText('Work mode')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Add a custom dealbreaker' })).toBeInTheDocument();
-  });
-
-  it('the JD screener is inline in Screening, no dialog, and applies to the job', async () => {
-    addJob(URL_A, 'Design Engineer');
-    openJobPage();
-    await userEvent.click(tab('Screening'));
-    // A panel like the others (rev-3): bold heading, a full helper line, an Open button.
-    const jd = screen.getByRole('region', { name: 'Screen a job description' });
-    expect(
-      within(jd).getByRole('heading', { name: 'Screen a job description' }),
-    ).toBeInTheDocument();
-    expect(
-      within(jd).getByText('Paste the posting to get a suggested fit, mode and dealbreakers.'),
-    ).toBeInTheDocument();
-    const toggle = within(jd).getByRole('button', { name: 'Open' });
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await userEvent.click(toggle);
-    expect(within(jd).getByRole('button', { name: 'Close' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    );
-    expect(screen.queryByRole('dialog')).toBeNull();
-    await userEvent.type(
-      screen.getByRole('textbox', { name: 'Job description' }),
-      'Fully remote role. Must hold an active security clearance. Up to 25% travel.',
-    );
-    await userEvent.click(screen.getByRole('button', { name: 'Screen' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Apply to this job' }));
-    const j = getAllJobs()[0];
-    expect(j.verdict).toBeTruthy();
-    expect(j.screenedAt).toBeTruthy();
-  });
-
-  it('Interviews shows a teaching empty state, then the log', async () => {
-    addJob(URL_A, 'Design Engineer');
-    openJobPage();
-    await userEvent.click(tab('Interviews'));
-    expect(screen.getByText(/No interviews yet/)).toBeInTheDocument();
-    expect(screen.getByLabelText('Event date')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add to calendar' })).toBeInTheDocument();
-  });
-
-  it('Overview has the to-do checklist and Notes, once', async () => {
+describe('job page Notes (#130 slice 2; one page since #416)', () => {
+  it('has Notes, once', async () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { company: 'Acme' });
     openJobPage();
-    // Empty: a quiet "Add a to-do" line opens the field (rev-3 mock).
-    expect(screen.queryByRole('textbox', { name: 'New to-do' })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Add a to-do' }));
-    await userEvent.type(screen.getByRole('textbox', { name: 'New to-do' }), 'Call Sam{Enter}');
-    expect(getAllJobs()[0].todos?.map((t) => t.text)).toEqual(['Call Sam']);
-    updateJob(URL_A, { todos: [] });
-    await userEvent.click(await screen.findByRole('button', { name: 'Add starter tasks' }));
-    expect(getAllJobs()[0].todos?.length).toBeGreaterThan(0);
-    expect(screen.queryByRole('button', { name: 'Add starter tasks' })).toBeNull();
     const notes = screen.getAllByRole('textbox', { name: 'Notes' });
     expect(notes).toHaveLength(1);
     await userEvent.type(notes[0], 'Ask about the shop floor');
@@ -423,80 +309,13 @@ describe('job page tabs (#130 slice 2)', () => {
     expect(screen.getByRole('textbox', { name: 'Notes' })).toHaveValue('Recruiter screen');
     expect(screen.queryByText(/From when you saved it/)).toBeNull();
   });
-
-  it('opens on Overview again when the job changes', async () => {
-    addJob(URL_A, 'Design Engineer');
-    addJob(URL_B, 'Welder');
-    openJobPage(URL_A);
-    await userEvent.click(tab('Screening'));
-    act(() => {
-      window.location.hash = `#/queue/${jobIdOf(URL_B)}`;
-    });
-    expect(await screen.findByRole('heading', { level: 2, name: 'Welder' })).toBeInTheDocument();
-    expect(tab('Overview')).toHaveAttribute('aria-selected', 'true');
-  });
 });
 
-// Removing a to-do or an interview (#212): the row collapses before it goes, a notice says so, and
-// Undo puts it back where it was.
-describe('job page to-do and interview removal (#212)', () => {
-  /** Motion on: the browser can tell, and no reduced motion is asked for. */
-  const motionOn = () =>
-    (window.matchMedia = vi.fn().mockImplementation((media: string) => ({
-      matches: false,
-      media,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-    })) as unknown as typeof window.matchMedia);
-  const todo = (id: string, text: string) => ({ id, text, done: false });
-  const todoIds = () => getAllJobs()[0].todos?.map((t) => t.id);
-
-  it('Delete on a to-do collapses its row, says so, and Undo puts it back in its place', async () => {
-    addJob(URL_A, 'Design Engineer');
-    updateJob(URL_A, {
-      todos: [todo('t1', 'Research'), todo('t2', 'Tailor'), todo('t3', 'Submit')],
-    });
-    motionOn();
-    openJobPage();
-    const del = screen.getByRole('button', { name: 'Delete “Tailor”' });
-    await userEvent.click(del);
-    expect(del.closest('li')).toHaveAttribute('data-motion', 'collapse');
-    await waitFor(() => expect(todoIds()).toEqual(['t1', 't3']));
-    expect(screen.getByText('Deleted “Tailor”')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(todoIds()).toEqual(['t1', 't2', 't3']);
-  });
-
-  it('two deletes inside one collapse both stick', async () => {
-    addJob(URL_A, 'Design Engineer');
-    updateJob(URL_A, {
-      todos: [todo('t1', 'Research'), todo('t2', 'Tailor'), todo('t3', 'Submit')],
-    });
-    motionOn();
-    openJobPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Delete “Research”' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Delete “Submit”' }));
-    await waitFor(() => expect(todoIds()).toEqual(['t2']));
-    await new Promise((r) => setTimeout(r, 300));
-    expect(todoIds()).toEqual(['t2']);
-  });
-
-  it('Remove on an interview says so, and Undo brings it back', async () => {
-    addJob(URL_A, 'Design Engineer');
-    updateJob(URL_A, {
-      events: [{ id: 'e1', kind: 'interview', date: '2030-01-08', time: '14:00', note: 'Panel' }],
-    });
-    openJobPage();
-    await userEvent.click(screen.getByRole('tab', { name: /^Interviews/ }));
-    await userEvent.click(screen.getByRole('button', { name: /^Remove interview on / }));
-    expect(getAllJobs()[0].events).toEqual([]);
-    expect(screen.getByText('Removed interview')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(getAllJobs()[0].events).toEqual([
-      { id: 'e1', kind: 'interview', date: '2030-01-08', time: '14:00', note: 'Panel' },
-    ]);
-  });
-});
+/** Recently removed is an Account menu item (#416: off the Jobs page). */
+const openRecentlyRemoved = async (n: number) => {
+  await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: `Recently removed (${n})` }));
+};
 
 describe('job page remove (Recently removed)', () => {
   it('Remove is in the header menu; Overview has no delete section', async () => {
@@ -521,7 +340,7 @@ describe('job page remove (Recently removed)', () => {
     expect(screen.queryByText('Removed “Design Engineer”')).toBeNull();
   });
 
-  it('Recently removed (under the Pipeline list) restores or deletes for good', async () => {
+  it('Recently removed (in the Account menu) restores or deletes for good', async () => {
     addJob(URL_A, 'Design Engineer');
     addJob(URL_B, 'Welder');
     window.location.hash = '#/queue';
@@ -531,7 +350,7 @@ describe('job page remove (Recently removed)', () => {
       await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
       await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
     }
-    await userEvent.click(screen.getByRole('button', { name: 'Recently removed (2)' }));
+    await openRecentlyRemoved(2);
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Restore: Welder' }));
     expect(getAllJobs().map((j) => j.label)).toEqual(['Welder']);
@@ -539,7 +358,7 @@ describe('job page remove (Recently removed)', () => {
       within(dialog).getByRole('button', { name: 'Delete forever: Design Engineer' }),
     );
     expect(getAllJobs().map((j) => j.label)).toEqual(['Welder']);
-    expect(screen.queryByRole('button', { name: /Recently removed/ })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Recently removed' })).toBeNull();
   });
 
   it('Delete forever offers Undo inside the dialog, and Undo puts the job back in the list', async () => {
@@ -552,7 +371,7 @@ describe('job page remove (Recently removed)', () => {
       await userEvent.click(screen.getByRole('button', { name: `More actions: ${name}` }));
       await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
     }
-    await userEvent.click(screen.getByRole('button', { name: 'Recently removed (2)' }));
+    await openRecentlyRemoved(2);
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     await userEvent.click(
       within(dialog).getByRole('button', { name: 'Delete forever: Design Engineer' }),
@@ -575,14 +394,17 @@ describe('job page remove (Recently removed)', () => {
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Design Engineer' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Recently removed (1)' }));
+    await openRecentlyRemoved(1);
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     await userEvent.click(
       within(dialog).getByRole('button', { name: 'Delete forever: Design Engineer' }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
-    expect(await screen.findByRole('button', { name: 'Recently removed (1)' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^Account/ }));
+    expect(
+      await screen.findByRole('menuitem', { name: 'Recently removed (1)' }),
+    ).toBeInTheDocument();
   });
 
   it('a removed job still opens its posting from Recently removed (Adrian 2026-10-22)', async () => {
@@ -595,7 +417,7 @@ describe('job page remove (Recently removed)', () => {
     ]);
     window.location.hash = '#/queue';
     renderApp();
-    await userEvent.click(screen.getByRole('button', { name: 'Recently removed (1)' }));
+    await openRecentlyRemoved(1);
     const dialog = await screen.findByRole('dialog', { name: 'Recently removed' });
     expect(
       within(dialog).getByRole('link', { name: 'Open posting for Design Engineer at Acme' }),
@@ -671,18 +493,6 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(await screen.findByRole('heading', { level: 2, name: 'Welder' })).toBeInTheDocument();
     expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_B)}`);
     expect(within(rail()).getByRole('link', { current: 'page' })).toHaveTextContent('Welder');
-    expect(screen.getByRole('tab', { name: 'Overview', selected: true })).toBeInTheDocument();
-  });
-
-  it('a rail hop keeps the open tab, so fit can be compared job to job (#334)', async () => {
-    viewport(1280);
-    window.location.hash = `#/queue/${jobIdOf(URL_A)}?section=screening`;
-    renderApp();
-    expect(screen.getByRole('tab', { name: 'Screening', selected: true })).toBeInTheDocument();
-    await userEvent.click(railRow('Welder'));
-    expect(await screen.findByRole('heading', { level: 2, name: 'Welder' })).toBeInTheDocument();
-    expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_B)}?section=screening`);
-    expect(screen.getByRole('tab', { name: 'Screening', selected: true })).toBeInTheDocument();
   });
 
   it('shows the same jobs the Pipeline list showed: its search and filter', () => {
@@ -736,7 +546,7 @@ describe('job page polish and guards (#130 slice 6)', () => {
   it.each([
     ['wide', 1280],
     ['narrow', 390],
-  ])('has no WCAG A/AA violations, %s, on every tab', async (_n, width) => {
+  ])('has no WCAG A/AA violations, %s', async (_n, width) => {
     addJob(URL_A, 'Design Engineer');
     addJob(URL_B, 'Welder');
     updateJob(URL_A, {
@@ -747,12 +557,8 @@ describe('job page polish and guards (#130 slice 6)', () => {
     viewport(width);
     const { container } = openJobPage(URL_A);
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole('tablist', { name: 'Job sections' })).toBeInTheDocument();
     if (width >= 1024) expect(rail()).toBeInTheDocument();
-    for (const name of ['Overview', 'Screening', 'Interviews']) {
-      await userEvent.click(tab(name));
-      await audit(container);
-    }
+    await audit(container);
   });
 
   it('shows a skeleton, never Job not found, for an id that has not synced yet', () => {
@@ -776,30 +582,25 @@ describe('job page polish and guards (#130 slice 6)', () => {
   });
 });
 
-// Decks per job (#287): links only, http(s) only, on the Overview; remove is soft with Undo.
+// Decks per job (#287): links only, http(s) only, on the job page; remove is soft with Undo. A
+// plain list since #416 (Adrian's Q5): a label and a link each, Add and Remove.
 describe('job page Decks (#287)', () => {
   const decksPanel = () => screen.getByRole('region', { name: 'Decks' });
   const decksOf = () => getAllJobs()[0].decks;
 
-  it('adds a deck link with a label and a Sent on day', async () => {
+  it('adds a deck link with a label', async () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
     const panel = decksPanel();
     await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
-    await userEvent.type(within(panel).getByLabelText('Deck link'), 'https://pitch.com/v/acme');
+    await userEvent.type(within(panel).getByLabelText('Link'), 'https://pitch.com/v/acme');
     await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme pitch');
-    await userEvent.type(within(panel).getByLabelText('Sent on (optional)'), '2026-10-20');
-    await userEvent.click(within(panel).getByRole('button', { name: 'Add deck' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add link' }));
     expect(decksOf()).toEqual([
-      expect.objectContaining({
-        url: 'https://pitch.com/v/acme',
-        label: 'Acme pitch',
-        sentOn: '2026-10-20',
-      }),
+      expect.objectContaining({ url: 'https://pitch.com/v/acme', label: 'Acme pitch' }),
     ]);
     const link = within(panel).getByRole('link', { name: /Acme pitch/ });
     expect(link).toHaveAttribute('href', 'https://pitch.com/v/acme');
-    expect(within(panel).getByText(/^Sent on /)).toBeInTheDocument();
   });
 
   it('refuses a link that is not http(s) and saves nothing', async () => {
@@ -807,61 +608,35 @@ describe('job page Decks (#287)', () => {
     openJobPage();
     const panel = decksPanel();
     await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
-    await userEvent.type(within(panel).getByLabelText('Deck link'), 'javascript:alert(1)');
-    await userEvent.click(within(panel).getByRole('button', { name: 'Add deck' }));
+    await userEvent.type(within(panel).getByLabelText('Link'), 'javascript:alert(1)');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add link' }));
     expect(within(panel).getByText(/starts with https:/)).toBeInTheDocument();
     expect(decksOf()).toBeUndefined();
   });
 
-  it('edits a deck in place', async () => {
-    addJob(URL_A, 'Design Engineer');
-    updateJob(URL_A, { decks: [{ id: 'd1', url: 'https://slides.example/1', label: 'Old' }] });
-    openJobPage();
-    const panel = decksPanel();
-    expect(within(panel).getByText('Not sent yet')).toBeInTheDocument();
-    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Old”' }));
-    const label = within(panel).getByLabelText('Label (optional)');
-    await userEvent.clear(label);
-    await userEvent.type(label, 'Portfolio');
-    await userEvent.type(within(panel).getByLabelText('Sent on (optional)'), '2026-10-21');
-    await userEvent.click(within(panel).getByRole('button', { name: 'Save' }));
-    expect(decksOf()).toEqual([
-      { id: 'd1', url: 'https://slides.example/1', label: 'Portfolio', sentOn: '2026-10-21' },
-    ]);
-    expect(within(panel).getByRole('link', { name: /Portfolio/ })).toBeInTheDocument();
-  });
-
-  it('Enter in any deck field saves, and Escape cancels (#332)', async () => {
+  it('Enter in either field adds, and Escape cancels (#332)', async () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
     const panel = decksPanel();
     await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
-    await userEvent.type(within(panel).getByLabelText('Deck link'), 'https://pitch.com/v/acme');
+    await userEvent.type(within(panel).getByLabelText('Link'), 'https://pitch.com/v/acme');
     await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme{Enter}');
     expect(decksOf()).toEqual([expect.objectContaining({ label: 'Acme' })]);
-    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
-    await userEvent.type(within(panel).getByLabelText('Sent on (optional)'), '2026-10-20');
-    await userEvent.keyboard('{Enter}');
-    expect(decksOf()).toEqual([expect.objectContaining({ label: 'Acme', sentOn: '2026-10-20' })]);
-    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
-    await userEvent.type(within(panel).getByLabelText('Label (optional)'), ' deck{Escape}');
-    expect(within(panel).queryByLabelText('Label (optional)')).toBeNull();
-    expect(decksOf()).toEqual([expect.objectContaining({ label: 'Acme' })]);
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    await userEvent.type(within(panel).getByLabelText('Link'), 'https://pitch.com/v/2{Escape}');
+    expect(within(panel).queryByLabelText('Link')).toBeNull();
+    expect(decksOf()).toHaveLength(1);
   });
 
-  it('a new or edited deck card flashes (#332, #212)', async () => {
+  it('a new deck card flashes (#332, #212)', async () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
     const panel = decksPanel();
     await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
-    await userEvent.type(within(panel).getByLabelText('Deck link'), 'https://pitch.com/v/acme');
+    await userEvent.type(within(panel).getByLabelText('Link'), 'https://pitch.com/v/acme');
     await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme');
-    await userEvent.click(within(panel).getByRole('button', { name: 'Add deck' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add link' }));
     const card = () => within(panel).getByRole('link', { name: /Acme/ }).closest('li');
-    expect(card()).toHaveAttribute('data-motion', 'flash');
-    card()?.removeAttribute('data-motion');
-    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
-    await userEvent.click(within(panel).getByRole('button', { name: 'Save' }));
     expect(card()).toHaveAttribute('data-motion', 'flash');
   });
 
@@ -884,8 +659,6 @@ describe('job page Decks (#287)', () => {
 // Audit (2026-10-27): every inline editor on the page used to drop focus to <body> when it opened,
 // closed or removed a row, so a keyboard or screen reader user lost their place.
 describe('job page keeps focus where the work is', () => {
-  const todo = (id: string, text: string) => ({ id, text, done: false });
-
   it('Edit moves focus into the fields and Done returns it to Edit', async () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { company: 'Acme' });
@@ -933,41 +706,18 @@ describe('job page keeps focus where the work is', () => {
     expect(screen.queryByRole('textbox', { name: 'Link' })).not.toBeInTheDocument();
   });
 
-  it('Escape closes the new to-do field and focus returns to Add a to-do', async () => {
-    addJob(URL_A, 'Design Engineer');
-    openJobPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Add a to-do' }));
-    await userEvent.keyboard('{Escape}');
-    expect(screen.getByRole('button', { name: 'Add a to-do' })).toHaveFocus();
-  });
-
-  it('deleting a to-do moves focus to the next one, then to Add a to-do', async () => {
-    addJob(URL_A, 'Design Engineer');
-    updateJob(URL_A, { todos: [todo('t1', 'Research'), todo('t2', 'Tailor')] });
-    openJobPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Delete “Research”' }));
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Delete “Tailor”' })).toHaveFocus(),
-    );
-    await userEvent.click(screen.getByRole('button', { name: 'Delete “Tailor”' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Add a to-do' })).toHaveFocus());
-  });
-
-  it('a deck form gives focus back: Add to Add a deck link, Save and Cancel to its Edit', async () => {
+  it('the deck form gives focus back to Add a deck link, after Add and after Cancel', async () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
     const panel = screen.getByRole('region', { name: 'Decks' });
     await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
-    await userEvent.type(within(panel).getByLabelText('Deck link'), 'https://pitch.com/v/acme');
+    await userEvent.type(within(panel).getByLabelText('Link'), 'https://pitch.com/v/acme');
     await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme');
-    await userEvent.click(within(panel).getByRole('button', { name: 'Add deck' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add link' }));
     expect(within(panel).getByRole('button', { name: 'Add a deck link' })).toHaveFocus();
-    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
     await userEvent.click(within(panel).getByRole('button', { name: 'Cancel' }));
-    expect(within(panel).getByRole('button', { name: 'Edit “Acme”' })).toHaveFocus();
-    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
-    await userEvent.click(within(panel).getByRole('button', { name: 'Save' }));
-    expect(within(panel).getByRole('button', { name: 'Edit “Acme”' })).toHaveFocus();
+    expect(within(panel).getByRole('button', { name: 'Add a deck link' })).toHaveFocus();
   });
 
   it('removing a deck moves focus to the next deck, then to Add a deck link', async () => {
@@ -988,5 +738,33 @@ describe('job page keeps focus where the work is', () => {
     await waitFor(() =>
       expect(within(panel).getByRole('button', { name: 'Add a deck link' })).toHaveFocus(),
     );
+  });
+});
+
+describe('job dates on the job page (#419)', () => {
+  it('shows one date and the closing date; Applications close sets the deadline and clears it', async () => {
+    addJob(URL_A, 'Design Engineer');
+    const soon = new Date();
+    soon.setDate(soon.getDate() + 3);
+    updateJob(URL_A, { company: 'Acme', postedAt: ymd(new Date()) });
+    openJobPage();
+    expect(screen.getByText(/Posted today/)).toBeInTheDocument();
+    expect(screen.queryByText(/Saved \w{3} \d/)).toBeNull(); // saved is stored, not shown
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit details' }));
+    const field = screen.getByLabelText('Applications close');
+    expect(field).toHaveAttribute('type', 'date');
+    await userEvent.type(field, ymd(soon));
+    expect(getAllJobs()[0].deadline).toBeUndefined(); // saved on leaving the field, not per key
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(getAllJobs()[0].deadline).toBe(ymd(soon));
+    const label = `Closes ${soon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    const badge = screen.getAllByText(label).find((el) => el.closest('[data-tone]'));
+    expect(badge?.closest('[data-tone]')).toHaveAttribute('data-tone', 'warning');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit details' }));
+    await userEvent.clear(screen.getByLabelText('Applications close'));
+    await userEvent.tab();
+    await waitFor(() => expect('deadline' in getAllJobs()[0]).toBe(false));
   });
 });

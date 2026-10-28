@@ -11,6 +11,8 @@ import {
 } from './jobState';
 import { normalizeScreening } from './screening';
 import { sanitizeDecks } from './decks';
+import { normDate, normJobDates, recordLiveness } from './jobDates';
+import type { LiveCheck } from './feed/liveness';
 import { parseBoardUrl } from './feed/sources/ats';
 import { prettySlug } from './feed/sources/http';
 
@@ -154,17 +156,30 @@ export function sanitizeJobs(arr: unknown): Job[] {
     if (seen.has(key)) continue; // first occurrence wins
     seen.add(key);
     const label = (typeof it.label === 'string' ? it.label : '').replace(/[<>]/g, '').trim();
-    const { snoozeUntil: rawSnooze, decks: rawDecks, deadline: rawDeadline, ...rest } = it;
+    const {
+      snoozeUntil: rawSnooze,
+      decks: rawDecks,
+      docLinks: rawDocLinks,
+      deadline: rawDeadline,
+      postedAt: _p,
+      discoveredAt: _d,
+      savedAt: _s,
+      closedAt: _c,
+      ...rest
+    } = it;
     const snoozeUntil = normSnooze(rawSnooze);
     // Deck links become hrefs: only well-formed http(s) ones are kept (#287).
     const decks = sanitizeDecks(rawDecks);
+    const docLinks = sanitizeDecks(rawDocLinks); // the same rule for document links (#416)
     const deadline = normSnooze(rawDeadline); // the same YYYY-MM-DD rule
     out.push(
       normalizeScreening({
         ...rest,
         ...(snoozeUntil ? { snoozeUntil } : {}),
         ...(decks.length ? { decks } : {}),
+        ...(docLinks.length ? { docLinks } : {}),
         ...(deadline ? { deadline } : {}),
+        ...normJobDates(it),
         url,
         status: normStatus(it.status),
         label: label && label !== 'Saved job' ? label : prettyTitle(url), // backfill weak titles
@@ -223,7 +238,12 @@ export function addJobOutcome(rawUrl: string, label?: string, note?: string): Ad
     set(c);
     return 'restored';
   }
-  const job: Job = { url: u, label: (label || '').trim() || prettyTitle(u), status: 'Saved' };
+  const job: Job = {
+    url: u,
+    label: (label || '').trim() || prettyTitle(u),
+    status: 'Saved',
+    savedAt: new Date().toISOString(),
+  };
   const company = companyFromUrl(u);
   if (company) job.company = company;
   if (note?.trim()) job.note = note.trim();
@@ -248,6 +268,8 @@ export function addJobDetailed(
     seniority?: string;
     mode?: JobMode;
     deadline?: string;
+    postedAt?: string;
+    discoveredAt?: string;
   },
 ): string | null {
   const jobs = store.get();
@@ -260,6 +282,11 @@ export function addJobDetailed(
     label: (fields.label || '').trim() || prettyTitle(u),
     status: 'Saved',
   };
+  const postedAt = normDate(fields.postedAt);
+  if (postedAt) job.postedAt = postedAt;
+  const discoveredAt = normDate(fields.discoveredAt);
+  if (discoveredAt) job.discoveredAt = discoveredAt;
+  job.savedAt = new Date().toISOString();
   if (fields.salary?.trim()) job.salary = fields.salary.trim();
   if (fields.note?.trim()) job.note = fields.note.trim();
   const company = fields.company?.trim() || companyFromUrl(u);
@@ -315,6 +342,24 @@ export function setJobUrl(url: string, rawNext: string): string | null {
   if (jobs.some((j) => j.url !== url && dedupKey(j.url) === key)) return null;
   set(jobs.map((j) => (j.url === url ? { ...j, url: next } : j)));
   return next;
+}
+/** Set or clear the day applications close (#419: the job page's "Applications close"). */
+export function setJobDeadline(url: string, raw: string) {
+  const deadline = normSnooze(raw);
+  const jobs = store.get();
+  set(
+    jobs.map((j) => {
+      if (j.url !== url) return j;
+      const { deadline: _d, ...rest } = j;
+      return deadline ? { ...rest, deadline } : rest;
+    }),
+  );
+}
+/** Put a board check's answers on the saved jobs: `closedAt` when a posting is gone (#419). */
+export function recordBoardChecks(results: ReadonlyMap<string, LiveCheck>) {
+  const jobs = store.get();
+  const next = recordLiveness(jobs, results);
+  if (next !== jobs) set(next);
 }
 /** Delete a job outright. The UI removes through trash.ts (Recently removed) instead. */
 export function removeJob(url: string) {

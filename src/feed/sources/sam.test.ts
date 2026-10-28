@@ -44,6 +44,7 @@ describe('fetchSam', () => {
       location: 'Spokane, WA',
       postedAt: '2026-10-20',
       deadline: '2026-11-05',
+      discoveredAt: expect.any(String), // when the feed first read it (#419)
       text: 'Response due 2026-11-05\nNotice type: Solicitation\nNAICS 332322\nSet-aside: Total Small Business\nSolicitation W912-1',
     });
   });

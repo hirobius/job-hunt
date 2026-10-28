@@ -8,7 +8,7 @@
 import { htmlToText } from '../html.ts';
 import { httpUrl } from '../../httpUrl.ts';
 import type { Posting } from '../types.ts';
-import { arr, num, obj, str, type FetchJson } from './http.ts';
+import { arr, num, obj, stampSeen, str, type FetchJson } from './http.ts';
 
 /** Jobicy's `tag` must be 3 to 50 characters. */
 const TAG_MIN = 3;
@@ -56,7 +56,9 @@ export async function fetchJobicy(term: string, fetchJson: FetchJson): Promise<P
   const t = term.trim();
   if (t.length < TAG_MIN || t.length > TAG_MAX) return [];
   const body = await fetchJson(jobicyUrl(t));
-  return arr(obj(body).jobs)
-    .map(parseJobicyJob)
-    .filter((p): p is Posting => !!p);
+  return stampSeen(
+    arr(obj(body).jobs)
+      .map(parseJobicyJob)
+      .filter((p): p is Posting => !!p),
+  );
 }

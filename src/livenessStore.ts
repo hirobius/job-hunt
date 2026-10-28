@@ -4,7 +4,7 @@ import { createStore } from './createStore';
 import { liveFetchJson } from './feed/fetchFeed';
 import { checkLive, dueJobs, readLiveness, writeLiveness, type LiveCheck } from './feed/liveness';
 import type { FetchJson } from './feed/sources/http';
-import { dedupKey } from './store';
+import { dedupKey, recordBoardChecks } from './store';
 import type { Job } from './types';
 
 export const liveness = createStore<Record<string, LiveCheck>>(readLiveness(), {
@@ -46,6 +46,8 @@ export async function runLivenessCheck(
     }
   }
   liveness.set(next);
+  // The answer rides on the job too (#419): `closedAt` syncs, so Closed filters on every device.
+  recordBoardChecks(results);
   return { checked, couldNot };
 }
 

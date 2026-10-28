@@ -138,13 +138,17 @@ for (const theme of ['light', 'dark'] as const) {
         bad.push(...(await axe(page, 'add job')));
         await page.keyboard.press('Escape');
 
-        // The job page's other tabs (a11y.spec.ts scans Overview only).
+        // The job page is one page (#416, a11y.spec.ts scans it): axe its Add interview dialog.
         await page.locator('a[href^="#/queue/"]').first().click();
-        for (const name of ['Screening', /^Interviews/]) {
-          await page.getByRole('tab', { name }).click();
-          await page.waitForTimeout(300);
-          bad.push(...(await axe(page, `job ${name}`)));
-        }
+        await page
+          .getByRole('button', { name: /^More actions/ })
+          .first()
+          .click();
+        await page.getByRole('menuitem', { name: 'Add interview…' }).click();
+        await expect(page.getByRole('dialog', { name: 'Add interview' })).toBeVisible();
+        await page.waitForTimeout(300);
+        bad.push(...(await axe(page, 'add interview')));
+        await page.keyboard.press('Escape');
 
         expect(bad).toEqual([]);
       });

@@ -283,17 +283,6 @@ describe('editing a message changes what the fill paths use', () => {
     expect(dialog).toHaveTextContent('P.S. Acme Metals rocks.');
   });
 
-  it('Use template on the job page', async () => {
-    await editFollowUp();
-    window.location.hash = `#/queue/${jobIdOf(JOB)}`;
-    await renderApp();
-    await userEvent.click(await screen.findByRole('button', { name: 'Use template' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Follow-up after applying' }));
-    expect(screen.getByRole('region', { name: 'Preview' })).toHaveTextContent(
-      'P.S. Acme Metals rocks.',
-    );
-  });
-
   it('the Apply sheet, with a link to edit them in Documents', async () => {
     await editFollowUp();
     window.location.hash = `#/apply/${jobIdOf(JOB)}`;

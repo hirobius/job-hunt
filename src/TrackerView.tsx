@@ -1,17 +1,15 @@
 import { Fragment, lazy, Suspense, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Form } from '@hirobius/design-system/patterns';
-import { Search, Briefcase, ChevronDown, Download, MoreHorizontal, Plus } from 'lucide-react';
+import { Search, Briefcase, ChevronDown, Plus } from 'lucide-react';
 import {
   Button as UiButton,
   Input as HdsInput,
   Menu as HdsMenu,
   Dialog,
-  Icon,
   Box,
   Stack,
   Text,
   VisuallyHidden,
-  useAtLeast,
 } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { MetaCaption } from './MetaCaption';
@@ -30,17 +28,11 @@ import {
 } from './pipelineView';
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import ApplyQueueSummary from './ApplyQueueSummary';
-import GettingStarted from './GettingStarted';
-import ScoredQueue from './ScoredQueue';
 import JobListCard from './JobListCard';
 import { CardList, Panel, PanelBody } from './PipelinePanel';
 import { PipelineLiveness } from './LivenessViews';
-import { RecentlyRemovedLink } from './RecentlyRemoved';
-import { useTrash } from './trash';
-import { openExportLinks } from './exportLinks';
 import { useVisualViewportVars } from './hds-gaps/useVisualViewportVars';
 import './account/sheet.css';
-import { openTab } from './tabMemory';
 import { useBackCloses, useBackSheet } from './useBackCloses';
 import { useListFocusKeeper } from './listFocus';
 
@@ -96,9 +88,6 @@ export default function TrackerView() {
   const statusTrigger = useRef<HTMLButtonElement>(null);
   const statusSheet = useBackSheet('pipeline-status');
   const sortSheet = useBackSheet('pipeline-sort');
-  const moreSheet = useBackSheet('pipeline-more');
-  // Export links sits beside Status and Sort; on a phone it folds into a ⋯ menu so they keep room.
-  const roomy = useAtLeast('sm');
 
   const shown = useMemo(() => visibleJobs(jobs, view), [jobs, view]);
   const shownUrls = useMemo(() => shown.map((j) => j.url), [shown]);
@@ -108,9 +97,6 @@ export default function TrackerView() {
   // The trigger shows the short form; its name says the same words (WCAG label in name).
   const sortLabel = sortDef?.short ?? sortDef?.label ?? '';
   const counts = useMemo(() => filterCounts(jobs), [jobs]);
-  // Recently removed's link is the only thing under the list besides the first-run empty; no
-  // empty wrapper (and no extra gap) when neither shows.
-  const removedCount = useTrash().length;
 
   // Add job is never greyed out (rev-3): an empty or unreadable link gets a field error instead,
   // and the dialog stays open. A link already saved closes it; saveWithNotice says so.
@@ -172,15 +158,10 @@ export default function TrackerView() {
         <SampleBanner jobs={jobs} />
       </Stack>
       <Stack gap="px24">
-        {/* What the sync scored and queued (signed in; hidden while there is nothing). */}
-        <ScoredQueue />
-        {jobs.length > 0 && (
-          <>
-            {/* Shown after your first job until dismissed (#132; moved from Today in #236). */}
-            <GettingStarted jobs={jobs} />
-            <ApplyQueueSummary jobs={jobs} />
-          </>
-        )}
+        {/* Simplify Jobs (#416, Adrian's keep list): To apply + Start applying, Follow up and Next
+            7 days, then the job list. Getting started and the scored queue are gone; Recently
+            removed and Export links live in the Account menu. */}
+        {jobs.length > 0 && <ApplyQueueSummary jobs={jobs} />}
         {/* The Jobs panel (rev-3 item 1): a full-width search, then Status and Sort as one row
             of select-style menus, all 40px, and a quiet Clear only when something is
             non-default. No panel until there is something to search or filter. */}
@@ -291,31 +272,6 @@ export default function TrackerView() {
                         </HdsMenu.RadioGroup>
                       </HdsMenu.Content>
                     </HdsMenu>
-                    {roomy ? (
-                      <UiButton
-                        variant="tertiary"
-                        iconLeft={<Icon icon={Download} />}
-                        onClick={() => openExportLinks('view')}
-                      >
-                        Export links
-                      </UiButton>
-                    ) : (
-                      <HdsMenu modal={false} {...moreSheet}>
-                        <HdsMenu.Trigger asChild>
-                          <UiButton
-                            variant="secondary"
-                            iconOnly
-                            iconLeft={<Icon icon={MoreHorizontal} />}
-                            label="More job actions"
-                          />
-                        </HdsMenu.Trigger>
-                        <HdsMenu.Content align="end">
-                          <HdsMenu.Item onSelect={() => openExportLinks('view')}>
-                            Export links
-                          </HdsMenu.Item>
-                        </HdsMenu.Content>
-                      </HdsMenu>
-                    )}
                   </Stack>
                   {/* Liveness sits with the list it checks: one caption-sized row under the
                       toolbar, never above the page title. */}
@@ -397,38 +353,22 @@ export default function TrackerView() {
             )}
           </Panel>
         )}
-        {(jobs.length === 0 || removedCount > 0) && (
-          <Stack gap="normal">
-            {jobs.length === 0 && (
-              // First use: the shared teaching empty (#132): what this will hold, one primary action,
-              // one way to see it working.
-              // rev-3 "Pipeline, empty": one centred panel (icon tile, title, sentence,
-              // Add job + sample data); Find the next company stays below it.
-              <EmptyState
-                framed
-                icon={Briefcase}
-                title="Track your first job"
-                description="Paste a job link to save it here, then screen it, apply and follow up. You can also save postings from Review new on Today."
-                action={
-                  <Stack direction="row" wrap="wrap" gap="tight" justify="center">
-                    {addJobButton}
-                    <TrySampleButton />
-                  </Stack>
-                }
-              />
-            )}
-            {/* Removed jobs wait here for 30 days; a quiet link, shown only when there are some. */}
-            <RecentlyRemovedLink />
-          </Stack>
+        {jobs.length === 0 && (
+          // First use: the shared teaching empty (#132): what this will hold, one primary action,
+          // one way to see it working (rev-3 "Pipeline, empty").
+          <EmptyState
+            framed
+            icon={Briefcase}
+            title="Track your first job"
+            description="Paste a job link to save it here, then apply and follow up. You can also save postings from Review new on Today."
+            action={
+              <Stack direction="row" wrap="wrap" gap="tight" justify="center">
+                {addJobButton}
+                <TrySampleButton />
+              </Stack>
+            }
+          />
         )}
-        {/* The list always ends by pointing back to where jobs come from (#238), empty or not:
-          Today's Review new. Secondary, so Add job / Start applying stay the page's one primary.
-          It opens Today where it was left, like the Today tab (return paths). */}
-        <Stack direction="row">
-          <UiButton variant="secondary" onClick={() => openTab('today')}>
-            Review new postings
-          </UiButton>
-        </Stack>
       </Stack>
       {/* Portals out, so it takes no slot in the page's rhythm. */}
       <Dialog open={addOpen} onOpenChange={onAddOpenChange}>

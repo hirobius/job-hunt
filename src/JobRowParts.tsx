@@ -16,9 +16,10 @@ import { setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
 import { changeWithUndo } from './jobUndo';
 import { collapseRow, starClass } from './feedback';
-import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
+import { openAddInterview } from './jobDialogs';
 import { buildHash, getRoute } from './route';
+import { closingOf } from './jobDates';
 import { primaryAction, rowView, titleOf } from './jobRow';
 import { normStatus } from './jobState';
 import { researchLinks } from './jobFacts';
@@ -39,13 +40,16 @@ export function StatusBadge({ job }: { job: Job }) {
  *  attention is a warning. Pipeline cards, the job page and Apply mode share it. */
 export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
   const row = rowView(job);
-  const closed = checkFor(useLiveness(), job.url)?.state === 'closed';
+  // The closing date (#419), from the synced job (closedAt, deadline), so it matches the filters.
+  const closing = closingOf(job);
   return (
     <Stack direction="row" wrap="wrap" gap="px8" align="center">
       <StatusBadge job={job} />
       {row.retired && <Badge>Retired</Badge>}
       {row.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
-      {closed && <Badge tone="warning">Closed on the board</Badge>}
+      {closing && (
+        <Badge tone={closing.kind === 'soon' ? 'warning' : 'neutral'}>{closing.label}</Badge>
+      )}
       {row.verdict && <Badge tone="neutral">{row.verdict.label}</Badge>}
       {star && row.pinned && (
         <>
@@ -158,7 +162,9 @@ export function RowMenu({
   // The browser's Back closes the open menu and stays on the page (return paths).
   const sheet = useBackSheet(`job-menu:${job.url}`);
   return (
-    <Menu {...sheet}>
+    // Non-modal, so Add interview's dialog opens cleanly from an item: a modal menu plus a dialog
+    // left the page unclickable (as the Account menu and the editor menus found).
+    <Menu modal={false} {...sheet}>
       <Menu.Trigger asChild>
         {/* A bordered 40px button on a phone card (rev-3 mock); quiet in the dense table. */}
         <Button
@@ -208,6 +214,10 @@ export function RowMenu({
             );
           })}
         </Menu.Group>
+        <Menu.Separator />
+        {/* The Interviews log left the job page (#416); booking one stays here, so its date
+            feeds Next 7 days and the follow-up clock. */}
+        <Menu.Item onSelect={() => openAddInterview(job.url, anchor.current)}>Add interview…</Menu.Item>
         <Menu.Separator />
         {/* Star is a row change like the rest (#212, #361): the shared notice with Undo, not a
             plain toast — under Starred an Unstar takes the card out with no way back otherwise.

@@ -1,6 +1,6 @@
 // Badges are neutral except what needs attention (rev-3 B): the Pipeline's cards, the job rail and
 // the Company page show status and fit in the neutral tone, like the job header and the phone
-// cards. Only a due follow-up (and Closed on the board) is a warning.
+// cards. Only what needs attention is a warning: a due follow-up, a closing date within 7 days (#419).
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { ToastProvider } from '@hirobius/design-system';
