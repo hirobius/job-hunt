@@ -41,7 +41,7 @@ const first = (...vals: unknown[]) => {
 /** "1" / true / "remote" → remote, "hybrid" → hybrid, "onsite"/"in_office" → onsite. */
 function modeOf(...vals: unknown[]): JobMode | undefined {
   for (const v of vals) {
-    if (v === true) return 'remote';
+    if (v === true || v === 1 || v === '1') return 'remote';
     const s = typeof v === 'string' ? v.toLowerCase().replace(/[\s_-]/g, '') : '';
     if (s === 'remote' || s === 'fullyremote') return 'remote';
     if (s === 'hybrid') return 'hybrid';

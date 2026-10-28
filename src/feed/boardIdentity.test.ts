@@ -161,6 +161,32 @@ describe('identify', () => {
     expect(identify(company, evidence).identity).toBe(want);
   });
 
+  // Adele's site is the design system's, not the company's: it confirms, never rules out.
+  describe('a weak website', () => {
+    const atlassian = { name: 'Atlassian', website: 'https://atlassian.design', weakWebsite: true };
+    it('falls through to the stated name when the jobs link elsewhere', () => {
+      expect(
+        identify(atlassian, ev({ name: 'Atlassian', domains: ['atlassian.com'] })).identity,
+      ).toBe('match');
+      expect(identify(atlassian, ev({ name: 'Atlas Corp', domains: ['atlas.com'] }))).toEqual({
+        identity: 'mismatch',
+        why: "The board is Atlas Corp's.",
+      });
+    });
+    it('is unknown, not a mismatch, with no stated name', () => {
+      expect(identify(atlassian, ev({ domains: ['atlassian.com'] })).identity).toBe('unknown');
+    });
+    it('still confirms when the jobs do link to it', () => {
+      expect(identify(atlassian, ev({ domains: ['atlassian.design'] })).identity).toBe('match');
+    });
+    it('a strong one with the same links is a mismatch', () => {
+      const strong = { name: 'Atlassian', website: 'https://atlassian.design' };
+      expect(identify(strong, ev({ name: 'Atlassian', domains: ['atlassian.com'] })).identity).toBe(
+        'mismatch',
+      );
+    });
+  });
+
   it('says why a board is not the company’s', () => {
     expect(identify(forward, boardEvidence(GREENHOUSE_FORWARD, GREENHOUSE_FORWARD.jobs)).why).toBe(
       'Its jobs link to getfwd.com, not goforward.com.',

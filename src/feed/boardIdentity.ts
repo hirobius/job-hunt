@@ -5,7 +5,8 @@
 //   1. Website domain: when the company's website is known (the YC list, a GitHub organisation), its
 //      domain must show up on the board: an apply link on the company's own site, the board's own
 //      website field, or a link or email in a job's text. Apply links on another company's site
-//      say it is someone else's board.
+//      say it is someone else's board, unless the website is weak (a design system's site or a
+//      GitHub organisation's blog): then it only ever confirms, and a miss goes on to the name.
 //   2. Failing that, name similarity: the company name the board states (Greenhouse, Recruitee,
 //      SmartRecruiters, Breezy and Workable state one) against the name asked for.
 //   3. Neither: the board shows nothing either way (Lever, Ashby, Personio, BambooHR, Rippling).
@@ -249,14 +250,16 @@ export const SAME_NAME = 0.9;
 
 /** Does this board belong to the company asked for? */
 export function identify(
-  company: { name: string; website?: string },
+  company: { name: string; website?: string; weakWebsite?: boolean },
   ev: BoardEvidence | undefined,
 ): IdentityVerdict {
   if (!ev) return { identity: 'unknown' };
   const site = websiteDomain(company.website);
   if (site) {
     if (ev.domains.includes(site) || ev.textDomains.includes(site)) return { identity: 'match' };
-    if (ev.domains.length)
+    // A weak website (a design system's site, a GitHub organisation's blog) is often not where the
+    // company's jobs link: it can confirm a board, never rule one out. Fall through to the name.
+    if (ev.domains.length && !company.weakWebsite)
       return {
         identity: 'mismatch',
         why: `Its jobs link to ${ev.domains[0]}, not ${site}.`,

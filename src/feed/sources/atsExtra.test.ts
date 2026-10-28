@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { boardOfJobUrl } from '../liveness';
 import { boardApiUrl, boardJobs, canonicalBoardUrl, fetchBoard, parseBoardUrl } from './ats';
+import { parseBambooJob } from './atsExtra';
 
 describe('parseBoardUrl: the five newer boards', () => {
   it.each([
@@ -76,6 +77,24 @@ const BAMBOO = {
     { id: '43', jobOpeningName: 'Office Manager', location: { city: 'Lindon', state: 'Utah' } },
   ],
 };
+
+describe('BambooHR remote flag', () => {
+  it.each([
+    ['1', 'remote'],
+    [1, 'remote'],
+    [true, 'remote'],
+  ])('isRemote %j reads as remote', (isRemote, want) => {
+    expect(parseBambooJob({ id: '7', jobOpeningName: 'x', isRemote }, 'acme')?.mode).toBe(want);
+  });
+  it('isRemote "0" or null says nothing', () => {
+    expect(parseBambooJob({ id: '7', jobOpeningName: 'x', isRemote: '0' }, 'acme')?.mode).toBe(
+      undefined,
+    );
+    expect(parseBambooJob({ id: '7', jobOpeningName: 'x', isRemote: null }, 'acme')?.mode).toBe(
+      undefined,
+    );
+  });
+});
 const RIPPLING = [
   {
     uuid: 'abc-123',
@@ -224,6 +243,7 @@ describe('liveness refs', () => {
     ['https://ats.rippling.com/acme/jobs/abc-123', 'abc-123'],
     ['https://jobs.gem.com/acme/am9icG9zdDox', 'am9icG9zdDox'],
     ['https://acme.pinpointhq.com/postings/7f2c', '7f2c'],
+    ['https://acme.pinpointhq.com/en/postings/7f2c', '7f2c'],
     // The title slug after the id may change when the role is retitled.
     ['https://acme.breezy.hr/p/0a1b2c-product-designer', '0a1b2c'],
     ['https://acme.breezy.hr/p/0a1b2c-lead-designer', '0a1b2c'],

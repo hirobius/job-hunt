@@ -48,8 +48,8 @@ export const PROBE_KINDS: BoardKind[] = [
   'breezy',
 ];
 /** Where a connection failure (status 0) is no board once another system answered: boards on a
- *  company subdomain fail DNS for a company without one, and Rippling's and Gem's CORS is unverified
- *  live, so a blocked host must not turn every company into "couldn't check". */
+ *  company subdomain fail DNS for a company without one. Never a single fixed API host (Rippling,
+ *  Gem): there status 0 is CORS or a block, which says nothing about a board. */
 const ZERO_IS_NONE: ReadonlySet<BoardKind> = new Set([
   'recruitee',
   'teamtailor',
@@ -57,8 +57,6 @@ const ZERO_IS_NONE: ReadonlySet<BoardKind> = new Set([
   'bamboohr',
   'pinpoint',
   'breezy',
-  'rippling',
-  'gem',
 ]);
 export const MAX_IN_FLIGHT = 6;
 export const MAX_PER_HOST = 2;
@@ -135,6 +133,8 @@ export interface ProbeOutcome {
   evidence?: BoardEvidence;
   /** The read timed out: the host is slow or down, which says nothing about a board. */
   timedOut?: true;
+  /** Never asked: the host was stopped (3×429) or the run aborted. Says nothing about a board. */
+  skipped?: true;
 }
 
 /** The probe asks for the light payload: a board's job bodies run megabytes and a scan reads hundreds. */
@@ -351,6 +351,9 @@ export interface ProbeOptions {
   limiter?: Limiter;
   /** Each company's website, by its line lower-cased: the identity check's best evidence. */
   websites?: ReadonlyMap<string, string>;
+  /** The websites are weak (a design system's site, a GitHub organisation's blog): they can confirm
+   *  a board but never rule one out (boardIdentity.ts `identify`). */
+  weakWebsites?: boolean;
 }
 
 const boardsFor = (slug: string): Board[] => PROBE_KINDS.map((kind) => ({ kind, slug }));
@@ -375,7 +378,7 @@ export async function* probeCompanies(
     if (hit) return hit;
     const host = hostKey(probeUrl(b));
     const ran = await limiter.run(host, () => probeBoard(b, fetchJson), signal);
-    if (!ran.ran) return { result: 'unknown', status: 0 };
+    if (!ran.ran) return { result: 'unknown', status: 0, skipped: true };
     const out = ran.value;
     if (out.status === 429) limiter.strike(host);
     else limiter.ok(host);
@@ -396,7 +399,11 @@ export async function* probeCompanies(
     if (!target) return null;
     const given = target.boards.length > 0;
     const groups = given ? [target.boards] : target.candidates.map((slug) => boardsFor(slug));
-    const company = { name: target.name, website: opts.websites?.get(input.trim().toLowerCase()) };
+    const company = {
+      name: target.name,
+      website: opts.websites?.get(input.trim().toLowerCase()),
+      weakWebsite: opts.weakWebsites,
+    };
     type Checked = BoardHit & { verdict: IdentityVerdict; others: number };
     const confirmed: Checked[] = [];
     const unconfirmed: Checked[] = [];
@@ -415,7 +422,8 @@ export async function* probeCompanies(
           ZERO_IS_NONE.has(b.kind) &&
           outs[i].result === 'unknown' &&
           outs[i].status === 0 &&
-          !outs[i].timedOut
+          !outs[i].timedOut &&
+          !outs[i].skipped
         )
           outs[i] = { result: 'none', status: 0 };
       });

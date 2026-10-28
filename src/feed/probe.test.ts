@@ -117,6 +117,16 @@ describe('probeBoard', () => {
     });
     expect((await probeBoard(sr, ok({ error: 'x' }))).result).toBe('unknown');
   });
+  // Rippling and Gem are unverified live: an empty list may be any name's answer, so it is none.
+  it.each(['rippling', 'gem'] as const)(
+    'an empty %s list is none; a non-empty one is live',
+    async (k) => {
+      expect((await probeBoard(board(k, 'acme'), ok([]))).result).toBe('none');
+      expect((await probeBoard(board(k, 'acme'), ok([{ id: '1', title: 't' }]))).result).toBe(
+        'live',
+      );
+    },
+  );
   it.each([
     ['429', fail(429)],
     ['500', fail(500)],
@@ -459,6 +469,37 @@ describe('probeCompanies', () => {
       ]);
     });
 
+    // Adele's site is the design system's (atlassian.design), not where the jobs link (atlassian.com).
+    it('a weak website never rules a board out: the stated name decides', async () => {
+      const f = world({
+        [lightUrl(board('greenhouse', 'atlassian'))]: {
+          jobs: [
+            {
+              id: 1,
+              absolute_url: 'https://www.atlassian.com/company/careers/details/1',
+              company_name: 'Atlassian',
+            },
+          ],
+        },
+      });
+      const sites = new Map([['atlassian', 'https://atlassian.design']]);
+      const [weak] = await collect(
+        probeCompanies(['Atlassian'], {
+          fetchJson: f,
+          kv: memoryKv(),
+          websites: sites,
+          weakWebsites: true,
+        }),
+      );
+      expect(weak.state).toBe('found');
+      expect(weak.hits).toEqual([{ board: { kind: 'greenhouse', slug: 'atlassian' }, jobs: 1 }]);
+      // The same site as a company's own website says the board is someone else's.
+      const [strong] = await collect(
+        probeCompanies(['Atlassian'], { fetchJson: f, kv: memoryKv(), websites: sites }),
+      );
+      expect(strong.state).toBe('unconfirmed');
+    });
+
     it('keeps the one board whose links are on the company’s site', async () => {
       const f = world({
         [lightUrl(board('greenhouse', 'forward'))]: {
@@ -548,6 +589,35 @@ describe('probeCompanies', () => {
     expect(JSON.parse(kv.get(PROBE_KEY)!)['greenhouse:acme'].e).toEqual({});
   });
 
+  // One fixed API host: status 0 there is CORS or a block, never "no board".
+  it.each(['rippling', 'gem'] as const)(
+    'a %s connection failure is unknown, never none, even once others answered',
+    async (kind) => {
+      const f: FetchJson = async (url) => {
+        throw new FetchError(url === lightUrl(board(kind, 'acme')) ? 0 : 404, url);
+      };
+      const [r] = await collect(probeCompanies(['acme'], { fetchJson: f, kv: memoryKv() }));
+      expect(r.state).toBe('unknown');
+      expect(r.unknown.map((b) => b.kind)).toEqual([kind]);
+    },
+  );
+
+  // A stopped host's probes never ran: that says nothing about a board, even on a subdomain kind.
+  it('a probe the limiter skipped (host stopped after 3×429) is unknown, never none', async () => {
+    const urls: string[] = [];
+    const f: FetchJson = async (url) => {
+      urls.push(url);
+      throw new FetchError(url.includes('recruitee') ? 429 : 404, url);
+    };
+    const names = Array.from({ length: 30 }, (_, i) => `c${i}`);
+    const out = await collect(probeCompanies(names, { fetchJson: f, kv: memoryKv() }));
+    // The host was stopped, so some companies' Recruitee probes were skipped, not asked.
+    expect(urls.filter((u) => u.includes('recruitee')).length).toBeLessThan(30);
+    expect(out).toHaveLength(30);
+    expect(out.every((r) => r.state === 'unknown')).toBe(true);
+    expect(out.every((r) => r.unknown.some((b) => b.kind === 'recruitee'))).toBe(true);
+  });
+
   it('a Rippling or Gem timeout is unknown, never none', async () => {
     const f: FetchJson = async (url) => {
       throw url.includes('rippling') ? new FetchError(0, url, true) : new FetchError(404, url);
@@ -557,7 +627,7 @@ describe('probeCompanies', () => {
     expect(r.unknown.map((b) => b.kind)).toEqual(['rippling']);
   });
 
-  it.each(['bamboohr', 'rippling', 'gem', 'pinpoint', 'breezy'] as const)(
+  it.each(['bamboohr', 'pinpoint', 'breezy'] as const)(
     'probes %s and reads a connection failure there as none once others answered',
     async (kind) => {
       const urls: string[] = [];

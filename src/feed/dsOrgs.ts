@@ -401,7 +401,11 @@ async function findBoard(
       limiter: o.limiter,
       // The organisation's website confirms a board is its own (boardIdentity.ts); a board the
       // name matched without that is not taken.
-      ...(website && { websites: new Map([[line.trim().toLowerCase(), website]]) }),
+      // It is the organisation's blog field, often not the jobs' domain: it confirms, never rules out.
+      ...(website && {
+        websites: new Map([[line.trim().toLowerCase(), website]]),
+        weakWebsites: true,
+      }),
     })) {
       if (r.state === 'found') return { board: r.hits[0].board, jobs: r.hits[0].jobs };
       // A board the name matched that isn't shown to be theirs: not "none" either.

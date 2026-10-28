@@ -393,7 +393,12 @@ export function parsePersonioJob(j: unknown, slug: string): Posting | null {
 
 /** Boards whose API answers 200 with an empty list for a company that has no board at all, so the
  *  probe reads "no jobs" there as none rather than as a live board. */
-export const EMPTY_MEANS_NONE: ReadonlySet<BoardKind> = new Set(['smartrecruiters']);
+export const EMPTY_MEANS_NONE: ReadonlySet<BoardKind> = new Set([
+  'smartrecruiters',
+  // Unverified live: until a real empty board is seen, an empty list may be any name's answer.
+  'rippling',
+  'gem',
+]);
 
 /** Endpoints written from reported, not official, shapes: a body without a list is an error. */
 const UNOFFICIAL: ReadonlySet<BoardKind> = new Set([

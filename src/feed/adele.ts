@@ -94,7 +94,10 @@ export async function watchAdeleBoards(
     ...probe,
     watched: boardsFromUrls(boardUrls, Infinity),
     // The design system's site: its domain confirms a board (one on github.io etc. says nothing).
+    // It is not the company's main site (atlassian.design, primer.style), so a miss never rules a
+    // board out: the board's stated name decides.
     websites: websitesByName(ADELE.companies.map((c) => ({ name: c.name, website: c.site }))),
+    weakWebsites: true,
     onProgress: (s) => {
       take(s);
       onProgress?.(runOf(s, watched));
