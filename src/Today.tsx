@@ -50,39 +50,40 @@ export default function Today() {
 
   return (
     <Stack gap="px24">
-      <Stack gap="px8">
-        <Stack gap="px4">
-          <Text as="h2" variant="title">
-            Today
-          </Text>
-          <MetaCaption
-            items={[
-              now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-            ]}
-          />
-        </Stack>
-        <ScanStatus categoryId={track?.id} />
+      <Stack gap="px4">
+        <Text as="h2" variant="title">
+          Today
+        </Text>
+        <MetaCaption
+          items={[
+            now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+          ]}
+        />
       </Stack>
 
-      {/* Every design-system posting, newest first, as a list (the Deck is a toggle inside). */}
+      {/* The scan's status, then every design-system posting, newest first, as a list (the Deck is
+          a toggle inside). Review new hosts the status, so its counts are the Feed's own. */}
       {track ? (
-        <ReviewView categoryId={track.id} label="Review new" />
+        <ReviewView categoryId={track.id} label="Review new" scanStatus />
       ) : (
-        <Panel label="Review new" title="Review new">
-          <PanelBody>
-            <EmptyState
-              centered
-              icon={Search}
-              title="Pick a track to search"
-              description="A track holds your job titles, location and saved links."
-              action={
-                <Button variant="primary" onClick={() => setChoosing(true)}>
-                  Choose a track
-                </Button>
-              }
-            />
-          </PanelBody>
-        </Panel>
+        <Stack gap="normal">
+          <ScanStatus />
+          <Panel label="Review new" title="Review new">
+            <PanelBody>
+              <EmptyState
+                centered
+                icon={Search}
+                title="Pick a track to search"
+                description="A track holds your job titles, location and saved links."
+                action={
+                  <Button variant="primary" onClick={() => setChoosing(true)}>
+                    Choose a track
+                  </Button>
+                }
+              />
+            </PanelBody>
+          </Panel>
+        </Stack>
       )}
 
       <Panel

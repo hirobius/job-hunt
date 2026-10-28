@@ -146,11 +146,17 @@ describe('the auto-scan', () => {
     expect(screen.getByRole('button', { name: 'Scan now' })).toBeInTheDocument();
   });
 
-  it('after a scan, says when and how many are new from how many sources', async () => {
+  it('after a scan, says when; the new and source counts are Review new’s own (one number)', async () => {
     seedScan({ finishedAt: Date.now(), newCount: 4, sourceCount: 9, found: [] });
     window.location.hash = '#/today';
     renderApp();
+    // Before Review new has read: the scan's own counts.
     expect(screen.getByText(/^Last scanned \d\d:\d\d · 4 new from 9 sources$/)).toBeInTheDocument();
+    // Once it has: the Feed's, and Review new doesn't say them a second time.
+    expect(
+      await screen.findByText(/^Last scanned \d\d:\d\d · 2 new from 1 source$/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/new today from/)).toBeNull();
   });
 });
 

@@ -216,16 +216,18 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   (`legacyScreens.ts`; unit tests import `./test/legacyScreens` or call `legacyScreensForThisTest()`, e2e calls
   `withLegacyScreens`) until #389 deletes them with the switch. An empty hash and a sign-in error land on Today; a
   first run shows `Onboarding` there, and with jobs but no track Review new offers Choose a track in place.
-  `Today.tsx`, top to bottom: `ScanStatus` (Scan now + "Last scanned hh:mm · N new from M sources"), **Review new**
-  = `ReviewView` itself (`label="Review new"`: one panel holding the feed line, Browse | Deck, Sort as a menu, the
-  filter chips and the Browse list; a row's title opens the in-app preview, Open posting beside it), **Apply**
+  `Today.tsx`, top to bottom: `ScanStatus` (Scan now + "Last scanned hh:mm · N new from M sources"; N and M are the
+  Feed's own `newToday` / `sourcesRead` once Review new has read, so the page shows one number), **Review new**
+  = `ReviewView` itself (`label="Review new" scanStatus`: it hosts the status; one panel holding sources that didn't
+  answer as one quiet "N sources unavailable · details" disclosure, Browse | Deck, Sort as a menu, two filter chips
+  (New today, Remote) and the Browse list; a row's title opens the in-app preview, Open posting beside it), **Apply**
   (`toApplyQueue`, Start / Resume applying → Apply mode, `?from=/today`), **Follow up** (`today.ts`: the due rows with
   "Due <day>" and their own Follow up button, "Upcoming: N this week" = due in the next 7 days, else "Nothing due
   today" / "Nothing waiting on a reply") and **New companies** (`NewCompanies`, Follow / Ignore). Followed and Ignored
   companies are the Account menu's **Companies** item (`CompaniesDialog.tsx`, lazy; `companiesList.ts` reads the
   Feed's Sources: followed = boards + companies, A to Z, once by name; ignored = `decided.muted`; one list at a time,
-  Ignore = `muteCompany`, Follow again = `unmuteCompany`). The Pipeline ends with **Review new postings** (→ Today);
-  "Find more like this" left the job menu with the ATS search. Pinned in `today.test.ts`, `todayHome.test.tsx`,
+  Ignore = `muteCompany`, Follow again = `unmuteCompany`, plus `followCompany` for one with no Source). Merges #426
+  (Jobs keep list, one-page job page, no fit badge); "Find more like this" left the job menu with the ATS search. Pinned in `today.test.ts`, `todayHome.test.tsx`,
   `companiesList.test.tsx`, `route.test.ts`, `e2e/today.spec.ts`, `e2e/review.spec.ts`, `e2e/auto-scan.spec.ts`.
 - **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1; superseded by the final
   shell above):** the tabs were

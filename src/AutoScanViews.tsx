@@ -41,12 +41,21 @@ function progressLine(p: ScanProgress | undefined): string {
 
 /** "Scan now" and the last scan's line (or why it failed). `categoryId`: the track Today shows,
  *  else the active one. */
-export function ScanStatus({ categoryId }: { categoryId?: string | null }) {
+export function ScanStatus({
+  categoryId,
+  counts,
+}: {
+  categoryId?: string | null;
+  /** Review new's own new and source counts, once it has read (one number on the page). */
+  counts?: { newToday: number; sources: number };
+}) {
   const { state, running, progress } = useScan();
   const { input } = useScanInput(categoryId);
   const line = running
     ? progressLine(progress)
-    : (state.error ?? lastScannedLine(state) ?? 'Not scanned yet. The first scan runs on its own.');
+    : (state.error ??
+      lastScannedLine(state, undefined, counts) ??
+      'Not scanned yet. The first scan runs on its own.');
   return (
     <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
       <Text variant="caption" as="p" tone="secondary" role="status">

@@ -12,6 +12,7 @@ import {
   Button,
   Card,
   Dialog,
+  Disclosure,
   Icon,
   InlineLink,
   Menu,
@@ -37,6 +38,7 @@ import { useBackCloses, useBackSheet } from './useBackCloses';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
+import { ScanStatus } from './AutoScanViews';
 import {
   FILTER_LABEL,
   SORT_LABEL,
@@ -62,17 +64,22 @@ import type { Source } from './feed/profile';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
-const FILTERS: FeedFilter[] = ['new', 'contract', 'founding', 'remote'];
+// Two filters (Adrian 2026-10-28): contract and first-hire chips are gone with the fit tiers.
+const FILTERS: FeedFilter[] = ['new', 'remote'];
 const SORTS: FeedSort[] = ['newest', 'score', 'company'];
 type Mode = 'browse' | 'deck';
 
 export default function ReviewView({
   categoryId,
   label = 'New postings',
+  scanStatus = false,
 }: {
   categoryId: string;
   /** The panel's name: "Review new" on Today. */
   label?: string;
+  /** Today: the auto-scan's status sits above the panel and says the new and source counts (this
+   *  Feed's, so the page has one number); the panel doesn't repeat them. */
+  scanStatus?: boolean;
 }) {
   const feed = useFeed(categoryId);
   const { view } = feed;
@@ -103,7 +110,13 @@ export default function ReviewView({
 
   const caughtUp =
     'Every posting from your sources is saved or skipped. The next scan brings new ones.';
-  return (
+  const status = scanStatus && (
+    <ScanStatus
+      categoryId={categoryId}
+      counts={view ? { newToday: view.newToday, sources: view.sourcesRead } : undefined}
+    />
+  );
+  const panel = (
     <Panel
       label={view ? `${label} (${listed.length})` : label}
       title={label}
@@ -115,18 +128,14 @@ export default function ReviewView({
         <Stack gap="normal">
           <Stack gap="px4">
             <Text variant="body" as="p" role="status" className="rjb-semibold">
-              {line ?? (feed.loading ? 'Reading your sources…' : '')}
+              {(scanStatus ? null : line) ?? (feed.loading ? 'Reading your sources…' : '')}
             </Text>
             {feed.progress && (
               <Text variant="caption" as="p" tone="secondary">
                 {`Read ${feed.progress.done} of ${feed.progress.total} boards`}
               </Text>
             )}
-            {view && view.failed.length > 0 && (
-              <Text variant="caption" as="p" tone="secondary">
-                {failedLine(view.failed)}
-              </Text>
-            )}
+            {view && view.failed.length > 0 && <Unavailable failed={view.failed} />}
           </Stack>
           {/* One row on a phone: the view toggle, and Sort as a menu (like the Pipeline's). */}
           <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
@@ -270,27 +279,44 @@ export default function ReviewView({
       />
     </Panel>
   );
+  return status ? (
+    <Stack gap="normal">
+      {status}
+      {panel}
+    </Stack>
+  ) : (
+    panel
+  );
 }
 
 const decidedAny = (h: { decided: number; muted: number; saved: number }) =>
   h.decided + h.muted + h.saved > 0;
 
-/** Which sources didn't answer, in one line; one failure in its own words. Remotive's spent daily
- *  budget is not a failure: it says when it comes back. */
-function failedLine(failed: { label: string; error?: string }[]): string {
-  const name = (s: { label: string }) => s.label.split(' · ')[0];
-  const spent = failed.filter((s) => s.error?.includes('daily limit reached'));
-  const down = failed.filter((s) => !spent.includes(s));
-  return [
-    spent.length > 0 &&
-      `${spent.map(name).join(', ')}: today's free searches are used up, more tomorrow.`,
-    down.length === 1 && down[0].error
-      ? `${down[0].error.replace(/ — /g, ': ')} The rest are below.`
-      : down.length > 1 &&
-        `${down.length} sources didn’t answer: ${down.map(name).join(', ')}. The rest are below.`,
-  ]
-    .filter(Boolean)
-    .join(' ');
+/** Sources that didn't answer, as one quiet line ("2 sources unavailable · details") with each
+ *  one's reason behind it. Remotive's spent daily budget says when it comes back. */
+function Unavailable({ failed }: { failed: { label: string; error?: string }[] }) {
+  const n = failed.length;
+  const why = (s: { label: string; error?: string }) =>
+    s.error?.includes('daily limit reached')
+      ? `${s.label.split(' · ')[0]}: today's free searches are used up, more tomorrow.`
+      : (s.error?.replace(/ — /g, ': ') ?? `${s.label} didn’t answer.`);
+  return (
+    <Disclosure
+      label={`${n} ${n === 1 ? 'source' : 'sources'} unavailable · details`}
+      variant="nav"
+    >
+      <Stack gap="px4">
+        {failed.map((s) => (
+          <Text key={s.label} variant="caption" as="p" tone="secondary">
+            {why(s)}
+          </Text>
+        ))}
+        <Text variant="caption" as="p" tone="secondary">
+          The rest are listed.
+        </Text>
+      </Stack>
+    </Disclosure>
+  );
 }
 
 function hiddenLine(h: {

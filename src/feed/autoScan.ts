@@ -752,14 +752,21 @@ export function ignoreFound(key: string): () => void {
 export const newCompanies = (s: ScanState): FoundCompany[] =>
   s.found.filter((f) => f.status === 'new');
 
-/** "Last scanned 14:05 · 12 new from 9 sources". Null before the first run. */
-export function lastScannedLine(s: ScanState, locale?: string): string | null {
+/** "Last scanned 14:05 · 12 new from 9 sources". `counts`: Review new's own (FeedView newToday and
+ *  sourcesRead, from feed.ts countSources) once it has read, so the page shows one number; else the
+ *  scan's. Null before the first run. */
+export function lastScannedLine(
+  s: ScanState,
+  locale?: string,
+  counts?: { newToday: number; sources: number },
+): string | null {
   if (!s.finishedAt) return null;
   const at = new Date(s.finishedAt).toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   });
-  const n = s.sourceCount;
-  return `Last scanned ${at} · ${s.newCount} new from ${n} ${n === 1 ? 'source' : 'sources'}`;
+  const n = counts?.sources ?? s.sourceCount;
+  const fresh = counts?.newToday ?? s.newCount;
+  return `Last scanned ${at} · ${fresh} new from ${n} ${n === 1 ? 'source' : 'sources'}`;
 }

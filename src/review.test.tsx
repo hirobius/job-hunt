@@ -91,6 +91,9 @@ describe('Review new: Browse', () => {
     const ul = await list();
     expect(titles(ul)).toHaveLength(3);
     expect(screen.getByText('3 new today from 2 sources')).toBeInTheDocument();
+    // Sources that didn't answer are one quiet line; the reasons wait behind it.
+    expect(screen.queryByText(/^Jobicy: timed out/)).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /^1 source unavailable/ }));
     expect(screen.getByText(/^Jobicy: timed out/)).toBeInTheDocument();
     // The posting is one tap away beside each title.
     expect(
@@ -218,8 +221,12 @@ describe('Review new: Browse', () => {
     await user.click(screen.getByRole('button', { name: 'Sort: Newest' }));
     await user.click(await screen.findByRole('menuitemradio', { name: 'Company' }));
     expect(titles(ul)[0]).toBe('Design Systems Designer 29');
-    await user.click(screen.getByRole('button', { name: /^Contract 1/ }));
-    expect(titles(await list())).toEqual(['Design Systems Designer 7']);
+    // Two filters only (Adrian 2026-10-28): New today and Remote.
+    expect(
+      within(screen.getByRole('group', { name: 'Filter postings' }))
+        .getAllByRole('button')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['New today 30', 'Remote 30']);
   });
 });
 

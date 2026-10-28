@@ -166,6 +166,10 @@ describe('runScan', () => {
     expect(s).toMatchObject({ newCount: 2, notDesignSystem: 1, notRemote: 1, sourceCount: 2 });
     expect(s.finishedAt).toBe(NOW);
     expect(lastScannedLine(s, 'en-GB')).toMatch(/^Last scanned \d\d:\d\d · 2 new from 2 sources$/);
+    // Where Review new has read, its counts are the one number shown (feed.ts countSources).
+    expect(lastScannedLine(s, 'en-GB', { newToday: 5, sources: 1 })).toMatch(
+      /^Last scanned \d\d:\d\d · 5 new from 1 source$/,
+    );
   });
 
   it('a board the identity check does not trust is shown but never read', async () => {

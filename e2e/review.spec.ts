@@ -69,7 +69,9 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await setUp(page);
     await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
-    await expect(page.getByText(/^\d+ new today from \d+ sources$/)).toBeVisible();
+    // One count on the page: the scan's line says the Feed's new and source counts.
+    await expect(page.getByText(/ · \d+ new from \d+ sources$/)).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(/new today from/)).toHaveCount(0);
     // Every board has answered.
     await expect(page.getByText(/^Read \d+ of \d+ boards$/)).toHaveCount(0, { timeout: 15_000 });
     const list = page.getByRole('list', { name: 'New postings' });
