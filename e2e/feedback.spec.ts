@@ -345,6 +345,11 @@ test('Companies: star, roles and the page actions answer within 300 ms', async (
   await expect(page.getByText('Removed “Ensono”', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(star).toHaveAttribute('aria-pressed', 'true');
+  // The Companies row stays in its list, so it must not collapse (it would stay invisible).
+  await expect(star.locator('xpath=ancestor::li[1]')).not.toHaveAttribute(
+    'data-motion',
+    'collapse',
+  );
   await press(page, button(page, 'Roles at Okta'), 'Roles');
   for (const name of ['Add a company', /^Change where/, 'Manage track', 'New track']) {
     await press(page, button(page, name), String(name));

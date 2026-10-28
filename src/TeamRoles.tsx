@@ -127,18 +127,22 @@ export function DreamStar({
   company,
   website,
   board,
+  rowLeaves = false,
 }: {
   categoryId: string;
   company: string;
   website?: string;
   board?: Board;
+  /** The star sits in a row that leaves its list on unstar (the Dream companies list), so the
+   *  row collapses first. A Companies row stays in its list, so it must not collapse. */
+  rowLeaves?: boolean;
 }) {
   const dreams = useDreams(categoryId);
   const key = dreamKey(company);
   const on = dreams.some((d) => d.key === key);
   // Pops on each toggle (#212); a star already on when the page opens holds still.
   const [touched, setTouched] = useState(false);
-  /** Unstarring is a soft Remove (#212, #324): the row collapses first, then a notice offers
+  /** Unstarring is a soft Remove (#212, #324): a row that leaves collapses first, then a notice offers
    *  Undo, which puts the company back in its place with its check history (`seen`,
    *  `checkedAt`, `starredAt`), so a mis-tap doesn't mark every opening as new on the
    *  next check. */
@@ -146,10 +150,12 @@ export function DreamStar({
     const at = dreams.findIndex((d) => d.key === key);
     const dream = dreams[at];
     if (!dream) return;
-    collapseRow(from, () => {
+    const remove = () => {
       unstarDream(categoryId, key);
       notifyRemoved(`Removed “${company}”`, () => restoreDream(categoryId, dream, at));
-    });
+    };
+    if (rowLeaves) collapseRow(from, remove);
+    else remove();
   };
   return (
     <Button
