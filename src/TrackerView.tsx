@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Fragment, lazy, Suspense, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Form } from '@hirobius/design-system/patterns';
 import { Search, Briefcase, ChevronDown, Download, MoreHorizontal, Plus } from 'lucide-react';
 import {
@@ -17,6 +17,7 @@ import { EmptyState } from './hds-gaps/EmptyState';
 import { MetaCaption } from './MetaCaption';
 import { useJobs } from './store';
 import { saveWithNotice } from './saveNotice';
+import { importFresh } from './staleBuild';
 import { SORTS, type SortKey } from './jobSort';
 import {
   FILTER_GROUPS,
@@ -42,6 +43,10 @@ import './account/sheet.css';
 import { openTab } from './tabMemory';
 import { useBackCloses, useBackSheet } from './useBackCloses';
 import { useListFocusKeeper } from './listFocus';
+
+// The Find box (#384) loads when Add job turns into it: the board probe stays out of the Pipeline.
+const loadFindBox = importFresh(() => import('./FindBox'));
+const FindBox = lazy(loadFindBox);
 
 // The Status and Sort menus read as selects (rev-3 item 1): they share the row, label left,
 // chevron right. HDS Button has no stretch or alignment prop.
@@ -76,6 +81,8 @@ export default function TrackerView() {
   // Said under the field (QA): an empty or unreadable link keeps the dialog open and says why.
   const [urlError, setUrlError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  // The Add job dialog can turn into the Find box (#384): paste a company, board or title too.
+  const [findMode, setFindMode] = useState(false);
   const urlField = useRef<HTMLInputElement>(null);
   // Pinned to the top of what the phone keyboard leaves visible, like Sign in (sheet.css).
   const sheetRef = useVisualViewportVars<HTMLDivElement>();
@@ -118,7 +125,10 @@ export default function TrackerView() {
   };
   const onAddOpenChange = (open: boolean) => {
     setAddOpen(open);
-    if (!open) setUrlError(null);
+    if (!open) {
+      setUrlError(null);
+      setFindMode(false);
+    }
   };
 
   // Start applying is the page's one primary once there are jobs; Add job steps down.
@@ -431,6 +441,8 @@ export default function TrackerView() {
           hideClose
           aria-describedby={undefined}
           onOpenAutoFocus={(e) => {
+            // Fetch the Find box now, so turning into it never leaves the dialog empty.
+            void loadFindBox().catch(() => undefined);
             e.preventDefault();
             urlField.current?.focus();
           }}
@@ -441,47 +453,68 @@ export default function TrackerView() {
           }}
         >
           <Dialog.Header>
-            <Dialog.Title>Add a job</Dialog.Title>
+            <Dialog.Title>{findMode ? 'Find' : 'Add a job'}</Dialog.Title>
           </Dialog.Header>
-          <Form noValidate onSubmit={submit}>
-            <Stack gap="normal">
-              <HdsInput
-                ref={urlField}
-                label="Job link"
-                type="url"
-                inputMode="url"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                enterKeyHint="go"
-                placeholder="Job link"
-                value={url}
-                helperText="The title fills in from the link. You can edit it after."
-                error={!!urlError}
-                errorMessage={urlError ?? undefined}
-                onChange={(e) => {
-                  setUrl(e.target.value);
-                  if (urlError) setUrlError(null);
-                }}
+          {findMode ? (
+            <Suspense fallback={null}>
+              <FindBox
+                initial={url}
+                autoFocus
+                onDone={() => onAddOpenChange(false)}
+                footer={
+                  <Dialog.Close asChild>
+                    <UiButton variant="secondary">Cancel</UiButton>
+                  </Dialog.Close>
+                }
               />
-              {/* Phone: the full-width primary over a full-width Cancel (rev-3 mock). From sm, one
+            </Suspense>
+          ) : (
+            <Form noValidate onSubmit={submit}>
+              <Stack gap="normal">
+                <HdsInput
+                  ref={urlField}
+                  label="Job link"
+                  type="url"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="go"
+                  placeholder="Job link"
+                  value={url}
+                  helperText="The title fills in from the link. You can edit it after."
+                  error={!!urlError}
+                  errorMessage={urlError ?? undefined}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+                    if (urlError) setUrlError(null);
+                  }}
+                />
+                {/* One Find box (#384) until Today hosts it: the same dialog takes anything. */}
+                <div>
+                  <UiButton variant="tertiary" size="sm" onClick={() => setFindMode(true)}>
+                    Paste a company, board or title instead
+                  </UiButton>
+                </div>
+                {/* Phone: the full-width primary over a full-width Cancel (rev-3 mock). From sm, one
                   row with Add job right-most. Add job comes first in the DOM either way. */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: { base: 'column', sm: 'row-reverse' },
-                  gap: 'xs',
-                }}
-              >
-                <UiButton type="submit" variant="primary">
-                  Add job
-                </UiButton>
-                <Dialog.Close asChild>
-                  <UiButton variant="secondary">Cancel</UiButton>
-                </Dialog.Close>
-              </Box>
-            </Stack>
-          </Form>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: { base: 'column', sm: 'row-reverse' },
+                    gap: 'xs',
+                  }}
+                >
+                  <UiButton type="submit" variant="primary">
+                    Add job
+                  </UiButton>
+                  <Dialog.Close asChild>
+                    <UiButton variant="secondary">Cancel</UiButton>
+                  </Dialog.Close>
+                </Box>
+              </Stack>
+            </Form>
+          )}
         </Dialog.Content>
       </Dialog>
     </Stack>

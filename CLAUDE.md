@@ -191,6 +191,15 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   returns to the page the sign-in was asked from (`account/signInReturn.ts`). Pinned in
   `src/route.test.ts`, `src/returnPaths.test.tsx`, `scrollMemory.test.ts`, `tabMemory.test.ts`,
   `routeLabel.test.ts`; E2E `e2e/return-paths.spec.ts` (390 and 1440, with the browser's Back).
+- **Today home (simplify 2/9, #383; spec `docs/specs/simplify.html` design C):** the tabs are **Today ·
+  Companies · Jobs** (Jobs = the Pipeline, slug `queue`, unchanged inside; its page head and Backs still say
+  Pipeline). An empty hash, the Trades slug and a sign-in error land on `#/today` (`HOME_ROUTE`); a first run
+  shows the same `Onboarding` there. `Today.tsx` lays out the pure read model `today.ts` as three panels in a
+  fixed order: **Review new** (sources = the active track's distinct watched boards + `KEYLESS_FEEDS`; the new count is null
+  until the Feed slice, so it links to Live postings, `?from=/today`: no breadth lost), **Apply** (the
+  Pipeline's `toApplyQueue`, Start / Resume applying → Apply mode, `?from=/today`) and **Follow up** (`dueFollowUps`, the
+  one `FollowUpButton` on the most overdue). Pinned in `today.test.ts`, `todayHome.test.tsx`,
+  `e2e/today.spec.ts`.
 - **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1):** the tabs are
   **Companies · Pipeline** (Templates lost its tab in #240); Companies is the old Discover (slug
   `discover`, home, hosts the first-run gate) and an empty hash lands there. "Try with sample data"
@@ -257,6 +266,10 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
 - **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
   `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
   Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).
+  An unknown slug shows a skeleton until `useCloudSync().settled`, then "No company here" (#303).
+  Each Documents row links to its editor via `linkTo` (Back says "← <Company>"; an uploaded final copy is
+  text only, #304). Notes are "Note 2 of 3" when several, each with a soft Remove + Undo; a notes-only
+  company's last note goes back from the page and Undo reopens it (#305).
 - **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
   first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the first-run gate goes
@@ -430,9 +443,9 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   not a class (React rewrites a className it owns, e.g. a starred table row moving to the top), and on an HDS Table
   row (`display: contents`, no box) they mark its cells. Row status / Retire / Mark applied
   raise a notice with Undo; **Remove is soft everywhere**: every Remove (a Pipeline job, a job's to-do or interview,
-  a final copy, an outreach target, Manage track's links and sections) collapses the row first, then a notice
+  a final copy, a company note, a Base document (Documents' row and editor Delete, #329, `documentRemove.ts`), an outreach target, a dream company, Manage track's links and sections) collapses the row first, then a notice
   (`saveNotice.notifyRemoved`) offers Undo that puts it back in its place (`restoreTodo` / `restoreEvent` /
-  `targets.restoreTarget` / `documents.restoreDocument` / `curationStore.restoreTile` / `restoreGroup`, a section
+  `targets.restoreTarget` / `documents.restoreDocument` / `dreams.restoreDream` / `curationStore.restoreTile` / `restoreGroup`, a section
   with its links in order, its row sent before its links). Inside a modal dialog (Manage track) the notice is
   `inDialog`: the dialog's footer shows it (`NoticeHost.DialogNotice`, reachable by keyboard and screen reader,
   which the toast behind a modal is not), and it moves to the toast when the dialog closes (`noticeToToast`).
@@ -507,7 +520,10 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   someone else), the tab freezes: no pull/push/track write, a "Reload to continue" toast + menu
   line, and after a switch its `rjb_` writes are dropped (a sign-out keeps them: the wiped sync
   base makes the next sign-in ask; any sign-in heard while stopped, the same account too, drops them from then on, and Sign out / Delete my data re-check the session after their confirms, so they never end another tab's account). Same-user refreshes change nothing. Pinned in
-  `account/tabSwitch.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
+  `account/tabSwitch.test.tsx`. **Forward guard (#382):** a pull that reads a blob `v` above `BLOB_VERSION`
+  freezes the tab the same way (`'newerVersion'`: nothing adopted or pushed, storage guarded, "Reload to
+  continue"); Sign out and Delete my data still work there (`liftNewerVersionFreeze`). Pinned in
+  `account/forwardGuard.test.tsx`. Outside links only become an href when http(s) (`src/httpUrl.ts`:
   feed sources, YC websites, tiles; `sanitizeJobs` drops `javascript:`/`data:` jobs), pinned in
   `unsafeUrls.test.tsx`.
 - **Sign-in link errors:** a magic link that is expired or refused lands with `#error=…`;
@@ -554,8 +570,9 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   (Adrian: ~3 min → ~30-60 s per deploy). Vercel no longer runs the checks, so **`npm run verify`
   (typecheck → lint → vitest → build) must pass locally before every push to `main`**; `main` is the
   live production site. `deployGate.test.ts` pins both halves. Branch pushes only
-  build a preview when the commit message contains `[preview]`. E2E in cloud sessions:
-  `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
+  build a preview when the commit message contains `[preview]`. E2E in cloud sessions: plain
+  `npm run test:e2e` (`playwright.config.ts` falls back to the stable `/opt/pw-browsers/chromium`
+  link; set `PW_CHROMIUM_PATH` only to use another build).
 - **CSP (#97 → enforcing in #106):** `Content-Security-Policy` in `vercel.json`, pinned by
   `src/csp.test.ts`. **Any new fetch host must go in `connect-src`, the test and `legal.ts` `THIRD_PARTIES`, or it's blocked.**
   Fonts are HDS's self-hosted `fonts.css`, so `font-src`/`style-src` are `'self'` only — no font CDN (#115).

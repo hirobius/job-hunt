@@ -99,9 +99,7 @@ describe('step 1: pick a track', () => {
   it('sample data ends the first run: the Pipeline shows the sample and a Sample track', async () => {
     renderApp();
     await click('Try with sample data');
-    expect(
-      await screen.findByRole('tab', { name: 'Pipeline', selected: true }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Jobs', selected: true })).toBeInTheDocument();
     expect(await screen.findByRole('status', { name: 'Sample data' })).toBeInTheDocument();
     expect(getCurationState().categories.map((c) => c.label)).toEqual(['Sample']);
   });

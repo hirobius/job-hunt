@@ -153,6 +153,7 @@ export function createFakeSupabase(
     },
     async rpc(
       name: string,
+      args?: Record<string, unknown>,
     ): Promise<Result & { error: { message: string; code?: string } | null }> {
       if (!rpcs.has(name))
         return { data: null, error: { message: `Could not find ${name}`, code: 'PGRST202' } };
@@ -161,7 +162,9 @@ export function createFakeSupabase(
       if (f) return f;
       if (name === 'delete_my_data') {
         const uid = session?.user.id;
-        if (!uid) return { data: null, error: { message: 'not signed in' } };
+        // The server refuses an account the caller does not hold (another tab's session).
+        if (!uid || args?.p_user !== uid)
+          return { data: null, error: { message: 'not your account', code: '42501' } };
         for (const t of Object.keys(tables)) tables[t] = rows(t).filter((r) => r.user_id !== uid);
       }
       return { data: null, error: null };
@@ -234,8 +237,12 @@ export function createFakeSupabase(
 }
 
 /** An access token as a magic link carries it: a JWT whose payload names the account's email. */
-export function fakeAccessToken(email: string): string {
+export function fakeAccessToken(
+  email: string,
+  { exp = Math.floor(Date.now() / 1000) + 3600 }: { exp?: number | null } = {},
+): string {
   const b64 = (o: object) =>
     btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  return `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: `id-${email}`, email })}.sig`;
+  const payload = exp === null ? { sub: `id-${email}`, email } : { sub: `id-${email}`, email, exp };
+  return `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64(payload)}.sig`;
 }

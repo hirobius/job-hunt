@@ -371,6 +371,43 @@ describe('job page tabs (#130 slice 2)', () => {
     expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Ask about pay and hours');
   });
 
+  it('Notes follows a note synced from another device, then keeps typing on it (#330)', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { notes: 'Old note' });
+    openJobPage();
+    const notes = () => screen.getByRole('textbox', { name: 'Notes' });
+    expect(notes()).toHaveValue('Old note');
+    // A sync pull brings a newer note while the page is open and nothing is being typed.
+    act(() => updateJob(URL_A, { notes: 'Synced from the laptop' }));
+    expect(notes()).toHaveValue('Synced from the laptop');
+    await userEvent.type(notes(), '!');
+    await userEvent.tab();
+    expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Synced from the laptop!');
+  });
+
+  it('clearing Notes never brings the older note back into the field (#330 review)', async () => {
+    addJob(URL_A, 'Design Engineer', 'Found in Live postings');
+    updateJob(URL_A, { notes: 'Ask about pay' });
+    openJobPage();
+    const notes = screen.getByRole('textbox', { name: 'Notes' });
+    await userEvent.clear(notes);
+    await userEvent.tab();
+    expect(findJobById(jobIdOf(URL_A))?.notes).toBe('');
+    expect(notes).toHaveValue('');
+  });
+
+  it('an unsaved Notes edit wins over a note synced meanwhile (#330)', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { notes: 'Old' });
+    openJobPage();
+    const notes = () => screen.getByRole('textbox', { name: 'Notes' });
+    await userEvent.type(notes(), ' typed here');
+    act(() => updateJob(URL_A, { notes: 'Synced' }));
+    expect(notes()).toHaveValue('Old typed here');
+    await userEvent.tab();
+    expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Old typed here');
+  });
+
   it('never hides either note: Notes edits notes, with the older note read-only above', () => {
     addJob(URL_A, 'Design Engineer', 'Found in Live postings · Remotive');
     updateJob(URL_A, { company: 'Acme', notes: 'Ask about the shop floor' });
@@ -637,6 +674,17 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(screen.getByRole('tab', { name: 'Overview', selected: true })).toBeInTheDocument();
   });
 
+  it('a rail hop keeps the open tab, so fit can be compared job to job (#334)', async () => {
+    viewport(1280);
+    window.location.hash = `#/queue/${jobIdOf(URL_A)}?section=screening`;
+    renderApp();
+    expect(screen.getByRole('tab', { name: 'Screening', selected: true })).toBeInTheDocument();
+    await userEvent.click(railRow('Welder'));
+    expect(await screen.findByRole('heading', { level: 2, name: 'Welder' })).toBeInTheDocument();
+    expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_B)}?section=screening`);
+    expect(screen.getByRole('tab', { name: 'Screening', selected: true })).toBeInTheDocument();
+  });
+
   it('shows the same jobs the Pipeline list showed: its search and filter', () => {
     viewport(1280);
     setPipelineView({ q: 'welder' });
@@ -781,6 +829,40 @@ describe('job page Decks (#287)', () => {
       { id: 'd1', url: 'https://slides.example/1', label: 'Portfolio', sentOn: '2026-10-21' },
     ]);
     expect(within(panel).getByRole('link', { name: /Portfolio/ })).toBeInTheDocument();
+  });
+
+  it('Enter in any deck field saves, and Escape cancels (#332)', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const panel = decksPanel();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    await userEvent.type(within(panel).getByLabelText('Deck link'), 'https://pitch.com/v/acme');
+    await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme{Enter}');
+    expect(decksOf()).toEqual([expect.objectContaining({ label: 'Acme' })]);
+    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
+    await userEvent.type(within(panel).getByLabelText('Sent on (optional)'), '2026-10-20');
+    await userEvent.keyboard('{Enter}');
+    expect(decksOf()).toEqual([expect.objectContaining({ label: 'Acme', sentOn: '2026-10-20' })]);
+    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
+    await userEvent.type(within(panel).getByLabelText('Label (optional)'), ' deck{Escape}');
+    expect(within(panel).queryByLabelText('Label (optional)')).toBeNull();
+    expect(decksOf()).toEqual([expect.objectContaining({ label: 'Acme' })]);
+  });
+
+  it('a new or edited deck card flashes (#332, #212)', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const panel = decksPanel();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    await userEvent.type(within(panel).getByLabelText('Deck link'), 'https://pitch.com/v/acme');
+    await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add deck' }));
+    const card = () => within(panel).getByRole('link', { name: /Acme/ }).closest('li');
+    expect(card()).toHaveAttribute('data-motion', 'flash');
+    card()?.removeAttribute('data-motion');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Save' }));
+    expect(card()).toHaveAttribute('data-motion', 'flash');
   });
 
   it('Remove says so, and Undo puts the deck back in its place', async () => {

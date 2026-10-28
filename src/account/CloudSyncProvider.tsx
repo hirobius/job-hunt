@@ -33,6 +33,7 @@ import { syncOnLogin, foldIntoStore, takeLocalLegacyTiles } from '../curation/sy
 import { getCurationState } from '../curation/curationStore';
 import {
   freezeTab,
+  liftNewerVersionFreeze,
   isAuthKey,
   onTabFrozen,
   sessionChange,
@@ -57,9 +58,8 @@ import {
   UNSYNCED_SIGN_OUT,
   UNSYNCED_CHANGES_SIGN_OUT,
   RELOAD_ACTION,
+  TAB_FROZEN_MESSAGE,
   TAB_FROZEN_TITLE,
-  TAB_SIGNED_OUT,
-  TAB_SWITCHED,
 } from '../cloudMessages';
 import { getPending, useFailedCount } from '../curation/pending';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
@@ -325,6 +325,12 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }
     if (!got) return null;
     const { blob: cloud, stamp } = got;
+    // Written by a newer version (#382): adopting it would read it without the fields this one
+    // doesn't know, and the next push would rewrite it without them. Stop instead.
+    if (cloud && cloud.sourceV > BLOB_VERSION) {
+      freezeTab('newerVersion');
+      return null;
+    }
     const merged = both || (pulledOk.current && dirty());
     const local = localBlob();
     const next = mergeBlob(cloud, local, merged, readSyncBase(u.id), readSyncHashes(u.id));
@@ -572,8 +578,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // and restored on next sign-in; this only protects shared devices.
   const signOut = async () => {
     // Frozen (#288): the shared session is another tab's now; signing it out would sign that tab
-    // out. A reload is what this tab needs.
-    if (tabFrozen()) return location.reload();
+    // out. A reload is what this tab needs. Stopped by a newer version (#382), the session is this
+    // tab's own: it signs out without a push (pushNow won't send), asking first as for a failed one.
+    if (tabFrozen() && tabFrozen() !== 'newerVersion') return location.reload();
     // Flush edits still inside the push debounce (or a failed push) before the wipe.
     clearTimeout(pushTimer.current);
     if (user) {
@@ -583,6 +590,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     }
     // Track writes not yet in the cloud (refused, or still in flight) would be lost with the wipe.
     if (getPending().length > 0 && !window.confirm(UNSYNCED_SIGN_OUT)) return;
+    liftNewerVersionFreeze(); // the wipe below must reach storage
     // Another tab may have signed in as someone else meanwhile (the flush or a confirm found it):
     // the shared session is that tab's now, and signing it out would sign that account out.
     if (tabFrozen() || (user && !(await sessionIsStill(user)))) return location.reload();
@@ -595,15 +603,17 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
 
   // Delete removes the cloud row (RLS-scoped to this user) AND local data, then signs out.
   const deleteMyData = async () => {
-    if (!user || tabFrozen()) return;
+    if (!user || (tabFrozen() && tabFrozen() !== 'newerVersion')) return;
     if (
       !window.confirm(
-        'Delete all your synced data (jobs, categories, and boards) from the cloud and this device? This cannot be undone.',
+        'Delete all your synced data (jobs, tracks, boards, watched companies and scored postings) from the cloud and this device? This cannot be undone.',
       )
     )
       return;
     // The confirm may have stayed open while another tab switched account (#288): then the
     // deletes would run under that account's session, and the sign-out below would end it.
+    const stoppedByNewer = tabFrozen() === 'newerVersion';
+    liftNewerVersionFreeze(); // a newer version's blob is deleted like any other (#382)
     if (!(await sessionIsStill(user))) return;
     setMsg('Deleting…');
     // No push after this one (#393): drop the debounced one, then wait out one already sent.
@@ -614,6 +624,9 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     if (why) {
       deleting.current = false; // the local copy is kept, so syncing it may go on
       if (why === STOPPED) return; // the freeze notice says why; local copy kept
+      // Keep this device's copy so nothing is lost while the cloud copy is only partly gone.
+      // The newer version's blob may still be there: stay stopped, or the next push rewrites it.
+      if (stoppedByNewer) freezeTab('newerVersion');
       setMsg(why);
       toast({
         title: 'Delete incomplete',
@@ -639,7 +652,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     const supa = await loadSupabase();
     if (!(await sessionIsStill(u))) return STOPPED;
     try {
-      const r = await supa.rpc('delete_my_data');
+      const r = await supa.rpc('delete_my_data', { p_user: u.id });
       if (!r.error) return '';
       // Not applied yet (PGRST202), or applied before the scorer's tables exist (42P01): the
       // tables the app writes are all there is to delete.
@@ -711,7 +724,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     () =>
       onTabFrozen((why) => {
         clearTimeout(pushTimer.current);
-        const description = why === 'switched' ? TAB_SWITCHED : TAB_SIGNED_OUT;
+        const description = TAB_FROZEN_MESSAGE[why];
         setMsg(description);
         setPulling(false);
         if (frozenToasted.current) return; // a sign-out freeze turned switch: the menu line says it

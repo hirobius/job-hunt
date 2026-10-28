@@ -237,7 +237,7 @@ function DreamRow({
                 </a>
               </Button>
             )}
-            <DreamStar categoryId={categoryId} company={d.company} />
+            <DreamStar categoryId={categoryId} company={d.company} rowLeaves />
           </Stack>
         </Stack>
         {checked && checked !== 'unknown' && checked.roles.length > 0 && (

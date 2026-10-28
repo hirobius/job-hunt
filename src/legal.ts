@@ -3,6 +3,7 @@
 // lets the browser reach is named in `THIRD_PARTIES`). Starting templates for review, not legal
 // advice: while `LEGAL_DRAFT` is true the page says so. Adrian approves any wording before it ships.
 import { BRAND } from './brand';
+import { LEGAL_TITLES } from './legalRoute';
 
 /** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
  *  on 2026-10-20; set it back to true while a revision is under review. */
@@ -86,7 +87,7 @@ const name = BRAND.name;
 
 export const PRIVACY: LegalDoc = {
   slug: 'privacy',
-  title: 'Privacy policy',
+  title: LEGAL_TITLES.privacy,
   sections: [
     {
       heading: 'Who we are',
@@ -157,7 +158,7 @@ export const PRIVACY: LegalDoc = {
 
 export const TERMS: LegalDoc = {
   slug: 'terms',
-  title: 'Terms of use',
+  title: LEGAL_TITLES.terms,
   sections: [
     {
       heading: 'The service',
@@ -211,9 +212,6 @@ export const TERMS: LegalDoc = {
 };
 
 export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = { privacy: PRIVACY, terms: TERMS };
-
-/** The route slug for the legal pages: `#/legal/privacy`, `#/legal/terms`. */
-export const LEGAL_ROUTE = 'legal';
 
 /** An unknown or missing sub-slug shows the Privacy policy. */
 export const legalDocFor = (sub: string | null): LegalDoc => (sub === 'terms' ? TERMS : PRIVACY);

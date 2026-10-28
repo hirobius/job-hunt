@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { NO_KEY_MESSAGE } from './sam';
-import { RATE_LIMIT, SAM_SEARCH_URL, createSamHandler } from './samHandler';
+import { DAILY_UPSTREAM_CAP, RATE_LIMIT, SAM_SEARCH_URL, createSamHandler } from './samHandler';
 
 const NOW = Date.parse('2026-10-27T12:00:00Z');
 const KEY = 'secret-key-123';
@@ -38,7 +38,7 @@ function setup(opts: { key?: string; rows?: unknown[]; status?: number } = {}) {
     handler(
       new Request(`https://app.test/api/sam${query}`, { method, headers: { 'x-real-ip': ip } }),
     );
-  return { fetchImpl, get };
+  return { fetchImpl, get, handler };
 }
 
 const body = async (r: Response) => (await r.json()) as Record<string, unknown>;
@@ -150,6 +150,35 @@ describe('/api/sam', () => {
     await get('?naics=332322,541511');
     await get('?naics=541511,332322');
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('reuses each code’s answer across different sets of codes', async () => {
+    const { get, fetchImpl } = setup();
+    await get('?naics=332322,541511');
+    await get('?naics=332322,541512');
+    // 332322 was read already: only 541512 is new.
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it('caps SAM.gov calls per instance per day, whatever the callers', async () => {
+    const { get, fetchImpl } = setup();
+    let last: Response | undefined;
+    for (let i = 0; i < DAILY_UPSTREAM_CAP + 5; i++)
+      last = await get(`?naics=${100 + i}`, `9.9.${i}.1`);
+    expect(fetchImpl.mock.calls.length).toBeLessThanOrEqual(DAILY_UPSTREAM_CAP);
+    expect(last!.status).toBe(429);
+  });
+
+  it('never takes the caller from a header the client sets (x-forwarded-for)', async () => {
+    const { handler } = setup({ key: undefined });
+    const send = (xff: string) =>
+      handler(
+        new Request('https://app.test/api/sam?naics=332322', {
+          headers: { 'x-forwarded-for': xff },
+        }),
+      );
+    for (let i = 0; i < RATE_LIMIT; i++) expect((await send(`7.7.7.${i}`)).status).toBe(503);
+    expect((await send('8.8.8.8')).status).toBe(429);
   });
 
   it('rate-limits each caller', async () => {

@@ -224,6 +224,32 @@ describe('CloudSyncProvider (via the account menu)', () => {
     expect(screen.queryByText('Delete incomplete')).toBeNull();
   });
 
+  // A tab's shared session can flip to another tab's account between its check and the call:
+  // the call names the account it means, and the server refuses any other.
+  it('delete_my_data names the account and is refused for another one', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    fake().installRpc('delete_my_data');
+    fake().tables.postings = [
+      { id: 'p1', user_id: 'u1' },
+      { id: 'p2', user_id: 'u2' },
+    ];
+    const r = await fake().client.rpc('delete_my_data', { p_user: 'u2' });
+    expect(r.error?.code).toBe('42501');
+    expect(fake().tables.postings).toHaveLength(2);
+    expect((await fake().client.rpc('delete_my_data')).error?.code).toBe('42501');
+    expect(fake().tables.postings).toHaveLength(2);
+    const rpc = vi.spyOn(fake().client, 'rpc');
+    await chooseAccountItem('Delete my data');
+    await waitFor(() => expect(fake().tables.tracker).toEqual([]));
+    expect(rpc).toHaveBeenCalledWith('delete_my_data', { p_user: 'u1' });
+    expect(fake().tables.postings.map((p) => p.user_id)).toEqual(['u2']);
+  });
+
   it('Delete my data falls back to the app tables when the scorer tables are not there yet', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     addJob('https://acme.example/jobs/1', 'Design Engineer');

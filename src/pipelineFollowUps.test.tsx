@@ -1,6 +1,6 @@
 // Calm list 2/7 (#236): Today is gone. Due follow-ups and the next 7 days of interviews and calls
 // live at the top of the Pipeline, under To apply, as one Follow up section (due first, then the
-// rest with their dates) and one Next 7 days list. `#/today` redirects to Companies. Tested at the
+// rest with their dates) and one Next 7 days list. `#/today` is home again (#383). Tested at the
 // route seam through App and driven by role + name.
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,7 +22,8 @@ vi.mock('@supabase/supabase-js', async () => {
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob } from './store';
+import { addJob, addJobDetailed, getAllJobs, jobIdOf, markAppliedByUrl, removeJob } from './store';
+import { ymd } from './jobEvents';
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
@@ -59,34 +60,29 @@ afterEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
 });
 
-describe('#/today is retired (#236)', () => {
-  it('redirects to Companies, replacing the history entry', async () => {
+describe('#/today is home again (#383; was retired in #236)', () => {
+  it('opens Today, not Companies', async () => {
     seedPack('consulting');
     window.location.hash = '#/today';
-    const before = window.history.length;
-    const replace = vi.spyOn(window.history, 'replaceState');
     renderApp();
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
-    expect(replace).toHaveBeenCalled();
-    expect(window.history.length).toBe(before);
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
-    expect(screen.queryByRole('heading', { level: 2, name: 'Today' })).toBeNull();
-    replace.mockRestore();
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    expect(window.location.hash).toBe('#/today');
+    expect(screen.getByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument();
   });
 
-  it('an empty hash lands on Companies', async () => {
+  it('an empty hash lands on Today', async () => {
     seedPack('consulting');
     window.location.hash = '';
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+    await waitFor(() => expect(window.location.hash).toBe('#/today'));
   });
 
   it('a ?add= quick-add link still lands on the Pipeline', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
     renderApp();
     expect(window.location.hash).toBe('#/queue');
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
   });
 });
 
@@ -264,11 +260,29 @@ describe('empty sections render nothing (#236)', () => {
   });
 });
 
+describe('a solicitation’s response deadline (#308)', () => {
+  const inDays = (n: number) => {
+    const d = new Date();
+    return ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
+  };
+  it('a Saved job due to respond today, tomorrow or within the week is under Follow up with its day; day 8 is not', () => {
+    addJobDetailed('https://sam.gov/opp/a/view', { label: 'Bid today', deadline: inDays(0) });
+    addJobDetailed('https://sam.gov/opp/b/view', { label: 'Bid tomorrow', deadline: inDays(1) });
+    addJobDetailed('https://sam.gov/opp/c/view', { label: 'Bid next week', deadline: inDays(7) });
+    renderApp();
+    const rows = within(followUps()).getAllByRole('listitem');
+    expect(rows.map(titleOf)).toEqual(['Bid today', 'Bid tomorrow']);
+    expect(rows[0]).toHaveTextContent('Respond by Today');
+    expect(rows[1]).toHaveTextContent('Respond by Tomorrow');
+    expect(followUps()).not.toHaveTextContent('Bid next week');
+  });
+});
+
 describe('first-run gate in the shell', () => {
   it('a first visit (no tracks, no jobs) opens on setup, with sample data on offer', () => {
     window.location.hash = '';
     renderApp();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
     expect(screen.getByRole('heading', { name: 'Set up your board' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try with sample data' })).toBeInTheDocument();
   });
@@ -277,9 +291,7 @@ describe('first-run gate in the shell', () => {
     window.location.hash = '';
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
-    expect(
-      await screen.findByRole('tab', { name: 'Pipeline', selected: true }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Jobs', selected: true })).toBeInTheDocument();
     expect(await screen.findByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
   });
 

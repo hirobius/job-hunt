@@ -1,7 +1,7 @@
-// Export links (2026-10-22): the saved jobs' posting links as a list to copy or download. One
-// dialog, mounted once in DataToolsProvider, opened from the Pipeline's Jobs panel (on This view)
-// and the Account menu (on All saved jobs). Scope and format are picked here; the text is
-// exportLinks.buildLinkList.
+// Export links (2026-10-22): the saved jobs' posting links as a list to copy or download. The
+// dialog's content; ExportLinksHost (mounted once in DataToolsProvider) loads it on the first open
+// from the Pipeline's Jobs panel (on This view) or the Account menu (on All saved jobs). Scope and
+// format are picked here; the text is exportLinks.buildLinkList.
 import { useMemo, useRef, useState } from 'react';
 import { Copy, Download } from 'lucide-react';
 import {
@@ -18,31 +18,11 @@ import { useJobs } from './store';
 import { usePipelineView, visibleJobs } from './pipelineView';
 import { copyFilled } from './templateCopy';
 import { download } from './download';
-import { useBackCloses } from './useBackCloses';
-import {
-  buildLinkList,
-  closeExportLinks,
-  linksFilename,
-  useExportLinksScope,
-  type LinkFormat,
-  type LinkScope,
-} from './exportLinks';
+import { buildLinkList, linksFilename, type LinkFormat, type LinkScope } from './exportLinks';
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** Mounted once; renders the dialog while a scope is open. */
-export function ExportLinksHost() {
-  const scope = useExportLinksScope();
-  useBackCloses(scope !== null, closeExportLinks, 'export-links');
-  return (
-    <Dialog open={scope !== null} onOpenChange={(o) => !o && closeExportLinks()}>
-      {/* Keyed by the opening scope, so each open starts from where it was opened. */}
-      {scope && <ExportLinksDialog key={scope} initialScope={scope} />}
-    </Dialog>
-  );
-}
-
-function ExportLinksDialog({ initialScope }: { initialScope: LinkScope }) {
+export default function ExportLinksDialog({ initialScope }: { initialScope: LinkScope }) {
   const jobs = useJobs();
   const view = usePipelineView();
   const { toast } = useToast();

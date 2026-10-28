@@ -122,6 +122,16 @@ describe('an unsolicited sign-in link (no request from this browser)', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(screen.getByText('out')).toBeInTheDocument();
   });
+
+  it('an expired link is refused, even one this browser asked for (forged email + real refresh token)', async () => {
+    rememberSignInRequest(ME);
+    const tok = fakeAccessToken(ME, { exp: Math.floor(Date.now() / 1000) - 60 });
+    await boot(`#access_token=${tok}&refresh_token=attacker-rt`);
+    expect(await screen.findByText(/could not be used/)).toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByText('out')).toBeInTheDocument();
+    expect(Object.keys(localStorage).some((k) => /^sb-.+-auth-token$/.test(k))).toBe(false);
+  });
 });
 
 describe('a link whose token was refreshed (TOKEN_REFRESHED, not SIGNED_IN)', () => {
@@ -246,6 +256,12 @@ describe('the pieces', () => {
     expect(decideAuthLink({ access_token: 'x', refresh_token: 'r' }, ME)).toEqual({
       kind: 'reject',
     });
+    // No expiry, or one already past: refused (supabase-js would refresh it unchecked).
+    const now = Date.now();
+    const past = { access_token: fakeAccessToken(ME, { exp: now / 1000 - 1 }), refresh_token: 'r' };
+    const noExp = { access_token: fakeAccessToken(ME, { exp: null }), refresh_token: 'r' };
+    expect(decideAuthLink(past, ME, now)).toEqual({ kind: 'reject' });
+    expect(decideAuthLink(noExp, null, now)).toEqual({ kind: 'reject' });
   });
 
   it('a sign-in request lasts an hour', () => {

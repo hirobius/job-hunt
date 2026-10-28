@@ -39,14 +39,26 @@ describe('delete_my_data covers every per-user table', () => {
   });
 
   it.each(userTables())('deletes %s rows of the caller', (t) => {
-    expect(body).toMatch(new RegExp(`delete from public\\.${t} where user_id = auth\\.uid\\(\\)`));
+    expect(body).toMatch(new RegExp(`delete from public\\.${t} where user_id = uid;`));
   });
 
   it('runs as definer for signed-in users only', () => {
     expect(body).toMatch(/security definer/);
-    expect(body).toMatch(/set search_path = public/);
-    expect(body).toMatch(/revoke all on function public\.delete_my_data\(\) from public, anon;/);
-    expect(body).toMatch(/grant execute on function public\.delete_my_data\(\) to authenticated;/);
+    expect(body).toMatch(/set search_path = ''/);
+    expect(body).toMatch(
+      /revoke all on function public\.delete_my_data\(uuid\) from public, anon;/,
+    );
+    expect(body).toMatch(
+      /grant execute on function public\.delete_my_data\(uuid\) to authenticated;/,
+    );
+  });
+
+  it('erases only the account the caller names, and only its own', () => {
+    expect(body).toMatch(/function public\.delete_my_data\(p_user uuid\)/);
+    expect(body).toMatch(/uid uuid := auth\.uid\(\);/);
+    expect(body).toMatch(
+      /if uid is null or p_user is distinct from uid then\s+raise exception 'not your account' using errcode = '42501';/,
+    );
   });
 
   it('the fallback (no function yet) still deletes the tables the app writes', () => {
