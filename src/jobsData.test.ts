@@ -217,9 +217,9 @@ describe('BOARDS builders', () => {
       );
     });
 
-    it('handles hybrid and onsite modes with where', () => {
+    it('hybrid adds the keyword (#355), onsite sends the place only with where', () => {
       expect(build('Welder', { where: 'Spokane, WA', mode: 'hybrid' })).toBe(
-        'https://www.indeed.com/jobs?q=Welder&l=Spokane%2C%20WA',
+        'https://www.indeed.com/jobs?q=Welder%20hybrid&l=Spokane%2C%20WA',
       );
       expect(build('Welder', { where: 'Spokane, WA', mode: 'onsite' })).toBe(
         'https://www.indeed.com/jobs?q=Welder&l=Spokane%2C%20WA',
@@ -293,9 +293,9 @@ describe('BOARDS builders', () => {
       expect(build('Welder', loc)).toBe('https://www.ziprecruiter.com/jobs-search?search=Welder');
     });
 
-    it('handles hybrid and onsite modes', () => {
+    it('hybrid adds the keyword (#355), onsite sends the place only', () => {
       expect(build('Welder', { where: 'Spokane, WA', mode: 'hybrid' })).toBe(
-        'https://www.ziprecruiter.com/jobs-search?search=Welder&location=Spokane%2C%20WA',
+        'https://www.ziprecruiter.com/jobs-search?search=Welder%20hybrid&location=Spokane%2C%20WA',
       );
       expect(build('Welder', { where: 'Spokane, WA', mode: 'onsite' })).toBe(
         'https://www.ziprecruiter.com/jobs-search?search=Welder&location=Spokane%2C%20WA',
@@ -325,9 +325,9 @@ describe('BOARDS builders', () => {
       expect(build('Welder', loc)).toBe('https://www.google.com/search?q=Welder&ibp=htl;jobs');
     });
 
-    it('handles hybrid and onsite modes', () => {
+    it('hybrid adds the keyword (#355), onsite sends the place only', () => {
       expect(build('Welder', { where: 'Spokane, WA', mode: 'hybrid' })).toBe(
-        'https://www.google.com/search?q=Welder%20Spokane%2C%20WA&ibp=htl;jobs',
+        'https://www.google.com/search?q=Welder%20hybrid%20Spokane%2C%20WA&ibp=htl;jobs',
       );
       expect(build('Welder', { where: 'Spokane, WA', mode: 'onsite' })).toBe(
         'https://www.google.com/search?q=Welder%20Spokane%2C%20WA&ibp=htl;jobs',
@@ -355,9 +355,9 @@ describe('BOARDS builders', () => {
       expect(build('Welder', loc)).toBe('https://www.snagajob.com/search?q=Welder');
     });
 
-    it('handles hybrid and onsite modes', () => {
+    it('hybrid adds the keyword (#355), onsite sends the place only', () => {
       expect(build('Welder', { where: 'Spokane, WA', mode: 'hybrid' })).toBe(
-        'https://www.snagajob.com/search?q=Welder&w=Spokane%2C%20WA',
+        'https://www.snagajob.com/search?q=Welder%20hybrid&w=Spokane%2C%20WA',
       );
       expect(build('Welder', { where: 'Spokane, WA', mode: 'onsite' })).toBe(
         'https://www.snagajob.com/search?q=Welder&w=Spokane%2C%20WA',

@@ -25,6 +25,7 @@ import { useBackCloses } from './useBackCloses';
 import type { Back } from './back';
 import {
   boardsFor,
+  modeNote,
   ATS,
   HIDDEN_BOARDS,
   atsSearchUrl,
@@ -211,7 +212,9 @@ function AtsPanel({
   const term = titleClause(many ? active : [role]);
   const boardTiles: Tile[] = boardsFor(mode).map((b) => {
     const url = b.build(term, { where, mode });
-    return { name: b.name, meta: b.tag, url: entry ? entryLevelize(url) : url };
+    // "On-site not filtered" (#355) takes the tag's place: both don't fit a phone's row.
+    const meta = modeNote(b, mode) || b.tag;
+    return { name: b.name, meta, url: entry ? entryLevelize(url) : url };
   });
   const query: HiddenQuery = {
     role,
