@@ -16,7 +16,8 @@ export type FeedSourceId =
   | 'recruitee'
   | 'smartrecruiters'
   | 'teamtailor'
-  | 'personio';
+  | 'personio'
+  | 'sam';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
@@ -31,6 +32,7 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   smartrecruiters: 'SmartRecruiters',
   teamtailor: 'Teamtailor',
   personio: 'Personio',
+  sam: 'SAM.gov',
 };
 
 export interface Posting {
@@ -53,6 +55,9 @@ export interface Posting {
   salaryMax?: number;
   /** ISO currency code ('USD'); absent when the source doesn't say. */
   currency?: string;
+  /** A solicitation's response deadline (YYYY-MM-DD, SAM.gov only): saved as the job's
+   *  follow-up date. */
+  deadline?: string;
   /** The track scorer's verdict and reasons (src/tracks), on a scored track only. */
   trackScore?: ScoreResult;
 }

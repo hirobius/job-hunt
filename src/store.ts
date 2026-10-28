@@ -46,8 +46,16 @@ export function prettyTitle(u: string): string {
     // On a job board the host names the ATS, not the employer, so lead with the company slug.
     const ats = ATS_HOSTS[host];
     const company = ats && segments[0] ? titleCase(decodeURIComponent(segments[0])) : '';
-    const brand = host.split('.')[0];
-    let title = company || brand.charAt(0).toUpperCase() + brand.slice(1);
+    // Generic host labels name a kind of page, not the employer (#350): skip leading
+    // jobs/careers/boards/apply/www labels and use the next, company-ish label. A lone
+    // TLD left after them is not a brand either — fall back to the path words below.
+    const GENERIC_HOST_LABELS = new Set(['jobs', 'careers', 'boards', 'apply', 'www']);
+    const labels = host.split('.');
+    let li = 0;
+    while (li < labels.length && GENERIC_HOST_LABELS.has(labels[li])) li++;
+    const brandLabel = li < labels.length - 1 ? labels[li] : li === 0 && labels.length === 1 ? labels[0] : '';
+    const brand = brandLabel ? brandLabel.charAt(0).toUpperCase() + brandLabel.slice(1) : '';
+    let title = company || brand;
     let words = decodeURIComponent((company ? segments.slice(1) : segments).pop() || '')
       .replace(/\.(html?|php|aspx)$/i, '')
       .replace(/[-_]+/g, ' ')
@@ -57,11 +65,11 @@ export function prettyTitle(u: string): string {
     if (company && words.toLowerCase() === 'jobs') words = '';
     if (words && words.length <= 42 && /[a-z]/i.test(words)) {
       words = words.replace(/\b\w/g, (c) => c.toUpperCase());
-      title += ' — ' + words;
+      title = title ? title + ' — ' + words : words;
     } else if (company) {
       title += ' · ' + ats;
     }
-    return title;
+    return title || 'Saved job';
   } catch {
     return 'Saved job';
   }
@@ -139,15 +147,17 @@ export function sanitizeJobs(arr: unknown): Job[] {
     if (seen.has(key)) continue; // first occurrence wins
     seen.add(key);
     const label = (it.label || '').replace(/[<>]/g, '').trim();
-    const { snoozeUntil: rawSnooze, decks: rawDecks, ...rest } = it;
+    const { snoozeUntil: rawSnooze, decks: rawDecks, deadline: rawDeadline, ...rest } = it;
     const snoozeUntil = normSnooze(rawSnooze);
     // Deck links become hrefs: only well-formed http(s) ones are kept (#287).
     const decks = sanitizeDecks(rawDecks);
+    const deadline = normSnooze(rawDeadline); // the same YYYY-MM-DD rule
     out.push(
       normalizeScreening({
         ...rest,
         ...(snoozeUntil ? { snoozeUntil } : {}),
         ...(decks.length ? { decks } : {}),
+        ...(deadline ? { deadline } : {}),
         url,
         status: normStatus(it.status),
         label: label && label !== 'Saved job' ? label : prettyTitle(url), // backfill weak titles
@@ -230,6 +240,7 @@ export function addJobDetailed(
     location?: string;
     seniority?: string;
     mode?: JobMode;
+    deadline?: string;
   },
 ): string | null {
   const jobs = store.get();
@@ -249,6 +260,8 @@ export function addJobDetailed(
   if (fields.location?.trim()) job.location = fields.location.trim();
   if (fields.seniority?.trim()) job.seniority = fields.seniority.trim();
   if (fields.mode) job.mode = fields.mode;
+  const deadline = normSnooze(fields.deadline);
+  if (deadline) job.deadline = deadline;
   set([...jobs, job]);
   return u;
 }

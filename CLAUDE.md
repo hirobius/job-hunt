@@ -260,7 +260,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
 - **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
   first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the first-run gate goes
-  to `#/discover`). Sample data is a step 1 offer on a first run. Discover with no track shows
+  to `#/discover`). Sample data is a step 1 offer on a first run. A sign-in drops its Sample track first (`demo/sampleTrack.ts`): never asked about, never uploaded. Discover with no track shows
   `ChooseTrack` first. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in
   Discover, Documents and the Pipeline (`TrackerView`, with the Briefcase icon). The Pipeline
   gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in
@@ -374,6 +374,19 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   Ashby sequential, 404 disables + logs, RSS designsystems.jobs on the morning run). Not applied or deployed: see its
   README. `npm run sync:dry-run` runs the read + score with no database. Pinned in `src/tracks/*.test.ts`,
   `scoredQueue.test.tsx`, `LiveFeedMustInclude.test.tsx`, `companies.test.tsx`.
+- **Contracts track (#275, a cheap test: drop it if nothing useful shows in ~2 weeks):** the "Contracts" starter
+  pack (`isContractsTrack`, no titles/sections/boards). Its Live postings reads **SAM.gov only**, through the
+  same-origin edge function `api/sam.ts` → `src/contracts/samHandler.ts` (key `SAM_GOV_API_KEY`, server-side
+  only; without it 503 `NO_KEY_MESSAGE` "SAM_GOV_API_KEY is not set: add it in Vercel → Settings → Environment
+  Variables", shown on the `ContractsSource` row). The function: GET only, 20 calls / 10 min per IP (in-instance),
+  1 to 10 NAICS codes of 2-6 digits and an optional US state code validated before the key is read, one SAM.gov
+  v2 search per code (last 30 days, place-of-performance state), 6 h answer cache, awards / closed / past-deadline
+  notices dropped, only sam.gov links, the key never in an answer. NAICS per track ride in the must-include entry
+  (`naics`, default `DEFAULT_NAICS` 332322, 332312, 541511, 541512, 541430); the state comes from the track's
+  location (`stateCodeFor`); the term only narrows the list. Saving makes a Job with `deadline` (YYYY-MM-DD), its
+  follow-up date while Saved (`jobEvents.followUpDate`). CSP and `legal.ts` unchanged ('self'). SAM.gov's shape is
+  **unverified live**. Pinned in `src/contracts/*.test.ts`, `feed/sources/sam.test.ts`,
+  `LiveFeedContracts.test.tsx`, `jobDeadline.test.ts`.
 - **Adele seed (2026-10-23):** `src/feed/data/adele.json` is a one-time snapshot of UXPin's public design systems
   list (github.com/uxpin/adele, **MIT**; company name + design system site; re-take it by hand from `ADELE.file`).
   No runtime host. On a design systems track (`hasRelatedTitles` or the GitHub design-system search) Companies' More

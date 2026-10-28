@@ -92,6 +92,10 @@ const LIVE: Record<string, unknown> = {
       descriptionPlain: 'Welder friendly. Grow our design system with Claude Code and Cursor.',
     })),
   },
+  // A design systems role that never says welder: only the scorer (src/tracks) lists it.
+  'https://api.lever.co/v0/postings/dsonly?mode=json': [
+    leverJob('dsonly', 'x1', 'Senior Design Systems Designer'),
+  ],
   'https://api.lever.co/v0/postings/eastgate?mode=json': [1, 2, 3, 4].map((n) =>
     leverJob('eastgate', `e${n}`, `Welder ${n}`),
   ),
@@ -482,5 +486,24 @@ describe('Companies comes back as it was left', () => {
     expect(within(roles).getByText('Senior Welder')).toBeVisible();
     expect(within(back).getByText('Greenhouse · no matching roles')).toBeVisible();
     expect(fakeFetch.mock.calls.slice(reads).map((c) => String(c[0]))).toEqual([]);
+  });
+
+  it('roles read before the scorer was turned on elsewhere are read again, not shown stale', async () => {
+    getAllJobs()
+      .slice()
+      .forEach((j) => removeJob(j.url));
+    watch('https://jobs.lever.co/dsonly');
+    renderApp();
+    const panel = await screen.findByRole('region', { name: 'Watched' });
+    await userEvent.click(within(panel).getByRole('button', { name: /^All/ }));
+    expect(await within(panel).findByText('Lever · no matching roles')).toBeVisible();
+
+    window.location.hash = '#/queue';
+    await screen.findByRole('heading', { level: 2, name: 'Pipeline' });
+    // Calibrate (on Live postings, away from Companies) turns the scorer on.
+    setMustInclude(cat, { terms: ['design system'] });
+    window.history.back();
+    const back = await screen.findByRole('region', { name: 'Watched' });
+    expect(await within(back).findByText('Lever · 1 matching role')).toBeVisible();
   });
 });

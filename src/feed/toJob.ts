@@ -10,6 +10,8 @@ export interface JobFields {
   location: string;
   mode?: JobMode;
   note: string;
+  /** A solicitation's response deadline (YYYY-MM-DD): the job's follow-up date. */
+  deadline?: string;
 }
 
 export function jobFieldsFor(p: RankedPosting, term: string, from = 'Live postings'): JobFields {
@@ -21,8 +23,13 @@ export function jobFieldsFor(p: RankedPosting, term: string, from = 'Live postin
       : p.title;
   // The signals ride along so the Tracker keeps why this one was worth saving.
   const signals = p.signals.map((s) => s.label).join(', ');
-  const note = [`Found in ${from} · ${SOURCE_LABEL[p.source]} · “${term}”`, signals]
+  const found = term
+    ? `Found in ${from} · ${SOURCE_LABEL[p.source]} · “${term}”`
+    : `Found in ${from} · ${SOURCE_LABEL[p.source]}`;
+  const note = [found, p.deadline && `Response due ${p.deadline}`, signals]
     .filter(Boolean)
     .join(' · ');
-  return { label, company: p.company, location: p.location, mode: p.mode, note };
+  const fields: JobFields = { label, company: p.company, location: p.location, mode: p.mode, note };
+  if (p.deadline) fields.deadline = p.deadline;
+  return fields;
 }

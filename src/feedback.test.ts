@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { collapseRow, flash, flashRow, highlightNew, motionOk, takeHighlight } from './feedback';
+import { renderHook } from '@testing-library/react';
+import {
+  collapseRow,
+  flash,
+  flashRow,
+  highlightNew,
+  motionOk,
+  takeHighlight,
+  useArrived,
+} from './feedback';
 
 /** The motion an element is marked with (`data-motion`), or null. */
 const motion = (el: Element | null) => el?.getAttribute('data-motion') ?? null;
@@ -125,5 +134,33 @@ describe('highlightNew', () => {
     expect(takeHighlight('doc-1')).toBe(false);
     expect(takeHighlight('doc-2')).toBe(true);
     expect(takeHighlight('doc-2')).toBe(false);
+  });
+});
+
+describe('useArrived (v1.5 motion, #279)', () => {
+  const view = (on: boolean, key = 'a') =>
+    renderHook((p: { on: boolean; k: string }) => useArrived(p.on, p.k), {
+      initialProps: { on, k: key },
+    });
+
+  it('stays still for a state that was already on when the view opened', () => {
+    expect(view(true).result.current).toBe(false);
+  });
+
+  it('arrives when the state turns on, and not when it turns off again', () => {
+    const v = view(false);
+    v.rerender({ on: true, k: 'a' });
+    expect(v.result.current).toBe(true);
+    v.rerender({ on: true, k: 'a' }); // a re-render keeps it (the class stays, no restart)
+    expect(v.result.current).toBe(true);
+    v.rerender({ on: false, k: 'a' });
+    expect(v.result.current).toBe(false);
+  });
+
+  it('starts over when the key moves to another item (the Apply pager)', () => {
+    const v = view(false);
+    v.rerender({ on: true, k: 'a' });
+    v.rerender({ on: true, k: 'b' });
+    expect(v.result.current).toBe(false);
   });
 });

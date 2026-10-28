@@ -122,6 +122,11 @@ on refresh. An entry with no terms is kept (the user cleared it), so the one-tim
 (`src/feed/systemsOnly.ts`), which runs only for a Design Systems track with no entry after sync
 settles, never comes back on this or another device.
 
+The entry also holds a Contracts track's NAICS codes (`naics`, #275; absent = the defaults, `[]` =
+none kept), like `related`: no version of its own. A v11 tab from before #275 drops the field when
+it rewrites the entry, so an edited list can fall back to the defaults once; the codes are a cheap
+test's filter, so that is accepted over a v12 bump.
+
 ## Addendum (2026-10-23): no blind push, no cloud-wins over an unpushed edit (data-safety audit)
 
 Three ways an edit was lost: a push overwrote the cloud row without looking (another device's

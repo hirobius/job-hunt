@@ -707,6 +707,17 @@ p {
   animation: rjb-collapse var(--hds-motion-productive-duration) var(--hds-motion-exit-easing)
     forwards;
 }
+/* Arrive (v1.5, #279, feedback.ts useArrived): what an action just made appears with a short rise
+ * and fade (a posting's Saved status, Apply mode's Applied note); its check pops with .rjb-pop. */
+@keyframes rjb-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--primitive-space-1));
+  }
+}
+.rjb-arrive {
+  animation: rjb-arrive var(--hds-motion-spatial-duration) var(--hds-motion-productive-easing);
+}
 /* Reduced motion: the state change and the toast stay, the movement goes. A flash holds still for
  * its length (feedback.ts clears it); a pop and a collapse don't run. */
 @media (prefers-reduced-motion: reduce) {
@@ -716,6 +727,7 @@ p {
   }
   .rjb-pop,
   .rjb-pop-off,
+  .rjb-arrive,
   [data-motion='collapse'] {
     animation: none;
   }

@@ -29,7 +29,8 @@ import {
 } from './followUpFlow';
 import { FOLLOWUP_DAYS, SNOOZE_DAYS } from './jobState';
 import { titleOf } from './jobRow';
-import { logFollowUp, restoreFollowUp, snoozeFollowUp, useJobs } from './store';
+import { findJobByUrl, logFollowUp, restoreFollowUp, snoozeFollowUp, useJobs } from './store';
+import { showNotice } from './saveNotice';
 import { copyFilled } from './templateCopy';
 import { fillSnippet } from './templateFill';
 import { useApplyKit } from './applyKit';
@@ -121,15 +122,15 @@ function FollowUpContent({ job }: { job: Job }) {
     setSent(null);
   };
   const snooze = () => {
+    const before = { followUp: job.followUp, snoozeUntil: job.snoozeUntil };
     snoozeFollowUp(job.url);
     closeFollowUp();
-    const d = new Date();
-    d.setDate(d.getDate() + SNOOZE_DAYS);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    toast({
-      title: `Snoozed until ${dayName(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)}`,
+    const until = findJobByUrl(job.url)?.snoozeUntil;
+    // The one notice host, so the snooze can be undone like every other change to a job (#212).
+    showNotice({
+      title: until ? `Snoozed until ${dayName(until)}` : 'Snoozed',
       description: title,
-      tone: 'info',
+      actions: [{ label: 'Undo', run: () => restoreFollowUp(job.url, before) }],
     });
   };
 
