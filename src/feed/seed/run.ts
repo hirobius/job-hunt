@@ -46,8 +46,9 @@ export interface SeedCompany {
   name: string;
   website: string;
   board: SeedBoard | null;
-  /** found / missed / unknown, as the probe left it. */
-  state: 'found' | 'missed' | 'unknown';
+  /** found / missed / unknown, as the probe left it; shared: its board went to another row (a
+   *  parent and its brand) with stronger evidence. */
+  state: 'found' | 'missed' | 'unknown' | 'shared';
   evidence: Evidence[];
   licence: string[];
 }
@@ -176,7 +177,7 @@ export async function buildSnapshot(o: RunOptions): Promise<Snapshot> {
       if (!keep.evidence.some((x) => x.url === e.url)) keep.evidence.push(e);
     keep.licence = [...new Set([...keep.licence, ...drop.licence])];
     drop.board = null;
-    drop.state = 'missed';
+    drop.state = 'shared';
   }
 
   const companies = resolved.sort(

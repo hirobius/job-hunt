@@ -5,8 +5,9 @@
 //   domain  the board's own payload names the company's website domain (Greenhouse job links on
 //           stripe.com, an "apply at jobs@acme.com" in a description);
 //   title   the board lists a job designsystems.jobs saw this company post;
-//   name    the board's own name (Greenhouse, Workable) is the company's, or, for a company we only
-//           know by name, its descriptions say "At <Name>" / "About <Name>".
+//   name    the board's own name (Greenhouse, Workable, Recruitee; Lever and Ashby have none) is
+//           its website's name, or, for a company seen hiring (a job post), the company's name
+//           or a description saying "At <Name>".
 // An unconfirmed board is still written to the snapshot (for a person to check) but never watched.
 import { createLimiter, hostKey, probeBoard, PROBE_KINDS, type Limiter } from '../probe';
 import { boardJobs, canonicalBoardUrl, type Board, type BoardKind } from '../sources/ats';
@@ -76,12 +77,15 @@ export function confirmBoard(
     const seen = new Set(c.titles.map(titleKey));
     if (boardTitles(b, body).some((t) => seen.has(titleKey(t)))) return 'title';
   }
+  // A design system's name ("Cedar", "Basis") is often some other company's board name, so a
+  // name alone confirms only a company seen hiring (a job post) or one named by its own website.
+  const hiring = c.evidence.some((e) => e.source === 'dsjobs' || e.source === 'hn');
   const names = new Set(
-    [normName(c.name), c.website ? domainLabel(c.website) : ''].filter(Boolean),
+    [hiring ? normName(c.name) : '', c.website ? domainLabel(c.website) : ''].filter(Boolean),
   );
   if (ownName && names.has(normName(ownName))) return 'name';
-  // Known only by name (a job post's company line): a description introducing the company.
-  if (!c.website && c.name.length >= 4) {
+  // Known only by a job post's company line: a description introducing the company.
+  if (hiring && !c.website && c.name.length >= 4) {
     const raw = JSON.stringify(body ?? '');
     const n = escapeRe(c.name);
     if (new RegExp(`\\b(At|About|Join) ${n}\\b|\\b${n} is (a|an|the)\\b`).test(raw)) return 'name';
@@ -115,20 +119,26 @@ export async function resolveCandidate(c: Candidate, opts: ResolveOptions): Prom
     else limiter.ok(host(b));
     return { out: ran.value, body };
   };
-  const ownName = async (b: Board, body: unknown) => {
-    if (b.kind !== 'greenhouse') return boardOwnName(b, body);
+  // Greenhouse keeps its board name on a second endpoint: asked (through the limiter) only when
+  // the payload alone confirms nothing.
+  const greenhouseName = async (b: Board) => {
     try {
-      return str(
-        obj(
-          await opts.fetchJson(
+      const ran = await limiter.run(
+        host(b),
+        () =>
+          opts.fetchJson(
             `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(b.slug)}`,
           ),
-        ).name,
+        opts.signal,
       );
+      return ran.ran ? str(obj(ran.value).name) : '';
     } catch {
       return '';
     }
   };
+  const confirm = async (b: Board, body: unknown) =>
+    confirmBoard(c, b, body) ??
+    (b.kind === 'greenhouse' ? confirmBoard(c, b, body, await greenhouseName(b)) : null);
   const seedBoard = (
     b: Board,
     jobs: number | undefined,
@@ -161,7 +171,7 @@ export async function resolveCandidate(c: Candidate, opts: ResolveOptions): Prom
       }
       if (out.result !== 'live') continue;
       const b = group[i];
-      const confirmed = confirmBoard(c, b, body, await ownName(b, body));
+      const confirmed = await confirm(b, body);
       if (confirmed) return { state: 'found', board: seedBoard(b, out.jobs, confirmed) };
       fallback ??= seedBoard(b, out.jobs, null);
     }

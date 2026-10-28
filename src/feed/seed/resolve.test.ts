@@ -61,14 +61,25 @@ describe('confirmBoard', () => {
     const c = cand({ name: 'Stripe', website: 'https://stripe.com' });
     expect(confirmBoard(c, gh, { jobs: [] }, 'Stripe')).toBe('name');
     expect(confirmBoard(c, gh, { jobs: [] }, 'Stripe Bakery Ltd')).toBeNull();
+    const hn = {
+      evidence: [{ source: 'hn' as const, url: 'https://news.ycombinator.com/item?id=1' }],
+    };
     const intro = [{ text: 'Engineer', descriptionPlain: 'At Higharc, we build homes' }];
-    expect(confirmBoard(cand({ name: 'Higharc' }), { kind: 'lever', slug: 'higharc' }, intro)).toBe(
-      'name',
-    );
+    expect(
+      confirmBoard(cand({ name: 'Higharc', ...hn }), { kind: 'lever', slug: 'higharc' }, intro),
+    ).toBe('name');
+    // A design system's own name ("Cedar") is someone else's board unless the company was seen
+    // hiring or its website says the same name.
+    const cedar = { kind: 'greenhouse' as const, slug: 'cedar' };
+    expect(confirmBoard(cand({ name: 'Cedar' }), cedar, { jobs: [] }, 'Cedar')).toBeNull();
+    expect(confirmBoard(cand({ name: 'Cedar', ...hn }), cedar, { jobs: [] }, 'Cedar')).toBe('name');
+    expect(
+      confirmBoard(cand({ name: 'Higharc' }), { kind: 'lever', slug: 'higharc' }, intro),
+    ).toBeNull();
     // Only for a company known by name alone: with a website, the payload must name it.
     expect(
       confirmBoard(
-        cand({ name: 'Higharc', website: 'https://higharc.com' }),
+        cand({ name: 'Higharc', website: 'https://higharc.com', ...hn }),
         { kind: 'lever', slug: 'higharc' },
         intro,
       ),
