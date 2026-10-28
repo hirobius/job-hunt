@@ -8,13 +8,13 @@ import { dayLabel } from './dayLabel';
 import { boardsFromUrls } from './feed/sources/ats';
 import { jobIdOf } from './store';
 import { titleOf } from './jobRow';
-import { SOURCE_ENABLED } from './feed/fetchFeed';
 import type { Category } from './curation/types';
 import type { Job } from './types';
 
-/** The feeds a search reads with no board of its own: HN and Remotive, plus each keyless
- *  aggregator switched on in fetchFeed.ts. Each is one source. */
-export const KEYLESS_FEEDS = 2 + Object.values(SOURCE_ENABLED).filter(Boolean).length;
+/** The feeds a search reads with no board of its own: HN, Remotive and Jobicy (the aggregators
+ *  switched on in fetchFeed.ts SOURCE_ENABLED; today.test.ts keeps the two in step). Each is one
+ *  source. Not imported from there: Today stays light and the feed's test mocks stay whole. */
+export const KEYLESS_FEEDS = 3;
 
 /** The track Companies last showed (DiscoverView keeps it in `rjb_active_category`), else the first. */
 export function activeTrackId(categories: readonly Category[]): string | null {

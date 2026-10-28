@@ -1,6 +1,15 @@
 // The Today read model (simplify 2/9): the three counts on the home page and the words beside them.
 import { describe, expect, it } from 'vitest';
-import { activeTrackId, applyLine, countSources, followUpLine, reviewLine, today } from './today';
+import {
+  activeTrackId,
+  applyLine,
+  countSources,
+  followUpLine,
+  KEYLESS_FEEDS,
+  reviewLine,
+  today,
+} from './today';
+import { SOURCE_ENABLED } from './feed/fetchFeed';
 import type { Category } from './curation/types';
 import { jobIdOf } from './store';
 import { ymd } from './jobEvents';
@@ -75,6 +84,12 @@ describe('today: Review new', () => {
       newToday: 4,
       sources: 9,
     });
+  });
+});
+
+describe('KEYLESS_FEEDS', () => {
+  it('is HN and Remotive plus every aggregator switched on in fetchFeed.ts', () => {
+    expect(KEYLESS_FEEDS).toBe(2 + Object.values(SOURCE_ENABLED).filter(Boolean).length);
   });
 });
 
