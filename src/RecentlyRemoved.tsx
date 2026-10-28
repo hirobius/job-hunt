@@ -27,12 +27,11 @@ const ageLine = (iso: string, now = Date.now()) => {
 };
 
 /** The last entry restored or deleted closes the dialog and takes its trigger with it, so focus
- *  would fall to <body> (#306). Once Radix has tried its trigger, focus the restored job's title
- *  in the list, else the Jobs panel's heading, else the page's heading. */
+ *  would fall to <body> (#306). Once Radix has tried its trigger (and focus rescue has picked the
+ *  next control along), focus the restored job's title in the list, else the Jobs panel's
+ *  heading, else the page's heading: where the job went, or the top of the list. */
 function focusAfterEmpty(restored: string | null) {
   const run = () => {
-    const a = document.activeElement;
-    if (a && a !== document.body && a.isConnected) return; // something already took it
     const main = document.querySelector('main');
     const link =
       restored && main?.querySelector<HTMLElement>(`a[href="#/queue/${jobIdOf(restored)}"]`);
