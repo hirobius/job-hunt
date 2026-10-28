@@ -3,8 +3,8 @@
 // them or naming it, and its own Notes, which can be added and edited here (each save a Version).
 // Rev-3 mock: "← Pipeline" on the page's left edge, then Jobs, Documents and Notes as Pipeline
 // panels (count badges on the first two); a job row reads like a Pipeline card.
-import { useState, type ReactNode } from 'react';
-import { Box, Button, InlineLink, Stack, Text, Textarea } from '@hirobius/design-system';
+import { useContext, useState, type ReactNode } from 'react';
+import { Box, Button, InlineLink, Skeleton, Stack, Text, Textarea } from '@hirobius/design-system';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { Building2 } from 'lucide-react';
 import { addCompanyNote, useCompany } from './companies';
@@ -21,6 +21,7 @@ import { JobPostingTitle } from './PostingLink';
 import type { Job } from './types';
 import { usePageTitle } from './pageTitle';
 import CompanyLogo from './CompanyLogo';
+import { CloudSyncContext } from './account/accountContext';
 
 const LIST = { listStyle: 'none', margin: 0, padding: 0 } as const;
 // Fields fill the column (a Box sx, not an inline style: the #133 ratchet).
@@ -146,10 +147,28 @@ function NewNote({ company, action }: { company: string; action: string }) {
 
 const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
 
+/** An unknown slug before sync settles: its jobs may still be on their way (like the job page). */
+function CompanyPageSkeleton() {
+  return (
+    <Box aria-busy="true" sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
+      <Text variant="ui" as="p" role="status" tone="secondary">
+        Looking for this company. It may still be syncing to this device.
+      </Text>
+      <Stack gap="normal" aria-hidden="true">
+        <Skeleton variant="text" width="45%" />
+        <Skeleton variant="rectangular" height={120} />
+      </Stack>
+    </Box>
+  );
+}
+
 export default function CompanyPage({ slug }: { slug: string }) {
   const company = useCompany(slug);
   usePageTitle(company?.name ?? 'Company');
   const back = useBack(PIPELINE, 'Pipeline');
+  // Read the context directly: this page also renders on its own in tests, outside the provider.
+  const settled = useContext(CloudSyncContext)?.settled ?? true;
+  if (!company && !settled) return <CompanyPageSkeleton />;
   if (!company)
     return (
       <EmptyState

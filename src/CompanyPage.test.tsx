@@ -9,6 +9,7 @@ import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { createDocument, getAllDocuments, replaceDocuments } from './documents';
 import { addCompanyNote } from './companies';
 import { jobHash } from './route';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 
 const URL_A = 'https://acme.example/jobs/7';
 const URL_B = 'https://acme.example/jobs/8';
@@ -140,6 +141,27 @@ describe('Company page (#230)', () => {
       'href',
       '#/queue',
     );
+  });
+
+  it('an unknown company waits for sync to settle before saying so (#303)', () => {
+    const withSync = (settled: boolean) => (
+      <CloudSyncContext.Provider value={{ settled } as CloudSyncApi}>
+        <CompanyPage slug="acme" />
+      </CloudSyncContext.Provider>
+    );
+    const r = render(withSync(false));
+    expect(screen.queryByText('No company here')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Go to the Pipeline' })).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent(/Looking for this company/);
+    // The company's jobs arrive with the pull: the page shows it, no empty state on the way.
+    seedAcme();
+    r.rerender(withSync(false));
+    expect(screen.getByRole('heading', { level: 2, name: 'Acme, Inc.' })).toBeInTheDocument();
+    getAllJobs()
+      .slice()
+      .forEach((j) => removeJob(j.url));
+    r.rerender(withSync(true));
+    expect(screen.getByText('No company here')).toBeInTheDocument();
   });
 
   it('has no axe violations', async () => {

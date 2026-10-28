@@ -257,6 +257,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
 - **Company page (#230):** `#/company/<slug>` (`route.companyHash` / `openCompany`) renders
   `CompanyPage` under the Pipeline tab (like Apply mode): the company's Jobs, Documents and Notes, with
   Back to Pipeline. The job page's Details Company fact links to it (only when the job has a company).
+  An unknown slug shows a skeleton until `useCloudSync().settled`, then "No company here" (#303).
 - **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
   first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the first-run gate goes
