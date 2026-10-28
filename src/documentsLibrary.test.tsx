@@ -590,3 +590,32 @@ describe('expandable rows', () => {
     expect(getAllDocuments().map((d) => d.title)).toEqual(['Story (copy)']);
   });
 });
+
+describe('Restore starters answers (#327, #212)', () => {
+  it('Restore starter messages toasts what it added and flashes the first restored row', async () => {
+    createDocument({ kind: 'note', title: 'Prep', base: true, text: 'a' });
+    renderLib();
+    await userEvent.click(
+      within(section('Outreach messages')).getByRole('button', {
+        name: 'Restore starter messages',
+      }),
+    );
+    expect(await screen.findByText('Added 4 starter messages')).toBeInTheDocument();
+    const rows = within(section('Outreach messages')).getAllByRole('listitem');
+    expect(rows).toHaveLength(4);
+    await waitFor(() => expect(rows[0]).toHaveAttribute('data-motion', 'flash'));
+  });
+
+  it('Restore starter cover letter says so and flashes it', async () => {
+    createDocument({ kind: 'note', title: 'Prep', base: true, text: 'a' });
+    renderLib();
+    await userEvent.click(
+      within(section('Cover letters')).getByRole('button', {
+        name: 'Restore starter cover letter',
+      }),
+    );
+    expect(await screen.findByText('Added the starter cover letter')).toBeInTheDocument();
+    const row = within(section('Cover letters')).getByRole('listitem');
+    await waitFor(() => expect(row).toHaveAttribute('data-motion', 'flash'));
+  });
+});

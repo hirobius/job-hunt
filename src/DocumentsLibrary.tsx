@@ -104,8 +104,20 @@ const starterMissing = (docs: Document[], kind: DocumentKind) =>
   STARTER_SNIPPETS.some(
     (s) => kindForSnippet(s.id) === kind && !docs.some((d) => d.id === documentIdForSnippet(s.id)),
   );
-const restoreStarters = (kind: DocumentKind) =>
-  replaceDocuments(restoreStarterOutreach(getAllDocuments(), new Date().toISOString(), kind));
+/** Put back the missing starters of a kind; returns the ones it added, in the library's order. */
+function restoreStarters(kind: DocumentKind): Document[] {
+  const before = getAllDocuments();
+  replaceDocuments(restoreStarterOutreach(before, new Date().toISOString(), kind));
+  const added = getAllDocuments().filter((d) => !before.some((b) => b.id === d.id));
+  return libraryItems(added, kind);
+}
+/** What a restore says it added (#327). */
+const restoredTitle = (kind: DocumentKind, n: number) =>
+  kind === 'cover'
+    ? 'Added the starter cover letter'
+    : n === 1
+      ? 'Added 1 starter message'
+      : `Added ${n} starter messages`;
 
 export default function DocumentsLibrary({
   openId,
@@ -133,6 +145,7 @@ export default function DocumentsLibrary({
   returnTo?: { label: string; go: () => void };
 } = {}) {
   const docs = useDocuments();
+  const { toast } = useToast();
   const [local, setLocal] = useState<Open>(null);
   // One row open at a time (rev-3 M).
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -158,6 +171,14 @@ export default function DocumentsLibrary({
     onOpen?.(next ? next.id : null);
   };
   const created = (id: string) => (onCreated ? onCreated(id) : go({ id }));
+  // Restoring answers (#212, #327): a toast naming what came back, and the first restored row
+  // scrolled into view and flashed (on a phone it can land below the fold).
+  const restore = (kind: DocumentKind) => {
+    const added = restoreStarters(kind);
+    if (!added.length) return;
+    toast({ title: restoredTitle(kind, added.length), tone: 'success' });
+    highlightNew(added[0].id);
+  };
 
   if (open && 'kind' in open)
     return (
@@ -263,7 +284,7 @@ export default function DocumentsLibrary({
                     )}
                     {RESTORE_LABEL[kind] && starterMissing(docs, kind) && (
                       <Box>
-                        <Button variant="tertiary" size="sm" onClick={() => restoreStarters(kind)}>
+                        <Button variant="tertiary" size="sm" onClick={() => restore(kind)}>
                           {RESTORE_LABEL[kind]}
                         </Button>
                       </Box>
