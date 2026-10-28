@@ -3,6 +3,7 @@
 // of company rows with their open roles inline; one "Add a company" action replaces the Boards and
 // Teams entry points; Live postings and the list checker stay reachable as secondary views; every old
 // #/discover/* slug still lands somewhere.
+import './test/legacyScreens';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

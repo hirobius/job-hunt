@@ -1,6 +1,7 @@
 // The wide sweep (#213), pinned at the route seam: App at #/discover/live, driven by role and name.
 // One sweep searches every title that is on; results are tagged by title, filterable without a
 // re-fetch, and save into the Pipeline's To apply queue like any other save.
+import './test/legacyScreens';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -11,7 +12,10 @@ vi.mock('@supabase/supabase-js', async () => {
   return { createClient: () => createFakeSupabase().client };
 });
 const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
-vi.mock('./feed/fetchFeed', () => feed);
+vi.mock('./feed/fetchFeed', async (orig) => ({
+  ...(await orig<typeof import('./feed/fetchFeed')>()),
+  ...feed,
+}));
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';

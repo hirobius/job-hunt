@@ -124,9 +124,9 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
               // Never a dead end: the one action points to where jobs come from (rev-3 empty).
               <Button
                 variant="secondary"
-                onClick={() => navigate({ tab: 'discover', sub: null, jobId: null })}
+                onClick={() => navigate({ tab: 'today', sub: null, jobId: null })}
               >
-                Find the next company
+                Review new postings
               </Button>
             )
           }

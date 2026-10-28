@@ -18,8 +18,7 @@ import { changeWithUndo } from './jobUndo';
 import { collapseRow, starClass } from './feedback';
 import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
-import { buildHash, getRoute, navigate, withOrigin } from './route';
-import { setDiscoverSeed } from './discoverSeed';
+import { buildHash, getRoute } from './route';
 import { primaryAction, rowView, titleOf } from './jobRow';
 import { normStatus } from './jobState';
 import { researchLinks } from './jobFacts';
@@ -237,17 +236,6 @@ export function RowMenu({
           }}
         >
           {job.archived ? 'Unretire' : 'Retire'}
-        </Menu.Item>
-        <Menu.Separator />
-        {/* Reverse interop (#57): seed Discover's search links (ATS tool) with this job's title.
-            The search page remembers where it was opened from, so its Back returns here. */}
-        <Menu.Item
-          onSelect={() => {
-            setDiscoverSeed(title);
-            navigate(withOrigin({ tab: 'discover', sub: 'ats' }, getRoute()));
-          }}
-        >
-          Find more like this
         </Menu.Item>
         {research && (
           <>

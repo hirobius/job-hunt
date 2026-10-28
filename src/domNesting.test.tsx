@@ -15,6 +15,7 @@ import App from './App';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { addCategory, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
+import { legacyScreensForThisTest } from './test/legacy';
 
 const A = 'https://acme.example/jobs/1';
 
@@ -63,6 +64,7 @@ describe('PageHeader descriptions hold inline content only', () => {
   });
 
   it('Companies: the where · Change row is not a <div> inside the header <p>', async () => {
+    legacyScreensForThisTest();
     addCategory({ label: 'Design systems', titles: ['Design engineer'] });
     window.location.hash = '#/discover';
     renderApp();

@@ -123,8 +123,8 @@ describe('job route (#127)', () => {
     window.location.hash = `#/queue/${jobIdOf(URL_A)}`;
     renderApp();
     await screen.findByRole('heading', { level: 2, name: 'Design Engineer' });
-    await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    await userEvent.click(screen.getByRole('tab', { name: 'Today' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/today'));
     await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     expect(
       await screen.findByRole('heading', { level: 2, name: 'Design Engineer' }),

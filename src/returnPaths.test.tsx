@@ -32,6 +32,7 @@ import { getRoute, subscribeScrollRestore } from './route';
 import { getAllDocuments } from './documents';
 import { trashJob } from './trash';
 import { rememberSignInReturn, returnAfterSignIn, takeSignInReturn } from './account/signInReturn';
+import { legacyScreensForThisTest } from './test/legacy';
 
 const A = 'https://acme.example/jobs/1';
 const B = 'https://acme.example/jobs/2';
@@ -112,6 +113,7 @@ describe('a job page goes back to where it was opened from', () => {
   });
 
   it('opened from a save notice on Companies, Back returns to that Companies view', async () => {
+    legacyScreensForThisTest();
     window.location.hash = '#/discover/apply';
     renderApp();
     await at('#/discover/apply');
@@ -121,55 +123,6 @@ describe('a job page goes back to where it was opened from', () => {
     await heading('Welder');
     await userEvent.click(screen.getByRole('button', { name: 'Back to Companies' }));
     await at('#/discover/apply');
-  });
-
-  it('Find more like this from the Screening tab: the search names the job and goes back to that tab', async () => {
-    seedPack('consulting');
-    window.location.hash = `#/queue/${idA}`;
-    renderApp();
-    await userEvent.click(await screen.findByRole('tab', { name: 'Screening' }));
-    await at(`#/queue/${idA}?section=screening`);
-    await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Find more like this' }));
-    await waitFor(() => expect(getRoute()).toMatchObject({ tab: 'discover', sub: 'ats' }));
-    await userEvent.click(await screen.findByRole('link', { name: 'Back to Fabricator' }));
-    await at(`#/queue/${idA}?section=screening`);
-    expect(await screen.findByRole('tab', { name: 'Screening', selected: true })).toBeVisible();
-  });
-
-  it('Find more like this: the search keeps its title and filters after a trip away and Back', async () => {
-    seedPack('consulting');
-    window.location.hash = `#/queue/${idA}`;
-    renderApp();
-    await heading('Fabricator');
-    await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Find more like this' }));
-    await waitFor(() => expect(getRoute()).toMatchObject({ tab: 'discover', sub: 'ats' }));
-    // The one Google query reads the seeded title (it is no chip: the track has no such title).
-    const searchAll = () =>
-      decodeURIComponent(
-        screen.getByRole('link', { name: /Search all boards/ }).getAttribute('href') ?? '',
-      );
-    await waitFor(() => expect(searchAll()).toContain('Fabricator'));
-    await userEvent.click(screen.getByRole('combobox', { name: /^Recency/ }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Past week' }));
-    expect(searchAll()).toContain('tbs=qdr:w');
-    const searchHash = window.location.hash;
-
-    window.location.hash = '#/queue';
-    await heading('Pipeline');
-    window.history.back();
-    await at(searchHash);
-    // The seed stays tied to its job's search, and so does what was picked there.
-    await waitFor(() => expect(searchAll()).toContain('Fabricator'));
-    expect(searchAll()).toContain('tbs=qdr:w');
-    expect(screen.getByRole('link', { name: 'Back to Fabricator' })).toBeInTheDocument();
-
-    // A plain ATS search (no job behind it) is not that job's search.
-    window.location.hash = '#/discover/ats';
-    await at('#/discover/ats');
-    await waitFor(() => expect(searchAll()).not.toContain('Fabricator'));
-    expect(searchAll()).not.toContain('tbs=qdr');
   });
 
   it('Remove goes back to the origin; Undo reopens the job page', async () => {
@@ -393,7 +346,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
   };
 
   it('Sign in, picked from the Account menu, with an email typed', async () => {
-    await over('#/discover/apply', '#/queue');
+    await over('#/copy-deck', '#/queue');
     await userEvent.click(await screen.findByRole('button', { name: /^Account/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign in to sync…' }));
     const dialog = await screen.findByRole('dialog', { name: 'Sign in' });
@@ -403,10 +356,11 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     await closesOnBack(() => screen.queryByRole('dialog', { name: 'Sign in' }), '#/queue');
     // No step left behind by the menu: the next Back leaves the page.
     window.history.back();
-    await at('#/discover/apply');
+    await at('#/copy-deck');
   });
 
   it('a sheet over a sheet: Back closes the top one; closing both leaves no step behind', async () => {
+    legacyScreensForThisTest();
     seedPack('consulting');
     await over('#/queue', '#/discover/ats');
     const manage = () => screen.queryByRole('dialog', { name: 'Manage track' });
@@ -431,6 +385,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
   });
 
   it("Companies' where and how you want to work", async () => {
+    legacyScreensForThisTest();
     seedPack('consulting');
     await over('#/discover/apply', '#/discover/ats');
     await userEvent.click(await screen.findByRole('button', { name: /^Change where: / }));
@@ -457,14 +412,14 @@ describe('the browser Back closes a sheet and stays on the page', () => {
   });
 
   it("Remove from a job page opened on its own: Back doesn't come back to the removed job", async () => {
-    await over('#/discover/apply', `#/queue/${idA}`);
+    await over('#/copy-deck', `#/queue/${idA}`);
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: 'More actions: Fabricator' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
     await at('#/queue');
     await new Promise((r) => setTimeout(r, 80));
     window.history.back();
-    await at('#/discover/apply');
+    await at('#/copy-deck');
   });
 
   it('closing it on screen leaves no extra step for Back', async () => {
@@ -492,6 +447,7 @@ describe('top tabs reopen where they were left', () => {
   });
 
   it('Companies comes back on the tool it was on', async () => {
+    legacyScreensForThisTest();
     seedPack('consulting');
     window.location.hash = '#/discover/ats';
     renderApp();
@@ -649,6 +605,7 @@ describe('one navigation per Remove, Delete or double click', () => {
   });
 
   it('after Remove on a job opened from Companies, the Pipeline tab opens the list', async () => {
+    legacyScreensForThisTest();
     await startAt('#/queue', '#/discover/apply');
     act(() => notifySaved([B]));
     addJob(B, 'Welder');

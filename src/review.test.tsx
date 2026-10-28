@@ -30,7 +30,7 @@ import { addCategory, replaceCurationState } from './curation/curationStore';
 import { EMPTY_CURATION } from './curation/types';
 import { getAllJobs, replaceAll } from './store';
 import { starDream } from './feed/dreams';
-import { getAllDecided } from './feed/decided';
+import { getAllDecided, unmuteCompany } from './feed/decided';
 import { boardUrlsFor, watchBoard } from './feed/watchlist';
 import { runScan } from './feed/autoScan';
 
@@ -149,8 +149,8 @@ describe('Review new: Browse', () => {
     const ul = await list();
     await user.click(within(ul).getAllByRole('button', { name: 'Not this company: Acme' })[0]);
     await waitFor(() => expect(titles(ul)).toEqual(['Design Systems Designer']));
-    const muted = screen.getByRole('region', { name: 'Muted companies' });
-    await user.click(within(muted).getByRole('button', { name: 'Unmute Acme' }));
+    // Unmuted from the Account menu's Companies list (companiesList.test.tsx).
+    act(() => unmuteCompany('Acme'));
     await waitFor(() => expect(titles(ul)).toHaveLength(3));
   });
 

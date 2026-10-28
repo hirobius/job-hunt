@@ -15,9 +15,9 @@ export default function NotFoundPage() {
         </Text>
         <Button
           variant="primary"
-          onClick={() => navigate({ tab: 'discover', sub: null, jobId: null })}
+          onClick={() => navigate({ tab: 'today', sub: null, jobId: null })}
         >
-          Go to Companies
+          Go to Today
         </Button>
       </Stack>
     </Box>

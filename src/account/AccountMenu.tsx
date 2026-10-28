@@ -5,7 +5,16 @@
 // behind a confirm that says exactly what goes. Reset is never a loose button on a page.
 import { useRef, useState } from 'react';
 import { Download } from 'lucide-react';
-import { AlertDialog, Avatar, Button, Icon, Menu, Stack, Text } from '@hirobius/design-system';
+import {
+  AlertDialog,
+  Avatar,
+  Button,
+  Dialog,
+  Icon,
+  Menu,
+  Stack,
+  Text,
+} from '@hirobius/design-system';
 import { useJobs } from '../store';
 import { useDocuments } from '../documents';
 import { clearLocalData } from '../localReset';
@@ -15,6 +24,7 @@ import { getRoute, navigate, withOrigin } from '../route';
 import { useBackCloses } from '../useBackCloses';
 import { LEGAL_ROUTE } from '../legalRoute';
 import { openExportLinks } from '../exportLinks';
+import { CompaniesDialog, useLoadedWhen } from '../lazyDialogs';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';
 
@@ -26,6 +36,10 @@ export default function AccountMenu() {
   const data = useDataTools();
   const { mode, toggle } = useColorMode();
   const [resetting, setResetting] = useState(false);
+  // Followed and Ignored companies (simplify Q6: the Companies tab's place).
+  const [companies, setCompanies] = useState(false);
+  useBackCloses(companies, () => setCompanies(false), 'companies');
+  const companiesReady = useLoadedWhen(CompaniesDialog, companies, () => setCompanies(false));
   // Controlled, so the browser's Back closes the open menu instead of leaving the page.
   const [open, setOpen] = useState(false);
   useBackCloses(open, () => setOpen(false), 'account-menu');
@@ -88,6 +102,7 @@ export default function AccountMenu() {
           <Menu.Item onSelect={() => navigate(withOrigin({ tab: 'copy-deck' }, getRoute()))}>
             Documents
           </Menu.Item>
+          <Menu.Item onSelect={opensDialog(() => setCompanies(true))}>Companies</Menu.Item>
           <Menu.Item onSelect={data.backup}>Back up</Menu.Item>
           <Menu.Item onSelect={opensDialog(data.chooseRestore)}>Restore…</Menu.Item>
           <Menu.Item onSelect={data.exportCsv} disabled={!data.canExport}>
@@ -123,6 +138,11 @@ export default function AccountMenu() {
           )}
         </Menu.Content>
       </Menu>
+      <Dialog open={companies && companiesReady} onOpenChange={setCompanies}>
+        {companies && companiesReady && (
+          <CompaniesDialog onCloseAutoFocus={refocusAccount(accountTrigger)} />
+        )}
+      </Dialog>
       <ResetLocalData
         open={resetting}
         onOpenChange={setResetting}

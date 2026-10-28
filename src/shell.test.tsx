@@ -77,7 +77,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Today', 'Companies', 'Jobs']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Today', 'Jobs']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -137,6 +137,7 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Sign in to sync…',
       '---',
       'item:Documents',
+      'item:Companies',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',
@@ -299,6 +300,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
       'label:Synced',
       '---',
       'item:Documents',
+      'item:Companies',
       'item:Back up',
       'item:Restore…',
       'item:Export CSV',
@@ -335,7 +337,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
 describe('routes keep working (#115 Phase 1)', () => {
   it.each([
     ['#/queue', 'Jobs'],
-    ['#/discover', 'Companies'],
+    ['#/discover', 'Today'],
     ['#/today', 'Today'],
     ['', 'Today'],
   ])('%s selects %s', (hash, tab) => {
@@ -395,7 +397,8 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Privacy and terms' }));
-    expect(window.location.hash).toBe('#/legal/privacy?from=%2Ftoday');
+    // Today is the legal pages' own way back, so no origin is written.
+    expect(window.location.hash).toBe('#/legal/privacy');
     expect(
       await screen.findByRole('heading', { level: 2, name: 'Privacy policy' }),
     ).toBeInTheDocument();
@@ -412,10 +415,7 @@ describe('routes keep working (#115 Phase 1)', () => {
       'href',
       '#/legal/privacy',
     );
-    expect(screen.getByRole('link', { name: 'Back to Companies' })).toHaveAttribute(
-      'href',
-      '#/discover',
-    );
+    expect(screen.getByRole('link', { name: 'Back to Today' })).toHaveAttribute('href', '#/today');
     // Approved wording carries its date and no notice; a revision under review says it is a draft.
     if (LEGAL_DRAFT) {
       expect(screen.getByText(/^Draft of/)).toBeInTheDocument();
@@ -563,7 +563,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     // The menu's entry pops at once: the route knows the hash it is on, so it doesn't wait ~2 s
     // for a hashchange that never comes.
     await waitFor(() => expect(backInFlight()).toBe(false), { timeout: 500 });
-    await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
-    await waitFor(() => expect(window.location.hash).toMatch(/^#\/discover/), { timeout: 500 });
+    await userEvent.click(screen.getByRole('tab', { name: 'Today' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/today'), { timeout: 500 });
   });
 });

@@ -1,6 +1,7 @@
 // Companies → Check a list of companies (once the Find boards tool; docs/specs/discovery-methods.md,
 // method 2), pinned at the route seam:
 // App at #/discover/boards with a stubbed `fetch` standing in for the ATS board APIs.
+import './test/legacyScreens';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

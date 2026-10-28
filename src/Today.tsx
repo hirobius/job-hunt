@@ -1,65 +1,80 @@
-// Today, the home page (simplify 2/9, #383; docs/specs/simplify.html design C): three panels in a
-// fixed order, each with its count, one line and one way in. Review new opens Live postings until
-// the Feed slice brings the deck (so no job breadth is lost), Apply opens Apply mode, Follow up
-// opens the follow-up dialog on the most overdue job. The read model is today.ts; this lays it out.
-import { useMemo } from 'react';
+// Today, the home page and one of the two top tabs (simplify #383 + amendment 2, Q6;
+// docs/specs/simplify.md). Top to bottom: the auto-scan's status (Scan now, "Last scanned · N new
+// from M sources"), Review new as the Browse list itself (a row opens the in-app preview, Open
+// posting one tap away), Apply, Follow up (what is due, with dates, and what falls due this week)
+// and the companies the scan found (Follow / Ignore). The read model is today.ts; this lays it out.
+import { useState } from 'react';
 import { Button, Stack, Text } from '@hirobius/design-system';
-import { Panel, PanelBody } from './PipelinePanel';
+import { Search } from 'lucide-react';
+import { EmptyState } from './hds-gaps/EmptyState';
+import { Onboarding } from './routeViews';
+import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { FollowUpButton } from './FollowUp';
 import { MetaCaption } from './MetaCaption';
+import { JobPostingTitle } from './PostingLink';
+import { NewCompanies, ScanStatus } from './AutoScanViews';
+import ReviewView from './ReviewView';
+import { useActiveTrack } from './activeTrack';
 import { useJobs, jobIdOf } from './store';
-import { linkTo, navigate, useRoute, withOrigin } from './route';
+import { navigate, useRoute, withOrigin } from './route';
 import { lastApplyJobId } from './tabMemory';
-import { useCategories, useGroups, useTiles } from './curation/curationStore';
-import { activeTrackId, applyLine, countSources, followUpLine, reviewLine, today } from './today';
+import { followUpDate } from './jobEvents';
+import { dayLabel } from './dayLabel';
+import { titleOf } from './jobRow';
+import { applyLine, today, upcomingLine } from './today';
+import type { Job } from './types';
 
 const jobs$ = (n: number) => `${n} ${n === 1 ? 'job' : 'jobs'}`;
 
 export default function Today() {
   const route = useRoute();
   const jobs = useJobs();
-  const categories = useCategories();
-  const groups = useGroups();
-  const tiles = useTiles();
-  // What Browse new postings reads: the active track's watched boards, plus the keyless feeds.
-  const sources = useMemo(() => {
-    const track = activeTrackId(categories);
-    const live = new Set(
-      groups.filter((g) => g.categoryId === track && !g.archived).map((g) => g.id),
-    );
-    return countSources(tiles.filter((t) => live.has(t.groupId)).map((t) => t.url));
-  }, [categories, groups, tiles]);
+  const track = useActiveTrack();
   const now = new Date();
-  // Until the Feed slice counts what is new, Review new knows its sources, not its count.
-  const m = today(jobs, { newToday: null, sources }, now, lastApplyJobId());
-  const followCount = m.followUp.due.length + m.followUp.waiting;
+  // Review new counts its own postings (the Browse list below); Today only orders the page.
+  const m = today(jobs, { newToday: null, sources: 0 }, now, lastApplyJobId());
+  const { due, waiting, upcoming } = m.followUp;
+  // No track yet (jobs saved before setup): Review new asks for one, with the same steps as a
+  // first run, in place.
+  const [choosing, setChoosing] = useState(false);
+  if (!track && choosing) return <Onboarding />;
 
   return (
     <Stack gap="px24">
-      <Stack gap="px4">
-        <Text as="h2" variant="title">
-          Today
-        </Text>
-        <MetaCaption
-          items={[
-            now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-          ]}
-        />
+      <Stack gap="px8">
+        <Stack gap="px4">
+          <Text as="h2" variant="title">
+            Today
+          </Text>
+          <MetaCaption
+            items={[
+              now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+            ]}
+          />
+        </Stack>
+        <ScanStatus categoryId={track?.id} />
       </Stack>
 
-      <Panel label="Review new" title="Review new">
-        <PanelBody>
-          <Stack gap="normal" align="start">
-            <Text variant="caption" as="p" tone="secondary">
-              {reviewLine(m.review)}
-            </Text>
-            {/* Every posting, as a list: the deck comes later, and never in place of this. */}
-            <Button asChild variant="secondary">
-              <a href={linkTo({ tab: 'discover', sub: 'live' }, route)}>Browse new postings</a>
-            </Button>
-          </Stack>
-        </PanelBody>
-      </Panel>
+      {/* Every design-system posting, newest first, as a list (the Deck is a toggle inside). */}
+      {track ? (
+        <ReviewView categoryId={track.id} label="Review new" />
+      ) : (
+        <Panel label="Review new" title="Review new">
+          <PanelBody>
+            <EmptyState
+              centered
+              icon={Search}
+              title="Pick a track to search"
+              description="A track holds your job titles, location and saved links."
+              action={
+                <Button variant="primary" onClick={() => setChoosing(true)}>
+                  Choose a track
+                </Button>
+              }
+            />
+          </PanelBody>
+        </Panel>
+      )}
 
       <Panel
         label={`Apply (${m.apply.count})`}
@@ -90,29 +105,55 @@ export default function Today() {
       </Panel>
 
       <Panel
-        label={`Follow up (${m.followUp.due.length} due)`}
+        label={`Follow up (${due.length} due)`}
         title="Follow up"
-        count={m.followUp.due.length}
-        countLabel={`${jobs$(m.followUp.due.length)} due`}
+        count={due.length}
+        countLabel={`${jobs$(due.length)} due`}
+        description={due.length || waiting ? upcomingLine(upcoming) : undefined}
       >
-        <PanelBody>
-          <Stack gap="normal" align="start">
+        {due.length > 0 ? (
+          // The most overdue first; Mark as sent in the dialog moves the next one up.
+          <CardList label="Due follow-ups">
+            {due.map((j) => (
+              <DueRow key={j.url} job={j} now={now} />
+            ))}
+          </CardList>
+        ) : (
+          <PanelBody>
             <Text variant="caption" as="p" tone="secondary">
-              {followUpLine(m.followUp, now)}
+              {waiting ? 'Nothing due today' : 'Nothing waiting on a reply'}
             </Text>
-            {/* The most overdue first; Mark as sent moves the next one up. */}
-            {m.followUp.due[0] ? (
-              <FollowUpButton job={m.followUp.due[0]} />
-            ) : (
-              followCount > 0 && (
-                <Button asChild variant="secondary">
-                  <a href="#/queue">Open jobs</a>
-                </Button>
-              )
-            )}
-          </Stack>
-        </PanelBody>
+          </PanelBody>
+        )}
       </Panel>
+
+      <NewCompanies categoryId={track?.id} />
     </Stack>
+  );
+}
+
+/** A due follow-up: the company (or title) with its posting one tap away, the day it fell due,
+ *  and its one action. */
+function DueRow({ job, now }: { job: Job; now: Date }) {
+  const date = followUpDate(job, now);
+  const name = job.company?.trim() || titleOf(job);
+  return (
+    <ListCard>
+      <Stack direction="row" gap="px8" align="center" justify="space-between">
+        <Stack gap="px4" align="start">
+          <JobPostingTitle job={job}>
+            <Text variant="body" as="span" weight="bold" className="rjb-card-title">
+              {name}
+            </Text>
+          </JobPostingTitle>
+          {date && (
+            <Text variant="caption" as="span" tone="secondary">
+              {`Due ${dayLabel(date, now)}`}
+            </Text>
+          )}
+        </Stack>
+        <FollowUpButton job={job} size="sm" />
+      </Stack>
+    </ListCard>
   );
 }

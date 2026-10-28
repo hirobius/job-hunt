@@ -1,6 +1,7 @@
 // The title filter (#223), pinned at the route seam: the Titles tool is gone; each track keeps one
 // ticked list of titles (src/feed/sweepTitles.ts, synced) that Live postings, the ATS tool and the
 // big-board links all read. It is edited in Live postings' Calibrate control.
+import './test/legacyScreens';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -11,7 +12,10 @@ vi.mock('@supabase/supabase-js', async () => {
   return { createClient: () => createFakeSupabase().client };
 });
 const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
-vi.mock('./feed/fetchFeed', () => feed);
+vi.mock('./feed/fetchFeed', async (orig) => ({
+  ...(await orig<typeof import('./feed/fetchFeed')>()),
+  ...feed,
+}));
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';

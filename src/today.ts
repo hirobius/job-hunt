@@ -3,7 +3,7 @@
 // saved jobs, so the order and the words are table-tested; Today.tsx only lays them out. The
 // queues are the Pipeline's own (applyQueue.ts, jobEvents.ts), so both pages always agree.
 import { followUpJobs, toApplyQueue } from './applyQueue';
-import { dueFollowUps, followUpDate } from './jobEvents';
+import { dueFollowUps, followUpDate, UPCOMING_DAYS, ymd } from './jobEvents';
 import { dayLabel } from './dayLabel';
 import { boardsFromUrls } from './feed/sources/ats';
 import { jobIdOf } from './store';
@@ -39,8 +39,14 @@ export interface TodayModel {
   review: ReviewCounts;
   /** To apply: its size, the job Start applying opens, and where it resumes (-1: from the top). */
   apply: { count: number; start: Job | null; resumeAt: number };
-  /** Due follow-ups (most overdue first), how many more are waiting, and the next one to fall due. */
-  followUp: { due: Job[]; waiting: number; next: { job: Job; date: string } | null };
+  /** Due follow-ups (most overdue first), how many more are waiting, how many of those fall due
+   *  in the coming 7 days, and the next one to fall due. */
+  followUp: {
+    due: Job[];
+    waiting: number;
+    upcoming: number;
+    next: { job: Job; date: string } | null;
+  };
 }
 
 export function today(
@@ -56,12 +62,17 @@ export function today(
   const dueUrls = new Set(due.map((j) => j.url));
   const rest = followUpJobs(jobs, now).filter((j) => !dueUrls.has(j.url));
   const nextDate = rest[0] && followUpDate(rest[0], now);
+  const weekOut = new Date(now);
+  weekOut.setDate(weekOut.getDate() + UPCOMING_DAYS);
+  const lastDay = ymd(weekOut);
+  const upcoming = rest.filter((j) => (followUpDate(j, now) ?? '9') <= lastDay).length;
   return {
     review,
     apply: { count: queue.length, start: queue[Math.max(0, resumeAt)] ?? null, resumeAt },
     followUp: {
       due,
       waiting: rest.length,
+      upcoming,
       next: nextDate ? { job: rest[0], date: nextDate } : null,
     },
   };
@@ -84,6 +95,11 @@ export function applyLine(count: number): string {
   return count > 0
     ? `${plural(count, 'saved job')}, not yet applied`
     : 'Nothing saved to apply to yet';
+}
+
+/** "Upcoming: N this week": follow-ups falling due in the next 7 days, after today's. */
+export function upcomingLine(n: number): string {
+  return n > 0 ? `Upcoming: ${n} this week` : 'Nothing else this week';
 }
 
 const nameOf = (j: Job) => j.company?.trim() || titleOf(j);

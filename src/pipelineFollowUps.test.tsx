@@ -295,7 +295,7 @@ describe('first-run gate in the shell', () => {
     expect(await screen.findByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
   });
 
-  it('picking a track finishes setup and stays on Companies', async () => {
+  it('picking a track finishes setup and stays on Today', async () => {
     window.location.hash = '';
     renderApp();
     const lead = screen.getAllByRole('checkbox')[0];
@@ -311,13 +311,13 @@ describe('first-run gate in the shell', () => {
       within(screen.getByRole('tablist', { name: 'Sections' })).getByRole('tab', {
         selected: true,
       }),
-    ).toHaveAccessibleName('Companies');
-    expect(window.location.hash).toBe('#/discover');
+    ).toHaveAccessibleName('Today');
+    expect(window.location.hash).toBe('#/today');
   });
 
-  it('Companies needs a track even when there are jobs; the Pipeline never gates', () => {
+  it('Review new needs a track even when there are jobs; the Pipeline never gates', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/discover';
+    window.location.hash = '#/today';
     const { unmount } = renderApp();
     expect(screen.getByText('Pick a track to search')).toBeInTheDocument();
     unmount();

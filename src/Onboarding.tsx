@@ -88,7 +88,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
     );
     // Nothing picked and no job: the gate is still up, so start the steps over instead of idling.
     if (picked.length === 0 && !url) return reset();
-    if (offerSample) navigate({ tab: 'discover' });
+    if (offerSample) navigate({ tab: 'today' });
   };
 
   // A signed-in pull may be about to restore this user's tracks — don't offer to re-onboard

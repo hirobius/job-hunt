@@ -1,6 +1,7 @@
 // Discover → Teams (slug `teams`; docs/specs/discovery-methods.md, method 3): design-system
 // organisations from GitHub, open roles first, quick save, dream companies and outreach targets, pinned
 // at the route seam with a stubbed `fetch` for GitHub and the ATSs.
+import './test/legacyScreens';
 import { resetViewMemory } from './viewMemory';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';

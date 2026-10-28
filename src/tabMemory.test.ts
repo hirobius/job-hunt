@@ -16,10 +16,10 @@ beforeEach(resetTabMemory);
 describe('tab memory', () => {
   it('remembers the last route of each top tab', async () => {
     await visit('#/queue/abc?section=screening');
-    await visit('#/discover/ats');
+    await visit('#/today');
     await visit('#/copy-deck');
     expect(lastRouteOf('queue')).toBe('#/queue/abc?section=screening');
-    expect(lastRouteOf('discover')).toBe('#/discover/ats');
+    expect(lastRouteOf('today')).toBe('#/today');
   });
 
   it('counts Apply mode and a Company page as the Pipeline', async () => {
@@ -31,7 +31,7 @@ describe('tab memory', () => {
 
   it('falls back to the tab root before anything was visited', () => {
     expect(lastRouteOf('queue')).toBe('#/queue');
-    expect(lastRouteOf('discover')).toBe('#/discover');
+    expect(lastRouteOf('today')).toBe('#/today');
   });
 
   // Review blocker (2026-10-22): a removed job's page stayed the Pipeline's place, so every tap on
@@ -63,9 +63,9 @@ describe('tab memory', () => {
   });
 
   it('openTab goes back to where the tab was left', async () => {
-    await visit('#/discover/live');
-    await visit('#/queue');
-    openTab('discover');
-    await waitFor(() => expect(window.location.hash).toBe('#/discover/live'));
+    await visit('#/company/acme');
+    await visit('#/today');
+    openTab('queue');
+    await waitFor(() => expect(window.location.hash).toBe('#/company/acme'));
   });
 });

@@ -41,10 +41,10 @@ const renderApp = () =>
   );
 
 describe('App top-level tab wiring', () => {
-  it('renders three tabs (Today · Companies · Jobs), each associated with a tabpanel', () => {
+  it('renders two tabs (Today · Jobs), each associated with a tabpanel', () => {
     renderApp();
     const tabs = within(screen.getByRole('tablist', { name: 'Sections' })).getAllByRole('tab');
-    expect(tabs).toHaveLength(3);
+    expect(tabs).toHaveLength(2);
     for (const tab of tabs) {
       expect(tab.getAttribute('id')).toBeTruthy();
       expect(tab.getAttribute('aria-controls')).toBeTruthy();
@@ -73,15 +73,15 @@ describe('App top-level tab wiring', () => {
 });
 
 describe('an unknown route (review nit)', () => {
-  it('#/nope shows a not-found page with a way home, not Companies', async () => {
+  it('#/nope shows a not-found page with a way home, not Today', async () => {
     window.location.hash = '#/nope';
     renderApp();
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
     // No tab is selected and no tab panel mounts, like Documents.
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
     expect(screen.queryByRole('tabpanel')).toBeNull();
-    screen.getByRole('button', { name: 'Go to Companies' }).click();
-    await vi.waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    screen.getByRole('button', { name: 'Go to Today' }).click();
+    await vi.waitFor(() => expect(window.location.hash).toBe('#/today'));
   });
 
   // Supabase's email link signs in through the hash (implicit flow), and an expired or used link

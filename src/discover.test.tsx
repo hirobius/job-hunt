@@ -1,4 +1,5 @@
 // Discover redesign (#131), pinned at the route seam: App at #/discover, driven by role and text.
+import './test/legacyScreens';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -20,7 +21,10 @@ const feed = vi.hoisted(() => ({
   liveFetchJson: vi.fn(),
   createFetchJson: () => vi.fn(),
 }));
-vi.mock('./feed/fetchFeed', () => feed);
+vi.mock('./feed/fetchFeed', async (orig) => ({
+  ...(await orig<typeof import('./feed/fetchFeed')>()),
+  ...feed,
+}));
 
 import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';

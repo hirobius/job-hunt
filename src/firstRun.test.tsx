@@ -104,13 +104,13 @@ describe('step 1: pick a track', () => {
     expect(getCurationState().categories.map((c) => c.label)).toEqual(['Sample']);
   });
 
-  it('after sample data, Find the next company opens a board, not the first-run gate', async () => {
+  it('after sample data, Review new postings opens Today, not the first-run gate', async () => {
     renderApp();
     await click('Try with sample data');
-    await click('Find the next company');
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    await click('Review new postings');
+    await waitFor(() => expect(window.location.hash).toBe('#/today'));
     expect(screen.queryByRole('progressbar', { name: /Step 1 of 3/ })).toBeNull();
-    expect(await screen.findByRole('heading', { name: 'Sample' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument();
   });
 
   it('Clear sample data removes the Sample track with the sample jobs', async () => {
@@ -134,7 +134,7 @@ describe('steps 2 and 3', () => {
     expect(screen.getAllByRole('checkbox')[0]).toBeChecked();
   });
 
-  it('Finish seeds the pick with the location, saves the job and stays on Companies', async () => {
+  it('Finish seeds the pick with the location, saves the job and lands on Today', async () => {
     renderApp();
     await pickFirstPack();
     await click('Continue');
@@ -149,7 +149,7 @@ describe('steps 2 and 3', () => {
       'https://acme.example/jobs/42',
     );
     await click('Finish');
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+    await waitFor(() => expect(window.location.hash).toBe('#/today'));
     expect(screen.queryByRole('heading', { name: 'Set up your board' })).toBeNull();
     expect(getCurationState().categories.map((c) => [c.label, c.location])).toEqual([
       ['Implementation Consulting', 'Tacoma, WA'],
@@ -243,10 +243,10 @@ describe('Skip', () => {
   });
 });
 
-describe('Discover with no track', () => {
-  it('Choose a track opens the same steps and Finish stays on Discover', async () => {
+describe('Today with no track', () => {
+  it('Choose a track opens the same steps and Finish stays on Today', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer'); // a first run (no jobs) skips the gate
-    window.location.hash = '#/discover';
+    window.location.hash = '#/today';
     renderApp();
     await click('Choose a track');
     step(1);
@@ -256,7 +256,7 @@ describe('Discover with no track', () => {
     await click('Continue');
     await click('Finish');
     await waitFor(() => expect(getCurationState().categories).toHaveLength(1));
-    expect(window.location.hash).toBe('#/discover');
+    expect(window.location.hash).toBe('#/today');
   });
 });
 

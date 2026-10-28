@@ -12,8 +12,10 @@ import {
   getRoute,
   subscribeScrollRestore,
   backInFlight,
+  redirectOf,
   type Route,
 } from './route';
+import { setLegacyScreens } from './legacyScreens';
 import { jobIdOf } from './store';
 
 describe('route — parseHash', () => {
@@ -123,8 +125,8 @@ describe('route — navigate drops a stale job id (#127)', () => {
   it('a tab change without a job id clears it', async () => {
     const { navigate, getRoute } = await import('./route');
     window.location.hash = '#/queue/abc123';
-    navigate({ tab: 'discover' });
-    expect(getRoute()).toMatchObject({ tab: 'discover', jobId: null });
+    navigate({ tab: 'today' });
+    expect(getRoute()).toMatchObject({ tab: 'today', jobId: null });
   });
 });
 
@@ -191,13 +193,13 @@ describe('route — withOrigin records where a jump came from', () => {
 
   it("leaves it out when the origin is the page's own default way back", () => {
     // A job, Apply mode, a Company and Documents go back to the Pipeline list by default; an open
-    // document goes back to the library; the legal pages to Companies.
+    // document goes back to the library; the legal pages to Today.
     expect(buildHash(withOrigin({ tab: 'queue', jobId: 'A' }, at('#/queue')))).toBe('#/queue/A');
     expect(buildHash(withOrigin({ tab: 'copy-deck' }, at('#/queue')))).toBe('#/copy-deck');
     expect(buildHash(withOrigin({ tab: 'copy-deck', sub: 'd1' }, at('#/copy-deck')))).toBe(
       '#/copy-deck/d1',
     );
-    expect(buildHash(withOrigin({ tab: 'legal', sub: 'privacy' }, at('#/discover')))).toBe(
+    expect(buildHash(withOrigin({ tab: 'legal', sub: 'privacy' }, at('#/today')))).toBe(
       '#/legal/privacy',
     );
   });
@@ -305,7 +307,7 @@ describe('route — goBackTo', () => {
   });
 
   it('a goBackTo to another page asked while a pop is in flight runs once it has landed', async () => {
-    window.location.hash = '#/discover/ats';
+    window.location.hash = '#/copy-deck/d8';
     await settle();
     window.location.hash = '#/company/twice3-co';
     await settle();
@@ -314,20 +316,20 @@ describe('route — goBackTo', () => {
     goBackTo(parseHash('#/company/twice3-co'));
     expect(backInFlight()).toBe(true);
     // Asked again before the pop lands: once it has, the Company is behind no more, so this one
-    // goes on to where it was then asked to go (the ATS search), exactly once.
-    goBackTo(parseHash('#/discover/ats'));
-    await waitFor(() => expect(window.location.hash).toBe('#/discover/ats'));
+    // goes on to where it was then asked to go (a document), exactly once.
+    goBackTo(parseHash('#/copy-deck/d8'));
+    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck/d8'));
     await settle();
-    expect(window.location.hash).toBe('#/discover/ats');
+    expect(window.location.hash).toBe('#/copy-deck/d8');
     expect(backInFlight()).toBe(false);
   });
 
   it('replaces the current entry when the page is not behind it (a cold load)', async () => {
-    window.location.hash = '#/legal/terms?from=%2Fdiscover%2Fats';
+    window.location.hash = '#/legal/terms?from=%2Fcopy-deck%2Fd9';
     await settle();
     const length = window.history.length;
-    goBackTo(parseHash('#/discover/ats'));
-    await waitFor(() => expect(window.location.hash).toBe('#/discover/ats'));
+    goBackTo(parseHash('#/copy-deck/d9'));
+    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck/d9'));
     expect(window.history.length).toBe(length);
   });
 });
@@ -347,5 +349,51 @@ describe('route — navigate keeps an origin with its page', () => {
     window.location.hash = '#/queue/nav4?from=%2Fcompany%2Fco';
     navigate({ section: 'screening' }, true);
     expect(window.location.hash).toBe('#/queue/nav4?section=screening&from=%2Fcompany%2Fco');
+  });
+});
+
+describe('route — retired routes land on Today (simplify Q6: no Companies tab)', () => {
+  it.each([
+    ['#/discover', true],
+    ['#/discover/live?from=%2Ftoday', true],
+    ['#/discover/teams?pillar=abc', true],
+    ['#/apprenticeships', true],
+    ['#/today', false],
+    ['#/queue', false],
+    ['#/company/acme', false],
+    ['', false],
+  ])('%s → Today: %s', (hash, retired) => {
+    expect(redirectOf(parseHash(hash))).toEqual(
+      retired ? { tab: 'today', sub: null, pillar: null, jobId: null } : null,
+    );
+  });
+
+  it('a link to an old route reads, and then shows, as Today, in place', async () => {
+    window.location.hash = '#/queue';
+    await waitFor(() => expect(getRoute().tab).toBe('queue'));
+    const steps = window.history.length;
+    window.location.hash = '#/discover/live';
+    expect(getRoute()).toMatchObject({ tab: 'today', sub: null });
+    await waitFor(() => expect(window.location.hash).toBe('#/today'));
+    // The old hash's entry became Today's: one step, as for any link.
+    expect(window.history.length).toBe(steps + 1);
+  });
+
+  it('navigate and goBackTo never write an old route', async () => {
+    navigate({ tab: 'discover', sub: 'ats' });
+    expect(window.location.hash).toBe('#/today');
+    window.location.hash = '#/legal/terms';
+    await waitFor(() => expect(getRoute().tab).toBe('legal'));
+    goBackTo(parseHash('#/discover/ats'));
+    await waitFor(() => expect(window.location.hash).toBe('#/today'));
+  });
+
+  it('the old screens stay reachable for their own tests until #389 deletes them', async () => {
+    setLegacyScreens(true);
+    try {
+      expect(redirectOf(parseHash('#/discover/live'))).toBeNull();
+    } finally {
+      setLegacyScreens(false);
+    }
   });
 });

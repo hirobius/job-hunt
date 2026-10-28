@@ -54,6 +54,7 @@ import { importFresh } from './staleBuild';
 import V12Migration from './V12Migration';
 import { PageShell } from './hds-gaps/PageShell';
 import { PageErrorBoundary } from './ErrorBoundary';
+import { legacyScreens } from './legacyScreens';
 
 // Code-split every route view: Discover, Documents and the rest here, the Pipeline, job page,
 // Apply mode and Company page through routeViews.ts (they render without a Suspense step once
@@ -72,13 +73,15 @@ const AutoScanOnOpen = lazy(() =>
   ),
 );
 
-// Top-level tabs, in render order (simplify 2/9, #383: Today · Companies · Jobs). The URL hash
-// carries the slug; slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline, its
-// tab now named Jobs). `#/today` is home again, as the three-panel Today (Today.tsx). Templates
-// lost its tab (#240) and became the
+// Top-level tabs, in render order: exactly two, Today · Jobs (simplify #383 + amendment 2, Q6).
+// The URL hash carries the slug (`queue` is the Pipeline, its tab named Jobs). The Companies tab is
+// gone: route.ts sends `#/discover/*` (and the Trades slug) to Today, and Followed / Ignored
+// companies sit under the Account menu. Its old screens stay mounted only for their own tests
+// until #389 deletes them (legacyScreens.ts). Templates lost its tab (#240) and became the
 // Documents library (#227): `#/copy-deck` (slug kept) is a page with no tab selected, reached
 // from the Apply sheet and the Menu.
-const TAB_SLUGS = ['today', 'discover', 'queue'] as const;
+const TAB_SLUGS = ['today', 'queue'] as const;
+const LEGACY_TAB = 'discover';
 const DOCUMENTS_ROUTE = 'copy-deck';
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
 // Today is home; quick-add always shows the Pipeline, where the new job is.
@@ -87,8 +90,6 @@ const QUICK_ADD_LANDING = 'queue';
 const APPLY_ROUTE = 'apply';
 // The quick-add link's params (shortcut, bookmarklet, Gmail-scan links): read once, then removed.
 const QUICK_ADD_PARAMS = ['add', 'applied', 'status', 'u', 't', 'title'];
-// The old Trades tab's slug: its bookmarks still land on home, like an empty hash.
-const LEGACY_HOME = 'apprenticeships';
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
 /** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
@@ -137,17 +138,13 @@ export default function App() {
   const legal = route.tab === LEGAL_ROUTE;
   // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show home.
   // A sign-in link's callback hash is not a link: Today shows while auth-js reads it.
-  const known: string[] = [...TAB_SLUGS, APPLY_ROUTE, COMPANY_TAB, DOCUMENTS_ROUTE, LEGAL_ROUTE];
-  const notFound =
-    route.tab !== '' &&
-    route.tab !== LEGACY_HOME &&
-    !isAuthCallback(route) &&
-    !known.includes(route.tab);
+  const legacy = legacyScreens();
+  const slugs: string[] = legacy ? [...TAB_SLUGS, LEGACY_TAB] : [...TAB_SLUGS];
+  const known: string[] = [...slugs, APPLY_ROUTE, COMPANY_TAB, DOCUMENTS_ROUTE, LEGAL_ROUTE];
+  const notFound = route.tab !== '' && !isAuthCallback(route) && !known.includes(route.tab);
   const noTab = documents || legal || notFound;
-  const slugIndex = TAB_SLUGS.indexOf(
-    (applying || company ? QUICK_ADD_LANDING : route.tab) as (typeof TAB_SLUGS)[number],
-  );
-  const tab = slugIndex >= 0 ? slugIndex : defaultTabIndex;
+  const slugIndex = slugs.indexOf(applying || company ? QUICK_ADD_LANDING : route.tab);
+  const tabSlug = slugIndex >= 0 ? slugs[slugIndex] : slugs[defaultTabIndex];
   // The section pages' titles; a job, Apply mode, a Company and the legal pages set their own.
   usePageTitle(
     notFound
@@ -156,9 +153,9 @@ export default function App() {
         ? 'Documents'
         : applying || company || legal || route.jobId
           ? null
-          : TAB_SLUGS[tab] === 'queue'
+          : tabSlug === 'queue'
             ? 'Pipeline'
-            : TAB_SLUGS[tab] === 'today'
+            : tabSlug === 'today'
               ? 'Today'
               : 'Companies',
   );
@@ -168,7 +165,7 @@ export default function App() {
   // whether the tab was already open is read before that, on pointer or key down.
   const tappedOpen = useRef<TopTab | null>(null);
   const pressed = (slug: TopTab) => () => {
-    tappedOpen.current = !noTab && TAB_SLUGS[tab] === slug ? slug : null;
+    tappedOpen.current = !noTab && tabSlug === slug ? slug : null;
   };
   const tapped = (slug: TopTab) => () => {
     if (tappedOpen.current !== slug) return;
@@ -187,10 +184,9 @@ export default function App() {
     onClick: tapped(slug),
   });
 
-  // The onboarding gate (#128) lives here, not in a view. Companies can't work without a track,
-  // and on a first run (no tracks and no jobs) it also offers sample data, so nobody lands on an
-  // empty home (Today shows the same first-run setup). The Pipeline and Documents never gate:
-  // quick-add and sample data work before setup.
+  // The onboarding gate (#128) lives here, not in a view: on a first run (no tracks and no jobs)
+  // Today shows the setup, with sample data, so nobody lands on an empty home. The Pipeline and
+  // Documents never gate: quick-add and sample data work before setup.
   const hasTracks = useCategories().length > 0;
   const jobs = useJobs();
   const hasJobs = jobs.length > 0;
@@ -277,7 +273,7 @@ export default function App() {
                 Manual activation there: Tab past the Account button focuses the first tab, which
                 would otherwise select it and leave the page before a keyboard user reaches it. */}
             <HdsTabs
-              value={noTab ? '' : TAB_SLUGS[tab]}
+              value={noTab ? '' : tabSlug}
               activationMode={noTab ? 'manual' : 'automatic'}
               onValueChange={(v) => openTab(v as TopTab)}
             >
@@ -302,12 +298,14 @@ export default function App() {
                       <TabsTrigger value="today" {...trigger('today')}>
                         Today
                       </TabsTrigger>
-                      <TabsTrigger value="discover" {...trigger('discover')}>
-                        Companies
-                      </TabsTrigger>
                       <TabsTrigger value="queue" {...trigger('queue')}>
                         Jobs
                       </TabsTrigger>
+                      {legacy && (
+                        <TabsTrigger value={LEGACY_TAB} {...trigger(LEGACY_TAB)}>
+                          Companies
+                        </TabsTrigger>
+                      )}
                     </TabsList>
                   </Stack>
                 </Box>
@@ -338,17 +336,19 @@ export default function App() {
                           )}
                         </Suspense>
                       </TabsContent>
-                      <TabsContent value="discover" variant="bare" tabIndex={-1}>
-                        <Suspense fallback={<DiscoverSkeleton />}>
-                          {firstRun ? (
-                            <Onboarding offerSample />
-                          ) : hasTracks ? (
-                            <DiscoverView />
-                          ) : (
-                            <ChooseTrack />
-                          )}
-                        </Suspense>
-                      </TabsContent>
+                      {legacy && (
+                        <TabsContent value={LEGACY_TAB} variant="bare" tabIndex={-1}>
+                          <Suspense fallback={<DiscoverSkeleton />}>
+                            {firstRun ? (
+                              <Onboarding offerSample />
+                            ) : hasTracks ? (
+                              <DiscoverView />
+                            ) : (
+                              <ChooseTrack />
+                            )}
+                          </Suspense>
+                        </TabsContent>
+                      )}
                       {documents && (
                         <Suspense fallback={<CopyDeckSkeleton />}>
                           <DocumentsView />

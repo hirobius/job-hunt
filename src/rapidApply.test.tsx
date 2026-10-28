@@ -98,7 +98,7 @@ describe('To apply queue and Apply mode', () => {
     expect(screen.getByRole('link', { name: /Open application/ })).toHaveAttribute('href', A);
   });
 
-  it('with nothing to apply to, Apply mode points to Companies instead of a dead end', async () => {
+  it('with nothing to apply to, Apply mode points to Review new instead of a dead end', async () => {
     const user = userEvent.setup();
     getAllJobs()
       .slice()
@@ -106,8 +106,8 @@ describe('To apply queue and Apply mode', () => {
     window.location.hash = '#/apply/nope';
     renderApp();
     expect(await screen.findByText('To apply is empty')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Find the next company' }));
-    expect(window.location.hash).toBe('#/discover');
+    await user.click(screen.getByRole('button', { name: 'Review new postings' }));
+    expect(window.location.hash).toBe('#/today');
   });
 
   it('kit fields are entered once inline and copied with a Copied confirmation', async () => {
@@ -403,8 +403,11 @@ describe('Application kit: a deleted template pick (#314)', () => {
     );
     expect(getApplyKit().whyTemplate).toBeUndefined();
     expect(
-      (within(kit).getByRole('combobox', { name: /^Why this company template/ }) as HTMLSelectElement)
-        .value,
+      (
+        within(kit).getByRole('combobox', {
+          name: /^Why this company template/,
+        }) as HTMLSelectElement
+      ).value,
     ).toBe('');
   });
 });

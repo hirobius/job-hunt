@@ -3,6 +3,7 @@
 // "N engineering-heavy roles" row in Live postings and on each company row, and the counts leave
 // them out. Calibrate's "Show engineering-heavy roles" brings them back, per track. Another track
 // keeps its order, with no tags and no setting.
+import './test/legacyScreens';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

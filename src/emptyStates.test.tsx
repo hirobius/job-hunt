@@ -25,6 +25,7 @@ import { seedPack } from './curation/starterPacks';
 import { getAllDocuments } from './documents';
 import { getSnippets } from './copyDeckStore';
 import { loadSupabase } from './supabase';
+import { legacyScreensForThisTest } from './test/legacy';
 
 const renderApp = () =>
   render(
@@ -53,7 +54,7 @@ afterEach(() => {
 describe('Discover empties', () => {
   it('no tracks: asks to pick one, and Choose a track opens the setup', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/discover';
+    window.location.hash = '#/today';
     renderApp();
     expect(screen.getByText('Pick a track to search')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Set up your board' })).toBeNull();
@@ -62,6 +63,7 @@ describe('Discover empties', () => {
   });
 
   it('an empty section: no links here yet, with Manage this track', async () => {
+    legacyScreensForThisTest();
     const id = addCategory({
       label: 'Mine',
       titles: ['Welder'],
@@ -119,6 +121,7 @@ describe('a clean first run', () => {
   });
 
   it('Companies right after picking a track: no empty Dream companies section', async () => {
+    legacyScreensForThisTest();
     seedPack('consulting');
     window.location.hash = '#/discover/teams';
     renderApp();

@@ -138,7 +138,7 @@ describe('Pipeline on a phone (#129)', () => {
     const items = within(await screen.findByRole('menu'))
       .getAllByRole('menuitem')
       .map((i) => i.textContent?.trim());
-    expect(items).toEqual(['Open posting', 'Star', 'Retire', 'Find more like this', 'Remove']);
+    expect(items).toEqual(['Open posting', 'Star', 'Retire', 'Remove']);
     // One inset for every item: the stages are plain items marked by a trailing check, still
     // radio items for assistive tech (rev-3 mock).
     const stages = within(screen.getByRole('menu')).getAllByRole('menuitemradio');
@@ -433,10 +433,10 @@ describe('Pipeline rows keep to two items per dotted line (#192)', () => {
   });
 });
 
-describe('the Pipeline ends with "Find the next company" (#238)', () => {
-  const findNext = () => screen.getByRole('button', { name: 'Find the next company' });
+describe('the Pipeline ends with "Review new postings" (#238)', () => {
+  const findNext = () => screen.getByRole('button', { name: 'Review new postings' });
 
-  it('with jobs: an action after the list opens Companies', async () => {
+  it('with jobs: an action after the list opens Today', async () => {
     viewport(1440);
     renderApp();
     const btn = findNext();
@@ -446,8 +446,8 @@ describe('the Pipeline ends with "Find the next company" (#238)', () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     await userEvent.click(btn);
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
+    await waitFor(() => expect(window.location.hash).toBe('#/today'));
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
   });
 
   it('empty: shown under the empty state, secondary beside the primary Add job', async () => {
@@ -461,8 +461,8 @@ describe('the Pipeline ends with "Find the next company" (#238)', () => {
     expect(add.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(btn.className).not.toBe(add.className);
     await userEvent.click(btn);
-    await waitFor(() => expect(window.location.hash).toBe('#/discover'));
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
+    await waitFor(() => expect(window.location.hash).toBe('#/today'));
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
   });
 });
 
@@ -494,8 +494,12 @@ describe('Active empty action and Star Undo (#361)', () => {
       within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: /^Starred/ }),
     );
     const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
-    await user.click(within(card).getByRole('button', { name: 'More actions: Zenith Product Designer' }));
-    await user.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Unstar' }));
+    await user.click(
+      within(card).getByRole('button', { name: 'More actions: Zenith Product Designer' }),
+    );
+    await user.click(
+      within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Unstar' }),
+    );
     expect(getAllJobs().find((j) => j.url === APPLIED)?.priority).toBeFalsy();
     expect(screen.queryByRole('article', { name: 'Zenith Product Designer' })).toBeNull();
     expect(within(notice()).getByText('Unstarred')).toBeInTheDocument();
@@ -509,7 +513,9 @@ describe('Active empty action and Star Undo (#361)', () => {
     renderApp();
     const card = screen.getByRole('article', { name: 'Design Engineer' });
     await user.click(within(card).getByRole('button', { name: 'More actions: Design Engineer' }));
-    await user.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Star' }));
+    await user.click(
+      within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Star' }),
+    );
     expect(getAllJobs().find((j) => j.url === SAVED)?.priority).toBe(true);
     expect(screen.getByRole('article', { name: 'Design Engineer' })).toBeInTheDocument();
     expect(card.getAttribute('data-motion')).toBe('flash');

@@ -17,7 +17,10 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
-vi.mock('./feed/fetchFeed', () => feed);
+vi.mock('./feed/fetchFeed', async (orig) => ({
+  ...(await orig<typeof import('./feed/fetchFeed')>()),
+  ...feed,
+}));
 
 import LiveFeedPanel from './LiveFeedPanel';
 import { DIRECTORY_BY_PACK } from './radar/directory';

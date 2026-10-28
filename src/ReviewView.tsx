@@ -29,7 +29,6 @@ import { useBackCloses } from './useBackCloses';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
-import { NewCompanies, ScanStatus } from './AutoScanViews';
 import {
   FILTER_LABEL,
   SORT_LABEL,
@@ -42,7 +41,7 @@ import {
   type FeedRow,
   type FeedSort,
 } from './feed/feed';
-import { decide, muteCompany, undecide, unmuteCompany, useDecided } from './feed/decided';
+import { decide, muteCompany, undecide, unmuteCompany } from './feed/decided';
 import { followPosting } from './feed/follow';
 import { jobFieldsFor } from './feed/toJob';
 import { postedAgo } from './feed/format';
@@ -59,7 +58,14 @@ const FILTERS: FeedFilter[] = ['new', 'contract', 'founding', 'remote'];
 const SORTS: FeedSort[] = ['newest', 'score', 'company'];
 type Mode = 'browse' | 'deck';
 
-export default function ReviewView({ categoryId }: { categoryId: string }) {
+export default function ReviewView({
+  categoryId,
+  label = 'New postings',
+}: {
+  categoryId: string;
+  /** The panel's name: "Review new" on Today. */
+  label?: string;
+}) {
   const feed = useFeed(categoryId);
   const { view } = feed;
   const kept = (k: string) => `review:${categoryId}:${k}`;
@@ -86,96 +92,45 @@ export default function ReviewView({ categoryId }: { categoryId: string }) {
   const actions = useRowActions(categoryId, feed.sources);
   const line = view ? newTodayLine(view.newToday, view.sourcesRead) : null;
 
+  const caughtUp =
+    'Every posting from your sources is saved or skipped. The next scan brings new ones.';
   return (
-    <Stack gap="inset">
-      <Stack gap="px4">
-        <Text variant="body" as="p" role="status" className="rjb-semibold">
-          {line ?? (feed.loading ? 'Reading your sources…' : '')}
-        </Text>
-        <ScanStatus categoryId={categoryId} />
-        {feed.progress && (
-          <Text variant="caption" as="p" tone="secondary">
-            {`Read ${feed.progress.done} of ${feed.progress.total} boards`}
-          </Text>
-        )}
-        {view && view.failed.length > 0 && (
-          <Text variant="caption" as="p" tone="secondary">
-            {failedLine(view.failed)}
-          </Text>
-        )}
-      </Stack>
-      <NewCompanies categoryId={categoryId} />
-      <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
-        <SegmentedControl
-          aria-label="Review view"
-          size="sm"
-          value={mode}
-          onChange={(v) => setMode(v as Mode)}
-          options={[
-            { value: 'browse', label: 'Browse' },
-            { value: 'deck', label: 'Deck' },
-          ]}
-        />
-      </Stack>
-      {view && (
-        <Stack direction="row" wrap="wrap" gap="px8" role="group" aria-label="Filter postings">
-          {FILTERS.map((f) => (
-            <Tag
-              key={f}
-              active={on.includes(f)}
-              aria-pressed={on.includes(f)}
-              aria-label={`${FILTER_LABEL[f]}, ${counts[f]}`}
-              onClick={() => toggle(f)}
-            >
-              <Stack as="span" direction="row" gap="px8" align="center">
-                {FILTER_LABEL[f]}
-                <Badge count={counts[f]} />
-              </Stack>
-            </Tag>
-          ))}
-        </Stack>
-      )}
-      {feed.error ? (
-        <EmptyState
-          framed
-          icon={SearchX}
-          title="Couldn’t read your sources"
-          description={feed.error}
-          action={
-            <Button variant="secondary" onClick={feed.refresh}>
-              Try again
-            </Button>
-          }
-        />
-      ) : !view ? (
-        feed.loading ? (
-          <LoadingRows />
-        ) : (
-          <EmptyState
-            framed
-            icon={SearchX}
-            title="Nothing to read yet"
-            description="Add a title to the track, or watch a company, and its postings show here."
-          />
-        )
-      ) : mode === 'deck' ? (
-        <Deck
-          rows={listed}
-          at={Math.min(card, Math.max(0, listed.length - 1))}
-          onAt={setCard}
-          now={feed.at}
-          actions={actions}
-        />
-      ) : (
-        <>
-          <Panel
-            label="New postings"
-            title="New postings"
-            count={listed.length}
-            countLabel={`${listed.length} postings`}
-            description={hiddenLine(view.hidden)}
-          >
-            <PanelBody>
+    <Panel
+      label={view ? `${label} (${listed.length})` : label}
+      title={label}
+      count={view ? listed.length : undefined}
+      countLabel={`${listed.length} postings`}
+      description={view ? hiddenLine(view.hidden) : undefined}
+    >
+      <PanelBody>
+        <Stack gap="normal">
+          <Stack gap="px4">
+            <Text variant="body" as="p" role="status" className="rjb-semibold">
+              {line ?? (feed.loading ? 'Reading your sources…' : '')}
+            </Text>
+            {feed.progress && (
+              <Text variant="caption" as="p" tone="secondary">
+                {`Read ${feed.progress.done} of ${feed.progress.total} boards`}
+              </Text>
+            )}
+            {view && view.failed.length > 0 && (
+              <Text variant="caption" as="p" tone="secondary">
+                {failedLine(view.failed)}
+              </Text>
+            )}
+          </Stack>
+          <Stack direction="row" gap="tight" align="center" wrap="wrap">
+            <SegmentedControl
+              aria-label="Review view"
+              size="sm"
+              value={mode}
+              onChange={(v) => setMode(v as Mode)}
+              options={[
+                { value: 'browse', label: 'Browse' },
+                { value: 'deck', label: 'Deck' },
+              ]}
+            />
+            {view && mode === 'browse' && (
               <SegmentedControl
                 aria-label="Sort postings"
                 size="sm"
@@ -186,57 +141,112 @@ export default function ReviewView({ categoryId }: { categoryId: string }) {
                 }}
                 options={SORTS.map((s) => ({ value: s, label: SORT_LABEL[s] }))}
               />
-            </PanelBody>
-            {listed.length ? (
-              <RowList
-                label="New postings"
-                rows={listed}
-                shown={shown}
-                onMore={() => setShown((n) => n + REVIEW_PAGE)}
-                now={feed.at}
-                actions={actions}
-                onOpen={(r) => setPreviewFp(r.fingerprint)}
-              />
-            ) : (
-              <PanelBody>
-                <EmptyState
-                  centered
-                  icon={SearchX}
-                  title={
-                    on.length
-                      ? 'Nothing matches these filters'
-                      : decidedAny(view.hidden)
-                        ? 'You’re all caught up'
-                        : 'No postings match yet'
-                  }
-                  description={
-                    on.length
-                      ? 'Turn a filter off to see more.'
-                      : decidedAny(view.hidden)
-                        ? 'Every posting from your sources is saved or skipped. The next scan brings new ones.'
-                        : 'No design-system posting from your sources right now. The next scan looks again.'
-                  }
-                  action={
-                    on.length ? (
-                      <Button variant="secondary" onClick={() => setOn([])}>
-                        Clear filters
-                      </Button>
-                    ) : undefined
-                  }
-                />
-              </PanelBody>
             )}
-          </Panel>
-        </>
+          </Stack>
+          {view && (
+            <Stack direction="row" wrap="wrap" gap="px8" role="group" aria-label="Filter postings">
+              {FILTERS.map((f) => (
+                <Tag
+                  key={f}
+                  active={on.includes(f)}
+                  aria-pressed={on.includes(f)}
+                  aria-label={`${FILTER_LABEL[f]}, ${counts[f]}`}
+                  onClick={() => toggle(f)}
+                >
+                  <Stack as="span" direction="row" gap="px8" align="center">
+                    {FILTER_LABEL[f]}
+                    <Badge count={counts[f]} />
+                  </Stack>
+                </Tag>
+              ))}
+            </Stack>
+          )}
+        </Stack>
+      </PanelBody>
+      {feed.error ? (
+        <PanelBody>
+          <EmptyState
+            centered
+            icon={SearchX}
+            title="Couldn’t read your sources"
+            description={feed.error}
+            action={
+              <Button variant="secondary" onClick={feed.refresh}>
+                Try again
+              </Button>
+            }
+          />
+        </PanelBody>
+      ) : !view ? (
+        feed.loading ? (
+          <LoadingRows />
+        ) : (
+          <PanelBody>
+            <EmptyState
+              centered
+              icon={SearchX}
+              title="Nothing to read yet"
+              description="Add a design-system title to your profile, or follow a company, and its postings show here."
+            />
+          </PanelBody>
+        )
+      ) : mode === 'deck' ? (
+        <PanelBody>
+          <Deck
+            rows={listed}
+            at={Math.min(card, Math.max(0, listed.length - 1))}
+            onAt={setCard}
+            now={feed.at}
+            actions={actions}
+            empty={caughtUp}
+          />
+        </PanelBody>
+      ) : listed.length ? (
+        <RowList
+          label="New postings"
+          rows={listed}
+          shown={shown}
+          onMore={() => setShown((n) => n + REVIEW_PAGE)}
+          now={feed.at}
+          actions={actions}
+          onOpen={(r) => setPreviewFp(r.fingerprint)}
+        />
+      ) : (
+        <PanelBody>
+          <EmptyState
+            centered
+            icon={SearchX}
+            title={
+              on.length
+                ? 'Nothing matches these filters'
+                : decidedAny(view.hidden)
+                  ? 'You’re all caught up'
+                  : 'No postings match yet'
+            }
+            description={
+              on.length
+                ? 'Turn a filter off to see more.'
+                : decidedAny(view.hidden)
+                  ? caughtUp
+                  : 'No design-system posting from your sources right now. The next scan looks again.'
+            }
+            action={
+              on.length ? (
+                <Button variant="secondary" onClick={() => setOn([])}>
+                  Clear filters
+                </Button>
+              ) : undefined
+            }
+          />
+        </PanelBody>
       )}
-      <MutedCompanies />
       <PostingPreview
         r={preview}
         now={feed.at}
         actions={actions}
         onClose={() => setPreviewFp(null)}
       />
-    </Stack>
+    </Panel>
   );
 }
 
@@ -495,22 +505,17 @@ function Deck({
   onAt,
   now,
   actions,
+  empty,
 }: {
   rows: FeedRow[];
   at: number;
   onAt: (n: number) => void;
   now: number;
   actions: RowActions;
+  empty: string;
 }) {
   if (!rows.length)
-    return (
-      <EmptyState
-        framed
-        icon={SearchX}
-        title="You’re all caught up"
-        description="Every posting from your sources is saved or skipped. The next scan brings new ones."
-      />
-    );
+    return <EmptyState centered icon={SearchX} title="You’re all caught up" description={empty} />;
   const r = rows[at];
   return (
     <Stack gap="tight">
@@ -529,6 +534,7 @@ function Deck({
         as="article"
         aria-label={r.company ? `${r.title} at ${r.company}` : r.title}
         padding="none"
+        className="rjb-card-inset"
       >
         <DeckBody>
           <PostingSummary r={r} now={now} />
@@ -554,7 +560,7 @@ function DeckBody({ children }: { children: ReactNode }) {
 
 function LoadingRows() {
   return (
-    <Card padding="none" aria-busy>
+    <Box aria-busy>
       <CardList hidden>
         {[0, 1, 2].map((i) => (
           <ListCard key={i}>
@@ -566,41 +572,7 @@ function LoadingRows() {
           </ListCard>
         ))}
       </CardList>
-    </Card>
-  );
-}
-
-/** Companies muted with Not this company, each with Unmute. Only shown when there are some. */
-function MutedCompanies() {
-  const { muted } = useDecided();
-  if (!muted.length) return null;
-  return (
-    <Panel
-      label="Muted companies"
-      title="Muted companies"
-      count={muted.length}
-      countLabel={`${muted.length} muted`}
-    >
-      <CardList label="Muted companies">
-        {muted.map((k) => (
-          <ListCard key={k} dense>
-            <Stack direction="row" gap="tight" align="center" justify="space-between">
-              <Text variant="ui" as="span">
-                {k}
-              </Text>
-              <Button
-                size="sm"
-                variant="tertiary"
-                onClick={() => unmuteCompany(k)}
-                aria-label={`Unmute ${k}`}
-              >
-                Unmute
-              </Button>
-            </Stack>
-          </ListCard>
-        ))}
-      </CardList>
-    </Panel>
+    </Box>
   );
 }
 

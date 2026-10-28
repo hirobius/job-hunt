@@ -8,6 +8,7 @@ import {
   KEYLESS_FEEDS,
   reviewLine,
   today,
+  upcomingLine,
 } from './today';
 import { SOURCE_ENABLED } from './feed/fetchFeed';
 import type { Category } from './curation/types';
@@ -72,9 +73,20 @@ describe('today: Follow up', () => {
     expect(m.followUp.next?.job.url).toBe(jobs[2].url);
   });
 
+  it('counts the follow-ups that fall due in the coming 7 days as upcoming', () => {
+    // Due in 5, 2 and 0 days (today, so due), and one applied today (due in 7: inside the week).
+    const jobs = [applied(1, 2), applied(2, 5), applied(3, 7), applied(4, 0)];
+    const m = today(jobs, NO_REVIEW, NOW);
+    expect(m.followUp.due.map((j) => j.url)).toEqual([jobs[2].url]);
+    expect(m.followUp.upcoming).toBe(3);
+    expect(upcomingLine(3)).toBe('Upcoming: 3 this week');
+    expect(upcomingLine(1)).toBe('Upcoming: 1 this week');
+    expect(upcomingLine(0)).toBe('Nothing else this week');
+  });
+
   it('has nothing due or waiting with no applications', () => {
     const m = today([job(1)], NO_REVIEW, NOW);
-    expect(m.followUp).toEqual({ due: [], waiting: 0, next: null });
+    expect(m.followUp).toEqual({ due: [], waiting: 0, upcoming: 0, next: null });
   });
 });
 

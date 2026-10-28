@@ -421,12 +421,12 @@ export default function TrackerView() {
             <RecentlyRemovedLink />
           </Stack>
         )}
-        {/* The list always ends by pointing back to Companies (#238), empty or not. Secondary, so
-          Add job / Start applying stay the page's one primary. It opens Companies where it was
-          left (its last tool or section), like the Companies tab (return paths). */}
+        {/* The list always ends by pointing back to where jobs come from (#238), empty or not:
+          Today's Review new. Secondary, so Add job / Start applying stay the page's one primary.
+          It opens Today where it was left, like the Today tab (return paths). */}
         <Stack direction="row">
-          <UiButton variant="secondary" onClick={() => openTab('discover')}>
-            Find the next company
+          <UiButton variant="secondary" onClick={() => openTab('today')}>
+            Review new postings
           </UiButton>
         </Stack>
       </Stack>

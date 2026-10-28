@@ -1,24 +1,33 @@
-// Simplify 2/9 (#383): Today is home. Three sections in a fixed order (Review new, Apply, Follow
-// up), each opening what already exists: Live postings, Apply mode and the follow-up dialog. The
-// Pipeline stays reachable as the Jobs tab, unchanged inside; Companies keeps its tab. Tested at
-// the route seam through App and driven by role + name.
+// The final shell (simplify 2/9 #383 + amendment 2, Q6): two top tabs, Today and Jobs. Today, top
+// to bottom: the auto-scan's status (Scan now, "Last scanned · N new from M sources"), Review new as
+// the Browse list (a row opens the in-app preview), Apply, Follow up (due today with dates, plus
+// what is coming this week) and New companies (Follow / Ignore). Tested at the route seam through
+// App and driven by role + name.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
+import type { FeedResult } from './feed/fetchFeed';
+import type { Posting } from './feed/types';
 
 vi.mock('@supabase/supabase-js', async () => {
   const { createFakeSupabase } = await import('./test/fakeSupabase');
   return { createClient: () => createFakeSupabase().client };
 });
+const feed = vi.hoisted(() => ({ fetchFeed: vi.fn() }));
+vi.mock('./feed/fetchFeed', async (orig) => ({
+  ...(await orig<typeof import('./feed/fetchFeed')>()),
+  fetchFeed: feed.fetchFeed,
+}));
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob, updateJob } from './store';
 import { ymd } from './jobEvents';
-import { replaceCurationState } from './curation/curationStore';
-import { seedPack } from './curation/starterPacks';
-import { watchBoard } from './feed/watchlist';
+import { addCategory, replaceCurationState } from './curation/curationStore';
+import { EMPTY_CURATION } from './curation/types';
+import { resetScan } from './feed/autoScan';
+import { getAllDecided } from './feed/decided';
 
 const renderApp = () =>
   render(
@@ -36,9 +45,37 @@ const daysAgo = (n: number) => {
   return d;
 };
 
+const now = new Date().toISOString();
+const post = (id: string, title: string, company: string, o: Partial<Posting> = {}): Posting => ({
+  id,
+  source: 'hn',
+  title,
+  company,
+  url: `https://news.ycombinator.com/item?id=${id.replace(/\W/g, '')}`,
+  location: 'Remote',
+  mode: 'remote',
+  postedAt: now,
+  text: 'Own the design system.',
+  ...o,
+});
+const result = (postings: Posting[]): FeedResult => ({
+  postings,
+  sources: [{ key: 'hn', label: 'Hacker News', fetched: postings.length }],
+});
+
 beforeEach(() => {
   localStorage.clear();
-  replaceCurationState({ categories: [], groups: [], tiles: [] });
+  resetScan();
+  replaceCurationState(EMPTY_CURATION);
+  addCategory({ label: 'Design systems', titles: ['Design Systems Designer'] });
+  feed.fetchFeed
+    .mockReset()
+    .mockResolvedValue(
+      result([
+        post('hn:1', 'Design Systems Designer', 'Acme'),
+        post('hn:2', 'Design Systems Engineer', 'Beta'),
+      ]),
+    );
   window.history.replaceState(null, '', '/');
   window.location.hash = '';
 });
@@ -47,58 +84,114 @@ afterEach(() => {
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
-  replaceCurationState({ categories: [], groups: [], tiles: [] });
+  replaceCurationState(EMPTY_CURATION);
 });
 
-describe('Today is home (#383)', () => {
-  it('an empty hash lands on Today, with Today · Companies · Jobs as the tabs', async () => {
-    seedPack('consulting');
+describe('the shell: Today and Jobs', () => {
+  it('an empty hash lands on Today; the only tabs are Today and Jobs', async () => {
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/today'));
     expect(screen.getByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument();
-    const tabs = screen.getAllByRole('tab').map((t) => t.textContent);
-    expect(tabs).toEqual(['Today', 'Companies', 'Jobs']);
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Today', 'Jobs']);
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
     expect(document.title).toMatch(/^Today/);
   });
 
-  it('shows Review new, Apply and Follow up, in that order', async () => {
-    seedPack('consulting');
+  it.each(['#/discover', '#/discover/live', '#/discover/teams?pillar=x', '#/apprenticeships'])(
+    'the old Companies route %s lands on Today in place (no extra history step)',
+    async (hash) => {
+      window.location.hash = hash;
+      const before = window.history.length;
+      renderApp();
+      await waitFor(() => expect(window.location.hash).toBe('#/today'));
+      expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
+      expect(window.history.length).toBe(before);
+    },
+  );
+
+  it('Today shows, in order: Review new, Apply, Follow up, then New companies', async () => {
+    seedFound();
     window.location.hash = '#/today';
     renderApp();
-    const names = (await within(screen.getByRole('main')).findAllByRole('region')).map((r) =>
-      r.getAttribute('aria-label'),
-    );
-    expect(names.map((n) => n?.replace(/ \(.*$/, ''))).toEqual([
-      'Review new',
-      'Apply',
-      'Follow up',
-    ]);
+    await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
+    const names = within(screen.getByRole('main'))
+      .getAllByRole('region')
+      .map((r) => r.getAttribute('aria-label')?.replace(/ \(.*$/, ''));
+    expect(names).toEqual(['Review new', 'Apply', 'Follow up', 'New companies']);
   });
 
-  it('a first run shows onboarding, as Companies does', async () => {
+  it('a first run shows onboarding', async () => {
+    replaceCurationState(EMPTY_CURATION);
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/today'));
     expect(await screen.findByRole('button', { name: /sample data/i })).toBeInTheDocument();
   });
-});
 
-describe('Review new', () => {
-  it('names its sources and opens Live postings, with Today as the way back', async () => {
-    const track = seedPack('consulting');
-    watchBoard(track, 'https://jobs.ashbyhq.com/ramp');
+  it('the Jobs tab opens the Pipeline, unchanged inside', async () => {
     window.location.hash = '#/today';
     renderApp();
-    const review = section(/^Review new/);
-    expect(within(review).getByText(/^New postings from \d+ sources$/)).toBeInTheDocument();
-    const browse = within(review).getByRole('link', { name: 'Browse new postings' });
-    expect(browse).toHaveAttribute('href', '#/discover/live?from=%2Ftoday');
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+  });
+});
+
+describe('the auto-scan', () => {
+  it('says it has not scanned yet, with Scan now at the top of Today', async () => {
+    window.location.hash = '#/today';
+    renderApp();
+    expect(
+      screen.getByText('Not scanned yet. The first scan runs on its own.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Scan now' })).toBeInTheDocument();
+  });
+
+  it('after a scan, says when and how many are new from how many sources', async () => {
+    seedScan({ finishedAt: Date.now(), newCount: 4, sourceCount: 9, found: [] });
+    window.location.hash = '#/today';
+    renderApp();
+    expect(screen.getByText(/^Last scanned \d\d:\d\d · 4 new from 9 sources$/)).toBeInTheDocument();
+  });
+});
+
+describe('Review new on Today', () => {
+  it('is the Browse list of every design-system posting, newest first', async () => {
+    feed.fetchFeed.mockResolvedValue(
+      result([
+        post('hn:1', 'Design Systems Designer', 'Acme', { postedAt: daysAgo(3).toISOString() }),
+        post('hn:2', 'Design Systems Engineer', 'Beta'),
+        post('hn:3', 'Backend Engineer', 'Gamma'),
+      ]),
+    );
+    window.location.hash = '#/today';
+    renderApp();
+    const ul = await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
+    const titles = within(ul)
+      .getAllByRole('heading', { level: 4 })
+      .map((h) => h.textContent);
+    expect(titles).toEqual(['Design Systems Engineer', 'Design Systems Designer']);
+  });
+
+  it('a row opens the in-app preview, with Open posting one tap away', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#/today';
+    renderApp();
+    const ul = await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
+    await user.click(within(ul).getByRole('button', { name: 'Design Systems Engineer' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Design Systems Engineer' });
+    expect(within(dialog).getByRole('link', { name: /Open posting/ })).toHaveAttribute(
+      'href',
+      'https://news.ycombinator.com/item?id=hn2',
+    );
+    // Back closes the preview and stays on Today.
+    window.history.back();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(window.location.hash).toBe('#/today');
   });
 });
 
 describe('Apply', () => {
   it('counts To apply and Start applying opens Apply mode on its head', async () => {
-    seedPack('consulting');
     addJob('https://acme.example.com/jobs/1', 'Designer');
     addJob('https://beta.example.com/jobs/2', 'Engineer');
     window.location.hash = '#/today';
@@ -108,14 +201,12 @@ describe('Apply', () => {
     await userEvent.click(within(apply).getByRole('button', { name: 'Start applying' }));
     await waitFor(() =>
       expect(window.location.hash).toMatch(
-        // Today is its way back (return paths).
         new RegExp(`^#/apply/${jobIdOf('https://beta.example.com/jobs/2')}\\?from=%2Ftoday$`),
       ),
     );
   });
 
   it('with nothing saved, Start applying is off', async () => {
-    seedPack('consulting');
     window.location.hash = '#/today';
     renderApp();
     const apply = section(/^Apply/);
@@ -125,23 +216,36 @@ describe('Apply', () => {
 });
 
 describe('Follow up', () => {
-  it('names the due companies and opens the follow-up dialog on the first', async () => {
-    seedPack('consulting');
-    const url = 'https://acme.example.com/jobs/1';
+  const applied = (url: string, company: string, daysBack: number) => {
     addJob(url, 'Designer');
     markAppliedByUrl(url);
-    // Applied 9 days ago: due.
-    updateJob(getAllJobs()[0].url, { applied: ymd(daysAgo(9)), company: 'Acme' });
+    updateJob(url, { applied: ymd(daysAgo(daysBack)), company });
+  };
+
+  it('lists what is due with its date, and opens the follow-up dialog', async () => {
+    applied('https://acme.example.com/jobs/1', 'Acme', 9);
     window.location.hash = '#/today';
     renderApp();
     const follow = section(/^Follow up/);
-    expect(within(follow).getByText('Due: Acme')).toBeInTheDocument();
+    const due = within(follow).getByRole('list', { name: 'Due follow-ups' });
+    expect(within(due).getByText('Acme')).toBeInTheDocument();
+    expect(within(due).getByText(/^Due /)).toBeInTheDocument();
     await userEvent.click(within(follow).getByRole('button', { name: /^Follow up/ }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
+  it('counts what falls due in the coming week', async () => {
+    // Applied 4 and 5 days ago: due in 3 and 2 days.
+    applied('https://beta.example.com/jobs/2', 'Beta', 4);
+    applied('https://gamma.example.com/jobs/3', 'Gamma', 5);
+    window.location.hash = '#/today';
+    renderApp();
+    const follow = section(/^Follow up/);
+    expect(within(follow).getByText('Nothing due today')).toBeInTheDocument();
+    expect(within(follow).getByText('Upcoming: 2 this week')).toBeInTheDocument();
+  });
+
   it('says so when nothing waits on a reply', async () => {
-    seedPack('consulting');
     window.location.hash = '#/today';
     renderApp();
     expect(
@@ -150,13 +254,42 @@ describe('Follow up', () => {
   });
 });
 
-describe('Jobs', () => {
-  it('the Jobs tab opens the Pipeline, unchanged inside', async () => {
-    seedPack('consulting');
+describe('New companies', () => {
+  it('Follow and Ignore each say so with Undo; Ignore mutes the company', async () => {
+    const user = userEvent.setup();
+    seedFound();
     window.location.hash = '#/today';
     renderApp();
-    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
-    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+    const panel = section(/^New companies/);
+    await user.click(within(panel).getByRole('button', { name: 'Ignore Forward' }));
+    expect(await screen.findByText('Ignored Forward')).toBeInTheDocument();
+    expect(getAllDecided().muted).toContain('Forward');
   });
 });
+
+/** A finished scan as the auto-scan stores it (resetScan drops the cached copy first). */
+function seedScan(state: object) {
+  resetScan();
+  localStorage.setItem('rjb_autoscan', JSON.stringify(state));
+}
+
+/** A scan that found one company the user hasn't followed or ignored yet. */
+function seedFound() {
+  seedScan({
+    finishedAt: Date.now(),
+    newCount: 0,
+    sourceCount: 3,
+    found: [
+      {
+        key: 'forward',
+        name: 'Forward',
+        boardUrl: 'https://boards.greenhouse.io/forward',
+        via: 'yc',
+        confirmed: false,
+        status: 'new',
+        jobs: 0,
+        at: Date.now(),
+      },
+    ],
+  });
+}
