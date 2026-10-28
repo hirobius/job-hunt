@@ -336,7 +336,7 @@ describe('Companies as one tool (#237)', () => {
       const field = within(dialog).getByLabelText('Company name or job-board link');
       expect(field).toHaveAttribute('placeholder', 'Company or board link');
       expect(dialog).toHaveTextContent(
-        'We look for its board on Greenhouse, Lever, Ashby and 5 more, or paste the board link.',
+        'We look for its board on Greenhouse, Lever, Ashby and 10 more, or paste the board link.',
       );
       expect(dialog).not.toHaveTextContent(/Recruitee|Watched companies show/);
       expect(dialog).not.toHaveAttribute('aria-describedby', expect.stringMatching(/./));

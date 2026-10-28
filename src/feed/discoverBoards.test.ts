@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { discoverBoards, MAX_LIST, parseList, type DiscoverOptions } from './discoverBoards';
+import {
+  discoverBoards,
+  MAX_LIST,
+  parseList,
+  websitesByName,
+  type DiscoverOptions,
+} from './discoverBoards';
 import { memoryKv } from './fetchFeed';
 import { FetchError, type FetchJson } from './sources/http';
 
@@ -58,6 +64,39 @@ describe('discoverBoards', () => {
     expect(r.unknown).toEqual(['flaky']);
     expect(r.done).toBe(4);
     expect(r.total).toBe(4);
+  });
+
+  it('lists a board the name matched but the website does not back as unconfirmed, not found', async () => {
+    const r = await run('Figma', {
+      websites: websitesByName([{ name: 'Figma', website: 'figma.com' }]),
+    });
+    // Figma's board shows nothing either way (no links), and it is the one board: kept.
+    expect(r.found.map((f) => f.company)).toEqual(['Figma']);
+    live['https://boards-api.greenhouse.io/v1/boards/forward/jobs'] = {
+      jobs: [{ absolute_url: 'https://getfwd.com/careers?gh_jid=1', company_name: 'Forward' }],
+    };
+    const f = await run('Forward', {
+      websites: websitesByName([{ name: 'Forward', website: 'https://goforward.com' }]),
+    });
+    expect(f.found).toEqual([]);
+    expect(f.missed).toEqual([]);
+    expect(f.unconfirmed).toEqual([
+      {
+        company: 'Forward',
+        board: { kind: 'greenhouse', slug: 'forward' },
+        jobs: 1,
+        why: 'Its jobs link to getfwd.com, not goforward.com.',
+      },
+    ]);
+  });
+
+  it('websitesByName keys by the lower-cased name and drops blanks', () => {
+    expect([
+      ...websitesByName([
+        { name: ' Acme ', website: 'acme.com' },
+        { name: 'B', website: ' ' },
+      ]),
+    ]).toEqual([['acme', 'acme.com']]);
   });
 
   it('leaves out boards the track already watches, and says so', async () => {

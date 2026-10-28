@@ -48,11 +48,23 @@ export function forWatcher<C extends WatchedCompany>(r: ReadOutcome, w: C): Read
 
 const PARALLEL = 4;
 
+/** Sources the postings table's `source` check doesn't list (the sync never reads them; the
+ *  browser's newer board kinds are scored as 'manual'). */
+const NOT_STORED = new Set<Posting['source']>([
+  'remoteok',
+  'sam',
+  'bamboohr',
+  'rippling',
+  'gem',
+  'pinpoint',
+  'breezy',
+]);
+
 /** A live Posting (src/feed) as the scorer reads it. The source id is the Posting's own id
  *  (`greenhouse:stripe:123`), so the browser and the server name a posting the same way. */
 export function normalize(p: Posting): NormalizedPosting {
   return {
-    source: p.source === 'remoteok' || p.source === 'sam' ? 'manual' : p.source,
+    source: NOT_STORED.has(p.source) ? 'manual' : (p.source as NormalizedPosting['source']),
     sourceId: p.id,
     title: p.title,
     company: p.company,

@@ -1,6 +1,8 @@
-// Company job boards on eight applicant-tracking systems — Greenhouse, Lever, Ashby, Workable,
+// Company job boards on thirteen applicant-tracking systems — Greenhouse, Lever, Ashby, Workable,
 // Recruitee, SmartRecruiters, Teamtailor and Personio (the last five UNVERIFIED LIVE: written from
-// their documented or commonly reported response shapes, #216). Each exposes a public,
+// their documented or commonly reported response shapes, #216), plus BambooHR, Rippling, Gem,
+// Pinpoint and Breezy HR (atsExtra.ts, all UNVERIFIED LIVE; it also says why JazzHR, Comeet,
+// Freshteam and Workday are not here). Each exposes a public,
 // keyless, CORS-open JSON API per company. Which companies to watch comes from the track itself: any
 // tile whose URL is a board (e.g. https://jobs.ashbyhq.com/ramp) is pulled live. Durable portal in,
 // fresh openings out — so the board never holds a stale one-off posting.
@@ -9,6 +11,7 @@ import { inferMode } from '../mode.ts';
 import type { JobMode } from '../../types.ts';
 import { httpUrl } from '../../httpUrl.ts';
 import type { Posting } from '../types.ts';
+import { EXTRA_LISTS, EXTRA_PARSERS } from './atsExtra.ts';
 import { arr, obj, prettySlug, str, type FetchJson } from './http.ts';
 
 export type BoardKind =
@@ -19,7 +22,12 @@ export type BoardKind =
   | 'recruitee'
   | 'smartrecruiters'
   | 'teamtailor'
-  | 'personio';
+  | 'personio'
+  | 'bamboohr'
+  | 'rippling'
+  | 'gem'
+  | 'pinpoint'
+  | 'breezy';
 export interface Board {
   kind: BoardKind;
   slug: string;
@@ -76,6 +84,18 @@ export function parseBoardUrl(raw: string): Board | null {
   if (tt) return { kind: 'teamtailor', slug: tt };
   const pe = sub('.jobs.personio.de') ?? sub('.jobs.personio.com');
   if (pe) return { kind: 'personio', slug: pe };
+  const bamboo = sub('.bamboohr.com');
+  if (bamboo) return { kind: 'bamboohr', slug: bamboo };
+  const pin = sub('.pinpointhq.com');
+  if (pin) return { kind: 'pinpoint', slug: pin };
+  const breezy = sub('.breezy.hr');
+  if (breezy && breezy !== 'marketplace') return { kind: 'breezy', slug: breezy };
+  if (host === 'ats.rippling.com') {
+    // A locale may lead the path: ats.rippling.com/en-GB/acme/jobs.
+    const s = /^[a-z]{2}-[A-Z]{2}$/.test(seg[0] ?? '') ? seg[1] : seg[0];
+    return ok(s) ? { kind: 'rippling', slug: s } : null;
+  }
+  if (host === 'jobs.gem.com') return ok(seg[0]) ? { kind: 'gem', slug: seg[0] } : null;
   return null;
 }
 
@@ -114,6 +134,16 @@ export function boardApiUrl(b: Board): string {
       return `https://${slug}.teamtailor.com/jobs.json`;
     case 'personio':
       return `https://${slug}.jobs.personio.de/search.json`;
+    case 'bamboohr':
+      return `https://${slug}.bamboohr.com/careers/list`;
+    case 'rippling':
+      return `https://api.rippling.com/platform/api/ats/v1/board/${slug}/jobs`;
+    case 'gem':
+      return `https://api.gem.com/job_board/v0/${slug}/job_posts/`;
+    case 'pinpoint':
+      return `https://${slug}.pinpointhq.com/postings.json`;
+    case 'breezy':
+      return `https://${slug}.breezy.hr/json`;
   }
 }
 
@@ -138,6 +168,16 @@ export function canonicalBoardUrl(b: Board): string {
       return `https://${b.slug}.teamtailor.com/jobs`;
     case 'personio':
       return `https://${b.slug}.jobs.personio.de`;
+    case 'bamboohr':
+      return `https://${b.slug}.bamboohr.com/careers`;
+    case 'rippling':
+      return `https://ats.rippling.com/${b.slug}/jobs`;
+    case 'gem':
+      return `https://jobs.gem.com/${b.slug}`;
+    case 'pinpoint':
+      return `https://${b.slug}.pinpointhq.com`;
+    case 'breezy':
+      return `https://${b.slug}.breezy.hr`;
   }
 }
 
@@ -353,7 +393,12 @@ export function parsePersonioJob(j: unknown, slug: string): Posting | null {
 
 /** Boards whose API answers 200 with an empty list for a company that has no board at all, so the
  *  probe reads "no jobs" there as none rather than as a live board. */
-export const EMPTY_MEANS_NONE: ReadonlySet<BoardKind> = new Set(['smartrecruiters']);
+export const EMPTY_MEANS_NONE: ReadonlySet<BoardKind> = new Set([
+  'smartrecruiters',
+  // Unverified live: until a real empty board is seen, an empty list may be any name's answer.
+  'rippling',
+  'gem',
+]);
 
 /** Endpoints written from reported, not official, shapes: a body without a list is an error. */
 const UNOFFICIAL: ReadonlySet<BoardKind> = new Set([
@@ -362,23 +407,30 @@ const UNOFFICIAL: ReadonlySet<BoardKind> = new Set([
   'smartrecruiters',
   'teamtailor',
   'personio',
+  'bamboohr',
+  'rippling',
+  'gem',
+  'pinpoint',
+  'breezy',
 ]);
 
 /** The raw job list inside a board payload; null when the payload isn't shaped like that board's
  *  (so a caller can tell "no openings" from "not a board response"). */
 export function boardJobs(b: Board, body: unknown): unknown[] | null {
   const list =
-    b.kind === 'lever' || b.kind === 'personio'
-      ? body
-      : b.kind === 'recruitee'
-        ? obj(body).offers
-        : b.kind === 'smartrecruiters'
-          ? obj(body).content
-          : b.kind === 'teamtailor'
-            ? Array.isArray(body)
-              ? body
-              : (obj(body).jobs ?? obj(body).data)
-            : obj(body).jobs;
+    b.kind in EXTRA_LISTS
+      ? EXTRA_LISTS[b.kind as keyof typeof EXTRA_LISTS](body)
+      : b.kind === 'lever' || b.kind === 'personio'
+        ? body
+        : b.kind === 'recruitee'
+          ? obj(body).offers
+          : b.kind === 'smartrecruiters'
+            ? obj(body).content
+            : b.kind === 'teamtailor'
+              ? Array.isArray(body)
+                ? body
+                : (obj(body).jobs ?? obj(body).data)
+              : obj(body).jobs;
   return Array.isArray(list) ? list : null;
 }
 
@@ -397,6 +449,7 @@ export async function fetchBoard(b: Board, fetchJson: FetchJson): Promise<Postin
     smartrecruiters: parseSmartRecruitersJob,
     teamtailor: parseTeamtailorJob,
     personio: parsePersonioJob,
+    ...EXTRA_PARSERS,
   }[b.kind];
   return jobs.map((j) => parse(j, b.slug)).filter((p): p is Posting => !!p);
 }

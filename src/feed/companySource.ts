@@ -7,7 +7,7 @@
 // So a trades or consulting track never lists design-system organisations, and the panel says in
 // one line which source it used. No new hosts: the YC mirror and the ATS probes are already in CSP.
 import { boardsForPack, packIdForLabel, STARTER_PACKS } from '../curation/starterPacks';
-import { discoverBoards } from './discoverBoards';
+import { discoverBoards, websitesByName } from './discoverBoards';
 import { httpUrl } from '../httpUrl';
 import type { Limiter, ProbeOptions } from './probe';
 import { boardsFromUrls, boardLabel } from './sources/ats';
@@ -154,7 +154,7 @@ export async function* suggestTrackCompanies(
   const byName = new Map(matches.map((c) => [c.name.toLowerCase(), c]));
   const result = await discoverBoards(
     matches.map((c) => c.name),
-    { fetchJson, signal, limiter, watched, kv },
+    { fetchJson, signal, limiter, watched, kv, websites: websitesByName(matches) },
   );
   const login = (c: YcCompany) => `yc:${(c.slug || c.name).toLowerCase()}`;
   // The YC mirror is a third party: only an http(s) website becomes a link.
@@ -171,9 +171,15 @@ export async function* suggestTrackCompanies(
       from: 'yc',
     };
   }
+  // A board the name matched without the company's website on it is never suggested as theirs;
+  // the company still is, as "couldn't check" (never as "no board").
+  const unconfirmed = [...new Set(result.unconfirmed.map((u) => u.company))].filter(
+    (n) => !result.found.some((f) => f.company === n),
+  );
   for (const [names, unknown] of [
     [result.missed, false],
     [result.unknown, true],
+    [unconfirmed, true],
   ] as const) {
     for (const name of names) {
       const c = byName.get(name.toLowerCase());

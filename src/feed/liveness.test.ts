@@ -64,6 +64,9 @@ describe('eligibleJobs', () => {
       job('https://jobs.ashbyhq.com/ramp/dddd', 'Interviewing'),
       { ...job('https://jobs.ashbyhq.com/ramp/eeee'), archived: true },
       job('https://www.linkedin.com/jobs/view/1'),
+      // Unverified-live boards may page: a page-2 job must never read as closed.
+      job('https://acme.bamboohr.com/careers/12'),
+      job('https://acme.pinpointhq.com/postings/7f2c'),
     ];
     expect(eligibleJobs(jobs).map((j) => j.url)).toEqual([
       'https://jobs.ashbyhq.com/ramp/aaaa',

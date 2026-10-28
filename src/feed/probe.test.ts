@@ -4,6 +4,7 @@ import {
   MAX_IN_FLIGHT,
   MAX_PER_HOST,
   PROBE_KEY,
+  PROBE_KINDS,
   createLimiter,
   hostKey,
   parseCompanyLine,
@@ -116,6 +117,16 @@ describe('probeBoard', () => {
     });
     expect((await probeBoard(sr, ok({ error: 'x' }))).result).toBe('unknown');
   });
+  // Rippling and Gem are unverified live: an empty list may be any name's answer, so it is none.
+  it.each(['rippling', 'gem'] as const)(
+    'an empty %s list is none; a non-empty one is live',
+    async (k) => {
+      expect((await probeBoard(board(k, 'acme'), ok([]))).result).toBe('none');
+      expect((await probeBoard(board(k, 'acme'), ok([{ id: '1', title: 't' }]))).result).toBe(
+        'live',
+      );
+    },
+  );
   it.each([
     ['429', fail(429)],
     ['500', fail(500)],
@@ -239,7 +250,7 @@ describe('probeCompanies', () => {
     return out;
   };
 
-  it('tries all eight kinds for the first candidate and stops there on a hit', async () => {
+  it('tries every kind for the first candidate and stops there on a hit', async () => {
     const urls: string[] = [];
     const f = world({ [boardApiUrl(board('lever', 'acme-labs'))]: [{}] }, (u) => urls.push(u));
     const [r] = await collect(probeCompanies(['Acme Labs'], { fetchJson: f, kv: memoryKv() }));
@@ -247,16 +258,16 @@ describe('probeCompanies', () => {
       state: 'found',
       hits: [{ board: { kind: 'lever', slug: 'acme-labs' }, jobs: 1 }],
     });
-    expect(urls).toHaveLength(8);
+    expect(urls).toHaveLength(PROBE_KINDS.length);
     expect(urls.every((u) => u.includes('acme-labs'))).toBe(true);
   });
 
-  it('moves to later candidates only when nothing hit, 24 requests for 3 candidates', async () => {
+  it('moves to later candidates only when nothing hit, every kind for each of 3 candidates', async () => {
     const urls: string[] = [];
     const out = await collect(
       probeCompanies(['Acme Labs'], { fetchJson: world({}, (u) => urls.push(u)), kv: memoryKv() }),
     );
-    expect(urls).toHaveLength(24);
+    expect(urls).toHaveLength(3 * PROBE_KINDS.length);
     expect(out[0]).toMatchObject({ state: 'missed', hits: [] });
   });
 
@@ -338,16 +349,18 @@ describe('probeCompanies', () => {
     const f = world({ ['https://boards-api.greenhouse.io/v1/boards/acme/jobs']: { jobs: [{}] } });
     await collect(probeCompanies(['acme'], { fetchJson: f, kv, now }));
     const first = (f as ReturnType<typeof vi.fn>).mock.calls.length;
-    expect(first).toBe(8);
+    expect(first).toBe(PROBE_KINDS.length);
     const [again] = await collect(probeCompanies(['acme'], { fetchJson: f, kv, now }));
     expect((f as ReturnType<typeof vi.fn>).mock.calls.length).toBe(first);
     expect(again).toMatchObject({ state: 'found', hits: [{ jobs: 1 }] });
     t += 15 * 86400e3; // none (14 d) expired, live (30 d) kept
     await collect(probeCompanies(['acme'], { fetchJson: f, kv, now }));
-    expect((f as ReturnType<typeof vi.fn>).mock.calls.length).toBe(first + 7);
+    expect((f as ReturnType<typeof vi.fn>).mock.calls.length).toBe(first + PROBE_KINDS.length - 1);
     t += 20 * 86400e3; // live expired too
     await collect(probeCompanies(['acme'], { fetchJson: f, kv, now }));
-    expect((f as ReturnType<typeof vi.fn>).mock.calls.length).toBe(first + 7 + 8);
+    expect((f as ReturnType<typeof vi.fn>).mock.calls.length).toBe(
+      first + 2 * PROBE_KINDS.length - 1,
+    );
   });
 
   it('never caches unknown', async () => {
@@ -415,4 +428,216 @@ describe('probeCompanies', () => {
     expect((await first).done).toBe(false);
     await gen.return(undefined);
   });
+
+  /** The probe reads the light payload (no job bodies). */
+  const lightUrl = (b: ReturnType<typeof board>) =>
+    boardApiUrl(b).replace(/\?(content|details)=true$/, '');
+
+  // The YC company "Forward" matched three boards that belong to other companies.
+  describe('identity check', () => {
+    const forwardWorld = () =>
+      world({
+        [lightUrl(board('greenhouse', 'forward'))]: {
+          jobs: [
+            {
+              id: 1,
+              absolute_url: 'https://getfwd.com/careers?gh_jid=1',
+              company_name: 'Forward',
+            },
+          ],
+        },
+        [lightUrl(board('smartrecruiters', 'forward'))]: {
+          content: [{ id: '9', company: { name: 'Forward Networks' } }],
+        },
+        [lightUrl(board('personio', 'forward'))]: [{ id: 3, name: 'Werkstudent' }],
+      });
+    const websites = new Map([['forward', 'https://goforward.com']]);
+
+    it('marks every board unconfirmed when none shows it is the company: none is a hit', async () => {
+      const [r] = await collect(
+        probeCompanies(['Forward'], { fetchJson: forwardWorld(), kv: memoryKv(), websites }),
+      );
+      expect(r.state).toBe('unconfirmed');
+      expect(r.hits).toEqual([]);
+      expect(r.unconfirmed.map((h) => [h.board.kind, h.why])).toEqual([
+        ['greenhouse', 'Its jobs link to getfwd.com, not goforward.com.'],
+        ['smartrecruiters', "The board is Forward Networks's."],
+        [
+          'personio',
+          'The name matched boards on several systems; nothing on this one shows it is this company.',
+        ],
+      ]);
+    });
+
+    // Adele's site is the design system's (atlassian.design), not where the jobs link (atlassian.com).
+    it('a weak website never rules a board out: the stated name decides', async () => {
+      const f = world({
+        [lightUrl(board('greenhouse', 'atlassian'))]: {
+          jobs: [
+            {
+              id: 1,
+              absolute_url: 'https://www.atlassian.com/company/careers/details/1',
+              company_name: 'Atlassian',
+            },
+          ],
+        },
+      });
+      const sites = new Map([['atlassian', 'https://atlassian.design']]);
+      const [weak] = await collect(
+        probeCompanies(['Atlassian'], {
+          fetchJson: f,
+          kv: memoryKv(),
+          websites: sites,
+          weakWebsites: true,
+        }),
+      );
+      expect(weak.state).toBe('found');
+      expect(weak.hits).toEqual([{ board: { kind: 'greenhouse', slug: 'atlassian' }, jobs: 1 }]);
+      // The same site as a company's own website says the board is someone else's.
+      const [strong] = await collect(
+        probeCompanies(['Atlassian'], { fetchJson: f, kv: memoryKv(), websites: sites }),
+      );
+      expect(strong.state).toBe('unconfirmed');
+    });
+
+    it('keeps the one board whose links are on the company’s site', async () => {
+      const f = world({
+        [lightUrl(board('greenhouse', 'forward'))]: {
+          jobs: [{ id: 1, absolute_url: 'https://goforward.com/careers?gh_jid=1' }],
+        },
+        [lightUrl(board('personio', 'forward'))]: [{ id: 3 }],
+      });
+      const [r] = await collect(
+        probeCompanies(['Forward'], { fetchJson: f, kv: memoryKv(), websites }),
+      );
+      expect(r.state).toBe('found');
+      expect(r.hits).toEqual([{ board: { kind: 'greenhouse', slug: 'forward' }, jobs: 1 }]);
+      expect(r.unconfirmed.map((h) => h.board.kind)).toEqual(['personio']);
+    });
+
+    it('without a website, the board’s stated name decides', async () => {
+      const [r] = await collect(
+        probeCompanies(['Forward'], { fetchJson: forwardWorld(), kv: memoryKv() }),
+      );
+      // Greenhouse says "Forward": that one is kept; SmartRecruiters' Forward Networks is not.
+      expect(r.hits.map((h) => h.board.kind)).toEqual(['greenhouse']);
+      expect(r.unconfirmed.map((h) => h.board.kind)).toEqual(['smartrecruiters', 'personio']);
+    });
+
+    it('keeps a lone board that says nothing either way (the slug is all there is)', async () => {
+      const f = world({ [lightUrl(board('lever', 'acme'))]: [{ id: 'x' }] });
+      const [r] = await collect(probeCompanies(['acme'], { fetchJson: f, kv: memoryKv() }));
+      expect(r.state).toBe('found');
+      expect(r.unconfirmed).toEqual([]);
+    });
+
+    it('a pasted board URL is the user’s word: kept with no check', async () => {
+      const f = world({
+        [lightUrl(board('greenhouse', 'forward'))]: {
+          jobs: [{ id: 1, absolute_url: 'https://getfwd.com/c', company_name: 'Forward' }],
+        },
+      });
+      const [r] = await collect(
+        probeCompanies(['https://boards.greenhouse.io/forward'], { fetchJson: f, kv: memoryKv() }),
+      );
+      expect(r.state).toBe('found');
+    });
+
+    it('goes on to the next slug when the first only found unconfirmed boards', async () => {
+      const urls: string[] = [];
+      const f = world(
+        {
+          [lightUrl(board('smartrecruiters', 'acme-labs'))]: {
+            content: [{ id: '1', company: { name: 'Acme Labs Holdings' } }],
+          },
+          [lightUrl(board('ashby', 'acme'))]: { jobs: [] },
+        },
+        (u) => urls.push(u),
+      );
+      const [r] = await collect(probeCompanies(['Acme Labs'], { fetchJson: f, kv: memoryKv() }));
+      expect(urls).toHaveLength(3 * PROBE_KINDS.length);
+      expect(r.state).toBe('found');
+      expect(r.hits).toEqual([{ board: { kind: 'ashby', slug: 'acme' }, jobs: 0 }]);
+      expect(r.unconfirmed.map((h) => h.board.slug)).toEqual(['acme-labs']);
+    });
+
+    it('caches the evidence, so a cached answer is checked the same way', async () => {
+      const kv = memoryKv();
+      const f = forwardWorld();
+      await collect(probeCompanies(['Forward'], { fetchJson: f, kv, websites }));
+      const calls = (f as ReturnType<typeof vi.fn>).mock.calls.length;
+      const [again] = await collect(probeCompanies(['Forward'], { fetchJson: f, kv, websites }));
+      expect((f as ReturnType<typeof vi.fn>).mock.calls.length).toBe(calls);
+      expect(again.state).toBe('unconfirmed');
+      expect(JSON.parse(kv.get(PROBE_KEY)!)['greenhouse:forward'].e.domains).toEqual([
+        'getfwd.com',
+      ]);
+    });
+  });
+
+  it('asks again for a live answer cached before the identity check (no evidence)', async () => {
+    const kv = memoryKv();
+    const now = () => Date.parse('2026-10-15T00:00:00Z');
+    kv.set(PROBE_KEY, JSON.stringify({ 'greenhouse:acme': { r: 'live', at: now(), n: 1 } }));
+    const urls: string[] = [];
+    const f = world({ [lightUrl(board('greenhouse', 'acme'))]: { jobs: [{}] } }, (u) =>
+      urls.push(u),
+    );
+    const [r] = await collect(probeCompanies(['acme'], { fetchJson: f, kv, now }));
+    expect(urls).toContain(lightUrl(board('greenhouse', 'acme')));
+    expect(r.state).toBe('found');
+    expect(JSON.parse(kv.get(PROBE_KEY)!)['greenhouse:acme'].e).toEqual({});
+  });
+
+  // One fixed API host: status 0 there is CORS or a block, never "no board".
+  it.each(['rippling', 'gem'] as const)(
+    'a %s connection failure is unknown, never none, even once others answered',
+    async (kind) => {
+      const f: FetchJson = async (url) => {
+        throw new FetchError(url === lightUrl(board(kind, 'acme')) ? 0 : 404, url);
+      };
+      const [r] = await collect(probeCompanies(['acme'], { fetchJson: f, kv: memoryKv() }));
+      expect(r.state).toBe('unknown');
+      expect(r.unknown.map((b) => b.kind)).toEqual([kind]);
+    },
+  );
+
+  // A stopped host's probes never ran: that says nothing about a board, even on a subdomain kind.
+  it('a probe the limiter skipped (host stopped after 3×429) is unknown, never none', async () => {
+    const urls: string[] = [];
+    const f: FetchJson = async (url) => {
+      urls.push(url);
+      throw new FetchError(url.includes('recruitee') ? 429 : 404, url);
+    };
+    const names = Array.from({ length: 30 }, (_, i) => `c${i}`);
+    const out = await collect(probeCompanies(names, { fetchJson: f, kv: memoryKv() }));
+    // The host was stopped, so some companies' Recruitee probes were skipped, not asked.
+    expect(urls.filter((u) => u.includes('recruitee')).length).toBeLessThan(30);
+    expect(out).toHaveLength(30);
+    expect(out.every((r) => r.state === 'unknown')).toBe(true);
+    expect(out.every((r) => r.unknown.some((b) => b.kind === 'recruitee'))).toBe(true);
+  });
+
+  it('a Rippling or Gem timeout is unknown, never none', async () => {
+    const f: FetchJson = async (url) => {
+      throw url.includes('rippling') ? new FetchError(0, url, true) : new FetchError(404, url);
+    };
+    const [r] = await collect(probeCompanies(['acme'], { fetchJson: f, kv: memoryKv() }));
+    expect(r.state).toBe('unknown');
+    expect(r.unknown.map((b) => b.kind)).toEqual(['rippling']);
+  });
+
+  it.each(['bamboohr', 'pinpoint', 'breezy'] as const)(
+    'probes %s and reads a connection failure there as none once others answered',
+    async (kind) => {
+      const urls: string[] = [];
+      const f: FetchJson = async (url) => {
+        urls.push(url);
+        throw new FetchError(url === lightUrl(board(kind, 'acme')) ? 0 : 404, url);
+      };
+      const [r] = await collect(probeCompanies(['acme'], { fetchJson: f, kv: memoryKv() }));
+      expect(urls).toContain(lightUrl(board(kind, 'acme')));
+      expect(r.state).toBe('missed');
+    },
+  );
 });

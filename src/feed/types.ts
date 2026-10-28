@@ -17,6 +17,11 @@ export type FeedSourceId =
   | 'smartrecruiters'
   | 'teamtailor'
   | 'personio'
+  | 'bamboohr'
+  | 'rippling'
+  | 'gem'
+  | 'pinpoint'
+  | 'breezy'
   | 'sam'
   // designsystems.jobs: read on the server only (the sync), so it reaches the app as a stored row.
   | 'rss';
@@ -34,6 +39,11 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   smartrecruiters: 'SmartRecruiters',
   teamtailor: 'Teamtailor',
   personio: 'Personio',
+  bamboohr: 'BambooHR',
+  rippling: 'Rippling',
+  gem: 'Gem',
+  pinpoint: 'Pinpoint',
+  breezy: 'Breezy HR',
   sam: 'SAM.gov',
   rss: 'designsystems.jobs',
 };

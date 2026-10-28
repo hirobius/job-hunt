@@ -739,6 +739,15 @@ track-agnostic like everything else in Discover.
     no longer reads a global list.
   - **By company was cut (2026-10-17):** Live postings is one Openings list; an old `?view=companies`
     link is ignored and shows Openings.
+- **Board identity + five more boards (#src-ats, 2026-10-28).** A board found from a _name_ must show
+  it is the company's (`feed/boardIdentity.ts`): the company's website domain on its apply links /
+  website / job text (YC, Adele, GitHub org sites; github.io-style hosts are no evidence), else the
+  name the board states (Dice ≥ 0.9). A lone board that says nothing either way is kept; the rest are
+  **unconfirmed** (`DiscoverResult.unconfirmed`, with why), listed with "Watch anyway", never
+  auto-watched. Pasted board URLs skip the check. Evidence rides in `rjb_probe` (`e`); an older live
+  entry without it is asked again. BambooHR, Rippling, Gem, Pinpoint and Breezy HR are board kinds
+  (`sources/atsExtra.ts`, **unverified live**, CORS too; why JazzHR, Comeet, Freshteam, Workday aren't is
+  in its header). Pinned in `feed/boardIdentity.test.ts`, `probe.test.ts`, `sources/atsExtra.test.ts`.
 - **Hidden-job discovery (2026-10-15, `docs/specs/discovery-methods.md`).** Discover tools **Boards** and
   **Teams** (`#/discover/boards`, `#/discover/teams`). `feed/probe.ts` asks Greenhouse / Lever / Ashby /
   Workable / Recruitee for a company's board (200 + job list = live, 404 = none, anything else =
