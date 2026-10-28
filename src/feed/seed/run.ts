@@ -57,7 +57,8 @@ export interface Snapshot {
   generated: string;
   note: string;
   sources: SourceReport[];
-  counts: { companies: number; boards: number; confirmed: number };
+  /** watched: the confirmed boards a design systems track watches (seedBoards). */
+  counts: { companies: number; boards: number; confirmed: number; watched: number };
   companies: SeedCompany[];
 }
 
@@ -184,21 +185,33 @@ export async function buildSnapshot(o: RunOptions): Promise<Snapshot> {
     (a, b) => rank(b.board) - rank(a.board) || a.name.localeCompare(b.name),
   );
   const boards = companies.filter((c) => c.board);
-  return {
+  const snapshot: Snapshot = {
     generated: (o.now?.() ?? new Date()).toISOString().slice(0, 10),
     note:
       'Companies that run a design system, with the job board the probe found for each. Only boards ' +
-      'with `confirmed` set are watched (ds-seed-boards.json). Regenerate with `npm run seed:companies`.',
+      'with `confirmed` set and at most 300 open roles are watched (ds-seed-boards.json). Adele’s full MIT ' +
+      'notice is `licenseText` in adele.json. Regenerate with `npm run seed:companies`.',
     sources: reports,
     counts: {
       companies: companies.length,
       boards: boards.length,
       confirmed: boards.filter((c) => c.board?.confirmed).length,
+      watched: 0,
     },
     companies,
   };
+  snapshot.counts.watched = seedBoards(snapshot).length;
+  return snapshot;
 }
 
-/** The watched list: every confirmed board, its canonical URL, strongest evidence first. */
+/** Largest board (open roles when checked) the seed watches. A Live postings search reads every
+ *  watched board, Greenhouse with full descriptions: a 2,500-role board is megabytes on a phone and
+ *  busts the feed cache, for a company a person can still watch by hand. */
+export const MAX_SEED_JOBS = 300;
+
+/** The watched list: every confirmed board up to MAX_SEED_JOBS roles, its canonical URL, strongest
+ *  evidence first. */
 export const seedBoards = (s: Snapshot): string[] =>
-  s.companies.filter((c) => c.board?.confirmed).map((c) => c.board!.url);
+  s.companies
+    .filter((c) => c.board?.confirmed && c.board.jobs <= MAX_SEED_JOBS)
+    .map((c) => c.board!.url);

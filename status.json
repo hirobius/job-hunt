@@ -3,7 +3,7 @@
   "phase": "live",
   "headline": "Ship 1028 on main: security review (#399), the six lanes (#400-#406), perf (#409) and simplify slices 1-3 (#407 sync guard, #408 Find box, #410 Today home). Tabs are Today · Companies · Jobs.",
   "next": [
-    "Review PR claude/src-seed: design-system company seed (898 companies, 219 confirmed boards, 177 new to the DS pack) + npm run seed:companies. Rerun from an open network to cover Workable/Recruitee/SmartRecruiters/Teamtailor/Personio and GitHub (blocked in the build container). Not merged.",
+    "Review PR claude/src-seed: design-system company seed (898 companies, 185 confirmed boards, 164 watched at ≤300 roles, 133 new to the DS pack; review fixes: job cap + description rule only for distinctive names) + npm run seed:companies. Rerun from an open network to cover Workable/Recruitee/SmartRecruiters/Teamtailor/Personio and GitHub (blocked in the build container). Not merged.",
     "Simplify follow-ups: #382 breadth guard (only the forward guard shipped), #385 Add sources sheet + Find box on Today (#408 shipped the box only), Jobs under More (#410 shipped it as a tab).",
     "Security follow-ups filed by #399: #391-#394. Before deploying sync-postings, the cron Vault secret must equal SYNC_SECRET.",
     "Review PR claude/job-decks (#287): Decks panel on the job page (deck links with label + Sent on, http(s) only, soft remove + Undo), on the Job so it syncs, rides in Back up and the CSV decks column. Links only, no storage change. verify + verify:ui green. Not merged.",

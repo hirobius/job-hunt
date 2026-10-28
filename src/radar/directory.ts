@@ -43,7 +43,8 @@ const DESIGN_SYSTEMS_COMPANIES: readonly PackCompany[] = [
   { company: 'Virtualitics', url: 'https://jobs.lever.co/virtualitics' },
 ];
 
-const DESIGN_SYSTEMS_CURATED: readonly string[] = [
+/** The hand-picked design systems boards, ahead of the company seed. */
+export const DESIGN_SYSTEMS_CURATED: readonly string[] = [
   ...DESIGN_SYSTEMS_COMPANIES.map((c) => c.url),
   // Added 2026-10-15, design-forward companies first.
   'https://boards.greenhouse.io/figma',

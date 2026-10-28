@@ -1,6 +1,6 @@
 {
  "generated": "2026-10-28",
- "note": "Companies that run a design system, with the job board the probe found for each. Only boards with `confirmed` set are watched (ds-seed-boards.json). Regenerate with `npm run seed:companies`.",
+ "note": "Companies that run a design system, with the job board the probe found for each. Only boards with `confirmed` set and at most 300 open roles are watched (ds-seed-boards.json). Adele’s full MIT notice is `licenseText` in adele.json. Regenerate with `npm run seed:companies`.",
  "sources": [
   {
    "id": "adele",
@@ -46,7 +46,8 @@
  "counts": {
   "companies": 898,
   "boards": 282,
-  "confirmed": 219
+  "confirmed": 185,
+  "watched": 164
  },
  "companies": [
   {
@@ -1371,27 +1372,6 @@
    ]
   },
   {
-   "name": "Accurx",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "accurx",
-    "url": "https://jobs.ashbyhq.com/accurx",
-    "jobs": 12,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/accurx"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Adyen",
    "website": "",
    "board": {
@@ -1595,27 +1575,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/apollo-io"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Arrive",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "arrive",
-    "url": "https://jobs.ashbyhq.com/arrive",
-    "jobs": 75,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/arrive"
     }
    ],
    "licence": [
@@ -1875,27 +1834,6 @@
    ]
   },
   {
-   "name": "Cambly",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "cambly",
-    "url": "https://jobs.ashbyhq.com/cambly",
-    "jobs": 7,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/cambly"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Capco",
    "website": "",
    "board": {
@@ -1973,27 +1911,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/celonis"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Close",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "close",
-    "url": "https://jobs.ashbyhq.com/close",
-    "jobs": 6,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/close"
     }
    ],
    "licence": [
@@ -2085,27 +2002,6 @@
    ]
   },
   {
-   "name": "Dandy",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "dandy",
-    "url": "https://jobs.ashbyhq.com/dandy",
-    "jobs": 80,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/dandy"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Dashlane",
    "website": "",
    "board": {
@@ -2141,27 +2037,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/dept"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Deputy",
-   "website": "",
-   "board": {
-    "kind": "lever",
-    "slug": "deputy",
-    "url": "https://jobs.lever.co/deputy",
-    "jobs": 6,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/deputy"
     }
    ],
    "licence": [
@@ -2636,27 +2511,6 @@
    ]
   },
   {
-   "name": "Harvey",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "harvey",
-    "url": "https://jobs.ashbyhq.com/harvey",
-    "jobs": 368,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/harvey"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Hellofresh",
    "website": "",
    "board": {
@@ -2692,27 +2546,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/hinge-health"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Homebase",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "homebase",
-    "url": "https://jobs.ashbyhq.com/homebase",
-    "jobs": 18,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/homebase"
     }
    ],
    "licence": [
@@ -2783,48 +2616,6 @@
    ]
   },
   {
-   "name": "Imprint",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "imprint",
-    "url": "https://jobs.ashbyhq.com/imprint",
-    "jobs": 21,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/imprint"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Incard",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "incard",
-    "url": "https://jobs.ashbyhq.com/incard",
-    "jobs": 14,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/incard"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Indeed",
    "website": "",
    "board": {
@@ -2872,27 +2663,6 @@
    ]
   },
   {
-   "name": "Instrument",
-   "website": "",
-   "board": {
-    "kind": "lever",
-    "slug": "instrument",
-    "url": "https://jobs.lever.co/instrument",
-    "jobs": 4,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/instrument"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Iterable",
    "website": "",
    "board": {
@@ -2932,27 +2702,6 @@
    ],
    "licence": [
     "MIT, Copyright (c) 2018 Marcin Treder"
-   ]
-  },
-  {
-   "name": "Jobber",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "jobber",
-    "url": "https://jobs.ashbyhq.com/jobber",
-    "jobs": 41,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/jobber"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
    ]
   },
   {
@@ -3019,48 +2768,6 @@
    ]
   },
   {
-   "name": "Kindred",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "kindred",
-    "url": "https://jobs.ashbyhq.com/kindred",
-    "jobs": 4,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/kindred"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Ledger",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "ledger",
-    "url": "https://jobs.ashbyhq.com/ledger",
-    "jobs": 13,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/ledger"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Lodgify",
    "website": "",
    "board": {
@@ -3096,27 +2803,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/lyft"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Mable",
-   "website": "",
-   "board": {
-    "kind": "lever",
-    "slug": "mable",
-    "url": "https://jobs.lever.co/mable",
-    "jobs": 11,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/mable"
     }
    ],
    "licence": [
@@ -3201,27 +2887,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/mercari-inc"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Miro",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "miro",
-    "url": "https://jobs.ashbyhq.com/miro",
-    "jobs": 12,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/miro"
     }
    ],
    "licence": [
@@ -3417,27 +3082,6 @@
    ]
   },
   {
-   "name": "Nivoda",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "nivoda",
-    "url": "https://jobs.ashbyhq.com/nivoda",
-    "jobs": 32,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/nivoda"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Okta Odyssey",
    "website": "https://okta.design",
    "board": {
@@ -3520,27 +3164,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/oura"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Paddle",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "paddle",
-    "url": "https://jobs.ashbyhq.com/paddle",
-    "jobs": 17,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/paddle"
     }
    ],
    "licence": [
@@ -3653,32 +3276,6 @@
    ]
   },
   {
-   "name": "Persona",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "persona",
-    "url": "https://jobs.ashbyhq.com/persona",
-    "jobs": 13,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "awesome",
-     "url": "https://privy-open-source.github.io/design-system/"
-    },
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/persona"
-    }
-   ],
-   "licence": [
-    "Unlicense (public domain)",
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Pinterest",
    "website": "",
    "board": {
@@ -3726,69 +3323,6 @@
    ]
   },
   {
-   "name": "Pleo",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "pleo",
-    "url": "https://jobs.ashbyhq.com/pleo",
-    "jobs": 34,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/pleo"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Pliant",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "pliant",
-    "url": "https://jobs.ashbyhq.com/pliant",
-    "jobs": 32,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/pliant"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Preply",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "preply",
-    "url": "https://jobs.ashbyhq.com/preply",
-    "jobs": 122,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/preply"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Prizepicks",
    "website": "",
    "board": {
@@ -3803,69 +3337,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/prizepicks"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Promise",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "promise",
-    "url": "https://jobs.ashbyhq.com/promise",
-    "jobs": 12,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/promise"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Qonto",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "qonto",
-    "url": "https://jobs.ashbyhq.com/qonto",
-    "jobs": 42,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/qonto"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Quora",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "quora",
-    "url": "https://jobs.ashbyhq.com/quora",
-    "jobs": 9,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/quora"
     }
    ],
    "licence": [
@@ -3908,27 +3379,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/rentman"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Replit",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "replit",
-    "url": "https://jobs.ashbyhq.com/replit",
-    "jobs": 32,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/replit"
     }
    ],
    "licence": [
@@ -4020,27 +3470,6 @@
    ]
   },
   {
-   "name": "Sentry",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "sentry",
-    "url": "https://jobs.ashbyhq.com/sentry",
-    "jobs": 42,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/sentry"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Smartsheet",
    "website": "",
    "board": {
@@ -4055,27 +3484,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/smartsheet"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Sophos",
-   "website": "",
-   "board": {
-    "kind": "lever",
-    "slug": "sophos",
-    "url": "https://jobs.lever.co/sophos",
-    "jobs": 83,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/sophos"
     }
    ],
    "licence": [
@@ -4118,69 +3526,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/spotify"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Strava",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "strava",
-    "url": "https://jobs.ashbyhq.com/strava",
-    "jobs": 28,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/strava"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Suno",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "suno",
-    "url": "https://jobs.ashbyhq.com/suno",
-    "jobs": 71,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/suno"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Super",
-   "website": "",
-   "board": {
-    "kind": "lever",
-    "slug": "super",
-    "url": "https://jobs.lever.co/super",
-    "jobs": 2,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/super"
     }
    ],
    "licence": [
@@ -4403,27 +3748,6 @@
    ]
   },
   {
-   "name": "Vanta",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "vanta",
-    "url": "https://jobs.ashbyhq.com/vanta",
-    "jobs": 79,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/vanta"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
    "name": "Vercel",
    "website": "https://vercel.com",
    "board": {
@@ -4636,48 +3960,6 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/xendit"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Xero",
-   "website": "",
-   "board": {
-    "kind": "ashby",
-    "slug": "xero",
-    "url": "https://jobs.ashbyhq.com/xero",
-    "jobs": 116,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/xero"
-    }
-   ],
-   "licence": [
-    "Facts only (company names); robots.txt allows all"
-   ]
-  },
-  {
-   "name": "Xsolla",
-   "website": "",
-   "board": {
-    "kind": "lever",
-    "slug": "xsolla",
-    "url": "https://jobs.lever.co/xsolla",
-    "jobs": 186,
-    "confirmed": "name"
-   },
-   "state": "found",
-   "evidence": [
-    {
-     "source": "dsjobs",
-     "url": "https://designsystems.jobs/companies/xsolla"
     }
    ],
    "licence": [
@@ -4949,6 +4231,27 @@
    ],
    "licence": [
     "Facts only (company names, links); public Algolia HN API"
+   ]
+  },
+  {
+   "name": "Accurx",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "accurx",
+    "url": "https://jobs.ashbyhq.com/accurx",
+    "jobs": 12,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/accurx"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
    ]
   },
   {
@@ -5490,6 +4793,27 @@
    ],
    "licence": [
     "Unlicense (public domain)"
+   ]
+  },
+  {
+   "name": "Arrive",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "arrive",
+    "url": "https://jobs.ashbyhq.com/arrive",
+    "jobs": 75,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/arrive"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
    ]
   },
   {
@@ -6527,6 +5851,27 @@
    ]
   },
   {
+   "name": "Cambly",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "cambly",
+    "url": "https://jobs.ashbyhq.com/cambly",
+    "jobs": 7,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/cambly"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Canva",
    "website": "",
    "board": null,
@@ -7041,6 +6386,27 @@
    ]
   },
   {
+   "name": "Close",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "close",
+    "url": "https://jobs.ashbyhq.com/close",
+    "jobs": 6,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/close"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Cloudera",
    "website": "",
    "board": null,
@@ -7349,6 +6715,27 @@
    ]
   },
   {
+   "name": "Dandy",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "dandy",
+    "url": "https://jobs.ashbyhq.com/dandy",
+    "jobs": 80,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/dandy"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Danfoss",
    "website": "",
    "board": null,
@@ -7513,6 +6900,27 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/dentsu-creative"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Deputy",
+   "website": "",
+   "board": {
+    "kind": "lever",
+    "slug": "deputy",
+    "url": "https://jobs.lever.co/deputy",
+    "jobs": 6,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/deputy"
     }
    ],
    "licence": [
@@ -9273,6 +8681,27 @@
    ]
   },
   {
+   "name": "Harvey",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "harvey",
+    "url": "https://jobs.ashbyhq.com/harvey",
+    "jobs": 368,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/harvey"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "HashiCorp Helios",
    "website": "https://hashicorp.design",
    "board": null,
@@ -9411,6 +8840,27 @@
    ],
    "licence": [
     "Unlicense (public domain)"
+   ]
+  },
+  {
+   "name": "Homebase",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "homebase",
+    "url": "https://jobs.ashbyhq.com/homebase",
+    "jobs": 18,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/homebase"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
    ]
   },
   {
@@ -9674,6 +9124,48 @@
    ]
   },
   {
+   "name": "Imprint",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "imprint",
+    "url": "https://jobs.ashbyhq.com/imprint",
+    "jobs": 21,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/imprint"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Incard",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "incard",
+    "url": "https://jobs.ashbyhq.com/incard",
+    "jobs": 14,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/incard"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Ing",
    "website": "",
    "board": null,
@@ -9772,6 +9264,27 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/instapro-group"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Instrument",
+   "website": "",
+   "board": {
+    "kind": "lever",
+    "slug": "instrument",
+    "url": "https://jobs.lever.co/instrument",
+    "jobs": 4,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/instrument"
     }
    ],
    "licence": [
@@ -10021,6 +9534,27 @@
    ]
   },
   {
+   "name": "Jobber",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "jobber",
+    "url": "https://jobs.ashbyhq.com/jobber",
+    "jobs": 41,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/jobber"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Jpmorgan Chase Co",
    "website": "",
    "board": null,
@@ -10218,6 +9752,27 @@
    ]
   },
   {
+   "name": "Kindred",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "kindred",
+    "url": "https://jobs.ashbyhq.com/kindred",
+    "jobs": 4,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/kindred"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Kit",
    "website": "",
    "board": {
@@ -10328,6 +9883,27 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/lastminute-com"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Ledger",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "ledger",
+    "url": "https://jobs.ashbyhq.com/ledger",
+    "jobs": 13,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/ledger"
     }
    ],
    "licence": [
@@ -10585,6 +10161,27 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/m-t-bank"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Mable",
+   "website": "",
+   "board": {
+    "kind": "lever",
+    "slug": "mable",
+    "url": "https://jobs.lever.co/mable",
+    "jobs": 11,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/mable"
     }
    ],
    "licence": [
@@ -11062,6 +10659,27 @@
    ]
   },
   {
+   "name": "Miro",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "miro",
+    "url": "https://jobs.ashbyhq.com/miro",
+    "jobs": 12,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/miro"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Mitte",
    "website": "https://mitte.ai",
    "board": null,
@@ -11482,6 +11100,27 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/nike"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Nivoda",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "nivoda",
+    "url": "https://jobs.ashbyhq.com/nivoda",
+    "jobs": 32,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/nivoda"
     }
    ],
    "licence": [
@@ -11931,6 +11570,27 @@
    ]
   },
   {
+   "name": "Paddle",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "paddle",
+    "url": "https://jobs.ashbyhq.com/paddle",
+    "jobs": 17,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/paddle"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Padoa",
    "website": "",
    "board": null,
@@ -12076,6 +11736,32 @@
    ]
   },
   {
+   "name": "Persona",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "persona",
+    "url": "https://jobs.ashbyhq.com/persona",
+    "jobs": 13,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "awesome",
+     "url": "https://privy-open-source.github.io/design-system/"
+    },
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/persona"
+    }
+   ],
+   "licence": [
+    "Unlicense (public domain)",
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Personify Health",
    "website": "",
    "board": null,
@@ -12189,6 +11875,48 @@
    "licence": [
     "MIT, Copyright (c) 2018 Marcin Treder",
     "Unlicense (public domain)"
+   ]
+  },
+  {
+   "name": "Pleo",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "pleo",
+    "url": "https://jobs.ashbyhq.com/pleo",
+    "jobs": 34,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/pleo"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Pliant",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "pliant",
+    "url": "https://jobs.ashbyhq.com/pliant",
+    "jobs": 32,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/pliant"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
    ]
   },
   {
@@ -12307,6 +12035,27 @@
    ]
   },
   {
+   "name": "Preply",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "preply",
+    "url": "https://jobs.ashbyhq.com/preply",
+    "jobs": 122,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/preply"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Priceline",
    "website": "",
    "board": null,
@@ -12380,6 +12129,27 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/productboard"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Promise",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "promise",
+    "url": "https://jobs.ashbyhq.com/promise",
+    "jobs": 12,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/promise"
     }
    ],
    "licence": [
@@ -12462,6 +12232,27 @@
    ]
   },
   {
+   "name": "Qonto",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "qonto",
+    "url": "https://jobs.ashbyhq.com/qonto",
+    "jobs": 42,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/qonto"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Questanalytics",
    "website": "",
    "board": {
@@ -12495,6 +12286,27 @@
    ],
    "licence": [
     "MIT, Copyright (c) 2018 Marcin Treder"
+   ]
+  },
+  {
+   "name": "Quora",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "quora",
+    "url": "https://jobs.ashbyhq.com/quora",
+    "jobs": 9,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/quora"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
    ]
   },
   {
@@ -12772,6 +12584,27 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/renault-digital"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Replit",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "replit",
+    "url": "https://jobs.ashbyhq.com/replit",
+    "jobs": 32,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/replit"
     }
    ],
    "licence": [
@@ -13404,6 +13237,27 @@
    ]
   },
   {
+   "name": "Sentry",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "sentry",
+    "url": "https://jobs.ashbyhq.com/sentry",
+    "jobs": 42,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/sentry"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "ServiceTitan",
    "website": "https://servicetitan.com",
    "board": null,
@@ -13810,6 +13664,27 @@
    ]
   },
   {
+   "name": "Sophos",
+   "website": "",
+   "board": {
+    "kind": "lever",
+    "slug": "sophos",
+    "url": "https://jobs.lever.co/sophos",
+    "jobs": 83,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/sophos"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Sosafe",
    "website": "",
    "board": {
@@ -14001,6 +13876,27 @@
    ]
   },
   {
+   "name": "Strava",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "strava",
+    "url": "https://jobs.ashbyhq.com/strava",
+    "jobs": 28,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/strava"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "StudyPortals",
    "website": "https://studyportals.com",
    "board": null,
@@ -14013,6 +13909,48 @@
    ],
    "licence": [
     "MIT, Copyright (c) 2018 Marcin Treder"
+   ]
+  },
+  {
+   "name": "Suno",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "suno",
+    "url": "https://jobs.ashbyhq.com/suno",
+    "jobs": 71,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/suno"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Super",
+   "website": "",
+   "board": {
+    "kind": "lever",
+    "slug": "super",
+    "url": "https://jobs.lever.co/super",
+    "jobs": 2,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/super"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
    ]
   },
   {
@@ -14817,6 +14755,27 @@
    ]
   },
   {
+   "name": "Vanta",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "vanta",
+    "url": "https://jobs.ashbyhq.com/vanta",
+    "jobs": 79,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/vanta"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
    "name": "Vattenfall",
    "website": "",
    "board": null,
@@ -15424,6 +15383,48 @@
     {
      "source": "dsjobs",
      "url": "https://designsystems.jobs/companies/worldpay"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Xero",
+   "website": "",
+   "board": {
+    "kind": "ashby",
+    "slug": "xero",
+    "url": "https://jobs.ashbyhq.com/xero",
+    "jobs": 116,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/xero"
+    }
+   ],
+   "licence": [
+    "Facts only (company names); robots.txt allows all"
+   ]
+  },
+  {
+   "name": "Xsolla",
+   "website": "",
+   "board": {
+    "kind": "lever",
+    "slug": "xsolla",
+    "url": "https://jobs.lever.co/xsolla",
+    "jobs": 186,
+    "confirmed": null
+   },
+   "state": "found",
+   "evidence": [
+    {
+     "source": "dsjobs",
+     "url": "https://designsystems.jobs/companies/xsolla"
     }
    ],
    "licence": [

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createLimiter } from '../probe';
 import { FetchError, type FetchJson } from '../sources/http';
 import type { Candidate } from './parse';
-import { boardTitles, confirmBoard, resolveCandidate } from './resolve';
+import { boardTitles, confirmBoard, distinctName, resolveCandidate } from './resolve';
 
 const cand = (over: Partial<Candidate>): Candidate => ({
   name: 'Acme',
@@ -84,6 +84,34 @@ describe('confirmBoard', () => {
         intro,
       ),
     ).toBeNull();
+  });
+
+  it('a description confirms only a distinctive name', () => {
+    const hn = {
+      evidence: [{ source: 'hn' as const, url: 'https://news.ycombinator.com/item?id=1' }],
+    };
+    const table: [string, boolean][] = [
+      ['Higharc', true],
+      ['Wealthsimple', true],
+      ['Back Market', true],
+      ['Close', false],
+      ['Arrive', false],
+      ['Super', false],
+      ['Ledger', false],
+      ['Promise', false],
+      ['Imprint', false],
+      ['Instrument', false],
+      ['Kindred', false],
+      ['Persona', false],
+    ];
+    for (const [name, ok] of table) {
+      expect(distinctName(name), name).toBe(ok);
+      const intro = [{ text: 'Engineer', descriptionPlain: `At ${name}, we build things` }];
+      expect(
+        confirmBoard(cand({ name, ...hn }), { kind: 'ashby', slug: name.toLowerCase() }, intro),
+        name,
+      ).toBe(ok ? 'name' : null);
+    }
   });
 
   it('reads job titles whatever the ATS calls the field', () => {
