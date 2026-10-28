@@ -139,6 +139,29 @@ for (const theme of ['light', 'dark'] as const) {
   }
 }
 
+test.describe('the open top tab panel is not a Tab stop (#364)', () => {
+  for (const width of [390, 1440]) {
+    test(`Tab from the active top tab lands on the page's first control at ${width}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await seed(page);
+      await go(page, '#/queue');
+      const panel = page.getByRole('tabpanel');
+      await expect(panel).toHaveAttribute('tabindex', '-1');
+      await page.getByRole('tab', { selected: true }).focus();
+      await page.keyboard.press('Tab');
+      const landed = await panel.evaluate(
+        (p) =>
+          document.activeElement !== p &&
+          !!document.activeElement &&
+          p.contains(document.activeElement),
+      );
+      expect(landed).toBe(true);
+    });
+  }
+});
+
 test.describe('keyboard only', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 

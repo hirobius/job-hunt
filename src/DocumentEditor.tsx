@@ -10,7 +10,7 @@
 // history and the menu in one row. Delete sits in the menu and asks first. Unsaved text is never
 // lost without a word (QA): All documents asks first, a reload warns, and a draft left by the
 // browser's Back is kept for the tab (docDrafts) and brought back with a notice.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { ArrowLeft, Ellipsis, Plus } from 'lucide-react';
 import {
   AlertDialog,
@@ -117,10 +117,10 @@ export default function DocumentEditor({
     scrollToTop();
   }, [doc?.id, kind]);
   const outreach = kind === 'outreach';
-  const dirty = doc ? draft !== saved : true;
   // Text that would be lost on leaving: an edit not yet saved as a Version, or a new document
-  // with something in it.
+  // with something in it. Only that can be saved: a blank New makes no empty document.
   const unsaved = doc ? draft !== saved : draft.trim() !== '' || title.trim() !== '';
+  const dirty = unsaved;
 
   // Keep the draft for the tab while it differs from the latest Version; drop it once they match.
   useEffect(() => {
@@ -207,6 +207,19 @@ export default function DocumentEditor({
   };
 
   const [history, setHistory] = useState(false);
+  // The text field sits above the Version history, often off screen: a Version brought back says
+  // so (#212) and brings the field into view with focus.
+  const textBox = useRef<HTMLDivElement>(null);
+  const bringBack = (text: string, n: number) => {
+    setDraft(text);
+    const box = textBox.current;
+    box?.scrollIntoView({ block: 'center' });
+    box?.querySelector<HTMLElement>('textarea, [role="textbox"]')?.focus({ preventScroll: true });
+    toast({
+      title: `Version ${n} is in the editor`,
+      description: 'Save to keep it as a new version.',
+    });
+  };
 
   // Save, Version history and the menu in one row, right under the text (rev-3 mock).
   const actions = (
@@ -293,19 +306,22 @@ export default function DocumentEditor({
           docId={doc?.id}
           values={doc?.values}
           actions={actions}
-          history={doc && history ? <VersionHistory doc={doc} onUse={setDraft} /> : null}
+          textBox={textBox}
+          history={doc && history ? <VersionHistory doc={doc} onUse={bringBack} /> : null}
         />
       ) : (
         <>
-          <Textarea
-            label="Text"
-            rows={12}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            style={FULL}
-          />
+          <div ref={textBox}>
+            <Textarea
+              label="Text"
+              rows={12}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              style={FULL}
+            />
+          </div>
           {actions}
-          {doc && history && <VersionHistory doc={doc} onUse={setDraft} />}
+          {doc && history && <VersionHistory doc={doc} onUse={bringBack} />}
         </>
       )}
       {/* Leaving with unsaved text (QA): Keep editing is the default (Radix focuses Cancel). */}
@@ -380,6 +396,7 @@ function OutreachText({
   values,
   actions,
   history,
+  textBox,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -387,6 +404,8 @@ function OutreachText({
   actions: ReactNode;
   /** The open Version history, under the actions. */
   history: ReactNode;
+  /** Wraps the text field, so a Version brought back can scroll to it and focus it. */
+  textBox: RefObject<HTMLDivElement>;
   /** Set once the message exists: its variable values are saved on it. */
   docId?: string;
   values?: Record<string, string>;
@@ -463,7 +482,7 @@ function OutreachText({
 
   return (
     <Stack gap="normal">
-      <Stack gap="tight">
+      <Stack gap="tight" ref={textBox}>
         <Stack direction="row" wrap="wrap" gap="tight" align="center">
           {TOKEN_CHIPS.map((c) => (
             <HdsTooltip key={c.token}>
@@ -558,7 +577,13 @@ function OutreachText({
 }
 
 /** Every saved Version, newest first; one can be read and brought back into the draft. */
-function VersionHistory({ doc, onUse }: { doc: Document; onUse: (text: string) => void }) {
+function VersionHistory({
+  doc,
+  onUse,
+}: {
+  doc: Document;
+  onUse: (text: string, n: number) => void;
+}) {
   const versions = doc.versions;
   const [shown, setShown] = useState<string | null>(null);
   const numbered = versions.map((v, i) => ({ v, n: i + 1 })).reverse();
@@ -587,7 +612,7 @@ function VersionHistory({ doc, onUse }: { doc: Document; onUse: (text: string) =
                 {pick.v.text || 'Empty'}
               </Text>
               <Stack direction="row" gap="tight">
-                <Button variant="secondary" size="sm" onClick={() => onUse(pick.v.text)}>
+                <Button variant="secondary" size="sm" onClick={() => onUse(pick.v.text, pick.n)}>
                   Use this text
                 </Button>
                 <DocumentDownload doc={doc} version={pick.v} />

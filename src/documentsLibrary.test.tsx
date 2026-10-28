@@ -182,6 +182,17 @@ describe('create, edit, delete', () => {
     expect(getAllDocuments()[0]).toMatchObject({ kind: 'note', title: 'Note' });
   });
 
+  it('a new document with nothing in it cannot be saved (no blank document left behind)', async () => {
+    renderLib();
+    await userEvent.click(within(section('Notes')).getByRole('button', { name: 'New note' }));
+    const save = screen.getByRole('button', { name: 'Save' });
+    expect(save).toBeDisabled();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), '   ');
+    expect(save).toBeDisabled();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Title' }), 'Stories');
+    expect(save).toBeEnabled();
+  });
+
   it('each save adds a Version; the history shows them and an earlier one can be read', async () => {
     const id = createDocument({ kind: 'note', title: 'Prep', base: true, text: 'first' });
     renderLib();
@@ -204,8 +215,29 @@ describe('create, edit, delete', () => {
     expect(screen.getByRole('region', { name: 'Version 1' })).toHaveTextContent('first');
     // The picked Version can be downloaded as a PDF or Word file (#229).
     expect(screen.getByRole('button', { name: 'Download version 1' })).toBeInTheDocument();
+    const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView');
     await userEvent.click(screen.getByRole('button', { name: 'Use this text' }));
     expect(text).toHaveValue('first');
+    // The text field sits above the history, often off screen: the action says what it did
+    // (#212) and brings the field into view with focus.
+    expect(await screen.findByText('Version 1 is in the editor')).toBeInTheDocument();
+    expect(screen.getByText('Save to keep it as a new version.')).toBeInTheDocument();
+    expect(scrolled).toHaveBeenCalled();
+    expect(text).toHaveFocus();
+    scrolled.mockRestore();
+  });
+
+  it('an Outreach message brings a Version back into its text field too', async () => {
+    const id = createDocument({ kind: 'outreach', title: 'Intro', base: true, text: 'Hi one' });
+    renderLib();
+    await openDoc('Intro');
+    const field = screen.getByRole('textbox', { name: 'Message text' });
+    expect(doc(id).versions).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', { name: /Version history \(1\)/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Version 1 ·/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Use this text' }));
+    expect(await screen.findByText('Version 1 is in the editor')).toBeInTheDocument();
+    expect(field).toHaveFocus();
   });
 
   it('renames on blur without adding a Version', async () => {
