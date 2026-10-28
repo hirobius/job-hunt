@@ -6,9 +6,9 @@ import { BRAND } from './brand';
 import { LEGAL_TITLES } from './legalRoute';
 
 /** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
- *  on 2026-10-20; true again while the Bluesky / Mastodon revision (PR #420) is under review. */
-export const LEGAL_DRAFT = true;
-export const LEGAL_UPDATED = '20 October 2026';
+ *  on 2026-10-20 and the Bluesky / Mastodon revision (PR #420) on 2026-10-28. */
+export const LEGAL_DRAFT = false;
+export const LEGAL_UPDATED = '28 October 2026';
 export const OPERATOR = 'Hirobius';
 export const CONTACT_EMAIL = 'hello@hirobius.com';
 
