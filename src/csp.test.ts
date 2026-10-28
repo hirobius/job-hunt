@@ -28,6 +28,11 @@ const FEED_HOSTS = [
   'https://api.smartrecruiters.com',
   'https://*.teamtailor.com',
   'https://*.jobs.personio.de',
+  'https://*.bamboohr.com',
+  'https://api.rippling.com',
+  'https://api.gem.com',
+  'https://*.pinpointhq.com',
+  'https://*.breezy.hr',
   'https://yc-oss.github.io',
   'https://api.github.com',
 ];

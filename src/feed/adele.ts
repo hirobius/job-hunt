@@ -4,7 +4,7 @@
 // its cache) and watches each live board as it is found. Re-take the snapshot by hand from
 // ADELE.file; the credit and licence ride with the data.
 import data from './data/adele.json';
-import { discoverBoards, parseList, type DiscoverResult } from './discoverBoards';
+import { discoverBoards, parseList, websitesByName, type DiscoverResult } from './discoverBoards';
 import type { ProbeOptions } from './probe';
 import { boardsFromUrls, canonicalBoardUrl } from './sources/ats';
 import { addBoardTiles } from './watchlist';
@@ -52,6 +52,8 @@ export const adeleNames = (): string[] =>
 export interface AdeleRun {
   /** Boards newly watched. */
   watched: number;
+  /** Boards the name matched that don't show they are the company's: not watched. */
+  unconfirmed: number;
   missed: number;
   unknown: number;
   alreadyWatched: number;
@@ -61,6 +63,7 @@ export interface AdeleRun {
 
 const runOf = (r: DiscoverResult, watched: number): AdeleRun => ({
   watched,
+  unconfirmed: r.unconfirmed.length,
   missed: r.missed.length,
   unknown: r.unknown.length,
   alreadyWatched: r.alreadyWatched.length,
@@ -90,6 +93,8 @@ export async function watchAdeleBoards(
   const result = await discoverBoards(names, {
     ...probe,
     watched: boardsFromUrls(boardUrls, Infinity),
+    // The design system's site: its domain confirms a board (one on github.io etc. says nothing).
+    websites: websitesByName(ADELE.companies.map((c) => ({ name: c.name, website: c.site }))),
     onProgress: (s) => {
       take(s);
       onProgress?.(runOf(s, watched));

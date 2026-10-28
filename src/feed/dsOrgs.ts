@@ -362,7 +362,7 @@ export async function* findDesignSystemOrgs(opts: DsOrgOptions): AsyncGenerator<
         topics: r.topics,
       };
       if (resolved) {
-        const hit = await findBoard(company, r.login, opts, kv, now);
+        const hit = await findBoard(company, r.login, opts, kv, now, website);
         if (hit === 'unknown') target.boardCheck = 'unknown';
         else if (hit) {
           target.board = hit.board;
@@ -386,6 +386,7 @@ async function findBoard(
   o: DsOrgOptions,
   kv: KeyValue,
   now: () => number,
+  website?: string,
 ): Promise<{ board: Board; jobs?: number } | 'unknown' | null> {
   let unknown = false;
   const lines = [company];
@@ -398,9 +399,13 @@ async function findBoard(
       kv,
       now,
       limiter: o.limiter,
+      // The organisation's website confirms a board is its own (boardIdentity.ts); a board the
+      // name matched without that is not taken.
+      ...(website && { websites: new Map([[line.trim().toLowerCase(), website]]) }),
     })) {
       if (r.state === 'found') return { board: r.hits[0].board, jobs: r.hits[0].jobs };
-      if (r.state === 'unknown') unknown = true;
+      // A board the name matched that isn't shown to be theirs: not "none" either.
+      if (r.state === 'unknown' || r.state === 'unconfirmed') unknown = true;
     }
   }
   return unknown ? 'unknown' : null;

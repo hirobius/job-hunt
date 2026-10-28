@@ -29,7 +29,13 @@ import {
   useToast,
 } from '@hirobius/design-system';
 import { FormField } from '@hirobius/design-system/patterns';
-import { discoverBoards, MAX_LIST, parseList, type DiscoverResult } from './feed/discoverBoards';
+import {
+  discoverBoards,
+  MAX_LIST,
+  parseList,
+  websitesByName,
+  type DiscoverResult,
+} from './feed/discoverBoards';
 import {
   knownCompanies,
   localSuggestions,
@@ -53,6 +59,7 @@ import { batchLabel, fetchBatch, recentBatches, ycLines, YC_CREDIT } from './fee
 
 const EMPTY: DiscoverResult = {
   found: [],
+  unconfirmed: [],
   missed: [],
   unknown: [],
   alreadyWatched: [],
@@ -100,6 +107,8 @@ export default function FindBoardsPanel({
   const abort = useRef<AbortController | null>(null);
   const fieldRef = useRef<HTMLDivElement | null>(null);
   const resultRef = useRef<DiscoverResult | null>(null);
+  // A loaded YC batch's websites: the probe's best evidence that a board is the company's.
+  const sites = useRef<Map<string, string>>(new Map());
   useEffect(() => () => abort.current?.abort(), []);
 
   const watched = useMemo(() => boardsFromUrls(boardUrls, Infinity), [boardUrls]);
@@ -183,6 +192,7 @@ export default function FindBoardsPanel({
             !base.found.some((b) => b.board.kind === f.board.kind && b.board.slug === f.board.slug),
         ),
       ],
+      unconfirmed: [...base.unconfirmed, ...s.unconfirmed],
       missed: [...base.missed, ...s.missed],
       unknown: s.unknown,
       alreadyWatched: [...base.alreadyWatched, ...s.alreadyWatched],
@@ -200,6 +210,7 @@ export default function FindBoardsPanel({
         fetchJson: probeFetchJson,
         signal: ac.signal,
         watched,
+        websites: sites.current,
         onProgress: (s) => publish(merge(s)),
       });
       publish(merge(final));
@@ -216,6 +227,7 @@ export default function FindBoardsPanel({
     try {
       const companies = await fetchBatch(batch, liveFetchJson, { hiringOnly });
       const lines = ycLines(companies);
+      sites.current = new Map([...sites.current, ...websitesByName(companies)]);
       setText(lines.join('\n'));
       if (lines.length) setPasting(true);
       setBatchNote(
@@ -436,6 +448,34 @@ export default function FindBoardsPanel({
                     onClick={() => watchOne(f.board)}
                   >
                     {isWatched(f.board) ? 'Watching' : 'Watch'}
+                  </Button>
+                </ResultRow>
+              ))}
+            </ResultRows>
+          )}
+          {result.unconfirmed.length > 0 && (
+            <ResultRows label="Boards not confirmed">
+              {result.unconfirmed.map((f) => (
+                <ResultRow
+                  key={`${f.board.kind}:${f.board.slug}`}
+                  title={f.company}
+                  meta={
+                    <>
+                      <InlineLink href={canonicalBoardUrl(f.board)} externalIcon={false}>
+                        {SOURCE_LABEL[f.board.kind]}
+                      </InlineLink>
+                      {` · Not confirmed: ${f.why}`}
+                    </>
+                  }
+                >
+                  <Button
+                    size="sm"
+                    variant="tertiary"
+                    disabled={isWatched(f.board)}
+                    aria-label={`${isWatched(f.board) ? 'Watching' : 'Watch anyway'} ${SOURCE_LABEL[f.board.kind]} board for ${f.company}`}
+                    onClick={() => watchOne(f.board)}
+                  >
+                    {isWatched(f.board) ? 'Watching' : 'Watch anyway'}
                   </Button>
                 </ResultRow>
               ))}

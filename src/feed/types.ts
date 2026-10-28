@@ -17,6 +17,11 @@ export type FeedSourceId =
   | 'smartrecruiters'
   | 'teamtailor'
   | 'personio'
+  | 'bamboohr'
+  | 'rippling'
+  | 'gem'
+  | 'pinpoint'
+  | 'breezy'
   | 'sam';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
@@ -32,6 +37,11 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   smartrecruiters: 'SmartRecruiters',
   teamtailor: 'Teamtailor',
   personio: 'Personio',
+  bamboohr: 'BambooHR',
+  rippling: 'Rippling',
+  gem: 'Gem',
+  pinpoint: 'Pinpoint',
+  breezy: 'Breezy HR',
   sam: 'SAM.gov',
 };
 

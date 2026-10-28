@@ -7,6 +7,19 @@
 // starts on one host, a host that answers 429 three times running is left alone for the session, and
 // the caller can abort. Answers are cached in local storage (`rjb_probe`, not synced) so a second
 // scan of the same list is nearly free. Tests inject `fetchJson`, never the network.
+//
+// A name is only slugs, and a common one ("Forward") is a slug on several boards that belong to
+// other companies. So a board found from a name must show it is the company's (boardIdentity.ts:
+// the company's website domain on the board, else the name the board states); one that doesn't is
+// `unconfirmed`, listed but never watched. A pasted board URL is the user's word and is kept as is.
+import {
+  boardEvidence,
+  confirmHits,
+  identify,
+  unconfirmedWhy,
+  type BoardEvidence,
+  type IdentityVerdict,
+} from './boardIdentity';
 import { browserKv, type KeyValue } from './fetchFeed';
 import {
   EMPTY_MEANS_NONE,
@@ -28,9 +41,25 @@ export const PROBE_KINDS: BoardKind[] = [
   'smartrecruiters',
   'teamtailor',
   'personio',
+  'bamboohr',
+  'rippling',
+  'gem',
+  'pinpoint',
+  'breezy',
 ];
-/** Boards that live on a company subdomain: a company without one fails DNS (status 0), not 404. */
-const SUBDOMAIN_KINDS: ReadonlySet<BoardKind> = new Set(['recruitee', 'teamtailor', 'personio']);
+/** Where a connection failure (status 0) is no board once another system answered: boards on a
+ *  company subdomain fail DNS for a company without one, and Rippling's and Gem's CORS is unverified
+ *  live, so a blocked host must not turn every company into "couldn't check". */
+const ZERO_IS_NONE: ReadonlySet<BoardKind> = new Set([
+  'recruitee',
+  'teamtailor',
+  'personio',
+  'bamboohr',
+  'pinpoint',
+  'breezy',
+  'rippling',
+  'gem',
+]);
 export const MAX_IN_FLIGHT = 6;
 export const MAX_PER_HOST = 2;
 const HOST_GAP_MS = 150;
@@ -102,6 +131,10 @@ export interface ProbeOutcome {
   jobs?: number;
   /** HTTP status when the answer was an error (0 = never reached it). */
   status?: number;
+  /** What a live board says about who it belongs to. */
+  evidence?: BoardEvidence;
+  /** The read timed out: the host is slow or down, which says nothing about a board. */
+  timedOut?: true;
 }
 
 /** The probe asks for the light payload: a board's job bodies run megabytes and a scan reads hundreds. */
@@ -115,7 +148,7 @@ export async function probeBoard(b: Board, fetchJson: FetchJson): Promise<ProbeO
     if (e instanceof FetchError) {
       return e.status === 404
         ? { result: 'none', status: 404 }
-        : { result: 'unknown', status: e.status };
+        : { result: 'unknown', status: e.status, ...(e.isTimeout && { timedOut: true as const }) };
     }
     return { result: 'unknown', status: 0 };
   }
@@ -123,7 +156,7 @@ export async function probeBoard(b: Board, fetchJson: FetchJson): Promise<ProbeO
   if (!list) return { result: 'unknown' };
   // SmartRecruiters answers an empty list for any name, board or not.
   if (!list.length && EMPTY_MEANS_NONE.has(b.kind)) return { result: 'none' };
-  return { result: 'live', jobs: list.length };
+  return { result: 'live', jobs: list.length, evidence: boardEvidence(body, list) };
 }
 
 // ---- politeness ----
@@ -232,8 +265,18 @@ interface CacheEntry {
   r: 'live' | 'none';
   at: number;
   n?: number;
+  /** A live board's evidence, empty lists left out; a live entry without it predates the identity
+   *  check and is asked again. */
+  e?: Partial<BoardEvidence>;
 }
 type Cache = Record<string, CacheEntry>;
+
+/** Evidence as cached: empty lists left out (thousands of entries share one storage key). */
+const compactEvidence = (e: BoardEvidence): Partial<BoardEvidence> => ({
+  ...(e.name && { name: e.name }),
+  ...(e.domains.length && { domains: e.domains }),
+  ...(e.textDomains.length && { textDomains: e.textDomains }),
+});
 
 const cacheKey = (b: Board) => `${b.kind}${b.eu ? '-eu' : ''}:${b.slug.toLowerCase()}`;
 
@@ -260,7 +303,19 @@ function fromCache(cache: Cache, b: Board, now: number): ProbeOutcome | null {
   if (!e || (e.r !== 'live' && e.r !== 'none') || typeof e.at !== 'number') return null;
   const ttl = e.r === 'live' ? LIVE_TTL_MS : NONE_TTL_MS;
   if (now - e.at >= ttl) return null;
-  return e.r === 'live' ? { result: 'live', jobs: e.n } : { result: 'none' };
+  if (e.r === 'none') return { result: 'none' };
+  const ev = e.e && typeof e.e === 'object' ? e.e : null;
+  if (!ev) return null;
+  const list = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
+  return {
+    result: 'live',
+    jobs: e.n,
+    evidence: {
+      ...(typeof ev.name === 'string' && { name: ev.name }),
+      domains: list(ev.domains),
+      textDomains: list(ev.textDomains),
+    },
+  };
 }
 
 // ---- companies ----
@@ -270,13 +325,20 @@ export interface BoardHit {
   /** Open roles at the time of the check (zero is "no openings now", still a board). */
   jobs?: number;
 }
+export interface UnconfirmedHit extends BoardHit {
+  /** Why it isn't taken as the company's, in one sentence. */
+  why: string;
+}
 export interface CompanyProbe {
   /** The line the user gave. */
   input: string;
   name: string;
-  /** found: at least one live board. missed: every board checked answered 404. unknown: neither. */
-  state: 'found' | 'missed' | 'unknown';
+  /** found: at least one live board that is the company's. unconfirmed: live boards, none shown to
+   *  be the company's. missed: every board checked answered 404. unknown: none of these. */
+  state: 'found' | 'unconfirmed' | 'missed' | 'unknown';
   hits: BoardHit[];
+  /** Live boards for the name that don't show they are this company's: never watched. */
+  unconfirmed: UnconfirmedHit[];
   /** Boards that could not be answered (rate-limited, offline, blocked). */
   unknown: Board[];
 }
@@ -287,6 +349,8 @@ export interface ProbeOptions {
   kv?: KeyValue;
   now?: () => number;
   limiter?: Limiter;
+  /** Each company's website, by its line lower-cased: the identity check's best evidence. */
+  websites?: ReadonlyMap<string, string>;
 }
 
 const boardsFor = (slug: string): Board[] => PROBE_KINDS.map((kind) => ({ kind, slug }));
@@ -320,6 +384,7 @@ export async function* probeCompanies(
         r: out.result,
         at: now(),
         ...(out.jobs !== undefined && { n: out.jobs }),
+        ...(out.evidence && { e: compactEvidence(out.evidence) }),
       };
       dirty = true;
     }
@@ -329,10 +394,12 @@ export async function* probeCompanies(
   async function probeCompany(input: string): Promise<CompanyProbe | null> {
     const target = parseCompanyLine(input);
     if (!target) return null;
-    const groups = target.boards.length
-      ? [target.boards]
-      : target.candidates.map((slug) => boardsFor(slug));
-    const hits: BoardHit[] = [];
+    const given = target.boards.length > 0;
+    const groups = given ? [target.boards] : target.candidates.map((slug) => boardsFor(slug));
+    const company = { name: target.name, website: opts.websites?.get(input.trim().toLowerCase()) };
+    type Checked = BoardHit & { verdict: IdentityVerdict; others: number };
+    const confirmed: Checked[] = [];
+    const unconfirmed: Checked[] = [];
     const unknown: Board[] = [];
     let allNone = true;
     for (const group of groups) {
@@ -345,25 +412,47 @@ export async function* probeCompanies(
       group.forEach((b, i) => {
         if (
           reached &&
-          SUBDOMAIN_KINDS.has(b.kind) &&
+          ZERO_IS_NONE.has(b.kind) &&
           outs[i].result === 'unknown' &&
-          outs[i].status === 0
+          outs[i].status === 0 &&
+          !outs[i].timedOut
         )
           outs[i] = { result: 'none', status: 0 };
       });
+      const live: Checked[] = [];
       group.forEach((b, i) => {
-        if (outs[i].result === 'live') hits.push({ board: b, jobs: outs[i].jobs });
-        else if (outs[i].result === 'unknown') unknown.push(b);
+        const o = outs[i];
+        if (o.result === 'live')
+          live.push({ board: b, jobs: o.jobs, verdict: identify(company, o.evidence), others: 0 });
+        else if (o.result === 'unknown') unknown.push(b);
       });
-      if (hits.length) break;
+      // One slug at a time: boards found under another slug say nothing about this one's.
+      live.forEach((h) => (h.others = live.length - 1));
+      const round = given ? { confirmed: live, unconfirmed: [] } : confirmHits(live);
+      confirmed.push(...round.confirmed);
+      unconfirmed.push(...round.unconfirmed);
+      // Boards that only might be the company's don't stop the search: a later slug may confirm.
+      if (confirmed.length) break;
       if (outs.some((o) => o.result !== 'none')) allNone = false;
     }
     if (halt()) return null;
+    const hits = confirmed.map(({ board, jobs }) => ({ board, jobs }));
     return {
       input,
       name: target.name,
-      state: hits.length ? 'found' : allNone && !unknown.length ? 'missed' : 'unknown',
+      state: hits.length
+        ? 'found'
+        : unconfirmed.length
+          ? 'unconfirmed'
+          : allNone && !unknown.length
+            ? 'missed'
+            : 'unknown',
       hits,
+      unconfirmed: unconfirmed.map(({ board, jobs, verdict, others }) => ({
+        board,
+        jobs,
+        why: unconfirmedWhy(verdict, others),
+      })),
       unknown,
     };
   }

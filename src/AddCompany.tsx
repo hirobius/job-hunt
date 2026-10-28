@@ -117,7 +117,7 @@ function AddCompanyContent({
             label="Company name or job-board link"
             value={text}
             placeholder="Company or board link"
-            helperText="We look for its board on Greenhouse, Lever, Ashby and 5 more, or paste the board link."
+            helperText="We look for its board on Greenhouse, Lever, Ashby and 10 more, or paste the board link."
             onChange={(e) => setText(e.target.value)}
             error={!!error}
             errorMessage={error ?? undefined}

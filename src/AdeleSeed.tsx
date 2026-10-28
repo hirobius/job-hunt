@@ -15,6 +15,8 @@ const boards = (n: number) => `${n} new ${n === 1 ? 'board' : 'boards'}`;
 function adeleSummary(r: AdeleRun): string {
   const rest = [
     r.alreadyWatched > 0 && `${r.alreadyWatched} already watched`,
+    r.unconfirmed > 0 &&
+      `${r.unconfirmed} ${r.unconfirmed === 1 ? 'board' : 'boards'} not confirmed as the company’s, left out`,
     r.missed > 0 && `${r.missed} with no public board`,
     r.unknown > 0 && `${r.unknown} couldn’t be checked`,
   ].filter(Boolean);

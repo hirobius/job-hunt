@@ -427,7 +427,7 @@ describe('LiveFeedPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Watch' }));
     expect(
       screen.getByText(
-        /isn't a Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor or Personio job board/,
+        /isn't a Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor, Personio, BambooHR, Rippling, Gem, Pinpoint or Breezy HR job board/,
       ),
     ).toBeInTheDocument();
 

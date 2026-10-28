@@ -1,4 +1,4 @@
-// Liveness: is a saved job still on its company's board? A saved Greenhouse, Lever, Ashby, Workable or Recruitee posting
+// Liveness: is a saved job still on its company's board? A saved posting on any board in sources/ats.ts
 // can be pulled by the employer at any time, and nothing else tells you. This re-reads each job's
 // board (once per board, however many jobs it holds) and looks the job up by its posting ref.
 //
@@ -63,6 +63,24 @@ export function boardOfJobUrl(url: string): { board: Board; ref: string } | null
       break;
     case 'personio':
       ref = seg[0] === 'job' ? seg[1]?.match(/^\d+/)?.[0] : undefined;
+      break;
+    case 'bamboohr':
+      ref = seg[0] === 'careers' ? seg[1] : undefined;
+      break;
+    case 'rippling': {
+      const i = seg.indexOf('jobs');
+      ref = i >= 0 ? seg[i + 1] : undefined;
+      break;
+    }
+    case 'gem':
+      ref = seg[1];
+      break;
+    case 'pinpoint':
+      ref = seg[0] === 'postings' ? seg[1] : undefined;
+      break;
+    // Breezy's friendly id is the posting id, then a title slug that may change.
+    case 'breezy':
+      ref = seg[0] === 'p' ? seg[1]?.split('-')[0] || undefined : undefined;
       break;
   }
   return ref ? { board, ref } : null;
