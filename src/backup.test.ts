@@ -222,12 +222,37 @@ describe('applyBackup', () => {
 });
 
 describe('summarizeRestore', () => {
-  it('counts both sides', () => {
+  it('counts both sides, jobs and documents always, in plain words', () => {
     const next = state({ jobs: [] });
     expect(summarizeRestore(state(), next)).toEqual({
-      current: { jobs: 1, snippets: 1, tracks: 1, links: 1 },
-      next: { jobs: 0, snippets: 1, tracks: 1, links: 1 },
+      current: '1 job, 0 documents, 1 track, 1 link',
+      next: '0 jobs, 0 documents, 1 track, 1 link',
     });
+  });
+
+  it('shows every store Replace would change when either side has some (#338)', () => {
+    const doc = { id: 'd1' } as unknown as Document;
+    const next = state({
+      documents: [doc, { id: 'd2' } as unknown as Document],
+      dreams: { c1: [{ name: 'Acme' } as never] },
+      trash: [{ job: job('https://example.com/r'), removedAt: NOW.toISOString() }],
+      targets: { c1: [{ name: 'T' } as never, { name: 'U' } as never] },
+      filters: { c1: [{ id: 'f' } as never] },
+      kit: { fields: { name: 'Ada', email: '' }, answers: [{ id: 'a' } as never] },
+      sweeps: { c1: {} as never },
+      mustInclude: { c1: {} as never },
+      modes: { c1: 'remote' },
+      triage: { dismissed: ['https://x.example/'] },
+      evidence: 'Shipped a design system',
+    });
+    const s = summarizeRestore(state(), next);
+    expect(s.next).toBe(
+      '1 job, 2 documents, 1 track, 1 link, 1 dream company, 2 saved targets, 1 saved search, 1 removed job, 2 kit entries, 1 title list, 1 must-include list, 1 work mode, 1 set-aside link, 1 evidence note',
+    );
+    expect(s.current).toBe(
+      '1 job, 0 documents, 1 track, 1 link, 0 dream companies, 0 saved targets, 0 saved searches, 0 removed jobs, 0 kit entries, 0 title lists, 0 must-include lists, 0 work modes, 0 set-aside links, 0 evidence notes',
+    );
+    expect(`${s.current} ${s.next}`).not.toMatch(/snippet/);
   });
 });
 

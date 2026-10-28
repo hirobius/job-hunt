@@ -157,14 +157,8 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
           </Dialog.Header>
           {summary && (
             <Stack gap="tight">
-              <Text variant="body">
-                Backup: {summary.next.jobs} jobs, {summary.next.snippets} snippets,{' '}
-                {summary.next.tracks} tracks, {summary.next.links} links
-              </Text>
-              <Text variant="body">
-                Now: {summary.current.jobs} jobs, {summary.current.snippets} snippets,{' '}
-                {summary.current.tracks} tracks, {summary.current.links} links
-              </Text>
+              <Text variant="body">Backup: {summary.next}</Text>
+              <Text variant="body">Now: {summary.current}</Text>
             </Stack>
           )}
           <Dialog.Footer>
@@ -174,7 +168,10 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
             <Button variant="secondary" onClick={() => restore('merge')}>
               Merge into my data
             </Button>
-            <Button onClick={() => restore('replace')}>Replace my data</Button>
+            {/* Replace overwrites everything: the app's one destructive style (secondary + danger). */}
+            <Button variant="secondary" tone="danger" onClick={() => restore('replace')}>
+              Replace my data
+            </Button>
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog>

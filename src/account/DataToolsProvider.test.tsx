@@ -110,7 +110,7 @@ describe('DataToolsProvider (via the account menu)', () => {
     setup();
     await upload(backupFile([job('https://example.com/new', 'New')]));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText(/Backup: 1 jobs/)).toBeTruthy();
+    expect(within(dialog).getByText(/Backup: 1 job,/)).toBeTruthy();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Merge into my data' }));
     expect(downloads).toHaveLength(0);
     expect(
@@ -118,6 +118,24 @@ describe('DataToolsProvider (via the account menu)', () => {
         .map((j) => j.url)
         .sort(),
     ).toEqual(['https://example.com/keep', 'https://example.com/new']);
+  });
+
+  it('counts what Replace changes in plain words, and marks Replace destructive (#338)', async () => {
+    replaceAll([job('https://example.com/old', 'Old')]);
+    setup();
+    await upload(
+      backupFile([job('https://example.com/a', 'A'), job('https://example.com/b', 'B')]),
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Backup: 2 jobs, 0 documents')).toBeTruthy();
+    expect(within(dialog).getByText('Now: 1 job, 0 documents')).toBeTruthy();
+    expect(within(dialog).queryByText(/snippet/)).toBeNull();
+    const replace = within(dialog).getByRole('button', { name: 'Replace my data' });
+    expect(replace).toHaveClass('bg-feedback-bg-danger', 'text-feedback-danger');
+    const results = await axe(dialog, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+    });
+    expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
   });
 
   it('Replace saves a safety backup first, then replaces', async () => {
