@@ -4,8 +4,12 @@
 import { Box, Button, Stack, Text } from '@hirobius/design-system';
 import { navigate } from '../route';
 import type { Job } from '../types';
-import { clearSample, hasCloudSession, loadSample } from './loadSample';
-import { isSample } from './sampleData';
+import { importFresh } from '../staleBuild';
+import { clearSample, hasCloudSession } from './sampleSession';
+import { isSample } from './isSample';
+
+// Seeding takes a starter pack: loaded on the click, not with the Pipeline (#372).
+const loadSampleModule = importFresh(() => import('./loadSample'));
 
 /** Offered only in an empty tracker (the mount decides) and never while signed in, since a
  *  signed-in tracker syncs; loads the sample on click and shows it in the Pipeline. */
@@ -23,10 +27,15 @@ export function TrySampleButton({
       variant={link ? 'tertiary' : 'secondary'}
       size={size}
       className={link ? 'rjb-inline-link' : undefined}
-      onClick={() => {
-        loadSample();
-        navigate({ tab: 'queue', sub: null, jobId: null });
-      }}
+      onClick={() =>
+        void loadSampleModule().then(
+          ({ loadSample }) => {
+            loadSample();
+            navigate({ tab: 'queue', sub: null, jobId: null });
+          },
+          () => {},
+        )
+      }
     >
       Try with sample data
     </Button>
