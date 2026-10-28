@@ -1,12 +1,15 @@
 // Recently removed (src/trash.ts) in the UI: the quiet link under the Pipeline list that opens
 // the list of removed jobs, each with its posting link, Restore and Delete forever. The Undo after
 // a Remove is a save notice (saveNotice.removeWithUndo), so it never stacks with another notice.
+// Delete forever has its own Undo (#212), shown in the dialog's footer while it is open
+// (DialogNotice) and in the toast once it closes.
 import { useEffect } from 'react';
 import { Box, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
 import { deleteForever, TRASH_DAYS, useTrash, type Removed } from './trash';
-import { restoreWithNotice } from './saveNotice';
+import { noticeToToast, notifyRemoved, restoreWithNotice } from './saveNotice';
+import { DialogNotice } from './NoticeHost';
 import { JobPostingTitle } from './PostingLink';
 import { useBackSheet } from './useBackCloses';
 
@@ -37,7 +40,7 @@ function RemovedRow({ entry }: { entry: Removed }) {
           size="sm"
           variant="secondary"
           aria-label={`Restore: ${title}`}
-          onClick={() => restoreWithNotice(entry.job.url)}
+          onClick={() => restoreWithNotice(entry.job.url, { inDialog: true })}
         >
           Restore
         </Button>
@@ -46,7 +49,10 @@ function RemovedRow({ entry }: { entry: Removed }) {
           variant="secondary"
           tone="danger"
           aria-label={`Delete forever: ${title}`}
-          onClick={() => deleteForever(entry.job.url)}
+          onClick={() => {
+            const undo = deleteForever(entry.job.url);
+            notifyRemoved(`Deleted “${title}” for good`, undo, undefined, { inDialog: true });
+          }}
         >
           Delete forever
         </Button>
@@ -62,10 +68,15 @@ export function RecentlyRemovedLink() {
   // closes too, so its entry goes with it.
   const sheet = useBackSheet('recently-removed');
   const empty = trash.length === 0;
-  const { onOpenChange } = sheet;
+  const { onOpenChange, open } = sheet;
   useEffect(() => {
     if (empty) onOpenChange(false);
   }, [empty, onOpenChange]);
+  // Closed (or gone): an Undo it was showing moves to the toast, so it stays in reach.
+  useEffect(() => {
+    if (!open) noticeToToast();
+    return noticeToToast;
+  }, [open]);
   if (empty) return null;
   return (
     <Dialog {...sheet}>
@@ -86,6 +97,9 @@ export function RecentlyRemovedLink() {
             <RemovedRow key={r.job.url} entry={r} />
           ))}
         </Stack>
+        <Dialog.Footer>
+          <DialogNotice />
+        </Dialog.Footer>
       </Dialog.Content>
     </Dialog>
   );

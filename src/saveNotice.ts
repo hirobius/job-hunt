@@ -126,6 +126,9 @@ export function notifySaved(urls: string[], _label?: string, restored: string[] 
   });
 }
 
+/** A quick-add link (?add=) whose link is not one a job can be saved under. */
+export const QUICK_ADD_INVALID = 'That quick-add link has no job link in it, so nothing was saved.';
+
 /** Quick-save a link and say what happened: it landed in To apply (a new job, or a set-aside one
  *  brought back, #219), or it was already in the Pipeline (with Open, so a second paste, a tile
  *  or a quick-add link never ends in silence). Returns what the save did; 'invalid' is the
@@ -146,13 +149,13 @@ export function saveWithNotice(rawUrl: string, label?: string, note?: string): A
 
 /** Put a removed job back and say what happened: back in the Pipeline, or folded into the copy
  *  saved since (restoreJob never drops either copy). */
-export function restoreWithNotice(url: string) {
+export function restoreWithNotice(url: string, opts: { inDialog?: boolean } = {}) {
   const outcome = restoreJob(url);
   if (outcome === 'merged')
     showNotice({
+      ...(opts.inDialog ? { inDialog: true as const } : {}),
       title: 'Merged into the saved copy',
-      description:
-        'This posting was saved again, so its notes, to-dos and interviews were added there.',
+      description: 'This posting was saved again, so what the removed copy held was added there.',
       actions: [{ label: 'Open', run: () => openJob(jobIdOf(url)) }],
     });
 }

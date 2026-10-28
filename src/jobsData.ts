@@ -255,16 +255,24 @@ export interface HiddenQuery {
   contract?: boolean;
 }
 
-/** One quoted title, or several ORed: ("a" OR "b"). */
+/** One quoted title, or several ORed: ("a" OR "b"). A stray quote would end the phrase early, so
+ *  quotes go; blank and repeated titles only cost words against Google's cap, so they go too. */
 export function titleClause(titles: string[]): string {
-  const q = titles.map((t) => `"${t.trim()}"`);
+  const seen = new Set<string>();
+  const q: string[] = [];
+  for (const raw of titles) {
+    const t = raw.replace(/"/g, '').replace(/\s+/g, ' ').trim();
+    if (!t || seen.has(t.toLowerCase())) continue;
+    seen.add(t.toLowerCase());
+    q.push(`"${t}"`);
+  }
   return q.length > 1 ? `(${q.join(' OR ')})` : (q[0] ?? '""');
 }
 
 function queryTail({ role, roles, entry, where, mode, contract }: HiddenQuery): string {
   const w = where.trim();
   return [
-    titleClause(roles && roles.length > 1 ? roles : [role]),
+    titleClause(roles && roles.length > 0 ? roles : [role]),
     entry ? '(entry OR junior OR associate)' : '',
     mode === 'remote' ? 'remote' : w ? `"${w}"` : '',
     contract ? CONTRACT_CLAUSE : '',
@@ -276,12 +284,23 @@ function queryTail({ role, roles, entry, where, mode, contract }: HiddenQuery): 
 const googleUrl = (query: string, recency?: string) =>
   `https://www.google.com/search?q=${encc(query)}${recency ? '&tbs=qdr:' + recency : ''}`;
 
-export const atsSearchUrl = (siteClause: string, o: HiddenQuery) =>
-  googleUrl(`${siteClause} ${queryTail(o)}`, o.recency);
-
 /** Google ignores everything after a query's 32nd word. */
 const GOOGLE_MAX_WORDS = 32;
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
+
+/** Drop the last ORed titles until `fits` holds (or one is left): the place and Contract only
+ *  come after the titles, so a query past the cap would lose them first. */
+function fitRoles(o: HiddenQuery, fits: (o: HiddenQuery) => boolean): HiddenQuery {
+  let fit = o;
+  while (fit.roles && fit.roles.length > 1 && !fits(fit))
+    fit = { ...fit, roles: fit.roles.slice(0, -1) };
+  return fit;
+}
+
+export function atsSearchUrl(siteClause: string, o: HiddenQuery): string {
+  const fit = fitRoles(o, (f) => words(`${siteClause} ${queryTail(f)}`) <= GOOGLE_MAX_WORDS);
+  return googleUrl(`${siteClause} ${queryTail(fit)}`, o.recency);
+}
 
 /** As many of `sites` as fit in one query, in order, ORed together. */
 function fitSites(sites: HiddenSite[], o: HiddenQuery): string[] {
@@ -296,13 +315,21 @@ function fitSites(sites: HiddenSite[], o: HiddenQuery): string[] {
   return picked;
 }
 
+/** The query with its last titles dropped until at least `min` of `sites` fit in one search. */
+export const fitQuery = (sites: HiddenSite[], o: HiddenQuery, min = 1): HiddenQuery =>
+  fitRoles(o, (f) => fitSites(sites, f).length >= min);
+
+/** Titles trimmed until at least one site fits, so Search all never searches an empty group. */
+const fitAll = (sites: HiddenSite[], o: HiddenQuery) => fitQuery(sites, o);
+
 export function searchAllUrl(sites: HiddenSite[], o: HiddenQuery): string {
-  return googleUrl(`(${fitSites(sites, o).join(' OR ')}) ${queryTail(o)}`, o.recency);
+  const fit = fitAll(sites, o);
+  return googleUrl(`(${fitSites(sites, fit).join(' OR ')}) ${queryTail(fit)}`, o.recency);
 }
 
 /** How many sites `searchAllUrl` fits — shown on its button. */
 export function searchAllCount(sites: HiddenSite[], o: HiddenQuery): number {
-  return fitSites(sites, o).length;
+  return fitSites(sites, fitAll(sites, o)).length;
 }
 
 // ---- Curated groups ----

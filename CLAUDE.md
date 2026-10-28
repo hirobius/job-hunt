@@ -177,7 +177,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   the way: Mark applied, Remove), and is held while rows load above it or the browser's scroll
   anchoring moves it; a new top-level page opens at its top; pages that scroll to top on open use
   `scrollToTop()`. Companies' rows reorder as their boards answer, so their lists opt out of scroll
-  anchoring (`overflow-anchor: none`). **Top tabs** (`tabMemory.ts`) reopen where they
+  anchoring (`overflow-anchor: none`). **Focus** (`focusRescue.ts`, set up in `main.tsx`) is never dropped to `<body>`: a page change focuses the new page's main heading (tabindex -1, no ring), coming back focuses the control that left it (#359), a row that leaves a list hands focus to what took its place (pinned in `e2e/a11y-flows.spec.ts`). **Top tabs** (`tabMemory.ts`) reopen where they
   were left (`openTab`; Find the next company uses it too), except a job page or Apply mode whose
   job is no longer saved, which reopens the list; the open tab tapped again goes to its root. Start applying resumes at the last Apply job ("Resume applying (2 of 3)"). The Apply pager,
   Not a fit's next job and rail hops move in place (replace). **Sheets** (`useBackCloses.ts`):
@@ -260,7 +260,7 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
 - **Guided first run + empties (#132):** `Onboarding.tsx` is three steps (pick a track, location,
   first job) with `Progress`, `FormActions`, Back and Skip on every step; nothing is written until
   Finish / the last Skip (which seeds the picked packs, saves the job, and on the first-run gate goes
-  to `#/discover`). Sample data is a step 1 offer on a first run. Discover with no track shows
+  to `#/discover`). Sample data is a step 1 offer on a first run. A sign-in drops its Sample track first (`demo/sampleTrack.ts`): never asked about, never uploaded. Discover with no track shows
   `ChooseTrack` first. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in
   Discover, Documents and the Pipeline (`TrackerView`, with the Briefcase icon). The Pipeline
   gets `GettingStarted` (computed ticks in `gettingStarted.ts`, dismissed in

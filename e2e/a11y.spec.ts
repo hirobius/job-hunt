@@ -162,3 +162,147 @@ test.describe('phone sweep', () => {
     expect(moving).toEqual([]);
   });
 });
+
+// A keyboard walk of every route (2026-10-27 audit), past what axe reads from a still page: one
+// h1 and no skipped heading level; every Tab stop has a name, shows that it has focus (its own or
+// its field's ring, border or fill changes), is on screen once focused, and Tab never sticks.
+async function headingSkips(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const hs = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter(
+      (h) => h.getClientRects().length > 0,
+    );
+    const out: string[] = [];
+    const h1s = hs.filter((h) => h.tagName === 'H1').length;
+    if (h1s !== 1) out.push(`${h1s} h1`);
+    let prev = 0;
+    for (const h of hs) {
+      const l = +h.tagName[1];
+      if (prev && l > prev + 1)
+        out.push(`h${prev} → h${l} "${h.textContent?.trim().slice(0, 30)}"`);
+      prev = l;
+    }
+    return out;
+  });
+}
+
+async function tabWalk(page: Page): Promise<string[]> {
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  });
+  const bad: string[] = [];
+  const seen = new Set<string>();
+  let last: { key: string; look: string } | null = null;
+  for (let i = 0; i < 80; i++) {
+    await page.keyboard.press('Tab');
+    const s = await page.evaluate(async (prevKey) => {
+      // Let focus transitions end first, or a ring mid-fade reads as a change that isn't there.
+      await Promise.all(
+        document
+          .getAnimations()
+          .filter(
+            (a) => a.playState === 'running' && a.effect?.getComputedTiming().endTime !== Infinity,
+          )
+          .map((a) => a.finished.catch(() => {})),
+      );
+      const el = document.activeElement as HTMLElement | null;
+      // Its look: the element's and its two nearest boxes' ring, border and fill.
+      const look = (e: Element | null) => {
+        const o: string[] = [];
+        for (let n = e, i = 0; n && i < 3; n = n.parentElement, i++) {
+          const cs = getComputedStyle(n);
+          // An outline's colour only shows when it has a style (HDS sets the colour on focus).
+          const ring =
+            cs.outlineStyle === 'none' ? 'none' : `${cs.outlineStyle} ${cs.outlineColor}`;
+          o.push(`${ring} ${cs.boxShadow} ${cs.borderColor} ${cs.backgroundColor}`);
+        }
+        return o.join('|');
+      };
+      const prev = prevKey ? document.querySelector(`[data-walk="${prevKey}"]`) : null;
+      const prevLook = prev ? look(prev) : null;
+      if (!el || el === document.body) return { done: true, prevLook };
+      el.dataset.walk ??= Math.random().toString(36).slice(2);
+      const labelled = el
+        .getAttribute('aria-labelledby')
+        ?.split(' ')
+        .map((id) => document.getElementById(id)?.textContent ?? '')
+        .join(' ');
+      const name = (
+        el.getAttribute('aria-label') ||
+        labelled ||
+        [...((el as HTMLInputElement).labels ?? [])].map((l) => l.textContent).join(' ') ||
+        el.textContent ||
+        el.getAttribute('title') ||
+        (el as HTMLInputElement).placeholder ||
+        ''
+      ).trim();
+      const r = el.getBoundingClientRect();
+      const onScreen = r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+      return {
+        done: false,
+        key: el.dataset.walk,
+        what: `${el.tagName.toLowerCase()}[${name.slice(0, 30)}]`,
+        name,
+        onScreen: onScreen && r.width > 0 && r.height > 0,
+        look: look(el),
+        prevLook,
+      };
+    }, last?.key ?? null);
+    // The previous stop, now unfocused, must look different from when it had focus.
+    if (last && s.prevLook !== null && s.prevLook === last.look)
+      bad.push(`no focus ring: ${last.key}`);
+    if (s.done) break;
+    if (seen.has(s.key!)) {
+      // Back at a stop already visited: the walk wrapped round (fine) unless it is the same one.
+      if (s.key === last?.key) bad.push(`Tab sticks on ${s.what}`);
+      break;
+    }
+    seen.add(s.key!);
+    if (!s.name) bad.push(`no name: ${s.what}`);
+    if (!s.onScreen) bad.push(`off screen when focused: ${s.what}`);
+    last = { key: s.key!, look: s.look! };
+  }
+  // Name the ring failures by what they are, not their key.
+  return Promise.all(
+    bad.map(async (b) => {
+      const m = b.match(/^no focus ring: (.+)$/);
+      if (!m) return b;
+      const what = await page.evaluate((k) => {
+        const el = document.querySelector(`[data-walk="${k}"]`);
+        return `${el?.tagName.toLowerCase()}[${(el?.getAttribute('aria-label') || el?.textContent || '').trim().slice(0, 30)}]`;
+      }, m[1]);
+      return `no focus ring: ${what}`;
+    }),
+  );
+}
+
+for (const width of WIDTHS) {
+  test.describe(`keyboard walk ${width}`, () => {
+    test.use({ viewport: { width, height: width > 600 ? 900 : 844 } });
+
+    test('headings in order; every Tab stop named, ringed and on screen', async ({ page }) => {
+      test.setTimeout(180_000);
+      await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+      await seed(page);
+      const bad: string[] = [];
+      const check = async (where: string) => {
+        for (const v of await headingSkips(page)) bad.push(`${where} ${v}`);
+        for (const v of await tabWalk(page)) bad.push(`${where} ${v}`);
+      };
+      for (const hash of ROUTES) {
+        await go(page, hash);
+        await check(hash);
+      }
+      await go(page, '#/queue');
+      await page.locator('a[href^="#/queue/"]').first().click();
+      await page.waitForTimeout(500);
+      await check('job page');
+      await go(page, '#/queue');
+      await page.getByRole('button', { name: 'Start applying' }).click();
+      await expect(page).toHaveURL(/#\/apply\//);
+      await page.waitForTimeout(500);
+      await check('apply mode');
+      expect([...new Set(bad)]).toEqual([]);
+    });
+  });
+}
