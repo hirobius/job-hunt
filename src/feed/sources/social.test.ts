@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isHiringPost, postTitle, termTag } from './social';
+import { hashtagsIn, isHiringPost, postTitle, termTag, termTags } from './social';
 
 describe('isHiringPost', () => {
   it.each([
@@ -54,5 +54,14 @@ describe('termTag', () => {
     expect(termTag('a b c d')).toBeNull();
     expect(termTag('  ')).toBeNull();
     expect(termTag('++')).toBeNull();
+  });
+});
+
+describe('termTags and hashtagsIn', () => {
+  it('gives the singular and plural tag, and reads hashtags case-blind', () => {
+    expect(termTags('design systems')).toEqual(['designsystems', 'designsystem']);
+    expect(termTags('design token')).toEqual(['designtoken', 'designtokens']);
+    expect(termTags('a b c d')).toEqual([]);
+    expect(hashtagsIn('Lead #DesignSystems, C# and #a11y')).toEqual(['designsystems', 'a11y']);
   });
 });

@@ -1,6 +1,8 @@
 // Shared rules for the social sources (Bluesky, Mastodon, Reddit): a post is free text, not a job
 // record, so these decide whether it is someone hiring (not someone looking for work) and turn its
 // text into a title. Pure and table-tested in social.test.ts.
+import { matchTerm } from '../match';
+import type { Posting } from '../types';
 
 /** Someone offering a job: "We're hiring", "#hiring", "[Hiring]", "open role", "join our team". */
 const HIRING_RE =
@@ -48,4 +50,27 @@ export function termTag(term: string): string | null {
   if (!words.length || words.length > 3) return null;
   const tag = words.join('').replace(/[^a-z0-9]/g, '');
   return /[a-z]/.test(tag) ? tag : null;
+}
+
+/** The hashtags a term may be written as, singular and plural: "design systems" →
+ *  designsystems, designsystem. Empty when the term has no tag (termTag). */
+export function termTags(term: string): string[] {
+  const tag = termTag(term);
+  if (!tag) return [];
+  return [tag, tag.endsWith('s') ? tag.slice(0, -1) : `${tag}s`];
+}
+
+/** The hashtags written in a post's text, lower-cased ("#DesignSystems" → designsystems). */
+export function hashtagsIn(text: string): string[] {
+  return [...text.matchAll(/(?<![\w#])#(\w+)/g)].map((m) => m[1].toLowerCase());
+}
+
+/** A social post is a posting for the term only when it says the term as a phrase (match.ts) or
+ *  carries its hashtag (#DesignSystems, which the phrase rule never reads). Applied in the source:
+ *  a scored track ranks every posting with no term gate, so the general #hiring / #jobs timelines
+ *  would otherwise flood it. */
+export function postMatchesTerm(p: Posting, tags: string[], term: string): boolean {
+  const want = termTags(term);
+  const have = [...tags.map((t) => t.toLowerCase()), ...hashtagsIn(p.text)];
+  return want.some((t) => have.includes(t)) || !!matchTerm(p, term);
 }

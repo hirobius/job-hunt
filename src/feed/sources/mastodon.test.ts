@@ -72,4 +72,45 @@ describe('fetchMastodon', () => {
       }),
     ).rejects.toBeInstanceOf(FetchError);
   });
+  it('keeps a #hiring post only when it names the term or carries its tag', async () => {
+    const tagged = status({
+      uri: 'https://example.social/users/acme/statuses/2',
+      content: '<p>We&#39;re hiring a Staff Engineer. #hiring</p>',
+      tags: [{ name: 'DesignSystem' }],
+    });
+    const hashInText = status({
+      uri: 'https://example.social/users/acme/statuses/3',
+      content: '<p>We&#39;re hiring a Staff Engineer #DesignSystems</p>',
+    });
+    const other = status({
+      uri: 'https://example.social/users/acme/statuses/4',
+      content: '<p>We&#39;re hiring a backend engineer, on-site. #hiring #jobs</p>',
+      tags: [{ name: 'hiring' }, { name: 'jobs' }],
+    });
+    const out = await fetchMastodon('design systems', async () => [
+      status(),
+      tagged,
+      hashInText,
+      other,
+    ]);
+    expect(out.map((p) => p.id.split('/').pop())).toEqual(['1', '2', '3']);
+  });
+  it('reads the work mode from the title line', () => {
+    expect(parseMastodonStatus(status())?.mode).toBe('remote');
+    expect(
+      parseMastodonStatus(
+        status({ content: '<p>We&#39;re hiring a design systems lead, on-site.</p>' }),
+      )?.mode,
+    ).toBe('onsite');
+  });
+  it('a sweep shares one read of the job-tag timelines while it is in flight', async () => {
+    const urls: string[] = [];
+    const fetchJson = async (u: string) => (urls.push(u), [status()]);
+    await Promise.all([
+      fetchMastodon('design systems', fetchJson),
+      fetchMastodon('tokens', fetchJson),
+    ]);
+    expect(urls.filter((u) => u.includes('/tag/hiring?'))).toHaveLength(2);
+    expect(urls).toHaveLength(6);
+  });
 });

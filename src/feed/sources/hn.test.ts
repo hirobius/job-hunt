@@ -335,4 +335,35 @@ describe('Freelancer? Seeking freelancer? thread', () => {
     expect(calls.some((c) => c.includes('restrictSearchableAttributes=title'))).toBe(true);
     expect(calls.some((c) => c.includes('story_6'))).toBe(true);
   });
+
+  it('keeps the hiring threads when the freelancer search or its thread fails', async () => {
+    const hiring = {
+      hits: [
+        comment({
+          objectID: '51',
+          story_id: 5,
+          parent_id: 5,
+          comment_text: 'Acme | Design Systems Engineer | Remote',
+        }),
+      ],
+    };
+    const failSearch = async (url: string) => {
+      if (url.includes('restrictSearchableAttributes')) throw new Error('down');
+      if (url.includes('search_by_date')) return listing;
+      return hiring;
+    };
+    expect((await fetchHn('design systems', failSearch)).map((p) => p.id)).toEqual(['hn:51']);
+    const failThread = async (url: string) => {
+      if (url.includes('search_by_date')) return listing;
+      if (url.includes('story_6') || url.includes('story_2')) throw new Error('down');
+      return hiring;
+    };
+    expect((await fetchHn('design systems', failThread)).map((p) => p.id)).toEqual(['hn:51']);
+    // The hiring listing failing is still the source's failure.
+    await expect(
+      fetchHn('design systems', async () => {
+        throw new Error('down');
+      }),
+    ).rejects.toThrow('down');
+  });
 });

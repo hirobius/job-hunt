@@ -11,11 +11,12 @@
 // bsky.app and names its author (attribution), and the source label says "Bluesky". Rate limit:
 // the public AppView allows 3,000 requests per 5 minutes per IP; one search here is
 // QUERIES.length requests, cached an hour in memory (fetchFeed). Only employer posts are kept
-// (social.ts `isHiringPost`); the term match itself is match.ts's job downstream.
+// (social.ts `isHiringPost`) that name the term or its hashtag (`postMatchesTerm`).
+import { inferMode } from '../match';
 import { httpUrl } from '../../httpUrl';
 import type { Posting } from '../types';
 import { arr, obj, str, type FetchJson } from './http';
-import { isHiringPost, postTitle } from './social';
+import { isHiringPost, postMatchesTerm, postTitle } from './social';
 
 const API = 'https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts';
 /** Each search pairs the term with one of these (Bluesky search has no OR). The term is not
@@ -32,6 +33,12 @@ function postUrl(uri: string, handle: string): string | undefined {
   if (!m) return undefined;
   return httpUrl(`https://bsky.app/profile/${encodeURIComponent(handle || m[1])}/post/${m[2]}`);
 }
+
+/** The post's hashtag facets (app.bsky.richtext.facet#tag); hashtags in the text count too. */
+const tagsOf = (p: unknown): string[] =>
+  arr(obj(obj(p).record).facets).flatMap((f) =>
+    arr(obj(f).features).flatMap((x) => (str(obj(x).tag) ? [str(obj(x).tag)] : [])),
+  );
 
 export function parseBlueskyPost(p: unknown): Posting | null {
   const o = obj(p);
@@ -50,6 +57,7 @@ export function parseBlueskyPost(p: unknown): Posting | null {
     company: '',
     url,
     location: '',
+    mode: inferMode(postTitle(text)),
     postedAt: str(record.createdAt) || str(o.indexedAt) || undefined,
     text: `Posted on Bluesky by ${name ? `${name} ` : ''}@${handle}\n${text}`,
   };
@@ -64,6 +72,10 @@ export async function fetchBluesky(term: string, fetchJson: FetchJson): Promise<
   if (!pages.length) throw (settled[0] as PromiseRejectedResult).reason;
   const seen = new Set<string>();
   return pages
-    .flatMap((b) => arr(obj(b).posts).map(parseBlueskyPost))
-    .filter((p): p is Posting => !!p && !seen.has(p.id) && !!seen.add(p.id));
+    .flatMap((b) =>
+      arr(obj(b).posts).map((raw) => ({ p: parseBlueskyPost(raw), tags: tagsOf(raw) })),
+    )
+    .filter(({ p, tags }) => !!p && postMatchesTerm(p, tags, t))
+    .map(({ p }) => p as Posting)
+    .filter((p) => !seen.has(p.id) && !!seen.add(p.id));
 }

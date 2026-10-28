@@ -184,9 +184,11 @@ function parseComment(hit: unknown, freelance: boolean): Posting | null {
 export async function fetchHn(term: string, fetchJson: FetchJson): Promise<Posting[]> {
   const [listing, freelancerListing] = await Promise.all([
     fetchJson(`${API}/search_by_date?tags=story,author_whoishiring&hitsPerPage=${LISTING_SIZE}`),
+    // The freelancer thread is extra: its search failing (or its thread reads, below) leaves the
+    // hiring threads standing instead of blanking all of HN.
     fetchJson(
       `${API}/search_by_date?tags=story&query=${encodeURIComponent('Freelancer? Seeking freelancer?')}&restrictSearchableAttributes=title&hitsPerPage=${LISTING_SIZE}`,
-    ),
+    ).catch(() => null),
   ]);
   // Algolia's plain query is a superset of the phrase (all words, any order); match.ts then keeps
   // only real phrase hits. A quoted query would be exact but drops plurals ("design systems").
@@ -203,7 +205,9 @@ export async function fetchHn(term: string, fetchJson: FetchJson): Promise<Posti
   };
   const [hiring, freelance] = await Promise.all([
     read(pickHiringThreads(listing), parseHnComment),
-    read(pickFreelancerThreads(freelancerListing), parseFreelancerComment),
+    read(pickFreelancerThreads(freelancerListing), parseFreelancerComment).catch(
+      (): Posting[] => [],
+    ),
   ]);
   return [...hiring, ...freelance];
 }

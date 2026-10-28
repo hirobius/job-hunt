@@ -66,4 +66,9 @@ describe('fetchReddit', () => {
       'https://oauth.reddit.com/r/DesignSystems/search.json?q=design%20systems&restrict_sr=1&sort=new&t=month&limit=50',
     );
   });
+  it('reads the Data API host by default, never www.reddit.com', async () => {
+    const urls: string[] = [];
+    await fetchReddit('design systems', async (u) => (urls.push(u), { data: { children: [] } }));
+    expect(urls.every((u) => u.startsWith('https://oauth.reddit.com/'))).toBe(true);
+  });
 });

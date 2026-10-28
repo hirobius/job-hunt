@@ -21,6 +21,9 @@ import { isHiringPost } from './social';
 export const REDDIT_SUBS = ['DesignSystems', 'UXDesign', 'forhire'];
 export const REDDIT_ENV = ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'] as const;
 const WEB = 'https://www.reddit.com';
+/** The Data API host an app-only OAuth token reads from (never www.reddit.com: that is the
+ *  unlicensed, rate-capped path). */
+export const REDDIT_API = 'https://oauth.reddit.com';
 
 export const redditSearchUrl = (base: string, sub: string, term: string) =>
   `${base}/r/${sub}/search.json?q=${encodeURIComponent(term)}&restrict_sr=1&sort=new&t=month&limit=50`;
@@ -53,7 +56,7 @@ export function parseRedditPost(child: unknown): Posting | null {
 export async function fetchReddit(
   term: string,
   fetchJson: FetchJson,
-  base: string = WEB,
+  base: string = REDDIT_API,
 ): Promise<Posting[]> {
   if (!term.trim()) return [];
   const pages = await Promise.all(

@@ -23,6 +23,7 @@ describe('parseBlueskyPost', () => {
       company: '',
       url: 'https://bsky.app/profile/acme.example.social/post/3kxyz',
       location: '',
+      mode: 'remote',
       postedAt: '2026-10-20T10:00:00.000Z',
       text: "Posted on Bluesky by Acme @acme.example.social\nWe're hiring a Design Systems Engineer (remote) #hiring",
     });
@@ -72,5 +73,35 @@ describe('fetchBluesky', () => {
       }),
     ).toEqual([]);
     expect(await fetchBluesky('x', async () => ({ posts: 'nope' }))).toEqual([]);
+  });
+  it('keeps only posts that name the term or carry its hashtag', async () => {
+    const tagged = post({
+      uri: 'at://did:plc:abc123/app.bsky.feed.post/3ktag',
+      record: {
+        text: "We're hiring a Staff Engineer #hiring #ds",
+        createdAt: '2026-10-20T10:00:00.000Z',
+        facets: [{ features: [{ $type: 'app.bsky.richtext.facet#tag', tag: 'DesignSystem' }] }],
+      },
+    });
+    const inText = post(
+      { uri: 'at://did:plc:abc123/app.bsky.feed.post/3khash' },
+      "We're hiring a Staff Engineer #DesignSystems",
+    );
+    const other = post(
+      { uri: 'at://did:plc:abc123/app.bsky.feed.post/3koff' },
+      "We're hiring a backend engineer (on-site) #hiring",
+    );
+    const out = await fetchBluesky('design systems', async () => ({
+      posts: [post(), tagged, inText, other],
+    }));
+    expect(out.map((p) => p.id.split('/').pop())).toEqual(['3kxyz', '3ktag', '3khash']);
+  });
+  it('reads the work mode from the title line, so the mode filter applies', () => {
+    expect(
+      parseBlueskyPost(post({}, "We're hiring a design systems lead, on-site in Austin"))?.mode,
+    ).toBe('onsite');
+    expect(
+      parseBlueskyPost(post({}, "We're hiring a design systems lead #hiring"))?.mode,
+    ).toBeUndefined();
   });
 });
