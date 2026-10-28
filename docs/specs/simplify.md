@@ -45,7 +45,7 @@ The server keeps three tables: `tracker`, `postings` and `sync_log`. `watched_co
 
   Everything else is counted as "N not design-system roles". There are no fit tiers. The scorer, Fit and screening stay as they are: they may sort or badge, never hide, and they get no new work. The server pre-filters with Postgres full-text search on the inclusion and leave-out terms.
 - **Preview:** tapping a Browse row opens a short in-app sheet with the details, why it is listed, and Save / Skip / Not this company. **Open posting** is one tap away.
-- **Jobs stays a top tab** (Today · Jobs). A proposal to simplify it hard is in section 7b of the spec, for Adrian to review.
+- **Jobs stays a top tab** (Today · Jobs). Adrian's keep list: To apply + Start applying, Follow up, Next 7 days and the full job list (search, status, sort). Cut Getting started. Recently removed moves to the Account menu (or a "Show removed" filter), and Export links to the Account menu only. The job-page changes in section 7b are still a proposal.
 - **Bug #417:** the board probe needs an identity check. It matched "Forward" to three different boards.
 
 ## What Adrian loses
