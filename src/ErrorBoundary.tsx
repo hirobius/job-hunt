@@ -92,6 +92,11 @@ export class PageErrorBoundary extends Component<Props & { resetKey: string }, S
     return { error };
   }
 
+  componentDidCatch(error: Error) {
+    // Held back by errorReport unless a reload for the new version didn't fix it.
+    if (isChunkLoadError(error)) reportError('render', error);
+  }
+
   componentDidUpdate(prev: { resetKey: string }) {
     if (this.state.error && prev.resetKey !== this.props.resetKey) this.setState({ error: null });
   }
