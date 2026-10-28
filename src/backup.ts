@@ -131,10 +131,49 @@ const JOB_STRING_KEYS = [
   'verdict',
 ] as const;
 
+/** Every key on the Job model (src/types.ts). A restored job keeps only these (#341):
+ *  an unknown key rides in from a hand-edited or foreign backup — worst case `demo: true`,
+ *  which makes a real job count as sample data and silently drop out of sync and backups.
+ *  Typed as a Record over `keyof Job`, so a new Job field fails typecheck until it is listed
+ *  here (else a restore would silently drop it). */
+const JOB_KEY_LIST: Record<keyof Job, true> = {
+  url: true,
+  label: true,
+  status: true,
+  applied: true,
+  followUp: true,
+  snoozeUntil: true,
+  deadline: true,
+  note: true,
+  contact: true,
+  resume: true,
+  salary: true,
+  company: true,
+  location: true,
+  seniority: true,
+  priority: true,
+  archived: true,
+  todos: true,
+  notes: true,
+  verdict: true,
+  mode: true,
+  blockers: true,
+  angle: true,
+  screenedAt: true,
+  history: true,
+  events: true,
+  decks: true,
+};
+const JOB_KEYS = new Set(Object.keys(JOB_KEY_LIST));
+
 /** Nested job fields are rendered and computed on (agenda, .ics, metrics): keep only
  *  well-formed entries so a hand-edited backup can't crash a view after restore. */
 function cleanJobFields(j: Job): Job {
   const o = j as unknown as Rec;
+  for (const k of Object.keys(o)) if (!JOB_KEYS.has(k)) delete o[k];
+  // Boolean flags are kept only when actually boolean (#341).
+  if ('priority' in o && typeof o.priority !== 'boolean') delete o.priority;
+  if ('archived' in o && typeof o.archived !== 'boolean') delete o.archived;
   for (const k of JOB_STRING_KEYS) if (k in o && !isStr(o[k])) delete o[k];
   if ('todos' in o)
     j.todos = arr(o.todos)
