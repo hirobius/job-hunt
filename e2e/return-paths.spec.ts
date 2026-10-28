@@ -350,7 +350,7 @@ for (const width of [390, 1440] as const) {
       await expect(page).toHaveURL(/#\/discover\/ats$/);
       await page.waitForTimeout(600);
       await expect(page).toHaveURL(/#\/discover\/ats$/);
-      await page.getByRole('tab', { name: 'Pipeline' }).click();
+      await page.getByRole('tab', { name: 'Jobs' }).click();
       await expect(page).toHaveURL(/#\/queue$/);
       await expect(page.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeVisible();
     });
@@ -414,7 +414,7 @@ for (const width of [390, 1440] as const) {
       const title = (await link.textContent())!.trim();
       await link.click();
       await expect(page.getByRole('heading', { level: 2, name: title })).toBeVisible();
-      await page.getByRole('tab', { name: 'Pipeline' }).dblclick();
+      await page.getByRole('tab', { name: 'Jobs' }).dblclick();
       await stays(/#\/queue$/);
       if (phone) {
         // At lg the rail stands in for Back on a job opened from the list.
@@ -457,17 +457,17 @@ for (const width of [390, 1440] as const) {
 
     test('each top tab reopens where it was left', async ({ page }) => {
       await go(page, '#/discover/ats');
-      await page.getByRole('tab', { name: 'Pipeline' }).click();
+      await page.getByRole('tab', { name: 'Jobs' }).click();
       const link = jobsPanel(page).locator('a[href^="#/queue/"]').first();
       const title = (await link.textContent())!.trim();
       await link.click();
       await expect(page.getByRole('heading', { level: 2, name: title })).toBeVisible();
       await page.getByRole('tab', { name: 'Companies' }).click();
       await expect(page).toHaveURL(/#\/discover\/ats$/);
-      await page.getByRole('tab', { name: 'Pipeline' }).click();
+      await page.getByRole('tab', { name: 'Jobs' }).click();
       await expect(page.getByRole('heading', { level: 2, name: title })).toBeVisible();
       // The open tab, tapped again, goes to its root.
-      await page.getByRole('tab', { name: 'Pipeline' }).click();
+      await page.getByRole('tab', { name: 'Jobs' }).click();
       await expect(page).toHaveURL(/#\/queue$/);
     });
 
@@ -616,7 +616,7 @@ for (const width of [390, 1440] as const) {
       await page.getByRole('option', { name: 'Past week' }).click();
       await expect.poll(query).toContain('tbs=qdr:w');
 
-      await page.getByRole('tab', { name: 'Pipeline' }).click();
+      await page.getByRole('tab', { name: 'Jobs' }).click();
       await expect(page).toHaveURL(/#\/queue/);
       await page.goBack();
       await expect(page).toHaveURL(searchUrl);

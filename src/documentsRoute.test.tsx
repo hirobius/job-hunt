@@ -327,7 +327,7 @@ describe('the Company page (#230)', () => {
     expect(
       await screen.findByRole('heading', { level: 2, name: 'Acme Metals' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
     // The job page remembers the Company page, so its Back returns here (return paths).
     expect(screen.getByRole('link', { name: 'Fabricator' })).toHaveAttribute(
       'href',

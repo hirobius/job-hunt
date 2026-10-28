@@ -41,10 +41,12 @@ test('Add job explains a bad link and an already saved one', async ({ page }) =>
 });
 
 // A first visit offers the sample pipeline, which lands on the Pipeline with its follow-ups
-// (#236: Today is gone; its follow-ups live in the Pipeline).
-test('opens on Companies setup; the sample pipeline lists due follow-ups', async ({ page }) => {
+// (#236: its follow-ups live in the Pipeline; Today, home again in #383, links to them).
+test('opens on setup at home (Today); the sample pipeline lists due follow-ups', async ({
+  page,
+}) => {
   await page.goto('/');
-  await expect(page).toHaveURL(/#\/discover$/);
+  await expect(page).toHaveURL(/#\/today$/);
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   await expect(page).toHaveURL(/#\/queue$/);
   const followUps = page.getByRole('region', { name: /^Follow up \(/ });
@@ -59,11 +61,12 @@ test('opens on Companies setup; the sample pipeline lists due follow-ups', async
   await expect(dialog.getByText('Follow-up sent. Next one due in 7 days.')).toBeVisible();
 });
 
-// An old #/today link (#236) lands on Companies and leaves no history entry behind.
-test('#/today redirects to Companies', async ({ page }) => {
+// #/today is home again (#383): it opens Today, and Back goes to the page before.
+test('#/today opens Today', async ({ page }) => {
   await page.goto('/#/queue');
   await page.goto('/#/today');
-  await expect(page).toHaveURL(/#\/discover$/);
+  await expect(page).toHaveURL(/#\/today$/);
+  await expect(page.getByRole('tab', { name: 'Today', selected: true })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/#\/queue$/);
 });
