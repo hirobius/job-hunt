@@ -385,6 +385,17 @@ describe('job page tabs (#130 slice 2)', () => {
     expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Synced from the laptop!');
   });
 
+  it('clearing Notes never brings the older note back into the field (#330 review)', async () => {
+    addJob(URL_A, 'Design Engineer', 'Found in Live postings');
+    updateJob(URL_A, { notes: 'Ask about pay' });
+    openJobPage();
+    const notes = screen.getByRole('textbox', { name: 'Notes' });
+    await userEvent.clear(notes);
+    await userEvent.tab();
+    expect(findJobById(jobIdOf(URL_A))?.notes).toBe('');
+    expect(notes).toHaveValue('');
+  });
+
   it('an unsaved Notes edit wins over a note synced meanwhile (#330)', async () => {
     addJob(URL_A, 'Design Engineer');
     updateJob(URL_A, { notes: 'Old' });

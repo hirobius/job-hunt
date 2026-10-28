@@ -59,13 +59,15 @@ function NotesField({ job }: { job: Job }) {
     updateJob(url, { notes: draftRef.current });
   }, [url]);
   // A newer note from a sync pull replaces the field while nothing is unsaved (#330); an unsaved
-  // edit wins and is saved over it, as before.
+  // edit wins and is saved over it, as before. Only `notes` is followed: the older `note` the field
+  // falls back to must not come back into it when the user clears Notes.
+  const synced = job.notes;
   useEffect(() => {
-    if (shown === savedRef.current || draftRef.current !== savedRef.current) return;
-    savedRef.current = shown;
-    draftRef.current = shown;
-    setDraft(shown);
-  }, [shown]);
+    if (!synced || synced === savedRef.current || draftRef.current !== savedRef.current) return;
+    savedRef.current = synced;
+    draftRef.current = synced;
+    setDraft(synced);
+  }, [synced]);
   useEffect(() => {
     const onHide = () => {
       if (document.visibilityState !== 'visible') flush();

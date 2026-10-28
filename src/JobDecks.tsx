@@ -2,7 +2,7 @@
 // label and the day it was sent. Links only (no uploads); http(s) only. Every change goes through
 // updateJob, so decks sync with the job, ride in Back up and fill the CSV's decks column. Remove is
 // soft: the card collapses and a notice offers Undo, which puts the deck back in its place.
-import { useState, type KeyboardEvent } from 'react';
+import { useCallback, useState, type KeyboardEvent } from 'react';
 import {
   Box,
   Button,
@@ -60,9 +60,9 @@ function DeckForm({
   // Every field saves on Enter and cancels on Escape, as Deck link always did (#332).
   const keys = (e: KeyboardEvent) => {
     // Handled here, so the key never reaches the control focus moves to.
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      if (url.trim()) save();
+      save();
     }
     if (e.key === 'Escape') onCancel();
   };
@@ -129,6 +129,10 @@ function DeckCard({
   // A deck just added or saved scrolls into view and flashes (#212); ListCard takes no ref, so the
   // row's ref flashes the card around it.
   const highlight = useHighlight<HTMLElement>(deck.id);
+  const flashCard = useCallback(
+    (el: HTMLElement | null) => highlight(el?.closest('li') ?? null),
+    [highlight],
+  );
   return (
     <ListCard>
       <Stack
@@ -136,7 +140,7 @@ function DeckCard({
         gap="px8"
         align="center"
         wrap="nowrap"
-        ref={(el: HTMLElement | null) => highlight(el?.closest('li') ?? null)}
+        ref={flashCard}
       >
         <Box sx={{ flex: '1 1 0%', minWidth: 0, overflowWrap: 'anywhere' }}>
           <Stack gap="px4">

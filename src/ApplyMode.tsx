@@ -379,7 +379,7 @@ function CopyRow({
             }
             onKeyDown={(e: React.KeyboardEvent) => {
               // Handled here, so Enter never reaches the button focus moves to.
-              if (!multiline && e.key === 'Enter') {
+              if (!multiline && e.key === 'Enter' && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 done();
               }
