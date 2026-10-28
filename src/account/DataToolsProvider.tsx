@@ -21,6 +21,9 @@ import { readEvidence, replaceEvidence } from '../radar/evidenceStore';
 import { getTrash, replaceTrash } from '../trash';
 import { getAllModes, replaceModes } from '../trackModes';
 import { getAllDreams, replaceDreams } from '../feed/dreams';
+import { getProfiles, replaceProfiles } from '../profile';
+import { getSources, replaceSources } from '../sources';
+import { getDecided, replaceDecided } from '../decided';
 import { getAllDocuments, replaceDocuments } from '../documents';
 import { getApplyKit, replaceApplyKit } from '../applyKit';
 import { getAllSweeps, replaceSweeps } from '../feed/sweepTitles';
@@ -55,6 +58,9 @@ function currentState(): AccountState {
     kit: getApplyKit(),
     sweeps: getAllSweeps(),
     mustInclude: getAllMustInclude(),
+    profiles: getProfiles(),
+    sources: getSources(),
+    decided: getDecided(),
   };
 }
 
@@ -83,6 +89,9 @@ function applyState(next: AccountState): string[] {
     ['Application kit', () => replaceApplyKit(next.kit)],
     ['title lists', () => replaceSweeps(next.sweeps)],
     ['must-include lists', () => replaceMustInclude(next.mustInclude)],
+    ['profiles', () => replaceProfiles(next.profiles)],
+    ['sources', () => replaceSources(next.sources)],
+    ['decisions', () => replaceDecided(next.decided)],
   ]);
 }
 

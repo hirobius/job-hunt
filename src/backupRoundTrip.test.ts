@@ -214,6 +214,38 @@ function gen(seed: number): AccountState {
           },
         }
       : {},
+    profiles: maybe()
+      ? [
+          {
+            id: 'main',
+            label: 'Design Systems',
+            titles: ['Design Systems', 'Design Technologist'],
+            titlesOff: maybe() ? ['Design Technologist'] : [],
+            atsRoles: ['design technologist'],
+            atsOff: [],
+            include: { terms: ['design system'], ...(maybe() && { inText: true }) },
+            leaveOut: maybe() ? ['intern'] : [],
+            ...(maybe() && { payFloor: 120000 }),
+            level: pick(['entry', 'experienced', 'any'] as const),
+            location: maybe() ? 'Remote' : '',
+            mode: pick(['any', 'remote', 'hybrid', 'onsite'] as const),
+            ...(maybe() && { scorer: 'design-systems' as const }),
+            createdAt: '2026-10-28T00:00:00.000Z',
+          },
+        ]
+      : [],
+    sources: maybe()
+      ? [
+          { kind: 'greenhouse', ref: 'acme', label: 'Acme', ...(maybe() && { star: true as const }) },
+          { kind: 'lever', ref: 'globex', label: 'Globex', eu: true, muted: true },
+          { kind: 'company', ref: 'initech', label: 'Initech', website: 'https://initech.example.org/' },
+          { kind: 'github', ref: 'acme', label: 'Acme', repo: 'acme/ds' },
+          { kind: 'feed', ref: 'hn', label: 'Hacker News' },
+        ]
+      : [],
+    decided: maybe()
+      ? [{ fingerprint: 'acme|design systems', verdict: 'skipped', at: '2026-10-27T00:00:00.000Z' }]
+      : [],
   };
 }
 

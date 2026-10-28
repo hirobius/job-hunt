@@ -138,7 +138,7 @@ describe('CloudSyncProvider (via the account menu)', () => {
     const menu = await openAccount();
     expect(within(menu).getByText('Signed in as u1@example.test')).toBeInTheDocument();
     // …and the tracker blob it pushed is v11 (no pillars / userTiles).
-    expect(fake().tables.tracker[0].data).toMatchObject({ v: 11 });
+    expect(fake().tables.tracker[0].data).toMatchObject({ v: 12 });
     expect(fake().tables.tracker[0].data).not.toHaveProperty('pillars');
   });
 
@@ -589,7 +589,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       act(edit);
       await waitFor(() =>
         expect(fake().tables.tracker[0].data).toMatchObject({
-          v: 11,
+          v: 12,
           targets: { trk: [{ login: 'acme' }] },
           filters: { trk: [{ name: 'Austin hybrid' }] },
           evidence: 'Led a design system',
@@ -723,7 +723,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       });
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
       expect(fake().tables.tracker[0].data).toMatchObject({
-        v: 11,
+        v: 12,
         evidence: 'Led a design system',
         modes: { trk: 'hybrid' },
       });
@@ -751,7 +751,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       act(() => {
         window.dispatchEvent(new Event('focus'));
       });
-      await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 11 }));
+      await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 12 }));
       expect(fake().tables.tracker[0].data.trash).toHaveLength(1);
       expect(getTrash().map((r) => r.job.url)).toEqual(['https://example.test/removed']);
     });
@@ -773,7 +773,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       renderAccount();
       act(() => fake().signIn('u1'));
       await addDeviceDataIfAsked();
-      await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 11 }));
+      await waitFor(() => expect(fake().tables.tracker[0].data).toMatchObject({ v: 12 }));
       expect(readDreams('trk').map((d) => d.company)).toEqual(['Dreamco']);
       expect(getAllDocuments().map((d) => d.title)).toEqual(['Base résumé']);
       expect(fake().tables.tracker[0].data.documents).toHaveLength(1);
@@ -874,7 +874,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       });
       await waitFor(() => expect(fake().tables.tracker[0].data.targets?.trk).toHaveLength(1));
       expect(fake().tables.tracker[0].data).toMatchObject({
-        v: 11,
+        v: 12,
         evidence: 'Led a design system',
         modes: { trk: 'hybrid' },
       });
@@ -937,7 +937,7 @@ describe('tracks and the cloud (2026-10-15 track-sync audit)', () => {
       renderAccount();
       act(() => fake().signIn('u1'));
       await addDeviceDataIfAsked();
-      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(11));
+      await waitFor(() => expect(fake().tables.tracker[0].data.v).toBe(12));
       act(() => {
         window.dispatchEvent(new Event('focus'));
       });

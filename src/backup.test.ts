@@ -63,6 +63,9 @@ const state = (over: Partial<AccountState> = {}): AccountState => ({
   kit: { fields: {}, answers: [] },
   sweeps: {},
   mustInclude: {},
+  profiles: [],
+  sources: [],
+  decided: [],
   ...over,
 });
 
@@ -205,6 +208,42 @@ describe('applyBackup', () => {
 
   it('replace yields exactly the backup data', () => {
     expect(applyBackup(current, incoming, 'replace')).toEqual(incoming);
+  });
+
+  it('replace with a backup from before v12 keeps this device’s profile, Sources and decisions', () => {
+    const v12 = {
+      profiles: [
+        {
+          id: 'main',
+          label: 'DS',
+          titles: [],
+          titlesOff: [],
+          atsRoles: [],
+          atsOff: [],
+          include: { terms: [] },
+          leaveOut: [],
+          level: 'any' as const,
+          location: 'Remote',
+          mode: 'any' as const,
+          createdAt: 'x',
+        },
+      ],
+      sources: [{ kind: 'greenhouse' as const, ref: 'figma', label: 'Figma', star: true as const }],
+      decided: [{ fingerprint: 'f', verdict: 'skipped' as const, at: 'x' }],
+    };
+    const out = applyBackup(state(v12), { ...incoming, before12: true }, 'replace');
+    expect(out.jobs).toEqual(incoming.jobs);
+    expect({ profiles: out.profiles, sources: out.sources, decided: out.decided }).toEqual(v12);
+    // A v12 backup with none is the backup's: Replace empties them.
+    expect(applyBackup(state(v12), incoming, 'replace').sources).toEqual([]);
+    const old = JSON.parse(JSON.stringify(buildBackup(incoming, NOW)));
+    delete old.profiles;
+    delete old.sources;
+    delete old.decided;
+    const parsed = parseBackup(JSON.stringify(old));
+    expect(parsed.ok && parsed.backup.before12).toBe(true);
+    const fresh = parseBackup(JSON.stringify(buildBackup(incoming, NOW)));
+    expect(fresh.ok && fresh.backup.before12).toBeUndefined();
   });
 
   it('merge unions both sides and the backup wins on a shared key', () => {
@@ -416,6 +455,9 @@ describe('sample data (#110)', () => {
         kit: { fields: {}, answers: [] },
         sweeps: {},
         mustInclude: {},
+        profiles: [],
+        sources: [],
+        decided: [],
       },
       new Date(2026, 9, 13),
     );
