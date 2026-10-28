@@ -21,7 +21,7 @@ import {
   Tag,
   Text,
 } from '@hirobius/design-system';
-import { Banknote, ExternalLink, MapPin, RefreshCw, SearchX, type LucideIcon } from 'lucide-react';
+import { Banknote, ExternalLink, MapPin, SearchX, type LucideIcon } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { metaLines } from './metaLines';
 import { PostingTitle } from './PostingLink';
@@ -29,6 +29,7 @@ import { useBackCloses } from './useBackCloses';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
+import { NewCompanies, ScanStatus } from './AutoScanViews';
 import {
   FILTER_LABEL,
   SORT_LABEL,
@@ -91,6 +92,7 @@ export default function ReviewView({ categoryId }: { categoryId: string }) {
         <Text variant="body" as="p" role="status" className="rjb-semibold">
           {line ?? (feed.loading ? 'Reading your sources…' : '')}
         </Text>
+        <ScanStatus categoryId={categoryId} />
         {feed.progress && (
           <Text variant="caption" as="p" tone="secondary">
             {`Read ${feed.progress.done} of ${feed.progress.total} boards`}
@@ -102,6 +104,7 @@ export default function ReviewView({ categoryId }: { categoryId: string }) {
           </Text>
         )}
       </Stack>
+      <NewCompanies categoryId={categoryId} />
       <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
         <SegmentedControl
           aria-label="Review view"
@@ -113,15 +116,6 @@ export default function ReviewView({ categoryId }: { categoryId: string }) {
             { value: 'deck', label: 'Deck' },
           ]}
         />
-        <Button
-          size="sm"
-          variant="tertiary"
-          iconLeft={<Icon icon={RefreshCw} />}
-          disabled={!!feed.progress}
-          onClick={feed.refresh}
-        >
-          Refresh
-        </Button>
       </Stack>
       {view && (
         <Stack direction="row" wrap="wrap" gap="px8" role="group" aria-label="Filter postings">
@@ -219,8 +213,8 @@ export default function ReviewView({ categoryId }: { categoryId: string }) {
                     on.length
                       ? 'Turn a filter off to see more.'
                       : decidedAny(view.hidden)
-                        ? 'Every posting from your sources is saved or skipped. Refresh later for new ones.'
-                        : 'No design-system posting from your sources right now. Refresh later, or watch more companies.'
+                        ? 'Every posting from your sources is saved or skipped. The next scan brings new ones.'
+                        : 'No design-system posting from your sources right now. The next scan looks again.'
                   }
                   action={
                     on.length ? (
@@ -438,7 +432,10 @@ function PostingSummary({
   /** The preview names the posting in its own header. */
   noTitle?: boolean;
 }) {
-  const place = r.location || (r.mode ? modeLabel(r.mode) : 'Location not stated');
+  // Remote only (feed/autoScan.ts): a posting that states no work mode is kept, and says so.
+  const place = r.remoteUnstated
+    ? `${r.location ? `${r.location} · ` : ''}Remote not stated`
+    : r.location || (r.mode ? modeLabel(r.mode) : 'Location not stated');
   const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
   const small = [
@@ -511,7 +508,7 @@ function Deck({
         framed
         icon={SearchX}
         title="You’re all caught up"
-        description="Every posting from your sources is saved or skipped. Refresh later for new ones."
+        description="Every posting from your sources is saved or skipped. The next scan brings new ones."
       />
     );
   const r = rows[at];

@@ -87,6 +87,9 @@ export interface Posting {
   /** A solicitation's response deadline (YYYY-MM-DD, SAM.gov only): saved as the job's
    *  follow-up date. */
   deadline?: string;
+  /** Remote only (feed/autoScan.ts): the posting states no work mode or place, so it may not be
+   *  remote. Shown as "Remote not stated". */
+  remoteUnstated?: true;
   /** The track scorer's verdict and reasons (src/tracks), on a scored track only. */
   trackScore?: ScoreResult;
 }

@@ -32,6 +32,7 @@ import { getAllJobs, replaceAll } from './store';
 import { starDream } from './feed/dreams';
 import { getAllDecided } from './feed/decided';
 import { boardUrlsFor, watchBoard } from './feed/watchlist';
+import { runScan } from './feed/autoScan';
 
 const now = new Date().toISOString();
 const post = (id: string, title: string, company: string, o: Partial<Posting> = {}): Posting => ({
@@ -104,6 +105,28 @@ describe('Review new: Browse', () => {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });
     expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
+  });
+
+  it('adds the auto-scan’s postings (#415): remote only, a posting with no place marked', async () => {
+    const scanned = [
+      post('hn:7', 'Design System Lead', 'Fjord', { location: 'Oslo', mode: 'onsite' }),
+      post('hn:8', 'Design System Lead', 'Gamma', { location: '', mode: undefined }),
+    ];
+    await runScan(
+      { terms: ['Design System Lead'], include: ['design system'], boardUrls: [], trackId: cat },
+      {
+        fetchJson: async () => [],
+        reader: { read: async () => result(scanned) },
+        now: Date.now,
+        pause: () => Promise.resolve(),
+        sources: { yc: false, github: false, adele: false },
+      },
+    );
+    renderReview();
+    const ul = await list();
+    expect(titles(ul)).toHaveLength(4);
+    expect(within(ul).getByText('Remote not stated')).toBeInTheDocument();
+    expect(within(ul).queryByText('Fjord')).toBeNull();
   });
 
   it('Skip hides only that posting, never its company, with Undo', async () => {

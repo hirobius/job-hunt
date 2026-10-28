@@ -40,6 +40,7 @@ import SignInHost from './account/SignInHost';
 import { useJobs } from './store';
 import { useSnippets } from './copyDeckStore';
 import { migrateSnippetStore } from './outreachTemplates';
+import { scanOnOpenEnabled } from './feed/scanOnOpenFlag';
 import { useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
 import StaleBuildNotice from './StaleBuildNotice';
@@ -62,6 +63,14 @@ const DocumentsView = lazy(importFresh(() => import('./DocumentsView')));
 const LegalPage = lazy(importFresh(() => import('./LegalPage')));
 const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
 const loadSystemsOnly = importFresh(() => import('./feed/systemsOnly'));
+// The auto-scan's host (#415): its own chunk; a chunk that fails to load only skips this scan
+// (importFresh still raises the new-version notice).
+const AutoScanOnOpen = lazy(() =>
+  importFresh(() => import('./feed/useAutoScan'))().then(
+    (m) => ({ default: m.AutoScanOnOpen }),
+    () => ({ default: () => null }),
+  ),
+);
 
 // Top-level tabs, in render order (simplify 2/9, #383: Today · Companies · Jobs). The URL hash
 // carries the slug; slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline, its
@@ -254,6 +263,11 @@ export default function App() {
       <SnippetMigration />
       <SystemsOnlyMigration />
       <V12Migration />
+      {scanOnOpenEnabled() && (
+        <Suspense fallback={null}>
+          <AutoScanOnOpen />
+        </Suspense>
+      )}
       <DataToolsProvider>
         {/* The portfolio's shell (Adrian 2026-10-22): 1048 in all (narrowed 2026-10-24), gutters that grow with the
             viewport, so content stops near 920. Header, tabs and every page share it. */}
