@@ -179,7 +179,7 @@ describe('DataToolsProvider (via the account menu)', () => {
     expect(await screen.findByText("Restore didn't fully save")).toBeTruthy();
     expect(
       screen.getByText(
-        "Your browser's storage is full, so your jobs weren't saved. Reload to see what was kept. The safety copy of your data from before is in your downloads.",
+        "Your browser's storage is full, so your jobs weren't saved. Reload to check what was kept. The safety copy of your data from before is in your downloads.",
       ),
     ).toBeTruthy();
   });
@@ -194,7 +194,7 @@ describe('DataToolsProvider (via the account menu)', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Merge into my data' }));
     expect(
       await screen.findByText(
-        /so your jobs, documents, .* weren't saved\. Reload to see what was kept\.$/,
+        /so your jobs, documents, .* weren't saved\. Reload to check what was kept\.$/,
       ),
     ).toBeTruthy();
   });

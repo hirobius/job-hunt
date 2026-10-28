@@ -419,7 +419,13 @@ export function applyBackup(
  *  singular and plural. Jobs and Documents always show; the rest only when either side has some. */
 const COUNTS: { count: (s: AccountState) => number; one: string; many: string; always?: true }[] = [
   { count: (s) => s.jobs.length, one: 'job', many: 'jobs', always: true },
-  { count: (s) => s.documents.length, one: 'document', many: 'documents', always: true },
+  {
+    // An older backup's messages are snippets, which become Documents once restored.
+    count: (s) => s.documents.length + s.copydeck.filter((x) => !x.migrated).length,
+    one: 'document',
+    many: 'documents',
+    always: true,
+  },
   { count: (s) => s.curation.categories.length, one: 'track', many: 'tracks' },
   { count: (s) => s.curation.tiles.length, one: 'link', many: 'links' },
   { count: (s) => total(s.dreams), one: 'dream company', many: 'dream companies' },

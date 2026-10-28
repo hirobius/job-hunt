@@ -33,8 +33,12 @@ const ageLine = (iso: string, now = Date.now()) => {
 function focusAfterEmpty(restored: string | null) {
   const run = () => {
     const main = document.querySelector('main');
+    // The Jobs list's row first: the same job can also sit in To apply or Follow up above it.
+    const href = restored && `a[href="#/queue/${jobIdOf(restored)}"]`;
     const link =
-      restored && main?.querySelector<HTMLElement>(`a[href="#/queue/${jobIdOf(restored)}"]`);
+      href &&
+      (main?.querySelector<HTMLElement>(`section[aria-label="Jobs"] ${href}`) ??
+        main?.querySelector<HTMLElement>(href));
     if (link) return link.focus();
     const heading =
       main?.querySelector<HTMLElement>('section[aria-label="Jobs"] h3') ?? pageHeading();
@@ -48,7 +52,13 @@ function focusAfterEmpty(restored: string | null) {
   setTimeout(() => setTimeout(run));
 }
 
-function RemovedRow({ entry, onRestore }: { entry: Removed; onRestore: (url: string) => void }) {
+function RemovedRow({
+  entry,
+  onRestore,
+}: {
+  entry: Removed;
+  onRestore: (url: string | null) => void;
+}) {
   const title = titleOf(entry.job);
   return (
     <Stack direction="row" wrap="wrap" gap="tight" align="center" justify="space-between">
@@ -83,6 +93,7 @@ function RemovedRow({ entry, onRestore }: { entry: Removed; onRestore: (url: str
           tone="danger"
           aria-label={`Delete forever: ${title}`}
           onClick={() => {
+            onRestore(null); // the last act was a delete: focus goes to the list's heading
             const undo = deleteForever(entry.job.url);
             notifyRemoved(`Deleted “${title}” for good`, undo, undefined, { inDialog: true });
           }}

@@ -121,7 +121,7 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
     if (unsaved.length)
       toast({
         title: "Restore didn't fully save",
-        description: `Your browser's storage is full, so your ${listWords(unsaved)} weren't saved. Reload to see what was kept.${mode === 'replace' ? ' The safety copy of your data from before is in your downloads.' : ''}`,
+        description: `Your browser's storage is full, so your ${listWords(unsaved)} weren't saved. Reload to check what was kept.${mode === 'replace' ? ' The safety copy of your data from before is in your downloads.' : ''}`,
         tone: 'danger',
         duration: 20000,
       });

@@ -82,6 +82,23 @@ describe('Recently removed keeps focus when it empties (#306)', () => {
   });
 });
 
+describe('Recently removed focus after a restore then a delete (review)', () => {
+  it('the delete that empties it focuses the Jobs heading, not the job restored earlier', async () => {
+    addJob(URL_B, 'Welder');
+    replaceTrash([removed(URL_A, 'Design Engineer'), removed('https://c.example/3', 'Machinist')]);
+    renderPipeline();
+    const dialog = await openRemoved();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Restore: Design Engineer' }));
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Delete forever: Machinist' }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Jobs' })),
+    );
+  });
+});
+
 describe('Recently removed says how long each job has left (#307)', () => {
   it('shows the days until it is deleted', async () => {
     replaceTrash([removed(URL_A, 'Design Engineer', 27)]);

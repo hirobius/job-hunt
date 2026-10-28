@@ -250,8 +250,8 @@ describe('summarizeRestore', () => {
   it('counts both sides, jobs and documents always, in plain words', () => {
     const next = state({ jobs: [] });
     expect(summarizeRestore(state(), next)).toEqual({
-      current: '1 job, 0 documents, 1 track, 1 link',
-      next: '0 jobs, 0 documents, 1 track, 1 link',
+      current: '1 job, 1 document, 1 track, 1 link',
+      next: '0 jobs, 1 document, 1 track, 1 link',
     });
   });
 
@@ -272,12 +272,22 @@ describe('summarizeRestore', () => {
     });
     const s = summarizeRestore(state(), next);
     expect(s.next).toBe(
-      '1 job, 2 documents, 1 track, 1 link, 1 dream company, 2 saved targets, 1 saved search, 1 removed job, 2 kit entries, 1 title list, 1 must-include list, 1 work mode, 1 set-aside link, 1 evidence note',
+      '1 job, 3 documents, 1 track, 1 link, 1 dream company, 2 saved targets, 1 saved search, 1 removed job, 2 kit entries, 1 title list, 1 must-include list, 1 work mode, 1 set-aside link, 1 evidence note',
     );
     expect(s.current).toBe(
-      '1 job, 0 documents, 1 track, 1 link, 0 dream companies, 0 saved targets, 0 saved searches, 0 removed jobs, 0 kit entries, 0 title lists, 0 must-include lists, 0 work modes, 0 set-aside links, 0 evidence notes',
+      '1 job, 1 document, 1 track, 1 link, 0 dream companies, 0 saved targets, 0 saved searches, 0 removed jobs, 0 kit entries, 0 title lists, 0 must-include lists, 0 work modes, 0 set-aside links, 0 evidence notes',
     );
     expect(`${s.current} ${s.next}`).not.toMatch(/snippet/);
+  });
+
+  it("counts an older backup's messages (snippets not yet moved) as documents", () => {
+    const next = state({
+      copydeck: [
+        { id: 'a', label: 'A', body: '' },
+        { id: 'b', label: 'B', body: '', migrated: true },
+      ],
+    });
+    expect(summarizeRestore(state({ copydeck: [] }), next).next).toMatch(/^1 job, 1 document,/);
   });
 });
 
