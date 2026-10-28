@@ -2,7 +2,7 @@
 // label and the day it was sent. Links only (no uploads); http(s) only. Every change goes through
 // updateJob, so decks sync with the job, ride in Back up and fill the CSV's decks column. Remove is
 // soft: the card collapses and a notice offers Undo, which puts the deck back in its place.
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import {
   Box,
   Button,
@@ -17,7 +17,7 @@ import { Pencil, Plus, X } from 'lucide-react';
 import { addDeck, removeDeck, restoreDeck, updateDeck, type DeckInput } from './decks';
 import { dayLabel } from './dayLabel';
 import { findJobByUrl, updateJob } from './store';
-import { collapseRow } from './feedback';
+import { collapseRow, highlightNew, useHighlight } from './feedback';
 import { notifyRemoved } from './saveNotice';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { nextFocus, useFocusAfter } from './useFocusAfter';
@@ -57,6 +57,15 @@ function DeckForm({
   const [sentOn, setSentOn] = useState(initial.sentOn ?? '');
   const [error, setError] = useState(false);
   const save = () => setError(!onSave({ url, label, sentOn }));
+  // Every field saves on Enter and cancels on Escape, as Deck link always did (#332).
+  const keys = (e: KeyboardEvent) => {
+    // Handled here, so the key never reaches the control focus moves to.
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (url.trim()) save();
+    }
+    if (e.key === 'Escape') onCancel();
+  };
   return (
     <Stack gap="normal" className="rjb-form-full">
       <Input
@@ -71,10 +80,7 @@ function DeckForm({
           setUrl(e.target.value);
           setError(false);
         }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') save();
-          if (e.key === 'Escape') onCancel();
-        }}
+        onKeyDown={keys}
       />
       <Switcher gap="tight">
         <Input
@@ -82,6 +88,7 @@ function DeckForm({
           label="Label (optional)"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
+          onKeyDown={keys}
         />
         <Input
           size="sm"
@@ -89,6 +96,7 @@ function DeckForm({
           label="Sent on (optional)"
           value={sentOn}
           onChange={(e) => setSentOn(e.target.value)}
+          onKeyDown={keys}
         />
       </Switcher>
       <Stack direction="row" gap="tight" justify="end">
@@ -118,9 +126,18 @@ function DeckCard({
   focusRef: (key: string) => (el: HTMLElement | null) => void;
 }) {
   const name = deckName(deck);
+  // A deck just added or saved scrolls into view and flashes (#212); ListCard takes no ref, so the
+  // row's ref flashes the card around it.
+  const highlight = useHighlight<HTMLElement>(deck.id);
   return (
     <ListCard>
-      <Stack direction="row" gap="px8" align="center" wrap="nowrap">
+      <Stack
+        direction="row"
+        gap="px8"
+        align="center"
+        wrap="nowrap"
+        ref={(el: HTMLElement | null) => highlight(el?.closest('li') ?? null)}
+      >
         <Box sx={{ flex: '1 1 0%', minWidth: 0, overflowWrap: 'anywhere' }}>
           <Stack gap="px4">
             <Text variant="ui" as="span" weight="medium">
@@ -168,9 +185,10 @@ export default function DecksPanel({ job }: { job: Job }) {
     focus(editing && editing !== 'new' ? `edit:${editing}` : 'add');
     setEditing(null);
   };
-  const save = (next: Deck[] | null) => {
-    if (!next) return false;
+  const save = (next: Deck[] | null, id: string | undefined) => {
+    if (!next || !id) return false;
     updateJob(job.url, { decks: next });
+    highlightNew(id);
     close();
     return true;
   };
@@ -191,7 +209,7 @@ export default function DecksPanel({ job }: { job: Job }) {
                       initial={d}
                       saveLabel="Save"
                       onSave={(input) =>
-                        save(updateDeck(findJobByUrl(job.url)?.decks, d.id, input))
+                        save(updateDeck(findJobByUrl(job.url)?.decks, d.id, input), d.id)
                       }
                       onCancel={close}
                     />
@@ -213,7 +231,10 @@ export default function DecksPanel({ job }: { job: Job }) {
             <DeckForm
               initial={{ url: '' }}
               saveLabel="Add deck"
-              onSave={(input) => save(addDeck(findJobByUrl(job.url)?.decks, input))}
+              onSave={(input) => {
+                const next = addDeck(findJobByUrl(job.url)?.decks, input);
+                return save(next, next?.[next.length - 1]?.id);
+              }}
               onCancel={close}
             />
           ) : (

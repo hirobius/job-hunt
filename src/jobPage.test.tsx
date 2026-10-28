@@ -809,6 +809,40 @@ describe('job page Decks (#287)', () => {
     expect(within(panel).getByRole('link', { name: /Portfolio/ })).toBeInTheDocument();
   });
 
+  it('Enter in any deck field saves, and Escape cancels (#332)', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const panel = decksPanel();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    await userEvent.type(within(panel).getByLabelText('Deck link'), 'https://pitch.com/v/acme');
+    await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme{Enter}');
+    expect(decksOf()).toEqual([expect.objectContaining({ label: 'Acme' })]);
+    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
+    await userEvent.type(within(panel).getByLabelText('Sent on (optional)'), '2026-10-20');
+    await userEvent.keyboard('{Enter}');
+    expect(decksOf()).toEqual([expect.objectContaining({ label: 'Acme', sentOn: '2026-10-20' })]);
+    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
+    await userEvent.type(within(panel).getByLabelText('Label (optional)'), ' deck{Escape}');
+    expect(within(panel).queryByLabelText('Label (optional)')).toBeNull();
+    expect(decksOf()).toEqual([expect.objectContaining({ label: 'Acme' })]);
+  });
+
+  it('a new or edited deck card flashes (#332, #212)', async () => {
+    addJob(URL_A, 'Design Engineer');
+    openJobPage();
+    const panel = decksPanel();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add a deck link' }));
+    await userEvent.type(within(panel).getByLabelText('Deck link'), 'https://pitch.com/v/acme');
+    await userEvent.type(within(panel).getByLabelText('Label (optional)'), 'Acme');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Add deck' }));
+    const card = () => within(panel).getByRole('link', { name: /Acme/ }).closest('li');
+    expect(card()).toHaveAttribute('data-motion', 'flash');
+    card()?.removeAttribute('data-motion');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Edit “Acme”' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Save' }));
+    expect(card()).toHaveAttribute('data-motion', 'flash');
+  });
+
   it('Remove says so, and Undo puts the deck back in its place', async () => {
     addJob(URL_A, 'Design Engineer');
     const decks = [
