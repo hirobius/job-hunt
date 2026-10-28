@@ -370,8 +370,8 @@ for (const width of [390, 1440] as const) {
         .click();
       await expect(page.getByRole('button', { name: 'All documents' })).toBeVisible();
       await page.getByRole('button', { name: 'More actions' }).last().click();
+      // Soft (#329): no confirm, the document goes at once with Undo.
       await page.getByRole('menuitem', { name: 'Delete' }).click();
-      await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
       await expect.poll(() => page.evaluate(() => location.hash)).toBe(library);
       await page.waitForTimeout(600);
       expect(await page.evaluate(() => location.hash)).toBe(library);

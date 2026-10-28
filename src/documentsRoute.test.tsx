@@ -26,7 +26,7 @@ import { addJob, getAllJobs, jobIdOf, removeJob, setStatus, updateJob } from './
 import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
 import { replaceSnippets, restoreStarterSnippets } from './copyDeckStore';
-import { getAllDocuments, replaceDocuments } from './documents';
+import { addFinalCopy, createDocument, getAllDocuments, replaceDocuments } from './documents';
 import { openFollowUp } from './followUpFlow';
 
 const JOB = 'https://acme.example/jobs/1';
@@ -137,9 +137,6 @@ describe('the Documents page', () => {
     await screen.findByRole('textbox', { name: 'Title' });
     await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    await userEvent.click(
-      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
-    );
     await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
     expect(ids()).not.toContain('snippet-tpl-cover');
     // A reload runs the startup move again: the snippet was moved once, so nothing comes back.
@@ -344,5 +341,38 @@ describe('the Company page (#230)', () => {
     expect(
       await screen.findByRole('heading', { level: 2, name: 'Acme Metals' }),
     ).toBeInTheDocument();
+  });
+});
+
+// #328: the library edits Base documents only. A job's own document or an uploaded final copy
+// named by a hand-typed or stale link opens its job page (Documents live there), else the library.
+describe('a link to a document that is not a Base one', () => {
+  const FILE = { name: 'cv.pdf', type: 'application/pdf', size: 3, data: 'YWJj' };
+
+  it("a job's document opens its job page", async () => {
+    addJob(JOB, 'Designer');
+    const id = createDocument({ kind: 'cover', title: 'Acme letter', text: 'Hi', jobUrl: JOB });
+    window.location.hash = `#/copy-deck/${id}`;
+    await renderApp();
+    await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(JOB)}`));
+    expect(screen.queryByRole('button', { name: /^Version history/ })).toBeNull();
+  });
+
+  it('a final copy opens its job page, never the editor', async () => {
+    addJob(JOB, 'Designer');
+    const r = addFinalCopy({ kind: 'resume', jobUrl: JOB, file: FILE });
+    if (!r.ok) throw new Error(r.error);
+    window.location.hash = `#/copy-deck/${r.id}`;
+    await renderApp();
+    await waitFor(() => expect(window.location.hash).toBe(`#/queue/${jobIdOf(JOB)}`));
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+  });
+
+  it("one whose job isn't saved falls back to the library", async () => {
+    const id = createDocument({ kind: 'note', title: 'Orphan', text: 'x', jobUrl: JOB });
+    window.location.hash = `#/copy-deck/${id}`;
+    await renderApp();
+    await waitFor(() => expect(window.location.hash).toBe('#/copy-deck'));
+    expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
   });
 });

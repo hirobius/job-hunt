@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
@@ -116,15 +115,6 @@ describe('a11y — Documents (#227)', () => {
     window.location.hash = hash;
     const { container } = withTheme(<DocumentsView />);
     await auditA11y(container);
-  });
-
-  it('the Delete confirmation', async () => {
-    window.location.hash = '#/copy-deck/snippet-tpl-cover';
-    const { getByRole, findByRole } = withTheme(<DocumentsView />);
-    await userEvent.click(getByRole('button', { name: 'More actions' }));
-    await userEvent.click(await findByRole('menuitem', { name: 'Delete' }));
-    await findByRole('alertdialog');
-    await auditA11y(document.body);
   });
 });
 

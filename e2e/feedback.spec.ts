@@ -8,8 +8,8 @@ import { go, openJob, seed } from './routes';
 // not count. Neither does something going away on its own: picking an item closes its menu whatever
 // the item did, and an earlier toast may leave during the press. So open menus, listboxes and
 // toasts are left out of the page's text; one that appears, or whose text changes, still counts.
-// Every Remove (a Pipeline job, a to-do, an interview, a final copy, an outreach target, a track's
-// link or section) collapses its row and offers Undo.
+// Every Remove (a Pipeline job, a to-do, an interview, a final copy, a document, an outreach
+// target, a track's link or section) collapses its row and offers Undo.
 test.use({
   permissions: ['clipboard-read', 'clipboard-write'],
   viewport: { width: 1440, height: 900 },
@@ -301,10 +301,9 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
 
   const more = 'More actions for Follow-up after applying';
   await menu(page, more, 'Pin');
-  await expect(page.getByRole('listitem', { name: 'Follow-up after applying' })).toHaveAttribute(
-    'data-motion',
-    'flash',
-  );
+  await expect(
+    page.getByRole('listitem', { name: 'Follow-up after applying', exact: true }),
+  ).toHaveAttribute('data-motion', 'flash');
   await menu(page, more, 'Unpin');
 
   await menu(page, more, 'Duplicate');
@@ -312,8 +311,18 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
   await expect(copy).toHaveAttribute('data-motion', 'flash');
   await expect(copy).toBeInViewport();
 
+  // Delete is soft (#329): the row collapses, then Undo brings it back with its Versions.
   await menu(page, more, 'Delete');
-  await closeOverlay(page);
+  await ranIn(page, 'rjb-collapse', 'Follow-up after applying');
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await expect(
+    page.getByRole('listitem', { name: 'Follow-up after applying', exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(
+    page.getByRole('listitem', { name: 'Follow-up after applying', exact: true }),
+  ).toBeVisible();
+  // It comes back as it was: still the open row.
   await press(page, button(page, 'Open Follow-up after applying'), 'Open');
   for (const name of ['New résumé', 'New cover letter', 'New outreach message', 'New note']) {
     await go(page, '#/copy-deck');

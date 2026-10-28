@@ -73,3 +73,18 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await page.getByRole('link', { name: 'Fabricator', exact: true }).click();
   await expect(page).toHaveURL(/#\/queue\//);
 });
+
+// Restore starter messages answers at 390 (#327, #212): the rows can land below the fold, so the
+// tap toasts what it added and scrolls the first restored row into view with a flash.
+test('Restore starter messages toasts and shows the first restored row (390)', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+  await page.goto('/#/copy-deck');
+  await page.getByRole('button', { name: 'Start from scratch' }).click();
+  const outreach = page.getByRole('region', { name: 'Outreach messages' });
+  await outreach.getByRole('button', { name: 'Restore starter messages' }).click();
+  await expect(page.getByText('Added 4 starter messages', { exact: true })).toBeVisible();
+  const first = outreach.getByRole('listitem').first();
+  await expect(first).toHaveAttribute('data-motion', 'flash');
+  await expect(first).toBeInViewport();
+});
