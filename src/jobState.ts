@@ -38,7 +38,14 @@ export function daysSince(s: string | undefined, now: Date = new Date()): number
   // A bare YYYY-MM-DD is a LOCAL calendar day (Date.parse would read it as UTC midnight, which
   // shifts day boundaries by the UTC offset and disagrees with the calendar/This-week views).
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  const t = m ? new Date(+m[1], +m[2] - 1, +m[3]).getTime() : Date.parse(s);
+  if (m) {
+    // Calendar days, counted between local midnights in UTC so a daylight-saving change (a 23 or
+    // 25 hour day) never moves the count by one for the hour after midnight.
+    const day = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+    const nowDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.round((nowDay - day) / 86400000);
+  }
+  const t = Date.parse(s);
   return isNaN(t) ? null : Math.floor((now.getTime() - t) / 86400000);
 }
 

@@ -15,6 +15,7 @@ import { ColorModeProvider } from './ColorMode';
 import { ErrorBoundary } from './ErrorBoundary';
 import { installErrorReporting } from './errorReport';
 import App from './App';
+import { installFocusRescue } from './focusRescue';
 import { installScrollMemory } from './scrollMemory';
 import { installStaleBuildGuard } from './staleBuild';
 
@@ -24,6 +25,8 @@ inject();
 installErrorReporting();
 // Pages come back at the scroll they had (return paths): Back, Forward, a top tab, a reload.
 installScrollMemory();
+// Focus is never dropped: a page change focuses its heading, a row leaving hands focus on.
+installFocusRescue();
 // A tab older than the deploy: a chunk that is gone says "A new version is ready" (staleBuild.ts).
 installStaleBuildGuard();
 

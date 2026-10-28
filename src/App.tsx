@@ -255,7 +255,7 @@ export default function App() {
                 </Box>
                 <Box as="main">
                   <Stack gap="px24">
-                    <TabsContent value="queue" variant="bare">
+                    <TabsContent value="queue" variant="bare" tabIndex={-1}>
                       <Suspense fallback={<PipelineSkeleton />}>
                         {applying ? (
                           <ApplyMode jobId={route.sub} />
@@ -272,7 +272,7 @@ export default function App() {
                         )}
                       </Suspense>
                     </TabsContent>
-                    <TabsContent value="discover" variant="bare">
+                    <TabsContent value="discover" variant="bare" tabIndex={-1}>
                       {firstRun ? (
                         <Onboarding offerSample />
                       ) : hasTracks ? (

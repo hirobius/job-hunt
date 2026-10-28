@@ -59,6 +59,13 @@ describe('App top-level tab wiring', () => {
     expect(panel.getAttribute('aria-labelledby')).toBe(selected.getAttribute('id'));
   });
 
+  it('the visible tabpanel is not a Tab stop (#364)', () => {
+    renderApp();
+    // Radix defaults the panel to tabindex=0; every page starts with a control,
+    // so the panel stop is noise — the shell passes tabIndex={-1}.
+    expect(screen.getByRole('tabpanel').getAttribute('tabindex')).toBe('-1');
+  });
+
   it('defaults to the Companies tab when the hash carries no route', () => {
     renderApp();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName(/companies/i);
