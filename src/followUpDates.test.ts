@@ -3,7 +3,7 @@
 // must agree in every time zone, across a daylight-saving change too. Each case runs in a real
 // DST zone with the clock faked; the zone is put back after.
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { daysSince, deriveJobState, snoozeFollowUp } from './jobState';
+import { daysSince, deriveJobState, localDay, snoozeFollowUp } from './jobState';
 import { dueFollowUps, followUpDate, jobIcsEvents, respondByJobs, ymd } from './jobEvents';
 import type { Job } from './types';
 
@@ -117,5 +117,53 @@ describe('a solicitation’s deadline on the Pipeline (#308)', () => {
     const [ev] = jobIcsEvents(saved('2026-10-30', { label: 'Fab shop bid' }), NOW);
     expect(ev.summary).toBe('Respond by: Fab shop bid');
     expect(ev.date).toBe('2026-10-30');
+  });
+});
+
+describe('a timestamped applied / followUp reads its local day (#310)', () => {
+  const inZone = (zone: string, fn: () => void) => {
+    const was = process.env.TZ;
+    process.env.TZ = zone;
+    try {
+      fn();
+    } finally {
+      process.env.TZ = was;
+    }
+  };
+  // [zone, stored applied, local day, the eve of the follow-up day, the follow-up day's midnight]
+  const cases: [string, string, string, [number, number, number, number, number], string][] = [
+    // UTC−7: 03:00Z on Oct 20 is 8 pm on Oct 19, so the follow-up falls on Oct 26, not Oct 27.
+    [
+      'America/Los_Angeles',
+      '2026-10-20T03:00:00Z',
+      '2026-10-19',
+      [2026, 9, 25, 21, 0],
+      '2026-10-26',
+    ],
+    // UTC+9: 20:00Z on Oct 20 is 5 am on Oct 21, so the follow-up falls on Oct 28.
+    ['Asia/Tokyo', '2026-10-20T20:00:00Z', '2026-10-21', [2026, 9, 27, 21, 0], '2026-10-28'],
+  ];
+  it.each(cases)('%s: applied %s', (zone, applied, day, [y, mo, d, h, mi], fu) =>
+    inZone(zone, () => {
+      expect(localDay(applied)).toBe(day);
+      const j = job({ applied });
+      const eve = new Date(y, mo, d, h, mi);
+      const midnight = new Date(y, mo, d + 1, 0, 0);
+      expect(followUpDate(j, eve)).toBe(fu);
+      expect(deriveJobState(j, eve).followUp.due).toBe(false);
+      expect(followUpDate(j, midnight)).toBe(fu);
+      expect(deriveJobState(j, midnight).followUp.due).toBe(true);
+      // A logged follow-up reads the same way.
+      const f = job({ applied: '2026-10-01', followUp: applied });
+      expect(followUpDate(f, midnight)).toBe(fu);
+      expect(deriveJobState(f, eve).followUp.due).toBe(false);
+      expect(deriveJobState(f, midnight).followUp.due).toBe(true);
+    }),
+  );
+
+  it('keeps a bare day and drops what is not a date', () => {
+    expect(localDay('2026-10-20')).toBe('2026-10-20');
+    expect(localDay('soon')).toBeUndefined();
+    expect(localDay(undefined)).toBeUndefined();
   });
 });

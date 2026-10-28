@@ -1,7 +1,7 @@
 // Interview / call log on a Job, plus the calendar views derived from it: .ics export events and
 // the Pipeline's agenda (due follow-ups, the next 7 days; Today's until #236). Pure and DOM-free; `now` is always injected (local time).
 import type { IcsEvent } from './ics';
-import { deriveJobState, FOLLOWUP_DAYS } from './jobState';
+import { deriveJobState, FOLLOWUP_DAYS, localDay } from './jobState';
 import type { Job, JobEvent, JobEventKind } from './types';
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})/;
@@ -68,8 +68,8 @@ export function followUpDate(job: Job, now: Date): string | null {
   const { status, followUp } = deriveJobState(job, now);
   if (status === 'Saved' && job.deadline) return respondByDate(job, now);
   if (!followUp.tracked) return null;
-  const ref = job.followUp || job.applied;
-  const m = ref ? DATE_RE.exec(ref.slice(0, 10)) : null;
+  const ref = localDay(job.followUp || job.applied);
+  const m = ref ? DATE_RE.exec(ref) : null;
   if (!m) return null;
   const clock = ymd(new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + FOLLOWUP_DAYS));
   return job.snoozeUntil && job.snoozeUntil > clock ? job.snoozeUntil : clock;
