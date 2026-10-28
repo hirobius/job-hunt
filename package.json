@@ -25,7 +25,8 @@
     "hds:check": "node scripts/hds-check.mjs",
     "test:layout": "playwright test e2e/layout-rules.spec.ts",
     "test:visual": "playwright test e2e/visual.spec.ts",
-    "verify:ui": "npm run hds:check && playwright test e2e/layout-rules.spec.ts e2e/visual.spec.ts"
+    "verify:ui": "npm run hds:check && playwright test e2e/layout-rules.spec.ts e2e/visual.spec.ts",
+    "seed:companies": "node scripts/seed-companies.mjs"
   },
   "dependencies": {
     "@hirobius/design-system": "0.32.0",

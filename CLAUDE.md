@@ -409,6 +409,17 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   to the track, not the row (leaving Companies keeps it going; Cancel keeps what it watched). Credited in the row
   with a link to the repo; the MIT notice rides in the JSON (`licenseText`). Pinned in `feed/adele.test.ts`,
   `AdeleSeed.test.tsx`, `companies.test.tsx`.
+- **Design-system company seed (2026-10-28):** `src/feed/seed/` (pure, injected fetch): `parse.ts` reads Adele
+  (MIT), awesome-design-systems (Unlicense), designsystems.jobs (sitemap slugs + RSS names), HN Who is hiring posts
+  naming a design system (Algolia) and GitHub `topic:design-system` orgs (keyless; **unverified live**, the build
+  proxy refuses GitHub search); `resolve.ts` probes each company (`probe.ts` limiter, every probe kind, 3 slugs) and
+  confirms the board is theirs (`linked` by the source, its `domain` in the payload, a designsystems.jobs `title`,
+  or its own `name`); `run.ts` builds the snapshot. `npm run seed:companies` (`scripts/seed-companies.mjs`, vite
+  `runnerImport`, ~1 h) writes `src/feed/data/ds-companies.json` (company, website, board, evidence, licence) and
+  `ds-seed-boards.json` (confirmed boards only). `radar/directory.ts` appends those to the design systems pack, so a
+  new DS track watches them in one bulk add and old ones get them via "Add suggested companies". Not used:
+  component.gallery (private Airtable, no licence), designsystemsrepo / Design Systems for Figma (no licence).
+  Pinned in `src/feed/seed/*.test.ts`, `radar/directory.test.ts`.
 - **Title filter (#223):** the sweep's list _is_ the track's title filter (seed: the track's titles, else
   its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
   titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**
