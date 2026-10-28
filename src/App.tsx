@@ -37,12 +37,8 @@ import { useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
 import StaleBuildNotice from './StaleBuildNotice';
 import { authLinkErrorMessage } from './account/authLinkError';
-import {
-  QUICK_ADD_INVALID,
-  quickAddBadStatus,
-  saveWithNotice,
-  setStatusWithNotice,
-} from './saveNotice';
+import { QUICK_ADD_INVALID, quickAddBadStatus, saveWithNotice } from './saveNotice';
+import { setStatusWithNotice } from './jobUndo';
 import { useCategories } from './curation/curationStore';
 import { migrateSystemsOnly, SYSTEMS_ONLY_NOTICE } from './feed/systemsOnly';
 import { STATUSES, type Status } from './types';
@@ -186,6 +182,7 @@ export default function App() {
     const setsStatus = knownStatus && !!su;
     const warn = (title: string) => toast({ title, tone: 'warning', duration: 10000 });
     if (QUICK_ADD_PARAMS.some((k) => qp.has(k))) {
+      const asks = { add: qp.has('add'), applied: qp.has('applied'), status: qp.has('status') };
       // Every quick-add param leaves the URL, whether the link was usable or not (#333).
       QUICK_ADD_PARAMS.forEach((k) => qp.delete(k));
       const s = qp.toString();
@@ -205,16 +202,18 @@ export default function App() {
               section: null,
             }
           : getRoute().tab
-            ? getRoute()
+            ? {}
             : { tab: HOME_ROUTE },
         true,
         { search: s ? '?' + s : '' },
       );
-      if (add && saveWithNotice(add, label) === 'invalid') warn(QUICK_ADD_INVALID);
-      if (applied && !setStatusWithNotice(applied, 'Applied', label)) warn(QUICK_ADD_INVALID);
-      if (setsStatus && !setStatusWithNotice(su!, st as Status, label)) warn(QUICK_ADD_INVALID);
-      if (st && !knownStatus) warn(quickAddBadStatus(st));
-      else if (st && !su) warn(QUICK_ADD_INVALID);
+      // A link that did something says so in its own notice; one that did nothing says why, once.
+      let did = false;
+      if (add) did = saveWithNotice(add, label) !== 'invalid' || did;
+      if (applied) did = setStatusWithNotice(applied, 'Applied', label) || did;
+      if (setsStatus) did = setStatusWithNotice(su!, st as Status, label) || did;
+      if (!did && (asks.add || asks.applied || asks.status))
+        warn(st && !knownStatus ? quickAddBadStatus(st) : QUICK_ADD_INVALID);
     } else if (linkError) {
       // An expired or refused sign-in link (#error=…): say so, and replace the error with Companies.
       toast({ title: linkError, tone: 'warning', duration: 10000 });

@@ -490,6 +490,30 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(getAllJobs()).toHaveLength(0);
   });
 
+  it('an empty ?add= or ?applied= says so too (#333)', async () => {
+    window.history.replaceState(null, '', '/?applied=&t=Designer');
+    renderApp();
+    expect(await screen.findByText(QUICK_ADD_INVALID)).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+  });
+
+  it('Undo on a ?status= notice removes the job the link saved (#333)', async () => {
+    window.history.replaceState(null, '', '/?status=Offer&u=https://acme.example/jobs/9');
+    renderApp();
+    await screen.findByText('Set to Offer');
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('Undo on an ?applied= notice puts an already-saved job back as it was (#333)', async () => {
+    addJob('https://acme.example/jobs/9');
+    window.history.replaceState(null, '', '/?applied=https://acme.example/jobs/9');
+    renderApp();
+    await screen.findByText('Marked applied');
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs()[0].status).toBe('Saved');
+  });
+
   it('a lone ?t= or ?u= is cleaned from the URL too (#333)', () => {
     window.history.replaceState(null, '', '/?t=Designer&u=https://acme.example/jobs/9');
     renderApp();

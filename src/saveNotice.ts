@@ -12,13 +12,12 @@ import {
   subscribeJobs,
   jobIdOf,
   removeJob,
-  setStatusByUrl,
   updateJob,
   type AddOutcome,
 } from './store';
 import { restoreJob, trashJob } from './trash';
 import { titleOf } from './jobRow';
-import type { Job, Status } from './types';
+import type { Job } from './types';
 import {
   buildHash,
   getRoute,
@@ -133,22 +132,6 @@ export const QUICK_ADD_INVALID = 'That quick-add link has no job link in it, so 
 /** A quick-add link (?status=) whose status is not one of STATUSES. */
 export const quickAddBadStatus = (status: string) =>
   `That quick-add link’s “${status}” is not a status, so nothing was saved.`;
-
-/** A quick-add link that sets a status (?applied=, ?status=&u=): save it if new, set the status
- *  and say so ("Marked applied", "Set to Interviewing") with Open. False when the link is not one
- *  a job can be saved under (the caller explains). */
-export function setStatusWithNotice(rawUrl: string, status: Status, label?: string): boolean {
-  setStatusByUrl(rawUrl, status, label);
-  const job = findJobByUrl(rawUrl);
-  if (!job) return false;
-  showNotice({
-    title: status === 'Applied' ? 'Marked applied' : `Set to ${status}`,
-    description: titleOf(job),
-    tone: 'success',
-    actions: [{ label: 'Open', run: () => openJob(jobIdOf(job.url)) }],
-  });
-  return true;
-}
 
 /** Quick-save a link and say what happened: it landed in To apply (a new job, or a set-aside one
  *  brought back, #219), or it was already in the Pipeline (with Open, so a second paste, a tile
