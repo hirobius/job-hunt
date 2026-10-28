@@ -156,6 +156,24 @@ describe('Calibrate: the ticked titles', () => {
     ).toBe(true);
   });
 
+  // #353: with every title unticked there is nothing to search, so no link carries a "" title.
+  it('every title unticked: an empty state that opens Calibrate, and no "" search', async () => {
+    for (const t of TITLES) setTitleOn(cat, TITLES, t, false);
+    window.location.hash = '#/discover/ats';
+    const user = userEvent.setup();
+    renderApp();
+    expect(await screen.findByText('No titles ticked')).toBeVisible();
+    expect(screen.queryByRole('link', { name: /search/i })).toBeNull();
+    expect(
+      [...document.querySelectorAll('a[href]')].some((a) =>
+        decodeURIComponent(a.getAttribute('href') ?? '').includes('""'),
+      ),
+    ).toBe(false);
+    await user.click(screen.getByRole('button', { name: 'Tick titles' }));
+    expect(await screen.findByRole('list', { name: 'Titles' })).toBeVisible();
+    expect(window.location.hash).toBe('#/discover/live');
+  });
+
   it('a picked title that is then unticked is not searched: the first ticked one is (audit)', async () => {
     window.location.hash = '#/discover/ats';
     const user = userEvent.setup();
