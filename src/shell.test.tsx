@@ -22,6 +22,7 @@ import { addDeviceDataIfAsked } from './test/renderAccount';
 import { loadSupabase } from './supabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
+import { QUICK_ADD_INVALID } from './saveNotice';
 import { addStarterMessages } from './addStarters';
 import { BRAND } from './brand';
 import { addJob, getAllJobs, removeJob } from './store';
@@ -113,7 +114,9 @@ describe('app shell (#115 Phase 1)', () => {
     const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
     expect(wordmark.className).toBe('rjb-logo-word');
     expect(wordmark.className).not.toMatch(/hds-type-(title|display)/);
-    expect((wordmark.parentElement as HTMLElement).style.getPropertyValue('--rjb-logo-size')).toBe('19px');
+    expect((wordmark.parentElement as HTMLElement).style.getPropertyValue('--rjb-logo-size')).toBe(
+      '19px',
+    );
   });
 
   it('the flame sits left of the wordmark, hidden from assistive tech', () => {
@@ -423,6 +426,28 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(window.location.hash).toBe('#/queue');
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/9');
+  });
+
+  it('a ?add= quick-add link says where the job went (the landing does not drop the notice)', async () => {
+    window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9');
+    renderApp();
+    expect(await screen.findByText('Saved to Pipeline · To apply')).toBeInTheDocument();
+  });
+
+  it('a quick-add link that is not a web link says so instead of landing in silence', async () => {
+    window.history.replaceState(null, '', '/?add=nonsense');
+    renderApp();
+    expect(await screen.findByText(QUICK_ADD_INVALID)).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('an ?applied= link marks a job saved under another form of its link (www, trailing slash)', () => {
+    addJob('https://acme.example/jobs/9/');
+    window.history.replaceState(null, '', '/?applied=https://www.acme.example/jobs/9');
+    renderApp();
+    expect(getAllJobs()).toHaveLength(1);
+    expect(getAllJobs()[0].status).toBe('Applied');
   });
 
   it('an expired sign-in link says so in a toast and leaves no error in the URL', async () => {

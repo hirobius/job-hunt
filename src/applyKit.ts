@@ -130,6 +130,32 @@ export const setKitField = (key: KitFieldKey, value: string) =>
 export const setKitTemplate = (slot: 'whyTemplate' | 'coverTemplate', id: string) =>
   store.set({ ...store.get(), [slot]: id || undefined });
 
+/** Drop template picks whose message no longer exists (#314). A deleted message leaves its id
+ *  behind in the kit; without this the Apply-mode Select holds a value that is in no option and
+ *  the stale id keeps syncing. Returns the kit unchanged (same reference) when both picks live. */
+export function pruneKitTemplates(
+  kit: ApplyKit,
+  liveIds: ReadonlySet<string> | readonly string[],
+): ApplyKit {
+  const live = liveIds instanceof Set ? liveIds : new Set(liveIds);
+  const whyTemplate = kit.whyTemplate && live.has(kit.whyTemplate) ? kit.whyTemplate : undefined;
+  const coverTemplate =
+    kit.coverTemplate && live.has(kit.coverTemplate) ? kit.coverTemplate : undefined;
+  if (whyTemplate === kit.whyTemplate && coverTemplate === kit.coverTemplate) return kit;
+  return { ...kit, whyTemplate, coverTemplate };
+}
+
+/** Prune the stored kit's stale template picks. Call only once sync has settled (#314): before
+ *  that, a pick whose message has not synced onto this device yet is not stale. Clearing the pick
+ *  (not just hiding it) is what stops re-adding the starters — whose ids are deterministic — from
+ *  silently re-linking a pick the user already deleted the message for. */
+export function clearStaleKitTemplates(liveIds: ReadonlySet<string> | readonly string[]): boolean {
+  const next = pruneKitTemplates(store.get(), liveIds);
+  if (next === store.get()) return false;
+  store.set(next);
+  return true;
+}
+
 const newId = () => 'qa-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 export function addAnswer(q = '', a = ''): string {
