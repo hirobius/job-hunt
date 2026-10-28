@@ -6,7 +6,6 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 import CompanyPage from './CompanyPage';
-import DocumentsView from './DocumentsView';
 import NoticeHost from './NoticeHost';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { addFinalCopy, createDocument, getAllDocuments, replaceDocuments } from './documents';
@@ -89,26 +88,13 @@ describe('Company page (#230)', () => {
     ).toHaveAttribute('href', URL_B);
   });
 
-  it('each Documents row opens the editor, whose Back names the company (#304)', async () => {
+  it("each Documents row opens where it is edited: a job's document, its job page, whose Back names the company (#304, #328)", () => {
     seedAcme();
-    const [doc] = getAllDocuments();
     window.location.hash = '#/company/acme';
     render(<CompanyPage slug="acme" />);
     const docs = screen.getByRole('region', { name: 'Documents' });
     const link = within(docs).getByRole('link', { name: 'Acme cover' });
-    const href = `#/copy-deck/${encodeURIComponent(doc.id)}?from=%2Fcompany%2Facme`;
-    expect(link).toHaveAttribute('href', href);
-    cleanup();
-    window.location.hash = href;
-    render(
-      <ToastProvider>
-        <DocumentsView />
-      </ToastProvider>,
-    );
-    // The editor's Back is a button (it saves first) that names the company.
-    expect(
-      (await screen.findAllByRole('button', { name: 'Back to Acme, Inc.' })).length,
-    ).toBeGreaterThan(0);
+    expect(link).toHaveAttribute('href', `${jobHash(jobIdOf(URL_A))}?from=%2Fcompany%2Facme`);
   });
 
   it('an empty Documents panel says so in one line', () => {

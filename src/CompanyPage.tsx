@@ -289,13 +289,20 @@ export default function CompanyPage({ slug }: { slug: string }) {
                 <PanelRow key={d.id}>
                   <Stack gap="px2">
                     <Text variant="ui" as="span">
-                      {/* One tap to the editor, whose Back names this company (return paths). */}
+                      {/* One tap to where it is edited, whose Back names this company (return
+                          paths): a job's own document lives on its job page (#328), a Base one
+                          in the editor. */}
                       {isFinalCopy(d) ? (
                         // An uploaded file: the text editor has nothing to edit (its job has it).
                         d.title || kindLabel(d)
                       ) : (
                         <InlineLink
-                          href={linkTo({ tab: 'copy-deck', sub: encodeURIComponent(d.id) }, route)}
+                          href={linkTo(
+                            !d.base && d.jobUrl && company.jobs.some((j) => j.url === d.jobUrl)
+                              ? { tab: 'queue', jobId: jobIdOf(d.jobUrl) }
+                              : { tab: 'copy-deck', sub: encodeURIComponent(d.id) },
+                            route,
+                          )}
                           externalIcon={false}
                         >
                           {d.title || kindLabel(d)}
