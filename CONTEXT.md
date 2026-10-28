@@ -115,7 +115,7 @@ The one module that turns Sources and the Search profile into ranked Postings, r
 _Avoid_: live postings, sweep, scored queue
 
 **Browse**:
-The default view of Review new: every undecided Match from the Feed as one list you can sort and filter. Tapping a row opens a short preview (details, why it matched, Save / Skip / Not this company), with Open posting one tap away.
+The default view of Review new: every undecided Posting that passes the Inclusion check as one list you can sort and filter. Tapping a row opens a short preview (details, why it matched, Save / Skip / Not this company), with Open posting one tap away.
 _Avoid_: live postings, results, inbox
 
 **Deck**:
@@ -123,19 +123,19 @@ The optional view of Review new: the same undecided Postings one card at a time.
 _Avoid_: inbox, queue, swipe list
 
 **Scan**:
-The one discovery run, twice a day on the server and once when the app opens. It finds companies (YC, GitHub design-system orgs, Adele), probes their boards, reads every board and feed, scores every Posting, and re-checks saved Jobs' boards. Its only controls are Scan now and the last-scanned time.
+The one discovery run, twice a day on the server and once when the app opens. It finds companies (YC, GitHub design-system orgs, Adele), probes their boards, reads every board and feed, runs the Inclusion check on every Posting, and re-checks saved Jobs' boards. Its only controls are Scan now and the last-scanned time.
 _Avoid_: sweep, fetch, check, refresh
 
 **New company**:
 A company the Scan found that the user has not yet Followed or Ignored. Its matching Postings show at once. Ignore mutes it for good.
 _Avoid_: suggestion, found team, target
 
-**Match / Maybe / No match**:
-The scorer's gate on every Posting (`queue` / `review` / `reject` in `src/tracks/score.ts`, plus the profile's filters). Match is listed, Maybe sits under Review (N), No match is only counted ("N left out").
-_Avoid_: fit, verdict (in copy), strong fit
+**Inclusion check**:
+The one gate on a Posting: its title or description names a design-system role (design system(s), design technologist, design system engineer…) under the phrase rules in `feed/mustInclude.ts`, plus the user's profile filters. A Posting that fails is only counted ("N not design-system roles"). Fit and the scorer never hide a Posting.
+_Avoid_: gate, match, fit filter
 
 **Breadth guard**:
-The fixture test that counts distinct Postings (Match, Maybe and No match together) from the same recorded inputs through the old pipeline and the Feed, and fails if the Feed returns fewer.
+The fixture test that counts distinct Postings that pass the Inclusion check from the same recorded inputs through the old pipeline and the Feed, and fails if the Feed returns fewer.
 _Avoid_: coverage test
 
 **Decided**:

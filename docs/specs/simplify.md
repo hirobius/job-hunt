@@ -15,7 +15,7 @@ Adrian picked **design C, the Today home**, on one hard condition: **no loss of 
   - Saving a job follows its company.
   - A dream company becomes a star on its Source.
   - **Add sources** helpers fill the list: Check a list, YC, GitHub org search, and the Adele seed.
-- **Search profile** replaces tracks. It holds titles (the wide sweep runs over all of them), related titles, must include, leave out, pay floor, level, location and work mode. The design-systems scorer, Review bucket included, is the profile's tuned config. It is stored as `profiles[]` with one entry.
+- **Search profile** replaces tracks. It holds titles (the wide sweep runs over all of them), related titles, must include, leave out, pay floor, level, location and work mode. The design-systems scorer stays as it is (it sorts, it never hides). It is stored as `profiles[]` with one entry.
 - **Feed** is one module that reads every source there is today:
   - feeds: HN (Who is hiring and Freelancer), Remotive, Jobicy, and the designsystems.jobs RSS
   - boards: Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio
@@ -39,13 +39,12 @@ The server keeps three tables: `tracker`, `postings` and `sync_log`. `watched_co
 
 - **Auto-scan** replaces every manual discovery control. It runs on the server cron twice a day and on the client when the app opens. One scan finds companies (YC, GitHub orgs, Adele, earlier lists), probes their boards, reads every board and feed over every title, scores everything, and re-checks saved jobs' boards. The only UI left is **Scan now** and "Last scanned hh:mm".
 - **New companies** show their matching jobs at once, with **Follow / Ignore**.
-- **Gating:** every posting goes through `src/tracks/score.ts` plus the profile filters:
-  - **Match** is shown.
-  - **Maybe** sits in a collapsed **Review (N)**.
-  - **No match** is hidden behind an "N left out" count.
+- **Breadth first (amendment 3, supersedes the gates above):** the app's one job is to collect every design-system opening posted anywhere. A posting is listed when it passes two checks:
+  - **the inclusion check:** its title or description names a design-system role, under the existing phrase rules (`feed/mustInclude.ts` `termRegex`)
+  - **Adrian's profile filters:** leave out, location, mode, pay floor and level
 
-  The server pre-filters with Postgres full-text search (a `tsvector` column with a GIN index, and `websearch_to_tsquery` for must include and leave out). There is no AI scoring.
-- **Preview:** tapping a Browse row opens a short in-app sheet with the details, why it matched, and Save / Skip / Not this company. **Open posting** is one tap away.
+  Everything else is counted as "N not design-system roles". There are no fit tiers. The scorer, Fit and screening stay as they are: they may sort or badge, never hide, and they get no new work. The server pre-filters with Postgres full-text search on the inclusion and leave-out terms.
+- **Preview:** tapping a Browse row opens a short in-app sheet with the details, why it is listed, and Save / Skip / Not this company. **Open posting** is one tap away.
 - **Jobs stays a top tab** (Today · Jobs). A proposal to simplify it hard is in section 7b of the spec, for Adrian to review.
 - **Bug #417:** the board probe needs an identity check. It matched "Forward" to three different boards.
 
@@ -63,8 +62,8 @@ The server keeps three tables: `tracker`, `postings` and `sync_log`. `watched_co
 2. #383: Today home. The tabs become Today and Jobs.
 3. #384: Blob v12 and the migration from v11.
 4. #385: The Find box.
-5. #386: The Feed and Review new (Browse with the preview and gates, plus the Deck).
-6. #387: The server adapter, with full-text gating.
+5. #386: The Feed and Review new (Browse with the preview, the inclusion check as the only gate, plus the Deck).
+6. #387: The server adapter, with a full-text pre-filter on the inclusion terms.
 7. #388: Onboarding becomes the Search profile form.
 8. #415: Auto-scan.
 9. #416: Simplify Jobs and the Pipeline (a proposal for Adrian to review first).

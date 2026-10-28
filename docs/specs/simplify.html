@@ -52,14 +52,14 @@ one <strong>Search profile</strong> replaces tracks; one <strong>Feed</strong> r
 Only the old screens go (about <strong>5k lines</strong> net); every source and company-finding helper stays.
 A <strong>breadth guard</strong> test fails if the new Feed ever returns fewer distinct postings than today's.
 You lose multiple tracks, the curated tile boards, SAM.gov, and Calibrate's separate knobs (folded into the profile).
-<br><strong>Amendment 2:</strong> an <strong>auto-scan</strong> (cron twice a day + on open) replaces every manual discovery button; every posting is gated by the scorer (Match shown, Maybe in Review, No match counted); a tap opens an in-app preview; Jobs stays a top tab and gets a simplification proposal. See <a href="#amend2">7b</a>.
+<br><strong>Amendment 2:</strong> an <strong>auto-scan</strong> (cron twice a day + on open) replaces every manual discovery button; every posting that is a design-system role is listed (amendment 3 dropped the fit gates: breadth first); a tap opens an in-app preview; Jobs stays a top tab and gets a simplification proposal. See <a href="#amend2">7b</a>.
 </div>
 
 <div class="card">
 <strong>Adrian's conditions on C</strong> (the amendment; sections 7 to 9 follow them)
 <ol>
 <li><strong>Review has two views of the same Feed:</strong> a Browse list (default: sort, filter, open any posting, Save or Skip inline) and the one-card deck as an option.</li>
-<li><strong>Every job source stays:</strong> HN (Who is hiring + Freelancer), Remotive, Jobicy, the designsystems.jobs RSS, every watched board kind (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor, Personio), the wide sweep over all profile titles, related titles, and the scorer's Review bucket. Big job boards and ATS search stay as <em>Search elsewhere</em> links.</li>
+<li><strong>Every job source stays:</strong> HN (Who is hiring + Freelancer), Remotive, Jobicy, the designsystems.jobs RSS, every watched board kind (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor, Personio), the wide sweep over all profile titles, related titles, and the scorer's Review bucket (amendment 3: no bucket hides anything now; the inclusion check is the only gate). Big job boards and ATS search stay as <em>Search elsewhere</em> links.</li>
 <li><strong>Company-finding helpers stay</strong> (GitHub org search, Adele seed, YC, Check a list) as <em>Add sources</em> helpers that feed the one Sources list. Only their old screens go.</li>
 <li><strong>Breadth guard:</strong> a fixture test counts distinct postings from the same recorded inputs through today's pipeline and the new Feed, and fails if the new one returns fewer. Today shows "N new today from M sources".</li>
 <li><strong>Skip hides that posting only, never its company.</strong> "Not this company" is a separate, explicit action.</li>
@@ -75,7 +75,7 @@ You lose multiple tracks, the curated tile boards, SAM.gov, and Calibrate's sepa
 <li><a href="#c">Design C: Today deck</a></li>
 <li><a href="#compare">Side by side</a></li>
 <li><a href="#rec">Recommendation, as amended (C, no loss of breadth)</a></li>
-<li><a href="#amend2">Amendment 2: auto-scan, gating, preview, Jobs</a></li>
+<li><a href="#amend2">Amendments 2 and 3: auto-scan, breadth first, preview, Jobs</a></li>
 <li><a href="#slices">Slice plan</a></li>
 <li><a href="#loses">What Adrian loses, and why it's worth it</a></li>
 </ol></nav>
@@ -277,10 +277,10 @@ Storybook
 <div class="card pick">
 <ol>
 <li><strong>Home = Today</strong>: Review new, Apply, Follow up, under the line <em>"N new today from M sources"</em>. Jobs (the Pipeline) stays a top tab beside Today (amendment 2).</li>
-<li><strong>Review new has two views of the same Feed.</strong> <strong>Browse</strong> (default) is a list: sort by score, newest or company; filter by text, source, work mode and Queue/Review; open any posting; Save or Skip inline. <strong>Deck</strong> is the one-card option for a quick pass. The two views share one list and one set of verdicts.</li>
+<li><strong>Review new has two views of the same Feed.</strong> <strong>Browse</strong> (default) is a list: sort by newest, company or score; filter by text, source and work mode; open any posting; Save or Skip inline. <strong>Deck</strong> is the one-card option for a quick pass. The two views share one list and one set of verdicts.</li>
 <li><strong>One Find box</strong> at the top of Today. Paste anything: a job link saves a Job (works signed out); a board or company link or name becomes a Source; words add titles to the Search profile.</li>
 <li><strong>One Sources list</strong> in the synced blob: boards of every kind, followed companies (with or without a board) and feeds. Saving a job follows its company. Dreams become a star on a Source. <strong>Add sources</strong> helpers fill it: Check a list (paste or YC batch), YC suggestions, GitHub design-system orgs and the Adele seed. They are the same code as today in a smaller sheet.</li>
-<li><strong>One Search profile</strong>: titles (the wide sweep runs over all of them), related titles, must include, leave out, location, mode, pay floor and level. The design-systems scorer stays as the profile's tuned config, Review bucket included. Stored as <code>profiles[]</code> with one entry, so a second hunt can come back later without a migration.</li>
+<li><strong>One Search profile</strong>: titles (the wide sweep runs over all of them), related titles, must include, leave out, location, mode, pay floor and level. The design-systems scorer stays as it is (it may sort, never hide; amendment 3). Stored as <code>profiles[]</code> with one entry, so a second hunt can come back later without a migration.</li>
 <li><strong>One Feed reading every source there is today.</strong> It reads HN Who is hiring and Freelancer, Remotive, Jobicy and the designsystems.jobs RSS. It reads every watched board kind: Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Teamtailor and Personio. It has two adapters: the browser (today's <code>fetchFeed</code>, signed out) and the server (<code>postings</code>, signed in). The designsystems.jobs RSS is read on the server, as today; reading it in the browser too would need a CSP and <code>legal.ts</code> entry, so that waits for a separate decision. <code>sync-postings</code> reads Sources and the profile from the blob, so there is one source of truth and <code>watched_companies</code> / <code>skips</code> are never deployed.</li>
 <li><strong>Search elsewhere</strong>: Big job boards (Remote Rocketship included) and the ATS Google search, as links built from the profile's titles and location, under Review.</li>
 <li><strong>Skip hides that posting only.</strong> It is stored by posting fingerprint in <code>decided</code> and never touches the company. <strong>Not this company</strong> is its own action, in the posting's menu: it mutes the Source, and Undo or the Sources list unmutes it.</li>
@@ -356,7 +356,7 @@ server
 </ul>
 <p><strong>Size, re-estimated:</strong> the old screens go (<code>DiscoverView</code>, <code>DiscoverHeader</code>, <code>CompaniesPanel</code>, <code>LiveFeedPanel</code>, <code>TileGrid</code>, <code>ManageTrackDialog</code>, <code>SweepTitles</code>, <code>DreamCompanies</code>, <code>ScoredQueue</code>, <code>FindBoardsPanel</code> and <code>AdeleSeed</code> shells), along with curation, tracks and Contracts. That is roughly −7.5k lines. Browse, the deck, the Find box, the Add sources sheet and the profile form add roughly +2.5k. The net is about <strong>−5k</strong>. Everything in <code>src/feed/</code> and <code>src/tracks/</code> stays behind the Feed seam.</p>
 
-<h2 id="amend2">7b. Amendment 2: auto-scan, gating, preview, Jobs</h2>
+<h2 id="amend2">7b. Amendments 2 and 3: auto-scan, breadth first, preview, Jobs</h2>
 <p class="small">Adrian's decisions relayed on 2026-10-28. Where they conflict with section 7, this section wins.</p>
 
 <h3>Auto-scan replaces every manual discovery control</h3>
@@ -372,18 +372,18 @@ server
 <h3>New companies show their jobs at once</h3>
 <p>A company the scan finds shows up in <strong>New companies</strong> on Review, with its matching jobs already in the list. Each one has <strong>Follow</strong> or <strong>Ignore</strong>. Ignore mutes it so the scan never brings it back. Leaving it alone keeps its jobs visible until the user decides.</p>
 
-<h3>Every posting is gated by the scorer</h3>
-<p>Every posting goes through <code>src/tracks/score.ts</code> (<code>scoreForTrack</code>) plus the profile's filters (must include, leave out, location, mode, pay floor, level). The verdict decides where it lands:</p>
+<h3>One filter: is it a design-system role? (amendment 3)</h3>
+<p><strong>Breadth first.</strong> The app's one job is to collect <em>every</em> design-system opening posted anywhere. The fit-score gates proposed earlier (Match / Maybe / No match) are dropped. A posting is listed when it passes two checks:</p>
 <ul>
-<li><strong>Match</strong> (<code>queue</code>): shown in Browse.</li>
-<li><strong>Maybe</strong> (<code>review</code>): in a collapsed <strong>Review (N)</strong> under the list.</li>
-<li><strong>No match</strong> (<code>reject</code>): hidden, counted as "N left out", with a link that opens them once.</li>
+<li><strong>The inclusion check:</strong> its title or description names a design-system role ("design system(s)", "design technologist", "design system engineer" and so on). It uses the existing phrase rules in <code>feed/mustInclude.ts</code> (<code>termRegex</code>: whole words, "systems" matches "design system", "ecosystem" never matches, and phrases break at separators).</li>
+<li><strong>Adrian's own profile filters:</strong> leave out, location, mode, pay floor and level.</li>
 </ul>
-<p>On the server, the scan stores each posting's title and description in a Postgres <code>tsvector</code> column with a GIN index. The profile's must-include and leave-out terms become a <code>websearch_to_tsquery</code> filter, so the client only downloads candidates. The scorer then runs on those rows, on the server and in the browser alike. There is no AI scoring and no API key.</p>
-<p><strong>Breadth guard, restated:</strong> it counts distinct postings across all three verdicts. Gating may move a posting between Match, Maybe and No match, but the total the scan read must never be lower than today's.</p>
+<p>Anything that fails is counted as "N not design-system roles" (a link opens them once), so nothing disappears silently. The scorer (<code>src/tracks/score.ts</code>), Fit and screening stay exactly as they are. They may sort or badge a row, but they never hide one, and they get no new work in this plan.</p>
+<p>On the server, the scan stores each posting's title and description in a Postgres <code>tsvector</code> column with a GIN index. The inclusion terms and leave-out terms become a <code>websearch_to_tsquery</code> pre-filter, and the same phrase rules then confirm each row. No AI, no API key.</p>
+<p><strong>Breadth guard, restated:</strong> it counts distinct postings that pass the inclusion check. If the new Feed and Scan ever list fewer than today's pipeline does from the same recorded inputs, the test fails.</p>
 
 <h3>Tap a job: an in-app preview</h3>
-<p>Tapping a row in Browse opens a short preview sheet: the title, company, location and pay, the source, the first lines of the description, and <em>why it matched</em> (the scorer's reasons). It has Save, Skip and Not this company. <strong>Open posting ↗</strong> is one tap away. Back closes the sheet and returns to the same row.</p>
+<p>Tapping a row in Browse opens a short preview sheet: the title, company, location and pay, the source, the first lines of the description, and <em>why it is listed</em> (the phrase that matched). It has Save, Skip and Not this company. <strong>Open posting ↗</strong> is one tap away. Back closes the sheet and returns to the same row.</p>
 
 <div class="mocks">
 <figure><pre>&lt;- Review new         · · ·
@@ -392,9 +392,9 @@ Staff Engineer,
 Design Systems
 $180–220k · Greenhouse · 2d
 
-Why it matched
+Why it is listed
  · title says "design systems"
- · tokens, Storybook, a11y
+
 
 We're hiring a staff engineer
 to lead our component library
@@ -410,14 +410,13 @@ New companies (3)
  Vanta      1 job   Follow  Ignore
  Plain      2 jobs  Follow  Ignore
 ──────────────────────────────
-[Filter     ] [Sort: Score v]
-Shopify · Staff Eng, DS   94
-Ramp · Design Technologist 88
-Acme · DS Lead (HN)       71
+[Filter     ] [Sort: Newest v]
+Shopify · Staff Eng, DS   2d
+Ramp · Design Technologist 1d
+Acme · DS Lead (HN)       5d
 …
-Review (14)                   ⌄
-112 left out ›
-Search elsewhere (9)          ›</pre><figcaption>Browse with New companies and the gates</figcaption></figure>
+96 not design-system roles ›
+Search elsewhere (9)          ›</pre><figcaption>Browse with New companies (amendment 3: no fit gates)</figcaption></figure>
 </div>
 
 <h3>Jobs stays a top tab, simplified hard</h3>
@@ -435,7 +434,7 @@ Search elsewhere (9)          ›</pre><figcaption>Browse with New companies and
 <tr><td>Row: badges, facts, next step, ⋯ menu</td><td>Keep: one next step per row.</td></tr>
 <tr><td>Job page: Overview · Screening · Interviews tabs</td><td><strong>One scrolling page</strong>: header and next step, Details, To-dos and notes, Interviews (only once one exists), then Files and links.</td></tr>
 <tr><td>Documents panel + Decks panel</td><td><strong>Merge</strong> into "Files and links".</td></tr>
-<tr><td>Screening tab (Fit editor, JD screener)</td><td><strong>Cut the JD screener</strong>: the scorer's reasons replace it. Fit stays as a badge you can change from the menu.</td></tr>
+<tr><td>Screening tab (Fit editor, JD screener)</td><td><strong>Keep as is</strong> (amendment 3: fit and screening get no new work). It can move into the one scrolling page as a section.</td></tr>
 <tr><td>Job rail at lg</td><td>Keep.</td></tr>
 </tbody></table></div>
 
@@ -449,10 +448,10 @@ Search elsewhere (9)          ›</pre><figcaption>Browse with New companies and
 <li><strong>Today home</strong> (#383). Three buttons and "N new today from M sources". The tabs become Today · Jobs.</li>
 <li><strong>Blob v12: profiles, sources, decided + migration</strong> (#384).</li>
 <li><strong>One Find box</strong> (#385). Paste a job, a board, a company or a title.</li>
-<li><strong>Feed + Review new</strong> (#386). Browse (default) with the preview sheet, Match shown, Review (N) collapsed and "N left out"; the deck as an option. Skip hides one posting only.</li>
-<li><strong>Server adapter + full-text gating</strong> (#387). <code>sync-postings</code> reads the blob; a <code>tsvector</code> + GIN index filters on the server, and the scorer gates.</li>
+<li><strong>Feed + Review new</strong> (#386). Browse (default) with the preview sheet; every posting that passes the inclusion check is listed, the rest counted as "N not design-system roles"; the deck as an option. Skip hides one posting only.</li>
+<li><strong>Server adapter + full-text gating</strong> (#387). <code>sync-postings</code> reads the blob; a <code>tsvector</code> + GIN index pre-filters on the inclusion terms; the phrase rules confirm.</li>
 <li><strong>Onboarding = Search profile form</strong> (#388).</li>
-<li><strong>Auto-scan</strong> (#415). Cron twice a day plus a scan on app open. It runs company discovery, the board probe, every board read, scoring and liveness. New companies come with Follow and Ignore. The only controls are Scan now and "Last scanned". Needs the probe fix (#417).</li>
+<li><strong>Auto-scan</strong> (#415). Cron twice a day plus a scan on app open. It runs company discovery, the board probe, every board read, the inclusion check and liveness. New companies come with Follow and Ignore. The only controls are Scan now and "Last scanned". Needs the probe fix (#417).</li>
 <li><strong>Simplify Jobs / Pipeline</strong> (#416). The proposal in 7b goes to Adrian first; only what he approves is built.</li>
 <li><strong>Remove the old screens and manual controls</strong> (#389).</li>
 <li><strong>Cleanup</strong> (#390).</li>
@@ -470,8 +469,8 @@ Search elsewhere (9)          ›</pre><figcaption>Browse with New companies and
 <p><strong>Not lost:</strong></p>
 <ul>
 <li>every job source and board kind, plus the wide sweep and related titles</li>
-<li>the scorer, with its Maybe bucket</li>
-<li>a click-through list of every Match, with a preview</li>
+<li>the scorer, Fit and screening, unchanged</li>
+<li>a click-through list of every design-system posting found, with a preview</li>
 <li>every company-finding helper (now automatic)</li>
 <li>Search elsewhere</li>
 <li>the liveness check</li>
