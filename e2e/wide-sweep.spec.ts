@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { createRequire } from 'node:module';
+
+const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 
 // The wide sweep (#213) end to end, at phone and desktop width: one "Find more" sweep searches
 // every title that is on, a title chip shows only its rows without a re-fetch, and a save lands in the
@@ -58,6 +61,19 @@ for (const width of [390, 1440]) {
     const before = await list.getByRole('listitem').count();
     expect(before).toBeGreaterThan(2);
     await page.screenshot({ path: `test-results/wide-sweep-${width}.png`, fullPage: true });
+
+    // #317: the title chips' names hold their visible text (WCAG 2.5.3, Label in Name). a11y.spec
+    // never runs a sweep, so the chips are checked here.
+    await page.addScriptTag({ path: AXE });
+    const mismatch = await page.evaluate(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = await (window as any).axe.run(document, {
+        runOnly: { type: 'rule', values: ['label-content-name-mismatch'] },
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return r.violations.flatMap((v: any) => v.nodes.map((n: any) => String(n.target)));
+    });
+    expect(mismatch).toEqual([]);
 
     // One title's chip narrows the list without a single new read; All brings every row back.
     const readsBefore = reads;
