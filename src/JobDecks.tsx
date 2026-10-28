@@ -20,6 +20,7 @@ import { findJobByUrl, updateJob } from './store';
 import { collapseRow } from './feedback';
 import { notifyRemoved } from './saveNotice';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
+import { nextFocus, useFocusAfter } from './useFocusAfter';
 import type { Deck, Job } from './types';
 
 /** The deck's name: its label, else the link's host. */
@@ -102,7 +103,20 @@ function DeckForm({
   );
 }
 
-function DeckCard({ job, deck, onEdit }: { job: Job; deck: Deck; onEdit: () => void }) {
+function DeckCard({
+  job,
+  deck,
+  onEdit,
+  onRemove,
+  focusRef,
+}: {
+  job: Job;
+  deck: Deck;
+  onEdit: () => void;
+  /** Called as Remove is pressed, so focus can move on before the card goes. */
+  onRemove: () => void;
+  focusRef: (key: string) => (el: HTMLElement | null) => void;
+}) {
   const name = deckName(deck);
   return (
     <ListCard>
@@ -123,6 +137,7 @@ function DeckCard({ job, deck, onEdit }: { job: Job; deck: Deck; onEdit: () => v
           iconOnly
           iconLeft={<Icon icon={Pencil} />}
           label={`Edit “${name}”`}
+          ref={focusRef(`edit:${deck.id}`)}
           onClick={onEdit}
         />
         <Button
@@ -131,7 +146,11 @@ function DeckCard({ job, deck, onEdit }: { job: Job; deck: Deck; onEdit: () => v
           iconOnly
           iconLeft={<Icon icon={X} />}
           label={`Remove “${name}”`}
-          onClick={(e) => removeWithUndo(job.url, deck, e.currentTarget)}
+          ref={focusRef(`remove:${deck.id}`)}
+          onClick={(e) => {
+            onRemove();
+            removeWithUndo(job.url, deck, e.currentTarget);
+          }}
         />
       </Stack>
     </ListCard>
@@ -142,11 +161,22 @@ export default function DecksPanel({ job }: { job: Job }) {
   // The deck being edited, 'new' for the add form, or null.
   const [editing, setEditing] = useState<string | null>(null);
   const decks = job.decks ?? [];
+  // Focus goes back where the form was opened from: Add a deck link, or the deck's Edit. A removed
+  // deck hands it to the next deck's Remove (else Add a deck link).
+  const { ref, focus } = useFocusAfter();
+  const close = () => {
+    focus(editing && editing !== 'new' ? `edit:${editing}` : 'add');
+    setEditing(null);
+  };
   const save = (next: Deck[] | null) => {
     if (!next) return false;
     updateJob(job.url, { decks: next });
-    setEditing(null);
+    close();
     return true;
+  };
+  const removeFocus = (deck: Deck) => {
+    const ids = decks.map((d) => `remove:${d.id}`);
+    focus(nextFocus(ids, decks.indexOf(deck), 'add'));
   };
   return (
     <Panel label="Decks" title="Decks" count={decks.length} countLabel={`${decks.length} decks`}>
@@ -163,11 +193,18 @@ export default function DecksPanel({ job }: { job: Job }) {
                       onSave={(input) =>
                         save(updateDeck(findJobByUrl(job.url)?.decks, d.id, input))
                       }
-                      onCancel={() => setEditing(null)}
+                      onCancel={close}
                     />
                   </ListCard>
                 ) : (
-                  <DeckCard key={d.id} job={job} deck={d} onEdit={() => setEditing(d.id)} />
+                  <DeckCard
+                    key={d.id}
+                    job={job}
+                    deck={d}
+                    onEdit={() => setEditing(d.id)}
+                    onRemove={() => removeFocus(d)}
+                    focusRef={ref}
+                  />
                 ),
               )}
             </CardList>
@@ -177,7 +214,7 @@ export default function DecksPanel({ job }: { job: Job }) {
               initial={{ url: '' }}
               saveLabel="Add deck"
               onSave={(input) => save(addDeck(findJobByUrl(job.url)?.decks, input))}
-              onCancel={() => setEditing(null)}
+              onCancel={close}
             />
           ) : (
             // Pulled left by the tertiary's padding: the plus sits on the panel's text edge.
@@ -186,6 +223,7 @@ export default function DecksPanel({ job }: { job: Job }) {
                 size="md"
                 variant="tertiary"
                 iconLeft={<Icon icon={Plus} />}
+                ref={ref('add')}
                 onClick={() => setEditing('new')}
               >
                 Add a deck link
