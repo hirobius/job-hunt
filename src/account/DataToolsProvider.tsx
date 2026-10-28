@@ -8,7 +8,9 @@ import { returnFocus } from './returnFocus';
 import { useBackCloses } from '../useBackCloses';
 import {
   applyBackup,
+  backupTooLarge,
   buildBackup,
+  MAX_BACKUP_MB,
   parseBackup,
   summarizeRestore,
   type AccountState,
@@ -35,6 +37,7 @@ import { BRAND } from '../brand';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
 import { ExportLinksHost } from '../ExportLinksDialog';
+import { listWords, writesThatFailed } from './restoreWrites';
 
 const JSON_MIME = 'application/json';
 const day = () => new Date().toISOString().slice(0, 10);
@@ -58,26 +61,32 @@ function currentState(): AccountState {
   };
 }
 
-function downloadBackup(prefix: string) {
+/** Downloads the backup; false when it is too large for Restore to take back (#340). */
+function downloadBackup(prefix: string): boolean {
   const text = JSON.stringify(buildBackup(currentState(), new Date()), null, 2);
   download(`${prefix}-${day()}.json`, text, JSON_MIME);
+  return !backupTooLarge(text);
 }
 
-function applyState(next: AccountState) {
-  replaceAll(next.jobs);
-  replaceSnippets(next.copydeck);
-  replaceCurationState(next.curation);
-  replaceTriage(next.triage);
-  replaceTargets(next.targets);
-  replaceFilters(next.filters);
-  replaceEvidence(next.evidence);
-  replaceModes(next.modes);
-  replaceTrash(next.trash);
-  replaceDreams(next.dreams);
-  replaceDocuments(next.documents);
-  replaceApplyKit(next.kit);
-  replaceSweeps(next.sweeps);
-  replaceMustInclude(next.mustInclude);
+/** Write the restored state; returns what didn't reach storage (#339). Legacy messages
+ *  (snippets) become Documents, so a failed write of either is "documents". */
+function applyState(next: AccountState): string[] {
+  return writesThatFailed([
+    ['jobs', () => replaceAll(next.jobs)],
+    ['documents', () => replaceSnippets(next.copydeck)],
+    ['tracks', () => replaceCurationState(next.curation)],
+    ['set-aside links', () => replaceTriage(next.triage)],
+    ['saved targets', () => replaceTargets(next.targets)],
+    ['saved searches', () => replaceFilters(next.filters)],
+    ['evidence', () => replaceEvidence(next.evidence)],
+    ['work modes', () => replaceModes(next.modes)],
+    ['removed jobs', () => replaceTrash(next.trash)],
+    ['dream companies', () => replaceDreams(next.dreams)],
+    ['documents', () => replaceDocuments(next.documents)],
+    ['Application kit', () => replaceApplyKit(next.kit)],
+    ['title lists', () => replaceSweeps(next.sweeps)],
+    ['must-include lists', () => replaceMustInclude(next.mustInclude)],
+  ]);
 }
 
 export default function DataToolsProvider({ children }: { children: ReactNode }) {
@@ -106,7 +115,16 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
     if (!pending) return;
     if (mode === 'replace') downloadBackup(`${BRAND.slug}-before-restore`);
     const before = currentState();
-    applyState(applyBackup(before, pending, mode));
+    const unsaved = applyState(applyBackup(before, pending, mode));
+    // The screen shows the restore, but storage doesn't hold all of it: say so, and how to get
+    // back to what was kept (a reload) or what was there before (Replace's safety copy).
+    if (unsaved.length)
+      toast({
+        title: "Restore didn't fully save",
+        description: `Your browser's storage is full, so your ${listWords(unsaved)} weren't saved. Reload to check what was kept.${mode === 'replace' ? ' The safety copy of your data from before is in your downloads.' : ''}`,
+        tone: 'danger',
+        duration: 20000,
+      });
     if (mode === 'merge' && evidenceMergeOverflows(pending.evidence, before.evidence))
       toast({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });
     setPending(null);
@@ -124,7 +142,15 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
   const summary = pending ? summarizeRestore(currentState(), pending) : null;
 
   const api: DataToolsApi = {
-    backup: () => downloadBackup(`${BRAND.slug}-backup`),
+    backup: () => {
+      if (!downloadBackup(`${BRAND.slug}-backup`))
+        toast({
+          title: 'This backup is too large to restore',
+          description: `It downloaded, but Restore takes files up to ${MAX_BACKUP_MB} MB. Remove final copies or old jobs you no longer need, then back up again.`,
+          tone: 'warning',
+          duration: 15000,
+        });
+    },
     chooseRestore: () => fileRef.current?.click(),
     exportCsv: () => download(`${BRAND.slug}.csv`, toCsv(getAllJobs()), 'text/csv'),
     canExport: jobs.length > 0,
@@ -157,14 +183,8 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
           </Dialog.Header>
           {summary && (
             <Stack gap="tight">
-              <Text variant="body">
-                Backup: {summary.next.jobs} jobs, {summary.next.snippets} snippets,{' '}
-                {summary.next.tracks} tracks, {summary.next.links} links
-              </Text>
-              <Text variant="body">
-                Now: {summary.current.jobs} jobs, {summary.current.snippets} snippets,{' '}
-                {summary.current.tracks} tracks, {summary.current.links} links
-              </Text>
+              <Text variant="body">Backup: {summary.next}</Text>
+              <Text variant="body">Now: {summary.current}</Text>
             </Stack>
           )}
           <Dialog.Footer>
@@ -174,7 +194,10 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
             <Button variant="secondary" onClick={() => restore('merge')}>
               Merge into my data
             </Button>
-            <Button onClick={() => restore('replace')}>Replace my data</Button>
+            {/* Replace overwrites everything: the app's one destructive style (secondary + danger). */}
+            <Button variant="secondary" tone="danger" onClick={() => restore('replace')}>
+              Replace my data
+            </Button>
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog>
