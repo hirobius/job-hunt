@@ -89,3 +89,35 @@ _Avoid_: snippet, template (in code)
 **Final copy**:
 A PDF or Word file uploaded to a Job as a Document of a kind: its one Version holds the file, not text, and it takes no new Versions. It can be marked Sent like any Version, and can be downloaded back.
 _Avoid_: attachment, upload (as a noun in code)
+
+## Proposed (simplify spec, `docs/specs/simplify.html`)
+
+Not built yet; these terms take effect only if Adrian picks the recommended design. Until then the terms above stand.
+
+**Today**:
+The proposed home page: three counts in a fixed order (Review new, Apply, Follow up), each opening a one-at-a-time walk. Replaces Companies as home; the Pipeline moves under More as Jobs.
+_Avoid_: dashboard, home, inbox
+
+**Find**:
+The one paste box on Today. A job link saves a Job, a board or company link or name adds a Source, words change the Search profile's titles.
+_Avoid_: add, quick-add, watch, search (as a feature name)
+
+**Source**:
+Anything the user follows for new Postings: a company board, a company with no board yet, or a keyless feed (HN, Remotive). One synced list; a star marks a favourite. Replaces Watched company, dream company and outreach target.
+_Avoid_: watched company, dream, target, subscription
+
+**Search profile**:
+What the user is looking for: titles, must-include terms, leave-out terms, location, work mode. One per account (stored as a list of one). Replaces the track as the frame for discovery.
+_Avoid_: track, pillar, filter, calibration
+
+**Feed**:
+The one module that turns Sources and the Search profile into ranked Postings, read in the browser when signed out and from the server sync when signed in.
+_Avoid_: live postings, sweep, scored queue
+
+**Deck**:
+The Feed's undecided Postings shown one card at a time under Review new: Save (makes a Job and follows its company), Skip, or Not this company.
+_Avoid_: inbox, queue, swipe list
+
+**Decided**:
+The remembered verdicts on Postings (saved, skipped, company muted) so a Posting never comes back to the Deck.
+_Avoid_: dismissed, set aside, skips

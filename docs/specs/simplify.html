@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simplify RoleForge</title>
+<meta name="description" content="Spec: one home with three controls (Review, Apply, Follow up), one Job funnel, one sources list, one feed. Three designs compared, one recommended.">
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#1d1d1f;--muted:#5d5d63;--line:#e3e3e0;--accent:#3a3a40;--hi:#1f7a3d;--mid:#8a6100;--lo:#9a3b1c;--none:#6b6b70;--pick:#eef6ef;--pre:#f0f0ed}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141416;--card:#1d1d20;--ink:#ececee;--muted:#a3a3aa;--line:#323236;--accent:#d6d6db;--hi:#6fcf8f;--mid:#e3b54a;--lo:#f08a68;--none:#9a9aa0;--pick:#18261c;--pre:#232327}}
+:root[data-theme="dark"]{--bg:#141416;--card:#1d1d20;--ink:#ececee;--muted:#a3a3aa;--line:#323236;--accent:#d6d6db;--hi:#6fcf8f;--mid:#e3b54a;--lo:#f08a68;--none:#9a9aa0;--pick:#18261c;--pre:#232327}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:760px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:28px;line-height:1.2;margin:0 0 8px}
+h2{font-size:21px;margin:40px 0 12px;padding-top:8px;border-top:1px solid var(--line)}
+h3{font-size:17px;margin:24px 0 8px}
+p,li{color:var(--ink)}
+.lede{color:var(--muted);margin:0 0 16px}
+.card{background:var(--card);border-radius:12px;padding:16px;margin:12px 0}
+.pick{background:var(--pick)}
+.tag{display:inline-block;font-size:13px;padding:2px 8px;border-radius:99px;background:var(--line);color:var(--ink);margin-right:4px}
+nav a{color:var(--ink)}
+nav ol{padding-left:20px;margin:8px 0}
+pre{background:var(--pre);border-radius:8px;padding:12px;overflow-x:auto;font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;margin:8px 0}
+.mocks{display:grid;gap:12px;grid-template-columns:1fr}
+@media (min-width:720px){.mocks{grid-template-columns:1fr 1fr}}
+.mocks figure{margin:0}
+.mocks figcaption{font-size:13px;color:var(--muted)}
+.scroll{overflow-x:auto;margin:8px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:620px}
+th,td{text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--muted)}
+tr.grp td{font-weight:600;background:var(--line)}
+td.hi{color:var(--hi);font-weight:600}td.mid{color:var(--mid);font-weight:600}td.lo{color:var(--lo);font-weight:600}td.none{color:var(--none);font-weight:600}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+.compare td:first-child{font-weight:600}
+ol.slices li{margin-bottom:8px}
+.small{font-size:14px;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<h1>Simplify RoleForge</h1>
+<p class="lede">Spec, 2026-10-28. Draft for Adrian's pick: no code changes yet. Branch <code>claude/rf-simplify-spec</code>.</p>
+
+<div class="card pick">
+<strong>Recommendation in one breath.</strong> One home page, <strong>Today</strong>, with three buttons:
+<strong>Review new</strong> (one card at a time: Save or Skip), <strong>Apply</strong> (Apply mode as it is) and
+<strong>Follow up</strong>. One <strong>Find</strong> box takes anything you paste: a job link, a company, a board or a title.
+Everything you follow is one <strong>Sources</strong> list; one <strong>Search profile</strong> replaces tracks;
+one <strong>Feed</strong> turns sources into cards, from the browser when signed out and from the server sync when signed in.
+About <strong>14k lines</strong> (40% of the app) go. You lose multiple tracks, the curated tile boards, GitHub/YC/Adele
+discovery, Calibrate's knobs and SAM.gov.
+</div>
+
+<nav><strong>On this page</strong>
+<ol>
+<li><a href="#problem">The problem in numbers</a></li>
+<li><a href="#inventory">Inventory: every mechanism and store</a></li>
+<li><a href="#a">Design A: Server inbox</a></li>
+<li><a href="#b">Design B: One list, client-first</a></li>
+<li><a href="#c">Design C: Today deck</a></li>
+<li><a href="#compare">Side by side</a></li>
+<li><a href="#rec">Recommendation (C, with B's sources and A's Find box)</a></li>
+<li><a href="#slices">Slice plan</a></li>
+<li><a href="#loses">What Adrian loses, and why it's worth it</a></li>
+</ol></nav>
+
+<h2 id="problem">1. The problem in numbers</h2>
+<ul>
+<li><strong>11 ways to find a job</strong> and <strong>8 ways to find or keep a company</strong>, spread over two tabs, two secondary views, a Refine disclosure, a Calibrate disclosure and Manage track.</li>
+<li><strong>13 synced fields</strong> in the blob (v11), plus 3 curation tables, plus 4 server tables that were never deployed.</li>
+<li>Companies is <strong>three different things</strong>: watched board tiles, outreach targets and dream companies, each with its own store, plus a fourth derived "Company page".</li>
+<li>Filtering is <strong>four overlapping layers</strong>: title filter, must include (with related titles), Calibrate (leave-out, level, pay) and the track scorer, which replaces some of the others on one track only.</li>
+<li>Discovery code is <strong>about 16k of the app's 35.6k lines</strong> (non-test).</li>
+</ul>
+
+<h2 id="inventory">2. Inventory</h2>
+<p class="small">"Who'd miss it" is a judgement: the app has page-view analytics only, no feature usage. "Adrian only" means it exists for the design-systems hunt. Lines are non-test source.</p>
+<div class="scroll">
+<table class="inv">
+<thead><tr><th>Mechanism</th><th>What it does</th><th>Who'd miss it</th><th>Lines</th><th>Store(s)</th></tr></thead>
+<tbody>
+<tr class="grp"><td colspan="5">Find: uncovering jobs (11 ways)</td></tr>
+<tr><td>Live postings</td><td>Pulls openings live from HN, Remotive, Jobicy and watched boards; phrase-match, rank, save</td><td class="hi">Many</td><td>2,693 + 864 sources</td><td>in-memory cache, <code>rjb_feed_remotive</code></td></tr>
+<tr><td>Wide sweep</td><td>One search over every ticked title, chips per title</td><td class="lo">Few</td><td rowspan="2">947</td><td><code>rjb_sweep_titles</code> (blob v7)</td></tr>
+<tr><td>Calibrate / saved searches</td><td>Leave-out terms, level, pay floor, title filter, saved filter sets</td><td class="mid">Some</td><td><code>rjb_feed_filters</code> (v5)</td></tr>
+<tr><td>Must include</td><td>Hide postings not saying a term; related titles; systems-only migration</td><td class="lo">Adrian only</td><td>348</td><td><code>rjb_must_include</code> (v11)</td></tr>
+<tr><td>Track scorer</td><td>Scores postings for the design-systems track; reasons on cards</td><td class="lo">Adrian only</td><td>1,018</td><td>(config in code)</td></tr>
+<tr><td>Scored queue + sync-postings</td><td>Server cron reads boards, scores, writes rows; Pipeline shows them. <em>Not deployed.</em></td><td class="none">Nobody yet</td><td>387 fn + SQL</td><td><code>watched_companies</code>, <code>postings</code>, <code>skips</code>, <code>sync_log</code></td></tr>
+<tr><td>ATS search</td><td>Builds Google <code>site:</code> queries for Greenhouse, Lever and others</td><td class="mid">Some</td><td rowspan="3">2,299 (Discover shell)</td><td><code>rjb_ui_mode:&lt;id&gt;</code> (v5)</td></tr>
+<tr><td>Big job boards</td><td>Links to LinkedIn, Indeed, Remote Rocketship with the ticked titles</td><td class="mid">Some</td><td>(none)</td></tr>
+<tr><td>Apply now tiles</td><td>Curated links per track section (portals, live searches)</td><td class="mid">Some (trades)</td><td>tables <code>categories / groups / tiles</code>, <code>rjb_tile_*</code> triage (v3)</td></tr>
+<tr><td>Contracts (SAM.gov)</td><td>Government notices by NAICS. A 2-week test.</td><td class="none">~Nobody</td><td>500</td><td>NAICS inside <code>rjb_must_include</code></td></tr>
+<tr><td>Quick-add params</td><td><code>?add=</code>, <code>?applied=</code> for the iOS shortcut and bookmarklet</td><td class="hi">Power users</td><td>~120 in App</td><td>(writes jobs)</td></tr>
+<tr class="grp"><td colspan="5">Companies: finding and keeping employers (8 ways)</td></tr>
+<tr><td>Companies list (Teams)</td><td>Watched boards + GitHub teams, roles inline, Hiring now</td><td class="mid">Some</td><td>1,961</td><td>tiles (Watched group), <code>rjb_targets</code> (v5), <code>rjb_found_teams</code></td></tr>
+<tr><td>Dream companies</td><td>Starred companies on top; "new since last check"</td><td class="mid">Some</td><td>424</td><td><code>rjb_dreams</code> (v9)</td></tr>
+<tr><td>Add a company</td><td>Board link or name, probe, then watch or star</td><td class="hi">Many</td><td rowspan="2">1,060</td><td>tiles</td></tr>
+<tr><td>Check a list / Find boards</td><td>Paste up to 500 names or a YC batch, probe each for a board</td><td class="lo">Few</td><td><code>rjb_probe</code></td></tr>
+<tr><td>GitHub org search</td><td>Design-system orgs from GitHub topics, rate-budgeted</td><td class="lo">Adrian only</td><td>481</td><td><code>rjb_gh_budget</code>, <code>rjb_gh_cache</code></td></tr>
+<tr><td>YC suggestions</td><td>YC "hiring now" companies matching the track</td><td class="lo">Few</td><td>274</td><td>(cache)</td></tr>
+<tr><td>Adele seed</td><td>Adds companies with public design systems</td><td class="lo">Adrian only</td><td>239</td><td>tiles</td></tr>
+<tr><td>Saved targets</td><td>Board-less companies kept for outreach</td><td class="lo">Few</td><td>(in Companies)</td><td><code>rjb_targets</code> (v5)</td></tr>
+<tr class="grp"><td colspan="5">Tracks: the frame around all of the above</td></tr>
+<tr><td>Tracks, packs, Manage track, onboarding</td><td>A track holds titles, location, sections, links, boards</td><td class="mid">Needed in some form</td><td>2,597 + 1,359</td><td>curation tables, <code>rjb_curation*</code>, <code>rjb_active_category</code>, <code>rjb_radar_evidence</code> (v5)</td></tr>
+<tr class="grp"><td colspan="5">Save, Apply, keep it pushing</td></tr>
+<tr><td>Pipeline</td><td>To apply, Follow up, Next 7 days, Jobs list, Recently removed</td><td class="hi">Everyone</td><td>1,802</td><td><code>rjb_shortlist</code> (v1), <code>rjb_trash</code> (v8)</td></tr>
+<tr><td>Job page</td><td>Details, to-dos, notes, screening, interviews, decks, documents</td><td class="hi">Everyone</td><td>2,306</td><td>on the Job</td></tr>
+<tr><td>Apply mode</td><td>One job at a time: open, Mark applied or Not a fit; kit and messages</td><td class="hi">Everyone</td><td>1,065</td><td><code>rjb_apply_kit</code> (v6)</td></tr>
+<tr><td>Follow up dialog</td><td>Filled message, Mark as sent, Snooze</td><td class="hi">Everyone</td><td>611</td><td>on the Job</td></tr>
+<tr><td>Liveness</td><td>Flags saved jobs closed on their board</td><td class="mid">Some</td><td>366</td><td><code>rjb_liveness</code> (local)</td></tr>
+<tr><td>Documents</td><td>Résumés, letters, messages, versions, final copies</td><td class="hi">Many</td><td>2,521</td><td><code>rjb_documents</code> (v10), <code>rjb_copydeck_v</code> (v3, legacy)</td></tr>
+<tr><td>Company page</td><td>A company's jobs, documents, notes (derived)</td><td class="mid">Some</td><td>401</td><td>derived</td></tr>
+</tbody>
+</table>
+</div>
+<p class="small">Everything in the last group stays in every design. The fight is over the first three groups.</p>
+
+<h2 id="a">3. Design A: Server inbox</h2>
+<p><span class="tag">backend-deep</span><span class="tag">signed-in only</span></p>
+<p>The server does the finding, ranking and remembering. One <code>sources</code> table (boards, companies, feeds, searches) feeds one ranked Inbox (the <code>postings</code> table), scored by <code>sync-postings</code> twice a day. One <code>profile</code> row replaces tracks. The client is thin and learns three calls:</p>
+<pre>useInbox()           → queue, review, sources
+find(input)          → board | company | search | job
+triage(id, save|skip|undo)</pre>
+<div class="mocks">
+<figure><pre>RoleForge                     (A)
+[ + Find ]       [ Apply (4) › ]
+Follow up · 2 due              ›
+Inbox 23 · synced 6:23
+┌──────────────────────────────┐
+│(F) Figma · Remote        94  │
+│Staff Design Systems Eng   ↗  │
+│Queued: title; tokens, a11y   │
+│[ Skip ]           [ Save ]   │
+└──────────────────────────────┘
+┌──────────────────────────────┐
+│(R) Ramp · New York       88  │
+│Design Technologist        ↗  │
+│[ Skip ]           [ Save ]   │
+└──────────────────────────────┘
+Review (41)                   ⌄
+All jobs (37) · Sources (58)</pre><figcaption>Home: Inbox</figcaption></figure>
+<figure><pre>Find                         ✕
+Paste a link, a company or
+a search
+[ figma.com/careers          ]
+                     [ Add ]
+✓ Figma · Greenhouse board
+  12 openings · 3 in Inbox
+Your sources (58)
+ Figma · Greenhouse      ★  ⋯
+ Linear · no board yet      ⋯
+ "design systems" · search  ⋯
+ designsystems.jobs · feed  ⋯
+Looking for
+ Design systems · Remote Edit</pre><figcaption>Find sheet</figcaption></figure>
+</div>
+<p><strong>Deletes:</strong> all client discovery (Discover, Companies, Live postings, <code>src/feed/</code> fetching, HN/Remotive/SAM sources, curation, tracks). CSP shrinks to Supabase only. About −15k source lines.</p>
+<p><strong>Migration:</strong> watched tiles, dreams, targets and saved searches move to <code>sources</code>; the active track's titles, must include, location and mode become <code>profile</code>. Undeployed migrations are rewritten in place. Blob v12 keeps jobs, documents, kit, trash.</p>
+<p><strong>Risks:</strong> (1) no discovery at all when signed out; (2) everything rests on an edge function that has never run (bundling, Ashby time limits, boards blocking server IPs); (3) generic ranking for non-design profiles; (4) abuse and cost of user-entered server fetches; <code>legal.ts</code> needs re-approval.</p>
+
+<h2 id="b">4. Design B: One list, client-first</h2>
+<p><span class="tag">flexible</span><span class="tag">works signed out</span></p>
+<p>The Pipeline is home. A new Status, <strong>New</strong>, sits before Saved: Find writes results into the same Job list. Every feeder (boards, dreams, targets, tiles, HN, SAM) becomes one <strong>Source</strong> in one synced store; one app-wide <strong>Filter</strong> replaces titles, sweep, must include, Calibrate. A <code>PostingReader</code> seam has two adapters: the browser (today's <code>fetchFeed</code>) and the server (<code>postings</code> rows).</p>
+<div class="mocks">
+<figure><pre>RoleForge                     (A)
+[ Find ]          [ Apply · 7 ]
+New · 23              Review all
+ Acme  Sr DS Engineer  Save  x
+ Figma Design Technol. Save  x
+ + 21 more
+Follow up · 3 due
+ Stripe Staff UXE 9d Follow up
+Next 7 days
+ Thu 2pm  Linear interview
+Jobs · 58
+[Search jobs      ] [Status v]
+ Linear · DS Lead            ...
+ Interviewing · Remote</pre><figcaption>Home: the Pipeline with New on top</figcaption></figure>
+<figure><pre>Find                      Close
+[design systems eng  ] [Run]
+Last run 2h · 23 new · 4 hidden
+Sources · 41 on           Add v
+ [x] Company boards (34)      &gt;
+ [x] HN · Remotive · Jobicy
+ [x] Nightly sync (signed in)
+ [ ] SAM.gov contracts
+ *   Dream companies (6)      &gt;
+ -&gt;  Search elsewhere (9)     &gt;
+Filter                     Edit
+ Titles: design system +3
+ Must include: systems
+ Leave out: intern, manager
+ Spokane · Hybrid · $150k+</pre><figcaption>Find sheet</figcaption></figure>
+</div>
+<p><strong>Deletes:</strong> Discover, Companies, Live postings UI, tiles and curation, tracks, sweep, saved searches. Keeps every source and probe behind the seam. About −10k lines, +2.2k new.</p>
+<p><strong>Migration:</strong> tiles, dreams, targets become Sources (tag = old group); all tracks' titles merge into one Filter; set-aside tiles become dismissed fingerprints. New jobs ride in a separate <code>found</code> field so old clients never turn them into Saved.</p>
+<p><strong>Risks:</strong> (1) New jobs bury the real pipeline (needs caps and auto-expiry); (2) blob size; (3) <strong>no forward guard today</strong>: an older tab rewrites the blob at v11 and drops new fields; (4) one Filter for all hunts.</p>
+
+<h2 id="c">5. Design C: Today deck</h2>
+<p><span class="tag">common case first</span><span class="tag">10-minute day</span></p>
+<p>Home is <strong>Today</strong>: three counts in a fixed order, each opening a one-card-at-a-time walk. One <strong>Search profile</strong> per account (titles, must include, leave out, location, mode). <strong>Companies</strong> are followed automatically when you save one of their jobs. One <strong>Feed</strong> module with two adapters (server signed in, browser signed out). Everything else sits under More.</p>
+<pre>useDeck()  → card, left, save(), skip(), notThisCompany(), undo()
+compileProfile(profile) → scorer config   // shared with the edge function
+today(jobs, deckLeft, now) → review, apply, followUp</pre>
+<div class="mocks">
+<figure><pre>Today                   (o) More
+Thu 28 Oct · Design Systems
+┌──────────────────────────────┐
+│ Review new               14  │
+│ From 37 companies you follow │
+│              [ Start review ]│
+└──────────────────────────────┘
+┌──────────────────────────────┐
+│ Apply                     5  │
+│ Saved, not yet applied       │
+│            [ Start applying ]│
+└──────────────────────────────┘
+┌──────────────────────────────┐
+│ Follow up                 2  │
+│ Due today: Figma, Vercel     │
+│                 [ Follow up ]│
+└──────────────────────────────┘
+All caught up? Edit profile</pre><figcaption>Home: Today</figcaption></figure>
+<figure><pre>&lt;- Today                3 of 14
+[Logo] Shopify
+Staff Engineer, Design Systems
+Remote (US) · 2 days ago
+
+Why: title says "design
+systems"; mentions tokens,
+Storybook
+
+[ Open posting  ↗ ]
+
+[ Not this company ]
+[  Skip  ]     [    Save    ]</pre><figcaption>Review card</figcaption></figure>
+</div>
+<p><strong>Deletes:</strong> Discover, Companies, Live postings, Find boards, GitHub, YC, Adele, ATS and big-board links, sweep, Calibrate, tracks, curation, Contracts. About −14k source lines, −11k test lines, +1.5k new.</p>
+<p><strong>Migration:</strong> blob v12 adds <code>profile</code>, <code>companies</code>, <code>decided</code>. Profile comes from the scored track (else the busiest). Companies = union of watched boards, dreams, targets with a board, and boards of saved jobs. Evidence becomes a Note document. "Download old setup" offered once.</p>
+<p><strong>Risks:</strong> (1) several tracks flatten into one; (2) empty deck on day one; (3) the edge function reads the blob's shape; (4) profile quality outside design systems.</p>
+
+<h2 id="compare">6. Side by side</h2>
+<div class="scroll">
+<table class="compare">
+<thead><tr><th></th><th>A Server inbox</th><th>B One list</th><th>C Today deck</th></tr></thead>
+<tbody>
+<tr><td>Home controls</td><td>Find · Apply · Inbox</td><td>Find · Apply · the list</td><td>Review · Apply · Follow up</td></tr>
+<tr><td>Matches "find/save, apply, keep it pushing"</td><td>Mostly (follow up is a row)</td><td>Partly (home is still a long list)</td><td><strong>Exactly</strong></td></tr>
+<tr><td>Works signed out</td><td>No discovery</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Depends on the undeployed edge function</td><td><strong>Fully</strong></td><td>No (optional)</td><td>No (optional)</td></tr>
+<tr><td>Stores after</td><td>blob 5 fields + sources, profile, triage, postings</td><td>blob + sources, filter, found, dismissed</td><td>blob + profile, companies, decided</td></tr>
+<tr><td>Lines deleted (net)</td><td>~−13.5k</td><td>~−7.8k</td><td>~−12.5k</td></tr>
+<tr><td>Seam</td><td>One adapter (hypothetical)</td><td>Two adapters (real)</td><td>Two adapters (real)</td></tr>
+<tr><td>Biggest risk</td><td>Server never ran</td><td>Noise in the list</td><td>Losing multiple tracks</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="rec">7. Recommendation: C, with B's Sources and A's Find box</h2>
+<div class="card pick">
+<ol>
+<li><strong>Home = Today</strong> (C): Review new, Apply, Follow up. The Pipeline becomes <em>Jobs</em> under More, unchanged inside.</li>
+<li><strong>One Find box</strong> (A) at the top of Today. Paste anything: a job link saves a Job (works signed out, replaces the separate quick-add form); a board or company becomes a Source; words update the Search profile's titles.</li>
+<li><strong>One Sources list</strong> (B) in the synced blob, not a server table: boards, followed companies (with or without a board), and the two keyless feeds (HN, Remotive). Saving a job follows its company (C). Dreams = a star on a Source.</li>
+<li><strong>One Search profile</strong> (C): titles, must include, leave out, location, mode. The design-systems scorer stays as the profile's tuned config. Stored as <code>profiles[]</code> with one entry, so a second hunt can come back later without a migration.</li>
+<li><strong>One Feed</strong> with two adapters: the browser (today's <code>fetchFeed</code>, signed out) and the server (<code>postings</code>, signed in). <code>sync-postings</code> reads Sources and the profile from the blob, so there is one source of truth and <code>watched_companies</code> / <code>skips</code> are never deployed.</li>
+</ol>
+</div>
+<p><strong>Why this mix.</strong> C is the only design whose home <em>is</em> Adrian's three controls; its deck makes "keep it pushing" a 10-minute habit instead of a list to scan. B's single Sources store is what makes "companies are a property of jobs" true: one place, one shape. A's paste-anything Find box removes four entry points (Add a company, Check a list, Add job, Watch a company) with one. A's server-only stance is rejected: it would turn off discovery for signed-out users and bet everything on a function that has never run.</p>
+<p><strong>The data shape after:</strong></p>
+<pre>blob v12
+  jobs, documents, kit, trash, copydeck (legacy)   kept
+  profiles[1]   titles, mustInclude, leaveOut, location, mode
+  sources[]     { kind: board|company|feed, ref, label, star? }
+  decided[]     { id, verdict, at }   newest 3,000
+server
+  tracker (blob)   postings   sync_log      // nothing else</pre>
+<p><strong>Migration from v11</strong> (one-time, after sync settles, like <code>SnippetMigration</code>):</p>
+<ul>
+<li>Profile from the scored track, else the track with most saved jobs. Other tracks' titles are listed in the notice, not merged.</li>
+<li>Sources = watched-board tiles + dreams (starred) + targets + boards of saved jobs, deduped by company key. GitHub-only targets keep their website as a company Source.</li>
+<li>Set-aside tiles and saved jobs seed <code>decided</code>. Evidence text becomes a Note document.</li>
+<li>Non-board tiles (Apply now sections, search links) are offered once as a "Download your links (.txt)" file, then dropped.</li>
+<li>Dropped: <code>filters</code>, <code>sweeps</code>, <code>modes</code>, <code>targets</code>, <code>dreams</code>, <code>mustInclude</code>, <code>triage</code>, <code>evidence</code> (after conversion). Curation tables frozen, dropped 30 days later.</li>
+<li>Before any of this: a <strong>forward guard</strong>. Today an older tab can rewrite the blob at v11 and silently drop new fields.</li>
+</ul>
+
+<h2 id="slices">8. Slice plan</h2>
+<p class="small">Each slice ships on its own and leaves the app working. Nothing is deleted until the replacement has been used for a week.</p>
+<ol class="slices">
+<li><strong>Sync forward guard.</strong> A tab that reads a newer blob version stops pushing and shows "Reload to continue".</li>
+<li><strong>Today home.</strong> <code>today.ts</code> read model and a three-section home; Pipeline becomes Jobs under More. Nothing removed.</li>
+<li><strong>One Find box.</strong> Paste a job link (save), a board or company (follow), or words (titles). Replaces Add job, Add a company and Watch a company as entry points; old screens stay.</li>
+<li><strong>Blob v12: profiles, sources, decided + migration.</strong> One-time move from v11 with the links download and a notice. Old fields still read.</li>
+<li><strong>Feed module + Review deck (browser adapter).</strong> Save, Skip, Not this company over <code>fetchFeed</code>; saving follows the company. Works signed out.</li>
+<li><strong>Server adapter.</strong> <code>sync-postings</code> reads sources and profile from the blob; <code>watched_companies</code> and <code>skips</code> removed from the undeployed migrations; deploy and seed check (Adrian runs the deploy steps).</li>
+<li><strong>Onboarding = profile form.</strong> Title + location, starter companies followed, deck opens.</li>
+<li><strong>Delete Companies, Discover and tracks.</strong> Live postings UI, Companies, Find boards, GitHub, YC, Adele, ATS links, Calibrate, sweep, curation, Contracts. CSP and <code>legal.ts</code> shrink (wording needs Adrian's re-approval).</li>
+<li><strong>Cleanup.</strong> Stop reading v11 fields, drop curation tables, rewrite CLAUDE.md, CONTEXT.md, add an ADR.</li>
+</ol>
+
+<h2 id="loses">9. What Adrian loses, and why it's worth it</h2>
+<ul>
+<li><strong>More than one track.</strong> One profile at a time (switchable later via <code>profiles[]</code>). Contracts and the trades boards go.</li>
+<li><strong>Curated tile boards</strong> (Apply now sections, Manage track). Offered as a links file once.</li>
+<li><strong>Hunting tools:</strong> GitHub org search, YC batches and type-ahead, Adele seed, Check a list of 500, ATS Google search and Big job boards.</li>
+<li><strong>Calibrate's knobs:</strong> pay floor, level, related titles, sweep chips, saved searches, "N hidden by" counts. Leave out and must include stay in the profile.</li>
+<li><strong>Browsing all postings as one long list.</strong> The deck is one card at a time; Jobs under More is still a list.</li>
+</ul>
+<p><strong>Why it's worth it.</strong> Every one of these was built for a real need, but together they make the first question "which of 19 tools do I use?" instead of "what's next?". The three things that actually move a hunt forward (look at new openings, apply, follow up) are already the best-built parts of the app; this spec puts them on the front page and hides nothing they need. The cut is about 40% of the code and 8 of the 13 synced fields, which also makes every later change cheaper and the sync safer. The tuned design-systems scorer survives as the profile's config, so Adrian's own results should not get worse.</p>
+
+<p class="small">Source notes: inventory line counts from <code>wc -l</code> on main at 017b869. Designs A, B and C were drafted in parallel ("design it twice") and compared here. Glossary changes are in <code>CONTEXT.md</code> under "Proposed (simplify spec)".</p>
+</main>
+</body>
+</html>
