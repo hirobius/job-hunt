@@ -19,8 +19,9 @@ import {
   Tag,
   Text,
 } from '@hirobius/design-system';
-import { Calendar, MapPin, RefreshCw, SearchX, type LucideIcon } from 'lucide-react';
+import { Banknote, MapPin, RefreshCw, SearchX, type LucideIcon } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
+import { metaLines } from './metaLines';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
@@ -30,6 +31,7 @@ import {
   filterCounts,
   filterRows,
   newTodayLine,
+  payLabel,
   sortRows,
   type FeedFilter,
   type FeedRow,
@@ -435,49 +437,40 @@ function Fact({ icon, text }: { icon: LucideIcon; text: string }) {
   );
 }
 
-/** One posting: New and the source on top, the title as the link into the posting, the company,
- *  the scorer's reasons, then place, posted and the signals. */
+/** One posting (Adrian 2026-10-28): the title as the link into the posting; company, place and
+ *  pay; one short line of why it matched; then New, freshness and the source, small. */
 function PostingSummary({ r, now }: { r: FeedRow; now: number }) {
   const place = r.location || (r.mode ? modeLabel(r.mode) : '');
+  const pay = payLabel(r);
   const posted = postedAgo(r.postedAt, now);
+  const small = [
+    posted && (posted === 'today' ? 'Posted today' : `Posted ${posted}`),
+    SOURCE_LABEL[r.source],
+  ].filter(Boolean);
   return (
     <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <Stack gap="px4">
-        <Stack direction="row" wrap="wrap" gap="px8" align="center">
-          {r.isNew && <Badge tone="info">New</Badge>}
-          {r.signals.map((s) => (
-            <Badge key={s.id} tone="neutral">
-              {s.label}
-            </Badge>
-          ))}
-          <Text variant="caption" as="span" tone="secondary">
-            {SOURCE_LABEL[r.source]}
-          </Text>
-        </Stack>
         <Text variant="body" as="h4" weight="bold" className="rjb-card-title">
           <InlineLink href={r.url}>{r.title}</InlineLink>
         </Text>
-        {r.company && (
-          <Text variant="ui" as="p">
-            {r.company}
+        <Stack direction="row" wrap="wrap" gap="tight" align="center">
+          {r.company && (
+            <Text variant="ui" as="span">
+              {r.company}
+            </Text>
+          )}
+          {place && <Fact icon={MapPin} text={place} />}
+          {pay && <Fact icon={Banknote} text={pay} />}
+        </Stack>
+        <Text variant="caption" as="p">
+          {r.why}
+        </Text>
+        <Stack direction="row" wrap="wrap" gap="px8" align="center">
+          {r.isNew && <Badge tone="info">New</Badge>}
+          <Text variant="caption" as="span" tone="secondary">
+            {metaLines(small).join(' ')}
           </Text>
-        )}
-        {r.reasons && (
-          <Text variant="caption" as="p" tone="secondary">
-            {r.reasons}
-          </Text>
-        )}
-        {(place || posted) && (
-          <Stack direction="row" wrap="wrap" gap="tight" align="center">
-            {place && <Fact icon={MapPin} text={place} />}
-            {posted && (
-              <Fact
-                icon={Calendar}
-                text={posted === 'today' ? 'Posted today' : `Posted ${posted}`}
-              />
-            )}
-          </Stack>
-        )}
+        </Stack>
       </Stack>
     </Box>
   );
@@ -531,6 +524,11 @@ function Deck({
       >
         <DeckBody>
           <PostingSummary r={r} now={now} />
+          {r.reasons && (
+            <Text variant="caption" as="p" tone="secondary">
+              {r.reasons}
+            </Text>
+          )}
           {r.snippet && (
             <Text variant="body" as="p" tone="secondary">
               {r.snippet}

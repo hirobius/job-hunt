@@ -215,7 +215,9 @@ describe('Review new: the scorer', () => {
     renderReview();
     const ul = await list();
     expect(titles(ul)).toEqual(['Design Systems Engineer']);
-    expect(within(ul).getByText(/^Queued because/)).toBeInTheDocument();
+    expect(
+      within(ul).getByText('Design-system title; mentions design tokens'),
+    ).toBeInTheDocument();
     const review = screen.getByRole('list', { name: 'Held for review' });
     expect(titles(review)).toEqual(['UX Engineer']);
     // The related title is searched too.

@@ -28,8 +28,10 @@ export interface FeedRow extends SweptPosting {
   /** The day this browser first read it (YYYY-MM-DD); today for one never seen before. */
   firstSeen: string;
   isNew: boolean;
-  /** The scorer's "Queued because: …" line, on a scored profile. */
+  /** The scorer's "Queued because: …" line, on a scored profile (the Deck shows it whole). */
   reasons?: string;
+  /** Why it matched, short: the row's one line under the title (Adrian 2026-10-28). */
+  why: string;
   /** The ranking score shown and sorted by: the scorer's on a scored profile. */
   rank: number;
 }
@@ -160,6 +162,7 @@ export function buildFeed(
       firstSeen,
       isNew: firstSeen === today,
       reasons: p.trackScore ? reasonsLine(p.trackScore) : undefined,
+      why: whyLine(p),
       rank: p.trackScore ? p.trackScore.score : p.score,
     };
   };
@@ -236,4 +239,42 @@ export function filterCounts(rows: FeedRow[]): Record<FeedFilter, number> {
 export function newTodayLine(newToday: number, sources: number): string {
   const from = `from ${sources} ${sources === 1 ? 'source' : 'sources'}`;
   return newToday > 0 ? `${newToday} new today ${from}` : `Nothing new today ${from}`;
+}
+
+// ---- the row's words ----
+
+/** Why a posting matched, in a few words: what its title says, then up to three body signals
+ *  (the scorer's) or the matched titles (the phrase rules), then contract / first hire. */
+export function whyLine(p: SweptPosting): string {
+  const parts: string[] = [];
+  const s = p.trackScore;
+  if (s) {
+    const r = s.reasons.join(' ');
+    parts.push(
+      /title match/.test(r)
+        ? 'Design-system title'
+        : /adjacent title/.test(r)
+          ? 'Related title'
+          : 'Body only',
+    );
+    if (s.matchedSignals.length) parts.push(`mentions ${s.matchedSignals.slice(0, 3).join(', ')}`);
+  } else if (p.titles.length) {
+    parts.push(
+      `Matches ${p.titles.slice(0, 2).join(', ')}${p.titles.length > 2 ? ` +${p.titles.length - 2}` : ''}`,
+    );
+  } else if (p.hit === 'text') parts.push('Mentioned in the posting');
+  for (const sig of p.signals) parts.push(sig.label.toLowerCase());
+  const line = parts.join('; ');
+  return line.charAt(0).toUpperCase() + line.slice(1);
+}
+
+/** "$95k to $120k" from a source's stated yearly pay; '' when it states none. */
+export function payLabel(p: Pick<SweptPosting, 'salaryMin' | 'salaryMax' | 'currency'>): string {
+  const sym =
+    !p.currency || p.currency.toUpperCase() === 'USD' ? '$' : `${p.currency.toUpperCase()} `;
+  const k = (n: number) => `${sym}${Math.round(n / 1000)}k`;
+  if (p.salaryMin && p.salaryMax && p.salaryMin !== p.salaryMax)
+    return `${k(p.salaryMin)} to ${k(p.salaryMax)}`;
+  const one = p.salaryMax ?? p.salaryMin;
+  return one ? k(one) : '';
 }

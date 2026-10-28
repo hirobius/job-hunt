@@ -5,6 +5,8 @@ import {
   filterCounts,
   filterRows,
   newTodayLine,
+  payLabel,
+  whyLine,
   sortRows,
   type FeedRow,
 } from './feed';
@@ -127,6 +129,8 @@ describe('buildFeed', () => {
     const view = build([q, r], {}, [], ds);
     expect(view.rows.map((x) => x.id)).toEqual(['1']);
     expect(view.rows[0].reasons).toMatch(/^Queued because/);
+    expect(view.rows[0].why).toBe('Design-system title; mentions design tokens');
+    expect(view.review[0].why).toBe('Related title; mentions design system');
     expect(view.review.map((x) => x.id)).toEqual(['2']);
     // The related title rides in the profile's titles, so the sweep searches for it.
     expect(ds.titles).toContain('Design Technologist');
@@ -254,5 +258,31 @@ describe('decided store', () => {
     noteSeen(['a'], Date.parse('2026-10-01T12:00:00'));
     noteSeen(['a', 'b'], NOW);
     expect(readSeen()).toEqual({ a: '2026-10-01', b: '2026-10-28' });
+  });
+});
+
+describe('row words', () => {
+  const base = {
+    ...p('1', 'Product Designer', 'Acme'),
+    score: 0,
+    hit: 'title' as const,
+    snippet: '',
+    titles: [],
+    signals: [],
+  };
+  it('says why a phrase-rule posting matched, with its signals', () => {
+    expect(
+      whyLine({
+        ...base,
+        titles: ['Product Designer', 'UX Designer', 'Designer'],
+        signals: [{ id: 'contract', label: 'Contract', evidence: '' }],
+      }),
+    ).toBe('Matches Product Designer, UX Designer +1; contract');
+    expect(whyLine({ ...base, hit: 'text' })).toBe('Mentioned in the posting');
+  });
+  it('states pay only as the source gives it', () => {
+    expect(payLabel({ salaryMin: 95000, salaryMax: 120000 })).toBe('$95k to $120k');
+    expect(payLabel({ salaryMax: 80000, currency: 'EUR' })).toBe('EUR 80k');
+    expect(payLabel({})).toBe('');
   });
 });
