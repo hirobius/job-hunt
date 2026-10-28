@@ -5,7 +5,7 @@
 // Kept in `rjb_decided`, synced in the blob. Storage and the cloud are untrusted.
 import { useMemo } from 'react';
 import { liveStorage } from './liveStorage';
-import { loadPersisted, savePersisted } from './persisted';
+import { savePersisted } from './persisted';
 import { fingerprint } from './tracks/score';
 
 export const DECIDED_KEY = 'rjb_decided';
@@ -57,7 +57,26 @@ export function mergeDecided(cloud: Decided[], local: Decided[]): Decided[] {
   return settle([...local, ...cloud]);
 }
 
-const readAll = () => sanitizeDecided(loadPersisted<unknown>(DECIDED_KEY, []));
+// Parsed once per stored string: the Feed asks `decided.has` for every row it shows.
+let cache: { raw: string | null; list: Decided[] } | null = null;
+function readAll(): Decided[] {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(DECIDED_KEY);
+  } catch {
+    /* blocked storage reads as none */
+  }
+  if (cache?.raw !== raw) {
+    let parsed: unknown = [];
+    try {
+      parsed = raw ? JSON.parse(raw) : [];
+    } catch {
+      /* malformed reads as none */
+    }
+    cache = { raw, list: sanitizeDecided(parsed) };
+  }
+  return cache.list;
+}
 const live = liveStorage(DECIDED_KEY);
 const write = (all: Decided[]) => {
   savePersisted(DECIDED_KEY, all);
@@ -97,10 +116,11 @@ export const decided = {
     write(settle([...readAll().filter((x) => x.fingerprint !== d.fingerprint), d]));
     return d;
   },
-  /** Undo: forget a decision, or put back `prev` (what it was before). */
-  undo(fp: string, prev?: Decided | null): void {
+  /** Undo: forget a decision, or put back `prev` (what it was before), stamped now so a sync
+   *  keeps it over the decision it undoes (the later one wins). */
+  undo(fp: string, prev?: Decided | null, at = new Date().toISOString()): void {
     const rest = readAll().filter((x) => x.fingerprint !== fp);
-    write(settle(prev ? [...rest, prev] : rest));
+    write(settle(prev ? [...rest, { ...prev, at }] : rest));
   },
   /** Every decision, live, by fingerprint. */
   use: useDecidedMap,

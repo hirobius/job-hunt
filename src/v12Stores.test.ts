@@ -173,6 +173,14 @@ describe('decided', () => {
     expect(getDecided()).toEqual([]);
   });
 
+  it('an Undo after a newer decision synced still wins the next merge', () => {
+    let prev: ReturnType<typeof decided.set> = null;
+    act(() => void (prev = decided.set(fp, 'skipped', '2026-10-01T00:00:00.000Z')));
+    const cloud = decided.set(fp, 'saved', '2026-10-02T00:00:00.000Z')!; // synced
+    decided.undo(fp, prev, '2026-10-03T00:00:00.000Z');
+    expect(mergeDecided([cloud], getDecided())[0].verdict).toBe('skipped');
+  });
+
   it('merge: the later decision wins', () => {
     const a = { fingerprint: 'x', verdict: 'skipped' as const, at: '2026-10-02' };
     const b = { fingerprint: 'x', verdict: 'saved' as const, at: '2026-10-01' };

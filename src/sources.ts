@@ -104,12 +104,12 @@ export function sanitizeSources(raw: unknown): Source[] {
   return mergeByKey(sourceKey, null, ok).slice(0, MAX_SOURCES);
 }
 
-/** Two copies of one Source: `a` wins on what they disagree on, except that nothing known is
- *  lost (a website, a repo, the earliest addedAt). */
+/** Two copies of one Source: `a` is the truth (its star, mute and label stand, and a missing one
+ *  means off), filling in only what it does not know: a website, a repo, the earliest addedAt. */
 function combine(a: Source, b: Source): Source {
-  const out: Source = { ...b, ...a };
+  const out: Source = { ...a };
   for (const k of ['website', 'repo'] as const) if (!out[k] && b[k]) out[k] = b[k];
-  if (a.addedAt && b.addedAt) out.addedAt = a.addedAt < b.addedAt ? a.addedAt : b.addedAt;
+  if (b.addedAt && (!a.addedAt || b.addedAt < a.addedAt)) out.addedAt = b.addedAt;
   return out;
 }
 
@@ -123,11 +123,13 @@ export function mergeSources(cloud: Source[], local: Source[]): Source[] {
   });
 }
 
-/** Add what `list` lacks (by key); a Source it has already keeps its own state, filling in a
- *  missing website / repo / star. Returns the new list and how many were added. Pure. */
+/** Add what `list` lacks (by key). A Source it has already keeps its own star and mute (an
+ *  unstarred or unmuted one is never switched back by a later copy) and only fills in a missing
+ *  website / repo; with `star`, a starred copy does star it (the move's dreams). Pure. */
 export function withSources(
   list: Source[],
   add: readonly Source[],
+  { star = false }: { star?: boolean } = {},
 ): { list: Source[]; added: number } {
   const by = new Map(list.map((s, i) => [sourceKey(s), i]));
   const out = [...list];
@@ -143,7 +145,7 @@ export function withSources(
     }
     const cur = out[at];
     const next = combine(cur, s);
-    if (s.star && !cur.star) next.star = true;
+    if (star && s.star) next.star = true;
     out[at] = next;
   }
   return { list: out.slice(0, MAX_SOURCES), added };
@@ -164,15 +166,17 @@ export function replaceSources(all: Source[]): void {
   write(sanitizeSources(all));
 }
 
-/** Add Sources the list lacks (see withSources), in one write. Returns how many were added. */
+/** Add Sources the list lacks (see withSources), in one write; nothing is written when nothing
+ *  changes (the v12 move tops up on every store change). Returns how many were added. */
 export function addSources(add: readonly Source[]): number {
   const clean = sanitizeSources(add);
   const at = new Date().toISOString();
+  const cur = readAll();
   const { list, added } = withSources(
-    readAll(),
+    cur,
     clean.map((s) => ({ ...s, addedAt: s.addedAt ?? at })),
   );
-  write(list);
+  if (JSON.stringify(list) !== JSON.stringify(cur)) write(list);
   return added;
 }
 

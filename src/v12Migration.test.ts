@@ -1,7 +1,7 @@
 // The v11 → v12 move (simplify spec #384/#385). Adrian's hard condition: no loss of job breadth.
 // A rich v11 account (three tracks, every board kind, dreams, targets, sweep titles, saved jobs)
 // goes through the move, and every board, dream, target and title must come out the other side.
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CurationState } from './curation/types';
 import { replaceCurationState } from './curation/curationStore';
 import { boardsFromUrls, canonicalBoardUrl, parseBoardUrl } from './feed/sources/ats';
@@ -17,7 +17,7 @@ import { replaceModes } from './trackModes';
 import { replaceEvidence, readEvidence } from './radar/evidenceStore';
 import { getAllDocuments } from './documents';
 import { getProfile, getProfiles, replaceProfiles, updateProfile } from './profile';
-import { getSources, sourceKey, sourceBoard, starSource, type Source } from './sources';
+import { getSources, muteSource, sourceKey, sourceBoard, starSource, type Source } from './sources';
 import { SAMPLE_TRACK_KEY } from './demo/sampleTrack';
 import {
   linksText,
@@ -325,6 +325,21 @@ describe('profileFromV11', () => {
     expect(off.has('design technologist')).toBe(false);
   });
 
+  it('comes in off what v11 did not search: past 12 on, or taken off a stored sweep', () => {
+    const s = v11();
+    s.sweeps.ds = {
+      titles: Array.from({ length: 15 }, (_, i) => `DS title ${i + 1}`), // stored all on
+      off: [],
+    };
+    const p = profileFromV11(s, AT)!;
+    const off = new Set(p.titlesOff);
+    expect(off.has('DS title 12')).toBe(false);
+    expect(['DS title 13', 'DS title 14', 'DS title 15'].every((t) => off.has(t))).toBe(true);
+    // The track's own titles are no longer on its stored sweep: kept, off.
+    expect(p.titles).toContain('Design Systems Designer');
+    expect(off.has('Design Systems Designer')).toBe(true);
+  });
+
   it('keeps every ATS role and the ones switched off', () => {
     const p = profileFromV11(v11(), AT)!;
     expect(p.atsRoles).toEqual(['design system', 'design technologist', 'welder']);
@@ -494,6 +509,26 @@ describe('runV12Move (the stores)', () => {
     expect(out.moved).toBe(false);
     expect(getSources().find((s) => sourceKey(s) === 'ashby:notion')?.star).toBe(true);
     expect(getProfile()?.titles).toContain('Design Ops Lead');
+  });
+
+  it('never switches back a star or mute the person changed', () => {
+    runV12Move(new Date(AT));
+    starSource('ashby:vercel', false); // was a dream
+    muteSource('greenhouse:gone', false); // was on an archived section
+    runV12Move(new Date(AT));
+    const by = new Map(getSources().map((x) => [sourceKey(x), x]));
+    expect(by.get('ashby:vercel')?.star).toBeUndefined();
+    expect(by.get('greenhouse:gone')?.muted).toBeUndefined();
+  });
+
+  it('writes nothing when there is nothing new', () => {
+    runV12Move(new Date(AT));
+    const raw = localStorage.getItem('rjb_sources');
+    const set = vi.spyOn(Storage.prototype, 'setItem');
+    runV12Move(new Date(AT));
+    expect(set.mock.calls.filter(([k]) => k === 'rjb_sources')).toHaveLength(0);
+    expect(localStorage.getItem('rjb_sources')).toBe(raw);
+    set.mockRestore();
   });
 
   it('does nothing with no real track (a first run before onboarding)', () => {

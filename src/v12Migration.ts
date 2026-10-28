@@ -17,7 +17,7 @@ import { getAllDreams, type Dream } from './feed/dreams';
 import { SOURCE_ENABLED } from './feed/sourceEnabled';
 import { getAllMustInclude, type MustInclude } from './feed/mustInclude';
 import { boardLabel, parseBoardUrl } from './feed/sources/ats';
-import { getAllSweeps, sweepFor, type SweepTitles } from './feed/sweepTitles';
+import { activeTitles, getAllSweeps, sweepFor, type SweepTitles } from './feed/sweepTitles';
 import { getAllTargets, type Target } from './feed/targets';
 import { SOURCE_LABEL } from './feed/types';
 import { isSample } from './demo/isSample';
@@ -32,7 +32,7 @@ import {
   type Profile,
 } from './profile';
 import { readEvidence } from './radar/evidenceStore';
-import { addSources, boardSource, type FeedRef, type Source } from './sources';
+import { addSources, boardSource, withSources, type FeedRef, type Source } from './sources';
 import { getAllJobs } from './store';
 import { getAllModes } from './trackModes';
 import { scorerFor } from './tracks/forTrack';
@@ -103,8 +103,8 @@ function targetSource(t: Target): Source {
   return { kind: 'company', ref: norm(t.company), label: t.company, ...extra };
 }
 
-/** Every Source the v11 account implies, in order, one per key (sources.ts withSources rules:
- *  a later copy only fills in a star, website or repo; an active board is never muted). */
+/** Every Source the v11 account implies, in order, one per key (sources.ts withSources: a later
+ *  copy only fills in a star, website or repo, so a board live anywhere is never muted). */
 export function sourcesFromV11(s: V11State): Source[] {
   const tracks = new Set(realTracks(s).map((c) => c.id));
   const own = <T>(m: Record<string, T[]>) =>
@@ -138,59 +138,42 @@ export function sourcesFromV11(s: V11State): Source[] {
     // Last, so a board that is live anywhere else is not muted.
     ...boardTiles(false),
   ];
-  const out: Source[] = [];
-  const at = new Map<string, number>();
-  const key = (x: Source) => `${x.kind}:${norm(x.ref)}`;
-  for (const x of all) {
-    const i = at.get(key(x));
-    if (i === undefined) {
-      at.set(key(x), out.length);
-      out.push(x);
-      continue;
-    }
-    const cur = out[i];
-    out[i] = {
-      ...cur,
-      ...(x.star && { star: true as const }),
-      ...(!cur.website && x.website && { website: x.website }),
-      ...(!cur.repo && x.repo && { repo: x.repo }),
-    };
-  }
-  return out;
+  return withSources([], all, { star: true }).list;
 }
 
 /** A track's sweep (its stored entry, else its titles, else its ATS roles, all on). */
 const sweepOf = (s: V11State, c: CurationState['categories'][0]) =>
   sweepFor(s.sweeps, c.id, c.titles.length ? c.titles : c.atsRoles);
 
-/** How much a track holds: its live boards, dreams, targets and sweep titles. */
-function busyness(s: V11State, c: CurationState['categories'][0]): number {
-  const boards = tilesOf(s).filter(
-    (x) => x.track.id === c.id && x.live && parseBoardUrl(x.tile.url),
-  ).length;
-  return (
-    boards +
-    (s.dreams[c.id]?.length ?? 0) +
-    (s.targets[c.id]?.length ?? 0) +
-    sweepOf(s, c).titles.length
-  );
-}
-
-/** The track the profile's settings come from: the scored one, else the busiest (live tracks
- *  first, then the board's order). */
+/** The track the profile's settings come from: the scored one, else the busiest (its live
+ *  boards, dreams, targets and sweep titles), live tracks first, then the board's order. */
 function profileTrack(s: V11State) {
   const tracks = [...realTracks(s)].sort(
     (a, b) => Number(a.archived) - Number(b.archived) || a.sortOrder - b.sortOrder,
   );
+  const boards = new Map<string, number>();
+  for (const x of tilesOf(s))
+    if (x.live && parseBoardUrl(x.tile.url))
+      boards.set(x.track.id, (boards.get(x.track.id) ?? 0) + 1);
+  const busyness = (c: (typeof tracks)[0]) =>
+    (boards.get(c.id) ?? 0) +
+    (s.dreams[c.id]?.length ?? 0) +
+    (s.targets[c.id]?.length ?? 0) +
+    sweepOf(s, c).titles.length;
   const pool = tracks.filter((c) => scorerFor(s.mustInclude[c.id]));
-  const from = pool.length ? pool : tracks;
   let best: (typeof tracks)[0] | null = null;
-  for (const c of from) if (!best || busyness(s, c) > busyness(s, best)) best = c;
+  for (const c of pool.length ? pool : tracks) if (!best || busyness(c) > busyness(best)) best = c;
   return { best, tracks };
 }
 
-/** Titles and ATS roles from every track (`first` leading), each once, with its on/off. */
-function allTitles(s: V11State, ordered: CurationState['categories']) {
+/** Every track, `first` leading. */
+const ordered = (tracks: CurationState['categories'], first: string | undefined) => [
+  ...tracks.filter((c) => c.id === first),
+  ...tracks.filter((c) => c.id !== first),
+];
+
+/** Titles and ATS roles from every track, in the order given, each once, with its on/off. */
+function allTitles(s: V11State, tracks: CurationState['categories']) {
   const titles: string[] = [];
   const titlesOff: string[] = [];
   const atsRoles: string[] = [];
@@ -203,12 +186,12 @@ function allTitles(s: V11State, ordered: CurationState['categories']) {
     titles.push(t.trim());
     if (off) titlesOff.push(t.trim());
   };
-  for (const c of ordered) {
+  for (const c of tracks) {
+    // On = searched in v11: on the sweep (at most 12, activeTitles) of a live track. A track title
+    // taken off its stored sweep list was not searched either: it comes in, off.
     const sw = sweepOf(s, c);
-    const swOff = new Set(sw.off.map(norm));
-    // An archived track was not searched: its titles come in off.
-    for (const t of sw.titles) add(t, c.archived || swOff.has(norm(t)));
-    for (const t of c.titles) add(t, c.archived);
+    const on = new Set(c.archived ? [] : activeTitles(sw).map(norm));
+    for (const t of [...sw.titles, ...c.titles]) add(t, !on.has(norm(t)));
     const roleOff = new Set((s.mustInclude[c.id]?.atsOff ?? []).map(norm));
     for (const r of c.atsRoles) {
       if (!r.trim() || seenAts.has(norm(r))) continue;
@@ -225,7 +208,7 @@ export function profileFromV11(s: V11State, now: string): Profile | null {
   const { best, tracks } = profileTrack(s);
   if (!best) return null;
   const rule = s.mustInclude[best.id];
-  const t = allTitles(s, [best, ...tracks.filter((c) => c.id !== best.id)]);
+  const t = allTitles(s, ordered(tracks, best.id));
   const p: Profile = {
     id: PROFILE_ID,
     label: best.label,
@@ -298,27 +281,26 @@ export function runV12Move(now = new Date()): { moved: boolean; links: LeftoverL
   const s = readV11();
   const profiles = getProfiles();
   if (!realTracks(s).length && !profiles.length) return { moved: false, links: [] };
-  const at = now.toISOString();
-  const { profile, sources, links } = moveV11(s, at);
-  addSources(sources);
+  addSources(sourcesFromV11(s));
   if (profiles.length) {
     // Titles the old screens added since: on the profile too (it keeps its own on/off).
     const cur = profiles[0];
     const have = new Set(cur.titles.map(norm));
-    const fresh = profile?.titles.filter((t) => !have.has(norm(t))) ?? [];
-    if (fresh.length) {
-      const off = new Set(profile!.titlesOff.map(norm));
+    const t = allTitles(s, ordered(realTracks(s), cur.fromTrack));
+    const off = new Set(t.titlesOff.map(norm));
+    const fresh = t.titles.filter((x) => !have.has(norm(x)));
+    if (fresh.length)
       replaceProfiles([
         {
           ...cur,
           titles: [...cur.titles, ...fresh],
-          titlesOff: [...cur.titlesOff, ...fresh.filter((t) => off.has(norm(t)))],
+          titlesOff: [...cur.titlesOff, ...fresh.filter((x) => off.has(norm(x)))],
         },
         ...profiles.slice(1),
       ]);
-    }
     return { moved: false, links: [] };
   }
+  const { profile, links } = moveV11(s, now.toISOString());
   if (!profile) return { moved: false, links: [] };
   replaceProfiles([profile]);
   const text = s.evidence.trim();

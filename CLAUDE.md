@@ -106,7 +106,9 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   lazy chunk): the profile once (scored track, else the busiest; titles from EVERY track, its own first);
   Sources = the union across all tracks of watched board tiles (archived ones muted), dreams (starred),
   targets and saved jobs' boards, plus the keyless feeds; topped up add-only on every run until the old
-  screens go (#389). Non-board tiles are offered once as a links .txt; evidence becomes a Note. v11
+  screens go (#389), never switching back a star or mute the person changed, and writing nothing when
+  nothing is new. Titles come in on only where v11 searched them (a live track's first 12 on). A
+  Replace from a pre-v12 backup (`before12`) keeps this device's profile, Sources and decisions. Non-board tiles are offered once as a links .txt; evidence becomes a Note. v11
   fields are never changed and still read. Pinned in `v12Migration.test.ts` (rich v11 fixture: nothing
   lost), `v12Stores.test.ts`, `v12MigrationNotice.test.tsx`.
 - **Structure:** `src/App.tsx` — tabbed shell with four tabs: **Trades** (tab label; slug

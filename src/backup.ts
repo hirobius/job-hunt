@@ -64,6 +64,8 @@ export interface Backup extends AccountState {
   kind: 'backup';
   v: 1;
   exportedAt: string;
+  /** Read from a file made before blob v12 (none of profiles / sources / decided). Never written. */
+  before12?: true;
 }
 
 export type ParseResult = { ok: true; backup: Backup } | { ok: false; reason: string };
@@ -371,6 +373,9 @@ export function parseBackup(text: string): ParseResult {
       profiles: sanitizeProfiles(data.profiles),
       sources: sanitizeSources(data.sources),
       decided: sanitizeDecided(data.decided),
+      ...(!('profiles' in data || 'sources' in data || 'decided' in data) && {
+        before12: true as const,
+      }),
     },
   };
 }
@@ -378,7 +383,7 @@ export function parseBackup(text: string): ParseResult {
 /** Replace = the backup's data. Merge = the backup plays "cloud" (it wins on shared keys). */
 export function applyBackup(
   current: AccountState,
-  backup: AccountState,
+  backup: AccountState & Pick<Backup, 'before12'>,
   mode: 'merge' | 'replace',
 ): AccountState {
   if (mode === 'replace') {
@@ -397,9 +402,11 @@ export function applyBackup(
       kit: backup.kit,
       sweeps: backup.sweeps,
       mustInclude: backup.mustInclude,
-      profiles: backup.profiles,
-      sources: backup.sources,
-      decided: backup.decided,
+      // A backup from before v12 has none of these: Replace keeps this device's (its stars, mutes
+      // and profile edits), and the v12 move tops Sources up from the restored tracks.
+      ...(backup.before12
+        ? { profiles: current.profiles, sources: current.sources, decided: current.decided }
+        : { profiles: backup.profiles, sources: backup.sources, decided: backup.decided }),
     };
   }
   const jobs = mergeJobs(backup.jobs, current.jobs);
