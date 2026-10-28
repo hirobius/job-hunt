@@ -344,10 +344,10 @@ export const mergeJobs = (cloud: Job[] | null, local: Job[]): Job[] =>
 /** Quick-link helper: add the job (if new) then set a status. */
 export function setStatusByUrl(rawUrl: string, status: Status, label?: string) {
   addJob(rawUrl, label);
-  let u = cleanUrl(rawUrl);
-  if (!u) return;
-  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-  setStatus(u, status);
+  // The saved copy may be under another form of the link (www, a trailing slash): match as a save
+  // dedupes, not on the exact text.
+  const job = findJobByUrl(rawUrl);
+  if (job) setStatus(job.url, status);
 }
 export function markAppliedByUrl(rawUrl: string, label?: string) {
   setStatusByUrl(rawUrl, 'Applied', label);
