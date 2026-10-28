@@ -434,6 +434,18 @@ Search elsewhere (9)          ›</pre><figcaption>Browse (amendment 3: no fit g
 <tr><td>Job rail at lg</td><td>Keep.</td></tr>
 </tbody></table></div>
 
+<h3>Scheduled follow-ups stay, and get more visible</h3>
+<p>Adrian (relayed 2026-10-28): nothing about follow-ups is cut. These are the "reach back out" moments:</p>
+<ul>
+<li><strong>After Mark applied:</strong> due 7 days later. This is built today (<code>jobState.ts</code>, <code>FOLLOWUP_DAYS</code>).</li>
+<li><strong>After a follow-up is sent:</strong> the clock restarts and the next one is due 7 days later. Built today; Mark as sent sets <code>followUp</code>.</li>
+<li><strong>Snooze:</strong> pushes the date later (<code>snoozeUntil</code>). Built today.</li>
+<li><strong>A saved contract's response deadline</strong> (<code>deadline</code>). Built today; it goes with SAM.gov.</li>
+<li><strong>After an interview:</strong> <em>new</em>. Today the clock only reads <code>applied</code> and <code>followUp</code>. Proposed: a past interview event also restarts it, with a thank-you note the next day and a check-in 7 days later. This touches <code>jobState.followUp</code> and <code>jobEvents.followUpDate</code> only.</li>
+</ul>
+<p><strong>On Today</strong>, Follow up shows what is due today, each with its date and the one Follow up button, plus an "Upcoming: N this week" count that opens the list. <strong>On Jobs</strong>, every job card shows its next follow-up date ("Follow up Thu 6 Nov", or "Follow up due" once due), and the Follow up and Next 7 days sections stay.</p>
+<p class="small"><strong>Open question for Adrian:</strong> Q5 takes the Interviews log off the job page, but interview dates feed Next 7 days and the new after-interview follow-up. Should "Add interview" stay as one line in the job's menu, with the data kept either way?</p>
+
 <h3>Bug: the board probe trusts a slug</h3>
 <p>The probe matched "Forward" (a YC company) to three different boards: Greenhouse, SmartRecruiters and Personio. <code>probeCompany</code> accepts every live board whose slug matches a candidate, so a common word maps to whichever company holds that slug on each ATS. The fix is an identity check. A hit counts only when the board's company website or domain matches the company's known website, or when a name match is confirmed by a domain. More than one ATS answering for a common-word slug makes the result <em>unconfirmed</em>, not found. Filed as its own bug; the auto-scan depends on it.</p>
 

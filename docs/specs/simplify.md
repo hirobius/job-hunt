@@ -49,6 +49,18 @@ The server keeps three tables: `tracker`, `postings` and `sync_log`. `watched_co
 - **Jobs stays a top tab** (Today · Jobs). Adrian's keep list: To apply + Start applying, Follow up, Next 7 days and the full job list (search, status, sort). Cut Getting started. Recently removed moves to the Account menu (or a "Show removed" filter), and Export links to the Account menu only. Job page (Adrian's Q5): keep Details and Notes; Documents and Decks become plain lists of external links for now; To-dos, Screening and the Interviews log are cut from the page, but their data stays in storage, sync and backups.
 - **Bug #417:** the board probe needs an identity check. It matched "Forward" to three different boards.
 
+## Follow-ups (kept, made visible)
+
+- **Nothing about follow-ups is cut.** These are all built today:
+  - due 7 days after Mark applied
+  - due 7 days after a follow-up is sent
+  - Snooze
+  - a saved contract's deadline
+- **New:** a past interview also restarts the clock, with a thank-you note the next day and a check-in 7 days later.
+- **Today:** Follow up shows what is due today, with dates, plus an "Upcoming: N this week" count.
+- **Jobs:** every job card shows its next follow-up date, and the Follow up and Next 7 days sections stay.
+- **Open question:** Q5 removes the Interviews log from the job page. Should "Add interview" stay in the job's menu?
+
 ## What Adrian loses
 
 - More than one track
