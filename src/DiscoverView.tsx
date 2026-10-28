@@ -61,6 +61,7 @@ import { importFresh } from './staleBuild';
 
 const ManageTrackDialog = lazy(importFresh(() => import('./ManageTrackDialog')));
 const LiveFeedPanel = lazy(importFresh(() => import('./LiveFeedPanel')));
+const ReviewView = lazy(importFresh(() => import('./ReviewView')));
 const FindBoardsPanel = lazy(importFresh(() => import('./FindBoardsPanel')));
 const CompaniesPanel = lazy(importFresh(() => import('./CompaniesPanel')));
 
@@ -530,10 +531,11 @@ const TOOLS: { key: ToolKey; label: string }[] = [
 // Live postings and the list checker (Find boards) stopped being tools (#237): they are secondary
 // views of the companies list, one link away, and their old slugs still open them. The Titles tool
 // became the title filter (#223): `titles` opens Live postings with Calibrate open.
-type Secondary = 'live' | 'boards';
+type Secondary = 'live' | 'boards' | 'review';
 const SECONDARY_VIEWS: Record<Secondary, string> = {
   live: 'Live postings',
   boards: 'Check a list of companies',
+  review: 'Review new',
 };
 
 const COMPANIES = parseHash('#/discover');
@@ -678,7 +680,8 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   }, [fromTitles]);
   const sub = fromTitles ? 'live' : route.sub;
   const roomyTools = useAtLeast('sm');
-  const secondary = sub === 'live' || sub === 'boards' ? (sub as Secondary) : null;
+  const secondary =
+    sub === 'live' || sub === 'boards' || sub === 'review' ? (sub as Secondary) : null;
   // No sub → the default tool; a section id → Apply now on that section.
   const fallback: ToolKey = sections.length ? 'apply' : 'ats';
   const defaultTool: ToolKey = companiesLead ? 'teams' : fallback;
@@ -831,6 +834,11 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
               terms={searchTerms}
               source={companySource}
             />
+          </Suspense>
+        )}
+        {secondary === 'review' && (
+          <Suspense fallback={null}>
+            <ReviewView key={cat.id} categoryId={cat.id} />
           </Suspense>
         )}
         {secondary === 'live' && (

@@ -1,8 +1,9 @@
 {
-  "updatedAt": "2026-10-26T23:00:00Z",
+  "updatedAt": "2026-10-28T05:00:00Z",
   "phase": "live",
   "headline": "Live as RoleForge. Rapid apply (#218) and wide sweep (#220, blob v7) are on main. Companies follows the track in review on claude/teams-first (dream companies, blob v9).",
   "next": [
+    "Review PR claude/simplify-5-feed (#386): Feed module (PostingReader seam, browser adapter), Review new at #/discover/review (Browse default + Deck, Skip by posting, Not this company, Save follows company), breadth guard (8→12 and 11→13 distinct postings on the fixture). Not merged.",
     "Review PR claude/job-decks (#287): Decks panel on the job page (deck links with label + Sent on, http(s) only, soft remove + Undo), on the Job so it syncs, rides in Back up and the CSV decks column. Links only, no storage change. verify + verify:ui green. Not merged.",
     "Review draft PR claude/rf-track-scorer: the Muse track scorer replaces the systems-only rule on the Design Systems track (Live postings, Companies, dreams, reasons on cards, Review bucket), the Pipeline's scored queue + Skip, and the postings sync (migrations + sync-postings edge function + 2x daily cron + designsystems.jobs RSS). Migrations not applied, function not deployed (Adrian). Veto-able: 'design engineer' dropped from titleAdjacent.",
     "Security re-check 3 of claude/rf-tab-switch (#288): the must-fix is fixed test-first (a session getSession can't read, offline or a failed refresh, skips that send and never stops the tab; a definite sign-out or other user still does). main (f33442f) merged in; verify, verify:ui, e2e run locally. Not merged.",

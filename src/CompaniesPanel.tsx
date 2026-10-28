@@ -701,6 +701,11 @@ export default function CompaniesPanel({
 // each a title, a caption and an Open button (a 40px target), not bare text links.
 const MORE_WAYS = [
   {
+    title: 'Review new postings',
+    caption: 'Every source and title in one list: browse, save or skip',
+    href: '#/discover/review',
+  },
+  {
     title: 'Live postings from job boards',
     caption: 'HN, Remotive, Jobicy and your watched boards',
     href: '#/discover/live',

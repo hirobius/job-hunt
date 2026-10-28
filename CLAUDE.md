@@ -324,6 +324,18 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   filled profile fields as copy rows, the empty ones folded into one "Fill in N more" row, the two
   template-filled letters and Custom answers. The row menu sets any status.
   Pinned in `rapidApply.test.tsx`, `applyKit.test.ts`, `e2e/rapid-apply.spec.ts`.
+- **Feed + Review new (simplify 5/9, #386):** `#/discover/review` (a Companies secondary view, "Review new
+  postings" first under More ways; Today's "Review new" points here once #383 lands). `feed/feed.ts` is the Feed:
+  `buildFeed(read, profile, sources, …)` → Browse rows + the scorer's Review bucket (its own section), minus saved
+  jobs, Skips (by posting fingerprint, `tracks/score.ts` `fingerprint`) and muted companies. Reads go through the
+  `PostingReader` seam (`feed/reader.ts`; `browserReader` = `fetchFeed` sweeping every profile title). Inputs come
+  from today's stores via `feed/profile.ts` (`profileFrom`: ticked sweep titles + ATS roles on + related titles;
+  `sourcesFrom`: tiles + dream and target boards + feeds) until #384/#385's `useProfile`/`useSources`.
+  `feed/decided.ts` (`rjb_decided`: skips, muted, followed; local until blob v12) and `rjb_feed_seen` (first-seen
+  days, "N new today"). Save = `notifySaved` + `follow.ts` (a board posting watches its board, else follows the
+  company; Undo takes both back). Live postings' list is `feed/liveList.ts`, so the **breadth guard**
+  (`feed/breadth.test.ts` on `breadth.fixture.ts`) counts it through the panel's own code and fails if the Feed
+  loses a posting. Pinned in `feed/feed.test.ts`, `review.test.tsx`, `e2e/review.spec.ts`.
 - **Wide sweep (#213):** Live postings' quiet "Find more: sweep all N titles" runs one search over every
   title that is on for the track (`fetchFeed({ terms })`: term sources once per term, boards once, keys
   `hn|<term>`), merged/deduped/tagged by `feed/sweep.ts` `sweepRank` ("Matched …" on each row). Per-title

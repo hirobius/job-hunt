@@ -53,10 +53,10 @@ import { notifySaved } from './saveNotice';
 import { fetchFeed, type FeedResult } from './feed/fetchFeed';
 import { mergeRetry } from './feed/mergeFeed';
 import { AsyncState, type AsyncStatus } from '@hirobius/design-system/patterns';
-import { rankAll, rankPostings } from './feed/match';
 import { SCORED_TRACK_COPY, scorerFor } from './tracks/forTrack';
 import { reasonsLine } from './tracks/scoreForTrack';
 import { applyTargeting, NO_TARGETING } from './feed/targeting';
+import { matchLive } from './feed/liveList';
 import {
   hasRelatedTitles,
   RELATED_TITLES,
@@ -84,7 +84,7 @@ import { fitGap, parseEvidence, type FitGap } from './radar/fitGap';
 import { demandPatterns } from './radar/patterns';
 import { TIER_INFO, useEvidence, writeEvidence } from './radar/evidenceStore';
 import { SOURCE_LABEL, type Signal, type SignalId } from './feed/types';
-import { sweepRank, titleCounts, withoutHidden, type SweptPosting } from './feed/sweep';
+import { titleCounts, withoutHidden, type SweptPosting } from './feed/sweep';
 import { SweepTitlesEditor } from './SweepTitles';
 import { activeTitles, useSweep } from './feed/sweepTitles';
 import { metaLines } from './metaLines';
@@ -296,24 +296,6 @@ export default function LiveFeedPanel({
   const current = loaded && loaded.term === query && loaded.boardsKey === boardsKey ? loaded : null;
   const reading = current?.reading;
 
-  const matched = useMemo<SweptPosting[]>(() => {
-    if (!current?.result) return [];
-    const o = { where, mode, now: current.at };
-    // SAM.gov already read the track's state: the term, when there is one, only narrows the list.
-    if (contracts) {
-      const all = { where: '', mode: 'any' as const, now: current.at };
-      const list = term.trim()
-        ? rankPostings(current.result.postings, { ...all, term })
-        : rankAll(current.result.postings, all);
-      return list.map((p) => ({ ...p, titles: [] }));
-    }
-    // No term gate on a scored track: the term (or the sweep) picks what is read, the scorer what
-    // is listed.
-    if (scorer) return rankAll(current.result.postings, o).map((p) => ({ ...p, titles: [] }));
-    return sweeping
-      ? sweepRank(current.result.postings, sweepKey.split('\n'), o)
-      : rankPostings(current.result.postings, { ...o, term }).map((p) => ({ ...p, titles: [] }));
-  }, [current, term, where, mode, sweeping, sweepKey, scorer, contracts]);
   const floor = Number(floorText.replace(/[^\d.]/g, ''));
   const targeting = useMemo(
     () => ({
@@ -329,6 +311,22 @@ export default function LiveFeedPanel({
       include: mustInclude,
     }),
     [excludeText, seniority, floor, salaryOnly, sweepTitles, titleFilter.off, mustInclude],
+  );
+  // Matching depends on the read only; targeting re-runs alone as Calibrate changes.
+  const matched = useMemo(
+    () =>
+      current?.result
+        ? matchLive(current.result.postings, {
+            term,
+            sweep: sweeping ? sweepKey.split('\n') : null,
+            scored: !!scorer,
+            contracts,
+            where,
+            mode,
+            now: current.at,
+          })
+        : [],
+    [current, term, where, mode, sweeping, sweepKey, scorer, contracts],
   );
   const {
     postings: ranked,

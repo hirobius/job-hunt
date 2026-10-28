@@ -96,7 +96,13 @@ function watchForStale() {
  *  stored URLs of jobs this save added (already-saved ones are left out by the caller); those in
  *  `restored` were set aside before, so Undo sets them aside again instead of removing them. Undo
  *  never removes a job the user has moved past Saved since (#219). */
-export function notifySaved(urls: string[], _label?: string, restored: string[] = []) {
+export function notifySaved(
+  urls: string[],
+  _label?: string,
+  restored: string[] = [],
+  /** Also run on Undo (Review new: the save's follow is taken back too). */
+  onUndo?: () => void,
+) {
   if (!urls.length) return;
   const one = urls.length === 1;
   const savedOn = getRoute();
@@ -116,11 +122,13 @@ export function notifySaved(urls: string[], _label?: string, restored: string[] 
       },
       {
         label: 'Undo',
-        run: () =>
+        run: () => {
           urls.forEach((u) => {
             if (restored.includes(u)) updateJob(u, { archived: true });
             else if (findJobByUrl(u)?.status === 'Saved') removeJob(u);
-          }),
+          });
+          onUndo?.();
+        },
       },
     ],
   });
