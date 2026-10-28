@@ -60,7 +60,11 @@ export default function JobRail({ openId }: { openId: string }) {
 
   // Rows are links (each job has its own route), as NavList's link mode. The posting link sits
   // beside each row's link, not in it: NavList.Item has no slot for that (hds-gaps).
-  const hop = (id: string) => () => navigate({ jobId: id, from: getRoute().from ?? null }, true);
+  // A hop keeps the open tab (#334), so fit can be compared job to job on Screening.
+  const hop = (id: string) => () => {
+    const { from, section } = getRoute();
+    navigate({ jobId: id, from: from ?? null, section: section ?? null }, true);
+  };
   const item = (j: Job) => (
     <NavListActionItem
       key={j.url}

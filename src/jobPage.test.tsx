@@ -663,6 +663,17 @@ describe('job page two-pane (#130 slice 5)', () => {
     expect(screen.getByRole('tab', { name: 'Overview', selected: true })).toBeInTheDocument();
   });
 
+  it('a rail hop keeps the open tab, so fit can be compared job to job (#334)', async () => {
+    viewport(1280);
+    window.location.hash = `#/queue/${jobIdOf(URL_A)}?section=screening`;
+    renderApp();
+    expect(screen.getByRole('tab', { name: 'Screening', selected: true })).toBeInTheDocument();
+    await userEvent.click(railRow('Welder'));
+    expect(await screen.findByRole('heading', { level: 2, name: 'Welder' })).toBeInTheDocument();
+    expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_B)}?section=screening`);
+    expect(screen.getByRole('tab', { name: 'Screening', selected: true })).toBeInTheDocument();
+  });
+
   it('shows the same jobs the Pipeline list showed: its search and filter', () => {
     viewport(1280);
     setPipelineView({ q: 'welder' });
