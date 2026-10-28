@@ -1,14 +1,18 @@
 // The Company page (#230), rendered standalone: its Jobs, Documents and Notes, and Notes that can
 // be added and edited (each save a Version). The shell route (#/company/<slug>) wires it in later.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
+import { ToastProvider } from '@hirobius/design-system';
 import CompanyPage from './CompanyPage';
+import DocumentsView from './DocumentsView';
+import NoticeHost from './NoticeHost';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
-import { createDocument, getAllDocuments, replaceDocuments } from './documents';
+import { addFinalCopy, createDocument, getAllDocuments, replaceDocuments } from './documents';
 import { addCompanyNote } from './companies';
 import { jobHash } from './route';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 
 const URL_A = 'https://acme.example/jobs/7';
 const URL_B = 'https://acme.example/jobs/8';
@@ -19,6 +23,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  window.location.hash = '';
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
@@ -84,6 +89,28 @@ describe('Company page (#230)', () => {
     ).toHaveAttribute('href', URL_B);
   });
 
+  it('each Documents row opens the editor, whose Back names the company (#304)', async () => {
+    seedAcme();
+    const [doc] = getAllDocuments();
+    window.location.hash = '#/company/acme';
+    render(<CompanyPage slug="acme" />);
+    const docs = screen.getByRole('region', { name: 'Documents' });
+    const link = within(docs).getByRole('link', { name: 'Acme cover' });
+    const href = `#/copy-deck/${encodeURIComponent(doc.id)}?from=%2Fcompany%2Facme`;
+    expect(link).toHaveAttribute('href', href);
+    cleanup();
+    window.location.hash = href;
+    render(
+      <ToastProvider>
+        <DocumentsView />
+      </ToastProvider>,
+    );
+    // The editor's Back is a button (it saves first) that names the company.
+    expect(
+      (await screen.findAllByRole('button', { name: 'Back to Acme, Inc.' })).length,
+    ).toBeGreaterThan(0);
+  });
+
   it('an empty Documents panel says so in one line', () => {
     addCompanyNote('Bolt', 'Keep in touch');
     render(<CompanyPage slug="bolt" />);
@@ -125,6 +152,71 @@ describe('Company page (#230)', () => {
     expect(within(notes).getByText(/2 versions/)).toBeInTheDocument();
   });
 
+  it('each note has its own name when there are several (#305)', () => {
+    addCompanyNote('Bolt', 'One');
+    addCompanyNote('Bolt', 'Two');
+    render(<CompanyPage slug="bolt" />);
+    const notes = screen.getByRole('region', { name: 'Notes' });
+    expect(within(notes).getByLabelText('Note 1 of 2')).toHaveValue('One');
+    expect(within(notes).getByLabelText('Note 2 of 2')).toHaveValue('Two');
+    expect(within(notes).getByRole('button', { name: 'Remove note 2 of 2' })).toBeInTheDocument();
+  });
+
+  it('Remove on a note: it goes, a notice says so, and Undo puts it back in its place (#305)', async () => {
+    addCompanyNote('Bolt', 'One');
+    const two = addCompanyNote('Bolt', 'Two');
+    addCompanyNote('Bolt', 'Three');
+    render(
+      <ToastProvider>
+        <NoticeHost />
+        <CompanyPage slug="bolt" />
+      </ToastProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Remove note 2 of 3' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(getAllDocuments().some((d) => d.id === two)).toBe(false);
+    expect(screen.getByLabelText('Note 2 of 2')).toHaveValue('Three');
+    expect(await screen.findByText('Removed the note')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByLabelText('Note 2 of 3')).toHaveValue('Two');
+    expect(
+      getAllDocuments()
+        .filter((d) => d.kind === 'note')
+        .map((d) => d.id)[1],
+    ).toBe(two);
+  });
+
+  it("removing a notes-only company's last note goes back; Undo reopens the page (#305)", async () => {
+    const id = addCompanyNote('Bolt', 'Only');
+    window.location.hash = '#/company/bolt';
+    render(
+      <ToastProvider>
+        <NoticeHost />
+        <CompanyPage slug="bolt" />
+      </ToastProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Remove note' }));
+    expect(getAllDocuments().some((d) => d.id === id)).toBe(false);
+    await waitFor(() => expect(window.location.hash).toBe('#/queue'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    expect(getAllDocuments().some((d) => d.id === id)).toBe(true);
+    await waitFor(() => expect(window.location.hash).toBe('#/company/bolt'));
+  });
+
+  it('an uploaded final copy is listed but not linked to the text editor', () => {
+    seedAcme();
+    addFinalCopy({
+      kind: 'resume',
+      jobUrl: URL_A,
+      file: { name: 'cv.pdf', type: 'application/pdf', size: 3, data: 'AAAA' },
+    });
+    render(<CompanyPage slug="acme" />);
+    const docs = screen.getByRole('region', { name: 'Documents' });
+    expect(within(docs).getByText('cv.pdf')).toBeInTheDocument();
+    expect(within(docs).queryByRole('link', { name: 'cv.pdf' })).toBeNull();
+    expect(within(docs).getByRole('link', { name: 'Acme cover' })).toBeInTheDocument();
+  });
+
   it('a company with only notes still has its page (nothing orphaned after a rename)', () => {
     addCompanyNote('Bolt', 'Keep in touch');
     render(<CompanyPage slug="bolt" />);
@@ -140,6 +232,27 @@ describe('Company page (#230)', () => {
       'href',
       '#/queue',
     );
+  });
+
+  it('an unknown company waits for sync to settle before saying so (#303)', () => {
+    const withSync = (settled: boolean) => (
+      <CloudSyncContext.Provider value={{ settled } as CloudSyncApi}>
+        <CompanyPage slug="acme" />
+      </CloudSyncContext.Provider>
+    );
+    const r = render(withSync(false));
+    expect(screen.queryByText('No company here')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Go to the Pipeline' })).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent(/Looking for this company/);
+    // The company's jobs arrive with the pull: the page shows it, no empty state on the way.
+    seedAcme();
+    r.rerender(withSync(false));
+    expect(screen.getByRole('heading', { level: 2, name: 'Acme, Inc.' })).toBeInTheDocument();
+    getAllJobs()
+      .slice()
+      .forEach((j) => removeJob(j.url));
+    r.rerender(withSync(true));
+    expect(screen.getByText('No company here')).toBeInTheDocument();
   });
 
   it('has no axe violations', async () => {
