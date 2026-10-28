@@ -378,7 +378,7 @@ server
 <li><strong>The inclusion check:</strong> its title or description names a design-system role ("design system(s)", "design technologist", "design system engineer" and so on). It uses the existing phrase rules in <code>feed/mustInclude.ts</code> (<code>termRegex</code>: whole words, "systems" matches "design system", "ecosystem" never matches, and phrases break at separators).</li>
 <li><strong>Adrian's own profile filters:</strong> leave out, location, mode, pay floor and level.</li>
 </ul>
-<p>Anything that fails is counted as "N not design-system roles" (a link opens them once), so nothing disappears silently. The scorer (<code>src/tracks/score.ts</code>), Fit and screening stay exactly as they are. They may sort or badge a row, but they never hide one, and they get no new work in this plan.</p>
+<p>Anything that fails is counted as "N not design-system roles" (a link opens them once), so nothing disappears silently. The scorer (<code>src/tracks/score.ts</code>), Fit and screening stay exactly as they are. They may sort or badge a row, but they never hide one, and they get no new work in this plan. (Q5 later takes the Screening tab off the job page; its data is kept.)</p>
 <p>On the server, the scan stores each posting's title and description in a Postgres <code>tsvector</code> column with a GIN index. The inclusion terms and leave-out terms become a <code>websearch_to_tsquery</code> pre-filter, and the same phrase rules then confirm each row. No AI, no API key.</p>
 <p><strong>Breadth guard, restated:</strong> it counts distinct postings that pass the inclusion check. If the new Feed and Scan ever list fewer than today's pipeline does from the same recorded inputs, the test fails.</p>
 
@@ -420,7 +420,7 @@ Search elsewhere (9)          ›</pre><figcaption>Browse with New companies (am
 </div>
 
 <h3>Jobs stays a top tab, simplified hard</h3>
-<p>The tabs are <strong>Today · Jobs</strong>, and Jobs (the Pipeline) is no longer under More. <strong>Adrian's keep list (relayed 2026-10-28)</strong> settles the Jobs list: keep To apply with Start applying, Follow up, Next 7 days and the full job list (search, status, sort). Cut Getting started, and move Recently removed and Export links off the page. The job-page rows are still a proposal.</p>
+<p>The tabs are <strong>Today · Jobs</strong>, and Jobs (the Pipeline) is no longer under More. <strong>Adrian's keep list (relayed 2026-10-28)</strong> settles the Jobs list: keep To apply with Start applying, Follow up, Next 7 days and the full job list (search, status, sort). Cut Getting started, and move Recently removed and Export links off the page. For the job page (Adrian's Q5): keep Details and Notes, turn Documents and Decks into plain lists of external links for now, and cut To-dos, Screening and the Interviews log from the page. Their data stays in storage and backups and is never deleted.</p>
 <div class="scroll"><table>
 <thead><tr><th>Today on the Pipeline / job page</th><th>Proposal</th></tr></thead>
 <tbody>
@@ -432,9 +432,9 @@ Search elsewhere (9)          ›</pre><figcaption>Browse with New companies (am
 <tr><td>Find the next company button</td><td>Proposed cut (not on Adrian's list; Today is one tap away).</td></tr>
 <tr><td>Recently removed link</td><td><strong>Off the page</strong> (Adrian): an Account menu item, or a "Show removed" option in the status filter.</td></tr>
 <tr><td>Row: badges, facts, next step, ⋯ menu</td><td>Keep: one next step per row.</td></tr>
-<tr><td>Job page: Overview · Screening · Interviews tabs</td><td><strong>One scrolling page</strong>: header and next step, Details, To-dos and notes, Interviews (only once one exists), then Files and links.</td></tr>
-<tr><td>Documents panel + Decks panel</td><td><strong>Merge</strong> into "Files and links".</td></tr>
-<tr><td>Screening tab (Fit editor, JD screener)</td><td><strong>Keep as is</strong> (amendment 3: fit and screening get no new work). It can move into the one scrolling page as a section.</td></tr>
+<tr><td>Job page: Overview · Screening · Interviews tabs</td><td><strong>One page, no tabs</strong> (Adrian, Q5): header and next step, Details, Notes, then Links.</td></tr>
+<tr><td>Documents panel + Decks panel</td><td><strong>Plain external-link lists for now</strong> (Adrian, Q5): a label and a URL each, with Add and Remove (Undo).</td></tr>
+<tr><td>To-dos, Screening tab (Fit editor, JD screener), Interviews log</td><td><strong>Cut from the job page</strong> (Adrian, Q5). Their data (<code>todos</code>, the screening fields, interviews) stays in storage, sync, Back up and the CSV; nothing is deleted, so they can come back.</td></tr>
 <tr><td>Job rail at lg</td><td>Keep.</td></tr>
 </tbody></table></div>
 
