@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { go, openApply, openJob, seed } from './routes';
+import { go, openApply, seed, withLegacyScreens } from './routes';
 
 // Return paths (Adrian 2026-10-22): "whenever someone navigates away with a key action, they should
 // be able to get back easily enough / automatically." With the sample pipeline and a starter track,
@@ -46,6 +46,9 @@ for (const width of [390, 1440] as const) {
 
     test.beforeEach(async ({ page }) => {
       await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+      // Companies is the page behind most of these walks: its old screens stay reachable here
+      // until #389 deletes them (legacyScreens.ts) and moves these walks onto Today.
+      await withLegacyScreens(page);
       await seed(page);
     });
 
@@ -595,34 +598,6 @@ for (const width of [390, 1440] as const) {
         'true',
       );
       await expect(open).toHaveAttribute('aria-expanded', 'true');
-    });
-
-    test('Find more like this: the search keeps its title and Recency after a trip away and Back', async ({
-      page,
-    }) => {
-      await openJob(page);
-      const title = (await page.getByRole('heading', { level: 2 }).first().textContent())!.trim();
-      await page.getByRole('button', { name: `More actions: ${title}` }).click();
-      await page.getByRole('menuitem', { name: 'Find more like this' }).click();
-      await expect(page).toHaveURL(/#\/discover\/ats\?from=/);
-      const searchUrl = page.url();
-      const query = () =>
-        page
-          .getByRole('link', { name: /Search all boards/ })
-          .getAttribute('href')
-          .then((h) => decodeURIComponent(h ?? ''));
-      await expect.poll(query).toContain(title);
-      await page.getByRole('combobox', { name: /^Recency/ }).click();
-      await page.getByRole('option', { name: 'Past week' }).click();
-      await expect.poll(query).toContain('tbs=qdr:w');
-
-      await page.getByRole('tab', { name: 'Jobs' }).click();
-      await expect(page).toHaveURL(/#\/queue/);
-      await page.goBack();
-      await expect(page).toHaveURL(searchUrl);
-      await expect.poll(query).toContain(title);
-      await expect.poll(query).toContain('tbs=qdr:w');
-      await expect(page.getByRole('link', { name: `Back to ${title}` })).toBeVisible();
     });
 
     test('Apply mode: a half-typed kit field is still open with its text after Edit documents', async ({

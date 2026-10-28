@@ -5,12 +5,6 @@ import { expect, type Page } from '@playwright/test';
 export const ROUTES = [
   '#/today',
   '#/queue',
-  '#/discover',
-  '#/discover/apply',
-  '#/discover/ats',
-  '#/discover/live',
-  '#/discover/boards',
-  '#/discover/teams',
   '#/copy-deck',
   '#/copy-deck/tpl-outreach',
   '#/legal/privacy',
@@ -24,7 +18,7 @@ export const ROUTES = [
 /** A Greenhouse posting the seed adds on top of the sample data. */
 export const BOARD_JOB = 'https://boards.greenhouse.io/acme/jobs/77';
 
-/** Sample data (with its Sample track, from the first starter pack), landing on Apply now. */
+/** Sample data (with its Sample track, from the first starter pack), landing on Today. */
 export async function seed(page: Page) {
   await page.goto('/#/queue');
   await page.getByRole('button', { name: 'Try with sample data' }).click();
@@ -37,8 +31,16 @@ export async function seed(page: Page) {
   // A clean first run has no messages (Adrian 2026-10-22): add the starters, as a user would.
   await addStarters(page);
   // The sample adds a Sample track from the first starter pack: no setup needed.
-  await go(page, '#/discover/apply');
-  await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();
+  await go(page, '#/today');
+  await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
+}
+
+/** The old Companies screens (legacyScreens.ts), for the specs that still drive them until #389
+ *  deletes them. Call before the first page.goto. */
+export async function withLegacyScreens(page: Page) {
+  await page.addInitScript(() => {
+    (window as Window & { __RJB_LEGACY_SCREENS__?: boolean }).__RJB_LEGACY_SCREENS__ = true;
+  });
 }
 
 /** Add the starter messages from Documents' empty state (a first run adds none). */

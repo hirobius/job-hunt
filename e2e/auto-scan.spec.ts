@@ -73,10 +73,9 @@ for (const width of [390, 1440]) {
     test.setTimeout(90_000);
     await page.setViewportSize({ width, height: 900 });
     await network(page);
-    await page.goto('/#/discover');
+    await page.goto('/#/today');
     // A design-systems track that follows nothing yet (no clicks here or below).
     await page.evaluate(seedTrack);
-    await page.goto('/#/discover/review');
 
     await expect(
       page.getByText(/^Last scanned \d\d:\d\d · \d+ new from \d+ sources?$/),
@@ -105,9 +104,8 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 390, height: 900 });
   await network(page);
-  await page.goto('/#/discover');
+  await page.goto('/#/today');
   await page.evaluate(seedTrack);
-  await page.goto('/#/discover/review');
   const status = page.getByText(/^Last scanned /);
   await expect(status).toBeVisible({ timeout: 60_000 });
 
@@ -119,6 +117,14 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   await expect(
     page.getByRole('list', { name: 'New postings' }).getByText('Senior Design Systems Engineer'),
   ).toBeVisible();
+
+  // Followed, it is in the Account menu's Companies list.
+  await page.getByRole('button', { name: 'Account' }).click();
+  await page.getByRole('menuitem', { name: 'Companies' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Companies' });
+  await expect(dialog.getByRole('list', { name: 'Followed' }).getByText(/^Acme/)).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
 
   await page.getByRole('button', { name: 'Scan now' }).click();
   await expect(page.getByRole('button', { name: 'Stop scan' })).toBeVisible();

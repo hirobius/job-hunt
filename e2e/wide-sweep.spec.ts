@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { withLegacyScreens } from './routes';
 import { createRequire } from 'node:module';
 
 const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
@@ -8,6 +9,7 @@ const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 // Pipeline's To apply queue. The feed is synthetic Hacker News posts (no real people).
 for (const width of [390, 1440]) {
   test(`sweep every title, filter by title, save into To apply (${width})`, async ({ page }) => {
+    await withLegacyScreens(page);
     await page.setViewportSize({ width, height: 900 });
     let reads = 0;
     await page.route(/^https?:\/\/(?!localhost)/, (r) => {

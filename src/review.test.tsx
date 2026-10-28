@@ -215,9 +215,10 @@ describe('Review new: Browse', () => {
     expect(titles(ul)[0]).toBe('Design Systems Designer 0');
     await user.click(screen.getByRole('button', { name: 'Load more (5)' }));
     expect(titles(ul)).toHaveLength(REVIEW_PAGE + 5);
-    await user.click(screen.getByRole('radio', { name: 'Company' }));
+    await user.click(screen.getByRole('button', { name: 'Sort: Newest' }));
+    await user.click(await screen.findByRole('menuitemradio', { name: 'Company' }));
     expect(titles(ul)[0]).toBe('Design Systems Designer 29');
-    await user.click(screen.getByRole('button', { name: /^Contract, 1/ }));
+    await user.click(screen.getByRole('button', { name: /^Contract 1/ }));
     expect(titles(await list())).toEqual(['Design Systems Designer 7']);
   });
 });

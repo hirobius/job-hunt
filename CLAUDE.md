@@ -207,16 +207,27 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   returns to the page the sign-in was asked from (`account/signInReturn.ts`). Pinned in
   `src/route.test.ts`, `src/returnPaths.test.tsx`, `scrollMemory.test.ts`, `tabMemory.test.ts`,
   `routeLabel.test.ts`; E2E `e2e/return-paths.spec.ts` (390 and 1440, with the browser's Back).
-- **Today home (simplify 2/9, #383; spec `docs/specs/simplify.html` design C):** the tabs are **Today ·
-  Companies · Jobs** (Jobs = the Pipeline, slug `queue`, unchanged inside; its page head and Backs still say
-  Pipeline). An empty hash, the Trades slug and a sign-in error land on `#/today` (`HOME_ROUTE`); a first run
-  shows the same `Onboarding` there. `Today.tsx` lays out the pure read model `today.ts` as three panels in a
-  fixed order: **Review new** (sources = the active track's distinct watched boards + `KEYLESS_FEEDS`; the new count is null
-  until the Feed slice, so it links to Live postings, `?from=/today`: no breadth lost), **Apply** (the
-  Pipeline's `toApplyQueue`, Start / Resume applying → Apply mode, `?from=/today`) and **Follow up** (`dueFollowUps`, the
-  one `FollowUpButton` on the most overdue). Pinned in `today.test.ts`, `todayHome.test.tsx`,
-  `e2e/today.spec.ts`.
-- **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1):** the tabs are
+- **Final shell (simplify #383 + amendment 2, Q6; PR from `claude/simplify-shell`):** exactly **two top tabs,
+  Today · Jobs** (Jobs = the Pipeline, slug `queue`, unchanged inside; its page head and Backs still say Pipeline).
+  **No Companies tab:** `route.ts` `redirectOf` sends `#/discover/*` and `#/apprenticeships` to `#/today` (the
+  snapshot reads them as Today, the URL is rewritten in place with no history step, `navigate` / `goBackTo` never
+  write one); never redirect anywhere else. The old Discover screens stay in the code only for their own tests
+  (`legacyScreens.ts`; unit tests import `./test/legacyScreens` or call `legacyScreensForThisTest()`, e2e calls
+  `withLegacyScreens`) until #389 deletes them with the switch. An empty hash and a sign-in error land on Today; a
+  first run shows `Onboarding` there, and with jobs but no track Review new offers Choose a track in place.
+  `Today.tsx`, top to bottom: `ScanStatus` (Scan now + "Last scanned hh:mm · N new from M sources"), **Review new**
+  = `ReviewView` itself (`label="Review new"`: one panel holding the feed line, Browse | Deck, Sort as a menu, the
+  filter chips and the Browse list; a row's title opens the in-app preview, Open posting beside it), **Apply**
+  (`toApplyQueue`, Start / Resume applying → Apply mode, `?from=/today`), **Follow up** (`today.ts`: the due rows with
+  "Due <day>" and their own Follow up button, "Upcoming: N this week" = due in the next 7 days, else "Nothing due
+  today" / "Nothing waiting on a reply") and **New companies** (`NewCompanies`, Follow / Ignore). Followed and Ignored
+  companies are the Account menu's **Companies** item (`CompaniesDialog.tsx`, lazy; `companiesList.ts` reads the
+  Feed's Sources: followed = boards + companies, A to Z, once by name; ignored = `decided.muted`; one list at a time,
+  Ignore = `muteCompany`, Follow again = `unmuteCompany`). The Pipeline ends with **Review new postings** (→ Today);
+  "Find more like this" left the job menu with the ATS search. Pinned in `today.test.ts`, `todayHome.test.tsx`,
+  `companiesList.test.tsx`, `route.test.ts`, `e2e/today.spec.ts`, `e2e/review.spec.ts`, `e2e/auto-scan.spec.ts`.
+- **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1; superseded by the final
+  shell above):** the tabs were
   **Companies · Pipeline** (Templates lost its tab in #240); Companies is the old Discover (slug
   `discover`, home, hosts the first-run gate) and an empty hash lands there. "Try with sample data"
   lands on the Pipeline. The Pipeline always ends with a secondary **Find the next company** button

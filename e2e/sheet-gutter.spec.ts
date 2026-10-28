@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { withLegacyScreens } from './routes';
 
 // Round-2 review alignment: the Add job and Add a company sheets keep the page's 16px phone gutter,
 // and the Pipeline's tertiary "Check which are still open" starts on the Jobs panel's content edge.
@@ -16,6 +17,7 @@ async function expectGutter(page: Page) {
 }
 
 test('Add job and Add a company sheets keep a side gutter at 390', async ({ page }) => {
+  await withLegacyScreens(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await sample(page);
   await page.getByRole('button', { name: 'Add job' }).click();

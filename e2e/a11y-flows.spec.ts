@@ -16,8 +16,15 @@ async function seed(page: Page) {
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
-  await go(page, '#/discover/apply');
-  await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();
+  await go(page, '#/today');
+  await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
+}
+
+/** The old Companies screens (legacyScreens.ts), still axed until #389 deletes them. */
+async function withLegacyScreens(page: Page) {
+  await page.addInitScript(() => {
+    (window as Window & { __RJB_LEGACY_SCREENS__?: boolean }).__RJB_LEGACY_SCREENS__ = true;
+  });
 }
 
 async function go(page: Page, hash: string) {
@@ -85,6 +92,7 @@ for (const theme of ['light', 'dark'] as const) {
       test('open states have no axe violations', async ({ page }) => {
         test.setTimeout(120_000);
         await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
+        await withLegacyScreens(page);
         await seed(page);
         const bad: string[] = [];
 
@@ -92,7 +100,12 @@ for (const theme of ['light', 'dark'] as const) {
         await page.getByRole('button', { name: /^Account/ }).click();
         await expect(page.getByRole('menu')).toBeVisible();
         bad.push(...(await axe(page, 'menu open')));
+        // Followed / Ignored companies (the Companies tab's place).
+        await page.getByRole('menuitem', { name: 'Companies' }).click();
+        await expect(page.getByRole('dialog', { name: 'Companies' })).toBeVisible();
+        bad.push(...(await axe(page, 'companies list')));
         await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog')).toBeHidden();
 
         // The old Titles link lands on Live postings with Calibrate open (#223).
         await go(page, '#/discover/titles');
@@ -195,6 +208,7 @@ test.describe('keyboard only', () => {
   });
 
   test('the title filter: tick and untick a title with Space', async ({ page }) => {
+    await withLegacyScreens(page);
     await seed(page);
     await go(page, '#/discover/titles');
     const first = page.getByRole('checkbox').first();
@@ -218,6 +232,7 @@ test.describe('keyboard only', () => {
   test('Add a company: focus moves into the dialog, Escape returns it to the button', async ({
     page,
   }) => {
+    await withLegacyScreens(page);
     await seed(page);
     await go(page, '#/discover/teams');
     const open = page.getByRole('button', { name: /^Add a company/ }).first();
@@ -279,10 +294,10 @@ for (const width of [390, 1440] as const) {
       await go(page, '#/legal/terms');
       await expect.poll(() => focused(page)).toBe('H2 Terms of use');
       // A top tab keeps focus on the tab (it is still there).
-      await page.getByRole('tab', { name: 'Companies' }).focus();
+      await page.getByRole('tab', { name: 'Today' }).focus();
       await page.keyboard.press('Enter');
-      await expect(page).toHaveURL(/#\/discover/);
-      await expect.poll(() => focused(page)).toBe('BUTTON Companies');
+      await expect(page).toHaveURL(/#\/today$/);
+      await expect.poll(() => focused(page)).toBe('BUTTON Today');
     });
 
     test('a row that leaves the list hands focus on, and the notice is announced', async ({

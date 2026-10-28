@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { withLegacyScreens } from './routes';
 
 // The rapid-apply loop end to end: cast a wide net in Live postings, see where the saves went,
 // then walk the To apply queue in Apply mode until it is empty and everything waits on a follow-up.
@@ -6,6 +7,7 @@ import { test, expect } from '@playwright/test';
 test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
 
 test('save 3 postings → To apply (3) → apply to each → Follow up (3)', async ({ page }) => {
+  await withLegacyScreens(page);
   await page.route(/^https?:\/\/(?!localhost)/, (r) => {
     const url = r.request().url();
     if (!url.startsWith('https://hn.algolia.com/')) return r.abort();

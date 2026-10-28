@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { withLegacyScreens } from './routes';
 
 // ATS search at 390 (round-2 review): a board list's name ("Freelance, startup and remote …") and
 // its one-line description wrap instead of being cut with an ellipsis.
 test('ATS search row titles and descriptions wrap at 390', async ({ page }) => {
+  await withLegacyScreens(page);
   await page.setViewportSize({ width: 390, height: 900 });
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.goto('/#/discover');

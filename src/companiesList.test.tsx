@@ -2,7 +2,7 @@
 // Account menu's Companies item opens a small list of both. It is the Sources list: the boards
 // and companies Review new reads, and the ones muted (Ignore / Not this company).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -80,24 +80,29 @@ describe('Account menu → Companies', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'Companies' }));
     const dialog = await screen.findByRole('dialog', { name: 'Companies' });
     const followed = within(dialog).getByRole('list', { name: 'Followed' });
-    const ignored = within(dialog).getByRole('list', { name: 'Ignored' });
     expect(
       within(followed)
         .getAllByRole('listitem')
         .map((li) => li.textContent),
     ).toEqual([expect.stringMatching(/^Linear/), expect.stringMatching(/^Ramp/i)]);
-    expect(within(ignored).getByText('Forward')).toBeInTheDocument();
+    // One list at a time: Ignored is one tap away, its count on the control.
+    expect(within(dialog).getByRole('list', { name: 'Followed' })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('radio', { name: 'Ignored (1)' }));
+    expect(
+      within(within(dialog).getByRole('list', { name: 'Ignored' })).getByText('Forward'),
+    ).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('radio', { name: 'Followed (2)' }));
 
-    await user.click(within(followed).getByRole('button', { name: 'Ignore Linear' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Ignore Linear' }));
     expect(getAllDecided().muted).toContain('Linear');
-    await waitFor(() =>
-      expect(
-        within(within(dialog).getByRole('list', { name: 'Ignored' })).getByText('Linear'),
-      ).toBeInTheDocument(),
-    );
+    await user.click(within(dialog).getByRole('radio', { name: 'Ignored (2)' }));
+    expect(
+      within(within(dialog).getByRole('list', { name: 'Ignored' })).getByText('Linear'),
+    ).toBeInTheDocument();
 
     await user.click(within(dialog).getByRole('button', { name: 'Follow Forward again' }));
     expect(getAllDecided().muted).not.toContain('Forward');
+    expect(within(dialog).getByRole('radio', { name: 'Ignored (1)' })).toBeInTheDocument();
   });
 
   it('says so when there is nothing in either list', async () => {

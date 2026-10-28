@@ -12,13 +12,6 @@ const WIDTHS = [1440, 390] as const;
 const ROUTES = [
   '#/today',
   '#/queue',
-  '#/discover',
-  '#/discover/apply',
-  '#/discover/titles',
-  '#/discover/ats',
-  '#/discover/live',
-  '#/discover/boards',
-  '#/discover/teams',
   '#/copy-deck',
   '#/copy-deck/tpl-outreach',
   '#/legal/privacy',
@@ -37,9 +30,8 @@ async function seed(page: Page) {
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   await expect(page.getByRole('region', { name: 'Outreach messages' })).toBeVisible();
   // The sample adds a Sample track from the first starter pack: no setup needed.
-  // Apply now by name: which tool `#/discover` opens on depends on the track (teamTopics.ts).
-  await go(page, '#/discover/apply');
-  await expect(page.getByRole('region', { name: 'Your sections' })).toBeVisible();
+  await go(page, '#/today');
+  await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
 }
 
 async function go(page: Page, hash: string) {

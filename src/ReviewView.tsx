@@ -14,6 +14,7 @@ import {
   Dialog,
   Icon,
   InlineLink,
+  Menu,
   Pagination,
   SegmentedControl,
   Skeleton,
@@ -21,11 +22,18 @@ import {
   Tag,
   Text,
 } from '@hirobius/design-system';
-import { Banknote, ExternalLink, MapPin, SearchX, type LucideIcon } from 'lucide-react';
+import {
+  Banknote,
+  ChevronDown,
+  ExternalLink,
+  MapPin,
+  SearchX,
+  type LucideIcon,
+} from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { metaLines } from './metaLines';
 import { PostingTitle } from './PostingLink';
-import { useBackCloses } from './useBackCloses';
+import { useBackCloses, useBackSheet } from './useBackCloses';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
@@ -82,6 +90,7 @@ export default function ReviewView({
   const [previewFp, setPreviewFp] = useRemembered<string | null>(kept('preview'), null);
   const preview = previewFp ? (view?.rows.find((r) => r.fingerprint === previewFp) ?? null) : null;
   useBackCloses(!!preview, () => setPreviewFp(null), `review-preview:${categoryId}`);
+  const sortSheet = useBackSheet(`review-sort:${categoryId}`);
 
   const toggle = (f: FeedFilter) => {
     setOn((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
@@ -119,7 +128,8 @@ export default function ReviewView({
               </Text>
             )}
           </Stack>
-          <Stack direction="row" gap="tight" align="center" wrap="wrap">
+          {/* One row on a phone: the view toggle, and Sort as a menu (like the Pipeline's). */}
+          <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
             <SegmentedControl
               aria-label="Review view"
               size="sm"
@@ -130,32 +140,44 @@ export default function ReviewView({
                 { value: 'deck', label: 'Deck' },
               ]}
             />
-            {view && mode === 'browse' && (
-              <SegmentedControl
-                aria-label="Sort postings"
-                size="sm"
-                value={sort}
-                onChange={(v) => {
-                  setSort(v as FeedSort);
-                  setShown(REVIEW_PAGE);
-                }}
-                options={SORTS.map((s) => ({ value: s, label: SORT_LABEL[s] }))}
-              />
+            {view && view.rows.length > 0 && mode === 'browse' && (
+              <Menu {...sortSheet}>
+                <Menu.Trigger asChild>
+                  <Button size="sm" variant="secondary" iconRight={<Icon icon={ChevronDown} />}>
+                    {`Sort: ${SORT_LABEL[sort]}`}
+                  </Button>
+                </Menu.Trigger>
+                <Menu.Content align="end">
+                  <Menu.RadioGroup
+                    value={sort}
+                    onValueChange={(v) => {
+                      setSort(v as FeedSort);
+                      setShown(REVIEW_PAGE);
+                    }}
+                  >
+                    {SORTS.map((s) => (
+                      <Menu.RadioItem key={s} value={s}>
+                        {SORT_LABEL[s]}
+                      </Menu.RadioItem>
+                    ))}
+                  </Menu.RadioGroup>
+                </Menu.Content>
+              </Menu>
             )}
           </Stack>
-          {view && (
+          {view && view.rows.length > 0 && (
             <Stack direction="row" wrap="wrap" gap="px8" role="group" aria-label="Filter postings">
               {FILTERS.map((f) => (
                 <Tag
                   key={f}
                   active={on.includes(f)}
                   aria-pressed={on.includes(f)}
-                  aria-label={`${FILTER_LABEL[f]}, ${counts[f]}`}
+                  // The name says what is shown, label then count (axe label-content-name-mismatch).
+                  aria-label={`${FILTER_LABEL[f]} ${counts[f]}`}
                   onClick={() => toggle(f)}
                 >
                   <Stack as="span" direction="row" gap="px8" align="center">
-                    {FILTER_LABEL[f]}
-                    <Badge count={counts[f]} />
+                    {FILTER_LABEL[f]} <Badge count={counts[f]} />
                   </Stack>
                 </Tag>
               ))}

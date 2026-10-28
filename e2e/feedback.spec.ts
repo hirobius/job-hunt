@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { go, openJob, seed } from './routes';
+import { go, openJob, seed, withLegacyScreens } from './routes';
 
 // The feedback sweep (#212): every row and page action on the Pipeline, the job page, Documents
 // and Companies must change something visible within 300 ms of the press: the page's text (a
@@ -167,10 +167,20 @@ async function closeOverlay(page: Page) {
   await page.waitForTimeout(250);
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, info) => {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await installWatcher(page);
+  // The old Companies screens, until #389 deletes them (legacyScreens.ts).
+  if (info.title.startsWith('Companies:')) await withLegacyScreens(page);
   await seed(page);
+});
+
+test('Today: Scan now and the Account menu’s Companies answer within 300 ms', async ({ page }) => {
+  await go(page, '#/today');
+  await press(page, button(page, /^(Scan now|Stop scan)$/), 'Scan now');
+  await menu(page, 'Account', 'Companies');
+  await expect(page.getByRole('dialog', { name: 'Companies' })).toBeVisible();
+  await closeOverlay(page);
 });
 
 test('Pipeline: every row and page action answers within 300 ms', async ({ page }) => {
@@ -206,7 +216,7 @@ test('Pipeline: every row and page action answers within 300 ms', async ({ page 
   await press(page, button(page, 'Dismiss'), 'Dismiss getting started');
   await press(page, button(page, 'Start applying'), 'Start applying');
   await go(page, '#/queue');
-  await press(page, button(page, 'Find the next company'), 'Find the next company');
+  await press(page, button(page, 'Review new postings'), 'Review new postings');
 });
 
 test('Pipeline cards (390): Remove collapses the card before it goes', async ({ page }) => {

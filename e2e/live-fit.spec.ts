@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { withLegacyScreens } from './routes';
 
 // Live postings' fit control (round-2 review): with evidence, each opening's fit opens Fit and gap.
 // It must read as a control (an icon inside, not a bare badge) and sit on its own line: its hit area
 // never overhangs the line or overlaps the title link under it. Synthetic Hacker News posts.
 for (const width of [390, 1440]) {
   test(`the fit control is tappable and clear of the title (${width})`, async ({ page }) => {
+    await withLegacyScreens(page);
     await page.setViewportSize({ width, height: 900 });
     await page.addInitScript(() =>
       localStorage.setItem(

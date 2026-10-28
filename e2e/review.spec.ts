@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Review new (simplify 5/9, #386) end to end, at phone and desktop width: Browse lists every
+// Review new (simplify 5/9, #386) end to end on Today, at phone and desktop width: Browse lists every
 // undecided posting with "N new today from M sources", Skip hides only that posting (its company's
 // other posting stays), Save lands in the Pipeline's To apply, and the Deck shows one card at a
 // time. The feed is synthetic Hacker News posts (no real people); every other host answers empty.
@@ -52,7 +52,7 @@ async function feed(page: Page) {
 
 async function setUp(page: Page) {
   await feed(page);
-  await page.goto('/#/discover');
+  await page.goto('/#/today');
   // Every pack starts unticked (Adrian 2026-10-22): tick Design Systems (a scored track).
   await page
     .getByRole('group', { name: 'Starter tracks' })
@@ -61,7 +61,7 @@ async function setUp(page: Page) {
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Finish' }).click();
-  await page.goto('/#/discover/review');
+  await expect(page).toHaveURL(/#\/today$/);
 }
 
 for (const width of [390, 1440]) {
@@ -74,8 +74,9 @@ for (const width of [390, 1440]) {
     await expect(page.getByText(/^Read \d+ of \d+ boards$/)).toHaveCount(0, { timeout: 15_000 });
     const list = page.getByRole('list', { name: 'New postings' });
     await expect(list.getByRole('listitem')).toHaveCount(3);
-    // No fit tiers: every design-system posting is in the one list; the rest are counted.
-    await expect(page.getByText(/2 not design-system roles/)).toBeVisible();
+    // No fit tiers: every design-system posting is in the one list; the rest are counted. (The
+    // HN source keeps a post only when it says a searched title, so Nimbus's is never read.)
+    await expect(page.getByText(/1 not design-system roles/)).toBeVisible();
     for (const scheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme: scheme });
       await page.screenshot({ path: `test-results/review-${width}-${scheme}.png`, fullPage: true });
@@ -89,7 +90,7 @@ for (const width of [390, 1440]) {
     await page.screenshot({ path: `test-results/review-preview-${width}.png` });
     await page.goBack();
     await expect(preview).toBeHidden();
-    await expect(page).toHaveURL(/#\/discover\/review$/);
+    await expect(page).toHaveURL(/#\/today$/);
 
     // Skip hides only that posting: Orbit's other one stays.
     await list.getByRole('button', { name: 'Skip Design Systems Engineer at Orbit' }).click();

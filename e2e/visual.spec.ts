@@ -13,6 +13,15 @@ async function prepare(page: Page, theme: 'light' | 'dark') {
   await page.clock.setFixedTime(NOW);
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
+  // Scanned just now, so the auto-scan doesn't run on open: Today's status line holds still.
+  await page.addInitScript(
+    (at) =>
+      localStorage.setItem(
+        'rjb_autoscan',
+        JSON.stringify({ finishedAt: at, newCount: 0, sourceCount: 0, found: [] }),
+      ),
+    NOW.getTime(),
+  );
   await seed(page);
 }
 
