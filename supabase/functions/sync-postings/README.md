@@ -24,4 +24,7 @@ Nothing here has been applied or deployed. The steps below are for Adrian.
    `curl -X POST "$URL/functions/v1/sync-postings" -H "x-sync-secret: <random>" -d '{"rss":true}'`
    Then read `sync_log` (kind = `disabled` | `failed` | `run`).
 
+Every env var and secret it uses is listed in `docs/secrets.md`; a missing `SUPABASE_URL` or
+`SUPABASE_SERVICE_ROLE_KEY` returns 500 naming the var.
+
 Dry run with no database: `npm run sync:dry-run`.

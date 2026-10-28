@@ -144,3 +144,10 @@ export const updateAnswer = (id: string, patch: Partial<Omit<KitAnswer, 'id'>>) 
   });
 export const removeAnswer = (id: string) =>
   store.set({ ...store.get(), answers: store.get().answers.filter((x) => x.id !== id) });
+/** Undo of a Remove: the answer goes back at `at` (clamped), unless it is already there. */
+export function restoreAnswer(answer: KitAnswer, at: number) {
+  const answers = store.get().answers;
+  if (answers.some((x) => x.id === answer.id)) return;
+  const i = Math.max(0, Math.min(at, answers.length));
+  store.set({ ...store.get(), answers: [...answers.slice(0, i), answer, ...answers.slice(i)] });
+}

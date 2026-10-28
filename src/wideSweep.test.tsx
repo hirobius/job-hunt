@@ -140,6 +140,34 @@ describe('wide sweep', () => {
     ]);
   });
 
+  // #354: Remove is soft (#212): the notice offers Undo, and Undo restores the title, its
+  // place in the list and its tick state.
+  it('removing a title offers Undo that restores it, in place, with its tick state', async () => {
+    const user = await startSweep();
+    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
+    await user.click(screen.getByRole('checkbox', { name: 'design technologist' }));
+    expect(getAllSweeps()[cat].off).toEqual(['design technologist']);
+    await user.click(screen.getByRole('button', { name: 'Remove title design technologist' }));
+    expect(getAllSweeps()[cat].titles).toEqual(['design engineer', 'design system']);
+    expect(await screen.findByText('Removed “design technologist”')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(getAllSweeps()[cat].titles).toEqual([
+      'design engineer',
+      'design technologist',
+      'design system',
+    ]);
+    expect(getAllSweeps()[cat].off).toEqual(['design technologist']);
+  });
+
+  it('adding a title already listed says so and changes nothing', async () => {
+    const user = await startSweep();
+    await user.click(screen.getByRole('button', { name: /^Calibrate/ }));
+    await user.type(screen.getByRole('textbox', { name: 'Add a title' }), 'Design System');
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    expect(await screen.findByText('design system is already in the list')).toBeInTheDocument();
+    expect(getAllSweeps()[cat]).toBeUndefined();
+  });
+
   it('saving a swept posting lands it in the Pipeline To apply queue', async () => {
     const user = await startSweep();
     await screen.findByText('design system', { selector: '.rjb-chip-text' });
