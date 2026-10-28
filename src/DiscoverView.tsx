@@ -57,6 +57,7 @@ import { activeAtsRoles, useMustInclude } from './feed/mustInclude';
 import { useDreams } from './feed/dreams';
 import { boardsFromUrls } from './feed/sources/ats';
 import { displayGroupLabel } from './curation/groupLabel';
+import { ACTIVE_CATEGORY_KEY, loadActiveCategory } from './activeTrack';
 import { importFresh } from './staleBuild';
 
 const ManageTrackDialog = lazy(importFresh(() => import('./ManageTrackDialog')));
@@ -70,7 +71,6 @@ const CompaniesPanel = lazy(importFresh(() => import('./CompaniesPanel')));
 // generated Title & ATS searches; its groups→tiles are the curated "Apply Now"/section content.
 // An empty store routes to first-run Onboarding (decision D1), gated by the shell (#128).
 
-const ACTIVE_CATEGORY_KEY = 'rjb_active_category';
 /** Hiring-system rows shown before "Show N more" (rev-3 mock: three quiet rows). */
 const ATS_SHOWN = 3;
 // About four mono lines at phone width: a longer query is clamped with a "Show full query" toggle.
@@ -548,16 +548,6 @@ export default function DiscoverView() {
   // No tracks → the shell shows onboarding instead of this view (App.tsx, #128).
   if (categories.length === 0) return null;
   return <DiscoverInner categories={categories} />;
-}
-
-function loadActiveCategory(categories: Category[]): string {
-  try {
-    const stored = localStorage.getItem(ACTIVE_CATEGORY_KEY);
-    if (stored && categories.some((c) => c.id === stored)) return stored;
-  } catch {
-    /* ignore */
-  }
-  return categories[0].id;
 }
 
 function DiscoverInner({ categories }: { categories: Category[] }) {

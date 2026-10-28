@@ -16,6 +16,7 @@ import { noteSeen, readSeen, useDecided } from './decided';
 import { profileFrom, sourcesFrom, type SearchProfile, type Source } from './profile';
 import { buildFeed, feedRequest, fingerprintsOf, type FeedView } from './feed';
 import { browserReader, type PostingReader } from './reader';
+import { scanReader, useScan } from './autoScan';
 import type { FeedResult } from './fetchFeed';
 
 /** The Search profile and Sources of a track, from today's stores. */
@@ -84,12 +85,21 @@ export interface FeedState {
   refresh: () => void;
 }
 
-export function useFeed(categoryId: string, reader: PostingReader = defaultReader): FeedState {
+export function useFeed(categoryId: string, given?: PostingReader): FeedState {
+  // Review new reads live and adds what the auto-scan kept for this track (feed/autoScan.ts).
+  const reader = useMemo(() => given ?? scanReader(liveReader, categoryId), [given, categoryId]);
   const { profile, sources } = useFeedInputs(categoryId);
   const decided = useDecided();
   const jobs = useJobs();
   const req = useMemo(() => feedRequest(profile, sources), [profile, sources]);
-  const key = `${req.terms.join('\n')}|${req.boardUrls.join('\n')}`;
+  // A finished scan, or a New company followed or ignored, changes what the scan reader adds.
+  const scan = useScan().state;
+  // Not the companies a run in progress adds: only a finished run or a Follow / Ignore re-reads.
+  const scanKey = `${scan.finishedAt ?? 0}:${scan.found
+    .filter((f) => f.status !== 'new')
+    .map((f) => `${f.key}=${f.status}`)
+    .join(',')}`;
+  const key = `${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}`;
   const [read, setRead] = useRemembered<Read | null>(`review:${categoryId}:read`, null);
   const [attempt, setAttempt] = useRemembered(`review:${categoryId}:attempt`, 0);
   const hasQuery = req.terms.length > 0 || req.boardUrls.length > 0;
@@ -170,4 +180,4 @@ export function useFeed(categoryId: string, reader: PostingReader = defaultReade
   };
 }
 
-const defaultReader = browserReader();
+const liveReader = browserReader();

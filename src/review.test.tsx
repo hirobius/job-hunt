@@ -33,6 +33,7 @@ import { starDream } from './feed/dreams';
 import { setMustInclude } from './feed/mustInclude';
 import { getAllDecided } from './feed/decided';
 import { boardUrlsFor } from './feed/watchlist';
+import { runScan } from './feed/autoScan';
 
 const now = new Date().toISOString();
 const post = (id: string, title: string, company: string, o: Partial<Posting> = {}): Posting => ({
@@ -104,6 +105,28 @@ describe('Review new: Browse', () => {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });
     expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
+  });
+
+  it('adds the auto-scan’s postings (#415): remote only, a posting with no place marked', async () => {
+    const scanned = [
+      post('hn:7', 'Product Designer', 'Fjord', { location: 'Oslo', mode: 'onsite' }),
+      post('hn:8', 'Product Designer', 'Gamma', { location: '', mode: undefined }),
+    ];
+    await runScan(
+      { terms: ['Product Designer'], include: ['product designer'], boardUrls: [], trackId: cat },
+      {
+        fetchJson: async () => [],
+        reader: { read: async () => result(scanned) },
+        now: Date.now,
+        pause: () => Promise.resolve(),
+        sources: { yc: false, github: false, adele: false },
+      },
+    );
+    renderReview();
+    const ul = await list();
+    expect(titles(ul)).toHaveLength(4);
+    expect(within(ul).getByText('Remote not stated')).toBeInTheDocument();
+    expect(within(ul).queryByText('Fjord')).toBeNull();
   });
 
   it('Skip hides only that posting, never its company, with Undo', async () => {
@@ -215,9 +238,7 @@ describe('Review new: the scorer', () => {
     renderReview();
     const ul = await list();
     expect(titles(ul)).toEqual(['Design Systems Engineer']);
-    expect(
-      within(ul).getByText('Design-system title; mentions design tokens'),
-    ).toBeInTheDocument();
+    expect(within(ul).getByText('Design-system title; mentions design tokens')).toBeInTheDocument();
     const review = screen.getByRole('list', { name: 'Held for review' });
     expect(titles(review)).toEqual(['UX Engineer']);
     // The related title is searched too.

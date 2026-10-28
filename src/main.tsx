@@ -14,6 +14,7 @@ import { ToastProvider } from '@hirobius/design-system';
 import { ColorModeProvider } from './ColorMode';
 import { ErrorBoundary } from './ErrorBoundary';
 import { installErrorReporting } from './errorReport';
+import { setScanOnOpen } from './feed/scanOnOpenFlag';
 import App from './App';
 import { installFocusRescue } from './focusRescue';
 import { installScrollMemory } from './scrollMemory';
@@ -23,6 +24,8 @@ import { installStaleBuildGuard } from './staleBuild';
 inject();
 // Scrubbed crash reports to Supabase on the live site only (#47; never from localhost).
 installErrorReporting();
+// The auto-scan runs on open (#415); App's AutoScanOnOpen starts it once sync settles.
+setScanOnOpen(true);
 // Pages come back at the scroll they had (return paths): Back, Forward, a top tab, a reload.
 installScrollMemory();
 // Focus is never dropped: a page change focuses its heading, a row leaving hands focus on.

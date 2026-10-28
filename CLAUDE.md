@@ -399,6 +399,22 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   follow-up date while Saved (`jobEvents.followUpDate`). CSP and `legal.ts` unchanged ('self'). SAM.gov's shape is
   **unverified live**. Pinned in `src/contracts/*.test.ts`, `feed/sources/sam.test.ts`,
   `LiveFeedContracts.test.tsx`, `jobDeadline.test.ts`.
+- **Auto-scan (simplify 8/11, #415; stacked on the Feed, #414):** `feed/autoScan.ts` runs all discovery with no
+  buttons. On app open (`AutoScanOnOpen`, a lazy chunk in `App`, after sync settles; on only when `main.tsx` calls
+  `setScanOnOpen(true)`, so unit tests never scan) at most every 6 h, or on **Scan now**: leads (YC hiring now →
+  GitHub DS orgs → Adele → `SEED_LEADS`, empty until the seed list lands) → the probe (≤ 40 new leads a run, the
+  rest queued; its limiter and cache) → the **identity check** (`feed/identity.ts`, #417: one ATS only, and the
+  website's domain must match the slug or name; else unconfirmed, shown but never read) → the Feed's
+  `PostingReader` over followed + confirmed found boards and every feed (Remotive / GitHub budgets hold) → the
+  inclusion check (the profile's must include, else "design system") and **remote only** (Adrian 2026-10-28:
+  `remoteOnly`: remote keeps, on-site/hybrid drops, no mode and no city keeps with `remoteUnstated`, "Remote not
+  stated"). Kept per browser: `rjb_autoscan` (last run, lead queue, probed, found companies) and
+  `rjb_autoscan_postings` (≤ 300, bodies cut to 1500). A run cut short resumes on the next open. Review new reads
+  through `scanReader` (live read + the scan's postings, remote only, never an ignored company's). UI in
+  `AutoScanViews.tsx`: `ScanStatus` ("Last scanned hh:mm · N new from M sources", Scan now / Stop scan) and
+  `NewCompanies` (Follow → `watchBoard`, Ignore → `muteCompany`, each with Undo), on Review new until the Today
+  slice mounts them. Pinned in `feed/autoScan.test.ts`, `feed/identity.test.ts`, `autoScanViews.test.tsx`,
+  `review.test.tsx`; E2E `e2e/auto-scan.spec.ts` (a fresh profile gets postings with zero clicks).
 - **Adele seed (2026-10-23):** `src/feed/data/adele.json` is a one-time snapshot of UXPin's public design systems
   list (github.com/uxpin/adele, **MIT**; company name + design system site; re-take it by hand from `ADELE.file`).
   No runtime host. On a design systems track (`hasRelatedTitles` or the GitHub design-system search) Companies' More
