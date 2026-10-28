@@ -364,15 +364,16 @@ function DocumentRow({
     [highlight],
   );
   // Soft, like every other Remove (#329): the row collapses, then goes, with Undo.
-  const remove = () =>
-    collapseRow(card.current, () => {
-      if (!removeDocumentWithUndo(doc))
-        toast({
-          title: "Couldn't delete",
-          description: 'A sent document is locked.',
-          tone: 'danger',
-        });
-    });
+  const remove = () => {
+    // A locked one (a Sent Version) is refused before its row collapses, so it never hides.
+    if (doc.versions.some((v) => v.sentAt))
+      return toast({
+        title: "Couldn't delete",
+        description: 'A sent document is locked.',
+        tone: 'danger',
+      });
+    collapseRow(card.current, () => removeDocumentWithUndo(doc));
+  };
   // A card of its kind's list (Adrian 2026-10-23: cards, not hairlines).
   return (
     <Card

@@ -2,7 +2,13 @@
 // it back in its place with every Version (documents.restoreDocument). Like every other Remove in
 // the app, there is no "can't be undone" confirm. The library row collapses first (collapseRow);
 // the editor goes back to the library.
-import { getAllDocuments, removeDocument, restoreDocument, type Document } from './documents';
+import {
+  getAllDocuments,
+  removeDocument,
+  replaceDocuments,
+  restoreDocument,
+  type Document,
+} from './documents';
 import { highlightNew } from './feedback';
 import { notifyRemoved, showNotice } from './saveNotice';
 
@@ -12,7 +18,13 @@ export function removeDocumentWithUndo(d: Document): boolean {
   if (at < 0 || !removeDocument(d.id)) return false;
   const title = d.title || 'Untitled';
   notifyRemoved(`Deleted “${title}”`, () => {
-    if (restoreDocument(d, at)) highlightNew(d.id);
+    // The same id back meanwhile (Restore starter messages re-adds a starter's stock text): Undo
+    // still brings back the user's own Versions.
+    const all = getAllDocuments();
+    if (all.some((x) => x.id === d.id)) {
+      replaceDocuments(all.map((x) => (x.id === d.id ? d : x)));
+      highlightNew(d.id);
+    } else if (restoreDocument(d, at)) highlightNew(d.id);
     else
       showNotice({
         title: `“${title}” couldn't be put back`,

@@ -322,7 +322,7 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
   await expect(
     page.getByRole('listitem', { name: 'Follow-up after applying', exact: true }),
   ).toBeVisible();
-  await press(page, row, 'Open the document row again');
+  // It comes back as it was: still the open row.
   await press(page, button(page, 'Open Follow-up after applying'), 'Open');
   for (const name of ['New résumé', 'New cover letter', 'New outreach message', 'New note']) {
     await go(page, '#/copy-deck');

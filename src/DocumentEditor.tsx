@@ -204,10 +204,9 @@ export default function DocumentEditor({
   // Soft, like every other Remove (#329): back to the library, with Undo there.
   const remove = () => {
     if (!doc) return;
-    if (removeDocumentWithUndo(doc)) {
-      dropDocDraft(doc.id);
-      onBack();
-    } else
+    // An unsaved draft is kept for the tab (docDrafts), so Undo and reopening bring it back too.
+    if (removeDocumentWithUndo(doc)) onBack();
+    else
       toast({
         title: "Couldn't delete",
         description: 'A sent document is locked.',

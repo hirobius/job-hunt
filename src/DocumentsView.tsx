@@ -15,7 +15,7 @@ import { DOCUMENT_KINDS, useDocuments, type DocumentKind } from './documents';
 import { documentJobUrl, resolveDocumentId } from './outreachTemplates';
 import { useSnippets } from './copyDeckStore';
 import { findJobById, jobIdOf } from './store';
-import { goBackTo, navigate, openJob, originOf, useRoute, withOrigin, type Route } from './route';
+import { goBackTo, navigate, originOf, useRoute, withOrigin, type Route } from './route';
 import { useRouteLabel } from './routeLabel';
 import BackLink from './BackLink';
 import type { Back } from './back';
@@ -53,14 +53,16 @@ export default function DocumentsView() {
     : null;
   const named = sub && !sub.startsWith(NEW) ? resolveDocumentId(sub, docs) : null;
   const origin = originOf(route);
+  // A job's own document or final copy (#328): its saved job's page holds it.
+  const jobUrl = sub && !named ? documentJobUrl(sub, docs) : null;
+  const jobId = jobUrl && findJobById(jobIdOf(jobUrl)) ? jobIdOf(jobUrl) : null;
 
   useEffect(() => {
     if (!sub || newKind) return;
     if (named && named !== sub) navigate({ sub: named, from: route.from ?? null }, true);
     else if (!named && (sub.startsWith(NEW) || (settled && !moving))) {
-      // A job's own document or final copy (#328): its job page holds it.
-      const jobUrl = documentJobUrl(sub, docs);
-      if (jobUrl && findJobById(jobIdOf(jobUrl))) return openJob(jobIdOf(jobUrl), true);
+      // Its job page, keeping where the link came from (return paths).
+      if (jobId) return navigate({ tab: 'queue', jobId, from: route.from ?? null }, true);
       // Unknown or deleted: back to the page that linked here, else the library.
       const back = originOf(route);
       if (back) goBackTo(back);
@@ -68,7 +70,7 @@ export default function DocumentsView() {
     }
     // The route is read as it is when the document or sync changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sub, newKind, named, settled, moving]);
+  }, [sub, newKind, named, settled, moving, jobId]);
 
   const target = returnTarget(route);
   const targetLabel = useRouteLabel(target ?? LIBRARY);
