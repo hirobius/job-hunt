@@ -30,20 +30,22 @@ import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInDialog from './account/SignInDialog';
-import { markAppliedByUrl, setStatusByUrl, useJobs } from './store';
+import { useJobs } from './store';
 import { useSnippets } from './copyDeckStore';
 import { migrateSnippetStore } from './outreachTemplates';
 import { useCloudSync } from './account/accountContext';
 import NoticeHost from './NoticeHost';
 import StaleBuildNotice from './StaleBuildNotice';
 import { authLinkErrorMessage } from './account/authLinkError';
-import { QUICK_ADD_INVALID, saveWithNotice } from './saveNotice';
+import { QUICK_ADD_INVALID, quickAddBadStatus, saveWithNotice } from './saveNotice';
+import { setStatusWithNotice } from './jobUndo';
 import { useCategories } from './curation/curationStore';
 import { migrateSystemsOnly, SYSTEMS_ONLY_NOTICE } from './feed/systemsOnly';
-import { STATUSES } from './types';
+import { STATUSES, type Status } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
 import { PageShell } from './hds-gaps/PageShell';
+import { PageErrorBoundary } from './ErrorBoundary';
 
 // Code-split every route view: Discover, Documents and the rest here, the Pipeline, job page,
 // Apply mode and Company page through routeViews.ts (they render without a Suspense step once
@@ -66,6 +68,8 @@ const DOCUMENTS_ROUTE = 'copy-deck';
 const HOME_ROUTE = 'discover';
 const QUICK_ADD_LANDING = 'queue';
 const APPLY_ROUTE = 'apply';
+// The quick-add link's params (shortcut, bookmarklet, Gmail-scan links): read once, then removed.
+const QUICK_ADD_PARAMS = ['add', 'applied', 'status', 'u', 't', 'title'];
 // The old Trades tab's slug: its bookmarks still land on Companies, like an empty hash.
 const LEGACY_HOME = 'apprenticeships';
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
@@ -174,22 +178,42 @@ export default function App() {
       applied = qp.get('applied'),
       st = qp.get('status'),
       su = qp.get('u');
-    const setsStatus = !!(st && su && (STATUSES as string[]).includes(st));
-    if (add || applied || setsStatus) {
-      ['add', 'applied', 'status', 'u', 't', 'title'].forEach((k) => qp.delete(k));
+    const knownStatus = !!st && (STATUSES as string[]).includes(st);
+    const setsStatus = knownStatus && !!su;
+    const warn = (title: string) => toast({ title, tone: 'warning', duration: 10000 });
+    if (QUICK_ADD_PARAMS.some((k) => qp.has(k))) {
+      const asks = { add: qp.has('add'), applied: qp.has('applied'), status: qp.has('status') };
+      // Every quick-add param leaves the URL, whether the link was usable or not (#333).
+      QUICK_ADD_PARAMS.forEach((k) => qp.delete(k));
       const s = qp.toString();
+      const acts = !!(add || applied || setsStatus);
       // Land first, then save: the save notice drops itself on any move away from the page it was
       // raised on, so raised before the landing it was gone at once. Through the route seam, so it
-      // knows the hash it is on (a sheet's pop would wait otherwise).
+      // knows the hash it is on (a sheet's pop would wait otherwise). A link that does nothing
+      // stays on the page it named.
       navigate(
-        { tab: QUICK_ADD_LANDING, sub: null, pillar: null, jobId: null, from: null, section: null },
+        acts
+          ? {
+              tab: QUICK_ADD_LANDING,
+              sub: null,
+              pillar: null,
+              jobId: null,
+              from: null,
+              section: null,
+            }
+          : getRoute().tab
+            ? {}
+            : { tab: HOME_ROUTE },
         true,
         { search: s ? '?' + s : '' },
       );
-      if (add && saveWithNotice(add, label) === 'invalid')
-        toast({ title: QUICK_ADD_INVALID, tone: 'warning', duration: 10000 });
-      if (applied) markAppliedByUrl(applied, label);
-      if (setsStatus) setStatusByUrl(su!, st as never, label);
+      // A link that did something says so in its own notice; one that did nothing says why, once.
+      let did = false;
+      if (add) did = saveWithNotice(add, label) !== 'invalid' || did;
+      if (applied) did = setStatusWithNotice(applied, 'Applied', label) || did;
+      if (setsStatus) did = setStatusWithNotice(su!, st as Status, label) || did;
+      if (!did && (asks.add || asks.applied || asks.status))
+        warn(st && !knownStatus ? quickAddBadStatus(st) : QUICK_ADD_INVALID);
     } else if (linkError) {
       // An expired or refused sign-in link (#error=…): say so, and replace the error with Companies.
       toast({ title: linkError, tone: 'warning', duration: 10000 });
@@ -254,51 +278,55 @@ export default function App() {
                   </Stack>
                 </Box>
                 <Box as="main">
-                  <Stack gap="px24">
-                    <TabsContent value="queue" variant="bare" tabIndex={-1}>
-                      <Suspense fallback={<PipelineSkeleton />}>
-                        {applying ? (
-                          <ApplyMode jobId={route.sub} />
-                        ) : company ? (
-                          <CompanyPage slug={route.sub ?? ''} />
-                        ) : route.jobId ? (
-                          <>
-                            <JobPageLiveness jobId={route.jobId} />
-                            <JobPage jobId={route.jobId} />
-                          </>
-                        ) : (
-                          // No sync banner: the Account menu's sync line says where data lives.
-                          <TrackerView />
-                        )}
-                      </Suspense>
-                    </TabsContent>
-                    <TabsContent value="discover" variant="bare" tabIndex={-1}>
-                      {firstRun ? (
-                        <Onboarding offerSample />
-                      ) : hasTracks ? (
-                        <Suspense fallback={<DiscoverSkeleton />}>
-                          <DiscoverView />
+                  {/* A page whose chunk is gone after a deploy says so here, not over the shell
+                      (#331); a move to another page clears it. */}
+                  <PageErrorBoundary resetKey={pageKey(route)}>
+                    <Stack gap="px24">
+                      <TabsContent value="queue" variant="bare" tabIndex={-1}>
+                        <Suspense fallback={<PipelineSkeleton />}>
+                          {applying ? (
+                            <ApplyMode jobId={route.sub} />
+                          ) : company ? (
+                            <CompanyPage slug={route.sub ?? ''} />
+                          ) : route.jobId ? (
+                            <>
+                              <JobPageLiveness jobId={route.jobId} />
+                              <JobPage jobId={route.jobId} />
+                            </>
+                          ) : (
+                            // No sync banner: the Account menu's sync line says where data lives.
+                            <TrackerView />
+                          )}
                         </Suspense>
-                      ) : (
-                        <ChooseTrack />
+                      </TabsContent>
+                      <TabsContent value="discover" variant="bare" tabIndex={-1}>
+                        {firstRun ? (
+                          <Onboarding offerSample />
+                        ) : hasTracks ? (
+                          <Suspense fallback={<DiscoverSkeleton />}>
+                            <DiscoverView />
+                          </Suspense>
+                        ) : (
+                          <ChooseTrack />
+                        )}
+                      </TabsContent>
+                      {documents && (
+                        <Suspense fallback={<CopyDeckSkeleton />}>
+                          <DocumentsView />
+                        </Suspense>
                       )}
-                    </TabsContent>
-                    {documents && (
-                      <Suspense fallback={<CopyDeckSkeleton />}>
-                        <DocumentsView />
-                      </Suspense>
-                    )}
-                    {legal && (
-                      <Suspense fallback={null}>
-                        <LegalPage />
-                      </Suspense>
-                    )}
-                    {notFound && (
-                      <Suspense fallback={null}>
-                        <NotFoundPage />
-                      </Suspense>
-                    )}
-                  </Stack>
+                      {legal && (
+                        <Suspense fallback={null}>
+                          <LegalPage />
+                        </Suspense>
+                      )}
+                      {notFound && (
+                        <Suspense fallback={null}>
+                          <NotFoundPage />
+                        </Suspense>
+                      )}
+                    </Stack>
+                  </PageErrorBoundary>
                 </Box>
               </Stack>
             </HdsTabs>
