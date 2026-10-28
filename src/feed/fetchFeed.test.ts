@@ -563,3 +563,55 @@ describe('fetchFeed — the wide sweep (#213)', () => {
     expect(out.postings.filter((p) => p.source === 'remotive')).toHaveLength(1);
   });
 });
+
+describe('boards read through /api/boards', () => {
+  const dsRow = {
+    id: 'dsjobs:https://designsystems.jobs/companies/acme/lead',
+    title: 'Design Systems Lead',
+    company: 'Acme',
+    url: 'https://designsystems.jobs/companies/acme/lead',
+  };
+  const sources = { dsjobs: true, himalayas: true };
+
+  it('a whole-feed board is read once per sweep, under its plain name; a search board per term', async () => {
+    const urls: string[] = [];
+    const out = await fetchFeed(
+      { terms: ['design systems', 'design technologist'], boardUrls: [] },
+      async (url) => {
+        urls.push(url);
+        if (url.startsWith('/api/boards?src=dsjobs')) return { postings: [dsRow] };
+        if (url.startsWith('/api/boards')) return { postings: [] };
+        return url.includes('remotive') ? { jobs: [] } : { hits: [] };
+      },
+      { kv: memoryKv(), sources },
+    );
+    expect(urls.filter((u) => u.startsWith('/api/boards'))).toEqual([
+      '/api/boards?src=himalayas&q=design+systems',
+      '/api/boards?src=himalayas&q=design+technologist',
+      '/api/boards?src=dsjobs',
+    ]);
+    expect(out.sources).toContainEqual({ key: 'dsjobs', label: 'designsystems.jobs', fetched: 1 });
+    expect(out.sources.map((s) => s.key)).toContain('himalayas|design systems');
+    expect(out.postings.map((p) => p.id)).toEqual([dsRow.id]);
+  });
+
+  it('ships with designsystems.jobs and We Work Remotely on, the unchecked three off', () => {
+    expect(SOURCE_ENABLED).toMatchObject({
+      dsjobs: true,
+      wwr: true,
+      workingnomads: false,
+      himalayas: false,
+      authenticjobs: false,
+    });
+  });
+
+  it('a Contracts search reads none of them', async () => {
+    const urls: string[] = [];
+    await fetchFeed(
+      { term: 'x', boardUrls: [], contracts: { naics: ['332322'] } },
+      async (url) => (urls.push(url), {}),
+      { kv: memoryKv(), sources, readSam: async () => [] },
+    );
+    expect(urls).toEqual([]);
+  });
+});

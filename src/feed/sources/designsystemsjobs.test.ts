@@ -28,6 +28,22 @@ describe('parseDsJobs', () => {
     });
   });
 
+  it('never takes a mode or a job type for the place', () => {
+    const line = (d: string) =>
+      parseDsJobs(
+        `<item><title>X at Y</title><link>https://designsystems.jobs/x</link><description>${d}</description></item>`,
+      )[0];
+    expect(line('Design · Senior · Full time · On-site')).toMatchObject({
+      location: '',
+      mode: 'onsite',
+    });
+    expect(line('Design · Senior · Full time').location).toBe('');
+    expect(line('Design · Contract · Hybrid · Germany')).toMatchObject({
+      location: 'Germany',
+      mode: 'hybrid',
+    });
+  });
+
   it('keeps a title with no company whole, and drops items with no web link', () => {
     const xml = `<item><title>Design Systems Lead</title><link>https://designsystems.jobs/x</link></item>
       <item><title>Bad at Co</title><link>javascript:alert(1)</link></item>`;

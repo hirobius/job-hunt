@@ -10,12 +10,16 @@
 import { httpUrl } from '../../httpUrl';
 import type { JobMode } from '../../types';
 import type { Posting } from '../types';
-import type { ProxiedSource } from './proxied';
+import type { ProxiedSource } from './proxiedIds';
 import { parseRss } from './rss';
 
 export const DSJOBS_FEED = 'https://designsystems.jobs/feed';
 
 const MODES: Record<string, JobMode> = { remote: 'remote', hybrid: 'hybrid', onsite: 'onsite' };
+const fold = (s: string) => s.toLowerCase().replace(/[\s-]/g, '');
+/** Parts of the line that are never a place. */
+const NOT_PLACE =
+  /^(remote|hybrid|onsite|fulltime|parttime|contract|freelance|internship|temporary)$/;
 
 export function parseDsJobs(xml: string): Posting[] {
   const out: Posting[] = [];
@@ -28,18 +32,16 @@ export function parseDsJobs(xml: string): Posting[] {
       .split('·')
       .map((s) => s.trim())
       .filter(Boolean);
-    const mode = parts.map((s) => MODES[s.toLowerCase().replace(/[\s-]/g, '')]).find(Boolean);
+    const mode = parts.map((s) => MODES[fold(s)]).find(Boolean);
+    const last = parts.length > 1 ? parts[parts.length - 1] : '';
     const p: Posting = {
       id: `dsjobs:${key}`,
       source: 'dsjobs',
       title: at > 0 ? it.title.slice(0, at).trim() : it.title,
       company: at > 0 ? it.title.slice(at + 4).trim() : '',
       url,
-      // The last part is the place ("United States, Canada"), unless the line ends on a mode.
-      location:
-        parts.length > 1 && !MODES[parts[parts.length - 1].toLowerCase()]
-          ? parts[parts.length - 1]
-          : '',
+      // The last part is the place ("United States, Canada"), unless it is a mode or a job type.
+      location: last && !NOT_PLACE.test(fold(last)) ? last : '',
       postedAt: it.pubDate,
       text: it.description,
     };

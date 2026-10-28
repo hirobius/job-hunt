@@ -222,12 +222,14 @@ Answers open questions 6 and 7. RSS and JSON feeds without CORS headers are read
 edge function, `api/boards.ts` → `src/feed/sources/boardsHandler.ts`: `?src=<id>` picks a **fixed**
 upstream URL (never an open proxy), the board's adapter parses it, and the answer `{ postings }`
 carries an hour of shared CDN cache (plus an hour in the instance), so all users together read each
-board about hourly. 60 calls / 10 min per IP; a body over 8 MB is refused; text is cut to 4,000
+board about hourly. 60 upstream reads / 10 min per IP (cache hits are free); a body over 8 MB is refused; text is cut to 4,000
 chars. Nothing is stored beyond that cache. The browser only talks to 'self', so the CSP and
 `legal.ts` THIRD_PARTIES are unchanged (like `/api/sam`). Client half: `sources/proxied.ts`
-(re-checks every field, http(s) links only, one request in flight per URL during a sweep, then the
-feed's phrase rule `matchTerm`; a scored track's scorer and must include apply on top as for every
-source). Switches in `SOURCE_ENABLED` (`fetchFeed.ts`).
+(re-checks every field, http(s) links only; a partial answer makes the next read skip the session
+cache). A whole-feed board is read once per search, like a watched board; a search board (Himalayas)
+once per term. Postings come back unfiltered: the feed's phrase rule (`rankPostings`, so "system
+design" is never "design system"), must include, or on a scored track the scorer decides what is
+listed, as for every source. Switches in `SOURCE_ENABLED` (`fetchFeed.ts`).
 
 | Source | Feed | State | Terms kept |
 | --- | --- | --- | --- |

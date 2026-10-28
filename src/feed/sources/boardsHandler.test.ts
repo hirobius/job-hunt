@@ -8,7 +8,7 @@ import {
   TEXT_MAX,
 } from './boardsHandler';
 import { DSJOBS_FEED } from './designsystemsjobs';
-import { PROXIED_SEARCH, PROXIED_SOURCES } from './proxied';
+import { PROXIED_SEARCH, PROXIED_SOURCES } from './proxiedIds';
 import { WWR_FEEDS } from './weworkremotely';
 
 const NOW = Date.parse('2026-10-28T12:00:00Z');
@@ -89,7 +89,7 @@ describe('/api/boards', () => {
     const res = await get('?src=wwr');
     expect(res.status).toBe(200);
     expect(res.headers.get('Cache-Control')).toBe('no-store');
-    expect(((await res.json()) as { postings: unknown[] }).postings).toHaveLength(1);
+    expect(await res.json()).toMatchObject({ partial: true });
     await get('?src=wwr');
     expect(fetchImpl).toHaveBeenCalledTimes(4);
   });
@@ -118,13 +118,15 @@ describe('/api/boards', () => {
     ]);
   });
 
-  it('refuses other methods and rate-limits each caller', async () => {
-    const { get } = setup();
+  it('refuses other methods, and rate-limits each caller’s upstream reads only', async () => {
+    const { get } = setup(() => new Response(JSON.stringify({ jobs: [] })));
     expect((await get('?src=dsjobs', { method: 'POST' })).status).toBe(405);
-    for (let i = 0; i < RATE_LIMIT; i++) await get('?src=dsjobs', { ip: '9.9.9.9' });
-    const res = await get('?src=dsjobs', { ip: '9.9.9.9' });
+    for (let i = 0; i < RATE_LIMIT; i++) await get(`?src=himalayas&q=t${i}`, { ip: '9.9.9.9' });
+    const res = await get('?src=himalayas&q=new', { ip: '9.9.9.9' });
     expect(res.status).toBe(429);
     expect(Number(res.headers.get('Retry-After'))).toBeGreaterThan(0);
-    expect((await get('?src=dsjobs', { ip: '8.8.8.8' })).status).toBe(200);
+    // A cached answer still comes back, and another caller is not held up.
+    expect((await get('?src=himalayas&q=t0', { ip: '9.9.9.9' })).status).toBe(200);
+    expect((await get('?src=himalayas&q=new', { ip: '8.8.8.8' })).status).toBe(200);
   });
 });

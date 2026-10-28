@@ -6,7 +6,8 @@ import { fetchHn } from './sources/hn';
 import { fetchJobicy } from './sources/jobicy';
 import { fetchRemoteOk } from './sources/remoteok';
 import { FetchError, type FetchJson } from './sources/http';
-import { fetchProxied, PROXIED_SOURCES, type ProxiedId } from './sources/proxied';
+import { fetchProxied } from './sources/proxied';
+import { PROXIED_SEARCH, PROXIED_SOURCES, type ProxiedId } from './sources/proxiedIds';
 import { fetchRemotive } from './sources/remotive';
 import { fetchSam, SourceMessageError, type SamRequest } from './sources/sam';
 import { SOURCE_LABEL, type Posting } from './types';
@@ -348,6 +349,7 @@ export async function fetchFeed(
   const contracts = req.contracts;
   if (!terms.length && !contracts?.naics.length) return { postings: [], sources: [] };
 
+  const proxied = PROXIED_SOURCES.filter((id) => enabled[id]);
   // One term keeps the plain keys ('hn'); a sweep names the term in each key and label.
   const many = terms.length > 1;
   const termTasks = (term: string): SourceTask[] => {
@@ -378,11 +380,13 @@ export async function fetchFeed(
             },
           ]
         : []),
-      ...PROXIED_SOURCES.filter((id) => enabled[id]).map((id) => ({
-        key: k(id),
-        label: l(SOURCE_LABEL[id]),
-        run: () => fetchProxied(id, term, fetchJson),
-      })),
+      ...proxied
+        .filter((id) => PROXIED_SEARCH.has(id))
+        .map((id) => ({
+          key: k(id),
+          label: l(SOURCE_LABEL[id]),
+          run: () => fetchProxied(id, fetchJson, term),
+        })),
     ];
   };
 
@@ -392,7 +396,18 @@ export async function fetchFeed(
       ? contracts.naics.length
         ? [{ key: 'sam', label: SOURCE_LABEL.sam, run: () => readSam(contracts) }]
         : []
-      : terms.flatMap(termTasks)),
+      : [
+          ...terms.flatMap(termTasks),
+          // A whole-feed board (designsystems.jobs, WWR) is read once per search, like a watched
+          // board, and the term matching happens downstream for every term of a sweep.
+          ...proxied
+            .filter((id) => !PROXIED_SEARCH.has(id))
+            .map((id) => ({
+              key: id,
+              label: SOURCE_LABEL[id],
+              run: () => fetchProxied(id, fetchJson),
+            })),
+        ]),
     ...boards.map((b) => ({
       key: `${b.kind}:${b.slug}`,
       label: `${boardLabel(b)} (${SOURCE_LABEL[b.kind]})`,

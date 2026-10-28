@@ -14,7 +14,7 @@ import { htmlToText } from '../html';
 import { httpUrl } from '../../httpUrl';
 import type { Posting } from '../types';
 import { arr, num, obj, str } from './http';
-import { MAX_Q, type ProxiedSource } from './proxied';
+import { MAX_Q, type ProxiedSource } from './proxiedIds';
 
 export const himalayasUrl = (q: string) =>
   `https://himalayas.app/jobs/api/search?q=${encodeURIComponent(q.trim().slice(0, MAX_Q))}`;

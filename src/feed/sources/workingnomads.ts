@@ -11,7 +11,7 @@ import { htmlToText } from '../html';
 import { httpUrl } from '../../httpUrl';
 import type { Posting } from '../types';
 import { arr, obj, str } from './http';
-import type { ProxiedSource } from './proxied';
+import type { ProxiedSource } from './proxiedIds';
 import { rssDate } from './rss';
 
 export const WORKING_NOMADS_URL = 'https://www.workingnomads.com/api/exposed_jobs/';

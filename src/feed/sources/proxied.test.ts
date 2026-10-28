@@ -50,35 +50,49 @@ describe('postingsFrom', () => {
 });
 
 describe('fetchProxied', () => {
-  it('filters by the phrase rule: "design system" is never "system design"', async () => {
+  it('returns the board unfiltered: matching is downstream (and the scorer’s on a scored track)', async () => {
     const fetchJson = async () => ({
-      postings: [
-        row(),
-        row({ id: 'dsjobs:2', title: 'System Design Engineer', text: '' }),
-        row({ id: 'dsjobs:3', title: 'Designer', text: 'You will own our design systems.' }),
-      ],
+      postings: [row(), row({ id: 'dsjobs:2', title: 'Design Technologist', text: '' })],
     });
-    const out = await fetchProxied('dsjobs', 'design system', fetchJson);
-    expect(out.map((p) => p.id)).toEqual([row().id, 'dsjobs:3']);
+    expect((await fetchProxied('dsjobs', fetchJson)).map((p) => p.id)).toEqual([
+      row().id,
+      'dsjobs:2',
+    ]);
   });
 
-  it('a sweep’s terms share one request while it is in flight', async () => {
+  it('one request per URL while it is in flight', async () => {
     let release!: (v: unknown) => void;
     const fetchJson = vi.fn(() => new Promise((r) => (release = r)));
-    const a = fetchProxied('dsjobs', 'design system', fetchJson);
-    const b = fetchProxied('dsjobs', 'design technologist', fetchJson);
-    release({ postings: [row()] });
-    expect((await a).length + (await b).length).toBe(1);
-    expect(fetchJson).toHaveBeenCalledTimes(1);
-    const c = fetchProxied('dsjobs', 'design system', fetchJson);
-    expect(fetchJson).toHaveBeenCalledTimes(2);
+    const a = fetchProxied('himalayas', fetchJson, 'design systems');
+    const b = fetchProxied('himalayas', fetchJson, 'design systems');
     release({ postings: [] });
-    await c;
+    await Promise.all([a, b]);
+    expect(fetchJson).toHaveBeenCalledTimes(1);
   });
 
-  it('a search source sends its term', async () => {
+  it('a search board sends its term, and reads nothing without one', async () => {
     const fetchJson = vi.fn(async () => ({ postings: [] }));
-    await fetchProxied('himalayas', 'design systems', fetchJson);
-    expect(fetchJson).toHaveBeenCalledWith('/api/boards?src=himalayas&q=design+systems');
+    await fetchProxied('himalayas', fetchJson, 'design systems');
+    expect(await fetchProxied('himalayas', fetchJson, ' ')).toEqual([]);
+    expect(fetchJson.mock.calls).toEqual([
+      ['/api/boards?src=himalayas&q=design+systems', undefined],
+    ]);
+  });
+
+  it('a whole-feed board ignores the term', async () => {
+    const fetchJson = vi.fn(async () => ({ postings: [] }));
+    await fetchProxied('dsjobs', fetchJson, 'design systems');
+    expect(fetchJson).toHaveBeenCalledWith('/api/boards?src=dsjobs', undefined);
+  });
+
+  it('after a partial answer, the next read skips the session cache', async () => {
+    const fetchJson = vi.fn(async (_url: string, _o?: { fresh?: boolean }) => ({
+      postings: [],
+      partial: fetchJson.mock.calls.length === 1,
+    }));
+    await fetchProxied('wwr', fetchJson);
+    await fetchProxied('wwr', fetchJson);
+    await fetchProxied('wwr', fetchJson);
+    expect(fetchJson.mock.calls.map((c) => c[1])).toEqual([undefined, { fresh: true }, undefined]);
   });
 });

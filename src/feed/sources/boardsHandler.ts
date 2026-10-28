@@ -4,14 +4,14 @@
 // with the board's adapter and answers `{ postings }`.
 // Politeness: one answer per source (and term, for a search source) is kept an hour in the
 // instance, and the response carries an hour of shared CDN cache, so all users together read each
-// board about hourly. Per caller: RATE_LIMIT requests per window, then 429. Order: method → rate
-// limit → input → cache → upstream. A partial upstream failure answers what did come back; a
+// board about hourly. Per caller: RATE_LIMIT upstream reads per window, then 429 (cache hits are
+// free). Order: method → input → cache → rate limit → upstream. A partial upstream failure answers what did come back; a
 // total one answers 502 with the board's name.
 import { BRAND } from '../../brand';
 import { authenticJobs } from './authenticjobs';
 import { dsJobs } from './designsystemsjobs';
 import { himalayas } from './himalayas';
-import { isProxiedId, MAX_Q, type ProxiedId, type ProxiedSource } from './proxied';
+import { isProxiedId, MAX_Q, type ProxiedId, type ProxiedSource } from './proxiedIds';
 import { weWorkRemotely } from './weworkremotely';
 import { workingNomads } from './workingnomads';
 import { SOURCE_LABEL, type Posting } from '../types';
@@ -98,12 +98,6 @@ export function createBoardsHandler({
   return async function handler(req: Request): Promise<Response> {
     if (req.method !== 'GET') return fail(405, 'Only GET is allowed.', { Allow: 'GET' });
     const t = now();
-    const wait = limited(callerOf(req), t);
-    if (wait !== null)
-      return fail(429, 'Too many board reads: try again in a few minutes.', {
-        'Retry-After': String(wait),
-      });
-
     const url = new URL(req.url);
     if (url.search.length > MAX_QUERY) return fail(400, 'The request is too long.');
     const src = url.searchParams.get('src') ?? '';
@@ -118,6 +112,12 @@ export function createBoardsHandler({
     const shared = `public, max-age=0, s-maxage=${CACHE_TTL_MS / 1000}, stale-while-revalidate=600`;
     if (hit && t - hit.at < CACHE_TTL_MS) return json(200, { postings: hit.postings }, shared);
 
+    // Only a read that reaches upstream counts against the caller: cache hits cost nothing.
+    const wait = limited(callerOf(req), t);
+    if (wait !== null)
+      return fail(429, 'Too many board reads: try again in a few minutes.', {
+        'Retry-After': String(wait),
+      });
     const urls = a.upstream(q || undefined);
     const reads = await Promise.allSettled(urls.map((u) => readOne(a, u)));
     const ok = reads.filter(
@@ -139,6 +139,9 @@ export function createBoardsHandler({
       cache.set(key, { at: t, postings });
       while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value as string);
     }
-    return json(200, { postings }, whole ? shared : 'no-store');
+    // `partial` tells the browser to skip its own session cache next time (proxied.ts).
+    return whole
+      ? json(200, { postings }, shared)
+      : json(200, { postings, partial: true }, 'no-store');
   };
 }

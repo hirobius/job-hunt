@@ -11,7 +11,7 @@
 // names "We Work Remotely" as its source. Read through /api/boards (no CORS), at most about hourly.
 import { httpUrl } from '../../httpUrl';
 import type { Posting } from '../types';
-import type { ProxiedSource } from './proxied';
+import type { ProxiedSource } from './proxiedIds';
 import { parseRss } from './rss';
 
 export const WWR_FEEDS = [

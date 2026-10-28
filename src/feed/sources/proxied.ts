@@ -5,44 +5,16 @@
 // of shared CDN cache, so every user together polls each board about once an hour. Because the
 // browser only ever talks to 'self', the CSP and legal.ts THIRD_PARTIES are unchanged (like /api/sam).
 //
-// This file is the browser half: the ids, the request, and a strict re-check of what came back.
-// The adapters (one file per board) are only imported by the function, so their parsers stay out of
-// the app bundle.
+// This file is the browser half: the request and a strict re-check of what came back. The adapters
+// (one file per board) are only imported by the function, so their parsers stay out of the app
+// bundle. Postings come back unfiltered, like a watched board: the feed's phrase rule (rankPostings)
+// or, on a scored track, the scorer decides what is listed.
 import { httpUrl } from '../../httpUrl';
-import { matchTerm } from '../match';
-import type { FeedSourceId, Posting } from '../types';
+import type { Posting } from '../types';
 import { arr, num, obj, str, type FetchJson } from './http';
-
-/** The boards read through /api/boards. Add one here, in FeedSourceId/SOURCE_LABEL, in
- *  SOURCE_ENABLED (fetchFeed.ts) and in the function's registry (boardsHandler.ts). */
-export const PROXIED_SOURCES = [
-  'dsjobs',
-  'wwr',
-  'workingnomads',
-  'himalayas',
-  'authenticjobs',
-] as const satisfies readonly FeedSourceId[];
-export type ProxiedId = (typeof PROXIED_SOURCES)[number];
-/** The ones with a search endpoint: the term goes upstream (the adapter's `search` matches). */
-export const PROXIED_SEARCH: ReadonlySet<ProxiedId> = new Set<ProxiedId>(['himalayas']);
-
-/** What an adapter gives the function: where to read, and how to turn one answer into postings. */
-export interface ProxiedSource {
-  id: ProxiedId;
-  /** Upstream URLs to read (all of them, merged). `q` is passed only to a `search` source. */
-  upstream: (q?: string) => string[];
-  /** The source has a search endpoint: the term goes upstream (and into the cache key). */
-  search?: boolean;
-  /** One upstream body (as text) → postings. Must not throw on junk: return []. */
-  parse: (body: string, url: string) => Posting[];
-}
+import { MAX_Q, PROXIED_SEARCH, type ProxiedId } from './proxiedIds';
 
 export const PROXY_PATH = '/api/boards';
-/** Search terms longer than this are not sent upstream (also the function's limit). */
-export const MAX_Q = 60;
-
-export const isProxiedId = (s: string): s is ProxiedId =>
-  (PROXIED_SOURCES as readonly string[]).includes(s);
 
 export function proxyUrl(id: ProxiedId, q?: string): string {
   const p = new URLSearchParams({ src: id });
@@ -82,27 +54,36 @@ export function postingsFrom(body: unknown, id: ProxiedId): Posting[] {
   return out;
 }
 
-/** One request per URL at a time: a sweep asks every term at once, and each would otherwise miss
- *  the session cache (it fills only when the first answer lands). */
+/** One request per URL at a time (a sweep reads a search board once per term, all at once). */
 const inFlight = new WeakMap<FetchJson, Map<string, Promise<unknown>>>();
+/** URLs whose last answer was partial (one of a board's feeds failed upstream): the next read
+ *  skips the session cache, which would otherwise keep the gap for an hour. */
+const partial = new Set<string>();
 
 function readOnce(url: string, fetchJson: FetchJson): Promise<unknown> {
   let m = inFlight.get(fetchJson);
   if (!m) inFlight.set(fetchJson, (m = new Map()));
   const hit = m.get(url);
   if (hit) return hit;
-  const p = fetchJson(url).finally(() => m.delete(url));
+  const p = fetchJson(url, partial.has(url) ? { fresh: true } : undefined)
+    .then((body) => {
+      if (obj(body).partial === true) partial.add(url);
+      else partial.delete(url);
+      return body;
+    })
+    .finally(() => m.delete(url));
   m.set(url, p);
   return p;
 }
 
-/** A board's postings for one search term, by the feed's phrase rule (`matchTerm`: "design
- *  system" is never "system design"). A search source sends the term upstream as well. */
+/** A board's postings. A search board (PROXIED_SEARCH) sends `term` upstream; the rest are read
+ *  whole and ignore it. */
 export async function fetchProxied(
   id: ProxiedId,
-  term: string,
   fetchJson: FetchJson,
+  term?: string,
 ): Promise<Posting[]> {
-  const body = await readOnce(proxyUrl(id, PROXIED_SEARCH.has(id) ? term : undefined), fetchJson);
-  return postingsFrom(body, id).filter((p) => matchTerm(p, term) !== null);
+  const q = PROXIED_SEARCH.has(id) ? term?.trim() : undefined;
+  if (PROXIED_SEARCH.has(id) && !q) return [];
+  return postingsFrom(await readOnce(proxyUrl(id, q), fetchJson), id);
 }

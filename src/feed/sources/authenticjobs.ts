@@ -10,7 +10,7 @@
 // until the feed and its terms are checked from a network that reaches the site.
 import { httpUrl } from '../../httpUrl';
 import type { Posting } from '../types';
-import type { ProxiedSource } from './proxied';
+import type { ProxiedSource } from './proxiedIds';
 import { parseRss } from './rss';
 
 export const AUTHENTIC_JOBS_FEED = 'https://authenticjobs.com/feed/?post_type=job_listing';
