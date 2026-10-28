@@ -95,7 +95,7 @@ _Avoid_: attachment, upload (as a noun in code)
 Adrian picked design C with no loss of breadth (2026-10-28). These terms are not built yet; until their slices land, the terms above stand.
 
 **Today**:
-The home page: three counts in a fixed order (Review new, Apply, Follow up) under "N new today from M sources". Replaces Companies as home. The top tabs are Today and Jobs (the Pipeline).
+The home page: three counts in a fixed order (Review new, Apply, Follow up) under "N new today from M sources". Replaces Companies as home. The only top tabs are Today and Jobs (the Pipeline).
 _Avoid_: dashboard, home, inbox
 
 **Find**:
@@ -127,7 +127,7 @@ The one discovery run, twice a day on the server and once when the app opens. It
 _Avoid_: sweep, fetch, check, refresh
 
 **New company**:
-A company the Scan found that the user has not yet Followed or Ignored. Its matching Postings show at once. Ignore mutes it for good.
+A company the Scan found that the user has not yet Followed or Ignored. It is listed on Today with Follow / Ignore, and its matching Postings show at once in Review new. Ignore mutes it for good. Followed and Ignored companies are kept in the Companies list under the Account menu (the Sources list); there is no Companies tab.
 _Avoid_: suggestion, found team, target
 
 **Inclusion check**:

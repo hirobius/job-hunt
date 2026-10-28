@@ -276,7 +276,7 @@ Storybook
 <p class="small">Adrian picked C on 2026-10-28 on one hard condition: no loss of breadth. He wants as many distinct design-system openings as possible, in a list he can click through and apply from, not the same four jobs every day. This section is the amended design.</p>
 <div class="card pick">
 <ol>
-<li><strong>Home = Today</strong>: Review new, Apply, Follow up, under the line <em>"N new today from M sources"</em>. Jobs (the Pipeline) stays a top tab beside Today (amendment 2).</li>
+<li><strong>Home = Today</strong>: Review new, Apply, Follow up, under the line <em>"N new today from M sources"</em>, then New companies with Follow / Ignore (Q6). Jobs (the Pipeline) stays a top tab beside Today (amendment 2).</li>
 <li><strong>Review new has two views of the same Feed.</strong> <strong>Browse</strong> (default) is a list: sort by newest, company or score; filter by text, source and work mode; open any posting; Save or Skip inline. <strong>Deck</strong> is the one-card option for a quick pass. The two views share one list and one set of verdicts.</li>
 <li><strong>One Find box</strong> at the top of Today. Paste anything: a job link saves a Job (works signed out); a board or company link or name becomes a Source; words add titles to the Search profile.</li>
 <li><strong>One Sources list</strong> in the synced blob: boards of every kind, followed companies (with or without a board) and feeds. Saving a job follows its company. Dreams become a star on a Source. <strong>Add sources</strong> helpers fill it: Check a list (paste or YC batch), YC suggestions, GitHub design-system orgs and the Adele seed. They are the same code as today in a smaller sheet.</li>
@@ -356,7 +356,7 @@ server
 </ul>
 <p><strong>Size, re-estimated:</strong> the old screens go (<code>DiscoverView</code>, <code>DiscoverHeader</code>, <code>CompaniesPanel</code>, <code>LiveFeedPanel</code>, <code>TileGrid</code>, <code>ManageTrackDialog</code>, <code>SweepTitles</code>, <code>DreamCompanies</code>, <code>ScoredQueue</code>, <code>FindBoardsPanel</code> and <code>AdeleSeed</code> shells), along with curation, tracks and Contracts. That is roughly −7.5k lines. Browse, the deck, the Find box, the Add sources sheet and the profile form add roughly +2.5k. The net is about <strong>−5k</strong>. Everything in <code>src/feed/</code> and <code>src/tracks/</code> stays behind the Feed seam.</p>
 
-<h2 id="amend2">7b. Amendments 2 and 3: auto-scan, breadth first, preview, Jobs</h2>
+<h2 id="amend2">7b. Amendments 2 and 3, Q5 and Q6: auto-scan, breadth first, preview, Jobs, no Companies tab</h2>
 <p class="small">Adrian's decisions relayed on 2026-10-28. Where they conflict with section 7, this section wins.</p>
 
 <h3>Auto-scan replaces every manual discovery control</h3>
@@ -369,8 +369,8 @@ server
 </ul>
 <p>The only UI left is <strong>Scan now</strong> and "Last scanned 6:23". These all go: YC batch, Check a list, Find teams, Suggest companies, the Adele button, "Check open roles at N companies", "Check dream companies", Live postings' fetch, and the sweep chips. Signed out, the client scan does the same work in the browser, within the existing rate budgets (GitHub, Remotive, probe).</p>
 
-<h3>New companies show their jobs at once</h3>
-<p>A company the scan finds shows up in <strong>New companies</strong> on Review, with its matching jobs already in the list. Each one has <strong>Follow</strong> or <strong>Ignore</strong>. Ignore mutes it so the scan never brings it back. Leaving it alone keeps its jobs visible until the user decides.</p>
+<h3>Companies: no tab (Adrian's Q6)</h3>
+<p>The Companies top tab goes, so <strong>the final tabs are Today and Jobs</strong>. A company the scan finds shows up in <strong>New companies</strong> on <strong>Today</strong>, with <strong>Follow</strong> or <strong>Ignore</strong>, and its matching jobs are already in Review new. Ignore mutes it so the scan never brings it back. Leaving it alone keeps its jobs visible until the user decides. Followed and Ignored companies live in a small <strong>Companies</strong> list under the Account menu, with Unfollow and Un-ignore. That list is the Sources list; there is no other company screen. The derived Company page, reached from a job, stays.</p>
 
 <h3>One filter: is it a design-system role? (amendment 3)</h3>
 <p><strong>Breadth first.</strong> The app's one job is to collect <em>every</em> design-system opening posted anywhere. The fit-score gates proposed earlier (Match / Maybe / No match) are dropped. A posting is listed when it passes two checks:</p>
@@ -405,10 +405,6 @@ and token pipeline…
 Not this company</pre><figcaption>Preview sheet</figcaption></figure>
 <figure><pre>Review new · 31         Scan now
 Last scanned 6:23 · 52 sources
-New companies (3)
- Linear     4 jobs  Follow  Ignore
- Vanta      1 job   Follow  Ignore
- Plain      2 jobs  Follow  Ignore
 ──────────────────────────────
 [Filter     ] [Sort: Newest v]
 Shopify · Staff Eng, DS   2d
@@ -416,7 +412,7 @@ Ramp · Design Technologist 1d
 Acme · DS Lead (HN)       5d
 …
 96 not design-system roles ›
-Search elsewhere (9)          ›</pre><figcaption>Browse with New companies (amendment 3: no fit gates)</figcaption></figure>
+Search elsewhere (9)          ›</pre><figcaption>Browse (amendment 3: no fit gates; New companies sit on Today, Q6)</figcaption></figure>
 </div>
 
 <h3>Jobs stays a top tab, simplified hard</h3>

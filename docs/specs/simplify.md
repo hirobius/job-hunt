@@ -38,7 +38,8 @@ The server keeps three tables: `tracker`, `postings` and `sync_log`. `watched_co
 ## Amendment 2 (relayed 2026-10-28)
 
 - **Auto-scan** replaces every manual discovery control. It runs on the server cron twice a day and on the client when the app opens. One scan finds companies (YC, GitHub orgs, Adele, earlier lists), probes their boards, reads every board and feed over every title, scores everything, and re-checks saved jobs' boards. The only UI left is **Scan now** and "Last scanned hh:mm".
-- **New companies** show their matching jobs at once, with **Follow / Ignore**.
+- **New companies** appear on **Today** with **Follow / Ignore**. Their matching jobs show at once in Review new.
+- **No Companies tab (Q6).** The final tabs are **Today and Jobs**. Followed and Ignored companies sit in a small Companies list under the Account menu; that list is the Sources list.
 - **Breadth first (amendment 3, supersedes the gates above):** the app's one job is to collect every design-system opening posted anywhere. A posting is listed when it passes two checks:
   - **the inclusion check:** its title or description names a design-system role, under the existing phrase rules (`feed/mustInclude.ts` `termRegex`)
   - **Adrian's profile filters:** leave out, location, mode, pay floor and level
