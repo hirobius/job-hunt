@@ -215,3 +215,31 @@ Source terms are shown in code comments and honoured by tests (attribution, poll
 6. **Himalayas terms.** Default: read the OpenAPI and site terms in S3b; skip the source if
    attribution or storage rules conflict with in-memory display.
 7. **We Work Remotely RSS.** Default: skip (needs a CORS proxy and its terms bar storing data).
+
+## Board sources through /api/boards (2026-10-28, branch `claude/src-boards`)
+
+Answers open questions 6 and 7. RSS and JSON feeds without CORS headers are read by one same-origin
+edge function, `api/boards.ts` → `src/feed/sources/boardsHandler.ts`: `?src=<id>` picks a **fixed**
+upstream URL (never an open proxy), the board's adapter parses it, and the answer `{ postings }`
+carries an hour of shared CDN cache (plus an hour in the instance), so all users together read each
+board about hourly. 60 calls / 10 min per IP; a body over 8 MB is refused; text is cut to 4,000
+chars. Nothing is stored beyond that cache. The browser only talks to 'self', so the CSP and
+`legal.ts` THIRD_PARTIES are unchanged (like `/api/sam`). Client half: `sources/proxied.ts`
+(re-checks every field, http(s) links only, one request in flight per URL during a sweep, then the
+feed's phrase rule `matchTerm`; a scored track's scorer and must include apply on top as for every
+source). Switches in `SOURCE_ENABLED` (`fetchFeed.ts`).
+
+| Source | Feed | State | Terms kept |
+| --- | --- | --- | --- |
+| designsystems.jobs (`dsjobs`) | `designsystems.jobs/feed` (RSS, newest ~20) | **On.** Verified live 2026-10-28 | Links to its own page, named on every row; hourly |
+| We Work Remotely (`wwr`) | Design + Front-End Programming category RSS | **On.** Unverified live | "Attribute the links back to WWR": its link as given, named on every row; hourly |
+| Remote OK (`remoteok`) | `remoteok.com/api` (direct, CORS-open) | **Off.** Live `legal` notice still unread (sandbox network refuses the host) | Followed link to its URL, "Remote OK" named, no logo |
+| Working Nomads (`workingnomads`) | `workingnomads.com/api/exposed_jobs/` (JSON) | **Off.** Unverified live, terms not found | Its link, named on every row |
+| Himalayas (`himalayas`) | `himalayas.app/jobs/api/search?q=` (JSON, search) | **Off.** Reported terms bar redistribution to aggregators: read them first | Link to the Himalayas page, named |
+| Authentic Jobs (`authenticjobs`) | `authenticjobs.com/feed/?post_type=job_listing` (WP Job Manager RSS) | **Off.** Feed URL is the plugin's default, unverified | Its link, named |
+| Dribbble Jobs | none | **Not built.** No public jobs RSS or API (only IFTTT and paid scrapers) | n/a |
+
+Other design-system / UX boards: none with a public, keyless feed was found that could be checked
+from the build sandbox (its network policy allows designsystems.jobs only). To turn a source on:
+read its feed and terms from a normal network, update its adapter's header, flip its switch, and
+note the date here. Server-side (the `sync-postings` cron) still reads only designsystems.jobs.

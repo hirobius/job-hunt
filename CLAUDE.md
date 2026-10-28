@@ -713,6 +713,12 @@ track-agnostic like everything else in Discover.
     `TILE_CHUNK` = 50 rows; a refused chunk leaves only its rows journalled as failed), and Live postings offers "Add suggested
     companies (N)" to an existing track whose label matches a pack (`packIdForLabel`). Live postings
     no longer reads a global list.
+  - **Board feeds via `/api/boards` (2026-10-28, `docs/specs/job-sources.md`):** RSS/JSON boards with no CORS
+    (designsystems.jobs and We Work Remotely on; Working Nomads, Himalayas, Authentic Jobs off pending terms or a
+    live read) go through the same-origin edge function `api/boards.ts` → `feed/sources/boardsHandler.ts`: fixed
+    upstream URLs per `src`, 1 h shared cache, parsed by `feed/sources/<board>.ts`, re-checked and phrase-matched
+    in `feed/sources/proxied.ts`. CSP and `legal.ts` unchanged (browser only reaches 'self'). A new board: adapter
+    + one line each in `PROXIED_SOURCES`, `BOARD_ADAPTERS`, `FeedSourceId`/`SOURCE_LABEL` and `SOURCE_ENABLED`.
   - **By company was cut (2026-10-17):** Live postings is one Openings list; an old `?view=companies`
     link is ignored and shows Openings.
 - **Hidden-job discovery (2026-10-15, `docs/specs/discovery-methods.md`).** Discover tools **Boards** and

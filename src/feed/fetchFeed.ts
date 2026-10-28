@@ -6,6 +6,7 @@ import { fetchHn } from './sources/hn';
 import { fetchJobicy } from './sources/jobicy';
 import { fetchRemoteOk } from './sources/remoteok';
 import { FetchError, type FetchJson } from './sources/http';
+import { fetchProxied, PROXIED_SOURCES, type ProxiedId } from './sources/proxied';
 import { fetchRemotive } from './sources/remotive';
 import { fetchSam, SourceMessageError, type SamRequest } from './sources/sam';
 import { SOURCE_LABEL, type Posting } from './types';
@@ -15,9 +16,17 @@ import { SOURCE_LABEL, type Posting } from './types';
  *  A failure is already isolated and named per source either way. Remote OK stays off until its
  *  API's own legal notice has been read from a network that reaches it and its terms are checked
  *  against this adapter (#178): an attribution source does not ship on a guess of its terms. */
-export const SOURCE_ENABLED: Record<'jobicy' | 'remoteok', boolean> = {
+export const SOURCE_ENABLED: Record<'jobicy' | 'remoteok' | ProxiedId, boolean> = {
   jobicy: true,
   remoteok: false,
+  // Read through /api/boards (sources/proxied.ts). designsystems.jobs is verified live; We Work
+  // Remotely's feed page invites any use with links back. The other three wait on their terms or
+  // their feed being read live (each adapter's header says which).
+  dsjobs: true,
+  wwr: true,
+  workingnomads: false,
+  himalayas: false,
+  authenticjobs: false,
 };
 
 /** Boards read at once — polite to the ATSs and kind to a phone's connection. There is no cap on
@@ -369,6 +378,11 @@ export async function fetchFeed(
             },
           ]
         : []),
+      ...PROXIED_SOURCES.filter((id) => enabled[id]).map((id) => ({
+        key: k(id),
+        label: l(SOURCE_LABEL[id]),
+        run: () => fetchProxied(id, term, fetchJson),
+      })),
     ];
   };
 

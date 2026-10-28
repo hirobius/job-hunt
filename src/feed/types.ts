@@ -9,6 +9,11 @@ export type FeedSourceId =
   | 'remotive'
   | 'jobicy'
   | 'remoteok'
+  | 'dsjobs'
+  | 'wwr'
+  | 'workingnomads'
+  | 'himalayas'
+  | 'authenticjobs'
   | 'greenhouse'
   | 'lever'
   | 'ashby'
@@ -24,6 +29,11 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   remotive: 'Remotive',
   jobicy: 'Jobicy',
   remoteok: 'Remote OK',
+  dsjobs: 'designsystems.jobs',
+  wwr: 'We Work Remotely',
+  workingnomads: 'Working Nomads',
+  himalayas: 'Himalayas',
+  authenticjobs: 'Authentic Jobs',
   greenhouse: 'Greenhouse',
   lever: 'Lever',
   ashby: 'Ashby',
