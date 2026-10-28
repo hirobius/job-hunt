@@ -54,6 +54,7 @@ import {
 import {
   OFFLINE_MSG,
   OFFLINE_TITLE,
+  DELETE_FAILED,
   DELETE_ORDER,
   deleteFailedMsg,
   TRACK_WRITE_FAILED,
@@ -110,6 +111,9 @@ function clearLocalData() {
   }
 }
 
+/** eraseCloud's answer when another tab took the session mid-delete (#288). */
+const STOPPED = 'stopped';
+
 export default function CloudSyncProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const jobs = useJobs();
@@ -148,6 +152,12 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // this device's local-only jobs after a failed first pull.
   const seedPending = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // The pushes on the wire (a timer's and an adopt's can overlap): Delete my data waits them out,
+  // or one could land after the delete and write the row back (#393).
+  const pushing = useRef(new Set<Promise<boolean>>());
+  // From Delete my data's confirm on: nothing more is pushed or adopted (a pull in flight is
+  // dropped), so the erased account is not written back or refilled here (#393).
+  const deleting = useRef(false);
   // The cloud row's stamp as of this tab's last pull or push (null until a pull lands). A push
   // only writes over that version: another device's newer save is merged in first, never wiped.
   const known = useRef<RowStamp | null>(null);
@@ -248,15 +258,22 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   // Returns whether the cloud took it. `lastSynced` moves only on success, so a failed push
   // stays "dirty": the next refresh and sign-out both retry it. When another device saved since
   // this tab's last read, its copy is merged in (three-way, against the base) and sent again.
-  async function pushNow(u: User): Promise<boolean> {
-    if (!pulledOk.current || handled.current !== u.id || tabFrozen()) return false;
+  function pushNow(u: User): Promise<boolean> {
+    const run = pushOnce(u);
+    pushing.current.add(run);
+    void run.finally(() => pushing.current.delete(run));
+    return run;
+  }
+  async function pushOnce(u: User): Promise<boolean> {
+    if (!pulledOk.current || handled.current !== u.id || tabFrozen() || deleting.current)
+      return false;
     let ok = false;
     for (let i = 0; i < PUSH_TRIES && !ok; i++) {
       const sent = localJson();
       const data = writeBlob(localBlob());
       let r: 'ok' | 'conflict' | 'fail';
       try {
-        if (!(await sessionIsStill(u))) return false;
+        if (!(await sessionIsStill(u)) || deleting.current) return false;
         r = await writeRow(u.id, data);
       } catch {
         r = 'fail';
@@ -314,8 +331,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
       if (!(await sessionIsStill(u))) return null;
       const seen = known.current;
       const r = await pull(u.id);
-      // Signed out (or another account, here or in another tab) while it pulled.
-      if (handled.current !== u.id || !(await sessionIsStill(u))) return null;
+      // Signed out (or another account, here or in another tab) while it pulled, or deleting.
+      if (handled.current !== u.id || deleting.current || !(await sessionIsStill(u))) return null;
       if (known.current === seen) got = r;
     }
     if (!got) return null;
@@ -341,7 +358,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
   }
   async function adopt(seed: boolean, u: User) {
     // Not through the sign-in path (the merge question is open), or stopped by another tab (#288).
-    if (handled.current !== u.id || tabFrozen()) return;
+    if (handled.current !== u.id || tabFrozen() || deleting.current) return;
     setMsg(seed ? 'Syncing…' : 'Refreshing…');
     setPulling(true);
     try {
@@ -604,7 +621,7 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     if (!user || (tabFrozen() && tabFrozen() !== 'newerVersion')) return;
     if (
       !window.confirm(
-        'Delete all your synced data (jobs, categories, and boards) from the cloud and this device? This cannot be undone.',
+        'Delete all your synced data (jobs, tracks, boards, watched companies and scored postings) from the cloud and this device? This cannot be undone.',
       )
     )
       return;
@@ -614,25 +631,17 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     liftNewerVersionFreeze(); // a newer version's blob is deleted like any other (#382)
     if (!(await sessionIsStill(user))) return;
     setMsg('Deleting…');
-    // Erase curated content (child → parent) plus the sync blob. RLS scopes each delete to this
-    // user; the FK cascade would cover the children, but we delete them explicitly so erasure
-    // never silently depends on it. supabase-js reports failure as `{ error }`, not a throw.
-    const failed: string[] = [];
-    const supa = await loadSupabase();
-    for (const table of DELETE_ORDER) {
-      if (!(await sessionIsStill(user))) return; // the freeze notice says why; local copy kept
-      try {
-        const r = await supa.from(table).delete().eq('user_id', user.id);
-        if (r.error) failed.push(table);
-      } catch {
-        failed.push(table);
-      }
-    }
-    if (failed.length) {
+    // No push after this one (#393): drop the debounced one, then wait out one already sent.
+    deleting.current = true;
+    clearTimeout(pushTimer.current);
+    await Promise.allSettled([...pushing.current]);
+    const why = await eraseCloud(user);
+    if (why) {
+      deleting.current = false; // the local copy is kept, so syncing it may go on
+      if (why === STOPPED) return; // the freeze notice says why; local copy kept
       // Keep this device's copy so nothing is lost while the cloud copy is only partly gone.
       // The newer version's blob may still be there: stay stopped, or the next push rewrites it.
       if (stoppedByNewer) freezeTab('newerVersion');
-      const why = deleteFailedMsg(failed);
       setMsg(why);
       toast({
         title: 'Delete incomplete',
@@ -645,9 +654,39 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
     clearLocalData();
     setTabAccount(null);
     handled.current = null;
-    await supa.auth.signOut();
+    await (await loadSupabase()).auth.signOut();
     location.reload();
   };
+
+  // Erase the account in the cloud: '' when it is gone, else what to tell the user (STOPPED when
+  // another tab took the session). delete_my_data (#393) removes every per-user table in one
+  // transaction; until it can run (see below) the tables the app writes are deleted
+  // one by one, child → parent, so erasure never silently depends on the FK cascade. RLS scopes
+  // each to this user. supabase-js reports failure as `{ error }`, not a throw.
+  async function eraseCloud(u: User): Promise<string> {
+    const supa = await loadSupabase();
+    if (!(await sessionIsStill(u))) return STOPPED;
+    try {
+      const r = await supa.rpc('delete_my_data', { p_user: u.id });
+      if (!r.error) return '';
+      // Not applied yet (PGRST202), or applied before the scorer's tables exist (42P01): the
+      // tables the app writes are all there is to delete.
+      if (r.error.code !== 'PGRST202' && r.error.code !== '42P01') return DELETE_FAILED;
+    } catch {
+      return DELETE_FAILED;
+    }
+    const failed: string[] = [];
+    for (const table of DELETE_ORDER) {
+      if (!(await sessionIsStill(u))) return STOPPED;
+      try {
+        const r = await supa.from(table).delete().eq('user_id', u.id);
+        if (r.error) failed.push(table);
+      } catch {
+        failed.push(table);
+      }
+    }
+    return failed.length ? deleteFailedMsg(failed) : '';
+  }
 
   const sendLink = async (email: string): Promise<string | null> => {
     // The link lands on the app's root: remember this page so that tab comes back here, and that

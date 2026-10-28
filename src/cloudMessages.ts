@@ -36,6 +36,10 @@ export const UNSYNCED_CHANGES_SIGN_OUT =
 /** Child → parent, so erasure never depends on the FK cascade. */
 export const DELETE_ORDER = ['tiles', 'groups', 'categories', 'tracker'] as const;
 
+/** delete_my_data refused (#393): nothing was deleted, it runs as one transaction. */
+export const DELETE_FAILED =
+  "Couldn't delete your cloud data. Your local copy was kept; try again.";
+
 export const deleteFailedMsg = (failed: readonly string[]) =>
   `Deleted ${DELETE_ORDER.length - failed.length} of ${DELETE_ORDER.length} — couldn't delete ${failed.join(', ')}. Your local copy was kept; try again.`;
 

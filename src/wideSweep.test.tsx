@@ -96,22 +96,39 @@ describe('wide sweep', () => {
     expect(rows()).toHaveLength(3);
     const chips = screen.getByRole('group', { name: 'Show titles' });
     // All first, with the total; counts are Badges, not "(n)"; only the selected chip is filled.
-    const all = within(chips).getByRole('button', { name: 'All, 3' });
+    const all = within(chips).getByRole('button', { name: /^All,\s?3$/ });
     expect(all).toHaveAttribute('aria-pressed', 'true');
-    expect(within(chips).getByRole('button', { name: 'design engineer, 2' })).toHaveAttribute(
+    expect(within(chips).getByRole('button', { name: /^design engineer,\s?2$/ })).toHaveAttribute(
       'aria-pressed',
       'false',
     );
-    expect(within(chips).getByRole('button', { name: 'design system, 1' })).toBeInTheDocument();
+    expect(within(chips).getByRole('button', { name: /^design system,\s?1$/ })).toBeInTheDocument();
+    // WCAG 2.5.3 (#317): each name is its visible text (no aria-label over it), and "+N more"
+    // starts with what it shows, so a voice user can say it.
+    for (const chip of within(chips).getAllByRole('button'))
+      expect(chip).not.toHaveAttribute('aria-label');
+  });
+
+  it('"+N more" is named by what it shows (WCAG 2.5.3, #317)', async () => {
+    // No Design Technologist posting: that title's chip folds into "+1 more".
+    feed.fetchFeed.mockResolvedValue({ postings: [POSTINGS[0], POSTINGS[2]], sources: [] });
+    const user = await startSweep();
+    const chips = await screen.findByRole('group', { name: 'Show titles' });
+    const more = within(chips).getByRole('button', {
+      name: /^\+1 more\s?titles with no openings$/,
+    });
+    expect(more).not.toHaveAttribute('aria-label');
+    await user.click(more);
+    expect(within(chips).getByRole('button', { name: /^design technologist,\s?0$/ })).toBeVisible();
   });
 
   it('a title chip shows only its results without a re-fetch, and All brings the rest back', async () => {
     const user = await startSweep();
     await screen.findByText('design system', { selector: '.rjb-chip-text' });
     const calls = feed.fetchFeed.mock.calls.length;
-    await user.click(screen.getByRole('button', { name: 'design system, 1' }));
+    await user.click(screen.getByRole('button', { name: /^design system,\s?1$/ }));
     expect(rows()).toEqual(['Design Engineer']);
-    await user.click(screen.getByRole('button', { name: 'All, 3' }));
+    await user.click(screen.getByRole('button', { name: /^All,\s?3$/ }));
     expect(rows()).toHaveLength(3);
     expect(feed.fetchFeed.mock.calls.length).toBe(calls);
   });

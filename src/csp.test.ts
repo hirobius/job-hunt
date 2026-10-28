@@ -103,3 +103,40 @@ describe('content security policy', () => {
     expect(indexHtml).not.toMatch(/<script\b[^>]*src=["']?(?:https?:)?\/\//);
   });
 });
+
+// The other security headers (#394, security review 2026-10-28).
+describe('security headers', () => {
+  const all = vercel.headers.find((h) => h.source === '/(.*)')?.headers ?? [];
+  const header = (key: string) => all.find((h) => h.key === key)?.value ?? '';
+
+  it('keeps the app’s files to its own pages (Cross-Origin-Resource-Policy)', () => {
+    expect(header('Cross-Origin-Resource-Policy')).toBe('same-origin');
+  });
+
+  it('denies the powerful features the app never uses', () => {
+    const denied = header('Permissions-Policy')
+      .split(',')
+      .map((d) => d.trim());
+    for (const feature of [
+      'camera',
+      'microphone',
+      'geolocation',
+      'browsing-topics',
+      'payment',
+      'usb',
+    ])
+      expect(denied, feature).toContain(`${feature}=()`);
+  });
+
+  // Accepted risk: anyone can register a subdomain on these hosts, so after an XSS they could
+  // take data out. script-src 'self' is what stops the XSS; a same-origin proxy would close it.
+  // Pinned so no other wildcard joins them without the same call being made.
+  it('allows tenant wildcards only for the three boards that need them', () => {
+    const csp = policy();
+    expect((csp.get('connect-src') ?? []).filter((s) => s.includes('*'))).toEqual([
+      'https://*.recruitee.com',
+      'https://*.teamtailor.com',
+      'https://*.jobs.personio.de',
+    ]);
+  });
+});

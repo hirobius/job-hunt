@@ -1417,28 +1417,28 @@ function SweepChips({
       role="group"
       aria-label="Show titles"
     >
-      <Tag active={only === null} aria-label={`All, ${total}`} onClick={() => onPick(null)}>
+      {/* Each chip is named by its own text (WCAG 2.5.3, #317): an aria-label over it left the
+          visible "title3" out of the name. A hidden ", " keeps the count apart when read. */}
+      <Tag active={only === null} onClick={() => onPick(null)}>
         <Stack as="span" direction="row" gap="px8" align="center">
           All
+          <VisuallyHidden>, </VisuallyHidden>
           <Badge count={total} />
         </Stack>
       </Tag>
       {shown.map((t) => (
-        <Tag
-          key={t}
-          active={only === t}
-          aria-label={`${t}, ${counts[t] ?? 0}`}
-          onClick={() => onPick(t)}
-        >
+        <Tag key={t} active={only === t} onClick={() => onPick(t)}>
           <Stack as="span" direction="row" gap="px8" align="center">
             {t}
+            <VisuallyHidden>, </VisuallyHidden>
             <Badge count={counts[t] ?? 0} />
           </Stack>
         </Tag>
       ))}
       {!showZero && zero.length > 0 && (
-        <Tag onClick={onShowZero} aria-label={`Show ${zero.length} more titles with no openings`}>
+        <Tag onClick={onShowZero}>
           {`+${zero.length} more`}
+          <VisuallyHidden> titles with no openings</VisuallyHidden>
         </Tag>
       )}
     </Stack>

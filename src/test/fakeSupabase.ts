@@ -7,7 +7,7 @@ import { tokenEmail } from '../account/authLink';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- rows are loosely typed test data
 type Row = Record<string, any>;
-type Op = 'select' | 'upsert' | 'delete';
+type Op = 'select' | 'upsert' | 'delete' | 'rpc';
 const WRITES = ['upsert', 'insert', 'update'];
 type Result = { data: unknown; error: { message: string } | null };
 
@@ -24,7 +24,7 @@ export function createFakeSupabase(
   } = {},
 ) {
   const tables: Record<string, Row[]> = structuredClone(opts.tables ?? {});
-  const failures: { table: string; op: Op }[] = [];
+  const failures: { table: string; op: Op; code?: string }[] = [];
   // `holdNext` parks the next matching write until its release() is called (an in-flight write).
   // `early`: a held select answers with the rows as they were when it was sent (a read the
   // server served before a write that lands first).
@@ -41,16 +41,22 @@ export function createFakeSupabase(
   };
   const keyOf = (table: string, r: Row) => String(table === 'tracker' ? r.user_id : r.id);
   const rows = (t: string) => (tables[t] ??= []);
-  const fail = (table: string, op: Op | 'insert' | 'update'): Result | null => {
+  const fail = (
+    table: string,
+    op: Op | 'insert' | 'update',
+  ): (Result & { error: { message: string; code?: string } | null }) | null => {
     const i = failures.findIndex(
       (f) => f.table === table && (f.op === op || (f.op === 'upsert' && WRITES.includes(op))),
     );
     if (i < 0) return null;
-    failures.splice(i, 1);
-    return { data: null, error: { message: `${op} ${table} failed` } };
+    const [{ code }] = failures.splice(i, 1);
+    return { data: null, error: { message: `${op} ${table} failed`, ...(code ? { code } : {}) } };
   };
 
   let session: { user: { id: string; email: string } } | null = null;
+  // Database functions the "server" has (`installRpc`); any other answers PGRST202, as an
+  // unapplied migration does. `delete_my_data` erases every row of the caller (#393).
+  const rpcs = new Set<string>();
   const listeners = new Set<(event: string, s: typeof session) => void>();
 
   const client = {
@@ -145,6 +151,24 @@ export function createFakeSupabase(
         },
       };
     },
+    async rpc(
+      name: string,
+      args?: Record<string, unknown>,
+    ): Promise<Result & { error: { message: string; code?: string } | null }> {
+      if (!rpcs.has(name))
+        return { data: null, error: { message: `Could not find ${name}`, code: 'PGRST202' } };
+      await held(name, 'rpc');
+      const f = fail(name, 'rpc');
+      if (f) return f;
+      if (name === 'delete_my_data') {
+        const uid = session?.user.id;
+        // The server refuses an account the caller does not hold (another tab's session).
+        if (!uid || args?.p_user !== uid)
+          return { data: null, error: { message: 'not your account', code: '42501' } };
+        for (const t of Object.keys(tables)) tables[t] = rows(t).filter((r) => r.user_id !== uid);
+      }
+      return { data: null, error: null };
+    },
     auth: {
       async getSession() {
         return { data: { session } };
@@ -177,7 +201,10 @@ export function createFakeSupabase(
   return {
     client,
     tables,
-    failNext: (table: string, op: Op) => failures.push({ table, op }),
+    /** `code`: the Postgres / PostgREST error code the failure carries. */
+    failNext: (table: string, op: Op, code?: string) => failures.push({ table, op, code }),
+    /** Give the server a database function (see `rpc`). */
+    installRpc: (name: string) => rpcs.add(name),
     /** Park the next matching write; returns the function that lets it finish. */
     holdNext(table: string, op: Op, opts: { early?: boolean } = {}): () => void {
       let release = () => {};
@@ -203,6 +230,7 @@ export function createFakeSupabase(
       for (const k of Object.keys(tables)) delete tables[k];
       failures.length = 0;
       holds.length = 0;
+      rpcs.clear();
       session = null;
     },
   };

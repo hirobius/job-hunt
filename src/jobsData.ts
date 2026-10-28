@@ -63,24 +63,34 @@ export interface SearchLoc {
   mode: WorkMode;
 }
 const encc = encodeURIComponent;
-export const BOARDS: {
+/** Hybrid as a keyword (#355), for a board with no hybrid filter of its own: Hybrid otherwise
+ *  sent the place only, the same link as Any. On-site has no keyword: most on-site postings never
+ *  say so, and the word would hide them. */
+const hybridWord = (mode: WorkMode) => (mode === 'hybrid' ? ' hybrid' : '');
+export interface Board {
   name: string;
   tag: string;
   build: (term: string, loc: SearchLoc) => string;
   /** The work modes it is shown for; left out, every mode. */
   modes?: readonly WorkMode[];
-}[] = [
+  /** The work modes besides Any its link narrows to (a filter or a keyword), so the row can say
+   *  when it can't (#355). */
+  filters: readonly WorkMode[];
+}
+export const BOARDS: Board[] = [
   {
     name: 'Indeed',
     tag: 'Aggregator',
+    filters: ['remote', 'hybrid'],
     build: (term, { where, mode }) => {
       const l = mode === 'remote' ? 'Remote' : where.trim();
-      return `https://www.indeed.com/jobs?q=${encc(term)}${l ? `&l=${encc(l)}` : ''}`;
+      return `https://www.indeed.com/jobs?q=${encc(term + hybridWord(mode))}${l ? `&l=${encc(l)}` : ''}`;
     },
   },
   {
     name: 'LinkedIn',
     tag: 'Aggregator',
+    filters: ['remote', 'hybrid', 'onsite'],
     build: (term, { where, mode }) => {
       // f_WT: 1 = on-site, 2 = remote, 3 = hybrid; omit for "any".
       const wt =
@@ -98,25 +108,31 @@ export const BOARDS: {
   {
     name: 'ZipRecruiter',
     tag: '1-click',
+    filters: ['remote', 'hybrid'],
     build: (term, { where, mode }) => {
       const l = mode === 'remote' ? 'Remote' : where.trim();
-      return `https://www.ziprecruiter.com/jobs-search?search=${encc(term)}${l ? `&location=${encc(l)}` : ''}`;
+      return `https://www.ziprecruiter.com/jobs-search?search=${encc(term + hybridWord(mode))}${l ? `&location=${encc(l)}` : ''}`;
     },
   },
   {
     name: 'Google Jobs',
     tag: 'Aggregator',
+    filters: ['remote', 'hybrid'],
     build: (term, { where, mode }) => {
-      const q = term + (mode === 'remote' ? ' remote' : where.trim() ? ` ${where.trim()}` : '');
+      const q =
+        term +
+        hybridWord(mode) +
+        (mode === 'remote' ? ' remote' : where.trim() ? ` ${where.trim()}` : '');
       return `https://www.google.com/search?q=${encc(q)}&ibp=htl;jobs`;
     },
   },
   {
     name: 'Snagajob',
     tag: 'Hourly',
+    filters: ['remote', 'hybrid'],
     build: (term, { where, mode }) => {
       const w = mode === 'remote' ? 'Remote' : where.trim();
-      return `https://www.snagajob.com/search?q=${encc(term)}${w ? `&w=${encc(w)}` : ''}`;
+      return `https://www.snagajob.com/search?q=${encc(term + hybridWord(mode))}${w ? `&w=${encc(w)}` : ''}`;
     },
   },
   {
@@ -127,6 +143,7 @@ export const BOARDS: {
     name: 'Remote Rocketship',
     tag: 'Remote only',
     modes: ['remote', 'any'],
+    filters: ['remote'],
     build: (term) => {
       // No title (an empty clause like `""`): the plain newest-first list, no jobTitle param.
       const quoted = [...term.matchAll(/"([^"]*)"/g)].map((m) => m[1].trim());
@@ -136,6 +153,16 @@ export const BOARDS: {
     },
   },
 ];
+
+const MODE_NAME: Record<WorkMode, string> = {
+  any: 'Any',
+  remote: 'Remote',
+  hybrid: 'Hybrid',
+  onsite: 'On-site',
+};
+/** "On-site not filtered" on a board row whose link can't narrow to the mode; else blank. */
+export const modeNote = (b: Board, mode: WorkMode) =>
+  mode === 'any' || b.filters.includes(mode) ? '' : `${MODE_NAME[mode]} not filtered`;
 
 /** The big boards to show for a work mode. */
 export const boardsFor = (mode: WorkMode) =>
@@ -275,6 +302,8 @@ function queryTail({ role, roles, entry, where, mode, contract }: HiddenQuery): 
     titleClause(roles && roles.length > 0 ? roles : [role]),
     entry ? '(entry OR junior OR associate)' : '',
     mode === 'remote' ? 'remote' : w ? `"${w}"` : '',
+    // #355: Hybrid narrows by keyword, after the place; the 32-word fit counts it.
+    mode === 'hybrid' ? 'hybrid' : '',
     contract ? CONTRACT_CLAUSE : '',
   ]
     .filter(Boolean)

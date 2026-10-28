@@ -26,6 +26,7 @@ import { useBackCloses } from './useBackCloses';
 import type { Back } from './back';
 import {
   boardsFor,
+  modeNote,
   ATS,
   HIDDEN_BOARDS,
   atsSearchUrl,
@@ -191,11 +192,29 @@ function AtsPanel({
         }
       />
     );
+  // Titles, but none ticked (#353): there is nothing to search, so no link is built (it would
+  // search `""`). A seeded title still searches on its own.
+  if (active.length === 0 && !initialTitle)
+    return (
+      <EmptyState
+        centered
+        icon={ListPlus}
+        title="No titles ticked"
+        description="Tick at least one title in Live postings' Calibrate and we'll search the big boards and companies' hiring systems for it."
+        action={
+          <Button variant="secondary" size="sm" onClick={() => navigate({ sub: 'titles' })}>
+            Tick titles
+          </Button>
+        }
+      />
+    );
   const entry = seniority === 'entry';
   const term = titleClause(many ? active : [role]);
   const boardTiles: Tile[] = boardsFor(mode).map((b) => {
     const url = b.build(term, { where, mode });
-    return { name: b.name, meta: b.tag, url: entry ? entryLevelize(url) : url };
+    // "On-site not filtered" (#355) takes the tag's place: both don't fit a phone's row.
+    const meta = modeNote(b, mode) || b.tag;
+    return { name: b.name, meta, url: entry ? entryLevelize(url) : url };
   });
   const query: HiddenQuery = {
     role,

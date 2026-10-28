@@ -198,6 +198,116 @@ describe('CloudSyncProvider (via the account menu)', () => {
     expect(getAllJobs()).toHaveLength(1);
   });
 
+  // #393: one server call erases every per-user table, the scorer's too, when the server has it.
+  it('Delete my data erases the scorer tables through delete_my_data', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    fake().installRpc('delete_my_data');
+    for (const t of ['watched_companies', 'postings', 'skips', 'sync_log'])
+      fake().tables[t] = [
+        { id: `${t}-1`, user_id: 'u1' },
+        { id: `${t}-2`, user_id: 'u2' },
+      ];
+    // The one call does it all: a per-table delete is never sent.
+    fake().failNext('groups', 'delete');
+    await chooseAccountItem('Delete my data');
+    await waitFor(() => expect(fake().tables.tracker).toEqual([]));
+    for (const t of ['watched_companies', 'postings', 'skips', 'sync_log'])
+      expect(
+        fake().tables[t].map((r) => r.user_id),
+        t,
+      ).toEqual(['u2']);
+    expect(screen.queryByText('Delete incomplete')).toBeNull();
+  });
+
+  // A tab's shared session can flip to another tab's account between its check and the call:
+  // the call names the account it means, and the server refuses any other.
+  it('delete_my_data names the account and is refused for another one', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    fake().installRpc('delete_my_data');
+    fake().tables.postings = [
+      { id: 'p1', user_id: 'u1' },
+      { id: 'p2', user_id: 'u2' },
+    ];
+    const r = await fake().client.rpc('delete_my_data', { p_user: 'u2' });
+    expect(r.error?.code).toBe('42501');
+    expect(fake().tables.postings).toHaveLength(2);
+    expect((await fake().client.rpc('delete_my_data')).error?.code).toBe('42501');
+    expect(fake().tables.postings).toHaveLength(2);
+    const rpc = vi.spyOn(fake().client, 'rpc');
+    await chooseAccountItem('Delete my data');
+    await waitFor(() => expect(fake().tables.tracker).toEqual([]));
+    expect(rpc).toHaveBeenCalledWith('delete_my_data', { p_user: 'u1' });
+    expect(fake().tables.postings.map((p) => p.user_id)).toEqual(['u2']);
+  });
+
+  it('Delete my data falls back to the app tables when the scorer tables are not there yet', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    fake().installRpc('delete_my_data');
+    fake().failNext('delete_my_data', 'rpc', '42P01'); // relation "public.skips" does not exist
+    await chooseAccountItem('Delete my data');
+    await waitFor(() => expect(fake().tables.tracker).toEqual([]));
+    expect(screen.queryByText('Delete incomplete')).toBeNull();
+  });
+
+  it('Delete my data says so and keeps the local copy when delete_my_data fails', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    fake().installRpc('delete_my_data');
+    fake().failNext('delete_my_data', 'rpc');
+    await chooseAccountItem('Delete my data');
+    expect(await screen.findByText('Delete incomplete')).toBeInTheDocument();
+    expect(fake().tables.tracker).toHaveLength(1);
+    expect(getAllJobs()).toHaveLength(1);
+  });
+
+  // #393: a push already sent when Delete starts must not land after it and write the row back.
+  it('Delete my data waits out a push in flight and sends no more', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    renderAccount();
+    act(() => fake().signIn('u1'));
+    await addDeviceDataIfAsked();
+    await waitFor(() => expect(fake().tables.tracker?.length).toBe(1));
+    const releasePush = fake().holdNext('tracker', 'upsert');
+    addJob('https://acme.example/jobs/2', 'Second job');
+    await waitFor(() => expect(fake().holding('tracker', 'upsert')).toBe(false), {
+      timeout: 2000,
+    });
+    // An edit after that push went out: its debounce timer is still running.
+    addJob('https://acme.example/jobs/3', 'Third job');
+    const releaseDelete = fake().holdNext('tiles', 'delete');
+    await chooseAccountItem('Delete my data');
+    await new Promise((r) => setTimeout(r, 50));
+    // No delete is sent while the push is out (it could land after the row's delete).
+    expect(fake().holding('tiles', 'delete')).toBe(true);
+    releasePush();
+    await waitFor(() => expect(fake().holding('tiles', 'delete')).toBe(false));
+    // The deletes are under way: the pending edit's push never goes.
+    await new Promise((r) => setTimeout(r, 700));
+    expect(JSON.stringify(fake().tables.tracker)).not.toContain('jobs/3');
+    releaseDelete();
+    await waitFor(() => expect(fake().tables.tracker).toEqual([]));
+  });
+
   it('never pushes the unmerged local copy after a failed pull; a later good pull re-opens pushes (#161)', async () => {
     // Cloud holds a job that only lives there; this device holds a different one.
     addJob('https://cloud.example/jobs/1', 'Cloud only');
