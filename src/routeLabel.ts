@@ -52,8 +52,9 @@ export function routeLabel(r: Route, ctx: { jobs: Job[]; docs: Document[] }): st
     }
     case 'legal':
       return legalTitleFor(r.sub);
+    case 'today':
     case '':
-      return 'Companies';
+      return 'Today';
     default:
       return 'the last page';
   }

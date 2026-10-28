@@ -76,7 +76,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Companies', 'Pipeline']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Today', 'Companies', 'Jobs']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -333,9 +333,10 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
 
 describe('routes keep working (#115 Phase 1)', () => {
   it.each([
-    ['#/queue', 'Pipeline'],
+    ['#/queue', 'Jobs'],
     ['#/discover', 'Companies'],
-    ['', 'Companies'],
+    ['#/today', 'Today'],
+    ['', 'Today'],
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();
@@ -363,11 +364,11 @@ describe('routes keep working (#115 Phase 1)', () => {
       const user = userEvent.setup();
       screen.getByRole('button', { name: /^Account/ }).focus();
       await user.tab();
-      expect(screen.getByRole('tab', { name: 'Companies' })).toHaveFocus();
+      expect(screen.getByRole('tab', { name: 'Today' })).toHaveFocus();
       expect(window.location.hash).toBe(hash);
       // Enter still opens it.
       await user.keyboard('{Enter}');
-      await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+      await waitFor(() => expect(window.location.hash).toBe('#/today'));
     },
   );
 
@@ -384,8 +385,8 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
-    // It remembers the page it was opened from (Companies here), for its Back (return paths).
-    expect(window.location.hash).toBe('#/copy-deck?from=%2Fdiscover');
+    // It remembers the page it was opened from (Today here), for its Back (return paths).
+    expect(window.location.hash).toBe('#/copy-deck?from=%2Ftoday');
     expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
   });
 
@@ -393,7 +394,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Privacy and terms' }));
-    expect(window.location.hash).toBe('#/legal/privacy');
+    expect(window.location.hash).toBe('#/legal/privacy?from=%2Ftoday');
     expect(
       await screen.findByRole('heading', { level: 2, name: 'Privacy policy' }),
     ).toBeInTheDocument();
@@ -427,7 +428,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9&t=Design%20Engineer');
     renderApp();
     expect(window.location.hash).toBe('#/queue');
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/9');
   });
 
@@ -536,10 +537,10 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(
       await screen.findByText('That sign-in link has expired. Send a new one from Account.'),
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe('#/discover');
+    expect(window.location.hash).toBe('#/today');
     expect(window.location.href).not.toMatch(/error/);
     expect(window.history.length).toBe(before); // replaced: Back doesn't return to the error
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
   });
 
   it('after a quick-add link, a sheet closing and a tab move at once (the URL goes through the route)', async () => {

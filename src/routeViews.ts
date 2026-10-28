@@ -13,6 +13,7 @@ const loadOnboarding = importFresh(() => import('./Onboarding'));
 export const Onboarding = lazyView<{ offerSample?: boolean }>(() =>
   loadOnboarding().then((m) => ({ default: m.Onboarding })),
 );
+export const Today = lazyView(importFresh(() => import('./Today')));
 export const ChooseTrack = lazyView<object>(() =>
   loadOnboarding().then((m) => ({ default: m.ChooseTrack })),
 );
@@ -20,12 +21,15 @@ export const ChooseTrack = lazyView<object>(() =>
 /** Fetch every view now (the test setup does, so tests render without a Suspense step). */
 export const preloadViews = () =>
   Promise.all(
-    [TrackerView, JobPage, ApplyMode, CompanyPage, Onboarding, ChooseTrack].map((v) => v.preload()),
+    [TrackerView, JobPage, ApplyMode, CompanyPage, Today, Onboarding, ChooseTrack].map((v) =>
+      v.preload(),
+    ),
   );
 
 /** The view a route opens on, when it is one of these: the Pipeline or a job under `queue`,
- *  Apply mode (`apply`, App's APPLY_ROUTE) or a Company page. */
+ *  Today, Apply mode (`apply`, App's APPLY_ROUTE) or a Company page. */
 export function viewFor(route: Route): { preload(): Promise<void> } | null {
+  if (route.tab === 'today') return Today;
   if (route.tab === 'apply') return ApplyMode;
   if (route.tab === COMPANY_TAB) return CompanyPage;
   if (route.tab === 'queue') return route.jobId ? JobPage : TrackerView;

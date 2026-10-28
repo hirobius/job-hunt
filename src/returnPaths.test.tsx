@@ -486,7 +486,7 @@ describe('top tabs reopen where they were left', () => {
     window.location.hash = `#/queue/${idA}`;
     renderApp();
     await heading('Fabricator');
-    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     await at('#/queue');
     expect(await heading('Pipeline')).toBeInTheDocument();
   });
@@ -495,7 +495,7 @@ describe('top tabs reopen where they were left', () => {
     seedPack('consulting');
     window.location.hash = '#/discover/ats';
     renderApp();
-    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     await at('#/queue');
     await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
     await at('#/discover/ats');
@@ -614,7 +614,7 @@ describe('one navigation per Remove, Delete or double click', () => {
     await startAt('#/discover/apply', '#/queue');
     await openFromList();
     const pops = countPops();
-    doubleClick(screen.getByRole('tab', { name: 'Pipeline' }));
+    doubleClick(screen.getByRole('tab', { name: 'Jobs' }));
     await staysAt('#/queue');
     pops.stop();
     expect(pops.count()).toBe(1);
@@ -656,7 +656,7 @@ describe('one navigation per Remove, Delete or double click', () => {
     await heading('Welder');
     await remove('Welder');
     await staysAt('#/discover/apply');
-    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     await staysAt('#/queue');
     expect(await heading('Pipeline')).toBeInTheDocument();
   });

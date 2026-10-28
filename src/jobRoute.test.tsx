@@ -62,7 +62,7 @@ describe('job route (#127)', () => {
       within(screen.getByRole('tablist', { name: 'Sections' })).getByRole('tab', {
         selected: true,
       }),
-    ).toHaveAccessibleName('Pipeline');
+    ).toHaveAccessibleName('Jobs');
   });
 
   it('a retired job says so on its page, without fading its text', () => {
@@ -125,11 +125,11 @@ describe('job route (#127)', () => {
     await screen.findByRole('heading', { level: 2, name: 'Design Engineer' });
     await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
     await waitFor(() => expect(window.location.hash).toBe('#/discover'));
-    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     expect(
       await screen.findByRole('heading', { level: 2, name: 'Design Engineer' }),
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'Pipeline' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     expect(await screen.findByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
   });
 

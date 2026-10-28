@@ -191,6 +191,15 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   returns to the page the sign-in was asked from (`account/signInReturn.ts`). Pinned in
   `src/route.test.ts`, `src/returnPaths.test.tsx`, `scrollMemory.test.ts`, `tabMemory.test.ts`,
   `routeLabel.test.ts`; E2E `e2e/return-paths.spec.ts` (390 and 1440, with the browser's Back).
+- **Today home (simplify 2/9, #383; spec `docs/specs/simplify.html` design C):** the tabs are **Today ·
+  Companies · Jobs** (Jobs = the Pipeline, slug `queue`, unchanged inside; its page head and Backs still say
+  Pipeline). An empty hash, the Trades slug and a sign-in error land on `#/today` (`HOME_ROUTE`); a first run
+  shows the same `Onboarding` there. `Today.tsx` lays out the pure read model `today.ts` as three panels in a
+  fixed order: **Review new** (sources = the active track's distinct watched boards + `KEYLESS_FEEDS`; the new count is null
+  until the Feed slice, so it links to Live postings, `?from=/today`: no breadth lost), **Apply** (the
+  Pipeline's `toApplyQueue`, Start / Resume applying → Apply mode, `?from=/today`) and **Follow up** (`dueFollowUps`, the
+  one `FollowUpButton` on the most overdue). Pinned in `today.test.ts`, `todayHome.test.tsx`,
+  `e2e/today.spec.ts`.
 - **Calm list shell (epic: layout direction "A + C's Apply sheet", PR #208, slice 1):** the tabs are
   **Companies · Pipeline** (Templates lost its tab in #240); Companies is the old Discover (slug
   `discover`, home, hosts the first-run gate) and an empty hash lands there. "Try with sample data"

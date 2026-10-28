@@ -3,6 +3,7 @@
 import { expect, type Page } from '@playwright/test';
 
 export const ROUTES = [
+  '#/today',
   '#/queue',
   '#/discover',
   '#/discover/apply',

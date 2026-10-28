@@ -26,6 +26,7 @@ import {
   CompanyPage,
   JobPage,
   Onboarding,
+  Today,
   TrackerView,
 } from './routeViews';
 import { JobPageLiveness } from './LivenessViews';
@@ -61,22 +62,22 @@ const LegalPage = lazy(importFresh(() => import('./LegalPage')));
 const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
 const loadSystemsOnly = importFresh(() => import('./feed/systemsOnly'));
 
-// Top-level tabs, in render order (Calm list: Companies · Pipeline). The URL hash carries the slug;
-// slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline). `#/today` (#128) is
-// retired (#236): it redirects to Companies. Templates lost its tab (#240) and became the
+// Top-level tabs, in render order (simplify 2/9, #383: Today · Companies · Jobs). The URL hash
+// carries the slug; slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline, its
+// tab now named Jobs). `#/today` is home again, as the three-panel Today (Today.tsx). Templates
+// lost its tab (#240) and became the
 // Documents library (#227): `#/copy-deck` (slug kept) is a page with no tab selected, reached
 // from the Apply sheet and the Menu.
-const TAB_SLUGS = ['discover', 'queue'] as const;
-const RETIRED_TODAY = 'today';
+const TAB_SLUGS = ['today', 'discover', 'queue'] as const;
 const DOCUMENTS_ROUTE = 'copy-deck';
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
-// Companies is home; quick-add always shows the Pipeline, where the new job is.
-const HOME_ROUTE = 'discover';
+// Today is home; quick-add always shows the Pipeline, where the new job is.
+const HOME_ROUTE = 'today';
 const QUICK_ADD_LANDING = 'queue';
 const APPLY_ROUTE = 'apply';
 // The quick-add link's params (shortcut, bookmarklet, Gmail-scan links): read once, then removed.
 const QUICK_ADD_PARAMS = ['add', 'applied', 'status', 'u', 't', 'title'];
-// The old Trades tab's slug: its bookmarks still land on Companies, like an empty hash.
+// The old Trades tab's slug: its bookmarks still land on home, like an empty hash.
 const LEGACY_HOME = 'apprenticeships';
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
@@ -124,12 +125,11 @@ export default function App() {
   const documents = route.tab === DOCUMENTS_ROUTE;
   // The Privacy policy and Terms (#43): pages with no tab, like Documents.
   const legal = route.tab === LEGAL_ROUTE;
-  // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show Companies.
-  // A sign-in link's callback hash is not a link: Companies shows while auth-js reads it.
+  // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show home.
+  // A sign-in link's callback hash is not a link: Today shows while auth-js reads it.
   const known: string[] = [...TAB_SLUGS, APPLY_ROUTE, COMPANY_TAB, DOCUMENTS_ROUTE, LEGAL_ROUTE];
   const notFound =
     route.tab !== '' &&
-    route.tab !== RETIRED_TODAY &&
     route.tab !== LEGACY_HOME &&
     !isAuthCallback(route) &&
     !known.includes(route.tab);
@@ -148,7 +148,9 @@ export default function App() {
           ? null
           : TAB_SLUGS[tab] === 'queue'
             ? 'Pipeline'
-            : 'Companies',
+            : TAB_SLUGS[tab] === 'today'
+              ? 'Today'
+              : 'Companies',
   );
 
   // Top tabs (return paths): another tab reopens where it was left (openTab); the open tab, tapped
@@ -177,7 +179,8 @@ export default function App() {
 
   // The onboarding gate (#128) lives here, not in a view. Companies can't work without a track,
   // and on a first run (no tracks and no jobs) it also offers sample data, so nobody lands on an
-  // empty home. The Pipeline and Documents never gate: quick-add and sample data work before setup.
+  // empty home (Today shows the same first-run setup). The Pipeline and Documents never gate:
+  // quick-add and sample data work before setup.
   const hasTracks = useCategories().length > 0;
   const jobs = useJobs();
   const hasJobs = jobs.length > 0;
@@ -232,7 +235,7 @@ export default function App() {
       if (!did && (asks.add || asks.applied || asks.status))
         warn(st && !knownStatus ? quickAddBadStatus(st) : QUICK_ADD_INVALID);
     } else if (linkError) {
-      // An expired or refused sign-in link (#error=…): say so, and replace the error with Companies.
+      // An expired or refused sign-in link (#error=…): say so, and replace the error with home.
       toast({ title: linkError, tone: 'warning', duration: 10000 });
       navigate(
         { tab: HOME_ROUTE, sub: null, pillar: null, jobId: null, from: null, section: null },
@@ -244,11 +247,6 @@ export default function App() {
     // Mount only: the link is read once, as the tab opens (a new `toast` must not re-run a quick-add).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // An old #/today link or bookmark (#236) lands on Companies; replace, so Back skips it.
-  useEffect(() => {
-    if (route.tab === RETIRED_TODAY) navigate({ tab: HOME_ROUTE, sub: null, jobId: null }, true);
-  }, [route.tab]);
 
   return (
     <CloudSyncProvider>
@@ -285,11 +283,14 @@ export default function App() {
                       className="rjb-top-tabs"
                       aria-label="Sections"
                     >
+                      <TabsTrigger value="today" {...trigger('today')}>
+                        Today
+                      </TabsTrigger>
                       <TabsTrigger value="discover" {...trigger('discover')}>
                         Companies
                       </TabsTrigger>
                       <TabsTrigger value="queue" {...trigger('queue')}>
-                        Pipeline
+                        Jobs
                       </TabsTrigger>
                     </TabsList>
                   </Stack>
@@ -299,6 +300,11 @@ export default function App() {
                       (#331); a move to another page clears it. */}
                   <PageErrorBoundary resetKey={pageKey(route)}>
                     <Stack gap="px24">
+                      <TabsContent value="today" variant="bare" tabIndex={-1}>
+                        <Suspense fallback={<PipelineSkeleton />}>
+                          {firstRun ? <Onboarding offerSample /> : <Today />}
+                        </Suspense>
+                      </TabsContent>
                       <TabsContent value="queue" variant="bare" tabIndex={-1}>
                         <Suspense fallback={<PipelineSkeleton />}>
                           {applying ? (
