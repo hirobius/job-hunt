@@ -135,8 +135,21 @@ export interface AgendaItem {
   company?: string;
 }
 
+/** How long a timed event is taken to last when it has no duration. */
+export const DEFAULT_EVENT_MIN = 60;
+
+/** A timed event today whose end (time + duration) has passed. All-day events last the day. */
+function endedToday(e: JobEvent, now: Date, today: string): boolean {
+  if (e.date !== today || !e.time || !TIME_RE.test(e.time)) return false;
+  const [h, m] = e.time.split(':').map(Number);
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+  end.setMinutes(end.getMinutes() + (e.durationMin || DEFAULT_EVENT_MIN));
+  return now >= end;
+}
+
 /** Interviews, calls and other events from today through the next `days - 1` days (a rolling
- *  window, not the calendar week). Archived jobs excluded. Sorted by date, all-day first. */
+ *  window, not the calendar week), less today's timed ones that have ended (#311). Archived jobs
+ *  excluded. Sorted by date, all-day first. */
 export function upcomingEvents(
   jobs: readonly Job[],
   now: Date,
@@ -148,7 +161,7 @@ export function upcomingEvents(
   for (const job of jobs) {
     if (job.archived) continue;
     for (const e of job.events ?? []) {
-      if (e.date < start || e.date > end) continue;
+      if (e.date < start || e.date > end || endedToday(e, now, start)) continue;
       const item: AgendaItem = {
         id: e.id,
         date: e.date,

@@ -4,7 +4,14 @@
 // DST zone with the clock faked; the zone is put back after.
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { daysSince, deriveJobState, localDay, snoozeFollowUp } from './jobState';
-import { dueFollowUps, followUpDate, jobIcsEvents, respondByJobs, ymd } from './jobEvents';
+import {
+  dueFollowUps,
+  followUpDate,
+  jobIcsEvents,
+  respondByJobs,
+  upcomingEvents,
+  ymd,
+} from './jobEvents';
 import type { Job } from './types';
 
 const job = (over: Partial<Job>): Job => ({
@@ -165,5 +172,47 @@ describe('a timestamped applied / followUp reads its local day (#310)', () => {
     expect(localDay('2026-10-20')).toBe('2026-10-20');
     expect(localDay('soon')).toBeUndefined();
     expect(localDay(undefined)).toBeUndefined();
+  });
+});
+
+describe('Next 7 days drops a timed event once it has ended (#311)', () => {
+  const withEvents = job({
+    status: 'Interviewing',
+    events: [
+      { id: 'a', kind: 'interview', date: '2026-10-27', time: '09:00' },
+      { id: 'b', kind: 'call', date: '2026-10-27', time: '13:00', durationMin: 30 },
+      { id: 'c', kind: 'other', date: '2026-10-27' },
+    ],
+  });
+  // [now (local), ids still listed]
+  const cases: [[number, number], string[]][] = [
+    [
+      [8, 0],
+      ['c', 'a', 'b'],
+    ], // before both
+    [
+      [9, 30],
+      ['c', 'a', 'b'],
+    ], // during the interview (60 min by default)
+    [
+      [10, 0],
+      ['c', 'b'],
+    ], // the interview just ended
+    [
+      [13, 29],
+      ['c', 'b'],
+    ], // during the call
+    [[13, 30], ['c']], // the call ended; the all-day event stays through the day
+    [[23, 59], ['c']],
+  ];
+  it.each(cases)('at %j → %j', ([h, mi], ids) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 27, h, mi));
+    expect(upcomingEvents([withEvents], new Date()).map((e) => e.id)).toEqual(ids);
+  });
+
+  it('keeps tomorrow’s timed events whatever the time today', () => {
+    const j = job({ events: [{ id: 't', kind: 'call', date: '2026-10-28', time: '08:00' }] });
+    expect(upcomingEvents([j], new Date(2026, 9, 27, 23, 0)).map((e) => e.id)).toEqual(['t']);
   });
 });
