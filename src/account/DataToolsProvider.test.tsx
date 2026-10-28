@@ -151,6 +151,44 @@ describe('DataToolsProvider (via the account menu)', () => {
     expect(getAllJobs().map((j) => j.url)).toEqual(['https://example.com/new']);
   });
 
+  it('says what did not save when browser storage is full (#339)', async () => {
+    replaceAll([job('https://example.com/old', 'Old')]);
+    setup();
+    await upload(backupFile([job('https://example.com/new', 'New')]));
+    const dialog = await screen.findByRole('dialog');
+    const setItem = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string,
+    ) {
+      if (key === 'rjb_shortlist') throw new DOMException('full', 'QuotaExceededError');
+      setItem.call(this, key, value);
+    });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Replace my data' }));
+    expect(await screen.findByText("Restore didn't fully save")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Your browser's storage is full, so your jobs weren't saved. Reload to see what was kept. The safety copy of your data from before is in your downloads.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it('Merge that does not fully save points to reload, with no safety copy (#339)', async () => {
+    setup();
+    await upload(backupFile([job('https://example.com/new', 'New')]));
+    const dialog = await screen.findByRole('dialog');
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Merge into my data' }));
+    expect(
+      await screen.findByText(
+        /so your jobs, documents, .* weren't saved\. Reload to see what was kept\.$/,
+      ),
+    ).toBeTruthy();
+  });
+
   it('Export CSV is disabled with no jobs and downloads once there are some', async () => {
     const { unmount } = setup();
     const menu = await openAccount();

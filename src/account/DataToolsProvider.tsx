@@ -35,6 +35,7 @@ import { BRAND } from '../brand';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
 import { ExportLinksHost } from '../ExportLinksDialog';
+import { listWords, writesThatFailed } from './restoreWrites';
 
 const JSON_MIME = 'application/json';
 const day = () => new Date().toISOString().slice(0, 10);
@@ -63,21 +64,25 @@ function downloadBackup(prefix: string) {
   download(`${prefix}-${day()}.json`, text, JSON_MIME);
 }
 
-function applyState(next: AccountState) {
-  replaceAll(next.jobs);
-  replaceSnippets(next.copydeck);
-  replaceCurationState(next.curation);
-  replaceTriage(next.triage);
-  replaceTargets(next.targets);
-  replaceFilters(next.filters);
-  replaceEvidence(next.evidence);
-  replaceModes(next.modes);
-  replaceTrash(next.trash);
-  replaceDreams(next.dreams);
-  replaceDocuments(next.documents);
-  replaceApplyKit(next.kit);
-  replaceSweeps(next.sweeps);
-  replaceMustInclude(next.mustInclude);
+/** Write the restored state; returns what didn't reach storage (#339). Legacy messages
+ *  (snippets) become Documents, so a failed write of either is "documents". */
+function applyState(next: AccountState): string[] {
+  return writesThatFailed([
+    ['jobs', () => replaceAll(next.jobs)],
+    ['documents', () => replaceSnippets(next.copydeck)],
+    ['tracks', () => replaceCurationState(next.curation)],
+    ['set-aside links', () => replaceTriage(next.triage)],
+    ['saved targets', () => replaceTargets(next.targets)],
+    ['saved searches', () => replaceFilters(next.filters)],
+    ['evidence', () => replaceEvidence(next.evidence)],
+    ['work modes', () => replaceModes(next.modes)],
+    ['removed jobs', () => replaceTrash(next.trash)],
+    ['dream companies', () => replaceDreams(next.dreams)],
+    ['documents', () => replaceDocuments(next.documents)],
+    ['Application kit', () => replaceApplyKit(next.kit)],
+    ['title lists', () => replaceSweeps(next.sweeps)],
+    ['must-include lists', () => replaceMustInclude(next.mustInclude)],
+  ]);
 }
 
 export default function DataToolsProvider({ children }: { children: ReactNode }) {
@@ -106,7 +111,16 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
     if (!pending) return;
     if (mode === 'replace') downloadBackup(`${BRAND.slug}-before-restore`);
     const before = currentState();
-    applyState(applyBackup(before, pending, mode));
+    const unsaved = applyState(applyBackup(before, pending, mode));
+    // The screen shows the restore, but storage doesn't hold all of it: say so, and how to get
+    // back to what was kept (a reload) or what was there before (Replace's safety copy).
+    if (unsaved.length)
+      toast({
+        title: "Restore didn't fully save",
+        description: `Your browser's storage is full, so your ${listWords(unsaved)} weren't saved. Reload to see what was kept.${mode === 'replace' ? ' The safety copy of your data from before is in your downloads.' : ''}`,
+        tone: 'danger',
+        duration: 20000,
+      });
     if (mode === 'merge' && evidenceMergeOverflows(pending.evidence, before.evidence))
       toast({ ...EVIDENCE_TRIMMED, tone: 'warning', duration: 10000 });
     setPending(null);
