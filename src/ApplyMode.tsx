@@ -113,7 +113,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
           description={
             queue.length
               ? `${queue.length} ${queue.length === 1 ? 'job is' : 'jobs are'} waiting to be applied to.`
-              : 'Save jobs from Companies or paste a link, then come back here to apply.'
+              : 'Save postings from Review new on Today, or paste a link, then come back here to apply.'
           }
           action={
             queue.length ? (

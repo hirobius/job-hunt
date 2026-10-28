@@ -7,7 +7,7 @@
 //   company  → the board probe (CompanyLookup): Watch a board found, or keep it as a target
 //   words    → the track's titles (feed/sweepTitles.ts addTitle), with Undo
 // Every source and probe path stays as it is; this is one more way in. Boards, companies and
-// titles need a track (the one picked last in Companies); a job link never does.
+// titles need a track (the active one: activeTrack.ts); a job link never does.
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Box, Button, Input, Stack, Text, useToast } from '@hirobius/design-system';
 import { Form } from '@hirobius/design-system/patterns';
@@ -25,7 +25,7 @@ import { lookUpCompany } from './companyLookup';
 
 const HELPER = 'Paste a job link, a job board or a company, or type a job title.';
 const EMPTY_ERROR = 'Paste a job link, a job board or a company, or type a job title';
-const NO_TRACK = 'Set up a track in Companies first, so there is a list to add this to.';
+const NO_TRACK = 'Choose a track on Today first, so there is a list to add this to.';
 
 /** What Find will do with the line, said before it is pressed. */
 function reading(r: FindResult): string {

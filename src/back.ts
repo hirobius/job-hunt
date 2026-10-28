@@ -1,7 +1,7 @@
 // Where a page's Back goes and what it is called (return paths): the hook behind BackLink, for the
 // few Backs that draw themselves (the editor's "All documents", Back to companies).
 import { createContext, useContext, useMemo, type MouseEvent } from 'react';
-import { buildHash, goBackTo, parseHash, useRoute, type Route } from './route';
+import { buildHash, goBackTo, parseHash, redirectOf, useRoute, type Route } from './route';
 import { useRouteLabel } from './routeLabel';
 
 export interface Back {
@@ -24,7 +24,12 @@ export const BackGuard = createContext<((go: () => void) => void) | null>(null);
 export function useBack(fallback: Route, fallbackLabel: string, sameAs: Route[] = []): Back {
   const route = useRoute();
   const from = route.from ?? null;
-  const recorded = useMemo(() => (from ? parseHash('#' + from) : null), [from]);
+  // An origin on a retired route (an old Companies view) is where Back lands now: Today.
+  const recorded = useMemo(() => {
+    if (!from) return null;
+    const r = parseHash('#' + from);
+    return redirectOf(r) ?? r;
+  }, [from]);
   const origin = recorded ?? fallback;
   const named = useRouteLabel(origin);
   const guard = useContext(BackGuard);

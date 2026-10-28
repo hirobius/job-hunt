@@ -4,7 +4,7 @@
 // posting one tap away), Apply, Follow up (what is due, with dates, and what falls due this week)
 // and the companies the scan found (Follow / Ignore). The read model is today.ts; this lays it out.
 import { useState } from 'react';
-import { Button, Stack, Text } from '@hirobius/design-system';
+import { Button, InlineLink, Stack, Text } from '@hirobius/design-system';
 import { Search } from 'lucide-react';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { Onboarding } from './routeViews';
@@ -16,7 +16,8 @@ import { NewCompanies, ScanStatus } from './AutoScanViews';
 import ReviewView from './ReviewView';
 import { useActiveTrack } from './activeTrack';
 import { useJobs, jobIdOf } from './store';
-import { navigate, useRoute, withOrigin } from './route';
+import { jobHash, navigate, useRoute, withOrigin } from './route';
+import { metaLines } from './metaLines';
 import { lastApplyJobId } from './tabMemory';
 import { followUpDate } from './jobEvents';
 import { dayLabel } from './dayLabel';
@@ -31,13 +32,21 @@ export default function Today() {
   const jobs = useJobs();
   const track = useActiveTrack();
   const now = new Date();
-  // Review new counts its own postings (the Browse list below); Today only orders the page.
-  const m = today(jobs, { newToday: null, sources: 0 }, now, lastApplyJobId());
+  const m = today(jobs, now, lastApplyJobId());
   const { due, waiting, upcoming } = m.followUp;
   // No track yet (jobs saved before setup): Review new asks for one, with the same steps as a
   // first run, in place.
   const [choosing, setChoosing] = useState(false);
-  if (!track && choosing) return <Onboarding />;
+  if (!track && choosing)
+    return (
+      <Stack gap="normal" align="start">
+        {/* The steps start over when nothing is picked, so this is the way out. */}
+        <Button variant="tertiary" size="sm" onClick={() => setChoosing(false)}>
+          Not now
+        </Button>
+        <Onboarding />
+      </Stack>
+    );
 
   return (
     <Stack gap="px24">
@@ -132,25 +141,26 @@ export default function Today() {
   );
 }
 
-/** A due follow-up: the company (or title) with its posting one tap away, the day it fell due,
- *  and its one action. */
+/** A due follow-up, like the Pipeline's: the title opens the job's page, its posting one tap away
+ *  beside it; then the company and the day it fell due; then its one action. */
 function DueRow({ job, now }: { job: Job; now: Date }) {
   const date = followUpDate(job, now);
-  const name = job.company?.trim() || titleOf(job);
   return (
     <ListCard>
       <Stack direction="row" gap="px8" align="center" justify="space-between">
         <Stack gap="px4" align="start">
           <JobPostingTitle job={job}>
             <Text variant="body" as="span" weight="bold" className="rjb-card-title">
-              {name}
+              <InlineLink href={jobHash(jobIdOf(job.url))} externalIcon={false}>
+                {titleOf(job)}
+              </InlineLink>
             </Text>
           </JobPostingTitle>
-          {date && (
-            <Text variant="caption" as="span" tone="secondary">
-              {`Due ${dayLabel(date, now)}`}
+          {metaLines([job.company, date && `Due ${dayLabel(date, now)}`]).map((line) => (
+            <Text key={line} variant="caption" as="span" tone="secondary">
+              {line}
             </Text>
-          )}
+          ))}
         </Stack>
         <FollowUpButton job={job} size="sm" />
       </Stack>

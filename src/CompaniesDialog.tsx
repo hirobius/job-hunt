@@ -8,7 +8,7 @@ import { Button, Dialog, SegmentedControl, Stack, Text } from '@hirobius/design-
 import { CardList, ListCard } from './PipelinePanel';
 import { useActiveTrack } from './activeTrack';
 import { useFeedInputs } from './feed/useFeed';
-import { muteCompany, unmuteCompany, useDecided } from './feed/decided';
+import { followCompany, muteCompany, unmuteCompany, useDecided } from './feed/decided';
 import { companiesLists, type CompanyEntry } from './companiesList';
 
 type Show = 'followed' | 'ignored';
@@ -67,7 +67,11 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
                   size="sm"
                   variant="tertiary"
                   aria-label={`Follow ${c.label} again`}
-                  onClick={() => unmuteCompany(c.key)}
+                  onClick={() => {
+                    unmuteCompany(c.key);
+                    // Muted from a posting, with no board or follow of its own: follow it by name.
+                    if (!c.known) followCompany(c.label);
+                  }}
                 >
                   Follow again
                 </Button>

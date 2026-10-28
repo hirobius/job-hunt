@@ -161,7 +161,7 @@ export function Onboarding({ offerSample = false }: { offerSample?: boolean }) {
                     <HdsInput
                       label="City, state or Remote"
                       placeholder="City, state or Remote"
-                      helperText="Leave it blank to search anywhere. Work mode is set later in Companies."
+                      helperText="Leave it blank to search anywhere."
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                     />

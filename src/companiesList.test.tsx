@@ -44,7 +44,9 @@ describe('companiesLists', () => {
   });
 
   it('ignored: a muted name no Source knows is listed as stored', () => {
-    expect(companiesLists([], ['forward']).ignored).toEqual([{ key: 'forward', label: 'forward' }]);
+    expect(companiesLists([], ['forward']).ignored).toEqual([
+      { key: 'forward', label: 'forward', known: false },
+    ]);
   });
 });
 
@@ -100,9 +102,12 @@ describe('Account menu → Companies', () => {
       within(within(dialog).getByRole('list', { name: 'Ignored' })).getByText('Linear'),
     ).toBeInTheDocument();
 
+    // Forward was muted from a posting (no board or follow): Follow again follows it by name.
     await user.click(within(dialog).getByRole('button', { name: 'Follow Forward again' }));
     expect(getAllDecided().muted).not.toContain('Forward');
+    expect(getAllDecided().followed).toContain('Forward');
     expect(within(dialog).getByRole('radio', { name: 'Ignored (1)' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('radio', { name: 'Followed (2)' })).toBeInTheDocument();
   });
 
   it('says so when there is nothing in either list', async () => {

@@ -159,13 +159,24 @@ export function createFetchJson({
     total -= e.size;
     cache.delete(url);
   };
-  const fetchJson = async (url: string, opts?: { fresh?: boolean }) => {
+  // A read still in flight is shared (Today's Feed and the auto-scan read the same boards on open),
+  // so a url is asked once; a fresh read (liveness) never waits on one.
+  const pending = new Map<string, Promise<unknown>>();
+  const fetchJson = (url: string, opts?: { fresh?: boolean }): Promise<unknown> => {
     const hit = cache.get(url);
     if (hit && !opts?.fresh && now() - hit.at < ttlMs) {
       cache.delete(url);
       cache.set(url, hit);
-      return hit.body;
+      return Promise.resolve(hit.body);
     }
+    if (opts?.fresh) return read(url);
+    const inFlight = pending.get(url);
+    if (inFlight) return inFlight;
+    const p = read(url).finally(() => pending.delete(url));
+    pending.set(url, p);
+    return p;
+  };
+  const read = async (url: string): Promise<unknown> => {
     drop(url);
     let res: Response;
     try {

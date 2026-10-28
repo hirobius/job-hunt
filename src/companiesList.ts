@@ -9,6 +9,9 @@ export interface CompanyEntry {
   /** companyKey of the name: what mute and unmute go by. */
   key: string;
   label: string;
+  /** Ignored only: a Source (board or followed company) names it, so unmuting is enough to follow
+   *  it again. A company muted from a posting alone has none: Follow again follows it by name. */
+  known?: boolean;
 }
 
 export interface CompaniesLists {
@@ -38,6 +41,10 @@ export function companiesLists(
     if (s.muted || mutedNames.has(key) || followed.has(key)) continue;
     followed.set(key, { key, label: s.label.trim() });
   }
-  const ignored = [...mutedNames].map(([key, name]) => ({ key, label: labels.get(key) ?? name }));
+  const ignored = [...mutedNames].map(([key, name]) => ({
+    key,
+    label: labels.get(key) ?? name,
+    known: labels.has(key),
+  }));
   return { followed: [...followed.values()].sort(byLabel), ignored: ignored.sort(byLabel) };
 }

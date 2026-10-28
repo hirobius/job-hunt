@@ -228,8 +228,12 @@ describe('Follow up', () => {
     renderApp();
     const follow = section(/^Follow up/);
     const due = within(follow).getByRole('list', { name: 'Due follow-ups' });
-    expect(within(due).getByText('Acme')).toBeInTheDocument();
-    expect(within(due).getByText(/^Due /)).toBeInTheDocument();
+    // The title opens the job's page; the company and the day it fell due under it.
+    expect(within(due).getByRole('link', { name: 'Designer' })).toHaveAttribute(
+      'href',
+      `#/queue/${jobIdOf('https://acme.example.com/jobs/1')}`,
+    );
+    expect(within(due).getByText(/^Acme · Due /)).toBeInTheDocument();
     await userEvent.click(within(follow).getByRole('button', { name: /^Follow up/ }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });

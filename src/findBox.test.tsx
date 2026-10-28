@@ -256,7 +256,7 @@ describe('Find box without a track', () => {
     await user.type(field, 'https://jobs.lever.co/northwind');
     await user.click(screen.getByRole('button', { name: 'Find' }));
     expect(field).toHaveAccessibleDescription(
-      'Set up a track in Companies first, so there is a list to add this to.',
+      'Choose a track on Today first, so there is a list to add this to.',
     );
     expect(watchedUrls()).toEqual([]);
   });

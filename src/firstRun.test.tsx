@@ -258,6 +258,17 @@ describe('Today with no track', () => {
     await waitFor(() => expect(getCurationState().categories).toHaveLength(1));
     expect(window.location.hash).toBe('#/today');
   });
+
+  it('Not now leaves the steps and shows Today again', async () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    window.location.hash = '#/today';
+    renderApp();
+    await click('Choose a track');
+    step(1);
+    await click('Not now');
+    expect(screen.getByText('Pick a track to search')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /^Apply/ })).toBeInTheDocument();
+  });
 });
 
 describe('a11y', () => {

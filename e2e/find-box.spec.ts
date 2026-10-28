@@ -34,6 +34,6 @@ test('a board with no track yet says to set one up', async ({ page }) => {
   await expect(dialog.getByText('Watches Acme’s board.')).toBeVisible();
   await dialog.getByRole('textbox', { name: 'Find' }).press('Enter');
   await expect(
-    dialog.getByText('Set up a track in Companies first, so there is a list to add this to.'),
+    dialog.getByText('Choose a track on Today first, so there is a list to add this to.'),
   ).toBeVisible();
 });

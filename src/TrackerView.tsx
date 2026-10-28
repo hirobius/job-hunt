@@ -408,7 +408,7 @@ export default function TrackerView() {
                 framed
                 icon={Briefcase}
                 title="Track your first job"
-                description="Paste a job link to save it here, then screen it, apply and follow up. You can also save jobs from Companies."
+                description="Paste a job link to save it here, then screen it, apply and follow up. You can also save postings from Review new on Today."
                 action={
                   <Stack direction="row" wrap="wrap" gap="tight" justify="center">
                     {addJobButton}

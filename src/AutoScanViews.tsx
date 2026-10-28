@@ -1,6 +1,6 @@
 // The auto-scan's only UI (#415): "Scan now" with "Last scanned hh:mm · N new from M sources", and
-// New companies (Follow / Ignore). Both are exported for Today (the Today slice mounts them) and
-// sit on Review new meanwhile. Every action says so with an Undo.
+// New companies (Follow / Ignore). Today mounts both: the status at its top, New companies at its
+// end. Every action says so with an Undo.
 import { Button, Icon, Stack, Text } from '@hirobius/design-system';
 import { RefreshCw } from 'lucide-react';
 import { CardList, ListCard, Panel } from './PipelinePanel';
@@ -39,8 +39,8 @@ function progressLine(p: ScanProgress | undefined): string {
   }
 }
 
-/** "Scan now" and the last scan's line (or why it failed). `categoryId`: the track on screen
- *  (Review new's), else the one Discover has open. */
+/** "Scan now" and the last scan's line (or why it failed). `categoryId`: the track Today shows,
+ *  else the active one. */
 export function ScanStatus({ categoryId }: { categoryId?: string | null }) {
   const { state, running, progress } = useScan();
   const { input } = useScanInput(categoryId);
@@ -106,7 +106,7 @@ export function NewCompanies({ categoryId: given }: { categoryId?: string | null
       title="New companies"
       count={list.length}
       countLabel={`${list.length} companies`}
-      description="Found by the scan. A confirmed board’s matching jobs are already below."
+      description="Found by the scan. A confirmed board’s matching jobs are already in Review new."
     >
       <CardList label="New companies">
         {list.map((f) => (

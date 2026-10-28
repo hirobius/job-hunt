@@ -32,7 +32,7 @@ for (const width of [390, 1440]) {
     // Follow up: the sample has due ones, each with its date and the one button.
     const follow = page.getByRole('region', { name: /^Follow up/ });
     const due = follow.getByRole('list', { name: 'Due follow-ups' });
-    await expect(due.getByText(/^Due /).first()).toBeVisible();
+    await expect(due.getByText(/ · Due /).first()).toBeVisible();
     await due
       .getByRole('button', { name: /^Follow up/ })
       .first()

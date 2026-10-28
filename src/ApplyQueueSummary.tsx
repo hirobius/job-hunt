@@ -57,7 +57,7 @@ export default function ApplyQueueSummary({ jobs }: { jobs: Job[] }) {
             <Text variant="caption" as="p" tone="secondary">
               {queue.length
                 ? 'Starred first, then newest.'
-                : 'Nothing waiting. Save jobs from Companies to fill it.'}
+                : 'Nothing waiting. Save postings from Review new on Today to fill it.'}
             </Text>
             <Button
               variant="primary"

@@ -48,6 +48,29 @@ describe('createFetchJson', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(4);
   });
 
+  // Today reads the Feed while the auto-scan reads the same boards on open: one request each.
+  it('shares a read already in flight for the same url (a fresh read never waits on one)', async () => {
+    let answer: (r: Response) => void = () => {};
+    const fetchImpl = vi.fn((u: string) =>
+      u.endsWith('slow')
+        ? new Promise<Response>((r) => (answer = r))
+        : Promise.resolve(res(200, { ok: 1 })),
+    );
+    const fetchJson = createFetchJson({ fetchImpl, now: () => 0 });
+    const one = fetchJson('https://a/slow');
+    const two = fetchJson('https://a/slow');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    answer(res(200, { n: 1 }));
+    expect(await one).toEqual({ n: 1 });
+    expect(await two).toEqual({ n: 1 });
+    // A failed read is not kept: the next asks again.
+    const bad = vi.fn(async () => res(500, {}));
+    const failing = createFetchJson({ fetchImpl: bad, now: () => 0 });
+    await Promise.allSettled([failing('https://a/x'), failing('https://a/x')]);
+    await failing('https://a/x').catch(() => {});
+    expect(bad).toHaveBeenCalledTimes(2);
+  });
+
   it('never caches a body larger than the whole budget', async () => {
     const fetchImpl = vi.fn(async () => res(200, { pad: 'x'.repeat(500) }));
     const fetchJson = createFetchJson({ fetchImpl, now: () => 0, budgetChars: 100 });

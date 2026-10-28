@@ -208,7 +208,7 @@ export default function ReviewView({
               centered
               icon={SearchX}
               title="Nothing to read yet"
-              description="Add a design-system title to your profile, or follow a company, and its postings show here."
+              description="Follow a company under New companies, or save a job, and its postings show here."
             />
           </PanelBody>
         )
