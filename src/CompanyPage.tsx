@@ -8,7 +8,16 @@ import { Box, Button, InlineLink, Skeleton, Stack, Text, Textarea } from '@hirob
 import { EmptyState } from './hds-gaps/EmptyState';
 import { Building2 } from 'lucide-react';
 import { addCompanyNote, useCompany } from './companies';
-import { DOCUMENT_KINDS, saveVersion, type Document } from './documents';
+import {
+  DOCUMENT_KINDS,
+  getAllDocuments,
+  removeDocument,
+  restoreDocument,
+  saveVersion,
+  type Document,
+} from './documents';
+import { collapseRow } from './feedback';
+import { notifyRemoved, showNotice } from './saveNotice';
 import { linkTo, useRoute, type Route } from './route';
 import BackLink from './BackLink';
 import { backClick, useBack } from './back';
@@ -80,8 +89,26 @@ const Quiet = ({ children }: { children: ReactNode }) => (
   </Text>
 );
 
-/** One company Note: its latest text, saved as a new Version when it changes. */
-function NoteEditor({ note }: { note: Document }) {
+/** Remove a company Note (#305, soft like every Remove): its row collapses, then it goes, and a
+ *  notice offers Undo, which puts it back in its place. Read when the removal lands. */
+function removeNote(note: Document, from: Element) {
+  collapseRow(from, () => {
+    const at = getAllDocuments().findIndex((x) => x.id === note.id);
+    if (at < 0 || !removeDocument(note.id)) return;
+    notifyRemoved('Removed the note', () => {
+      if (!restoreDocument(note, at))
+        showNotice({
+          title: "The note couldn't be put back",
+          description: "This device's storage is full.",
+          actions: [],
+        });
+    });
+  });
+}
+
+/** One company Note: its latest text, saved as a new Version when it changes. `name` tells it
+ *  apart from the others ("Note 2 of 3"), for its field and its Remove. */
+function NoteEditor({ note, name }: { note: Document; name: string }) {
   const text = latest(note).text;
   const [draft, setDraft] = useState(text);
   // A newer Version synced in: an untouched draft follows it, so Save never re-saves older text.
@@ -94,7 +121,7 @@ function NoteEditor({ note }: { note: Document }) {
     <Stack gap="tight">
       <Box className="rjb-form-full">
         <Textarea
-          aria-label="Note"
+          aria-label={name}
           rows={3}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -108,6 +135,14 @@ function NoteEditor({ note }: { note: Document }) {
           onClick={() => saveVersion(note.id, draft)}
         >
           Save note
+        </Button>
+        <Button
+          variant="tertiary"
+          size="sm"
+          aria-label={`Remove ${name.toLowerCase()}`}
+          onClick={(e) => removeNote(note, e.currentTarget)}
+        >
+          Remove
         </Button>
         <Quiet>{`Saved ${day(latest(note).savedAt)} · ${versions(note.versions.length)}`}</Quiet>
       </Stack>
@@ -263,9 +298,18 @@ export default function CompanyPage({ slug }: { slug: string }) {
         <Panel label="Notes" title="Notes">
           <PanelBody>
             <Stack gap="normal">
-              {company.notes.map((n) => (
-                <NoteEditor key={n.id} note={n} />
-              ))}
+              {company.notes.length > 0 && (
+                <Stack as="ul" gap="normal" aria-label={`Notes on ${company.name}`} style={LIST}>
+                  {company.notes.map((n, i, all) => (
+                    <li key={n.id}>
+                      <NoteEditor
+                        note={n}
+                        name={all.length > 1 ? `Note ${i + 1} of ${all.length}` : 'Note'}
+                      />
+                    </li>
+                  ))}
+                </Stack>
+              )}
               <NewNote
                 company={company.name}
                 action={company.notes.length ? 'Add note' : 'Save note'}

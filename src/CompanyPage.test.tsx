@@ -7,6 +7,7 @@ import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 import CompanyPage from './CompanyPage';
 import DocumentsView from './DocumentsView';
+import NoticeHost from './NoticeHost';
 import { addJob, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { createDocument, getAllDocuments, replaceDocuments } from './documents';
 import { addCompanyNote } from './companies';
@@ -149,6 +150,40 @@ describe('Company page (#230)', () => {
     const d = getAllDocuments().find((x) => x.id === id)!;
     expect(d.versions.map((v) => v.text)).toEqual(['First', 'Second']);
     expect(within(notes).getByText(/2 versions/)).toBeInTheDocument();
+  });
+
+  it('each note has its own name when there are several (#305)', () => {
+    addCompanyNote('Bolt', 'One');
+    addCompanyNote('Bolt', 'Two');
+    render(<CompanyPage slug="bolt" />);
+    const notes = screen.getByRole('region', { name: 'Notes' });
+    expect(within(notes).getByLabelText('Note 1 of 2')).toHaveValue('One');
+    expect(within(notes).getByLabelText('Note 2 of 2')).toHaveValue('Two');
+    expect(within(notes).getByRole('button', { name: 'Remove note 2 of 2' })).toBeInTheDocument();
+  });
+
+  it('Remove on a note: it goes, a notice says so, and Undo puts it back in its place (#305)', async () => {
+    addCompanyNote('Bolt', 'One');
+    const two = addCompanyNote('Bolt', 'Two');
+    addCompanyNote('Bolt', 'Three');
+    render(
+      <ToastProvider>
+        <NoticeHost />
+        <CompanyPage slug="bolt" />
+      </ToastProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Remove note 2 of 3' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(getAllDocuments().some((d) => d.id === two)).toBe(false);
+    expect(screen.getByLabelText('Note 2 of 2')).toHaveValue('Three');
+    expect(await screen.findByText('Removed the note')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByLabelText('Note 2 of 3')).toHaveValue('Two');
+    expect(
+      getAllDocuments()
+        .filter((d) => d.kind === 'note')
+        .map((d) => d.id)[1],
+    ).toBe(two);
   });
 
   it('a company with only notes still has its page (nothing orphaned after a rename)', () => {
