@@ -1,13 +1,15 @@
-// Reddit — hiring posts in r/DesignSystems, r/UXDesign and r/forhire. OFF (SOURCE_ENABLED.reddit in
-// fetchFeed.ts) and UNVERIFIED LIVE: this build environment cannot reach reddit.com.
+// Reddit — hiring posts in r/DesignSystems, r/UXDesign and r/forhire. NOT WIRED IN (no browser read,
+// no server read yet) and UNVERIFIED LIVE: this build environment cannot reach reddit.com. The
+// parser and fetcher are ready for a server-side read.
 // Why it is off: Reddit's Data API Terms (2023) and Developer Terms require a registered app, OAuth
 // and a descriptive User-Agent for any API use, and they cap unauthenticated reads (~10/min) as not
 // licensed for apps. A browser cannot hold a client secret or set a User-Agent, so keyless reads
 // from every user's browser are not allowed. To turn it on: register a free "script"/"web" app at
 // reddit.com/prefs/apps, read server-side from https://oauth.reddit.com with an app-only token
 // (env REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET; fail loud naming them when missing), pass that
-// base and fetcher here, and add the host to vercel.json connect-src, csp.test.ts and legal.ts only
-// if a browser ever reads it. Attribution: link to the post's permalink and name the subreddit.
+// base and an authorized fetcher here, and add it to the sync-postings source list (with a
+// 'reddit' source in score.ts and the postings check constraint). Never a browser read.
+// Attribution: link to the post's permalink and name the subreddit.
 //   GET <base>/r/<sub>/search.json?q=<term>&restrict_sr=1&sort=new&t=month&limit=50
 //   →  { data: { children: [{ kind: 't3', data: { id, title, selftext, permalink, created_utc,
 //        author, subreddit, link_flair_text } }] } }

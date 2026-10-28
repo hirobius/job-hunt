@@ -49,9 +49,21 @@ describe('fetchBluesky', () => {
       blueskySearchUrl('design systems', 'job'),
     ]);
     expect(urls[0]).toBe(
-      'https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=%22design%20systems%22%20hiring&sort=latest&limit=50',
+      'https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=design%20systems%20hiring&sort=latest&limit=50',
     );
     expect(out).toHaveLength(1);
+  });
+  it('keeps one query when the other fails, and fails only when both do', async () => {
+    const one = await fetchBluesky('design systems', async (u) => {
+      if (u.includes('job')) throw new Error('429');
+      return { posts: [post()] };
+    });
+    expect(one).toHaveLength(1);
+    await expect(
+      fetchBluesky('design systems', async () => {
+        throw new Error('403');
+      }),
+    ).rejects.toThrow('403');
   });
   it('makes no request for a blank term and tolerates a malformed body', async () => {
     expect(

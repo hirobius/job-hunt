@@ -7,7 +7,7 @@ const HIRING_RE =
   /(?:^|[^\w#])(?:#?hiring|#?nowhiring|#?jobopening|#getfedihired|job opening|open (?:role|position)s?|we(?:'|’)?re looking for an?\b|join (?:our|the) team|apply (?:here|now|at)\b|is looking for an?\b)/i;
 /** Someone looking for work (the other half of every hiring tag): never a posting. */
 const SEEKING_RE =
-  /(?:^|[^\w#])(?:\[for hire\]|#?opentowork|#?forhire\b|open to work|looking for (?:work|a (?:new )?(?:job|role|position))|seeking (?:work|a (?:new )?(?:job|role|position))|hire me\b|i(?:'|’)?m (?:available|job hunting))/i;
+  /(?:^|[^\w#])(?:\[for hire\]|#?opentowork|#?forhire\b|open to work|looking for (?:work|a (?:new )?(?:job|role|position))|seeking (?:work|a (?:new )?(?:job|role|position))|hire me\b)/i;
 
 /** True when the post reads as an employer hiring, not a person looking for work. */
 export function isHiringPost(text: string): boolean {
@@ -16,18 +16,21 @@ export function isHiringPost(text: string): boolean {
 
 const TITLE_MAX = 120;
 
-/** The first non-empty line, hashtags and links trimmed off its ends, cut on a word at 120. */
+/** The first line with words in it, links dropped and hashtags trimmed off both its ends, cut on
+ *  a word at 120. A line of hashtags only ("#hiring #designsystems") is skipped. */
 export function postTitle(text: string): string {
-  const line =
+  const clean =
     text
       .split('\n')
-      .map((l) => l.trim())
+      .map((l) =>
+        l
+          .replace(/https?:\/\/\S+/g, '')
+          .replace(/^(?:\s*#\w+)+\s*/, '')
+          .replace(/(?:\s*#\w+)+\s*$/, '')
+          .replace(/\s+/g, ' ')
+          .trim(),
+      )
       .find(Boolean) ?? '';
-  const clean = line
-    .replace(/https?:\/\/\S+/g, '')
-    .replace(/(?:\s*#\w+)+\s*$/, '')
-    .replace(/\s+/g, ' ')
-    .trim();
   if (clean.length <= TITLE_MAX) return clean;
   const cut = clean.slice(0, TITLE_MAX);
   const space = cut.lastIndexOf(' ');

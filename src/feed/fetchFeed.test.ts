@@ -567,21 +567,24 @@ describe('fetchFeed — the wide sweep (#213)', () => {
 });
 
 describe('community sources', () => {
-  it('reads Bluesky and Mastodon by default and never Reddit (its terms need OAuth)', async () => {
+  it('reads Mastodon by default, Bluesky only when switched on, and never Reddit', async () => {
     const calls: string[] = [];
-    const out = await fetchFeed(
-      { term: 'design systems', boardUrls: [] },
-      async (u) => {
-        calls.push(u);
-        return {};
-      },
-      { kv: memoryKv() },
-    );
-    const keys = out.sources.map((s) => s.key);
-    expect(keys).toEqual(expect.arrayContaining(['bluesky', 'mastodon']));
-    expect(keys).not.toContain('reddit');
-    expect(calls.some((u) => u.includes('reddit.com'))).toBe(false);
-    expect(calls.some((u) => u.startsWith('https://public.api.bsky.app/'))).toBe(true);
+    const fetchJson = async (u: string) => {
+      calls.push(u);
+      return {};
+    };
+    const req = { term: 'design systems', boardUrls: [] };
+    const off = await fetchFeed(req, fetchJson, { kv: memoryKv() });
+    const keys = off.sources.map((s) => s.key);
+    expect(keys).toContain('mastodon');
+    expect(keys).not.toContain('bluesky');
     expect(calls.some((u) => u.startsWith('https://hachyderm.io/'))).toBe(true);
+    const on = await fetchFeed(req, fetchJson, {
+      kv: memoryKv(),
+      sources: { ...SOURCE_ENABLED, bluesky: true },
+    });
+    expect(on.sources.map((s) => s.key)).toContain('bluesky');
+    expect(calls.some((u) => u.startsWith('https://public.api.bsky.app/'))).toBe(true);
+    expect(calls.some((u) => u.includes('reddit.com'))).toBe(false);
   });
 });

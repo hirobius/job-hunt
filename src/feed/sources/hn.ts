@@ -12,7 +12,7 @@
 import { htmlToText } from '../html';
 import { inferMode, matchTerm } from '../match';
 import type { Posting } from '../types';
-import { arr, obj, str, type FetchJson } from './http';
+import { arr, num, obj, str, type FetchJson } from './http';
 
 const API = 'https://hn.algolia.com/api/v1';
 /** "Who is hiring?" threads to read — the last three months (openings stay live for weeks; DS
@@ -44,20 +44,21 @@ export function pickFreelancerThreads(listing: unknown, n = FREELANCER_THREADS):
 }
 
 function pickThreads(listing: unknown, title: RegExp, n: number): HnThread[] {
-  const byTitle = new Map<string, Record<string, unknown>>();
+  // One thread per title and month: a title without its month never folds two months together.
+  const byMonth = new Map<string, Record<string, unknown>>();
   for (const h of arr(obj(listing).hits).map(obj)) {
     const t = str(h.title);
     if (!title.test(t)) continue;
-    const had = byTitle.get(t.toLowerCase());
-    if (!had || num(h.num_comments) > num(had.num_comments)) byTitle.set(t.toLowerCase(), h);
+    const key = `${t.toLowerCase()}|${str(h.created_at).slice(0, 7)}`;
+    const had = byMonth.get(key);
+    const comments = (x: Record<string, unknown>) => num(x.num_comments) ?? 0;
+    if (!had || comments(h) > comments(had)) byMonth.set(key, h);
   }
-  return [...byTitle.values()]
+  return [...byMonth.values()]
     .sort((a, b) => str(b.created_at).localeCompare(str(a.created_at)))
     .slice(0, n)
     .map((h) => ({ id: str(h.objectID), title: str(h.title) }));
 }
-
-const num = (v: unknown) => (typeof v === 'number' ? v : 0);
 
 const ROLE_RE =
   /\b(engineer|engineering|designer|developer|technologist|architect|lead|manager|head of|director|founding|staff|principal|frontend|front-end|design|ux|ui|cto|consultant|specialist|analyst|implementation|solutions|success|support|onboarding)\b/i;

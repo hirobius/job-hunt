@@ -6,7 +6,6 @@ import { fetchBluesky } from './sources/bluesky';
 import { fetchHn } from './sources/hn';
 import { fetchJobicy } from './sources/jobicy';
 import { fetchMastodon } from './sources/mastodon';
-import { fetchReddit } from './sources/reddit';
 import { fetchRemoteOk } from './sources/remoteok';
 import { FetchError, type FetchJson } from './sources/http';
 import { fetchRemotive } from './sources/remotive';
@@ -18,20 +17,17 @@ import { SOURCE_LABEL, type Posting } from './types';
  *  A failure is already isolated and named per source either way. Remote OK stays off until its
  *  API's own legal notice has been read from a network that reaches it and its terms are checked
  *  against this adapter (#178): an attribution source does not ship on a guess of its terms.
- *  Reddit stays off: its Data API Terms need a registered OAuth app, never keyless browser reads
- *  (sources/reddit.ts says how to turn it on). */
-export const SOURCE_ENABLED: Record<
-  'jobicy' | 'remoteok' | 'bluesky' | 'mastodon' | 'reddit',
-  boolean
-> = {
+ *  Bluesky stays off until a deployed check shows its public search answers logged out
+ *  (sources/bluesky.ts). Reddit is not here at all: its Data API Terms need a registered OAuth
+ *  app, never keyless browser reads (sources/reddit.ts says how to read it server-side). */
+export const SOURCE_ENABLED: Record<'jobicy' | 'remoteok' | 'bluesky' | 'mastodon', boolean> = {
   jobicy: true,
   remoteok: false,
-  bluesky: true,
+  bluesky: false,
   mastodon: true,
-  reddit: false,
 };
 /** The social sources: each a term source read like Jobicy, shown only when SOURCE_ENABLED. */
-const SOCIAL = { bluesky: fetchBluesky, mastodon: fetchMastodon, reddit: fetchReddit } as const;
+const SOCIAL = { bluesky: fetchBluesky, mastodon: fetchMastodon } as const;
 
 /** Boards read at once — polite to the ATSs and kind to a phone's connection. There is no cap on
  *  how many boards a search reads (Adrian, 2026-10-15): every distinct watched board is read, this

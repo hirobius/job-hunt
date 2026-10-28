@@ -1,6 +1,9 @@
 // Bluesky — public post search on the AppView (keyless, CORS-open), for employers posting design-
-// systems roles. UNVERIFIED LIVE: written from the documented XRPC shape; this build environment
-// cannot reach bsky.app.
+// systems roles. OFF (SOURCE_ENABLED.bluesky) and UNVERIFIED LIVE: written from the documented XRPC
+// shape; this build environment cannot reach bsky.app, and the public AppView is reported to refuse
+// logged-out searchPosts (403) since 2025. Turn it on once a deployed check answers 200; if it
+// needs a session, that is an app password (a key: env BSKY_APP_PASSWORD, server-side only), not
+// a browser read.
 //   GET https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=…&sort=latest&limit=50
 //   →  { posts: [{ uri, author: { handle, displayName }, record: { text, createdAt }, indexedAt }] }
 // Terms we honour (Bluesky Terms of Service + developer guidelines): read public posts only, no
@@ -15,12 +18,13 @@ import { arr, obj, str, type FetchJson } from './http';
 import { isHiringPost, postTitle } from './social';
 
 const API = 'https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts';
-/** Each search pairs the quoted term with one of these (Bluesky search has no OR). */
+/** Each search pairs the term with one of these (Bluesky search has no OR). The term is not
+ *  quoted: a quoted phrase drops plurals, and match.ts keeps only real phrase hits downstream. */
 const QUERIES = ['hiring', 'job'];
 const LIMIT = 50;
 
 export const blueskySearchUrl = (term: string, extra: string) =>
-  `${API}?q=${encodeURIComponent(`"${term.replace(/"/g, '')}" ${extra}`)}&sort=latest&limit=${LIMIT}`;
+  `${API}?q=${encodeURIComponent(`${term.replace(/"/g, '')} ${extra}`)}&sort=latest&limit=${LIMIT}`;
 
 /** at://did:plc:abc/app.bsky.feed.post/3kxyz → https://bsky.app/profile/<handle>/post/3kxyz */
 function postUrl(uri: string, handle: string): string | undefined {
@@ -54,7 +58,10 @@ export function parseBlueskyPost(p: unknown): Posting | null {
 export async function fetchBluesky(term: string, fetchJson: FetchJson): Promise<Posting[]> {
   const t = term.trim();
   if (!t) return [];
-  const pages = await Promise.all(QUERIES.map((q) => fetchJson(blueskySearchUrl(t, q))));
+  // One query failing still leaves the other; both failing is the source's failure.
+  const settled = await Promise.allSettled(QUERIES.map((q) => fetchJson(blueskySearchUrl(t, q))));
+  const pages = settled.flatMap((p) => (p.status === 'fulfilled' ? [p.value] : []));
+  if (!pages.length) throw (settled[0] as PromiseRejectedResult).reason;
   const seen = new Set<string>();
   return pages
     .flatMap((b) => arr(obj(b).posts).map(parseBlueskyPost))

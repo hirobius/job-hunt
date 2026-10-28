@@ -9,6 +9,7 @@ describe('isHiringPost', () => {
     'Acme is looking for a design technologist to own our component library',
     'Join our team: Staff Designer, Design Systems. Apply here https://acme.dev/jobs',
     'Open role: design systems engineer #GetFediHired',
+    "We're hiring a design systems lead! DM me, I'm available to chat about the role",
   ])('keeps an employer post: %s', (text) => {
     expect(isHiringPost(text)).toBe(true);
   });
@@ -29,6 +30,12 @@ describe('postTitle', () => {
     expect(postTitle("\nWe're hiring a Design Systems Lead https://x.co/a #hiring #ds\nMore")).toBe(
       "We're hiring a Design Systems Lead",
     );
+  });
+  it('skips a line of hashtags only and trims leading ones', () => {
+    expect(postTitle('#hiring #designsystems\nAcme needs a DS engineer')).toBe(
+      'Acme needs a DS engineer',
+    );
+    expect(postTitle('#hiring Design systems lead at Acme')).toBe('Design systems lead at Acme');
   });
   it('cuts a long line on a word', () => {
     const t = postTitle(`${'word '.repeat(40)}end`);
