@@ -10,6 +10,7 @@ import { isSample } from './isSample';
 
 // Seeding takes a starter pack: loaded on the click, not with the Pipeline (#372).
 const loadSampleModule = importFresh(() => import('./loadSample'));
+let seeding = false;
 
 /** Offered only in an empty tracker (the mount decides) and never while signed in, since a
  *  signed-in tracker syncs; loads the sample on click and shows it in the Pipeline. */
@@ -27,15 +28,23 @@ export function TrySampleButton({
       variant={link ? 'tertiary' : 'secondary'}
       size={size}
       className={link ? 'rjb-inline-link' : undefined}
-      onClick={() =>
-        void loadSampleModule().then(
-          ({ loadSample }) => {
+      onClick={() => {
+        if (seeding) return; // one seed per click, however slow the chunk
+        seeding = true;
+        const from = window.location.hash;
+        void loadSampleModule()
+          .then(({ loadSample }) => {
+            // A sign-in may have landed while the chunk loaded: never seed into an account.
+            if (hasCloudSession()) return;
             loadSample();
-            navigate({ tab: 'queue', sub: null, jobId: null });
-          },
-          () => {},
-        )
-      }
+            // Show it in the Pipeline, unless the user has moved on meanwhile.
+            if (window.location.hash === from) navigate({ tab: 'queue', sub: null, jobId: null });
+          })
+          .catch(() => {})
+          .finally(() => {
+            seeding = false;
+          });
+      }}
     >
       Try with sample data
     </Button>

@@ -40,8 +40,9 @@ export function viewFor(route: Route): { preload(): Promise<void> } | null {
 export function preloadLanding(route: Route, capMs = 100): Promise<void> {
   const view = viewFor(route);
   if (!view) return Promise.resolve();
+  let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
     view.preload().catch(() => {}),
-    new Promise<void>((done) => setTimeout(done, capMs)),
-  ]);
+    new Promise<void>((done) => (timer = setTimeout(done, capMs))),
+  ]).finally(() => clearTimeout(timer));
 }

@@ -2,7 +2,7 @@
 // (merge or replace, with a safety backup first on replace), and export the job list as CSV.
 // The account menu triggers them through DataToolsContext; this owns the hidden file picker and
 // the restore confirm dialog, and reports failures as toasts.
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button, Dialog, Stack, Text, useToast } from '@hirobius/design-system';
 import { returnFocus } from './returnFocus';
 import { useBackCloses } from '../useBackCloses';
@@ -31,9 +31,11 @@ import { DataToolsContext, type DataToolsApi } from './accountContext';
 import { ExportLinksHost } from '../ExportLinksHost';
 
 const JSON_MIME = 'application/json';
+const BACKUP_PREFETCH_MS = 5000;
 // The backup format loads when a backup or restore starts, not with the app (#371).
-const loadBackup = importFresh(() => import('../backup'));
-type BackupLib = Awaited<ReturnType<typeof loadBackup>>;
+type BackupLib = typeof import('../backup');
+let backupLib: BackupLib | null = null;
+const loadBackup = importFresh(() => import('../backup').then((lib) => (backupLib = lib)));
 const day = () => new Date().toISOString().slice(0, 10);
 
 function currentState(): AccountState {
@@ -121,15 +123,32 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
     });
   };
 
+  // Fetch the backup code once the app is idle, so Back up needs no round trip. Quietly: a failed
+  // prefetch (offline) is not a stale build; Back up's own load says so if it still fails.
+  useEffect(() => {
+    const t = setTimeout(
+      () =>
+        void import('../backup').then(
+          (lib) => (backupLib ??= lib),
+          () => {},
+        ),
+      BACKUP_PREFETCH_MS,
+    );
+    return () => clearTimeout(t);
+  }, []);
+
   const summary = pending ? pending.lib.summarizeRestore(currentState(), pending.backup) : null;
 
   const api: DataToolsApi = {
-    // A chunk that won't load raises the stale-build notice (importFresh).
+    // Once fetched (shortly after start, below) the download runs in the click itself, as browsers
+    // (iOS Safari) want for a download. A chunk that won't load raises the stale-build notice.
     backup: () =>
-      void loadBackup().then(
-        (lib) => downloadBackup(lib, `${BRAND.slug}-backup`),
-        () => {},
-      ),
+      backupLib
+        ? downloadBackup(backupLib, `${BRAND.slug}-backup`)
+        : void loadBackup().then(
+            (lib) => downloadBackup(lib, `${BRAND.slug}-backup`),
+            () => {},
+          ),
     chooseRestore: () => fileRef.current?.click(),
     exportCsv: () => download(`${BRAND.slug}.csv`, toCsv(getAllJobs()), 'text/csv'),
     canExport: jobs.length > 0,
