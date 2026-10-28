@@ -18,7 +18,7 @@ import {
   Text,
   VisuallyHidden,
 } from '@hirobius/design-system';
-import { jobIdOf, setJobUrl, updateJob } from './store';
+import { jobIdOf, setJobDeadline, setJobUrl, updateJob } from './store';
 import { companyHash, getRoute, linkTo, navigate, parseHash, useRoute, type Route } from './route';
 import { companySlug, relinkCompanyNotes } from './companies';
 import { jobFacts } from './jobFacts';
@@ -69,6 +69,31 @@ function JobField({
           updateJob(job.url, { [field]: e.target.value });
           onSaved();
         }}
+      />
+    </Box>
+  );
+}
+
+/** The day applications close (#419): an HDS date input onto the job's `deadline`. A source that
+ *  states one fills it; a day typed here sets it, clearing the field removes it. Saved on blur
+ *  (or Enter): a year typed digit by digit passes through days like 0002-11-03 on the way. */
+function DeadlineField({ job, onSaved }: { job: Job; onSaved: () => void }) {
+  const [draft, setDraft] = useState(job.deadline || '');
+  const commit = () => {
+    if (draft === (job.deadline || '')) return;
+    setJobDeadline(job.url, draft);
+    onSaved();
+  };
+  return (
+    <Box sx={{ flex: 1, minWidth: 0, '& > *': { width: '100%' } }}>
+      <Input
+        size="sm"
+        type="date"
+        label="Applications close"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && commit()}
       />
     </Box>
   );
@@ -141,6 +166,7 @@ function DetailsEditor({ job, onDone, focus }: { job: Job; onDone: () => void; f
           {field('contact', 'Contact')}
         </Switcher>
         <LinkField job={job} autoFocus={focus === 'link'} />
+        <DeadlineField job={job} onSaved={flash} />
         <Disclosure label="More fields" variant="nav">
           <Switcher gap="tight">
             {field('seniority', 'Seniority')}

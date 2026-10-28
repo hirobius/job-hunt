@@ -77,4 +77,9 @@ export interface Job {
   history?: StatusChange[]; // dated status changes, oldest first (backfilled from `applied`)
   events?: JobEvent[]; // interviews / calls, any order
   decks?: Deck[]; // deck links sent for this role (#287, additive; old records lack them)
+  // --- Dates (#419, additive; normalized on read in src/jobDates.ts). ISO datetime or YYYY-MM-DD. ---
+  postedAt?: string; // when the employer posted it, as the source said
+  discoveredAt?: string; // when the feed first read it in this browser
+  savedAt?: string; // when it was saved (backfilled from a Saved history entry, else absent)
+  closedAt?: string; // when a board check first found it gone from its board
 }

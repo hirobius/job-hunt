@@ -321,6 +321,8 @@ describe('Pipeline filter (#129)', () => {
       'Applied',
       'Interviewing',
       'Offer',
+      'Closing soon',
+      'Closed',
       'Rejected',
       'Retired',
       'All',

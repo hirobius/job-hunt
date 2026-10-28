@@ -9,7 +9,7 @@
 import { htmlToText } from '../html';
 import { inferMode } from '../match';
 import type { Posting } from '../types';
-import { arr, obj, str, type FetchJson } from './http';
+import { arr, obj, stampSeen, str, type FetchJson } from './http';
 
 const API = 'https://hn.algolia.com/api/v1';
 /** Threads to read — this month and last (openings stay live for weeks; DS roles are sparse). */
@@ -181,5 +181,5 @@ export async function fetchHn(term: string, fetchJson: FetchJson): Promise<Posti
     read(pickHiringThreads(listing), parseHnComment),
     read(pickFreelancerThreads(listing), parseFreelancerComment),
   ]);
-  return [...hiring, ...freelance];
+  return stampSeen([...hiring, ...freelance]);
 }

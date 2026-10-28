@@ -121,9 +121,9 @@ describe('a solicitation’s deadline on the Pipeline (#308)', () => {
     expect(respondByJobs(jobs, NOW).map((d) => d.dueDate)).toEqual(['2026-10-28', '2026-10-30']);
   });
 
-  it('reads "Respond by" in the calendar, not "Follow up"', () => {
+  it('reads "Apply by" in the calendar, not "Follow up" (#419: any closing day, not only a bid)', () => {
     const [ev] = jobIcsEvents(saved('2026-10-30', { label: 'Fab shop bid' }), NOW);
-    expect(ev.summary).toBe('Respond by: Fab shop bid');
+    expect(ev.summary).toBe('Apply by: Fab shop bid');
     expect(ev.date).toBe('2026-10-30');
   });
 });

@@ -4,7 +4,7 @@
 import { htmlToText } from '../html';
 import { httpUrl } from '../../httpUrl';
 import type { Posting } from '../types';
-import { arr, obj, str, type FetchJson } from './http';
+import { arr, obj, stampSeen, str, type FetchJson } from './http';
 
 export function parseRemotiveJob(j: unknown): Posting | null {
   const o = obj(j);
@@ -32,7 +32,9 @@ export async function fetchRemotive(term: string, fetchJson: FetchJson): Promise
   const body = await fetchJson(
     `https://remotive.com/api/remote-jobs?search=${encodeURIComponent(term)}&limit=100`,
   );
-  return arr(obj(body).jobs)
-    .map(parseRemotiveJob)
-    .filter((p): p is Posting => !!p);
+  return stampSeen(
+    arr(obj(body).jobs)
+      .map(parseRemotiveJob)
+      .filter((p): p is Posting => !!p),
+  );
 }

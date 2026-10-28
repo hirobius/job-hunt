@@ -4,7 +4,7 @@
 // a missing key reads "SAM_GOV_API_KEY is not set: …" on the source row.
 import type { SamOpportunity } from '../../contracts/sam';
 import type { Posting } from '../types';
-import { FetchError } from './http';
+import { FetchError, stampSeen } from './http';
 
 export interface SamRequest {
   naics: string[];
@@ -84,9 +84,11 @@ export async function fetchSam(
   }
   const list = (body as { opportunities?: unknown } | null)?.opportunities;
   if (!Array.isArray(list)) throw new FetchError(502, url);
-  const postings = (list as SamOpportunity[])
-    .filter((o) => o && typeof o.id === 'string' && /^https:\/\/sam\.gov\//.test(o.url ?? ''))
-    .map(postingOf);
+  const postings = stampSeen(
+    (list as SamOpportunity[])
+      .filter((o) => o && typeof o.id === 'string' && /^https:\/\/sam\.gov\//.test(o.url ?? ''))
+      .map(postingOf),
+  );
   cache.set(url, { at: now(), postings });
   return postings;
 }

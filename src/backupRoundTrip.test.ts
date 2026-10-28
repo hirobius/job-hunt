@@ -43,6 +43,10 @@ function gen(seed: number): AccountState {
     if (maybe()) j.followUp = day(n(5));
     if (maybe()) j.snoozeUntil = day(n(5));
     if (maybe()) j.deadline = day(n(5));
+    if (maybe()) j.postedAt = '2026-10-01T08:00:00Z';
+    if (maybe()) j.discoveredAt = NOW.toISOString();
+    if (maybe()) j.savedAt = NOW.toISOString();
+    if (maybe()) j.closedAt = NOW.toISOString();
     if (maybe()) j.notes = text();
     if (maybe()) j.note = text();
     if (maybe()) j.contact = 'Sam';

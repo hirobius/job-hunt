@@ -7,7 +7,7 @@
 // step (Offer, Rejected, retired, applied and not yet due) has none, so Star and More sit together.
 import { Box, Button, Stack, Text } from '@hirobius/design-system';
 import { MetaCaption } from './MetaCaption';
-import { shortDate } from './metaLines';
+import { dateLabel } from './jobDates';
 import { primaryAction, titleOf } from './jobRow';
 import { goBack, type Route } from './route';
 import BackLink from './BackLink';
@@ -36,7 +36,8 @@ export default function JobHeader({
   /** Shows the Interviews tab: an Interviewing job's primary when it has no other next step. */
   onAddInterview?: () => void;
 }) {
-  const applied = job.applied ? shortDate(job.applied) : '';
+  // One date per job (Adrian 2026-10-28): posted, else found. Applied lives in the facts.
+  const when = dateLabel(job);
   const next = primaryAction(job);
   const addInterview =
     !next && !job.archived && job.status === 'Interviewing' && onAddInterview ? (
@@ -64,7 +65,7 @@ export default function JobHeader({
           <Stack direction="row" gap="px8" align="center">
             {job.company?.trim() && <CompanyLogo company={job.company} postings={[job.url]} />}
             <MetaCaption
-              items={[job.company?.trim(), job.location?.trim(), applied && `Applied ${applied}`]}
+              items={[job.company?.trim(), job.location?.trim(), when]}
             />
           </Stack>
         </Stack>

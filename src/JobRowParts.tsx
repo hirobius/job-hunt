@@ -16,10 +16,10 @@ import { setStatus, updateJob } from './store';
 import { removeWithUndo } from './saveNotice';
 import { changeWithUndo } from './jobUndo';
 import { collapseRow, starClass } from './feedback';
-import { checkFor, useLiveness } from './livenessStore';
 import { FollowUpButton } from './FollowUp';
 import { buildHash, getRoute, navigate, withOrigin } from './route';
 import { setDiscoverSeed } from './discoverSeed';
+import { closingOf } from './jobDates';
 import { primaryAction, rowView, titleOf } from './jobRow';
 import { normStatus } from './jobState';
 import { researchLinks } from './jobFacts';
@@ -40,13 +40,16 @@ export function StatusBadge({ job }: { job: Job }) {
  *  attention is a warning. Pipeline cards, the job page and Apply mode share it. */
 export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
   const row = rowView(job);
-  const closed = checkFor(useLiveness(), job.url)?.state === 'closed';
+  // The closing date (#419), from the synced job (closedAt, deadline), so it matches the filters.
+  const closing = closingOf(job);
   return (
     <Stack direction="row" wrap="wrap" gap="px8" align="center">
       <StatusBadge job={job} />
       {row.retired && <Badge>Retired</Badge>}
       {row.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
-      {closed && <Badge tone="warning">Closed on the board</Badge>}
+      {closing && (
+        <Badge tone={closing.kind === 'soon' ? 'warning' : 'neutral'}>{closing.label}</Badge>
+      )}
       {row.verdict && <Badge tone="neutral">{row.verdict.label}</Badge>}
       {star && row.pinned && (
         <>
