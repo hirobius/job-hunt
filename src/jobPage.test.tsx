@@ -371,6 +371,32 @@ describe('job page tabs (#130 slice 2)', () => {
     expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Ask about pay and hours');
   });
 
+  it('Notes follows a note synced from another device, then keeps typing on it (#330)', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { notes: 'Old note' });
+    openJobPage();
+    const notes = () => screen.getByRole('textbox', { name: 'Notes' });
+    expect(notes()).toHaveValue('Old note');
+    // A sync pull brings a newer note while the page is open and nothing is being typed.
+    act(() => updateJob(URL_A, { notes: 'Synced from the laptop' }));
+    expect(notes()).toHaveValue('Synced from the laptop');
+    await userEvent.type(notes(), '!');
+    await userEvent.tab();
+    expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Synced from the laptop!');
+  });
+
+  it('an unsaved Notes edit wins over a note synced meanwhile (#330)', async () => {
+    addJob(URL_A, 'Design Engineer');
+    updateJob(URL_A, { notes: 'Old' });
+    openJobPage();
+    const notes = () => screen.getByRole('textbox', { name: 'Notes' });
+    await userEvent.type(notes(), ' typed here');
+    act(() => updateJob(URL_A, { notes: 'Synced' }));
+    expect(notes()).toHaveValue('Old typed here');
+    await userEvent.tab();
+    expect(findJobById(jobIdOf(URL_A))?.notes).toBe('Old typed here');
+  });
+
   it('never hides either note: Notes edits notes, with the older note read-only above', () => {
     addJob(URL_A, 'Design Engineer', 'Found in Live postings · Remotive');
     updateJob(URL_A, { company: 'Acme', notes: 'Ask about the shop floor' });
