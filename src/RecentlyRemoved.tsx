@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 import { Box, Button, Dialog, Stack, Text } from '@hirobius/design-system';
 import { titleOf } from './jobRow';
 import { metaLines } from './metaLines';
-import { deleteForever, TRASH_DAYS, useTrash, type Removed } from './trash';
+import { daysLeft, deleteForever, TRASH_DAYS, useTrash, type Removed } from './trash';
 import { noticeToToast, notifyRemoved, restoreWithNotice } from './saveNotice';
 import { DialogNotice } from './NoticeHost';
 import { JobPostingTitle } from './PostingLink';
@@ -16,6 +16,12 @@ import { useBackSheet } from './useBackCloses';
 const daysAgo = (iso: string, now = Date.now()) => {
   const d = Math.floor((now - Date.parse(iso)) / 86_400_000);
   return d <= 0 ? 'Removed today' : `Removed ${d}d ago`;
+};
+
+/** "Removed 27d ago · Deleted in 3 days" (#307): how long is left, not only how long it's been. */
+const ageLine = (iso: string, now = Date.now()) => {
+  const left = daysLeft(iso, now);
+  return `${daysAgo(iso, now)} · Deleted in ${left} ${left === 1 ? 'day' : 'days'}`;
 };
 
 function RemovedRow({ entry }: { entry: Removed }) {
@@ -29,7 +35,7 @@ function RemovedRow({ entry }: { entry: Removed }) {
             {title}
           </Text>
         </JobPostingTitle>
-        {metaLines([entry.job.company, daysAgo(entry.removedAt)]).map((line) => (
+        {metaLines([entry.job.company, ageLine(entry.removedAt)]).map((line) => (
           <Text key={line} variant="caption" as="span" tone="secondary">
             {line}
           </Text>
