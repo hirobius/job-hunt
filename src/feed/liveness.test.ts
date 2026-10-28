@@ -249,3 +249,71 @@ describe('boardOfJobUrl: Workable and Recruitee', () => {
     expect(out.get(wk)!.state).toBe('closed');
   });
 });
+
+describe('every board kind (#419)', () => {
+  // [kind, saved job URL, a board payload holding it, the same board without it]
+  const CASES: [string, string, unknown, unknown][] = [
+    [
+      'greenhouse',
+      'https://boards.greenhouse.io/figma/jobs/77',
+      { jobs: [{ id: 77, absolute_url: 'https://boards.greenhouse.io/figma/jobs/77' }] },
+      { jobs: [] },
+    ],
+    [
+      'lever',
+      'https://jobs.lever.co/plaid/6ed76ce8-4156',
+      [{ id: '6ed76ce8-4156', hostedUrl: 'https://jobs.lever.co/plaid/6ed76ce8-4156' }],
+      [],
+    ],
+    [
+      'ashby',
+      'https://jobs.ashbyhq.com/ramp/aaaa-1111',
+      { jobs: [{ id: 'aaaa-1111', jobUrl: 'https://jobs.ashbyhq.com/ramp/aaaa-1111' }] },
+      { jobs: [] },
+    ],
+    [
+      'workable',
+      'https://apply.workable.com/acme/j/ABC123/',
+      { jobs: [{ shortcode: 'ABC123', url: 'https://apply.workable.com/acme/j/ABC123/' }] },
+      { jobs: [] },
+    ],
+    [
+      'recruitee',
+      'https://acme.recruitee.com/o/product-designer',
+      { offers: [{ id: 5, careers_url: 'https://acme.recruitee.com/o/product-designer' }] },
+      { offers: [] },
+    ],
+    [
+      'smartrecruiters',
+      'https://jobs.smartrecruiters.com/Acme/744000012345-product-designer',
+      { content: [{ id: '744000012345', name: 'Product Designer' }] },
+      { content: [] },
+    ],
+    [
+      'teamtailor',
+      'https://acme.teamtailor.com/jobs/123-product-designer',
+      {
+        data: [
+          {
+            id: '123',
+            attributes: { title: 'Product Designer' },
+            links: { 'careersite-job-url': 'https://acme.teamtailor.com/jobs/123-product-designer' },
+          },
+        ],
+      },
+      { data: [] },
+    ],
+    [
+      'personio',
+      'https://acme.jobs.personio.de/job/456',
+      [{ id: 456, name: 'Product Designer' }],
+      [],
+    ],
+  ];
+
+  it.each(CASES)('%s: open while listed, closed once gone', async (kind, url, listed, gone) => {
+    expect(boardOfJobUrl(url)?.board.kind).toBe(kind);
+    expect((await checkLive([job(url)], async () => listed, NOW)).get(url)?.state).toBe('open');
+    expect((await checkLive([job(url)], async () => gone, NOW)).get(url)?.state).toBe('closed');
+  });
+});

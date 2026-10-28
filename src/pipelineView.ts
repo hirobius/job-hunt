@@ -4,10 +4,11 @@
 // Pure rules plus one tiny store; nothing is persisted (a reload starts fresh on Active).
 import { createStore } from './createStore';
 import { deriveJobState } from './jobState';
+import { isClosed, isClosingSoon } from './jobDates';
 import { sortJobs, type SortKey } from './jobSort';
 import type { Job, Status } from './types';
 
-export type Filter = 'active' | 'starred' | 'all' | Status | 'retired';
+export type Filter = 'active' | 'starred' | 'all' | Status | 'retired' | 'closingSoon' | 'closed';
 
 export interface PipelineView {
   filter: Filter;
@@ -28,6 +29,8 @@ export const FILTER_LABEL: Record<Filter, string> = {
   Offer: 'Offer',
   Rejected: 'Rejected',
   retired: 'Retired',
+  closingSoon: 'Closing soon',
+  closed: 'Closed',
 };
 
 // Active first; All and Retired demoted to the end (#129). A group without a label is just a
@@ -36,7 +39,10 @@ export const FILTER_GROUPS: { label?: string; items: Filter[] }[] = [
   // Starred is where favourites live: every starred job, whatever its stage.
   { label: 'Views', items: ['active', 'starred'] },
   { label: 'In progress', items: ['Saved', 'Applied', 'Interviewing', 'Offer'] },
-  { label: 'Closed', items: ['Rejected', 'retired'] },
+  // By closing date (#419): closes within 7 days, or gone from its board / past its day.
+  { label: 'Closing date', items: ['closingSoon', 'closed'] },
+  // Was "Closed"; renamed so it doesn't read as the Closed (closing date) filter (#419).
+  { label: 'Ended', items: ['Rejected', 'retired'] },
   { items: ['all'] },
 ];
 
@@ -46,6 +52,8 @@ function matchesFilter(j: Job, f: Filter): boolean {
   if (f === 'all') return true;
   if (f === 'starred') return !!j.priority;
   if (f === 'retired') return !!j.archived;
+  if (f === 'closingSoon') return isClosingSoon(j);
+  if (f === 'closed') return isClosed(j);
   return !j.archived && s.status === f;
 }
 

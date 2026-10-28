@@ -12,7 +12,7 @@ import type { JobMode } from '../../types.ts';
 import { httpUrl } from '../../httpUrl.ts';
 import type { Posting } from '../types.ts';
 import { EXTRA_LISTS, EXTRA_PARSERS } from './atsExtra.ts';
-import { arr, obj, prettySlug, str, type FetchJson } from './http.ts';
+import { arr, closingDayOf, obj, prettySlug, stampSeen, str, type FetchJson } from './http.ts';
 
 export type BoardKind =
   | 'greenhouse'
@@ -200,8 +200,16 @@ export function parseGreenhouseJob(j: unknown, slug: string): Posting | null {
     postedAt: str(o.first_published) || str(o.updated_at) || undefined,
     // Greenhouse escapes its HTML once more than everyone else.
     text: htmlToText(decodeEntities(str(o.content))),
+    // Read live 2026-10-28: a timestamp with the employer's offset, null when none is set.
+    ...withDeadline(o.application_deadline),
   };
 }
+
+/** `{ deadline }` when a source's closing date reads as a day, else nothing (#419). */
+const withDeadline = (raw: unknown): { deadline?: string } => {
+  const deadline = closingDayOf(raw);
+  return deadline ? { deadline } : {};
+};
 
 /** Lever's and Ashby's `workplaceType`, lower-cased (Ashby says "OnSite"). */
 const WORKPLACE_MODE: Record<string, JobMode> = {
@@ -362,6 +370,8 @@ export function parseTeamtailorJob(j: unknown, slug: string): Posting | null {
     mode: TEAMTAILOR_MODE[remote] ?? inferMode(location),
     postedAt: str(a['created-at'] ?? a.created_at ?? a.published_at) || undefined,
     text: htmlToText(str(a.body)),
+    // Teamtailor's job `end-date` (unverified live, like the rest of this adapter).
+    ...withDeadline(a['end-date'] ?? a.end_date),
   };
 }
 
@@ -451,5 +461,5 @@ export async function fetchBoard(b: Board, fetchJson: FetchJson): Promise<Postin
     personio: parsePersonioJob,
     ...EXTRA_PARSERS,
   }[b.kind];
-  return jobs.map((j) => parse(j, b.slug)).filter((p): p is Posting => !!p);
+  return stampSeen(jobs.map((j) => parse(j, b.slug)).filter((p): p is Posting => !!p));
 }

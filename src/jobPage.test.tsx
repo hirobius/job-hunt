@@ -990,3 +990,31 @@ describe('job page keeps focus where the work is', () => {
     );
   });
 });
+
+describe('job dates on the job page (#419)', () => {
+  it('shows one date and the closing date; Applications close sets the deadline and clears it', async () => {
+    addJob(URL_A, 'Design Engineer');
+    const soon = new Date();
+    soon.setDate(soon.getDate() + 3);
+    updateJob(URL_A, { company: 'Acme', postedAt: ymd(new Date()) });
+    openJobPage();
+    expect(screen.getByText(/Posted today/)).toBeInTheDocument();
+    expect(screen.queryByText(/Saved \w{3} \d/)).toBeNull(); // saved is stored, not shown
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit details' }));
+    const field = screen.getByLabelText('Applications close');
+    expect(field).toHaveAttribute('type', 'date');
+    await userEvent.type(field, ymd(soon));
+    expect(getAllJobs()[0].deadline).toBeUndefined(); // saved on leaving the field, not per key
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(getAllJobs()[0].deadline).toBe(ymd(soon));
+    const label = `Closes ${soon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    const badge = screen.getAllByText(label).find((el) => el.closest('[data-tone]'));
+    expect(badge?.closest('[data-tone]')).toHaveAttribute('data-tone', 'warning');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit details' }));
+    await userEvent.clear(screen.getByLabelText('Applications close'));
+    await userEvent.tab();
+    await waitFor(() => expect('deadline' in getAllJobs()[0]).toBe(false));
+  });
+});

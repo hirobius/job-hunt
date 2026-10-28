@@ -225,8 +225,8 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   Getting started, To apply, Follow up, Next 7 days and Jobs are `PipelinePanel` (HDS `Card`, header +
   `Badge count`), 24 apart. The Jobs panel holds the full-width search, Status and Sort as select-style
   menus and a quiet **Clear filters** when non-default; phone rows are HDS entity cards (`Card.Header`
-  metadata = badge row above the title, fit first, then status, then Follow-up due; `Card.Facts` with
-  location and applied date; `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
+  metadata = badge row above the title, fit first, then status, then Follow-up due, then the closing date; `Card.Facts` with
+  location and the job's one date (#419); `Card.Footer` next step + bordered ⋯ menu). Rhythm is HDS Stack gaps, no
   margins. **Lists are cards, not hairlines (Adrian changed it on 2026-10-23):** the Companies list
   and its inline roles, dream companies, saved targets, More ways to find companies, Live postings'
   Openings, the Pipeline's phone jobs, the Apply sheet's Templates, the Application kit, the
@@ -531,6 +531,19 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   decoded), so a link seeded on the live release (raw Spokane) never comes back as a second, localized copy. Documents'
   empty state and Add starter messages wait for `settled` and the snippet move (a new device's messages arrive first). Pinned in `firstRun`, `emptyStates`, `documentsLibrary`,
   `pipelineFollowUps`, `rapidApply`, `copyDeckStore`, `syncBlob` tests; e2e seeds call `addStarters`.
+- **Job dates (#419, `src/jobDates.ts`):** additive Job fields `postedAt` (the source's), `discoveredAt` (when this
+  page load's feed first read it: `stampSeen` in `feed/sources/http.ts`), `savedAt` (stamped on save; `sanitizeJobs`
+  backfills it from a Saved history entry, else blank) and `closedAt` (stamped by `runLivenessCheck` →
+  `recordBoardChecks` when a posting is gone from its board, every board kind; cleared when it is back). Sanitize,
+  Back up (`JOB_KEY_LIST`) and CSV (four appended columns) carry them; no blob bump. **One date per job (Adrian
+  2026-10-28):** `dateLabel` = "Posted 3d ago", else "Found 3d ago"; saved/found are stored, not shown. The closing
+  date is the job's `deadline` (sources: Greenhouse `application_deadline`, read live; SAM.gov; Teamtailor `end-date`,
+  unverified; or the job page's "Applications close" date input, saved on blur), shown as a badge by `closingOf`:
+  "Closes Nov 3" (warning within today + 6 days, while Saved), "Closed" (gone from the board while Saved/Applied, or
+  past its day while Saved). Pipeline filters **Closing soon** and **Closed** (group "Closing date"; the old "Closed"
+  group is "Ended"). Saved jobs closing in the window are in Next 7 days ("Applications close · …"), no longer in Follow
+  up; the calendar and Apply mode say "Apply by". Pinned in `jobDates.test.ts`, `jobDatesUi.test.tsx`,
+  `pipelineView.test.ts`, `pipelineFollowUps.test.tsx`, `jobPage.test.tsx`, `feed/liveness.test.ts`.
 - **Quick-add URL params** (handled in `App.tsx`): `?add=<url>`, `?applied=<url>`,
   `?status=<Status>&u=<url>`, optional `&t=<label>` — power the iOS shortcut /
   bookmarklet / Gmail-scan one-tap links. The URL is cleaned through the route seam

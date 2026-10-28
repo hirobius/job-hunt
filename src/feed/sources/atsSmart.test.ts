@@ -228,3 +228,16 @@ describe('boardJobs and fetchBoard', () => {
     await expect(fetchBoard(b, async () => ({ nope: 1 }))).rejects.toThrow();
   });
 });
+
+describe('Teamtailor end date (#419, unverified live)', () => {
+  it.each([
+    [{ ...tailorFlat, end_date: '2026-11-30' }, '2026-11-30'],
+    [
+      { ...tailorJsonApi, attributes: { ...tailorJsonApi.attributes, 'end-date': '2026-12-01' } },
+      '2026-12-01',
+    ],
+    [tailorFlat, undefined],
+  ])('reads the closing day', (raw, day) => {
+    expect(parseTeamtailorJob(raw, 'acme')!.deadline).toBe(day);
+  });
+});

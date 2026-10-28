@@ -110,6 +110,7 @@ function PostingCard({ p, onSkip }: { p: StoredPosting; onSkip: () => void }) {
       company: p.company,
       location: p.location,
       note: `Found by the scorer · ${reasonsLine(p)}`,
+      postedAt: p.postedAt,
     });
     if (url) notifySaved([url], p.title);
   };

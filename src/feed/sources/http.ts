@@ -36,3 +36,31 @@ export const num = (v: unknown): number | undefined => {
   const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v.trim()) : NaN;
   return Number.isFinite(n) && n > 0 ? n : undefined;
 };
+
+/** A source's closing date as the employer's calendar day (YYYY-MM-DD): the day written in the
+ *  timestamp, not the reader's local day, so "Nov 1, 11:45 PM Central" is Nov 1 anywhere (#419).
+ *  Undefined for anything that is not a real calendar day. */
+export function closingDayOf(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw.trim());
+  if (!m) return undefined;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3] ? m[0] : undefined;
+}
+
+/** When this page load first read each posting, by id: sources re-parse a cached body on every
+ *  read, so the first stamp is kept here rather than on the parsed object. */
+const firstSeen = new Map<string, string>();
+
+/** Stamp when the feed first read each posting (#419); a later read keeps the first stamp. */
+export function stampSeen<T extends { id: string; discoveredAt?: string }>(
+  postings: T[],
+  at: string = new Date().toISOString(),
+): T[] {
+  return postings.map((p) => {
+    if (p.discoveredAt) return p;
+    const seen = firstSeen.get(p.id) ?? at;
+    if (!firstSeen.has(p.id)) firstSeen.set(p.id, seen);
+    return { ...p, discoveredAt: seen };
+  });
+}

@@ -85,3 +85,20 @@ describe('liveness bypasses the feed cache', () => {
     expect(liveness.get()[dedupKey(A)]?.state).toBe('closed');
   });
 });
+
+describe('closedAt on the job (#419)', () => {
+  it('a check that finds the posting gone stamps closedAt on the saved job; back on the board clears it', async () => {
+    const { addJob, findJobByUrl, removeJob } = await import('./store');
+    addJob(B);
+    const saved = findJobByUrl(B)!;
+    await runLivenessCheck([saved], { fetchJson: async () => board('aaaa'), now: NOW });
+    expect(findJobByUrl(B)!.closedAt).toBe(new Date(NOW).toISOString());
+    await runLivenessCheck([findJobByUrl(B)!], {
+      fetchJson: async () => board('bbbb'),
+      now: NOW + 1,
+      force: true,
+    });
+    expect(findJobByUrl(B)!.closedAt).toBeUndefined();
+    removeJob(saved.url);
+  });
+});

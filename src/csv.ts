@@ -52,6 +52,10 @@ const COLUMNS: [string, (j: Job) => string][] = [
   // Appended, not slotted in, so a sheet built on the older columns keeps its references.
   ['deadline', (j) => opt(j.deadline)],
   ['snooze_until', (j) => opt(j.snoozeUntil)],
+  ['posted_at', (j) => opt(j.postedAt)],
+  ['discovered_at', (j) => opt(j.discoveredAt)],
+  ['saved_at', (j) => opt(j.savedAt)],
+  ['closed_at', (j) => opt(j.closedAt)],
 ];
 
 export const CSV_COLUMNS: readonly string[] = COLUMNS.map(([name]) => name);

@@ -54,10 +54,12 @@ export function restoreEvent(events: readonly JobEvent[] | undefined, ev: JobEve
   return [...list, ev].sort(cmpEvents);
 }
 
-/** A saved solicitation's (#275) response deadline, today or later; null once it has passed (there
- *  is nothing left to respond to), once applied, or when set aside. */
+/** A saved job's closing day (#275 a solicitation's response deadline, #419 any job's), today or
+ *  later; null once it has passed or the posting is gone from its board (nothing left to apply
+ *  to), once applied, or when set aside. */
 export function respondByDate(job: Job, now: Date): string | null {
-  if (job.archived || !job.deadline || deriveJobState(job, now).status !== 'Saved') return null;
+  if (job.archived || job.closedAt || !job.deadline) return null;
+  if (deriveJobState(job, now).status !== 'Saved') return null;
   return job.deadline >= ymd(now) ? job.deadline : null;
 }
 
@@ -110,7 +112,7 @@ export function jobIcsEvents(job: Job, now: Date): IcsEvent[] {
   if (fu) {
     out.push({
       uid: `${key}-followup`,
-      summary: `${respondByDate(job, now) ? 'Respond by' : 'Follow up'}: ${job.label}${where}`,
+      summary: `${respondByDate(job, now) ? 'Apply by' : 'Follow up'}: ${job.label}${where}`,
       date: fu < today ? today : fu,
       description: job.url,
       url: job.url,

@@ -11,8 +11,7 @@ import { jobHash } from './route';
 import { rowView } from './jobRow';
 import { JobBadges, RowMenu, RowPrimaryAction } from './JobRowParts';
 import { JobPostingTitle } from './PostingLink';
-import { shortDate } from './metaLines';
-import { savedAgo } from './jobState';
+import { dateLabel } from './jobDates';
 import type { Job } from './types';
 import CompanyLogo from './CompanyLogo';
 import { JOB_ATTR } from './listFocus';
@@ -20,15 +19,11 @@ import { JOB_ATTR } from './listFocus';
 export default function JobListCard({ job }: { job: Job }) {
   const titleId = useId();
   const row = rowView(job);
-  const applied = job.applied ? shortDate(job.applied) : '';
-  const saved = savedAgo(job);
+  // One date per job (Adrian 2026-10-28): posted, else found; the closing date is a badge.
+  const when = dateLabel(job);
   const facts = [
     job.location ? { icon: MapPin, label: job.location } : null,
-    applied
-      ? { icon: Calendar, label: `Applied ${applied}` }
-      : saved
-        ? { icon: Calendar, label: saved }
-        : null,
+    when ? { icon: Calendar, label: when } : null,
   ].filter((f) => f !== null);
 
   return (
