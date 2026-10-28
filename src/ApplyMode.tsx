@@ -50,6 +50,7 @@ import { dayLabel } from './dayLabel';
 import {
   KIT_FIELDS,
   addAnswer,
+  clearStaleKitTemplates,
   filledTemplates,
   getApplyKit,
   removeAnswer,
@@ -61,6 +62,7 @@ import {
   type KitAnswer,
 } from './applyKit';
 import { useOutreachTemplates } from './outreachTemplates';
+import { useSnippets } from './copyDeckStore';
 import { AddStarterMessages } from './StarterMessages';
 import { fillSnippet, previewText } from './templateFill';
 import { copyFilled } from './templateCopy';
@@ -550,7 +552,16 @@ function ApplicationKit({ job }: { job: Job }) {
     />
   );
   const answered = kit.answers.length;
-  const { user } = useCloudSync(); // signed out, the kit stays on this device
+  const { user, settled } = useCloudSync(); // signed out, the kit stays on this device
+  // #314: a pick whose message was deleted reads as "No template" (the Select value below only
+  // ever names a live message), and once sync has settled the stale id is cleared from the kit
+  // itself, so it stops syncing and re-adding the starters cannot silently re-link it. Not while
+  // legacy snippets wait for their move into the library (App's SnippetMigration, whose effect runs
+  // after this child's on the commit sync settles): a picked snippet is not stale, only not moved.
+  const moving = useSnippets().some((s) => !s.migrated);
+  useEffect(() => {
+    if (settled && !moving) clearStaleKitTemplates(snippets.map((s) => s.id));
+  }, [settled, moving, snippets]);
   return (
     <Panel
       label="Application kit"
@@ -606,7 +617,7 @@ function ApplicationKit({ job }: { job: Job }) {
                   <Select
                     label={`${label} template`}
                     options={options}
-                    value={kit[slot] ?? ''}
+                    value={template(kit[slot]) ? (kit[slot] ?? '') : ''}
                     onChange={(v) => setKitTemplate(slot, v)}
                   />
                 ) : (

@@ -24,6 +24,7 @@ import App from './App';
 import { addJob, findJobByUrl, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { getApplyKit, replaceApplyKit, emptyKit, setKitField } from './applyKit';
 import { setOutreachMessages } from './test/outreach';
+import { getSnippets, replaceSnippets } from './copyDeckStore';
 import { addDeviceDataIfAsked } from './test/renderAccount';
 import { notifySaved, dismissNotice, saveWithNotice } from './saveNotice';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
@@ -335,6 +336,59 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
     expect(
       await within(kit).findByRole('combobox', { name: /^Cover note template/ }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('Application kit: a deleted template pick (#314)', () => {
+  afterEach(() => setOutreachMessages([]));
+
+  it('delete-then-open-Apply-mode: the pick reads as No template, is cleared, and re-adding the message does not re-link it', async () => {
+    const user = userEvent.setup();
+    setOutreachMessages([
+      { id: 'why-gone', label: 'Why Acme', body: 'Because [Company]' },
+      { id: 'other', label: 'Other note', body: 'Other body' },
+    ]);
+    replaceApplyKit({ ...emptyKit(), whyTemplate: 'why-gone' });
+    // The picked message is deleted in Documents; the other message stays.
+    setOutreachMessages([{ id: 'other', label: 'Other note', body: 'Other body' }]);
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const kit = await screen.findByRole('region', { name: 'Application kit' });
+    await user.click(within(kit).getByRole('button', { name: /^Why this company/ }));
+    const picker = (await within(kit).findByRole('combobox', {
+      name: /^Why this company template/,
+    })) as HTMLSelectElement;
+    expect(picker.value).toBe('');
+    // Once sync has settled the stale id is cleared from the kit itself, not just hidden.
+    await waitFor(() => expect(getApplyKit().whyTemplate).toBeUndefined());
+    // Re-adding a message under the same id must not silently re-link the old pick.
+    act(() =>
+      setOutreachMessages([
+        { id: 'why-gone', label: 'Why Acme', body: 'Because [Company]' },
+        { id: 'other', label: 'Other note', body: 'Other body' },
+      ]),
+    );
+    expect(getApplyKit().whyTemplate).toBeUndefined();
+    expect(
+      (within(kit).getByRole('combobox', { name: /^Why this company template/ }) as HTMLSelectElement)
+        .value,
+    ).toBe('');
+  });
+});
+
+describe('Application kit: a pick on a snippet not moved yet (#314 review)', () => {
+  afterEach(() => setOutreachMessages([]));
+
+  it('keeps the pick while the snippet waits for its move into the library', async () => {
+    // A device that never ran the move: the picked message is still a legacy snippet.
+    setOutreachMessages([]);
+    replaceSnippets([{ id: 'why-legacy', label: 'Why Acme', body: 'Because [Company]' }]);
+    replaceApplyKit({ ...emptyKit(), whyTemplate: 'why-legacy' });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('region', { name: 'Application kit' });
+    await waitFor(() => expect(getSnippets().every((s) => s.migrated)).toBe(true));
+    expect(getApplyKit().whyTemplate).toBe('why-legacy');
   });
 });
 
