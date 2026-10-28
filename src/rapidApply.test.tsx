@@ -24,6 +24,7 @@ import App from './App';
 import { addJob, findJobByUrl, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { getApplyKit, replaceApplyKit, emptyKit, setKitField } from './applyKit';
 import { setOutreachMessages } from './test/outreach';
+import { getSnippets, replaceSnippets } from './copyDeckStore';
 import { addDeviceDataIfAsked } from './test/renderAccount';
 import { notifySaved, dismissNotice, saveWithNotice } from './saveNotice';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
@@ -163,6 +164,21 @@ describe('To apply queue and Apply mode', () => {
     // Undo reopens the job set aside at its place in the walk (return paths).
     expect(await screen.findByRole('heading', { name: 'Cask Designer' })).toBeInTheDocument();
     expect(pagerOf().getByText('2 of 3')).toBeInTheDocument();
+  });
+
+  it('Mark applied raises a notice with Undo that puts the job back in To apply (#212)', async () => {
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'Mark applied' }));
+    expect(findJobByUrl(A)?.status).toBe('Applied');
+    const region = await findNotice();
+    expect(within(region).getByText(/Marked applied/)).toBeInTheDocument();
+    await user.click(within(region).getByRole('button', { name: 'Undo' }));
+    expect(findJobByUrl(A)?.status).toBe('Saved');
+    expect(findJobByUrl(A)?.applied).toBeFalsy();
+    expect(await screen.findByRole('button', { name: 'Mark applied' })).toBeInTheDocument();
+    expect(pagerOf().getByText('1 of 3')).toBeInTheDocument();
   });
 
   it('with one job left the pager still shows, as 1 of 1 with both arrows off (QA)', async () => {
@@ -323,6 +339,59 @@ describe('Apply sheet: templates inside Apply mode (#239)', () => {
   });
 });
 
+describe('Application kit: a deleted template pick (#314)', () => {
+  afterEach(() => setOutreachMessages([]));
+
+  it('delete-then-open-Apply-mode: the pick reads as No template, is cleared, and re-adding the message does not re-link it', async () => {
+    const user = userEvent.setup();
+    setOutreachMessages([
+      { id: 'why-gone', label: 'Why Acme', body: 'Because [Company]' },
+      { id: 'other', label: 'Other note', body: 'Other body' },
+    ]);
+    replaceApplyKit({ ...emptyKit(), whyTemplate: 'why-gone' });
+    // The picked message is deleted in Documents; the other message stays.
+    setOutreachMessages([{ id: 'other', label: 'Other note', body: 'Other body' }]);
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const kit = await screen.findByRole('region', { name: 'Application kit' });
+    await user.click(within(kit).getByRole('button', { name: /^Why this company/ }));
+    const picker = (await within(kit).findByRole('combobox', {
+      name: /^Why this company template/,
+    })) as HTMLSelectElement;
+    expect(picker.value).toBe('');
+    // Once sync has settled the stale id is cleared from the kit itself, not just hidden.
+    await waitFor(() => expect(getApplyKit().whyTemplate).toBeUndefined());
+    // Re-adding a message under the same id must not silently re-link the old pick.
+    act(() =>
+      setOutreachMessages([
+        { id: 'why-gone', label: 'Why Acme', body: 'Because [Company]' },
+        { id: 'other', label: 'Other note', body: 'Other body' },
+      ]),
+    );
+    expect(getApplyKit().whyTemplate).toBeUndefined();
+    expect(
+      (within(kit).getByRole('combobox', { name: /^Why this company template/ }) as HTMLSelectElement)
+        .value,
+    ).toBe('');
+  });
+});
+
+describe('Application kit: a pick on a snippet not moved yet (#314 review)', () => {
+  afterEach(() => setOutreachMessages([]));
+
+  it('keeps the pick while the snippet waits for its move into the library', async () => {
+    // A device that never ran the move: the picked message is still a legacy snippet.
+    setOutreachMessages([]);
+    replaceSnippets([{ id: 'why-legacy', label: 'Why Acme', body: 'Because [Company]' }]);
+    replaceApplyKit({ ...emptyKit(), whyTemplate: 'why-legacy' });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await screen.findByRole('region', { name: 'Application kit' });
+    await waitFor(() => expect(getSnippets().every((s) => s.migrated)).toBe(true));
+    expect(getApplyKit().whyTemplate).toBe('why-legacy');
+  });
+});
+
 describe('Apply mode header keeps to two items per dotted line (#192)', () => {
   it('badges above the title, company on its line, the position in the pager', async () => {
     updateJob(A, { location: 'Remote', verdict: 'match' });
@@ -388,6 +457,29 @@ describe('rapid apply follow-ups (#219)', () => {
     await user.click(await screen.findByRole('button', { name: /^Custom answers/ }));
     await user.click(screen.getByRole('button', { name: 'Add a question' }));
     expect(screen.getByRole('button', { name: 'Remove this question' })).toBeInTheDocument();
+  });
+});
+
+describe('Custom answers: Remove is soft (#212)', () => {
+  it('removing a question offers Undo, which puts it back in its place', async () => {
+    const user = userEvent.setup();
+    replaceApplyKit({
+      ...emptyKit(),
+      answers: [
+        { id: 'qa-1', q: 'Visa?', a: 'No sponsorship needed' },
+        { id: 'qa-2', q: 'Relocate?', a: 'Yes' },
+      ],
+    });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: /^Custom answers/ }));
+    await user.click(screen.getByRole('button', { name: 'Remove question Visa?' }));
+    await waitFor(() => expect(getApplyKit().answers.map((a) => a.id)).toEqual(['qa-2']));
+    const region = await findNotice();
+    expect(within(region).getByText(/Visa\?/)).toBeInTheDocument();
+    await user.click(within(region).getByRole('button', { name: 'Undo' }));
+    expect(getApplyKit().answers.map((a) => a.id)).toEqual(['qa-1', 'qa-2']);
+    expect(getApplyKit().answers[0].a).toBe('No sponsorship needed');
   });
 });
 

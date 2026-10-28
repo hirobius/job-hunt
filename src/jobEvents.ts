@@ -58,8 +58,9 @@ export function restoreEvent(events: readonly JobEvent[] | undefined, ev: JobEve
 export function followUpDate(job: Job, now: Date): string | null {
   if (job.archived) return null;
   const { status, followUp } = deriveJobState(job, now);
-  // A saved solicitation (#275) follows up on its response deadline until it is applied.
-  if (status === 'Saved' && job.deadline) return job.deadline;
+  // A saved solicitation (#275) follows up on its response deadline until it is applied; once
+  // the deadline has passed there is nothing left to respond to.
+  if (status === 'Saved' && job.deadline) return job.deadline >= ymd(now) ? job.deadline : null;
   if (!followUp.tracked) return null;
   const ref = job.followUp || job.applied;
   const m = ref ? DATE_RE.exec(ref.slice(0, 10)) : null;

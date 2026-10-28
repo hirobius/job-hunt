@@ -44,7 +44,7 @@ export function EvidenceEditor({
       <Textarea
         aria-label="Your evidence"
         rows={5}
-        className="rjb-resize"
+        resize="vertical"
         value={text}
         onChange={(e) => onChange(e.target.value)}
       />

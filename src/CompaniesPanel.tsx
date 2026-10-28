@@ -72,6 +72,7 @@ import { flash } from './feedback';
 /** Watched boards read on arrival; the rest wait for "Check open roles". A starter pack can file
  *  a hundred boards, and each read is a whole board. */
 const AUTO_READ = 10;
+const LOADING: RolesState = { state: 'loading' };
 /** The company rows reorder as their boards answer (open roles first). The browser's scroll
  *  anchoring would follow a row that moved and drag the page with it, under the user and on the
  *  way back to this page (return paths): it anchors on what is around the list instead. */
@@ -186,29 +187,32 @@ export default function CompaniesPanel({
   const [readAll, setReadAll] = useRemembered(kept('readAll'), false);
   // One row's roles open at a time (rev-3 mock).
   const [openRow, setOpenRow] = useRemembered<string | null>(kept('openRow'), null);
+  const include = useMustInclude(categoryId);
+  // Roles are read differently on a scored track (src/tracks: every opening, scored) than by the
+  // track's terms, so they are kept per way of reading: a must-include change made while away
+  // (Calibrate is on Live postings) never brings back roles read the other way.
+  const scored = !!scorerFor(include);
+  const rolesKey = kept(scored ? 'roles:scored' : 'roles');
   // The roles read so far come back with the list; a read cut short by leaving (still loading
   // when kept) is dropped, so it is read again.
   const [rolesKept] = useState(() => {
     const done = Object.fromEntries(
-      Object.entries(recall<Record<string, RolesState>>(kept('roles')) ?? {}).filter(
+      Object.entries(recall<Record<string, RolesState>>(rolesKey) ?? {}).filter(
         ([, v]) => v.state !== 'loading',
       ),
     );
-    remember(kept('roles'), done);
+    remember(rolesKey, done);
     return done;
   });
-  const [roles, setRoles] = useRemembered<Record<string, RolesState>>(kept('roles'), rolesKept);
+  const [roles, setRoles] = useRemembered<Record<string, RolesState>>(rolesKey, rolesKept);
   // A design-systems track ranks and tags role types and folds the engineering-heavy roles.
   const roleTypes = useRoleTypes(categoryId, terms);
-  const include = useMustInclude(categoryId);
   // One politeness budget for the board probes, the role reads and the dream checks.
   const [limiter] = useState(() => createLimiter());
   const abort = useRef<AbortController | null>(null);
   const life = useRef<AbortController | null>(null);
   const asked = useRef(new Set<string>(Object.keys(rolesKept)));
-  // Roles are read differently on a scored track (src/tracks: every opening, scored) than by the
-  // track's terms, so a must-include change that turns the scorer on or off reads them again.
-  const scored = !!scorerFor(include);
+  // A change made here turns the scorer on or off: read them again.
   const readScored = useRef(scored);
   useEffect(() => {
     if (readScored.current === scored) return;
@@ -241,11 +245,22 @@ export default function CompaniesPanel({
     });
   };
 
-  // Watched companies: the first few are read on arrival, the rest on "Check open roles".
+  // Watched companies, then the found ones kept on the device (a reload brings their boards back
+  // unread): the first few are read on arrival, the rest on "Check open roles".
   const watchedBoards = useMemo(() => boardsFromUrls(boardUrls, Infinity), [boardUrls]);
+  const listBoards = useMemo(() => {
+    const seen = new Set(watchedBoards.map(boardKey));
+    const more: Board[] = [];
+    for (const r of found) {
+      if (!r.board || seen.has(boardKey(r.board))) continue;
+      seen.add(boardKey(r.board));
+      more.push(r.board);
+    }
+    return [...watchedBoards, ...more];
+  }, [watchedBoards, found]);
   const wanted = useMemo(
-    () => (readAll ? watchedBoards : watchedBoards.slice(0, AUTO_READ)),
-    [readAll, watchedBoards],
+    () => (readAll ? listBoards : listBoards.slice(0, AUTO_READ)),
+    [readAll, listBoards],
   );
   useEffect(() => {
     const signal = life.current?.signal;
@@ -254,6 +269,12 @@ export default function CompaniesPanel({
     // loadRoles skips boards already asked; `roles` re-runs this after a read was dropped.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wanted, roles]);
+
+  // A board read on arrival counts as loading from the first paint, not only once the effect has
+  // asked: otherwise the first frame shows "Check open roles" and no rows, and the list then jumps.
+  const wantedKeys = useMemo(() => new Set(wanted.map(boardKey)), [wanted]);
+  const rolesFor = (k: string): RolesState | undefined =>
+    roles[k] ?? (wantedKeys.has(k) ? LOADING : undefined);
 
   // One list: GitHub teams first (they carry a repo), then watched boards not already among them.
   const teamBoards = new Set(found.flatMap((r) => (r.board ? [boardKey(r.board)] : [])));
@@ -265,7 +286,7 @@ export default function CompaniesPanel({
   // What a row counts and lists: its board's roles that pass must include (feed/mustInclude.ts),
   // less the folded engineering-heavy ones.
   const foldOf = (r: Row) =>
-    foldRolesState(r.board ? roles[boardKey(r.board)] : undefined, roleTypes.fold, include);
+    foldRolesState(r.board ? rolesFor(boardKey(r.board)) : undefined, roleTypes.fold, include);
   const rolesOf = (r: Row) => foldOf(r).roles;
   const statusOf = (r: CompanyRow): TeamStatus =>
     r.board && !rolesOf(r)
@@ -283,7 +304,7 @@ export default function CompaniesPanel({
   // No board found on the systems we check is not "no openings": under Hiring now these sit below,
   // collapsed, rather than hidden.
   const notFound = hiringOnly ? rows.filter((r) => statusOf(r) === 'none') : [];
-  const unread = watchedBoards.filter((b) => !roles[boardKey(b)]).length;
+  const unread = listBoards.filter((b) => !rolesFor(boardKey(b))).length;
 
   const waitUntil = report?.stoppedUntil;
   const find = async (resume = false) => {

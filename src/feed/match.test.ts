@@ -31,6 +31,19 @@ describe('matchTerm', () => {
     ['component libraries', 'Engineer', 'Own the component library', 'text'],
     ['first design systems engineer', 'Engineer', 'our first design system engineer', 'text'],
     ['status page', 'Engineer', 'the statu page', null],
+    // Terms that start or end on a symbol still match as whole words.
+    ['C++', 'Senior C++ Engineer', '', 'title'],
+    ['C++', 'C++', '', 'title'],
+    ['C#', 'Engineer', 'Our stack is C#, .NET and SQL.', 'text'],
+    ['.NET developer', '.NET Developer', '', 'title'],
+    ['.NET', 'Engineer', 'ASP.NET experience', null],
+    ['C', 'Engineer', 'we write C++', null],
+    ['C++', 'Engineer', 'we write C+++', null],
+    // A hyphen in the term reads like a space, both ways round.
+    ['front-end engineer', 'Senior Front End Engineer', '', 'title'],
+    ['front-end engineer', 'Front-End Engineer', '', 'title'],
+    ['front end engineer', 'Front-end Engineer', '', 'title'],
+    ['front-end engineer', 'Back-end Engineer', '', null],
     ['', 'Anything', 'anything', null],
   ] as const)('%s in (%s | %s) → %s', (term, title, text, expected) => {
     expect(matchTerm(post({ title, text }), term)).toBe(expected);

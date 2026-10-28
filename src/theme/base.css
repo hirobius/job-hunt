@@ -36,6 +36,13 @@ a:focus-visible,
   border-radius: 6px;
 }
 
+/* A page's heading takes focus on a page change (focusRescue.ts) so its name is read; it is not a
+ * control, so it draws no ring. */
+h1[data-focus-heading]:focus,
+h2[data-focus-heading]:focus {
+  outline: none;
+}
+
 /* Host type resets for HDS `Text` (#133). Reset-free styles.css leaves heading/paragraph margins to
  * the browser, so rhythm comes from parent Stack gaps only. `.rjb-semibold` is the one weight
  * step the app uses on `ui` headings and names; upstream ask: a `weight` prop on HDS Text (hds#825). */
@@ -305,12 +312,6 @@ p {
     line-clamp: 4;
     overflow: hidden;
   }
-}
-
-/* A long free-text field the user can make taller (Your evidence, rev-3 J). */
-.rjb-resize,
-.rjb-resize textarea {
-  resize: vertical;
 }
 
 /* A status alert inside a panel (Live postings' "Some sources didn't respond" / "Couldn't reach any

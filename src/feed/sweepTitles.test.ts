@@ -7,6 +7,7 @@ import {
   mergeSweeps,
   removeTitle,
   replaceSweeps,
+  restoreTitle,
   sanitizeSweeps,
   setTitleOn,
   SWEEP_KEY,
@@ -48,6 +49,41 @@ describe('sweep titles store', () => {
     expect(activeTitles(s)).toHaveLength(MAX_SWEEP_ON);
     expect(s.off).toEqual(['One more']);
     expect(setTitleOn('t1', many, 'One more', true)).toBe(false);
+  });
+
+  // #354: an add says what it did, and Remove's Undo restores the title, its place and its tick.
+  it('an add reports added / duplicate / added-off, and a duplicate changes nothing', () => {
+    expect(addTitle('t1', SEED, 'UX Engineer')).toBe('added');
+    expect(addTitle('t1', SEED, 'ux engineer')).toBe('duplicate');
+    expect(sweepFor(getAllSweeps(), 't1', SEED).titles).toEqual([...SEED, 'UX Engineer']);
+    const many = Array.from({ length: MAX_SWEEP_ON }, (_, i) => `Title ${i}`);
+    expect(addTitle('t2', many, 'One more')).toBe('added-off');
+    expect(sweepFor(getAllSweeps(), 't2', many).off).toEqual(['One more']);
+  });
+
+  it('restoring a removed title puts it back in its place, off if it was off', () => {
+    setTitleOn('t1', SEED, 'Design Engineer', false);
+    removeTitle('t1', SEED, 'Design Engineer');
+    expect(sweepFor(getAllSweeps(), 't1', SEED).titles).toEqual(['Design Technologist']);
+    restoreTitle('t1', SEED, 'Design Engineer', 0, true);
+    const s = sweepFor(getAllSweeps(), 't1', SEED);
+    expect(s.titles).toEqual(SEED);
+    expect(s.off).toEqual(['Design Engineer']);
+    removeTitle('t1', SEED, 'Design Technologist');
+    restoreTitle('t1', SEED, 'Design Technologist', 1, false);
+    expect(activeTitles(sweepFor(getAllSweeps(), 't1', SEED))).toEqual(['Design Technologist']);
+  });
+
+  it('a title that was on comes back off when the cap filled up meanwhile', () => {
+    const many = Array.from({ length: MAX_SWEEP_ON }, (_, i) => `Title ${i}`);
+    removeTitle('t3', many, 'Title 0');
+    expect(addTitle('t3', many, 'Newcomer')).toBe('added');
+    restoreTitle('t3', many, 'Title 0', 0, false);
+    const s = sweepFor(getAllSweeps(), 't3', many);
+    expect(s.titles[0]).toBe('Title 0');
+    expect(s.off).toEqual(['Title 0']);
+    expect(activeTitles(s)).toHaveLength(MAX_SWEEP_ON);
+    expect(activeTitles(s)).toContain('Newcomer');
   });
 
   it('reads malformed storage as nothing saved', () => {

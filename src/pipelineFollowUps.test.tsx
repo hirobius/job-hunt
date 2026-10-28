@@ -179,6 +179,20 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     expect(dueNames()).toEqual(['Design Systems Lead']);
   });
 
+  it('Snooze says until when, and its Undo puts the follow-up back on the due list', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    const dialog = await openFollowUp(user);
+    await user.click(within(dialog).getByRole('button', { name: 'Snooze 3 days' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(await screen.findByText(/^Snoozed until /)).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() =>
+      expect(getAllJobs().find((j) => j.url === UXR)?.snoozeUntil).toBeUndefined(),
+    );
+    expect(dueNames()).toContain('UX Researcher');
+  });
+
   it('lists the interviews and calls in the next 7 days; Open job goes to its Interviews tab', async () => {
     renderApp();
     const rows = within(region(/^Next 7 days/)).getAllByRole('listitem');

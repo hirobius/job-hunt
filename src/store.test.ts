@@ -46,6 +46,19 @@ describe('url helpers', () => {
     expect(prettyTitle(url)).toBe(title);
   });
 
+  // Generic host labels name a page kind, not the employer (#350).
+  it.each([
+    ['https://jobs.example.org/123', 'Example'],
+    ['https://jobs.acme.com/123', 'Acme'],
+    ['https://careers.acme.com/', 'Acme'],
+    ['https://boards.example.com/123', 'Example'],
+    ['https://www.jobs.example.com/123', 'Example'],
+    ['https://apply.example.com/senior-welder', 'Example — Senior Welder'],
+    ['https://jobs.com/123', 'Saved job'],
+  ])('skips generic host labels in the derived title: %s', (url, title) => {
+    expect(prettyTitle(url)).toBe(title);
+  });
+
   it('cleans wrapping junk and collapsed double protocols', () => {
     expect(cleanUrl('  <https://x.com/a>  ')).toBe('https://x.com/a');
     expect(cleanUrl('https://https://x.com/a')).toBe('https://x.com/a');
