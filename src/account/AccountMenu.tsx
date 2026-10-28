@@ -13,7 +13,7 @@ import { useColorMode } from '../ColorMode';
 import { refocusAccount, useCloudSync, useDataTools } from './accountContext';
 import { getRoute, navigate, withOrigin } from '../route';
 import { useBackCloses } from '../useBackCloses';
-import { LEGAL_ROUTE } from '../legal';
+import { LEGAL_ROUTE } from '../legalRoute';
 import { openExportLinks } from '../exportLinks';
 import './sheet.css';
 import { setReturnFocus } from './returnFocus';

@@ -15,6 +15,8 @@ import { ColorModeProvider } from './ColorMode';
 import { ErrorBoundary } from './ErrorBoundary';
 import { installErrorReporting } from './errorReport';
 import App from './App';
+import { getRoute } from './route';
+import { preloadLanding } from './routeViews';
 import { installFocusRescue } from './focusRescue';
 import { installScrollMemory } from './scrollMemory';
 import { installStaleBuildGuard } from './staleBuild';
@@ -30,14 +32,17 @@ installFocusRescue();
 // A tab older than the deploy: a chunk that is gone says "A new version is ready" (staleBuild.ts).
 installStaleBuildGuard();
 
-createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <ColorModeProvider>
-        <ToastProvider>
-          <App />
-        </ToastProvider>
-      </ColorModeProvider>
-    </ErrorBoundary>
-  </React.StrictMode>,
+// The landing page's view first, so it renders with the shell instead of behind a skeleton (#372).
+void preloadLanding(getRoute()).then(() =>
+  createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        <ColorModeProvider>
+          <ToastProvider>
+            <App />
+          </ToastProvider>
+        </ColorModeProvider>
+      </ErrorBoundary>
+    </React.StrictMode>,
+  ),
 );

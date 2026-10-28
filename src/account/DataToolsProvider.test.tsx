@@ -91,7 +91,7 @@ describe('DataToolsProvider (via the account menu)', () => {
     replaceAll([job('https://example.com/a', 'A')]);
     setup();
     await chooseAccountItem('Back up');
-    expect(downloads).toHaveLength(1);
+    await waitFor(() => expect(downloads).toHaveLength(1));
     expect(downloads[0].name).toMatch(
       new RegExp(`^${BRAND.slug}-backup-\\d{4}-\\d{2}-\\d{2}\\.json$`),
     );

@@ -22,8 +22,11 @@ beforeEach(resetPipelineView);
 
 // The shell's route views load on demand (routeViews.ts); load them up front so a test sees the
 // Pipeline, job page, Apply mode and Company page on the first render, as before the split.
-// beforeAll, not at import: the test file's vi.mock calls must be registered first.
-beforeAll(() => preloadViews());
+// beforeAll, not at import: the test file's vi.mock calls must be registered first. The sign-in and
+// Export links dialogs load on their first open (#371): fetched here too.
+beforeAll(() =>
+  Promise.all([preloadViews(), import('../lazyDialogs').then((m) => m.preloadDialogs())]),
+);
 
 // The follow-up dialog's open job is in-memory too: no test starts with it open.
 beforeEach(closeFollowUp);

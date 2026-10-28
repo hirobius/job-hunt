@@ -20,16 +20,22 @@ import {
   useToast,
 } from '@hirobius/design-system';
 import { FollowUpHost } from './FollowUp';
-import { ApplyMode, CompanyPage, JobPage, TrackerView } from './routeViews';
+import {
+  ApplyMode,
+  ChooseTrack,
+  CompanyPage,
+  JobPage,
+  Onboarding,
+  TrackerView,
+} from './routeViews';
 import { JobPageLiveness } from './LivenessViews';
-import { Onboarding, ChooseTrack } from './Onboarding';
 import { usePageTitle } from './pageTitle';
 import { BrandLogo } from './components/brand/BrandFlame';
-import { LEGAL_ROUTE } from './legal';
+import { LEGAL_ROUTE } from './legalRoute';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
-import SignInDialog from './account/SignInDialog';
+import SignInHost from './account/SignInHost';
 import { useJobs } from './store';
 import { useSnippets } from './copyDeckStore';
 import { migrateSnippetStore } from './outreachTemplates';
@@ -40,7 +46,6 @@ import { authLinkErrorMessage } from './account/authLinkError';
 import { QUICK_ADD_INVALID, quickAddBadStatus, saveWithNotice } from './saveNotice';
 import { setStatusWithNotice } from './jobUndo';
 import { useCategories } from './curation/curationStore';
-import { migrateSystemsOnly, SYSTEMS_ONLY_NOTICE } from './feed/systemsOnly';
 import { STATUSES, type Status } from './types';
 import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
@@ -54,6 +59,7 @@ const DiscoverView = lazy(importFresh(() => import('./DiscoverView')));
 const DocumentsView = lazy(importFresh(() => import('./DocumentsView')));
 const LegalPage = lazy(importFresh(() => import('./LegalPage')));
 const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
+const loadSystemsOnly = importFresh(() => import('./feed/systemsOnly'));
 
 // Top-level tabs, in render order (Calm list: Companies · Pipeline). The URL hash carries the slug;
 // slugs stay back-compatible (`discover` is Companies, `queue` the Pipeline). `#/today` (#128) is
@@ -92,8 +98,19 @@ function SystemsOnlyMigration() {
   const categories = useCategories();
   const { toast } = useToast();
   useEffect(() => {
-    if (settled && migrateSystemsOnly(categories) > 0)
-      toast({ title: SYSTEMS_ONLY_NOTICE, tone: 'info', duration: 10000 });
+    if (!settled) return;
+    let live = true;
+    // Loaded on demand: the starter packs it reads are off the first paint (#371).
+    void loadSystemsOnly().then(
+      ({ migrateSystemsOnly, SYSTEMS_ONLY_NOTICE }) => {
+        if (live && migrateSystemsOnly(categories) > 0)
+          toast({ title: SYSTEMS_ONLY_NOTICE, tone: 'info', duration: 10000 });
+      },
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
   }, [settled, categories, toast]);
   return null;
 }
@@ -300,15 +317,15 @@ export default function App() {
                         </Suspense>
                       </TabsContent>
                       <TabsContent value="discover" variant="bare" tabIndex={-1}>
-                        {firstRun ? (
-                          <Onboarding offerSample />
-                        ) : hasTracks ? (
-                          <Suspense fallback={<DiscoverSkeleton />}>
+                        <Suspense fallback={<DiscoverSkeleton />}>
+                          {firstRun ? (
+                            <Onboarding offerSample />
+                          ) : hasTracks ? (
                             <DiscoverView />
-                          </Suspense>
-                        ) : (
-                          <ChooseTrack />
-                        )}
+                          ) : (
+                            <ChooseTrack />
+                          )}
+                        </Suspense>
                       </TabsContent>
                       {documents && (
                         <Suspense fallback={<CopyDeckSkeleton />}>
@@ -332,7 +349,7 @@ export default function App() {
             </HdsTabs>
           </Box>
         </PageShell>
-        <SignInDialog />
+        <SignInHost />
         <FollowUpHost />
         <NoticeHost />
         <StaleBuildNotice />

@@ -7,7 +7,7 @@
 //
 //   npm run icons
 //
-// Chromium: PW_CHROMIUM_PATH (cloud sessions: /opt/pw-browsers/chromium-1194/chrome-linux/chrome),
+// Chromium: PW_CHROMIUM_PATH (cloud sessions: /opt/pw-browsers/chromium),
 // else Playwright's own. The name and description come from src/brand.ts (Node strips its types).
 import { chromium } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
