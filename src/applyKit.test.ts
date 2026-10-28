@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { emptyKit, filledTemplates, mergeKit, sanitizeKit } from './applyKit';
+import {
+  emptyKit,
+  filledTemplates,
+  getApplyKit,
+  mergeKit,
+  removeAnswer,
+  replaceApplyKit,
+  restoreAnswer,
+  sanitizeKit,
+} from './applyKit';
 import { followUpJobs, toApplyQueue } from './applyQueue';
 import * as applyQueue from './applyQueue';
 import { mergeBlob, readBlob, writeBlob, emptyBlob, BLOB_VERSION } from './syncBlob';
@@ -106,5 +115,20 @@ describe('Apply sheet templates (#239)', () => {
     expect(filledTemplates([{ id: 'x', label: ' ', body: 'b' }], job('u'))[0].label).toBe(
       'Untitled',
     );
+  });
+});
+
+describe('restoreAnswer (Undo of a Remove)', () => {
+  const qa = (id: string) => ({ id, q: id, a: '' });
+  it('puts the answer back at its place, once, and clamps a place past the end', () => {
+    replaceApplyKit({ ...emptyKit(), answers: [qa('a'), qa('b'), qa('c')] });
+    removeAnswer('b');
+    restoreAnswer(qa('b'), 1);
+    restoreAnswer(qa('b'), 1);
+    expect(getApplyKit().answers.map((x) => x.id)).toEqual(['a', 'b', 'c']);
+    removeAnswer('c');
+    removeAnswer('b');
+    restoreAnswer(qa('c'), 2);
+    expect(getApplyKit().answers.map((x) => x.id)).toEqual(['a', 'c']);
   });
 });

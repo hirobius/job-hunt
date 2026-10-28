@@ -76,6 +76,7 @@ import {
   sameEmail,
 } from './authLink';
 import { deviceData, mergeQuestion } from './deviceData';
+import { dropSampleTrack } from '../demo/sampleTrack';
 import { LinkConfirmDialog, MergeConfirmDialog } from './AuthGuards';
 
 const BAD_LINK_MSG = 'That sign-in link could not be used. Send a new one from Account.';
@@ -407,6 +408,8 @@ export default function CloudSyncProvider({ children }: { children: ReactNode })
           return;
         }
         if (mergeHeld.current === u.id) return; // already asking (a second event for the same user)
+        // The sample's track is sample data: never asked about, never uploaded (#107).
+        dropSampleTrack();
         // Never fold this device's data into an account it has not synced with without asking:
         // a crafted link could be someone else's account (login injection, security audit).
         const held =

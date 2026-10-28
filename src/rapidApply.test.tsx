@@ -165,6 +165,21 @@ describe('To apply queue and Apply mode', () => {
     expect(pagerOf().getByText('2 of 3')).toBeInTheDocument();
   });
 
+  it('Mark applied raises a notice with Undo that puts the job back in To apply (#212)', async () => {
+    const user = userEvent.setup();
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'Mark applied' }));
+    expect(findJobByUrl(A)?.status).toBe('Applied');
+    const region = await findNotice();
+    expect(within(region).getByText(/Marked applied/)).toBeInTheDocument();
+    await user.click(within(region).getByRole('button', { name: 'Undo' }));
+    expect(findJobByUrl(A)?.status).toBe('Saved');
+    expect(findJobByUrl(A)?.applied).toBeFalsy();
+    expect(await screen.findByRole('button', { name: 'Mark applied' })).toBeInTheDocument();
+    expect(pagerOf().getByText('1 of 3')).toBeInTheDocument();
+  });
+
   it('with one job left the pager still shows, as 1 of 1 with both arrows off (QA)', async () => {
     removeJob(B);
     removeJob(C);
@@ -388,6 +403,29 @@ describe('rapid apply follow-ups (#219)', () => {
     await user.click(await screen.findByRole('button', { name: /^Custom answers/ }));
     await user.click(screen.getByRole('button', { name: 'Add a question' }));
     expect(screen.getByRole('button', { name: 'Remove this question' })).toBeInTheDocument();
+  });
+});
+
+describe('Custom answers: Remove is soft (#212)', () => {
+  it('removing a question offers Undo, which puts it back in its place', async () => {
+    const user = userEvent.setup();
+    replaceApplyKit({
+      ...emptyKit(),
+      answers: [
+        { id: 'qa-1', q: 'Visa?', a: 'No sponsorship needed' },
+        { id: 'qa-2', q: 'Relocate?', a: 'Yes' },
+      ],
+    });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: /^Custom answers/ }));
+    await user.click(screen.getByRole('button', { name: 'Remove question Visa?' }));
+    await waitFor(() => expect(getApplyKit().answers.map((a) => a.id)).toEqual(['qa-2']));
+    const region = await findNotice();
+    expect(within(region).getByText(/Visa\?/)).toBeInTheDocument();
+    await user.click(within(region).getByRole('button', { name: 'Undo' }));
+    expect(getApplyKit().answers.map((a) => a.id)).toEqual(['qa-1', 'qa-2']);
+    expect(getApplyKit().answers[0].a).toBe('No sponsorship needed');
   });
 });
 

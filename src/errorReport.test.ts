@@ -32,6 +32,15 @@ describe('error reports (#47)', () => {
     );
   });
 
+  it('strips a bare session token (a JWT or a Bearer header), wherever a message echoes one', () => {
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1LTEiLCJlbWFpbCI6ImEifQ.c2lnbmF0dXJlLXBhcnQ';
+    expect(scrubText(`Invalid JWT ${jwt} expired`, 300)).toBe('Invalid JWT [token] expired');
+    expect(scrubText(`fetch failed (Authorization: Bearer ${jwt})`, 300)).toBe(
+      'fetch failed (Authorization: Bearer [token])',
+    );
+    expect(scrubText('Bearer abc.def-ghi_123', 300)).toBe('Bearer [token]');
+  });
+
   it('keeps only the tab of the route, never a job id', () => {
     expect(routeOf('#/queue/abc123')).toBe('queue');
     expect(routeOf('#/copy-deck/snippet-1')).toBe('copy-deck');
