@@ -28,6 +28,7 @@ import { getSnippets, replaceSnippets } from './copyDeckStore';
 import { addDeviceDataIfAsked } from './test/renderAccount';
 import { notifySaved, dismissNotice, saveWithNotice } from './saveNotice';
 import { itemsInLine, MAX_META_ITEMS } from './metaLines';
+import { ymd } from './jobEvents';
 
 const A = 'https://acme.example/jobs/1';
 const B = 'https://bolt.example/jobs/2';
@@ -127,6 +128,26 @@ describe('To apply queue and Apply mode', () => {
     expect(await screen.findByRole('button', { name: 'Copied Name' })).toBeInTheDocument();
   });
 
+  it('Escape cancels a kit field edit: the value stays, focus returns to its button (#312)', async () => {
+    const user = userEvent.setup();
+    setKitField('name', 'Sam');
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    await user.click(await screen.findByRole('button', { name: 'Edit Name' }));
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Typo{Escape}');
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(getApplyKit().fields.name).toBe('Sam');
+    expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
+    // Opened again, the dropped draft is gone.
+    await user.click(screen.getByRole('button', { name: 'Edit Name' }));
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Sam');
+    // Enter saves and hands focus back the same way, without reopening the field.
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' Lee{Enter}');
+    expect(getApplyKit().fields.name).toBe('Sam Lee');
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Edit Name' })).toHaveFocus();
+  });
+
   it('Mark applied → follow-up date → pager Next; Not a fit sets aside with Undo', async () => {
     const user = userEvent.setup();
     window.location.hash = `#/apply/${jobIdOf(A)}`;
@@ -204,6 +225,18 @@ describe('To apply queue and Apply mode', () => {
     await user.click(screen.getByRole('button', { name: 'Mark applied' }));
     expect(header).toHaveTextContent('Applied today');
     expect(header).not.toHaveTextContent(/Saved \d+ days ago/);
+  });
+
+  it('a solicitation says when to respond by, not when to follow up (#308)', async () => {
+    const d = new Date();
+    updateJob(A, { deadline: ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) });
+    window.location.hash = `#/apply/${jobIdOf(A)}`;
+    renderApp();
+    const header = (await screen.findByRole('heading', { name: 'Acme Designer' })).closest(
+      'header',
+    )!;
+    expect(header).toHaveTextContent('Respond by Tomorrow');
+    expect(screen.queryByText(/Follow up on/)).toBeNull();
   });
 
   it('a job opened already applied shows its Applied note still: only Mark applied moves it', async () => {

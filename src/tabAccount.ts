@@ -7,8 +7,9 @@
 // its sync base is already on this device, so the merge guard would not ask and this tab's old
 // account's data would be merged into it.
 
-/** Why this tab stopped: the session now names another account, or none. */
-export type FrozenReason = 'switched' | 'signedOut';
+/** Why this tab stopped: the session now names another account, or none, or the cloud copy was
+ *  written by a newer version of the app (#382: this one's push would drop the fields it adds). */
+export type FrozenReason = 'switched' | 'signedOut' | 'newerVersion';
 
 let owner: string | null = null;
 let frozen: FrozenReason | null = null;
@@ -58,10 +59,24 @@ const guarded = (key: string) => key.startsWith('rjb_') && key !== 'rjb_color_mo
  *  before taking them (the merge guard, #169). A sign-in elsewhere after that has passed the guard
  *  already, so from then on this tab's edits stay in this tab (`sessionWhileFrozen`). */
 export function freezeTab(why: FrozenReason): void {
-  if (frozen === why || frozen === 'switched') return;
+  // A switch is the gravest (another account's session): it replaces any reason. A newer version
+  // only explains a tab that isn't stopped already.
+  if (frozen === why || frozen === 'switched' || (why === 'newerVersion' && frozen)) return;
   frozen = why;
-  if (why === 'switched') guardStorage();
+  // A newer version in another tab may have moved shared storage to its format: this tab's
+  // older copy written over it would undo that.
+  if (why !== 'signedOut') guardStorage();
   listeners.forEach((l) => l(why));
+}
+
+/** Sign out / Delete my data in a tab stopped by a newer version: the session is still this tab's
+ *  own, so they go ahead (a reload alone would stop again on the same blob, and never sign out).
+ *  They never push, so nothing the newer version wrote is lost. */
+export function liftNewerVersionFreeze(): void {
+  if (frozen !== 'newerVersion') return;
+  restoreStorage?.();
+  restoreStorage = null;
+  frozen = null;
 }
 
 /** A session turned up in another tab while this one is stopped. Someone else's: a switch. This

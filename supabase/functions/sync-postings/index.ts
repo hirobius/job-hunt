@@ -13,6 +13,7 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import {
   boardOf,
+  forWatcher,
   readAll,
   readWatched,
   scoreBatch,
@@ -86,11 +87,20 @@ const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const;
 /** Names (never values) of required env vars that are unset or empty. */
 const missingEnv = () => REQUIRED_ENV.filter((name) => !Deno.env.get(name));
 
+/** Equal-length hex digests compared without an early exit. */
+const sameDigest = (a: string, b: string) => {
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < Math.min(a.length, b.length); i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+};
+
+/** The caller's secret, compared as digests. Once `SYNC_SECRET` is set it is the only one taken,
+ *  so rotating it revokes the old value; the committed digest is the fallback until then. */
 async function authorized(given: string | null): Promise<boolean> {
   if (!given) return false;
   const secret = Deno.env.get('SYNC_SECRET');
-  if (secret && given === secret) return true;
-  return (await sha256(given)) === SYNC_SECRET_SHA256;
+  const want = secret ? await sha256(secret) : SYNC_SECRET_SHA256;
+  return sameDigest(await sha256(given), want);
 }
 
 /** Score, dedupe and upsert one user's track from this pass's answered reads. */
@@ -189,7 +199,11 @@ async function writeGroup(
 Deno.serve(async (req) => {
   if (!(await authorized(req.headers.get('x-sync-secret'))))
     return json({ error: 'forbidden' }, 403);
-  const body = (await req.json().catch(() => ({}))) as { rss?: boolean; after?: string; runStart?: string };
+  const body = (await req.json().catch(() => ({}))) as {
+    rss?: boolean;
+    after?: string;
+    runStart?: string;
+  };
   // A cursor, not an offset: a slice that disables a 404 board shrinks the list the next one reads.
   const after = body.after ?? '';
   // Fail loud: name what is missing instead of a vague client error deep in the run.
@@ -260,7 +274,11 @@ Deno.serve(async (req) => {
           status404.add(r.board);
           await db
             .from('watched_companies')
-            .update({ enabled: false, disabled_reason: `404 on ${now.slice(0, 10)}`, last_status: 404 })
+            .update({
+              enabled: false,
+              disabled_reason: `404 on ${now.slice(0, 10)}`,
+              last_status: 404,
+            })
             .eq('id', w.id);
           logs.push({
             user_id: w.user_id,
@@ -270,7 +288,10 @@ Deno.serve(async (req) => {
             message: `${w.company}: board not found (404), disabled`,
           });
         } else if (!r.ok) {
-          await db.from('watched_companies').update({ last_status: r.status ?? null }).eq('id', w.id);
+          await db
+            .from('watched_companies')
+            .update({ last_status: r.status ?? null })
+            .eq('id', w.id);
           logs.push({
             user_id: w.user_id,
             kind: 'failed',
@@ -284,7 +305,7 @@ Deno.serve(async (req) => {
             .update({ last_status: 200, last_synced_at: now })
             .eq('id', w.id);
           answeredBy.set(k, [...(answeredBy.get(k) ?? []), r.board]);
-          perGroup.set(k, [...(perGroup.get(k) ?? []), r]);
+          perGroup.set(k, [...(perGroup.get(k) ?? []), forWatcher(r, w)]);
         }
       }
     }
@@ -338,15 +359,17 @@ Deno.serve(async (req) => {
     // Last slice only: the boards a 404 disabled are no longer in `watched` by then.
     const live = rows.map(boardOf).filter((b) => !status404.has(b));
     const seen = new Date().toISOString();
-    const { data: gone, error: goneError } = !last ? { data: [], error: null } : await db
-      .from('postings')
-      .update({ verdict: 'reject', reasons: ['posting closed'], closed_at: seen })
-      .eq('user_id', userId)
-      .eq('track_slug', trackSlug)
-      .is('closed_at', null)
-      .neq('board', 'rss')
-      .not('board', 'in', `(${(live.length ? live : ['']).map((b) => `"${b}"`).join(',')})`)
-      .select('id');
+    const { data: gone, error: goneError } = !last
+      ? { data: [], error: null }
+      : await db
+          .from('postings')
+          .update({ verdict: 'reject', reasons: ['posting closed'], closed_at: seen })
+          .eq('user_id', userId)
+          .eq('track_slug', trackSlug)
+          .is('closed_at', null)
+          .neq('board', 'rss')
+          .not('board', 'in', `(${(live.length ? live : ['']).map((b) => `"${b}"`).join(',')})`)
+          .select('id');
     if (goneError)
       logs.push({
         user_id: userId,
@@ -369,7 +392,13 @@ Deno.serve(async (req) => {
       failed: t.failed,
     };
     summary.push(line);
-    logs.push({ user_id: userId, kind: 'run', board: null, status: null, message: JSON.stringify(line) });
+    logs.push({
+      user_id: userId,
+      kind: 'run',
+      board: null,
+      status: null,
+      message: JSON.stringify(line),
+    });
   }
   if (logs.length) await db.from('sync_log').insert(logs);
   if (next) {
@@ -378,10 +407,23 @@ Deno.serve(async (req) => {
     // req.url is the runtime's internal address; call the public one.
     await fetch(`${supabaseUrl}/functions/v1/sync-postings`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-sync-secret': req.headers.get('x-sync-secret')! },
+      headers: {
+        'content-type': 'application/json',
+        'x-sync-secret': req.headers.get('x-sync-secret')!,
+      },
       body: JSON.stringify({ rss: body.rss, after: next, runStart }),
       signal: AbortSignal.timeout(3000),
     }).catch(() => undefined);
   }
-  return json({ ranAt: runStart, boards: all.length, after, next, read: boards.length, left: rest.length, last, rss: rssOk, summary });
+  return json({
+    ranAt: runStart,
+    boards: all.length,
+    after,
+    next,
+    read: boards.length,
+    left: rest.length,
+    last,
+    rss: rssOk,
+    summary,
+  });
 });

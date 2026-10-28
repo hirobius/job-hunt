@@ -76,7 +76,7 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Companies', 'Pipeline']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Today', 'Companies', 'Jobs']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     // The old header controls are gone: no separate theme toggle or 1-item overflow menu.
     expect(screen.queryByRole('button', { name: /Switch to (dark|light) mode/ })).toBeNull();
@@ -227,7 +227,10 @@ describe('app shell (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Back up' }));
-    expect(name).toMatch(new RegExp(`^${BRAND.slug}-backup-\\d{4}-\\d{2}-\\d{2}\\.json$`));
+    // The backup format loads on demand (#371).
+    await waitFor(() =>
+      expect(name).toMatch(new RegExp(`^${BRAND.slug}-backup-\\d{4}-\\d{2}-\\d{2}\\.json$`)),
+    );
   });
 
   it('a bad restore file is reported as a toast', async () => {
@@ -330,9 +333,10 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
 
 describe('routes keep working (#115 Phase 1)', () => {
   it.each([
-    ['#/queue', 'Pipeline'],
+    ['#/queue', 'Jobs'],
     ['#/discover', 'Companies'],
-    ['', 'Companies'],
+    ['#/today', 'Today'],
+    ['', 'Today'],
   ])('%s selects %s', (hash, tab) => {
     window.location.hash = hash;
     renderApp();
@@ -360,11 +364,11 @@ describe('routes keep working (#115 Phase 1)', () => {
       const user = userEvent.setup();
       screen.getByRole('button', { name: /^Account/ }).focus();
       await user.tab();
-      expect(screen.getByRole('tab', { name: 'Companies' })).toHaveFocus();
+      expect(screen.getByRole('tab', { name: 'Today' })).toHaveFocus();
       expect(window.location.hash).toBe(hash);
       // Enter still opens it.
       await user.keyboard('{Enter}');
-      await waitFor(() => expect(window.location.hash).toBe('#/discover'));
+      await waitFor(() => expect(window.location.hash).toBe('#/today'));
     },
   );
 
@@ -381,8 +385,8 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
-    // It remembers the page it was opened from (Companies here), for its Back (return paths).
-    expect(window.location.hash).toBe('#/copy-deck?from=%2Fdiscover');
+    // It remembers the page it was opened from (Today here), for its Back (return paths).
+    expect(window.location.hash).toBe('#/copy-deck?from=%2Ftoday');
     expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
   });
 
@@ -390,7 +394,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     const menu = await openAccount();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Privacy and terms' }));
-    expect(window.location.hash).toBe('#/legal/privacy');
+    expect(window.location.hash).toBe('#/legal/privacy?from=%2Ftoday');
     expect(
       await screen.findByRole('heading', { level: 2, name: 'Privacy policy' }),
     ).toBeInTheDocument();
@@ -424,7 +428,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     window.history.replaceState(null, '', '/?add=https://acme.example/jobs/9&t=Design%20Engineer');
     renderApp();
     expect(window.location.hash).toBe('#/queue');
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Pipeline');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
     expect(getAllJobs().map((j) => j.url)).toContain('https://acme.example/jobs/9');
   });
 
@@ -450,6 +454,76 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(getAllJobs()[0].status).toBe('Applied');
   });
 
+  it('an ?applied= link says what it did, with Open (#333)', async () => {
+    window.history.replaceState(null, '', '/?applied=https://acme.example/jobs/9&t=Designer');
+    renderApp();
+    expect(await screen.findByText('Marked applied')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(getAllJobs()[0].status).toBe('Applied');
+  });
+
+  it('a ?status= link says what it did, with Open (#333)', async () => {
+    window.history.replaceState(null, '', '/?status=Interviewing&u=https://acme.example/jobs/9');
+    renderApp();
+    expect(await screen.findByText('Set to Interviewing')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(window.location.hash).toBe('#/queue');
+    expect(getAllJobs()[0].status).toBe('Interviewing');
+  });
+
+  it('a ?status= link with an unknown status says so and leaves no params behind (#333)', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/?status=Bogus&u=https://acme.example/jobs/9&keep=1#/queue',
+    );
+    renderApp();
+    expect(await screen.findByText(/“Bogus” is not a status/)).toBeInTheDocument();
+    expect(window.location.search).toBe('?keep=1');
+    expect(window.location.hash).toBe('#/queue');
+    expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('a ?status= link with no job link says so and leaves no params behind (#333)', async () => {
+    window.history.replaceState(null, '', '/?status=Applied');
+    renderApp();
+    expect(await screen.findByText(QUICK_ADD_INVALID)).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+    expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('an empty ?add= or ?applied= says so too (#333)', async () => {
+    window.history.replaceState(null, '', '/?applied=&t=Designer');
+    renderApp();
+    expect(await screen.findByText(QUICK_ADD_INVALID)).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+  });
+
+  it('Undo on a ?status= notice removes the job the link saved (#333)', async () => {
+    window.history.replaceState(null, '', '/?status=Offer&u=https://acme.example/jobs/9');
+    renderApp();
+    await screen.findByText('Set to Offer');
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs()).toHaveLength(0);
+  });
+
+  it('Undo on an ?applied= notice puts an already-saved job back as it was (#333)', async () => {
+    addJob('https://acme.example/jobs/9');
+    window.history.replaceState(null, '', '/?applied=https://acme.example/jobs/9');
+    renderApp();
+    await screen.findByText('Marked applied');
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(getAllJobs()[0].status).toBe('Saved');
+  });
+
+  it('a lone ?t= or ?u= is cleaned from the URL too (#333)', () => {
+    window.history.replaceState(null, '', '/?t=Designer&u=https://acme.example/jobs/9');
+    renderApp();
+    expect(window.location.search).toBe('');
+  });
+
   it('an expired sign-in link says so in a toast and leaves no error in the URL', async () => {
     await act(() => new Promise((r) => setTimeout(r, 0)));
     window.history.replaceState(
@@ -463,10 +537,10 @@ describe('routes keep working (#115 Phase 1)', () => {
     expect(
       await screen.findByText('That sign-in link has expired. Send a new one from Account.'),
     ).toBeInTheDocument();
-    expect(window.location.hash).toBe('#/discover');
+    expect(window.location.hash).toBe('#/today');
     expect(window.location.href).not.toMatch(/error/);
     expect(window.history.length).toBe(before); // replaced: Back doesn't return to the error
-    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Companies');
+    expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
   });
 
   it('after a quick-add link, a sheet closing and a tab move at once (the URL goes through the route)', async () => {

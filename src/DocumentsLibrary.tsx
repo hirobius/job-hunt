@@ -14,11 +14,10 @@
 // document without variables its versions and last edit. The meta line is part of the trigger, so it
 // stays while the row is open; open, the row shows the text with its line breaks (four lines on a
 // phone, all of it from `sm` up) with the variables as chips, then Copy, Open and a menu (Pin,
-// Duplicate, Delete).
-import { useContext, useState, type ReactNode } from 'react';
+// Duplicate, Delete). Delete is soft (#329): the row collapses and a notice offers Undo.
+import { useCallback, useContext, useRef, useState, type ReactNode } from 'react';
 import { Copy, Ellipsis, FileText, Plus } from 'lucide-react';
 import {
-  AlertDialog,
   Badge,
   Box,
   Button,
@@ -36,7 +35,6 @@ import {
   createDocument,
   DOCUMENT_KINDS,
   getAllDocuments,
-  removeDocument,
   replaceDocuments,
   setDocumentPinned,
   useDocuments,
@@ -50,8 +48,9 @@ import { postedAgo } from './feed/format';
 import { metaLines } from './metaLines';
 import { rowChips, templateVariables } from './templateEditor';
 import { copyFilled } from './templateCopy';
-import { highlightNew, useHighlight } from './feedback';
-import { useBackCloses, useBackSheet } from './useBackCloses';
+import { collapseRow, highlightNew, useHighlight } from './feedback';
+import { removeDocumentWithUndo } from './documentRemove';
+import { useBackSheet } from './useBackCloses';
 import { EmptyState } from './hds-gaps/EmptyState';
 import { AddStarterMessages } from './StarterMessages';
 import { CloudSyncContext } from './account/accountContext';
@@ -104,8 +103,20 @@ const starterMissing = (docs: Document[], kind: DocumentKind) =>
   STARTER_SNIPPETS.some(
     (s) => kindForSnippet(s.id) === kind && !docs.some((d) => d.id === documentIdForSnippet(s.id)),
   );
-const restoreStarters = (kind: DocumentKind) =>
-  replaceDocuments(restoreStarterOutreach(getAllDocuments(), new Date().toISOString(), kind));
+/** Put back the missing starters of a kind; returns the ones it added, in the library's order. */
+function restoreStarters(kind: DocumentKind): Document[] {
+  const before = getAllDocuments();
+  replaceDocuments(restoreStarterOutreach(before, new Date().toISOString(), kind));
+  const added = getAllDocuments().filter((d) => !before.some((b) => b.id === d.id));
+  return libraryItems(added, kind);
+}
+/** What a restore says it added (#327). */
+const restoredTitle = (kind: DocumentKind, n: number) =>
+  kind === 'cover'
+    ? 'Added the starter cover letter'
+    : n === 1
+      ? 'Added 1 starter message'
+      : `Added ${n} starter messages`;
 
 export default function DocumentsLibrary({
   openId,
@@ -133,6 +144,7 @@ export default function DocumentsLibrary({
   returnTo?: { label: string; go: () => void };
 } = {}) {
   const docs = useDocuments();
+  const { toast } = useToast();
   const [local, setLocal] = useState<Open>(null);
   // One row open at a time (rev-3 M).
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -158,6 +170,14 @@ export default function DocumentsLibrary({
     onOpen?.(next ? next.id : null);
   };
   const created = (id: string) => (onCreated ? onCreated(id) : go({ id }));
+  // Restoring answers (#212, #327): a toast naming what came back, and the first restored row
+  // scrolled into view and flashed (on a phone it can land below the fold).
+  const restore = (kind: DocumentKind) => {
+    const added = restoreStarters(kind);
+    if (!added.length) return;
+    toast({ title: restoredTitle(kind, added.length), tone: 'success' });
+    highlightNew(added[0].id);
+  };
 
   if (open && 'kind' in open)
     return (
@@ -263,7 +283,7 @@ export default function DocumentsLibrary({
                     )}
                     {RESTORE_LABEL[kind] && starterMissing(docs, kind) && (
                       <Box>
-                        <Button variant="tertiary" size="sm" onClick={() => restoreStarters(kind)}>
+                        <Button variant="tertiary" size="sm" onClick={() => restore(kind)}>
                           {RESTORE_LABEL[kind]}
                         </Button>
                       </Box>
@@ -306,10 +326,8 @@ function DocumentRow({
   onEdit: () => void;
 }) {
   const { toast } = useToast();
-  const [confirming, setConfirming] = useState(false);
-  // The browser's Back closes the menu or the confirm and stays on the page (return paths).
+  // The browser's Back closes the menu and stays on the page (return paths).
   const menu = useBackSheet(`doc-menu:${doc.id}`);
-  useBackCloses(confirming, () => setConfirming(false), `doc-delete:${doc.id}`);
   // The clock for "edited 3d ago", read once when the row mounts.
   const [now] = useState(() => Date.now());
   const text = latest(doc);
@@ -336,11 +354,31 @@ function DocumentRow({
     toast({ title: doc.pinned ? 'Unpinned' : 'Pinned', description: title });
   };
   const highlight = useHighlight<HTMLDivElement>(doc.id);
+  // The card itself, so Delete can collapse it (#212).
+  const card = useRef<HTMLDivElement | null>(null);
+  const cardRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      card.current = el;
+      highlight(el);
+    },
+    [highlight],
+  );
+  // Soft, like every other Remove (#329): the row collapses, then goes, with Undo.
+  const remove = () => {
+    // A locked one (a Sent Version) is refused before its row collapses, so it never hides.
+    if (doc.versions.some((v) => v.sentAt))
+      return toast({
+        title: "Couldn't delete",
+        description: 'A sent document is locked.',
+        tone: 'danger',
+      });
+    collapseRow(card.current, () => removeDocumentWithUndo(doc));
+  };
   // A card of its kind's list (Adrian 2026-10-23: cards, not hairlines).
   return (
     <Card
       as="li"
-      ref={highlight}
+      ref={cardRef}
       aria-label={title}
       padding="none"
       className="rjb-doc-row rjb-card-inset"
@@ -412,7 +450,7 @@ function DocumentRow({
                     <Menu.Item onSelect={pin}>{doc.pinned ? 'Unpin' : 'Pin'}</Menu.Item>
                     <Menu.Item onSelect={duplicate}>Duplicate</Menu.Item>
                     <Menu.Separator />
-                    <Menu.Item onSelect={() => setConfirming(true)} tone="danger">
+                    <Menu.Item onSelect={remove} tone="danger">
                       Delete
                     </Menu.Item>
                   </Menu.Content>
@@ -421,37 +459,6 @@ function DocumentRow({
             </Stack>
           )}
         </Disclosure>
-        <AlertDialog open={confirming} onOpenChange={setConfirming}>
-          <AlertDialog.Content>
-            <AlertDialog.Header>
-              <AlertDialog.Title>Delete “{title}”?</AlertDialog.Title>
-              <AlertDialog.Description>
-                Every version goes with it. This can't be undone.
-              </AlertDialog.Description>
-            </AlertDialog.Header>
-            <AlertDialog.Footer>
-              <AlertDialog.Cancel asChild>
-                <Button variant="secondary">Cancel</Button>
-              </AlertDialog.Cancel>
-              <AlertDialog.Action asChild>
-                <Button
-                  variant="secondary"
-                  tone="danger"
-                  onClick={() => {
-                    if (!removeDocument(doc.id))
-                      toast({
-                        title: "Couldn't delete",
-                        description: 'A sent document is locked.',
-                        tone: 'danger',
-                      });
-                  }}
-                >
-                  Delete
-                </Button>
-              </AlertDialog.Action>
-            </AlertDialog.Footer>
-          </AlertDialog.Content>
-        </AlertDialog>
       </Box>
     </Card>
   );

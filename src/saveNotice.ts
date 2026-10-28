@@ -137,6 +137,10 @@ export function notifySaved(
 /** A quick-add link (?add=) whose link is not one a job can be saved under. */
 export const QUICK_ADD_INVALID = 'That quick-add link has no job link in it, so nothing was saved.';
 
+/** A quick-add link (?status=) whose status is not one of STATUSES. */
+export const quickAddBadStatus = (status: string) =>
+  `That quick-add link’s “${status}” is not a status, so nothing was saved.`;
+
 /** Quick-save a link and say what happened: it landed in To apply (a new job, or a set-aside one
  *  brought back, #219), or it was already in the Pipeline (with Open, so a second paste, a tile
  *  or a quick-add link never ends in silence). Returns what the save did; 'invalid' is the

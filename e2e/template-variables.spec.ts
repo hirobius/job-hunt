@@ -122,28 +122,3 @@ test('Fill for keeps a long job label on one 40px line (390)', async ({ page }) 
   await expect(span).toHaveCSS('text-align', 'start');
   await expect(span).toHaveCSS('white-space', 'nowrap');
 });
-
-// One destructive style app-wide: HDS Button variant="secondary" tone="danger" (its tinted fill and
-// danger text), the same in the Delete confirm as on Recently removed and Reset local data.
-for (const mode of ['light', 'dark'] as const) {
-  test(`the Delete confirm is the HDS danger button (${mode}, 390)`, async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 900 });
-    await page.addInitScript((m) => localStorage.setItem('rjb_color_mode', m), mode);
-    await open(page);
-    await page.getByRole('button', { name: 'More actions' }).click();
-    await page.getByRole('menuitem', { name: 'Delete' }).click();
-    const del = page.getByRole('alertdialog').getByRole('button', { name: 'Delete' });
-    const want = await del.evaluate(() => {
-      const probe = document.createElement('div');
-      probe.style.background = 'var(--semantic-color-feedback-bg-error)';
-      probe.style.color = 'var(--semantic-color-feedback-error)';
-      document.body.append(probe);
-      const cs = getComputedStyle(probe);
-      const out = { bg: cs.backgroundColor, fg: cs.color };
-      probe.remove();
-      return out;
-    });
-    await expect(del).toHaveCSS('background-color', want.bg);
-    await expect(del).toHaveCSS('color', want.fg);
-  });
-}

@@ -6,10 +6,11 @@ import { buildHash, COMPANY_TAB, getRoute, navigate, parseHash, subscribeRoute }
 import type { Route } from './route';
 import { findJobById } from './store';
 
-export type TopTab = 'discover' | 'queue';
+export type TopTab = 'today' | 'discover' | 'queue';
 
 /** The top tab a route sits under, or null for a page with no tab (Documents, legal). */
 export function tabOf(r: Route): TopTab | null {
+  if (r.tab === 'today') return 'today';
   if (r.tab === 'discover') return 'discover';
   if (r.tab === 'queue' || r.tab === 'apply' || r.tab === COMPANY_TAB) return 'queue';
   return null;
@@ -55,6 +56,7 @@ export const lastApplyJobId = (): string | null => lastApply;
 
 /** Forget every tab's place (tests start fresh). */
 export function resetTabMemory(): void {
+  delete last.today;
   delete last.discover;
   delete last.queue;
   lastApply = null;

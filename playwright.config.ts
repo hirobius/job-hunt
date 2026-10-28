@@ -1,10 +1,15 @@
+import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 
 // E2E config. Spins up the Vite dev server, runs specs in e2e/ against Chromium.
 // PW_CHROMIUM_PATH (optional) points at a pre-installed Chromium when Playwright's own
-// pinned build isn't downloaded, e.g. cloud sessions:
-//   PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e
-const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
+// pinned build isn't downloaded. Unset or missing, cloud sessions' stable link is used
+// (/opt/pw-browsers/chromium: the versioned folder behind it moves with each image, #315),
+// else Playwright's own browser.
+const CLOUD_CHROMIUM = '/opt/pw-browsers/chromium';
+const executablePath = [process.env.PW_CHROMIUM_PATH, CLOUD_CHROMIUM].find(
+  (p): p is string => !!p && existsSync(p),
+);
 
 export default defineConfig({
   testDir: './e2e',

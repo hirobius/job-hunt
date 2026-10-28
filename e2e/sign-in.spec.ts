@@ -38,7 +38,9 @@ test('desktop: a centred dialog', async ({ page }) => {
 // browser in on its own. The tokens leave the address bar at once, and Cancel drops them.
 test('an unsolicited token link asks first, and Cancel drops it', async ({ page }) => {
   const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
-  const token = `${b64({ alg: 'HS256' })}.${b64({ sub: 'x', email: 'attacker@evil.test' })}.sig`;
+  // A fresh expiry: an expired or expiry-less token is refused outright (security review 2026-10-28).
+  const exp = Math.floor(Date.now() / 1000) + 3600;
+  const token = `${b64({ alg: 'HS256' })}.${b64({ sub: 'x', email: 'attacker@evil.test', exp })}.sig`;
   const supabase: string[] = [];
   page.on('request', (r) => {
     if (r.url().includes('supabase.co')) supabase.push(r.url());

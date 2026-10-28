@@ -8,7 +8,7 @@ import { titleOf } from './jobRow';
 import { applySequence } from './applyQueue';
 import { companyBySlug } from './companies';
 import { DOCUMENT_KINDS, useDocuments, type Document } from './documents';
-import { legalDocFor } from './legal';
+import { legalTitleFor } from './legalRoute';
 import type { Job } from './types';
 
 const decode = (s: string) => {
@@ -52,9 +52,10 @@ export function routeLabel(r: Route, ctx: { jobs: Job[]; docs: Document[] }): st
       return doc ? doc.title || 'Untitled' : 'Document';
     }
     case 'legal':
-      return legalDocFor(r.sub).title;
+      return legalTitleFor(r.sub);
+    case 'today':
     case '':
-      return 'Companies';
+      return 'Today';
     default:
       return 'the last page';
   }

@@ -126,6 +126,18 @@ export function unstarDream(categoryId: string, key: string): void {
   update(categoryId, (list) => list.filter((x) => x.key !== key));
 }
 
+/** Put an unstarred dream company back in its place, with its check history (`seen`,
+ *  `checkedAt`, `starredAt`) intact (#324). A company re-starred in the meantime is not
+ *  duplicated: the re-star already carries on from the copy that was kept. */
+export function restoreDream(categoryId: string, dream: Dream, at: number): void {
+  update(categoryId, (list) => {
+    if (list.some((x) => x.key === dream.key)) return list;
+    const next = [...list];
+    next.splice(Math.max(0, Math.min(at, next.length)), 0, dream);
+    return next;
+  });
+}
+
 /** Record a check: the posting ids now on its board, and when. */
 export function markDreamChecked(categoryId: string, key: string, ids: string[], at: string): void {
   update(categoryId, (list) =>

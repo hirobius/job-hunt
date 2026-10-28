@@ -28,6 +28,13 @@ export interface ReadOutcome<C extends WatchedCompany = WatchedCompany> {
 
 export const boardOf = (c: WatchedCompany) => `${c.ats}:${c.slug.toLowerCase()}`;
 
+/** A shared board read as one watcher sees it: each board is read once, under its first
+ *  watcher's row, so the postings carry that user's own `company` text. Every other watcher gets
+ *  their own name back, never another user's (security review 2026-10-28). */
+export function forWatcher<C extends WatchedCompany>(r: ReadOutcome, w: C): ReadOutcome<C> {
+  return { ...r, company: w, postings: r.postings.map((p) => ({ ...p, company: w.company })) };
+}
+
 const PARALLEL = 4;
 
 /** Rows per select: PostgREST answers at most 1000 rows to one request (its max_rows), the

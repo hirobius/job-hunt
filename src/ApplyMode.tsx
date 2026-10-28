@@ -45,7 +45,7 @@ import { scrollToTop } from './scrollMemory';
 import { useRemembered } from './viewMemory';
 import { titleOf } from './jobRow';
 import { toApplyQueue } from './applyQueue';
-import { followUpDate } from './jobEvents';
+import { followUpDate, respondByDate } from './jobEvents';
 import { dayLabel } from './dayLabel';
 import {
   KIT_FIELDS,
@@ -70,6 +70,7 @@ import { notifyRemoved, showNotice } from './saveNotice';
 import { useCloudSync } from './account/accountContext';
 import { usePageTitle } from './pageTitle';
 import type { Job } from './types';
+import { useFocusAfter } from './useFocusAfter';
 import { collapseRow, useArrived } from './feedback';
 
 const PIPELINE: Route = { tab: 'queue', sub: null, pillar: null, jobId: null };
@@ -177,7 +178,10 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
   const company = job.company?.trim();
   // rev-3 B: company · location · the applied date once applied, else when it was saved.
   const when = statusAgo(job);
-  const dueOn = followUpDate(job, new Date());
+  const now = new Date();
+  const dueOn = followUpDate(job, now);
+  // A saved solicitation's deadline is a day to respond by, not to follow up on (#308).
+  const respondBy = respondByDate(job, now);
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal">
@@ -204,9 +208,17 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
           metadata={<JobBadges job={job} />}
           title={titleOf(job)}
           description={
-            job.company || job.location || when ? (
+            job.company || job.location || when || respondBy ? (
               // PageHeader wraps the description in a <p>: a span keeps the HTML valid.
-              <MetaCaption as="span" items={[company, job.location?.trim(), when]} />
+              <MetaCaption
+                as="span"
+                items={[
+                  company,
+                  job.location?.trim(),
+                  when,
+                  respondBy && `Respond by ${dayLabel(respondBy, now)}`,
+                ]}
+              />
             ) : undefined
           }
         />
@@ -242,7 +254,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
               {[
                 company ? `Applied to ${company}.` : '',
                 "It's under Follow up in the Pipeline.",
-                dueOn ? `Follow up on ${dayLabel(dueOn, new Date())}.` : '',
+                dueOn ? `Follow up on ${dayLabel(dueOn, now)}.` : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -352,9 +364,17 @@ function CopyRow({
 }) {
   const [editing, setEditing] = useRemembered(`kit-edit:${remember}`, false);
   const [draft, setDraft] = useRemembered(`kit-draft:${remember}`, value);
+  // Closing the field hands focus back to its Edit / Add button (#312).
+  const { ref, focus } = useFocusAfter();
   const done = () => {
     onSave(draft.trim());
     setEditing(false);
+    focus('edit');
+  };
+  const cancel = () => {
+    setDraft(value);
+    setEditing(false);
+    focus('edit');
   };
   const Field = multiline ? Textarea : HdsInput;
   const body = (
@@ -369,14 +389,19 @@ function CopyRow({
               setDraft(e.target.value)
             }
             onKeyDown={(e: React.KeyboardEvent) => {
-              if (!multiline && e.key === 'Enter') done();
+              // Handled here, so Enter never reaches the button focus moves to.
+              if (!multiline && e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                done();
+              }
+              if (e.key === 'Escape') cancel();
             }}
           />
           <Stack direction="row" gap="tight">
             <Button size="md" variant="secondary" onClick={done}>
               Done
             </Button>
-            <Button size="md" variant="tertiary" onClick={() => setEditing(false)}>
+            <Button size="md" variant="tertiary" onClick={cancel}>
               Cancel
             </Button>
           </Stack>
@@ -397,6 +422,7 @@ function CopyRow({
               size="sm"
               variant="secondary"
               aria-label={`${value ? 'Edit' : 'Add'} ${label}`}
+              ref={ref('edit')}
               onClick={() => {
                 setDraft(value);
                 setEditing(true);
