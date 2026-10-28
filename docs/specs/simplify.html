@@ -52,6 +52,7 @@ one <strong>Search profile</strong> replaces tracks; one <strong>Feed</strong> r
 Only the old screens go (about <strong>5k lines</strong> net); every source and company-finding helper stays.
 A <strong>breadth guard</strong> test fails if the new Feed ever returns fewer distinct postings than today's.
 You lose multiple tracks, the curated tile boards, SAM.gov, and Calibrate's separate knobs (folded into the profile).
+<br><strong>Amendment 2:</strong> an <strong>auto-scan</strong> (cron twice a day + on open) replaces every manual discovery button; every posting is gated by the scorer (Match shown, Maybe in Review, No match counted); a tap opens an in-app preview; Jobs stays a top tab and gets a simplification proposal. See <a href="#amend2">7b</a>.
 </div>
 
 <div class="card">
@@ -74,6 +75,7 @@ You lose multiple tracks, the curated tile boards, SAM.gov, and Calibrate's sepa
 <li><a href="#c">Design C: Today deck</a></li>
 <li><a href="#compare">Side by side</a></li>
 <li><a href="#rec">Recommendation, as amended (C, no loss of breadth)</a></li>
+<li><a href="#amend2">Amendment 2: auto-scan, gating, preview, Jobs</a></li>
 <li><a href="#slices">Slice plan</a></li>
 <li><a href="#loses">What Adrian loses, and why it's worth it</a></li>
 </ol></nav>
@@ -274,7 +276,7 @@ Storybook
 <p class="small">Adrian picked C on 2026-10-28 on one hard condition: no loss of breadth. He wants as many distinct design-system openings as possible, in a list he can click through and apply from, not the same four jobs every day. This section is the amended design.</p>
 <div class="card pick">
 <ol>
-<li><strong>Home = Today</strong>: Review new, Apply, Follow up, under the line <em>"N new today from M sources"</em>. The Pipeline becomes <em>Jobs</em> under More, unchanged inside.</li>
+<li><strong>Home = Today</strong>: Review new, Apply, Follow up, under the line <em>"N new today from M sources"</em>. Jobs (the Pipeline) stays a top tab beside Today (amendment 2).</li>
 <li><strong>Review new has two views of the same Feed.</strong> <strong>Browse</strong> (default) is a list: sort by score, newest or company; filter by text, source, work mode and Queue/Review; open any posting; Save or Skip inline. <strong>Deck</strong> is the one-card option for a quick pass. The two views share one list and one set of verdicts.</li>
 <li><strong>One Find box</strong> at the top of Today. Paste anything: a job link saves a Job (works signed out); a board or company link or name becomes a Source; words add titles to the Search profile.</li>
 <li><strong>One Sources list</strong> in the synced blob: boards of every kind, followed companies (with or without a board) and feeds. Saving a job follows its company. Dreams become a star on a Source. <strong>Add sources</strong> helpers fill it: Check a list (paste or YC batch), YC suggestions, GitHub design-system orgs and the Adele seed. They are the same code as today in a smaller sheet.</li>
@@ -354,29 +356,128 @@ server
 </ul>
 <p><strong>Size, re-estimated:</strong> the old screens go (<code>DiscoverView</code>, <code>DiscoverHeader</code>, <code>CompaniesPanel</code>, <code>LiveFeedPanel</code>, <code>TileGrid</code>, <code>ManageTrackDialog</code>, <code>SweepTitles</code>, <code>DreamCompanies</code>, <code>ScoredQueue</code>, <code>FindBoardsPanel</code> and <code>AdeleSeed</code> shells), along with curation, tracks and Contracts. That is roughly −7.5k lines. Browse, the deck, the Find box, the Add sources sheet and the profile form add roughly +2.5k. The net is about <strong>−5k</strong>. Everything in <code>src/feed/</code> and <code>src/tracks/</code> stays behind the Feed seam.</p>
 
-<h2 id="slices">8. Slice plan (amended)</h2>
-<p class="small">Each slice ships on its own and leaves the app working. Nothing is deleted until the replacement has been used for a week, and never while the breadth guard is red. Issue numbers in brackets.</p>
+<h2 id="amend2">7b. Amendment 2: auto-scan, gating, preview, Jobs</h2>
+<p class="small">Adrian's decisions relayed on 2026-10-28. Where they conflict with section 7, this section wins.</p>
+
+<h3>Auto-scan replaces every manual discovery control</h3>
+<p>One <strong>Scan</strong> does all discovery. It runs twice a day on the server cron and once on the client when the app opens (when the last scan is older than an hour). Each run does four things:</p>
+<ul>
+<li><strong>Finds companies</strong> from every helper: YC hiring, GitHub design-system orgs and the Adele list. It also re-checks the names from any earlier pasted list.</li>
+<li><strong>Probes for boards</strong> for every company without one, across all eight board kinds, with the identity check below.</li>
+<li><strong>Reads every followed company's board</strong> and the feeds (HN, Remotive, Jobicy, the designsystems.jobs RSS), over every profile title (the old sweep).</li>
+<li><strong>Scores every posting</strong> and re-checks saved jobs' boards (the old liveness check).</li>
+</ul>
+<p>The only UI left is <strong>Scan now</strong> and "Last scanned 6:23". These all go: YC batch, Check a list, Find teams, Suggest companies, the Adele button, "Check open roles at N companies", "Check dream companies", Live postings' fetch, and the sweep chips. Signed out, the client scan does the same work in the browser, within the existing rate budgets (GitHub, Remotive, probe).</p>
+
+<h3>New companies show their jobs at once</h3>
+<p>A company the scan finds shows up in <strong>New companies</strong> on Review, with its matching jobs already in the list. Each one has <strong>Follow</strong> or <strong>Ignore</strong>. Ignore mutes it so the scan never brings it back. Leaving it alone keeps its jobs visible until the user decides.</p>
+
+<h3>Every posting is gated by the scorer</h3>
+<p>Every posting goes through <code>src/tracks/score.ts</code> (<code>scoreForTrack</code>) plus the profile's filters (must include, leave out, location, mode, pay floor, level). The verdict decides where it lands:</p>
+<ul>
+<li><strong>Match</strong> (<code>queue</code>): shown in Browse.</li>
+<li><strong>Maybe</strong> (<code>review</code>): in a collapsed <strong>Review (N)</strong> under the list.</li>
+<li><strong>No match</strong> (<code>reject</code>): hidden, counted as "N left out", with a link that opens them once.</li>
+</ul>
+<p>On the server, the scan stores each posting's title and description in a Postgres <code>tsvector</code> column with a GIN index. The profile's must-include and leave-out terms become a <code>websearch_to_tsquery</code> filter, so the client only downloads candidates. The scorer then runs on those rows, on the server and in the browser alike. There is no AI scoring and no API key.</p>
+<p><strong>Breadth guard, restated:</strong> it counts distinct postings across all three verdicts. Gating may move a posting between Match, Maybe and No match, but the total the scan read must never be lower than today's.</p>
+
+<h3>Tap a job: an in-app preview</h3>
+<p>Tapping a row in Browse opens a short preview sheet: the title, company, location and pay, the source, the first lines of the description, and <em>why it matched</em> (the scorer's reasons). It has Save, Skip and Not this company. <strong>Open posting ↗</strong> is one tap away. Back closes the sheet and returns to the same row.</p>
+
+<div class="mocks">
+<figure><pre>&lt;- Review new         · · ·
+Shopify · Remote (US)     94
+Staff Engineer,
+Design Systems
+$180–220k · Greenhouse · 2d
+
+Why it matched
+ · title says "design systems"
+ · tokens, Storybook, a11y
+
+We're hiring a staff engineer
+to lead our component library
+and token pipeline…
+
+[    Open posting  ↗      ]
+[ Skip ]        [  Save   ]
+Not this company</pre><figcaption>Preview sheet</figcaption></figure>
+<figure><pre>Review new · 31         Scan now
+Last scanned 6:23 · 52 sources
+New companies (3)
+ Linear     4 jobs  Follow  Ignore
+ Vanta      1 job   Follow  Ignore
+ Plain      2 jobs  Follow  Ignore
+──────────────────────────────
+[Filter     ] [Sort: Score v]
+Shopify · Staff Eng, DS   94
+Ramp · Design Technologist 88
+Acme · DS Lead (HN)       71
+…
+Review (14)                   ⌄
+112 left out ›
+Search elsewhere (9)          ›</pre><figcaption>Browse with New companies and the gates</figcaption></figure>
+</div>
+
+<h3>Jobs stays a top tab, simplified hard</h3>
+<p>The tabs are <strong>Today · Jobs</strong>, and Jobs (the Pipeline) is no longer under More. This proposal is for Adrian to review; nothing in it is decided.</p>
+<div class="scroll"><table>
+<thead><tr><th>Today on the Pipeline / job page</th><th>Proposal</th></tr></thead>
+<tbody>
+<tr><td>Getting started panel</td><td><strong>Cut</strong>: Today's three buttons are the start.</td></tr>
+<tr><td>To apply, Follow up and Next 7 days panels</td><td><strong>Move to Today</strong>; Jobs is only the list.</td></tr>
+<tr><td>Scored queue</td><td><strong>Cut</strong>: it is Review new.</td></tr>
+<tr><td>Status filter + Sort menu + search + Clear filters</td><td><strong>One stage switch</strong> (Active · Applied · Interviewing · Closed) and search. The order is fixed: due first, then newest.</td></tr>
+<tr><td>Export links button, ⋯ More job actions</td><td><strong>Move</strong> to the Account menu (all jobs).</td></tr>
+<tr><td>Find the next company button</td><td><strong>Cut</strong>: Today is one tap away.</td></tr>
+<tr><td>Recently removed link</td><td>Keep, at the bottom of Closed.</td></tr>
+<tr><td>Row: badges, facts, next step, ⋯ menu</td><td>Keep: one next step per row.</td></tr>
+<tr><td>Job page: Overview · Screening · Interviews tabs</td><td><strong>One scrolling page</strong>: header and next step, Details, To-dos and notes, Interviews (only once one exists), then Files and links.</td></tr>
+<tr><td>Documents panel + Decks panel</td><td><strong>Merge</strong> into "Files and links".</td></tr>
+<tr><td>Screening tab (Fit editor, JD screener)</td><td><strong>Cut the JD screener</strong>: the scorer's reasons replace it. Fit stays as a badge you can change from the menu.</td></tr>
+<tr><td>Job rail at lg</td><td>Keep.</td></tr>
+</tbody></table></div>
+
+<h3>Bug: the board probe trusts a slug</h3>
+<p>The probe matched "Forward" (a YC company) to three different boards: Greenhouse, SmartRecruiters and Personio. <code>probeCompany</code> accepts every live board whose slug matches a candidate, so a common word maps to whichever company holds that slug on each ATS. The fix is an identity check. A hit counts only when the board's company website or domain matches the company's known website, or when a name match is confirmed by a domain. More than one ATS answering for a common-word slug makes the result <em>unconfirmed</em>, not found. Filed as its own bug; the auto-scan depends on it.</p>
+
+<h2 id="slices">8. Slice plan (amended twice)</h2>
+<p class="small">Each slice ships on its own and leaves the app working. Nothing is deleted until its replacement has been used for a week, and never while the breadth guard is red. Issue numbers are in brackets.</p>
 <ol class="slices">
-<li><strong>Safety rails: sync forward guard + breadth guard</strong> (#382). A tab that reads a newer blob version stops pushing and shows "Reload to continue". The recorded fixture pins today's distinct-posting count across every source.</li>
-<li><strong>Today home</strong> (#383). A <code>today.ts</code> read model and the three-section home, with "N new today from M sources". The Pipeline becomes Jobs under More. Nothing is removed.</li>
-<li><strong>Blob v12: profiles, sources, decided + migration</strong> (#384). The one-time move from v11, with the links download and a notice. Old fields are still read.</li>
-<li><strong>One Find box + Add sources sheet</strong> (#385). Paste a job link (save), a board or company (follow) or words (titles). Check a list, YC, GitHub orgs and Adele move into one Add sources sheet that writes <code>sources</code>. The old screens stay for now.</li>
-<li><strong>Feed module + Review: Browse list and deck</strong> (#386). The browser adapter reads every source, with the wide sweep, related titles and the Review bucket. Browse (default) has sort, filter, open, and Save/Skip inline; the deck is the option. Skip hides one posting; Not this company mutes the Source. The breadth guard must stay green.</li>
-<li><strong>Server adapter</strong> (#387). <code>sync-postings</code> reads sources and the profile from the blob and covers every board kind and feed. <code>watched_companies</code> and <code>skips</code> come out of the undeployed migrations. Adrian runs the deploy and the seed check. The breadth guard runs against the server's scoring too.</li>
-<li><strong>Onboarding = Search profile form</strong> (#388). Title and location; the matching starter companies are followed and Review opens.</li>
-<li><strong>Remove the old screens</strong> (#389). Companies, Discover, the Live postings panel, Find boards and Adele shells, tile boards, Manage track, Calibrate and sweep UI, tracks and curation, and Contracts/SAM.gov. Sources, helpers and Search elsewhere stay. No CSP host is removed (SAM.gov is same-origin); <code>legal.ts</code> drops its SAM.gov line.</li>
-<li><strong>Cleanup</strong> (#390). Stop reading the v11 fields, drop the curation tables, rewrite CLAUDE.md and CONTEXT.md, and add an ADR.</li>
+<li><strong>Safety rails: sync forward guard + breadth guard</strong> (#382).</li>
+<li><strong>Today home</strong> (#383). Three buttons and "N new today from M sources". The tabs become Today · Jobs.</li>
+<li><strong>Blob v12: profiles, sources, decided + migration</strong> (#384).</li>
+<li><strong>One Find box</strong> (#385). Paste a job, a board, a company or a title.</li>
+<li><strong>Feed + Review new</strong> (#386). Browse (default) with the preview sheet, Match shown, Review (N) collapsed and "N left out"; the deck as an option. Skip hides one posting only.</li>
+<li><strong>Server adapter + full-text gating</strong> (#387). <code>sync-postings</code> reads the blob; a <code>tsvector</code> + GIN index filters on the server, and the scorer gates.</li>
+<li><strong>Onboarding = Search profile form</strong> (#388).</li>
+<li><strong>Auto-scan</strong> (#415). Cron twice a day plus a scan on app open. It runs company discovery, the board probe, every board read, scoring and liveness. New companies come with Follow and Ignore. The only controls are Scan now and "Last scanned". Needs the probe fix (#417).</li>
+<li><strong>Simplify Jobs / Pipeline</strong> (#416). The proposal in 7b goes to Adrian first; only what he approves is built.</li>
+<li><strong>Remove the old screens and manual controls</strong> (#389).</li>
+<li><strong>Cleanup</strong> (#390).</li>
 </ol>
+<p class="small">Bug, separate from the slices: board probe identity check (#417).</p>
 
 <h2 id="loses">9. What Adrian loses, and why it's worth it</h2>
 <ul>
-<li><strong>More than one track.</strong> One Search profile at a time; <code>profiles[]</code> leaves room to switch later. The trades and Contracts tracks go.</li>
+<li><strong>More than one track.</strong> One Search profile at a time; <code>profiles[]</code> leaves room to switch later.</li>
 <li><strong>Curated tile boards</strong> (Apply now sections, Manage track). They are offered once as a links file.</li>
-<li><strong>SAM.gov contracts</strong>, the 2-week test.</li>
-<li><strong>Calibrate as its own panel.</strong> Its knobs (leave out, pay floor, level, related titles, must include) fold into the profile. Saved searches go: the Browse list's filter replaces them.</li>
+<li><strong>SAM.gov contracts.</strong></li>
+<li><strong>Calibrate as its own panel.</strong> Its knobs fold into the profile.</li>
+<li><strong>Manual discovery buttons.</strong> The scan does their work on a schedule; Scan now covers "I want it now".</li>
 </ul>
-<p><strong>Not lost:</strong> every job source, every board kind, the wide sweep, related titles, the scorer and its Review bucket, a click-through list of every posting, GitHub, YC, Adele and Check a list (as Add sources helpers), and Big job boards and ATS search (as Search elsewhere). The breadth guard holds this.</p>
-<p><strong>Why it's worth it.</strong> The first question stops being "which of 19 tools do I use?" and becomes "what's new, what do I apply to, who do I follow up with?". The breadth stays the same, and a test enforces it. The shells and the duplicate stores go: 8 of the 13 synced fields fold into 3. That makes every later change cheaper and the sync safer.</p>
+<p><strong>Not lost:</strong></p>
+<ul>
+<li>every job source and board kind, plus the wide sweep and related titles</li>
+<li>the scorer, with its Maybe bucket</li>
+<li>a click-through list of every Match, with a preview</li>
+<li>every company-finding helper (now automatic)</li>
+<li>Search elsewhere</li>
+<li>the liveness check</li>
+</ul>
+<p>The breadth guard holds this.</p>
+<p><strong>Why it's worth it.</strong> The first question stops being "which of 19 tools do I use?" and becomes "what's new, what do I apply to, who do I follow up with?". Discovery runs by itself, the list arrives already scored, and breadth stays under test.</p>
 
 <p class="small">Source notes: inventory line counts from <code>wc -l</code> on main at 017b869. Designs A, B and C were drafted in parallel ("design it twice") and compared here. Glossary changes are in <code>CONTEXT.md</code> under "Proposed (simplify spec)".</p>
 </main>

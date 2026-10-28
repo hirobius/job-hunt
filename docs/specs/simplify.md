@@ -35,21 +35,40 @@ The blob keeps `jobs`, `documents`, `kit`, `trash` and `copydeck` (legacy), and 
 
 The server keeps three tables: `tracker`, `postings` and `sync_log`. `watched_companies` and `skips` are never deployed. The curation tables are frozen, then dropped after 30 days.
 
+## Amendment 2 (relayed 2026-10-28)
+
+- **Auto-scan** replaces every manual discovery control. It runs on the server cron twice a day and on the client when the app opens. One scan finds companies (YC, GitHub orgs, Adele, earlier lists), probes their boards, reads every board and feed over every title, scores everything, and re-checks saved jobs' boards. The only UI left is **Scan now** and "Last scanned hh:mm".
+- **New companies** show their matching jobs at once, with **Follow / Ignore**.
+- **Gating:** every posting goes through `src/tracks/score.ts` plus the profile filters:
+  - **Match** is shown.
+  - **Maybe** sits in a collapsed **Review (N)**.
+  - **No match** is hidden behind an "N left out" count.
+
+  The server pre-filters with Postgres full-text search (a `tsvector` column with a GIN index, and `websearch_to_tsquery` for must include and leave out). There is no AI scoring.
+- **Preview:** tapping a Browse row opens a short in-app sheet with the details, why it matched, and Save / Skip / Not this company. **Open posting** is one tap away.
+- **Jobs stays a top tab** (Today · Jobs). A proposal to simplify it hard is in section 7b of the spec, for Adrian to review.
+- **Bug #417:** the board probe needs an identity check. It matched "Forward" to three different boards.
+
 ## What Adrian loses
 
 - More than one track
 - The curated tile boards (offered once as a links file)
 - SAM.gov
 - Calibrate as its own panel (its settings fold into the profile; saved searches give way to the Browse filter)
+- Manual discovery buttons (the auto-scan does their work; Scan now covers "now")
 
-## Slices (issues #382–#390, labelled needs-adrian)
+## Slices (labelled needs-adrian)
 
 1. #382: Safety rails. A guard stops older tabs from overwriting newer synced data, and the breadth guard fixture lands.
-2. #383: Today home, with the "N new today from M sources" line.
-3. #384: Blob v12 (profiles, sources, decided) and the migration from v11.
-4. #385: The Find box and the Add sources sheet.
-5. #386: The Feed module and Review new (Browse and Deck), reading every source.
-6. #387: The server adapter. `sync-postings` reads sources and the profile from the blob.
+2. #383: Today home. The tabs become Today and Jobs.
+3. #384: Blob v12 and the migration from v11.
+4. #385: The Find box.
+5. #386: The Feed and Review new (Browse with the preview and gates, plus the Deck).
+6. #387: The server adapter, with full-text gating.
 7. #388: Onboarding becomes the Search profile form.
-8. #389: Remove the old screens. Sources, the helpers and Search elsewhere stay.
-9. #390: Cleanup, CLAUDE.md, CONTEXT.md and an ADR.
+8. #415: Auto-scan.
+9. #416: Simplify Jobs and the Pipeline (a proposal for Adrian to review first).
+10. #389: Remove the old screens and manual controls.
+11. #390: Cleanup.
+
+Bug: #417, the board probe identity check.
