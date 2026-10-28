@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_BOARDS_PER_USER, MAX_TERMS_PER_USER, compileProfile, planFromBlob } from './plan';
+import {
+  MAX_BOARDS_PER_USER,
+  MAX_TERMS_PER_USER,
+  answeredFeeds,
+  compileProfile,
+  feedReadsFor,
+  planFromBlob,
+} from './plan';
+import type { ReadOutcome } from './sync';
 import { scorePosting } from './score';
 import { designSystemsTrack } from './track-config';
 
@@ -187,5 +195,43 @@ describe('compileProfile', () => {
     };
     expect(scorePosting({ ...p, title: 'Senior Front End Developer' }, c).verdict).toBe('queue');
     expect(scorePosting({ ...p, title: 'Backfront-end developers' }, c).verdict).toBe('reject');
+  });
+});
+
+describe('feeds: what counts as answered (a missed posting closes after 2 answered reads)', () => {
+  const plan = planFromBlob({
+    v: 12,
+    profiles: [{ titles: ['Design Systems Engineer', 'Design Technologist'] }],
+    sources: [{ kind: 'feed', ref: 'jobicy', muted: true }],
+  })!;
+  const read = (board: string, term: string | undefined, ok = true): ReadOutcome => ({
+    company: null,
+    board,
+    term,
+    ok,
+    postings: [],
+  });
+
+  it('only my titles on my feeds; RSS is everyone’s', () => {
+    const reads = [
+      read('hn', 'Design Systems Engineer'),
+      read('hn', 'Welder'),
+      read('jobicy', 'Design Systems Engineer'),
+      read('rss', undefined),
+    ];
+    expect(feedReadsFor(plan, reads).map((r) => `${r.board}:${r.term ?? ''}`)).toEqual([
+      'hn:Design Systems Engineer',
+      'rss:',
+    ]);
+  });
+
+  it('a feed whose run left out one of my titles, or failed on one, is not answered', () => {
+    const both = [read('hn', 'design systems engineer'), read('hn', 'Design Technologist')];
+    expect(answeredFeeds(plan, both)).toEqual(['hn']);
+    // The per-run cap kept only one of the two titles.
+    expect(answeredFeeds(plan, both.slice(0, 1))).toEqual([]);
+    expect(answeredFeeds(plan, [both[0], read('hn', 'Design Technologist', false)])).toEqual([]);
+    expect(answeredFeeds(plan, [read('rss', undefined)])).toEqual(['rss']);
+    expect(answeredFeeds(plan, [read('rss', undefined, false)])).toEqual([]);
   });
 });

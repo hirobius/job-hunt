@@ -5,16 +5,22 @@
 // truth. Every board is read once however many users follow it (Ashby one board at a time), the
 // term feeds (HN, Remotive, Jobicy) and designsystems.jobs on the morning run. Each posting is
 // scored with the user's profile config (src/tracks), deduped by fingerprint and upserted on
-// (user, source, source_id). A failed read (a 404 too) is logged and never closes anything; a
-// posting missing from 2 answered reads in a row is rejected as "posting closed". The sync never
-// writes the blob: the user removes a dead board from their Sources.
+// (user, source, source_id). A failed read is logged and closes nothing, except a 404 (the board is
+// gone): its postings close. A posting missing from 2 answered reads in a row is rejected as
+// "posting closed". The sync never writes the blob: the user removes a dead board from Sources.
 // One invocation reads SLICE boards (the worker's CPU budget is ~2 s, and the first full run ran
 // out), then calls itself for the next slice. The feeds and closing unfollowed boards run on the
 // last slice; each slice closes postings missed on the boards it read.
 // Auth: x-sync-secret must equal SYNC_SECRET (compared as SHA-256 digests, without an early exit).
 // Nothing is accepted until SYNC_SECRET is set. Deploy and secrets: README.md beside this file.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
-import { planFromBlob, type SyncPlan, type WatchedTile } from '../../../src/tracks/plan.ts';
+import {
+  answeredFeeds,
+  feedReadsFor,
+  planFromBlob,
+  type SyncPlan,
+  type WatchedTile,
+} from '../../../src/tracks/plan.ts';
 import {
   boardOf,
   forWatcher,
@@ -288,10 +294,18 @@ Deno.serve(async (req) => {
   );
   if (blobs.error) return json({ error: blobs.error }, 500);
   const plans = new Map<string, SyncPlan>();
+  // Users with nothing to score against (no titles, no design systems): their rows close.
+  const planless: string[] = [];
   for (const b of blobs.rows) {
     const plan = planFromBlob(b.data, tilesOf.get(b.user_id) ?? []);
     if (plan) plans.set(b.user_id, plan);
+    else planless.push(b.user_id);
   }
+  const closing = () => ({
+    verdict: 'reject',
+    reasons: ['posting closed'],
+    closed_at: new Date().toISOString(),
+  });
 
   // Each board once, however many users follow it; who follows each board.
   const distinct = new Map<string, Follower>();
@@ -327,18 +341,27 @@ Deno.serve(async (req) => {
     for (const r of reads) {
       if (!r.ok) failedBoards.add(r.board);
       for (const w of followers.get(r.board) ?? []) {
-        if (!r.ok)
+        if (!r.ok) {
           logs.push({
             user_id: w.user_id,
             kind: 'failed',
             board: r.board,
             status: r.status ?? null,
             message: (r.status === 404
-              ? `${w.company}: board not found (404). Remove it from Sources if it is gone.`
+              ? `${w.company}: board not found (404), its postings closed. Remove it from Sources if it is gone.`
               : `${w.company}: ${r.error ?? `HTTP ${r.status}`}`
             ).slice(0, 2000),
           });
-        else {
+          // A 404 is an answer (the board is gone or the slug is wrong): nothing on it is open.
+          // Any other failure closes nothing.
+          if (r.status === 404)
+            await db
+              .from('postings')
+              .update(closing())
+              .eq('user_id', w.user_id)
+              .eq('board', r.board)
+              .is('closed_at', null);
+        } else {
           answeredBy.set(w.user_id, [...(answeredBy.get(w.user_id) ?? []), r.board]);
           perUser.set(w.user_id, [...(perUser.get(w.user_id) ?? []), forWatcher(r, w)]);
         }
@@ -375,15 +398,9 @@ Deno.serve(async (req) => {
           ),
       });
     for (const [userId, plan] of plans) {
-      const mine = reads.filter(
-        (r) =>
-          plan.feeds.has(r.board as TermFeed | 'rss') &&
-          (r.board === 'rss' || plan.terms.some((t) => t.toLowerCase() === r.term?.toLowerCase())),
-      );
-      // A feed counts as answered only when every title read on it answered.
-      for (const feed of new Set(mine.map((r) => r.board)))
-        if (mine.filter((r) => r.board === feed).every((r) => r.ok))
-          answeredBy.set(userId, [...(answeredBy.get(userId) ?? []), feed]);
+      const mine = feedReadsFor(plan, reads);
+      for (const feed of answeredFeeds(plan, mine))
+        answeredBy.set(userId, [...(answeredBy.get(userId) ?? []), feed]);
       const ok = mine.filter((r) => r.ok);
       if (ok.length) await writeGroup(db, userId, plan.config, ok, logs, totalsOf(userId));
     }
@@ -406,43 +423,24 @@ Deno.serve(async (req) => {
       });
       closed = typeof n === 'number' ? n : 0;
     }
-    if (last) {
-      // A board no longer followed never answers again, so its open postings are closed now
-      // instead of waiting for misses that never come; so are rows scored under an old profile.
-      // A board whose read failed this run keeps its rows (a 404 too: the user decides).
-      const keep = [...plan.boards.map(boardOf), ...FEED_BOARDS].map((b) => `"${b}"`).join(',');
-      const closing = {
-        verdict: 'reject',
-        reasons: ['posting closed'],
-        closed_at: new Date().toISOString(),
-      };
-      const [gone, old] = await Promise.all([
-        db
-          .from('postings')
-          .update(closing)
-          .eq('user_id', userId)
-          .eq('track_slug', trackSlug)
-          .is('closed_at', null)
-          .not('board', 'in', `(${keep})`)
-          .select('id'),
-        db
-          .from('postings')
-          .update(closing)
-          .eq('user_id', userId)
-          .neq('track_slug', trackSlug)
-          .is('closed_at', null)
-          .select('id'),
-      ]);
-      for (const r of [gone, old])
-        if (r.error)
-          logs.push({
-            user_id: userId,
-            kind: 'failed',
-            board: null,
-            status: null,
-            message: `closing unfollowed boards: ${r.error.message}`.slice(0, 2000),
-          });
-        else closed += r.data?.length ?? 0;
+    // A board no longer followed never answers again, so its open postings are closed now
+    // instead of waiting for misses that never come; so are rows scored under an old profile. Not
+    // when a v11 user's watched tiles could not be read: their boards would all look unfollowed.
+    if (last && !(plan.from === 'v11' && tiles.error)) {
+      const { data: n, error } = await db.rpc('close_unfollowed_postings', {
+        p_user: userId,
+        p_track: trackSlug,
+        p_keep: [...plan.boards.map(boardOf), ...FEED_BOARDS],
+      });
+      if (error)
+        logs.push({
+          user_id: userId,
+          kind: 'failed',
+          board: null,
+          status: null,
+          message: `closing unfollowed boards: ${error.message}`.slice(0, 2000),
+        });
+      else closed += typeof n === 'number' ? n : 0;
     }
     if (!answered.length && !t.failed && !last) continue;
     const line = {
@@ -466,6 +464,22 @@ Deno.serve(async (req) => {
       message: JSON.stringify(line),
     });
   }
+  if (last)
+    for (const userId of planless) {
+      const { error } = await db.rpc('close_unfollowed_postings', {
+        p_user: userId,
+        p_track: null,
+        p_keep: [],
+      });
+      if (error)
+        logs.push({
+          user_id: userId,
+          kind: 'failed',
+          board: null,
+          status: null,
+          message: `closing (no search profile): ${error.message}`.slice(0, 2000),
+        });
+    }
   if (logs.length) await db.from('sync_log').insert(logs);
   if (next) {
     // The next slice runs in its own invocation (its own CPU budget). Wait only until the request

@@ -7,7 +7,7 @@
 // dry-run script and the tests load it.
 import { parseBoardUrl, type Board, type BoardKind } from '../feed/sources/ats.ts';
 import type { WatchedCompany } from './sources.ts';
-import { TERM_FEEDS, type TermFeed } from './sync.ts';
+import { TERM_FEEDS, type ReadOutcome, type TermFeed } from './sync.ts';
 import { designSystemsTrack, type TrackConfig } from './track-config.ts';
 import { VERIFIED_COMPANIES } from './verified.ts';
 
@@ -220,4 +220,29 @@ function planV11(o: O, tiles: WatchedTile[]): SyncPlan | null {
     : sweepTitles;
   const feeds = new Set<Feed>(scored ? FEEDS : TERM_FEEDS);
   return { from: 'v11', config, boards: boards.list, terms: cleanTerms(titles), feeds };
+}
+
+/** The feed reads that are this user's: a feed they have on, for one of their titles (RSS: any). */
+export const feedReadsFor = (plan: SyncPlan, reads: ReadOutcome[]): ReadOutcome[] =>
+  reads.filter(
+    (r) =>
+      isFeed(r.board) &&
+      plan.feeds.has(r.board) &&
+      (r.board === 'rss' || plan.terms.some((t) => t.toLowerCase() === r.term?.toLowerCase())),
+  );
+
+/** The feeds that count as answered for this user: every one of their titles was read on it (the
+ *  per-run cap can leave some out) and every read answered. Else a posting found under a title left
+ *  out, or behind a failed read, would count as missed and close. */
+export function answeredFeeds(plan: SyncPlan, mine: ReadOutcome[]): Feed[] {
+  const out: Feed[] = [];
+  for (const feed of FEEDS) {
+    const reads = mine.filter((r) => r.board === feed);
+    if (!reads.length) continue;
+    const all =
+      feed === 'rss' ||
+      plan.terms.every((t) => reads.some((r) => r.term?.toLowerCase() === t.toLowerCase()));
+    if (all && reads.every((r) => r.ok)) out.push(feed);
+  }
+  return out;
 }

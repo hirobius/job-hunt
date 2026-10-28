@@ -104,6 +104,38 @@ revoke all on function public.mark_missed_postings(uuid, text, text[], timestamp
 grant execute on function public.mark_missed_postings(uuid, text, text[], timestamptz)
   to service_role;
 
+-- ---- closing what is no longer followed ----
+-- One user's open rows on boards outside `p_keep`, and their rows scored under another profile
+-- (`p_track`), are rejected as "posting closed". `p_track` null closes all their open rows (the
+-- user has no Search profile left). An RPC, so a long board list rides in the body, not the URL.
+-- Service role only.
+create or replace function public.close_unfollowed_postings(
+  p_user uuid, p_track text, p_keep text[]
+) returns integer
+language sql
+security definer
+set search_path = public
+as $$
+  with upd as (
+    update public.postings
+       set verdict   = 'reject',
+           reasons   = '["posting closed"]'::jsonb,
+           closed_at = now()
+     where user_id = p_user
+       and closed_at is null
+       and (p_track is null
+            or track_slug <> p_track
+            or not (board = any (coalesce(p_keep, '{}'::text[]))))
+    returning 1
+  )
+  select count(*)::int from upd;
+$$;
+
+revoke all on function public.close_unfollowed_postings(uuid, text, text[])
+  from public, anon, authenticated;
+grant execute on function public.close_unfollowed_postings(uuid, text, text[])
+  to service_role;
+
 -- ---- a v11 blob's watched boards: the tiles under each "Watched companies" section ----
 -- Read by the sync only (service role), for blobs older than v12 (Sources). plpgsql, so the body is
 -- not checked against the curation tables when this file runs before their migration.
