@@ -48,7 +48,7 @@ export function migrateSystemsOnly(
       inText: false,
       atsOff: cat.atsRoles.filter((r) => !saysSystem(r)),
     });
-    // The sweep's list is seeded from the track's titles, else its ATS roles (DiscoverView).
+    // The sweep's list is seeded from the track's titles, else its ATS roles (as the old screens did).
     switchOffTitles(cat.id, cat.titles.length ? cat.titles : cat.atsRoles, saysSystem);
     moved++;
   }

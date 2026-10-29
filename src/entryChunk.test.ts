@@ -1,4 +1,4 @@
-// The entry chunk carries only what most loads run (#371): first-run, legal text, backup/restore,
+// The entry chunk carries only what most loads run (#371): the default profile, legal text, backup/restore,
 // the sign-in and export-links dialogs and the starter packs load on demand. This walks the static
 // imports from main.tsx (type-only imports and import() left out) and fails when one comes back.
 import { existsSync, readFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 const SRC = __dirname;
 
 const ON_DEMAND = [
-  'Onboarding.tsx',
+  'searchDefaults.ts',
   'curation/starterPacks.ts',
   'curation/packContent.ts',
   'jobsData.ts',

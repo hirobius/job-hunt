@@ -46,10 +46,14 @@ beforeEach(() => {
   replaceProfiles([]);
   replaceSources([]);
   replaceCurationState(EMPTY_CURATION);
-  const trades = addCategory({ label: 'Welding', titles: ['Welder'], atsRoles: ['welder'] });
-  const g = addGroup(trades, { label: 'Shops' });
+  const ds = addCategory({
+    label: 'Design Systems',
+    titles: ['Design Systems Engineer'],
+    atsRoles: ['design system'],
+  });
+  const g = addGroup(ds, { label: 'Watched companies' });
   addTile(g, { name: 'Acme jobs', url: 'https://boards.greenhouse.io/acme', meta: '' });
-  addTile(g, { name: 'Local 66 JATC', url: 'https://local66.example.org/', meta: 'Union' });
+  addTile(g, { name: 'DS Slack', url: 'https://ds-slack.example.org/', meta: 'Community' });
   window.history.replaceState(null, '', '/');
   window.location.hash = '#/queue';
 });
@@ -59,16 +63,34 @@ describe('v12 move (simplify 4/9)', () => {
   it('writes the profile and Sources, offers the links once, and downloads them', async () => {
     renderApp();
     expect(await screen.findByText(linksNotice(1))).toBeInTheDocument();
-    expect(getProfile()).toMatchObject({ label: 'Welding', titles: ['Welder'] });
+    expect(getProfile()).toMatchObject({
+      label: 'Design Systems',
+      titles: ['Design Systems Engineer'],
+    });
     expect(getSources().map(sourceKey)).toContain('greenhouse:acme');
     await userEvent.click(screen.getByRole('button', { name: 'Download links' }));
     expect(downloads).toHaveLength(1);
     expect(downloads[0].name).toMatch(/-links-\d{4}-\d{2}-\d{2}\.txt$/);
-    expect(downloads[0].text).toContain('Local 66 JATC\nhttps://local66.example.org/');
+    expect(downloads[0].text).toContain('DS Slack\nhttps://ds-slack.example.org/');
     cleanup();
     renderApp();
     await screen.findAllByRole('tab');
     await waitFor(() => expect(getProfile()).not.toBeNull());
+    expect(screen.queryByText(linksNotice(1))).toBeNull();
+  });
+
+  it('a non-design-systems track moves nothing: the default profile, no links offered', async () => {
+    replaceCurationState(EMPTY_CURATION);
+    const trades = addCategory({ label: 'Welding', titles: ['Welder'], atsRoles: ['welder'] });
+    const g = addGroup(trades, { label: 'Shops' });
+    addTile(g, { name: 'Oddco jobs', url: 'https://boards.greenhouse.io/oddco', meta: '' });
+    addTile(g, { name: 'Union hall', url: 'https://hall.example.org/', meta: 'Union' });
+    renderApp();
+    await screen.findAllByRole('tab');
+    await waitFor(() => expect(getProfile()).not.toBeNull());
+    expect(getProfile()?.label).not.toBe('Welding');
+    expect(getProfile()?.titles).not.toContain('Welder');
+    expect(getSources().map(sourceKey)).not.toContain('greenhouse:oddco');
     expect(screen.queryByText(linksNotice(1))).toBeNull();
   });
 

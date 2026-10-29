@@ -120,13 +120,12 @@ describe('app shell (#115 Phase 1)', () => {
     );
   });
 
-  it('the flame sits left of the wordmark, hidden from assistive tech', () => {
+  it('the flame is the wordmark\'s "o", hidden from assistive tech', () => {
     renderApp();
     const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
-    const mark = wordmark.parentElement?.querySelector('svg.rjb-flame');
-    expect(mark).not.toBeNull();
-    expect(mark?.getAttribute('aria-hidden')).toBe('true');
-    expect(mark!.compareDocumentPosition(wordmark) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const mark = wordmark.querySelector('.rjb-wordmark-o .rjb-flame');
+    expect(mark?.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(mark?.querySelector('svg path')).not.toBeNull();
   });
 
   it('signed out, the account menu reads: device-only line, sign in | data | display | troubleshooting', async () => {
@@ -137,6 +136,7 @@ describe('app shell (#115 Phase 1)', () => {
       'item:Sign in to sync…',
       '---',
       'item:Documents',
+      'item:Search profile',
       'item:Companies',
       'item:Back up',
       'item:Restore…',
@@ -300,6 +300,7 @@ describe('not-synced cue (Adrian 2026-10-22: no dot on the Account avatar)', () 
       'label:Synced',
       '---',
       'item:Documents',
+      'item:Search profile',
       'item:Companies',
       'item:Back up',
       'item:Restore…',

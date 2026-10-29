@@ -57,15 +57,15 @@ async function network(page: Page) {
   });
 }
 
-/** A fresh track: design-system titles and must include, no watched boards (runs in the page). */
+/** A fresh Search profile: a design-system title, remote only, no followed boards (runs in the
+ *  page). */
 async function seedTrack() {
-  const packs = await import('/src/curation/starterPacks.ts');
-  const include = await import('/src/feed/mustInclude.ts');
-  const id = packs.seedPack('blank', '', {
+  const profile = await import('/src/profile.ts');
+  profile.saveProfile({
     titles: ['Design Systems Engineer'],
-    label: 'Design Systems',
+    include: { terms: ['design system'] },
+    mode: 'remote',
   });
-  include.setMustInclude(id, { terms: ['design system'] });
 }
 
 for (const width of [390, 1440]) {

@@ -3,18 +3,15 @@
 // from M sources"), Review new as the Browse list itself (a row opens the in-app preview, Open
 // posting one tap away), Apply, Follow up (what is due, with dates, and what falls due this week)
 // and the companies the scan found (Follow / Ignore). The read model is today.ts; this lays it out.
-import { useState } from 'react';
-import { Button, InlineLink, Stack, Text } from '@hirobius/design-system';
-import { Search } from 'lucide-react';
-import { EmptyState } from './hds-gaps/EmptyState';
-import { Onboarding } from './routeViews';
+import { Button, InlineLink, Skeleton, Stack, Text } from '@hirobius/design-system';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { FollowUpButton } from './FollowUp';
 import { MetaCaption } from './MetaCaption';
 import { JobPostingTitle } from './PostingLink';
 import { NewCompanies, ScanStatus } from './AutoScanViews';
 import ReviewView from './ReviewView';
-import { useActiveTrack } from './activeTrack';
+import { useProfile } from './profile';
+import { useCloudSync } from './account/accountContext';
 import { useJobs, jobIdOf } from './store';
 import { jobHash, navigate, useRoute, withOrigin } from './route';
 import { metaLines } from './metaLines';
@@ -30,24 +27,11 @@ const jobs$ = (n: number) => `${n} ${n === 1 ? 'job' : 'jobs'}`;
 export default function Today() {
   const route = useRoute();
   const jobs = useJobs();
-  const track = useActiveTrack();
+  const profile = useProfile();
+  const { offline } = useCloudSync();
   const now = new Date();
   const m = today(jobs, now, lastApplyJobId());
   const { due, waiting, upcoming } = m.followUp;
-  // No track yet (jobs saved before setup): Review new asks for one, with the same steps as a
-  // first run, in place.
-  const [choosing, setChoosing] = useState(false);
-  if (!track && choosing)
-    return (
-      <Stack gap="normal" align="start">
-        {/* The steps start over when nothing is picked, so this is the way out. */}
-        <Button variant="tertiary" size="sm" onClick={() => setChoosing(false)}>
-          Not now
-        </Button>
-        <Onboarding />
-      </Stack>
-    );
-
   return (
     <Stack gap="px24">
       <Stack gap="px4">
@@ -63,24 +47,25 @@ export default function Today() {
 
       {/* The scan's status, then every design-system posting, newest first, as a list (the Deck is
           a toggle inside). Review new hosts the status, so its counts are the Feed's own. */}
-      {track ? (
-        <ReviewView categoryId={track.id} label="Review new" scanStatus />
+      {profile ? (
+        <ReviewView label="Review new" scanStatus />
       ) : (
+        // The design-systems profile is made on its own once sync settles (searchDefaults.ts
+        // `ensureProfile`); until then Review new holds its place, or says why it can't.
         <Stack gap="normal">
           <ScanStatus />
           <Panel label="Review new" title="Review new">
             <PanelBody>
-              <EmptyState
-                centered
-                icon={Search}
-                title="Pick a track to search"
-                description="A track holds your job titles, location and saved links."
-                action={
-                  <Button variant="primary" onClick={() => setChoosing(true)}>
-                    Choose a track
-                  </Button>
-                }
-              />
+              {offline ? (
+                <Text variant="caption" as="p" tone="secondary">
+                  Couldn&apos;t reach your account. Your search loads once you&apos;re back online.
+                </Text>
+              ) : (
+                <Stack gap="tight">
+                  <Skeleton variant="text" width="70%" />
+                  <Skeleton variant="text" width="40%" />
+                </Stack>
+              )}
             </PanelBody>
           </Panel>
         </Stack>
@@ -137,7 +122,7 @@ export default function Today() {
         )}
       </Panel>
 
-      <NewCompanies categoryId={track?.id} />
+      <NewCompanies />
     </Stack>
   );
 }

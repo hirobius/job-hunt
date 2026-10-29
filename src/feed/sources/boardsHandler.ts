@@ -58,7 +58,7 @@ const fail = (status: number, error: string, extra: Record<string, string> = {})
   return r;
 };
 
-/** As in /api/sam: Vercel's x-real-ip only (a client can forge x-forwarded-for's first hop). */
+/** Vercel's x-real-ip only (a client can forge x-forwarded-for's first hop). */
 const callerOf = (req: Request) => (req.headers.get('x-real-ip') || 'unknown').trim().slice(0, 64);
 
 export function createBoardsHandler({

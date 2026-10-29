@@ -1,39 +1,21 @@
-// Saving follows the company (simplify spec): a posting read from a board watches that board on
-// the track (a dream's or a target's board becomes a watched tile; a tile already watched stays
-// as it is); any other posting follows its company by name (decided.ts, until #384's Sources).
-// Returns the undo, so a save's Undo also takes the follow back.
-import { getCurationState, removeTile } from '../curation/curationStore';
-import { boardUrlsFor, watchBoard } from './watchlist';
-import { boardsFromUrls, parseBoardUrl } from './sources/ats';
-import { companyKey, followCompany, getAllDecided, hasCompany, unfollowCompany } from './decided';
-import { boardKeyOf } from './feed';
-import type { Source } from './profile';
+// Saving follows the company (simplify spec): a posting read from a board follows that board as a
+// Source (sources.ts `followBoard`: added when missing, a mute on it or its company lifted); any
+// other posting follows its company by name. Returns the undo, so a save's Undo also takes the
+// follow back.
+import { followBoard } from '../sources';
+import { isBoardKind, type SourceKind } from '../sourcesModel';
+import { followCompany } from './decided';
+import { parseBoardUrl, type Board } from './sources/ats';
 import type { Posting } from './types';
 
-const keyOfUrl = (url: string) => {
-  const b = parseBoardUrl(url);
-  return b ? `${b.kind}:${b.slug.toLowerCase()}` : null;
-};
-
-export function followPosting(
-  p: Pick<Posting, 'id' | 'company'>,
-  categoryId: string,
-  sources: Source[],
-): () => void {
-  const board = boardKeyOf(p.id);
-  const ref = board && sources.find((s) => s.kind === 'board' && keyOfUrl(s.ref) === board)?.ref;
-  if (ref) {
-    const watched = boardsFromUrls(boardUrlsFor(categoryId), Infinity).some(
-      (b) => `${b.kind}:${b.slug.toLowerCase()}` === board,
-    );
-    if (watched) return () => {};
-    const before = new Set(getCurationState().tiles.map((t) => t.id));
-    if (!watchBoard(categoryId, ref).ok) return () => {};
-    const added = getCurationState().tiles.filter((t) => !before.has(t.id));
-    return () => added.forEach((t) => removeTile(t.id));
-  }
-  const k = companyKey(p.company);
-  if (!k || hasCompany(getAllDecided().followed, p.company)) return () => {};
-  followCompany(p.company);
-  return () => unfollowCompany(p.company);
+export function followPosting(p: Pick<Posting, 'id' | 'company' | 'url'>): () => void {
+  // The board from the posting's own link keeps its slug's case and Lever's EU host; a board
+  // posting's id (`kind:slug:job`, slug lower-cased) is the fallback when its link is elsewhere.
+  const [kind, slug, job] = p.id.split(':');
+  const fromId: Board | null =
+    job && slug && isBoardKind(kind as SourceKind) ? ({ kind, slug } as Board) : null;
+  const linked = parseBoardUrl(p.url);
+  const board = linked && (!fromId || linked.kind === fromId.kind) ? linked : fromId;
+  if (board) return followBoard(board, p.company.trim() || board.slug).undo;
+  return followCompany(p.company);
 }

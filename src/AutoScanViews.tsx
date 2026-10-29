@@ -44,18 +44,15 @@ function progressLine(p: ScanProgress | undefined): string {
   }
 }
 
-/** "Scan now" and the last scan's line (or why it failed). `categoryId`: the track Today shows,
- *  else the active one. */
+/** "Scan now" and the last scan's line (or why it failed). */
 export function ScanStatus({
-  categoryId,
   counts,
 }: {
-  categoryId?: string | null;
   /** Review new's own new and source counts, once it has read (one number on the page). */
   counts?: { newToday: number; sources: number };
 }) {
   const { state, running, progress } = useScan();
-  const { input } = useScanInput(categoryId);
+  const input = useScanInput();
   const { user } = useCloudSync();
   const profile = useProfile();
   // The server's rotation scans the whole board set only for a signed-in design systems profile
@@ -98,13 +95,12 @@ function companyLine(f: FoundCompany): string {
 }
 
 /** The companies the scan found, not yet followed or ignored. Renders nothing when there are none. */
-export function NewCompanies({ categoryId: given }: { categoryId?: string | null }) {
+export function NewCompanies() {
   const { state } = useScan();
-  const { categoryId } = useScanInput(given);
   const list = newCompanies(state);
   if (!list.length) return null;
   const follow = (f: FoundCompany) => {
-    const undo = followFound(f.key, categoryId);
+    const undo = followFound(f.key);
     showNotice({
       title: `Following ${f.name}`,
       description: 'Its jobs show in Review new.',

@@ -4,7 +4,7 @@
 // just behind in history), finishing the key action returns there with a toast that says so, and
 // the browser's Back closes a sheet instead of leaving the page.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -24,15 +24,12 @@ import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, dedupKey, getAllJobs, jobIdOf, removeJob, updateJob } from './store';
 import { replaceCurationState } from './curation/curationStore';
-import { seedPack } from './curation/starterPacks';
 import { setOutreachMessages } from './test/outreach';
-import { notifySaved } from './saveNotice';
 import { liveness } from './livenessStore';
 import { getRoute, subscribeScrollRestore } from './route';
 import { getAllDocuments } from './documents';
 import { trashJob } from './trash';
 import { rememberSignInReturn, returnAfterSignIn, takeSignInReturn } from './account/signInReturn';
-import { legacyScreensForThisTest } from './test/legacy';
 
 const A = 'https://acme.example/jobs/1';
 const B = 'https://acme.example/jobs/2';
@@ -110,19 +107,6 @@ describe('a job page goes back to where it was opened from', () => {
     await heading('Fabricator');
     await userEvent.click(screen.getByRole('button', { name: 'Back to Acme Metals' }));
     await at('#/company/acme-metals');
-  });
-
-  it('opened from a save notice on Companies, Back returns to that Companies view', async () => {
-    legacyScreensForThisTest();
-    window.location.hash = '#/discover/apply';
-    renderApp();
-    await at('#/discover/apply');
-    act(() => notifySaved([B]));
-    addJob(B, 'Welder');
-    await userEvent.click(within(notice()).getByRole('button', { name: 'Open' }));
-    await heading('Welder');
-    await userEvent.click(screen.getByRole('button', { name: 'Back to Companies' }));
-    await at('#/discover/apply');
   });
 
   it('Remove goes back to the origin; Undo reopens the job page', async () => {
@@ -324,42 +308,6 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     await at('#/copy-deck');
   });
 
-  it('a sheet over a sheet: Back closes the top one; closing both leaves no step behind', async () => {
-    legacyScreensForThisTest();
-    seedPack('consulting');
-    await over('#/queue', '#/discover/ats');
-    const manage = () => screen.queryByRole('dialog', { name: 'Manage track' });
-    const confirm = () => screen.queryByRole('alertdialog', { name: 'Delete this track?' });
-    await userEvent.click(await screen.findByRole('button', { name: 'Manage track' }));
-    await waitFor(() => expect(manage()).not.toBeNull());
-    await userEvent.click(within(manage()!).getByRole('button', { name: 'Delete track' }));
-    await closesOnBack(confirm, '#/discover/ats');
-    expect(manage()).not.toBeNull();
-    await closesOnBack(manage, '#/discover/ats');
-    // Delete track closes the confirm and Manage track together: one Back then leaves the page.
-    await userEvent.click(await screen.findByRole('button', { name: 'Manage track' }));
-    await waitFor(() => expect(manage()).not.toBeNull());
-    await userEvent.click(within(manage()!).getByRole('button', { name: 'Delete track' }));
-    await waitFor(() => expect(confirm()).not.toBeNull());
-    await userEvent.click(within(confirm()!).getByRole('button', { name: 'Delete track' }));
-    await waitFor(() => expect(manage()).toBeNull());
-    await new Promise((r) => setTimeout(r, 80));
-    expect(window.location.hash).toBe('#/discover/ats');
-    window.history.back();
-    await at('#/queue');
-  });
-
-  it("Companies' where and how you want to work", async () => {
-    legacyScreensForThisTest();
-    seedPack('consulting');
-    await over('#/discover/apply', '#/discover/ats');
-    await userEvent.click(await screen.findByRole('button', { name: /^Change where: / }));
-    await closesOnBack(
-      () => screen.queryByRole('dialog', { name: 'Where and how you want to work' }),
-      '#/discover/ats',
-    );
-  });
-
   it('Recently removed', async () => {
     addJob(B, 'Welder');
     trashJob(B);
@@ -424,17 +372,6 @@ describe('top tabs reopen where they were left', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     await at('#/queue');
     expect(await heading('Pipeline')).toBeInTheDocument();
-  });
-
-  it('Companies comes back on the tool it was on', async () => {
-    legacyScreensForThisTest();
-    seedPack('consulting');
-    window.location.hash = '#/discover/ats';
-    renderApp();
-    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
-    await at('#/queue');
-    await userEvent.click(screen.getByRole('tab', { name: 'Companies' }));
-    await at('#/discover/ats');
   });
 });
 
@@ -582,20 +519,6 @@ describe('one navigation per Remove, Delete or double click', () => {
     pops.stop();
     expect(pops.count()).toBe(1);
     expect(getAllDocuments()).toHaveLength(before + 1);
-  });
-
-  it('after Remove on a job opened from Companies, the Pipeline tab opens the list', async () => {
-    legacyScreensForThisTest();
-    await startAt('#/queue', '#/discover/apply');
-    act(() => notifySaved([B]));
-    addJob(B, 'Welder');
-    await userEvent.click(within(notice()).getByRole('button', { name: 'Open' }));
-    await heading('Welder');
-    await remove('Welder');
-    await staysAt('#/discover/apply');
-    await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
-    await staysAt('#/queue');
-    expect(await heading('Pipeline')).toBeInTheDocument();
   });
 });
 

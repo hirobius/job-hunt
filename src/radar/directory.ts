@@ -1,9 +1,7 @@
-// Starter board lists, one per starter pack (docs/specs/job-sources.md, section 3). A new track
-// seeds its pack's list into a "Watched companies" group (src/curation/starterPacks.ts), so Live
-// postings reads boards that suit the track and a trades user never sees software boards. Existing
-// tracks get the same list through the "Add suggested companies" action. Boards only, never one-off
-// postings, so the lists don't go stale. Every entry answered from its public API when it was added;
-// a board that later 404s shows as "board not found" in the feed and can be removed in Manage track.
+// The starter board list, keyed by starter pack (docs/specs/job-sources.md, section 3): design
+// systems only (Adrian 2026-10-29; src/dsOnly.test.ts). A new Search profile follows these
+// (searchDefaults.ts). Boards only, never one-off postings, so the list doesn't go stale. Every
+// entry answered from its public API when it was added.
 
 import DS_SEED_BOARDS from '../feed/data/ds-seed-boards.json' with { type: 'json' };
 import { parseBoardUrl } from '../feed/sources/ats.ts';
@@ -160,41 +158,7 @@ const withMore = (first: readonly string[], more: readonly string[]): readonly s
 // in one bulk add; an existing one gets them through "Add suggested companies".
 const DESIGN_SYSTEMS_BOARDS = withMore(DESIGN_SYSTEMS_CURATED, DS_SEED_BOARDS);
 
-// Implementation services employers (consulting) that answered live.
-const CONSULTING_BOARDS: readonly string[] = [
-  'https://boards.greenhouse.io/workato',
-  'https://boards.greenhouse.io/appian',
-  'https://boards.greenhouse.io/anaplan',
-  'https://boards.greenhouse.io/zuora',
-  'https://boards.greenhouse.io/smartsheet',
-  'https://boards.greenhouse.io/okta',
-  'https://boards.greenhouse.io/ensono',
-  'https://boards.greenhouse.io/thoughtworks',
-];
-
-// ServiceNow partners and ITSM-adjacent employers that answered live. Short on purpose: few
-// ServiceNow employers use these ATSs, and a placeholder would only be a dead board.
-const SERVICENOW_BOARDS: readonly string[] = [
-  'https://boards.greenhouse.io/ensono',
-  'https://boards.greenhouse.io/pagerduty',
-];
-
-// Hands-on fabrication, machining and manufacturing employers that answered live. Few trades
-// employers use these ATSs, so coverage here comes mostly from the curated links and Google lanes.
-const TRADES_BOARDS: readonly string[] = [
-  'https://boards.greenhouse.io/xometry',
-  'https://boards.greenhouse.io/fictiv',
-  'https://boards.greenhouse.io/divergent',
-  'https://boards.greenhouse.io/ursamajor',
-  'https://boards.greenhouse.io/rocketlab',
-  'https://boards.greenhouse.io/relativity',
-  'https://jobs.lever.co/velo3d',
-  'https://boards.greenhouse.io/markforged',
-  'https://jobs.lever.co/shieldai',
-  'https://jobs.ashbyhq.com/saronic',
-];
-
-/** Target companies to seed as outreach rows, keyed by starter pack id; most packs have none. */
+/** Target companies to seed as outreach rows, keyed by starter pack id. */
 export const TARGETS_BY_PACK: Readonly<Record<string, readonly PackCompany[]>> = {
   designsystems: DESIGN_SYSTEMS_COMPANIES,
 };
@@ -202,7 +166,4 @@ export const TARGETS_BY_PACK: Readonly<Record<string, readonly PackCompany[]>> =
 /** Board urls to seed, keyed by starter pack id (src/curation/starterPacks.ts). */
 export const DIRECTORY_BY_PACK: Readonly<Record<string, readonly string[]>> = {
   designsystems: DESIGN_SYSTEMS_BOARDS,
-  consulting: CONSULTING_BOARDS,
-  servicenow: SERVICENOW_BOARDS,
-  trades: TRADES_BOARDS,
 };

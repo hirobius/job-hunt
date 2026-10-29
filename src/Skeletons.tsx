@@ -3,7 +3,7 @@
 // Calm list (#241): both views are flat rows on the page, so the placeholders are too (no cards).
 import { Skeleton, Box, Stack } from '@hirobius/design-system';
 
-/** Flat row placeholders split by hairlines, like the Companies and Templates lists. */
+/** Flat row placeholders split by hairlines, like the Documents lists. */
 function RowsSkeleton({ count }: { count: number }) {
   return (
     <Box aria-hidden>
@@ -13,23 +13,6 @@ function RowsSkeleton({ count }: { count: number }) {
           <Skeleton variant="text" width="70%" />
         </Box>
       ))}
-    </Box>
-  );
-}
-
-/** Companies: the page title, a tool strip, then rows. */
-export function DiscoverSkeleton() {
-  return (
-    <Box aria-busy aria-label="Loading">
-      <Stack gap="normal">
-        <Skeleton variant="text" width="35%" height={32} />
-        <Stack direction="row" gap="xs">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} variant="rectangular" width={88} height={32} />
-          ))}
-        </Stack>
-        <RowsSkeleton count={6} />
-      </Stack>
     </Box>
   );
 }

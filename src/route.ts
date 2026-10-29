@@ -9,7 +9,6 @@
 // pillar id. Quick-add deep links (?add/?applied/?status) stay in the query string and are
 // handled in App.tsx — they are independent of this hash route.
 import { useSyncExternalStore } from 'react';
-import { legacyScreens } from './legacyScreens';
 
 export interface Route {
   /** Top-level tab slug (e.g. 'queue', 'discover'); '' when the hash carries no route. */
@@ -69,7 +68,7 @@ const RETIRED_TABS = new Set(['discover', 'apprenticeships']);
  *  here only: the snapshot reads a retired hash as Today, the URL is rewritten in place (no
  *  history step of its own) and `navigate` never writes one. */
 export function redirectOf(r: Route): Route | null {
-  if (!RETIRED_TABS.has(r.tab) || legacyScreens()) return null;
+  if (!RETIRED_TABS.has(r.tab)) return null;
   return { tab: HOME_TAB, sub: null, pillar: null, jobId: null };
 }
 

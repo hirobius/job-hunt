@@ -1,8 +1,13 @@
 // The one-time move from v11 tracks to the v12 Search profile + Sources (simplify spec #384/#385).
-// Adrian's hard condition: no loss of job breadth. So Sources are the union across ALL tracks
-// (the Sample track aside) of every watched board tile, dream company (starred), outreach target
-// and the board of every saved job, plus the keyless feeds; the profile takes its settings from
-// the scored track, else the busiest one, and its titles from EVERY track (that track's first).
+// Design systems only (Adrian 2026-10-29): only a design-systems track moves, one that is scored
+// (tracks/forTrack scorerFor) or carries the Design Systems pack's label (packIdForLabel). Other
+// tracks stay stored, untouched, but never surface: no title, board, dream or target of theirs
+// enters the profile or Sources, and none of their links is offered. Within the design-systems
+// tracks there is no loss of breadth: Sources are the union of every watched board tile, dream
+// company (starred) and outreach target, plus the board of every saved job and the keyless feeds;
+// the profile takes its settings from the scored track, else the busiest one, and its titles from
+// every design-systems track (that track's first). With no design-systems track it makes no
+// profile (the app then gives the default one, searchDefaults.ensureProfile).
 // Board tiles on an archived track or section were not read before: they come in muted
 // (`movedMute`), and titles v11 did not search come in off (`movedOff`). The top-up lifts those
 // once an old screen makes them live again; a mute or switch the person sets stays.
@@ -15,6 +20,7 @@
 // A dream starred after the move stars its Source once (`movedStar`), even when it already exists.
 import { createDocument, getAllDocuments } from './documents';
 import { getCurationState } from './curation/curationStore';
+import { packIdForLabel } from './curation/starterPacks';
 import type { CurationState, Tile } from './curation/types';
 import { getAllDreams, type Dream } from './feed/dreams';
 import { SOURCE_ENABLED } from './feed/sourceEnabled';
@@ -80,9 +86,20 @@ const tileLabel = (t: Tile) => t.name.replace(/\s+jobs$/i, '').trim();
 
 const realTracks = (s: V11State) => s.curation.categories.filter((c) => c.id !== s.sampleTrack);
 
-/** Each tile with whether its track and section are live (read today) and its track's label. */
+/** A design-systems track: scored, or made from the Design Systems pack (its label). */
+const isDsTrack = (s: V11State, c: CurationState['categories'][0]) =>
+  !!scorerFor(s.mustInclude[c.id]) ||
+  packIdForLabel(c.label) === 'designsystems' ||
+  // A renamed one: its titles or ATS roles say design system(s).
+  [...c.titles, ...c.atsRoles].some((t) => /\bdesign[ -]?systems?\b/i.test(t));
+
+/** The real tracks that move: the design-systems ones (Adrian 2026-10-29). */
+const dsTracks = (s: V11State) => realTracks(s).filter((c) => isDsTrack(s, c));
+
+/** Each tile of a design-systems track with whether its track and section are live (read today)
+ *  and its track's label. */
 function tilesOf(s: V11State) {
-  const cats = new Map(realTracks(s).map((c) => [c.id, c]));
+  const cats = new Map(dsTracks(s).map((c) => [c.id, c]));
   const groups = new Map(s.curation.groups.map((g) => [g.id, g]));
   return s.curation.tiles.flatMap((t) => {
     const g = groups.get(t.groupId);
@@ -122,7 +139,7 @@ function targetSource(t: Target): Source {
 /** Every Source the v11 account implies, in order, one per key (sources.ts withSources: a later
  *  copy only fills in a star, website or repo, so a board live anywhere is never muted). */
 export function sourcesFromV11(s: V11State): Source[] {
-  const tracks = new Set(realTracks(s).map((c) => c.id));
+  const tracks = new Set(dsTracks(s).map((c) => c.id));
   const own = <T>(m: Record<string, T[]>) =>
     Object.entries(m).flatMap(([id, list]) => (tracks.has(id) ? list : []));
   const tiles = tilesOf(s);
@@ -143,7 +160,7 @@ export function sourcesFromV11(s: V11State): Source[] {
     const b = isSample(j) ? null : parseBoardUrl(j.url);
     return b ? [boardSource(b, j.company?.trim() || boardLabel(b))] : [];
   });
-  const scored = realTracks(s).some((c) => scorerFor(s.mustInclude[c.id]));
+  const scored = dsTracks(s).some((c) => scorerFor(s.mustInclude[c.id]));
   const feeds: FeedRef[] = [
     'hn',
     'remotive',
@@ -163,9 +180,9 @@ export function sourcesFromV11(s: V11State): Source[] {
   return withSources([], all, { star: true }).list;
 }
 
-/** Every dream of a real track. */
+/** Every dream of a design-systems track. */
 const dreamsOf = (s: V11State) => {
-  const tracks = new Set(realTracks(s).map((c) => c.id));
+  const tracks = new Set(dsTracks(s).map((c) => c.id));
   return Object.entries(s.dreams).flatMap(([id, list]) => (tracks.has(id) ? list : []));
 };
 
@@ -197,10 +214,11 @@ export function topUpSources(list: Source[], s: V11State, since?: string, at?: s
 const sweepOf = (s: V11State, c: CurationState['categories'][0]) =>
   sweepFor(s.sweeps, c.id, c.titles.length ? c.titles : c.atsRoles);
 
-/** The track the profile's settings come from: the scored one, else the busiest (its live
- *  boards, dreams, targets and sweep titles), live tracks first, then the board's order. */
+/** The track the profile's settings come from: the scored one, else the busiest design-systems
+ *  track (its live boards, dreams, targets and sweep titles), live tracks first, then the board's
+ *  order. `tracks` are the design-systems tracks only. */
 function profileTrack(s: V11State) {
-  const tracks = [...realTracks(s)].sort(
+  const tracks = [...dsTracks(s)].sort(
     (a, b) => Number(a.archived) - Number(b.archived) || a.sortOrder - b.sortOrder,
   );
   const boards = new Map<string, number>();
@@ -218,13 +236,13 @@ function profileTrack(s: V11State) {
   return { best, tracks };
 }
 
-/** Every track, `first` leading. */
+/** Every design-systems track, `first` leading. */
 const ordered = (tracks: CurationState['categories'], first: string | undefined) => [
   ...tracks.filter((c) => c.id === first),
   ...tracks.filter((c) => c.id !== first),
 ];
 
-/** Titles and ATS roles from every track, in the order given, each once, with its on/off. */
+/** Titles and ATS roles from the tracks given, in that order, each once, with its on/off. */
 function allTitles(s: V11State, tracks: CurationState['categories']) {
   const titles: string[] = [];
   const titlesOff: string[] = [];
@@ -255,7 +273,7 @@ function allTitles(s: V11State, tracks: CurationState['categories']) {
   return { titles, titlesOff, atsRoles, atsOff };
 }
 
-/** The Search profile the v11 account implies; null with no real track. */
+/** The Search profile the v11 account implies; null with no design-systems track. */
 export function profileFromV11(s: V11State, now: string): Profile | null {
   const { best, tracks } = profileTrack(s);
   if (!best) return null;
@@ -279,7 +297,8 @@ export function profileFromV11(s: V11State, now: string): Profile | null {
     leaveOut: [],
     level: best.seniority,
     location: best.location,
-    mode: s.modes[best.id] ?? 'any',
+    // No mode on the track: remote only, the profile's default (Adrian 2026-10-28).
+    mode: s.modes[best.id] ?? 'remote',
     fromTrack: best.id,
     createdAt: now,
   };
@@ -300,7 +319,7 @@ export function moveV11(s: V11State, now: string) {
   return { profile: profileFromV11(s, now), sources: sourcesFromV11(s), links };
 }
 
-/** The links file: per track, each link's name over its URL. */
+/** The links file: per design-systems track, each link's name over its URL. */
 export function linksText(links: readonly LeftoverLink[]): string {
   const by = new Map<string, LeftoverLink[]>();
   for (const l of links) by.set(l.track, [...(by.get(l.track) ?? []), l]);
@@ -328,44 +347,29 @@ export function readV11(): V11State {
   };
 }
 
-/** The titles top-up, pure: titles the old screens added since come in (off when v11 does not
- *  search them), and a title the move put off turns on once v11 searches it. The profile keeps
- *  the person's own on/off. Null when nothing changes. */
-export function topUpTitles(cur: Profile, s: V11State): Profile | null {
-  const have = new Set(cur.titles.map(norm));
-  const t = allTitles(s, ordered(realTracks(s), cur.fromTrack));
-  const off = new Set(t.titlesOff.map(norm));
-  const on = new Set(t.titles.filter((x) => !off.has(norm(x))).map(norm));
-  const fresh = t.titles.filter((x) => !have.has(norm(x)));
-  const freshOff = fresh.filter((x) => off.has(norm(x)));
-  const moved = cur.movedOff ?? [];
-  const lift = new Set(moved.filter((x) => on.has(norm(x))).map(norm));
-  if (!fresh.length && !lift.size) return null;
-  const movedOff = [...moved.filter((x) => !lift.has(norm(x))), ...freshOff];
-  const { movedOff: _, ...rest } = cur;
-  return {
-    ...rest,
-    titles: [...cur.titles, ...fresh],
-    titlesOff: [...cur.titlesOff.filter((x) => !lift.has(norm(x))), ...freshOff],
-    ...(movedOff.length && { movedOff }),
-  };
-}
-
-/** Run the move on this device's stores. `moved` is true the one time it makes the profile;
- *  `links` are then the links to offer. Every run tops up Sources and titles, add-only. */
+/** Run the move on this device's stores. `moved` is true the one time it makes the profile (from
+ *  a design-systems track); `links` are then the links to offer. Every run tops up Sources,
+ *  add-only. */
 export function runV12Move(now = new Date()): { moved: boolean; links: LeftoverLink[] } {
   const s = readV11();
   const profiles = getProfiles();
   if (!realTracks(s).length && !profiles.length) return { moved: false, links: [] };
   updateSources((cur) => topUpSources(cur, s, profiles[0]?.createdAt, now.toISOString()));
   if (profiles.length) {
-    const next = topUpTitles(profiles[0], s);
-    if (next) replaceProfiles([next, ...profiles.slice(1)]);
+    // Titles are no longer topped up (#389: no screen adds v11 titles now), so a title removed in
+    // the Search profile stays removed. A profile moved before remote only became the default
+    // (its track had no mode, read as 'any') gets it, once: `fromTrack` goes with the fix, and
+    // the Search profile form drops it too, so the person's own choice is never changed back.
+    const cur = profiles[0];
+    if (cur.fromTrack && cur.mode === 'any' && !s.modes[cur.fromTrack]) {
+      const { fromTrack: _, ...rest } = cur;
+      replaceProfiles([{ ...rest, mode: 'remote' }, ...profiles.slice(1)]);
+    }
     return { moved: false, links: [] };
   }
   const { profile, links } = moveV11(s, now.toISOString());
-  if (!profile) return { moved: false, links: [] };
-  replaceProfiles([profile]);
+  // The evidence is the person's own text, not a track's: it becomes a Note even when no
+  // design-systems track moves (the default profile follows, searchDefaults.ensureProfile).
   const text = s.evidence.trim();
   const noted = getAllDocuments().some(
     (d) =>
@@ -374,5 +378,7 @@ export function runV12Move(now = new Date()): { moved: boolean; links: LeftoverL
   );
   if (text && !noted)
     createDocument({ id: EVIDENCE_NOTE_ID, kind: 'note', title: EVIDENCE_TITLE, text: s.evidence });
+  if (!profile) return { moved: false, links: [] };
+  replaceProfiles([profile]);
   return { moved: true, links };
 }

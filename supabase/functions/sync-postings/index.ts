@@ -3,7 +3,8 @@
 // user follows straight from their synced `tracker` blob (src/tracks/plan.ts: v12 sources and the
 // Search profile, else the v11 fields and their watched tiles), so the blob is the one source of
 // truth. Every board is read once however many users follow it (Ashby one board at a time), the
-// term feeds (HN, Remotive, Jobicy) and designsystems.jobs on the morning run. Each posting is
+// term feeds (HN, Remotive, Jobicy), designsystems.jobs (its whole catalog) and the sync's own
+// design-systems searches (src/tracks/feeds, on in SOURCE_ENABLED) on the morning run. Each posting is
 // scored with the user's profile config (src/tracks), deduped by fingerprint and upserted on
 // (user, source, source_id). A failed read is logged and closes nothing, except a 404 (the board is
 // gone): its postings close. A posting missing from 2 answered reads in a row is rejected as
@@ -46,6 +47,10 @@ import {
   type DeadBoard,
 } from '../../../src/tracks/rotation.ts';
 import { designSystemsTrack } from '../../../src/tracks/track-config.ts';
+import { SOURCE_ENABLED } from '../../../src/feed/sourceEnabled.ts';
+import type { FeedContext } from '../../../src/tracks/feeds/context.ts';
+import { SERVER_FEEDS, type ServerFeed } from '../../../src/tracks/feeds/serverFeeds.ts';
+import type { NormalizedPosting } from '../../../src/tracks/score.ts';
 import type { WatchedCompany } from '../../../src/tracks/sources.ts';
 import type { TrackConfig } from '../../../src/tracks/track-config.ts';
 
@@ -66,8 +71,11 @@ const RANK: Record<string, number> = {
   personio: 0,
   rss: 1,
   manual: 1,
+  ids: 1,
   adzuna: 2,
   jsearch: 2,
+  theirstack: 2,
+  jooble: 2,
   remotive: 3,
   jobicy: 3,
   hn: 3,
@@ -93,7 +101,46 @@ const TERMS_PER_RUN: Record<TermFeed, number> = {
 };
 /** Each outbound read's cap: one hung board must not spend the slice's whole wall-clock budget. */
 const FETCH_TIMEOUT_MS = ROTATION.fetchTimeoutMs;
-const timedFetch = (u: string) => fetch(u, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+const timedFetch = (u: string, init?: RequestInit) =>
+  fetch(u, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+/** A server-search row not seen for this long is closed (they never close as missed). */
+const SERVER_FEED_TTL_DAYS = 30;
+const isServerFeed = (f: string): f is ServerFeed =>
+  (SERVER_FEEDS as readonly string[]).includes(f);
+
+/** Stored designsystems.jobs rows, one per page URL (any user's: the posting is public), the one
+ *  with the most text first (a rejected row is stored without its description), so the catalog
+ *  reads only pages nobody has stored. `known_dsjobs_postings` is in the 20261029 migration. */
+async function knownDsJobs(db: SupabaseClient): Promise<Map<string, NormalizedPosting>> {
+  const known = new Map<string, NormalizedPosting>();
+  const { data, error } = await db.rpc('known_dsjobs_postings');
+  // Without them the catalog reads pages (up to its cap) and the RSS fills in: nothing is lost.
+  if (error) return known;
+  for (const r of (data ?? []) as Record<string, string | boolean | null>[]) {
+    const id = String(r.source_id ?? '');
+    if (!id || known.has(id)) continue;
+    known.set(id, {
+      source: 'rss',
+      sourceId: id,
+      title: String(r.title ?? ''),
+      company: String(r.company ?? ''),
+      location: r.location ? String(r.location) : undefined,
+      remote: r.remote === true || undefined,
+      url: String(r.url ?? ''),
+      descriptionText: String(r.description_text ?? ''),
+      postedAt: r.posted_at ? String(r.posted_at) : undefined,
+    });
+  }
+  return known;
+}
+
+/** What the sync's own searches get: the function's secrets (never logged), the clock. */
+const feedContext: FeedContext = {
+  fetch: timedFetch,
+  env: (name) => Deno.env.get(name),
+  now: () => new Date(),
+  sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+};
 /** How long the next-slice call waits for its answer before letting go (it keeps running). */
 const CHAIN_WAIT_MS = 3000;
 
@@ -795,9 +842,19 @@ Deno.serve(async (req) => {
         terms[feed] = [...seen.values()].slice(0, TERMS_PER_RUN[feed]);
       }
       const wantsRss = [...plans.values()].some((p) => p.feeds.has('rss'));
-      const reads = await readAll([], { fetch: timedFetch, rss: wantsRss, terms });
+      const server = SERVER_FEEDS.filter(
+        (f) => SOURCE_ENABLED[f] && [...plans.values()].some((p) => p.feeds.has(f)),
+      );
+      const reads = await readAll([], {
+        fetch: timedFetch,
+        rss: wantsRss,
+        terms,
+        known: wantsRss && SOURCE_ENABLED.dsjobsCatalog ? await knownDsJobs(db) : undefined,
+        server: { feeds: server, ctx: feedContext },
+      });
       feedsRead = reads.length;
-      for (const r of reads.filter((x) => !x.ok))
+      // A read that answered can still carry an error (designsystems.jobs fell back to its RSS).
+      for (const r of reads.filter((x) => !x.ok || x.error))
         logs.push({
           user_id: null,
           kind: 'failed',
@@ -842,7 +899,11 @@ Deno.serve(async (req) => {
         const { data: n, error } = await db.rpc('close_unfollowed_postings', {
           p_user: userId,
           p_track: trackSlug,
-          p_keep: [...plan.boards.map(boardOf), ...plan.feeds],
+          // A server search switched off in SOURCE_ENABLED closes its rows like a muted feed.
+          p_keep: [
+            ...plan.boards.map(boardOf),
+            ...[...plan.feeds].filter((f) => !isServerFeed(f) || SOURCE_ENABLED[f]),
+          ],
         });
         if (error)
           logs.push({
@@ -853,6 +914,29 @@ Deno.serve(async (req) => {
             message: `closing unfollowed boards: ${error.message}`.slice(0, 2000),
           });
         else closed += typeof n === 'number' ? n : 0;
+      }
+      // The server searches read a window, so nothing closes as missed there: a row not seen for
+      // SERVER_FEED_TTL_DAYS has aged out instead.
+      if (last) {
+        const cutoff = new Date(Date.now() - SERVER_FEED_TTL_DAYS * 86_400_000).toISOString();
+        const { data: aged, error } = await db
+          .from('postings')
+          .update(closing())
+          .eq('user_id', userId)
+          .eq('track_slug', trackSlug)
+          .in('board', [...SERVER_FEEDS])
+          .lt('last_seen_at', cutoff)
+          .is('closed_at', null)
+          .select('id');
+        if (error)
+          logs.push({
+            user_id: userId,
+            kind: 'failed',
+            board: null,
+            status: null,
+            message: `ageing out server searches: ${error.message}`.slice(0, 2000),
+          });
+        else closed += aged?.length ?? 0;
       }
       if (!answered.length && !t.failed && !last) continue;
       const line = {

@@ -19,9 +19,7 @@ import {
 import { YC_HIRING_URL } from './feed/companySource';
 import { createLimiter } from './feed/probe';
 import { FetchError, type FetchJson } from './feed/sources/http';
-import { addCategory, replaceCurationState } from './curation/curationStore';
-import { EMPTY_CURATION } from './curation/types';
-import { boardUrlsFor } from './feed/watchlist';
+import { getSources } from './sources';
 import { getAllDecided } from './feed/decided';
 import type { PostingReader } from './feed/reader';
 import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
@@ -83,7 +81,6 @@ beforeEach(() => {
   localStorage.clear();
   resetScan();
   dismissNotice();
-  replaceCurationState(EMPTY_CURATION);
   resetBoardSetKeys();
   replaceProfiles([]);
 });
@@ -173,15 +170,14 @@ describe('NewCompanies', () => {
     expect(within(list).getByText(/^Board not confirmed/)).toBeVisible();
   });
 
-  it('Follow watches the board on the track, with Undo', async () => {
-    const cat = addCategory({ label: 'Design Systems', titles: ['Design Systems Engineer'] });
+  it('Follow adds the board to the Sources, with Undo', async () => {
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
     renderViews();
     await userEvent.click(screen.getByRole('button', { name: 'Follow Acme' }));
-    expect(boardUrlsFor(cat)).toEqual([ACME]);
+    expect(getSources().map((x) => x.ref)).toEqual(['acme']);
     expect(screen.queryByRole('button', { name: 'Follow Acme' })).toBeNull();
     await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
-    expect(boardUrlsFor(cat)).toEqual([]);
+    expect(getSources()).toEqual([]);
     expect(screen.getByRole('button', { name: 'Follow Acme' })).toBeVisible();
   });
 

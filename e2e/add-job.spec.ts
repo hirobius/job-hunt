@@ -40,22 +40,23 @@ test('Add job explains a bad link and an already saved one', async ({ page }) =>
   await expect(page).toHaveURL(/#\/queue\/./);
 });
 
-// A first visit offers the sample pipeline, which lands on the Pipeline with its follow-ups
-// (#236: its follow-ups live in the Pipeline; Today, home again in #383, links to them).
-test('opens on setup at home (Today); the sample pipeline lists due follow-ups', async ({
-  page,
-}) => {
+// A first visit opens on Today with no setup screen; the Jobs empty state offers the sample
+// pipeline, with its follow-ups.
+test('opens on Today with no setup; the sample pipeline lists due follow-ups', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveURL(/#\/today$/);
+  await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
+  await expect(page.getByText('Set up your search')).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Jobs' }).click();
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   await expect(page).toHaveURL(/#\/queue$/);
   const followUps = page.getByRole('region', { name: /^Follow up \(/ });
   await expect(followUps).toBeVisible();
-  await followUps.getByRole('button', { name: 'Follow up: UX Researcher' }).click();
+  await followUps.getByRole('button', { name: 'Follow up: Design Systems Designer' }).click();
   const dialog = page.getByRole('dialog', { name: 'Follow up' });
   // A first run has no messages (Adrian 2026-10-22): one tap adds the starters and fills it.
   await dialog.getByRole('button', { name: 'Add starter messages' }).click();
-  await expect(dialog).toContainText('UX Researcher role');
+  await expect(dialog).toContainText('Design Systems Designer role');
   await dialog.getByRole('button', { name: 'Copy message' }).click();
   await dialog.getByRole('button', { name: 'Mark as sent' }).click();
   await expect(dialog.getByText('Follow-up sent. Next one due in 7 days.')).toBeVisible();

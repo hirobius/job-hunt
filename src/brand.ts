@@ -8,11 +8,12 @@
 // events update instead of duplicating.
 export const BRAND = {
   /** Display name. */
-  name: 'RoleForge',
-  /** Header wordmark: the second part takes the accent colour. Joined, it must equal `name`. */
-  wordmark: ['Role', 'Forge'] as const,
+  name: 'Stoke',
+  /** The wordmark: the flame (src/brand/flame.svg) stands in for `flame`, between `before` and
+   *  `after` (St(flame)ke). Joined, they must equal `name`. */
+  wordmark: { before: 'St', flame: 'o', after: 'ke' },
   /** Lowercase, URL/file-safe: download filenames. */
-  slug: 'roleforge',
+  slug: 'stoke',
   /** One line for <meta name="description">. */
   description:
     'A job-application tracker and discovery board: screen postings, track your pipeline, and generate targeted searches.',

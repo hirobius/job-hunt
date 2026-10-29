@@ -70,7 +70,20 @@ describe('planFromBlob: v12 (sources + profile)', () => {
       }),
     );
     expect(plan?.boards.map((b) => b.slug)).toEqual(['ramp']);
-    expect([...(plan?.feeds ?? [])].sort()).toEqual(['hn', 'jobicy']);
+    // The sync's own searches have no Source to mute: on for every design-systems plan.
+    expect([...(plan?.feeds ?? [])].sort()).toEqual([
+      'adzuna',
+      'hn',
+      'ids',
+      'jobicy',
+      'jooble',
+      'theirstack',
+    ]);
+  });
+
+  it("the sync's own searches are for design-systems plans only", () => {
+    const plain = planFromBlob(v12({ profiles: [profile({ titles: ['Welder'] })] }));
+    expect([...(plain?.feeds ?? [])].sort()).toEqual(['hn', 'jobicy', 'remotive']);
   });
 
   it("scorer: 'design-systems' is the switch for the tuned config; leave-out rejects a title", () => {
@@ -269,10 +282,12 @@ describe('feeds: what counts as answered (a missed posting closes after 2 answer
       read('hn', 'Welder'),
       read('jobicy', 'Design Systems Engineer'),
       read('rss', undefined),
+      read('theirstack', undefined),
     ];
     expect(feedReadsFor(plan, reads).map((r) => `${r.board}:${r.term ?? ''}`)).toEqual([
       'hn:Design Systems Engineer',
       'rss:',
+      'theirstack:',
     ]);
   });
 
@@ -288,5 +303,11 @@ describe('feeds: what counts as answered (a missed posting closes after 2 answer
     expect(answeredFeeds(plan, [...both, read('hn', 'Design System Lead', false)])).toEqual([]);
     expect(answeredFeeds(plan, [read('rss', undefined)])).toEqual(['rss']);
     expect(answeredFeeds(plan, [read('rss', undefined, false)])).toEqual([]);
+    // Part of the catalog, or the RSS alone, never closes what it didn't list.
+    expect(answeredFeeds(plan, [{ ...read('rss', undefined), partial: true }])).toEqual([]);
+    // A windowed search never counts as the whole list.
+    expect(answeredFeeds(plan, [read('theirstack', undefined), read('ids', undefined)])).toEqual(
+      [],
+    );
   });
 });

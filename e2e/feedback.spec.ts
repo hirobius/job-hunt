@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { go, openJob, seed, withLegacyScreens } from './routes';
+import { go, openJob, seed } from './routes';
 
 // The feedback sweep (#212): every row and page action on the Pipeline, the job page, Documents
 // and Companies must change something visible within 300 ms of the press: the page's text (a
@@ -167,11 +167,9 @@ async function closeOverlay(page: Page) {
   await page.waitForTimeout(250);
 }
 
-test.beforeEach(async ({ page }, info) => {
+test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await installWatcher(page);
-  // The old Companies screens, until #389 deletes them (legacyScreens.ts).
-  if (info.title.startsWith('Companies:')) await withLegacyScreens(page);
   await seed(page);
 });
 
@@ -185,30 +183,30 @@ test('Today: Scan now and the Account menu’s Companies answer within 300 ms', 
 
 test('Pipeline: every row and page action answers within 300 ms', async ({ page }) => {
   await go(page, '#/queue');
-  await press(page, button(page, 'Mark applied: Solutions Engineer'), 'Mark applied');
+  await press(page, button(page, 'Mark applied: Design Technologist'), 'Mark applied');
   await expect(
     page.getByText('Marked applied · Follow up in 7 days', { exact: true }),
   ).toBeVisible();
 
   // The job's card flashes and collapses (cards at every width, Adrian 2026-10-24); the toast
   // alone is not the item's feedback.
-  await menu(page, 'More actions: Senior Product Designer', 'Star');
-  await ranIn(page, 'rjb-flash', 'Senior Product Designer');
-  await menu(page, 'More actions: Senior Product Designer', 'Unstar');
-  await ranIn(page, 'rjb-flash', 'Senior Product Designer');
-  await menu(page, 'More actions: Implementation Consultant', 'Retire');
-  await menu(page, 'More actions: Product Designer', 'Interviewing');
-  await ranIn(page, 'rjb-flash', 'Product Designer');
-  await menu(page, 'More actions: Clinical Systems Analyst', 'Remove');
-  await ranIn(page, 'rjb-collapse', 'Clinical Systems Analyst');
+  await menu(page, 'More actions: Senior Design Systems Designer', 'Star');
+  await ranIn(page, 'rjb-flash', 'Senior Design Systems Designer');
+  await menu(page, 'More actions: Senior Design Systems Designer', 'Unstar');
+  await ranIn(page, 'rjb-flash', 'Senior Design Systems Designer');
+  await menu(page, 'More actions: Design Systems Engineer', 'Retire');
+  await menu(page, 'More actions: Product Designer, Design Systems', 'Interviewing');
+  await ranIn(page, 'rjb-flash', 'Product Designer, Design Systems');
+  await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove');
+  await ranIn(page, 'rjb-collapse', 'Principal Design Systems Engineer');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
-  await expect(button(page, 'More actions: Clinical Systems Analyst')).toHaveCount(0);
+  await expect(button(page, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
 
   for (const name of ['Status: Active', 'Sort: Newest']) {
     await press(page, button(page, name), name);
     await closeOverlay(page);
   }
-  for (const name of ['Add job', 'Follow up: UX Researcher', 'Clear sample data']) {
+  for (const name of ['Add job', 'Follow up: Design Systems Designer', 'Clear sample data']) {
     await press(page, button(page, name), name);
     await closeOverlay(page);
   }
@@ -219,9 +217,9 @@ test('Pipeline: every row and page action answers within 300 ms', async ({ page 
 test('Pipeline cards (390): Remove collapses the card before it goes', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await go(page, '#/queue');
-  await menu(page, 'More actions: Clinical Systems Analyst', 'Remove');
-  await ranIn(page, 'rjb-collapse', 'Clinical Systems Analyst');
-  await expect(button(page, 'More actions: Clinical Systems Analyst')).toHaveCount(0);
+  await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove');
+  await ranIn(page, 'rjb-collapse', 'Principal Design Systems Engineer');
+  await expect(button(page, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
 });
 
@@ -319,104 +317,6 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
   await press(page, button(page, 'Save'), 'Save');
 });
 
-test('Companies: star, roles and the page actions answer within 300 ms', async ({ page }) => {
-  await go(page, '#/discover/teams');
-  const star = page.getByRole('button', { name: 'Star Ensono as a dream company' }).first();
-  await press(page, star, 'Dream star');
-  await expect(star.locator('svg')).toHaveClass(/rjb-pop/);
-  // Unstarring is a soft Remove (#324): the notice offers Undo, and Undo puts the star back.
-  await press(page, star, 'Dream unstar');
-  await expect(page.getByText('Removed “Ensono”', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(star).toHaveAttribute('aria-pressed', 'true');
-  // The Companies row stays in its list, so it must not collapse (it would stay invisible).
-  await expect(star.locator('xpath=ancestor::li[1]')).not.toHaveAttribute(
-    'data-motion',
-    'collapse',
-  );
-  await press(page, button(page, 'Roles at Okta'), 'Roles');
-  for (const name of ['Add a company', /^Change where/, 'Manage track', 'New track']) {
-    await press(page, button(page, name), String(name));
-    await closeOverlay(page);
-  }
-
-  // Manage track: Remove on a link and Delete on a section collapse their rows; the dialog offers
-  // Undo, which puts them back.
-  await button(page, 'Manage track').click();
-  const dialog = page.getByRole('dialog', { name: 'Manage track' });
-  const links = dialog.getByRole('list', { name: /^Links in / }).first();
-  const removeLink = links.getByRole('button', { name: /^Remove / }).first();
-  const link = (await removeLink.getAttribute('aria-label'))!.replace(/^Remove /, '');
-  await press(page, removeLink, 'Remove a link');
-  await ranIn(page, 'rjb-collapse', link);
-  await expect(links.getByRole('button', { name: `Remove ${link}`, exact: true })).toHaveCount(0);
-  await dialog.getByRole('button', { name: 'Undo' }).click();
-  await expect(links.getByRole('button', { name: `Remove ${link}`, exact: true })).toHaveCount(1);
-  const sections = dialog.getByRole('textbox', { name: 'Section name' });
-  const count = await sections.count();
-  await press(
-    page,
-    dialog
-      .getByRole('listitem')
-      .filter({ has: page.getByRole('list', { name: /^Links in / }) })
-      .first()
-      .getByRole('button', { name: /^Delete .* section$/ }),
-    'Delete a section',
-  );
-  await ranIn(page, 'rjb-collapse', link);
-  await expect(sections).toHaveCount(count - 1);
-  await dialog.getByRole('button', { name: 'Undo' }).click();
-  await expect(sections).toHaveCount(count);
-  await closeOverlay(page);
-
-  // The tools, the list's filter and Suggest companies.
-  await go(page, '#/discover/teams');
-  for (const name of ['All', 'Hiring now', 'Suggest companies'])
-    await press(page, button(page, name), name);
-  for (const name of ['Apply now', 'ATS search', 'Watched'])
-    await press(page, page.getByRole('radio', { name }).or(button(page, name)).first(), name);
-
-  // Apply now: a tile's Save and Set aside.
-  await go(page, '#/discover/apply');
-  await press(page, button(page, 'Set aside'), 'Set aside');
-  await press(page, button(page, 'Save'), 'Save a tile');
-
-  // ATS search: Copy the query says so in a toast; the chips, menus and disclosures answer.
-  await go(page, '#/discover/ats');
-  await press(page, button(page, 'Copy the query'), 'Copy the query');
-  await expect(page.getByText('Copied the query', { exact: true })).toBeVisible();
-  for (const name of [/^Recency: /, /^Engagement: /]) {
-    await press(page, page.getByRole('combobox', { name }), String(name));
-    await closeOverlay(page);
-  }
-  for (const name of [
-    'Implementation Specialist',
-    'Show full query',
-    /^Show \d+ more$/,
-    /^Big job boards/,
-  ])
-    await press(page, button(page, name), String(name));
-
-  // Live postings: Calibrate, Refine, Search and Retry.
-  await go(page, '#/discover/live');
-  for (const name of [/^Calibrate/, /^Refine/, 'Search', 'Retry'])
-    await press(page, button(page, name), String(name));
-
-  // The Design Systems pack brings outreach targets: Remove on one collapses its row, then offers
-  // Undo.
-  await menu(page, 'New track', 'Design Systems');
-  await go(page, '#/discover/teams');
-  const targets = page.getByRole('list', { name: 'Saved targets' });
-  const remove = targets.getByRole('button', { name: /^Remove / }).first();
-  const company = (await remove.getAttribute('aria-label'))!.replace(/^Remove /, '');
-  await press(page, remove, 'Remove an outreach target');
-  await ranIn(page, 'rjb-collapse', company);
-  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
-  await expect(targets.getByRole('button', { name: `Remove ${company}`, exact: true })).toHaveCount(
-    0,
-  );
-});
-
 test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
 
@@ -439,8 +339,8 @@ test.describe('reduced motion', () => {
     // At 390, where the same Remove collapses the card with motion on (the test above).
     await page.setViewportSize({ width: 390, height: 844 });
     await go(page, '#/queue');
-    await menu(page, 'More actions: Clinical Systems Analyst', 'Remove');
-    await expect(button(page, 'More actions: Clinical Systems Analyst')).toHaveCount(0);
+    await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove');
+    await expect(button(page, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
     await page.waitForTimeout(400);
     expect(await anims(page)).toEqual([]);

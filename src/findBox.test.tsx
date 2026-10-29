@@ -10,16 +10,8 @@ import NoticeHost from './NoticeHost';
 import FindBox from './FindBox';
 import { getAllJobs, removeJob } from './store';
 import { dismissNotice } from './saveNotice';
-import {
-  addCategory,
-  addGroup,
-  addTile,
-  getCurationState,
-  replaceCurationState,
-} from './curation/curationStore';
-import { EMPTY_CURATION } from './curation/types';
-import { readDreams } from './feed/dreams';
-import { getAllSweeps } from './feed/sweepTitles';
+import { getProfile, replaceProfiles, saveProfile } from './profile';
+import { addSources, getSources } from './sources';
 
 /** Board APIs by URL: figma (Greenhouse) has a board; everything else 404s. */
 const fakeFetch = vi.fn(async (url: string) =>
@@ -28,16 +20,18 @@ const fakeFetch = vi.fn(async (url: string) =>
     : new Response('{}', { status: 404 }),
 );
 
-let cat: string;
-const watchedUrls = () => getCurationState().tiles.map((t) => t.url);
-const titlesOf = (id: string) => getAllSweeps()[id]?.titles ?? [];
+/** The followed boards, as kind:slug. */
+const followed = () =>
+  getSources()
+    .filter((x) => x.kind !== 'company')
+    .map((x) => `${x.kind}:${x.ref}`);
+const titles = () => getProfile()?.titles ?? [];
 
 beforeEach(() => {
   localStorage.clear();
   fakeFetch.mockClear();
   vi.stubGlobal('fetch', fakeFetch);
-  replaceCurationState(EMPTY_CURATION);
-  cat = addCategory({ label: 'Design systems', titles: ['Design Systems Engineer'], atsRoles: [] });
+  saveProfile({ titles: ['Design Systems Engineer'] });
 });
 afterEach(() => {
   cleanup();
@@ -98,25 +92,24 @@ describe('Find box from the Pipeline', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('a board link is watched on the track at once', async () => {
+  it('a board link is followed at once', async () => {
     const user = userEvent.setup();
     renderPipeline();
     const dialog = await openFind(user);
     await find(user, dialog, 'https://jobs.lever.co/northwind');
-    expect(watchedUrls()).toEqual(['https://jobs.lever.co/northwind']);
-    expect(await screen.findByText('Watching Northwind')).toBeInTheDocument();
+    expect(followed()).toEqual(['lever:northwind']);
+    expect(await screen.findByText('Following Northwind')).toBeInTheDocument();
     expect(getAllJobs()).toHaveLength(0);
   });
 
-  it('a board already watched says so and adds nothing', async () => {
-    const g = addGroup(cat, { label: 'Watched companies' });
-    addTile(g, { name: 'Northwind jobs', url: 'https://jobs.lever.co/northwind', meta: '' });
+  it('a board already followed says so and adds nothing', async () => {
+    addSources([{ kind: 'lever', ref: 'northwind', label: 'Northwind' }]);
     const user = userEvent.setup();
     renderPipeline();
     const dialog = await openFind(user);
     await find(user, dialog, 'jobs.lever.co/northwind');
-    expect(await screen.findByText('Already watching Northwind.')).toBeInTheDocument();
-    expect(watchedUrls()).toHaveLength(1);
+    expect(await screen.findByText('Already following Northwind')).toBeInTheDocument();
+    expect(followed()).toHaveLength(1);
   });
 
   it('a company name is looked up on the systems we check; a board found is one Watch away', async () => {
@@ -128,10 +121,10 @@ describe('Find box from the Pipeline', () => {
     expect(dialog).toHaveTextContent('Looks up Figma’s job board');
     await user.click(within(dialog).getByRole('button', { name: 'Find' }));
     await user.click(await within(dialog).findByRole('button', { name: 'Watch Figma' }));
-    await waitFor(() => expect(watchedUrls()).toContain('https://boards.greenhouse.io/figma'));
+    await waitFor(() => expect(followed()).toContain('greenhouse:figma'));
   });
 
-  it('a company with no public board can be kept as a target', async () => {
+  it('a company with no public board can be kept as a target (a starred company)', async () => {
     const user = userEvent.setup();
     renderPipeline();
     const dialog = await openFind(user);
@@ -139,21 +132,23 @@ describe('Find box from the Pipeline', () => {
     await user.click(
       await within(dialog).findByRole('button', { name: 'Keep Nobody Inc as a target' }),
     );
-    expect(readDreams(cat).map((d) => d.company)).toEqual(['Nobody Inc']);
+    expect(getSources()).toEqual([
+      expect.objectContaining({ kind: 'company', label: 'Nobody Inc', star: true }),
+    ]);
   });
 
-  it('a title is added to the track’s titles, with Undo', async () => {
+  it('a title is added to the Search profile’s titles, with Undo', async () => {
     const user = userEvent.setup();
     renderPipeline();
     const dialog = await openFind(user);
     await user.type(within(dialog).getByRole('textbox', { name: 'Find' }), 'Design Technologist');
     expect(dialog).toHaveTextContent('Adds “Design Technologist” to your titles');
     await user.click(within(dialog).getByRole('button', { name: 'Find' }));
-    expect(titlesOf(cat)).toEqual(['Design Systems Engineer', 'Design Technologist']);
+    expect(titles()).toEqual(['Design Systems Engineer', 'Design Technologist']);
     expect(await screen.findByText('Added “Design Technologist” to your titles')).toBeVisible();
     expect(screen.queryByRole('dialog')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(titlesOf(cat)).toEqual(['Design Systems Engineer']);
+    expect(titles()).toEqual(['Design Systems Engineer']);
   });
 
   it('a title already listed says so', async () => {
@@ -164,7 +159,19 @@ describe('Find box from the Pipeline', () => {
     expect(
       await screen.findByText('“design systems engineer” is already in your titles'),
     ).toBeVisible();
-    expect(titlesOf(cat)).toEqual([]);
+    expect(titles()).toEqual(['Design Systems Engineer']);
+  });
+
+  it('a title listed but switched off is turned on, with Undo', async () => {
+    saveProfile({ titles: ['Design Systems Engineer', 'UX Designer'], titlesOff: ['UX Designer'] });
+    const user = userEvent.setup();
+    renderPipeline();
+    const dialog = await openFind(user);
+    await find(user, dialog, 'ux designer');
+    expect(await screen.findByText('Turned “ux designer” on in your titles')).toBeVisible();
+    expect(getProfile()?.titlesOff).toEqual([]);
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(getProfile()?.titlesOff).toEqual(['UX Designer']);
   });
 
   it('a name read as a company can be searched as a title instead, and back', async () => {
@@ -178,7 +185,7 @@ describe('Find box from the Pipeline', () => {
     expect(dialog).toHaveTextContent('Looks up Figma’s job board');
     await user.click(within(dialog).getByRole('button', { name: 'Search as a title instead' }));
     await user.click(within(dialog).getByRole('button', { name: 'Find' }));
-    expect(titlesOf(cat)).toContain('Figma');
+    expect(titles()).toContain('Figma');
     expect(fakeFetch).not.toHaveBeenCalled();
   });
 
@@ -230,8 +237,8 @@ describe('Find box from the Pipeline', () => {
   });
 });
 
-describe('Find box without a track', () => {
-  beforeEach(() => replaceCurationState(EMPTY_CURATION));
+describe('Find box without a Search profile', () => {
+  beforeEach(() => replaceProfiles([]));
   const renderBox = () =>
     render(
       <ToastProvider>
@@ -240,42 +247,30 @@ describe('Find box without a track', () => {
       </ToastProvider>,
     );
 
-  it('still saves a job link', async () => {
+  it('still saves a job link and follows a board', async () => {
     const user = userEvent.setup();
     renderBox();
     await user.type(screen.getByRole('textbox', { name: 'Find' }), 'https://jobs.lever.co/x/1');
     await user.click(screen.getByRole('button', { name: 'Find' }));
     expect(getAllJobs()).toHaveLength(1);
     expect(screen.getByRole('textbox', { name: 'Find' })).toHaveValue('');
+    await user.type(
+      screen.getByRole('textbox', { name: 'Find' }),
+      'https://jobs.lever.co/northwind',
+    );
+    await user.click(screen.getByRole('button', { name: 'Find' }));
+    expect(followed()).toEqual(['lever:northwind']);
   });
 
-  it('a board, company or title says a track is needed first', async () => {
+  it('a title says a Search profile is needed first', async () => {
     const user = userEvent.setup();
     renderBox();
     const field = screen.getByRole('textbox', { name: 'Find' });
-    await user.type(field, 'https://jobs.lever.co/northwind');
+    await user.type(field, 'Pipe welder');
     await user.click(screen.getByRole('button', { name: 'Find' }));
     expect(field).toHaveAccessibleDescription(
-      'Choose a track on Today first, so there is a list to add this to.',
+      'Your search is still loading. Try again in a moment.',
     );
-    expect(watchedUrls()).toEqual([]);
-  });
-});
-
-describe('the active track', () => {
-  it('follows the track picked last in Companies', async () => {
-    const other = addCategory({ label: 'Welding', titles: ['Welder'], atsRoles: [] });
-    localStorage.setItem('rjb_active_category', other);
-    const user = userEvent.setup();
-    render(
-      <ToastProvider>
-        <FindBox />
-        <NoticeHost />
-      </ToastProvider>,
-    );
-    await user.type(screen.getByRole('textbox', { name: 'Find' }), 'Pipe welder');
-    await user.click(screen.getByRole('button', { name: 'Find' }));
-    expect(titlesOf(other)).toEqual(['Welder', 'Pipe welder']);
-    expect(titlesOf(cat)).toEqual([]);
+    expect(getProfile()).toBeNull();
   });
 });

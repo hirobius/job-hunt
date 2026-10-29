@@ -27,12 +27,16 @@ export type FeedSourceId =
   | 'gem'
   | 'pinpoint'
   | 'breezy'
-  | 'sam'
   | 'bluesky'
   | 'mastodon'
   | 'reddit'
   // designsystems.jobs: read on the server only (the sync), so it reaches the app as a stored row.
-  | 'rss';
+  | 'rss'
+  // The sync's own searches (src/tracks/feeds): stored rows only, like 'rss'.
+  | 'theirstack'
+  | 'adzuna'
+  | 'jooble'
+  | 'ids';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
@@ -57,8 +61,12 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   gem: 'Gem',
   pinpoint: 'Pinpoint',
   breezy: 'Breezy HR',
-  sam: 'SAM.gov',
   rss: 'designsystems.jobs',
+  theirstack: 'TheirStack',
+  // Adzuna's terms: every result shows "Jobs by Adzuna".
+  adzuna: 'Jobs by Adzuna',
+  jooble: 'Jooble',
+  ids: 'Into Design Systems',
   bluesky: 'Bluesky',
   mastodon: 'Mastodon',
   reddit: 'Reddit',
@@ -84,8 +92,8 @@ export interface Posting {
   salaryMax?: number;
   /** ISO currency code ('USD'); absent when the source doesn't say. */
   currency?: string;
-  /** When applications close (YYYY-MM-DD), where the source says: SAM.gov's response deadline,
-   *  Greenhouse's application deadline, Teamtailor's end date. Saved as the job's `deadline`. */
+  /** When applications close (YYYY-MM-DD), where the source says: Greenhouse's application
+   *  deadline, Teamtailor's end date. Saved as the job's `deadline`. */
   deadline?: string;
   /** Remote only (feed/autoScan.ts): the posting states no work mode or place, so it may not be
    *  remote. Shown as "Remote not stated". */

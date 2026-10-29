@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  cleanNaics,
   includeFields,
   keepIncluded,
   passesInclude,
@@ -294,5 +295,17 @@ describe('related titles (2026-10-23)', () => {
       },
     };
     expect(readBlob(writeBlob(local)).mustInclude).toEqual(local.mustInclude);
+  });
+});
+
+// The Contracts track's stored NAICS list (#275) outlives SAM.gov (#389): still read, still clean.
+describe('a stored NAICS list', () => {
+  it('keeps valid codes once, in order, capped at 10', () => {
+    expect(cleanNaics([' 332322', '332322', 'abc', '1', '1234567', 541511, '54'])).toEqual([
+      '332322',
+      '54',
+    ]);
+    expect(cleanNaics(Array.from({ length: 12 }, (_, i) => String(330000 + i)))).toHaveLength(10);
+    expect(cleanNaics('332322')).toEqual([]);
   });
 });

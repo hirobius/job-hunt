@@ -19,20 +19,12 @@
 // Cancelable (an AbortSignal stops every phase), resumable (the lead queue and an interrupted run
 // survive a reload: the next open finishes it), and never in the way: network is async and the
 // CPU work yields to the browser between chunks. Everything is per browser (a cache): Follow
-// writes a watched board (synced curation), Ignore mutes the company (decided.ts).
+// adds the board to the synced Sources, Ignore mutes the company (decided.ts).
 import { useSyncExternalStore } from 'react';
 import { loadPersisted, savePersisted } from '../persisted';
 import { ADELE, adeleNames } from './adele';
 import { YC_HIRING_URL, ycMatches } from './companySource';
-import {
-  companyKey,
-  followCompany,
-  getAllDecided,
-  hasCompany,
-  muteCompany,
-  unfollowCompany,
-  unmuteCompany,
-} from './decided';
+import { companyKey, muteCompany } from './decided';
 import { findDesignSystemOrgs, type GhGet, type RunReport } from './dsOrgs';
 import { boardKeyOf, countSources } from './feed';
 import { liveFetchJson, type FeedResult } from './fetchFeed';
@@ -40,13 +32,13 @@ import { createGithubBudget, type GithubBudget } from './githubBudget';
 import { confirmBoard } from './identity';
 import { remoteVerdict } from './mode';
 import { passesInclude, type IncludeRule } from './mustInclude';
+import { termRegex } from './term';
 import { createLimiter, probeCompanies, type Limiter } from './probe';
 import { browserReader, type PostingReader } from './reader';
 import { boardsFromUrls, canonicalBoardUrl, parseBoardUrl, type Board } from './sources/ats';
 import type { FetchJson } from './sources/http';
 import type { Posting } from './types';
-import { getCurationState, removeGroup, removeTile } from '../curation/curationStore';
-import { watchBoard } from './watchlist';
+import { followBoard } from '../sources';
 import { scanOnOpenEnabled } from './scanOnOpenFlag';
 
 export const SCAN_KEY = 'rjb_autoscan';
@@ -128,8 +120,6 @@ export interface ScanState {
   /** companyKey → when it was probed. */
   probed: Record<string, number>;
   found: FoundCompany[];
-  /** The track the last run scanned for. */
-  trackId?: string;
   error?: string;
 }
 
@@ -212,7 +202,6 @@ export function sanitizeScanState(raw: unknown): ScanState {
       .slice(0, MAX_QUEUE),
     probed,
     found: found.slice(-MAX_FOUND),
-    ...(text(o.trackId) && { trackId: text(o.trackId) }),
     ...(text(o.error) && { error: text(o.error) }),
   };
 }
@@ -330,10 +319,12 @@ export interface ScanInput {
   terms: string[];
   /** The profile's must include (the inclusion check). */
   include?: IncludeRule;
-  /** Boards the user follows (watched tiles, dreams, targets with a board). */
+  /** Boards the user follows (the board Sources). */
   boardUrls: string[];
-  /** The track scanned for (null with no track): Review new adds the scan's postings only there. */
-  trackId?: string | null;
+  /** Keep remote roles only (the profile's Remote only; on unless it says false). */
+  remoteOnly?: boolean;
+  /** The profile's leave-out words: a posting that says one is not kept. */
+  exclude?: string[];
 }
 
 export interface ScanDeps {
@@ -554,6 +545,7 @@ export async function runScan(
   // 4. filter, a chunk at a time
   step({ phase: 'filter' });
   const rule = inclusionRule(input.include);
+  const leaveOut = (input.exclude ?? []).map(termRegex).filter((r): r is RegExp => !!r);
   const kept: ScanPosting[] = [];
   let notDs = 0;
   let notRemote = 0;
@@ -566,7 +558,8 @@ export async function runScan(
         notDs++;
         continue;
       }
-      const remote = remoteOnly(p);
+      if (leaveOut.some((re) => re.test(p.title) || re.test(p.text))) continue;
+      const remote = input.remoteOnly === false ? 'keep' : remoteOnly(p);
       if (remote === 'drop') {
         notRemote++;
         continue;
@@ -595,7 +588,6 @@ export async function runScan(
     sourceCount: countSources(result.sources).read,
     notDesignSystem: notDs,
     notRemote,
-    ...(input.trackId ? { trackId: input.trackId } : { trackId: undefined }),
     found: s.found.map((f) => ({ ...f, jobs: perBoard.get(boardKeyOfUrl(f.boardUrl) ?? '') ?? 0 })),
   };
   writePostings(stored);
@@ -668,19 +660,14 @@ export function scanOnOpen(
 
 // ---- Review new and New companies ----
 
-/** Review new's reader: the inner read (followed boards and feeds, live, as the track's own
- *  filters see them) plus what the last scan kept (remote design-system roles, confirmed New
- *  companies' among them), on the track it scanned for (or any, when it scanned with no track
- *  yet), never an ignored company's. */
-export function scanReader(
-  inner: PostingReader = browserReader(),
-  trackId?: string | null,
-): PostingReader {
+/** Review new's reader: the inner read (followed boards and feeds, live, as the profile's filters
+ *  see them) plus what the last scan kept (remote design-system roles, confirmed New companies'
+ *  among them), never an ignored company's. */
+export function scanReader(inner: PostingReader = browserReader()): PostingReader {
   return {
     async read(req, onProgress) {
       const live = await inner.read(req, onProgress);
       const state = getScanState();
-      if (state.trackId && state.trackId !== trackId) return live;
       const ignored = new Set(
         state.found.filter((f) => f.status === 'ignored').map((f) => boardKeyOfUrl(f.boardUrl)),
       );
@@ -699,30 +686,12 @@ function setStatus(key: string, status: FoundStatus) {
   writeState({ ...s, found: s.found.map((f) => (f.key === key ? { ...f, status } : f)) });
 }
 
-/** Follow a company the scan found: its board is watched on the track (or, with no track, the
- *  company is followed by name). Returns the undo. */
-export function followFound(key: string, categoryId: string | null): () => void {
+/** Follow a company the scan found: its board joins the Sources. Returns the undo. */
+export function followFound(key: string): () => void {
   const f = getScanState().found.find((x) => x.key === key);
   if (!f) return () => {};
-  let undo = () => {};
-  if (categoryId) {
-    const before = getCurationState();
-    const tiles = new Set(before.tiles.map((t) => t.id));
-    const groups = new Set(before.groups.map((g) => g.id));
-    if (watchBoard(categoryId, f.boardUrl).ok) {
-      const after = getCurationState();
-      const added = after.tiles.filter((t) => !tiles.has(t.id));
-      // A Watched companies group made for this board goes with it.
-      const made = after.groups.filter((g) => !groups.has(g.id));
-      undo = () => {
-        added.forEach((t) => removeTile(t.id));
-        made.forEach((g) => removeGroup(g.id));
-      };
-    }
-  } else if (!hasCompany(getAllDecided().followed, f.name)) {
-    followCompany(f.name);
-    undo = () => unfollowCompany(f.name);
-  }
+  const b = parseBoardUrl(f.boardUrl);
+  const undo = b ? followBoard(b, f.name).undo : () => {};
   setStatus(key, 'followed');
   return () => {
     undo();
@@ -734,12 +703,10 @@ export function followFound(key: string, categoryId: string | null): () => void 
 export function ignoreFound(key: string): () => void {
   const f = getScanState().found.find((x) => x.key === key);
   if (!f) return () => {};
-  // Muted already (Not this company): Undo leaves that mute as it was.
-  const was = hasCompany(getAllDecided().muted, f.name);
-  if (!was) muteCompany(f.name);
+  const unmute = muteCompany(f.name);
   setStatus(key, 'ignored');
   return () => {
-    if (!was) unmuteCompany(f.name);
+    unmute();
     setStatus(key, f.status);
   };
 }

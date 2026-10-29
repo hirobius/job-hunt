@@ -6,9 +6,10 @@ import { BRAND } from './brand';
 import { LEGAL_TITLES } from './legalRoute';
 
 /** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
- *  on 2026-10-20 and the Bluesky / Mastodon revision (PR #420) on 2026-10-28. */
+ *  on 2026-10-20 and the Bluesky / Mastodon revision (PR #420) on 2026-10-28. The server job
+ *  searches entry (2026-10-29) is waiting for his review. */
 export const LEGAL_DRAFT = false;
-export const LEGAL_UPDATED = '28 October 2026';
+export const LEGAL_UPDATED = '29 October 2026';
 export const OPERATOR = 'Hirobius';
 export const CONTACT_EMAIL = 'hello@hirobius.com';
 
@@ -76,6 +77,12 @@ export const THIRD_PARTIES: ThirdParty[] = [
       'https://*.pinpointhq.com',
       'https://*.breezy.hr',
     ],
+  },
+  {
+    name: 'Job searches our server runs',
+    purpose:
+      'If you sign in and your search is for design systems roles, our server (not your browser) looks for openings on designsystems.jobs and, once each is switched on, TheirStack, Adzuna, Jooble and Into Design Systems. They receive only a fixed search phrase such as “design system”, never your email, jobs, notes, documents or account. Openings from Adzuna are labelled “Jobs by Adzuna”.',
+    hosts: [],
   },
   {
     name: 'DuckDuckGo',

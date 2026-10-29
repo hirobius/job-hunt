@@ -24,8 +24,7 @@ import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob, updateJob } from './store';
 import { ymd } from './jobEvents';
-import { addCategory, replaceCurationState } from './curation/curationStore';
-import { EMPTY_CURATION } from './curation/types';
+import { getProfile, replaceProfiles, saveProfile } from './profile';
 import { resetScan } from './feed/autoScan';
 import { getAllDecided } from './feed/decided';
 import { feedKeys } from './feed/scanningCount';
@@ -67,8 +66,7 @@ const result = (postings: Posting[]): FeedResult => ({
 beforeEach(() => {
   localStorage.clear();
   resetScan();
-  replaceCurationState(EMPTY_CURATION);
-  addCategory({ label: 'Design systems', titles: ['Design Systems Designer'] });
+  saveProfile({ titles: ['Design Systems Designer'], mode: 'remote' });
   feed.fetchFeed
     .mockReset()
     .mockResolvedValue(
@@ -85,7 +83,6 @@ afterEach(() => {
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
-  replaceCurationState(EMPTY_CURATION);
 });
 
 describe('the shell: Today and Jobs', () => {
@@ -121,11 +118,13 @@ describe('the shell: Today and Jobs', () => {
     expect(names).toEqual(['Review new', 'Apply', 'Follow up', 'New companies']);
   });
 
-  it('a first run shows onboarding', async () => {
-    replaceCurationState(EMPTY_CURATION);
+  it('a first run opens on Today with the design-systems profile, no setup screen', async () => {
+    replaceProfiles([]);
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/today'));
-    expect(await screen.findByRole('button', { name: /sample data/i })).toBeInTheDocument();
+    await waitFor(() => expect(getProfile()).not.toBeNull());
+    expect(await screen.findByRole('region', { name: /^Review new/ })).toBeInTheDocument();
+    expect(screen.queryByText('Set up your search')).toBeNull();
   });
 
   it('the Jobs tab opens the Pipeline, unchanged inside', async () => {

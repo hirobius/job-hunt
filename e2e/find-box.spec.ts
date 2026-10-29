@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 // One Find box (#384), reached from the Pipeline's Add job dialog until Today hosts it: a pasted
-// job link saves the job; with no track yet, a board asks for one first.
+// job link saves the job; a board is followed at once; a title joins the Search profile (a first
+// visit has one on its own).
 
 test.beforeEach(async ({ context }) => {
   await context.route('https://icons.duckduckgo.com/**', (r) => r.abort());
@@ -28,12 +29,21 @@ test('a job link pasted into Find lands in the Pipeline', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Acme · Lever', exact: true })).toBeVisible();
 });
 
-test('a board with no track yet says to set one up', async ({ page }) => {
+test('a board is followed at once; a title joins the Search profile', async ({ page }) => {
   const dialog = await openFind(page);
-  await dialog.getByRole('textbox', { name: 'Find' }).fill('https://jobs.lever.co/acme');
-  await expect(dialog.getByText('Watches Acme’s board.')).toBeVisible();
-  await dialog.getByRole('textbox', { name: 'Find' }).press('Enter');
-  await expect(
-    dialog.getByText('Choose a track on Today first, so there is a list to add this to.'),
-  ).toBeVisible();
+  const field = dialog.getByRole('textbox', { name: 'Find' });
+  await field.fill('https://jobs.lever.co/acme');
+  await expect(dialog.getByText('Follows Acme’s board.')).toBeVisible();
+  await field.press('Enter');
+  await expect(page.getByText('Following Acme').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Add job' }).click();
+  await page
+    .getByRole('dialog', { name: 'Add a job' })
+    .getByRole('button', { name: 'Paste a company, board or title instead' })
+    .click();
+  await field.fill('Design Technologist');
+  await expect(dialog.getByText('Adds “Design Technologist” to your titles.')).toBeVisible();
+  await field.press('Enter');
+  // A first visit has the design-systems profile on its own (no setup screen).
+  await expect(page.getByText('Added “Design Technologist” to your titles').first()).toBeVisible();
 });

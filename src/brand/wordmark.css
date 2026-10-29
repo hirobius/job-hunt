@@ -1,0 +1,27 @@
+/* The wordmark (Wordmark.tsx, wordmarkMarkup.ts; also inlined into the og-image by npm run icons).
+   The "o" stays in the line, transparent, so the word's box and advance are the plain name; the
+   flame shares its grid cell, centred on it, its bottom on the text baseline, as tall as a capital.
+   Nothing here touches the font's metrics or tracking. */
+.rjb-wordmark-o {
+  display: inline-grid;
+}
+.rjb-wordmark-o > * {
+  /* Both in the baseline group: the cell's baseline is the letter's, so the cell sits in the line
+     exactly where the "o" would and the flame's bottom lands on the text baseline. */
+  grid-area: 1 / 1;
+  align-self: baseline;
+}
+.rjb-wordmark-ghost {
+  color: transparent;
+}
+.rjb-wordmark-o > .rjb-flame {
+  justify-self: center;
+  display: block;
+}
+.rjb-wordmark-o > .rjb-flame svg {
+  display: block;
+  width: auto;
+  height: 0.7em;
+  height: 1cap;
+  overflow: visible;
+}

@@ -15,6 +15,7 @@ import { ColorModeProvider } from './ColorMode';
 import { ErrorBoundary } from './ErrorBoundary';
 import { installErrorReporting } from './errorReport';
 import { setScanOnOpen } from './feed/scanOnOpenFlag';
+import { moveLegacyDecided } from './decided';
 import App from './App';
 import { getRoute } from './route';
 import { preloadLanding } from './routeViews';
@@ -28,6 +29,8 @@ inject();
 installErrorReporting();
 // The auto-scan runs on open (#415); App's AutoScanOnOpen starts it once sync settles.
 setScanOnOpen(true);
+// Review new's old per-browser decisions into the synced stores, before sync reads them (#388).
+moveLegacyDecided();
 // Pages come back at the scroll they had (return paths): Back, Forward, a top tab, a reload.
 installScrollMemory();
 // Focus is never dropped: a page change focuses its heading, a row leaving hands focus on.

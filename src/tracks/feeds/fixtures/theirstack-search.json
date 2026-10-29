@@ -1,0 +1,35 @@
+{
+  "metadata": { "total_results": null, "truncated_results": 0, "total_companies": null },
+  "data": [
+    {
+      "id": 1866203412,
+      "job_title": "Senior Design Systems Engineer",
+      "url": "https://www.linkedin.com/jobs/view/4012345678",
+      "final_url": "https://job-boards.greenhouse.io/acme/jobs/7012345",
+      "source_url": "https://www.linkedin.com/jobs/view/4012345678",
+      "date_posted": "2026-10-27",
+      "discovered_at": "2026-10-27T09:12:44.000Z",
+      "company": "Acme",
+      "company_domain": "acme.com",
+      "company_object": { "name": "Acme Inc.", "domain": "acme.com", "url": "https://acme.com" },
+      "location": "United States",
+      "short_location": "US",
+      "remote": true,
+      "hybrid": false,
+      "salary_string": "$160,000 - $190,000",
+      "description": "<p>Own our <strong>design system</strong> &amp; tokens.</p>"
+    },
+    {
+      "id": 1866203999,
+      "job_title": "Design Technologist",
+      "url": "https://example-board.com/jobs/88",
+      "final_url": null,
+      "date_posted": "not a date",
+      "company": "Beta",
+      "remote": false,
+      "description": ""
+    },
+    { "id": 3, "job_title": "No link", "url": "javascript:alert(1)" },
+    { "job_title": "No id", "url": "https://x.example/1" }
+  ]
+}

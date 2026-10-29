@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   useRoute,
   navigate,
@@ -21,24 +21,19 @@ import {
 } from '@hirobius/design-system';
 import { FollowUpHost } from './FollowUp';
 import { AddInterviewHost } from './AddInterview';
-import {
-  ApplyMode,
-  ChooseTrack,
-  CompanyPage,
-  JobPage,
-  Onboarding,
-  Today,
-  TrackerView,
-} from './routeViews';
+import { ApplyMode, CompanyPage, JobPage, Today, TrackerView } from './routeViews';
 import { JobPageLiveness } from './LivenessViews';
 import { usePageTitle } from './pageTitle';
-import { BrandLogo } from './components/brand/BrandFlame';
+import { BrandLogo } from './brand/Flame';
+import { BootHold } from './brand/BootHold';
+import { needsClientAtBoot } from './supabase';
 import { LEGAL_ROUTE } from './legalRoute';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInHost from './account/SignInHost';
 import { useJobs } from './store';
+import { useProfile } from './profile';
 import { useSnippets } from './copyDeckStore';
 import { migrateSnippetStore } from './outreachTemplates';
 import { scanOnOpenEnabled } from './feed/scanOnOpenFlag';
@@ -50,17 +45,15 @@ import { QUICK_ADD_INVALID, quickAddBadStatus, saveWithNotice } from './saveNoti
 import { setStatusWithNotice } from './jobUndo';
 import { useCategories } from './curation/curationStore';
 import { STATUSES, type Status } from './types';
-import { DiscoverSkeleton, CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
+import { CopyDeckSkeleton, PipelineSkeleton } from './Skeletons';
 import { importFresh } from './staleBuild';
 import V12Migration from './V12Migration';
 import { PageShell } from './hds-gaps/PageShell';
 import { PageErrorBoundary } from './ErrorBoundary';
-import { legacyScreens } from './legacyScreens';
 
-// Code-split every route view: Discover, Documents and the rest here, the Pipeline, job page,
+// Code-split every route view: Documents and the rest here, the Pipeline, job page,
 // Apply mode and Company page through routeViews.ts (they render without a Suspense step once
 // loaded, so moving between them never flashes a skeleton).
-const DiscoverView = lazy(importFresh(() => import('./DiscoverView')));
 const DocumentsView = lazy(importFresh(() => import('./DocumentsView')));
 const LegalPage = lazy(importFresh(() => import('./LegalPage')));
 const NotFoundPage = lazy(importFresh(() => import('./NotFoundPage')));
@@ -76,13 +69,11 @@ const AutoScanOnOpen = lazy(() =>
 
 // Top-level tabs, in render order: exactly two, Today · Jobs (simplify #383 + amendment 2, Q6).
 // The URL hash carries the slug (`queue` is the Pipeline, its tab named Jobs). The Companies tab is
-// gone: route.ts sends `#/discover/*` (and the Trades slug) to Today, and Followed / Ignored
-// companies sit under the Account menu. Its old screens stay mounted only for their own tests
-// until #389 deletes them (legacyScreens.ts). Templates lost its tab (#240) and became the
+// gone with its screens (#389): route.ts sends `#/discover/*` (and the Trades slug) to Today, and
+// Followed / Ignored companies sit under the Account menu. Templates lost its tab (#240) and became the
 // Documents library (#227): `#/copy-deck` (slug kept) is a page with no tab selected, reached
 // from the Apply sheet and the Menu.
 const TAB_SLUGS = ['today', 'queue'] as const;
-const LEGACY_TAB = 'discover';
 const DOCUMENTS_ROUTE = 'copy-deck';
 // Where an empty hash lands, and where a quick-add link lands, are separate decisions (#127):
 // Today is home; quick-add always shows the Pipeline, where the new job is.
@@ -92,6 +83,19 @@ const APPLY_ROUTE = 'apply';
 // The quick-add link's params (shortcut, bookmarklet, Gmail-scan links): read once, then removed.
 const QUICK_ADD_PARAMS = ['add', 'applied', 'status', 'u', 't', 'title'];
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
+
+/** On Today, a signed-in device with nothing on it shows the flame until its cloud copy lands,
+ *  instead of flashing an empty Today (brand/BootHold.tsx). Decided once, at boot; offline
+ *  there is nothing to wait for. Pages that never gate (Jobs, Documents, legal) are never held. */
+function PageHold({ firstRun, children }: { firstRun: boolean; children: ReactNode }) {
+  const { settled, offline } = useCloudSync();
+  const [waiting] = useState(() => firstRun && needsClientAtBoot());
+  return (
+    <BootHold waiting={waiting} settled={settled || offline}>
+      {children}
+    </BootHold>
+  );
+}
 
 /** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
  *  after sync has settled so the cloud's copy (already moved on another device) is here first. */
@@ -139,8 +143,7 @@ export default function App() {
   const legal = route.tab === LEGAL_ROUTE;
   // Any other slug is a stale or mistyped link: say so (no tab selected) rather than show home.
   // A sign-in link's callback hash is not a link: Today shows while auth-js reads it.
-  const legacy = legacyScreens();
-  const slugs: string[] = legacy ? [...TAB_SLUGS, LEGACY_TAB] : [...TAB_SLUGS];
+  const slugs: string[] = [...TAB_SLUGS];
   const known: string[] = [...slugs, APPLY_ROUTE, COMPANY_TAB, DOCUMENTS_ROUTE, LEGAL_ROUTE];
   const notFound = route.tab !== '' && !isAuthCallback(route) && !known.includes(route.tab);
   const noTab = documents || legal || notFound;
@@ -156,9 +159,7 @@ export default function App() {
           ? null
           : tabSlug === 'queue'
             ? 'Pipeline'
-            : tabSlug === 'today'
-              ? 'Today'
-              : 'Companies',
+            : 'Today',
   );
 
   // Top tabs (return paths): another tab reopens where it was left (openTab); the open tab, tapped
@@ -185,13 +186,15 @@ export default function App() {
     onClick: tapped(slug),
   });
 
-  // The onboarding gate (#128) lives here, not in a view: on a first run (no tracks and no jobs)
-  // Today shows the setup, with sample data, so nobody lands on an empty home. The Pipeline and
-  // Documents never gate: quick-add and sample data work before setup.
+  // No setup screen (Adrian 2026-10-29): a first run (no Search profile, no jobs, no old tracks)
+  // gets the design-systems profile on its own once sync settles (V12Migration → ensureProfile)
+  // and opens on Today with the scan running. `firstRun` only holds Today for a signed-in device
+  // whose cloud copy is on its way. Sample data is offered from the Jobs page's empty state.
   const hasTracks = useCategories().length > 0;
+  const hasProfile = !!useProfile();
   const jobs = useJobs();
   const hasJobs = jobs.length > 0;
-  const firstRun = !hasTracks && !hasJobs;
+  const firstRun = !hasProfile && !hasTracks && !hasJobs;
 
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
   // After ingesting, land on the Pipeline so the just-added job is visible; with no route at all,
@@ -260,7 +263,8 @@ export default function App() {
       <SnippetMigration />
       <SystemsOnlyMigration />
       <V12Migration />
-      {scanOnOpenEnabled() && (
+      {/* The scan starts once the profile is here (made on its own on a first run). */}
+      {scanOnOpenEnabled() && hasProfile && (
         <Suspense fallback={null}>
           <AutoScanOnOpen />
         </Suspense>
@@ -285,8 +289,8 @@ export default function App() {
                     landmark-one-main / region). */}
                 <Box as="header">
                   <Stack gap="normal">
-                    {/* Slim app bar: the brand lockup (live flame + Sora wordmark, the page's one h1;
-                      Adrian 2026-10-24) · the Account avatar. */}
+                    {/* Slim app bar: the brand lockup (the flame from src/brand/flame.svg + the
+                      wordmark, the page's one h1) · the Account avatar. */}
                     <Stack direction="row" gap="gap" align="center" justify="space-between">
                       <BrandLogo fontSize={19} />
                       <AccountMenu />
@@ -302,11 +306,6 @@ export default function App() {
                       <TabsTrigger value="queue" {...trigger('queue')}>
                         Jobs
                       </TabsTrigger>
-                      {legacy && (
-                        <TabsTrigger value={LEGACY_TAB} {...trigger(LEGACY_TAB)}>
-                          Companies
-                        </TabsTrigger>
-                      )}
                     </TabsList>
                   </Stack>
                 </Box>
@@ -317,7 +316,9 @@ export default function App() {
                     <Stack gap="px24">
                       <TabsContent value="today" variant="bare" tabIndex={-1}>
                         <Suspense fallback={<PipelineSkeleton />}>
-                          {firstRun ? <Onboarding offerSample /> : <Today />}
+                          <PageHold firstRun={firstRun}>
+                            <Today />
+                          </PageHold>
                         </Suspense>
                       </TabsContent>
                       <TabsContent value="queue" variant="bare" tabIndex={-1}>
@@ -337,19 +338,6 @@ export default function App() {
                           )}
                         </Suspense>
                       </TabsContent>
-                      {legacy && (
-                        <TabsContent value={LEGACY_TAB} variant="bare" tabIndex={-1}>
-                          <Suspense fallback={<DiscoverSkeleton />}>
-                            {firstRun ? (
-                              <Onboarding offerSample />
-                            ) : hasTracks ? (
-                              <DiscoverView />
-                            ) : (
-                              <ChooseTrack />
-                            )}
-                          </Suspense>
-                        </TabsContent>
-                      )}
                       {documents && (
                         <Suspense fallback={<CopyDeckSkeleton />}>
                           <DocumentsView />

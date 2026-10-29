@@ -1,16 +1,23 @@
 // What a company lookup (companyLookup.ts) came back with: boards found (one Watch away), boards
 // the name matched that don't show they are this company's (Watch anyway), already watched, no
-// public board (keep it as a target) or couldn't check (never read as "no board"). Shared by Add a
-// company (#237) and the Find box (#384).
+// public board (keep it as a target) or couldn't check (never read as "no board"). The Find box's
+// (#384).
 import { useState } from 'react';
 import { Alert, Badge, Button, Icon, Stack, Text } from '@hirobius/design-system';
 import { Star } from 'lucide-react';
 import type { DiscoverResult } from './feed/discoverBoards';
 import type { Board } from './feed/sources/ats';
 import { SOURCE_LABEL } from './feed/types';
-import { listStyle } from './outreachShared';
 
 const key = (b: Board) => `${b.kind}:${b.slug}`;
+
+const listStyle = {
+  listStyle: 'none',
+  margin: 0,
+  padding: 0,
+  display: 'grid',
+  gap: 'var(--primitive-space-3)',
+} as const;
 
 export function CompanyLookupResults({
   asked,

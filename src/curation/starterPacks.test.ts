@@ -8,23 +8,21 @@ vi.mock('@supabase/supabase-js', () => ({
   }),
 }));
 
-import { getCurationState, replaceCurationState } from './curationStore';
+import { addCategory, getCurationState, replaceCurationState } from './curationStore';
 import { packIdForLabel, seedPack, STARTER_PACKS, topUpFromPack } from './starterPacks';
 import { DIRECTORY_BY_PACK, TARGETS_BY_PACK } from '../radar/directory';
 import { readTargets, saveTarget } from '../feed/targets';
-import { hasMustInclude, readMustInclude, saysDesignSystem } from '../feed/mustInclude';
+import { readMustInclude, saysDesignSystem } from '../feed/mustInclude';
 import { parseBoardUrl } from '../feed/sources/ats';
-import { placeKey } from './localize';
-import { CONSULTING_PACK, DESIGN_SYSTEMS_PACK, SERVICENOW_PACK, TRADES_PACK } from './packContent';
 
 afterEach(() => replaceCurationState({ categories: [], groups: [], tiles: [] }));
 
 describe('seedPack', () => {
-  it('seeds a pillar-backed pack as a category with groups + tiles; location overrides', () => {
-    const id = seedPack('consulting', 'Denver, CO');
+  it('seeds the design systems pack as a category with groups + tiles; location overrides', () => {
+    const id = seedPack('designsystems', 'Denver, CO');
     const s = getCurationState();
     const cat = s.categories.find((c) => c.id === id)!;
-    expect(cat.label).toBe('Implementation Consulting');
+    expect(cat.label).toBe('Design Systems');
     expect(cat.titles.length).toBeGreaterThan(0);
     expect(cat.atsRoles.length).toBeGreaterThan(0);
     expect(cat.location).toBe('Denver, CO');
@@ -32,26 +30,11 @@ describe('seedPack', () => {
     expect(s.tiles.length).toBeGreaterThan(0);
   });
 
-  it('a blank pack seeds an empty category (no titles, no groups)', () => {
-    const id = seedPack('blank');
-    const s = getCurationState();
-    const cat = s.categories.find((c) => c.id === id)!;
-    expect(cat.titles).toEqual([]);
-    expect(s.groups.filter((g) => g.categoryId === id)).toEqual([]);
-  });
-
-  it('optional titles replace the pack titles (Build your own needs a first title)', () => {
-    const id = seedPack('blank', '', { titles: ['Design Engineer'] });
-    expect(getCurationState().categories.find((c) => c.id === id)!.titles).toEqual([
-      'Design Engineer',
-    ]);
-  });
-
-  it('Build your own is named after its first title, not "Build your own" (an instruction)', () => {
-    const id = seedPack('blank', '', { titles: ['  Design Engineer '] });
-    expect(getCurationState().categories.find((c) => c.id === id)!.label).toBe('Design Engineer');
-    const bare = seedPack('blank');
-    expect(getCurationState().categories.find((c) => c.id === bare)!.label).toBe('My track');
+  it('optional titles replace the pack titles; an optional label names the track', () => {
+    const id = seedPack('designsystems', '', { titles: ['Design Ops Lead'], label: 'Sample' });
+    const cat = getCurationState().categories.find((c) => c.id === id)!;
+    expect(cat.titles).toEqual(['Design Ops Lead']);
+    expect(cat.label).toBe('Sample');
   });
 
   it('no location means anywhere: no pack defaults to "Remote" (Adrian 2026-10-22)', () => {
@@ -91,29 +74,10 @@ describe('per-track watched boards', () => {
     ).toHaveLength(1);
   });
 
-  it('a trades track starts with only trades boards, none of the design systems ones', () => {
-    const id = seedPack('trades');
-    expect(watched(id)).toEqual(DIRECTORY_BY_PACK.trades);
-    expect(watched(id).some((u) => DIRECTORY_BY_PACK.designsystems.includes(u))).toBe(false);
-  });
-
-  it('a blank track has none', () => {
-    expect(watched(seedPack('blank'))).toEqual([]);
-  });
-
-  it('the watched group is never the featured Apply Now group', () => {
-    const id = seedPack('designsystems');
-    const g = getCurationState().groups.filter((x) => x.categoryId === id);
-    expect(g.map((x) => x.label)).toContain('Watched companies');
-  });
-
   it.each([
     ['Design Systems', 'designsystems'],
     ['design systems / design eng', 'designsystems'],
-    ['Skilled Trades', 'trades'],
-    ['Sheet Metal & Fab', 'trades'],
-    ['ServiceNow', 'servicenow'],
-    ['Implementation Consulting', 'consulting'],
+    ['Skilled Trades', undefined],
     ['My own thing', undefined],
     ['', undefined],
   ])('packIdForLabel(%s) is %s', (label, id) => {
@@ -145,11 +109,6 @@ describe('design systems targets track (#198)', () => {
     );
   });
 
-  it('other packs seed no outreach targets', () => {
-    expect(readTargets(seedPack('trades'))).toEqual([]);
-    expect(readTargets(seedPack('blank'))).toEqual([]);
-  });
-
   it('includes the Staff and Principal design systems title searches', () => {
     const id = seedPack('designsystems');
     const cat = getCurationState().categories.find((c) => c.id === id)!;
@@ -174,8 +133,6 @@ describe('design systems targets track (#198)', () => {
     for (const gone of ['Design Engineer', 'UI Engineer', 'Product Designer', 'Frontend Engineer'])
       expect(cat.titles).not.toContain(gone);
     expect(readMustInclude(id)).toMatchObject({ terms: ['design system'] });
-    // Other packs get no rule.
-    expect(hasMustInclude(seedPack('trades'))).toBe(false);
   });
 
   it('a track made under the old pack label still belongs to the pack', () => {
@@ -184,7 +141,7 @@ describe('design systems targets track (#198)', () => {
   });
 
   it('an existing track picks the targets up from the pack update, keeping its own', () => {
-    const id = seedPack('blank');
+    const id = addCategory({ label: 'Mine', titles: [], atsRoles: [] });
     saveTarget(id, {
       login: 'stripe',
       company: 'My Stripe note',
@@ -196,133 +153,5 @@ describe('design systems targets track (#198)', () => {
     expect(list).toHaveLength(23);
     expect(list.find((t) => t.login === 'stripe')!.company).toBe('My Stripe note');
     expect(topUpFromPack(id, 'designsystems').targets).toBe(0);
-  });
-});
-
-describe('starter links follow the track location (Adrian 2026-10-22)', () => {
-  const tilesOf = (id: string) => {
-    const s = getCurationState();
-    const groups = new Set(s.groups.filter((g) => g.categoryId === id).map((g) => g.id));
-    return s.tiles.filter((t) => groups.has(t.groupId));
-  };
-  const SEARCH_HOSTS = /indeed\.com|linkedin\.com\/jobs|ziprecruiter\.com/;
-
-  it('with a location, every local search link uses it and none says Spokane', () => {
-    for (const pack of ['trades', 'consulting']) {
-      const tiles = tilesOf(seedPack(pack, 'Boise, ID'));
-      const local = tiles.filter((t) => /Boise/.test(t.url));
-      expect(local.length).toBeGreaterThan(0);
-      tiles
-        .filter((t) => SEARCH_HOSTS.test(t.url))
-        .forEach((t) => {
-          expect(t.url).not.toMatch(/spokane/i);
-          expect(`${t.name} ${t.meta}`).not.toMatch(/spokane/i);
-        });
-      expect(local.map((t) => t.name).some((n) => n.includes('(Boise, ID)'))).toBe(true);
-    }
-  });
-
-  it('with no location, the local search links carry no location at all', () => {
-    const tiles = tilesOf(seedPack('trades', ''));
-    const indeed = tiles.find((t) => t.url.includes('indeed.com/jobs?q=fabricator'))!;
-    expect(new URL(indeed.url).searchParams.has('l')).toBe(false);
-    expect(indeed.name).toBe('Indeed · Fabricator');
-    tiles
-      .filter((t) => SEARCH_HOSTS.test(t.url))
-      .forEach((t) => expect(`${t.url} ${t.name} ${t.meta}`).not.toMatch(/spokane/i));
-  });
-
-  it('a remote search keeps its own location', () => {
-    const tiles = tilesOf(seedPack('consulting', 'Boise, ID'));
-    expect(tiles.some((t) => t.url.includes('l=Remote'))).toBe(true);
-  });
-
-  it('topping up a track whose location came back null from the database does not throw', () => {
-    const id = seedPack('trades', 'Boise, ID');
-    replaceCurationState({
-      ...getCurationState(),
-      categories: getCurationState().categories.map((c) =>
-        c.id === id ? ({ ...c, location: null } as unknown as typeof c) : c,
-      ),
-      tiles: getCurationState().tiles.filter((t) => !/indeed/.test(t.url)),
-    });
-    expect(() => topUpFromPack(id, 'trades')).not.toThrow();
-    expect(getCurationState().tiles.some((t) => /indeed/.test(t.url))).toBe(true);
-  });
-
-  it('topping up a track uses the track location too', () => {
-    const id = seedPack('trades', 'Boise, ID');
-    replaceCurationState({
-      ...getCurationState(),
-      tiles: getCurationState().tiles.filter((t) => !/indeed/.test(t.url)),
-    });
-    topUpFromPack(id, 'trades');
-    const indeed = tilesOf(id).filter((t) => /indeed\.com/.test(t.url));
-    expect(indeed.length).toBeGreaterThan(0);
-    indeed.forEach((t) => expect(new URL(t.url).searchParams.get('l')).toBe('Boise, ID'));
-  });
-});
-
-describe('top-up after the live release adds no duplicate links (review, finding 1)', () => {
-  const PACKS = {
-    trades: TRADES_PACK,
-    consulting: CONSULTING_PACK,
-    servicenow: SERVICENOW_PACK,
-    designsystems: DESIGN_SYSTEMS_PACK,
-  } as const;
-  const urlsOf = (id: string) => {
-    const s = getCurationState();
-    const groups = new Set(s.groups.filter((g) => g.categoryId === id).map((g) => g.id));
-    return s.tiles.filter((t) => groups.has(t.groupId)).map((t) => t.url);
-  };
-  // 2dd1e49 seeded the pack's links as written (Spokane), whatever the track's location.
-  const asLiveRelease = (id: string, packId: keyof typeof PACKS) => {
-    const s = getCurationState();
-    const groups = s.groups.filter((g) => g.categoryId === id);
-    replaceCurationState({
-      ...s,
-      tiles: s.tiles.map((t) => {
-        const g = groups.find((x) => x.id === t.groupId);
-        const raw = PACKS[packId].groups.find((pg) => pg.label === g?.label)?.tiles[t.sortOrder];
-        return raw ? { ...t, name: raw.name, url: raw.url, meta: raw.meta } : t;
-      }),
-    });
-  };
-
-  for (const location of ['Spokane, WA', '', 'Seattle, WA']) {
-    it(`a track seeded on the live release at "${location}" tops up with no duplicates`, () => {
-      let spokaneLinks = 0;
-      for (const packId of Object.keys(PACKS) as (keyof typeof PACKS)[]) {
-        const id = seedPack(packId, location);
-        asLiveRelease(id, packId);
-        const before = urlsOf(id);
-        spokaneLinks += before.filter((u) => /spokane/i.test(u)).length;
-        expect(topUpFromPack(id, packId).tiles).toBe(0);
-        expect(urlsOf(id)).toEqual(before);
-      }
-      expect(spokaneLinks).toBeGreaterThan(0);
-    });
-  }
-
-  it('a track seeded with the old re-encoded localize also tops up with no duplicates', () => {
-    const id = seedPack('trades', 'Seattle, WA');
-    const s = getCurationState();
-    replaceCurationState({
-      ...s,
-      tiles: s.tiles.map((t) => {
-        const u = new URL(t.url);
-        if (!u.searchParams.has('l')) return t;
-        u.searchParams.set('l', 'Seattle, WA');
-        return { ...t, url: u.toString() };
-      }),
-    });
-    expect(topUpFromPack(id, 'trades').tiles).toBe(0);
-  });
-
-  it('no two links in a pack share a place-free key (the key never merges two searches)', () => {
-    Object.values(PACKS).forEach((p) => {
-      const urls = p.groups.flatMap((g) => g.tiles.map((t) => t.url));
-      expect(new Set(urls.map(placeKey)).size).toBe(new Set(urls).size);
-    });
   });
 });

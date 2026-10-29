@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { entryLevelize, BOARDS, boardsFor, SearchLoc } from './jobsData';
+import {
+  entryLevelize,
+  BOARDS,
+  boardsFor,
+  SearchLoc,
+  ATS,
+  HIDDEN_BOARDS,
+  atsSearchUrl,
+  searchAllUrl,
+  type HiddenQuery,
+} from './jobsData';
 
 describe('entryLevelize', () => {
   it('returns empty/falsy string unchanged', () => {
@@ -363,5 +373,44 @@ describe('BOARDS builders', () => {
         'https://www.snagajob.com/search?q=Welder&w=Spokane%2C%20WA',
       );
     });
+  });
+});
+
+// Search elsewhere's one-query links (moved here from the ATS search panel's tests when the panel
+// went, #389): Google reads 32 words, so the titles are trimmed first and the place, recency and
+// Contract only always fit, with at least three systems in "Search all boards".
+describe('one-query searches stay within Google’s 32 words', () => {
+  const words = (url: string) =>
+    (new URL(url).searchParams.get('q') ?? '').split(/\s+/).filter(Boolean).length;
+  const many: HiddenQuery = {
+    role: 'senior design systems engineer',
+    roles: [
+      'senior design systems engineer',
+      'staff design systems designer',
+      'principal design engineer frontend',
+      'design technologist component library',
+      'ui platform engineer design tokens',
+      'lead product designer design systems',
+    ],
+    where: 'Spokane, WA',
+    mode: 'onsite',
+    recency: 'w',
+    contract: true,
+  };
+
+  it('Search all boards trims titles, keeps the filters and covers at least three systems', () => {
+    for (const sites of [ATS, HIDDEN_BOARDS]) {
+      const url = searchAllUrl(sites, many);
+      const q = new URL(url).searchParams.get('q') ?? '';
+      expect(words(url)).toBeLessThanOrEqual(32);
+      expect(q).toContain('(contract OR freelance OR fractional)');
+      expect(q).toContain('"Spokane, WA"');
+      expect((q.match(/site:/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('one system’s search fits too', () => {
+    for (const s of ATS.filter((x) => x.site))
+      expect(words(atsSearchUrl(s.site, many))).toBeLessThanOrEqual(32);
   });
 });

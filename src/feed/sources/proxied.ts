@@ -3,7 +3,7 @@
 // browser on our origin can't read them. The function fetches a FIXED upstream URL per source (it is
 // never an open proxy), parses it with the source's adapter, and answers `{ postings }` with an hour
 // of shared CDN cache, so every user together polls each board about once an hour. Because the
-// browser only ever talks to 'self', the CSP and legal.ts THIRD_PARTIES are unchanged (like /api/sam).
+// browser only ever talks to 'self', the CSP and legal.ts THIRD_PARTIES are unchanged.
 //
 // This file is the browser half: the request and a strict re-check of what came back. The adapters
 // (one file per board) are only imported by the function, so their parsers stay out of the app

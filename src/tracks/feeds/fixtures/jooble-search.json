@@ -1,0 +1,28 @@
+{
+  "totalCount": 3,
+  "jobs": [
+    {
+      "title": "Design Systems Designer (Remote)",
+      "location": "Remote",
+      "snippet": "&nbsp;...maintain our <b>design system</b> in Figma and code...&nbsp;",
+      "salary": "$120k - $150k",
+      "source": "greenhouse.io",
+      "type": "Full-time",
+      "link": "https://jooble.org/desc/-5123456789012345678?ckey=design+system",
+      "company": "Acme",
+      "updated": "2026-10-27T00:00:00.0000000",
+      "id": -5123456789012345678
+    },
+    {
+      "title": "Design Technologist",
+      "location": "Austin, TX",
+      "snippet": "",
+      "type": "",
+      "link": "https://jooble.org/desc/77",
+      "company": "",
+      "updated": "",
+      "id": 77
+    },
+    { "title": "No link", "link": "", "id": 9 }
+  ]
+}

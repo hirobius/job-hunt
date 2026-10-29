@@ -1,9 +1,8 @@
 // Defence in depth (security audit #2, #3): a link from a third-party feed, the YC mirror, a synced
 // tile or a synced job only becomes an href when it is http(s). `javascript:` and `data:` links are
-// dropped (a posting, a job) or shown as plain text (a tile, a company's website).
+// dropped (a posting, a job) or shown as plain text (a company's website).
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
-import { ToastProvider } from '@hirobius/design-system';
+import { cleanup } from '@testing-library/react';
 import {
   parseAshbyJob,
   parseGreenhouseJob,
@@ -16,7 +15,6 @@ import { parseJobicyJob } from './feed/sources/jobicy';
 import { parseRemoteOkJob } from './feed/sources/remoteok';
 import { sanitizeJobs } from './store';
 import { httpUrl, safeJobUrl } from './httpUrl';
-import TileGrid from './TileGrid';
 
 const BAD = ['javascript:alert(1)', 'java\tscript:alert(1)', 'data:text/html,<script>1</script>'];
 
@@ -47,16 +45,6 @@ describe.each(BAD)('a %j link', (bad) => {
     expect(jobs.map((j) => j.label)).toEqual(['Fine']);
   });
 
-  it('never becomes an href on a tile', () => {
-    render(
-      <ToastProvider>
-        <TileGrid tiles={[{ name: 'Evil tile', meta: '', url: bad }]} />
-      </ToastProvider>,
-    );
-    const card = screen.getByRole('article', { name: 'Evil tile' });
-    expect(within(card).queryAllByRole('link')).toEqual([]);
-    expect(card.querySelector('a[href]')).toBeNull();
-  });
 
   it('fails both checks', () => {
     expect(httpUrl(bad)).toBeUndefined();
@@ -95,13 +83,4 @@ describe('web links still work', () => {
     ).toHaveLength(2);
   });
 
-  it('a tile with an https link opens', () => {
-    render(
-      <ToastProvider>
-        <TileGrid tiles={[{ name: 'Good tile', meta: '', url: 'https://example.org/jobs' }]} />
-      </ToastProvider>,
-    );
-    const card = screen.getByRole('article', { name: 'Good tile' });
-    expect(card.querySelectorAll('a[href="https://example.org/jobs"]').length).toBeGreaterThan(0);
-  });
 });

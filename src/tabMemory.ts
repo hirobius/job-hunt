@@ -1,17 +1,15 @@
 // Tab memory (return paths, Adrian 2026-10-22): each top tab reopens where it was left. The
-// Pipeline tab holds the list, a job page, Apply mode and a Company page; Companies holds its tools,
-// sections and secondary views. In memory for this page load; the URL already carries the page
+// Pipeline tab holds the list, a job page, Apply mode and a Company page. In memory for this page load; the URL already carries the page
 // showing now. Tapping the open tab goes to its root (App.tsx).
 import { buildHash, COMPANY_TAB, getRoute, navigate, parseHash, subscribeRoute } from './route';
 import type { Route } from './route';
 import { findJobById } from './store';
 
-export type TopTab = 'today' | 'discover' | 'queue';
+export type TopTab = 'today' | 'queue';
 
 /** The top tab a route sits under, or null for a page with no tab (Documents, legal). */
 export function tabOf(r: Route): TopTab | null {
   if (r.tab === 'today') return 'today';
-  if (r.tab === 'discover') return 'discover';
   if (r.tab === 'queue' || r.tab === 'apply' || r.tab === COMPANY_TAB) return 'queue';
   return null;
 }
@@ -57,7 +55,6 @@ export const lastApplyJobId = (): string | null => lastApply;
 /** Forget every tab's place (tests start fresh). */
 export function resetTabMemory(): void {
   delete last.today;
-  delete last.discover;
   delete last.queue;
   lastApply = null;
 }

@@ -1,6 +1,8 @@
 // Runs the v11 → v12 move (v12Migration.ts) after sync settles, so a profile made on another
 // device arrives first, and again whenever the old screens change a v11 store (the add-only
 // top-up). The one time it makes the profile, it offers the links that are not boards as a .txt.
+// With no profile after the move (a new user, or no design-systems track to make one from), the
+// design-systems profile is made on its own (`ensureProfile`, Adrian 2026-10-29: no setup screen).
 // The move's module loads on demand: it pulls in the feed's source list.
 import { useEffect } from 'react';
 import { useToast } from '@hirobius/design-system';
@@ -16,6 +18,8 @@ import { linksFilename } from './exportLinks';
 import { importFresh } from './staleBuild';
 
 const loadMove = importFresh(() => import('./v12Migration'));
+// The default profile pulls in the starter company list: on demand too (entryChunk.test.ts).
+const loadDefaults = importFresh(() => import('./searchDefaults'));
 
 export default function V12Migration() {
   const { settled } = useCloudSync();
@@ -31,10 +35,11 @@ export default function V12Migration() {
   useEffect(() => {
     if (!settled) return;
     let live = true;
-    void loadMove().then(
-      ({ runV12Move, linksText, linksNotice }) => {
+    void Promise.all([loadMove(), loadDefaults()]).then(
+      ([{ runV12Move, linksText, linksNotice }, { ensureProfile }]) => {
         if (!live) return;
         const { moved, links } = runV12Move();
+        ensureProfile();
         if (!moved || !links.length) return;
         toast({
           title: linksNotice(links.length),

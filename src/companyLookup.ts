@@ -4,14 +4,12 @@
 import { discoverBoards, type DiscoverResult } from './feed/discoverBoards';
 import { probeFetchJson } from './feed/probeFetch';
 import { boardsFromUrls } from './feed/sources/ats';
-import { boardUrlsFor } from './feed/watchlist';
 
-/** Look one company up, leaving out boards the track already watches. */
+/** Look one company up, leaving out boards already followed (`boardUrls`). */
 export function lookUpCompany(
   name: string,
-  categoryId: string,
   signal: AbortSignal,
-  boardUrls: string[] = boardUrlsFor(categoryId),
+  boardUrls: string[],
 ): Promise<DiscoverResult> {
   return discoverBoards([name], {
     fetchJson: probeFetchJson,

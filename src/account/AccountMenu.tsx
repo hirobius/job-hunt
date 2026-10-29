@@ -24,7 +24,7 @@ import { getRoute, navigate, withOrigin } from '../route';
 import { useBackCloses } from '../useBackCloses';
 import { LEGAL_ROUTE } from '../legalRoute';
 import { openExportLinks } from '../exportLinks';
-import { CompaniesDialog, useLoadedWhen } from '../lazyDialogs';
+import { CompaniesDialog, SearchProfileDialog, useLoadedWhen } from '../lazyDialogs';
 import { openRecentlyRemoved } from '../jobDialogs';
 import { useTrash } from '../trash';
 import './sheet.css';
@@ -42,6 +42,10 @@ export default function AccountMenu() {
   const [companies, setCompanies] = useState(false);
   useBackCloses(companies, () => setCompanies(false), 'companies');
   const companiesReady = useLoadedWhen(CompaniesDialog, companies, () => setCompanies(false));
+  // The Search profile (#388: Calibrate's and Manage track's place).
+  const [profile, setProfile] = useState(false);
+  useBackCloses(profile, () => setProfile(false), 'search-profile');
+  const profileReady = useLoadedWhen(SearchProfileDialog, profile, () => setProfile(false));
   // Controlled, so the browser's Back closes the open menu instead of leaving the page.
   const [open, setOpen] = useState(false);
   useBackCloses(open, () => setOpen(false), 'account-menu');
@@ -106,6 +110,7 @@ export default function AccountMenu() {
           <Menu.Item onSelect={() => navigate(withOrigin({ tab: 'copy-deck' }, getRoute()))}>
             Documents
           </Menu.Item>
+          <Menu.Item onSelect={opensDialog(() => setProfile(true))}>Search profile</Menu.Item>
           <Menu.Item onSelect={opensDialog(() => setCompanies(true))}>Companies</Menu.Item>
           <Menu.Item onSelect={data.backup}>Back up</Menu.Item>
           <Menu.Item onSelect={opensDialog(data.chooseRestore)}>Restore…</Menu.Item>
@@ -152,6 +157,14 @@ export default function AccountMenu() {
           <CompaniesDialog onCloseAutoFocus={refocusAccount(accountTrigger)} />
         )}
       </Dialog>
+      <Dialog open={profile && profileReady} onOpenChange={setProfile}>
+        {profile && profileReady && (
+          <SearchProfileDialog
+            onDone={() => setProfile(false)}
+            onCloseAutoFocus={refocusAccount(accountTrigger)}
+          />
+        )}
+      </Dialog>
       <ResetLocalData
         open={resetting}
         onOpenChange={setResetting}
@@ -183,7 +196,7 @@ function ResetLocalData({
   const docs = useDocuments().length;
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      {/* Placed like the sign-in dialog (`.rjb-sheet`): every shell dialog sits in one place. */}
+      {/* Placed like the other shell dialogs with a field (`.rjb-sheet`, sheet.css). */}
       <AlertDialog.Content className="rjb-sheet" onCloseAutoFocus={refocusAccount(returnFocus)}>
         <AlertDialog.Header>
           <AlertDialog.Title>Reset local data?</AlertDialog.Title>

@@ -76,7 +76,7 @@ export default function TrackerView() {
   // The Add job dialog can turn into the Find box (#384): paste a company, board or title too.
   const [findMode, setFindMode] = useState(false);
   const urlField = useRef<HTMLInputElement>(null);
-  // Pinned to the top of what the phone keyboard leaves visible, like Sign in (sheet.css).
+  // Pinned to the top of what the phone keyboard leaves visible, like Reset (sheet.css).
   const sheetRef = useVisualViewportVars<HTMLDivElement>();
   // The dialog opens from the header or the empty state, outside its Root, so it has no Trigger:
   // remember which button opened it and give focus back there on close (a11y pass).
@@ -372,7 +372,7 @@ export default function TrackerView() {
       </Stack>
       {/* Portals out, so it takes no slot in the page's rhythm. */}
       <Dialog open={addOpen} onOpenChange={onAddOpenChange}>
-        {/* Placed like the other shell dialogs with a field (`.rjb-sheet`: Sign in, Reset), so the
+        {/* Placed like the other shell dialogs with a field (`.rjb-sheet`: Reset), so the
             phone keyboard never covers the field or Add job, with the 16px phone gutter (`.rjb-form-sheet`). The rev-3 mock has no close X and no
             description: Cancel closes, and the field says where the title comes from. */}
         <Dialog.Content

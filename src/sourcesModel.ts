@@ -55,6 +55,9 @@ export interface Source {
   /** The v11 move starred it (a dream company) once: the top-up never stars it again, so an
    *  unstar sticks. */
   movedStar?: true;
+  /** Followed on its own with a new user's auto profile (searchDefaults.ts), not by the person:
+   *  unless starred or muted, not "this device's data" and dropped on a sign-in. */
+  auto?: true;
   /** Lever's EU host. */
   eu?: true;
   website?: string;
@@ -79,6 +82,9 @@ export const sourceKey = (s: Pick<Source, 'kind' | 'ref'>) =>
 export function sourceBoard(s: Source): Board | null {
   return isBoardKind(s.kind) ? { kind: s.kind, slug: s.ref, ...(s.eu && { eu: true }) } : null;
 }
+
+/** A company's key: one per company, whatever its case or spacing (company Sources' `ref`). */
+export const nameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
 
 /** The Source for a board. */
 export const boardSource = (b: Board, label: string, extra: Partial<Source> = {}): Source => ({
@@ -109,6 +115,7 @@ export function sanitizeSource(raw: unknown): Source | null {
   if (website) out.website = website;
   if (typeof o.repo === 'string' && REPO.test(o.repo)) out.repo = o.repo;
   if (typeof o.addedAt === 'string' && o.addedAt) out.addedAt = o.addedAt;
+  if (o.auto === true) out.auto = true;
   return out;
 }
 

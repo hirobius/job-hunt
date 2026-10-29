@@ -11,6 +11,7 @@ import { parseBoardUrl, type Board, type BoardKind } from '../feed/sources/ats.t
 import { profileTitles, sanitizeProfiles, type Profile } from '../profileModel.ts';
 import { sanitizeSources, sourceBoard, type FeedRef } from '../sourcesModel.ts';
 import type { WatchedCompany } from './sources.ts';
+import { SERVER_FEEDS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { TERM_FEEDS, type ReadOutcome, type TermFeed } from './sync.ts';
 import { designSystemsTrack, type TrackConfig } from './track-config.ts';
 import { VERIFIED_COMPANIES } from './verified.ts';
@@ -34,9 +35,11 @@ const BOARD_KINDS: readonly BoardKind[] = [
   'personio',
 ];
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-type Feed = TermFeed | 'rss';
-const FEEDS: readonly Feed[] = [...TERM_FEEDS, 'rss'];
+type Feed = TermFeed | 'rss' | ServerFeed;
+const FEEDS: readonly Feed[] = [...TERM_FEEDS, 'rss', ...SERVER_FEEDS];
 const isFeed = (s: string): s is Feed => (FEEDS as readonly string[]).includes(s);
+/** Feeds read once for every design-systems user, not per title. */
+const isShared = (f: string) => f === 'rss' || (SERVER_FEEDS as readonly string[]).includes(f);
 
 export interface SyncPlan {
   /** Which blob shape it came from. */
@@ -208,8 +211,10 @@ function planV12(o: O): SyncPlan | null | undefined {
     if (s.muted) continue;
     boards.add(sourceBoard(s), s.label);
   }
-  // designsystems.jobs is about design systems: only that config reads it.
-  if (config.slug !== designSystemsTrack.slug) feeds.delete('rss');
+  // designsystems.jobs and the sync's own searches are about design systems: only that config
+  // reads them.
+  if (config.slug !== designSystemsTrack.slug)
+    for (const f of ['rss', ...SERVER_FEEDS] as const) feeds.delete(f);
   const titles = profileTitles(p);
   const terms =
     config.slug === designSystemsTrack.slug
@@ -255,21 +260,24 @@ export const feedReadsFor = (plan: SyncPlan, reads: ReadOutcome[]): ReadOutcome[
     (r) =>
       isFeed(r.board) &&
       plan.feeds.has(r.board) &&
-      (r.board === 'rss' || plan.terms.some((t) => t.toLowerCase() === r.term?.toLowerCase())),
+      (isShared(r.board) || plan.terms.some((t) => t.toLowerCase() === r.term?.toLowerCase())),
   );
 
 /** The feeds that count as answered for this user: every one of their titles was read on it (the
- *  per-run cap can leave some out) and every read answered. Else a posting found under a title left
- *  out, or behind a failed read, would count as missed and close. */
+ *  per-run cap can leave some out) and every read answered with its whole list. Else a posting
+ *  found under a title left out, behind a failed read, or past a partial one would count as missed
+ *  and close. The sync's own searches never count: each reads a window (new this week, a credit
+ *  budget), so a posting missing from one is not gone. */
 export function answeredFeeds(plan: SyncPlan, mine: ReadOutcome[]): Feed[] {
   const out: Feed[] = [];
   for (const feed of FEEDS) {
+    if ((SERVER_FEEDS as readonly string[]).includes(feed)) continue;
     const reads = mine.filter((r) => r.board === feed);
     if (!reads.length) continue;
     const all =
       feed === 'rss' ||
       plan.terms.every((t) => reads.some((r) => r.term?.toLowerCase() === t.toLowerCase()));
-    if (all && reads.every((r) => r.ok)) out.push(feed);
+    if (all && reads.every((r) => r.ok && !r.partial)) out.push(feed);
   }
   return out;
 }

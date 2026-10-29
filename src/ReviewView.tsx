@@ -51,7 +51,7 @@ import {
   type FeedRow,
   type FeedSort,
 } from './feed/feed';
-import { decide, muteCompany, undecide, unmuteCompany } from './feed/decided';
+import { decide, muteCompany, undecide } from './feed/decided';
 import { followPosting } from './feed/follow';
 import { jobFieldsFor } from './feed/toJob';
 import { postedAgo } from './feed/format';
@@ -60,7 +60,6 @@ import { addJobDetailed } from './store';
 import { notifyRemoved, notifySaved, showNotice } from './saveNotice';
 import { modeLabel } from './screening';
 import { collapseRow } from './feedback';
-import type { Source } from './feed/profile';
 
 /** Rows per page of Browse and of Review; Load more adds this many. */
 export const REVIEW_PAGE = 25;
@@ -70,20 +69,18 @@ const SORTS: FeedSort[] = ['newest', 'score', 'company'];
 type Mode = 'browse' | 'deck';
 
 export default function ReviewView({
-  categoryId,
   label = 'New postings',
   scanStatus = false,
 }: {
-  categoryId: string;
   /** The panel's name: "Review new" on Today. */
   label?: string;
   /** Today: the auto-scan's status sits above the panel and says the new and source counts (this
    *  Feed's, so the page has one number); the panel doesn't repeat them. */
   scanStatus?: boolean;
 }) {
-  const feed = useFeed(categoryId);
+  const feed = useFeed();
   const { view } = feed;
-  const kept = (k: string) => `review:${categoryId}:${k}`;
+  const kept = (k: string) => `review:${k}`;
   const [mode, setMode] = useRemembered<Mode>(kept('mode'), 'browse');
   const [sort, setSort] = useRemembered<FeedSort>(kept('sort'), 'newest');
   const [on, setOn] = useRemembered<FeedFilter[]>(kept('filters'), []);
@@ -96,8 +93,8 @@ export default function ReviewView({
   // The open preview, by posting (it closes once its posting leaves the list).
   const [previewFp, setPreviewFp] = useRemembered<string | null>(kept('preview'), null);
   const preview = previewFp ? (view?.rows.find((r) => r.fingerprint === previewFp) ?? null) : null;
-  useBackCloses(!!preview, () => setPreviewFp(null), `review-preview:${categoryId}`);
-  const sortSheet = useBackSheet(`review-sort:${categoryId}`);
+  useBackCloses(!!preview, () => setPreviewFp(null), 'review-preview');
+  const sortSheet = useBackSheet('review-sort');
 
   const toggle = (f: FeedFilter) => {
     setOn((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
@@ -105,14 +102,13 @@ export default function ReviewView({
     setCard(0);
   };
 
-  const actions = useRowActions(categoryId, feed.sources);
+  const actions = rowActions;
   const line = view ? newTodayLine(view.newToday, view.sourcesRead) : null;
 
   const caughtUp =
     'Every posting from your sources is saved or skipped. The next scan brings new ones.';
   const status = scanStatus && (
     <ScanStatus
-      categoryId={categoryId}
       counts={view ? { newToday: view.newToday, sources: view.sourcesRead } : undefined}
     />
   );
@@ -347,39 +343,33 @@ interface RowActions {
   mute: (r: FeedRow, from: Element | null) => void;
 }
 
-function useRowActions(categoryId: string, sources: Source[]): RowActions {
-  return {
-    // The row collapses first, then the job is saved (a saved posting leaves the list).
-    save: (r, from) =>
-      collapseRow(from, () => {
-        const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review new'));
-        if (!url) {
-          showNotice({
-            title: 'Couldn’t save that posting',
-            description: 'Its link isn’t one a job can be saved under. Open it to apply.',
-            actions: [],
-          });
-          return;
-        }
-        const unfollow = followPosting(r, categoryId, sources);
-        notifySaved([url], r.title, [], unfollow);
-      }),
-    skip: (r, from) =>
-      collapseRow(from, () => {
-        decide(r, 'skipped');
-        notifyRemoved(`Skipped “${r.title}”`, () => undecide(r), 'Only this posting is hidden.');
-      }),
-    mute: (r, from) =>
-      collapseRow(from, () => {
-        muteCompany(r.company);
-        notifyRemoved(
-          `Muted ${r.company}`,
-          () => unmuteCompany(r.company),
-          'Its postings no longer show in Review new.',
-        );
-      }),
-  };
-}
+const rowActions: RowActions = {
+  // The row collapses first, then the job is saved (a saved posting leaves the list).
+  save: (r, from) =>
+    collapseRow(from, () => {
+      const url = addJobDetailed(r.url, jobFieldsFor(r, r.titles.join(', '), 'Review new'));
+      if (!url) {
+        showNotice({
+          title: 'Couldn’t save that posting',
+          description: 'Its link isn’t one a job can be saved under. Open it to apply.',
+          actions: [],
+        });
+        return;
+      }
+      const unfollow = followPosting(r);
+      notifySaved([url], r.title, [], unfollow);
+    }),
+  skip: (r, from) =>
+    collapseRow(from, () => {
+      decide(r, 'skipped');
+      notifyRemoved(`Skipped “${r.title}”`, () => undecide(r), 'Only this posting is hidden.');
+    }),
+  mute: (r, from) =>
+    collapseRow(from, () => {
+      const undo = muteCompany(r.company);
+      notifyRemoved(`Muted ${r.company}`, undo, 'Its postings no longer show in Review new.');
+    }),
+};
 
 function RowList({
   label,

@@ -6,7 +6,6 @@
 import { useState, type ReactNode } from 'react';
 import { Button, Dialog, SegmentedControl, Stack, Text } from '@hirobius/design-system';
 import { CardList, ListCard } from './PipelinePanel';
-import { useActiveTrack } from './activeTrack';
 import { useFeedInputs } from './feed/useFeed';
 import { followCompany, muteCompany, unmuteCompany, useDecided } from './feed/decided';
 import { companiesLists, type CompanyEntry } from './companiesList';
@@ -14,8 +13,7 @@ import { companiesLists, type CompanyEntry } from './companiesList';
 type Show = 'followed' | 'ignored';
 
 export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus?: () => void }) {
-  const track = useActiveTrack();
-  const { sources } = useFeedInputs(track?.id ?? '');
+  const { sources } = useFeedInputs();
   const { muted } = useDecided();
   const { followed, ignored } = companiesLists(sources, muted);
   const [show, setShow] = useState<Show>(() =>
