@@ -135,48 +135,62 @@ are **queue or review** under a design systems profile **and remote** (remote, o
 named: the app's remote-only rule, `src/feed/mode.ts` `remoteVerdict`), and only for users whose
 Search profile is design systems. Other users get nothing from it. Rules: `src/tracks/rotation.ts`.
 
-- **Order and cursor.** Boards in key order (`greenhouse:stripe`). The cursor is the last board
+- **Order and cursor.** Boards in a fixed shuffled order (a hash of each board's key), so the hosts
+  are mixed and a board keeps its place when the snapshot changes. The cursor is the last board
   passed; past the end it wraps and the cycle count goes up. It moves only over boards actually
   processed: a read the time box stopped before it started is read on the next run.
 - **One batch a minute.** At most 25 boards, and no more once their open roles reach 1,500 (big
-  boards cost CPU to parse and score). No read starts after 40 s; each read is capped at 15 s.
-  At most 3 reads per host at once (all of Greenhouse is one host; Ashby 1), 6 in all. A run holds
-  the cursor (`claim_scan_rotation`, 90 s lease), so two runs never read the same boards.
+  boards cost CPU to parse and score). Any read whose host has room starts; none starts after 40 s;
+  each read is capped at 15 s. At most 3 reads per host at once (all of Greenhouse is one host;
+  Ashby 1), 6 in all. A run holds the cursor (`claim_scan_rotation`, a 150 s lease, released last),
+  so two runs never read the same boards.
 - **429.** The host waits 15 min, doubling per 429 in a row, at most 24 h; an answer clears it. Its
-  boards are not read meanwhile and not lost: they go on a carry list that is read first once the
-  host is free (if that list passes 500, the cursor waits instead).
-- **404.** The board's stored postings close, and it goes to `scan_dead_boards`: asked again after
-  1 day, then 3, then 7, and no longer read after 4 404s in a row (delete its row to try again).
-  A dead board that answers is back at once.
+  boards don't hold up the walk: they are passed and go on a carry list (at most 500) that is read
+  first once the host is free. Past 500 a board is passed as "overflow" and read on the next cycle
+  (counted in the run's log row). A run passes at most 100 boards, so even a long backoff can't skip
+  a cycle in a few minutes.
+- **404.** The board's scan postings close (not those of a user who follows it: their own sync
+  handles its 404), and it goes to `scan_dead_boards`: asked again after 1 day, then 3, then 7, and
+  no longer read after 4 404s in a row (delete its row to try again). A dead board that answers is
+  back at once.
 - **Anything else** (5xx, timeout) closes nothing and doesn't count as dead.
 - **Closing.** A stored posting missing from 2 answered reads of its board closes
   (`mark_missed_postings`). That also closes one that stops being remote or a match.
 - **No double reads.** A board a user follows is skipped for that user: the twice-a-day sync reads
   it with all of its rules. The scan's rows carry `via_scan`, which the sync's "no longer followed"
   closing leaves alone.
+- **Who it is for** (every user's plan) is cached in a warm worker for 5 minutes, so a newly
+  followed board or a profile change reaches the scan within about 5 minutes. A cold worker reads
+  every blob again.
 
 ### The run-time math
 
 From `rotationMath` in `src/tracks/rotation.ts` (`npm run sync:dry-run -- --rotate` prints it for
 the committed set too):
 
-| Boards | Open roles per board | Boards per run | Runs per cycle | Hours per full cycle |
-| -----: | -------------------: | -------------: | -------------: | -------------------: |
-|  5,000 |                   30 |             25 |            200 |                  3.3 |
-|  5,000 |                  100 |             15 |            334 |                  5.6 |
-| 10,000 |                   30 |             25 |            400 |                  6.7 |
-| 10,000 |                  100 |             15 |            667 |                 11.1 |
+| Boards | Open roles per board | Boards per run | Runs per cycle | Hours per full cycle | Slowest batch's reads |
+| -----: | -------------------: | -------------: | -------------: | -------------------: | --------------------: |
+|  5,000 |                   30 |             25 |            200 |                  3.3 |                  18 s |
+|  5,000 |                  100 |             15 |            334 |                  5.6 |                  14 s |
+| 10,000 |                   30 |             25 |            400 |                  6.7 |                  18 s |
+| 10,000 |                  100 |             15 |            667 |                 11.1 |                  16 s |
+
+The last column assumes 2 s a read and a mix of 60% Greenhouse, 25% Lever, 15% Ashby (the real
+set's mix is printed by the dry run); every batch fits the 40 s time box.
 
 Against Supabase's edge function limits:
 
 - **CPU, 2 s per request** (waiting on the network doesn't count): one run parses and scores at
   most 25 boards / 1,500 roles. Not measured live yet: if `sync_log` shows runs cut off, lower
   `maxBoards` or `jobsBudget` in `rotation.ts` (the cycle gets longer by the same factor).
-- **Wall clock, 150 s free / 400 s paid**: a run takes at most 40 s + one 15 s read = 55 s, under
-  the 1-minute gap, so runs never overlap.
+- **Wall clock, 150 s free / 400 s paid**: reads stop starting at 40 s and end by 55 s; user writes
+  stop at 110 s (the users left wait, and the batch is read again next run); after that only the
+  dead list, the log and the cursor are written. The lease is 150 s, so runs never overlap; a run
+  past 60 s makes the next cron call answer "busy".
 - **Invocations, 500,000 a month free**: 60 an hour = 43,200 a month, plus the twice-a-day sync.
-- Every run also reads every user's blob to know who is design systems and what they follow:
-  fine for a few users; past a few hundred, that read should move to a cached table.
+- Who the scan is for comes from every user's blob, read at most every 5 minutes per warm worker
+  (and on every cold start): fine for a few users; past a few hundred, that read should move to a
+  table.
 
 ### Turn on the rotation
 

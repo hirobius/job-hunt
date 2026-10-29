@@ -10,7 +10,8 @@
 -- ---- the cursor: one row ----
 create table if not exists public.scan_rotation (
   id               smallint primary key default 1 check (id = 1),
-  -- The last board key passed (`${kind}:${slug}`, boardSet.ts `setBoardKey`); '' before the first.
+  -- The last place in the walk passed (rotation.ts `orderKey`: a hash, '|', the board key); ''
+  -- before the first.
   cursor_key       text not null default '',
   -- Full passes over the set; bumped when the cursor wraps to the start.
   cycle            int not null default 0,
@@ -101,8 +102,9 @@ grant execute on function public.close_unfollowed_postings(uuid, text, text[])
 -- Gem, Pinpoint, Breezy) are stored as 'manual' (src/tracks/sync.ts `normalize`).
 
 -- ---- the schedule: one rotation step a minute ----
--- Each step reads at most 25 boards and stops starting reads after 40 s, so it ends before the next
--- minute (README: the run-time math). Rescheduling under the same name replaces the job.
+-- Each step reads at most 25 boards, stops starting reads after 40 s and writing after 110 s; a
+-- step still running when the next minute comes holds the lease, so that call answers "busy"
+-- (README: the run-time math). Rescheduling under the same name replaces the job.
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
@@ -119,7 +121,7 @@ select cron.schedule(
       (select decrypted_secret from vault.decrypted_secrets where name = 'sync_postings_secret')
     ),
     body    := '{"rotate": true}'::jsonb,
-    timeout_milliseconds := 60000
+    timeout_milliseconds := 150000
   );
   $$
 );
