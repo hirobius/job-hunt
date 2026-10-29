@@ -104,7 +104,7 @@ describe('share image (#47)', () => {
     expect(meta('property', 'og:image:height')).toBe('630');
     // Says what the image shows, not just the name.
     expect(meta('property', 'og:image:alt')).toBe(
-      `The ${BRAND.name} check-mark logo, the name ${BRAND.name} and the line: ${BRAND.description}`,
+      `The ${BRAND.name} flame logo, the name ${BRAND.name} and the line: ${BRAND.description}`,
     );
     expect(pngSize('public/og-image.png')).toEqual({ w: 1200, h: 630 });
   });

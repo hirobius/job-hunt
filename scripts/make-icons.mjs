@@ -1,8 +1,8 @@
 /* global document -- page callbacks run in the browser */
-// App icons, /favicon.ico and the share image (#47): writes public/favicon.svg (the placeholder
-// rounded square on the graphite tile, colours read from HDS's variables.css), then
-// renders it and a brand card to PNG with headless Chromium, so the app icons, /favicon.ico and the
-// Open Graph image are reproducible.
+// App icons, /favicon.ico and the share image (#47): writes public/favicon.svg (the flame from
+// src/brand/flame.svg, the logo's one source, on the graphite tile read from HDS's variables.css),
+// then renders it and a brand card to PNG with headless Chromium, so the app icons, /favicon.ico
+// and the Open Graph image are reproducible.
 // Re-run after a brand change and commit the PNGs:
 //
 //   npm run icons
@@ -14,12 +14,18 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { BRAND } from '../src/brand.ts';
 import { hdsColor } from '../src/hdsColor.ts';
 
-// The placeholder mark (Adrian 2026-10-22): a plain rounded square, a quiet light neutral.
-const SQUARE = hdsColor('neutral-300');
+// The mark: src/brand/flame.svg as written (its own fills), placed as a nested svg in a box.
+const flame = readFileSync('src/brand/flame.svg', 'utf8')
+  .replace(/<!--[\s\S]*?-->\s*/g, '')
+  .trim();
+const placed = (x, y, w, h) =>
+  flame
+    .replace(/\sxmlns="[^"]*"/, '')
+    .replace('<svg ', `<svg x="${x}" y="${y}" width="${w}" height="${h}" `);
 const svg =
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="${BRAND.name}">` +
   `<rect width="64" height="64" rx="14" fill="${hdsColor('graphite-900')}"/>` +
-  `<rect x="18" y="18" width="28" height="28" rx="6" fill="${SQUARE}"/></svg>\n`;
+  `${placed(10, 8, 44, 48)}</svg>\n`;
 writeFileSync('public/favicon.svg', svg);
 console.log('public/favicon.svg');
 const dataUrl = (s) => `data:image/svg+xml;base64,${Buffer.from(s).toString('base64')}`;
@@ -98,7 +104,7 @@ try {
     page(
       `<div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding:0 96px;box-sizing:border-box;color:${FACE}">
         <div style="display:flex;align-items:center;gap:32px">
-          <div style="width:104px;height:104px;border-radius:24px;background:${SQUARE}"></div>
+          <div style="width:104px;height:136px">${flame.replace('<svg ', '<svg width="104" height="136" ')}</div>
           <div style="font-size:104px;font-weight:700;line-height:1.1;color:#fff">${BRAND.name}</div>
         </div>
         <div style="font-size:36px;line-height:1.35;margin-top:40px;max-width:960px">${BRAND.description}</div>

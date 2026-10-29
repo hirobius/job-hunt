@@ -32,7 +32,7 @@ import {
 } from './routeViews';
 import { JobPageLiveness } from './LivenessViews';
 import { usePageTitle } from './pageTitle';
-import { BrandLogo } from './components/brand/BrandFlame';
+import { BrandLogo } from './brand/Flame';
 import { LEGAL_ROUTE } from './legalRoute';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
@@ -285,8 +285,8 @@ export default function App() {
                     landmark-one-main / region). */}
                 <Box as="header">
                   <Stack gap="normal">
-                    {/* Slim app bar: the brand lockup (live flame + Sora wordmark, the page's one h1;
-                      Adrian 2026-10-24) · the Account avatar. */}
+                    {/* Slim app bar: the brand lockup (the flame from src/brand/flame.svg + the
+                      wordmark, the page's one h1) · the Account avatar. */}
                     <Stack direction="row" gap="gap" align="center" justify="space-between">
                       <BrandLogo fontSize={19} />
                       <AccountMenu />
