@@ -2,10 +2,10 @@
 // Each board once under the sync's key (boardSet.ts `setBoardKey`), each feed once whatever the
 // terms. Signed out, that is what this browser's scan reads: the followed boards, the confirmed
 // companies it found and the feeds fetchFeed reads. Signed in, the server's rotation also reads the
-// whole committed board set (data/boards.json), so its boards join the union. The snapshot is big
+// whole committed board set (data/boards.json; its keys alone in data/board-keys.json), so its boards join the union. The keys are big
 // (thousands of boards), so it is a lazy chunk loaded only for a signed-in person, once per page.
 import { useEffect, useState } from 'react';
-import { boardSetKeys, parseBoardSet, setBoardKey } from './boardSet';
+import { keysFromCompact, setBoardKey } from './boardSet';
 import { SOURCE_ENABLED } from './sourceEnabled';
 import { parseBoardUrl } from './sources/ats';
 import { PROXIED_SOURCES } from './sources/proxiedIds';
@@ -50,8 +50,8 @@ let loading: Promise<ReadonlySet<string>> | null = null;
 /** The board set's keys, read from the lazy chunk once per page load. */
 export function loadBoardSetKeys(): Promise<ReadonlySet<string>> {
   if (setKeys) return Promise.resolve(setKeys);
-  loading ??= importFresh(() => import('./data/boards.json'))()
-    .then((m) => (setKeys = new Set(boardSetKeys(parseBoardSet(m.default)))))
+  loading ??= importFresh(() => import('./data/board-keys.json'))()
+    .then((m) => (setKeys = new Set(keysFromCompact(m.default))))
     .catch((e: unknown) => {
       loading = null;
       throw e;

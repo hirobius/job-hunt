@@ -2,7 +2,15 @@
 // key, in a stable order, and the committed snapshot parses whole. No network.
 import { describe, expect, it } from 'vitest';
 import raw from './data/boards.json';
-import { BOARD_KINDS, boardSetKeys, parseBoardSet, parseSetBoard, setBoardKey } from './boardSet';
+import {
+  BOARD_KINDS,
+  boardSetKeys,
+  compactKeys,
+  keysFromCompact,
+  parseBoardSet,
+  parseSetBoard,
+  setBoardKey,
+} from './boardSet';
 import { PROBE_KINDS } from './probe';
 import { boardOf } from '../tracks/sync';
 
@@ -182,5 +190,14 @@ describe('the committed snapshot', () => {
       expect(b.lastChecked, setBoardKey(b)).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(b.evidence, setBoardKey(b)).not.toBe('');
     }
+  });
+});
+
+describe('board-keys.json', () => {
+  it('is the snapshot’s keys, in order (re-run npm run boards:discover if it is not)', async () => {
+    const set = parseBoardSet((await import('./data/boards.json')).default);
+    const compact = (await import('./data/board-keys.json')).default;
+    expect(keysFromCompact(compact)).toEqual(boardSetKeys(set));
+    expect(compactKeys(set)).toEqual(compact);
   });
 });

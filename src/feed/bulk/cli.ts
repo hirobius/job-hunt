@@ -5,3 +5,4 @@ export * from './harvest.ts';
 export * from './discover.ts';
 export { createLimiter } from '../probe.ts';
 export { FetchError } from '../sources/http.ts';
+export { compactKeys } from '../boardSet.ts';

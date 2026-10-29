@@ -229,5 +229,9 @@ if (!dry) {
     '',
   ].join('\n');
   await writeFile(`${root}src/feed/data/boards.json`, body);
-  console.log('wrote src/feed/data/boards.json');
+  await writeFile(
+    `${root}src/feed/data/board-keys.json`,
+    `${JSON.stringify(M.compactKeys(set))}\n`,
+  );
+  console.log('wrote src/feed/data/boards.json and board-keys.json');
 }

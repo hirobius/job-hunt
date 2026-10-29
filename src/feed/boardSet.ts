@@ -125,3 +125,28 @@ export function parseBoardSet(raw: unknown): BoardSet {
 
 /** Every board's key, in rotation order. */
 export const boardSetKeys = (set: BoardSet) => set.boards.map(setBoardKey);
+
+/** The keys alone, grouped by key prefix (`greenhouse`, `lever.eu`, …) with lowercased slugs:
+ *  what the app needs for Today's count, small enough for a lazy chunk (the size budget's 70 kB
+ *  gzip). `npm run boards:discover` writes it beside the snapshot as data/board-keys.json. */
+export type CompactKeys = Record<string, string[]>;
+
+export function compactKeys(set: BoardSet): CompactKeys {
+  const out: CompactKeys = {};
+  for (const key of boardSetKeys(set)) {
+    const i = key.indexOf(':');
+    (out[key.slice(0, i)] ??= []).push(key.slice(i + 1));
+  }
+  return out;
+}
+
+/** Every key in a compact list, as `setBoardKey` writes them. */
+export function keysFromCompact(raw: unknown): string[] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const [prefix, slugs] of Object.entries(raw))
+    if (Array.isArray(slugs))
+      for (const s of slugs)
+        if (typeof s === 'string' && BOARD_SLUG.test(s)) out.push(`${prefix}:${s}`);
+  return out;
+}
