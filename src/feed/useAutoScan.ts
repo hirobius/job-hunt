@@ -9,13 +9,20 @@ import { useFeedInputs } from './useFeed';
 import { boardUrlsOf } from './profile';
 import { scanOnOpen, type ScanInput } from './autoScan';
 
-/** What to scan for: the profile's titles and inclusion check, and the followed boards. */
+/** What to scan for: the profile's titles, inclusion check, Remote only and leave-out words, and
+ *  the followed boards. */
 export function useScanInput(): ScanInput {
   const { profile, sources } = useFeedInputs();
   return useMemo<ScanInput>(
     () =>
       profile.titles.length
-        ? { terms: profile.titles, include: profile.include, boardUrls: boardUrlsOf(sources) }
+        ? {
+            terms: profile.titles,
+            include: profile.include,
+            boardUrls: boardUrlsOf(sources),
+            remoteOnly: profile.mode === 'remote',
+            exclude: profile.exclude,
+          }
         : { terms: [...DESIGN_SYSTEMS_TITLES], boardUrls: boardUrlsOf(sources) },
     [profile, sources],
   );

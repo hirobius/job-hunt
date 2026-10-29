@@ -7,7 +7,8 @@ import { useMemo } from 'react';
 import { liveStorage } from './liveStorage';
 import { savePersisted } from './persisted';
 import { fingerprint } from './tracks/score';
-import { addSources, getSources, muteSource, sourceKey } from './sources';
+import { updateSources } from './sources';
+import { nameKey, type Source } from './sourcesModel';
 
 export const DECIDED_KEY = 'rjb_decided';
 /** Newest kept: a year of heavy triage. */
@@ -140,22 +141,28 @@ export function moveLegacyDecided(): void {
   }
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return;
   const o = raw as Record<string, unknown>;
-  const key = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
   const names = (v: unknown) =>
-    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!key(x)) : [];
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!nameKey(x)) : [];
   replaceDecided(sanitizeDecided(o.decided));
-  const muted = new Set(names(o.muted).map(key));
-  const company = (name: string, mute: boolean) => {
-    const named = getSources().filter((s) => s.kind !== 'feed' && key(s.label) === key(name));
-    if (named.length) {
-      if (mute) named.forEach((s) => muteSource(sourceKey(s), true));
-    } else
-      addSources([
-        { kind: 'company', ref: key(name), label: name.trim(), ...(mute && { muted: true }) },
-      ]);
-  };
-  names(o.muted).forEach((n) => company(n, true));
-  names(o.followed)
-    .filter((n) => !muted.has(key(n)))
-    .forEach((n) => company(n, false));
+  const muted = names(o.muted);
+  const mutedKeys = new Set(muted.map(nameKey));
+  const followed = names(o.followed).filter((n) => !mutedKeys.has(nameKey(n)));
+  // One write for every company: a Source named for it is muted, else a company Source is added.
+  updateSources((cur) => {
+    const next = cur.map((s) =>
+      s.kind !== 'feed' && mutedKeys.has(nameKey(s.label)) ? { ...s, muted: true as const } : s,
+    );
+    const named = new Set(next.filter((s) => s.kind !== 'feed').map((s) => nameKey(s.label)));
+    const add = (name: string, mute: boolean): Source[] => {
+      const k = nameKey(name);
+      if (named.has(k)) return [];
+      named.add(k);
+      return [{ kind: 'company', ref: k, label: name.trim(), ...(mute && { muted: true }) }];
+    };
+    return [
+      ...next,
+      ...muted.flatMap((n) => add(n, true)),
+      ...followed.flatMap((n) => add(n, false)),
+    ];
+  });
 }

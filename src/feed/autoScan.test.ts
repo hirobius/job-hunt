@@ -171,6 +171,20 @@ describe('runScan', () => {
     );
   });
 
+  it('follows the profile: Remote only off keeps on-site roles; a leave-out word drops one', async () => {
+    const feeds = [
+      posting({ id: 'hn:1', source: 'hn', title: 'Design Systems Lead', mode: 'onsite' }),
+      posting({ id: 'hn:2', source: 'hn', title: 'Design Systems Engineer (contract)' }),
+      posting({ id: 'hn:3', source: 'hn', title: 'Design Systems Designer' }),
+    ];
+    const { r } = reader({}, feeds);
+    await runScan(
+      { ...input, remoteOnly: false, exclude: ['contract'] },
+      deps({ reader: r, sources: { yc: false, adele: false, github: false } }),
+    );
+    expect(getScanPostings().map((p) => p.id)).toEqual(['hn:1', 'hn:3']);
+  });
+
   it('a board the identity check does not trust is shown but never read', async () => {
     const { r, calls } = reader({});
     // Forward's website is goforward.com: a "forward" board on Greenhouse and Lever is a stranger's.

@@ -1,5 +1,5 @@
 // What a route is called where a Back names it (return paths, Adrian 2026-10-22): "← Senior UX
-// Designer", "← Apply mode (2 of 3)", "← Companies". Pure over the saved jobs and documents, with a
+// Designer", "← Apply mode (2 of 3)", "← Today". Pure over the saved jobs and documents, with a
 // hook that reads them live.
 import { useMemo } from 'react';
 import { COMPANY_TAB, type Route } from './route';
@@ -37,11 +37,9 @@ export function routeLabel(r: Route, ctx: { jobs: Job[]; docs: Document[] }): st
     }
     case COMPANY_TAB:
       return (r.sub && companyBySlug(r.sub, ctx.jobs, ctx.docs)?.name) || 'Company';
+    // An old link's origin under the retired Companies tab: it lands on Today (route.ts).
     case 'discover':
-      if (r.sub === 'live') return 'Live postings';
-      if (r.sub === 'review') return 'Review new';
-      if (r.sub === 'boards') return 'Check a list';
-      return 'Companies';
+      return 'Today';
     case 'copy-deck': {
       if (!r.sub) return 'Documents';
       if (r.sub.startsWith('new/')) {

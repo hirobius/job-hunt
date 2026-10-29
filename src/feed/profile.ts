@@ -1,10 +1,8 @@
 // The Feed's two inputs (simplify 5/9, #386): the Search profile (what the user is looking for)
-// and the Sources (what they follow). Until #384/#385 land `profiles[]` / `sources[]` in the blob
-// and publish `useProfile` / `useSources`, these are read from today's stores through this thin
-// adapter: the track's titles, ATS roles, sweep list and must include, and its watched tiles,
-// dream companies and outreach targets. The shapes follow the spec's blob v12 (`sources[]`:
-// `{ kind, ref, label, star?, muted? }`), so swapping the adapter for the real stores changes
-// nothing past it. Pure: the hook that reads the stores is `useFeedInputs.ts`.
+// and the Sources (what they follow). `searchProfileOf` / `feedSourcesOf` read them from the synced
+// blob v12 stores (#388; the hook is useFeed.ts `useFeedInputs`). `profileFrom` / `sourcesFrom`
+// build the same shapes from a v11 track's stores: the breadth guard (breadth.test.ts) uses them to
+// feed the Feed exactly what the deleted Live postings read. Pure.
 import type { Seniority } from '../curation/types';
 import type { WorkMode } from '../jobsData';
 import {

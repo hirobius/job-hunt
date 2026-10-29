@@ -1,6 +1,7 @@
-// Live postings' list (LiveFeedPanel): what the rows are, given what the sources returned. Pure, so
-// the breadth guard (feed/breadth.test.ts) counts today's pipeline through the very code the panel
-// runs: term or sweep matching (or every posting on a scored track), then targeting.
+// The deleted Live postings panel's list (#389), kept as the breadth guard's baseline
+// (feed/breadth.test.ts): what its rows were, given what the sources returned. Pure: term or sweep
+// matching (or every posting on a scored track), then targeting. The Feed must list at least these.
+// Nothing in the app calls it; change it only to keep the baseline what the panel did.
 import { rankAll, rankPostings } from './match';
 import { applyTargeting, type HiddenCounts, type Targeting } from './targeting';
 import { sweepRank, type SweptPosting } from './sweep';

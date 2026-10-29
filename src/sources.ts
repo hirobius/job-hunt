@@ -3,7 +3,8 @@
 // or a keyless feed. It replaces the per-track watched-board tiles, dream companies and outreach
 // targets: the v11 move (v12Migration.ts) unions all of those, across every track, into this list.
 // A dream is a Source with `star`; "Not this company" sets `muted` (the Feed leaves it unread).
-// A Source is never deleted while the old screens can still add it back: mute it instead.
+// A Source is muted, not deleted (the v12 move tops the list up from v11 data); `removeSource` only
+// undoes a follow just made.
 // Kept in `rjb_sources`, synced in the blob. Storage and the cloud are untrusted.
 // The pure half (types, sanitizers, merge) is sourcesModel.ts; this is the store.
 import { useMemo } from 'react';
@@ -11,6 +12,8 @@ import { liveStorage } from './liveStorage';
 import { loadPersisted, savePersisted } from './persisted';
 import type { Board } from './feed/sources/ats';
 import {
+  boardSource,
+  nameKey,
   sanitizeSource,
   sanitizeSources,
   sourceKey,
@@ -72,22 +75,44 @@ function patch(key: string, change: (s: Source) => Source) {
   return true;
 }
 
-/** Follow a board (its Source added). 'already' when it is on the list (a muted one is unmuted). */
-export function followBoard(b: Board, label: string): 'added' | 'already' {
-  const s: Source = { kind: b.kind, ref: b.slug, label, ...(b.eu && { eu: true }) };
-  const cur = readAll().find((x) => sourceKey(x) === sourceKey(s));
-  if (!cur) return addSources([s]) ? 'added' : 'already';
-  if (cur.muted) muteSource(sourceKey(cur), false);
-  return 'already';
+/** Follow a board, in one write: its Source is added when missing, and a mute on it or on its
+ *  company (Not this company, Ignore) is lifted, since following says otherwise. `added` is false
+ *  when it was followed already; `undo` puts the list back as it was. */
+export function followBoard(b: Board, label: string): { added: boolean; undo: () => void } {
+  const s = boardSource(b, label, { addedAt: new Date().toISOString() });
+  const key = sourceKey(s);
+  const name = nameKey(s.label);
+  const lifts = (x: Source) =>
+    x.muted && x.kind !== 'feed' && (sourceKey(x) === key || nameKey(x.label) === name);
+  let added = false;
+  let lifted: string[] = [];
+  updateSources((cur) => {
+    added = !cur.some((x) => sourceKey(x) === key);
+    lifted = cur.filter(lifts).map(sourceKey);
+    const next = cur.map((x) => (lifts(x) ? unmuted(x) : x));
+    return added ? [...next, s] : next;
+  });
+  return {
+    added,
+    undo: () =>
+      updateSources((cur) =>
+        cur
+          .filter((x) => !(added && sourceKey(x) === key))
+          .map((x) => (lifted.includes(sourceKey(x)) ? { ...x, muted: true as const } : x)),
+      ),
+  };
 }
+
+const unmuted = (x: Source): Source => {
+  const { muted: _, movedMute: __, ...rest } = x;
+  return rest;
+};
 
 /** A dream company: its Sources (named for it) starred, or a followed company added with a star. */
 export function starCompany(name: string): void {
-  const k = name.trim().replace(/\s+/g, ' ').toLowerCase();
+  const k = nameKey(name);
   if (!k) return;
-  const named = readAll().filter(
-    (s) => s.kind !== 'feed' && s.label.trim().replace(/\s+/g, ' ').toLowerCase() === k,
-  );
+  const named = readAll().filter((s) => s.kind !== 'feed' && nameKey(s.label) === k);
   if (named.length) named.forEach((s) => starSource(sourceKey(s), true));
   else addSources([{ kind: 'company', ref: k, label: name.trim(), star: true }]);
 }

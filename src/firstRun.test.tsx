@@ -3,7 +3,7 @@
 // shows it on Today for a first run; Finish saves the profile, follows the starter design-system
 // companies and opens Today's Review new.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
@@ -261,6 +261,23 @@ describe('Account menu → Search profile', () => {
       mode: 'remote',
       leaveOut: [],
     });
+  });
+});
+
+describe('Account menu → Search profile, opened before the profile arrives', () => {
+  it('follows the stored profile until edited, so Save never writes the defaults over it', async () => {
+    addJob('https://acme.example/jobs/1', 'Design Engineer');
+    window.location.hash = '#/queue';
+    renderApp();
+    await click('Account');
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Search profile' }));
+    await screen.findByRole('dialog', { name: 'Search profile' });
+    expect(titles()).toEqual(DESIGN_SYSTEMS_TITLES);
+    // A pull lands with this account's profile while the dialog is open.
+    act(() => void saveProfile({ titles: ['Design Ops Lead'], mode: 'hybrid' }));
+    expect(titles()).toEqual(['Design Ops Lead']);
+    await click('Save');
+    expect(getProfile()).toMatchObject({ titles: ['Design Ops Lead'], mode: 'hybrid' });
   });
 });
 

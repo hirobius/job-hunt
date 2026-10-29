@@ -5,8 +5,15 @@
 // The Search profile form's draft (Onboarding.tsx, SearchProfileDialog.tsx) lives here too.
 import { DIRECTORY_BY_PACK } from './radar/directory';
 import { boardLabel, parseBoardUrl } from './feed/sources/ats';
-import type { Source } from './sourcesModel';
-import { saveProfile, type Profile, type WorkMode } from './profile';
+import { boardSource, type Source } from './sourcesModel';
+import {
+  cleanList,
+  MAX_PROFILE_TITLES,
+  profileTitles,
+  saveProfile,
+  type Profile,
+  type WorkMode,
+} from './profile';
 import { addSources } from './sources';
 
 export const DESIGN_SYSTEMS_TITLES = [
@@ -41,17 +48,22 @@ export function seedSources(): Source[] {
   const out: Source[] = [];
   for (const url of DIRECTORY_BY_PACK.designsystems) {
     const b = parseBoardUrl(url);
-    if (b) out.push({ kind: b.kind, ref: b.slug, label: boardLabel(b), ...(b.eu && { eu: true }) });
+    if (b) out.push(boardSource(b, boardLabel(b)));
   }
   return out;
 }
 
 /** The form's fields: what onboarding asks and the Account menu's Search profile edits. */
 export interface ProfileDraft {
+  /** The titles that are on (searched). */
   titles: string[];
   remoteOnly: boolean;
   location: string;
   leaveOut: string[];
+  /** The stored mode, so Save keeps a hybrid or on-site one while Remote only stays off. */
+  mode: WorkMode;
+  /** Titles switched off (kept, not searched, not shown): Save keeps them unless one is added. */
+  titlesOff: string[];
 }
 
 export const NEW_PROFILE: ProfileDraft = {
@@ -59,28 +71,41 @@ export const NEW_PROFILE: ProfileDraft = {
   remoteOnly: true,
   location: '',
   leaveOut: [],
+  mode: 'remote',
+  titlesOff: [],
 };
 
 export const draftOf = (p: Profile): ProfileDraft => ({
-  titles: p.titles,
+  titles: profileTitles(p),
   remoteOnly: p.mode === 'remote',
   location: p.location,
   leaveOut: p.leaveOut,
+  mode: p.mode,
+  titlesOff: p.titlesOff,
 });
 
-/** The profile fields a draft sets. Remote only off reads as anywhere ('any'): one switch. */
-export const fieldsOf = (d: ProfileDraft) => ({
-  titles: d.titles,
-  mode: (d.remoteOnly ? 'remote' : 'any') as WorkMode,
-  location: d.remoteOnly ? '' : d.location.trim(),
-  leaveOut: d.leaveOut,
-});
+const norm = (s: string) => s.trim().toLowerCase();
+
+/** The profile fields a draft sets. Remote only off reads as anywhere ('any'), or the hybrid /
+ *  on-site mode the profile had; a title typed back in is on again. Saving from the form also drops
+ *  `fromTrack`, so the v12 move's one-time remote fix never overrides this choice. */
+export const fieldsOf = (d: ProfileDraft) => {
+  const on = new Set(d.titles.map(norm));
+  const off = d.titlesOff.filter((t) => !on.has(norm(t)));
+  return {
+    titles: cleanList([...d.titles, ...off], MAX_PROFILE_TITLES),
+    titlesOff: off,
+    mode: (d.remoteOnly ? 'remote' : d.mode === 'remote' ? 'any' : d.mode) as WorkMode,
+    location: d.remoteOnly ? '' : d.location.trim(),
+    leaveOut: d.leaveOut,
+    fromTrack: undefined,
+  };
+};
 
 /** Save a new profile from the form and follow the starter companies. Returns how many it followed. */
 export function finishSetup(draft: ProfileDraft): number {
   saveProfile({
     ...fieldsOf(draft),
-    titlesOff: [],
     atsRoles: [...DESIGN_SYSTEMS_ATS_ROLES],
     atsOff: [],
     include: { terms: [...DESIGN_SYSTEMS_INCLUDE] },

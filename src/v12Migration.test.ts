@@ -487,7 +487,7 @@ describe('runV12Move (the stores)', () => {
     expect(getProfiles()).toHaveLength(1);
   });
 
-  it('tops up what the old screens add after the move (never a loss while they still exist)', () => {
+  it('tops up the Sources an older client adds after the move; titles are no longer topped up', () => {
     runV12Move(new Date(AT));
     replaceDreams({
       ...getAllDreams(),
@@ -509,7 +509,8 @@ describe('runV12Move (the stores)', () => {
     const out = runV12Move(new Date(AT));
     expect(out.moved).toBe(false);
     expect(getSources().find((s) => sourceKey(s) === 'ashby:notion')?.star).toBe(true);
-    expect(getProfile()?.titles).toContain('Design Ops Lead');
+    // #389: no screen adds v11 titles now, and a title removed in the Search profile stays removed.
+    expect(getProfile()?.titles).not.toContain('Design Ops Lead');
   });
 
   it('never switches back a star or mute the person changed', () => {
@@ -553,20 +554,35 @@ describe('runV12Move (the stores)', () => {
     expect(getSources().find((x) => sourceKey(x) === 'greenhouse:gone')?.muted).toBeUndefined();
   });
 
-  it('turns on a title the move put off once v11 searches it; the person’s off stays', () => {
+  it('a title removed in the Search profile stays removed', () => {
     runV12Move(new Date(AT));
-    expect(getProfile()?.titlesOff).toContain('UX Designer'); // archived track
-    expect(getProfile()?.movedOff).toContain('UX Designer');
-    updateProfile({ titlesOff: [...getProfile()!.titlesOff, 'Welder'] });
-    const c = getAllCuration();
-    replaceCurationState({
-      ...c,
-      categories: c.categories.map((x) => (x.id === 'old' ? { ...x, archived: false } : x)),
-    });
+    const title = getProfile()!.titles[0];
+    updateProfile({ titles: getProfile()!.titles.slice(1) });
     runV12Move(new Date(AT));
-    expect(getProfile()?.titlesOff).not.toContain('UX Designer');
-    expect(getProfile()?.movedOff ?? []).not.toContain('UX Designer');
-    expect(getProfile()?.titlesOff).toContain('Welder');
+    expect(getProfile()?.titles).not.toContain(title);
+  });
+
+  it('a profile moved from a track with no mode gets remote only, once; a later choice stays', () => {
+    replaceModes({});
+    runV12Move(new Date(AT));
+    expect(getProfile()?.mode).toBe('remote');
+    // A profile moved before remote only was the default (read as 'any').
+    replaceProfiles([{ ...getProfile()!, mode: 'any', fromTrack: 'ds' }]);
+    runV12Move(new Date(AT));
+    expect(getProfile()).toMatchObject({ mode: 'remote' });
+    expect(getProfile()?.fromTrack).toBeUndefined();
+    // The person turns Remote only off (the form drops fromTrack): it stays off.
+    updateProfile({ mode: 'any' });
+    runV12Move(new Date(AT));
+    expect(getProfile()?.mode).toBe('any');
+  });
+
+  it('keeps "any" when the track set it on purpose', () => {
+    runV12Move(new Date(AT));
+    replaceProfiles([{ ...getProfile()!, mode: 'any', fromTrack: 'ds' }]);
+    replaceModes({ ds: 'any' });
+    runV12Move(new Date(AT));
+    expect(getProfile()?.mode).toBe('any');
   });
 
   it('stars a dream starred after the move on a board already watched, once', () => {

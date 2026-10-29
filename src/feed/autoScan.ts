@@ -32,12 +32,13 @@ import { createGithubBudget, type GithubBudget } from './githubBudget';
 import { confirmBoard } from './identity';
 import { inferMode } from './match';
 import { passesInclude, type IncludeRule } from './mustInclude';
+import { termRegex } from './term';
 import { createLimiter, probeCompanies, type Limiter } from './probe';
 import { browserReader, type PostingReader } from './reader';
 import { boardsFromUrls, canonicalBoardUrl, parseBoardUrl, type Board } from './sources/ats';
 import type { FetchJson } from './sources/http';
 import type { Posting } from './types';
-import { addSources, getSources, removeSource, sourceKey, type Source } from '../sources';
+import { followBoard } from '../sources';
 import { scanOnOpenEnabled } from './scanOnOpenFlag';
 
 export const SCAN_KEY = 'rjb_autoscan';
@@ -330,6 +331,10 @@ export interface ScanInput {
   include?: IncludeRule;
   /** Boards the user follows (the board Sources). */
   boardUrls: string[];
+  /** Keep remote roles only (the profile's Remote only; on unless it says false). */
+  remoteOnly?: boolean;
+  /** The profile's leave-out words: a posting that says one is not kept. */
+  exclude?: string[];
 }
 
 export interface ScanDeps {
@@ -555,6 +560,7 @@ export async function runScan(
   // 4. filter, a chunk at a time
   step({ phase: 'filter' });
   const rule = inclusionRule(input.include);
+  const leaveOut = (input.exclude ?? []).map(termRegex).filter((r): r is RegExp => !!r);
   const kept: ScanPosting[] = [];
   let notDs = 0;
   let notRemote = 0;
@@ -567,7 +573,8 @@ export async function runScan(
         notDs++;
         continue;
       }
-      const remote = remoteOnly(p);
+      if (leaveOut.some((re) => re.test(p.title) || re.test(p.text))) continue;
+      const remote = input.remoteOnly === false ? 'keep' : remoteOnly(p);
       if (remote === 'drop') {
         notRemote++;
         continue;
@@ -688,13 +695,7 @@ export function followFound(key: string): () => void {
   const f = getScanState().found.find((x) => x.key === key);
   if (!f) return () => {};
   const b = parseBoardUrl(f.boardUrl);
-  let undo = () => {};
-  if (b) {
-    const s: Source = { kind: b.kind, ref: b.slug, label: f.name, ...(b.eu && { eu: true }) };
-    const k = sourceKey(s);
-    if (!getSources().some((x) => sourceKey(x) === k) && addSources([s]))
-      undo = () => removeSource(k);
-  }
+  const undo = b ? followBoard(b, f.name).undo : () => {};
   setStatus(key, 'followed');
   return () => {
     undo();

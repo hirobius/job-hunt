@@ -1,8 +1,9 @@
 {
-  "updatedAt": "2026-10-28T20:00:00Z",
+  "updatedAt": "2026-10-29T12:00:00Z",
   "phase": "live",
   "headline": "Ship 1028b on main: blob v12 (#411), sync-postings reads Sources + profile (#412), breadth + Delete my data + security headers (#413), probe identity + 5 ATS kinds (#424), board sources (#422, WWR off), DS company seed (#421), community sources (#420, Mastodon on, Bluesky off). Legal wording back in draft (Bluesky/Mastodon added) until Adrian approves.",
   "next": [
+    "Review PR claude/simplify-7-9 (closes #388, #389, #390): onboarding is the Search profile form (titles, remote only, leave out; follows the seed companies, opens Review new), Account → Search profile, the app reads blob v12 profile + Sources (fixes the rjb_decided key clash that dropped skips on pull), old Companies/Discover screens + SAM.gov deleted (stored data still read), ADR 0009. Screenshots in docs/review/onboarding/. Not merged. After merge: delete SAM_GOV_API_KEY from Vercel.",
     "Review PR claude/simplify-shell (final shell, merges #414 + #425 into main): two tabs Today · Jobs; Today = Scan now + last scanned, Review new (Browse list + preview), Apply, Follow up (due + upcoming), New companies; Companies tab gone (old routes → Today in route.ts), Followed / Ignored under Account → Companies. Screenshots in docs/review/shell/. Not merged.",
     "Apply Part A migrations in order: 20261024100000_postings.sql, 20261024100200_sync_postings_cron.sql, 20261026100000_rls_policies_as_code.sql, 20261026100100_tracker_data_size_cap.sql, 20261026100200_client_errors_rate_limited_rpc.sql, 20261028100000_delete_my_data.sql (check `supabase migration list`: 20261024100000 was edited in place by #412). Approve the legal wording (LEGAL_DRAFT true). Review #414 and #423 screenshots in docs/review/2026-10-28/.",
     "Simplify follow-ups: #382 breadth guard (only the forward guard shipped), #385 Add sources sheet + Find box on Today (#408 shipped the box only), Jobs under More (#410 shipped it as a tab).",

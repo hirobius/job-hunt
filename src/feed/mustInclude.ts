@@ -293,9 +293,3 @@ export function useAllMustInclude(): Record<string, MustInclude> {
     }
   }, [raw]);
 }
-
-/** A track's entry, live. */
-export function useMustInclude(categoryId: string): MustInclude {
-  const all = useAllMustInclude();
-  return useMemo(() => mustIncludeFor(all, categoryId), [all, categoryId]);
-}

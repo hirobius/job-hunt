@@ -162,6 +162,18 @@ describe('Find box from the Pipeline', () => {
     expect(titles()).toEqual(['Design Systems Engineer']);
   });
 
+  it('a title listed but switched off is turned on, with Undo', async () => {
+    saveProfile({ titles: ['Design Systems Engineer', 'UX Designer'], titlesOff: ['UX Designer'] });
+    const user = userEvent.setup();
+    renderPipeline();
+    const dialog = await openFind(user);
+    await find(user, dialog, 'ux designer');
+    expect(await screen.findByText('Turned “ux designer” on in your titles')).toBeVisible();
+    expect(getProfile()?.titlesOff).toEqual([]);
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(getProfile()?.titlesOff).toEqual(['UX Designer']);
+  });
+
   it('a name read as a company can be searched as a title instead, and back', async () => {
     const user = userEvent.setup();
     renderPipeline();

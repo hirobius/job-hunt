@@ -19,10 +19,10 @@ import {
   muteSource,
   removeSource,
   sourceKey,
-  updateSources,
   useSources,
   type Source,
 } from '../sources';
+import { nameKey } from '../sourcesModel';
 import type { Posting } from './types';
 
 export const DECIDED_KEY = 'rjb_decided';
@@ -43,7 +43,7 @@ export interface DecidedState {
 }
 
 /** A company's key: one per company, whatever its case or spacing. */
-export const companyKey = (company: string) => company.trim().replace(/\s+/g, ' ').toLowerCase();
+export const companyKey = nameKey;
 
 /** A posting's fingerprint: the scorer's (company + title without seniority words, the server's
  *  `postings.fingerprint`), or its link when it names no company (two unnamed "Designer" posts
@@ -54,12 +54,8 @@ export function postingFingerprint(p: Pick<Posting, 'company' | 'title' | 'url'>
     : `url:${dedupKey(p.url)}`;
 }
 
-/** Whether `list` (names) holds this company. */
-export const hasCompany = (list: readonly string[], company: string) =>
-  list.some((x) => companyKey(x) === companyKey(company));
-
 /** The Feed's state from the stores' values. Pure. */
-export function decidedStateOf(decided: readonly Decision[], sources: readonly Source[]) {
+function decidedStateOf(decided: readonly Decision[], sources: readonly Source[]) {
   return {
     decided: [...decided],
     muted: sources.filter((s) => s.muted && s.kind !== 'feed').map((s) => s.label),
@@ -124,12 +120,6 @@ export function followCompany(company: string): () => void {
   const s = companySource(company);
   addSources([s]);
   return () => removeSource(sourceKey(s));
-}
-
-/** Stop following a company followed by name (its `company` Source goes). */
-export function unfollowCompany(company: string): void {
-  const k = companyKey(company);
-  updateSources((cur) => cur.filter((s) => !(s.kind === 'company' && companyKey(s.label) === k)));
 }
 
 export function useDecided(): DecidedState {
