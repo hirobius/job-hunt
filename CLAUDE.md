@@ -509,6 +509,20 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   new DS track watches them in one bulk add and old ones get them via "Add suggested companies". Not used:
   component.gallery (private Airtable, no licence), designsystemsrepo / Design Systems for Figma (no licence).
   Pinned in `src/feed/seed/*.test.ts`, `radar/directory.test.ts`.
+- **Bulk board set + scan rotation (#src-bulk, 2026-10-29):** `npm run boards:discover`
+  (`scripts/discover-boards.mjs`, `src/feed/bulk/`) harvests public board links (HN comments via Algolia,
+  GitHub job lists, job-board-aggregator's MIT slug lists, Common Crawl's index (unreachable from the build
+  container), the DS seed), probes each with the probe's limiter, and writes `src/feed/data/boards.json`
+  (kind, slug, company, website, jobs, lastChecked, evidence; read only through `src/feed/boardSet.ts`) plus
+  `board-keys.json` (keys only; Today's lazy chunk, the size budget's 70 kB). Probe answers cache in
+  `node_modules/.cache/boards-discover.json`; `--cached-only` / `--reuse-harvest` rebuild without asking
+  again. The server's `sync-postings` `{rotate:true}` (1-minute cron) walks the set in a hashed order
+  (`src/tracks/rotation.ts`: cursor, 40 s time box, 3 per host, 429 backoff + carry list, 404 retry list
+  then disabled; migration `20261029100000_scan_rotation.sql`), storing only remote queue/review postings for
+  design systems profiles. Today reads "Scanning N sources · Last scanned hh:mm, K new"
+  (`feed/scanningCount.ts`): the browser's boards + feeds, plus the board set only when signed in with a
+  design systems profile. Pinned in `src/feed/bulk/*.test.ts`, `boardSet.test.ts`, `scanningCount.test.ts`,
+  `tracks/rotation.test.ts`, `autoScanViews.test.tsx`.
 - **Title filter (#223):** the sweep's list _is_ the track's title filter (seed: the track's titles, else
   its ATS roles). Live postings applies it always (`targeting.titles`: an unticked title hides a posting
   titled only by it, "N hidden by titles"; ticked titles rank first), edited in the **Calibrate**
