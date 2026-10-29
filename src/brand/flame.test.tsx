@@ -7,7 +7,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { BRAND } from '../brand';
 import { applyBrand } from '../brandHtml';
-import { BrandLogo, Flame, flameSvg, withUniqueIds } from './Flame';
+import { BrandLogo, Flame } from './Flame';
+import { flameSvg, withUniqueIds } from './flameSvg';
 
 afterEach(cleanup);
 

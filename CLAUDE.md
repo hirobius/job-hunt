@@ -15,11 +15,17 @@ commit `f15fd52`).
 `src/brand.test.ts` fails on a hard-coded name. Stored identifiers stay fixed on purpose: the backup
 format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 
-**Brand mark (2026-10-22):** a placeholder until a logo exists (Adrian: "leave the logo blank").
-`src/BrandMark.tsx` is a plain 24px rounded square left of the wordmark (aria-hidden; `.rjb-brand-mark`
-in `base.css`, HDS tokens only, no motion). The cobalt flame (`flameMark.ts`) is deleted. `npm run
-icons` writes `public/favicon.svg` and renders the PNG icons, `favicon.ico` + og-image with the same
-square on the graphite tile; `BrandMark.test.tsx` pins it.
+**Flame logo: one source, `src/brand/flame.svg` (2026-10-29).** To change the logo: replace
+`src/brand/flame.svg` (fills from HDS primitive colours; keep `class="flame-1|2|3"` on the outer,
+middle and core layers if the app should recolour them for dark mode), run `npm run icons`, commit.
+Everything derives from it: the header lockup and sign-in screen (`src/brand/Flame.tsx` inlines it,
+ids made unique per instance), the boot splash (`%BRAND_FLAME%` in index.html's `#root`, filled by
+`brandHtml.ts`; React replaces it on mount) and `npm run icons` (favicon.svg, PNG icons,
+favicon.ico, og-image). `src/brand/flame.test.tsx` fails on any other `.svg`, any copy of its path
+data, a stale `public/favicon.svg`, or non-HDS fills. The procedural flame engine is gone.
+**Boot reveal:** `.rjb-flame-reveal` (HDS motion tokens; static under reduced motion) plays on the
+splash (fades in after a short beat, so a fast boot shows nothing) and in `BootHold` (App's main,
+only while a signed-in device with no data waits for its cloud copy, max 4 s).
 
 ## Stack & conventions
 

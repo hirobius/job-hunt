@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   useRoute,
   navigate,
@@ -33,6 +33,8 @@ import {
 import { JobPageLiveness } from './LivenessViews';
 import { usePageTitle } from './pageTitle';
 import { BrandLogo } from './brand/Flame';
+import { BootHold } from './brand/BootHold';
+import { needsClientAtBoot } from './supabase';
 import { LEGAL_ROUTE } from './legalRoute';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
@@ -95,6 +97,18 @@ const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
 /** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
  *  after sync has settled so the cloud's copy (already moved on another device) is here first. */
+/** A signed-in device with nothing on it shows the flame until its cloud copy lands, instead of
+ *  flashing the first-run setup (brand/BootHold.tsx). Decided once, at boot. */
+function PageHold({ firstRun, children }: { firstRun: boolean; children: ReactNode }) {
+  const { settled } = useCloudSync();
+  const [waiting] = useState(() => firstRun && needsClientAtBoot());
+  return (
+    <BootHold waiting={waiting} settled={settled}>
+      {children}
+    </BootHold>
+  );
+}
+
 function SnippetMigration() {
   const { settled } = useCloudSync();
   const snippets = useSnippets();
@@ -314,58 +328,60 @@ export default function App() {
                   {/* A page whose chunk is gone after a deploy says so here, not over the shell
                       (#331); a move to another page clears it. */}
                   <PageErrorBoundary resetKey={pageKey(route)}>
-                    <Stack gap="px24">
-                      <TabsContent value="today" variant="bare" tabIndex={-1}>
-                        <Suspense fallback={<PipelineSkeleton />}>
-                          {firstRun ? <Onboarding offerSample /> : <Today />}
-                        </Suspense>
-                      </TabsContent>
-                      <TabsContent value="queue" variant="bare" tabIndex={-1}>
-                        <Suspense fallback={<PipelineSkeleton />}>
-                          {applying ? (
-                            <ApplyMode jobId={route.sub} />
-                          ) : company ? (
-                            <CompanyPage slug={route.sub ?? ''} />
-                          ) : route.jobId ? (
-                            <>
-                              <JobPageLiveness jobId={route.jobId} />
-                              <JobPage jobId={route.jobId} />
-                            </>
-                          ) : (
-                            // No sync banner: the Account menu's sync line says where data lives.
-                            <TrackerView />
-                          )}
-                        </Suspense>
-                      </TabsContent>
-                      {legacy && (
-                        <TabsContent value={LEGACY_TAB} variant="bare" tabIndex={-1}>
-                          <Suspense fallback={<DiscoverSkeleton />}>
-                            {firstRun ? (
-                              <Onboarding offerSample />
-                            ) : hasTracks ? (
-                              <DiscoverView />
+                    <PageHold firstRun={firstRun}>
+                      <Stack gap="px24">
+                        <TabsContent value="today" variant="bare" tabIndex={-1}>
+                          <Suspense fallback={<PipelineSkeleton />}>
+                            {firstRun ? <Onboarding offerSample /> : <Today />}
+                          </Suspense>
+                        </TabsContent>
+                        <TabsContent value="queue" variant="bare" tabIndex={-1}>
+                          <Suspense fallback={<PipelineSkeleton />}>
+                            {applying ? (
+                              <ApplyMode jobId={route.sub} />
+                            ) : company ? (
+                              <CompanyPage slug={route.sub ?? ''} />
+                            ) : route.jobId ? (
+                              <>
+                                <JobPageLiveness jobId={route.jobId} />
+                                <JobPage jobId={route.jobId} />
+                              </>
                             ) : (
-                              <ChooseTrack />
+                              // No sync banner: the Account menu's sync line says where data lives.
+                              <TrackerView />
                             )}
                           </Suspense>
                         </TabsContent>
-                      )}
-                      {documents && (
-                        <Suspense fallback={<CopyDeckSkeleton />}>
-                          <DocumentsView />
-                        </Suspense>
-                      )}
-                      {legal && (
-                        <Suspense fallback={null}>
-                          <LegalPage />
-                        </Suspense>
-                      )}
-                      {notFound && (
-                        <Suspense fallback={null}>
-                          <NotFoundPage />
-                        </Suspense>
-                      )}
-                    </Stack>
+                        {legacy && (
+                          <TabsContent value={LEGACY_TAB} variant="bare" tabIndex={-1}>
+                            <Suspense fallback={<DiscoverSkeleton />}>
+                              {firstRun ? (
+                                <Onboarding offerSample />
+                              ) : hasTracks ? (
+                                <DiscoverView />
+                              ) : (
+                                <ChooseTrack />
+                              )}
+                            </Suspense>
+                          </TabsContent>
+                        )}
+                        {documents && (
+                          <Suspense fallback={<CopyDeckSkeleton />}>
+                            <DocumentsView />
+                          </Suspense>
+                        )}
+                        {legal && (
+                          <Suspense fallback={null}>
+                            <LegalPage />
+                          </Suspense>
+                        )}
+                        {notFound && (
+                          <Suspense fallback={null}>
+                            <NotFoundPage />
+                          </Suspense>
+                        )}
+                      </Stack>
+                    </PageHold>
                   </PageErrorBoundary>
                 </Box>
               </Stack>
