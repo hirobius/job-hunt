@@ -144,7 +144,8 @@ const FEED_OF_REF: Record<FeedRef, Feed | null> = {
   hn: 'hn',
   remotive: 'remotive',
   jobicy: 'jobicy',
-  remoteok: null,
+  // Muting Remote OK in Sources stops the sync's read of it too (tracks/feeds/remoteok.ts).
+  remoteok: 'remoteok',
   'designsystems-rss': 'rss',
 };
 

@@ -81,7 +81,7 @@ export const THIRD_PARTIES: ThirdParty[] = [
   {
     name: 'Job searches our server runs',
     purpose:
-      'If you sign in and your search is for design systems roles, our server (not your browser) looks for openings on designsystems.jobs and, once each is switched on, TheirStack, Adzuna, Jooble and Into Design Systems. They receive only a fixed search phrase such as “design system”, never your email, jobs, notes, documents or account. Openings from Adzuna are labelled “Jobs by Adzuna”.',
+      'If you sign in and your search is for design systems roles, our server (not your browser) looks for openings on designsystems.jobs, Arbeitnow, Remote OK and We Work Remotely and, once each is switched on, TheirStack, Adzuna, Jooble and Into Design Systems. They receive only a fixed search phrase such as “design system”, never your email, jobs, notes, documents or account. Each opening links back to the site it came from and names it; openings from Adzuna are labelled “Jobs by Adzuna”.',
     hosts: [],
   },
   {

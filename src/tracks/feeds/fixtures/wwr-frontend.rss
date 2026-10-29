@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>Gamma: Design Technologist</title>
+      <region>Europe Only</region>
+      <type>Full-Time</type>
+      <description>&lt;p&gt;Prototype in code.&lt;/p&gt;</description>
+      <pubDate>Wed, 29 Oct 2026 08:00:00 +0000</pubDate>
+      <guid>https://weworkremotely.com/remote-jobs/gamma-design-technologist</guid>
+      <link>https://weworkremotely.com/remote-jobs/gamma-design-technologist</link>
+    </item>
+    <item>
+      <title>Acme Inc: Senior Designer, Design Systems</title>
+      <region>Anywhere in the World</region>
+      <description>Same job, listed twice.</description>
+      <pubDate>Tue, 28 Oct 2026 10:00:00 +0000</pubDate>
+      <guid>https://weworkremotely.com/remote-jobs/acme-inc-senior-designer-design-systems</guid>
+      <link>https://weworkremotely.com/remote-jobs/acme-inc-senior-designer-design-systems</link>
+    </item>
+  </channel>
+</rss>

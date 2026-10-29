@@ -21,6 +21,10 @@ export interface NormalizedPosting {
     | 'theirstack'
     | 'jooble'
     | 'ids'
+    // The keyless remote boards the sync reads whole (tracks/feeds).
+    | 'arbeitnow'
+    | 'remoteok'
+    | 'wwr'
     | 'remotive'
     | 'jobicy'
     | 'hn'
@@ -142,6 +146,9 @@ export function dedupe(postings: NormalizedPosting[]): NormalizedPosting[] {
     theirstack: 2,
     jooble: 2,
     remotive: 3,
+    arbeitnow: 3,
+    remoteok: 3,
+    wwr: 3,
     jobicy: 3,
     hn: 3,
   };

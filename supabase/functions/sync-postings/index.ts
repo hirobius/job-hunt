@@ -4,7 +4,8 @@
 // Search profile, else the v11 fields and their watched tiles), so the blob is the one source of
 // truth. Every board is read once however many users follow it (Ashby one board at a time), the
 // term feeds (HN, Remotive, Jobicy), designsystems.jobs (its whole catalog) and the sync's own
-// design-systems searches (src/tracks/feeds, on in SOURCE_ENABLED) on the morning run. Each posting is
+// design-systems searches (src/tracks/feeds: the keyless ones always, a keyed one once its secret is
+// set, serverFeeds.ts `serverFeedOn`) on the morning run. Each posting is
 // scored with the user's profile config (src/tracks), deduped by fingerprint and upserted on
 // (user, source, source_id). A failed read is logged and closes nothing, except a 404 (the board is
 // gone): its postings close. A posting missing from 2 answered reads in a row is rejected as
@@ -49,7 +50,12 @@ import {
 import { designSystemsTrack } from '../../../src/tracks/track-config.ts';
 import { SOURCE_ENABLED } from '../../../src/feed/sourceEnabled.ts';
 import type { FeedContext } from '../../../src/tracks/feeds/context.ts';
-import { SERVER_FEEDS, type ServerFeed } from '../../../src/tracks/feeds/serverFeeds.ts';
+import {
+  SERVER_FEEDS,
+  serverFeedOn,
+  serverFeedsOff,
+  type ServerFeed,
+} from '../../../src/tracks/feeds/serverFeeds.ts';
 import type { NormalizedPosting } from '../../../src/tracks/score.ts';
 import type { WatchedCompany } from '../../../src/tracks/sources.ts';
 import type { TrackConfig } from '../../../src/tracks/track-config.ts';
@@ -77,6 +83,9 @@ const RANK: Record<string, number> = {
   theirstack: 2,
   jooble: 2,
   remotive: 3,
+  arbeitnow: 3,
+  remoteok: 3,
+  wwr: 3,
   jobicy: 3,
   hn: 3,
 };
@@ -135,9 +144,10 @@ async function knownDsJobs(db: SupabaseClient): Promise<Map<string, NormalizedPo
 }
 
 /** What the sync's own searches get: the function's secrets (never logged), the clock. */
+const envOf = (name: string) => Deno.env.get(name);
 const feedContext: FeedContext = {
   fetch: timedFetch,
-  env: (name) => Deno.env.get(name),
+  env: envOf,
   now: () => new Date(),
   sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
 };
@@ -843,7 +853,7 @@ Deno.serve(async (req) => {
       }
       const wantsRss = [...plans.values()].some((p) => p.feeds.has('rss'));
       const server = SERVER_FEEDS.filter(
-        (f) => SOURCE_ENABLED[f] && [...plans.values()].some((p) => p.feeds.has(f)),
+        (f) => serverFeedOn(f, envOf) && [...plans.values()].some((p) => p.feeds.has(f)),
       );
       const reads = await readAll([], {
         fetch: timedFetch,
@@ -899,10 +909,10 @@ Deno.serve(async (req) => {
         const { data: n, error } = await db.rpc('close_unfollowed_postings', {
           p_user: userId,
           p_track: trackSlug,
-          // A server search switched off in SOURCE_ENABLED closes its rows like a muted feed.
+          // A server search not running (its secret removed) closes its rows like a muted feed.
           p_keep: [
             ...plan.boards.map(boardOf),
-            ...[...plan.feeds].filter((f) => !isServerFeed(f) || SOURCE_ENABLED[f]),
+            ...[...plan.feeds].filter((f) => !isServerFeed(f) || serverFeedOn(f, envOf)),
           ],
         });
         if (error)
@@ -1012,6 +1022,8 @@ Deno.serve(async (req) => {
     left: rest.length,
     last,
     feeds: feedsRead,
+    // The server searches not running and what turns each on (secret names, never values).
+    serverFeedsOff: serverFeedsOff(envOf),
     failedBoards: failedBoards.size,
     summary,
   });

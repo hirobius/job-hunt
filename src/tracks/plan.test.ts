@@ -70,14 +70,17 @@ describe('planFromBlob: v12 (sources + profile)', () => {
       }),
     );
     expect(plan?.boards.map((b) => b.slug)).toEqual(['ramp']);
-    // The sync's own searches have no Source to mute: on for every design-systems plan.
+    // The sync's own searches have no Source to mute (Remote OK's is its feed ref): on for every
+    // design-systems plan.
     expect([...(plan?.feeds ?? [])].sort()).toEqual([
       'adzuna',
+      'arbeitnow',
       'hn',
       'ids',
       'jobicy',
       'jooble',
       'theirstack',
+      'wwr',
     ]);
   });
 

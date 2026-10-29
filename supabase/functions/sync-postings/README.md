@@ -69,23 +69,25 @@ Then open Edge Functions → Secrets:
 Add a secret named `SYNC_SECRET` and paste the value. Save. Until this is set, the function refuses
 every call (403): there is no built-in fallback.
 
-### 3b. Keys for the sync's own searches (only when turning one on)
+### 3b. Keys for the sync's own searches (adding a key turns its source on)
 
-Each is off in `src/feed/sourceEnabled.ts` until its gate opens. Turned on without its key, its
-read fails every morning with a `sync_log` line naming the missing secret. Add each in the same
-Secrets page:
+Arbeitnow, Remote OK and We Work Remotely need no key and run every morning. Each keyed source
+runs as soon as its secret is set (no code change; `src/tracks/feeds/serverFeeds.ts`). With one of
+two secrets missing, its read fails with a `sync_log` line naming it. The function's answer lists
+`serverFeedsOff` with the secret each one still needs. Add each in the same Secrets page:
 
 | Source              | Secret(s)                         | Get it                                                                           |
 | ------------------- | --------------------------------- | -------------------------------------------------------------------------------- |
-| TheirStack          | `THEIRSTACK_API_KEY`              | theirstack.com → API key (free tier: 200 credits a month; the sync spends ≤ 180) |
-| Adzuna              | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | developer.adzuna.com → register an app (ask Adzuna about commercial use first)   |
+| TheirStack          | `THEIRSTACK_API_KEY`              | app.theirstack.com/signup → API key (free tier: 200 credits a month; ≤ 180 used) |
+| Adzuna              | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | developer.adzuna.com/signup → register an app (commercial use: ask Adzuna)       |
 | Jooble              | `JOOBLE_API_KEY`                  | jooble.org/api/about → request a key                                             |
 | Into Design Systems | none                              | its operator's yes to a server read (no key)                                     |
 
 Also run `supabase/migrations/20261029100000_postings_more_sources.sql` once (after step 1): it
 lets `postings` store rows from TheirStack, Jooble and Into Design Systems, and adds
 `known_dsjobs_postings()` (the designsystems.jobs pages already stored, so each run reads only new
-ones).
+ones). Then run `supabase/migrations/20261029100200_postings_keyless_aggregators.sql` once: it lets
+`postings` store rows from Arbeitnow, Remote OK and We Work Remotely.
 
 ### 4. Deploy the function
 

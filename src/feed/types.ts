@@ -36,7 +36,8 @@ export type FeedSourceId =
   | 'theirstack'
   | 'adzuna'
   | 'jooble'
-  | 'ids';
+  | 'ids'
+  | 'arbeitnow';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
@@ -67,6 +68,8 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   adzuna: 'Jobs by Adzuna',
   jooble: 'Jooble',
   ids: 'Into Design Systems',
+  // Its terms: link back to Arbeitnow (each row links to its Arbeitnow page) and name it.
+  arbeitnow: 'Arbeitnow',
   bluesky: 'Bluesky',
   mastodon: 'Mastodon',
   reddit: 'Reddit',

@@ -415,9 +415,14 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   `serverFeeds.ts`, never counted as answered (rows age out 30 days after last seen): TheirStack
   (`THEIRSTACK_API_KEY`, due 10 days a month × 18 rows), Adzuna (`ADZUNA_APP_ID`/`ADZUNA_APP_KEY`, rows say "Jobs by
   Adzuna"), Jooble (`JOOBLE_API_KEY`, in the URL: never logged) and Into Design Systems (MCP, waits on its operator's
-  yes). All four are off in `SOURCE_ENABLED`; on without a key they fail loud (`MissingKeyError` names the var). Design
-  systems plans only. Browser never contacts them (no CSP change); legal.ts lists them with `hosts: []`. Migration
-  `20261029100000` widens the `postings.source` check.
+  yes). **Gates live in `serverFeeds.ts` `SERVER_FEED_GATES` (claude/src-free-aggs), not `SOURCE_ENABLED`:** a keyed
+  one runs as soon as any of its secrets is set (one of two missing → `MissingKeyError` names it in `sync_log`, the run
+  goes on); the function's answer lists `serverFeedsOff` with the secret each needs. Plus three **keyless** remote boards
+  read whole and kept only when remote + design-systems (`dsRole.ts`): Arbeitnow (link back to Arbeitnow), Remote OK
+  (its API `legal` notice is checked on every read; a change stops the read, loud) and We Work Remotely (Design +
+  Front-End RSS); a muted Remote OK Source mutes it. All unverified live. Himalayas and Working Nomads stay off (terms
+  unread). Design systems plans only. Browser never contacts them (no CSP change); legal.ts lists them with `hosts: []`.
+  Migrations `20261029100000` and `20261029100200` widen the `postings.source` check.
 - **Auto-scan (simplify 8/11, #415; stacked on the Feed, #414):** `feed/autoScan.ts` runs all discovery with no
   buttons. On app open (`AutoScanOnOpen`, a lazy chunk in `App`, after sync settles; on only when `main.tsx` calls
   `setScanOnOpen(true)`, so unit tests never scan) at most every 6 h, or on **Scan now**: leads (YC hiring now →
