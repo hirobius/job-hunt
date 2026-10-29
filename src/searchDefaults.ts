@@ -45,12 +45,13 @@ export const DESIGN_SYSTEMS_ATS_ROLES = [
 /** The inclusion check a new profile asks for (feed/profile.ts `designSystemRule`). */
 export const DESIGN_SYSTEMS_INCLUDE = ['design system'];
 
-/** The starter design-system companies, as Sources: one per board, named from its slug. */
-export function seedSources(): Source[] {
+/** The starter design-system companies, as Sources: one per board, named from its slug. `auto`
+ *  marks them as followed on their own (a new user's auto profile). */
+export function seedSources({ auto = false }: { auto?: boolean } = {}): Source[] {
   const out: Source[] = [];
   for (const url of DIRECTORY_BY_PACK.designsystems) {
     const b = parseBoardUrl(url);
-    if (b) out.push(boardSource(b, boardLabel(b)));
+    if (b) out.push({ ...boardSource(b, boardLabel(b)), ...(auto && { auto: true as const }) });
   }
   return out;
 }
@@ -105,8 +106,12 @@ export const fieldsOf = (d: ProfileDraft) => {
 };
 
 /** Save a new profile from the form and follow the starter companies. Returns how many it followed. */
-export function finishSetup(draft: ProfileDraft): number {
+export function finishSetup(
+  draft: ProfileDraft,
+  { auto = false }: { auto?: boolean } = {},
+): number {
   saveProfile({
+    ...(auto && { auto: true as const }),
     ...fieldsOf(draft),
     atsRoles: [...DESIGN_SYSTEMS_ATS_ROLES],
     atsOff: [],
@@ -114,12 +119,12 @@ export function finishSetup(draft: ProfileDraft): number {
     level: 'any',
     scorer: 'design-systems',
   });
-  return addSources(seedSources());
+  return addSources(seedSources({ auto }));
 }
 
 /** A new user's search, made with no questions asked (Adrian 2026-10-29: no setup screen): the
  *  design-systems profile (its titles, remote only) and the starter companies followed. Does
  *  nothing when a profile exists. Returns how many companies it followed. */
 export function ensureProfile(): number {
-  return getProfile() ? 0 : finishSetup(NEW_PROFILE);
+  return getProfile() ? 0 : finishSetup(NEW_PROFILE, { auto: true });
 }

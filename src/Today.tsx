@@ -11,6 +11,7 @@ import { JobPostingTitle } from './PostingLink';
 import { NewCompanies, ScanStatus } from './AutoScanViews';
 import ReviewView from './ReviewView';
 import { useProfile } from './profile';
+import { useCloudSync } from './account/accountContext';
 import { useJobs, jobIdOf } from './store';
 import { jobHash, navigate, useRoute, withOrigin } from './route';
 import { metaLines } from './metaLines';
@@ -27,6 +28,7 @@ export default function Today() {
   const route = useRoute();
   const jobs = useJobs();
   const profile = useProfile();
+  const { offline } = useCloudSync();
   const now = new Date();
   const m = today(jobs, now, lastApplyJobId());
   const { due, waiting, upcoming } = m.followUp;
@@ -49,15 +51,21 @@ export default function Today() {
         <ReviewView label="Review new" scanStatus />
       ) : (
         // The design-systems profile is made on its own once sync settles (searchDefaults.ts
-        // `ensureProfile`); until then Review new holds its place.
+        // `ensureProfile`); until then Review new holds its place, or says why it can't.
         <Stack gap="normal">
           <ScanStatus />
           <Panel label="Review new" title="Review new">
             <PanelBody>
-              <Stack gap="tight">
-                <Skeleton variant="text" width="70%" />
-                <Skeleton variant="text" width="40%" />
-              </Stack>
+              {offline ? (
+                <Text variant="caption" as="p" tone="secondary">
+                  Couldn&apos;t reach your account. Your search loads once you&apos;re back online.
+                </Text>
+              ) : (
+                <Stack gap="tight">
+                  <Skeleton variant="text" width="70%" />
+                  <Skeleton variant="text" width="40%" />
+                </Stack>
+              )}
             </PanelBody>
           </Panel>
         </Stack>

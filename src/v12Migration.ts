@@ -88,7 +88,10 @@ const realTracks = (s: V11State) => s.curation.categories.filter((c) => c.id !==
 
 /** A design-systems track: scored, or made from the Design Systems pack (its label). */
 const isDsTrack = (s: V11State, c: CurationState['categories'][0]) =>
-  !!scorerFor(s.mustInclude[c.id]) || packIdForLabel(c.label) === 'designsystems';
+  !!scorerFor(s.mustInclude[c.id]) ||
+  packIdForLabel(c.label) === 'designsystems' ||
+  // A renamed one: its titles or ATS roles say design system(s).
+  [...c.titles, ...c.atsRoles].some((t) => /\bdesign[ -]?systems?\b/i.test(t));
 
 /** The real tracks that move: the design-systems ones (Adrian 2026-10-29). */
 const dsTracks = (s: V11State) => realTracks(s).filter((c) => isDsTrack(s, c));

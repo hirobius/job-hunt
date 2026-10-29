@@ -9,7 +9,9 @@ and in the host that needs them. Agents never read or write `.env*` files.
 
 The browser app is keyless. `src/config.ts` holds the Supabase URL and **publishable** key,
 which are public by design (data is behind row-level security + email sign-in). Job sources
-are keyless public APIs; key-backed aggregators were declined (#87, 2026-10-27). The one keyed
+are keyless public APIs in the browser. The key-backed searches (TheirStack, Adzuna, Jooble) run
+only in the `sync-postings` edge function, are off in `SOURCE_ENABLED`, and read their keys from
+Supabase secrets (table below). The one browser-side keyed
 source, SAM.gov (the Contracts track, #275), was removed with the old screens (#389); its
 `SAM_GOV_API_KEY` can be deleted from Vercel.
 
@@ -40,4 +42,3 @@ source, SAM.gov (the Contracts track, #275), was removed with the old screens (#
 - Least privilege: the PAT is `read:packages` only; the service-role key never leaves Supabase.
 - A new secret: add its name to this table, store it in Bitwarden, and make the code that reads it
   fail with the var's name (never its value) when it is unset.
-

@@ -55,6 +55,9 @@ export interface Source {
   /** The v11 move starred it (a dream company) once: the top-up never stars it again, so an
    *  unstar sticks. */
   movedStar?: true;
+  /** Followed on its own with a new user's auto profile (searchDefaults.ts), not by the person:
+   *  unless starred or muted, not "this device's data" and dropped on a sign-in. */
+  auto?: true;
   /** Lever's EU host. */
   eu?: true;
   website?: string;
@@ -112,6 +115,7 @@ export function sanitizeSource(raw: unknown): Source | null {
   if (website) out.website = website;
   if (typeof o.repo === 'string' && REPO.test(o.repo)) out.repo = o.repo;
   if (typeof o.addedAt === 'string' && o.addedAt) out.addedAt = o.addedAt;
+  if (o.auto === true) out.auto = true;
   return out;
 }
 

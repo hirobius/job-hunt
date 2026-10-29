@@ -61,6 +61,10 @@ export interface Profile {
   location: string;
   mode: WorkMode;
   scorer?: ScorerId;
+  /** Made on its own for a new user (searchDefaults.ts `ensureProfile`), not by the person: not
+   *  "this device's data" to the merge guard, and dropped on a sign-in so the account's own profile
+   *  (or its v11 move) wins. Any save or change by the person drops the mark. */
+  auto?: true;
   /** The track it was made from (the v11 move), for reference only. */
   fromTrack?: string;
   createdAt: string;
@@ -129,6 +133,7 @@ export function sanitizeProfile(raw: unknown): Profile | null {
   if ((SCORERS as readonly string[]).includes(o.scorer as string))
     out.scorer = o.scorer as ScorerId;
   if (typeof o.fromTrack === 'string' && o.fromTrack) out.fromTrack = o.fromTrack;
+  if (o.auto === true) out.auto = true;
   return out;
 }
 

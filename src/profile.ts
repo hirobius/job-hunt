@@ -42,6 +42,8 @@ export function saveProfile(
   const next = sanitizeProfile({
     ...cur,
     ...fields,
+    // A save is the person's (or a new auto profile, which says so).
+    auto: fields.auto,
     id: cur?.id ?? `profile-${Date.now().toString(36)}`,
     createdAt: cur?.createdAt ?? new Date().toISOString(),
   });
@@ -54,7 +56,7 @@ export function saveProfile(
 export function updateProfile(change: Partial<Omit<Profile, 'id' | 'createdAt'>>): boolean {
   const all = readAll();
   if (!all.length) return false;
-  const next = sanitizeProfile({ ...all[0], ...change });
+  const next = sanitizeProfile({ ...all[0], ...change, auto: change.auto });
   if (!next) return false;
   all[0] = next;
   write(all);
