@@ -5,7 +5,7 @@
 // that fails is recorded with its error and the run carries on. Probe answers are cached in
 // node_modules/.cache/boards-discover.json (7 days), so a second run only asks what is new.
 //   node scripts/discover-boards.mjs [--dry] [--only=hn,github,aggregator,commoncrawl,seed] [--limit=N]
-//     [--from-year=2014] [--cc-indexes=2]
+//     [--from-year=2014] [--cc-indexes=2] [--cached-only]
 // --dry prints counts and writes nothing. Takes ~20-60 minutes for ~10,000 candidates.
 // Behind a proxy: NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=<bundle>.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -22,6 +22,9 @@ const limit = Number(arg('limit', '0')) || Infinity;
 const fromYear = Number(arg('from-year', '2014'));
 const ccIndexCount = Number(arg('cc-indexes', '2'));
 const dry = process.argv.includes('--dry');
+// --cached-only: build the snapshot from the probe cache alone (an interrupted run's answers);
+// boards not in it count as unknown and nothing is asked.
+const cachedOnly = process.argv.includes('--cached-only');
 
 const H = (await runnerImport(`${root}src/feed/bulk/harvest.ts`)).module;
 const D = (await runnerImport(`${root}src/feed/bulk/discover.ts`)).module;
@@ -169,7 +172,11 @@ const timer = setInterval(() => void saveCache(), 60_000);
 let last = 0;
 const started = Date.now();
 const validated = await D.validateCandidates(candidates, {
-  fetchJson: async (u) => (await get(u, 20_000)).json(),
+  fetchJson: cachedOnly
+    ? async (u) => {
+        throw new FetchError(0, u);
+      }
+    : async (u) => (await get(u, 20_000)).json(),
   limiter: createLimiter(),
   now: () => new Date(),
   cache,
