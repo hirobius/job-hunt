@@ -30,14 +30,14 @@ for (const width of [390, 1440]) {
 test('the boot splash is the flame while the app loads, and React replaces it', async ({
   page,
 }) => {
-  // Hold the app's entry script: the served #root is the splash.
+  // Hold the app's entry script (it also holds DOMContentLoaded): the served #root is the splash.
   let release: () => void = () => {};
   const held = new Promise<void>((r) => (release = r));
   await page.route(/\/src\/main\.tsx|\/assets\/index-[^/]*\.js$/, async (route) => {
     await held;
     await route.continue();
   });
-  await page.goto('/#/queue', { waitUntil: 'domcontentloaded' });
+  await page.goto('/#/queue', { waitUntil: 'commit' });
   const splash = page.getByRole('status', { name: /^Loading / });
   await expect(splash.locator('.rjb-flame svg path').first()).toBeAttached();
   await expect(page.locator('#root')).not.toContainText('%BRAND');
