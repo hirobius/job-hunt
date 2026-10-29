@@ -29,7 +29,6 @@ import raw from './feed/data/boards.json';
 import { boardSetKeys, parseBoardSet } from './feed/boardSet';
 import { feedKeys, resetBoardSetKeys } from './feed/scanningCount';
 import { replaceProfiles, type Profile } from './profile';
-import { designSystemsTrack } from './tracks/track-config';
 
 const ACME = 'https://boards.greenhouse.io/acme';
 const fetchJson = (async (url: string) => {
@@ -161,7 +160,7 @@ const dsProfile: Profile = {
   level: 'any',
   location: '',
   mode: 'any',
-  scorer: designSystemsTrack.slug,
+  scorer: 'design-systems',
   createdAt: '2026-10-28T00:00:00.000Z',
 };
 
