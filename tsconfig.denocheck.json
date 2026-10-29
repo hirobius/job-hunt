@@ -1,5 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": { "module": "ESNext", "baseUrl": ".", "paths": { "npm:@supabase/supabase-js@2": ["./node_modules/@supabase/supabase-js"] } },
-  "include": ["supabase/functions/sync-postings/index.ts", "scripts/dry-run-sync.ts"]
-}
