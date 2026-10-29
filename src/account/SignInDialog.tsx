@@ -1,30 +1,28 @@
 // Magic-link sign-in (#115 Phase 1; conventional passwordless pattern, 2026-10-17), opened from
 // the account menu or the sync nudge. A full-screen HDS Dialog (brand pass, 2026-10-29): the
-// flame and the wordmark, what the app does, one field and Send link; validation on submit; then
+// flame and the wordmark, one field and Send link, no other words; validation on submit; then
 // a "Check your email" state with Resend (30 s cooldown) and Use a different email. Both end in
 // Continue without an account, which only closes it. The screen is sized to the visual viewport
 // (useVisualViewportVars), so on a phone the iOS keyboard never covers the field or the button;
 // on a short one the brand shrinks (SignInDialog.css). Only the presentation lives here: sending
 // and every auth rule stay in the CloudSync seam.
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Alert, Button, Dialog, Input, Stack, Text } from '@hirobius/design-system';
+import { Alert, Button, Dialog, Input, Stack, Text, VisuallyHidden } from '@hirobius/design-system';
 import { Form } from '@hirobius/design-system/patterns';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
 import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
 import { useBackCloses } from '../useBackCloses';
-import { BRAND } from '../brand';
-import { Flame } from '../brand/Flame';
+import { Wordmark } from '../brand/Wordmark';
 import './SignInDialog.css';
 
 export const RESEND_COOLDOWN_S = 30;
 
-/** The flame over the wordmark. The name is not a heading: the screen's title is Sign in. */
+/** The wordmark (the flame as its "o"). Not a heading: the screen's title is Sign in. */
 function SignInBrand() {
   return (
     <div className="rjb-signin-screen__brand">
-      <Flame reveal />
-      <p className="rjb-logo-word">{BRAND.name}</p>
+      <Wordmark as="p" />
     </div>
   );
 }
@@ -124,7 +122,7 @@ export default function SignInDialog() {
               </Dialog.Header>
               {sendError && <Alert tone="danger">{sendError}</Alert>}
               <Text variant="caption" as="p" role="status" tone="secondary">
-                {resent ? 'Sent again.' : 'Open it on this device to finish signing in.'}
+                {resent ? 'Sent again.' : ''}
               </Text>
               <Stack gap="tight">
                 <Button
@@ -146,15 +144,11 @@ export default function SignInDialog() {
             </>
           ) : (
             <>
-              <Dialog.Header>
+              {/* No words beyond the controls (Adrian 2026-10-29): the title names the screen
+                  for screen readers only. */}
+              <VisuallyHidden as="div">
                 <Dialog.Title>Sign in</Dialog.Title>
-                <Dialog.Description>
-                  Find roles, apply, and follow up in one place. Sign in to keep it on every device.
-                </Dialog.Description>
-              </Dialog.Header>
-              <Text variant="caption" as="p" tone="secondary">
-                We'll email you a link. No password needed.
-              </Text>
+              </VisuallyHidden>
               <Form noValidate onSubmit={(e) => void submit(e)}>
                 <Stack gap="normal">
                   <Input

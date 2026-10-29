@@ -58,7 +58,8 @@ describe('SignInDialog', () => {
     expect(dialog).toHaveClass('rjb-signin-screen');
     const { flame, word } = brandOf(dialog);
     expect(flame).not.toBeNull();
-    expect(flame).toHaveAttribute('aria-hidden', 'true');
+    expect(flame?.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(flame?.closest('.rjb-wordmark-o')).not.toBeNull();
     expect(flame?.querySelector('svg')).not.toBeNull();
     expect(word).toHaveTextContent(BRAND.name);
     expect(word?.tagName).not.toMatch(/^H\d$/);
@@ -69,10 +70,20 @@ describe('SignInDialog', () => {
     ).toEqual(['Sign in']);
   });
 
-  it('says what the app does, then how sign-in works', () => {
+  it('shows only the flame, the wordmark, Email, Send link and Continue without an account', () => {
     const { dialog } = setup();
-    expect(dialog).toHaveAccessibleDescription(
-      'Find roles, apply, and follow up in one place. Sign in to keep it on every device.',
+    // No paragraphs (Adrian 2026-10-29): the title is for screen readers only.
+    expect(dialog.querySelectorAll('p:not(.rjb-logo-word)')).toHaveLength(0);
+    expect(
+      within(dialog).getByRole('heading', { name: 'Sign in' }).closest('.sr-only'),
+    ).not.toBeNull();
+    expect(
+      within(dialog)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Send link', 'Continue without an account']);
+    expect(dialog.textContent).toBe(
+      `${BRAND.name}Sign inEmailSend linkContinue without an account`,
     );
   });
 
@@ -87,7 +98,7 @@ describe('SignInDialog', () => {
     await userEvent.type(field(), 'me@example.com{Enter}');
     const dialog = await screen.findByRole('dialog', { name: 'Check your email' });
     const { flame, word } = brandOf(dialog);
-    expect(flame).toHaveAttribute('aria-hidden', 'true');
+    expect(flame?.closest('[aria-hidden="true"]')).not.toBeNull();
     expect(word).toHaveTextContent(BRAND.name);
     expect(within(dialog).getByRole('button', { name: 'Resend in 30s' })).toBeDisabled();
     expect(within(dialog).getByRole('button', { name: 'Use a different email' })).toBeEnabled();
@@ -100,9 +111,6 @@ describe('SignInDialog', () => {
   it('is titled Sign in, with one field and one primary button', () => {
     const { dialog } = setup();
     expect(screen.getByRole('dialog', { name: 'Sign in' })).toBe(dialog);
-    expect(
-      within(dialog).getByText("We'll email you a link. No password needed."),
-    ).toBeInTheDocument();
     expect(within(dialog).queryByRole('button', { name: 'Cancel' })).toBeNull();
     expect(dialog.textContent).not.toMatch(/supabase/i);
     const input = field();

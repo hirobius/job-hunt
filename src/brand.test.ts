@@ -21,12 +21,14 @@ const sourceFiles = (dir: string): string[] =>
 describe('brand (#55)', () => {
   it('is Stoke (Adrian 2026-10-29; was RoleForge)', () => {
     expect(BRAND.name).toBe('Stoke');
-    expect(BRAND.wordmark).toEqual(['Stoke']);
+    // The flame stands in for the "o" (Adrian 2026-10-29): St🔥ke.
+    expect(BRAND.wordmark).toEqual({ before: 'St', flame: 'o', after: 'ke' });
     expect(BRAND.slug).toBe('stoke');
   });
 
   it('is internally consistent', () => {
-    expect(BRAND.wordmark.join('')).toBe(BRAND.name);
+    const { before, flame, after } = BRAND.wordmark;
+    expect(before + flame + after).toBe(BRAND.name);
     expect(BRAND.slug).toMatch(/^[a-z0-9-]+$/);
   });
 

@@ -5,7 +5,7 @@
 // In the app its layers take HDS primitives by class (`.flame-1..3` in base.css, light / dark);
 // a file without those classes shows its own fills.
 import { useId, useMemo } from 'react';
-import { BRAND } from '../brand';
+import { Wordmark } from './Wordmark';
 import { flameSvg, withUniqueIds } from './flameSvg';
 
 /** The flame alone. Decorative: whatever sits beside it carries the name. `reveal` plays the
@@ -23,15 +23,14 @@ export function Flame({ className, reveal = false }: { className?: string; revea
   );
 }
 
-/** The app bar lockup: the flame and the wordmark (the page's one h1), at `fontSize` px. */
+/** The app bar lockup: the wordmark (the page's one h1, the flame as its "o"), at `fontSize` px. */
 export function BrandLogo({ fontSize = 19 }: { fontSize?: number }) {
   return (
     <span
       className="rjb-logo"
       ref={(el) => el?.style.setProperty('--rjb-logo-size', `${fontSize}px`)}
     >
-      <Flame />
-      <h1 className="rjb-logo-word">{BRAND.name}</h1>
+      <Wordmark as="h1" />
     </span>
   );
 }

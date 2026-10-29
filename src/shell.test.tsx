@@ -120,14 +120,12 @@ describe('app shell (#115 Phase 1)', () => {
     );
   });
 
-  it('the flame sits left of the wordmark, hidden from assistive tech', () => {
+  it('the flame is the wordmark\'s "o", hidden from assistive tech', () => {
     renderApp();
     const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
-    const mark = wordmark.parentElement?.querySelector('.rjb-flame');
-    expect(mark).not.toBeNull();
-    expect(mark?.getAttribute('aria-hidden')).toBe('true');
+    const mark = wordmark.querySelector('.rjb-wordmark-o .rjb-flame');
+    expect(mark?.closest('[aria-hidden="true"]')).not.toBeNull();
     expect(mark?.querySelector('svg path')).not.toBeNull();
-    expect(mark!.compareDocumentPosition(wordmark) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('signed out, the account menu reads: device-only line, sign in | data | display | troubleshooting', async () => {

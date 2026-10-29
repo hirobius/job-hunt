@@ -9,8 +9,9 @@
 export const BRAND = {
   /** Display name. */
   name: 'Stoke',
-  /** Header wordmark parts. Joined, it must equal `name`. */
-  wordmark: ['Stoke'] as const,
+  /** The wordmark: the flame (src/brand/flame.svg) stands in for `flame`, between `before` and
+   *  `after` (St(flame)ke). Joined, they must equal `name`. */
+  wordmark: { before: 'St', flame: 'o', after: 'ke' },
   /** Lowercase, URL/file-safe: download filenames. */
   slug: 'stoke',
   /** One line for <meta name="description">. */
