@@ -106,7 +106,7 @@ test('Scan now runs again and Follow moves Acme into the followed boards (390)',
   await network(page);
   await page.goto('/#/today');
   await page.evaluate(seedTrack);
-  const status = page.getByText(/^Last scanned /);
+  const status = page.getByText(/^Scanning [\d,]+ sources? · Last scanned /);
   await expect(status).toBeVisible({ timeout: 60_000 });
 
   await page.getByRole('button', { name: 'Follow Acme' }).click();
