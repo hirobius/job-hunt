@@ -3,7 +3,7 @@
 // Ignored is one tap away. Ignore mutes a followed company (its postings leave Review new); Follow
 // again lifts the mute. Each change shows at once: the row moves to the other list and both counts
 // change. Its own chunk (lazyDialogs.ts): opened from the Account menu only.
-import { useState, type ReactNode } from 'react';
+import { startTransition, useEffect, useState, type ReactNode } from 'react';
 import { Button, Dialog, SegmentedControl, Stack, Text } from '@hirobius/design-system';
 import { CardList, ListCard } from './PipelinePanel';
 import { useFeedInputs } from './feed/useFeed';
@@ -11,6 +11,10 @@ import { followCompany, muteCompany, unmuteCompany, useDecided } from './feed/de
 import { companiesLists, type CompanyEntry } from './companiesList';
 
 type Show = 'followed' | 'ignored';
+
+/** Rows drawn on the press; the rest follow in a transition after the dialog paints. Followed
+ *  runs to hundreds of boards, and drawing them all at once took the press past 300 ms (#212). */
+export const FIRST_ROWS = 40;
 
 export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus?: () => void }) {
   const { sources } = useFeedInputs();
@@ -41,6 +45,7 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
           />
           {show === 'followed' ? (
             <Group
+              key="followed"
               title="Followed"
               rows={followed}
               empty="None followed. Follow a new company on Today."
@@ -57,6 +62,7 @@ export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus
             />
           ) : (
             <Group
+              key="ignored"
               title="Ignored"
               rows={ignored}
               empty="None ignored."
@@ -102,9 +108,13 @@ function Group({
   empty: string;
   action: (c: CompanyEntry) => ReactNode;
 }) {
+  const [all, setAll] = useState(rows.length <= FIRST_ROWS);
+  useEffect(() => {
+    if (!all) startTransition(() => setAll(true));
+  }, [all]);
   return rows.length ? (
     <CardList label={title} inset="none">
-      {rows.map((c) => (
+      {(all ? rows : rows.slice(0, FIRST_ROWS)).map((c) => (
         <ListCard key={c.key} dense>
           <Stack direction="row" gap="tight" align="center" justify="space-between">
             <Text variant="ui" as="span">

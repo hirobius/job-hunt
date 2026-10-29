@@ -2,7 +2,7 @@
 // Account menu's Companies item opens a small list of both. It is the Sources list: the boards
 // and companies Review new reads, and the ones muted (Ignore / Not this company).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@hirobius/design-system';
 
@@ -17,6 +17,8 @@ import { saveProfile } from './profile';
 import { addSources } from './sources';
 import { followCompany, getAllDecided, muteCompany } from './feed/decided';
 import { companiesLists } from './companiesList';
+import { CompaniesDialog, SearchProfileDialog } from './lazyDialogs';
+import { FIRST_ROWS } from './CompaniesDialog';
 import type { Source } from './feed/profile';
 
 describe('companiesLists', () => {
@@ -68,6 +70,23 @@ afterEach(() => {
 });
 
 describe('Account menu → Companies', () => {
+  // The feedback rule (#212): the item answers within 300 ms, so its chunk is fetched when the
+  // menu opens, not on the item's press.
+  it('opening the Account menu starts fetching the Companies and Search profile chunks', async () => {
+    const user = userEvent.setup();
+    saveProfile({ titles: ['Design Systems Designer'], mode: 'remote' });
+    const companies = vi.spyOn(CompaniesDialog, 'preload');
+    const profile = vi.spyOn(SearchProfileDialog, 'preload');
+    renderApp();
+    expect(companies).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+    await screen.findByRole('menuitem', { name: 'Companies' });
+    expect(companies).toHaveBeenCalled();
+    expect(profile).toHaveBeenCalled();
+    companies.mockRestore();
+    profile.mockRestore();
+  });
+
   it('lists Followed and Ignored; Ignore and Follow again move a company between them', async () => {
     const user = userEvent.setup();
     saveProfile({ titles: ['Design Systems Designer'], mode: 'remote' });
@@ -105,6 +124,26 @@ describe('Account menu → Companies', () => {
     expect(getAllDecided().followed).toContain('Forward');
     expect(within(dialog).getByRole('radio', { name: 'Ignored (1)' })).toBeInTheDocument();
     expect(within(dialog).getByRole('radio', { name: 'Followed (2)' })).toBeInTheDocument();
+  });
+
+  it('a long Followed list draws a first batch on the press, then every row', async () => {
+    const user = userEvent.setup();
+    saveProfile({ titles: ['Design Systems Designer'], mode: 'remote' });
+    const n = FIRST_ROWS * 3;
+    addSources(
+      Array.from({ length: n }, (_, i) => ({
+        kind: 'ashby' as const,
+        ref: `co${i}`,
+        label: `Co ${String(i).padStart(3, '0')}`,
+      })),
+    );
+    renderApp();
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Companies' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Companies' });
+    const followed = within(dialog).getByRole('list', { name: 'Followed' });
+    await waitFor(() => expect(within(followed).getAllByRole('listitem')).toHaveLength(n));
+    expect(within(followed).getAllByRole('listitem')[n - 1].textContent).toMatch(/^Co 119/);
   });
 
   it('says so when there is nothing in either list', async () => {

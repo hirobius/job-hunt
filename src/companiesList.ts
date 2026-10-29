@@ -19,8 +19,8 @@ export interface CompaniesLists {
   ignored: CompanyEntry[];
 }
 
-const byLabel = (a: CompanyEntry, b: CompanyEntry) =>
-  a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
+const byLabel = (a: CompanyEntry, b: CompanyEntry) => collator.compare(a.label, b.label);
 
 export function companiesLists(
   sources: readonly Source[],

@@ -49,6 +49,14 @@ export default function AccountMenu() {
   // Controlled, so the browser's Back closes the open menu instead of leaving the page.
   const [open, setOpen] = useState(false);
   useBackCloses(open, () => setOpen(false), 'account-menu');
+  // Fetch the two lazy dialogs' chunks as the menu opens, so Companies and Search profile answer
+  // within 300 ms of the press (#212) instead of waiting on the fetch. A failure is retried on
+  // the item's press (useLoadedWhen), which closes the sheet and raises the reload notice.
+  const openMenu = (next: boolean) => {
+    if (next)
+      for (const view of [CompaniesDialog, SearchProfileDialog]) view.preload().catch(() => {});
+    setOpen(next);
+  };
   useBackCloses(resetting, () => setResetting(false), 'reset-local-data');
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   /** Run an item that opens a dialog; the dialog gives focus back to this trigger on close. */
@@ -67,7 +75,7 @@ export default function AccountMenu() {
   return (
     <>
       {/* Non-modal, so a dialog opened from an item (sign-in, restore) takes focus cleanly. */}
-      <Menu modal={false} open={open} onOpenChange={setOpen}>
+      <Menu modal={false} open={open} onOpenChange={openMenu}>
         <Menu.Trigger asChild>
           <Button
             ref={(el: HTMLButtonElement | null) => {
