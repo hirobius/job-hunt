@@ -225,8 +225,7 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   **No Companies tab:** `route.ts` `redirectOf` sends `#/discover/*` and `#/apprenticeships` to `#/today` (the
   snapshot reads them as Today, the URL is rewritten in place with no history step, `navigate` / `goBackTo` never
   write one); never redirect anywhere else. The old Discover screens are deleted (#389, ADR 0009). An empty hash
-  and a sign-in error land on Today; a first run shows `Onboarding` there, and with jobs but no Search profile
-  Review new offers Set up your search in place.
+  and a sign-in error land on Today; there is no setup screen (see First run).
   `Today.tsx`, top to bottom: `ScanStatus` (Scan now + "Last scanned hh:mm · N new from M sources"; N and M are the
   Feed's own `newToday` / `sourcesRead` once Review new has read, so the page shows one number), **Review new**
   = `ReviewView` itself (`label="Review new" scanStatus`: it hosts the status; one panel holding sources that didn't
@@ -312,18 +311,16 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   Each Documents row links to its editor via `linkTo` (Back says "← <Company>"; an uploaded final copy is
   text only, #304). Notes are "Note 2 of 3" when several, each with a soft Remove + Undo; a notes-only
   company's last note goes back from the page and Undo reopens it (#305).
-- **First run = the Search profile form (#388, after #132):** `Onboarding.tsx` is two steps (job titles with the
-  design-system ones prefilled via `ChipEditor`; then **Remote only** on by default (off asks for a place) and optional
-  leave-out words), `Progress`, Back on step 2, Continue never disabled (no title says why and focuses the field).
-  Nothing is written until Finish: `searchDefaults.ts` `finishSetup` saves the profile (titles, the pack's broad ATS
-  terms, include "design system", scorer `design-systems`) and follows the starter design-system companies
-  (`seedSources()`: `radar/directory.ts`'s design-systems boards) as Sources, then Today opens on Review new (Browse).
-  Signed in, it waits for sync to settle ("Restoring your search…"). The gate is App's: no profile, no old tracks
-  and no jobs; with jobs but no profile, Today's Review new offers **Set up your search** in place. Sample data is a
-  step 1 offer on a first run only. The Account menu's **Search profile** (`SearchProfileDialog.tsx`, lazy) edits
-  the same fields. One empty pattern (`EmptyState`: optional icon, title, sentence, one action) in Today, Documents
-  and the Pipeline. Pinned in `firstRun.test.tsx`, `Onboarding.test.tsx`, `emptyStates.test.tsx`,
-  `pipelineFollowUps.test.tsx`.
+- **First run: no setup screen (Adrian 2026-10-29; was the Search profile form, #388):** after sync settles, App's
+  `V12Migration` runs the v11 move, then `searchDefaults.ts` `ensureProfile`: with no profile it calls `finishSetup`
+  with `NEW_PROFILE` (the design-systems titles, remote only, the broad ATS terms, include "design system", scorer
+  `design-systems`) and follows the starter design-system companies (`seedSources()`) as Sources. Today opens on
+  Review new (a skeleton holds its place until the profile lands) and `AutoScanOnOpen` mounts once a profile exists,
+  so the scan runs with no click. Signed in, `PageHold` shows the flame until the cloud copy lands, so nobody's own
+  profile is overwritten. The Account menu's **Search profile** (`SearchProfileDialog.tsx`, lazy; fields in
+  `ProfileFields.tsx`) is the only place to edit it. Sample data is the Jobs page's empty-state offer, jobs only (no
+  Sample track; an older one is still dropped on sign-in). One empty pattern (`EmptyState`) in Documents and the
+  Pipeline. Pinned in `firstRun.test.tsx`, `todayHome.test.tsx`, `pipelineFollowUps.test.tsx`, `entryChunk.test.ts`.
 - **Shell width (Adrian 2026-10-22, the portfolio's):** `src/hds-gaps/PageShell` = HDS `Container`
   at 1048 in all (Adrian 2026-10-24, was 1180) with a `clamp(1.25rem, 5vw, 4rem)` gutter (20 on a phone, 64 from 1280), so content
   is at most 920; header, tabs and every page share it. **No outlines on surfaces (HDS 0.31 soft
