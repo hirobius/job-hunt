@@ -35,7 +35,11 @@ describe('delete_my_data covers every per-user table', () => {
 
   it('is defined in a migration after every table it deletes from', () => {
     expect(fnFile).toBeDefined();
-    for (const f of files) if (/^create table/im.test(sql(f))) expect(f < fnFile!, f).toBe(true);
+    const perUser = new Set(userTables());
+    for (const f of files) {
+      const made = [...sql(f).matchAll(/create table (?:if not exists )?public\.(\w+)/gi)];
+      if (made.some((m) => perUser.has(m[1]))) expect(f < fnFile!, f).toBe(true);
+    }
   });
 
   it.each(userTables())('deletes %s rows of the caller', (t) => {

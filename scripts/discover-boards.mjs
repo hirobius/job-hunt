@@ -86,7 +86,11 @@ if (only.has('github')) {
   for (const l of H.GITHUB_LISTS) {
     try {
       const r = await get(l.url, 120_000);
-      found.push(...(l.kind === 'simplify' ? H.parseSimplifyListings(await r.json()) : H.parseTextList(await r.text())));
+      found.push(
+        ...(l.kind === 'simplify'
+          ? H.parseSimplifyListings(await r.json())
+          : H.parseTextList(await r.text())),
+      );
     } catch (e) {
       errors.push(`${l.url.split('/').slice(3, 5).join('/')}: ${why(e)}`);
     }
@@ -121,7 +125,9 @@ if (only.has('commoncrawl')) {
         const pages = H.ccPageCount(await (await get(H.ccPagesUrl(index, pattern), 60_000)).text());
         for (let p = 0; p < pages; p++) {
           try {
-            found.push(...H.parseCdx(await (await get(H.ccUrl(index, pattern, p), 120_000)).text()));
+            found.push(
+              ...H.parseCdx(await (await get(H.ccUrl(index, pattern, p), 120_000)).text()),
+            );
           } catch (e) {
             console.log(`  cc ${index} ${pattern} page ${p}: ${why(e)}`);
           }
@@ -170,7 +176,9 @@ const validated = await D.validateCandidates(candidates, {
   onProgress: (done, total) => {
     if (done - last >= 250 || done === total) {
       last = done;
-      console.log(`checked ${done} of ${total} (${((Date.now() - started) / 60e3).toFixed(1)} min)`);
+      console.log(
+        `checked ${done} of ${total} (${((Date.now() - started) / 60e3).toFixed(1)} min)`,
+      );
     }
   },
 });

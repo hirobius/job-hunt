@@ -266,7 +266,10 @@ export const GITHUB_LISTS: readonly { url: string; kind: 'simplify' | 'text' }[]
     url: 'https://raw.githubusercontent.com/SimplifyJobs/Summer2024-Internships/dev/.github/scripts/listings.json',
     kind: 'simplify',
   },
-  { url: 'https://raw.githubusercontent.com/pittcsc/Summer2024-Internships/dev/README.md', kind: 'text' },
+  {
+    url: 'https://raw.githubusercontent.com/pittcsc/Summer2024-Internships/dev/README.md',
+    kind: 'text',
+  },
   {
     url: 'https://raw.githubusercontent.com/speedyapply/2026-SWE-College-Jobs/main/README.md',
     kind: 'text',
@@ -301,7 +304,12 @@ export function parseSlugList(body: unknown, kind: Board['kind']): Candidate[] {
   const out: Candidate[] = [];
   for (const v of arr(body)) {
     const slug = str(v).trim();
-    if (slug.length < 2 || slug.length > 80 || !SLUG.test(slug) || NOT_A_SLUG.has(slug.toLowerCase()))
+    if (
+      slug.length < 2 ||
+      slug.length > 80 ||
+      !SLUG.test(slug) ||
+      NOT_A_SLUG.has(slug.toLowerCase())
+    )
       continue;
     out.push({ board: { kind, slug }, company: '', sources: ['aggregator'] });
   }
@@ -361,13 +369,14 @@ export function parseCdx(text: string): Candidate[] {
   const out: Candidate[] = [];
   for (const line of text.split('\n')) {
     if (!line.trim()) continue;
-    let url = '';
+    let url: string;
     try {
       url = str(obj(JSON.parse(line)).url);
     } catch {
       continue;
     }
-    for (const board of boardsInText(url)) out.push({ board, company: '', sources: ['commoncrawl'] });
+    for (const board of boardsInText(url))
+      out.push({ board, company: '', sources: ['commoncrawl'] });
   }
   return out;
 }

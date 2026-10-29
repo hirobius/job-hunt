@@ -64,10 +64,18 @@ describe('mergeCandidates', () => {
       website: 'zed.dev',
       sources: ['github'],
     };
-    const c: Candidate = { board: { kind: 'ashby', slug: 'ramp' }, company: 'Ramp', sources: ['hn'] };
+    const c: Candidate = {
+      board: { kind: 'ashby', slug: 'ramp' },
+      company: 'Ramp',
+      sources: ['hn'],
+    };
     const out = mergeCandidates([[a], [b, c]]);
     expect(out.map((x) => x.board.slug)).toEqual(['ramp', 'Zed']);
-    expect(out[1]).toMatchObject({ company: 'Zed Industries', website: 'zed.dev', sources: ['hn', 'github'] });
+    expect(out[1]).toMatchObject({
+      company: 'Zed Industries',
+      website: 'zed.dev',
+      sources: ['hn', 'github'],
+    });
   });
 
   it('keeps Lever EU apart from Lever', () => {
@@ -131,21 +139,24 @@ describe('GitHub lists', () => {
       { url: 'https://acme.wd1.myworkdayjobs.com/x', company_name: 'Workday Co' },
       'junk',
     ]);
-    expect(out).toEqual([{ board: { kind: 'greenhouse', slug: 'acme' }, company: 'Acme', sources: ['github'] }]);
+    expect(out).toEqual([
+      { board: { kind: 'greenhouse', slug: 'acme' }, company: 'Acme', sources: ['github'] },
+    ]);
   });
 });
 
 describe('Common Crawl', () => {
   it('reads the newest index ids', () => {
-    expect(ccIndexes([{ id: 'CC-MAIN-2025-38' }, { id: 'x' }, { id: 'CC-MAIN-2025-33' }], 1)).toEqual([
-      'CC-MAIN-2025-38',
-    ]);
+    expect(
+      ccIndexes([{ id: 'CC-MAIN-2025-38' }, { id: 'x' }, { id: 'CC-MAIN-2025-33' }], 1),
+    ).toEqual(['CC-MAIN-2025-38']);
   });
 
   it('reads page counts and CDX lines', () => {
     expect(ccPageCount('{"pages": 4, "pageSize": 5}')).toBe(4);
     expect(ccPageCount('nope')).toBe(0);
-    const text = '{"url": "https://jobs.ashbyhq.com/ramp/abc"}\nnot json\n{"url": "https://example.com"}\n';
+    const text =
+      '{"url": "https://jobs.ashbyhq.com/ramp/abc"}\nnot json\n{"url": "https://example.com"}\n';
     expect(parseCdx(text).map((c) => c.board.slug)).toEqual(['ramp']);
     expect(ccUrl('CC-MAIN-2025-38', 'jobs.lever.co/*')).toContain('url=jobs.lever.co%2F*');
   });
@@ -155,13 +166,22 @@ describe('the seed', () => {
   it('takes only confirmed boards, with the website', () => {
     const out = parseSeed({
       companies: [
-        { name: 'A', website: 'https://a.com', board: { url: 'https://jobs.lever.co/a', confirmed: 'linked' } },
+        {
+          name: 'A',
+          website: 'https://a.com',
+          board: { url: 'https://jobs.lever.co/a', confirmed: 'linked' },
+        },
         { name: 'B', board: { url: 'https://jobs.lever.co/b', confirmed: null } },
         { name: 'C', board: null },
       ],
     });
     expect(out).toEqual([
-      { board: { kind: 'lever', slug: 'a' }, company: 'A', website: 'https://a.com', sources: ['seed'] },
+      {
+        board: { kind: 'lever', slug: 'a' },
+        company: 'A',
+        website: 'https://a.com',
+        sources: ['seed'],
+      },
     ]);
   });
 });

@@ -110,7 +110,7 @@ describe('ScanStatus', () => {
     const browser = feedKeys().length + 1;
     expect(
       await screen.findByText(
-        new RegExp(`^Scanning ${browser} sources · Last scanned \\d\\d:\\d\\d · 1 new$`),
+        new RegExp(`^Scanning ${browser} sources · 1 new since \\d\\d:\\d\\d$`),
       ),
     ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Scan now' })).toBeEnabled();
@@ -125,7 +125,7 @@ describe('ScanStatus', () => {
     expect(
       await screen.findByText(
         new RegExp(
-          `^Scanning ${all.toLocaleString('en-US')} sources · Last scanned \\d\\d:\\d\\d · 1 new$`,
+          `^Scanning ${all.toLocaleString('en-US')} sources · 1 new since \\d\\d:\\d\\d$`,
         ),
       ),
     ).toBeVisible();

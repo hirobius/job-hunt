@@ -178,18 +178,12 @@ export const BOARD_SET_NOTE =
   'Public company job boards found in public sources (each credited in `sources`) and confirmed live by the probe (a 200 with a job list). The server scan rotation reads every board here; Today counts them. Regenerate with `npm run boards:discover`.';
 
 /** The snapshot as boards.json holds it. */
-export function buildBoardSet(
-  v: Validated,
-  sources: BoardSetSource[],
-  generated: Date,
-): BoardSet {
+export function buildBoardSet(v: Validated, sources: BoardSetSource[], generated: Date): BoardSet {
   return {
     generated: day(generated),
     note: BOARD_SET_NOTE,
     sources,
     counts: { ...v.counts, confirmed: v.boards.length },
-    boards: [...v.boards].sort((a, b) =>
-      candidateKey(a) < candidateKey(b) ? -1 : 1,
-    ),
+    boards: [...v.boards].sort((a, b) => (candidateKey(a) < candidateKey(b) ? -1 : 1)),
   };
 }

@@ -6,7 +6,11 @@ import { buildBoardSet, toSetBoard, validateCandidates, type CachedProbe } from 
 import type { Candidate } from './harvest';
 
 const now = () => new Date('2026-10-29T12:00:00Z');
-const cand = (slug: string, company = '', kind: Candidate['board']['kind'] = 'lever'): Candidate => ({
+const cand = (
+  slug: string,
+  company = '',
+  kind: Candidate['board']['kind'] = 'lever',
+): Candidate => ({
   board: { kind, slug },
   company,
   sources: ['hn'],
@@ -31,7 +35,14 @@ describe('validateCandidates', () => {
       { fetchJson, limiter: limiter(), now },
     );
     expect(v.boards.map((b) => b.slug)).toEqual(['live', 'empty', 'flaky']);
-    expect(v.counts).toMatchObject({ candidates: 5, live: 3, none: 1, unknown: 1, hiring: 2, lever: 3 });
+    expect(v.counts).toMatchObject({
+      candidates: 5,
+      live: 3,
+      none: 1,
+      unknown: 1,
+      hiring: 2,
+      lever: 3,
+    });
     expect(v.unknownByHost).toEqual({ 'lever.co': 1 });
     expect(asked.filter((u) => u.includes('/down'))).toHaveLength(2);
     expect(asked.filter((u) => u.includes('/gone'))).toHaveLength(1);

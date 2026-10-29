@@ -1,4 +1,4 @@
-// The auto-scan's only UI (#415): "Scan now" with "Scanning N sources · Last scanned hh:mm · K new", and
+// The auto-scan's only UI (#415): "Scan now" with "Scanning N sources · K new since hh:mm", and
 // New companies (Follow / Ignore). Today mounts both: the status at its top, New companies at its
 // end. Every action says so with an Undo.
 import { Button, Icon, Stack, Text } from '@hirobius/design-system';

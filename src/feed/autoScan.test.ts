@@ -172,10 +172,10 @@ describe('runScan', () => {
     );
     // With the scanned count (feed/scanningCount.ts), it leads and the answered count goes.
     expect(lastScannedLine(s, 'en-GB', { newToday: 5, sources: 1 }, 5214)).toMatch(
-      /^Scanning 5,214 sources · Last scanned \d\d:\d\d · 5 new$/,
+      /^Scanning 5,214 sources · 5 new since \d\d:\d\d$/,
     );
     expect(lastScannedLine(s, 'en-GB', undefined, 1)).toMatch(
-      /^Scanning 1 source · Last scanned \d\d:\d\d · 2 new$/,
+      /^Scanning 1 source · 2 new since \d\d:\d\d$/,
     );
   });
 
