@@ -21,6 +21,7 @@ import {
   type IdentityVerdict,
 } from './boardIdentity';
 import { browserKv, type KeyValue } from './fetchFeed';
+import { hostKey } from './hostKey';
 import {
   EMPTY_MEANS_NONE,
   boardApiUrl,
@@ -161,14 +162,8 @@ export async function probeBoard(b: Board, fetchJson: FetchJson): Promise<ProbeO
 
 // ---- politeness ----
 
-/** The registrable domain, so every `*.recruitee.com` shares one budget. */
-export function hostKey(url: string): string {
-  try {
-    return new URL(url).hostname.split('.').slice(-2).join('.');
-  } catch {
-    return url;
-  }
-}
+/** The registrable domain, so every `*.recruitee.com` shares one budget (hostKey.ts). */
+export { hostKey };
 
 export type Ran<T> = { ran: true; value: T } | { ran: false };
 export interface Limiter {

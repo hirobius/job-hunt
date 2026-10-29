@@ -28,6 +28,8 @@ import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 import raw from './feed/data/boards.json';
 import { boardSetKeys, parseBoardSet } from './feed/boardSet';
 import { feedKeys, resetBoardSetKeys } from './feed/scanningCount';
+import { replaceProfiles, type Profile } from './profile';
+import { designSystemsTrack } from './tracks/track-config';
 
 const ACME = 'https://boards.greenhouse.io/acme';
 const fetchJson = (async (url: string) => {
@@ -84,6 +86,7 @@ beforeEach(() => {
   dismissNotice();
   replaceCurationState(EMPTY_CURATION);
   resetBoardSetKeys();
+  replaceProfiles([]);
 });
 afterEach(cleanup);
 
@@ -110,13 +113,14 @@ describe('ScanStatus', () => {
     const browser = feedKeys().length + 1;
     expect(
       await screen.findByText(
-        new RegExp(`^Scanning ${browser} sources · 1 new since \\d\\d:\\d\\d$`),
+        new RegExp(`^Scanning ${browser} sources · Last scanned \\d\\d:\\d\\d, 1 new$`),
       ),
     ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Scan now' })).toBeEnabled();
   });
 
-  it('signed in, counts the server’s board set too, each board once', async () => {
+  it('signed in with a design systems profile, counts the server’s board set too, each board once', async () => {
+    replaceProfiles([dsProfile]);
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
     renderViews({ signedIn: true });
     const all = new Set([...boardSetKeys(parseBoardSet(raw)), ...feedKeys(), 'greenhouse:acme'])
@@ -125,12 +129,41 @@ describe('ScanStatus', () => {
     expect(
       await screen.findByText(
         new RegExp(
-          `^Scanning ${all.toLocaleString('en-US')} sources · 1 new since \\d\\d:\\d\\d$`,
+          `^Scanning ${all.toLocaleString('en-US')} sources · Last scanned \\d\\d:\\d\\d, 1 new$`,
+        ),
+      ),
+    ).toBeVisible();
+  });
+
+  it('signed in without a design systems profile, counts only what this browser reads', async () => {
+    replaceProfiles([{ ...dsProfile, scorer: undefined }]);
+    await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
+    renderViews({ signedIn: true });
+    expect(
+      await screen.findByText(
+        new RegExp(
+          `^Scanning ${feedKeys().length + 1} sources · Last scanned \\d\\d:\\d\\d, 1 new$`,
         ),
       ),
     ).toBeVisible();
   });
 });
+
+const dsProfile: Profile = {
+  id: 'main',
+  label: 'Design Systems',
+  titles: ['Design Systems Designer'],
+  titlesOff: [],
+  atsRoles: [],
+  atsOff: [],
+  include: { terms: ['design system'] },
+  leaveOut: [],
+  level: 'any',
+  location: '',
+  mode: 'any',
+  scorer: designSystemsTrack.slug,
+  createdAt: '2026-10-28T00:00:00.000Z',
+};
 
 describe('NewCompanies', () => {
   it('lists what the scan found; an unconfirmed board says so', async () => {

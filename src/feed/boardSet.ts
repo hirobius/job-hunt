@@ -44,7 +44,7 @@ export interface BoardSet {
   boards: SetBoard[];
 }
 
-const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+export const BOARD_SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 /** Every board kind the probe asks (probe.ts `PROBE_KINDS`; kept here so Deno never loads the
  *  probe's browser storage; boardSet.test.ts pins the two lists equal). */
@@ -77,7 +77,7 @@ export function parseSetBoard(raw: unknown): SetBoard | null {
   const o = raw as Record<string, unknown>;
   const kind = text(o.kind);
   const slug = text(o.slug);
-  if (!KINDS.has(kind) || !SLUG.test(slug)) return null;
+  if (!KINDS.has(kind) || !BOARD_SLUG.test(slug)) return null;
   const website = text(o.website).toLowerCase();
   const lastChecked = text(o.lastChecked);
   return {

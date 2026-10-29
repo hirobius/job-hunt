@@ -751,7 +751,7 @@ export const newCompanies = (s: ScanState): FoundCompany[] =>
 /** "Last scanned 14:05 · 12 new from 9 sources". `counts`: Review new's own (FeedView newToday and
  *  sourcesRead, from feed.ts countSources) once it has read, so the page shows one number; else the
  *  scan's. `scanning`: how many sources are scanned (feed/scanningCount.ts); given, it leads and
- *  stands in for the answered count: "Scanning 5,214 sources · 12 new since 14:05". Null
+ *  stands in for the answered count: "Scanning 5,214 sources · Last scanned 14:05, 12 new". Null
  *  before the first run. */
 export function lastScannedLine(
   s: ScanState,
@@ -767,7 +767,7 @@ export function lastScannedLine(
   });
   const fresh = counts?.newToday ?? s.newCount;
   if (scanning !== undefined)
-    return `Scanning ${scanning.toLocaleString('en-US')} ${scanning === 1 ? 'source' : 'sources'} · ${fresh} new since ${at}`;
+    return `Scanning ${scanning.toLocaleString('en-US')} ${scanning === 1 ? 'source' : 'sources'} · Last scanned ${at}, ${fresh} new`;
   const n = counts?.sources ?? s.sourceCount;
   return `Last scanned ${at} · ${fresh} new from ${n} ${n === 1 ? 'source' : 'sources'}`;
 }

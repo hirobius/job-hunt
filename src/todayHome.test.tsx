@@ -1,5 +1,5 @@
 // The final shell (simplify 2/9 #383 + amendment 2, Q6): two top tabs, Today and Jobs. Today, top
-// to bottom: the auto-scan's status (Scan now, "Scanning N sources · K new since hh:mm"), Review new as
+// to bottom: the auto-scan's status (Scan now, "Scanning N sources · Last scanned hh:mm, K new"), Review new as
 // the Browse list (a row opens the in-app preview), Apply, Follow up (due today with dates, plus
 // what is coming this week) and New companies (Follow / Ignore). Tested at the route seam through
 // App and driven by role + name.
@@ -155,11 +155,11 @@ describe('the auto-scan', () => {
     const scanning = `Scanning ${feedKeys().length} sources`;
     // Before Review new has read: the scan's own new count.
     expect(
-      screen.getByText(new RegExp(`^${scanning} · 4 new since \\d\\d:\\d\\d$`)),
+      screen.getByText(new RegExp(`^${scanning} · Last scanned \\d\\d:\\d\\d, 4 new$`)),
     ).toBeInTheDocument();
     // Once it has: the Feed's, and Review new doesn't say it a second time.
     expect(
-      await screen.findByText(new RegExp(`^${scanning} · 2 new since \\d\\d:\\d\\d$`)),
+      await screen.findByText(new RegExp(`^${scanning} · Last scanned \\d\\d:\\d\\d, 2 new$`)),
     ).toBeInTheDocument();
     expect(screen.queryByText(/new today from/)).toBeNull();
   });

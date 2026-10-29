@@ -70,7 +70,9 @@ for (const width of [390, 1440]) {
     await setUp(page);
     await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
     // One count on the page: the scan's line says the sources scanned and the Feed's new count.
-    await expect(page.getByText(/^Scanning [\d,]+ sources? · \d+ new since \d\d:\d\d$/)).toBeVisible({
+    await expect(
+      page.getByText(/^Scanning [\d,]+ sources? · Last scanned \d\d:\d\d, \d+ new$/),
+    ).toBeVisible({
       timeout: 60_000,
     });
     await expect(page.getByText(/new today from/)).toHaveCount(0);

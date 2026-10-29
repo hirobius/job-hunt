@@ -16,6 +16,7 @@
 //   proxy refuses the host.
 // - The design-system company seed already committed (src/feed/data/ds-companies.json).
 // No ATS sitemap is read: Greenhouse, Lever and Ashby publish none for their board hosts.
+import { BOARD_SLUG, setBoardKey } from '../boardSet.ts';
 import { decodeEntities } from '../html.ts';
 import { parseBoardUrl, type Board } from '../sources/ats.ts';
 import { arr, obj, str } from '../sources/http.ts';
@@ -73,9 +74,8 @@ export interface Candidate {
   sources: HarvestSourceId[];
 }
 
-/** The candidate's key, the same as the sync's `boardOf` and boardSet's `setBoardKey`. */
-export const candidateKey = (b: Board) =>
-  `${b.kind === 'lever' && b.eu ? 'lever.eu' : b.kind}:${b.slug.toLowerCase()}`;
+/** The candidate's key: boardSet's `setBoardKey`, the same as the sync's `boardOf`. */
+export const candidateKey = (b: Board) => setBoardKey(b);
 
 /** Every board host's URL shape, for finding links in free text. */
 const BOARD_HOSTS = [
@@ -297,8 +297,6 @@ export const AGGREGATOR_LISTS: readonly { url: string; kind: Board['kind'] }[] =
   ['greenhouse', 'lever', 'ashby', 'bamboohr'] as const
 ).map((kind) => ({ url: `${AGGREGATOR_RAW}/${kind}_companies.json`, kind }));
 
-const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-
 /** One `<ats>_companies.json`: a list of board slugs on that system. */
 export function parseSlugList(body: unknown, kind: Board['kind']): Candidate[] {
   const out: Candidate[] = [];
@@ -307,7 +305,7 @@ export function parseSlugList(body: unknown, kind: Board['kind']): Candidate[] {
     if (
       slug.length < 2 ||
       slug.length > 80 ||
-      !SLUG.test(slug) ||
+      !BOARD_SLUG.test(slug) ||
       NOT_A_SLUG.has(slug.toLowerCase())
     )
       continue;

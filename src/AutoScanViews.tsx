@@ -1,4 +1,4 @@
-// The auto-scan's only UI (#415): "Scan now" with "Scanning N sources · K new since hh:mm", and
+// The auto-scan's only UI (#415): "Scan now" with "Scanning N sources · Last scanned hh:mm, K new", and
 // New companies (Follow / Ignore). Today mounts both: the status at its top, New companies at its
 // end. Every action says so with an Undo.
 import { Button, Icon, Stack, Text } from '@hirobius/design-system';
@@ -21,6 +21,8 @@ import {
 import { useScanningCount } from './feed/scanningCount';
 import { useScanInput } from './feed/useAutoScan';
 import { useCloudSync } from './account/accountContext';
+import { useProfile } from './profile';
+import { designSystemsTrack } from './tracks/track-config';
 
 const VIA_LABEL: Record<LeadSource, string> = {
   yc: 'YC',
@@ -55,8 +57,11 @@ export function ScanStatus({
   const { state, running, progress } = useScan();
   const { input } = useScanInput(categoryId);
   const { user } = useCloudSync();
-  // Signed in, the server's rotation scans the whole board set too; signed out, only this browser.
-  const scanning = useScanningCount(scanBoardUrls(input.boardUrls, state), !!user);
+  const profile = useProfile();
+  // The server's rotation scans the whole board set only for a signed-in design systems profile
+  // (sync-postings, plan.ts compileProfile); anyone else is scanned by this browser alone.
+  const serverScans = !!user && profile?.scorer === designSystemsTrack.slug;
+  const scanning = useScanningCount(scanBoardUrls(input.boardUrls, state), serverScans);
   const line = running
     ? progressLine(progress)
     : (state.error ??
