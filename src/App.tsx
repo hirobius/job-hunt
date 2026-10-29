@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   useRoute,
   navigate,
@@ -24,7 +24,9 @@ import { AddInterviewHost } from './AddInterview';
 import { ApplyMode, CompanyPage, JobPage, Onboarding, Today, TrackerView } from './routeViews';
 import { JobPageLiveness } from './LivenessViews';
 import { usePageTitle } from './pageTitle';
-import { BrandLogo } from './components/brand/BrandFlame';
+import { BrandLogo } from './brand/Flame';
+import { BootHold } from './brand/BootHold';
+import { needsClientAtBoot } from './supabase';
 import { LEGAL_ROUTE } from './legalRoute';
 import CloudSyncProvider from './account/CloudSyncProvider';
 import DataToolsProvider from './account/DataToolsProvider';
@@ -84,6 +86,19 @@ const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
 /** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
  *  after sync has settled so the cloud's copy (already moved on another device) is here first. */
+/** On Today, a signed-in device with nothing on it shows the flame until its cloud copy lands,
+ *  instead of flashing the first-run setup (brand/BootHold.tsx). Decided once, at boot; offline
+ *  there is nothing to wait for. Pages that never gate (Jobs, Documents, legal) are never held. */
+function PageHold({ firstRun, children }: { firstRun: boolean; children: ReactNode }) {
+  const { settled, offline } = useCloudSync();
+  const [waiting] = useState(() => firstRun && needsClientAtBoot());
+  return (
+    <BootHold waiting={waiting} settled={settled || offline}>
+      {children}
+    </BootHold>
+  );
+}
+
 function SnippetMigration() {
   const { settled } = useCloudSync();
   const snippets = useSnippets();
@@ -273,8 +288,8 @@ export default function App() {
                     landmark-one-main / region). */}
                 <Box as="header">
                   <Stack gap="normal">
-                    {/* Slim app bar: the brand lockup (live flame + Sora wordmark, the page's one h1;
-                      Adrian 2026-10-24) · the Account avatar. */}
+                    {/* Slim app bar: the brand lockup (the flame from src/brand/flame.svg + the
+                      wordmark, the page's one h1) · the Account avatar. */}
                     <Stack direction="row" gap="gap" align="center" justify="space-between">
                       <BrandLogo fontSize={19} />
                       <AccountMenu />
@@ -300,7 +315,9 @@ export default function App() {
                     <Stack gap="px24">
                       <TabsContent value="today" variant="bare" tabIndex={-1}>
                         <Suspense fallback={<PipelineSkeleton />}>
-                          {firstRun ? <Onboarding offerSample /> : <Today />}
+                          <PageHold firstRun={firstRun}>
+                            {firstRun ? <Onboarding offerSample /> : <Today />}
+                          </PageHold>
                         </Suspense>
                       </TabsContent>
                       <TabsContent value="queue" variant="bare" tabIndex={-1}>

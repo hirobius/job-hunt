@@ -1,0 +1,36 @@
+// The flame logo. `flame.svg` beside this file is the one source of the mark: the header, the
+// boot splash (index.html, via the brand-html plugin), the sign-in screen and `npm run icons`
+// (favicon, PNG icons, favicon.ico, og-image) all read it. To change the logo, replace flame.svg,
+// run `npm run icons` and commit; `flame.test.tsx` fails on a second copy anywhere else.
+// In the app its layers take HDS primitives by class (`.flame-1..3` in base.css, light / dark);
+// a file without those classes shows its own fills.
+import { useId, useMemo } from 'react';
+import { Wordmark } from './Wordmark';
+import { flameSvg, withUniqueIds } from './flameSvg';
+
+/** The flame alone. Decorative: whatever sits beside it carries the name. `reveal` plays the
+ *  short rise-in once (a static mark under prefers-reduced-motion). */
+export function Flame({ className, reveal = false }: { className?: string; reveal?: boolean }) {
+  const suffix = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const html = useMemo(() => withUniqueIds(flameSvg, suffix), [suffix]);
+  return (
+    <span
+      className={['rjb-flame', reveal && 'rjb-flame-reveal', className].filter(Boolean).join(' ')}
+      aria-hidden="true"
+      // The repo's own static file (a build-time import), never user content.
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
+/** The app bar lockup: the wordmark (the page's one h1, the flame as its "o"), at `fontSize` px. */
+export function BrandLogo({ fontSize = 19 }: { fontSize?: number }) {
+  return (
+    <span
+      className="rjb-logo"
+      ref={(el) => el?.style.setProperty('--rjb-logo-size', `${fontSize}px`)}
+    >
+      <Wordmark as="h1" />
+    </span>
+  );
+}

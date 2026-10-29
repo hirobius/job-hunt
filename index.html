@@ -27,7 +27,7 @@
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="The %BRAND_NAME% check-mark logo, the name %BRAND_NAME% and the line: %BRAND_DESCRIPTION%"
+      content="The %BRAND_NAME% flame logo, the name %BRAND_NAME% and the line: %BRAND_DESCRIPTION%"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="%BRAND_NAME%" />
@@ -35,7 +35,13 @@
     <meta name="twitter:image" content="https://roleforge-app.vercel.app/og-image.png" />
   </head>
   <body data-hds>
-    <div id="root"></div>
+    <!-- The boot splash: the flame (src/brand/flame.svg) rising in while the app loads. React
+         replaces it the moment it mounts, so a ready app is never held. -->
+    <div id="root">
+      <div class="rjb-boot" role="status" aria-label="Loading %BRAND_NAME%">
+        <span class="rjb-flame rjb-flame-reveal">%BRAND_FLAME%</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

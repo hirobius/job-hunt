@@ -1,18 +1,31 @@
 // Magic-link sign-in (#115 Phase 1; conventional passwordless pattern, 2026-10-17), opened from
-// the account menu or the sync nudge. One field and one button; validation on submit; then a
-// "Check your email" state with Resend (30 s cooldown) and Use a different email. On a phone it
-// is a sheet pinned above the iOS keyboard (sheet.css, shared with Reset); at sm and up a centred Dialog.
+// the account menu or the sync nudge. A full-screen HDS Dialog (brand pass, 2026-10-29): the
+// flame and the wordmark, one field and Send link, no other words; validation on submit; then
+// a "Check your email" state with Resend (30 s cooldown) and Use a different email. Both end in
+// Continue without an account, which only closes it. The screen is sized to the visual viewport
+// (useVisualViewportVars), so on a phone the iOS keyboard never covers the field or the button;
+// on a short one the brand shrinks (SignInDialog.css). Only the presentation lives here: sending
+// and every auth rule stay in the CloudSync seam.
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Alert, Button, Dialog, Input, Stack, Text } from '@hirobius/design-system';
+import { Alert, Button, Dialog, Input, Stack, Text, VisuallyHidden } from '@hirobius/design-system';
 import { Form } from '@hirobius/design-system/patterns';
 import { refocusAccount, useCloudSync } from './accountContext';
 import { emailProblem } from './signInErrors';
 import { useVisualViewportVars } from '../hds-gaps/useVisualViewportVars';
 import { useBackCloses } from '../useBackCloses';
-import './sheet.css';
+import { Wordmark } from '../brand/Wordmark';
 import './SignInDialog.css';
 
 export const RESEND_COOLDOWN_S = 30;
+
+/** The wordmark (the flame as its "o"). Not a heading: the screen's title is Sign in. */
+function SignInBrand() {
+  return (
+    <div className="rjb-signin-screen__brand">
+      <Wordmark as="p" />
+    </div>
+  );
+}
 
 export default function SignInDialog() {
   const { signInOpen, setSignInOpen, sendLink, accountTrigger } = useCloudSync();
@@ -91,81 +104,93 @@ export default function SignInDialog() {
     <Dialog open={signInOpen} onOpenChange={onOpenChange}>
       <Dialog.Content
         ref={viewportRef}
-        className="rjb-sheet"
+        className="rjb-signin-screen"
+        hideClose
         onCloseAutoFocus={refocusAccount(accountTrigger)}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           inputRef.current?.focus();
         }}
       >
-        {sentTo ? (
-          <>
-            <Dialog.Header>
-              <Dialog.Title>Check your email</Dialog.Title>
-              <Dialog.Description>We sent a sign-in link to {sentTo}.</Dialog.Description>
-            </Dialog.Header>
-            {sendError && <Alert tone="danger">{sendError}</Alert>}
-            <Text variant="caption" as="p" role="status" tone="secondary">
-              {resent ? 'Sent again.' : 'Open it on this device to finish signing in.'}
-            </Text>
-            <Stack gap="tight">
-              <Button
-                className="sign-in-dialog__primary"
-                disabled={cooldown > 0}
-                loading={sending}
-                onClick={() => void resend()}
-              >
-                {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend'}
-              </Button>
-              <Button
-                className="sign-in-dialog__primary"
-                variant="tertiary"
-                onClick={differentEmail}
-              >
-                Use a different email
-              </Button>
-            </Stack>
-          </>
-        ) : (
-          <>
-            <Dialog.Header>
-              <Dialog.Title>Sign in</Dialog.Title>
-              <Dialog.Description>We'll email you a link. No password needed.</Dialog.Description>
-            </Dialog.Header>
-            <Form noValidate onSubmit={(e) => void submit(e)}>
-              <Stack gap="normal">
-                <Input
-                  ref={inputRef}
-                  type="email"
-                  label="Email"
-                  placeholder="Email"
-                  autoComplete="email"
-                  inputMode="email"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  enterKeyHint="go"
-                  value={email}
-                  error={!!fieldError}
-                  errorMessage={fieldError ?? undefined}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (fieldError) setFieldError(null);
-                  }}
-                />
-                {sendError && <Alert tone="danger">{sendError}</Alert>}
+        <div className="rjb-signin-screen__column">
+          <SignInBrand />
+          {sentTo ? (
+            <>
+              <Dialog.Header>
+                <Dialog.Title>Check your email</Dialog.Title>
+                <Dialog.Description>We sent a sign-in link to {sentTo}.</Dialog.Description>
+              </Dialog.Header>
+              {sendError && <Alert tone="danger">{sendError}</Alert>}
+              <Text variant="caption" as="p" role="status" tone="secondary">
+                {resent ? 'Sent again.' : ''}
+              </Text>
+              <Stack gap="tight">
                 <Button
-                  type="submit"
-                  variant="primary"
                   className="sign-in-dialog__primary"
+                  disabled={cooldown > 0}
                   loading={sending}
+                  onClick={() => void resend()}
                 >
-                  Continue with email
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend'}
+                </Button>
+                <Button
+                  className="sign-in-dialog__primary"
+                  variant="tertiary"
+                  onClick={differentEmail}
+                >
+                  Use a different email
                 </Button>
               </Stack>
-            </Form>
-          </>
-        )}
+            </>
+          ) : (
+            <>
+              {/* No words beyond the controls (Adrian 2026-10-29): the title names the screen
+                  for screen readers only. */}
+              <VisuallyHidden as="div">
+                <Dialog.Title>Sign in</Dialog.Title>
+              </VisuallyHidden>
+              <Form noValidate onSubmit={(e) => void submit(e)}>
+                <Stack gap="normal">
+                  <Input
+                    ref={inputRef}
+                    type="email"
+                    label="Email"
+                    placeholder="Email"
+                    autoComplete="email"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    enterKeyHint="go"
+                    value={email}
+                    error={!!fieldError}
+                    errorMessage={fieldError ?? undefined}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (fieldError) setFieldError(null);
+                    }}
+                  />
+                  {sendError && <Alert tone="danger">{sendError}</Alert>}
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    className="sign-in-dialog__primary"
+                    loading={sending}
+                  >
+                    Send link
+                  </Button>
+                </Stack>
+              </Form>
+            </>
+          )}
+          <Button
+            className="sign-in-dialog__primary"
+            variant="tertiary"
+            onClick={() => onOpenChange(false)}
+          >
+            Continue without an account
+          </Button>
+        </div>
       </Dialog.Content>
     </Dialog>
   );

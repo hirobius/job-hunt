@@ -1,10 +1,10 @@
-# CLAUDE.md — RoleForge (formerly Apply Board)
+# CLAUDE.md — Stoke (formerly RoleForge, Apply Board)
 
 Project memory for future Claude Code sessions in this repo.
 
 ## What this is
 
-**RoleForge** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
+**Stoke** (renamed 2026-10-29; formerly RoleForge, Apply Board) — a job-application tracker + discovery board, live at
 **https://roleforge-app.vercel.app** (repo `hirobius/job-hunt`; the old
 `job-hunt-jade.vercel.app` still serves and is an accepted sign-in origin until it redirects). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
@@ -15,11 +15,22 @@ commit `f15fd52`).
 `src/brand.test.ts` fails on a hard-coded name. Stored identifiers stay fixed on purpose: the backup
 format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 
-**Brand mark (2026-10-22):** a placeholder until a logo exists (Adrian: "leave the logo blank").
-`src/BrandMark.tsx` is a plain 24px rounded square left of the wordmark (aria-hidden; `.rjb-brand-mark`
-in `base.css`, HDS tokens only, no motion). The cobalt flame (`flameMark.ts`) is deleted. `npm run
-icons` writes `public/favicon.svg` and renders the PNG icons, `favicon.ico` + og-image with the same
-square on the graphite tile; `BrandMark.test.tsx` pins it.
+**Flame logo: one source, `src/brand/flame.svg` (2026-10-29).** To change the logo: replace
+`src/brand/flame.svg` (fills from HDS primitive colours; keep `class="flame-1|2|3"` on the outer,
+middle and core layers if the app should recolour them for dark mode), run `npm run icons`, commit.
+Everything derives from it: the wordmark in the header and on sign-in (`src/brand/Flame.tsx` inlines it,
+ids made unique per instance), the boot splash (`%BRAND_FLAME%` in index.html's `#root`, filled by
+`brandHtml.ts`; React replaces it on mount) and `npm run icons` (favicon.svg, PNG icons,
+favicon.ico, og-image). `src/brand/flame.test.tsx` fails on any other `.svg`, any copy of its path
+data, a stale `public/favicon.svg`, or non-HDS fills. The procedural flame engine is gone.
+**Wordmark "St(flame)ke" (Adrian 2026-10-29):** `src/brand/Wordmark.tsx` (header h1, sign-in) and the
+og-image share one markup builder, `wordmarkMarkup.ts`, from `BRAND.wordmark` (`before` / `flame` /
+`after`). The real "o" stays in the line, transparent, and the flame shares its grid cell on the text
+baseline at `1cap` tall (`wordmark.css`), so the word's box and advance are plain text's
+(`e2e/brand.spec.ts` checks within 1px); named by `aria-label`, its parts aria-hidden.
+**Boot reveal:** `.rjb-flame-reveal` (HDS motion tokens; static under reduced motion) plays on the
+splash (fades in after a short beat, so a fast boot shows nothing) and in `BootHold` (App's main,
+only while a signed-in device with no data waits for its cloud copy, max 4 s).
 
 ## Stack & conventions
 

@@ -19,14 +19,16 @@ const sourceFiles = (dir: string): string[] =>
   });
 
 describe('brand (#55)', () => {
-  it('is RoleForge, with a capital F (Adrian 2026-10-22)', () => {
-    expect(BRAND.name).toBe('RoleForge');
-    expect(BRAND.wordmark).toEqual(['Role', 'Forge']);
-    expect(BRAND.slug).toBe('roleforge');
+  it('is Stoke (Adrian 2026-10-29; was RoleForge)', () => {
+    expect(BRAND.name).toBe('Stoke');
+    // The flame stands in for the "o" (Adrian 2026-10-29): St🔥ke.
+    expect(BRAND.wordmark).toEqual({ before: 'St', flame: 'o', after: 'ke' });
+    expect(BRAND.slug).toBe('stoke');
   });
 
   it('is internally consistent', () => {
-    expect(BRAND.wordmark.join('')).toBe(BRAND.name);
+    const { before, flame, after } = BRAND.wordmark;
+    expect(before + flame + after).toBe(BRAND.name);
     expect(BRAND.slug).toMatch(/^[a-z0-9-]+$/);
   });
 
@@ -41,7 +43,7 @@ describe('brand (#55)', () => {
 
   it('no source file hard-codes the old or current display name', () => {
     const offenders = sourceFiles(SRC).filter((f) =>
-      new RegExp(`Apply Board|RoleForge|${BRAND.name}`).test(readFileSync(f, 'utf8')),
+      new RegExp(`Apply Board|RoleForge|\\b${BRAND.name}\\b`).test(readFileSync(f, 'utf8')),
     );
     expect(offenders).toEqual([]);
   });

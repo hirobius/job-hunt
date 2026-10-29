@@ -734,9 +734,9 @@ p {
   }
 }
 
-/* The brand lockup (src/components/brand/BrandFlame.tsx): the live flame and the wordmark.
-   Flame layers are HDS blue primitives, outer to core (no HDS brand token is blue here: brand is the
-   graphite accent). Wordmark: the HDS display family (Sora) at 700. */
+/* The flame logo (src/brand/Flame.tsx, drawn from src/brand/flame.svg) and the header lockup.
+   The file's layers (.flame-1 outer .. .flame-3 core) take HDS primitives here, light and dark; a
+   file without those classes keeps its own fills. Wordmark: the HDS display family at 700. */
 .rjb-logo {
   --rjb-logo-size: 19px;
   display: inline-flex;
@@ -744,24 +744,29 @@ p {
   gap: calc(var(--rjb-logo-size) * 0.3);
 }
 .rjb-flame {
-  flex: none;
-  height: calc(var(--rjb-logo-size) * 1.3 * 1.5);
-  width: auto;
-  overflow: visible;
   --rjb-flame-1: var(--primitive-color-blue-500);
   --rjb-flame-2: var(--primitive-color-cobalt-400);
   --rjb-flame-3: var(--primitive-color-cobalt-200);
+  display: inline-flex;
+  flex: none;
+  line-height: 0;
 }
 :root[data-theme='dark'] .rjb-flame {
   --rjb-flame-3: var(--primitive-color-cobalt-100);
 }
-.rjb-flame-1 {
+.rjb-flame svg {
+  display: block;
+  width: auto;
+  height: calc(var(--rjb-logo-size, 19px) * 1.5);
+  overflow: visible;
+}
+.rjb-flame .flame-1 {
   fill: var(--rjb-flame-1);
 }
-.rjb-flame-2 {
+.rjb-flame .flame-2 {
   fill: var(--rjb-flame-2);
 }
-.rjb-flame-3 {
+.rjb-flame .flame-3 {
   fill: var(--rjb-flame-3);
 }
 .rjb-logo-word {
@@ -772,10 +777,60 @@ p {
   line-height: 1;
   color: var(--semantic-color-content-primary);
 }
-.rjb-logo-letter {
-  display: inline-block;
+
+/* The flame reveal: the mark rises from its base and fills in, once. Plays on the boot splash
+   (index.html's #root, replaced the moment React mounts, so a ready app is never held) and the
+   sign-in screen. The splash itself fades in after a short beat, so a fast boot shows nothing. */
+.rjb-flame-reveal svg {
   transform-origin: 50% 100%;
-  white-space: pre;
+  animation: rjb-flame-reveal var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing)
+    var(--primitive-duration-short) both;
+}
+@keyframes rjb-flame-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.7, 0.35);
+    clip-path: inset(100% 0 0 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0);
+  }
+}
+.rjb-boot {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--semantic-color-surface-page);
+  --rjb-logo-size: var(--primitive-space-10);
+  animation: rjb-boot-in var(--hds-motion-productive-duration) var(--hds-motion-productive-easing)
+    var(--primitive-duration-short) both;
+}
+@keyframes rjb-boot-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* Waiting on the cloud copy on a device with nothing yet (App's BootHold): the same mark in the page. */
+.rjb-boot-hold {
+  display: grid;
+  place-items: center;
+  min-height: 40vh;
+  --rjb-logo-size: var(--primitive-space-10);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rjb-flame-reveal svg {
+    animation: none;
+  }
+  /* No fade, but the same beat: a fast boot still shows nothing. */
+  .rjb-boot {
+    animation-timing-function: step-end;
+  }
 }
 
 /* Review new: a posting's title opens its in-app preview (#386). An HDS tertiary Button set as
