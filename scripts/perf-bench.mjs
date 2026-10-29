@@ -150,16 +150,12 @@ async function seedStorage(browser, base) {
   await page.goto(`${base}/#/queue`);
   await page.waitForTimeout(1500);
   await click('button', /Try with sample data/);
-  await click('tab', /^Companies$/);
+  // A Search profile (#388): Today asks for one; the design-system titles come prefilled.
+  await click('tab', /^Today$/);
   await page.waitForTimeout(600);
-  await click('button', /^Choose a track$/);
-  const pack = page.getByRole('group', { name: 'Starter tracks' }).getByRole('checkbox').first();
-  if (await pack.isVisible().catch(() => false)) {
-    await pack.click();
-    await click('button', /^Continue$/);
-    await click('button', /^Continue$/);
-    await click('button', /^Finish$/);
-  }
+  await click('button', /^Set up your search$/);
+  await click('button', /^Continue$/);
+  await click('button', /^Finish$/);
   await page.waitForTimeout(800);
   const storage = await page.evaluate(() => ({ ...localStorage }));
   await ctx.close();
@@ -208,7 +204,7 @@ const server = await serve();
 const base = `http://localhost:${server.address().port}`;
 const browser = await chromium.launch({ executablePath });
 const storage = await seedStorage(browser, base);
-const routes = { Companies: '/#/discover', Pipeline: '/#/queue' };
+const routes = { Today: '/#/today', Pipeline: '/#/queue' };
 const results = {};
 for (const [name, hash] of Object.entries(routes)) {
   for (const mode of ['cold', 'warm']) {

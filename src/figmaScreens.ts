@@ -45,19 +45,6 @@ export const FIGMA_SCREENS: FigmaScreen[] = [
     shot: 'job-page',
   },
   {
-    id: 'discover',
-    title: 'Discover (Companies tab)',
-    route: '#/discover',
-    tab: 'discover',
-    sources: [
-      { file: 'src/DiscoverView.tsx', component: 'DiscoverView' },
-      { file: 'src/TileGrid.tsx', component: 'TileGrid' },
-    ],
-    nodeId: '26:5210',
-    phoneNodeId: '26:5353',
-    shot: 'discover',
-  },
-  {
     id: 'templates',
     // Templates became the Documents library (#227); the frame id and shot keep their names.
     title: 'Documents',

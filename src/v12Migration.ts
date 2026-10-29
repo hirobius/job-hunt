@@ -279,7 +279,8 @@ export function profileFromV11(s: V11State, now: string): Profile | null {
     leaveOut: [],
     level: best.seniority,
     location: best.location,
-    mode: s.modes[best.id] ?? 'any',
+    // No mode on the track: remote only, the profile's default (Adrian 2026-10-28).
+    mode: s.modes[best.id] ?? 'remote',
     fromTrack: best.id,
     createdAt: now,
   };
@@ -328,39 +329,23 @@ export function readV11(): V11State {
   };
 }
 
-/** The titles top-up, pure: titles the old screens added since come in (off when v11 does not
- *  search them), and a title the move put off turns on once v11 searches it. The profile keeps
- *  the person's own on/off. Null when nothing changes. */
-export function topUpTitles(cur: Profile, s: V11State): Profile | null {
-  const have = new Set(cur.titles.map(norm));
-  const t = allTitles(s, ordered(realTracks(s), cur.fromTrack));
-  const off = new Set(t.titlesOff.map(norm));
-  const on = new Set(t.titles.filter((x) => !off.has(norm(x))).map(norm));
-  const fresh = t.titles.filter((x) => !have.has(norm(x)));
-  const freshOff = fresh.filter((x) => off.has(norm(x)));
-  const moved = cur.movedOff ?? [];
-  const lift = new Set(moved.filter((x) => on.has(norm(x))).map(norm));
-  if (!fresh.length && !lift.size) return null;
-  const movedOff = [...moved.filter((x) => !lift.has(norm(x))), ...freshOff];
-  const { movedOff: _, ...rest } = cur;
-  return {
-    ...rest,
-    titles: [...cur.titles, ...fresh],
-    titlesOff: [...cur.titlesOff.filter((x) => !lift.has(norm(x))), ...freshOff],
-    ...(movedOff.length && { movedOff }),
-  };
-}
-
 /** Run the move on this device's stores. `moved` is true the one time it makes the profile;
- *  `links` are then the links to offer. Every run tops up Sources and titles, add-only. */
+ *  `links` are then the links to offer. Every run tops up Sources, add-only. */
 export function runV12Move(now = new Date()): { moved: boolean; links: LeftoverLink[] } {
   const s = readV11();
   const profiles = getProfiles();
   if (!realTracks(s).length && !profiles.length) return { moved: false, links: [] };
   updateSources((cur) => topUpSources(cur, s, profiles[0]?.createdAt, now.toISOString()));
   if (profiles.length) {
-    const next = topUpTitles(profiles[0], s);
-    if (next) replaceProfiles([next, ...profiles.slice(1)]);
+    // Titles are no longer topped up (#389: no screen adds v11 titles now), so a title removed in
+    // the Search profile stays removed. A profile moved before remote only became the default
+    // (its track had no mode, read as 'any') gets it, once: `fromTrack` goes with the fix, and
+    // the Search profile form drops it too, so the person's own choice is never changed back.
+    const cur = profiles[0];
+    if (cur.fromTrack && cur.mode === 'any' && !s.modes[cur.fromTrack]) {
+      const { fromTrack: _, ...rest } = cur;
+      replaceProfiles([{ ...rest, mode: 'remote' }, ...profiles.slice(1)]);
+    }
     return { moved: false, links: [] };
   }
   const { profile, links } = moveV11(s, now.toISOString());

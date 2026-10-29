@@ -16,7 +16,6 @@ import { liveStorage } from '../liveStorage';
 import { loadPersisted, savePersisted } from '../persisted';
 import { htmlToText } from './html';
 import { inflect } from './match';
-import { DEFAULT_NAICS, cleanNaics } from '../contracts/sam';
 
 export const MUST_INCLUDE_KEY = 'rjb_must_include';
 const MAX_TERMS = 20;
@@ -36,8 +35,21 @@ export interface MustInclude {
   related?: boolean;
   /** Related titles switched off, by id. */
   relatedOff?: string[];
-  /** A Contracts track's NAICS codes (#275; absent = DEFAULT_NAICS, [] = none). */
+  /** A Contracts track's NAICS codes (#275). SAM.gov is gone (#389); the stored list is kept
+   *  and still read, so a sync or backup round-trips it unchanged. */
   naics?: string[];
+}
+
+/** A stored NAICS list, trimmed, valid (2 to 6 digits), deduped and capped at 10. */
+export function cleanNaics(list: unknown): string[] {
+  if (!Array.isArray(list)) return [];
+  const out: string[] = [];
+  for (const x of list) {
+    const code = typeof x === 'string' ? x.trim() : '';
+    if (/^\d{2,6}$/.test(code) && !out.includes(code)) out.push(code);
+    if (out.length === 10) break;
+  }
+  return out;
 }
 
 /** What a filter needs: the terms and the fields to look in. A bare list searches both. */
@@ -143,9 +155,6 @@ export function setMustInclude(categoryId: string, patch: Partial<MustInclude>):
   if (next) all[categoryId] = next;
   write(all);
 }
-
-/** A Contracts track's NAICS codes: the user's list, else the defaults. */
-export const naicsOf = (m: MustInclude): string[] => m.naics ?? [...DEFAULT_NAICS];
 
 /** The track's ATS roles that are on. */
 export const activeAtsRoles = (atsRoles: string[], m: MustInclude): string[] => {
@@ -283,10 +292,4 @@ export function useAllMustInclude(): Record<string, MustInclude> {
       return {};
     }
   }, [raw]);
-}
-
-/** A track's entry, live. */
-export function useMustInclude(categoryId: string): MustInclude {
-  const all = useAllMustInclude();
-  return useMemo(() => mustIncludeFor(all, categoryId), [all, categoryId]);
 }

@@ -20,13 +20,6 @@ async function seed(page: Page) {
   await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
 }
 
-/** The old Companies screens (legacyScreens.ts), still axed until #389 deletes them. */
-async function withLegacyScreens(page: Page) {
-  await page.addInitScript(() => {
-    (window as Window & { __RJB_LEGACY_SCREENS__?: boolean }).__RJB_LEGACY_SCREENS__ = true;
-  });
-}
-
 async function go(page: Page, hash: string) {
   await page.evaluate((h) => (location.hash = h), hash);
   await page.waitForTimeout(500);
@@ -92,7 +85,6 @@ for (const theme of ['light', 'dark'] as const) {
       test('open states have no axe violations', async ({ page }) => {
         test.setTimeout(120_000);
         await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
-        await withLegacyScreens(page);
         await seed(page);
         const bad: string[] = [];
 
@@ -107,20 +99,15 @@ for (const theme of ['light', 'dark'] as const) {
         await page.keyboard.press('Escape');
         await expect(page.getByRole('dialog')).toBeHidden();
 
-        // The old Titles link lands on Live postings with Calibrate open (#223).
-        await go(page, '#/discover/titles');
-        await expect(page).toHaveURL(/#\/discover\/live/);
-        await expect(page.getByRole('checkbox').first()).toBeVisible();
-        bad.push(...(await axe(page, 'calibrate open')));
-
-        await go(page, '#/discover/teams');
-        await page
-          .getByRole('button', { name: /^Add a company/ })
-          .first()
-          .click();
-        await expect(page.getByRole('dialog')).toBeVisible();
-        bad.push(...(await axe(page, 'add a company')));
+        // The Search profile (#388: Calibrate's and Manage track's place), with remote only off.
+        await page.getByRole('button', { name: /^Account/ }).click();
+        await page.getByRole('menuitem', { name: 'Search profile' }).click();
+        const profile = page.getByRole('dialog', { name: 'Search profile' });
+        await expect(profile).toBeVisible();
+        await profile.getByRole('switch', { name: 'Remote only' }).click();
+        bad.push(...(await axe(page, 'search profile')));
         await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog')).toBeHidden();
 
         await go(page, '#/copy-deck');
         // A row expands in place (rev-3 M): axe it open, then Open goes to the editor.
@@ -211,19 +198,6 @@ test.describe('keyboard only', () => {
     await expect(page).toHaveURL(/#\/queue$/);
   });
 
-  test('the title filter: tick and untick a title with Space', async ({ page }) => {
-    await withLegacyScreens(page);
-    await seed(page);
-    await go(page, '#/discover/titles');
-    const first = page.getByRole('checkbox').first();
-    await expect(first).toBeChecked();
-    await first.focus();
-    await page.keyboard.press('Space');
-    await expect(first).not.toBeChecked();
-    await page.keyboard.press('Space');
-    await expect(first).toBeChecked();
-  });
-
   test('job Details → Company page → Back to Pipeline', async ({ page }) => {
     await seed(page);
     await go(page, '#/company/larkspur-analytics');
@@ -233,21 +207,20 @@ test.describe('keyboard only', () => {
     await expect(page).toHaveURL(/#\/queue$/);
   });
 
-  test('Add a company: focus moves into the dialog, Escape returns it to the button', async ({
+  test('Search profile: focus moves into the dialog, Escape returns it to Account', async ({
     page,
   }) => {
-    await withLegacyScreens(page);
     await seed(page);
-    await go(page, '#/discover/teams');
-    const open = page.getByRole('button', { name: /^Add a company/ }).first();
-    await open.focus();
-    await page.keyboard.press('Enter');
-    const dialog = page.getByRole('dialog');
+    await go(page, '#/queue');
+    const account = page.getByRole('button', { name: /^Account/ });
+    await account.click();
+    await page.getByRole('menuitem', { name: 'Search profile' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Search profile' });
     await expect(dialog).toBeVisible();
     expect(await dialog.evaluate((d) => d.contains(document.activeElement))).toBe(true);
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
-    await expect(open).toBeFocused();
+    await expect(account).toBeFocused();
   });
 
   test('Add job: Escape returns focus to the button that opened it', async ({ page }) => {

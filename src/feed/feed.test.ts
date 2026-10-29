@@ -19,17 +19,19 @@ import {
 } from './profile';
 import {
   decide,
+  followCompany,
   getAllDecided,
-  mergeDecided,
   muteCompany,
   noteSeen,
   postingFingerprint,
   readSeen,
-  sanitizeDecided,
   undecide,
+  unmuteCompany,
   type DecidedState,
 } from './decided';
 import type { Posting } from './types';
+import { getDecided, moveLegacyDecided } from '../decided';
+import { getSources, replaceSources } from '../sources';
 import type { FeedResult } from './fetchFeed';
 
 beforeEach(() => localStorage.clear());
@@ -246,29 +248,50 @@ describe('Browse sort and filter', () => {
 });
 
 describe('decided store', () => {
-  it('is untrusted on read and merges by posting, newest verdict winning', () => {
-    expect(
-      sanitizeDecided({ decided: [{ fingerprint: 'x', verdict: 'nope' }, 3], muted: [1, 'A '] }),
-    ).toEqual({
-      decided: [],
-      muted: ['A'],
-      followed: [],
-    });
-    const local = {
-      decided: [{ fingerprint: 'x', verdict: 'skipped' as const, at: '2026-10-02' }],
-      muted: [],
-      followed: [],
-    };
-    const cloud = {
-      decided: [{ fingerprint: 'x', verdict: 'saved' as const, at: '2026-10-01' }],
-      muted: ['m'],
-      followed: [],
-    };
-    expect(mergeDecided(cloud, local)).toEqual({
-      decided: local.decided,
-      muted: ['m'],
-      followed: [],
-    });
+  it('keeps verdicts in the synced decided list and companies as Sources', () => {
+    const a = p('1', 'Design Systems Designer', 'Acme');
+    decide(a, 'skipped');
+    expect(getDecided().map((d) => [d.fingerprint, d.verdict])).toEqual([
+      [postingFingerprint(a), 'skipped'],
+    ]);
+    const undoMute = muteCompany('Figma');
+    followCompany('Orbit');
+    expect(getAllDecided()).toMatchObject({ muted: ['Figma'], followed: ['Orbit'] });
+    expect(getSources().map((x) => [x.kind, x.ref, x.muted ?? false])).toEqual([
+      ['company', 'figma', true],
+      ['company', 'orbit', false],
+    ]);
+    undoMute();
+    expect(getSources().map((x) => x.ref)).toEqual(['orbit']);
+  });
+
+  it('mutes every Source named for a company, and Undo leaves an earlier mute', () => {
+    replaceSources([
+      { kind: 'ashby', ref: 'ramp', label: 'Ramp' },
+      { kind: 'company', ref: 'ramp', label: 'Ramp', muted: true },
+    ]);
+    const undo = muteCompany('ramp');
+    expect(getSources().every((x) => x.muted)).toBe(true);
+    undo();
+    expect(getSources().map((x) => x.muted ?? false)).toEqual([false, true]);
+    unmuteCompany('Ramp');
+    expect(getAllDecided().muted).toEqual([]);
+  });
+
+  it('moves the old per-browser object into the synced stores, once', () => {
+    localStorage.setItem(
+      'rjb_decided',
+      JSON.stringify({
+        decided: [{ fingerprint: 'x', verdict: 'skipped', at: '2026-10-02' }],
+        muted: ['Figma', 3],
+        followed: ['Orbit', 'Figma'],
+      }),
+    );
+    moveLegacyDecided();
+    expect(getDecided()).toEqual([{ fingerprint: 'x', verdict: 'skipped', at: '2026-10-02' }]);
+    expect(getAllDecided()).toMatchObject({ muted: ['Figma'], followed: ['Orbit'] });
+    moveLegacyDecided();
+    expect(getSources()).toHaveLength(2);
   });
 
   it('notes a first-seen day once', () => {

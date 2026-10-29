@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { go, openJob, seed, withLegacyScreens } from './routes';
+import { go, openJob, seed } from './routes';
 
 // The feedback sweep (#212): every row and page action on the Pipeline, the job page, Documents
 // and Companies must change something visible within 300 ms of the press: the page's text (a
@@ -167,11 +167,9 @@ async function closeOverlay(page: Page) {
   await page.waitForTimeout(250);
 }
 
-test.beforeEach(async ({ page }, info) => {
+test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
   await installWatcher(page);
-  // The old Companies screens, until #389 deletes them (legacyScreens.ts).
-  if (info.title.startsWith('Companies:')) await withLegacyScreens(page);
   await seed(page);
 });
 
@@ -317,104 +315,6 @@ test('Documents: Pin, Duplicate, Copy and Delete answer within 300 ms', async ({
   await page.getByRole('textbox').first().press('End');
   await page.keyboard.type(' more');
   await press(page, button(page, 'Save'), 'Save');
-});
-
-test('Companies: star, roles and the page actions answer within 300 ms', async ({ page }) => {
-  await go(page, '#/discover/teams');
-  const star = page.getByRole('button', { name: 'Star Ensono as a dream company' }).first();
-  await press(page, star, 'Dream star');
-  await expect(star.locator('svg')).toHaveClass(/rjb-pop/);
-  // Unstarring is a soft Remove (#324): the notice offers Undo, and Undo puts the star back.
-  await press(page, star, 'Dream unstar');
-  await expect(page.getByText('Removed “Ensono”', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(star).toHaveAttribute('aria-pressed', 'true');
-  // The Companies row stays in its list, so it must not collapse (it would stay invisible).
-  await expect(star.locator('xpath=ancestor::li[1]')).not.toHaveAttribute(
-    'data-motion',
-    'collapse',
-  );
-  await press(page, button(page, 'Roles at Okta'), 'Roles');
-  for (const name of ['Add a company', /^Change where/, 'Manage track', 'New track']) {
-    await press(page, button(page, name), String(name));
-    await closeOverlay(page);
-  }
-
-  // Manage track: Remove on a link and Delete on a section collapse their rows; the dialog offers
-  // Undo, which puts them back.
-  await button(page, 'Manage track').click();
-  const dialog = page.getByRole('dialog', { name: 'Manage track' });
-  const links = dialog.getByRole('list', { name: /^Links in / }).first();
-  const removeLink = links.getByRole('button', { name: /^Remove / }).first();
-  const link = (await removeLink.getAttribute('aria-label'))!.replace(/^Remove /, '');
-  await press(page, removeLink, 'Remove a link');
-  await ranIn(page, 'rjb-collapse', link);
-  await expect(links.getByRole('button', { name: `Remove ${link}`, exact: true })).toHaveCount(0);
-  await dialog.getByRole('button', { name: 'Undo' }).click();
-  await expect(links.getByRole('button', { name: `Remove ${link}`, exact: true })).toHaveCount(1);
-  const sections = dialog.getByRole('textbox', { name: 'Section name' });
-  const count = await sections.count();
-  await press(
-    page,
-    dialog
-      .getByRole('listitem')
-      .filter({ has: page.getByRole('list', { name: /^Links in / }) })
-      .first()
-      .getByRole('button', { name: /^Delete .* section$/ }),
-    'Delete a section',
-  );
-  await ranIn(page, 'rjb-collapse', link);
-  await expect(sections).toHaveCount(count - 1);
-  await dialog.getByRole('button', { name: 'Undo' }).click();
-  await expect(sections).toHaveCount(count);
-  await closeOverlay(page);
-
-  // The tools, the list's filter and Suggest companies.
-  await go(page, '#/discover/teams');
-  for (const name of ['All', 'Hiring now', 'Suggest companies'])
-    await press(page, button(page, name), name);
-  for (const name of ['Apply now', 'ATS search', 'Watched'])
-    await press(page, page.getByRole('radio', { name }).or(button(page, name)).first(), name);
-
-  // Apply now: a tile's Save and Set aside.
-  await go(page, '#/discover/apply');
-  await press(page, button(page, 'Set aside'), 'Set aside');
-  await press(page, button(page, 'Save'), 'Save a tile');
-
-  // ATS search: Copy the query says so in a toast; the chips, menus and disclosures answer.
-  await go(page, '#/discover/ats');
-  await press(page, button(page, 'Copy the query'), 'Copy the query');
-  await expect(page.getByText('Copied the query', { exact: true })).toBeVisible();
-  for (const name of [/^Recency: /, /^Engagement: /]) {
-    await press(page, page.getByRole('combobox', { name }), String(name));
-    await closeOverlay(page);
-  }
-  for (const name of [
-    'Implementation Specialist',
-    'Show full query',
-    /^Show \d+ more$/,
-    /^Big job boards/,
-  ])
-    await press(page, button(page, name), String(name));
-
-  // Live postings: Calibrate, Refine, Search and Retry.
-  await go(page, '#/discover/live');
-  for (const name of [/^Calibrate/, /^Refine/, 'Search', 'Retry'])
-    await press(page, button(page, name), String(name));
-
-  // The Design Systems pack brings outreach targets: Remove on one collapses its row, then offers
-  // Undo.
-  await menu(page, 'New track', 'Design Systems');
-  await go(page, '#/discover/teams');
-  const targets = page.getByRole('list', { name: 'Saved targets' });
-  const remove = targets.getByRole('button', { name: /^Remove / }).first();
-  const company = (await remove.getAttribute('aria-label'))!.replace(/^Remove /, '');
-  await press(page, remove, 'Remove an outreach target');
-  await ranIn(page, 'rjb-collapse', company);
-  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
-  await expect(targets.getByRole('button', { name: `Remove ${company}`, exact: true })).toHaveCount(
-    0,
-  );
 });
 
 test.describe('reduced motion', () => {

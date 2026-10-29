@@ -26,13 +26,11 @@ vi.mock('./feed/fetchFeed', async (orig) => ({
 import ReviewView, { REVIEW_PAGE } from './ReviewView';
 import NoticeHost from './NoticeHost';
 import { dismissNotice } from './saveNotice';
-import { addCategory, replaceCurationState } from './curation/curationStore';
-import { EMPTY_CURATION } from './curation/types';
 import { getAllJobs, replaceAll } from './store';
-import { starDream } from './feed/dreams';
+import { saveProfile } from './profile';
+import { addSources, getSources, replaceSources } from './sources';
 import { getAllDecided, unmuteCompany } from './feed/decided';
-import { boardUrlsFor, watchBoard } from './feed/watchlist';
-import { runScan } from './feed/autoScan';
+import { resetScan, runScan } from './feed/autoScan';
 
 const now = new Date().toISOString();
 const post = (id: string, title: string, company: string, o: Partial<Posting> = {}): Posting => ({
@@ -61,13 +59,12 @@ const BASIC = [
   post('hn:3', 'Design Systems Designer', 'Beta'),
 ];
 
-let cat: string;
 beforeEach(() => {
   localStorage.clear();
+  resetScan();
   replaceAll([]);
   dismissNotice();
-  replaceCurationState(EMPTY_CURATION);
-  cat = addCategory({ label: 'Product design', titles: ['Design Systems Designer'] });
+  saveProfile({ titles: ['Design Systems Designer'], mode: 'remote' });
   feed.fetchFeed.mockReset().mockResolvedValue(result(BASIC));
 });
 afterEach(cleanup);
@@ -75,7 +72,7 @@ afterEach(cleanup);
 const renderReview = () =>
   render(
     <ToastProvider>
-      <ReviewView categoryId={cat} />
+      <ReviewView />
       <NoticeHost />
     </ToastProvider>,
   );
@@ -116,7 +113,7 @@ describe('Review new: Browse', () => {
       post('hn:8', 'Design System Lead', 'Gamma', { location: '', mode: undefined }),
     ];
     await runScan(
-      { terms: ['Design System Lead'], include: ['design system'], boardUrls: [], trackId: cat },
+      { terms: ['Design System Lead'], include: ['design system'], boardUrls: [] },
       {
         fetchJson: async () => [],
         reader: { read: async () => result(scanned) },
@@ -174,8 +171,8 @@ describe('Review new: Browse', () => {
     expect(getAllDecided().followed).toEqual([]);
   });
 
-  it('saving a posting from a dream company’s board watches that board', async () => {
-    starDream(cat, { company: 'Delta', board: { kind: 'ashby', slug: 'delta' } });
+  it('saving a posting from a followed board keeps the Sources and reads nothing again', async () => {
+    replaceSources([{ kind: 'ashby', ref: 'delta', label: 'Delta', star: true }]);
     feed.fetchFeed.mockResolvedValue(
       result([
         post('ashby:delta:1', 'Design Systems Designer', 'Delta', {
@@ -187,14 +184,36 @@ describe('Review new: Browse', () => {
     const user = userEvent.setup();
     renderReview();
     const ul = await list();
-    // The dream's board is read, though no tile watches it.
+    // The starred (dream) board is read like any other board Source.
     expect(feed.fetchFeed.mock.calls[0][0].boardUrls).toEqual(['https://jobs.ashbyhq.com/delta']);
     await user.click(
       within(ul).getByRole('button', { name: 'Save Design Systems Designer at Delta' }),
     );
-    await waitFor(() => expect(boardUrlsFor(cat)).toEqual(['https://jobs.ashbyhq.com/delta']));
-    // The board moved from the dream to a watched tile: the same request, no second read.
+    await waitFor(() => expect(getAllJobs()).toHaveLength(1));
+    expect(getSources()).toEqual([{ kind: 'ashby', ref: 'delta', label: 'Delta', star: true }]);
     expect(feed.fetchFeed).toHaveBeenCalledTimes(1);
+  });
+
+  it('saving a posting from a board not followed yet follows that board', async () => {
+    feed.fetchFeed.mockResolvedValue(
+      result([
+        post('ashby:delta:1', 'Design Systems Designer', 'Delta', {
+          source: 'ashby',
+          url: 'https://jobs.ashbyhq.com/delta/1',
+        }),
+      ]),
+    );
+    const user = userEvent.setup();
+    renderReview();
+    const ul = await list();
+    await user.click(
+      within(ul).getByRole('button', { name: 'Save Design Systems Designer at Delta' }),
+    );
+    await waitFor(() =>
+      expect(getSources().map((x) => [x.kind, x.ref, x.label])).toEqual([
+        ['ashby', 'delta', 'Delta'],
+      ]),
+    );
   });
 
   it('sorts, filters with chips and loads more', async () => {
@@ -307,7 +326,7 @@ describe('Review new: every design-system posting, no tiers', () => {
       ],
       sources: [{ key: 'ashby:zeta', label: 'Zeta (Ashby)', fetched: 1 }],
     });
-    act(() => void watchBoard(cat, 'https://jobs.ashbyhq.com/zeta'));
+    act(() => void addSources([{ kind: 'ashby', ref: 'zeta', label: 'Zeta' }]));
     // The rows already up stay while the new board is read.
     expect(titles(ul)).toHaveLength(3);
     await waitFor(() => expect(titles(ul)).toHaveLength(4));

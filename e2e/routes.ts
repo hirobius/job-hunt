@@ -35,14 +35,6 @@ export async function seed(page: Page) {
   await expect(page.getByRole('region', { name: /^Review new/ })).toBeVisible();
 }
 
-/** The old Companies screens (legacyScreens.ts), for the specs that still drive them until #389
- *  deletes them. Call before the first page.goto. */
-export async function withLegacyScreens(page: Page) {
-  await page.addInitScript(() => {
-    (window as Window & { __RJB_LEGACY_SCREENS__?: boolean }).__RJB_LEGACY_SCREENS__ = true;
-  });
-}
-
 /** Add the starter messages from Documents' empty state (a first run adds none). */
 export async function addStarters(page: Page) {
   await go(page, '#/copy-deck');

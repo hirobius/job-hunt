@@ -1,5 +1,5 @@
 // Return paths: a Back names the page it goes to ("← Senior UX Designer", "← Apply mode (2 of
-// 3)", "← Companies"), read from the route it returns to.
+// 3)", "← Today"), read from the route it returns to.
 import { describe, expect, it } from 'vitest';
 import { parseHash } from './route';
 import { routeLabel } from './routeLabel';
@@ -30,10 +30,8 @@ const label = (hash: string) => routeLabel(parseHash(hash), { jobs, docs });
 describe('routeLabel', () => {
   it.each([
     ['#/queue', 'Pipeline'],
-    ['#/discover', 'Companies'],
-    ['#/discover/ats', 'Companies'],
-    ['#/discover/live', 'Live postings'],
-    ['#/discover/boards', 'Check a list'],
+    ['#/discover', 'Today'],
+    ['#/discover/live', 'Today'],
     ['#/copy-deck', 'Documents'],
     ['#/copy-deck/d1', 'Intro note'],
     ['#/copy-deck/new/outreach', 'New outreach message'],

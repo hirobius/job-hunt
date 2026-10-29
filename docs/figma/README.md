@@ -12,12 +12,11 @@ component that no longer exists, or if this page drifts from the map.
 | ------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------- |
 | Pipeline                  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=23-4039 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=23-4122 | `#/queue`                  | `src/TrackerView.tsx`, `src/JobListCard.tsx` (every width)                    |
 | Job page                  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=26-4057 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=20-3868 | `#/queue/<jobId>`          | `src/JobPage.tsx`                                                             |
-| Discover (Companies tab)  | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=26-5210 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=26-5353 | `#/discover`               | `src/DiscoverView.tsx`, `src/TileGrid.tsx`                                    |
 | Documents (was Templates) | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=23-6494 | https://www.figma.com/design/zHRUx7tk1jXw3AcSQfczlr?node-id=23-6267 | `#/copy-deck/<documentId>` | `src/DocumentsView.tsx`, `src/DocumentsLibrary.tsx`, `src/DocumentEditor.tsx` |
 
 Shots: `docs/figma/<screen>-1440.png` and `-390.png`, taken on HDS `0.24.1` (the pin is now `0.26.2`). Re-take
 them after an HDS upgrade or a layout change: seed sample data plus the Design Systems track (as
-`npm run gallery -- --format=png --pack="Design Systems"` does), open each route above, then replace
+`npm run gallery -- --format=png` does), open each route above, then replace
 the PNGs here. They are the code-side reference for checking the Figma frames.
 
 The Documents frames are the editor (a cover letter at `#/copy-deck/<documentId>`); the library list

@@ -164,18 +164,6 @@ export function restoreTarget(categoryId: string, t: Target, at: number): Target
   return all[categoryId];
 }
 
-/** A track's saved targets, live. */
-export function useTargets(categoryId: string): Target[] {
-  const raw = live.useRaw();
-  return useMemo(() => {
-    try {
-      return sanitizeTargets(raw ? JSON.parse(raw) : {})[categoryId] ?? [];
-    } catch {
-      return [];
-    }
-  }, [raw, categoryId]);
-}
-
 /** Every track's targets, live (the sync provider pushes when this changes). */
 export function useAllTargets(): Record<string, Target[]> {
   const raw = live.useRaw();

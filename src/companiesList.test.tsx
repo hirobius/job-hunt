@@ -13,9 +13,8 @@ vi.mock('@supabase/supabase-js', async () => {
 
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
-import { addCategory, replaceCurationState } from './curation/curationStore';
-import { EMPTY_CURATION } from './curation/types';
-import { watchBoard } from './feed/watchlist';
+import { saveProfile } from './profile';
+import { addSources } from './sources';
 import { followCompany, getAllDecided, muteCompany } from './feed/decided';
 import { companiesLists } from './companiesList';
 import type { Source } from './feed/profile';
@@ -61,20 +60,18 @@ const renderApp = () =>
 
 beforeEach(() => {
   localStorage.clear();
-  replaceCurationState(EMPTY_CURATION);
   window.history.replaceState(null, '', '/');
   window.location.hash = '#/today';
 });
 afterEach(() => {
   cleanup();
-  replaceCurationState(EMPTY_CURATION);
 });
 
 describe('Account menu → Companies', () => {
   it('lists Followed and Ignored; Ignore and Follow again move a company between them', async () => {
     const user = userEvent.setup();
-    const track = addCategory({ label: 'Design systems', titles: ['Design Systems Designer'] });
-    watchBoard(track, 'https://jobs.ashbyhq.com/ramp');
+    saveProfile({ titles: ['Design Systems Designer'], mode: 'remote' });
+    addSources([{ kind: 'ashby', ref: 'ramp', label: 'Ramp' }]);
     followCompany('Linear');
     muteCompany('Forward');
     renderApp();
@@ -112,7 +109,7 @@ describe('Account menu → Companies', () => {
 
   it('says so when there is nothing in either list', async () => {
     const user = userEvent.setup();
-    addCategory({ label: 'Design systems', titles: ['Design Systems Designer'] });
+    saveProfile({ titles: ['Design Systems Designer'], mode: 'remote' });
     renderApp();
     await user.click(screen.getByRole('button', { name: 'Account' }));
     await user.click(await screen.findByRole('menuitem', { name: 'Companies' }));

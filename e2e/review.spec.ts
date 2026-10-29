@@ -53,12 +53,7 @@ async function feed(page: Page) {
 async function setUp(page: Page) {
   await feed(page);
   await page.goto('/#/today');
-  // Every pack starts unticked (Adrian 2026-10-22): tick Design Systems (a scored track).
-  await page
-    .getByRole('group', { name: 'Starter tracks' })
-    .getByRole('checkbox', { name: 'Design Systems' })
-    .check();
-  await page.getByRole('button', { name: 'Continue' }).click();
+  // The Search profile form (#388): the design-system titles come prefilled, remote only.
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Finish' }).click();
   await expect(page).toHaveURL(/#\/today$/);

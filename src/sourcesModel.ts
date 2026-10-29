@@ -80,6 +80,9 @@ export function sourceBoard(s: Source): Board | null {
   return isBoardKind(s.kind) ? { kind: s.kind, slug: s.ref, ...(s.eu && { eu: true }) } : null;
 }
 
+/** A company's key: one per company, whatever its case or spacing (company Sources' `ref`). */
+export const nameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
+
 /** The Source for a board. */
 export const boardSource = (b: Board, label: string, extra: Partial<Source> = {}): Source => ({
   ...extra,

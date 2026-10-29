@@ -1,7 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
-import { withLegacyScreens } from './routes';
 
-// Round-2 review alignment: the Add job and Add a company sheets keep the page's 16px phone gutter,
+// Round-2 review alignment: the Add job and Search profile sheets keep the page's 16px phone gutter,
 // and the Pipeline's tertiary "Check which are still open" starts on the Jobs panel's content edge.
 async function sample(page: Page) {
   await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
@@ -16,21 +15,16 @@ async function expectGutter(page: Page) {
   expect(box.x + box.width).toBeLessThanOrEqual(390 - 16 + 0.5);
 }
 
-test('Add job and Add a company sheets keep a side gutter at 390', async ({ page }) => {
-  await withLegacyScreens(page);
+test('Add job and Search profile sheets keep a side gutter at 390', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await sample(page);
   await page.getByRole('button', { name: 'Add job' }).click();
   await expect(page.getByRole('dialog', { name: 'Add a job' })).toBeVisible();
   await expectGutter(page);
   await page.keyboard.press('Escape');
-  // The sample brings its Sample track, so Companies needs no setup.
-  await page.evaluate(() => (location.hash = '#/discover/teams'));
-  await page
-    .getByRole('button', { name: /^Add a company/ })
-    .first()
-    .click();
-  await expect(page.getByRole('dialog', { name: 'Add a company' })).toBeVisible();
+  await page.getByRole('button', { name: 'Account' }).click();
+  await page.getByRole('menuitem', { name: 'Search profile' }).click();
+  await expect(page.getByRole('dialog', { name: 'Search profile' })).toBeVisible();
   await expectGutter(page);
 });
 

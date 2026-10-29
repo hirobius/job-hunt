@@ -1,5 +1,5 @@
 // Return paths: each top tab reopens where it was left (the Pipeline on the job page, Apply mode
-// or the list; Companies on its last tool or section), and tapping the open tab goes to its root.
+// or the list), and tapping the open tab goes to its root.
 import { beforeEach, describe, expect, it } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { lastRouteOf, openTab, resetTabMemory } from './tabMemory';
@@ -35,14 +35,14 @@ describe('tab memory', () => {
   });
 
   // Review blocker (2026-10-22): a removed job's page stayed the Pipeline's place, so every tap on
-  // the tab reopened it and its fallback sent the user to the origin (Companies) again.
+  // the tab reopened it and its fallback sent the user to the origin again.
   it('a remembered job page or Apply mode whose job is no longer saved reopens the list', async () => {
-    await visit('#/queue/gone123?from=%2Fdiscover%2Fats');
-    await visit('#/discover/ats');
+    await visit('#/queue/gone123?from=%2Ftoday');
+    await visit('#/today');
     openTab('queue');
     await waitFor(() => expect(window.location.hash).toBe('#/queue'));
     await visit('#/apply/gone456');
-    await visit('#/discover/ats');
+    await visit('#/today');
     openTab('queue');
     await waitFor(() => expect(window.location.hash).toBe('#/queue'));
   });
@@ -52,7 +52,7 @@ describe('tab memory', () => {
     addJob(url, 'Fabricator');
     try {
       await visit(`#/queue/${jobIdOf(url)}?section=screening`);
-      await visit('#/discover/ats');
+      await visit('#/today');
       openTab('queue');
       await waitFor(() =>
         expect(window.location.hash).toBe(`#/queue/${jobIdOf(url)}?section=screening`),
