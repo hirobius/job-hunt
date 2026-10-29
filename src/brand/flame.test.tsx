@@ -9,6 +9,7 @@ import { BRAND } from '../brand';
 import { applyBrand } from '../brandHtml';
 import { BrandLogo, Flame } from './Flame';
 import { flameSvg, withUniqueIds } from './flameSvg';
+import { FLAME_E, FLAME_FRAMES, loopFrames } from './flameEngine';
 
 afterEach(cleanup);
 
@@ -112,7 +113,7 @@ describe('derived from flame.svg', () => {
     const { container } = render(
       <>
         <Flame />
-        <Flame reveal />
+        <Flame animate />
       </>,
     );
     const ids = [...container.querySelectorAll('[id]')].map((e) => e.id);
@@ -144,19 +145,42 @@ describe('derived from flame.svg', () => {
   });
 });
 
-describe('the reveal', () => {
-  it('uses HDS motion tokens only and is still under prefers-reduced-motion', () => {
-    const css = readFileSync('src/theme/base.css', 'utf8');
-    const reveal = /\.rjb-flame-reveal svg\s*\{([^}]*)\}/.exec(css)![1];
-    expect(reveal).toMatch(/animation:[^;]*var\(--hds-motion-[\w-]+-duration\)/);
-    expect(reveal).not.toMatch(/\d+m?s\b/);
-    const boot = /\.rjb-boot\s*\{([^}]*)\}/.exec(css)![1];
-    expect(boot).not.toMatch(/\d+m?s\b/);
+describe('the boot splash moves (Version E, a baked loop)', () => {
+  const html = applyBrand(readFileSync('index.html', 'utf8'));
+  const root = /<div id="root">([\s\S]*?)<\/div>\s*<script/.exec(html)?.[1] ?? '';
+  const frames = [...root.matchAll(/<g class="rjb-boot-f"([^>]*)>([\s\S]*?)<\/g><\/g>/g)];
+  const css = readFileSync('src/theme/base.css', 'utf8');
+
+  it('holds the engine’s loop, one group per frame, the first shown and the rest hidden', () => {
+    expect(frames).toHaveLength(FLAME_FRAMES);
+    const loop = loopFrames(FLAME_E);
+    frames.forEach(([, attrs, body], k) => {
+      for (const d of loop[k]) expect(body).toContain(`d="${d}"`);
+      expect(attrs.includes('visibility="hidden"')).toBe(k > 0);
+      expect(attrs).toContain(`animation-delay:${(k * 1000) / FLAME_E.fps}ms`);
+    });
+    const ids = [...root.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(root).toContain(`--rjb-flame-loop:${(FLAME_FRAMES * 1000) / FLAME_E.fps}ms`);
+  });
+
+  it('steps through the frames at the engine’s fps (one slot each), still under reduced motion', () => {
+    const rule = /\.rjb-boot-f\s*\{([^}]*)\}/.exec(css)![1];
+    expect(rule).toMatch(/animation:\s*rjb-boot-frame var\(--rjb-flame-loop\) step-end infinite/);
+    const keys = /@keyframes rjb-boot-frame\s*\{([\s\S]*?)\n\}/.exec(css)![1];
+    expect(keys).toContain(`${100 / FLAME_FRAMES}%`);
     const reduced = [...css.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/g)]
       .map((m) => m[1])
       .join('\n');
-    expect(reduced).toMatch(/\.rjb-flame-reveal/);
+    expect(reduced).toMatch(/\.rjb-boot-f\s*\{\s*animation: none/);
     // reduced motion drops the fade, never the beat that keeps a fast boot from flashing
     expect(reduced).toMatch(/\.rjb-boot\s*\{\s*animation-timing-function: step-end/);
+    const boot = /\.rjb-boot\s*\{([^}]*)\}/.exec(css)![1];
+    expect(boot).not.toMatch(/\d+m?s\b/);
+  });
+
+  it('the old rise-in reveal is gone (Version E replaced it)', () => {
+    expect(css).not.toMatch(/rjb-flame-reveal/);
+    expect(readFileSync('index.html', 'utf8')).not.toMatch(/rjb-flame-reveal/);
   });
 });

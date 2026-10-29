@@ -30,7 +30,7 @@ export function BootHold({
   if (done) return <>{children}</>;
   return (
     <div className="rjb-boot-hold" role="status" aria-label={`Loading ${BRAND.name}`}>
-      <Flame reveal />
+      <Flame animate />
     </div>
   );
 }

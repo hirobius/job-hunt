@@ -1,17 +1,30 @@
 // The wordmark: "St", the flame in place of the "o", "ke" (Adrian 2026-10-29). Named for assistive
 // tech by aria-label; its parts and the flame are hidden. The markup is wordmarkMarkup's, shared
-// with the og-image; the flame is src/brand/flame.svg with its ids made unique per instance.
-import { useId, useMemo } from 'react';
+// with the og-image; the flame is src/brand/flame.svg with its ids made unique per instance, set
+// moving by flameMotion (Version E; still under reduced motion), its letters flickering with it.
+import { useEffect, useId, useMemo, useRef } from 'react';
 import { BRAND } from '../brand';
 import { flameSvg, withUniqueIds } from './flameSvg';
+import { animateFlame } from './flameMotion';
 import { wordmarkMarkup } from './wordmarkMarkup';
 import './wordmark.css';
 
 export function Wordmark({ as: Tag = 'span' }: { as?: 'h1' | 'p' | 'span' }) {
   const suffix = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-  const html = useMemo(() => wordmarkMarkup(withUniqueIds(flameSvg, suffix)), [suffix]);
+  const html = useMemo(
+    () => wordmarkMarkup(withUniqueIds(flameSvg, suffix), { letters: true }),
+    [suffix],
+  );
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    const svg = el?.querySelector('.rjb-flame svg');
+    if (!el || !svg) return;
+    return animateFlame(svg, [...el.querySelectorAll<HTMLElement>('.rjb-wordmark-l')]);
+  }, [html]);
   return (
     <Tag
+      ref={ref as never}
       className="rjb-logo-word"
       aria-label={BRAND.name}
       // The repo's own static markup (brand.ts + flame.svg), never user content.

@@ -1,8 +1,8 @@
 /* global document -- page callbacks run in the browser */
-// App icons, /favicon.ico and the share image (#47): writes public/favicon.svg (the flame from
-// src/brand/flame.svg, the logo's one source, on the graphite tile read from HDS's variables.css),
-// then renders it and a brand card to PNG with headless Chromium, so the app icons, /favicon.ico
-// and the Open Graph image are reproducible.
+// App icons, /favicon.ico and the share image (#47): writes src/brand/flame.svg (the flame engine's
+// still frame, the logo's one source), then public/favicon.svg (that flame on the graphite tile
+// read from HDS's variables.css), then renders it and a brand card to PNG with headless Chromium,
+// so the app icons, /favicon.ico and the Open Graph image are reproducible.
 // Re-run after a brand change and commit the PNGs:
 //
 //   npm run icons
@@ -14,6 +14,15 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { BRAND } from '../src/brand.ts';
 import { hdsColor } from '../src/hdsColor.ts';
 import { wordmarkMarkup } from '../src/brand/wordmarkMarkup.ts';
+import { flameSvgFile } from '../src/brand/flameEngine.ts';
+
+// First the source: src/brand/flame.svg is the flame engine's still frame (Version E), in the HDS
+// primitives base.css recolours per theme. Everything below reads it.
+writeFileSync(
+  'src/brand/flame.svg',
+  flameSvgFile([hdsColor('blue-500'), hdsColor('cobalt-400'), hdsColor('cobalt-200')]),
+);
+console.log('src/brand/flame.svg');
 
 // The mark: src/brand/flame.svg as written (its own fills), placed as a nested svg in a box.
 const flame = readFileSync('src/brand/flame.svg', 'utf8')

@@ -778,23 +778,22 @@ p {
   color: var(--semantic-color-content-primary);
 }
 
-/* The flame reveal (subtle, Adrian 2026-10-29): the mark fades in and settles from a touch lower and
-   smaller, once. Plays on the boot splash
-   (index.html's #root, replaced the moment React mounts, so a ready app is never held) and the
-   sign-in screen. The splash itself fades in after a short beat, so a fast boot shows nothing. */
-.rjb-flame-reveal svg {
-  transform-origin: 50% 100%;
-  animation: rjb-flame-reveal var(--hds-motion-spatial-duration) var(--hds-motion-spatial-easing)
-    var(--primitive-duration-short) both;
+/* The boot splash (index.html's #root, replaced the moment React mounts, so a ready app is never
+   held): the flame engine's loop (Version E), one group per frame, each shown for its one slot of
+   the loop (its delay and the loop's length are set from the engine's fps by brandHtml.ts). The
+   splash itself fades in after a short beat, so a fast boot shows nothing. */
+.rjb-boot-f {
+  animation: rjb-boot-frame var(--rjb-flame-loop) step-end infinite;
 }
-@keyframes rjb-flame-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(4%) scale(0.94);
+@keyframes rjb-boot-frame {
+  0% {
+    visibility: visible;
   }
-  to {
-    opacity: 1;
-    transform: none;
+  12.5% {
+    visibility: hidden;
+  }
+  100% {
+    visibility: hidden;
   }
 }
 .rjb-boot {
@@ -815,7 +814,7 @@ p {
     opacity: 1;
   }
 }
-/* Waiting on the cloud copy on a device with nothing yet (App's BootHold): the same mark in the page. */
+/* Waiting on the cloud copy on a device with nothing yet (App's BootHold): the same flame, live. */
 .rjb-boot-hold {
   display: grid;
   place-items: center;
@@ -823,7 +822,8 @@ p {
   --rjb-logo-size: var(--primitive-space-10);
 }
 @media (prefers-reduced-motion: reduce) {
-  .rjb-flame-reveal svg {
+  /* The splash's first frame (the others are hidden by attribute): the still mark. */
+  .rjb-boot-f {
     animation: none;
   }
   /* No fade, but the same beat: a fast boot still shows nothing. */
