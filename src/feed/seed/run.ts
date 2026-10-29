@@ -4,6 +4,9 @@
 // A source that fails is recorded with its error and the run carries on with the rest.
 import { createLimiter, type Limiter } from '../probe';
 import { FetchError, type FetchJson } from '../sources/http';
+
+/** For scripts/seed-companies.mjs: its errors must be this graph's FetchError. */
+export { FetchError };
 import {
   HN_API,
   SEED_SOURCES,

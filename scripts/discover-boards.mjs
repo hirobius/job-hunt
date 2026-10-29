@@ -5,7 +5,7 @@
 // that fails is recorded with its error and the run carries on. Probe answers are cached in
 // node_modules/.cache/boards-discover.json (7 days), so a second run only asks what is new.
 //   node scripts/discover-boards.mjs [--dry] [--only=hn,github,aggregator,commoncrawl,seed] [--limit=N]
-//     [--from-year=2014] [--cc-indexes=2] [--cached-only]
+//     [--from-year=2014] [--cc-indexes=2] [--cached-only] [--reuse-harvest]
 // --dry prints counts and writes nothing. Takes ~20-60 minutes for ~10,000 candidates.
 // Behind a proxy: NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=<bundle>.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -21,7 +21,9 @@ const arg = (name, dflt) => {
 const only = new Set(
   arg(
     'only',
-    process.argv.includes('--cached-only') ? '' : 'hn,github,aggregator,commoncrawl,seed',
+    ['--cached-only', '--reuse-harvest'].some((f) => process.argv.includes(f))
+      ? ''
+      : 'hn,github,aggregator,commoncrawl,seed',
   ).split(','),
 );
 const limit = Number(arg('limit', '0')) || Infinity;
@@ -31,11 +33,14 @@ const dry = process.argv.includes('--dry');
 // --cached-only: build the snapshot from the probe cache alone (an interrupted run's answers);
 // boards not in it count as unknown and nothing is asked.
 const cachedOnly = process.argv.includes('--cached-only');
+// --reuse-harvest: probe the last run's harvest again instead of reading the sources.
+const reuseHarvest = process.argv.includes('--reuse-harvest');
 
-const H = (await runnerImport(`${root}src/feed/bulk/harvest.ts`)).module;
-const D = (await runnerImport(`${root}src/feed/bulk/discover.ts`)).module;
-const { createLimiter } = (await runnerImport(`${root}src/feed/probe.ts`)).module;
-const { FetchError } = (await runnerImport(`${root}src/feed/sources/http.ts`)).module;
+// One module graph (src/feed/bulk/cli.ts says why).
+const M = (await runnerImport(`${root}src/feed/bulk/cli.ts`)).module;
+const H = M;
+const D = M;
+const { createLimiter, FetchError } = M;
 
 const UA = { 'user-agent': 'RoleForge board discovery (github.com/hirobius/job-hunt)' };
 async function get(url, timeout = 30_000) {
@@ -160,7 +165,7 @@ if (only.has('seed')) {
 
 const candFile = `${root}node_modules/.cache/boards-candidates.json`;
 let candidates;
-if (cachedOnly && !lists.length) {
+if ((cachedOnly || reuseHarvest) && !lists.length) {
   candidates = JSON.parse(await readFile(candFile, 'utf8'));
   reports.push(...JSON.parse(await readFile(`${candFile}.sources`, 'utf8')));
 } else {

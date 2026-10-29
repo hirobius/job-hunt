@@ -12,7 +12,8 @@ import { runnerImport } from 'vite';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const data = (f) => `${root}src/feed/data/${f}`;
 const { module: run } = await runnerImport(`${root}src/feed/seed/run.ts`);
-const { FetchError } = (await runnerImport(`${root}src/feed/sources/http.ts`)).module;
+// FetchError from the same module graph as run.ts, or the probe's `instanceof` check fails.
+const { FetchError } = run;
 
 const UA = { 'user-agent': 'RoleForge company seed (github.com/hirobius/job-hunt)' };
 async function get(url) {
