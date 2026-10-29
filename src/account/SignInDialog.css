@@ -2,10 +2,15 @@
    visual viewport (vars from hds-gaps/useVisualViewportVars; without them, the whole viewport), so
    the iOS keyboard never covers the field or the button; the page surface, no edge or shadow. One
    centred column (at most 400 wide) scrolls when it doesn't fit. Upstream ask: a full-screen,
-   keyboard-aware Dialog variant (related: hds#690). Unlayered, so it beats HDS's utilities. */
-.rjb-signin-screen {
+   keyboard-aware Dialog variant (related: hds#690). The doubled class outranks HDS's centring
+   utilities (-translate-x/y-1/2) whatever order the production CSS chunks load in. */
+.rjb-signin-screen.rjb-signin-screen {
   top: var(--rjb-vv-top, 0px);
   left: 0;
+  /* HDS centres with Tailwind's translate vars; zero them (the build's minifier drops a bare
+     `translate: none` beside `transform: none`, so the vars are what holds in production). */
+  --tw-translate-x: 0px;
+  --tw-translate-y: 0px;
   translate: none;
   transform: none;
   width: 100%;

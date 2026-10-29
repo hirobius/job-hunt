@@ -22,6 +22,10 @@ test('phone with the keyboard up: field and button sit above it', async ({ page 
   await expect(page.getByRole('textbox', { name: 'Email' })).toBeFocused();
   const box = (await dialog.boundingBox())!;
   expect(box.y).toBeLessThanOrEqual(24);
+  // the screen fills the width from the left edge, never shifted by HDS's centring transform
+  expect(box.x).toBe(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.width).toBe(390);
   const button = (await page.getByRole('button', { name: 'Send link' }).boundingBox())!;
   expect(button.y + button.height).toBeLessThanOrEqual(400);
   expect(button.width).toBeGreaterThan(box.width - 64);
