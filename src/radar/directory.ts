@@ -5,8 +5,8 @@
 // postings, so the lists don't go stale. Every entry answered from its public API when it was added;
 // a board that later 404s shows as "board not found" in the feed and can be removed in Manage track.
 
-import DS_SEED_BOARDS from '../feed/data/ds-seed-boards.json';
-import { parseBoardUrl } from '../feed/sources/ats';
+import DS_SEED_BOARDS from '../feed/data/ds-seed-boards.json' with { type: 'json' };
+import { parseBoardUrl } from '../feed/sources/ats.ts';
 
 /** A company a track starts with as an outreach target, named, with its board (#198). */
 export interface PackCompany {
