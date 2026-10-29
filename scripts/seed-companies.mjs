@@ -14,7 +14,7 @@ const data = (f) => `${root}src/feed/data/${f}`;
 const { module: run } = await runnerImport(`${root}src/feed/seed/run.ts`);
 const { FetchError } = (await runnerImport(`${root}src/feed/sources/http.ts`)).module;
 
-const UA = { 'user-agent': 'RoleForge company seed (github.com/hirobius/job-hunt)' };
+const UA = { 'user-agent': 'Stoke company seed (github.com/hirobius/job-hunt)' };
 async function get(url) {
   let r;
   try {

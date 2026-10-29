@@ -1,10 +1,10 @@
-# CLAUDE.md — RoleForge (formerly Apply Board)
+# CLAUDE.md — Stoke (formerly RoleForge, Apply Board)
 
 Project memory for future Claude Code sessions in this repo.
 
 ## What this is
 
-**RoleForge** (working name, formerly Apply Board) — a job-application tracker + discovery board, live at
+**Stoke** (renamed 2026-10-29; formerly RoleForge, Apply Board) — a job-application tracker + discovery board, live at
 **https://roleforge-app.vercel.app** (repo `hirobius/job-hunt`; the old
 `job-hunt-jade.vercel.app` still serves and is an accepted sign-in origin until it redirects). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
