@@ -71,6 +71,19 @@ describe('validateCandidates', () => {
     ]);
     expect(cache.get('lever:c')).toMatchObject({ r: 'live', at: '2026-10-29' });
   });
+  it('cached only: asks nothing, an uncached board is unknown', async () => {
+    const v = await validateCandidates([cand('a'), cand('b')], {
+      fetchJson: async () => {
+        throw new Error('asked');
+      },
+      limiter: limiter(),
+      now,
+      cache: new Map([['lever:a', { r: 'live', at: '2026-10-29', n: 1 }]]),
+      cachedOnly: true,
+    });
+    expect(v.boards.map((b) => b.slug)).toEqual(['a']);
+    expect(v.counts.unknown).toBe(1);
+  });
 });
 
 describe('toSetBoard', () => {

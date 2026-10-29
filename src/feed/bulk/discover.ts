@@ -34,6 +34,8 @@ export interface ValidateOptions {
   cacheDays?: number;
   onProgress?: (done: number, total: number) => void;
   signal?: AbortSignal;
+  /** Answer from the cache alone: a board not in it is unknown and nothing is asked. */
+  cachedOnly?: boolean;
 }
 
 export interface Validated {
@@ -99,7 +101,16 @@ export async function validateCandidates(
   candidates: Candidate[],
   opts: ValidateOptions,
 ): Promise<Validated> {
-  const { fetchJson, limiter, now, cache = new Map(), cacheDays = 7, onProgress, signal } = opts;
+  const {
+    fetchJson,
+    limiter,
+    now,
+    cache = new Map(),
+    cacheDays = 7,
+    onProgress,
+    signal,
+    cachedOnly,
+  } = opts;
   const today = day(now());
   const answers = new Map<string, ProbeOutcome>();
   let done = 0;
@@ -112,6 +123,10 @@ export async function validateCandidates(
         key,
         hit!.r === 'live' ? { result: 'live', jobs: hit!.n, evidence: hit!.e } : { result: 'none' },
       );
+      return;
+    }
+    if (cachedOnly) {
+      answers.set(key, { result: 'unknown', skipped: true });
       return;
     }
     const host = hostKey(boardApiUrl(c.board));

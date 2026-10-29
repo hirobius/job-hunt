@@ -17,7 +17,13 @@ const arg = (name, dflt) => {
   const a = process.argv.find((x) => x.startsWith(`--${name}=`));
   return a ? a.slice(name.length + 3) : dflt;
 };
-const only = new Set(arg('only', 'hn,github,aggregator,commoncrawl,seed').split(','));
+// --cached-only alone reuses the last run's harvest (node_modules/.cache/boards-candidates.json).
+const only = new Set(
+  arg(
+    'only',
+    process.argv.includes('--cached-only') ? '' : 'hn,github,aggregator,commoncrawl,seed',
+  ).split(','),
+);
 const limit = Number(arg('limit', '0')) || Infinity;
 const fromYear = Number(arg('from-year', '2014'));
 const ccIndexCount = Number(arg('cc-indexes', '2'));
@@ -152,7 +158,17 @@ if (only.has('seed')) {
   report('seed', found.length);
 }
 
-let candidates = H.mergeCandidates(lists);
+const candFile = `${root}node_modules/.cache/boards-candidates.json`;
+let candidates;
+if (cachedOnly && !lists.length) {
+  candidates = JSON.parse(await readFile(candFile, 'utf8'));
+  reports.push(...JSON.parse(await readFile(`${candFile}.sources`, 'utf8')));
+} else {
+  candidates = H.mergeCandidates(lists);
+  await mkdir(`${root}node_modules/.cache`, { recursive: true });
+  await writeFile(candFile, JSON.stringify(candidates));
+  await writeFile(`${candFile}.sources`, JSON.stringify(reports));
+}
 console.log(`candidates: ${candidates.length} distinct boards`);
 if (candidates.length > limit) candidates = candidates.slice(0, limit);
 
@@ -172,11 +188,8 @@ const timer = setInterval(() => void saveCache(), 60_000);
 let last = 0;
 const started = Date.now();
 const validated = await D.validateCandidates(candidates, {
-  fetchJson: cachedOnly
-    ? async (u) => {
-        throw new FetchError(0, u);
-      }
-    : async (u) => (await get(u, 20_000)).json(),
+  fetchJson: async (u) => (await get(u, 20_000)).json(),
+  cachedOnly,
   limiter: createLimiter(),
   now: () => new Date(),
   cache,
