@@ -2,37 +2,42 @@
 // thousands of public company boards) a slice at a time, so every board is read about every 6 to
 // 12 hours, and keeps only remote design-system roles. This module is the rotation's pure half:
 // which boards the next invocation reads (`pickBatch`), how it reads them (`runBatch`: a time box,
-// a per-host limit, in order), and what the run leaves behind (`advance`: the cursor, the cycle,
+// a per-host limit), and what the run leaves behind (`advance`: the cursor, the cycle,
 // host backoffs, the boards owed a read, dead boards). The edge function
 // (supabase/functions/sync-postings, `{ rotate: true }`) adds the database; `npm run sync:dry-run
 // -- --rotate` plans a batch from the snapshot. No clock, network or storage of its own: the
 // caller passes them in. Explicit `.ts` specifiers so Deno and Node load it.
 //
 // Rules (rotation.test.ts pins each one):
-// - Order: boards by key (`setBoardKey`), the order boardSet.ts sorts them in. The cursor is the
-//   last key the rotation has passed; the next run starts after it. Past the last key the walk
-//   wraps to the start and the cycle counter goes up (`cycleStartedAt` = that run's start). A run
-//   never wraps twice: it stops at the end of the list.
+// - Order: by `orderKey` (a hash of the board key, then the key), so the hosts are interleaved (a
+//   batch is never all Greenhouse) and a board keeps its place whatever else the snapshot adds or
+//   drops. The cursor is the last order value passed; the next run starts after it. Past the last
+//   one the walk wraps to the start and the cycle counter goes up (`cycleStartedAt` = that run's
+//   start). A run never wraps twice: it stops at the end of the list.
 // - Size: a run reads at most `maxBoards` boards and stops adding once the boards' last known
 //   open roles (`jobs`, `unknownJobs` when unknown) reach `jobsBudget` (always at least one): big
 //   boards cost CPU to parse and score, and the worker has ~2 s of it.
-// - Time box: reads start in order; once `timeBoxMs` has passed since the run began no new read
-//   starts. The cursor moves only over boards actually processed: it stops before the first board
-//   whose read never started.
-// - Hosts: at most `hostConcurrency` reads in flight per host (its registrable domain, probe.ts
-//   `hostKey`'s rule: every Greenhouse board is one host; Ashby 1, `hostLimits`),
+// - Time box: any read whose host has room starts (the list order breaks ties); once `timeBoxMs`
+//   has passed since the run began no new read starts. The cursor moves only over boards actually
+//   processed: it stops before the first board, in walk order, whose read never started (boards
+//   after it that were read are read again next run: harmless, an upsert).
+// - Hosts: at most `hostConcurrency` reads in flight per host (its registrable domain,
+//   feed/hostKey.ts: every Greenhouse board is one host; Ashby 1, `hostLimits`),
 //   `globalConcurrency` in all.
 // - 429: the host backs off (15 min, doubling per strike in a row, at most 24 h; an answer from
-//   the host clears it). A board whose host is backed off is never read and never skipped
-//   silently: the cursor passes it and it goes on the carry list, which the next runs read first
-//   once its host is free. When the carry list is full (`maxCarry`) the walk stops at the board
-//   instead, so the cursor waits there. A board that got the 429 is carried too.
+//   the host clears it). A board whose host is backed off is not read and does not block the walk:
+//   the cursor passes it and it goes on the carry list, which the next runs read first once its
+//   host is free. A board that got a 429 (or was held back after one) is carried too. The carry
+//   list never holds more than `maxCarry`: past it a board is passed as `overflow` (counted and
+//   reported, read on the next cycle). A run passes at most `maxWalk` boards, so a long backoff of
+//   every host can't skip the whole cycle in a few runs.
 // - 404: the board goes on the dead list, retried after 1, then 3, then 7 days (7 from then on),
 //   and is disabled after `disableAfter` 404s in a row (delete its row to try it again). A dead
 //   board that answers is back at once. The edge function closes its stored postings.
 // - Any other failure (5xx, timeout, a bad body) closes nothing and is not a 404: the board waits
 //   for the next cycle (a dead board's retry date moves on, its count stays).
 import { setBoardKey, type SetBoard } from '../feed/boardSet.ts';
+import { hostKey } from '../feed/hostKey.ts';
 import { remoteVerdict } from '../feed/mode.ts';
 import { boardApiUrl } from '../feed/sources/ats.ts';
 import type { ScoredPosting, WatchedCompany } from './sync.ts';
@@ -54,8 +59,15 @@ export const ROTATION = {
   fetchTimeoutMs: 15_000,
   /** pg_cron calls the rotation once every this many minutes. */
   cronMinutes: 1,
-  /** A run holds the cursor this long; a run that finds it held does nothing. */
-  leaseMs: 90_000,
+  /** After this much wall time a run starts no new write: users not yet written wait (the cursor
+   *  stays) and, once all are written, missed-marking stops (it is only ever late, never doubled). */
+  writeDeadlineMs: 110_000,
+  /** A run holds the cursor this long; a run that finds it held does nothing. The free plan's
+   *  150 s wall limit: no run outlives it there, and work past `writeDeadlineMs` is a few small
+   *  writes (the cursor, the dead list, the log). */
+  leaseMs: 150_000,
+  /** Who the scan is for (every user's plan) is cached in a warm worker this long. */
+  plansTtlMs: 5 * 60e3,
   hostConcurrency: 3,
   /** Hosts with their own limit: Ashby payloads are huge (sync.ts reads them one at a time). */
   hostLimits: { 'ashbyhq.com': 1 } as Readonly<Record<string, number>>,
@@ -66,8 +78,12 @@ export const ROTATION = {
   deadRetryDays: [1, 3, 7] as readonly number[],
   /** 404s in a row that disable a board. */
   disableAfter: 4,
-  /** Boards owed a read (host backed off) carried at most; past it the cursor waits. */
+  /** Boards owed a read (host backed off) carried at most; past it a board waits a cycle. */
   maxCarry: 500,
+  /** Boards a run's walk passes at most (reads, skips and deferrals together). */
+  maxWalk: 100,
+  /** A read's wall time assumed by `rotationMath`'s batch estimate (a slow board). */
+  estReadMs: 2000,
   /** The goal: every board read at least this often. */
   targetCycleHours: 12,
 };
@@ -81,7 +97,7 @@ export interface HostBackoff {
 }
 
 export interface RotationState {
-  /** The last board key passed; '' before the first. */
+  /** The last order value (`orderKey`) passed; '' before the first. */
   cursor: string;
   cycle: number;
   /** ISO start of the current cycle. */
@@ -131,7 +147,8 @@ export function sanitizeRotation(raw: unknown, nowMs: number): RotationState {
         };
     }
   return {
-    cursor: typeof o.cursor === 'string' ? o.cursor : '',
+    // A cursor of another shape (the first build walked by key) starts the walk over.
+    cursor: typeof o.cursor === 'string' && ORDER.test(o.cursor) ? o.cursor : '',
     cycle: typeof o.cycle === 'number' && o.cycle >= 0 ? Math.floor(o.cycle) : 0,
     cycleStartedAt: isoOr(o.cycleStartedAt, empty.cycleStartedAt),
     backoff,
@@ -141,12 +158,47 @@ export function sanitizeRotation(raw: unknown, nowMs: number): RotationState {
   };
 }
 
-/** A registrable domain, probe.ts `hostKey`'s rule (the last two labels). */
-export const hostKey = (hostname: string) => hostname.split('.').slice(-2).join('.');
-
-/** The host a board's read goes to. */
+/** The host a board's read goes to (feed/hostKey.ts). */
 export const hostOf = (b: Pick<SetBoard, 'kind' | 'slug' | 'eu'>) =>
-  hostKey(new URL(boardApiUrl({ kind: b.kind, slug: b.slug, ...(b.eu && { eu: true }) })).hostname);
+  hostKey(boardApiUrl({ kind: b.kind, slug: b.slug, ...(b.eu && { eu: true }) }));
+
+const ORDER = /^[0-9a-f]{8}\|./;
+
+/** FNV-1a, 32 bits, as 8 hex digits. */
+function fnv1a(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+/** A board's place in the walk: its key's hash, then the key (ties). Depends on the key alone. */
+export const orderKey = (key: string) => `${fnv1a(key)}|${key}`;
+
+export interface Ordered {
+  board: SetBoard;
+  key: string;
+  order: string;
+}
+
+const orderCache = new WeakMap<readonly SetBoard[], Ordered[]>();
+
+/** The set in walk order (cached per array: the edge function parses the set once). */
+export function rotationOrder(boards: readonly SetBoard[]): Ordered[] {
+  let list = orderCache.get(boards);
+  if (!list) {
+    list = boards
+      .map((board) => {
+        const key = setBoardKey(board);
+        return { board, key, order: orderKey(key) };
+      })
+      .sort((a, b) => (a.order < b.order ? -1 : a.order > b.order ? 1 : 0));
+    orderCache.set(boards, list);
+  }
+  return list;
+}
 
 /** A set board as the sync's reader takes it. */
 export const toWatched = (b: SetBoard): WatchedCompany => ({
@@ -165,6 +217,8 @@ export type StepAction =
   | 'disabled'
   /** Its host is backed off: passed and carried. */
   | 'defer'
+  /** Its host is backed off and the carry list is full: passed, read next cycle. */
+  | 'overflow'
   /** Already on the carry list (its host still backed off, or read from it this run): passed. */
   | 'carried';
 
@@ -183,7 +237,7 @@ export interface BatchPick {
   cycle: number;
   cycleStartedAt: string;
   wrapped: boolean;
-  /** Carried reads first, then the walk in key order. */
+  /** Carried reads first, then the walk in order (`rotationOrder`). */
   steps: Step[];
 }
 
@@ -193,7 +247,7 @@ const backedOff = (s: RotationState, host: string, nowMs: number) => {
 };
 
 /** The next run's boards: the carry list's boards whose host is free, then the walk from the
- *  cursor, until `maxBoards` reads or `jobsBudget` roles. `boards` is the set in key order. */
+ *  cursor, until `maxBoards` reads, `jobsBudget` roles or `maxWalk` boards passed. */
 export function pickBatch(
   boards: readonly SetBoard[],
   state: RotationState,
@@ -201,8 +255,8 @@ export function pickBatch(
   nowMs: number,
   o: RotationOptions = ROTATION,
 ): BatchPick {
-  const keys = boards.map(setBoardKey);
-  const byKey = new Map(boards.map((b, i) => [keys[i], b]));
+  const ordered = rotationOrder(boards);
+  const byKey = new Map(ordered.map((x) => [x.key, x.board]));
   const steps: Step[] = [];
   let reads = 0;
   let jobs = 0;
@@ -223,10 +277,10 @@ export function pickBatch(
     take(board);
   }
 
-  let start = keys.findIndex((k) => k > state.cursor);
+  let start = ordered.findIndex((x) => x.order > state.cursor);
   let { cycle, cycleStartedAt } = state;
   let startCursor = state.cursor;
-  const wrapped = start === -1 && keys.length > 0;
+  const wrapped = start === -1 && ordered.length > 0;
   if (wrapped) {
     start = 0;
     startCursor = '';
@@ -234,22 +288,18 @@ export function pickBatch(
     cycleStartedAt = new Date(nowMs).toISOString();
   }
   let room = o.maxCarry - carry.length;
-  for (let i = Math.max(start, 0); i < keys.length && !full(); i++) {
-    const key = keys[i];
-    const board = byKey.get(key)!;
+  let walked = 0;
+  for (let i = Math.max(start, 0); i < ordered.length && !full() && walked < o.maxWalk; i++) {
+    const { key, board } = ordered[i];
     const host = hostOf(board);
     const d = dead.get(key);
     let action: StepAction = 'read';
     if (carried.has(key)) action = 'carried';
     else if (d?.disabled) action = 'disabled';
     else if (d && Date.parse(d.retryAt) > nowMs) action = 'dead';
-    else if (backedOff(state, host, nowMs)) {
-      // The carry list is full: wait here rather than pass a board that would go unread.
-      if (room <= 0) break;
-      room--;
-      action = 'defer';
-    }
+    else if (backedOff(state, host, nowMs)) action = room-- > 0 ? 'defer' : 'overflow';
     steps.push({ key, board, host, action });
+    walked++;
     if (action === 'read') take(board);
   }
   return { startCursor, cycle, cycleStartedAt, wrapped, steps };
@@ -270,10 +320,11 @@ export interface Ran<T> {
   value?: T;
 }
 
-/** Read the items in order: each waits for room on its host (and overall), none starts once the
- *  time box is spent, and none starts on a host that answered 429 in this run. So the started reads
- *  are always a prefix of the list (bar the deferred ones), which is what lets the cursor move only
- *  over boards processed. `read` must not throw (a throw counts as a failure). */
+/** Read the items: whenever a slot is free, the first item (in list order) whose host has room
+ *  starts, so one slow host never holds the others up. None starts once the time box is spent, and
+ *  none on a host that answered 429 in this run (`deferred`). Items never started stay
+ *  `unstarted`; `advance` moves the cursor only up to the first of them. `read` must not throw (a
+ *  throw counts as a failure). */
 export async function runBatch<T extends { ok: boolean; status?: number }>(
   items: readonly { key: string; host: string }[],
   read: (item: { key: string; host: string }) => Promise<T>,
@@ -287,17 +338,12 @@ export async function runBatch<T extends { ok: boolean; status?: number }>(
   const running = new Set<Promise<void>>();
   const throttled = new Set<string>();
   let total = 0;
+  let pending = items.map((_, i) => i);
   const timeUp = () => o.now() - o.startedAt >= o.timeBoxMs;
-  for (let i = 0; i < items.length; i++) {
+  const hasRoom = (host: string) =>
+    (inFlight.get(host) ?? 0) < (o.hostLimits?.[host] ?? o.hostConcurrency);
+  const start = (i: number) => {
     const { host } = items[i];
-    const limit = o.hostLimits?.[host] ?? o.hostConcurrency;
-    while (running.size && ((inFlight.get(host) ?? 0) >= limit || total >= o.globalConcurrency))
-      await Promise.race(running);
-    if (timeUp()) break;
-    if (throttled.has(host)) {
-      out[i].result = 'deferred';
-      continue;
-    }
     inFlight.set(host, (inFlight.get(host) ?? 0) + 1);
     total++;
     const slot = out[i];
@@ -319,6 +365,20 @@ export async function runBatch<T extends { ok: boolean; status?: number }>(
         running.delete(p);
       });
     running.add(p);
+  };
+  while (pending.length && !timeUp()) {
+    pending = pending.filter((i) => {
+      if (!throttled.has(items[i].host)) return true;
+      out[i].result = 'deferred';
+      return false;
+    });
+    const next =
+      total < o.globalConcurrency ? pending.find((i) => hasRoom(items[i].host)) : undefined;
+    if (next !== undefined) {
+      pending = pending.filter((i) => i !== next);
+      start(next);
+    } else if (running.size) await Promise.race(running);
+    else break;
   }
   await Promise.all(running);
   return out;
@@ -332,6 +392,8 @@ export interface Advance {
   deadRemove: string[];
   /** Walk boards the cursor passed this run. */
   passed: number;
+  /** Boards passed with no read and no room on the carry list: read next cycle. */
+  overflow: string[];
   /** The cursor reached the last board: the next run starts a new cycle. */
   cycleDone: boolean;
 }
@@ -351,7 +413,8 @@ export function advance(
   o: RotationOptions = ROTATION,
 ): Advance {
   const now = new Date(nowMs).toISOString();
-  const inSet = new Set(boards.map(setBoardKey));
+  const ordered = rotationOrder(boards);
+  const inSet = new Set(ordered.map((x) => x.key));
   const byKey = new Map(results.map((r) => [r.key, r]));
 
   // The cursor: over the walk, up to the first read that never started.
@@ -359,11 +422,13 @@ export function advance(
   let cursor = pick.startCursor;
   let passed = 0;
   const carryAdd: string[] = [];
+  const overflow: string[] = [];
   for (const s of walk) {
     const r = s.action === 'read' ? byKey.get(s.key) : undefined;
     if (s.action === 'read' && (!r || r.result === 'unstarted')) break;
-    cursor = s.key;
+    cursor = orderKey(s.key);
     passed++;
+    if (s.action === 'overflow') overflow.push(s.key);
     if (s.action === 'defer' || r?.result === 'throttled' || r?.result === 'deferred')
       carryAdd.push(s.key);
   }
@@ -376,9 +441,12 @@ export function advance(
       .filter((r): r is Ran<unknown> => !!r && ['ok', 'gone', 'failed'].includes(r.result))
       .map((r) => r.key),
   );
-  const carry = [
+  // Never past `maxCarry`: the boards that don't fit wait for the next cycle (reported).
+  const all = [
     ...new Set([...state.carry.filter((k) => inSet.has(k) && !settled.has(k)), ...carryAdd]),
   ];
+  const carry = all.slice(0, o.maxCarry);
+  overflow.push(...all.slice(o.maxCarry));
 
   // Host backoffs: a 429 doubles the wait, an answer clears it. One strike per host per run.
   const backoff = { ...state.backoff };
@@ -419,12 +487,13 @@ export function advance(
       });
   }
 
-  const last = boards.length ? setBoardKey(boards[boards.length - 1]) : '';
+  const last = ordered.length ? ordered[ordered.length - 1].order : '';
   return {
     state: { cursor, cycle: pick.cycle, cycleStartedAt: pick.cycleStartedAt, backoff, carry },
     deadUpsert,
     deadRemove,
     passed,
+    overflow,
     cycleDone: !!last && cursor === last,
   };
 }
@@ -438,23 +507,43 @@ export function keepForScan(s: Pick<ScoredPosting, 'verdict' | 'posting'>): bool
   return remoteVerdict(mode, location ?? '') !== 'drop';
 }
 
-/** Runs one cycle takes over these boards, packed the way `pickBatch` packs them (no dead boards,
- *  no backoff). */
-export function runsPerCycle(
-  boards: readonly Pick<SetBoard, 'jobs'>[],
+type MathBoard = Pick<SetBoard, 'jobs'> & Partial<Pick<SetBoard, 'kind' | 'slug' | 'eu'>>;
+
+/** The batches one cycle takes over these boards (in the order given), packed the way `pickBatch`
+ *  packs them (no dead boards, no backoff). */
+export function cycleBatches<B extends MathBoard>(
+  boards: readonly B[],
   o: RotationOptions = ROTATION,
-): number {
-  let runs = 0;
-  for (let i = 0; i < boards.length; runs++) {
-    let reads = 0;
+): B[][] {
+  const out: B[][] = [];
+  for (let i = 0; i < boards.length;) {
+    const batch: B[] = [];
     let jobs = 0;
-    while (i < boards.length && reads < o.maxBoards && jobs < o.jobsBudget) {
+    while (i < boards.length && batch.length < o.maxBoards && jobs < o.jobsBudget) {
       jobs += boards[i].jobs ?? o.unknownJobs;
-      reads++;
-      i++;
+      batch.push(boards[i++]);
     }
+    out.push(batch);
   }
-  return runs;
+  return out;
+}
+
+export const runsPerCycle = (boards: readonly MathBoard[], o: RotationOptions = ROTATION) =>
+  cycleBatches(boards, o).length;
+
+/** A batch's read time at `estReadMs` a read: the slowest host's rounds (its boards over its
+ *  limit), or the batch over the overall limit, whichever is longer. Boards without a kind count
+ *  as one host each. */
+export function batchReadMs(batch: readonly MathBoard[], o: RotationOptions = ROTATION): number {
+  const perHost = new Map<string, number>();
+  batch.forEach((b, i) => {
+    const h = b.kind && b.slug ? hostOf(b as SetBoard) : `#${i}`;
+    perHost.set(h, (perHost.get(h) ?? 0) + 1);
+  });
+  let rounds = Math.ceil(batch.length / o.globalConcurrency);
+  for (const [h, n] of perHost)
+    rounds = Math.max(rounds, Math.ceil(n / (o.hostLimits[h] ?? o.hostConcurrency)));
+  return rounds * o.estReadMs;
 }
 
 export interface RotationMath {
@@ -464,22 +553,25 @@ export interface RotationMath {
   runsPerHour: number;
   hoursPerCycle: number;
   invocationsPerMonth: number;
-  /** The longest a run can take: the time box plus one read's timeout. */
-  worstWallMs: number;
-  /** Inside the cron gap (no overlap) and the free plan's 150 s wall clock. */
+  /** The slowest batch's estimated read time (`batchReadMs`). */
+  estBatchReadMs: number;
+  /** Every batch's reads fit in the time box (at `estReadMs` a read). */
+  fitsTimeBox: boolean;
+  /** Writes stop before the lease ends, and the lease is inside the free plan's 150 s. */
   fitsWall: boolean;
   meetsTarget: boolean;
 }
 
-/** The rotation's run-time numbers for a board list (README's table comes from these). */
+/** The rotation's run-time numbers for a board list in walk order (README's table). */
 export function rotationMath(
-  boards: readonly Pick<SetBoard, 'jobs'>[],
+  boards: readonly MathBoard[],
   o: RotationOptions = ROTATION,
 ): RotationMath {
-  const runs = runsPerCycle(boards, o);
+  const batches = cycleBatches(boards, o);
+  const runs = batches.length;
   const runsPerHour = 60 / o.cronMinutes;
   const hoursPerCycle = runs / runsPerHour;
-  const worstWallMs = o.timeBoxMs + o.fetchTimeoutMs;
+  const estBatchReadMs = Math.max(0, ...batches.map((b) => batchReadMs(b, o)));
   return {
     boards: boards.length,
     runsPerCycle: runs,
@@ -487,12 +579,30 @@ export function rotationMath(
     runsPerHour,
     hoursPerCycle,
     invocationsPerMonth: runsPerHour * 24 * 30,
-    worstWallMs,
-    fitsWall: worstWallMs < Math.min(o.cronMinutes * 60e3, 150_000),
+    estBatchReadMs,
+    fitsTimeBox: estBatchReadMs <= o.timeBoxMs,
+    fitsWall:
+      o.timeBoxMs + o.fetchTimeoutMs < o.writeDeadlineMs &&
+      o.writeDeadlineMs < o.leaseMs &&
+      o.leaseMs <= 150_000,
     meetsTarget: hoursPerCycle <= o.targetCycleHours,
   };
 }
 
-/** `n` boards of `jobs` open roles each: for the README's 5,000 and 10,000 rows. */
-export const sampleBoards = (n: number, jobs: number) =>
-  Array.from({ length: n }, () => ({ jobs }));
+/** The host mix `sampleBoards` assumes (a guess at the bulk set: mostly Greenhouse). */
+export const SAMPLE_MIX: readonly [SetBoard['kind'], number][] = [
+  ['greenhouse', 0.6],
+  ['lever', 0.25],
+  ['ashby', 0.15],
+];
+
+/** `n` boards of `jobs` open roles each, in `SAMPLE_MIX`, in walk order: for the README's 5,000
+ *  and 10,000 rows. */
+export function sampleBoards(n: number, jobs: number): SetBoard[] {
+  const boards: SetBoard[] = [];
+  let i = 0;
+  for (const [kind, share] of SAMPLE_MIX)
+    for (let k = 0; k < Math.round(n * share) && i < n; k++, i++)
+      boards.push({ kind, slug: `s${i}`, company: `s${i}`, jobs, lastChecked: '', evidence: '' });
+  return rotationOrder(boards).map((x) => x.board);
+}
