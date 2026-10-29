@@ -11,7 +11,11 @@ signed-in user follows **from their synced `tracker` blob** (`src/tracks/plan.ts
 
 Then it reads every board once (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters,
 Teamtailor, Personio, with the app's own parsers), and on the morning run HN, Remotive and Jobicy for
-the profile's titles plus the designsystems.jobs feed. It scores each posting with the profile's config
+the profile's titles plus designsystems.jobs: its whole catalog (sitemap + each job page, only
+pages not stored yet, at most 40 a run, 1 a second; its RSS fills in the rest) — and, for a design
+systems profile, the sync's own searches in `src/tracks/feeds/` once each is on in
+`SOURCE_ENABLED` (`src/feed/sourceEnabled.ts`): TheirStack, Adzuna, Jooble, Into Design Systems.
+Those are windowed searches, so a posting missing from one is never closed as gone. It scores each posting with the profile's config
 (`src/tracks/`) and upserts it into `postings`. The app reads those rows (`src/feed/postingReader.ts`)
 and adds them to what the browser finds, never in place of it.
 
@@ -64,6 +68,24 @@ Then open Edge Functions → Secrets:
 
 Add a secret named `SYNC_SECRET` and paste the value. Save. Until this is set, the function refuses
 every call (403): there is no built-in fallback.
+
+### 3b. Keys for the sync's own searches (only when turning one on)
+
+Each is off in `src/feed/sourceEnabled.ts` until its gate opens. Turned on without its key, its
+read fails every morning with a `sync_log` line naming the missing secret. Add each in the same
+Secrets page:
+
+| Source              | Secret(s)                         | Get it                                                                           |
+| ------------------- | --------------------------------- | -------------------------------------------------------------------------------- |
+| TheirStack          | `THEIRSTACK_API_KEY`              | theirstack.com → API key (free tier: 200 credits a month; the sync spends ≤ 180) |
+| Adzuna              | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | developer.adzuna.com → register an app (ask Adzuna about commercial use first)   |
+| Jooble              | `JOOBLE_API_KEY`                  | jooble.org/api/about → request a key                                             |
+| Into Design Systems | none                              | its operator's yes to a server read (no key)                                     |
+
+Also run `supabase/migrations/20261029100000_postings_more_sources.sql` once (after step 1): it
+lets `postings` store rows from TheirStack, Jooble and Into Design Systems, and adds
+`known_dsjobs_postings()` (the designsystems.jobs pages already stored, so each run reads only new
+ones).
 
 ### 4. Deploy the function
 

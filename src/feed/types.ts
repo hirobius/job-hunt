@@ -32,7 +32,12 @@ export type FeedSourceId =
   | 'mastodon'
   | 'reddit'
   // designsystems.jobs: read on the server only (the sync), so it reaches the app as a stored row.
-  | 'rss';
+  | 'rss'
+  // The sync's own searches (src/tracks/feeds): stored rows only, like 'rss'.
+  | 'theirstack'
+  | 'adzuna'
+  | 'jooble'
+  | 'ids';
 
 export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   hn: 'Hacker News',
@@ -59,6 +64,11 @@ export const SOURCE_LABEL: Record<FeedSourceId, string> = {
   breezy: 'Breezy HR',
   sam: 'SAM.gov',
   rss: 'designsystems.jobs',
+  theirstack: 'TheirStack',
+  // Adzuna's terms: every result shows "Jobs by Adzuna".
+  adzuna: 'Jobs by Adzuna',
+  jooble: 'Jooble',
+  ids: 'Into Design Systems',
   bluesky: 'Bluesky',
   mastodon: 'Mastodon',
   reddit: 'Reddit',

@@ -1,6 +1,7 @@
 // Which keyless aggregators are on (fetchFeed.ts reads it; re-exported there). Its own module so
 // the v12 move (v12Migration.ts) can read it without the feed's fetch code.
-import type { ProxiedId } from './sources/proxiedIds';
+import type { ServerFeed } from '../tracks/feeds/serverFeeds.ts';
+import type { ProxiedId } from './sources/proxiedIds.ts';
 
 /** Per-source switch for the keyless aggregators we have not yet seen answer from a browser (no CORS
  *  proof from the build sandbox). Turn one off here if its first deployed check shows it blocked.
@@ -11,7 +12,7 @@ import type { ProxiedId } from './sources/proxiedIds';
  *  (sources/bluesky.ts). Reddit is not here at all: its Data API Terms need a registered OAuth
  *  app, never keyless browser reads (sources/reddit.ts says how to read it server-side). */
 export const SOURCE_ENABLED: Record<
-  'jobicy' | 'remoteok' | 'bluesky' | 'mastodon' | ProxiedId,
+  'jobicy' | 'remoteok' | 'bluesky' | 'mastodon' | ProxiedId | 'dsjobsCatalog' | ServerFeed,
   boolean
 > = {
   jobicy: true,
@@ -27,4 +28,15 @@ export const SOURCE_ENABLED: Record<
   workingnomads: false,
   himalayas: false,
   authenticjobs: false,
+  // Read by the sync edge function only (src/tracks/feeds; the browser never contacts them).
+  // designsystems.jobs' whole catalog (sitemap + each job page) is verified live; off, the sync
+  // reads its RSS alone. The rest are off until their gate opens: TheirStack (THEIRSTACK_API_KEY),
+  // Adzuna (ADZUNA_APP_ID + ADZUNA_APP_KEY, and Adzuna's yes to commercial use) and Jooble
+  // (JOOBLE_API_KEY) need keys, and fail loud naming the env var when on without them; Into Design
+  // Systems waits on its operator's permission.
+  dsjobsCatalog: true,
+  theirstack: false,
+  adzuna: false,
+  jooble: false,
+  ids: false,
 };

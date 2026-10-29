@@ -458,6 +458,16 @@ square on the graphite tile; `BrandMark.test.tsx` pins it.
   `npm run sync:dry-run` plans from a sample blob, reads + scores with no database. Pinned in `src/tracks/*.test.ts`,
   `feed/postingReader.test.ts`, `feed/decided.test.ts`,
   `scoredQueue.test.tsx`, `LiveFeedMustInclude.test.tsx`, `companies.test.tsx`.
+- **Server searches (claude/src-top5, `docs/research/ds-job-sources.md`):** `src/tracks/feeds/` holds sources only
+  `sync-postings` reads (pure, injected fetch, `.ts` specifiers): `dsjobsCatalog.ts` (designsystems.jobs' sitemap + each
+  job page's JSON-LD; stored as `rss`, source id = page URL like the RSS guid; known rows reused, ≤ 40 new pages a run,
+  1/s, known rows from the `known_dsjobs_postings()` RPC; partial reads never close) and four windowed searches in
+  `serverFeeds.ts`, never counted as answered (rows age out 30 days after last seen): TheirStack
+  (`THEIRSTACK_API_KEY`, due 10 days a month × 18 rows), Adzuna (`ADZUNA_APP_ID`/`ADZUNA_APP_KEY`, rows say "Jobs by
+  Adzuna"), Jooble (`JOOBLE_API_KEY`, in the URL: never logged) and Into Design Systems (MCP, waits on its operator's
+  yes). All four are off in `SOURCE_ENABLED`; on without a key they fail loud (`MissingKeyError` names the var). Design
+  systems plans only. Browser never contacts them (no CSP change); legal.ts lists them with `hosts: []`. Migration
+  `20261029100000` widens the `postings.source` check.
 - **Contracts track (#275, a cheap test: drop it if nothing useful shows in ~2 weeks):** the "Contracts" starter
   pack (`isContractsTrack`, no titles/sections/boards). Its Live postings reads **SAM.gov only**, through the
   same-origin edge function `api/sam.ts` → `src/contracts/samHandler.ts` (key `SAM_GOV_API_KEY`, server-side
@@ -830,7 +840,7 @@ track-agnostic like everything else in Discover.
     live read) go through the same-origin edge function `api/boards.ts` → `feed/sources/boardsHandler.ts`: fixed
     upstream URLs per `src`, 1 h shared cache, parsed by `feed/sources/<board>.ts`, re-checked in
     `feed/sources/proxied.ts` and matched downstream like a watched board (read once per search). CSP and `legal.ts` unchanged (browser only reaches 'self'). Under `vite dev`/`preview` (E2E, gallery) the `local-api-boards` plugin in `vite.config.ts` answers it with no postings. A new board: adapter
-    + one line each in `PROXIED_SOURCES` (`proxiedIds.ts`), `BOARD_ADAPTERS`, `FeedSourceId`/`SOURCE_LABEL` and `SOURCE_ENABLED`.
+    - one line each in `PROXIED_SOURCES` (`proxiedIds.ts`), `BOARD_ADAPTERS`, `FeedSourceId`/`SOURCE_LABEL` and `SOURCE_ENABLED`.
   - **By company was cut (2026-10-17):** Live postings is one Openings list; an old `?view=companies`
     link is ignored and shows Openings.
 - **Board identity + five more boards (#src-ats, 2026-10-28).** A board found from a _name_ must show
