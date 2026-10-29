@@ -25,6 +25,7 @@ import {
   pickBatch,
   ROTATION,
   rotationMath,
+  rotationOrder,
   runBatch,
   sampleBoards,
   toWatched,
@@ -57,15 +58,16 @@ async function rotateDryRun(read: boolean) {
   for (const s of toRead)
     out.push(`  ${s.key.padEnd(40)} ${s.host.padEnd(16)} ${s.board.jobs ?? '?'} roles`);
   const row = (label: string, m: ReturnType<typeof rotationMath>) =>
-    `  ${label.padEnd(30)} ${String(m.runsPerCycle).padStart(5)} runs · ${m.boardsPerRun.toFixed(1).padStart(5)} boards/run · ${m.hoursPerCycle.toFixed(1).padStart(5)} h a cycle${m.meetsTarget ? '' : ' (over target)'}`;
+    `  ${label.padEnd(30)} ${String(m.runsPerCycle).padStart(5)} runs · ${m.boardsPerRun.toFixed(1).padStart(5)} boards/run · ${m.hoursPerCycle.toFixed(1).padStart(5)} h a cycle · slowest batch ~${(m.estBatchReadMs / 1000).toFixed(0)} s of reads${m.meetsTarget ? '' : ' (over target)'}${m.fitsTimeBox ? '' : ' (over the time box)'}`;
   out.push('', `Cycle (target ≤ ${ROTATION.targetCycleHours} h):`);
-  out.push(row(`this set (${set.boards.length})`, rotationMath(set.boards)));
+  const inOrder = rotationOrder(set.boards).map((x) => x.board);
+  out.push(row(`this set (${set.boards.length})`, rotationMath(inOrder)));
   for (const n of [5000, 10_000])
     for (const jobs of [30, 100])
       out.push(row(`${n} boards × ${jobs} roles`, rotationMath(sampleBoards(n, jobs))));
-  const m = rotationMath(set.boards);
+  const m = rotationMath(inOrder);
   out.push(
-    `  ${m.invocationsPerMonth} invocations a month · at most ${m.worstWallMs / 1000} s wall a run (fits: ${m.fitsWall})`,
+    `  ${m.invocationsPerMonth} invocations a month · reads at ${ROTATION.estReadMs / 1000} s each · writes stop at ${ROTATION.writeDeadlineMs / 1000} s, lease ${ROTATION.leaseMs / 1000} s (fits: ${m.fitsWall})`,
   );
   if (read) {
     const started = Date.now();

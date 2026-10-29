@@ -360,7 +360,7 @@ async function chainNext(
 }
 
 // ---- Scan rotation (#src-bulk) ----
-// The bulk board set, checked and in key order, parsed once per worker.
+// The bulk board set, checked, parsed once per worker (rotation.ts orders it, cached too).
 const BOARD_SET = parseBoardSet(boardsJson);
 
 type RotationRow = {
@@ -379,16 +379,34 @@ type DeadRow = {
   last_checked: string;
 };
 
+type Loaded = { plans: Map<string, SyncPlan>; planless: string[]; tilesError: string | null };
+/** Every user's plan, kept in a warm worker for ROTATION.plansTtlMs: the rotation runs every minute
+ *  and reading every blob each time would cost more than the batch itself. A Sources change (a
+ *  board followed or dropped, a profile switched) reaches the scan within that time; the
+ *  twice-a-day sync always reads fresh. */
+let plansCache: { at: number; loaded: Loaded } | null = null;
+
+async function cachedPlans(db: SupabaseClient, logs: Log[]): Promise<Loaded | { error: string }> {
+  if (plansCache && Date.now() - plansCache.at < ROTATION.plansTtlMs) return plansCache.loaded;
+  const loaded = await loadPlans(db, logs);
+  if ('error' in loaded) return loaded;
+  plansCache = { at: Date.now(), loaded };
+  return loaded;
+}
+
 /** One rotation step: claim the cursor (one run at a time), read the next batch of the bulk board
- *  set (src/tracks/rotation.ts: in key order, a time box, a per-host limit, 429 backoff, a dead
- *  list), store each design systems user's remote queue/review postings from it, close what they
- *  missed, and move the cursor over the boards processed.
+ *  set (src/tracks/rotation.ts: in an interleaved order, a time box, a per-host limit, 429
+ *  backoff, a dead list), store each design systems user's remote queue/review postings from it,
+ *  close what they missed, and move the cursor over the boards processed.
  *  Why a 1-minute cron and no chaining: each invocation reads at most ROTATION.maxBoards boards
  *  (ROTATION.jobsBudget open roles), so its CPU (JSON parsing and scoring; the waits on the network
- *  don't count) stays inside the worker's ~2 s; its wall time is at most the time box plus one
- *  read's timeout (55 s), under the cron gap, so runs never overlap, and the claim's lease makes
- *  sure of it. Chaining would read faster but runs would overlap the next cron call and race on
- *  the cursor; the cron alone covers 5,000 to 10,000 boards inside 12 h (README).
+ *  don't count) stays inside the worker's ~2 s. Chaining would read faster but runs would overlap
+ *  the next cron call and race on the cursor; the cron alone covers 5,000 to 10,000 boards inside
+ *  12 h (README). The lease (ROTATION.leaseMs, 150 s = the free plan's wall limit) covers the worst
+ *  case: reads stop starting at the time box (40 s) and end by its fetch timeout (55 s), user
+ *  writes stop at ROTATION.writeDeadlineMs (110 s), and after that only the cursor, dead list and
+ *  log are written. A run past 60 s makes the next cron call answer "busy", nothing more. The
+ *  lease is released last, with the cursor.
  *  Boards a user follows are skipped for that user (the twice-a-day sync reads them with their own
  *  rules, rejects included); rows the scan writes carry `via_scan`, which `close_unfollowed_postings`
  *  leaves alone (they are not followed, and this rotation closes them). */
@@ -398,6 +416,7 @@ async function rotate(db: SupabaseClient): Promise<Response> {
   const logs: Log[] = [];
   const fail = (message: string, board: string | null = null, status: number | null = null) =>
     logs.push({ user_id: null, kind: 'failed', board, status, message: message.slice(0, 2000) });
+  const pastDeadline = () => Date.now() - startedAt >= ROTATION.writeDeadlineMs;
 
   // The lease: the database's clock, one row. Nothing back: another run holds it.
   const { data: claimed, error: claimError } = await db.rpc('claim_scan_rotation', {
@@ -406,11 +425,15 @@ async function rotate(db: SupabaseClient): Promise<Response> {
   if (claimError) return json({ error: `claim: ${claimError.message}` }, 500);
   const row = (Array.isArray(claimed) ? claimed[0] : claimed) as RotationRow | null | undefined;
   if (!row) return json({ rotate: 'busy' });
+  /** The last write of a run: the cursor (when `patch` moves it) and the lease. */
   const release = (patch: Record<string, unknown> = {}) =>
     db
       .from('scan_rotation')
       .update({ ...patch, lease_until: null, updated_at: new Date().toISOString() })
       .eq('id', 1);
+  const flushLogs = async () => {
+    if (logs.length) await db.from('sync_log').insert(logs.splice(0));
+  };
 
   const state = sanitizeRotation(
     {
@@ -453,8 +476,9 @@ async function rotate(db: SupabaseClient): Promise<Response> {
 
     // Who the scan is for: design systems profiles. A v11 user whose watched tiles could not be
     // read is left out this run (their followed boards are unknown).
-    const loaded = await loadPlans(db, logs);
+    const loaded = await cachedPlans(db, logs);
     if ('error' in loaded) {
+      await flushLogs();
       await release();
       return json({ error: loaded.error }, 500);
     }
@@ -463,6 +487,7 @@ async function rotate(db: SupabaseClient): Promise<Response> {
       .filter(([, p]) => !(p.from === 'v11' && loaded.tilesError))
       .map(([userId, plan]) => ({ userId, plan, follows: new Set(plan.boards.map(boardOf)) }));
     if (!scanners.length) {
+      await flushLogs();
       await release();
       return json({
         rotate: 'idle',
@@ -470,6 +495,11 @@ async function rotate(db: SupabaseClient): Promise<Response> {
         boards: BOARD_SET.boards.length,
       });
     }
+    /** Users whose own sync reads a board (any profile). */
+    const followersOf = (board: string) =>
+      [...loaded.plans]
+        .filter(([, p]) => p.boards.some((b) => boardOf(b) === board))
+        .map(([u]) => u);
 
     const pick = pickBatch(BOARD_SET.boards, state, dead, startedAt);
     const steps = new Map(pick.steps.filter((s) => s.action === 'read').map((s) => [s.key, s]));
@@ -486,14 +516,18 @@ async function rotate(db: SupabaseClient): Promise<Response> {
     for (const r of results) {
       if (r.result === 'ok' && r.value) answered.push(r.value);
       else if (r.result === 'gone') {
-        // Gone: every user's scan rows on it close (a followed board's rows are the sync's).
-        const { data, error } = await db
+        // Gone: the scan's rows on it close, except a user who follows the board: their own sync
+        // reads it and closes its rows on its 404 (`via_scan` stays on a row the scan wrote first
+        // even after their sync updates it, so it is not proof the row is the scan's alone).
+        let q = db
           .from('postings')
           .update(closing())
           .eq('board', r.key)
           .eq('via_scan', true)
-          .is('closed_at', null)
-          .select('id');
+          .is('closed_at', null);
+        const keep = followersOf(r.key);
+        if (keep.length) q = q.not('user_id', 'in', `(${keep.join(',')})`);
+        const { data, error } = await q.select('id');
         if (error) fail(`closing ${r.key} (404): ${error.message}`, r.key, 404);
         closed += data?.length ?? 0;
       } else if (r.result === 'failed' || r.result === 'throttled')
@@ -516,9 +550,18 @@ async function rotate(db: SupabaseClient): Promise<Response> {
       byConfig.set(k, [...(byConfig.get(k) ?? []), s]);
     }
     let stored = 0;
-    for (const group of byConfig.values()) {
+    /** Writes done; who gets the missed-marking after them, and on which boards. */
+    const toMark: { userId: string; boards: string[] }[] = [];
+    let cutShort = false;
+    writes: for (const group of byConfig.values()) {
       const scored = answered.length ? scoreBatch(answered, group[0].plan.config) : [];
       for (const { userId, follows } of group) {
+        // Past the deadline: the users left are not written, so the cursor stays and the batch is
+        // read again next run (an upsert: the users written already lose nothing).
+        if (pastDeadline()) {
+          cutShort = true;
+          break writes;
+        }
         const boards = answered.map((r) => r.board).filter((b) => !follows.has(b));
         if (!boards.length) continue;
         const mine = scored.filter((s) => !follows.has(s.board) && keepForScan(s));
@@ -526,30 +569,35 @@ async function rotate(db: SupabaseClient): Promise<Response> {
         if (mine.length)
           await writeScored(db, userId, designSystemsTrack.slug, mine, logs, t, { via_scan: true });
         stored += t.queue + t.review;
-        // A posting gone from a board that answered (or no longer remote or included) is missed;
-        // 2 misses close it (mark_missed_postings). Not after a failed write.
-        if (!t.failed) {
-          const { data: n, error } = await db.rpc('mark_missed_postings', {
-            p_user: userId,
-            p_track: designSystemsTrack.slug,
-            p_boards: boards,
-            p_run: runStart,
-          });
-          if (error) fail(`marking missed (scan): ${error.message}`);
-          closed += typeof n === 'number' ? n : 0;
-        }
+        // Not after a failed write (a posting that did not land would read as missing).
+        if (!t.failed) toMark.push({ userId, boards });
       }
     }
+    // A posting gone from a board that answered (or no longer remote or included) is missed; 2
+    // misses close it (mark_missed_postings). Only once every user is written, so a batch read
+    // again never counts a miss twice; past the deadline the rest are skipped (a miss counted a
+    // cycle late, never early).
+    let markSkipped = 0;
+    if (!cutShort)
+      for (const { userId, boards } of toMark) {
+        if (pastDeadline()) {
+          markSkipped++;
+          continue;
+        }
+        const { data: n, error } = await db.rpc('mark_missed_postings', {
+          p_user: userId,
+          p_track: designSystemsTrack.slug,
+          p_boards: boards,
+          p_run: runStart,
+        });
+        if (error) fail(`marking missed (scan): ${error.message}`);
+        closed += typeof n === 'number' ? n : 0;
+      }
+    if (cutShort)
+      fail(`rotation after '${state.cursor}': write deadline reached, batch read again`);
 
-    const { state: next } = moved;
-    const saved = await release({
-      cursor_key: next.cursor,
-      cycle: next.cycle,
-      cycle_started_at: next.cycleStartedAt,
-      host_backoff: next.backoff,
-      carry: next.carry,
-    });
-    if (saved.error) fail(`saving the cursor: ${saved.error.message}`);
+    // The dead list (what the reads showed holds either way), then the log, then the cursor and
+    // the lease, last.
     if (moved.deadUpsert.length) {
       const { error } = await db.from('scan_dead_boards').upsert(
         moved.deadUpsert.map((d) => ({
@@ -572,6 +620,7 @@ async function rotate(db: SupabaseClient): Promise<Response> {
       if (error) fail(`dead boards back: ${error.message}`);
     }
 
+    const next = cutShort ? { ...state, backoff: moved.state.backoff } : moved.state;
     const count = (k: string) => results.filter((r) => r.result === k).length;
     const summary = {
       rotate: true,
@@ -585,20 +634,24 @@ async function rotate(db: SupabaseClient): Promise<Response> {
       throttled: count('throttled'),
       deferred: count('deferred'),
       unstarted: count('unstarted'),
-      passed: moved.passed,
+      passed: cutShort ? 0 : moved.passed,
       carry: next.carry.length,
+      overflow: cutShort ? 0 : moved.overflow.length,
       backoff: Object.keys(next.backoff),
       users: scanners.length,
       stored,
       closed,
-      cycleDone: moved.cycleDone,
-      cycleHours: moved.cycleDone
-        ? +((Date.now() - Date.parse(next.cycleStartedAt)) / 3600e3).toFixed(2)
-        : null,
+      markSkipped,
+      cutShort,
+      cycleDone: !cutShort && moved.cycleDone,
+      cycleHours:
+        !cutShort && moved.cycleDone
+          ? +((Date.now() - Date.parse(next.cycleStartedAt)) / 3600e3).toFixed(2)
+          : null,
       ms: Date.now() - startedAt,
     };
-    // One run row a cycle (and on a run that stored or closed something), not one a minute.
-    if (moved.cycleDone || stored || closed)
+    // One run row a cycle (and on a run that stored, closed or dropped something), not one a minute.
+    if (summary.cycleDone || stored || closed || summary.overflow || cutShort)
       logs.push({
         user_id: null,
         kind: 'run',
@@ -606,13 +659,28 @@ async function rotate(db: SupabaseClient): Promise<Response> {
         status: null,
         message: JSON.stringify(summary).slice(0, 2000),
       });
-    if (logs.length) await db.from('sync_log').insert(logs);
+    await flushLogs();
+    const saved = await release({
+      cursor_key: next.cursor,
+      cycle: next.cycle,
+      cycle_started_at: next.cycleStartedAt,
+      host_backoff: next.backoff,
+      carry: next.carry,
+    });
+    if (saved.error)
+      await db.from('sync_log').insert({
+        user_id: null,
+        kind: 'failed',
+        board: null,
+        status: null,
+        message: `saving the cursor: ${saved.error.message}`.slice(0, 2000),
+      });
     return json(summary);
   } catch (e) {
     // Nothing advanced: the same boards are read on the next run.
     fail(`rotation after '${state.cursor}' stopped: ${String(e)}`);
+    await flushLogs();
     await release();
-    await db.from('sync_log').insert(logs);
     return json({ error: String(e) }, 500);
   }
 }

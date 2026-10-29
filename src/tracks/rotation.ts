@@ -164,18 +164,24 @@ export const hostOf = (b: Pick<SetBoard, 'kind' | 'slug' | 'eu'>) =>
 
 const ORDER = /^[0-9a-f]{8}\|./;
 
-/** FNV-1a, 32 bits, as 8 hex digits. */
-function fnv1a(s: string): string {
+/** FNV-1a, 32 bits, then murmur3's finalizer (FNV alone barely moves the high bits for keys that
+ *  differ only at the end, which would group a host's boards again), as 8 hex digits. */
+function hash32(s: string): string {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
     h = Math.imul(h, 0x01000193) >>> 0;
   }
-  return h.toString(16).padStart(8, '0');
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b) >>> 0;
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35) >>> 0;
+  h ^= h >>> 16;
+  return (h >>> 0).toString(16).padStart(8, '0');
 }
 
 /** A board's place in the walk: its key's hash, then the key (ties). Depends on the key alone. */
-export const orderKey = (key: string) => `${fnv1a(key)}|${key}`;
+export const orderKey = (key: string) => `${hash32(key)}|${key}`;
 
 export interface Ordered {
   board: SetBoard;
