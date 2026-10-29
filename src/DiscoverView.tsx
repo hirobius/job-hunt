@@ -847,7 +847,7 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
         )}
         {secondary === 'review' && (
           <Suspense fallback={null}>
-            <ReviewView key={cat.id} categoryId={cat.id} />
+            <ReviewView />
           </Suspense>
         )}
         {secondary === 'live' && (

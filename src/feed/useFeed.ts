@@ -1,59 +1,25 @@
-// Review new's data (simplify 5/9, #386): the Feed's inputs read from today's stores (the thin
-// adapter until #384/#385's `useProfile` / `useSources` land), one read through the reader, and the
-// view built from it. What was read is kept for this page load (viewMemory), so opening a posting
-// and coming Back shows the same rows with no new read; Refresh reads again.
+// Review new's data (simplify 5/9, #386): the Feed's inputs, read from the synced Search profile
+// and Sources (blob v12; since #388, in place of the active track's stores), one read through the
+// reader, and the view built from it. What was read is kept for this page load (viewMemory), so
+// opening a posting and coming Back shows the same rows with no new read; Refresh reads again.
 import { useEffect, useMemo } from 'react';
-import { useCategories, useGroups, useTiles } from '../curation/curationStore';
-import { useTrackContext } from '../discoverContext';
 import { dedupKey, useJobs } from '../store';
 import { useRemembered } from '../viewMemory';
-import { useDreams } from './dreams';
-import { useTargets } from './targets';
-import { useMustInclude } from './mustInclude';
-import { useSweep } from './sweepTitles';
-import { boardUrlsFor } from './watchlist';
+import { useProfile } from '../profile';
+import { useSources } from '../sources';
 import { noteSeen, readSeen, useDecided } from './decided';
-import { profileFrom, sourcesFrom, type SearchProfile, type Source } from './profile';
+import { feedSourcesOf, searchProfileOf, type SearchProfile, type Source } from './profile';
 import { buildFeed, feedRequest, fingerprintsOf, type FeedView } from './feed';
 import { browserReader, type PostingReader } from './reader';
 import { scanReader, useScan } from './autoScan';
 import type { FeedResult } from './fetchFeed';
 
-/** The Search profile and Sources of a track, from today's stores. */
-export function useFeedInputs(categoryId: string): { profile: SearchProfile; sources: Source[] } {
-  const categories = useCategories();
-  const groups = useGroups();
-  const tiles = useTiles();
-  const track = categories.find((c) => c.id === categoryId);
-  const titleSeed = track ? (track.titles.length ? track.titles : track.atsRoles) : [];
-  const sweep = useSweep(categoryId, titleSeed);
-  const include = useMustInclude(categoryId);
-  const { where } = useTrackContext(categoryId);
-  const dreams = useDreams(categoryId);
-  const targets = useTargets(categoryId);
-  const decided = useDecided();
-  const profile = useMemo(
-    () =>
-      profileFrom({
-        atsRoles: track?.atsRoles ?? [],
-        seniority: track?.seniority ?? 'any',
-        sweep,
-        include,
-        where,
-      }),
-    [track?.atsRoles, track?.seniority, sweep, include, where],
-  );
-  const sources = useMemo(
-    () =>
-      sourcesFrom({
-        tileUrls: boardUrlsFor(categoryId, { categories, groups, tiles }),
-        dreams,
-        targets,
-        muted: decided.muted,
-        followed: decided.followed,
-      }),
-    [categoryId, categories, groups, tiles, dreams, targets, decided.muted, decided.followed],
-  );
+/** The Search profile and Sources, as the Feed reads them. */
+export function useFeedInputs(): { profile: SearchProfile; sources: Source[] } {
+  const stored = useProfile();
+  const storedSources = useSources();
+  const profile = useMemo(() => searchProfileOf(stored), [stored]);
+  const sources = useMemo(() => feedSourcesOf(storedSources), [storedSources]);
   return { profile, sources };
 }
 
@@ -87,10 +53,10 @@ export interface FeedState {
   refresh: () => void;
 }
 
-export function useFeed(categoryId: string, given?: PostingReader): FeedState {
-  // Review new reads live and adds what the auto-scan kept for this track (feed/autoScan.ts).
-  const reader = useMemo(() => given ?? scanReader(liveReader, categoryId), [given, categoryId]);
-  const { profile, sources } = useFeedInputs(categoryId);
+export function useFeed(given?: PostingReader): FeedState {
+  // Review new reads live and adds what the auto-scan kept (feed/autoScan.ts).
+  const reader = useMemo(() => given ?? scanReader(liveReader), [given]);
+  const { profile, sources } = useFeedInputs();
   const decided = useDecided();
   const jobs = useJobs();
   const req = useMemo(() => feedRequest(profile, sources), [profile, sources]);
@@ -102,8 +68,8 @@ export function useFeed(categoryId: string, given?: PostingReader): FeedState {
     .map((f) => `${f.key}=${f.status}`)
     .join(',')}`;
   const key = `${req.terms.join('\n')}|${req.boardUrls.join('\n')}|${scanKey}`;
-  const [read, setRead] = useRemembered<Read | null>(`review:${categoryId}:read`, null);
-  const [attempt, setAttempt] = useRemembered(`review:${categoryId}:attempt`, 0);
+  const [read, setRead] = useRemembered<Read | null>('review:read', null);
+  const [attempt, setAttempt] = useRemembered('review:attempt', 0);
   const hasQuery = req.terms.length > 0 || req.boardUrls.length > 0;
 
   useEffect(() => {

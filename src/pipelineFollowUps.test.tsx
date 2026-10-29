@@ -306,7 +306,7 @@ describe('first-run gate in the shell', () => {
     window.location.hash = '';
     renderApp();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
-    expect(screen.getByRole('heading', { name: 'Set up your board' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Set up your search' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try with sample data' })).toBeInTheDocument();
   });
 
@@ -318,17 +318,13 @@ describe('first-run gate in the shell', () => {
     expect(await screen.findByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
   });
 
-  it('picking a track finishes setup and stays on Today', async () => {
+  it('finishing the Search profile form ends setup and stays on Today', async () => {
     window.location.hash = '';
     renderApp();
-    const lead = screen.getAllByRole('checkbox')[0];
-    expect(lead).not.toBeChecked(); // the Suggested pack starts unticked (Adrian 2026-10-22)
-    await userEvent.click(lead);
-    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() =>
-      expect(screen.queryByRole('heading', { name: 'Set up your board' })).toBeNull(),
+      expect(screen.queryByRole('heading', { name: 'Set up your search' })).toBeNull(),
     );
     expect(
       within(screen.getByRole('tablist', { name: 'Sections' })).getByRole('tab', {
@@ -338,16 +334,16 @@ describe('first-run gate in the shell', () => {
     expect(window.location.hash).toBe('#/today');
   });
 
-  it('Review new needs a track even when there are jobs; the Pipeline never gates', () => {
+  it('Review new needs a Search profile even when there are jobs; the Pipeline never gates', () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     window.location.hash = '#/today';
     const { unmount } = renderApp();
-    expect(screen.getByText('Pick a track to search')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set up your search' })).toBeInTheDocument();
     unmount();
     removeJob('https://acme.example/jobs/1');
     window.location.hash = '#/queue';
     renderApp();
-    expect(screen.queryByRole('heading', { name: 'Set up your board' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Set up your search' })).toBeNull();
     expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
   });
 });

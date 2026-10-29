@@ -3,29 +3,28 @@
 // what Find will do before it is pressed, and a name read as a company can be searched as a title
 // instead (and back).
 //   job link → saveWithNotice (addJobOutcome + notifySaved: To apply, Open, Undo)
-//   board    → watchBoard on the active track (Live postings and Companies read it)
-//   company  → the board probe (CompanyLookup): Watch a board found, or keep it as a target
-//   words    → the track's titles (feed/sweepTitles.ts addTitle), with Undo
-// Every source and probe path stays as it is; this is one more way in. Boards, companies and
-// titles need a track (the active one: activeTrack.ts); a job link never does.
+//   board    → followed: added to the Sources (sources.ts), which Review new and the scan read
+//   company  → the board probe (CompanyLookup): Follow a board found, or keep it as a dream
+//   words    → the Search profile's titles (profile.ts), with Undo
+// Every source and probe path stays as it is; this is one more way in. Titles need a Search
+// profile (set up on Today); a job link, a board or a company never does.
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Box, Button, Input, Stack, Text, useToast } from '@hirobius/design-system';
 import { Form } from '@hirobius/design-system/patterns';
 import { classifyFind, type FindResult } from './find/classifyFind';
 import { saveWithNotice, showNotice } from './saveNotice';
-import { useActiveTrack } from './activeTrack';
-import { boardLabel, canonicalBoardUrl, type Board } from './feed/sources/ats';
-import { watchBoard } from './feed/watchlist';
+import { boardLabel, type Board } from './feed/sources/ats';
 import { parseCompanyLine } from './feed/probe';
-import { starDream } from './feed/dreams';
-import { addTitle, removeTitle } from './feed/sweepTitles';
+import { followBoard, getSources, starCompany } from './sources';
+import { feedSourcesOf, boardUrlsOf } from './feed/profile';
+import { getProfile, saveProfile, withTitles } from './profile';
 import type { DiscoverResult } from './feed/discoverBoards';
 import { CompanyLookupResults } from './CompanyLookupResults';
 import { lookUpCompany } from './companyLookup';
 
 const HELPER = 'Paste a job link, a job board or a company, or type a job title.';
 const EMPTY_ERROR = 'Paste a job link, a job board or a company, or type a job title';
-const NO_TRACK = 'Choose a track on Today first, so there is a list to add this to.';
+const NO_PROFILE = 'Set up your search on Today first, so there is a list to add this to.';
 
 /** What Find will do with the line, said before it is pressed. */
 function reading(r: FindResult): string {
@@ -35,7 +34,7 @@ function reading(r: FindResult): string {
     case 'job':
       return 'Saves this job to To apply.';
     case 'board':
-      return `Watches ${boardLabel(r.board)}’s board.`;
+      return `Follows ${boardLabel(r.board)}’s board.`;
     case 'company':
       return `Looks up ${r.name}’s job board.`;
     case 'words':
@@ -66,7 +65,6 @@ export default function FindBox({
   footer?: ReactNode;
 }) {
   const { toast } = useToast();
-  const track = useActiveTrack();
   const [text, setText] = useState(initial.trim());
   const [flipped, setFlipped] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,12 +89,13 @@ export default function FindBox({
     onDone?.();
   };
 
-  const watchOne = (b: Board): boolean => {
-    if (!track) return false;
-    const r = watchBoard(track.id, canonicalBoardUrl(b));
-    if (r.ok) toast({ title: `Watching ${r.label}`, tone: 'success' });
-    else toast({ title: r.error, tone: 'warning' });
-    return r.ok;
+  const watchOne = (b: Board, label = boardLabel(b)): boolean => {
+    const r = followBoard(b, label);
+    toast({
+      title: r === 'added' ? `Following ${label}` : `Already following ${label}`,
+      tone: 'success',
+    });
+    return true;
   };
 
   const submit = async (e?: FormEvent) => {
@@ -109,30 +108,34 @@ export default function FindBox({
       setError(null);
       return finish();
     }
-    if (!track) return setError(NO_TRACK);
     setError(null);
     if (find.kind === 'board') {
-      const r = watchBoard(track.id, canonicalBoardUrl(find.board));
-      if (!r.ok) return setError(r.error);
-      toast({ title: `Watching ${r.label}`, tone: 'success' });
+      watchOne(find.board);
       return finish();
     }
     if (find.kind === 'words') {
-      const seed = track.titles.length ? track.titles : track.atsRoles;
+      const profile = getProfile();
+      if (!profile) return setError(NO_PROFILE);
       const title = find.words;
-      const outcome = addTitle(track.id, seed, title);
-      if (outcome === 'duplicate')
+      const next = withTitles(profile, [title]);
+      if (next.titles.length === profile.titles.length)
         showNotice({ title: `“${title}” is already in your titles`, actions: [] });
-      else
+      else {
+        saveProfile({ titles: next.titles });
         showNotice({
           title: `Added “${title}” to your titles`,
-          description:
-            outcome === 'added-off'
-              ? 'Switched off for now: the most titles that can be on at once are on.'
-              : undefined,
           tone: 'success',
-          actions: [{ label: 'Undo', run: () => removeTitle(track.id, seed, title) }],
+          actions: [
+            {
+              label: 'Undo',
+              run: () => {
+                const cur = getProfile();
+                if (cur) saveProfile({ titles: cur.titles.filter((t) => t !== title) });
+              },
+            },
+          ],
         });
+      }
       return finish();
     }
     // A company: look for its board; the result stays here to act on. A name the probe can't
@@ -146,16 +149,17 @@ export default function FindBox({
     setAsked(find.name);
     setResult(null);
     try {
-      setResult(await lookUpCompany(find.name, track.id, ac.signal));
+      setResult(
+        await lookUpCompany(find.name, ac.signal, boardUrlsOf(feedSourcesOf(getSources()))),
+      );
     } finally {
       setRunning(false);
     }
   };
 
   const star = () => {
-    if (!track) return;
-    starDream(track.id, { company: asked });
-    toast({ title: `Added ${asked} to Dream companies`, tone: 'success' });
+    starCompany(asked);
+    toast({ title: `Following ${asked} as a dream company`, tone: 'success' });
     finish();
   };
 

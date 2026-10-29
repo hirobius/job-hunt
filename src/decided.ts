@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { liveStorage } from './liveStorage';
 import { savePersisted } from './persisted';
 import { fingerprint } from './tracks/score';
+import { addSources, getSources, muteSource, sourceKey } from './sources';
 
 export const DECIDED_KEY = 'rjb_decided';
 /** Newest kept: a year of heavy triage. */
@@ -125,3 +126,36 @@ export const decided = {
   /** Every decision, live, by fingerprint. */
   use: useDecidedMap,
 };
+
+/** Before #388 Review new kept `{ decided, muted, followed }` under this same key (feed/decided.ts),
+ *  so the first pull dropped it. Run once at start (main.tsx), before sync: an old object's verdicts
+ *  become this list, its muted companies muted Sources and its followed ones company Sources. A
+ *  list is left as it is. */
+export function moveLegacyDecided(): void {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(localStorage.getItem(DECIDED_KEY) ?? '[]');
+  } catch {
+    return;
+  }
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return;
+  const o = raw as Record<string, unknown>;
+  const key = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
+  const names = (v: unknown) =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!key(x)) : [];
+  replaceDecided(sanitizeDecided(o.decided));
+  const muted = new Set(names(o.muted).map(key));
+  const company = (name: string, mute: boolean) => {
+    const named = getSources().filter((s) => s.kind !== 'feed' && key(s.label) === key(name));
+    if (named.length) {
+      if (mute) named.forEach((s) => muteSource(sourceKey(s), true));
+    } else
+      addSources([
+        { kind: 'company', ref: key(name), label: name.trim(), ...(mute && { muted: true }) },
+      ]);
+  };
+  names(o.muted).forEach((n) => company(n, true));
+  names(o.followed)
+    .filter((n) => !muted.has(key(n)))
+    .forEach((n) => company(n, false));
+}

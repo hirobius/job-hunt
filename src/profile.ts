@@ -32,6 +32,24 @@ export function replaceProfiles(all: Profile[]): void {
   write(sanitizeProfiles(all));
 }
 
+/** Make (or replace) the profile in use: onboarding's Search profile form. Any other profile is
+ *  kept behind it. Returns the profile written. */
+export function saveProfile(
+  fields: Partial<Omit<Profile, 'id' | 'createdAt'>> & Pick<Profile, 'titles'>,
+): Profile | null {
+  const all = readAll();
+  const cur = all[0];
+  const next = sanitizeProfile({
+    ...cur,
+    ...fields,
+    id: cur?.id ?? `profile-${Date.now().toString(36)}`,
+    createdAt: cur?.createdAt ?? new Date().toISOString(),
+  });
+  if (!next) return null;
+  write([next, ...all.slice(1)]);
+  return next;
+}
+
 /** Change the profile in use (merged over what it has). No profile yet: nothing happens. */
 export function updateProfile(change: Partial<Omit<Profile, 'id' | 'createdAt'>>): boolean {
   const all = readAll();

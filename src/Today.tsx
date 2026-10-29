@@ -14,7 +14,7 @@ import { MetaCaption } from './MetaCaption';
 import { JobPostingTitle } from './PostingLink';
 import { NewCompanies, ScanStatus } from './AutoScanViews';
 import ReviewView from './ReviewView';
-import { useActiveTrack } from './activeTrack';
+import { useProfile } from './profile';
 import { useJobs, jobIdOf } from './store';
 import { jobHash, navigate, useRoute, withOrigin } from './route';
 import { metaLines } from './metaLines';
@@ -30,17 +30,16 @@ const jobs$ = (n: number) => `${n} ${n === 1 ? 'job' : 'jobs'}`;
 export default function Today() {
   const route = useRoute();
   const jobs = useJobs();
-  const track = useActiveTrack();
+  const profile = useProfile();
   const now = new Date();
   const m = today(jobs, now, lastApplyJobId());
   const { due, waiting, upcoming } = m.followUp;
-  // No track yet (jobs saved before setup): Review new asks for one, with the same steps as a
-  // first run, in place.
+  // No Search profile yet (jobs saved before setup): Review new asks for one, with the same form
+  // as a first run, in place.
   const [choosing, setChoosing] = useState(false);
-  if (!track && choosing)
+  if (!profile && choosing)
     return (
       <Stack gap="normal" align="start">
-        {/* The steps start over when nothing is picked, so this is the way out. */}
         <Button variant="tertiary" size="sm" onClick={() => setChoosing(false)}>
           Not now
         </Button>
@@ -63,8 +62,8 @@ export default function Today() {
 
       {/* The scan's status, then every design-system posting, newest first, as a list (the Deck is
           a toggle inside). Review new hosts the status, so its counts are the Feed's own. */}
-      {track ? (
-        <ReviewView categoryId={track.id} label="Review new" scanStatus />
+      {profile ? (
+        <ReviewView label="Review new" scanStatus />
       ) : (
         <Stack gap="normal">
           <ScanStatus />
@@ -73,11 +72,11 @@ export default function Today() {
               <EmptyState
                 centered
                 icon={Search}
-                title="Pick a track to search"
-                description="A track holds your job titles, location and saved links."
+                title="Set up your search"
+                description="Your search holds the job titles to look for and where you want to work."
                 action={
                   <Button variant="primary" onClick={() => setChoosing(true)}>
-                    Choose a track
+                    Set up your search
                   </Button>
                 }
               />
@@ -137,7 +136,7 @@ export default function Today() {
         )}
       </Panel>
 
-      <NewCompanies categoryId={track?.id} />
+      <NewCompanies />
     </Stack>
   );
 }

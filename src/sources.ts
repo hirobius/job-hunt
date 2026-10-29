@@ -9,6 +9,7 @@
 import { useMemo } from 'react';
 import { liveStorage } from './liveStorage';
 import { loadPersisted, savePersisted } from './persisted';
+import type { Board } from './feed/sources/ats';
 import {
   sanitizeSource,
   sanitizeSources,
@@ -70,6 +71,30 @@ function patch(key: string, change: (s: Source) => Source) {
   write(all);
   return true;
 }
+
+/** Follow a board (its Source added). 'already' when it is on the list (a muted one is unmuted). */
+export function followBoard(b: Board, label: string): 'added' | 'already' {
+  const s: Source = { kind: b.kind, ref: b.slug, label, ...(b.eu && { eu: true }) };
+  const cur = readAll().find((x) => sourceKey(x) === sourceKey(s));
+  if (!cur) return addSources([s]) ? 'added' : 'already';
+  if (cur.muted) muteSource(sourceKey(cur), false);
+  return 'already';
+}
+
+/** A dream company: its Sources (named for it) starred, or a followed company added with a star. */
+export function starCompany(name: string): void {
+  const k = name.trim().replace(/\s+/g, ' ').toLowerCase();
+  if (!k) return;
+  const named = readAll().filter(
+    (s) => s.kind !== 'feed' && s.label.trim().replace(/\s+/g, ' ').toLowerCase() === k,
+  );
+  if (named.length) named.forEach((s) => starSource(sourceKey(s), true));
+  else addSources([{ kind: 'company', ref: k, label: name.trim(), star: true }]);
+}
+
+/** Take a Source off the list, by key (a follow's Undo). */
+export const removeSource = (key: string) =>
+  updateSources((cur) => cur.filter((s) => sourceKey(s) !== key));
 
 /** Star (a dream company) or unstar a Source, by its key. */
 export const starSource = (key: string, on: boolean) =>

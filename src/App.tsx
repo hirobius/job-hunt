@@ -21,15 +21,7 @@ import {
 } from '@hirobius/design-system';
 import { FollowUpHost } from './FollowUp';
 import { AddInterviewHost } from './AddInterview';
-import {
-  ApplyMode,
-  ChooseTrack,
-  CompanyPage,
-  JobPage,
-  Onboarding,
-  Today,
-  TrackerView,
-} from './routeViews';
+import { ApplyMode, CompanyPage, JobPage, Onboarding, Today, TrackerView } from './routeViews';
 import { JobPageLiveness } from './LivenessViews';
 import { usePageTitle } from './pageTitle';
 import { BrandLogo } from './components/brand/BrandFlame';
@@ -39,6 +31,7 @@ import DataToolsProvider from './account/DataToolsProvider';
 import AccountMenu from './account/AccountMenu';
 import SignInHost from './account/SignInHost';
 import { useJobs } from './store';
+import { useProfile } from './profile';
 import { useSnippets } from './copyDeckStore';
 import { migrateSnippetStore } from './outreachTemplates';
 import { scanOnOpenEnabled } from './feed/scanOnOpenFlag';
@@ -185,13 +178,15 @@ export default function App() {
     onClick: tapped(slug),
   });
 
-  // The onboarding gate (#128) lives here, not in a view: on a first run (no tracks and no jobs)
-  // Today shows the setup, with sample data, so nobody lands on an empty home. The Pipeline and
-  // Documents never gate: quick-add and sample data work before setup.
+  // The onboarding gate (#128) lives here, not in a view: on a first run (no Search profile, no
+  // jobs, and no old tracks for the v12 move to make one from) Today shows the Search profile form,
+  // with sample data, so nobody lands on an empty home. The Pipeline and Documents never gate:
+  // quick-add and sample data work before setup.
   const hasTracks = useCategories().length > 0;
+  const hasProfile = !!useProfile();
   const jobs = useJobs();
   const hasJobs = jobs.length > 0;
-  const firstRun = !hasTracks && !hasJobs;
+  const firstRun = !hasProfile && !hasTracks && !hasJobs;
 
   // Quick-add via ?add / ?applied / ?status=<Status>&u=<url> (shortcut, bookmarklet, Gmail-scan links).
   // After ingesting, land on the Pipeline so the just-added job is visible; with no route at all,
@@ -340,13 +335,7 @@ export default function App() {
                       {legacy && (
                         <TabsContent value={LEGACY_TAB} variant="bare" tabIndex={-1}>
                           <Suspense fallback={<DiscoverSkeleton />}>
-                            {firstRun ? (
-                              <Onboarding offerSample />
-                            ) : hasTracks ? (
-                              <DiscoverView />
-                            ) : (
-                              <ChooseTrack />
-                            )}
+                            {hasTracks ? <DiscoverView /> : <Onboarding offerSample />}
                           </Suspense>
                         </TabsContent>
                       )}

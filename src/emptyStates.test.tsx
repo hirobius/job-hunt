@@ -52,14 +52,16 @@ afterEach(() => {
 });
 
 describe('Discover empties', () => {
-  it('no tracks: asks to pick one, and Choose a track opens the setup', async () => {
+  it('no Search profile: Review new asks for one, and Set up your search opens the form', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     window.location.hash = '#/today';
     renderApp();
-    expect(screen.getByText('Pick a track to search')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Set up your board' })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Choose a track' }));
-    expect(screen.getByRole('heading', { name: 'Set up your board' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Your search holds the job titles to look for and where you want to work.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Set up your search' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Set up your search' }));
+    expect(screen.getByRole('heading', { name: 'Set up your search' })).toBeInTheDocument();
   });
 
   it('an empty section: no links here yet, with Manage this track', async () => {

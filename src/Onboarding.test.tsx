@@ -1,118 +1,34 @@
+// The Search profile form's sync gate (#99, #388): signed in, a pull may be about to restore the
+// profile, so the form waits for sync to settle instead of offering to set one up over it.
 import { afterEach, describe, expect, it } from 'vitest';
-import { act, cleanup, render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { axe } from 'vitest-axe';
-import { ToastProvider } from '@hirobius/design-system';
+import { cleanup, render, screen } from '@testing-library/react';
 import { Onboarding } from './Onboarding';
-import { setCurationSyncStatus } from './curation/syncStatus';
-import { getCurationState, replaceCurationState } from './curation/curationStore';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 
 afterEach(() => {
   cleanup();
-  setCurationSyncStatus('idle');
-  replaceCurationState({ categories: [], groups: [], tiles: [] });
+  localStorage.clear();
 });
 
-describe('Onboarding sync gate (#99)', () => {
-  it('waits while a sign-in pull may restore tracks, then shows the packs', () => {
-    setCurationSyncStatus('syncing');
-    render(<Onboarding />);
-    expect(screen.getByText('Restoring your tracks…')).toBeInTheDocument();
+const withSync = (settled: boolean) => (
+  <CloudSyncContext.Provider value={{ settled } as CloudSyncApi}>
+    <Onboarding />
+  </CloudSyncContext.Provider>
+);
+
+describe('Onboarding sync gate', () => {
+  it('signed in, it waits until sync settles, then shows the form', () => {
+    localStorage.setItem('sb-abc-auth-token', '{}');
+    const { rerender } = render(withSync(false));
+    expect(screen.getByText('Restoring your search…')).toBeInTheDocument();
     expect(screen.getByRole('status')).toBeInTheDocument(); // the spinner announces loading
-    expect(screen.queryByText('Set up your board')).toBeNull();
-    act(() => setCurationSyncStatus('error')); // e.g. paused project → still lets them onboard
-    expect(screen.getByText('Set up your board')).toBeInTheDocument();
-  });
-});
-
-describe('Onboarding pack picker a11y (#104)', () => {
-  it('each pack is a keyboard-operable checkbox in a "Starter tracks" group, none ticked (Suggested too)', async () => {
-    const user = userEvent.setup();
-    render(<Onboarding />);
-    const group = screen.getByRole('group', { name: 'Starter tracks' });
-    // Adrian 2026-10-22: the Suggested pack keeps its badge but starts unticked.
-    within(group)
-      .getAllByRole('checkbox')
-      .forEach((b) => expect(b).not.toBeChecked());
-    expect(within(group).getByText('Suggested')).toBeInTheDocument();
-    const box = within(group).getByRole('checkbox', { name: 'Design Systems' });
-    expect(box).not.toBeChecked();
-    expect(box).toHaveAccessibleDescription(/design-systems/i);
-    box.focus();
-    await user.keyboard(' ');
-    expect(box).toBeChecked();
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+    expect(screen.queryByText('Set up your search')).toBeNull();
+    rerender(withSync(true));
+    expect(screen.getByText('Set up your search')).toBeInTheDocument();
   });
 
-  it('"Build your own" requires a first job title, and seeds the track with it', async () => {
-    const user = userEvent.setup();
-    render(<Onboarding />);
-    await user.click(screen.getByRole('checkbox', { name: 'Build your own' }));
-    // Never disabled: pressing Continue without the title says what is missing and stays put.
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(screen.getByText('Add a first job title for your own track.')).toBeInTheDocument();
-    expect(screen.getByRole('progressbar', { name: 'Step 1 of 3' })).toBeInTheDocument();
-    await user.type(screen.getByLabelText(/First job title/), 'Design Engineer');
-    // Three steps now (#132): Continue to location, Continue to the first job, Finish seeds.
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: 'Finish' }));
-    expect(getCurationState().categories.map((c) => [c.label, c.titles])).toEqual([
-      ['Design Engineer', ['Design Engineer']],
-    ]);
-  });
-
-  it('with nothing ticked, Continue says "Pick at least one track" instead of being disabled', async () => {
-    const user = userEvent.setup();
-    render(<Onboarding />);
-    const cont = screen.getByRole('button', { name: 'Continue' });
-    expect(cont).toBeEnabled();
-    await user.click(cont);
-    expect(screen.getByRole('alert')).toHaveTextContent('Pick at least one track');
-    expect(screen.getByRole('progressbar', { name: 'Step 1 of 3' })).toBeInTheDocument();
-    await user.click(screen.getByRole('checkbox', { name: 'ServiceNow' }));
-    expect(screen.queryByText('Pick at least one track')).toBeNull();
-  });
-
-  it('the "Pick at least one track" alert describes the track list and focus goes to the first track (review, finding 4)', async () => {
-    const user = userEvent.setup();
-    render(<Onboarding />);
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    const alert = screen.getByRole('alert');
-    const list = screen.getByRole('group', { name: 'Starter tracks' });
-    expect(alert.id).not.toBe('');
-    expect(list.getAttribute('aria-describedby')?.split(' ')).toContain(alert.id);
-    expect(list).toHaveAccessibleDescription('Pick at least one track');
-    expect(screen.getAllByRole('checkbox')[0]).toHaveFocus();
-    // Pressed again from the button: focus goes back to the first track.
-    screen.getByRole('button', { name: 'Continue' }).focus();
-    await user.keyboard('{Enter}');
-    expect(screen.getAllByRole('checkbox')[0]).toHaveFocus();
-    await user.click(screen.getByRole('checkbox', { name: 'ServiceNow' }));
-    expect(list).not.toHaveAttribute('aria-describedby');
-  });
-
-  it('a pack set up with no location searches anywhere: no "Remote" default', async () => {
-    const user = userEvent.setup();
-    render(<Onboarding />);
-    await user.click(screen.getByRole('checkbox', { name: 'Design Systems' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: 'Finish' }));
-    expect(getCurationState().categories.map((c) => [c.label, c.location])).toEqual([
-      ['Design Systems', ''],
-    ]);
-  });
-
-  it('has no WCAG A/AA violations', async () => {
-    const { container } = render(
-      <ToastProvider>
-        <Onboarding />
-      </ToastProvider>,
-    );
-    const results = await axe(container, {
-      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
-    });
-    expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
+  it('signed out, it never waits', () => {
+    render(withSync(false));
+    expect(screen.getByText('Set up your search')).toBeInTheDocument();
   });
 });

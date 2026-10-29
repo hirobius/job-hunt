@@ -24,8 +24,7 @@ import { FetchError, type FetchJson } from './sources/http';
 import type { PostingReader } from './reader';
 import type { FeedRequest } from './reader';
 import type { Posting } from './types';
-import { addCategory, getCurationState } from '../curation/curationStore';
-import { boardUrlsFor } from './watchlist';
+import { getSources } from '../sources';
 
 const NOW = Date.parse('2026-10-28T12:00:00Z');
 
@@ -265,21 +264,24 @@ describe('New companies: Follow and Ignore', () => {
     );
   }
 
-  it('Follow watches the board on the track; Undo takes it back', async () => {
+  it('Follow adds the board to the Sources; Undo takes it back', async () => {
     await scanAcme();
-    const cat = addCategory({ label: 'Design Systems' });
-    const undo = followFound('acme', cat);
-    expect(boardUrlsFor(cat)).toEqual([ACME_BOARD]);
+    const undo = followFound('acme');
+    expect(getSources().map((s) => [s.kind, s.ref, s.label])).toEqual([
+      ['greenhouse', 'acme', 'Acme'],
+    ]);
     expect(newCompanies(getScanState())).toEqual([]);
     undo();
-    expect(boardUrlsFor(cat)).toEqual([]);
+    expect(getSources()).toEqual([]);
     expect(newCompanies(getScanState())).toHaveLength(1);
   });
 
-  it('Follow with no track follows the company by name', async () => {
+  it('Follow of a board already followed adds nothing, and its Undo keeps it', async () => {
     await scanAcme();
-    followFound('acme', null);
-    expect(getAllDecided().followed).toEqual(['Acme']);
+    followFound('acme');
+    const undo = followFound('acme');
+    undo();
+    expect(getSources()).toHaveLength(1);
   });
 
   it('Ignore mutes the company and keeps its postings out of Review; Undo brings them back', async () => {
@@ -312,7 +314,7 @@ describe('scanReader', () => {
         mode: undefined,
       }),
     ]);
-    await runScan({ ...input, trackId: 'ds' }, deps({ reader: r }));
+    await runScan(input, deps({ reader: r }));
     const onsite = posting({
       id: 'lever:x:1',
       source: 'lever',
@@ -322,23 +324,12 @@ describe('scanReader', () => {
     });
     const out = await scanReader(
       live([posting({ id: 'hn:1', source: 'hn', title: 'Design Systems Engineer' }), onsite]),
-      'ds',
     ).read({ terms: [], boardUrls: [] });
     expect(out.postings.map((p) => [p.id, p.remoteUnstated ?? false])).toEqual([
       ['hn:1', false],
       ['lever:x:1', false],
       ['hn:2', true],
     ]);
-  });
-
-  it('adds them only on the track the scan ran for', async () => {
-    const { r } = reader({}, [
-      posting({ id: 'hn:1', source: 'hn', title: 'Design Systems Engineer' }),
-    ]);
-    await runScan({ ...input, trackId: 'ds' }, deps({ reader: r }));
-    const read = (track: string) => scanReader(live([]), track).read({ terms: [], boardUrls: [] });
-    expect((await read('ds')).postings).toHaveLength(1);
-    expect((await read('welding')).postings).toHaveLength(0);
   });
 });
 
@@ -356,16 +347,5 @@ describe('Undo leaves what was there before', () => {
     muteCompany('Acme');
     ignoreFound('acme')();
     expect(getAllDecided().muted).toEqual(['Acme']);
-  });
-
-  it('Follow then Undo removes the Watched companies group it made', async () => {
-    await scanAcme();
-    const cat = addCategory({ label: 'Design Systems' });
-    const groups = () => getCurationState().groups.filter((g) => g.categoryId === cat);
-    expect(groups()).toHaveLength(0);
-    const undo = followFound('acme', cat);
-    expect(groups()).toHaveLength(1);
-    undo();
-    expect(groups()).toHaveLength(0);
   });
 });

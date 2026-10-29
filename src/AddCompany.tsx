@@ -92,7 +92,7 @@ function AddCompanyContent({
     setAsked(line);
     setResult(null);
     try {
-      setResult(await lookUpCompany(line, categoryId, ac.signal, boardUrls));
+      setResult(await lookUpCompany(line, ac.signal, boardUrls));
     } finally {
       setRunning(false);
     }

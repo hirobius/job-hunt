@@ -21,6 +21,8 @@ import { activeTitles, type SweepTitles } from './sweepTitles';
 import type { Dream } from './dreams';
 import type { Target } from './targets';
 import { companyKey } from './decided';
+import { profileTitles, type Profile } from '../profileModel';
+import { sourceBoard, type Source as StoredSource } from '../sourcesModel';
 
 /** The profile's work mode (Adrian 2026-10-28: remote-only jobs for now). A remote profile drops a
  *  posting its source marks on-site or hybrid, and keeps one that does not say (shown as "Location
@@ -164,3 +166,58 @@ export function sourcesFrom(input: {
 /** The board links the Feed reads (muted ones are still read: muting hides by company). */
 export const boardUrlsOf = (sources: Source[]): string[] =>
   sources.filter((s) => s.kind === 'board').map((s) => s.ref);
+
+/** The Feed's profile from the stored Search profile (blob v12): every title that is on, every ATS
+ *  role that is on and each related title that is on, the design-system inclusion check, leave
+ *  out, level, pay floor, location and work mode. No profile yet: nothing to search for. */
+export function searchProfileOf(p: Profile | null): SearchProfile {
+  if (!p)
+    return {
+      titles: [],
+      offTitles: [],
+      include: designSystemRule({ terms: [], atsOff: [] }),
+      exclude: [],
+      level: 'any',
+      where: '',
+      mode: PROFILE_MODE,
+    };
+  const include = designSystemRule({
+    terms: p.include.terms,
+    atsOff: [],
+    ...(p.include.related === false && { related: false }),
+    ...(p.include.relatedOff?.length && { relatedOff: p.include.relatedOff }),
+  });
+  const related =
+    hasRelatedTitles(include) && include.related !== false
+      ? RELATED_TITLES.filter((r) => relatedIsOn(include, r.id)).map((r) => r.id)
+      : [];
+  const atsOff = new Set(p.atsOff.map((t) => t.toLowerCase()));
+  return {
+    titles: dedupe([
+      ...profileTitles(p),
+      ...p.atsRoles.filter((r) => !atsOff.has(r.toLowerCase())),
+      ...related,
+    ]),
+    offTitles: p.titlesOff,
+    include,
+    exclude: p.leaveOut,
+    level: p.level,
+    ...(p.payFloor && { payFloor: p.payFloor }),
+    where: p.location,
+    mode: p.mode,
+  };
+}
+
+/** The Feed's Sources from the stored ones (blob v12): every board, every followed company, and
+ *  the keyless feeds. GitHub orgs and YC companies with no board have nothing to read yet. */
+export function feedSourcesOf(stored: readonly StoredSource[]): Source[] {
+  const out: Source[] = [];
+  for (const s of stored) {
+    const flags = { ...(s.star && { star: true }), ...(s.muted && { muted: true }) };
+    const b = sourceBoard(s);
+    if (b) out.push({ kind: 'board', ref: canonicalBoardUrl(b), label: s.label, ...flags });
+    else if (s.kind === 'company')
+      out.push({ kind: 'company', ref: s.ref, label: s.label, ...flags });
+  }
+  return [...out, ...FEEDS];
+}

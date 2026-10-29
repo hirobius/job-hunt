@@ -4,6 +4,7 @@
 import { GROUPS, TITLES, ATS_ROLES, type Group } from '../jobsData';
 import { DIRECTORY_BY_PACK, TARGETS_BY_PACK, type PackCompany } from '../radar/directory';
 import type { Seniority } from './types';
+import { DESIGN_SYSTEMS_ATS_ROLES, DESIGN_SYSTEMS_TITLES } from '../searchDefaults';
 
 export interface PackContent {
   id: string;
@@ -57,25 +58,6 @@ export const CONTRACTS_PACK: PackContent = {
 // zero interest"): no generic Design Engineer, UX Engineer, Product Designer or Frontend titles,
 // and the pack's must-include rule hides any posting that never says the phrase "design system(s)"
 // (2026-10-23: no "UI Systems" either). ATS queries quote each role (jobsData.titleClause).
-const DESIGN_SYSTEMS_TITLES = [
-  'Design Systems Engineer',
-  'Design Systems Designer',
-  'Design Systems Lead',
-  'Design Systems Manager',
-  'Design Systems Architect',
-  'Design Systems Technologist',
-  // #198: the senior searches, phrase-matched so they catch designer and engineer titles alike.
-  'Staff Design Systems',
-  'Principal Design Systems',
-];
-const DESIGN_SYSTEMS_ATS_ROLES = [
-  'design systems',
-  'design systems designer',
-  'design systems engineer',
-  'design systems lead',
-  'design systems manager',
-  'design system technologist',
-];
 
 // ---- Design Systems (remote, experienced; systems roles only) ----
 export const DESIGN_SYSTEMS_PACK: PackContent = {

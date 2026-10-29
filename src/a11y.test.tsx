@@ -8,6 +8,7 @@ import { setOutreachMessages } from './test/outreach';
 import { STARTER_SNIPPETS } from './copyDeckStore';
 import DiscoverView from './DiscoverView';
 import { Onboarding } from './Onboarding';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 import { addJob, getAllJobs, removeJob } from './store';
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
@@ -93,11 +94,19 @@ describe('a11y — the Pipeline list with the sample pipeline (#129)', () => {
   });
 });
 
-describe('a11y — first-run Onboarding (#104)', () => {
-  it('pack picker with a pack and "Build your own" selected', async () => {
-    const { container, getByRole } = withTheme(<Onboarding />);
-    getByRole('checkbox', { name: 'ServiceNow' }).click();
-    getByRole('checkbox', { name: 'Build your own' }).click();
+/** Onboarding reads sync's settled flag: signed out here, so it never waits. */
+const signedOut = (ui: React.ReactNode) => (
+  <CloudSyncContext.Provider value={{ settled: true } as CloudSyncApi}>
+    {ui}
+  </CloudSyncContext.Provider>
+);
+
+describe('a11y — first-run Onboarding (#104, #388)', () => {
+  it('the titles step with no title left says why', async () => {
+    const { container, getAllByRole, getByRole } = withTheme(signedOut(<Onboarding />));
+    for (const b of getAllByRole('button', { name: /^Remove / })) act(() => b.click());
+    await act(async () => getByRole('button', { name: 'Continue' }).click());
+    expect(getByRole('alert')).toBeInTheDocument();
     await auditA11y(container);
   });
 });
@@ -118,14 +127,13 @@ describe('a11y — Documents (#227)', () => {
   });
 });
 
-describe('a11y — the three first-run steps and the Pipeline after the first job (#132)', () => {
-  it('each step of the guided first run', async () => {
-    const { container, getByRole } = withTheme(<Onboarding offerSample />);
-    await auditA11y(container);
-    getByRole('checkbox', { name: 'ServiceNow' }).click();
-    await act(async () => getByRole('button', { name: 'Continue' }).click());
+describe('a11y — the first-run steps and the Pipeline after the first job (#132, #388)', () => {
+  it('each step of the Search profile form', async () => {
+    const { container, getByRole } = withTheme(signedOut(<Onboarding offerSample />));
     await auditA11y(container);
     await act(async () => getByRole('button', { name: 'Continue' }).click());
+    await auditA11y(container);
+    await act(async () => getByRole('switch', { name: 'Remote only' }).click());
     await auditA11y(container);
   });
 

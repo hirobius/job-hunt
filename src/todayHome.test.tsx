@@ -24,8 +24,7 @@ import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob, updateJob } from './store';
 import { ymd } from './jobEvents';
-import { addCategory, replaceCurationState } from './curation/curationStore';
-import { EMPTY_CURATION } from './curation/types';
+import { replaceProfiles, saveProfile } from './profile';
 import { resetScan } from './feed/autoScan';
 import { getAllDecided } from './feed/decided';
 
@@ -66,8 +65,7 @@ const result = (postings: Posting[]): FeedResult => ({
 beforeEach(() => {
   localStorage.clear();
   resetScan();
-  replaceCurationState(EMPTY_CURATION);
-  addCategory({ label: 'Design systems', titles: ['Design Systems Designer'] });
+  saveProfile({ titles: ['Design Systems Designer'], mode: 'remote' });
   feed.fetchFeed
     .mockReset()
     .mockResolvedValue(
@@ -84,7 +82,6 @@ afterEach(() => {
   getAllJobs()
     .slice()
     .forEach((j) => removeJob(j.url));
-  replaceCurationState(EMPTY_CURATION);
 });
 
 describe('the shell: Today and Jobs', () => {
@@ -121,7 +118,7 @@ describe('the shell: Today and Jobs', () => {
   });
 
   it('a first run shows onboarding', async () => {
-    replaceCurationState(EMPTY_CURATION);
+    replaceProfiles([]);
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/today'));
     expect(await screen.findByRole('button', { name: /sample data/i })).toBeInTheDocument();

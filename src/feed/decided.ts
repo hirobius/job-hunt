@@ -1,44 +1,46 @@
-// Decided (simplify 5/9, #386): what the user did in Review new, kept so a Posting never comes
-// back to it. A verdict is by Posting (its fingerprint), never by company: Skip hides that one
-// posting. Not this company is a separate flag, a muted company. Saving follows the company: a
-// board posting watches its board (feed/watchlist.ts), any other one is kept here as a followed
-// company until Sources (#384) take these over.
+// Decided (simplify 5/9, #386; on the synced stores since 7/11, #388): what the user did in
+// Review new, kept so a Posting never comes back to it. A verdict is by Posting (its fingerprint),
+// never by company: Skip hides that one posting. Not this company is a separate flag, a muted
+// Source. Saving follows the company (feed/follow.ts).
 //
-// One store in local storage (`rjb_decided`), untrusted on read. #384's blob v12 carries
-// `decided[]` and `sources[]` (muted, followed); until it lands this store is per browser, with
-// getAll/replace/merge ready for the blob. First-seen days (`rjb_feed_seen`) are a cache: they only
-// feed "N new today", so they stay local.
-import { useMemo, useSyncExternalStore } from 'react';
+// The Feed's view of three synced v12 stores: verdicts are `decided[]` (src/decided.ts), muted and
+// followed companies are Sources (src/sources.ts: `muted`, and `company` Sources). This browser's
+// first-seen days (`rjb_feed_seen`) are a cache: they only feed "N new today", so they stay local.
+// Before 7/11 this module kept its own object under `rjb_decided`, the key src/decided.ts keeps its
+// list under, so a pull dropped it: src/decided.ts `moveLegacyDecided` moves one into the stores.
+import { useMemo } from 'react';
 import { dedupKey } from '../store';
 import { fingerprint as scoreFingerprint } from '../tracks/score.ts';
 import { loadPersisted, savePersisted } from '../persisted';
+import { decided as decidedStore, getDecided, type Decided } from '../decided';
+import {
+  addSources,
+  getSources,
+  muteSource,
+  removeSource,
+  sourceKey,
+  updateSources,
+  useSources,
+  type Source,
+} from '../sources';
 import type { Posting } from './types';
 
 export const DECIDED_KEY = 'rjb_decided';
 export const SEEN_KEY = 'rjb_feed_seen';
-/** Verdicts kept: the newest this many (a few months of daily review). */
-export const MAX_DECIDED = 3000;
 /** First-seen days kept, newest first. */
 export const MAX_SEEN = 5000;
 
 export type Verdict = 'saved' | 'skipped';
 
-export interface Decision {
-  fingerprint: string;
-  verdict: Verdict;
-  /** ISO time. */
-  at: string;
-}
+export type Decision = Decided;
 
 export interface DecidedState {
   decided: Decision[];
   /** Companies (as named) the user said Not this company to; compared by `companyKey`. */
   muted: string[];
-  /** Companies followed by saving one of their postings that has no board to watch. */
+  /** Companies followed with no board to watch. */
   followed: string[];
 }
-
-const EMPTY: DecidedState = { decided: [], muted: [], followed: [] };
 
 /** A company's key: one per company, whatever its case or spacing. */
 export const companyKey = (company: string) => company.trim().replace(/\s+/g, ' ').toLowerCase();
@@ -52,136 +54,88 @@ export function postingFingerprint(p: Pick<Posting, 'company' | 'title' | 'url'>
     : `url:${dedupKey(p.url)}`;
 }
 
-/** Company names as the user saw them, one per company (by key), the last spelling kept. */
-const names = (v: unknown, max: number): string[] => {
-  if (!Array.isArray(v)) return [];
-  const out = new Map<string, string>();
-  for (const x of v)
-    if (typeof x === 'string' && x.trim()) {
-      out.delete(companyKey(x));
-      out.set(companyKey(x), x.trim().replace(/\s+/g, ' '));
-    }
-  return [...out.values()].slice(-max);
-};
-
 /** Whether `list` (names) holds this company. */
 export const hasCompany = (list: readonly string[], company: string) =>
   list.some((x) => companyKey(x) === companyKey(company));
 
-export function sanitizeDecided(raw: unknown): DecidedState {
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return { ...EMPTY };
-  const o = raw as Record<string, unknown>;
-  const byFp = new Map<string, Decision>();
-  for (const d of Array.isArray(o.decided) ? o.decided : []) {
-    if (typeof d !== 'object' || d === null) continue;
-    const r = d as Record<string, unknown>;
-    if (typeof r.fingerprint !== 'string' || !r.fingerprint) continue;
-    if (r.verdict !== 'saved' && r.verdict !== 'skipped') continue;
-    const at = typeof r.at === 'string' ? r.at : new Date(0).toISOString();
-    byFp.delete(r.fingerprint);
-    byFp.set(r.fingerprint, { fingerprint: r.fingerprint, verdict: r.verdict, at });
-  }
+/** The Feed's state from the stores' values. Pure. */
+export function decidedStateOf(decided: readonly Decision[], sources: readonly Source[]) {
   return {
-    decided: [...byFp.values()].slice(-MAX_DECIDED),
-    muted: names(o.muted, 500),
-    followed: names(o.followed, 500),
+    decided: [...decided],
+    muted: sources.filter((s) => s.muted && s.kind !== 'feed').map((s) => s.label),
+    followed: sources.filter((s) => s.kind === 'company' && !s.muted).map((s) => s.label),
   };
 }
 
-const readAll = () => sanitizeDecided(loadPersisted<unknown>(DECIDED_KEY, {}));
-const listeners = new Set<() => void>();
-const write = (s: DecidedState) => {
-  savePersisted(DECIDED_KEY, s);
-  listeners.forEach((l) => l());
-};
-
-export const getAllDecided = readAll;
-
-export function replaceDecided(s: DecidedState): void {
-  write(sanitizeDecided(s));
-}
-
-/** Union: a posting decided on either side stays decided (the newer verdict wins). */
-export function mergeDecided(cloud: DecidedState, local: DecidedState): DecidedState {
-  const newer = new Map<string, Decision>();
-  for (const d of [...local.decided, ...cloud.decided]) {
-    const cur = newer.get(d.fingerprint);
-    if (!cur || d.at >= cur.at) newer.set(d.fingerprint, d);
-  }
-  return sanitizeDecided({
-    decided: [...newer.values()].sort((a, b) => a.at.localeCompare(b.at)),
-    muted: [...cloud.muted, ...local.muted],
-    followed: [...cloud.followed, ...local.followed],
-  });
-}
-
-function update(fn: (s: DecidedState) => DecidedState) {
-  write(sanitizeDecided(fn(readAll())));
-}
+export const getAllDecided = (): DecidedState => decidedStateOf(getDecided(), getSources());
 
 /** Record a verdict on one posting. */
 export function decide(p: Pick<Posting, 'company' | 'title' | 'url'>, verdict: Verdict): void {
-  const fp = postingFingerprint(p);
-  update((s) => ({
-    ...s,
-    decided: [
-      ...s.decided.filter((d) => d.fingerprint !== fp),
-      { fingerprint: fp, verdict, at: new Date().toISOString() },
-    ],
-  }));
+  decidedStore.set(postingFingerprint(p), verdict);
 }
 
 /** Undo a verdict: the posting is back in Review new. */
 export function undecide(p: Pick<Posting, 'company' | 'title' | 'url'>): void {
-  const fp = postingFingerprint(p);
-  update((s) => ({ ...s, decided: s.decided.filter((d) => d.fingerprint !== fp) }));
+  decidedStore.undo(postingFingerprint(p));
 }
 
-export function muteCompany(company: string): void {
-  const k = companyKey(company);
-  if (k) update((s) => ({ ...s, muted: [...s.muted, company] }));
+/** Sources named for this company (boards and followed companies), not feeds. */
+const namedFor = (all: Source[], company: string) =>
+  all.filter((s) => s.kind !== 'feed' && companyKey(s.label) === companyKey(company));
+
+const companySource = (company: string, extra?: Partial<Source>): Source => ({
+  kind: 'company',
+  ref: companyKey(company),
+  label: company.trim().replace(/\s+/g, ' '),
+  ...extra,
+});
+
+/** Not this company: every Source named for it is muted (one is added when none is). Returns the
+ *  undo, which puts each back as it was. */
+export function muteCompany(company: string): () => void {
+  if (!companyKey(company)) return () => {};
+  const named = namedFor(getSources(), company);
+  if (!named.length) {
+    const s = companySource(company, { muted: true });
+    addSources([s]);
+    return () => removeSource(sourceKey(s));
+  }
+  const was = named.filter((s) => !s.muted).map(sourceKey);
+  was.forEach((k) => muteSource(k, true));
+  return () => was.forEach((k) => muteSource(k, false));
 }
 
+/** Lift a company's mute: every Source named for it is read again. */
 export function unmuteCompany(company: string): void {
-  const k = companyKey(company);
-  update((s) => ({ ...s, muted: s.muted.filter((x) => companyKey(x) !== k) }));
+  for (const s of namedFor(getSources(), company)) if (s.muted) muteSource(sourceKey(s), false);
 }
 
-export function followCompany(company: string): void {
-  const k = companyKey(company);
-  if (k) update((s) => ({ ...s, followed: [...s.followed, company] }));
+/** Follow a company by name (it has no board to watch). Muted: the mute is lifted. Returns the
+ *  undo. */
+export function followCompany(company: string): () => void {
+  if (!companyKey(company)) return () => {};
+  const named = namedFor(getSources(), company);
+  if (named.some((s) => !s.muted)) return () => {};
+  if (named.length) {
+    const keys = named.map(sourceKey);
+    keys.forEach((k) => muteSource(k, false));
+    return () => keys.forEach((k) => muteSource(k, true));
+  }
+  const s = companySource(company);
+  addSources([s]);
+  return () => removeSource(sourceKey(s));
 }
 
+/** Stop following a company followed by name (its `company` Source goes). */
 export function unfollowCompany(company: string): void {
   const k = companyKey(company);
-  update((s) => ({ ...s, followed: s.followed.filter((x) => companyKey(x) !== k) }));
+  updateSources((cur) => cur.filter((s) => !(s.kind === 'company' && companyKey(s.label) === k)));
 }
 
-const rawNow = () => {
-  try {
-    return localStorage.getItem(DECIDED_KEY) ?? '';
-  } catch {
-    return '';
-  }
-};
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  window.addEventListener('storage', l);
-  return () => {
-    listeners.delete(l);
-    window.removeEventListener('storage', l);
-  };
-};
-
 export function useDecided(): DecidedState {
-  const raw = useSyncExternalStore(subscribe, rawNow, rawNow);
-  return useMemo(() => {
-    try {
-      return sanitizeDecided(raw ? JSON.parse(raw) : {});
-    } catch {
-      return { ...EMPTY };
-    }
-  }, [raw]);
+  const map = decidedStore.use();
+  const sources = useSources();
+  return useMemo(() => decidedStateOf([...map.values()], sources), [map, sources]);
 }
 
 // ---- first seen ----
