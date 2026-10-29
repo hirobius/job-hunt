@@ -629,16 +629,6 @@ describe('boards read through /api/boards', () => {
       authenticjobs: false,
     });
   });
-
-  it('a Contracts search reads none of them', async () => {
-    const urls: string[] = [];
-    await fetchFeed(
-      { term: 'x', boardUrls: [], contracts: { naics: ['332322'] } },
-      async (url) => (urls.push(url), {}),
-      { kv: memoryKv(), sources, readSam: async () => [] },
-    );
-    expect(urls).toEqual([]);
-  });
 });
 
 describe('community sources', () => {

@@ -15,7 +15,6 @@ import {
   redirectOf,
   type Route,
 } from './route';
-import { setLegacyScreens } from './legacyScreens';
 import { jobIdOf } from './store';
 
 describe('route — parseHash', () => {
@@ -386,14 +385,5 @@ describe('route — retired routes land on Today (simplify Q6: no Companies tab)
     await waitFor(() => expect(getRoute().tab).toBe('legal'));
     goBackTo(parseHash('#/discover/ats'));
     await waitFor(() => expect(window.location.hash).toBe('#/today'));
-  });
-
-  it('the old screens stay reachable for their own tests until #389 deletes them', async () => {
-    setLegacyScreens(true);
-    try {
-      expect(redirectOf(parseHash('#/discover/live'))).toBeNull();
-    } finally {
-      setLegacyScreens(false);
-    }
   });
 });

@@ -20,12 +20,10 @@ import { createFakeSupabase } from './test/fakeSupabase';
 import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, removeJob, setStatusByUrl } from './store';
-import { addCategory, addGroup, replaceCurationState } from './curation/curationStore';
-import { seedPack } from './curation/starterPacks';
+import { replaceCurationState } from './curation/curationStore';
 import { getAllDocuments } from './documents';
 import { getSnippets } from './copyDeckStore';
 import { loadSupabase } from './supabase';
-import { legacyScreensForThisTest } from './test/legacy';
 
 const renderApp = () =>
   render(
@@ -51,7 +49,7 @@ afterEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
 });
 
-describe('Discover empties', () => {
+describe('Today empties', () => {
   it('no Search profile: Review new asks for one, and Set up your search opens the form', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     window.location.hash = '#/today';
@@ -62,27 +60,6 @@ describe('Discover empties', () => {
     expect(screen.queryByRole('heading', { name: 'Set up your search' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Set up your search' }));
     expect(screen.getByRole('heading', { name: 'Set up your search' })).toBeInTheDocument();
-  });
-
-  it('an empty section: no links here yet, with Manage this track', async () => {
-    legacyScreensForThisTest();
-    const id = addCategory({
-      label: 'Mine',
-      titles: ['Welder'],
-      atsRoles: [],
-      seniority: 'any',
-      location: '',
-    });
-    addGroup(id, { label: 'Shops', sortOrder: 0, archived: false });
-    window.location.hash = '#/discover/apply';
-    renderApp();
-    expect(await screen.findByText('No links here yet')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Add links you trust, or use ATS search for live ones/),
-    ).toBeInTheDocument();
-    // The empty state's own action, beside the header's Manage track (#131).
-    expect(screen.getAllByRole('button', { name: 'Manage this track' })).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'Manage track' })).toBeInTheDocument();
   });
 });
 
@@ -120,16 +97,6 @@ describe('a clean first run', () => {
     expect(screen.queryByRole('region', { name: 'Outreach messages' })).toBeNull();
     expect(getAllDocuments()).toEqual([]);
     expect(getSnippets()).toEqual([]);
-  });
-
-  it('Companies right after picking a track: no empty Dream companies section', async () => {
-    legacyScreensForThisTest();
-    seedPack('consulting');
-    window.location.hash = '#/discover/teams';
-    renderApp();
-    expect(await screen.findByRole('button', { name: 'Add a company' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Dream companies' })).toBeNull();
-    expect(screen.queryByText(/Star a company to keep it here/)).toBeNull();
   });
 
   it('the Add job field shows its name, not a made-up link', async () => {

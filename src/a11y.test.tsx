@@ -6,13 +6,11 @@ import TrackerView from './TrackerView';
 import DocumentsView from './DocumentsView';
 import { setOutreachMessages } from './test/outreach';
 import { STARTER_SNIPPETS } from './copyDeckStore';
-import DiscoverView from './DiscoverView';
 import { Onboarding } from './Onboarding';
 import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
 import { addJob, getAllJobs, removeJob } from './store';
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
-import { seedPack } from './curation/starterPacks';
 
 /**
  * Accessibility audit — every primary surface must be free of WCAG 2.0/2.1
@@ -31,11 +29,8 @@ async function auditA11y(el: Element) {
   expect(results.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
 }
 
-// Discover renders first-run Onboarding on an empty curation store; seed a track so we audit the
-// actual Discover surface (Onboarding is covered separately by its own render below).
 beforeEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
-  seedPack('consulting');
 });
 
 afterEach(() => {
@@ -51,7 +46,6 @@ describe('a11y — primary views (no WCAG A/AA violations)', () => {
   const views: [string, React.ReactNode][] = [
     ['TrackerView', <TrackerView />],
     ['DocumentsView', <DocumentsView />],
-    ['DiscoverView', <DiscoverView />],
   ];
 
   it.each(views)('%s', async (_name, ui) => {

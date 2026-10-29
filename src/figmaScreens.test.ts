@@ -9,14 +9,9 @@ import { parseHash } from './route';
 const ROOT = resolve(__dirname, '..');
 
 describe('Figma screen map (#197)', () => {
-  // Today was retired (#236); its Figma frame is history.
-  it('covers the four main screens once each', () => {
-    expect(FIGMA_SCREENS.map((s) => s.id)).toEqual([
-      'pipeline',
-      'job-page',
-      'discover',
-      'templates',
-    ]);
+  // Today was retired (#236) and Discover deleted (#389); their Figma frames are history.
+  it('covers the main screens once each', () => {
+    expect(FIGMA_SCREENS.map((s) => s.id)).toEqual(['pipeline', 'job-page', 'templates']);
   });
 
   it.each(FIGMA_SCREENS)('$id: each source file default-exports its component', (screen) => {
