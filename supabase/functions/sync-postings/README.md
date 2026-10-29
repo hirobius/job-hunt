@@ -126,6 +126,99 @@ select jobname, schedule from cron.job where jobname like 'sync-postings%';
 
 To stop it later: `select cron.unschedule('sync-postings-morning'); select cron.unschedule('sync-postings-evening');`
 
+## Scan rotation (bulk boards, #src-bulk)
+
+Besides what each user follows, the function scans the **bulk board set**: every public company
+board in `src/feed/data/boards.json` (read through `src/feed/boardSet.ts`), thousands of them, a
+batch at a time. pg_cron calls it once a minute with `{"rotate": true}`. It stores only postings that
+are **queue or review** under a design systems profile **and remote** (remote, or no mode and no city
+named: the app's remote-only rule, `src/feed/mode.ts` `remoteVerdict`), and only for users whose
+Search profile is design systems. Other users get nothing from it. Rules: `src/tracks/rotation.ts`.
+
+- **Order and cursor.** Boards in key order (`greenhouse:stripe`). The cursor is the last board
+  passed; past the end it wraps and the cycle count goes up. It moves only over boards actually
+  processed: a read the time box stopped before it started is read on the next run.
+- **One batch a minute.** At most 25 boards, and no more once their open roles reach 1,500 (big
+  boards cost CPU to parse and score). No read starts after 40 s; each read is capped at 15 s.
+  At most 3 reads per host at once (all of Greenhouse is one host; Ashby 1), 6 in all. A run holds
+  the cursor (`claim_scan_rotation`, 90 s lease), so two runs never read the same boards.
+- **429.** The host waits 15 min, doubling per 429 in a row, at most 24 h; an answer clears it. Its
+  boards are not read meanwhile and not lost: they go on a carry list that is read first once the
+  host is free (if that list passes 500, the cursor waits instead).
+- **404.** The board's stored postings close, and it goes to `scan_dead_boards`: asked again after
+  1 day, then 3, then 7, and no longer read after 4 404s in a row (delete its row to try again).
+  A dead board that answers is back at once.
+- **Anything else** (5xx, timeout) closes nothing and doesn't count as dead.
+- **Closing.** A stored posting missing from 2 answered reads of its board closes
+  (`mark_missed_postings`). That also closes one that stops being remote or a match.
+- **No double reads.** A board a user follows is skipped for that user: the twice-a-day sync reads
+  it with all of its rules. The scan's rows carry `via_scan`, which the sync's "no longer followed"
+  closing leaves alone.
+
+### The run-time math
+
+From `rotationMath` in `src/tracks/rotation.ts` (`npm run sync:dry-run -- --rotate` prints it for
+the committed set too):
+
+| Boards | Open roles per board | Boards per run | Runs per cycle | Hours per full cycle |
+| -----: | -------------------: | -------------: | -------------: | -------------------: |
+|  5,000 |                   30 |             25 |            200 |                  3.3 |
+|  5,000 |                  100 |             15 |            334 |                  5.6 |
+| 10,000 |                   30 |             25 |            400 |                  6.7 |
+| 10,000 |                  100 |             15 |            667 |                 11.1 |
+
+Against Supabase's edge function limits:
+
+- **CPU, 2 s per request** (waiting on the network doesn't count): one run parses and scores at
+  most 25 boards / 1,500 roles. Not measured live yet: if `sync_log` shows runs cut off, lower
+  `maxBoards` or `jobsBudget` in `rotation.ts` (the cycle gets longer by the same factor).
+- **Wall clock, 150 s free / 400 s paid**: a run takes at most 40 s + one 15 s read = 55 s, under
+  the 1-minute gap, so runs never overlap.
+- **Invocations, 500,000 a month free**: 60 an hour = 43,200 a month, plus the twice-a-day sync.
+- Every run also reads every user's blob to know who is design systems and what they follow:
+  fine for a few users; past a few hundred, that read should move to a cached table.
+
+### Turn on the rotation
+
+Do this after steps 1 to 6 above (the tables, Vault secrets and the deployed function).
+
+1. Deploy the function again (step 4): the board set ships inside it, so **redeploy whenever
+   `boards.json` changes**.
+2. Open `supabase/migrations/20261029100000_scan_rotation.sql`, copy the whole file, paste it into
+   the SQL editor and run it. It creates `scan_rotation` (the cursor), `scan_dead_boards`,
+   `claim_scan_rotation`, adds `via_scan` to `postings`, updates `close_unfollowed_postings`, and
+   schedules `sync-postings-rotate` every minute. Safe to run twice.
+
+   Check:
+
+   ```sql
+   select jobname, schedule from cron.job where jobname = 'sync-postings-rotate';
+   select cursor_key, cycle, cycle_started_at, carry, host_backoff from public.scan_rotation;
+   ```
+
+3. A few minutes later, see it move (the cursor changes every minute; each answer is in pg_net's
+   responses for a few hours):
+
+   ```sql
+   select cursor_key, cycle, jsonb_array_length(carry) as carried, host_backoff, updated_at
+     from public.scan_rotation;
+   select created, status_code, left(content::text, 300) as answer
+     from net._http_response order by id desc limit 5;
+   ```
+
+   `"rotate":"idle"` means no user has a design systems profile yet; `"rotate":"busy"` means the
+   previous run still held the cursor.
+
+4. After a full cycle (see the table), the log has one `run` row per cycle with `cycleHours`:
+
+   ```sql
+   select created_at, left(message, 300) from public.sync_log
+    where kind = 'run' and message like '{"rotate"%' order by id desc limit 5;
+   select board_key, fails, retry_at, disabled from public.scan_dead_boards order by fails desc limit 20;
+   ```
+
+To stop it: `select cron.unschedule('sync-postings-rotate');`
+
 ## Secrets and env
 
 Names only; values never go in the repo. Full table in `docs/secrets.md`.
@@ -145,3 +238,6 @@ A missing `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` returns 500 naming the v
 `npm run sync:dry-run` plans a run from a sample design systems blob, reads the boards and feeds and
 scores them, with no database. Behind a proxy:
 `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=<bundle> npm run sync:dry-run`.
+
+`npm run sync:dry-run -- --rotate` plans the rotation's next batch from `boards.json` and prints the
+cycle math, with no network; add `--read` to read that batch and count what would be stored.

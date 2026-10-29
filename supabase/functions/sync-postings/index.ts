@@ -464,7 +464,11 @@ async function rotate(db: SupabaseClient): Promise<Response> {
       .map(([userId, plan]) => ({ userId, plan, follows: new Set(plan.boards.map(boardOf)) }));
     if (!scanners.length) {
       await release();
-      return json({ rotate: 'idle', reason: 'no design systems profile', boards: BOARD_SET.boards.length });
+      return json({
+        rotate: 'idle',
+        reason: 'no design systems profile',
+        boards: BOARD_SET.boards.length,
+      });
     }
 
     const pick = pickBatch(BOARD_SET.boards, state, dead, startedAt);
@@ -561,7 +565,10 @@ async function rotate(db: SupabaseClient): Promise<Response> {
       if (error) fail(`dead boards: ${error.message}`);
     }
     if (moved.deadRemove.length) {
-      const { error } = await db.from('scan_dead_boards').delete().in('board_key', moved.deadRemove);
+      const { error } = await db
+        .from('scan_dead_boards')
+        .delete()
+        .in('board_key', moved.deadRemove);
       if (error) fail(`dead boards back: ${error.message}`);
     }
 

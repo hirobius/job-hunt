@@ -177,7 +177,7 @@ export interface Step {
   fromCarry?: true;
 }
 
-export interface Pick {
+export interface BatchPick {
   /** The cursor the walk started after ('' when it wrapped). */
   startCursor: string;
   cycle: number;
@@ -200,7 +200,7 @@ export function pickBatch(
   dead: ReadonlyMap<string, DeadBoard>,
   nowMs: number,
   o: RotationOptions = ROTATION,
-): Pick {
+): BatchPick {
   const keys = boards.map(setBoardKey);
   const byKey = new Map(boards.map((b, i) => [keys[i], b]));
   const steps: Step[] = [];
@@ -344,7 +344,7 @@ const retryDays = (fails: number, o: RotationOptions) =>
 export function advance(
   boards: readonly SetBoard[],
   state: RotationState,
-  pick: Pick,
+  pick: BatchPick,
   results: readonly Ran<unknown>[],
   dead: ReadonlyMap<string, DeadBoard>,
   nowMs: number,

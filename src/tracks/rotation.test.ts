@@ -17,6 +17,7 @@ import {
   type DeadBoard,
   type Ran,
   type RotationOptions,
+  type ReadResult,
   type RotationState,
 } from './rotation.ts';
 
@@ -204,12 +205,22 @@ describe('advance: the cursor moves only over boards processed', () => {
   const keys = boards.map(setBoardKey);
   it.each([
     ['all read', {}, keys[3], 4],
-    ['the time box stopped the third', { [keys[2]]: 'unstarted', [keys[3]]: 'unstarted' }, keys[1], 2],
-    ['the first never started', Object.fromEntries(keys.slice(0, 4).map((k) => [k, 'unstarted'])), '', 0],
+    [
+      'the time box stopped the third',
+      { [keys[2]]: 'unstarted', [keys[3]]: 'unstarted' },
+      keys[1],
+      2,
+    ],
+    [
+      'the first never started',
+      Object.fromEntries(keys.slice(0, 4).map((k) => [k, 'unstarted'])),
+      '',
+      0,
+    ],
     ['failures are processed', { [keys[1]]: 'failed', [keys[2]]: 'gone' }, keys[3], 4],
   ] as const)('%s', (_, by, cursor, passed) => {
     const p = pickBatch(boards, state(), noDead, T0, opts({ maxBoards: 4 }));
-    const a = advance(boards, state(), p, ran(p, by), noDead, T0);
+    const a = advance(boards, state(), p, ran(p, by as Record<string, ReadResult>), noDead, T0);
     expect(a.state.cursor).toBe(cursor);
     expect(a.passed).toBe(passed);
   });
@@ -294,7 +305,15 @@ describe('advance: the dead list', () => {
   ) => {
     const dead = new Map(d ? [[key, d]] : []);
     const p = pickBatch(boards, state(), new Map(), T0, o);
-    return advance(boards, state(), p, ran(p, { [key]: result }, status ? { [key]: status } : {}), dead, T0, o);
+    return advance(
+      boards,
+      state(),
+      p,
+      ran(p, { [key]: result }, status ? { [key]: status } : {}),
+      dead,
+      T0,
+      o,
+    );
   };
   const deadRow = (fails: number): DeadBoard => ({
     key,
@@ -310,18 +329,21 @@ describe('advance: the dead list', () => {
     [deadRow(1), 2, 3, false],
     [deadRow(2), 3, 7, false],
     [deadRow(3), 4, 7, true],
-  ])('a 404 (before: %o) → %i in a row, retry in %i days, disabled %s', (d, fails, days, disabled) => {
-    expect(after(d, 'gone').deadUpsert).toEqual([
-      {
-        key,
-        lastStatus: 404,
-        fails,
-        retryAt: new Date(T0 + days * DAY).toISOString(),
-        disabled,
-        lastChecked: new Date(T0).toISOString(),
-      },
-    ]);
-  });
+  ])(
+    'a 404 (before: %o) → %i in a row, retry in %i days, disabled %s',
+    (d, fails, days, disabled) => {
+      expect(after(d, 'gone').deadUpsert).toEqual([
+        {
+          key,
+          lastStatus: 404,
+          fails,
+          retryAt: new Date(T0 + days * DAY).toISOString(),
+          disabled,
+          lastChecked: new Date(T0).toISOString(),
+        },
+      ]);
+    },
+  );
 
   it('a dead board that answers comes back', () => {
     const a = after(deadRow(2), 'ok');
@@ -436,6 +458,7 @@ describe('keepForScan: queue or review, and remote', () => {
       title: 'Design Systems Engineer',
       company: 'Acme',
       url: 'https://x.test',
+      descriptionText: '',
       ...(remote !== undefined && { remote }),
       ...(location !== undefined && { location }),
     },
@@ -481,7 +504,12 @@ describe('rotationMath: the README numbers', () => {
     [[1000, 1000, 10], 1500, 2],
     [[], 25, 0],
   ])('runsPerCycle(%o, maxBoards %i) = %i', (jobs, maxBoards, want) =>
-    expect(runsPerCycle(jobs.map((j) => ({ jobs: j })), opts({ maxBoards }))).toBe(want),
+    expect(
+      runsPerCycle(
+        jobs.map((j) => ({ jobs: j })),
+        opts({ maxBoards }),
+      ),
+    ).toBe(want),
   );
 
   it.each([
