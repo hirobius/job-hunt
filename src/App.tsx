@@ -21,7 +21,7 @@ import {
 } from '@hirobius/design-system';
 import { FollowUpHost } from './FollowUp';
 import { AddInterviewHost } from './AddInterview';
-import { ApplyMode, CompanyPage, JobPage, Onboarding, Today, TrackerView } from './routeViews';
+import { ApplyMode, CompanyPage, JobPage, Today, TrackerView } from './routeViews';
 import { JobPageLiveness } from './LivenessViews';
 import { usePageTitle } from './pageTitle';
 import { BrandLogo } from './brand/Flame';
@@ -84,10 +84,8 @@ const APPLY_ROUTE = 'apply';
 const QUICK_ADD_PARAMS = ['add', 'applied', 'status', 'u', 't', 'title'];
 const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
-/** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
- *  after sync has settled so the cloud's copy (already moved on another device) is here first. */
 /** On Today, a signed-in device with nothing on it shows the flame until its cloud copy lands,
- *  instead of flashing the first-run setup (brand/BootHold.tsx). Decided once, at boot; offline
+ *  instead of flashing an empty Today (brand/BootHold.tsx). Decided once, at boot; offline
  *  there is nothing to wait for. Pages that never gate (Jobs, Documents, legal) are never held. */
 function PageHold({ firstRun, children }: { firstRun: boolean; children: ReactNode }) {
   const { settled, offline } = useCloudSync();
@@ -99,6 +97,8 @@ function PageHold({ firstRun, children }: { firstRun: boolean; children: ReactNo
   );
 }
 
+/** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
+ *  after sync has settled so the cloud's copy (already moved on another device) is here first. */
 function SnippetMigration() {
   const { settled } = useCloudSync();
   const snippets = useSnippets();
@@ -186,10 +186,10 @@ export default function App() {
     onClick: tapped(slug),
   });
 
-  // The onboarding gate (#128) lives here, not in a view: on a first run (no Search profile, no
-  // jobs, and no old tracks for the v12 move to make one from) Today shows the Search profile form,
-  // with sample data, so nobody lands on an empty home. The Pipeline and Documents never gate:
-  // quick-add and sample data work before setup.
+  // No setup screen (Adrian 2026-10-29): a first run (no Search profile, no jobs, no old tracks)
+  // gets the design-systems profile on its own once sync settles (V12Migration → ensureProfile)
+  // and opens on Today with the scan running. `firstRun` only holds Today for a signed-in device
+  // whose cloud copy is on its way. Sample data is offered from the Jobs page's empty state.
   const hasTracks = useCategories().length > 0;
   const hasProfile = !!useProfile();
   const jobs = useJobs();
@@ -263,7 +263,8 @@ export default function App() {
       <SnippetMigration />
       <SystemsOnlyMigration />
       <V12Migration />
-      {scanOnOpenEnabled() && (
+      {/* The scan starts once the profile is here (made on its own on a first run). */}
+      {scanOnOpenEnabled() && hasProfile && (
         <Suspense fallback={null}>
           <AutoScanOnOpen />
         </Suspense>
@@ -316,7 +317,7 @@ export default function App() {
                       <TabsContent value="today" variant="bare" tabIndex={-1}>
                         <Suspense fallback={<PipelineSkeleton />}>
                           <PageHold firstRun={firstRun}>
-                            {firstRun ? <Onboarding offerSample /> : <Today />}
+                            <Today />
                           </PageHold>
                         </Suspense>
                       </TabsContent>

@@ -8,18 +8,11 @@ export const TrackerView = lazyView(importFresh(() => import('./TrackerView')));
 export const JobPage = lazyView(importFresh(() => import('./JobPage')));
 export const ApplyMode = lazyView(importFresh(() => import('./ApplyMode')));
 export const CompanyPage = lazyView(importFresh(() => import('./CompanyPage')));
-// The first run's Search profile form: most loads never show it.
-const loadOnboarding = importFresh(() => import('./Onboarding'));
-export const Onboarding = lazyView<{ offerSample?: boolean }>(() =>
-  loadOnboarding().then((m) => ({ default: m.Onboarding })),
-);
 export const Today = lazyView(importFresh(() => import('./Today')));
 
 /** Fetch every view now (the test setup does, so tests render without a Suspense step). */
 export const preloadViews = () =>
-  Promise.all(
-    [TrackerView, JobPage, ApplyMode, CompanyPage, Today, Onboarding].map((v) => v.preload()),
-  );
+  Promise.all([TrackerView, JobPage, ApplyMode, CompanyPage, Today].map((v) => v.preload()));
 
 /** The view a route opens on, when it is one of these: the Pipeline or a job under `queue`,
  *  Today, Apply mode (`apply`, App's APPLY_ROUTE) or a Company page. */

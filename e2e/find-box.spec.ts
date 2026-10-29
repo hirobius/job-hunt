@@ -47,6 +47,6 @@ test('a board is followed at once; a title with no Search profile says to set on
   await expect(dialog.getByText('Adds “Design Systems Lead” to your titles.')).toBeVisible();
   await field.press('Enter');
   await expect(
-    dialog.getByText('Set up your search on Today first, so there is a list to add this to.'),
+    dialog.getByText('Your search is still loading. Try again in a moment.'),
   ).toBeVisible();
 });

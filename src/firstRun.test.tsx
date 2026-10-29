@@ -1,7 +1,7 @@
-// The first run is the Search profile form (#388, after #132): two steps (job titles, then where and
-// what to leave out) in one narrow column. Tested at the route seam through App: the shell's gate
-// shows it on Today for a first run; Finish saves the profile, follows the starter design-system
-// companies and opens Today's Review new.
+// The first run has no setup screen (Adrian 2026-10-29): a new user gets the design-systems Search
+// profile (its titles, remote only) and the starter companies followed on their own, and the app
+// opens on Today's Review new. Account → Search profile edits it. Sample data is offered from the
+// Jobs page's empty state. Tested at the route seam through App.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -40,16 +40,11 @@ const renderApp = () =>
 
 const click = (name: string | RegExp, role = 'button') =>
   userEvent.click(screen.getByRole(role, { name }));
-const step = (n: number) =>
-  expect(screen.getByRole('progressbar', { name: `Step ${n} of 2` })).toBeInTheDocument();
-/** The titles on step 1, as their Remove buttons name them. */
+/** The titles in the Search profile form, as their Remove buttons name them. */
 const titles = () =>
   screen
     .queryAllByRole('button', { name: /^Remove / })
     .map((b) => b.getAttribute('aria-label')?.replace(/^Remove /, ''));
-const removeAllTitles = async () => {
-  for (const b of screen.queryAllByRole('button', { name: /^Remove / })) await userEvent.click(b);
-};
 
 beforeEach(() => {
   h.fake?.reset();
@@ -68,173 +63,72 @@ afterEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
 });
 
-describe('step 1: job titles', () => {
-  it('a first visit opens on Step 1 of 2 with the design-system titles and sample data on offer', () => {
+describe('a first visit', () => {
+  it('makes the design-systems profile, follows the starter companies and opens on Review new', async () => {
     renderApp();
-    expect(screen.getByRole('heading', { name: 'Set up your search' })).toBeInTheDocument();
-    step(1);
-    expect(screen.getByRole('heading', { name: 'What roles do you want?' })).toBeInTheDocument();
-    expect(titles()).toEqual(DESIGN_SYSTEMS_TITLES);
-    expect(screen.getByRole('button', { name: 'Try with sample data' })).toBeInTheDocument();
-    // Continue is never disabled, and the first step has no Back.
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
-    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
-  });
-
-  it('a title is added with Enter and removed with its X', async () => {
-    renderApp();
-    await userEvent.type(
-      screen.getByRole('textbox', { name: 'Job title' }),
-      'Design Technologist{Enter}',
-    );
-    expect(titles()).toContain('Design Technologist');
-    await click('Remove Staff Design Systems');
-    expect(titles()).not.toContain('Staff Design Systems');
-  });
-
-  it('with no title, Continue says why, stays on step 1 and focuses the field', async () => {
-    renderApp();
-    await removeAllTitles();
-    await click('Continue');
-    expect(screen.getByRole('alert')).toHaveTextContent('Add at least one job title.');
-    step(1);
-    expect(screen.getByRole('textbox', { name: 'Job title' })).toHaveFocus();
-  });
-
-  it('sample data stays opt-in: it ends the first run with the sample Pipeline', async () => {
-    renderApp();
-    await click('Try with sample data');
-    expect(await screen.findByRole('tab', { name: 'Jobs', selected: true })).toBeInTheDocument();
-    expect(await screen.findByRole('status', { name: 'Sample data' })).toBeInTheDocument();
-    expect(getProfile()).toBeNull();
-    expect(getSources()).toEqual([]);
-  });
-
-  it('Clear sample data removes the sample jobs', async () => {
-    renderApp();
-    await click('Try with sample data');
-    await click('Clear sample data');
-    await waitFor(() => expect(getAllJobs()).toHaveLength(0));
-    expect(getCurationState().categories).toHaveLength(0);
-  });
-});
-
-describe('step 2: where, and what to leave out', () => {
-  it('remote only is on by default; Back returns with the titles kept', async () => {
-    renderApp();
-    await userEvent.type(
-      screen.getByRole('textbox', { name: 'Job title' }),
-      'Design Technologist{Enter}',
-    );
-    await click('Continue');
-    step(2);
-    expect(screen.getByRole('switch', { name: 'Remote only' })).toBeChecked();
-    expect(
-      screen.getByText('On-site and hybrid roles are counted, not listed.'),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: 'City, state or region' })).toBeNull();
-    await click('Back');
-    step(1);
-    expect(titles()).toContain('Design Technologist');
-  });
-
-  it('Finish saves the profile, follows the starter companies and opens Review new', async () => {
-    renderApp();
-    await click('Continue');
-    await userEvent.type(
-      screen.getByRole('textbox', { name: 'Word to leave out' }),
-      'Contract{Enter}',
-    );
-    await click('Finish');
+    await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(getProfile()).toMatchObject({
       titles: DESIGN_SYSTEMS_TITLES,
       mode: 'remote',
       location: '',
-      leaveOut: ['Contract'],
       include: { terms: ['design system'] },
       scorer: 'design-systems',
       // The broad searches too, so no feed is read for fewer terms than the old pack.
       atsRoles: DESIGN_SYSTEMS_ATS_ROLES,
     });
-    // The seed list, followed with no extra step.
+    // The seed list, followed with no step at all.
     expect(getSources()).toHaveLength(seedSources().length);
     expect(seedSources().length).toBeGreaterThan(20);
-    expect(await screen.findByText('Your search is set up')).toBeInTheDocument();
     expect(window.location.hash).toBe('#/today');
     expect(await screen.findByRole('region', { name: /^Review new/ })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'Browse', checked: true })).toBeInTheDocument();
+    // No setup screen and no step counter anywhere.
+    expect(screen.queryByText('Set up your search')).toBeNull();
+    expect(screen.queryByRole('progressbar', { name: /^Step / })).toBeNull();
   });
 
-  it('remote only off asks where, and searches anywhere when left blank', async () => {
+  it('adds no starter messages, documents, jobs or tracks', async () => {
     renderApp();
-    await click('Continue');
-    await click('Remote only', 'switch');
-    expect(
-      screen.getByText('Remote, hybrid and on-site roles are all listed.'),
-    ).toBeInTheDocument();
-    await userEvent.type(
-      screen.getByRole('textbox', { name: 'City, state or region' }),
-      'Spokane, WA',
-    );
-    await click('Finish');
-    expect(getProfile()).toMatchObject({ mode: 'any', location: 'Spokane, WA' });
-  });
-});
-
-describe('a clean first run (Adrian 2026-10-22: nothing the user did not create)', () => {
-  /** Every visible text field's placeholder. */
-  const placeholders = () =>
-    screen.queryAllByRole('textbox').map((el) => el.getAttribute('placeholder'));
-
-  it('each field shows only its own name as the placeholder: no "e.g." and no made-up example', async () => {
-    renderApp();
-    expect(screen.getByRole('textbox', { name: 'Job title' })).toHaveAttribute(
-      'placeholder',
-      'Job title',
-    );
-    await click('Continue');
-    await click('Remote only', 'switch');
-    expect(screen.getByRole('textbox', { name: 'City, state or region' })).toHaveAttribute(
-      'placeholder',
-      'City, state or region',
-    );
-    for (const ph of placeholders()) expect(ph ?? '').not.toMatch(/e\.g\.|example|acme/i);
-  });
-
-  it('finishing setup adds no starter messages, documents, jobs or tracks', async () => {
-    renderApp();
-    await click('Continue');
-    await click('Finish');
     await waitFor(() => expect(getProfile()).not.toBeNull());
     expect(getAllDocuments()).toEqual([]);
     expect(getAllJobs()).toEqual([]);
     expect(getCurationState().categories).toEqual([]);
   });
-});
 
-describe('Today with no Search profile', () => {
-  it('Set up your search opens the same form and Finish stays on Today', async () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer'); // a first run (no jobs) skips the gate
-    window.location.hash = '#/today';
-    renderApp();
-    await click('Set up your search');
-    step(1);
-    expect(screen.queryByText('Just looking?')).toBeNull(); // sample data is a first-run offer
-    await click('Continue');
-    await click('Finish');
-    await waitFor(() => expect(getProfile()).not.toBeNull());
-    expect(window.location.hash).toBe('#/today');
-  });
-
-  it('Not now leaves the form and shows Today again', async () => {
+  it('jobs saved before a profile existed get the profile too, with no setup screen', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');
     window.location.hash = '#/today';
     renderApp();
-    await click('Set up your search');
-    step(1);
-    await click('Not now');
-    expect(screen.getByRole('button', { name: 'Set up your search' })).toBeInTheDocument();
+    await waitFor(() => expect(getProfile()).not.toBeNull());
+    expect(screen.queryByText('Set up your search')).toBeNull();
     expect(screen.getByRole('region', { name: /^Apply/ })).toBeInTheDocument();
+  });
+
+  it('keeps a profile that is already there', async () => {
+    saveProfile({ titles: ['Design Systems Lead'], mode: 'hybrid' });
+    renderApp();
+    await screen.findByRole('region', { name: /^Review new/ });
+    expect(getProfile()).toMatchObject({ titles: ['Design Systems Lead'], mode: 'hybrid' });
+    // No starter companies followed over it (the keyless feeds are the move's own).
+    expect(getSources().filter((x) => x.kind !== 'feed')).toEqual([]);
+  });
+});
+
+describe('sample data, from the Jobs empty state', () => {
+  it('stays opt-in: it fills the Pipeline and adds no track', async () => {
+    window.location.hash = '#/queue';
+    renderApp();
+    await click('Try with sample data');
+    expect(await screen.findByRole('status', { name: 'Sample data' })).toBeInTheDocument();
+    expect(getAllJobs().length).toBeGreaterThan(0);
+    expect(getCurationState().categories).toHaveLength(0);
+  });
+
+  it('Clear sample data removes the sample jobs', async () => {
+    window.location.hash = '#/queue';
+    renderApp();
+    await click('Try with sample data');
+    await click('Clear sample data');
+    await waitFor(() => expect(getAllJobs()).toHaveLength(0));
   });
 });
 
@@ -282,29 +176,13 @@ describe('Account menu → Search profile, opened before the profile arrives', (
 });
 
 describe('a11y', () => {
-  const audit = async (el: Element) => {
-    const r = await axe(el, {
+  it('the first visit has no WCAG A/AA violations', async () => {
+    const { container } = renderApp();
+    await screen.findByRole('region', { name: /^Review new/ });
+    const r = await axe(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });
     expect(r.violations.map((v) => `${v.id} ×${v.nodes.length}`)).toEqual([]);
-  };
-  it('each step has no WCAG A/AA violations', async () => {
-    const { container } = renderApp();
-    await audit(container);
-    await click('Continue');
-    await audit(container);
-    await click('Remote only', 'switch');
-    await audit(container);
-  });
-
-  // A step change swaps the panel under the pressed button: focus goes to the new step's heading,
-  // so a screen reader hears where it is and Tab starts at the top of the step.
-  it('Continue and Back move focus to the step they open', async () => {
-    renderApp();
-    await click('Continue');
-    expect(screen.getByRole('heading', { name: 'Where, and what to leave out' })).toHaveFocus();
-    await click('Back');
-    expect(screen.getByRole('heading', { name: 'What roles do you want?' })).toHaveFocus();
   });
 
   it('the first visit does not steal focus', () => {

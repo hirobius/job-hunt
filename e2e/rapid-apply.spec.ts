@@ -38,10 +38,8 @@ test('save 3 postings → To apply (3) → apply to each → Follow up (3)', asy
     });
   });
 
-  // The Search profile first (#388): the design-system titles come prefilled.
+  // A first visit gets the design-systems Search profile on its own (no setup screen).
   await page.goto('/#/today');
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByRole('button', { name: 'Finish' }).click();
 
   // Save all three postings from Review new; each leaves the list and says where it went.
   const list = page.getByRole('list', { name: 'New postings' });

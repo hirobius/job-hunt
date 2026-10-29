@@ -53,10 +53,9 @@ async function feed(page: Page) {
 async function setUp(page: Page) {
   await feed(page);
   await page.goto('/#/today');
-  // The Search profile form (#388): the design-system titles come prefilled, remote only.
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByRole('button', { name: 'Finish' }).click();
+  // A first visit gets the design-systems Search profile on its own (no setup screen).
   await expect(page).toHaveURL(/#\/today$/);
+  await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
 }
 
 for (const width of [390, 1440]) {

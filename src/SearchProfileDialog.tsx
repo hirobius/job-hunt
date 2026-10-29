@@ -1,13 +1,13 @@
-// The Account menu's Search profile (simplify 7/11, #388): the onboarding form's fields (job
+// The Account menu's Search profile (simplify 7/11, #388): the profile's fields (job
 // titles, remote only or a place, the words to leave out) for the profile in use, saved on Save.
 // It takes Calibrate's and Manage track's place for what the Feed searches for. With no profile
-// yet, Save makes one the way onboarding does. Its own chunk (lazyDialogs.ts).
+// yet, Save makes one the way a first run does. Its own chunk (lazyDialogs.ts).
 import { useEffect, useRef, useState } from 'react';
 import { Button, Dialog, Spinner, Stack, Text } from '@hirobius/design-system';
 import { useCloudSync } from './account/accountContext';
 import { hasCloudSession } from './demo/loadSample';
 import { saveProfile, useProfile } from './profile';
-import { TitlesField, WhereFields } from './Onboarding';
+import { TitlesField, WhereFields } from './ProfileFields';
 import { NEW_PROFILE, draftOf, fieldsOf, finishSetup, type ProfileDraft } from './searchDefaults';
 import { showNotice } from './saveNotice';
 
@@ -34,7 +34,7 @@ export default function SearchProfileDialog({
     touched.current = true;
     setDraft((d) => ({ ...d, ...c }));
   };
-  // Signed in, a pull may be about to bring the profile: wait for it, like onboarding does.
+  // Signed in, a pull may be about to bring the profile: wait for it.
   const waiting = hasCloudSession() && !settled;
   const save = () => {
     if (!draft.titles.length) return setTitleError(true);

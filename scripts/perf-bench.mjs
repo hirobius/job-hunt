@@ -150,13 +150,9 @@ async function seedStorage(browser, base) {
   await page.goto(`${base}/#/queue`);
   await page.waitForTimeout(1500);
   await click('button', /Try with sample data/);
-  // A Search profile (#388): Today asks for one; the design-system titles come prefilled.
+  // The design-systems Search profile is made on its own (no setup screen, 2026-10-29).
   await click('tab', /^Today$/);
-  await page.waitForTimeout(600);
-  await click('button', /^Set up your search$/);
-  await click('button', /^Continue$/);
-  await click('button', /^Finish$/);
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1400);
   const storage = await page.evaluate(() => ({ ...localStorage }));
   await ctx.close();
   return storage;

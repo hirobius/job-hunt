@@ -37,6 +37,7 @@ import { replaceCurationState } from './curation/curationStore';
 import { seedPack } from './curation/starterPacks';
 import { STARTER_SNIPPETS } from './copyDeckStore';
 import { getAllDocuments } from './documents';
+import { getProfile, replaceProfiles } from './profile';
 import { setOutreachMessages } from './test/outreach';
 
 const renderApp = () =>
@@ -57,6 +58,7 @@ beforeEach(() => {
   h.fake?.reset();
   localStorage.clear();
   replaceCurationState({ categories: [], groups: [], tiles: [] });
+  replaceProfiles([]);
   window.history.replaceState(null, '', '/');
   window.location.hash = '#/queue';
 });
@@ -301,49 +303,19 @@ describe('a solicitation’s response deadline (#308)', () => {
   });
 });
 
-describe('first-run gate in the shell', () => {
-  it('a first visit (no tracks, no jobs) opens on setup, with sample data on offer', () => {
+describe('first run in the shell (no setup screen, Adrian 2026-10-29)', () => {
+  it('a first visit (no tracks, no jobs) opens on Today with the profile made', async () => {
     window.location.hash = '';
     renderApp();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
-    expect(screen.getByRole('heading', { name: 'Set up your search' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Try with sample data' })).toBeInTheDocument();
+    await waitFor(() => expect(getProfile()).not.toBeNull());
+    expect(screen.queryByText('Set up your search')).toBeNull();
   });
 
-  it('trying the sample from setup lands on the Pipeline, with its follow-ups', async () => {
-    window.location.hash = '';
-    renderApp();
-    await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
-    expect(await screen.findByRole('tab', { name: 'Jobs', selected: true })).toBeInTheDocument();
-    expect(await screen.findByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
-  });
-
-  it('finishing the Search profile form ends setup and stays on Today', async () => {
-    window.location.hash = '';
-    renderApp();
-    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
-    await waitFor(() =>
-      expect(screen.queryByRole('heading', { name: 'Set up your search' })).toBeNull(),
-    );
-    expect(
-      within(screen.getByRole('tablist', { name: 'Sections' })).getByRole('tab', {
-        selected: true,
-      }),
-    ).toHaveAccessibleName('Today');
-    expect(window.location.hash).toBe('#/today');
-  });
-
-  it('Review new needs a Search profile even when there are jobs; the Pipeline never gates', () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/today';
-    const { unmount } = renderApp();
-    expect(screen.getByRole('button', { name: 'Set up your search' })).toBeInTheDocument();
-    unmount();
-    removeJob('https://acme.example/jobs/1');
+  it('the sample, tried from the Jobs empty state, shows its follow-ups', async () => {
     window.location.hash = '#/queue';
     renderApp();
-    expect(screen.queryByRole('heading', { name: 'Set up your search' })).toBeNull();
-    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Try with sample data' }));
+    expect(await screen.findByRole('region', { name: /^Follow up \(/ })).toBeInTheDocument();
   });
 });

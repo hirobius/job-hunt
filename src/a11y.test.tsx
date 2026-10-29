@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render } from '@testing-library/react';
+import { cleanup, render } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { ToastProvider } from '@hirobius/design-system';
 import TrackerView from './TrackerView';
 import DocumentsView from './DocumentsView';
 import { setOutreachMessages } from './test/outreach';
 import { STARTER_SNIPPETS } from './copyDeckStore';
-import { Onboarding } from './Onboarding';
-import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
+import { TitlesField, WhereFields } from './ProfileFields';
+import { NEW_PROFILE } from './searchDefaults';
 import { addJob, getAllJobs, removeJob } from './store';
 import { loadSample } from './demo/loadSample';
 import { replaceCurationState } from './curation/curationStore';
@@ -88,19 +88,14 @@ describe('a11y — the Pipeline list with the sample pipeline (#129)', () => {
   });
 });
 
-/** Onboarding reads sync's settled flag: signed out here, so it never waits. */
-const signedOut = (ui: React.ReactNode) => (
-  <CloudSyncContext.Provider value={{ settled: true } as CloudSyncApi}>
-    {ui}
-  </CloudSyncContext.Provider>
-);
-
-describe('a11y — first-run Onboarding (#104, #388)', () => {
-  it('the titles step with no title left says why', async () => {
-    const { container, getAllByRole, getByRole } = withTheme(signedOut(<Onboarding />));
-    for (const b of getAllByRole('button', { name: /^Remove / })) act(() => b.click());
-    await act(async () => getByRole('button', { name: 'Continue' }).click());
-    expect(getByRole('alert')).toBeInTheDocument();
+describe('a11y — the Search profile fields (#388)', () => {
+  it('titles with the error, and the place fields with Remote only off', async () => {
+    const { container } = withTheme(
+      <>
+        <TitlesField titles={[]} onChange={() => {}} error />
+        <WhereFields draft={{ ...NEW_PROFILE, remoteOnly: false }} onChange={() => {}} />
+      </>,
+    );
     await auditA11y(container);
   });
 });
@@ -121,16 +116,7 @@ describe('a11y — Documents (#227)', () => {
   });
 });
 
-describe('a11y — the first-run steps and the Pipeline after the first job (#132, #388)', () => {
-  it('each step of the Search profile form', async () => {
-    const { container, getByRole } = withTheme(signedOut(<Onboarding offerSample />));
-    await auditA11y(container);
-    await act(async () => getByRole('button', { name: 'Continue' }).click());
-    await auditA11y(container);
-    await act(async () => getByRole('switch', { name: 'Remote only' }).click());
-    await auditA11y(container);
-  });
-
+describe('a11y — the Pipeline after the first job (#132)', () => {
   // Getting started left the Pipeline (#416); the page after the first job is still audited.
   it('the Pipeline after the first job', async () => {
     addJob('https://acme.example/jobs/1', 'Design Engineer');

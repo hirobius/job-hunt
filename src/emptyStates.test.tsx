@@ -49,20 +49,6 @@ afterEach(() => {
   replaceCurationState({ categories: [], groups: [], tiles: [] });
 });
 
-describe('Today empties', () => {
-  it('no Search profile: Review new asks for one, and Set up your search opens the form', async () => {
-    addJob('https://acme.example/jobs/1', 'Design Engineer');
-    window.location.hash = '#/today';
-    renderApp();
-    expect(
-      screen.getByText('Your search holds the job titles to look for and where you want to work.'),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Set up your search' })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Set up your search' }));
-    expect(screen.getByRole('heading', { name: 'Set up your search' })).toBeInTheDocument();
-  });
-});
-
 // rev-3 "filtered to nothing": a short title (straight quotes, no period), one sentence, and the
 // way back out as the empty's own action.
 describe('Pipeline filtered to nothing', () => {

@@ -1,13 +1,15 @@
 // What a new Search profile starts with (simplify 7/11, #388): the app's one job is design-system
-// openings, so onboarding prefills these titles and follows these companies. The titles are the
+// openings, so a new profile starts with these titles and follows these companies. The titles are the
 // Design Systems starter pack's (curation/packContent.ts reads them from here); the companies are
 // its board list (radar/directory.ts: the hand-picked boards, then the confirmed seed boards).
-// The Search profile form's draft (Onboarding.tsx, SearchProfileDialog.tsx) lives here too.
+// The Search profile form's draft (SearchProfileDialog.tsx) lives here too. There is no first-run
+// form (Adrian 2026-10-29): `ensureProfile` gives a new user this profile on its own.
 import { DIRECTORY_BY_PACK } from './radar/directory';
 import { boardLabel, parseBoardUrl } from './feed/sources/ats';
 import { boardSource, type Source } from './sourcesModel';
 import {
   cleanList,
+  getProfile,
   MAX_PROFILE_TITLES,
   profileTitles,
   saveProfile,
@@ -113,4 +115,11 @@ export function finishSetup(draft: ProfileDraft): number {
     scorer: 'design-systems',
   });
   return addSources(seedSources());
+}
+
+/** A new user's search, made with no questions asked (Adrian 2026-10-29: no setup screen): the
+ *  design-systems profile (its titles, remote only) and the starter companies followed. Does
+ *  nothing when a profile exists. Returns how many companies it followed. */
+export function ensureProfile(): number {
+  return getProfile() ? 0 : finishSetup(NEW_PROFILE);
 }

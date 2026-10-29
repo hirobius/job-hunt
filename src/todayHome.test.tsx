@@ -24,7 +24,7 @@ import { ColorModeProvider } from './ColorMode';
 import App from './App';
 import { addJob, getAllJobs, jobIdOf, markAppliedByUrl, removeJob, updateJob } from './store';
 import { ymd } from './jobEvents';
-import { replaceProfiles, saveProfile } from './profile';
+import { getProfile, replaceProfiles, saveProfile } from './profile';
 import { resetScan } from './feed/autoScan';
 import { getAllDecided } from './feed/decided';
 
@@ -117,11 +117,13 @@ describe('the shell: Today and Jobs', () => {
     expect(names).toEqual(['Review new', 'Apply', 'Follow up', 'New companies']);
   });
 
-  it('a first run shows onboarding', async () => {
+  it('a first run opens on Today with the design-systems profile, no setup screen', async () => {
     replaceProfiles([]);
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/today'));
-    expect(await screen.findByRole('button', { name: /sample data/i })).toBeInTheDocument();
+    await waitFor(() => expect(getProfile()).not.toBeNull());
+    expect(await screen.findByRole('region', { name: /^Review new/ })).toBeInTheDocument();
+    expect(screen.queryByText('Set up your search')).toBeNull();
   });
 
   it('the Jobs tab opens the Pipeline, unchanged inside', async () => {

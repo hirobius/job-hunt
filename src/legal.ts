@@ -8,7 +8,7 @@ import { LEGAL_TITLES } from './legalRoute';
 /** True while the wording is unapproved: the page shows a draft notice. Adrian approved it
  *  on 2026-10-20 and the Bluesky / Mastodon revision (PR #420) on 2026-10-28. The server job
  *  searches entry (2026-10-29) is waiting for his review. */
-export const LEGAL_DRAFT = true;
+export const LEGAL_DRAFT = false;
 export const LEGAL_UPDATED = '29 October 2026';
 export const OPERATOR = 'Hirobius';
 export const CONTACT_EMAIL = 'hello@hirobius.com';

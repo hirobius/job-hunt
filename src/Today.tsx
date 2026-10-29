@@ -3,11 +3,7 @@
 // from M sources"), Review new as the Browse list itself (a row opens the in-app preview, Open
 // posting one tap away), Apply, Follow up (what is due, with dates, and what falls due this week)
 // and the companies the scan found (Follow / Ignore). The read model is today.ts; this lays it out.
-import { useState } from 'react';
-import { Button, InlineLink, Stack, Text } from '@hirobius/design-system';
-import { Search } from 'lucide-react';
-import { EmptyState } from './hds-gaps/EmptyState';
-import { Onboarding } from './routeViews';
+import { Button, InlineLink, Skeleton, Stack, Text } from '@hirobius/design-system';
 import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
 import { FollowUpButton } from './FollowUp';
 import { MetaCaption } from './MetaCaption';
@@ -34,19 +30,6 @@ export default function Today() {
   const now = new Date();
   const m = today(jobs, now, lastApplyJobId());
   const { due, waiting, upcoming } = m.followUp;
-  // No Search profile yet (jobs saved before setup): Review new asks for one, with the same form
-  // as a first run, in place.
-  const [choosing, setChoosing] = useState(false);
-  if (!profile && choosing)
-    return (
-      <Stack gap="normal" align="start">
-        <Button variant="tertiary" size="sm" onClick={() => setChoosing(false)}>
-          Not now
-        </Button>
-        <Onboarding />
-      </Stack>
-    );
-
   return (
     <Stack gap="px24">
       <Stack gap="px4">
@@ -65,21 +48,16 @@ export default function Today() {
       {profile ? (
         <ReviewView label="Review new" scanStatus />
       ) : (
+        // The design-systems profile is made on its own once sync settles (searchDefaults.ts
+        // `ensureProfile`); until then Review new holds its place.
         <Stack gap="normal">
           <ScanStatus />
           <Panel label="Review new" title="Review new">
             <PanelBody>
-              <EmptyState
-                centered
-                icon={Search}
-                title="Set up your search"
-                description="Your search holds the job titles to look for and where you want to work."
-                action={
-                  <Button variant="primary" onClick={() => setChoosing(true)}>
-                    Set up your search
-                  </Button>
-                }
-              />
+              <Stack gap="tight">
+                <Skeleton variant="text" width="70%" />
+                <Skeleton variant="text" width="40%" />
+              </Stack>
             </PanelBody>
           </Panel>
         </Stack>

@@ -269,7 +269,7 @@ describe('Find box without a Search profile', () => {
     await user.type(field, 'Pipe welder');
     await user.click(screen.getByRole('button', { name: 'Find' }));
     expect(field).toHaveAccessibleDescription(
-      'Set up your search on Today first, so there is a list to add this to.',
+      'Your search is still loading. Try again in a moment.',
     );
     expect(getProfile()).toBeNull();
   });

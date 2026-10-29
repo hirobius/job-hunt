@@ -24,7 +24,7 @@ import { lookUpCompany } from './companyLookup';
 
 const HELPER = 'Paste a job link, a job board or a company, or type a job title.';
 const EMPTY_ERROR = 'Paste a job link, a job board or a company, or type a job title';
-const NO_PROFILE = 'Set up your search on Today first, so there is a list to add this to.';
+const NO_PROFILE = 'Your search is still loading. Try again in a moment.';
 
 /** What Find will do with the line, said before it is pressed. */
 function reading(r: FindResult): string {

@@ -108,13 +108,8 @@ async function seed(page) {
   // Sample pipeline: the empty tracker's "Try with sample data".
   for (const name of [/^(Pipeline|Tracker)$/]) await clickIf(page, 'tab', name);
   await clickIf(page, 'button', /Try with sample data/);
-  // A Search profile (#388): Today asks for one; the design-system titles come prefilled.
-  if (await clickIf(page, 'tab', /^Today$/)) {
-    await page.waitForTimeout(600);
-    await clickIf(page, 'button', /^Set up your search$/);
-    await clickIf(page, 'button', /^Continue$/);
-    await clickIf(page, 'button', /^Finish$/);
-  }
+  // The design-systems Search profile is made on its own (no setup screen, 2026-10-29).
+  if (await clickIf(page, 'tab', /^Today$/)) await page.waitForTimeout(600);
 }
 
 // Dialogs and menus: [tab name, file name, steps]. Each step is [role, name]; Escape closes.
