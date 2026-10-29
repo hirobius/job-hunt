@@ -92,7 +92,7 @@ const TERMS_PER_RUN: Record<TermFeed, number> = {
   remotive: 2,
 };
 /** Each outbound read's cap: one hung board must not spend the slice's whole wall-clock budget. */
-const FETCH_TIMEOUT_MS = 15_000;
+const FETCH_TIMEOUT_MS = ROTATION.fetchTimeoutMs;
 const timedFetch = (u: string) => fetch(u, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 /** How long the next-slice call waits for its answer before letting go (it keeps running). */
 const CHAIN_WAIT_MS = 3000;
@@ -357,6 +357,257 @@ async function chainNext(
     }
   }
   return why;
+}
+
+// ---- Scan rotation (#src-bulk) ----
+// The bulk board set, checked and in key order, parsed once per worker.
+const BOARD_SET = parseBoardSet(boardsJson);
+
+type RotationRow = {
+  cursor_key: string;
+  cycle: number;
+  cycle_started_at: string;
+  host_backoff: unknown;
+  carry: unknown;
+};
+type DeadRow = {
+  board_key: string;
+  last_status: number;
+  fails: number;
+  retry_at: string;
+  disabled: boolean;
+  last_checked: string;
+};
+
+/** One rotation step: claim the cursor (one run at a time), read the next batch of the bulk board
+ *  set (src/tracks/rotation.ts: in key order, a time box, a per-host limit, 429 backoff, a dead
+ *  list), store each design systems user's remote queue/review postings from it, close what they
+ *  missed, and move the cursor over the boards processed.
+ *  Why a 1-minute cron and no chaining: each invocation reads at most ROTATION.maxBoards boards
+ *  (ROTATION.jobsBudget open roles), so its CPU (JSON parsing and scoring; the waits on the network
+ *  don't count) stays inside the worker's ~2 s; its wall time is at most the time box plus one
+ *  read's timeout (55 s), under the cron gap, so runs never overlap, and the claim's lease makes
+ *  sure of it. Chaining would read faster but runs would overlap the next cron call and race on
+ *  the cursor; the cron alone covers 5,000 to 10,000 boards inside 12 h (README).
+ *  Boards a user follows are skipped for that user (the twice-a-day sync reads them with their own
+ *  rules, rejects included); rows the scan writes carry `via_scan`, which `close_unfollowed_postings`
+ *  leaves alone (they are not followed, and this rotation closes them). */
+async function rotate(db: SupabaseClient): Promise<Response> {
+  const startedAt = Date.now();
+  const runStart = new Date(startedAt).toISOString();
+  const logs: Log[] = [];
+  const fail = (message: string, board: string | null = null, status: number | null = null) =>
+    logs.push({ user_id: null, kind: 'failed', board, status, message: message.slice(0, 2000) });
+
+  // The lease: the database's clock, one row. Nothing back: another run holds it.
+  const { data: claimed, error: claimError } = await db.rpc('claim_scan_rotation', {
+    p_lease_ms: ROTATION.leaseMs,
+  });
+  if (claimError) return json({ error: `claim: ${claimError.message}` }, 500);
+  const row = (Array.isArray(claimed) ? claimed[0] : claimed) as RotationRow | null | undefined;
+  if (!row) return json({ rotate: 'busy' });
+  const release = (patch: Record<string, unknown> = {}) =>
+    db
+      .from('scan_rotation')
+      .update({ ...patch, lease_until: null, updated_at: new Date().toISOString() })
+      .eq('id', 1);
+
+  const state = sanitizeRotation(
+    {
+      cursor: row.cursor_key,
+      cycle: row.cycle,
+      cycleStartedAt: row.cycle_started_at,
+      backoff: row.host_backoff,
+      carry: row.carry,
+    },
+    startedAt,
+  );
+  try {
+    const deadRows = await readPaged<DeadRow>(
+      async (from, to) =>
+        (await db
+          .from('scan_dead_boards')
+          .select('board_key, last_status, fails, retry_at, disabled, last_checked')
+          .order('board_key')
+          .range(from, to)) as { data: DeadRow[] | null; error: { message: string } | null },
+      TILE_PAGE,
+    );
+    // Without the dead list every dead board would be read again: wait for the next run.
+    if (deadRows.error) {
+      await release();
+      return json({ error: `dead boards: ${deadRows.error}` }, 500);
+    }
+    const dead = new Map<string, DeadBoard>(
+      deadRows.rows.map((d) => [
+        d.board_key,
+        {
+          key: d.board_key,
+          lastStatus: d.last_status,
+          fails: d.fails,
+          retryAt: d.retry_at,
+          disabled: d.disabled,
+          lastChecked: d.last_checked,
+        },
+      ]),
+    );
+
+    // Who the scan is for: design systems profiles. A v11 user whose watched tiles could not be
+    // read is left out this run (their followed boards are unknown).
+    const loaded = await loadPlans(db, logs);
+    if ('error' in loaded) {
+      await release();
+      return json({ error: loaded.error }, 500);
+    }
+    const scanners = [...loaded.plans]
+      .filter(([, p]) => p.config.slug === designSystemsTrack.slug)
+      .filter(([, p]) => !(p.from === 'v11' && loaded.tilesError))
+      .map(([userId, plan]) => ({ userId, plan, follows: new Set(plan.boards.map(boardOf)) }));
+    if (!scanners.length) {
+      await release();
+      return json({ rotate: 'idle', reason: 'no design systems profile', boards: BOARD_SET.boards.length });
+    }
+
+    const pick = pickBatch(BOARD_SET.boards, state, dead, startedAt);
+    const steps = new Map(pick.steps.filter((s) => s.action === 'read').map((s) => [s.key, s]));
+    const results = await runBatch(
+      [...steps.values()].map((s) => ({ key: s.key, host: s.host })),
+      async ({ key }) =>
+        (await readAll([toWatched(steps.get(key)!.board)], { fetch: timedFetch, rss: false }))[0],
+      { ...ROTATION, now: Date.now, startedAt },
+    );
+    const moved = advance(BOARD_SET.boards, state, pick, results, dead, Date.now());
+
+    const answered: ReadOutcome[] = [];
+    let closed = 0;
+    for (const r of results) {
+      if (r.result === 'ok' && r.value) answered.push(r.value);
+      else if (r.result === 'gone') {
+        // Gone: every user's scan rows on it close (a followed board's rows are the sync's).
+        const { data, error } = await db
+          .from('postings')
+          .update(closing())
+          .eq('board', r.key)
+          .eq('via_scan', true)
+          .is('closed_at', null)
+          .select('id');
+        if (error) fail(`closing ${r.key} (404): ${error.message}`, r.key, 404);
+        closed += data?.length ?? 0;
+      } else if (r.result === 'failed' || r.result === 'throttled')
+        fail(`${r.key}: ${r.value?.error ?? `HTTP ${r.status ?? '?'}`}`, r.key, r.status ?? null);
+    }
+    for (const d of moved.deadUpsert)
+      if (d.disabled && !dead.get(d.key)?.disabled)
+        logs.push({
+          user_id: null,
+          kind: 'disabled',
+          board: d.key,
+          status: 404,
+          message: `${d.key}: ${d.fails} 404s in a row, no longer read (delete its scan_dead_boards row to try again)`,
+        });
+
+    // Score once per distinct config (most design systems users share one), then each user's own.
+    const byConfig = new Map<string, typeof scanners>();
+    for (const s of scanners) {
+      const k = JSON.stringify(s.plan.config);
+      byConfig.set(k, [...(byConfig.get(k) ?? []), s]);
+    }
+    let stored = 0;
+    for (const group of byConfig.values()) {
+      const scored = answered.length ? scoreBatch(answered, group[0].plan.config) : [];
+      for (const { userId, follows } of group) {
+        const boards = answered.map((r) => r.board).filter((b) => !follows.has(b));
+        if (!boards.length) continue;
+        const mine = scored.filter((s) => !follows.has(s.board) && keepForScan(s));
+        const t: Totals = { queue: 0, review: 0, reject: 0, failed: 0 };
+        if (mine.length)
+          await writeScored(db, userId, designSystemsTrack.slug, mine, logs, t, { via_scan: true });
+        stored += t.queue + t.review;
+        // A posting gone from a board that answered (or no longer remote or included) is missed;
+        // 2 misses close it (mark_missed_postings). Not after a failed write.
+        if (!t.failed) {
+          const { data: n, error } = await db.rpc('mark_missed_postings', {
+            p_user: userId,
+            p_track: designSystemsTrack.slug,
+            p_boards: boards,
+            p_run: runStart,
+          });
+          if (error) fail(`marking missed (scan): ${error.message}`);
+          closed += typeof n === 'number' ? n : 0;
+        }
+      }
+    }
+
+    const { state: next } = moved;
+    const saved = await release({
+      cursor_key: next.cursor,
+      cycle: next.cycle,
+      cycle_started_at: next.cycleStartedAt,
+      host_backoff: next.backoff,
+      carry: next.carry,
+    });
+    if (saved.error) fail(`saving the cursor: ${saved.error.message}`);
+    if (moved.deadUpsert.length) {
+      const { error } = await db.from('scan_dead_boards').upsert(
+        moved.deadUpsert.map((d) => ({
+          board_key: d.key,
+          last_status: d.lastStatus,
+          fails: d.fails,
+          retry_at: d.retryAt,
+          disabled: d.disabled,
+          last_checked: d.lastChecked,
+        })),
+        { onConflict: 'board_key' },
+      );
+      if (error) fail(`dead boards: ${error.message}`);
+    }
+    if (moved.deadRemove.length) {
+      const { error } = await db.from('scan_dead_boards').delete().in('board_key', moved.deadRemove);
+      if (error) fail(`dead boards back: ${error.message}`);
+    }
+
+    const count = (k: string) => results.filter((r) => r.result === k).length;
+    const summary = {
+      rotate: true,
+      cycle: next.cycle,
+      cursor: next.cursor,
+      boards: BOARD_SET.boards.length,
+      read: results.length - count('unstarted') - count('deferred'),
+      ok: count('ok'),
+      gone: count('gone'),
+      failed: count('failed'),
+      throttled: count('throttled'),
+      deferred: count('deferred'),
+      unstarted: count('unstarted'),
+      passed: moved.passed,
+      carry: next.carry.length,
+      backoff: Object.keys(next.backoff),
+      users: scanners.length,
+      stored,
+      closed,
+      cycleDone: moved.cycleDone,
+      cycleHours: moved.cycleDone
+        ? +((Date.now() - Date.parse(next.cycleStartedAt)) / 3600e3).toFixed(2)
+        : null,
+      ms: Date.now() - startedAt,
+    };
+    // One run row a cycle (and on a run that stored or closed something), not one a minute.
+    if (moved.cycleDone || stored || closed)
+      logs.push({
+        user_id: null,
+        kind: 'run',
+        board: null,
+        status: null,
+        message: JSON.stringify(summary).slice(0, 2000),
+      });
+    if (logs.length) await db.from('sync_log').insert(logs);
+    return json(summary);
+  } catch (e) {
+    // Nothing advanced: the same boards are read on the next run.
+    fail(`rotation after '${state.cursor}' stopped: ${String(e)}`);
+    await release();
+    await db.from('sync_log').insert(logs);
+    return json({ error: String(e) }, 500);
+  }
 }
 
 Deno.serve(async (req) => {
