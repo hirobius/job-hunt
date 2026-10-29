@@ -40,13 +40,14 @@ test('Add job explains a bad link and an already saved one', async ({ page }) =>
   await expect(page).toHaveURL(/#\/queue\/./);
 });
 
-// A first visit offers the sample pipeline, which lands on the Pipeline with its follow-ups
-// (#236: its follow-ups live in the Pipeline; Today, home again in #383, links to them).
-test('opens on setup at home (Today); the sample pipeline lists due follow-ups', async ({
-  page,
-}) => {
+// A first visit opens on Today with no setup screen; the Jobs empty state offers the sample
+// pipeline, with its follow-ups.
+test('opens on Today with no setup; the sample pipeline lists due follow-ups', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveURL(/#\/today$/);
+  await expect(page.getByRole('heading', { name: 'Review new' })).toBeVisible();
+  await expect(page.getByText('Set up your search')).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Jobs' }).click();
   await page.getByRole('button', { name: 'Try with sample data' }).click();
   await expect(page).toHaveURL(/#\/queue$/);
   const followUps = page.getByRole('region', { name: /^Follow up \(/ });
