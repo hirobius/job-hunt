@@ -17,6 +17,10 @@ export interface NormalizedPosting {
     | 'personio'
     | 'jsearch'
     | 'adzuna'
+    // The sync's own whole-web searches (tracks/feeds).
+    | 'theirstack'
+    | 'jooble'
+    | 'ids'
     | 'remotive'
     | 'jobicy'
     | 'hn'
@@ -132,8 +136,11 @@ export function dedupe(postings: NormalizedPosting[]): NormalizedPosting[] {
     personio: 0,
     rss: 1,
     manual: 1,
+    ids: 1,
     adzuna: 2,
     jsearch: 2,
+    theirstack: 2,
+    jooble: 2,
     remotive: 3,
     jobicy: 3,
     hn: 3,

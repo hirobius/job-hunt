@@ -96,9 +96,12 @@ describe('the server adapter', () => {
     const list = await serverReader(async () => [
       row('greenhouse:acme:1', 'https://boards.greenhouse.io/acme/jobs/1', { remote: true }),
       row('ds-1', 'https://designsystems.jobs/1', { source: 'rss', verdict: 'review', score: 50 }),
-      row('x', 'https://x.example', { source: 'adzuna' }),
+      row('adzuna:x', 'https://x.example', { source: 'adzuna' }),
+      row('j', 'https://j.example', { source: 'jsearch' }),
     ]).read();
-    expect(list).toHaveLength(2);
+    // jsearch is never read: no name for it.
+    expect(list).toHaveLength(3);
+    expect(list[2]).toMatchObject({ id: 'adzuna:x', source: 'adzuna' });
     expect(list[0]).toMatchObject({
       id: 'greenhouse:acme:1',
       source: 'greenhouse',

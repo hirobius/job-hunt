@@ -27,6 +27,10 @@ const SOURCES: Record<string, FeedSourceId> = {
   jobicy: 'jobicy',
   hn: 'hn',
   rss: 'rss',
+  theirstack: 'theirstack',
+  adzuna: 'adzuna',
+  jooble: 'jooble',
+  ids: 'ids',
 };
 
 /** A stored row as a Posting, with the server's score on it; null for a source the app has no

@@ -400,6 +400,16 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   posting and adds the server's, so signed in is never fewer. Not applied or deployed: see its README.
   `npm run sync:dry-run` plans from a sample blob, reads + scores with no database. Pinned in `src/tracks/*.test.ts`,
   `feed/postingReader.test.ts`.
+- **Server searches (claude/src-top5, `docs/research/ds-job-sources.md`):** `src/tracks/feeds/` holds sources only
+  `sync-postings` reads (pure, injected fetch, `.ts` specifiers): `dsjobsCatalog.ts` (designsystems.jobs' sitemap + each
+  job page's JSON-LD; stored as `rss`, source id = page URL like the RSS guid; known rows reused, ≤ 40 new pages a run,
+  1/s, known rows from the `known_dsjobs_postings()` RPC; partial reads never close) and four windowed searches in
+  `serverFeeds.ts`, never counted as answered (rows age out 30 days after last seen): TheirStack
+  (`THEIRSTACK_API_KEY`, due 10 days a month × 18 rows), Adzuna (`ADZUNA_APP_ID`/`ADZUNA_APP_KEY`, rows say "Jobs by
+  Adzuna"), Jooble (`JOOBLE_API_KEY`, in the URL: never logged) and Into Design Systems (MCP, waits on its operator's
+  yes). All four are off in `SOURCE_ENABLED`; on without a key they fail loud (`MissingKeyError` names the var). Design
+  systems plans only. Browser never contacts them (no CSP change); legal.ts lists them with `hosts: []`. Migration
+  `20261029100000` widens the `postings.source` check.
 - **Auto-scan (simplify 8/11, #415; stacked on the Feed, #414):** `feed/autoScan.ts` runs all discovery with no
   buttons. On app open (`AutoScanOnOpen`, a lazy chunk in `App`, after sync settles; on only when `main.tsx` calls
   `setScanOnOpen(true)`, so unit tests never scan) at most every 6 h, or on **Scan now**: leads (YC hiring now →

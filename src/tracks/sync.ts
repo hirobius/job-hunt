@@ -12,12 +12,16 @@ import { fetchRemotive } from '../feed/sources/remotive.ts';
 import type { Posting } from '../feed/types.ts';
 import { dedupe, fingerprint, type NormalizedPosting, type Verdict } from './score.ts';
 import { scoreForTrack } from './scoreForTrack.ts';
+import { SOURCE_ENABLED } from '../feed/sourceEnabled.ts';
+import type { FeedContext } from './feeds/context.ts';
+import { readDsJobsCatalog } from './feeds/dsjobsCatalog.ts';
+import { SERVER_FEED_READERS, type ServerFeed } from './feeds/serverFeeds.ts';
 import { fetchDesignSystemsJobsFeed, webOnly, type WatchedCompany } from './sources.ts';
 import type { TrackConfig } from './track-config.ts';
 
 export type { WatchedCompany };
 
-type Fetch = (url: string) => Promise<Response>;
+type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
 /** The feeds searched by the profile's titles. */
 export type TermFeed = 'hn' | 'remotive' | 'jobicy';
@@ -31,6 +35,9 @@ export interface ReadOutcome<C extends WatchedCompany = WatchedCompany> {
   board: string;
   term?: string;
   ok: boolean;
+  /** It answered, but not with the whole list (designsystems.jobs read from its RSS alone, or part
+   *  of its catalog): nothing may close as missed against it. */
+  partial?: true;
   status?: number;
   error?: string;
   postings: NormalizedPosting[];
@@ -120,9 +127,83 @@ async function readFeed<C extends WatchedCompany>(
   }
 }
 
+/** designsystems.jobs: its whole catalog (sitemap + job pages, `known` rows reused), the RSS
+ *  filling in pages not read yet; the RSS alone when the catalog is off or its sitemap fails. */
+async function readDsJobs<C extends WatchedCompany>(o: {
+  fetch: Fetch;
+  catalog: boolean;
+  known?: ReadonlyMap<string, NormalizedPosting>;
+  sleep?: (ms: number) => Promise<void>;
+}): Promise<ReadOutcome<C>> {
+  let status: number | undefined;
+  let rss: NormalizedPosting[] = [];
+  let rssError: string | undefined;
+  try {
+    rss = webOnly(await fetchDesignSystemsJobsFeed(o.fetch, (s) => (status = s)));
+  } catch (e) {
+    rssError = String(e);
+  }
+  let catalogError: string | undefined;
+  if (o.catalog)
+    try {
+      const c = await readDsJobsCatalog({ fetch: o.fetch, known: o.known, rss, sleep: o.sleep });
+      return {
+        company: null,
+        board: 'rss',
+        ok: true,
+        ...(!c.complete && { partial: true as const }),
+        // The feed failing is still worth a log line when the catalog answered.
+        ...(rssError || status !== undefined
+          ? { error: `designsystems.jobs feed: ${rssError ?? `HTTP ${status}`}` }
+          : {}),
+        postings: webOnly(c.postings),
+      };
+    } catch (e) {
+      catalogError = String(e);
+    }
+  const ok = status === undefined && !rssError;
+  return {
+    company: null,
+    board: 'rss',
+    ok,
+    // The feed is the newest 20: the rest of the catalog is not in it, not gone.
+    partial: true,
+    status,
+    error: [catalogError, rssError].filter(Boolean).join('; ') || undefined,
+    postings: rss,
+  };
+}
+
+async function readServerFeed<C extends WatchedCompany>(
+  feed: ServerFeed,
+  ctx: FeedContext,
+): Promise<ReadOutcome<C>> {
+  try {
+    const postings = webOnly(await SERVER_FEED_READERS[feed](ctx));
+    return { company: null, board: feed, ok: true, postings };
+  } catch (e) {
+    const status =
+      typeof (e as { status?: unknown }).status === 'number'
+        ? (e as { status: number }).status
+        : undefined;
+    return { company: null, board: feed, ok: false, status, error: String(e), postings: [] };
+  }
+}
+
 export async function readAll<C extends WatchedCompany>(
   companies: C[],
-  o: { fetch: Fetch; rss: boolean; terms?: Partial<Record<TermFeed, string[]>> },
+  o: {
+    fetch: Fetch;
+    rss: boolean;
+    terms?: Partial<Record<TermFeed, string[]>>;
+    /** designsystems.jobs rows already stored, by page URL (the catalog reads only new pages). */
+    known?: ReadonlyMap<string, NormalizedPosting>;
+    /** Read designsystems.jobs' whole catalog, not only its RSS (default: SOURCE_ENABLED). */
+    catalog?: boolean;
+    /** The sync's own searches to run, and what they get (keys, clock). */
+    server?: { feeds: readonly ServerFeed[]; ctx: FeedContext };
+    sleep?: (ms: number) => Promise<void>;
+  },
 ): Promise<ReadOutcome<C>[]> {
   const out: ReadOutcome<C>[] = [];
   const pooled = companies.filter((c) => c.ats !== 'ashby');
@@ -133,15 +214,17 @@ export async function readAll<C extends WatchedCompany>(
   // Term feeds one request at a time: they are shared public APIs.
   for (const feed of TERM_FEEDS)
     for (const term of o.terms?.[feed] ?? []) out.push(await readFeed(feed, term, o.fetch));
-  if (o.rss) {
-    let status: number | undefined;
-    try {
-      const postings = webOnly(await fetchDesignSystemsJobsFeed(o.fetch, (s) => (status = s)));
-      out.push({ company: null, board: 'rss', ok: status === undefined, status, postings });
-    } catch (e) {
-      out.push({ company: null, board: 'rss', ok: false, error: String(e), postings: [] });
-    }
-  }
+  if (o.rss)
+    out.push(
+      await readDsJobs<C>({
+        fetch: o.fetch,
+        catalog: o.catalog ?? SOURCE_ENABLED.dsjobsCatalog,
+        known: o.known,
+        sleep: o.sleep,
+      }),
+    );
+  // The sync's own searches, one at a time (each spaces its own calls).
+  for (const feed of o.server?.feeds ?? []) out.push(await readServerFeed<C>(feed, o.server!.ctx));
   return out;
 }
 

@@ -308,3 +308,77 @@ describe('breadth: the server reads what the browser reads', () => {
     expect(new Set(server.map((p) => p.sourceId))).toEqual(new Set(browser.map((p) => p.id)));
   });
 });
+
+describe('designsystems.jobs catalog and the sync’s own searches', () => {
+  const PAGE = `<script type="application/ld+json">${JSON.stringify({
+    '@type': 'JobPosting',
+    title: 'Design Systems Lead',
+    hiringOrganization: { name: 'Acme' },
+    description: 'Own the design system.',
+  })}</script>`;
+  const JOB = 'https://designsystems.jobs/companies/acme/ds-lead';
+  const site = (sitemap: number) =>
+    vi.fn(async (url: string) => {
+      if (url === 'https://designsystems.jobs/feed') return new Response(RSS);
+      if (url === 'https://designsystems.jobs/sitemap.xml')
+        return sitemap === 200
+          ? new Response(`<urlset><url><loc>${JOB}</loc></url></urlset>`)
+          : new Response('', { status: sitemap });
+      if (url === JOB) return new Response(PAGE);
+      return new Response('', { status: 404 });
+    });
+
+  it('reads the whole catalog as the rss board, complete', async () => {
+    const [r] = await readAll([], { fetch: site(200), rss: true, catalog: true });
+    expect(r).toMatchObject({ board: 'rss', ok: true });
+    expect(r.partial).toBeUndefined();
+    // The two feed items the sitemap doesn't list yet come along.
+    expect(r.postings.map((p) => [p.sourceId, p.title])).toEqual([
+      [JOB, 'Design Systems Lead'],
+      ['ds-1', 'Design Systems Engineer'],
+      ['ds-2', 'Design Systems Intern'],
+    ]);
+  });
+
+  it('a feed failure is kept in the log when the catalog answers', async () => {
+    const f = vi.fn(async (url: string) =>
+      url === 'https://designsystems.jobs/feed'
+        ? new Response('', { status: 502 })
+        : site(200)(url),
+    );
+    const [r] = await readAll([], { fetch: f, rss: true, catalog: true });
+    expect(r).toMatchObject({ ok: true, error: 'designsystems.jobs feed: HTTP 502' });
+    expect(r.partial).toBeUndefined();
+  });
+
+  it('falls back to the RSS when the sitemap fails: answered but partial, the failure kept', async () => {
+    const [r] = await readAll([], { fetch: site(500), rss: true, catalog: true });
+    expect(r).toMatchObject({ board: 'rss', ok: true, partial: true });
+    expect(r.error).toMatch(/sitemap: HTTP 500/);
+    expect(r.postings.map((p) => p.sourceId)).toEqual(['ds-1', 'ds-2']);
+    // Catalog off: the RSS alone, partial too.
+    const [off] = await readAll([], { fetch: site(200), rss: true, catalog: false });
+    expect(off).toMatchObject({ ok: true, partial: true });
+  });
+
+  it('runs each server feed it is given; a missing key fails that one loud and alone', async () => {
+    const ctx = {
+      fetch: vi.fn(async () => new Response('{}')),
+      env: () => undefined,
+      now: () => new Date('2026-10-28T06:00:00Z'),
+      sleep: async () => {},
+    };
+    const reads = await readAll([], {
+      fetch: site(200),
+      rss: false,
+      server: { feeds: ['theirstack', 'jooble'], ctx },
+    });
+    expect(reads.map((r) => [r.board, r.ok])).toEqual([
+      ['theirstack', false],
+      ['jooble', false],
+    ]);
+    expect(reads[0].error).toMatch(/THEIRSTACK_API_KEY is not set/);
+    expect(reads[1].error).toMatch(/JOOBLE_API_KEY is not set/);
+    expect(ctx.fetch).not.toHaveBeenCalled();
+  });
+});

@@ -5,3 +5,6 @@ package-lock.json
 # generated token artifacts (regenerate via `npm run tokens:build`)
 src/tokens/hds-tokens.css
 src/theme/hds-palette.generated.ts
+
+# live captures kept byte for byte
+src/tracks/feeds/fixtures/
