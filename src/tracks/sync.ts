@@ -59,7 +59,6 @@ const PARALLEL = 4;
  *  browser's newer board kinds are scored as 'manual'). */
 const NOT_STORED = new Set<Posting['source']>([
   'remoteok',
-  'sam',
   'bamboohr',
   'rippling',
   'gem',

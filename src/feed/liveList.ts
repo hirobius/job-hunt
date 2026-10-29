@@ -14,8 +14,6 @@ export interface LiveListOptions {
   sweep: string[] | null;
   /** A scored track (src/tracks): no term gate, the scorer decides. */
   scored: boolean;
-  /** A Contracts track: SAM.gov read the place; the term only narrows. */
-  contracts: boolean;
   where: string;
   mode: WorkMode;
   now: number;
@@ -24,13 +22,6 @@ export interface LiveListOptions {
 /** The ranked rows before targeting (the panel's related-title counts read these). */
 export function matchLive(postings: Posting[], o: LiveListOptions): SweptPosting[] {
   const r = { where: o.where, mode: o.mode, now: o.now };
-  if (o.contracts) {
-    const all = { where: '', mode: 'any' as const, now: o.now };
-    const list = o.term.trim()
-      ? rankPostings(postings, { ...all, term: o.term })
-      : rankAll(postings, all);
-    return list.map((p) => ({ ...p, titles: [] }));
-  }
   // No term gate on a scored track: the term (or the sweep) picks what is read, the scorer what
   // is listed.
   if (o.scored) return rankAll(postings, r).map((p) => ({ ...p, titles: [] }));

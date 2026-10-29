@@ -4,6 +4,8 @@ import { addJob, getAllJobs, removeJob, replaceAll, updateJob } from '../store';
 import { addCategory, getCurationState, replaceCurationState } from '../curation/curationStore';
 import { clearSample, hasCloudSession, loadSample, seedIfEmpty, withoutSample } from './loadSample';
 import { isSample } from './sampleData';
+import { rememberSampleTrack } from './sampleTrack';
+import { seedPack } from '../curation/starterPacks';
 import { sampleJobs } from './sampleData';
 
 const NOW = new Date(2026, 9, 12, 10);
@@ -92,7 +94,12 @@ describe('loadSample / clearSample (store adapters)', () => {
   });
 });
 
-describe('the Sample track', () => {
+describe('the Sample track an older build added', () => {
+  /** The sample as an older build loaded it: its jobs plus a remembered Sample track. */
+  const loadOldSample = (now: Date) => {
+    loadSample(now);
+    rememberSampleTrack(seedPack('designsystems', undefined, { label: 'Sample' }));
+  };
   const labels = () => getCurationState().categories.map((c) => c.label);
   afterEach(() => {
     getAllJobs()
@@ -102,12 +109,9 @@ describe('the Sample track', () => {
     localStorage.clear();
   });
 
-  it('loading into a board with no tracks adds one track, "Sample", from the first pack', () => {
+  it('loading adds no track: the sample is jobs only (2026-10-29)', () => {
     loadSample(NOW);
-    expect(labels()).toEqual(['Sample']);
-    const { groups, tiles } = getCurationState();
-    expect(groups.length).toBeGreaterThan(0);
-    expect(tiles.length).toBeGreaterThan(0);
+    expect(getCurationState()).toEqual({ categories: [], groups: [], tiles: [] });
   });
 
   it('leaves an existing board alone', () => {
@@ -117,7 +121,7 @@ describe('the Sample track', () => {
   });
 
   it('clear removes the Sample track, and only that one', () => {
-    loadSample(NOW);
+    loadOldSample(NOW);
     addCategory({ label: 'Mine' });
     addCategory({ label: 'Sample' }); // the user's own, same name: kept
     clearSample();
@@ -126,13 +130,13 @@ describe('the Sample track', () => {
   });
 
   it('clear takes its sections and links with it (no orphans left in storage or a backup)', () => {
-    loadSample(NOW);
+    loadOldSample(NOW);
     clearSample();
     expect(getCurationState()).toEqual({ categories: [], groups: [], tiles: [] });
   });
 
   it('clear after the user deleted the Sample track changes nothing else', () => {
-    loadSample(NOW);
+    loadOldSample(NOW);
     replaceCurationState({ categories: [], groups: [], tiles: [] });
     addCategory({ label: 'Mine' });
     clearSample();

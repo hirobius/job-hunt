@@ -78,7 +78,7 @@ async function livePostings(t: Track): Promise<Posting[]> {
     );
     const list = liveList(
       read.postings,
-      { term: searchTerms[0], sweep, scored, contracts: false, where, mode, now: FIXTURE_NOW },
+      { term: searchTerms[0], sweep, scored, where, mode, now: FIXTURE_NOW },
       targeting,
     );
     out.push(...list.postings, ...list.review);

@@ -223,7 +223,7 @@ const longEnough = (name: string) => name.length >= 3 || (name.length === 2 && /
 
 /** A posting's domain, used only when its registrable name IS the company's name (accents, spaces,
  *  punctuation and Inc/LLC-like words aside), or the name plus one careers word (metacareers.com).
- *  A name merely inside the other (talent.com for "Top Talent Welding") gives the letter. */
+ *  A name merely inside the other (talent.com for "Top Talent Studio") gives the letter. */
 export function postingDomain(company: string, address: string | undefined | null): string | null {
   const domain = logoDomain(address);
   if (!domain) return null;

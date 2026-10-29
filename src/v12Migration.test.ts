@@ -1,6 +1,8 @@
 // The v11 → v12 move (simplify spec #384/#385). Adrian's hard condition: no loss of job breadth.
 // A rich v11 account (three tracks, every board kind, dreams, targets, sweep titles, saved jobs)
-// goes through the move, and every board, dream, target and title must come out the other side.
+// goes through the move, and every board, dream, target and title of its design-systems tracks
+// must come out the other side. Design systems only (Adrian 2026-10-29): a non-design-systems
+// track (here a trades track) stays stored but nothing of it surfaces.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CurationState } from './curation/types';
 import { getCurationState as getAllCuration, replaceCurationState } from './curation/curationStore';
@@ -64,8 +66,9 @@ const tile = (groupId: string, name: string, url: string, meta = '') => ({
   createdAt: AT,
 });
 
-/** Three tracks: a scored Design Systems track, a busier Trades track, an archived one, and the
- *  device-local Sample track. Boards of all eight kinds, plus links that are not boards. */
+/** Three tracks: a scored Design Systems track, a busier Trades track (not design systems: never
+ *  moved), an archived design-systems track under the pack's former label, and the device-local
+ *  Sample track. Boards of all eight kinds, plus links that are not boards. */
 const curation: CurationState = {
   categories: [
     cat('ds', 'Design Systems', {
@@ -80,7 +83,11 @@ const curation: CurationState = {
       atsRoles: ['welder'],
       sortOrder: 0,
     }),
-    cat('old', 'Old track', { titles: ['UX Designer'], archived: true, sortOrder: 2 }),
+    cat('old', 'Design Systems / Design Eng', {
+      titles: ['Design Systems Lead'],
+      archived: true,
+      sortOrder: 2,
+    }),
     cat('sample', 'Sample', { titles: ['Sample title'] }),
   ],
   groups: [
@@ -218,14 +225,14 @@ const boardKey = (url: string) => {
   return sourceKey({ kind: b.kind, ref: b.slug });
 };
 
-describe('sourcesFromV11: every board, dream and target, across all tracks', () => {
+describe('sourcesFromV11: every board, dream and target of the design-systems tracks', () => {
   const sources = sourcesFromV11(v11());
   const have = keys(sources);
   const by = new Map(sources.map((s) => [sourceKey(s), s]));
 
-  it('keeps every watched board tile of every real track, archived ones muted', () => {
+  it('keeps every watched board tile of every design-systems track, archived ones muted', () => {
     for (const t of curation.tiles) {
-      if (!parseBoardUrl(t.url) || t.groupId === 'g-sample') continue;
+      if (!parseBoardUrl(t.url) || t.groupId === 'g-sample' || t.groupId === 'g-tr-watch') continue;
       expect(have.has(boardKey(t.url)), t.url).toBe(true);
     }
     expect(by.get('greenhouse:gone')?.muted).toBe(true); // archived section
@@ -234,9 +241,17 @@ describe('sourcesFromV11: every board, dream and target, across all tracks', () 
     expect(by.get('lever:spotify')?.eu).toBe(true);
   });
 
-  it('reads more boards than any one track did (the union, never less)', () => {
+  it('a non-design-systems track surfaces nothing: no board, dream, target or title', () => {
+    expect(have.has('greenhouse:boeing')).toBe(false);
+    expect(have.has('company:nucor')).toBe(false);
+    expect(have.has('workable:lincoln')).toBe(false);
+    // Figma is also on the design-systems track: there it comes in.
+    expect(have.has('greenhouse:figma')).toBe(true);
+  });
+
+  it('reads every board the design-systems track did (the union, never less)', () => {
     const live = sources.filter((s) => sourceBoard(s) && !s.muted).map(sourceKey);
-    for (const track of ['ds', 'trades']) {
+    for (const track of ['ds']) {
       const read = boardsFromUrls(boardUrlsFor(track, curation), Infinity).map((b) =>
         sourceKey({ kind: b.kind, ref: b.slug }),
       );
@@ -251,7 +266,6 @@ describe('sourcesFromV11: every board, dream and target, across all tracks', () 
       website: 'https://vercel.com/',
     });
     expect(by.get('company:apple')).toMatchObject({ star: true, website: 'https://apple.com/' });
-    expect(by.get('company:nucor')?.star).toBe(true);
     expect(by.get('ashby:ramp')?.star).toBe(true); // was a watched board too: one Source
     expect(sources.filter((s) => sourceKey(s) === 'ashby:ramp')).toHaveLength(1);
   });
@@ -264,7 +278,6 @@ describe('sourcesFromV11: every board, dream and target, across all tracks', () 
     expect(by.get('github:adobe')).toMatchObject({ repo: 'adobe/spectrum-css', label: 'Adobe' });
     expect(by.get('yc:airbnb')?.label).toBe('Airbnb');
     expect(by.get('company:acme co')?.website).toBe('https://acme.example.org/');
-    expect(have.has('workable:lincoln')).toBe(true);
   });
 
   it("follows the board of every saved job, never the sample's", () => {
@@ -286,9 +299,9 @@ describe('sourcesFromV11: every board, dream and target, across all tracks', () 
 
   it('counts: nothing dropped, nothing doubled', () => {
     expect(sources.length).toBe(have.size);
-    // 9 DS boards + gone + boeing + oldco · dreams vercel/apple/nucor · targets shopify/adobe/
-    // airbnb/acme/lincoln · jobs stripe/linear · 4 feeds.
-    expect(sources.length).toBe(12 + 3 + 5 + 2 + 4);
+    // 9 DS boards + gone + oldco · dreams vercel/apple · targets shopify/adobe/airbnb/acme ·
+    // jobs stripe/linear · 4 feeds.
+    expect(sources.length).toBe(11 + 2 + 4 + 2 + 4);
   });
 });
 
@@ -307,12 +320,12 @@ describe('profileFromV11', () => {
     });
   });
 
-  it('keeps every sweep and track title of every real track, with its on/off', () => {
+  it('keeps every sweep and track title of every design-systems track, with its on/off', () => {
     const s = v11();
     const p = profileFromV11(s, AT)!;
     const titles = new Set(p.titles.map((t) => t.toLowerCase()));
     const off = new Set(p.titlesOff.map((t) => t.toLowerCase()));
-    for (const id of ['ds', 'trades', 'old']) {
+    for (const id of ['ds', 'old']) {
       const c = curation.categories.find((x) => x.id === id)!;
       const sw = sweepFor(s.sweeps, id, c.titles.length ? c.titles : c.atsRoles);
       for (const t of [...sw.titles, ...c.titles])
@@ -320,6 +333,9 @@ describe('profileFromV11', () => {
       for (const t of sw.off) expect(off.has(t.toLowerCase()), `${t} off`).toBe(true);
     }
     expect(titles.has('sample title')).toBe(false);
+    // No title of the trades track enters the profile.
+    for (const t of ['sheet metal worker', 'welder', 'fabricator', 'trade title 1'])
+      expect(titles.has(t), t).toBe(false);
     // The scored track's own titles lead, in their order.
     expect(p.titles.slice(0, 4)).toEqual(s.sweeps.ds.titles);
     expect(off.has('ui engineer')).toBe(true);
@@ -343,17 +359,33 @@ describe('profileFromV11', () => {
 
   it('keeps every ATS role and the ones switched off', () => {
     const p = profileFromV11(v11(), AT)!;
-    expect(p.atsRoles).toEqual(['design system', 'design technologist', 'welder']);
+    expect(p.atsRoles).toEqual(['design system', 'design technologist']);
     expect(p.atsOff).toEqual(['design technologist']);
   });
 
-  it('with no scored track takes the busiest one (boards + dreams + targets + titles)', () => {
+  it('with no scored track takes the busiest design-systems track, never another', () => {
     const s = v11();
     s.mustInclude = {};
     expect(profileFromV11(s, AT)?.fromTrack).toBe('ds'); // 10 boards, 3 dreams, 4 targets, 4 titles
+    // The trades track is now the busiest of all (14 titles, 2 boards, 1, 1): still never taken.
     s.dreams = { trades: s.dreams.trades };
     s.targets = { trades: s.targets.trades };
-    expect(profileFromV11(s, AT)?.fromTrack).toBe('trades'); // 14 titles, 2 boards, 1, 1
+    expect(profileFromV11(s, AT)?.fromTrack).toBe('ds');
+    // A design-systems track by its pack label alone (no rule) moves; the archived one is last.
+    s.curation = { ...curation, categories: curation.categories.filter((c) => c.id !== 'ds') };
+    expect(profileFromV11(s, AT)).toMatchObject({
+      fromTrack: 'old',
+      titles: ['Design Systems Lead'],
+    });
+  });
+
+  it('is null with only non-design-systems tracks (the default profile follows)', () => {
+    const s = v11();
+    s.curation = {
+      ...curation,
+      categories: curation.categories.filter((c) => c.id === 'trades' || c.id === 'sample'),
+    };
+    expect(profileFromV11(s, AT)).toBeNull();
   });
 
   it('is null with no real track', () => {
@@ -364,15 +396,13 @@ describe('profileFromV11', () => {
 });
 
 describe('moveV11', () => {
-  it('offers the links that are not boards, and only those', () => {
+  it("offers the design-systems tracks' links that are not boards, and only those", () => {
     const { links } = moveV11(v11(), AT);
-    expect(links.map((l) => l.url)).toEqual([
-      'https://www.linkedin.com/jobs/search?q=ds',
-      'https://local66.example.org/apprenticeship',
-    ]);
+    expect(links.map((l) => l.url)).toEqual(['https://www.linkedin.com/jobs/search?q=ds']);
     const text = linksText(links);
     expect(text).toContain('Design Systems');
-    expect(text).toContain('Local 66 JATC\nhttps://local66.example.org/apprenticeship');
+    expect(text).toContain('Design systems on LinkedIn\nhttps://www.linkedin.com/jobs/search?q=ds');
+    expect(text).not.toContain('local66');
   });
 });
 
@@ -459,7 +489,7 @@ describe('runV12Move (the stores)', () => {
     };
     const out = runV12Move(new Date(AT));
     expect(out.moved).toBe(true);
-    expect(out.links).toHaveLength(2);
+    expect(out.links).toHaveLength(1);
     expect(getProfile()?.fromTrack).toBe('ds');
     expect(keys(getSources())).toEqual(keys(sourcesFromV11(v11())));
     const notes = getAllDocuments().filter((d) => d.kind === 'note');
@@ -477,12 +507,12 @@ describe('runV12Move (the stores)', () => {
 
   it('runs once: a second run moves nothing, keeps edits, adds no second note', () => {
     runV12Move(new Date(AT));
-    starSource('greenhouse:boeing', true);
+    starSource('greenhouse:figma', true);
     updateProfile({ location: 'Remote' });
     const out = runV12Move(new Date(AT));
     expect(out.moved).toBe(false);
     expect(getProfile()?.location).toBe('Remote');
-    expect(getSources().find((s) => sourceKey(s) === 'greenhouse:boeing')?.star).toBe(true);
+    expect(getSources().find((s) => sourceKey(s) === 'greenhouse:figma')?.star).toBe(true);
     expect(getAllDocuments().filter((d) => d.kind === 'note')).toHaveLength(1);
     expect(getProfiles()).toHaveLength(1);
   });
@@ -543,15 +573,22 @@ describe('runV12Move (the stores)', () => {
     expect(get('lever:oldco')?.muted).toBe(true);
   });
 
-  it('lifts a move mute when the board is watched on a live track', () => {
+  it('lifts a move mute when the board is watched on a live design-systems track only', () => {
     runV12Move(new Date(AT));
     const c = getAllCuration();
+    const gone = () => getSources().find((x) => sourceKey(x) === 'greenhouse:gone');
     replaceCurationState({
       ...c,
       tiles: [...c.tiles, tile('g-tr-watch', 'Gone jobs', 'https://boards.greenhouse.io/gone')],
     });
     runV12Move(new Date(AT));
-    expect(getSources().find((x) => sourceKey(x) === 'greenhouse:gone')?.muted).toBeUndefined();
+    expect(gone()?.muted).toBe(true); // the trades track never surfaces
+    replaceCurationState({
+      ...c,
+      tiles: [...c.tiles, tile('g-ds-watch', 'Gone jobs', 'https://boards.greenhouse.io/gone')],
+    });
+    runV12Move(new Date(AT));
+    expect(gone()?.muted).toBeUndefined();
   });
 
   it('a title removed in the Search profile stays removed', () => {
@@ -587,16 +624,16 @@ describe('runV12Move (the stores)', () => {
 
   it('stars a dream starred after the move on a board already watched, once', () => {
     runV12Move(new Date(AT));
-    const get = () => getSources().find((x) => sourceKey(x) === 'greenhouse:boeing');
+    const get = () => getSources().find((x) => sourceKey(x) === 'greenhouse:figma');
     expect(get()?.star).toBeUndefined();
     replaceDreams({
       ...getAllDreams(),
-      trades: [
-        ...getAllDreams().trades,
+      ds: [
+        ...getAllDreams().ds,
         {
-          key: 'boeing',
-          company: 'Boeing',
-          board: { kind: 'greenhouse', slug: 'boeing' },
+          key: 'figma',
+          company: 'Figma',
+          board: { kind: 'greenhouse', slug: 'figma' },
           seen: [],
           starredAt: '2026-10-02T00:00:00.000Z',
         },
@@ -604,7 +641,7 @@ describe('runV12Move (the stores)', () => {
     });
     runV12Move(new Date(AT));
     expect(get()?.star).toBe(true);
-    starSource('greenhouse:boeing', false);
+    starSource('greenhouse:figma', false);
     runV12Move(new Date(AT));
     expect(get()?.star).toBeUndefined();
   });
@@ -631,6 +668,24 @@ describe('runV12Move (the stores)', () => {
     expect(out.moved).toBe(false);
     expect(getProfile()).toBeNull();
     expect(getSources()).toEqual([]);
+  });
+
+  it('with no design-systems track: no profile, no links, but the evidence still becomes a note', () => {
+    const c = getAllCuration();
+    replaceCurationState({
+      ...c,
+      categories: c.categories.filter((x) => x.id === 'trades' || x.id === 'sample'),
+    });
+    const out = runV12Move(new Date(AT));
+    expect(out).toEqual({ moved: false, links: [] });
+    expect(getProfile()).toBeNull();
+    expect(getAllDocuments().filter((d) => d.kind === 'note')).toHaveLength(1);
+    const have = keys(getSources());
+    for (const k of ['greenhouse:boeing', 'company:nucor', 'workable:lincoln'])
+      expect(have.has(k), k).toBe(false);
+    // The trades track itself stays stored, untouched.
+    expect(getAllCuration().categories.map((x) => x.id)).toContain('trades');
+    expect(getAllDreams().trades).toHaveLength(1);
   });
 
   it('the board URL of each Source reads back as the same board', () => {

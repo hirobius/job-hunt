@@ -183,30 +183,30 @@ test('Today: Scan now and the Account menu’s Companies answer within 300 ms', 
 
 test('Pipeline: every row and page action answers within 300 ms', async ({ page }) => {
   await go(page, '#/queue');
-  await press(page, button(page, 'Mark applied: Solutions Engineer'), 'Mark applied');
+  await press(page, button(page, 'Mark applied: Design Technologist'), 'Mark applied');
   await expect(
     page.getByText('Marked applied · Follow up in 7 days', { exact: true }),
   ).toBeVisible();
 
   // The job's card flashes and collapses (cards at every width, Adrian 2026-10-24); the toast
   // alone is not the item's feedback.
-  await menu(page, 'More actions: Senior Product Designer', 'Star');
-  await ranIn(page, 'rjb-flash', 'Senior Product Designer');
-  await menu(page, 'More actions: Senior Product Designer', 'Unstar');
-  await ranIn(page, 'rjb-flash', 'Senior Product Designer');
-  await menu(page, 'More actions: Implementation Consultant', 'Retire');
-  await menu(page, 'More actions: Product Designer', 'Interviewing');
-  await ranIn(page, 'rjb-flash', 'Product Designer');
-  await menu(page, 'More actions: Clinical Systems Analyst', 'Remove');
-  await ranIn(page, 'rjb-collapse', 'Clinical Systems Analyst');
+  await menu(page, 'More actions: Senior Design Systems Designer', 'Star');
+  await ranIn(page, 'rjb-flash', 'Senior Design Systems Designer');
+  await menu(page, 'More actions: Senior Design Systems Designer', 'Unstar');
+  await ranIn(page, 'rjb-flash', 'Senior Design Systems Designer');
+  await menu(page, 'More actions: Design Systems Engineer', 'Retire');
+  await menu(page, 'More actions: Product Designer, Design Systems', 'Interviewing');
+  await ranIn(page, 'rjb-flash', 'Product Designer, Design Systems');
+  await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove');
+  await ranIn(page, 'rjb-collapse', 'Principal Design Systems Engineer');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
-  await expect(button(page, 'More actions: Clinical Systems Analyst')).toHaveCount(0);
+  await expect(button(page, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
 
   for (const name of ['Status: Active', 'Sort: Newest']) {
     await press(page, button(page, name), name);
     await closeOverlay(page);
   }
-  for (const name of ['Add job', 'Follow up: UX Researcher', 'Clear sample data']) {
+  for (const name of ['Add job', 'Follow up: Design Systems Designer', 'Clear sample data']) {
     await press(page, button(page, name), name);
     await closeOverlay(page);
   }
@@ -217,9 +217,9 @@ test('Pipeline: every row and page action answers within 300 ms', async ({ page 
 test('Pipeline cards (390): Remove collapses the card before it goes', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await go(page, '#/queue');
-  await menu(page, 'More actions: Clinical Systems Analyst', 'Remove');
-  await ranIn(page, 'rjb-collapse', 'Clinical Systems Analyst');
-  await expect(button(page, 'More actions: Clinical Systems Analyst')).toHaveCount(0);
+  await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove');
+  await ranIn(page, 'rjb-collapse', 'Principal Design Systems Engineer');
+  await expect(button(page, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
 });
 
@@ -339,8 +339,8 @@ test.describe('reduced motion', () => {
     // At 390, where the same Remove collapses the card with motion on (the test above).
     await page.setViewportSize({ width: 390, height: 844 });
     await go(page, '#/queue');
-    await menu(page, 'More actions: Clinical Systems Analyst', 'Remove');
-    await expect(button(page, 'More actions: Clinical Systems Analyst')).toHaveCount(0);
+    await menu(page, 'More actions: Principal Design Systems Engineer', 'Remove');
+    await expect(button(page, 'More actions: Principal Design Systems Engineer')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
     await page.waitForTimeout(400);
     expect(await anims(page)).toEqual([]);

@@ -107,28 +107,30 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     renderApp();
     const rows = within(followUps()).getAllByRole('listitem');
     const due = rows.filter((r) => within(r).queryByText('Follow-up due'));
-    expect(due.map(titleOf)).toEqual(['UX Researcher', 'Design Systems Lead']);
+    expect(due.map(titleOf)).toEqual(['Design Systems Designer', 'Design Systems Lead']);
     // The due rows lead the list, and only they carry the action.
     expect(rows.slice(0, 2)).toEqual(due);
     for (const r of due) expect(within(r).getAllByRole('button')).toHaveLength(1);
     for (const r of rows.slice(2)) expect(within(r).queryByRole('button')).toBeNull();
     expect(within(due[0]).getAllByRole('link')[0]).toHaveAttribute(
       'href',
-      `#/queue/${jobIdOf('https://brambleandfinch.example.com/jobs/ux-researcher')}`,
+      `#/queue/${jobIdOf('https://brambleandfinch.example.com/jobs/design-systems-designer')}`,
     );
     // No job shows twice in the section.
     const names = rows.map(titleOf);
     expect(new Set(names).size).toBe(names.length);
   });
 
-  const UXR = 'https://brambleandfinch.example.com/jobs/ux-researcher';
+  const UXR = 'https://brambleandfinch.example.com/jobs/design-systems-designer';
   const dueNames = () =>
     within(followUps())
       .getAllByRole('listitem')
       .filter((r) => within(r).queryByText('Follow-up due'))
       .map(titleOf);
   const openFollowUp = async (user: ReturnType<typeof userEvent.setup>) => {
-    await user.click(within(followUps()).getByRole('button', { name: 'Follow up: UX Researcher' }));
+    await user.click(
+      within(followUps()).getByRole('button', { name: 'Follow up: Design Systems Designer' }),
+    );
     return screen.findByRole('dialog', { name: 'Follow up' });
   };
 
@@ -136,7 +138,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     const user = userEvent.setup();
     renderApp();
     const dialog = await openFollowUp(user);
-    expect(dialog).toHaveTextContent('the UX Researcher role at Bramble & Finch');
+    expect(dialog).toHaveTextContent('the Design Systems Designer role at Bramble & Finch');
     // Its blanks are chips that fill in place (rev-3 A); Edit message opens the whole text.
     expect(within(dialog).getByRole('button', { name: 'Fill Contact' })).toBeInTheDocument();
     // Edit message is the message card's last row, with a pencil, as in Use template.
@@ -158,7 +160,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Add starter messages' }));
     expect(getAllDocuments().some((d) => d.id === 'snippet-tpl-followup')).toBe(true);
     await waitFor(() =>
-      expect(dialog).toHaveTextContent('the UX Researcher role at Bramble & Finch'),
+      expect(dialog).toHaveTextContent('the Design Systems Designer role at Bramble & Finch'),
     );
     expect(within(dialog).queryByRole('button', { name: 'Add starter messages' })).toBeNull();
   });
@@ -196,27 +198,27 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     await waitFor(() =>
       expect(getAllJobs().find((j) => j.url === UXR)?.snoozeUntil).toBeUndefined(),
     );
-    expect(dueNames()).toContain('UX Researcher');
+    expect(dueNames()).toContain('Design Systems Designer');
   });
 
   it('lists the interviews and calls in the next 7 days; Open job opens its page', async () => {
     renderApp();
     const rows = within(region(/^Next 7 days/)).getAllByRole('listitem');
     expect(rows.map((r) => r.textContent)).toEqual([
-      expect.stringMatching(/Interview · Clinical Systems Analyst.*Hiring manager/),
-      expect.stringMatching(/Interview · Senior UX Designer.*Final loop/),
+      expect.stringMatching(/Interview · Principal Design Systems Engineer.*Hiring manager/),
+      expect.stringMatching(/Interview · Design Systems Architect.*Final loop/),
     ]);
     await userEvent.click(
-      within(rows[0]).getByRole('link', { name: 'Open job: Clinical Systems Analyst' }),
+      within(rows[0]).getByRole('link', { name: 'Open job: Principal Design Systems Engineer' }),
     );
     await waitFor(() =>
       expect(window.location.hash).toBe(
-        `#/queue/${jobIdOf('https://meridianoak.example.com/careers/clinical-systems-analyst')}`,
+        `#/queue/${jobIdOf('https://meridianoak.example.com/careers/principal-design-systems-engineer')}`,
       ),
     );
     // One page since #416: the job opens on its header and Details.
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Clinical Systems Analyst' }),
+      await screen.findByRole('heading', { level: 2, name: 'Principal Design Systems Engineer' }),
     ).toBeVisible();
   });
 
@@ -235,8 +237,13 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     }
     const event = within(region(/^Next 7 days/)).getAllByRole('listitem')[0];
     expect(
-      within(event).getByRole('link', { name: /^Open posting for Clinical Systems Analyst/ }),
-    ).toHaveAttribute('href', 'https://meridianoak.example.com/careers/clinical-systems-analyst');
+      within(event).getByRole('link', {
+        name: /^Open posting for Principal Design Systems Engineer/,
+      }),
+    ).toHaveAttribute(
+      'href',
+      'https://meridianoak.example.com/careers/principal-design-systems-engineer',
+    );
   });
 
   it('no line in a row holds three or more " · " items (#192)', () => {

@@ -115,9 +115,11 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   `removeSource` only undoes a fresh add, any other removal is a mute, since the move tops up from v11) and `src/decided.ts` (`rjb_decided`, by posting fingerprint only, never by
   company; `decided.get/has/set/undo/use`). All three are in the sync base (deletes stick), backups and the
   merge guard. **The v11 move** (`src/v12Migration.ts`, run by `V12Migration` in App after sync settles, a
-  lazy chunk): the profile once (scored track, else the busiest; titles from EVERY track, its own first);
-  Sources = the union across all tracks of watched board tiles (archived ones muted), dreams (starred),
-  targets and saved jobs' boards, plus the keyless feeds; Sources are topped up add-only on every run (an older
+  lazy chunk) reads **design-systems tracks only** (scored by `scorerFor`, or the Design Systems pack's label via
+  `packIdForLabel`; 2026-10-29): the profile once (scored track, else the busiest; titles from every DS track, its
+  own first; no DS track = no profile, and `ensureProfile` gives the default); Sources = the union across DS tracks
+  of watched board tiles (archived ones muted), dreams (starred) and targets, plus every saved job's board and the
+  keyless feeds; links offered are DS tracks' only; the evidence becomes a Note either way; Sources are topped up add-only on every run (an older
   client can still write v11), never switching back a star or mute the person changed, and writing nothing
   when nothing is new. Titles come in on only where v11 searched them (a live track's first 12 on), once:
   since #389 titles are not topped up, so one removed in the Search profile stays removed. A track with no
@@ -130,6 +132,15 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   (`Today.tsx`, home) and **Jobs** (`TrackerView.tsx`, slug `queue`, page head "Pipeline"), plus
   tab-less pages (Documents, legal, a job, Apply mode, a Company). `types.ts` holds the Job model.
   The old Trades / Discover / Companies screens are deleted (ADR 0009); their slugs redirect to Today.
+- **Design-systems only (Adrian 2026-10-29):** content is design systems and nothing else. The one starter pack
+  is Design Systems (`curation/starterPacks.ts` `STARTER_PACKS`; `radar/directory.ts` `DIRECTORY_BY_PACK` /
+  `TARGETS_BY_PACK` keyed `designsystems` only; `jobsData.GROUPS` = `ds-brief`, `ds-watch`); the sample jobs are
+  design-systems roles. The trades / Spokane / apprenticeship content, the Implementation Consulting, ServiceNow and
+  Skilled Trades packs, `curation/localize.ts` (Spokane link rewriting), the `'sam'` source and the non-design
+  `companySource` / `teamTopics` branches are deleted. Older accounts' other tracks stay stored (curation tables, v11
+  stores, sync, Back up, CSV) but never surface: the v12 move reads design-systems tracks only. Guard:
+  `src/dsOnly.test.ts` (pack ids, directory keys, curated groups, no `sam` source, and a scan of app source for
+  Spokane / welding / sheet metal / apprenticeship / ServiceNow / SAM.gov with a commented allow-list).
 - **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (the one `h1`, `Text variant="body"` semibold, so the
   page title is always the biggest text) · top tabs (**Today · Jobs**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
   **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Phone page gutter is 16 (`--semantic-space-fixed-sm`), HDS's region gutter from `sm`. `src/account/` is the account
@@ -522,7 +533,7 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   `recordBoardChecks` when a posting is gone from its board, every board kind; cleared when it is back). Sanitize,
   Back up (`JOB_KEY_LIST`) and CSV (four appended columns) carry them; no blob bump. **One date per job (Adrian
   2026-10-28):** `dateLabel` = "Posted 3d ago", else "Found 3d ago"; saved/found are stored, not shown. The closing
-  date is the job's `deadline` (sources: Greenhouse `application_deadline`, read live; SAM.gov; Teamtailor `end-date`,
+  date is the job's `deadline` (sources: Greenhouse `application_deadline`, read live; Teamtailor `end-date`,
   unverified; or the job page's "Applications close" date input, saved on blur), shown as a badge by `closingOf`:
   "Closes Nov 3" (warning within today + 6 days, while Saved), "Closed" (gone from the board while Saved/Applied, or
   past its day while Saved). Pipeline filters **Closing soon** and **Closed** (group "Closing date"; the old "Closed"
@@ -658,43 +669,17 @@ re-litigate decisions already in `docs/adr/`.
   JD screener (#61) is **rules-based, client-side** — no AI. `docs/adr/0002` + `README`/`FEATURES`
   still describe the old AI design as historical context.
 
-## 2026-07 — agnostic-product pivot + screening pipeline
+## 2026-07 — screening pipeline (history)
 
-_History: the pillar / track / Discover model below was replaced by one Search profile and one Sources list
-(simplify, ADR 0009); its screens are deleted. Kept for the why behind the data that is still stored._
+_The 2026-07 pillar / track / Discover model (ADR 0006) was replaced by one Search profile and one Sources list
+(ADR 0009), and its trades / consulting content by design systems only (2026-10-29)._ What still stands from it:
 
-The app is pivoting from a personal Spokane-trades board to an **agnostic, pillar-driven job-hunt
-product** (design: `docs/agnostic-product-redesign.md`, decision: `docs/adr/0006`). Execution is
-tracked under epic #30; the self-driving build backlog lives in `docs/loop-queue.md`. Shipped so
-far this cycle:
-
-- **Search is location-agnostic (#58).** `BOARDS` in `jobsData.ts` no longer hard-code Spokane —
-  `build(term, { where, mode })` takes a user-set location + work-mode (Any/Remote/Hybrid/On-site).
-  There is **no remote default** (remote roles draw ~5× the applicants); one `LocationControl`
-  (`src/LocationControl.tsx`, in the Discover header's popover) drives the Title, ATS and Live postings panels.
 - **Screening pipeline on jobs (#60).** Additive `Job` fields — `verdict` (match/stretch/reach),
   `mode`, `blockers[]`, `angle`, `screenedAt` — normalized on read in
   `src/screening.ts` (which also strips the retired `travelPct` / `applicants` from old records).
-  Edited via `ScreeningEditor`; shown as card badges; new "Best fit" sort.
-- **Rules-based JD screener (#61).** `src/jdScreener.ts` + `JdScreenPanel` (inline in a job's Screening tab) — paste a JD → suggested
-  mode/blockers/verdict from deterministic keyword rules, one-click apply.
-- **Board↔Queue interop (#57).** Saved tiles leave the board (`partitionTiles`); enriched save
-  carries a tile's meta into the job; a save toast; "Find more like this" seeds Discover.
-- **Implementation Consulting** built-in pillar; simplified Trades board nav; top-level
-  **error boundary** (#46).
-- **Supabase provisioned (#31).** `tracker` + `categories`/`groups`/`tiles` tables now exist with
-  RLS (the DB had been empty — cloud sync never had a backing table until now).
-- **#30 IA/curation chain COMPLETE (B1→B5), live on `main`.** Discover now reads the per-account
-  **curation store** (`useCategories`/`useGroups`/`useTiles`), not hardcoded pillars — a `Category`
-  _is_ a track. Shipped via per-area PRs: **#75 B1** (wire Discover→curationStore + first-run
-  `Onboarding` picking starter packs, D1) · **#76 B2/B3** (strip hardcoded content, retire the Trades
-  tab, tabs → Discover/Tracker/Templates, slugs kept for back-compat) · **#78 B4** (in-app curation
-  controls — `ManageTrackDialog` creates/edits/deletes tracks + sections + links; D2 pin/set-aside
-  triage on Discover tiles) · **#79 B5** (teaching `EmptyState`s across Discover; retired the
-  now-consumerless `Divider` primitive; #38 layout cleanup). The starter-pack list
-  (`src/curation/starterPacks.ts`) is deliberately trivial to edit (v1 provisional).
-- **Done (#99, 2026-10-13):** `pillarStore` + `pillars.ts` are retired — sync is blob v4 (jobs,
-  snippets, set-aside tiles); curation syncs through its own tables. ⚠️ GitHub Actions CI is non-functional org-wide AND disabled by owner
+- **Rules-based JD screener (#61).** `src/jdScreener.ts`: deterministic keyword rules, no AI.
+- **Supabase (#31).** `tracker` + `categories`/`groups`/`tiles` tables with RLS. `pillarStore` + `pillars.ts`
+  are retired (#99); curation syncs through its own tables. ⚠️ GitHub Actions CI is disabled by owner
   preference (`.github/workflows/ci.yml` removed); merges rely on local verify + Vercel.
 
 ## 2026-10 — the feed data layer (`src/feed/`; its Live postings screen went in #389)
@@ -742,7 +727,7 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
     status, never marks closed on a failure. Cache in `rjb_liveness`, not synced. Shown above the
     Pipeline and the job page from `App.tsx`.
   - **Starter boards.** `radar/directory.ts` is `DIRECTORY_BY_PACK`; onboarding follows the design-systems
-    list as Sources (`searchDefaults.seedSources`). `seedPack` (the sample track, old packs) still files a
+    list as Sources (`searchDefaults.seedSources`). `seedPack` / `topUpFromPack` (no app caller now) file the
     pack's boards as tiles (`addTiles`, upserts of `TILE_CHUNK` = 50 rows).
   - **Board feeds via `/api/boards` (2026-10-28, `docs/specs/job-sources.md`):** RSS/JSON boards with no CORS
     (designsystems.jobs on; We Work Remotely, Working Nomads, Himalayas, Authentic Jobs off pending terms or a
@@ -767,8 +752,8 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
   auto-scan's leads. Targets (`rjb_targets`) and dreams (`rjb_dreams`) are v11 stores the move reads. Big-company
   ATSs (Workday, SuccessFactors, Taleo, Oracle) are Google links only (Search elsewhere): never fetch them.
   `yc-oss.github.io` and `api.github.com` are in `connect-src` and `csp.test.ts`.
-- **Company source (#215):** `feed/companySource.ts` (`teamSearchFor` topics, YC hiring-now matches) and
-  `feed/teamRoles.ts` stay for the auto-scan's YC leads.
+- **Company source (#215):** `feed/companySource.ts` is the YC hiring-now match (`ycMatches`) for the auto-scan's
+  leads; `feed/teamTopics.ts` `teamSearchFor` is the design-system topic test (`roleType`, `dsOrgs`).
 - ⚠️ **CSP (#41):** when a Content-Security-Policy lands, `connect-src` must allow `hn.algolia.com`,
   `remotive.com`, `boards-api.greenhouse.io`, `api.lever.co`, `api.eu.lever.co`, `api.ashbyhq.com`
   or the feed goes silent (each source would report "couldn't connect").

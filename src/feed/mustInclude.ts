@@ -35,8 +35,8 @@ export interface MustInclude {
   related?: boolean;
   /** Related titles switched off, by id. */
   relatedOff?: string[];
-  /** A Contracts track's NAICS codes (#275). SAM.gov is gone (#389); the stored list is kept
-   *  and still read, so a sync or backup round-trips it unchanged. */
+  /** A retired contracts track's NAICS codes (#275). Never read by a screen now; the stored list
+   *  is kept and still read, so a sync or backup round-trips it unchanged. */
   naics?: string[];
 }
 

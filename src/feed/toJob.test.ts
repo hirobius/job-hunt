@@ -75,8 +75,5 @@ describe('jobFieldsFor dates (#419)', () => {
       deadline: '2026-11-01',
       note: 'Found in Live postings · Ashby',
     });
-    expect(jobFieldsFor(ranked({ source: 'sam', deadline: '2026-11-01' }), '').note).toContain(
-      'Response due 2026-11-01',
-    );
   });
 });

@@ -29,10 +29,8 @@ export function jobFieldsFor(p: RankedPosting, term: string, from = 'Live postin
   const found = term
     ? `Found in ${from} · ${SOURCE_LABEL[p.source]} · “${term}”`
     : `Found in ${from} · ${SOURCE_LABEL[p.source]}`;
-  // A solicitation's deadline is a response date; a job's closing date shows on its own line.
-  const note = [found, p.source === 'sam' && p.deadline && `Response due ${p.deadline}`, signals]
-    .filter(Boolean)
-    .join(' · ');
+  // A job's closing date shows on its own line.
+  const note = [found, signals].filter(Boolean).join(' · ');
   const fields: JobFields = { label, company: p.company, location: p.location, mode: p.mode, note };
   if (p.deadline) fields.deadline = p.deadline;
   if (p.postedAt) fields.postedAt = p.postedAt;

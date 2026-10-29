@@ -51,11 +51,11 @@ test('opens on setup at home (Today); the sample pipeline lists due follow-ups',
   await expect(page).toHaveURL(/#\/queue$/);
   const followUps = page.getByRole('region', { name: /^Follow up \(/ });
   await expect(followUps).toBeVisible();
-  await followUps.getByRole('button', { name: 'Follow up: UX Researcher' }).click();
+  await followUps.getByRole('button', { name: 'Follow up: Design Systems Designer' }).click();
   const dialog = page.getByRole('dialog', { name: 'Follow up' });
   // A first run has no messages (Adrian 2026-10-22): one tap adds the starters and fills it.
   await dialog.getByRole('button', { name: 'Add starter messages' }).click();
-  await expect(dialog).toContainText('UX Researcher role');
+  await expect(dialog).toContainText('Design Systems Designer role');
   await dialog.getByRole('button', { name: 'Copy message' }).click();
   await dialog.getByRole('button', { name: 'Mark as sent' }).click();
   await expect(dialog.getByText('Follow-up sent. Next one due in 7 days.')).toBeVisible();
