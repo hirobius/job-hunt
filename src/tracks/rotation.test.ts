@@ -374,8 +374,7 @@ describe('runBatch: time box, per-host limit, 429s, in order', () => {
   const base = { timeBoxMs: 1000, hostConcurrency: 2, globalConcurrency: 4 };
 
   it('never runs more than hostConcurrency per host or globalConcurrency in all', async () => {
-    let clock = 0;
-    const now = () => clock;
+    const now = () => 0;
     const live = new Map<string, number>();
     let peakHost = 0;
     let peakAll = 0;
