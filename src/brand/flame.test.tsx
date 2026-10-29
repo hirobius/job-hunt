@@ -124,6 +124,16 @@ describe('derived from flame.svg', () => {
     }
   });
 
+  it('withUniqueIds handles single quotes and quoted url() references', () => {
+    const out = withUniqueIds(
+      `<svg><clipPath id='c'/><g clip-path="url('#c')"/><use href='#c'/></svg>`,
+      'z',
+    );
+    expect(out).toBe(
+      `<svg><clipPath id='c-z'/><g clip-path="url('#c-z')"/><use href='#c-z'/></svg>`,
+    );
+  });
+
   it('withUniqueIds rewrites ids and their references, and drops comments', () => {
     const out = withUniqueIds(
       '<!-- note --><svg><clipPath id="c"><use href="#p"/></clipPath><path id="p" clip-path="url(#c)"/></svg>',
@@ -147,6 +157,7 @@ describe('the reveal', () => {
       .map((m) => m[1])
       .join('\n');
     expect(reduced).toMatch(/\.rjb-flame-reveal/);
-    expect(reduced).toMatch(/\.rjb-boot/);
+    // reduced motion drops the fade, never the beat that keeps a fast boot from flashing
+    expect(reduced).toMatch(/\.rjb-boot\s*\{\s*animation-timing-function: step-end/);
   });
 });

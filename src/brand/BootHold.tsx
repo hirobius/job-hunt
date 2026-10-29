@@ -27,7 +27,7 @@ export function BootHold({
     const t = setTimeout(() => setDone(true), BOOT_HOLD_MAX_MS);
     return () => clearTimeout(t);
   }, [done]);
-  if (done || settled) return <>{children}</>;
+  if (done) return <>{children}</>;
   return (
     <div className="rjb-boot-hold" role="status" aria-label={`Loading ${BRAND.name}`}>
       <Flame reveal />

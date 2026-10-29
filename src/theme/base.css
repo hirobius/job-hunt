@@ -824,9 +824,12 @@ p {
   --rjb-logo-size: var(--primitive-space-10);
 }
 @media (prefers-reduced-motion: reduce) {
-  .rjb-flame-reveal svg,
-  .rjb-boot {
+  .rjb-flame-reveal svg {
     animation: none;
+  }
+  /* No fade, but the same beat: a fast boot still shows nothing. */
+  .rjb-boot {
+    animation-timing-function: step-end;
   }
 }
 

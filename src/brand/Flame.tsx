@@ -4,7 +4,7 @@
 // run `npm run icons` and commit; `flame.test.tsx` fails on a second copy anywhere else.
 // In the app its layers take HDS primitives by class (`.flame-1..3` in base.css, light / dark);
 // a file without those classes shows its own fills.
-import { useId } from 'react';
+import { useId, useMemo } from 'react';
 import { BRAND } from '../brand';
 import { flameSvg, withUniqueIds } from './flameSvg';
 
@@ -12,12 +12,13 @@ import { flameSvg, withUniqueIds } from './flameSvg';
  *  short rise-in once (a static mark under prefers-reduced-motion). */
 export function Flame({ className, reveal = false }: { className?: string; reveal?: boolean }) {
   const suffix = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const html = useMemo(() => withUniqueIds(flameSvg, suffix), [suffix]);
   return (
     <span
       className={['rjb-flame', reveal && 'rjb-flame-reveal', className].filter(Boolean).join(' ')}
       aria-hidden="true"
       // The repo's own static file (a build-time import), never user content.
-      dangerouslySetInnerHTML={{ __html: withUniqueIds(flameSvg, suffix) }}
+      dangerouslySetInnerHTML={{ __html: html }}
     />
   );
 }

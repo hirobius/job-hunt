@@ -97,13 +97,14 @@ const defaultTabIndex = TAB_SLUGS.indexOf(HOME_ROUTE);
 
 /** Moves the legacy snippets into the Documents library as Outreach messages (#227), once each,
  *  after sync has settled so the cloud's copy (already moved on another device) is here first. */
-/** A signed-in device with nothing on it shows the flame until its cloud copy lands, instead of
- *  flashing the first-run setup (brand/BootHold.tsx). Decided once, at boot. */
+/** On Today, a signed-in device with nothing on it shows the flame until its cloud copy lands,
+ *  instead of flashing the first-run setup (brand/BootHold.tsx). Decided once, at boot; offline
+ *  there is nothing to wait for. Pages that never gate (Jobs, Documents, legal) are never held. */
 function PageHold({ firstRun, children }: { firstRun: boolean; children: ReactNode }) {
-  const { settled } = useCloudSync();
+  const { settled, offline } = useCloudSync();
   const [waiting] = useState(() => firstRun && needsClientAtBoot());
   return (
-    <BootHold waiting={waiting} settled={settled}>
+    <BootHold waiting={waiting} settled={settled || offline}>
       {children}
     </BootHold>
   );
@@ -328,60 +329,60 @@ export default function App() {
                   {/* A page whose chunk is gone after a deploy says so here, not over the shell
                       (#331); a move to another page clears it. */}
                   <PageErrorBoundary resetKey={pageKey(route)}>
-                    <PageHold firstRun={firstRun}>
-                      <Stack gap="px24">
-                        <TabsContent value="today" variant="bare" tabIndex={-1}>
-                          <Suspense fallback={<PipelineSkeleton />}>
+                    <Stack gap="px24">
+                      <TabsContent value="today" variant="bare" tabIndex={-1}>
+                        <Suspense fallback={<PipelineSkeleton />}>
+                          <PageHold firstRun={firstRun}>
                             {firstRun ? <Onboarding offerSample /> : <Today />}
-                          </Suspense>
-                        </TabsContent>
-                        <TabsContent value="queue" variant="bare" tabIndex={-1}>
-                          <Suspense fallback={<PipelineSkeleton />}>
-                            {applying ? (
-                              <ApplyMode jobId={route.sub} />
-                            ) : company ? (
-                              <CompanyPage slug={route.sub ?? ''} />
-                            ) : route.jobId ? (
-                              <>
-                                <JobPageLiveness jobId={route.jobId} />
-                                <JobPage jobId={route.jobId} />
-                              </>
+                          </PageHold>
+                        </Suspense>
+                      </TabsContent>
+                      <TabsContent value="queue" variant="bare" tabIndex={-1}>
+                        <Suspense fallback={<PipelineSkeleton />}>
+                          {applying ? (
+                            <ApplyMode jobId={route.sub} />
+                          ) : company ? (
+                            <CompanyPage slug={route.sub ?? ''} />
+                          ) : route.jobId ? (
+                            <>
+                              <JobPageLiveness jobId={route.jobId} />
+                              <JobPage jobId={route.jobId} />
+                            </>
+                          ) : (
+                            // No sync banner: the Account menu's sync line says where data lives.
+                            <TrackerView />
+                          )}
+                        </Suspense>
+                      </TabsContent>
+                      {legacy && (
+                        <TabsContent value={LEGACY_TAB} variant="bare" tabIndex={-1}>
+                          <Suspense fallback={<DiscoverSkeleton />}>
+                            {firstRun ? (
+                              <Onboarding offerSample />
+                            ) : hasTracks ? (
+                              <DiscoverView />
                             ) : (
-                              // No sync banner: the Account menu's sync line says where data lives.
-                              <TrackerView />
+                              <ChooseTrack />
                             )}
                           </Suspense>
                         </TabsContent>
-                        {legacy && (
-                          <TabsContent value={LEGACY_TAB} variant="bare" tabIndex={-1}>
-                            <Suspense fallback={<DiscoverSkeleton />}>
-                              {firstRun ? (
-                                <Onboarding offerSample />
-                              ) : hasTracks ? (
-                                <DiscoverView />
-                              ) : (
-                                <ChooseTrack />
-                              )}
-                            </Suspense>
-                          </TabsContent>
-                        )}
-                        {documents && (
-                          <Suspense fallback={<CopyDeckSkeleton />}>
-                            <DocumentsView />
-                          </Suspense>
-                        )}
-                        {legal && (
-                          <Suspense fallback={null}>
-                            <LegalPage />
-                          </Suspense>
-                        )}
-                        {notFound && (
-                          <Suspense fallback={null}>
-                            <NotFoundPage />
-                          </Suspense>
-                        )}
-                      </Stack>
-                    </PageHold>
+                      )}
+                      {documents && (
+                        <Suspense fallback={<CopyDeckSkeleton />}>
+                          <DocumentsView />
+                        </Suspense>
+                      )}
+                      {legal && (
+                        <Suspense fallback={null}>
+                          <LegalPage />
+                        </Suspense>
+                      )}
+                      {notFound && (
+                        <Suspense fallback={null}>
+                          <NotFoundPage />
+                        </Suspense>
+                      )}
+                    </Stack>
                   </PageErrorBoundary>
                 </Box>
               </Stack>
