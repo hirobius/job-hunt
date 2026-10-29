@@ -183,7 +183,7 @@ function ResetLocalData({
   const docs = useDocuments().length;
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      {/* Placed like the sign-in dialog (`.rjb-sheet`): every shell dialog sits in one place. */}
+      {/* Placed like the other shell dialogs with a field (`.rjb-sheet`, sheet.css). */}
       <AlertDialog.Content className="rjb-sheet" onCloseAutoFocus={refocusAccount(returnFocus)}>
         <AlertDialog.Header>
           <AlertDialog.Title>Reset local data?</AlertDialog.Title>

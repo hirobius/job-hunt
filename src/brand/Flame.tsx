@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- the mark and its markup helpers co-located: one source */
 // The flame logo. `flame.svg` beside this file is the one source of the mark: the header, the
 // boot splash (index.html, via the brand-html plugin), the sign-in screen and `npm run icons`
 // (favicon, PNG icons, favicon.ico, og-image) all read it. To change the logo, replace flame.svg,

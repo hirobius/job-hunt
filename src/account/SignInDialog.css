@@ -1,5 +1,62 @@
-/* Sign-in dialog: its placement is the shared shell sheet (sheet.css, `.rjb-sheet`); its buttons
-   fill the width. */
+/* The sign-in screen (brand pass, 2026-10-29): an HDS Dialog made full-screen. Its panel fills the
+   visual viewport (vars from hds-gaps/useVisualViewportVars; without them, the whole viewport), so
+   the iOS keyboard never covers the field or the button; the page surface, no edge or shadow. One
+   centred column (at most 400 wide) scrolls when it doesn't fit. Upstream ask: a full-screen,
+   keyboard-aware Dialog variant (related: hds#690). Unlayered, so it beats HDS's utilities. */
+.rjb-signin-screen {
+  top: var(--rjb-vv-top, 0px);
+  left: 0;
+  translate: none;
+  transform: none;
+  width: 100%;
+  max-width: none;
+  height: var(--rjb-vv-height, 100dvh);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: var(--semantic-space-fixed-md) var(--semantic-space-fixed-sm);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--semantic-color-surface-page);
+}
+.rjb-signin-screen__column {
+  /* Auto margins centre it and fall to 0 when it overflows, so its top never scrolls out of reach. */
+  margin: auto;
+  width: 100%;
+  max-width: calc(var(--primitive-space-32) * 3 + var(--primitive-space-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--semantic-space-fixed-sm);
+}
+.rjb-signin-screen__brand {
+  --rjb-logo-size: var(--primitive-space-7);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--semantic-space-fixed-xs);
+  margin-bottom: var(--semantic-space-fixed-sm);
+}
+/* A short screen (a phone with the keyboard up): the lockup goes to one small row, so the field
+   and Send link stay in view. */
+@media (max-height: 560px) {
+  .rjb-signin-screen {
+    padding-block: var(--semantic-space-fixed-sm);
+  }
+  .rjb-signin-screen__column {
+    gap: var(--semantic-space-fixed-xs);
+  }
+  .rjb-signin-screen__brand {
+    --rjb-logo-size: var(--primitive-space-4);
+    flex-direction: row;
+    align-items: center;
+    gap: var(--semantic-space-fixed-2xs);
+    margin-bottom: 0;
+  }
+}
+
+/* Its buttons fill the column. */
 .sign-in-dialog__primary {
   width: 100%;
 }
