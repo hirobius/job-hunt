@@ -38,7 +38,7 @@ import { boardKeyOf, countSources } from './feed';
 import { liveFetchJson, type FeedResult } from './fetchFeed';
 import { createGithubBudget, type GithubBudget } from './githubBudget';
 import { confirmBoard } from './identity';
-import { inferMode } from './match';
+import { remoteVerdict } from './mode';
 import { passesInclude, type IncludeRule } from './mustInclude';
 import { createLimiter, probeCompanies, type Limiter } from './probe';
 import { browserReader, type PostingReader } from './reader';
@@ -302,19 +302,9 @@ export function shouldScan(s: ScanState, now: number): boolean {
 
 // ---- filters ----
 
-// A place that names no city: a remote posting's usual location line, without the word.
-const PLACE_UNSTATED =
-  /^(anywhere|worldwide|global|earth|united states( of america)?|usa?|u\.s\.?a?\.?|north america|americas|europe|emea|apac|latam|canada|uk|united kingdom)$/i;
-
-/** Remote only (Adrian 2026-10-28), on the source's own work mode or the location line
- *  (`inferMode`): remote keeps; on-site or hybrid drops; no mode and no city keeps, marked. */
-export function remoteOnly(p: Posting): 'keep' | 'unstated' | 'drop' {
-  const mode = p.mode ?? inferMode(p.location);
-  if (mode === 'remote') return 'keep';
-  if (mode) return 'drop';
-  const place = p.location.trim().replace(/[.,;]+$/, '');
-  return !place || PLACE_UNSTATED.test(place) ? 'unstated' : 'drop';
-}
+/** Remote only (Adrian 2026-10-28): mode.ts `remoteVerdict` on the posting's mode and location. */
+export const remoteOnly = (p: Posting): 'keep' | 'unstated' | 'drop' =>
+  remoteVerdict(p.mode, p.location);
 
 /** The profile's must-include when it asks for design systems, else the design-system rule. */
 export function inclusionRule(include?: IncludeRule): IncludeRule {
@@ -550,12 +540,7 @@ export async function runScan(
 
   // 3. read every followed board, every confirmed company found, and every feed
   step({ phase: 'read' });
-  const readUrls = [
-    ...new Set([
-      ...input.boardUrls,
-      ...s.found.filter((f) => f.confirmed && f.status !== 'ignored').map((f) => f.boardUrl),
-    ]),
-  ].sort();
+  const readUrls = scanBoardUrls(input.boardUrls, s);
   let result: FeedResult;
   try {
     result = await d.reader.read({ terms: input.terms, boardUrls: readUrls });
@@ -616,6 +601,17 @@ export async function runScan(
   writePostings(stored);
   save();
   return s;
+}
+
+/** The boards a run reads: every followed board and every confirmed company it found, not ignored.
+ *  Today's "Scanning N sources" counts these too (feed/scanningCount.ts). */
+export function scanBoardUrls(followed: readonly string[], s: Pick<ScanState, 'found'>): string[] {
+  return [
+    ...new Set([
+      ...followed,
+      ...s.found.filter((f) => f.confirmed && f.status !== 'ignored').map((f) => f.boardUrl),
+    ]),
+  ].sort();
 }
 
 // ---- the one run at a time ----
@@ -754,11 +750,14 @@ export const newCompanies = (s: ScanState): FoundCompany[] =>
 
 /** "Last scanned 14:05 · 12 new from 9 sources". `counts`: Review new's own (FeedView newToday and
  *  sourcesRead, from feed.ts countSources) once it has read, so the page shows one number; else the
- *  scan's. Null before the first run. */
+ *  scan's. `scanning`: how many sources are scanned (feed/scanningCount.ts); given, it leads and
+ *  stands in for the answered count: "Scanning 5,214 sources · Last scanned 14:05 · 12 new". Null
+ *  before the first run. */
 export function lastScannedLine(
   s: ScanState,
   locale?: string,
   counts?: { newToday: number; sources: number },
+  scanning?: number,
 ): string | null {
   if (!s.finishedAt) return null;
   const at = new Date(s.finishedAt).toLocaleTimeString(locale, {
@@ -766,7 +765,9 @@ export function lastScannedLine(
     minute: '2-digit',
     hour12: false,
   });
-  const n = counts?.sources ?? s.sourceCount;
   const fresh = counts?.newToday ?? s.newCount;
+  if (scanning !== undefined)
+    return `Scanning ${scanning.toLocaleString('en-US')} ${scanning === 1 ? 'source' : 'sources'} · Last scanned ${at} · ${fresh} new`;
+  const n = counts?.sources ?? s.sourceCount;
   return `Last scanned ${at} · ${fresh} new from ${n} ${n === 1 ? 'source' : 'sources'}`;
 }

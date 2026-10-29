@@ -69,7 +69,9 @@ export function normalize(p: Posting): NormalizedPosting {
     title: p.title,
     company: p.company,
     location: p.location || undefined,
-    remote: p.mode === 'remote' || undefined,
+    // false when the source says on-site or hybrid, so the scan rotation's remote-only rule
+    // (rotation.ts) can tell "not remote" from "doesn't say".
+    remote: p.mode === 'remote' ? true : p.mode ? false : undefined,
     url: p.url,
     descriptionText: p.text,
     postedAt: p.postedAt,

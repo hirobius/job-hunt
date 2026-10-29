@@ -1,0 +1,10 @@
+{
+ "generated": "2026-10-29",
+ "note": "Placeholder until npm run boards:discover writes the real snapshot.",
+ "sources": [],
+ "counts": { "candidates": 0, "probed": 0, "live": 0, "confirmed": 2 },
+ "boards": [
+  { "kind": "greenhouse", "slug": "stripe", "company": "Stripe", "website": "stripe.com", "jobs": 500, "lastChecked": "2026-10-29", "evidence": "url:seed" },
+  { "kind": "ashby", "slug": "ramp", "company": "Ramp", "jobs": 100, "lastChecked": "2026-10-29", "evidence": "url:seed" }
+ ]
+}

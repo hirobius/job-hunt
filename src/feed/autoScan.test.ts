@@ -170,6 +170,13 @@ describe('runScan', () => {
     expect(lastScannedLine(s, 'en-GB', { newToday: 5, sources: 1 })).toMatch(
       /^Last scanned \d\d:\d\d · 5 new from 1 source$/,
     );
+    // With the scanned count (feed/scanningCount.ts), it leads and the answered count goes.
+    expect(lastScannedLine(s, 'en-GB', { newToday: 5, sources: 1 }, 5214)).toMatch(
+      /^Scanning 5,214 sources · Last scanned \d\d:\d\d · 5 new$/,
+    );
+    expect(lastScannedLine(s, 'en-GB', undefined, 1)).toMatch(
+      /^Scanning 1 source · Last scanned \d\d:\d\d · 2 new$/,
+    );
   });
 
   it('a board the identity check does not trust is shown but never read', async () => {

@@ -24,6 +24,10 @@ import { EMPTY_CURATION } from './curation/types';
 import { boardUrlsFor } from './feed/watchlist';
 import { getAllDecided } from './feed/decided';
 import type { PostingReader } from './feed/reader';
+import { CloudSyncContext, type CloudSyncApi } from './account/accountContext';
+import raw from './feed/data/boards.json';
+import { boardSetKeys, parseBoardSet } from './feed/boardSet';
+import { feedKeys, resetBoardSetKeys } from './feed/scanningCount';
 
 const ACME = 'https://boards.greenhouse.io/acme';
 const fetchJson = (async (url: string) => {
@@ -79,16 +83,21 @@ beforeEach(() => {
   resetScan();
   dismissNotice();
   replaceCurationState(EMPTY_CURATION);
+  resetBoardSetKeys();
 });
 afterEach(cleanup);
 
-const renderViews = () =>
+const renderViews = ({ signedIn = false } = {}) =>
   render(
-    <ToastProvider>
-      <ScanStatus />
-      <NewCompanies />
-      <NoticeHost />
-    </ToastProvider>,
+    <CloudSyncContext.Provider
+      value={{ user: signedIn ? { id: 'u1', email: 'a@b.c' } : null } as CloudSyncApi}
+    >
+      <ToastProvider>
+        <ScanStatus />
+        <NewCompanies />
+        <NoticeHost />
+      </ToastProvider>
+    </CloudSyncContext.Provider>,
   );
 
 describe('ScanStatus', () => {
@@ -96,8 +105,30 @@ describe('ScanStatus', () => {
     renderViews();
     expect(screen.getByRole('status')).toHaveTextContent('Not scanned yet');
     await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
-    expect(await screen.findByText(/^Last scanned \d\d:\d\d · 1 new from 1 source$/)).toBeVisible();
+    // Signed out: only what this browser reads, the feeds and Acme's confirmed board (Forward's
+    // unconfirmed board is never read).
+    const browser = feedKeys().length + 1;
+    expect(
+      await screen.findByText(
+        new RegExp(`^Scanning ${browser} sources · Last scanned \\d\\d:\\d\\d · 1 new$`),
+      ),
+    ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Scan now' })).toBeEnabled();
+  });
+
+  it('signed in, counts the server’s board set too, each board once', async () => {
+    await runScan({ terms: ['Design Systems Engineer'], boardUrls: [] }, deps());
+    renderViews({ signedIn: true });
+    const all = new Set([...boardSetKeys(parseBoardSet(raw)), ...feedKeys(), 'greenhouse:acme'])
+      .size;
+    expect(all).toBeGreaterThan(feedKeys().length + 1);
+    expect(
+      await screen.findByText(
+        new RegExp(
+          `^Scanning ${all.toLocaleString('en-US')} sources · Last scanned \\d\\d:\\d\\d · 1 new$`,
+        ),
+      ),
+    ).toBeVisible();
   });
 });
 

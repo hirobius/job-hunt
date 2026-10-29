@@ -78,7 +78,7 @@ for (const width of [390, 1440]) {
     await page.evaluate(seedTrack);
 
     await expect(
-      page.getByText(/^Last scanned \d\d:\d\d · \d+ new from \d+ sources?$/),
+      page.getByText(/^Scanning [\d,]+ sources? · Last scanned \d\d:\d\d · \d+ new$/),
     ).toBeVisible({
       timeout: 60_000,
     });

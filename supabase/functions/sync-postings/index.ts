@@ -11,9 +11,13 @@
 // One invocation reads SLICE boards (the worker's CPU budget is ~2 s, and the first full run ran
 // out), then calls itself for the next slice. The feeds and closing unfollowed boards run on the
 // last slice; each slice closes postings missed on the boards it read.
+// Scan rotation (#src-bulk, body `{ rotate: true }`, pg_cron every minute): see `rotate` below and
+// src/tracks/rotation.ts. It reads the bulk board set a slice at a time for design systems users.
 // Auth: x-sync-secret must equal SYNC_SECRET (compared as SHA-256 digests, without an early exit).
 // Nothing is accepted until SYNC_SECRET is set. Deploy and secrets: README.md beside this file.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import boardsJson from '../../../src/feed/data/boards.json' with { type: 'json' };
+import { parseBoardSet } from '../../../src/feed/boardSet.ts';
 import {
   answeredFeeds,
   feedReadsFor,
@@ -28,8 +32,20 @@ import {
   scoreBatch,
   TERM_FEEDS,
   type ReadOutcome,
+  type ScoredPosting,
   type TermFeed,
 } from '../../../src/tracks/sync.ts';
+import {
+  advance,
+  keepForScan,
+  pickBatch,
+  ROTATION,
+  runBatch,
+  sanitizeRotation,
+  toWatched,
+  type DeadBoard,
+} from '../../../src/tracks/rotation.ts';
+import { designSystemsTrack } from '../../../src/tracks/track-config.ts';
 import type { WatchedCompany } from '../../../src/tracks/sources.ts';
 import type { TrackConfig } from '../../../src/tracks/track-config.ts';
 
@@ -150,16 +166,27 @@ async function readPaged<R>(page: Page<R>, size: number) {
 }
 
 /** Score, dedupe and upsert one user's postings from this pass's answered reads. */
-async function writeGroup(
+const writeGroup = (
   db: SupabaseClient,
   userId: string,
   config: TrackConfig,
   answered: ReadOutcome[],
   logs: Log[],
   totals: Totals,
+) => writeScored(db, userId, config.slug, scoreBatch(answered, config), logs, totals);
+
+/** Dedupe and upsert one user's scored postings. `extra` columns ride on every row (the scan's
+ *  `via_scan`). */
+async function writeScored(
+  db: SupabaseClient,
+  userId: string,
+  trackSlug: string,
+  scoredIn: ScoredPosting[],
+  logs: Log[],
+  totals: Totals,
+  extra: Record<string, unknown> = {},
 ) {
-  const trackSlug = config.slug;
-  let scored = scoreBatch(answered, config);
+  let scored = scoredIn;
   // One row per key in a batch (an upsert can't touch a row twice).
   const keys = new Set<string>();
   scored = scored.filter((s) => {
@@ -224,6 +251,7 @@ async function writeGroup(
     missed_syncs: 0,
     last_seen_at: seen,
     closed_at: null,
+    ...extra,
   }));
   for (let i = 0; i < upserts.length; i += CHUNK) {
     const { error } = await db
@@ -241,6 +269,63 @@ async function writeGroup(
     }
   }
   for (const s of scored) totals[s.verdict]++;
+}
+
+/** A posting closed now (a gone board, or one no longer followed). */
+const closing = () => ({
+  verdict: 'reject',
+  reasons: ['posting closed'],
+  closed_at: new Date().toISOString(),
+});
+
+/** Every user's plan, from their blob (v11 blobs with their watched tiles). `tilesError`: the
+ *  tiles could not be read, so a v11 user's boards would all look unfollowed. */
+async function loadPlans(
+  db: SupabaseClient,
+  logs: Log[],
+): Promise<
+  | { plans: Map<string, SyncPlan>; planless: string[]; tilesError: string | null }
+  | { error: string }
+> {
+  // v11 blobs keep their watched boards in the curation tables (service role only).
+  const tiles = await readPaged<WatchedTile & { user_id: string }>(
+    async (from, to) =>
+      (await db.rpc('watched_tile_urls').range(from, to)) as {
+        data: (WatchedTile & { user_id: string })[] | null;
+        error: { message: string } | null;
+      },
+    TILE_PAGE,
+  );
+  if (tiles.error)
+    logs.push({
+      user_id: null,
+      kind: 'failed',
+      board: null,
+      status: null,
+      message: `watched tiles (v11 fallback): ${tiles.error}`.slice(0, 2000),
+    });
+  const tilesOf = new Map<string, WatchedTile[]>();
+  for (const t of tiles.rows) tilesOf.set(t.user_id, [...(tilesOf.get(t.user_id) ?? []), t]);
+
+  // Every user's plan, from their blob.
+  const blobs = await readPaged<{ user_id: string; data: unknown }>(
+    async (from, to) =>
+      (await db.from('tracker').select('user_id, data').order('user_id').range(from, to)) as {
+        data: { user_id: string; data: unknown }[] | null;
+        error: { message: string } | null;
+      },
+    BLOB_PAGE,
+  );
+  if (blobs.error) return { error: blobs.error };
+  const plans = new Map<string, SyncPlan>();
+  // Users with nothing to score against (no titles, no design systems): their rows close.
+  const planless: string[] = [];
+  for (const b of blobs.rows) {
+    const plan = planFromBlob(b.data, tilesOf.get(b.user_id) ?? []);
+    if (plan) plans.set(b.user_id, plan);
+    else planless.push(b.user_id);
+  }
+  return { plans, planless, tilesError: tiles.error };
 }
 
 /** Start the next slice in its own invocation (its own CPU budget). Waits only until the request
@@ -278,6 +363,7 @@ Deno.serve(async (req) => {
   if (!(await authorized(req.headers.get('x-sync-secret'))))
     return json({ error: 'forbidden' }, 403);
   const body = (await req.json().catch(() => ({}))) as {
+    rotate?: boolean;
     rss?: boolean;
     after?: string;
     runStart?: string;
@@ -294,52 +380,13 @@ Deno.serve(async (req) => {
   const db = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
     auth: { persistSession: false },
   });
+  if (body.rotate === true) return rotate(db);
   const runStart = body.runStart ?? new Date().toISOString();
   const logs: Log[] = [];
 
-  // v11 blobs keep their watched boards in the curation tables (service role only).
-  const tiles = await readPaged<WatchedTile & { user_id: string }>(
-    async (from, to) =>
-      (await db.rpc('watched_tile_urls').range(from, to)) as {
-        data: (WatchedTile & { user_id: string })[] | null;
-        error: { message: string } | null;
-      },
-    TILE_PAGE,
-  );
-  if (tiles.error)
-    logs.push({
-      user_id: null,
-      kind: 'failed',
-      board: null,
-      status: null,
-      message: `watched tiles (v11 fallback): ${tiles.error}`.slice(0, 2000),
-    });
-  const tilesOf = new Map<string, WatchedTile[]>();
-  for (const t of tiles.rows) tilesOf.set(t.user_id, [...(tilesOf.get(t.user_id) ?? []), t]);
-
-  // Every user's plan, from their blob.
-  const blobs = await readPaged<{ user_id: string; data: unknown }>(
-    async (from, to) =>
-      (await db.from('tracker').select('user_id, data').order('user_id').range(from, to)) as {
-        data: { user_id: string; data: unknown }[] | null;
-        error: { message: string } | null;
-      },
-    BLOB_PAGE,
-  );
-  if (blobs.error) return json({ error: blobs.error }, 500);
-  const plans = new Map<string, SyncPlan>();
-  // Users with nothing to score against (no titles, no design systems): their rows close.
-  const planless: string[] = [];
-  for (const b of blobs.rows) {
-    const plan = planFromBlob(b.data, tilesOf.get(b.user_id) ?? []);
-    if (plan) plans.set(b.user_id, plan);
-    else planless.push(b.user_id);
-  }
-  const closing = () => ({
-    verdict: 'reject',
-    reasons: ['posting closed'],
-    closed_at: new Date().toISOString(),
-  });
+  const loaded = await loadPlans(db, logs);
+  if ('error' in loaded) return json({ error: loaded.error }, 500);
+  const { plans, planless, tilesError } = loaded;
 
   // Each board once, however many users follow it; who follows each board.
   const distinct = new Map<string, Follower>();
@@ -465,7 +512,7 @@ Deno.serve(async (req) => {
       // instead of waiting for misses that never come; so are rows scored under an old profile, and
       // a feed the user muted (only the feeds they have on are kept). Not when a v11 user's watched
       // tiles could not be read: their boards would all look unfollowed.
-      if (last && !(plan.from === 'v11' && tiles.error)) {
+      if (last && !(plan.from === 'v11' && tilesError)) {
         const { data: n, error } = await db.rpc('close_unfollowed_postings', {
           p_user: userId,
           p_track: trackSlug,

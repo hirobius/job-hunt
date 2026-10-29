@@ -1,4 +1,4 @@
-// The auto-scan's only UI (#415): "Scan now" with "Last scanned hh:mm · N new from M sources", and
+// The auto-scan's only UI (#415): "Scan now" with "Scanning N sources · Last scanned hh:mm · K new", and
 // New companies (Follow / Ignore). Today mounts both: the status at its top, New companies at its
 // end. Every action says so with an Undo.
 import { Button, Icon, Stack, Text } from '@hirobius/design-system';
@@ -11,13 +11,16 @@ import {
   ignoreFound,
   lastScannedLine,
   newCompanies,
+  scanBoardUrls,
   scanNow,
   useScan,
   type FoundCompany,
   type LeadSource,
   type ScanProgress,
 } from './feed/autoScan';
+import { useScanningCount } from './feed/scanningCount';
 import { useScanInput } from './feed/useAutoScan';
+import { useCloudSync } from './account/accountContext';
 
 const VIA_LABEL: Record<LeadSource, string> = {
   yc: 'YC',
@@ -51,10 +54,13 @@ export function ScanStatus({
 }) {
   const { state, running, progress } = useScan();
   const { input } = useScanInput(categoryId);
+  const { user } = useCloudSync();
+  // Signed in, the server's rotation scans the whole board set too; signed out, only this browser.
+  const scanning = useScanningCount(scanBoardUrls(input.boardUrls, state), !!user);
   const line = running
     ? progressLine(progress)
     : (state.error ??
-      lastScannedLine(state, undefined, counts) ??
+      lastScannedLine(state, undefined, counts, scanning) ??
       'Not scanned yet. The first scan runs on its own.');
   return (
     <Stack direction="row" gap="tight" align="center" justify="space-between" wrap="wrap">
