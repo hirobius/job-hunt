@@ -99,10 +99,10 @@ describe('derived from flame.svg', () => {
     for (const d of source) expect(root).toContain(d);
   });
 
-  it('the header lockup is the wordmark h1, the flame from flame.svg as its "o"', () => {
+  it('the header lockup is the wordmark (an image, not a heading: #363), the flame from flame.svg as its "o"', () => {
     const { container } = render(<BrandLogo />);
-    const h1 = screen.getByRole('heading', { level: 1, name: BRAND.name });
-    const flame = h1.querySelector('.rjb-wordmark-o .rjb-flame')!;
+    const word = screen.getByRole('img', { name: BRAND.name });
+    const flame = word.querySelector('.rjb-wordmark-o .rjb-flame')!;
     expect(flame.closest('[aria-hidden="true"]')).not.toBeNull();
     expect([...flame.querySelectorAll('path')].map((p) => p.getAttribute('d'))).toEqual(source);
     expect(container.querySelector('img, canvas')).toBeNull();

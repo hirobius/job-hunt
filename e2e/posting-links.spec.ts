@@ -203,7 +203,7 @@ async function openJobTitled(page: Page, text: string) {
     .first()
     .getAttribute('href');
   await page.evaluate((h) => (location.hash = h!), hash);
-  await expect(page.locator('header h2')).toContainText(text);
+  await expect(page.locator('header h1')).toContainText(text);
 }
 
 /** Each listed job's title link (to its page) sits beside a posting link to its own URL. */
@@ -265,7 +265,7 @@ for (const width of [390, 1440] as const) {
       let header: Locator | null = null;
       for (const [hash, title] of pages) {
         await page.evaluate((h) => (location.hash = h), hash);
-        const heading = page.getByRole('heading', { level: 2, name: title, exact: true });
+        const heading = page.getByRole('heading', { level: 1, name: title, exact: true });
         await expect(heading).toBeVisible();
         header = page.locator('header').filter({ has: heading });
         const job = jobs.find((j) => j.label === title)!;

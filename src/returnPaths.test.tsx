@@ -45,7 +45,7 @@ const renderApp = () =>
     </ColorModeProvider>,
   );
 const at = (hash: string) => waitFor(() => expect(window.location.hash).toBe(hash));
-const heading = (name: string | RegExp) => screen.findByRole('heading', { level: 2, name });
+const heading = (name: string | RegExp) => screen.findByRole('heading', { level: 1, name });
 const notice = () => screen.getByRole('region', { name: /^Notifications/ });
 
 beforeEach(() => {
@@ -250,7 +250,7 @@ describe('the browser Back closes a sheet and stays on the page', () => {
     window.history.back();
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(window.location.hash).toBe('#/queue');
-    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Pipeline' })).toBeInTheDocument();
   });
 
   it('Follow up, over the page it was opened on', async () => {

@@ -152,7 +152,7 @@ describe('the job page is one page', () => {
     addJob(URL_A, 'Design Engineer');
     window.location.hash = `#/queue/${jobIdOf(URL_A)}?section=interviews`;
     renderApp();
-    expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Notes' })).toBeInTheDocument();
   });
 });
@@ -238,7 +238,7 @@ describe('Add interview is one item in the job menu', () => {
     updateJob(URL_A, { company: 'Acme', status: 'Applied', applied: ymd(new Date()) });
     openJobPage();
     const header = screen
-      .getByRole('heading', { level: 2, name: 'Design Engineer' })
+      .getByRole('heading', { level: 1, name: 'Design Engineer' })
       .closest('header') as HTMLElement;
     await userEvent.click(within(header).getByRole('button', { name: /^More actions/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Add interview…' }));

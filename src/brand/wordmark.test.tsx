@@ -13,10 +13,11 @@ afterEach(cleanup);
 
 describe('Wordmark', () => {
   it('is named for assistive tech; its parts and the flame are hidden', () => {
-    render(<Wordmark as="h1" />);
-    const h1 = screen.getByRole('heading', { level: 1, name: BRAND.name });
-    expect(h1).toHaveAttribute('aria-label', BRAND.name);
-    for (const part of h1.children) expect(part).toHaveAttribute('aria-hidden', 'true');
+    render(<Wordmark />);
+    // An image named for the product, never a heading: the page's name is its h1 (#363).
+    const word = screen.getByRole('img', { name: BRAND.name });
+    expect(screen.queryByRole('heading')).toBeNull();
+    for (const part of word.children) expect(part).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('keeps the real letters in the line (copy and paste give the name), the o transparent', () => {

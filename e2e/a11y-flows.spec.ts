@@ -201,7 +201,7 @@ test.describe('keyboard only', () => {
   test('job Details → Company page → Back to Pipeline', async ({ page }) => {
     await seed(page);
     await go(page, '#/company/larkspur-analytics');
-    await expect(page.getByRole('heading', { level: 2, name: /Larkspur/ })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /Larkspur/ })).toBeVisible();
     expect(await tabTo(page, 'Back to Pipeline')).toBe(true);
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/queue$/);
@@ -261,7 +261,7 @@ for (const width of [390, 1440] as const) {
       await expect(page).toHaveURL(/#\/queue\/./);
       await expect.poll(() => focused(page)).toBe(`H2 ${title}`);
       // The heading takes focus but is not a tab stop: no ring, nothing to press.
-      const heading = page.getByRole('heading', { level: 2, name: title });
+      const heading = page.getByRole('heading', { level: 1, name: title });
       expect(await heading.evaluate((h) => getComputedStyle(h).outlineStyle)).toBe('none');
       // The browser's Back is a page change too: it lands on the title that opened the job (#359).
       await page.goBack();
@@ -288,7 +288,11 @@ for (const width of [390, 1440] as const) {
         new MutationObserver(() => {
           document
             .querySelectorAll('[aria-live="polite"], [aria-live="assertive"], [role="status"]')
-            .forEach((r) => said.push(r.textContent ?? ''));
+            .forEach((r) => {
+              if (r.closest('[aria-hidden="true"]') || r.getAttribute('aria-live') === 'off')
+                return;
+              said.push(`${r.getAttribute('aria-live')}|${r.textContent ?? ''}`);
+            });
         }).observe(document.body, { childList: true, subtree: true, characterData: true });
       });
       const mark = page.getByRole('button', { name: /^Mark applied/ }).first();
@@ -300,9 +304,13 @@ for (const width of [390, 1440] as const) {
       expect(
         await page.evaluate(() => document.querySelector('main')!.contains(document.activeElement)),
       ).toBe(true);
-      // The toast's text reaches a live region (HDS Toast, Radix's announcer).
+      // The toast's text reaches a live region politely, the title and the job's name apart (#365:
+      // Radix's assertive announcer ran them together, "…7 daysDesign Engineer").
       const said = await page.evaluate(() => (window as unknown as { said: string[] }).said);
-      expect(said.some((t) => t.includes('Marked applied'))).toBe(true);
+      const notice = said.filter((t) => t.includes('Marked applied'));
+      expect(notice.length).toBeGreaterThan(0);
+      expect(notice.every((t) => t.startsWith('polite|'))).toBe(true);
+      expect(notice.some((t) => /Marked applied[^|]*\. \S/.test(t))).toBe(true);
     });
   });
 }

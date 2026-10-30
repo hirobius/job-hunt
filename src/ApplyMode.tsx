@@ -204,7 +204,7 @@ export default function ApplyMode({ jobId }: { jobId: string | null }) {
           </Box>
         </Stack>
         <PageHeader
-          level={2}
+          level={1}
           metadata={<JobBadges job={job} />}
           title={titleOf(job)}
           description={

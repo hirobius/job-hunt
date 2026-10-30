@@ -51,7 +51,7 @@ test('the boot splash is the flame while the app loads, and React replaces it', 
 async function compareToPlain(page: import('@playwright/test').Page, selector: string) {
   return page.evaluate((sel) => {
     const word = document.querySelector(sel) as HTMLElement;
-    const plain = document.createElement(word.tagName === 'H1' ? 'h1' : 'p');
+    const plain = document.createElement(word.tagName);
     plain.className = word.className;
     plain.textContent = word.getAttribute('aria-label');
     plain.style.position = 'absolute';
@@ -68,7 +68,7 @@ test('the wordmark matches plain text: header and sign-in', async ({ page }) => 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/queue');
   await expect(page.locator('header h1 .rjb-flame svg')).toBeVisible();
-  const header = await compareToPlain(page, 'header h1.rjb-logo-word');
+  const header = await compareToPlain(page, 'header .rjb-logo-word');
   expect(Math.abs(header.word[0] - header.plain[0])).toBeLessThanOrEqual(1);
   expect(Math.abs(header.word[1] - header.plain[1])).toBeLessThanOrEqual(1);
 

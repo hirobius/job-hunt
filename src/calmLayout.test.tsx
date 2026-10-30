@@ -1,6 +1,6 @@
 // Calm list 7/7 (#241): the header and spacing pass. Tested at the route seam through App.
 // - The app name never competes with a page title: a body-size wordmark at every width (rev-3
-//   mock), the one h1, named by BRAND.
+//   mock), named by BRAND (an image, not a heading: #363).
 // - The Pipeline is panels (rev-3 mock): To apply, Follow up and Jobs are HDS Cards with a count
 //   Badge; no tinted banner boxes.
 // - Lists are cards, not hairlines (Adrian 2026-10-23): the Documents library and the Pipeline's
@@ -73,9 +73,9 @@ describe('app bar (rev-3)', () => {
     for (const width of [390, 1440]) {
       viewport(width);
       renderApp();
-      const h1 = screen.getByRole('heading', { level: 1, name: BRAND.name });
-      expect(h1.textContent).toBe(BRAND.name);
-      expect(h1.className).toBe('rjb-logo-word');
+      const word = screen.getByRole('img', { name: BRAND.name });
+      expect(word.textContent).toBe(BRAND.name);
+      expect(word.className).toBe('rjb-logo-word');
       cleanup();
     }
   });
