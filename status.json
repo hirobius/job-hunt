@@ -1,8 +1,9 @@
 {
-  "updatedAt": "2026-10-30T14:00:00Z",
+  "updatedAt": "2026-10-30T15:00:00Z",
   "phase": "live",
   "headline": "Ship 1029 on claude/ship-1029 (not on main yet): Stoke rename + flame wordmark (#429), simplify 7-11 (#430), DS job sources (#428), no setup screen (a new user gets the design-systems profile and starter companies on its own, Today opens with the scan running), design-systems-only content (dsOnly.test.ts guard), subtler flame reveal, legal wording approved.",
   "next": [
+    "Merge claude/rf-int-hiraga (PR #435 flame E + #436 rename to hiraga, on main): verify + test:e2e green. Adds: flame settles still after 4.5 s (WCAG 2.2.2, own commit, revert it to keep endless) and motion lazy-loaded (entry 249.3/250 kB). Not merged.",
     "Review PR claude/flake-companies: Account → Companies feedback flake. Root cause: the press did extra render passes before the dialog's first paint (a second pass waiting on an already-loaded chunk, the whole list redrawn when the menu closed as the dialog took focus, 40 first rows) while Review new rebuilt hundreds of closed 'sources unavailable' rows on every scan tick. All cut in the app; 300 ms budget unchanged. Also scoped two toast e2e checks off the screen-reader announcer copy. Not merged.",
     "Merge claude/rf-int-batch (PRs #437 live fixtures, #439 React 19, #440 startup perf, #441 a11y + toast announcer fix): verify + test:e2e green at f292d95. #438 left out (needs SQL first).",
     "Review PR claude/focus-345 (#345): focus lands on the Pipeline heading after Try with sample data and Clear. main (f73cd4e) merged in. Not merged.",
