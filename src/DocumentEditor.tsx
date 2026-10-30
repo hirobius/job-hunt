@@ -383,7 +383,7 @@ function OutreachText({
   /** The open Version history, under the actions. */
   history: ReactNode;
   /** Wraps the text field, so a Version brought back can scroll to it and focus it. */
-  textBox: RefObject<HTMLDivElement>;
+  textBox: RefObject<HTMLDivElement | null>;
   /** Set once the message exists: its variable values are saved on it. */
   docId?: string;
   values?: Record<string, string>;
