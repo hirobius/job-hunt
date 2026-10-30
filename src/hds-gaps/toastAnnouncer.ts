@@ -8,24 +8,28 @@
 const HIDDEN =
   'position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0';
 
-let live: { polite: HTMLElement; assertive: HTMLElement } | null = null;
-
-function region(role: 'status' | 'alert', politeness: 'polite' | 'assertive') {
-  const el = document.createElement('div');
-  el.setAttribute('role', role);
-  el.setAttribute('aria-live', politeness);
-  el.setAttribute('aria-atomic', 'true');
-  el.dataset.rjbAnnouncer = '';
-  el.style.cssText = HIDDEN;
-  document.body.appendChild(el);
-  return el;
+/** The live regions saying a toast right now (each is on the page for about a second). */
+export function announcing(politeness: 'polite' | 'assertive') {
+  return [...document.querySelectorAll<HTMLElement>(`[data-rjb-announcer="${politeness}"]`)];
 }
 
-/** The two live regions, made on first use: present before any toast, so a reader hears it. */
-export function regions() {
-  if (!live || !live.polite.isConnected)
-    live = { polite: region('status', 'polite'), assertive: region('alert', 'assertive') };
-  return live;
+// A fresh region per toast, put on <body> as it is said (Radix's own pattern): a modal Dialog
+// aria-hides <body>'s other children when it opens, so a region made earlier would be hidden while
+// a dialog is up, and one region shared by two quick toasts would drop the first.
+function announce(text: string, politeness: 'polite' | 'assertive') {
+  const el = document.createElement('div');
+  el.setAttribute('role', politeness === 'polite' ? 'status' : 'alert');
+  el.setAttribute('aria-live', politeness);
+  el.setAttribute('aria-atomic', 'true');
+  el.dataset.rjbAnnouncer = politeness;
+  el.style.cssText = HIDDEN;
+  document.body.appendChild(el);
+  // The text a beat after the region, so a reader hears it; gone after a second like Radix's,
+  // so it never lingers outside a landmark.
+  window.setTimeout(() => {
+    el.textContent = text;
+    window.setTimeout(() => el.remove(), 1000);
+  }, 50);
 }
 
 /** "Title. Description": a pause between them, unless the title already ends a sentence. */
@@ -54,16 +58,7 @@ function say(toast: HTMLLIElement) {
     .map((c) => c.textContent?.trim() ?? '');
   if (!title) return;
   const error = !!toast.querySelector('[class*="text-feedback-danger"]');
-  const target = regions()[error ? 'assertive' : 'polite'];
-  // Empty first, then the text a beat later, so the same notice twice is said twice; cleared
-  // after a second like Radix's, so it never lingers outside a landmark.
-  target.textContent = '';
-  window.setTimeout(() => {
-    target.textContent = announceText(title, description);
-    window.setTimeout(() => {
-      if (target.textContent === announceText(title, description)) target.textContent = '';
-    }, 1000);
-  }, 50);
+  announce(announceText(title, description), error ? 'assertive' : 'polite');
 }
 
 let installed = false;
@@ -71,7 +66,6 @@ let installed = false;
 export function installToastAnnouncer() {
   if (installed || typeof MutationObserver === 'undefined') return;
   installed = true;
-  regions();
   new MutationObserver((records) => {
     for (const r of records)
       r.addedNodes.forEach((n) => {
