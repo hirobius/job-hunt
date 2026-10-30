@@ -470,7 +470,10 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   design systems profiles. Today reads "Scanning N sources · Last scanned hh:mm, K new"
   (`feed/scanningCount.ts`): the browser's boards + feeds, plus the board set only when signed in with a
   design systems profile. Pinned in `src/feed/bulk/*.test.ts`, `boardSet.test.ts`, `scanningCount.test.ts`,
-  `tracks/rotation.test.ts`, `autoScanViews.test.tsx`.
+  `tracks/rotation.test.ts`, `autoScanViews.test.tsx`. **Live check (2026-10-30, claude/live-fixtures):** a 25-board `--rotate --read` batch all
+  answered; recorded Greenhouse/Lever/Ashby answers in `src/tracks/fixtures/` back `rotationDryRun.test.ts` and
+  `npm run sync:dry-run -- --rotate --fixtures` (offline). Arbeitnow, Remote OK and WWR hosts were refused by the build
+  network, so those stay unverified live.
 - **Privacy and terms (#43, #47):** `#/legal/privacy` and `#/legal/terms` (`LegalPage.tsx`, no tab,
   like Documents; Menu item "Privacy and terms", last before Sign out). The text is data in
   `legal.ts`; `THIRD_PARTIES` must list exactly the CSP `connect-src` hosts (`legal.test.ts` fails
