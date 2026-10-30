@@ -83,7 +83,9 @@ test('Restore starter messages toasts and shows the first restored row (390)', a
   await page.getByRole('button', { name: 'Start from scratch' }).click();
   const outreach = page.getByRole('region', { name: 'Outreach messages' });
   await outreach.getByRole('button', { name: 'Restore starter messages' }).click();
-  await expect(page.getByText('Added 4 starter messages', { exact: true })).toBeVisible();
+  // The toast, not its copy in the screen-reader announcer (#365), which holds the same words for 1 s.
+  const toast = page.getByText('Added 4 starter messages', { exact: true });
+  await expect(toast.and(page.locator(':not([data-rjb-announcer])'))).toBeVisible();
   const first = outreach.getByRole('listitem').first();
   await expect(first).toHaveAttribute('data-motion', 'flash');
   await expect(first).toBeInViewport();

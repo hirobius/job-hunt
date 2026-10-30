@@ -45,11 +45,14 @@ export const preloadDialogs = () =>
  *  view only then, so it never suspends. A chunk that won't load calls `onFail` (close the
  *  sheet) instead of throwing to the app's error boundary; importFresh raises the reload notice. */
 export function useLoadedWhen(
-  view: { preload(): Promise<void> },
+  view: { preload(): Promise<void>; loaded(): boolean },
   wanted: boolean,
   onFail: () => void,
 ): boolean {
-  const [ready, setReady] = useState(false);
+  // A chunk already in (preloaded as its menu opened) is ready on the press's own render: waiting
+  // for the effect and the promise added a second render pass before the dialog painted (#212).
+  const [fetched, setReady] = useState(false);
+  const ready = fetched || view.loaded();
   const failRef = useRef(onFail);
   useEffect(() => {
     failRef.current = onFail;

@@ -143,7 +143,9 @@ describe('Account menu → Companies', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Companies' });
     const followed = within(dialog).getByRole('list', { name: 'Followed' });
     await waitFor(() => expect(within(followed).getAllByRole('listitem')).toHaveLength(n));
-    expect(within(followed).getAllByRole('listitem')[n - 1].textContent).toMatch(/^Co 119/);
+    expect(within(followed).getAllByRole('listitem')[n - 1].textContent).toMatch(
+      new RegExp(`^Co ${String(n - 1).padStart(3, '0')}`),
+    );
   });
 
   it('says so when there is nothing in either list', async () => {

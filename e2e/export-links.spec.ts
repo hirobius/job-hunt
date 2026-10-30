@@ -54,7 +54,10 @@ test('export links: open, switch scope and format, copy and download', async ({ 
 
   // Copy puts the list on the clipboard and says how many.
   await dialog.getByRole('button', { name: 'Copy' }).click();
-  await expect(page.getByText('Copied 2 links', { exact: true })).toBeVisible();
+  // The toast, not its copy in the screen-reader announcer (#365), which holds the same words for 1 s.
+  // (Not by the Notifications region's role: the open modal hides it from the accessibility tree.)
+  const toast = page.getByText('Copied 2 links', { exact: true });
+  await expect(toast.and(page.locator(':not([data-rjb-announcer])'))).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(titled);
 
   // Download .txt saves the same text under the brand + date name.
