@@ -10,8 +10,7 @@ import { flameSvg, withUniqueIds } from './flameSvg';
 import { startFlame } from './startFlame';
 
 /** The flame alone. Decorative: whatever sits beside it carries the name. `animate` sets it
- *  moving (Version E, settling still after ~4.5 s, WCAG 2.2.2; flame.svg, still, under
- *  prefers-reduced-motion). */
+ *  moving (Version E, endless; flame.svg, still, under prefers-reduced-motion). */
 export function Flame({ className, animate = false }: { className?: string; animate?: boolean }) {
   const suffix = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const html = useMemo(() => withUniqueIds(flameSvg, suffix), [suffix]);
