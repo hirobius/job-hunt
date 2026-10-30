@@ -32,7 +32,7 @@ describe('BootHold', () => {
       </BootHold>,
     );
     expect(held()).not.toBeNull();
-    expect(held()!.querySelector('.rjb-flame.rjb-flame-reveal svg')).not.toBeNull();
+    expect(held()!.querySelector('.rjb-flame svg .flame-1')).not.toBeNull();
     expect(screen.queryByText('The page')).toBeNull();
     rerender(
       <BootHold waiting settled>
@@ -41,6 +41,21 @@ describe('BootHold', () => {
     );
     expect(held()).toBeNull();
     expect(screen.getByText('The page')).toBeInTheDocument();
+  });
+
+  it('the held flame moves (Version E) while it waits', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: false }));
+    render(
+      <BootHold waiting settled={false}>
+        {page}
+      </BootHold>,
+    );
+    const outer = held()!.querySelector('.flame-1')!;
+    const still = outer.getAttribute('d');
+    act(() => vi.advanceTimersByTime(250));
+    expect(outer.getAttribute('d')).not.toBe(still);
+    vi.unstubAllGlobals();
   });
 
   it('gives up after BOOT_HOLD_MAX_MS', () => {

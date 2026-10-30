@@ -25,3 +25,9 @@
   height: 1cap;
   overflow: visible;
 }
+/* Each letter flickers on its own (flameMotion.ts: a lean and a fade). A transform needs a box; the
+   lean pivots on the baseline, like the flame's. */
+.rjb-wordmark-l {
+  display: inline-block;
+  transform-origin: 50% 100%;
+}

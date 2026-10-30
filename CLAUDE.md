@@ -15,22 +15,31 @@ commit `f15fd52`).
 `src/brand.test.ts` fails on a hard-coded name. Stored identifiers stay fixed on purpose: the backup
 format id `app: 'apply-board'` and calendar UIDs `@apply-board`.
 
-**Flame logo: one source, `src/brand/flame.svg` (2026-10-29).** To change the logo: replace
-`src/brand/flame.svg` (fills from HDS primitive colours; keep `class="flame-1|2|3"` on the outer,
-middle and core layers if the app should recolour them for dark mode), run `npm run icons`, commit.
-Everything derives from it: the wordmark in the header and on sign-in (`src/brand/Flame.tsx` inlines it,
-ids made unique per instance), the boot splash (`%BRAND_FLAME%` in index.html's `#root`, filled by
-`brandHtml.ts`; React replaces it on mount) and `npm run icons` (favicon.svg, PNG icons,
-favicon.ico, og-image). `src/brand/flame.test.tsx` fails on any other `.svg`, any copy of its path
-data, a stale `public/favicon.svg`, or non-HDS fills. The procedural flame engine is gone.
+**Flame logo: one source, `src/brand/flame.svg`; motion: Adrian's Version E (2026-10-29).**
+`src/brand/flameEngine.ts` is the Visuals Lab's "family" engine ported as given (squash / stretch / pinch
+keyframes, 3 layers, embers), `FLAME_E` = his locked settings (endless, 10 fps; tune only there).
+`npm run icons` writes its still frame (loop frame 0, no embers, HDS primitive fills, classes
+`flame-1|2|3`) to `src/brand/flame.svg`, then favicon.svg, PNG icons, favicon.ico, og-image from it;
+`flameEngine.test.ts` fails when flame.svg is not the engine's still frame. Everything static derives
+from flame.svg: the wordmark in the header and on sign-in (`src/brand/Flame.tsx` inlines it, ids made
+unique per instance) and the icons. `src/brand/flame.test.tsx` fails on any other `.svg`, any copy of its
+path data, a stale `public/favicon.svg`, or non-HDS fills.
+**Motion:** `flameMotion.ts` `animateFlame(svg, letters)` rewrites the three paths' `d` every 1/fps (the
+box never changes) and flickers each wordmark letter (skew ≤ 2.5°, fade ≤ 5%, transform/opacity only);
+still under prefers-reduced-motion (also when turned on mid-run), paused while the tab is hidden, off
+where matchMedia is missing (jsdom). The header/sign-in `Wordmark` and `BootHold` (`<Flame animate />`)
+animate. **Boot splash:** `%BRAND_FLAME%` in index.html's `#root` is the engine's 8-frame loop baked in
+by `brandHtml.ts` (one `.rjb-boot-f` group per frame, frames 1-7 `visibility="hidden"`), stepped by
+base.css (`rjb-boot-frame`, delays and loop length inline from FLAME_E.fps); reduced motion / no CSS
+shows frame 0. The splash still fades in after a short beat. The old rise-in reveal is gone.
 **Wordmark "St(flame)ke" (Adrian 2026-10-29):** `src/brand/Wordmark.tsx` (header h1, sign-in) and the
 og-image share one markup builder, `wordmarkMarkup.ts`, from `BRAND.wordmark` (`before` / `flame` /
-`after`). The real "o" stays in the line, transparent, and the flame shares its grid cell on the text
-baseline at `1cap` tall (`wordmark.css`), so the word's box and advance are plain text's
-(`e2e/brand.spec.ts` checks within 1px); named by `aria-label`, its parts aria-hidden.
-**Boot reveal:** `.rjb-flame-reveal` (HDS motion tokens; static under reduced motion) plays on the
-splash (fades in after a short beat, so a fast boot shows nothing) and in `BootHold` (App's main,
-only while a signed-in device with no data waits for its cloud copy, max 4 s).
+`after`; `{ letters: true }` in the app wraps each letter in `.rjb-wordmark-l` for the flicker, the
+og-image keeps plain runs). The real "o" stays in the line, transparent, and the flame shares its grid
+cell on the text baseline at `1cap` tall (`wordmark.css`), so the word's box and advance are plain
+text's (`e2e/brand.spec.ts` checks within 1px while the letters flicker); named by `aria-label`, its parts
+aria-hidden. **BootHold:** App's main, only while a signed-in device with no data waits for its cloud
+copy, max 4 s.
 
 ## Stack & conventions
 
