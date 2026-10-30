@@ -33,10 +33,21 @@ export default defineConfig({
     launchOptions: { executablePath },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    // The production build, for specs that time the app (e2e/feedback.spec.ts, PROD_URL): the
+    // dev server's StrictMode double renders and unbundled modules took presses past 300 ms
+    // under parallel load that the shipped build answers in ~100 ms.
+    {
+      command: 'npm run build && npm run preview -- --port 4173 --strictPort',
+      url: 'http://localhost:4173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+    },
+  ],
 });

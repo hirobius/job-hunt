@@ -511,7 +511,7 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   `inDialog`: the dialog's footer shows it (`NoticeHost.DialogNotice`, reachable by keyboard and screen reader,
   which the toast behind a modal is not), and it moves to the toast when the dialog closes (`noticeToToast`).
   ATS search's Copy the query toasts "Copied the query"; Duplicate and Pin flash the row they land on. Pinned
-  by `e2e/feedback.spec.ts` (the sweep fails if a press changes nothing visible in 300 ms; a menu closing or an
+  by `e2e/feedback.spec.ts` (timed on the production build, `PROD_URL` = the e2e config's second webServer on :4173, never the dev server, whose StrictMode double renders flaked it under load; the sweep fails if a press changes nothing visible in 300 ms; a menu closing or an
   earlier toast leaving does not count; it checks the card's flash and collapse at 1440 and 390)
   and `src/feedback.test.ts`.
 - **Posting links (Adrian 2026-10-22: anywhere a job is listed, its posting is one tap away).** A

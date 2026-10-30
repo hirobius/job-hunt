@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { go, openJob, seed } from './routes';
+import { go, openJob, PROD_URL, seed } from './routes';
 
 // The feedback sweep (#212): every row and page action on the Pipeline, the job page, Documents
 // and Companies must change something visible within 300 ms of the press: the page's text (a
@@ -10,7 +10,11 @@ import { go, openJob, seed } from './routes';
 // toasts are left out of the page's text; one that appears, or whose text changes, still counts.
 // Every Remove (a Pipeline job, a to-do, an interview, a final copy, a document, an outreach
 // target, a track's link or section) collapses its row and offers Undo.
+// Timed against the production build (PROD_URL), what people run: the dev server's StrictMode
+// double renders and unbundled modules measured dev overhead, not the app, and flaked under
+// parallel load (Account → Companies, Star).
 test.use({
+  baseURL: PROD_URL,
   permissions: ['clipboard-read', 'clipboard-write'],
   viewport: { width: 1440, height: 900 },
 });
