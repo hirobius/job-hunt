@@ -1,10 +1,9 @@
 {
-  "updatedAt": "2026-10-30T07:30:00Z",
+  "updatedAt": "2026-10-30T09:00:00Z",
   "phase": "live",
   "headline": "Ship 1029 on claude/ship-1029 (not on main yet): Stoke rename + flame wordmark (#429), simplify 7-11 (#430), DS job sources (#428), no setup screen (a new user gets the design-systems profile and starter companies on its own, Today opens with the scan running), design-systems-only content (dsOnly.test.ts guard), subtler flame reveal, legal wording approved.",
   "next": [
-    "Review PR claude/live-fixtures: recorded live Greenhouse/Lever/Ashby answers (src/tracks/fixtures) + parser tests; rotation verified live (25/25 boards ok, 678 postings); `npm run sync:dry-run -- --rotate --fixtures` + rotationDryRun.test.ts. Arbeitnow, Remote OK and We Work Remotely were blocked by the build network (proxy 403), still unverified live. Not merged.",
-    "Review PR claude/platform-upgrade (#105): React 19.3 + @types 19 (vite 8, plugin-react 6, jest-dom 7 and a clean npm audit were already on main). verify + test:e2e green. Not merged.",
+    "Merge claude/rf-int-batch (PRs #437 live fixtures, #439 React 19, #440 startup perf, #441 a11y + toast announcer fix): verify + test:e2e green at f292d95. #438 left out (needs SQL first).",
     "Review PR claude/src-free-aggs: sync-postings reads Arbeitnow, Remote OK (terms checked every read) and We Work Remotely keyless; TheirStack/Adzuna/Jooble turn on by themselves when their Supabase secret is set. Run 20261029100200_postings_keyless_aggregators.sql (after 20261029100000) and redeploy sync-postings. Not merged.",
     "Review PR claude/src-bulk: bulk board set (9,937 confirmed live public boards in src/feed/data/boards.json via npm run boards:discover), server scan rotation in sync-postings (1-minute cron, ~6.8 h per full cycle), Today 'Scanning N sources'. Apply 20261029100100_scan_rotation.sql and redeploy sync-postings (README 'Turn on the rotation'). Not merged.",
     "Merge claude/ship-1029 to main after reviewing screenshots in docs/review/ship-1029/ (orchestrator). Then delete SAM_GOV_API_KEY from Vercel.",
