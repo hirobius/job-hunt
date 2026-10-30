@@ -17,6 +17,7 @@ const ALLOWED = [
   'src/feed/toJob.ts', // saved-note text, not a meta line
   'src/feed/sources/hn.ts', // location data
   'src/LivenessViews.tsx', // two items
+  'src/tracks/rotationDryRun.ts', // the sync:dry-run CLI's console text, never rendered
 ];
 
 describe('meta lines in source (#192)', () => {
