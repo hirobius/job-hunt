@@ -1,8 +1,9 @@
 {
-  "updatedAt": "2026-10-29T16:00:00Z",
+  "updatedAt": "2026-10-30T12:00:00Z",
   "phase": "live",
   "headline": "Ship 1029 on claude/ship-1029 (not on main yet): Stoke rename + flame wordmark (#429), simplify 7-11 (#430), DS job sources (#428), no setup screen (a new user gets the design-systems profile and starter companies on its own, Today opens with the scan running), design-systems-only content (dsOnly.test.ts guard), subtler flame reveal, legal wording approved.",
   "next": [
+    "Review PR claude/rename-hiraga (stacked on claude/flame-e, #435): rename to lowercase 'hiraga', flame before the word; manifest, icons and og-image regenerated. hiraga.app is free ($9.99/yr, not bought). Not merged.",
     "Review PR claude/flame-e: Adrian's Version E flame ported (flameEngine.ts, endless 10 fps, per-letter flicker) in the wordmark and BootHold; boot splash is a baked CSS loop; flame.svg + icons regenerated from the engine's still frame. Stoke vs Stoked comparison: https://claude.ai/artifact/NG7u6fMnrByiCnDWLZFZhL. Not merged.",
     "Review PR claude/src-bulk: bulk board set (9,937 confirmed live public boards in src/feed/data/boards.json via npm run boards:discover), server scan rotation in sync-postings (1-minute cron, ~6.8 h per full cycle), Today 'Scanning N sources'. Apply 20261029100100_scan_rotation.sql and redeploy sync-postings (README 'Turn on the rotation'). Not merged.",
     "Merge claude/ship-1029 to main after reviewing screenshots in docs/review/ship-1029/ (orchestrator). Then delete SAM_GOV_API_KEY from Vercel.",

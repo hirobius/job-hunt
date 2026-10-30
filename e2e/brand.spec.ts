@@ -64,22 +64,26 @@ test('the boot splash is the flame while the app loads, and React replaces it', 
   await expect(page.locator('.rjb-boot')).toHaveCount(0);
 });
 
-// The wordmark's box is plain text's (the "o" stays in the line, the flame over it; each letter its
-// own box for the flicker): width and height within 1px of the bare name in the same element
-// style, in the header and on sign-in, measured while the letters flicker.
+// The wordmark is the flame, then the name as plain text (Adrian 2026-10-30): the name's run is
+// within 1px of the bare name in the same element style (each letter its own box for the flicker),
+// and the flame never makes the line taller. Measured while the letters flicker.
 async function compareToPlain(page: import('@playwright/test').Page, selector: string) {
   return page.evaluate((sel) => {
     const word = document.querySelector(sel) as HTMLElement;
+    const text = word.querySelector('.rjb-wordmark-text') as HTMLElement;
     const plain = document.createElement(word.tagName === 'H1' ? 'h1' : 'p');
     plain.className = word.className;
+    plain.style.display = 'block';
     plain.textContent = word.getAttribute('aria-label');
     plain.style.position = 'absolute';
     plain.style.visibility = 'hidden';
+    plain.style.width = 'max-content';
     word.parentElement!.appendChild(plain);
     const a = word.getBoundingClientRect();
+    const t = text.getBoundingClientRect();
     const b = plain.getBoundingClientRect();
     plain.remove();
-    return { word: [a.width, a.height], plain: [b.width, b.height] };
+    return { word: [t.width, a.height], plain: [b.width, b.height] };
   }, selector);
 }
 

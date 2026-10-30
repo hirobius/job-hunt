@@ -1,7 +1,7 @@
-// The wordmark: "St", the flame in place of the "o", "ke" (Adrian 2026-10-29). One markup builder
-// (wordmarkMarkup) serves the header, the sign-in screen and the og-image (npm run icons). Its box
-// matches the plain name because the real "o" stays in the line, transparent, and the flame sits
-// over it on the baseline; e2e/brand.spec.ts measures that in a real browser.
+// The wordmark: the flame, then "hiraga" (Adrian 2026-10-30; was St(flame)ke). One markup builder
+// (wordmarkMarkup) serves the header, the sign-in screen and the og-image (npm run icons). The
+// name's own run is plain text's box, and the flame never makes the line taller;
+// e2e/brand.spec.ts measures that in a real browser.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
@@ -23,23 +23,22 @@ describe('Wordmark', () => {
     for (const part of h1.children) expect(part).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('keeps the real letters in the line (copy and paste give the name), the o transparent', () => {
+  it('the flame leads; the name follows as real letters (copy and paste give the name)', () => {
     render(<Wordmark as="p" />);
     const word = document.querySelector('.rjb-logo-word')!;
     expect(word.textContent?.replace(/\s+/g, '')).toBe(BRAND.name);
-    const o = word.querySelector('.rjb-wordmark-o')!;
-    expect(o.querySelector('.rjb-wordmark-ghost')?.textContent).toBe(BRAND.wordmark.flame);
-    expect(o.querySelector('.rjb-flame svg path')).not.toBeNull();
-    const text = [...word.childNodes].map((n) => n.textContent?.trim());
-    expect(text[0]).toBe(BRAND.wordmark.before);
-    expect(text[2]).toBe(BRAND.wordmark.after);
+    const [flame, text] = [...word.children];
+    expect(flame).toHaveClass('rjb-wordmark-flame');
+    expect(flame.querySelector('.rjb-flame svg path')).not.toBeNull();
+    expect(text).toHaveClass('rjb-wordmark-text');
+    expect(text.textContent).toBe(BRAND.name);
   });
 
-  it('sets each letter but the o in its own span, for the flicker; the og-image keeps plain runs', () => {
+  it('sets each letter in its own span, for the flicker; the og-image keeps a plain run', () => {
     render(<Wordmark as="p" />);
     const word = document.querySelector('.rjb-logo-word')!;
     const letters = [...word.querySelectorAll('.rjb-wordmark-l')].map((l) => l.textContent);
-    expect(letters).toEqual([...BRAND.wordmark.before, ...BRAND.wordmark.after]);
+    expect(letters).toEqual([...BRAND.name]);
     expect(wordmarkMarkup('<svg/>')).not.toContain('rjb-wordmark-l');
   });
 
@@ -81,7 +80,7 @@ describe('Wordmark', () => {
 
   it('sizes the flame from the font (cap height) and never changes line-height or tracking', () => {
     const css = readFileSync('src/brand/wordmark.css', 'utf8');
-    expect(css).toMatch(/height:\s*1cap/);
+    expect(css).toMatch(/height:\s*[\d.]+cap/);
     expect(css).not.toMatch(/letter-spacing|line-height/);
   });
 });

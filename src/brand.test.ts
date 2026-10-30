@@ -19,16 +19,15 @@ const sourceFiles = (dir: string): string[] =>
   });
 
 describe('brand (#55)', () => {
-  it('is Stoke (Adrian 2026-10-29; was RoleForge)', () => {
-    expect(BRAND.name).toBe('Stoke');
-    // The flame stands in for the "o" (Adrian 2026-10-29): St🔥ke.
-    expect(BRAND.wordmark).toEqual({ before: 'St', flame: 'o', after: 'ke' });
-    expect(BRAND.slug).toBe('stoke');
+  it('is hiraga, lowercase (Adrian 2026-10-30; was Stoke, RoleForge)', () => {
+    expect(BRAND.name).toBe('hiraga');
+    // The flame leads the word (Adrian 2026-10-30): 🔥hiraga.
+    expect(BRAND.wordmark).toEqual({ flame: 'before' });
+    expect(BRAND.slug).toBe('hiraga');
   });
 
   it('is internally consistent', () => {
-    const { before, flame, after } = BRAND.wordmark;
-    expect(before + flame + after).toBe(BRAND.name);
+    expect(BRAND.name).toBe(BRAND.name.toLowerCase());
     expect(BRAND.slug).toMatch(/^[a-z0-9-]+$/);
   });
 
@@ -43,7 +42,7 @@ describe('brand (#55)', () => {
 
   it('no source file hard-codes the old or current display name', () => {
     const offenders = sourceFiles(SRC).filter((f) =>
-      new RegExp(`Apply Board|RoleForge|\\b${BRAND.name}\\b`).test(readFileSync(f, 'utf8')),
+      new RegExp(`Apply Board|RoleForge|\\bStoke\\b|\\b${BRAND.name}\\b`).test(readFileSync(f, 'utf8')),
     );
     expect(offenders).toEqual([]);
   });
@@ -53,9 +52,9 @@ describe('brand in public/ (static files, no build step)', () => {
   const PUBLIC = resolve(SRC, '../public');
   const textFiles = readdirSync(PUBLIC).filter((n) => /\.(svg|webmanifest|txt|js|json)$/.test(n));
 
-  it('no public file carries the old name', () => {
+  it('no public file carries an old name', () => {
     const offenders = textFiles.filter((n) =>
-      /Apply Board/.test(readFileSync(join(PUBLIC, n), 'utf8')),
+      /Apply Board|RoleForge|Stoke/.test(readFileSync(join(PUBLIC, n), 'utf8')),
     );
     expect(offenders).toEqual([]);
   });

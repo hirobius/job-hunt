@@ -30,7 +30,7 @@ export function Flame({ className, animate = false }: { className?: string; anim
   );
 }
 
-/** The app bar lockup: the wordmark (the page's one h1, the flame as its "o"), at `fontSize` px. */
+/** The app bar lockup: the wordmark (the page's one h1, the flame before the name), at `fontSize` px. */
 export function BrandLogo({ fontSize = 19 }: { fontSize?: number }) {
   return (
     <span

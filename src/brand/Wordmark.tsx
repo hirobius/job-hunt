@@ -1,4 +1,4 @@
-// The wordmark: "St", the flame in place of the "o", "ke" (Adrian 2026-10-29). Named for assistive
+// The wordmark: the flame, then the name (Adrian 2026-10-30; was St(flame)ke). Named for assistive
 // tech by aria-label; its parts and the flame are hidden. The markup is wordmarkMarkup's, shared
 // with the og-image; the flame is src/brand/flame.svg with its ids made unique per instance, set
 // moving by flameMotion (Version E; still under reduced motion), its letters flickering with it.

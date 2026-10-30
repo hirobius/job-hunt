@@ -122,7 +122,7 @@ try {
   await p.setContent(
     page(
       `<div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding:0 96px;box-sizing:border-box;color:${FACE}">
-        <div style="font-family:Display,sans-serif;font-size:128px;font-weight:700;line-height:1;color:#fff">${wordmarkMarkup(flame)}</div>
+        <div class="rjb-logo-word" style="font-family:Display,sans-serif;font-size:128px;font-weight:700;line-height:1;color:#fff">${wordmarkMarkup(flame)}</div>
         <div style="font-size:36px;line-height:1.35;margin-top:40px;max-width:960px">${BRAND.description}</div>
       </div>`,
       1200,
