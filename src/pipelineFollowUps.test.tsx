@@ -77,7 +77,7 @@ describe('#/today is home again (#383; was retired in #236)', () => {
     renderApp();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
     expect(window.location.hash).toBe('#/today');
-    expect(screen.getByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
   });
 
   it('an empty hash lands on Today', async () => {
@@ -218,7 +218,7 @@ describe('Follow-ups in the Pipeline (#236)', () => {
     );
     // One page since #416: the job opens on its header and Details.
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Principal Design Systems Engineer' }),
+      await screen.findByRole('heading', { level: 1, name: 'Principal Design Systems Engineer' }),
     ).toBeVisible();
   });
 

@@ -7,6 +7,8 @@ import { createElement, lazy, useState, type ComponentType } from 'react';
 export interface LazyView<P extends object> {
   (props: P): ReturnType<typeof createElement>;
   preload(): Promise<void>;
+  /** True once the chunk is in, so a host can render the view on the press itself. */
+  loaded(): boolean;
 }
 
 export function lazyView<P extends object>(
@@ -32,5 +34,6 @@ export function lazyView<P extends object>(
     return createElement(Component, props);
   }
   View.preload = preload;
+  View.loaded = () => loaded !== null;
   return View;
 }

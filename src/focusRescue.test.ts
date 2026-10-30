@@ -68,6 +68,11 @@ describe('pageHeading', () => {
     document.body.innerHTML = `<header><h1>Brand</h1></header><main><nav><h2>Jobs</h2></nav><h2 id="t">UX Researcher</h2></main>`;
     expect(pageHeading(shown)?.id).toBe('t');
   });
+
+  it("is the page's h1 (#363), even with a section h2 above it", () => {
+    document.body.innerHTML = `<main><h2>Saved</h2><h1 id="t">Pipeline</h1></main>`;
+    expect(pageHeading(shown)?.id).toBe('t');
+  });
 });
 
 describe('installFocusRescue', () => {

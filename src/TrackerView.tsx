@@ -35,6 +35,7 @@ import { useVisualViewportVars } from './hds-gaps/useVisualViewportVars';
 import './account/sheet.css';
 import { useBackCloses, useBackSheet } from './useBackCloses';
 import { useListFocusKeeper } from './listFocus';
+import { focusAsHeading } from './focusRescue';
 
 // The Find box (#384) loads when Add job turns into it: the board probe stays out of the Pipeline.
 const loadFindBox = importFresh(() => import('./FindBox'));
@@ -67,6 +68,11 @@ export default function TrackerView() {
   // A control that clears the view unmounts as it does, so focus goes to the search (audit).
   const searchField = useRef<HTMLInputElement>(null);
   const focusSearch = () => searchField.current?.focus();
+  // Try with sample data and Clear leave with what they changed: focus goes to the heading (#345).
+  const heading = useRef<HTMLHeadingElement>(null);
+  const focusPageHeading = () => {
+    if (heading.current?.isConnected) focusAsHeading(heading.current);
+  };
   // Something is non-default: Clear shows, and the selects drop their Status / Sort key (rev-3).
   const cleared = filter !== 'active' || q.trim() !== '';
   const [url, setUrl] = useState('');
@@ -142,7 +148,7 @@ export default function TrackerView() {
         <Box as="header">
           <Stack direction="row" gap="px8" align="center" justify="space-between">
             <Stack gap="px4">
-              <Text as="h2" variant="title">
+              <Text as="h1" variant="title" ref={heading}>
                 Pipeline
               </Text>
               <MetaCaption
@@ -155,7 +161,7 @@ export default function TrackerView() {
             {jobs.length > 0 && addJobButton}
           </Stack>
         </Box>
-        <SampleBanner jobs={jobs} />
+        <SampleBanner jobs={jobs} onCleared={focusPageHeading} />
       </Stack>
       <Stack gap="px24">
         {/* Simplify Jobs (#416, Adrian's keep list): To apply + Start applying, Follow up and Next
@@ -364,7 +370,7 @@ export default function TrackerView() {
             action={
               <Stack direction="row" wrap="wrap" gap="tight" justify="center">
                 {addJobButton}
-                <TrySampleButton />
+                <TrySampleButton onLoaded={focusPageHeading} />
               </Stack>
             }
           />

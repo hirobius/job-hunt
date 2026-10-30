@@ -34,7 +34,7 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
 
 ## Stack & conventions
 
-- **Vite + React 18 + TypeScript + HDS (`@hirobius/design-system`) — and nothing else for UI
+- **Vite + React 19 + TypeScript + HDS (`@hirobius/design-system`) — and nothing else for UI
   (epic #89, 2026-10).** Every element is real HDS: layout (`Box` with HDS's token-only `sx`,
   `Stack`, `Switcher`, `Grid`, `Container`), type (`Text` on the HDS ramp: display / title / body
   / ui / caption / mono), and components (Button incl. icon-only `Button iconOnly` + `Icon`, Card,
@@ -87,7 +87,7 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   sign-in) and stays out of every manualChunks group (a named group pulls tslib in and vendor then
   imports it). Never import `@supabase/supabase-js` statically (`supabaseLazy.test.tsx`); tests
   that sign in call `loadSupabase()` first. The Pipeline, job page, Apply mode and Company page are
-  `routeViews.ts` lazy views (`lazyView.tsx`); `test/setup.ts` preloads them. App wraps the bar in
+  `routeViews.ts` lazy views (`lazyView.tsx`); `test/setup.ts` preloads them. Follow up, Add interview, Recently removed and the job page's liveness note load on first use too (`lazyHosts.tsx`, `lazyDialogs.ts`, #368 pass); the stores read only `feed/sources/boardUrl.ts` / `feed/term.ts` / `boardSet` `BOARD_KINDS`, never ats.ts, match.ts or the probe (`entryChunk.test.ts`). What's left at startup is mostly HDS (motion, tailwind-merge, styles.css): upstream asks in `docs/hds-upstream-asks-0.9.md` "Startup cost asks". App wraps the bar in
   `header` and every page in one `main`; each route sets `document.title` (`pageTitle.ts`).
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
@@ -141,14 +141,17 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   stores, sync, Back up, CSV) but never surface: the v12 move reads design-systems tracks only. Guard:
   `src/dsOnly.test.ts` (pack ids, directory keys, curated groups, no `sam` source, and a scan of app source for
   Spokane / welding / sheet metal / apprenticeship / ServiceNow / SAM.gov with a commented allow-list).
-- **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (the one `h1`, `Text variant="body"` semibold, so the
-  page title is always the biggest text) · top tabs (**Today · Jobs**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
+- **Shell (#115 Phase 1; rev-3 mobile slice 1):** slim header = the body-size wordmark at every width (never a heading: `role="img"` named by
+  BRAND, #363; so the page title is always the biggest text) · **each page's own name is its one `h1`, inside `main`** (#363:
+  Pipeline, Today, the job title, Documents, a Company, Legal; panel heads are `h2`, card titles `h3`; `focusRescue`
+  focuses the page's h1; `e2e/a11y.spec.ts` keyboard walk fails on an h1 outside main) · top tabs (**Today · Jobs**; they scroll on a phone; HDS TabsList fades the hidden edge) · the
   **Account** button: an HDS `Avatar` (initial signed in, person icon signed out; named "Account"; no unsynced dot, Adrian 2026-10-22; it holds account, data, display and feedback). Phone page gutter is 16 (`--semantic-space-fixed-sm`), HDS's region gutter from `sm`. `src/account/` is the account
   seam: `CloudSyncProvider` + `DataToolsProvider` own sync / backup / restore / CSV and expose
   `useCloudSync` / `useDataTools` (`accountContext.ts`); `AccountMenu` holds sign-in/out, Documents, Search profile, Companies, Back up,
   Restore…, Export CSV, theme and feedback; there is no sync banner and no Avatar dot (the menu's sync line says it);
   `SignInDialog` is the magic-link form. Errors are HDS **Toasts** (`ToastProvider` in `main.tsx`;
-  tests wrap App in one). Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
+  tests wrap App in one); `src/hds-gaps/toastAnnouncer.ts` (#365) mutes Radix's assertive announcer and says each toast
+  itself: politely (errors assertively), "Title. Description". Shell behaviour is pinned at the route seam in `src/shell.test.tsx`, incl. the Account menu order
   (signed out: device-only line, Sign in | data | display; signed in: "Signed in as <email>" + sync
   line as non-item labels | data | display | Sign out, Delete my data last in the danger colour;
   data = Documents, Search profile, Companies, Back up, Restore…, Export CSV). Pillars and tracks are gone from the UI (ADR 0009).
@@ -470,7 +473,10 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   design systems profiles. Today reads "Scanning N sources · Last scanned hh:mm, K new"
   (`feed/scanningCount.ts`): the browser's boards + feeds, plus the board set only when signed in with a
   design systems profile. Pinned in `src/feed/bulk/*.test.ts`, `boardSet.test.ts`, `scanningCount.test.ts`,
-  `tracks/rotation.test.ts`, `autoScanViews.test.tsx`.
+  `tracks/rotation.test.ts`, `autoScanViews.test.tsx`. **Live check (2026-10-30, claude/live-fixtures):** a 25-board `--rotate --read` batch all
+  answered; recorded Greenhouse/Lever/Ashby answers in `src/tracks/fixtures/` back `rotationDryRun.test.ts` and
+  `npm run sync:dry-run -- --rotate --fixtures` (offline). Arbeitnow, Remote OK and WWR hosts were refused by the build
+  network, so those stay unverified live.
 - **Privacy and terms (#43, #47):** `#/legal/privacy` and `#/legal/terms` (`LegalPage.tsx`, no tab,
   like Documents; Menu item "Privacy and terms", last before Sign out). The text is data in
   `legal.ts`; `THIRD_PARTIES` must list exactly the CSP `connect-src` hosts (`legal.test.ts` fails
@@ -509,7 +515,7 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   `inDialog`: the dialog's footer shows it (`NoticeHost.DialogNotice`, reachable by keyboard and screen reader,
   which the toast behind a modal is not), and it moves to the toast when the dialog closes (`noticeToToast`).
   ATS search's Copy the query toasts "Copied the query"; Duplicate and Pin flash the row they land on. Pinned
-  by `e2e/feedback.spec.ts` (the sweep fails if a press changes nothing visible in 300 ms; a menu closing or an
+  by `e2e/feedback.spec.ts` (timed on the production build, `PROD_URL` = the e2e config's second webServer on :4173, never the dev server, whose StrictMode double renders flaked it under load; the sweep fails if a press changes nothing visible in 300 ms; a menu closing or an
   earlier toast leaving does not count; it checks the card's flash and collapse at 1440 and 390)
   and `src/feedback.test.ts`.
 - **Posting links (Adrian 2026-10-22: anywhere a job is listed, its posting is one tap away).** A
@@ -754,7 +760,7 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
     live read) go through the same-origin edge function `api/boards.ts` → `feed/sources/boardsHandler.ts`: fixed
     upstream URLs per `src`, 1 h shared cache, parsed by `feed/sources/<board>.ts`, re-checked in
     `feed/sources/proxied.ts` and matched downstream like a watched board (read once per search). CSP and `legal.ts` unchanged (browser only reaches 'self'). Under `vite dev`/`preview` (E2E, gallery) the `local-api-boards` plugin in `vite.config.ts` answers it with no postings. A new board: adapter
-    + one line each in `PROXIED_SOURCES` (`proxiedIds.ts`), `BOARD_ADAPTERS`, `FeedSourceId`/`SOURCE_LABEL` and `SOURCE_ENABLED`.
+    - one line each in `PROXIED_SOURCES` (`proxiedIds.ts`), `BOARD_ADAPTERS`, `FeedSourceId`/`SOURCE_LABEL` and `SOURCE_ENABLED`.
 - **Board identity + five more boards (#src-ats, 2026-10-28).** A board found from a _name_ must show
   it is the company's (`feed/boardIdentity.ts`): the company's website domain on its apply links /
   website / job text (YC, Adele, GitHub org sites; github.io-style hosts are no evidence), else the

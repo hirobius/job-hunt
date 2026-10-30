@@ -26,7 +26,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   // state adds the starters in one tap, as Outreach messages.
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: 'Documents' }).click();
-  await expect(page.getByRole('heading', { level: 2, name: 'Documents' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Documents' })).toBeVisible();
   await expect(page.getByText('No documents yet')).toBeVisible();
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   const outreach = page.getByRole('region', { name: 'Outreach messages' });
@@ -68,7 +68,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await page.locator('a[href^="#/queue/"]').first().click();
   await page.getByRole('link', { name: 'Acme Metals', exact: true }).click();
   await expect(page).toHaveURL(/#\/company\/acme-metals\?from=%2Fqueue%2F/);
-  await expect(page.getByRole('heading', { level: 2, name: 'Acme Metals' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Acme Metals' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Jobs', selected: true })).toBeVisible();
   await page.getByRole('link', { name: 'Fabricator', exact: true }).click();
   await expect(page).toHaveURL(/#\/queue\//);
@@ -83,7 +83,9 @@ test('Restore starter messages toasts and shows the first restored row (390)', a
   await page.getByRole('button', { name: 'Start from scratch' }).click();
   const outreach = page.getByRole('region', { name: 'Outreach messages' });
   await outreach.getByRole('button', { name: 'Restore starter messages' }).click();
-  await expect(page.getByText('Added 4 starter messages', { exact: true })).toBeVisible();
+  // The toast, not its copy in the screen-reader announcer (#365), which holds the same words for 1 s.
+  const toast = page.getByText('Added 4 starter messages', { exact: true });
+  await expect(toast.and(page.locator(':not([data-rjb-announcer])'))).toBeVisible();
   const first = outreach.getByRole('listitem').first();
   await expect(first).toHaveAttribute('data-motion', 'flash');
   await expect(first).toBeInViewport();

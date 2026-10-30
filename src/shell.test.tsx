@@ -75,7 +75,7 @@ afterEach(() => {
 describe('app shell (#115 Phase 1)', () => {
   it('has a slim header: the product name, the top tabs and one account menu', () => {
     renderApp();
-    expect(screen.getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: BRAND.name })).toBeInTheDocument();
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
     expect(tabs.map((t) => t.textContent)).toEqual(['Today', 'Jobs']);
     expect(screen.getByRole('button', { name: /^Account/ })).toBeInTheDocument();
@@ -91,28 +91,32 @@ describe('app shell (#115 Phase 1)', () => {
     const banners = screen.getAllByRole('banner').filter((el) => !el.closest('main'));
     expect(banners).toHaveLength(1);
     const banner = banners[0];
-    expect(within(banner).getByRole('heading', { level: 1, name: BRAND.name })).toBeInTheDocument();
+    // The wordmark names the product, not the page (#363): it is no heading; the page's own name
+    // is the one h1, inside main.
+    expect(within(banner).getByRole('img', { name: BRAND.name })).toBeInTheDocument();
+    expect(within(banner).queryByRole('heading')).toBeNull();
     expect(within(banner).getByRole('tablist')).toBeInTheDocument();
     expect(within(banner).getByRole('button', { name: /^Account/ })).toBeInTheDocument();
     const mains = screen.getAllByRole('main');
     expect(mains).toHaveLength(1);
     expect(within(mains[0]).getByRole('tabpanel')).toBeInTheDocument();
     expect(
-      within(mains[0]).getByRole('heading', { level: 2, name: 'Pipeline' }),
+      within(mains[0]).getByRole('heading', { level: 1, name: 'Pipeline' }),
     ).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
   it('the page with no tab (Documents) is inside main too', async () => {
     window.location.hash = '#/copy-deck';
     renderApp();
     expect(
-      await within(screen.getByRole('main')).findByRole('heading', { name: 'Documents' }),
+      await within(screen.getByRole('main')).findByRole('heading', { level: 1, name: 'Documents' }),
     ).toBeInTheDocument();
   });
 
   it('the wordmark is the brand lockup at 19px, never a page-title step', () => {
     renderApp();
-    const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
+    const wordmark = screen.getByRole('img', { name: BRAND.name });
     expect(wordmark.className).toBe('rjb-logo-word');
     expect(wordmark.className).not.toMatch(/hds-type-(title|display)/);
     expect((wordmark.parentElement as HTMLElement).style.getPropertyValue('--rjb-logo-size')).toBe(
@@ -122,7 +126,7 @@ describe('app shell (#115 Phase 1)', () => {
 
   it('the flame is the wordmark\'s "o", hidden from assistive tech', () => {
     renderApp();
-    const wordmark = screen.getByRole('heading', { level: 1, name: BRAND.name });
+    const wordmark = screen.getByRole('img', { name: BRAND.name });
     const mark = wordmark.querySelector('.rjb-wordmark-o .rjb-flame');
     expect(mark?.closest('[aria-hidden="true"]')).not.toBeNull();
     expect(mark?.querySelector('svg path')).not.toBeNull();
@@ -352,7 +356,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     renderApp();
     expect(screen.queryByRole('tab', { name: 'Templates' })).toBeNull();
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
-    expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveAttribute(
       'href',
       '#/queue',
@@ -364,7 +368,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     async (hash) => {
       window.location.hash = hash;
       renderApp();
-      await screen.findByRole('heading', { level: 2 });
+      await screen.findByRole('heading', { level: 1 });
       const user = userEvent.setup();
       screen.getByRole('button', { name: /^Account/ }).focus();
       await user.tab();
@@ -391,7 +395,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
     // It remembers the page it was opened from (Today here), for its Back (return paths).
     expect(window.location.hash).toBe('#/copy-deck?from=%2Ftoday');
-    expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
   });
 
   it('the Menu opens Privacy and terms: a page with no tab selected (#43)', async () => {
@@ -401,7 +405,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     // Today is the legal pages' own way back, so no origin is written.
     expect(window.location.hash).toBe('#/legal/privacy');
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Privacy policy' }),
+      await screen.findByRole('heading', { level: 1, name: 'Privacy policy' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
   });
@@ -410,7 +414,7 @@ describe('routes keep working (#115 Phase 1)', () => {
     window.location.hash = '#/legal/terms';
     renderApp();
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Terms of use' }),
+      await screen.findByRole('heading', { level: 1, name: 'Terms of use' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute(
       'href',

@@ -5,7 +5,7 @@
 // (Adrian 2026-10-28): nothing is held back in a review section. Skip hides that one posting; Not
 // this company mutes the company; Save makes a Job and follows its company. Every one of them says
 // so with an Undo.
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   Badge,
   Box,
@@ -292,6 +292,9 @@ const decidedAny = (h: { decided: number; muted: number; saved: number }) =>
  *  one's reason behind it. Remotive's spent daily budget says when it comes back. */
 function Unavailable({ failed }: { failed: { label: string; error?: string }[] }) {
   const n = failed.length;
+  // The list is built only while open: offline, every source fails (hundreds of boards), and the
+  // panel repaints on each scan tick, so building it closed held the main thread past 300 ms (#212).
+  const [open, setOpen] = useState(false);
   const why = (s: { label: string; error?: string }) =>
     s.error?.includes('daily limit reached')
       ? `${s.label.split(' · ')[0]}: today's free searches are used up, more tomorrow.`
@@ -300,13 +303,16 @@ function Unavailable({ failed }: { failed: { label: string; error?: string }[] }
     <Disclosure
       label={`${n} ${n === 1 ? 'source' : 'sources'} unavailable · details`}
       variant="nav"
+      open={open}
+      onOpenChange={setOpen}
     >
       <Stack gap="px4">
-        {failed.map((s) => (
-          <Text key={s.label} variant="caption" as="p" tone="secondary">
-            {why(s)}
-          </Text>
-        ))}
+        {open &&
+          failed.map((s) => (
+            <Text key={s.label} variant="caption" as="p" tone="secondary">
+              {why(s)}
+            </Text>
+          ))}
         <Text variant="caption" as="p" tone="secondary">
           The rest are listed.
         </Text>
@@ -495,7 +501,7 @@ function PostingSummary({
       <Stack gap="px4">
         {noTitle ? null : onOpen ? (
           <PostingTitle url={r.url} title={r.title} company={r.company}>
-            <Text variant="body" as="h4" weight="bold" className="rjb-card-title">
+            <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
               <Button
                 variant="tertiary"
                 size="sm"
@@ -508,7 +514,7 @@ function PostingSummary({
             </Text>
           </PostingTitle>
         ) : (
-          <Text variant="body" as="h4" weight="bold" className="rjb-card-title">
+          <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
             <InlineLink href={r.url}>{r.title}</InlineLink>
           </Text>
         )}

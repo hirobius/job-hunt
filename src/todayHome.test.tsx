@@ -89,7 +89,7 @@ describe('the shell: Today and Jobs', () => {
   it('an empty hash lands on Today; the only tabs are Today and Jobs', async () => {
     renderApp();
     await waitFor(() => expect(window.location.hash).toBe('#/today'));
-    expect(screen.getByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
     expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Today', 'Jobs']);
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Today');
     expect(document.title).toMatch(/^Today/);
@@ -132,7 +132,7 @@ describe('the shell: Today and Jobs', () => {
     renderApp();
     await userEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
     await waitFor(() => expect(window.location.hash).toBe('#/queue'));
-    expect(screen.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Pipeline' })).toBeInTheDocument();
   });
 });
 
@@ -177,7 +177,7 @@ describe('Review new on Today', () => {
     renderApp();
     const ul = await within(section(/^Review new/)).findByRole('list', { name: 'New postings' });
     const titles = within(ul)
-      .getAllByRole('heading', { level: 4 })
+      .getAllByRole('heading', { level: 3 })
       .map((h) => h.textContent);
     expect(titles).toEqual(['Design Systems Engineer', 'Design Systems Designer']);
   });

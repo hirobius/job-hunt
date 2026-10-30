@@ -88,7 +88,7 @@ blocks the deploy.
 
 ## Built with
 
-Vite, React 18 and TypeScript, on Vercel. The UI is `@hirobius/design-system`, installed from
+Vite, React 19 and TypeScript, on Vercel. The UI is `@hirobius/design-system`, installed from
 public npm. State is a small shared store saved to `localStorage`, with the route kept in the URL
 hash. Security headers and a Content-Security-Policy ship from `vercel.json`.
 

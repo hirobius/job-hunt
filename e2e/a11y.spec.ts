@@ -157,7 +157,7 @@ test.describe('phone sweep', () => {
 });
 
 // A keyboard walk of every route (2026-10-27 audit), past what axe reads from a still page: one
-// h1 and no skipped heading level; every Tab stop has a name, shows that it has focus (its own or
+// h1, inside main (the page's own name, #363), and no skipped heading level; every Tab stop has a name, shows that it has focus (its own or
 // its field's ring, border or fill changes), is on screen once focused, and Tab never sticks.
 async function headingSkips(page: Page): Promise<string[]> {
   return page.evaluate(() => {
@@ -165,8 +165,10 @@ async function headingSkips(page: Page): Promise<string[]> {
       (h) => h.getClientRects().length > 0,
     );
     const out: string[] = [];
-    const h1s = hs.filter((h) => h.tagName === 'H1').length;
-    if (h1s !== 1) out.push(`${h1s} h1`);
+    const h1s = hs.filter((h) => h.tagName === 'H1');
+    if (h1s.length !== 1) out.push(`${h1s.length} h1`);
+    // The h1 names the page (#363): inside main, never the banner's wordmark.
+    else if (!h1s[0].closest('main')) out.push(`h1 outside main "${h1s[0].textContent?.trim()}"`);
     let prev = 0;
     for (const h of hs) {
       const l = +h.tagName[1];

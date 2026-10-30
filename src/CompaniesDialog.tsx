@@ -14,7 +14,7 @@ type Show = 'followed' | 'ignored';
 
 /** Rows drawn on the press; the rest follow in a transition after the dialog paints. Followed
  *  runs to hundreds of boards, and drawing them all at once took the press past 300 ms (#212). */
-export const FIRST_ROWS = 40;
+export const FIRST_ROWS = 12;
 
 export default function CompaniesDialog({ onCloseAutoFocus }: { onCloseAutoFocus?: () => void }) {
   const { sources } = useFeedInputs();

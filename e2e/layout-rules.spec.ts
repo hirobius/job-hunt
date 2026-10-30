@@ -229,15 +229,15 @@ function probe(page: Page) {
       });
       // 8. Back links ("← Pipeline", "Back to companies"): the arrow lines up with the page
       // heading (rev-3), never inset by the tertiary Button's leading padding.
-      const h2 = [...document.querySelectorAll('h2')].find(visible);
-      if (h2)
+      const h1 = [...document.querySelectorAll('h1')].find(visible);
+      if (h1)
         document.querySelectorAll('a, button').forEach((el) => {
           const name = (el.getAttribute('aria-label') || el.textContent || '').trim();
           const arrow = el.firstElementChild;
           if (!visible(el) || !/^(Back|All documents)/.test(name) || arrow?.tagName !== 'svg')
             return;
           const d = Math.round(
-            arrow.getBoundingClientRect().left - h2.getBoundingClientRect().left,
+            arrow.getBoundingClientRect().left - h1.getBoundingClientRect().left,
           );
           if (Math.abs(d) > 1) out.push(`back inset: ${label(el)} arrow is ${d}px off the heading`);
         });

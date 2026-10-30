@@ -41,7 +41,7 @@ describe('Company page (#230)', () => {
   it("shows the company's name, its Jobs (linked to their pages) and its Documents", () => {
     seedAcme();
     render(<CompanyPage slug="acme" />);
-    expect(screen.getByRole('heading', { level: 2, name: 'Acme, Inc.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Acme, Inc.' })).toBeInTheDocument();
     const jobs = screen.getByRole('region', { name: 'Jobs' });
     expect(within(jobs).getByRole('link', { name: 'Design Engineer' })).toHaveAttribute(
       'href',
@@ -206,7 +206,7 @@ describe('Company page (#230)', () => {
   it('a company with only notes still has its page (nothing orphaned after a rename)', () => {
     addCompanyNote('Bolt', 'Keep in touch');
     render(<CompanyPage slug="bolt" />);
-    expect(screen.getByRole('heading', { level: 2, name: 'Bolt' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Bolt' })).toBeInTheDocument();
     expect(screen.getByText(/No jobs at this company/)).toBeInTheDocument();
     expect(screen.getByLabelText('Note')).toHaveValue('Keep in touch');
   });
@@ -233,7 +233,7 @@ describe('Company page (#230)', () => {
     // The company's jobs arrive with the pull: the page shows it, no empty state on the way.
     seedAcme();
     r.rerender(withSync(false));
-    expect(screen.getByRole('heading', { level: 2, name: 'Acme, Inc.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Acme, Inc.' })).toBeInTheDocument();
     getAllJobs()
       .slice()
       .forEach((j) => removeJob(j.url));

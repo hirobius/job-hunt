@@ -18,6 +18,16 @@ const ON_DEMAND = [
   'backup.ts',
   'account/SignInDialog.tsx',
   'ExportLinksDialog.tsx',
+  // #368 pass: sheets loaded on first open (lazyHosts.tsx), the job page's liveness note, and the
+  // feed code the stores only needed a sliver of (boardUrl.ts, term.ts, boardSet's kinds).
+  'FollowUp.tsx',
+  'AddInterview.tsx',
+  'RecentlyRemoved.tsx',
+  'LivenessViews.tsx',
+  'feed/probe.ts',
+  'feed/fetchFeed.ts',
+  'feed/sources/ats.ts',
+  'feed/match.ts',
 ];
 
 function resolve(from: string, spec: string): string | null {

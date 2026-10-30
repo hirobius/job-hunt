@@ -15,6 +15,9 @@ export const ROUTES = [
   '#/nope',
 ];
 
+/** The production build's preview (playwright.config.ts), for specs that time the app. */
+export const PROD_URL = 'http://localhost:4173';
+
 /** A Greenhouse posting the seed adds on top of the sample data. */
 export const BOARD_JOB = 'https://boards.greenhouse.io/acme/jobs/77';
 

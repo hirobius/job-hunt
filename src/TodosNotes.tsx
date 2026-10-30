@@ -13,7 +13,7 @@ function NotesField({ job }: { job: Job }) {
   const [draft, setDraft] = useState(shown);
   const draftRef = useRef(draft);
   const savedRef = useRef(shown);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const url = job.url;
   const flush = useCallback(() => {
     clearTimeout(timer.current);

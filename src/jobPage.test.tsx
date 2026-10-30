@@ -71,7 +71,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
     addJob(URL_A, 'Design Engineer');
     openJobPage();
     const header = screen
-      .getByRole('heading', { level: 2, name: 'Design Engineer' })
+      .getByRole('heading', { level: 1, name: 'Design Engineer' })
       .closest('header') as HTMLElement;
     expect(header).not.toBeNull();
     expect(within(header).getByText('Saved')).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
     updateJob(URL_A, { company: 'Acme' });
     openJobPage();
     const header = screen
-      .getByRole('heading', { level: 2, name: 'Design Engineer' })
+      .getByRole('heading', { level: 1, name: 'Design Engineer' })
       .closest('header') as HTMLElement;
     const posting = within(header).getByRole('link', {
       name: 'Open posting for Design Engineer at Acme',
@@ -103,7 +103,7 @@ describe('job page header and Overview (#130 slice 1)', () => {
     openJobPage();
     // Details opens as fields (no link fact), so the header is the one-tap way out.
     expect(screen.getByRole('textbox', { name: 'Link' })).toBeInTheDocument();
-    const header = screen.getByRole('heading', { level: 2 }).closest('header') as HTMLElement;
+    const header = screen.getByRole('heading', { level: 1 }).closest('header') as HTMLElement;
     expect(within(header).getByRole('link', { name: /^Open posting/ })).toHaveAttribute(
       'href',
       URL_A,
@@ -447,7 +447,7 @@ describe('job page two-pane (#130 slice 5)', () => {
   it('at lg and up shows the rail and the open job, with aria-current on its row', () => {
     viewport(1280);
     openJobPage(URL_A);
-    expect(screen.getByRole('heading', { level: 2, name: 'Design Engineer' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Design Engineer' })).toBeInTheDocument();
     const current = within(rail()).getByRole('link', { current: 'page' });
     expect(current).toHaveTextContent('Design Engineer');
     expect(railRow('Welder')).not.toHaveAttribute('aria-current');
@@ -490,7 +490,7 @@ describe('job page two-pane (#130 slice 5)', () => {
     viewport(1280);
     openJobPage(URL_A);
     await userEvent.click(railRow('Welder'));
-    expect(await screen.findByRole('heading', { level: 2, name: 'Welder' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Welder' })).toBeInTheDocument();
     expect(window.location.hash).toBe(`#/queue/${jobIdOf(URL_B)}`);
     expect(within(rail()).getByRole('link', { current: 'page' })).toHaveTextContent('Welder');
   });
@@ -576,7 +576,7 @@ describe('job page polish and guards (#130 slice 6)', () => {
     window.scrollTo = scroll as unknown as typeof window.scrollTo;
     openJobPage(URL_A);
     await userEvent.click(railRow('Welder'));
-    await screen.findByRole('heading', { level: 2, name: 'Welder' });
+    await screen.findByRole('heading', { level: 1, name: 'Welder' });
     expect(scroll).toHaveBeenCalledWith({ top: 0 });
     expect(railRow('Welder')).toHaveFocus();
   });

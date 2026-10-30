@@ -26,7 +26,7 @@ export default function LegalPage() {
       <Stack gap="spacious">
         <Stack gap="normal">
           <PageHeader
-            level={2}
+            level={1}
             breadcrumb={
               // "← Companies" (rev-3 #s-legal), flush on the page gutter like Documents' and the
               // Company page's Back (`.rjb-back-link`); opened from another page (the Account
@@ -51,7 +51,7 @@ export default function LegalPage() {
         </Stack>
         {doc.sections.map((s) => (
           <Stack key={s.heading} gap="normal" as="section" aria-label={s.heading}>
-            <Text variant="body" as="h3" className="rjb-semibold">
+            <Text variant="body" as="h2" className="rjb-semibold">
               {s.heading}
             </Text>
             {s.paragraphs.map((p) => (

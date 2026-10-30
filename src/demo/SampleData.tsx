@@ -17,8 +17,12 @@ let seeding = false;
 export function TrySampleButton({
   size = 'md',
   link = false,
+  onLoaded,
 }: {
   size?: 'sm' | 'md';
+  /** Called once the sample is in: the button leaves with the empty state, so the mount moves
+   *  focus (#345). */
+  onLoaded?: () => void;
   /** A quiet underlined inline link (onboarding's "Just looking?"), not a bordered button. */
   link?: boolean;
 }) {
@@ -39,6 +43,7 @@ export function TrySampleButton({
             loadSample();
             // Show it in the Pipeline, unless the user has moved on meanwhile.
             if (window.location.hash === from) navigate({ tab: 'queue', sub: null, jobId: null });
+            onLoaded?.();
           })
           .catch(() => {})
           .finally(() => {
@@ -53,7 +58,14 @@ export function TrySampleButton({
 
 /** Visible while the tracker holds sample records; Clear removes exactly those. A one-line note
  *  under the page header (#133), not a full-width band. */
-export function SampleBanner({ jobs }: { jobs: Job[] }) {
+export function SampleBanner({
+  jobs,
+  onCleared,
+}: {
+  jobs: Job[];
+  /** Called after Clear: the banner leaves with the sample, so the mount moves focus (#345). */
+  onCleared?: () => void;
+}) {
   const n = jobs.filter(isSample).length;
   if (n === 0) return null;
   return (
@@ -71,7 +83,10 @@ export function SampleBanner({ jobs }: { jobs: Job[] }) {
           className="rjb-inline-link"
           label="Clear sample data"
           title="Clearing removes them and any edits to them"
-          onClick={() => clearSample()}
+          onClick={() => {
+            clearSample();
+            onCleared?.();
+          }}
         >
           Clear
         </Button>

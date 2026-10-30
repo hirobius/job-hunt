@@ -16,7 +16,7 @@ for (const width of [390, 1440]) {
     await expect(page).toHaveURL(/#\/today$/);
     await page.goto('/#/discover/live');
     await expect(page).toHaveURL(/#\/today$/);
-    await expect(page.getByRole('heading', { level: 2, name: 'Today' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
     await expect(page.getByRole('tab')).toHaveText(['Today', 'Jobs']);
     await expect(page.getByRole('button', { name: /^(Scan now|Stop scan)$/ })).toBeVisible();
     const panels = page.getByRole('main').getByRole('region');
@@ -43,7 +43,7 @@ for (const width of [390, 1440]) {
 
     // Jobs is the Pipeline, unchanged inside.
     await page.getByRole('tab', { name: 'Jobs' }).click();
-    await expect(page.getByRole('heading', { level: 2, name: 'Pipeline' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Pipeline' })).toBeVisible();
     await page.getByRole('tab', { name: 'Today' }).click();
     await expect(page).toHaveURL(/#\/today$/);
 

@@ -32,7 +32,7 @@ import { BRAND } from '../brand';
 import { EVIDENCE_TRIMMED, evidenceMergeOverflows } from '../radar/evidenceStore';
 import { DataToolsContext, type DataToolsApi } from './accountContext';
 import { ExportLinksHost } from '../ExportLinksHost';
-import { RecentlyRemovedHost } from '../RecentlyRemoved';
+import { LazyRecentlyRemovedHost } from '../lazyHosts';
 import { listWords, writesThatFailed } from './restoreWrites';
 
 const JSON_MIME = 'application/json';
@@ -201,7 +201,7 @@ export default function DataToolsProvider({ children }: { children: ReactNode })
       />
       {/* Export links (2026-10-22): opened from here (Account menu) and the Pipeline's Jobs panel. */}
       <ExportLinksHost />
-      <RecentlyRemovedHost />
+      <LazyRecentlyRemovedHost />
       <Dialog open={pending !== null} onOpenChange={(o) => !o && setPending(null)}>
         <Dialog.Content style={{ width: '100%', maxWidth: 520 }} onCloseAutoFocus={returnFocus}>
           <Dialog.Header>

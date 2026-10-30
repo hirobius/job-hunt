@@ -3,7 +3,7 @@
 // theme, feedback and the Privacy and terms pages (#43) — one home for everything about "my account and my data".
 // Troubleshooting (rev-3 O) holds the error page's two actions: Reload app, and Reset local data
 // behind a confirm that says exactly what goes. Reset is never a loose button on a page.
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Download } from 'lucide-react';
 import {
   AlertDialog,
@@ -42,6 +42,12 @@ export default function AccountMenu() {
   const [companies, setCompanies] = useState(false);
   useBackCloses(companies, () => setCompanies(false), 'companies');
   const companiesReady = useLoadedWhen(CompaniesDialog, companies, () => setCompanies(false));
+  // Kept across this menu's own renders: the menu closes as the dialog takes focus, and redrawing
+  // the list then held the dialog's first paint past 300 ms (#212).
+  const companiesDialog = useMemo(
+    () => <CompaniesDialog onCloseAutoFocus={refocusAccount(accountTrigger)} />,
+    [accountTrigger],
+  );
   // The Search profile (#388: Calibrate's and Manage track's place).
   const [profile, setProfile] = useState(false);
   useBackCloses(profile, () => setProfile(false), 'search-profile');
@@ -161,9 +167,7 @@ export default function AccountMenu() {
         </Menu.Content>
       </Menu>
       <Dialog open={companies && companiesReady} onOpenChange={setCompanies}>
-        {companies && companiesReady && (
-          <CompaniesDialog onCloseAutoFocus={refocusAccount(accountTrigger)} />
-        )}
+        {companies && companiesReady && companiesDialog}
       </Dialog>
       <Dialog open={profile && profileReady} onOpenChange={setProfile}>
         {profile && profileReady && (

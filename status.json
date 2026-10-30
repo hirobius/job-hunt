@@ -1,9 +1,11 @@
 {
-  "updatedAt": "2026-10-30T12:00:00Z",
+  "updatedAt": "2026-10-30T14:00:00Z",
   "phase": "live",
   "headline": "Ship 1029 on claude/ship-1029 (not on main yet): Stoke rename + flame wordmark (#429), simplify 7-11 (#430), DS job sources (#428), no setup screen (a new user gets the design-systems profile and starter companies on its own, Today opens with the scan running), design-systems-only content (dsOnly.test.ts guard), subtler flame reveal, legal wording approved.",
   "next": [
-    "Review PR claude/sb-hardening (#319, #320, #322, #391): client_errors limited per client (salted IP hash) under global ceilings; length checks, per-user row caps and same-user FKs on the curation tables; tracker cap by JSON text. Run 20261030100000_client_errors_per_client_limit.sql then 20261030100100_user_table_caps.sql. No sync-postings redeploy. Rotate SYNC_SECRET if it is not 32+ random bytes (an old hash is in git history). Not merged.",
+    "Review PR claude/flake-companies: Account → Companies feedback flake. Root cause: the press did extra render passes before the dialog's first paint (a second pass waiting on an already-loaded chunk, the whole list redrawn when the menu closed as the dialog took focus, 40 first rows) while Review new rebuilt hundreds of closed 'sources unavailable' rows on every scan tick. All cut in the app; 300 ms budget unchanged. Also scoped two toast e2e checks off the screen-reader announcer copy. Not merged.",
+    "Merge claude/rf-int-batch (PRs #437 live fixtures, #439 React 19, #440 startup perf, #441 a11y + toast announcer fix): verify + test:e2e green at f292d95. #438 left out (needs SQL first).",
+    "Review PR claude/focus-345 (#345): focus lands on the Pipeline heading after Try with sample data and Clear. main (f73cd4e) merged in. Not merged.",
     "Review PR claude/src-free-aggs: sync-postings reads Arbeitnow, Remote OK (terms checked every read) and We Work Remotely keyless; TheirStack/Adzuna/Jooble turn on by themselves when their Supabase secret is set. Run 20261029100200_postings_keyless_aggregators.sql (after 20261029100000) and redeploy sync-postings. Not merged.",
     "Review PR claude/src-bulk: bulk board set (9,937 confirmed live public boards in src/feed/data/boards.json via npm run boards:discover), server scan rotation in sync-postings (1-minute cron, ~6.8 h per full cycle), Today 'Scanning N sources'. Apply 20261029100100_scan_rotation.sql and redeploy sync-postings (README 'Turn on the rotation'). Not merged.",
     "Merge claude/ship-1029 to main after reviewing screenshots in docs/review/ship-1029/ (orchestrator). Then delete SAM_GOV_API_KEY from Vercel.",

@@ -35,22 +35,22 @@ export function StatusBadge({ job }: { job: Job }) {
   return <Badge tone="neutral">{normStatus(job.status)}</Badge>;
 }
 
-/** One badge row above a job's title (rev-3 B order): status, Retired, a due follow-up, Closed on
- *  the board, then fit, and the star on a card. Status and fit are neutral; only what needs
- *  attention is a warning. Pipeline cards, the job page and Apply mode share it. */
+/** One badge row above a job's title: fit first, then status, Retired, a due follow-up, the closing
+ *  date (#360, as CLAUDE.md says), and the star on a card. Status and fit are neutral; only what
+ *  needs attention is a warning. Pipeline cards, the job page and Apply mode share it. */
 export function JobBadges({ job, star = false }: { job: Job; star?: boolean }) {
   const row = rowView(job);
   // The closing date (#419), from the synced job (closedAt, deadline), so it matches the filters.
   const closing = closingOf(job);
   return (
     <Stack direction="row" wrap="wrap" gap="px8" align="center">
+      {row.verdict && <Badge tone="neutral">{row.verdict.label}</Badge>}
       <StatusBadge job={job} />
       {row.retired && <Badge>Retired</Badge>}
       {row.followUp?.due && <Badge tone="warning">Follow-up due</Badge>}
       {closing && (
         <Badge tone={closing.kind === 'soon' ? 'warning' : 'neutral'}>{closing.label}</Badge>
       )}
-      {row.verdict && <Badge tone="neutral">{row.verdict.label}</Badge>}
       {star && row.pinned && (
         <>
           <StarIcon on />
@@ -217,7 +217,9 @@ export function RowMenu({
         <Menu.Separator />
         {/* The Interviews log left the job page (#416); booking one stays here, so its date
             feeds Next 7 days and the follow-up clock. */}
-        <Menu.Item onSelect={() => openAddInterview(job.url, anchor.current)}>Add interview…</Menu.Item>
+        <Menu.Item onSelect={() => openAddInterview(job.url, anchor.current)}>
+          Add interview…
+        </Menu.Item>
         <Menu.Separator />
         {/* Star is a row change like the rest (#212, #361): the shared notice with Undo, not a
             plain toast — under Starred an Unstar takes the card out with no way back otherwise.

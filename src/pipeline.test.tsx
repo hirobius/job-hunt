@@ -102,6 +102,16 @@ describe('Pipeline on a phone (#129)', () => {
     expect(title.closest('h3')!.textContent).toBe('Design Engineer');
   });
 
+  it('reads the badges fit first, then status, then Follow-up due (#360)', () => {
+    updateJob(APPLIED, { verdict: 'match' });
+    renderApp();
+    const card = screen.getByRole('article', { name: 'Zenith Product Designer' });
+    const badges = [...card.querySelectorAll('[class*="--component-badge-height"]')].map((b) =>
+      b.textContent?.trim(),
+    );
+    expect(badges).toEqual(['Strong fit', 'Applied', 'Follow-up due']);
+  });
+
   it('opens the posting in one tap from beside the title (Adrian 2026-10-22)', () => {
     renderApp();
     const card = screen.getByRole('article', { name: 'Design Engineer' });
@@ -138,13 +148,7 @@ describe('Pipeline on a phone (#129)', () => {
     const items = within(await screen.findByRole('menu'))
       .getAllByRole('menuitem')
       .map((i) => i.textContent?.trim());
-    expect(items).toEqual([
-      'Open posting',
-      'Add interview…',
-      'Star',
-      'Retire',
-      'Remove',
-    ]);
+    expect(items).toEqual(['Open posting', 'Add interview…', 'Star', 'Retire', 'Remove']);
     // One inset for every item: the stages are plain items marked by a trailing check, still
     // radio items for assistive tech (rev-3 mock).
     const stages = within(screen.getByRole('menu')).getAllByRole('menuitemradio');
