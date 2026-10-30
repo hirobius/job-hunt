@@ -1,11 +1,11 @@
-// The flame moves (Version E, endless, 10 fps) wherever it shows: the header and sign-in wordmark
+// The flame moves (Version E, endless, 10 fps, settling still after MOTION_LIMIT_MS: WCAG 2.2.2) wherever it shows: the header and sign-in wordmark
 // and the boot hold. Under prefers-reduced-motion it is flame.svg, still. The wordmark's letters
 // flicker with it (a slight lean and a 5% fade, Adrian's per-letter setting); transforms and
 // opacity only, so the word's box never moves.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FLAME_E } from './flameEngine';
 import { flameSvg } from './flameSvg';
-import { animateFlame } from './flameMotion';
+import { MOTION_LIMIT_MS, animateFlame } from './flameMotion';
 
 let reduce = false;
 let listeners: (() => void)[] = [];
@@ -69,6 +69,24 @@ describe('animateFlame', () => {
     }
     stop();
     for (const l of letters) expect([l.style.transform, l.style.opacity]).toEqual(['', '']);
+  });
+
+  it('settles on the still frame within 5 s and stays (WCAG 2.2.2), even if reduced motion flips back', () => {
+    expect(MOTION_LIMIT_MS).toBeLessThanOrEqual(5000);
+    const { svg, letters, ds, still } = mount();
+    const stop = animateFlame(svg, letters);
+    vi.advanceTimersByTime(MOTION_LIMIT_MS - frame);
+    expect(ds()).not.toEqual(still);
+    vi.advanceTimersByTime(frame * 2);
+    expect(ds()).toEqual(still);
+    for (const l of letters) expect([l.style.transform, l.style.opacity]).toEqual(['', '']);
+    reduce = true;
+    listeners.forEach((l) => l());
+    reduce = false;
+    listeners.forEach((l) => l());
+    vi.advanceTimersByTime(frame * 10);
+    expect(ds()).toEqual(still);
+    stop();
   });
 
   it('stays flame.svg, still, under prefers-reduced-motion', () => {

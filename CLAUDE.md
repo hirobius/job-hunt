@@ -26,6 +26,7 @@ unique per instance) and the icons. `src/brand/flame.test.tsx` fails on any othe
 path data, a stale `public/favicon.svg`, or non-HDS fills.
 **Motion:** `flameMotion.ts` `animateFlame(svg, letters)` rewrites the three paths' `d` every 1/fps (the
 box never changes) and flickers each wordmark letter (skew ≤ 2.5°, fade ≤ 5%, transform/opacity only);
+it settles on the still frame after `MOTION_LIMIT_MS` (4.5 s of shown frames, WCAG 2.2.2) and never restarts;
 still under prefers-reduced-motion (also when turned on mid-run), paused while the tab is hidden, off
 where matchMedia is missing (jsdom). The header/sign-in `Wordmark` and `BootHold` (`<Flame animate />`)
 animate. **Boot splash:** `%BRAND_FLAME%` in index.html's `#root` is the engine's 8-frame loop baked in
