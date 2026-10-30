@@ -7,7 +7,7 @@
 import { useEffect, useId, useMemo, useRef } from 'react';
 import { Wordmark } from './Wordmark';
 import { flameSvg, withUniqueIds } from './flameSvg';
-import { animateFlame } from './flameMotion';
+import { startFlame } from './startFlame';
 
 /** The flame alone. Decorative: whatever sits beside it carries the name. `animate` sets it
  *  moving (Version E, settling still after ~4.5 s, WCAG 2.2.2; flame.svg, still, under
@@ -18,7 +18,7 @@ export function Flame({ className, animate = false }: { className?: string; anim
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const svg = animate ? ref.current?.querySelector('svg') : null;
-    return svg ? animateFlame(svg) : undefined;
+    return svg ? startFlame(svg) : undefined;
   }, [animate, html]);
   return (
     <span

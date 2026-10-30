@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { BRAND } from '../brand';
 import { BOOT_HOLD_MAX_MS, BootHold } from './BootHold';
+import { loadMotion } from './startFlame';
 
 afterEach(() => {
   cleanup();
@@ -43,7 +44,8 @@ describe('BootHold', () => {
     expect(screen.getByText('The page')).toBeInTheDocument();
   });
 
-  it('the held flame moves (Version E) while it waits', () => {
+  it('the held flame moves (Version E) while it waits', async () => {
+    await loadMotion();
     vi.useFakeTimers();
     vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: false }));
     render(
@@ -51,6 +53,7 @@ describe('BootHold', () => {
         {page}
       </BootHold>,
     );
+    await act(async () => {}); // the motion chunk's then
     const outer = held()!.querySelector('.flame-1')!;
     const still = outer.getAttribute('d');
     act(() => vi.advanceTimersByTime(250));

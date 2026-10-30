@@ -28,6 +28,9 @@ const ON_DEMAND = [
   'feed/fetchFeed.ts',
   'feed/sources/ats.ts',
   'feed/match.ts',
+  // The flame's motion (startFlame.ts): the still frame shows first.
+  'brand/flameMotion.ts',
+  'brand/flameEngine.ts',
 ];
 
 function resolve(from: string, spec: string): string | null {

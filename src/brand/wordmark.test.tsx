@@ -7,6 +7,7 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { BRAND } from '../brand';
 import { Wordmark } from './Wordmark';
+import { loadMotion } from './startFlame';
 import { wordmarkMarkup } from './wordmarkMarkup';
 
 afterEach(() => {
@@ -43,10 +44,12 @@ describe('Wordmark', () => {
     expect(wordmarkMarkup('<svg/>')).not.toContain('rjb-wordmark-l');
   });
 
-  it('the flame moves and the letters flicker (Version E), unless motion is reduced', () => {
+  it('the flame moves and the letters flicker (Version E), unless motion is reduced', async () => {
+    await loadMotion();
     vi.useFakeTimers();
     vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: false }));
     render(<Wordmark as="p" />);
+    await act(async () => {}); // the motion chunk's then
     const word = document.querySelector('.rjb-logo-word')!;
     const outer = word.querySelector('.flame-1')!;
     const still = outer.getAttribute('d');
@@ -56,6 +59,7 @@ describe('Wordmark', () => {
     cleanup();
     vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: q.includes('reduce') }));
     render(<Wordmark as="p" />);
+    await act(async () => {});
     const calm = document.querySelector('.rjb-logo-word .flame-1')!;
     act(() => vi.advanceTimersByTime(250));
     expect(calm.getAttribute('d')).toBe(still);

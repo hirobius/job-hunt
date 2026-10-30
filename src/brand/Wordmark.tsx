@@ -5,7 +5,7 @@
 import { useEffect, useId, useMemo, useRef } from 'react';
 import { BRAND } from '../brand';
 import { flameSvg, withUniqueIds } from './flameSvg';
-import { animateFlame } from './flameMotion';
+import { startFlame } from './startFlame';
 import { wordmarkMarkup } from './wordmarkMarkup';
 import './wordmark.css';
 
@@ -22,7 +22,7 @@ export function Wordmark({ as: Tag = 'span' }: { as?: 'p' | 'span' }) {
     const el = ref.current;
     const svg = el?.querySelector('.rjb-flame svg');
     if (!el || !svg) return;
-    return animateFlame(svg, [...el.querySelectorAll<HTMLElement>('.rjb-wordmark-l')]);
+    return startFlame(svg, [...el.querySelectorAll<HTMLElement>('.rjb-wordmark-l')]);
   }, [html]);
   return (
     <Tag
