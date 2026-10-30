@@ -67,7 +67,7 @@ async function compareToPlain(page: import('@playwright/test').Page, selector: s
 test('the wordmark matches plain text: header and sign-in', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/queue');
-  await expect(page.locator('header h1 .rjb-flame svg')).toBeVisible();
+  await expect(page.locator('header .rjb-logo-word .rjb-flame svg')).toBeVisible();
   const header = await compareToPlain(page, 'header .rjb-logo-word');
   expect(Math.abs(header.word[0] - header.plain[0])).toBeLessThanOrEqual(1);
   expect(Math.abs(header.word[1] - header.plain[1])).toBeLessThanOrEqual(1);

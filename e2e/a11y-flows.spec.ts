@@ -259,7 +259,7 @@ for (const width of [390, 1440] as const) {
       await link.focus();
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(/#\/queue\/./);
-      await expect.poll(() => focused(page)).toBe(`H2 ${title}`);
+      await expect.poll(() => focused(page)).toBe(`H1 ${title}`);
       // The heading takes focus but is not a tab stop: no ring, nothing to press.
       const heading = page.getByRole('heading', { level: 1, name: title });
       expect(await heading.evaluate((h) => getComputedStyle(h).outlineStyle)).toBe('none');
@@ -269,7 +269,7 @@ for (const width of [390, 1440] as const) {
       await expect.poll(() => focused(page)).toBe(`A ${title}`);
       // A page never seen before gets its heading.
       await go(page, '#/legal/terms');
-      await expect.poll(() => focused(page)).toBe('H2 Terms of use');
+      await expect.poll(() => focused(page)).toBe('H1 Terms of use');
       // A top tab keeps focus on the tab (it is still there).
       await page.getByRole('tab', { name: 'Today' }).focus();
       await page.keyboard.press('Enter');
