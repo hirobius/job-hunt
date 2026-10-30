@@ -128,4 +128,17 @@ describe('sync-postings auth (#322)', () => {
   it('refuses everything until SYNC_SECRET is set', () => {
     expect(src).toMatch(/if \(!secret\) \{[\s\S]{0,200}return false;/);
   });
+
+  it('keeps no hash fallback anywhere in the server code, migrations or docs', () => {
+    const walk = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+        const p = path.join(dir, e.name);
+        return e.isDirectory() ? walk(p) : [p];
+      });
+    const hits = ['supabase', 'docs', 'api']
+      .filter((d) => fs.existsSync(d))
+      .flatMap(walk)
+      .filter((f) => /SYNC_SECRET_(SHA|HASH)/i.test(fs.readFileSync(f, 'utf8')));
+    expect(hits).toEqual([]);
+  });
 });
