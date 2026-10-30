@@ -298,7 +298,7 @@ export default function DocumentEditor({
         )}
       </BackGuard.Provider>
       <Stack gap="px4">
-        <Text variant="title" as="h2">
+        <Text variant="title" as="h1">
           {doc ? doc.title || 'Untitled' : `New ${label.charAt(0).toLowerCase()}${label.slice(1)}`}
         </Text>
         <Text variant="caption" as="p" tone="secondary">
@@ -383,7 +383,7 @@ function OutreachText({
   /** The open Version history, under the actions. */
   history: ReactNode;
   /** Wraps the text field, so a Version brought back can scroll to it and focus it. */
-  textBox: RefObject<HTMLDivElement>;
+  textBox: RefObject<HTMLDivElement | null>;
   /** Set once the message exists: its variable values are saved on it. */
   docId?: string;
   values?: Record<string, string>;

@@ -79,7 +79,7 @@ const renderReview = () =>
 const list = () => screen.findByRole('list', { name: 'New postings' });
 const titles = (ul: HTMLElement) =>
   within(ul)
-    .getAllByRole('heading', { level: 4 })
+    .getAllByRole('heading', { level: 3 })
     .map((h) => h.textContent?.replace(/\s*\(opens in new tab\)$/, ''));
 
 describe('Review new: Browse', () => {

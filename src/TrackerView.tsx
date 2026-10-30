@@ -148,7 +148,7 @@ export default function TrackerView() {
         <Box as="header">
           <Stack direction="row" gap="px8" align="center" justify="space-between">
             <Stack gap="px4">
-              <Text as="h2" variant="title" ref={heading}>
+              <Text as="h1" variant="title" ref={heading}>
                 Pipeline
               </Text>
               <MetaCaption

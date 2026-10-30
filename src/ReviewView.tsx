@@ -495,7 +495,7 @@ function PostingSummary({
       <Stack gap="px4">
         {noTitle ? null : onOpen ? (
           <PostingTitle url={r.url} title={r.title} company={r.company}>
-            <Text variant="body" as="h4" weight="bold" className="rjb-card-title">
+            <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
               <Button
                 variant="tertiary"
                 size="sm"
@@ -508,7 +508,7 @@ function PostingSummary({
             </Text>
           </PostingTitle>
         ) : (
-          <Text variant="body" as="h4" weight="bold" className="rjb-card-title">
+          <Text variant="body" as="h3" weight="bold" className="rjb-card-title">
             <InlineLink href={r.url}>{r.title}</InlineLink>
           </Text>
         )}

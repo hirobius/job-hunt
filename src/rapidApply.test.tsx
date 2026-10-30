@@ -440,9 +440,9 @@ describe('Apply mode header keeps to two items per dotted line (#192)', () => {
     const header = screen.getByRole('heading', { name: 'Acme Designer' }).closest('header')!;
     expect(header).toHaveTextContent(/Acme\s*·?\s*Remote/);
     expect(texts).toContain('1 of 3');
-    // The status first, then fit (rev-3 B).
+    // Fit first, then status (#360, as CLAUDE.md says).
     const badges = texts.filter((t) => t === 'Strong fit' || t === 'Saved');
-    expect(badges).toEqual(['Saved', 'Strong fit']);
+    expect(badges).toEqual(['Strong fit', 'Saved']);
     expect(texts.filter((t) => itemsInLine(t) > MAX_META_ITEMS)).toEqual([]);
   });
 });

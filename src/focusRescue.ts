@@ -59,12 +59,14 @@ export function spotOf(el: Element): Spot {
 const shownInBrowser = (el: Element) =>
   !el.closest('[hidden], [inert], [aria-hidden="true"]') && el.getClientRects().length > 0;
 
-/** The page's heading: the first h1 or h2 in main outside a side rail (the job rail's list). */
+/** The page's heading: its h1 in main (#363), else the first h2, outside a side rail (the job
+ *  rail's list). */
 export function pageHeading(shown = shownInBrowser): HTMLElement | null {
   const main = document.querySelector('main');
   if (!main) return null;
-  for (const h of main.querySelectorAll<HTMLElement>('h1, h2'))
-    if (!h.closest('nav, aside') && shown(h)) return h;
+  for (const level of ['h1', 'h2'])
+    for (const h of main.querySelectorAll<HTMLElement>(level))
+      if (!h.closest('nav, aside') && shown(h)) return h;
   return null;
 }
 

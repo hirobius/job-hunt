@@ -42,7 +42,7 @@ function focusAfterEmpty(restored: string | null) {
       (main?.querySelector<HTMLElement>(`section[aria-label="Jobs"] ${href}`) ??
         main?.querySelector<HTMLElement>(href));
     if (link) return link.focus();
-    const jobs = main?.querySelector<HTMLElement>('section[aria-label="Jobs"] h3');
+    const jobs = main?.querySelector<HTMLElement>('section[aria-label="Jobs"] h2');
     // Opened from the Account menu on another page (#416): back to the Account button.
     const account = document.querySelector<HTMLElement>('.rjb-account');
     if (!jobs && account) return account.focus();

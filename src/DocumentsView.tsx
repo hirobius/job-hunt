@@ -83,7 +83,7 @@ export default function DocumentsView() {
       <DocumentsLibrary
         header={
           <PageHeader
-            level={2}
+            level={1}
             breadcrumb={
               // "← Pipeline", or the page Documents was opened from by name (return paths).
               <BackLink className="rjb-back" fallback={PIPELINE} fallbackLabel="Pipeline" />

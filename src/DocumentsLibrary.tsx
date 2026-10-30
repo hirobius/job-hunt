@@ -205,7 +205,7 @@ export default function DocumentsLibrary({
     );
 
   const head = header ?? (
-    <Text variant="title" as="h2">
+    <Text variant="title" as="h1">
       Documents
     </Text>
   );

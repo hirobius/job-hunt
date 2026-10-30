@@ -26,7 +26,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   // state adds the starters in one tap, as Outreach messages.
   await page.getByRole('button', { name: /^Account/ }).click();
   await page.getByRole('menuitem', { name: 'Documents' }).click();
-  await expect(page.getByRole('heading', { level: 2, name: 'Documents' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Documents' })).toBeVisible();
   await expect(page.getByText('No documents yet')).toBeVisible();
   await page.getByRole('button', { name: 'Add starter messages' }).click();
   const outreach = page.getByRole('region', { name: 'Outreach messages' });
@@ -68,7 +68,7 @@ test('edit a message in Documents → the Apply sheet uses it → the job opens 
   await page.locator('a[href^="#/queue/"]').first().click();
   await page.getByRole('link', { name: 'Acme Metals', exact: true }).click();
   await expect(page).toHaveURL(/#\/company\/acme-metals\?from=%2Fqueue%2F/);
-  await expect(page.getByRole('heading', { level: 2, name: 'Acme Metals' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Acme Metals' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Jobs', selected: true })).toBeVisible();
   await page.getByRole('link', { name: 'Fabricator', exact: true }).click();
   await expect(page).toHaveURL(/#\/queue\//);

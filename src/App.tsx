@@ -19,10 +19,9 @@ import {
   Stack,
   useToast,
 } from '@hirobius/design-system';
-import { FollowUpHost } from './FollowUp';
-import { AddInterviewHost } from './AddInterview';
+import { LazyAddInterviewHost, LazyFollowUpHost } from './lazyHosts';
 import { ApplyMode, CompanyPage, JobPage, Today, TrackerView } from './routeViews';
-import { JobPageLiveness } from './LivenessViews';
+import { JobPageLiveness } from './lazyDialogs';
 import { usePageTitle } from './pageTitle';
 import { BrandLogo } from './brand/Flame';
 import { BootHold } from './brand/BootHold';
@@ -290,7 +289,8 @@ export default function App() {
                 <Box as="header">
                   <Stack gap="normal">
                     {/* Slim app bar: the brand lockup (the flame from src/brand/flame.svg + the
-                      wordmark, the page's one h1) · the Account avatar. */}
+                      wordmark, named for the product; the page's own name is its h1, #363) · the
+                      Account avatar. */}
                     <Stack direction="row" gap="gap" align="center" justify="space-between">
                       <BrandLogo fontSize={19} />
                       <AccountMenu />
@@ -329,7 +329,9 @@ export default function App() {
                             <CompanyPage slug={route.sub ?? ''} />
                           ) : route.jobId ? (
                             <>
-                              <JobPageLiveness jobId={route.jobId} />
+                              <Suspense fallback={null}>
+                                <JobPageLiveness jobId={route.jobId} />
+                              </Suspense>
                               <JobPage jobId={route.jobId} />
                             </>
                           ) : (
@@ -361,8 +363,8 @@ export default function App() {
           </Box>
         </PageShell>
         <SignInHost />
-        <FollowUpHost />
-        <AddInterviewHost />
+        <LazyFollowUpHost />
+        <LazyAddInterviewHost />
         <NoticeHost />
         <StaleBuildNotice />
       </DataToolsProvider>
