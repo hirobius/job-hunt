@@ -34,7 +34,7 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
 
 ## Stack & conventions
 
-- **Vite + React 18 + TypeScript + HDS (`@hirobius/design-system`) — and nothing else for UI
+- **Vite + React 19 + TypeScript + HDS (`@hirobius/design-system`) — and nothing else for UI
   (epic #89, 2026-10).** Every element is real HDS: layout (`Box` with HDS's token-only `sx`,
   `Stack`, `Switcher`, `Grid`, `Container`), type (`Text` on the HDS ramp: display / title / body
   / ui / caption / mono), and components (Button incl. icon-only `Button iconOnly` + `Icon`, Card,

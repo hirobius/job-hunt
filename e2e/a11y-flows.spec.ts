@@ -193,6 +193,8 @@ test.describe('keyboard only', () => {
     await page.keyboard.press('Enter');
     // Opened from the Pipeline, the page remembers it and its Back goes there (return paths).
     await expect(page).toHaveURL(/#\/legal\/privacy\?from=%2Fqueue$/);
+    // React 19 holds a lazy page's reveal a beat (Suspense throttle): tab once it is on screen.
+    await expect(page.getByRole('heading', { name: 'Privacy policy' })).toBeVisible();
     expect(await tabTo(page, 'Back to Pipeline')).toBe(true);
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/queue$/);

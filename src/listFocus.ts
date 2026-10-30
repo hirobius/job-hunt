@@ -10,7 +10,7 @@ export const JOB_ATTR = 'data-pipeline-job';
 
 const lost = () => !document.activeElement || document.activeElement === document.body;
 
-export function useListFocusKeeper(shown: string[], fallback: RefObject<HTMLElement>) {
+export function useListFocusKeeper(shown: string[], fallback: RefObject<HTMLElement | null>) {
   // The job whose card last held focus, and where it sat in the list.
   const last = useRef<{ url: string; index: number } | null>(null);
   const shownRef = useRef(shown);
