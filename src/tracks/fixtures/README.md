@@ -10,7 +10,7 @@ the board set holds Greenhouse, Lever and Ashby only):
 | `ashby-linear.json`       | `https://api.ashbyhq.com/posting-api/job-board/linear`                 |
 
 Trimmed: two roles per board (one design role, one other), every string cut at 1,200 characters,
-email addresses replaced with `jobs@example.com`. Field names and shapes are untouched. The
+no email addresses kept (none were in these roles). Field names and shapes are untouched. The
 same day, `npm run sync:dry-run -- --rotate --read` read a live batch of 25 boards from the set:
 all 25 answered `ok`, 678 postings parsed.
 
