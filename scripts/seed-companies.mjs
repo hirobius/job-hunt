@@ -15,7 +15,7 @@ const { module: run } = await runnerImport(`${root}src/feed/seed/run.ts`);
 // FetchError from the same module graph as run.ts, or the probe's `instanceof` check fails.
 const { FetchError } = run;
 
-const UA = { 'user-agent': 'Stoke company seed (github.com/hirobius/job-hunt)' };
+const UA = { 'user-agent': 'hiraga company seed (github.com/hirobius/job-hunt)' };
 async function get(url) {
   let r;
   try {

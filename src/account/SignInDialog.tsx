@@ -18,7 +18,7 @@ import './SignInDialog.css';
 
 export const RESEND_COOLDOWN_S = 30;
 
-/** The wordmark (the flame as its "o"). Not a heading: the screen's title is Sign in. */
+/** The wordmark (the flame, then the name). Not a heading: the screen's title is Sign in. */
 function SignInBrand() {
   return (
     <div className="rjb-signin-screen__brand">

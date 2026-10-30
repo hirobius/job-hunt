@@ -1,28 +1,23 @@
-/* The wordmark (Wordmark.tsx, wordmarkMarkup.ts; also inlined into the og-image by npm run icons).
-   The "o" stays in the line, transparent, so the word's box and advance are the plain name; the
-   flame shares its grid cell, centred on it, its bottom on the text baseline, as tall as a capital.
-   Nothing here touches the font's metrics or tracking. */
-.rjb-wordmark-o {
-  display: inline-grid;
+/* The wordmark (Wordmark.tsx, wordmarkMarkup.ts; also inlined into the og-image by npm run icons):
+   the flame, then the name, on one text baseline (Adrian 2026-10-30). The flame is sized from the
+   font (a little taller than a capital) and its extra height is taken back by a negative top
+   margin, so the line stays plain text's height. Nothing here touches the font's metrics or
+   tracking. */
+.rjb-logo-word {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18em;
 }
-.rjb-wordmark-o > * {
-  /* Both in the baseline group: the cell's baseline is the letter's, so the cell sits in the line
-     exactly where the "o" would and the flame's bottom lands on the text baseline. */
-  grid-area: 1 / 1;
+.rjb-wordmark-flame {
+  display: inline-flex;
   align-self: baseline;
 }
-.rjb-wordmark-ghost {
-  color: transparent;
-}
-.rjb-wordmark-o > .rjb-flame {
-  justify-self: center;
-  display: block;
-}
-.rjb-wordmark-o > .rjb-flame svg {
+.rjb-wordmark-flame > .rjb-flame svg {
   display: block;
   width: auto;
-  height: 0.7em;
-  height: 1cap;
+  height: 0.95em;
+  height: 1.35cap;
+  margin-top: -0.35cap;
   overflow: visible;
 }
 /* Each letter flickers on its own (flameMotion.ts: a lean and a fade). A transform needs a box; the

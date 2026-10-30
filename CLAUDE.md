@@ -1,10 +1,10 @@
-# CLAUDE.md — Stoke (formerly RoleForge, Apply Board)
+# CLAUDE.md — hiraga (formerly Stoke, RoleForge, Apply Board)
 
 Project memory for future Claude Code sessions in this repo.
 
 ## What this is
 
-**Stoke** (renamed 2026-10-29; formerly RoleForge, Apply Board) — a job-application tracker + discovery board, live at
+**hiraga** (lowercase everywhere; renamed 2026-10-30, Adrian: hire + Firaga, and *hi* 火 is Japanese for fire; formerly Stoke, RoleForge, Apply Board) — a job-application tracker + discovery board, live at
 **https://roleforge-app.vercel.app** (repo `hirobius/job-hunt`; the old
 `job-hunt-jade.vercel.app` still serves and is an accepted sign-in origin until it redirects). Rebuilt from a
 single static `index.html` into a React app (the old file is in git history at
@@ -32,13 +32,13 @@ animate. **Boot splash:** `%BRAND_FLAME%` in index.html's `#root` is the engine'
 by `brandHtml.ts` (one `.rjb-boot-f` group per frame, frames 1-7 `visibility="hidden"`), stepped by
 base.css (`rjb-boot-frame`, delays and loop length inline from FLAME_E.fps); reduced motion / no CSS
 shows frame 0. The splash still fades in after a short beat. The old rise-in reveal is gone.
-**Wordmark "St(flame)ke" (Adrian 2026-10-29):** `src/brand/Wordmark.tsx` (header h1, sign-in) and the
-og-image share one markup builder, `wordmarkMarkup.ts`, from `BRAND.wordmark` (`before` / `flame` /
-`after`; `{ letters: true }` in the app wraps each letter in `.rjb-wordmark-l` for the flicker, the
-og-image keeps plain runs). The real "o" stays in the line, transparent, and the flame shares its grid
-cell on the text baseline at `1cap` tall (`wordmark.css`), so the word's box and advance are plain
-text's (`e2e/brand.spec.ts` checks within 1px while the letters flicker); named by `aria-label`, its parts
-aria-hidden. **BootHold:** App's main, only while a signed-in device with no data waits for its cloud
+**Wordmark: the flame, then "hiraga" (Adrian 2026-10-30; was St(flame)ke):** `src/brand/Wordmark.tsx` (header, an `role="img"` named by BRAND, never a heading, #363;
+sign-in) and the og-image share one markup builder, `wordmarkMarkup.ts` (`BRAND.wordmark = { flame: 'before' }`):
+`.rjb-wordmark-flame` then `.rjb-wordmark-text` (`{ letters: true }` in the app wraps each letter in
+`.rjb-wordmark-l` for the flicker; the og-image keeps a plain run). `wordmark.css` sets them on one baseline, the
+flame `1.35cap` tall with its extra height taken back by a negative top margin, so the line is plain text's height
+and the name's run is plain text's width (`e2e/brand.spec.ts` checks within 1px while the letters flicker); named
+by `aria-label`, its parts aria-hidden. **BootHold:** App's main, only while a signed-in device with no data waits for its cloud
 copy, max 4 s.
 
 ## Stack & conventions

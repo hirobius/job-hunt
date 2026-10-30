@@ -8,12 +8,12 @@
 // events update instead of duplicating.
 export const BRAND = {
   /** Display name. */
-  name: 'Stoke',
-  /** The wordmark: the flame (src/brand/flame.svg) stands in for `flame`, between `before` and
-   *  `after` (St(flame)ke). Joined, they must equal `name`. */
-  wordmark: { before: 'St', flame: 'o', after: 'ke' },
+  name: 'hiraga',
+  /** The wordmark: the flame (src/brand/flame.svg) before the name (Adrian 2026-10-30). The name is
+   *  lowercase everywhere, titles included. */
+  wordmark: { flame: 'before' },
   /** Lowercase, URL/file-safe: download filenames. */
-  slug: 'stoke',
+  slug: 'hiraga',
   /** One line for <meta name="description">. */
   description:
     'A job-application tracker and discovery board: screen postings, track your pipeline, and generate targeted searches.',
