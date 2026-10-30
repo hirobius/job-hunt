@@ -51,6 +51,22 @@ describe('Try with sample data (Tracker)', () => {
     },
   );
 
+  // #345: the pressed control leaves with what it changed; focus goes to the Pipeline heading,
+  // never to <body>.
+  it('Try with sample data and Clear hand focus to the Pipeline heading', async () => {
+    const user = userEvent.setup();
+    renderTracker();
+    const heading = () => screen.getByRole('heading', { name: 'Pipeline' });
+
+    await user.click(tryButton()!);
+    expect(banner()).toBeInTheDocument();
+    expect(heading()).toHaveFocus();
+
+    await user.click(within(banner()!).getByRole('button', { name: /clear sample data/i }));
+    expect(banner()).toBeNull();
+    expect(heading()).toHaveFocus();
+  });
+
   it('is not offered when the tracker already has real jobs', () => {
     addJob('https://boards.greenhouse.io/acme/jobs/7');
     renderTracker();

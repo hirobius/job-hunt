@@ -277,6 +277,22 @@ for (const width of [390, 1440] as const) {
       await expect.poll(() => focused(page)).toBe('BUTTON Today');
     });
 
+    // #345: the pressed control leaves with what it changed (the empty state, the banner).
+    test('Try with sample data and Clear hand focus to the Pipeline heading', async ({ page }) => {
+      await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+      await page.goto('/#/queue');
+      await page.getByRole('button', { name: 'Try with sample data' }).focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('status', { name: 'Sample data' })).toBeVisible();
+      await page.waitForTimeout(300);
+      await expect.poll(() => focused(page)).toBe('H2 Pipeline');
+      await page.getByRole('button', { name: 'Clear sample data' }).focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('status', { name: 'Sample data' })).toHaveCount(0);
+      await page.waitForTimeout(300);
+      await expect.poll(() => focused(page)).toBe('H2 Pipeline');
+    });
+
     test('a row that leaves the list hands focus on, and the notice is announced', async ({
       page,
     }) => {

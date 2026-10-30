@@ -99,13 +99,19 @@ export function successor(spot: Spot, shown = shownInBrowser): HTMLElement | nul
   return null;
 }
 
-function focusHeading(shown: (el: Element) => boolean): boolean {
-  const h = pageHeading(shown);
-  if (!h) return false;
+/** Focus a heading as a page's landing spot: it takes focus (tabindex -1) but is no tab stop and
+ *  draws no ring. Also for a control that leaves with what it changed (Try with sample data,
+ *  Clear sample data, #345), so focus lands on its page's heading, never on <body>. */
+export function focusAsHeading(h: HTMLElement): boolean {
   if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
   h.setAttribute('data-focus-heading', '');
   h.focus({ preventScroll: true });
   return document.activeElement === h;
+}
+
+function focusHeading(shown: (el: Element) => boolean): boolean {
+  const h = pageHeading(shown);
+  return h ? focusAsHeading(h) : false;
 }
 
 const lost = () => {
