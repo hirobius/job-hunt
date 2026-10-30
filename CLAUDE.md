@@ -488,7 +488,11 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   Supabase table `client_errors` (`supabase/migrations/20261020_client_errors.sql`, 90-day pg_cron
   sweep) from `ErrorBoundary` and window error/rejection handlers. `installErrorReporting` in
   `main.tsx` skips localhost, so dev, E2E and the gallery never report. Read reports in the
-  Supabase dashboard (Table editor → client_errors).
+  Supabase dashboard (Table editor → client_errors). The only door is the `report_client_error` RPC,
+  limited per client (a salted hash of the gateway's IP header, never stored with a report, swept
+  after 2 days) under global ceilings (`20261030100000`). **DB caps (#320):** curation tables have
+  length checks, per-user row ceilings and same-user composite FKs (`20261030100100`); all pinned by
+  text in `src/supabaseHardening.test.ts`.
   **Installable + share image (#47):** `public/manifest.webmanifest` (name = BRAND, standalone, no
   service worker), PNG icons (192, 512, maskable 512, 180 touch icon) and the 1200x630
   `og-image.png` are rendered by `npm run icons` (`scripts/make-icons.mjs`, headless Chromium);
