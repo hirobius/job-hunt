@@ -13,7 +13,7 @@ import { normalizeScreening } from './screening';
 import { sanitizeDecks } from './decks';
 import { normDate, normJobDates, recordLiveness } from './jobDates';
 import type { LiveCheck } from './feed/liveness';
-import { parseBoardUrl } from './feed/sources/ats';
+import { parseBoardUrl } from './feed/sources/boardUrl';
 import { prettySlug } from './feed/sources/http';
 
 const KEY = 'rjb_shortlist'; // same key as the legacy app

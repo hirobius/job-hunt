@@ -15,7 +15,7 @@ import { useMemo } from 'react';
 import { liveStorage } from '../liveStorage';
 import { loadPersisted, savePersisted } from '../persisted';
 import { htmlToText } from './html';
-import { inflect } from './match';
+import { inflect } from './term';
 
 export const MUST_INCLUDE_KEY = 'rjb_must_include';
 const MAX_TERMS = 20;

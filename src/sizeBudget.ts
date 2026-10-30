@@ -7,7 +7,7 @@ import { gzipSync } from 'node:zlib';
 
 export const BUDGET = {
   /** The entry chunk and every chunk it imports statically (index.html modulepreloads them). */
-  initialJsGzip: 285_000,
+  initialJsGzip: 250_000,
   /** All CSS index.html links (render-blocking). */
   initialCssGzip: 27_000,
   /** Any single lazy chunk. supabase-js is the largest (~56 kB) and loads only to sign in. */
