@@ -87,7 +87,7 @@ only while a signed-in device with no data waits for its cloud copy, max 4 s).
   sign-in) and stays out of every manualChunks group (a named group pulls tslib in and vendor then
   imports it). Never import `@supabase/supabase-js` statically (`supabaseLazy.test.tsx`); tests
   that sign in call `loadSupabase()` first. The Pipeline, job page, Apply mode and Company page are
-  `routeViews.ts` lazy views (`lazyView.tsx`); `test/setup.ts` preloads them. App wraps the bar in
+  `routeViews.ts` lazy views (`lazyView.tsx`); `test/setup.ts` preloads them. Follow up, Add interview, Recently removed and the job page's liveness note load on first use too (`lazyHosts.tsx`, `lazyDialogs.ts`, #368 pass); the stores read only `feed/sources/boardUrl.ts` / `feed/term.ts` / `boardSet` `BOARD_KINDS`, never ats.ts, match.ts or the probe (`entryChunk.test.ts`). What's left at startup is mostly HDS (motion, tailwind-merge, styles.css): upstream asks in `docs/hds-upstream-asks-0.9.md` "Startup cost asks". App wraps the bar in
   `header` and every page in one `main`; each route sets `document.title` (`pageTitle.ts`).
 - **State:** a shared external store via `useSyncExternalStore` in `src/store.ts`
   (no Redux). Jobs persist to `localStorage` key **`rjb_shortlist`** and sync to
@@ -750,7 +750,7 @@ the user saves one (`addJobDetailed`). The Feed (Review new) and the auto-scan r
     live read) go through the same-origin edge function `api/boards.ts` → `feed/sources/boardsHandler.ts`: fixed
     upstream URLs per `src`, 1 h shared cache, parsed by `feed/sources/<board>.ts`, re-checked in
     `feed/sources/proxied.ts` and matched downstream like a watched board (read once per search). CSP and `legal.ts` unchanged (browser only reaches 'self'). Under `vite dev`/`preview` (E2E, gallery) the `local-api-boards` plugin in `vite.config.ts` answers it with no postings. A new board: adapter
-    + one line each in `PROXIED_SOURCES` (`proxiedIds.ts`), `BOARD_ADAPTERS`, `FeedSourceId`/`SOURCE_LABEL` and `SOURCE_ENABLED`.
+    - one line each in `PROXIED_SOURCES` (`proxiedIds.ts`), `BOARD_ADAPTERS`, `FeedSourceId`/`SOURCE_LABEL` and `SOURCE_ENABLED`.
 - **Board identity + five more boards (#src-ats, 2026-10-28).** A board found from a _name_ must show
   it is the company's (`feed/boardIdentity.ts`): the company's website domain on its apply links /
   website / job text (YC, Adele, GitHub org sites; github.io-style hosts are no evidence), else the
