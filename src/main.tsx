@@ -22,6 +22,7 @@ import { preloadLanding } from './routeViews';
 import { installFocusRescue } from './focusRescue';
 import { installScrollMemory } from './scrollMemory';
 import { installStaleBuildGuard } from './staleBuild';
+import { installToastAnnouncer } from './hds-gaps/toastAnnouncer';
 
 // Vercel Web Analytics (page counts only; needs the dashboard toggle — see issue #16).
 inject();
@@ -37,6 +38,8 @@ installScrollMemory();
 installFocusRescue();
 // A tab older than the deploy: a chunk that is gone says "A new version is ready" (staleBuild.ts).
 installStaleBuildGuard();
+// Notices are said politely, title and description apart; errors assertively (#365, an HDS gap).
+installToastAnnouncer();
 
 // The landing page's view first, so it renders with the shell instead of behind a skeleton (#372).
 void preloadLanding(getRoute()).then(() =>

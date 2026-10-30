@@ -33,7 +33,11 @@ export default function JobHeader({ job, showBack = true }: { job: Job; showBack
   const next = primaryAction(job);
   const addInterview =
     !next && !job.archived && job.status === 'Interviewing' ? (
-      <Button variant="primary" size="md" onClick={(e) => openAddInterview(job.url, e.currentTarget)}>
+      <Button
+        variant="primary"
+        size="md"
+        onClick={(e) => openAddInterview(job.url, e.currentTarget)}
+      >
         Add interview
       </Button>
     ) : null;
@@ -50,7 +54,7 @@ export default function JobHeader({ job, showBack = true }: { job: Job; showBack
           {/* The posting is one tap from the title (Adrian 2026-10-22), quiet beside it: the
               header's one primary stays the next step. */}
           <JobPostingTitle job={job} size="md">
-            <Text variant="title" as="h2">
+            <Text variant="title" as="h1">
               {titleOf(job)}
             </Text>
           </JobPostingTitle>

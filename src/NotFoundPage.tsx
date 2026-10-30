@@ -7,7 +7,7 @@ export default function NotFoundPage() {
   return (
     <Box sx={{ maxWidth: 'var(--semantic-layout-width-content)' }}>
       <Stack gap="normal" align="start">
-        <Text variant="title" as="h2">
+        <Text variant="title" as="h1">
           Page not found
         </Text>
         <Text variant="body" as="p" tone="secondary">

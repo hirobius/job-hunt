@@ -188,7 +188,7 @@ describe('create, edit, delete', () => {
     // rev-3 N: the field starts empty with the kind as its placeholder, under "New cover letter".
     expect(title).toHaveValue('');
     expect(title).toHaveAttribute('placeholder', 'Cover letter');
-    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('New cover letter');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('New cover letter');
     await userEvent.type(title, 'General letter');
     await userEvent.type(screen.getByRole('textbox', { name: 'Text' }), 'Dear team');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));

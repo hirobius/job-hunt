@@ -65,7 +65,7 @@ function CompanyJobRow({ job }: { job: Job }) {
           <Stack gap="px4">
             <JobBadges job={job} />
             <JobPostingTitle job={job}>
-              <Text variant="body" as="h4" weight="bold" className="rjb-row-title">
+              <Text variant="body" as="h3" weight="bold" className="rjb-row-title">
                 <InlineLink href={href} externalIcon={false}>
                   {titleOf(job)}
                 </InlineLink>
@@ -248,7 +248,7 @@ export default function CompanyPage({ slug }: { slug: string }) {
               page gutter with the title (`.rjb-back-link`; its box stays inside the gutter). Opened
               from a job, it names that job and goes back to it (return paths). */}
           <BackLink fallback={PIPELINE} fallbackLabel="Pipeline" />
-          <Text variant="title" as="h2">
+          <Text variant="title" as="h1">
             {company.name}
           </Text>
           {/* The mark sits with the job count, so the Back arrow and the heading keep one edge. */}

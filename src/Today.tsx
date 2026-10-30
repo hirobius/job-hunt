@@ -35,7 +35,7 @@ export default function Today() {
   return (
     <Stack gap="px24">
       <Stack gap="px4">
-        <Text as="h2" variant="title">
+        <Text as="h1" variant="title">
           Today
         </Text>
         <MetaCaption

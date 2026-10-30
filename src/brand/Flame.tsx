@@ -23,14 +23,15 @@ export function Flame({ className, reveal = false }: { className?: string; revea
   );
 }
 
-/** The app bar lockup: the wordmark (the page's one h1, the flame as its "o"), at `fontSize` px. */
+/** The app bar lockup: the wordmark (an image named for the product, the flame as its "o"; the page's
+ *  own name is its h1, #363), at `fontSize` px. */
 export function BrandLogo({ fontSize = 19 }: { fontSize?: number }) {
   return (
     <span
       className="rjb-logo"
       ref={(el) => el?.style.setProperty('--rjb-logo-size', `${fontSize}px`)}
     >
-      <Wordmark as="h1" />
+      <Wordmark />
     </span>
   );
 }

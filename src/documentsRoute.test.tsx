@@ -76,7 +76,7 @@ describe('the Documents page', () => {
   it('is a page with no tab selected: a Documents heading and a way back', async () => {
     await renderApp();
     expect(screen.queryByRole('tab', { selected: true })).toBeNull();
-    expect(screen.getByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to Pipeline' })).toHaveAttribute(
       'href',
       '#/queue',
@@ -91,7 +91,7 @@ describe('the Documents page', () => {
     expect(within(menu).queryByRole('menuitem', { name: 'Templates' })).toBeNull();
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Documents' }));
     expect(window.location.hash).toBe('#/copy-deck');
-    expect(await screen.findByRole('heading', { level: 2, name: 'Documents' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeInTheDocument();
   });
 
   it('moves the snippets into the library as Outreach messages at startup', async () => {
@@ -311,7 +311,7 @@ describe('the Company page (#230)', () => {
     window.location.hash = '#/company/acme-metals';
     await renderApp();
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Acme Metals' }),
+      await screen.findByRole('heading', { level: 1, name: 'Acme Metals' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('tab', { selected: true })).toHaveAccessibleName('Jobs');
     // The job page remembers the Company page, so its Back returns here (return paths).
@@ -328,7 +328,7 @@ describe('the Company page (#230)', () => {
     expect(link).toHaveAttribute('href', `#/company/acme-metals?from=%2Fqueue%2F${jobIdOf(JOB)}`);
     await userEvent.click(link);
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Acme Metals' }),
+      await screen.findByRole('heading', { level: 1, name: 'Acme Metals' }),
     ).toBeInTheDocument();
   });
 });

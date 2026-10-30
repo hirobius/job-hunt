@@ -289,7 +289,8 @@ export default function App() {
                 <Box as="header">
                   <Stack gap="normal">
                     {/* Slim app bar: the brand lockup (the flame from src/brand/flame.svg + the
-                      wordmark, the page's one h1) · the Account avatar. */}
+                      wordmark, named for the product; the page's own name is its h1, #363) · the
+                      Account avatar. */}
                     <Stack direction="row" gap="gap" align="center" justify="space-between">
                       <BrandLogo fontSize={19} />
                       <AccountMenu />

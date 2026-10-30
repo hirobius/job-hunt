@@ -298,7 +298,7 @@ export default function DocumentEditor({
         )}
       </BackGuard.Provider>
       <Stack gap="px4">
-        <Text variant="title" as="h2">
+        <Text variant="title" as="h1">
           {doc ? doc.title || 'Untitled' : `New ${label.charAt(0).toLowerCase()}${label.slice(1)}`}
         </Text>
         <Text variant="caption" as="p" tone="secondary">
