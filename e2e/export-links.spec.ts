@@ -55,7 +55,9 @@ test('export links: open, switch scope and format, copy and download', async ({ 
 
   // Copy puts the list on the clipboard and says how many.
   await dialog.getByRole('button', { name: 'Copy' }).click();
-  await expect(page.getByText('Copied 2 links')).toBeVisible();
+  // exact: the toast's screen-reader announcement ("Notification Copied 2 links") is in the DOM
+  // for a moment too, and a substring match would find both.
+  await expect(page.getByText('Copied 2 links', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(titled);
 
   // Download .txt saves the same text under the brand + date name.

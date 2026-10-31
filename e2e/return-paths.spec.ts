@@ -281,6 +281,12 @@ for (const width of [390, 1440] as const) {
         .first()
         .click();
       await page.getByRole('menuitem', { name: 'Remove' }).click();
+      // At 390 the Removed notice sits over Recently removed until it times out (~8 s, which
+      // pushed the walk past the test timeout under load): dismiss it, as a person would.
+      await page
+        .getByRole('region', { name: /^Notifications/ })
+        .getByRole('button', { name: 'Dismiss' })
+        .click();
       await page.getByRole('button', { name: /^Recently removed/ }).click();
       await closesOnBack(page.getByRole('dialog', { name: 'Recently removed' }), queue);
 
@@ -571,8 +577,10 @@ for (const width of [390, 1440] as const) {
       );
       const rowButton = panel.getByRole('button', { name: /^Roles at / }).first();
       const name = (await rowButton.getAttribute('aria-label')) ?? (await rowButton.textContent())!;
-      await rowButton.click();
-      const open = panel.getByRole('button', { name });
+      // By name, not `.first()` again: the rows reorder as their boards answer, so the first row
+      // at the click can be another company than the one just read.
+      const open = panel.getByRole('button', { name, exact: true });
+      await open.click();
       await expect(open).toHaveAttribute('aria-expanded', 'true');
       const more = page.getByRole('region', { name: 'More ways to find companies' });
 

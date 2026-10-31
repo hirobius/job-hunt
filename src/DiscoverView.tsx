@@ -57,8 +57,11 @@ import { useDreams } from './feed/dreams';
 import { boardsFromUrls } from './feed/sources/ats';
 import { displayGroupLabel } from './curation/groupLabel';
 import { importFresh } from './staleBuild';
+import { lazyView } from './lazyView';
 
-const ManageTrackDialog = lazy(importFresh(() => import('./ManageTrackDialog')));
+// Fetched once Discover is up (below), so Manage track opens on the press, not after a chunk
+// download (the 300 ms feedback rule, e2e/feedback.spec.ts).
+const ManageTrackDialog = lazyView(importFresh(() => import('./ManageTrackDialog')));
 const LiveFeedPanel = lazy(importFresh(() => import('./LiveFeedPanel')));
 const FindBoardsPanel = lazy(importFresh(() => import('./FindBoardsPanel')));
 const CompaniesPanel = lazy(importFresh(() => import('./CompaniesPanel')));
@@ -565,6 +568,11 @@ function DiscoverInner({ categories }: { categories: Category[] }) {
   const [manageOpen, setManageOpen] = useState(false);
   // The browser's Back closes Manage track and stays on Companies (return paths).
   useBackCloses(manageOpen, () => setManageOpen(false), 'manage-track');
+  useEffect(() => {
+    ManageTrackDialog.preload().catch(() => {
+      /* offline: opening it fetches again; a stale build raises its notice (importFresh) */
+    });
+  }, []);
 
   const cat = categories.find((c) => c.id === activeId) ?? categories[0];
   const trackContext = useTrackContext(cat.id);
