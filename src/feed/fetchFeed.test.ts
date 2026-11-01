@@ -4,6 +4,7 @@ import {
   createFetchJson,
   describeError,
   BOARD_CONCURRENCY,
+  BOARD_PER_HOST,
   fetchFeed,
   memoryKv,
   REMOTIVE_DAILY_MAX,
@@ -284,8 +285,34 @@ describe('fetchFeed', () => {
       inFlight--;
       return [];
     });
-    expect(BOARD_CONCURRENCY).toBe(6);
-    expect(peak).toBe(6);
+    // One host never sees more than BOARD_PER_HOST at once (#448).
+    expect(peak).toBe(BOARD_PER_HOST);
+  });
+
+  it('reads boards on different hosts in parallel up to BOARD_CONCURRENCY (#448)', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const urls = Array.from({ length: 40 }, (_, i) =>
+      i % 2 ? `https://jobs.lever.co/co${i}` : `https://boards.greenhouse.io/co${i}`,
+    );
+    const hosts = new Map<string, number>();
+    let hostPeak = 0;
+    await fetchFeed({ term: 'x', boardUrls: urls }, async (url) => {
+      if (url.includes('search_by_date')) return { hits: [] };
+      const host = new URL(url).host;
+      if (!/lever|greenhouse/.test(host)) return url.includes('remotive') ? { jobs: [] } : [];
+      inFlight++;
+      hosts.set(host, (hosts.get(host) ?? 0) + 1);
+      peak = Math.max(peak, inFlight);
+      hostPeak = Math.max(hostPeak, hosts.get(host)!);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight--;
+      hosts.set(host, hosts.get(host)! - 1);
+      return host.includes('lever') ? [] : { jobs: [] };
+    });
+    expect(BOARD_CONCURRENCY).toBeGreaterThan(6);
+    expect(hostPeak).toBeLessThanOrEqual(BOARD_PER_HOST);
+    expect(peak).toBe(Math.min(BOARD_CONCURRENCY, 2 * BOARD_PER_HOST));
   });
 
   it('skips the network entirely for a blank term', async () => {

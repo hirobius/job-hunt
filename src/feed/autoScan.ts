@@ -27,7 +27,7 @@ import { YC_HIRING_URL, ycMatches } from './companySource';
 import { companyKey, muteCompany } from './decided';
 import { findDesignSystemOrgs, type GhGet, type RunReport } from './dsOrgs';
 import { boardKeyOf, countSources } from './feed';
-import { liveFetchJson, type FeedResult } from './fetchFeed';
+import { liveFetchJson, type FeedProgress, type FeedResult } from './fetchFeed';
 import { createGithubBudget, type GithubBudget } from './githubBudget';
 import { confirmBoard } from './identity';
 import { remoteVerdict } from './mode';
@@ -45,6 +45,8 @@ export const SCAN_KEY = 'rjb_autoscan';
 export const SCAN_POSTINGS_KEY = 'rjb_autoscan_postings';
 /** The client scans on open at most this often. */
 export const SCAN_EVERY_MS = 6 * 3600e3;
+/** A board read this recently is not read again by a run on open; Scan now reads it (#448). */
+export const BOARD_FRESH_MS = 30 * 60e3;
 /** New leads probed per run; the rest wait for the next one (the probe cache makes repeats cheap). */
 export const MAX_PROBES_PER_SCAN = 40;
 /** YC companies hiring now taken per run (their one-liner or tags must name a profile title). */
@@ -120,6 +122,8 @@ export interface ScanState {
   /** companyKey → when it was probed. */
   probed: Record<string, number>;
   found: FoundCompany[];
+  /** Board key (kind:slug) → when a run last read it without error (#448). */
+  boardReads?: Record<string, number>;
   error?: string;
 }
 
@@ -202,6 +206,15 @@ export function sanitizeScanState(raw: unknown): ScanState {
       .slice(0, MAX_QUEUE),
     probed,
     found: found.slice(-MAX_FOUND),
+    ...(o.boardReads && typeof o.boardReads === 'object'
+      ? {
+          boardReads: Object.fromEntries(
+            Object.entries(o.boardReads as Record<string, unknown>).filter(
+              ([, v]) => num(v) !== undefined,
+            ),
+          ) as Record<string, number>,
+        }
+      : {}),
     ...(text(o.error) && { error: text(o.error) }),
   };
 }
@@ -414,9 +427,14 @@ export interface ScanProgress {
 export async function runScan(
   input: ScanInput,
   deps: ScanDeps,
-  opts: { signal?: AbortSignal; onProgress?: (p: ScanProgress) => void } = {},
+  opts: {
+    signal?: AbortSignal;
+    onProgress?: (p: ScanProgress) => void;
+    /** Scan now: read every board, fresh or not. */
+    force?: boolean;
+  } = {},
 ): Promise<ScanState> {
-  const { signal, onProgress } = opts;
+  const { signal, onProgress, force } = opts;
   const limiter = deps.limiter ?? createLimiter();
   const d: ScanDeps = { ...deps, limiter };
   const halted = () => !!signal?.aborted;
@@ -531,10 +549,34 @@ export async function runScan(
 
   // 3. read every followed board, every confirmed company found, and every feed
   step({ phase: 'read' });
-  const readUrls = scanBoardUrls(input.boardUrls, s);
+  const allUrls = scanBoardUrls(input.boardUrls, s);
+  const reads = { ...(s.boardReads ?? {}) };
+  const isFresh = (url: string) => {
+    const k = boardKeyOfUrl(url);
+    return !force && !!k && now - (reads[k] ?? -Infinity) < BOARD_FRESH_MS;
+  };
+  const readUrls = allUrls.filter((u) => !isFresh(u));
+  const skipped = new Set(allUrls.filter(isFresh).map(boardKeyOfUrl));
   let result: FeedResult;
   try {
     result = await d.reader.read({ terms: input.terms, boardUrls: readUrls });
+    const failed = new Set(result.sources.filter((x) => x.error).map((x) => x.key.toLowerCase()));
+    for (const u of readUrls) {
+      const k = boardKeyOfUrl(u);
+      if (k && !failed.has(k) && !failed.has(u.toLowerCase())) reads[k] = deps.now();
+    }
+    // Keep only boards still scanned, so the record never grows past the board list.
+    const live = new Set(allUrls.map(boardKeyOfUrl));
+    s = {
+      ...s,
+      boardReads: Object.fromEntries(Object.entries(reads).filter(([k]) => live.has(k))),
+    };
+    // A skipped board's postings are the ones the last run kept for it.
+    const carried = getScanPostings().filter((p) => {
+      const k = boardKeyOf(p.id);
+      return !!k && skipped.has(k);
+    });
+    if (carried.length) result = { ...result, postings: [...result.postings, ...carried] };
   } catch {
     s = { ...s, error: 'The scan could not read its sources. It will try again.' };
     save();
@@ -611,13 +653,18 @@ export function scanBoardUrls(followed: readonly string[], s: Pick<ScanState, 'f
 let current: { ctl: AbortController; done: Promise<ScanState> } | null = null;
 
 /** Scan now: start a run (or join the one running). */
-export function scanNow(input: ScanInput, deps: ScanDeps = defaultScanDeps()): Promise<ScanState> {
+export function scanNow(
+  input: ScanInput,
+  deps: ScanDeps = defaultScanDeps(),
+  { force = false }: { force?: boolean } = {},
+): Promise<ScanState> {
   if (current) return current.done;
   const ctl = new AbortController();
   running = true;
   notify();
   const done = runScan(input, deps, {
     signal: ctl.signal,
+    force,
     onProgress: (p) => {
       progress = p;
       notify();
@@ -666,19 +713,30 @@ export function scanOnOpen(
 export function scanReader(inner: PostingReader = browserReader()): PostingReader {
   return {
     async read(req, onProgress) {
-      const live = await inner.read(req, onProgress);
-      const state = getScanState();
-      const ignored = new Set(
-        state.found.filter((f) => f.status === 'ignored').map((f) => boardKeyOfUrl(f.boardUrl)),
-      );
-      const ids = new Set(live.postings.map((p) => p.id));
-      const added = getScanPostings().filter((p) => {
-        const board = boardKeyOf(p.id);
-        return !ids.has(p.id) && !(board && ignored.has(board));
+      // The cached scan rows show at once (#448); the live read folds in as it answers.
+      const withCached = (p: FeedProgress): FeedProgress => ({
+        ...p,
+        ...addScanned({ postings: p.postings, sources: p.sources }),
       });
-      return { postings: [...live.postings, ...added], sources: live.sources };
+      onProgress?.(withCached({ postings: [], sources: [], boardsDone: 0, boardsTotal: 0 }));
+      const live = await inner.read(req, onProgress && ((p) => onProgress(withCached(p))));
+      return addScanned(live);
     },
   };
+}
+
+/** The live result plus what the last scan kept, never an ignored company's. */
+function addScanned(live: FeedResult): FeedResult {
+  const state = getScanState();
+  const ignored = new Set(
+    state.found.filter((f) => f.status === 'ignored').map((f) => boardKeyOfUrl(f.boardUrl)),
+  );
+  const ids = new Set(live.postings.map((p) => p.id));
+  const added = getScanPostings().filter((p) => {
+    const board = boardKeyOf(p.id);
+    return !ids.has(p.id) && !(board && ignored.has(board));
+  });
+  return { postings: [...live.postings, ...added], sources: live.sources };
 }
 
 function setStatus(key: string, status: FoundStatus) {
