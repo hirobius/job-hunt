@@ -264,6 +264,42 @@ for (const theme of THEMES) {
         expect(bad).toEqual([]);
       });
 
+      // #447: the focused top tab draws one ring (base.css's outline, not that plus HDS's inset
+      // box-shadow ring), its label sits inside the trigger box, and the tab row does not clip it.
+      test('the focused top tab draws one ring around its label', async ({ page }) => {
+        await page.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
+        await page.addInitScript((t) => localStorage.setItem('rjb_color_mode', t), theme);
+        await page.goto('/#/today');
+        const tab = page.getByRole('tab', { name: 'Today' });
+        await expect(tab).toBeVisible();
+        await page.keyboard.press('Shift'); // a key press first, so focus shows as focus-visible
+        await tab.focus();
+        await expect(tab).toBeFocused();
+        expect(await tab.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
+        const r = await tab.evaluate((el) => {
+          const cs = getComputedStyle(el);
+          // A ring is a drawn outline or a visible box-shadow layer (Tailwind's ring is one).
+          const shadows = cs.boxShadow === 'none' ? [] : cs.boxShadow.split(/,(?![^(]*\))/);
+          const visibleShadows = shadows.filter((l) => !/rgba\([^)]*,\s*0\)/.test(l));
+          const rings =
+            (cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0 ? 1 : 0) +
+            visibleShadows.length;
+          const box = el.getBoundingClientRect();
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const text = range.getBoundingClientRect();
+          // The tab row scrolls on a phone, so it clips: the whole ring must fit inside it.
+          const list = el.closest('[role="tablist"]')!.getBoundingClientRect();
+          const out = parseFloat(cs.outlineOffset) + parseFloat(cs.outlineWidth);
+          return {
+            rings,
+            inside: text.left >= box.left && text.right <= box.right + 0.5,
+            ringFits: box.left - out >= list.left - 0.5 && box.top - out >= list.top - 0.5,
+          };
+        });
+        expect(r).toEqual({ rings: 1, inside: true, ringFits: true });
+      });
+
       // The first screen a new user sees: the empty Pipeline (its teaching EmptyState), before
       // any sample data, and the Pipeline filtered to nothing.
       test('the empty and filtered-empty Pipeline hold the layout rules', async ({ page }) => {

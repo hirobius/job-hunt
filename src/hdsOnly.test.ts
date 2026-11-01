@@ -76,8 +76,6 @@ describe('HDS version pin (#115 Phase 0)', () => {
 // Named style constants (`style={SECONDARY}`) are the hds-gaps idiom, not counted.
 describe('Inline style allowlist (#93)', () => {
   const ALLOWED: Record<string, number> = {
-    // HDS TabsList hard-codes mb-6 and has no prop to drop it
-    'App.tsx': 1,
     'account/DataToolsProvider.tsx': 1,
     // "Saved" fade: opacity follows state at runtime
     'JobOverview.tsx': 1,
@@ -106,7 +104,7 @@ describe('Inline style allowlist (#93)', () => {
 
   // The ratchet (#172): the total `style={{` in non-test src/**/*.tsx. Lower it as styles are
   // burned down, never raise it.
-  const MAX_INLINE_STYLES = 3;
+  const MAX_INLINE_STYLES = 2;
   it(`has at most ${MAX_INLINE_STYLES} inline styles in all`, () => {
     const total = Object.values(counts).reduce((a, n) => a + n, 0);
     expect(total).toBeLessThanOrEqual(MAX_INLINE_STYLES);
