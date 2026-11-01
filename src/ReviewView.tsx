@@ -579,7 +579,6 @@ function Deck({
         as="article"
         aria-label={r.company ? `${r.title} at ${r.company}` : r.title}
         padding="none"
-        className="rjb-card-inset"
       >
         <DeckBody>
           <PostingSummary r={r} now={now} />
