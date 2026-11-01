@@ -5,7 +5,7 @@
 // change. Its own chunk (lazyDialogs.ts): opened from the Account menu only.
 import { startTransition, useEffect, useState, type ReactNode } from 'react';
 import { Button, Dialog, SegmentedControl, Stack, Text } from '@hirobius/design-system';
-import { CardList, ListCard } from './PipelinePanel';
+import { ItemList, ItemRow } from './PipelinePanel';
 import { useFeedInputs } from './feed/useFeed';
 import { followCompany, muteCompany, unmuteCompany, useDecided } from './feed/decided';
 import { companiesLists, type CompanyEntry } from './companiesList';
@@ -113,18 +113,18 @@ function Group({
     if (!all) startTransition(() => setAll(true));
   }, [all]);
   return rows.length ? (
-    <CardList label={title} inset="none">
+    <ItemList label={title} inset="none">
       {(all ? rows : rows.slice(0, FIRST_ROWS)).map((c) => (
-        <ListCard key={c.key} dense>
+        <ItemRow key={c.key} dense>
           <Stack direction="row" gap="tight" align="center" justify="space-between">
             <Text variant="ui" as="span">
               {c.label}
             </Text>
             {action(c)}
           </Stack>
-        </ListCard>
+        </ItemRow>
       ))}
-    </CardList>
+    </ItemList>
   ) : (
     <Text variant="caption" as="p" tone="secondary">
       {empty}

@@ -35,7 +35,7 @@ import { EmptyState } from './hds-gaps/EmptyState';
 import { metaLines } from './metaLines';
 import { PostingTitle } from './PostingLink';
 import { useBackCloses, useBackSheet } from './useBackCloses';
-import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
+import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { useRemembered } from './viewMemory';
 import { useFeed } from './feed/useFeed';
 import { ScanStatus } from './AutoScanViews';
@@ -119,6 +119,7 @@ export default function ReviewView({
       count={view ? listed.length : undefined}
       countLabel={`${listed.length} postings`}
       description={view ? hiddenLine(view.hidden) : undefined}
+      flat
     >
       <PanelBody>
         <Stack gap="normal">
@@ -397,16 +398,16 @@ function RowList({
   const left = rows.length - shown;
   return (
     <>
-      <CardList label={label}>
+      <ItemList label={label}>
         {rows.slice(0, shown).map((r) => (
-          <ListCard key={r.fingerprint}>
+          <ItemRow key={r.fingerprint}>
             <PostingSummary r={r} now={now} onOpen={onOpen} />
             <Box sx={{ pt: 'xs' }}>
               <RowButtons r={r} actions={actions} />
             </Box>
-          </ListCard>
+          </ItemRow>
         ))}
-      </CardList>
+      </ItemList>
       {left > 0 && (
         <PanelBody>
           <Button variant="secondary" onClick={onMore}>
@@ -605,17 +606,17 @@ function DeckBody({ children }: { children: ReactNode }) {
 function LoadingRows() {
   return (
     <Box aria-busy>
-      <CardList hidden>
+      <ItemList hidden>
         {[0, 1, 2].map((i) => (
-          <ListCard key={i}>
+          <ItemRow key={i}>
             <Stack gap="px8">
               <Skeleton width="40%" />
               <Skeleton width="80%" />
               <Skeleton width="60%" />
             </Stack>
-          </ListCard>
+          </ItemRow>
         ))}
-      </CardList>
+      </ItemList>
     </Box>
   );
 }

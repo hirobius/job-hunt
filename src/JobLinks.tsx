@@ -10,7 +10,7 @@ import { addDeck, removeDeck, restoreDeck, type LinkKind } from './decks';
 import { findJobByUrl, updateJob } from './store';
 import { collapseRow, highlightNew, useHighlight } from './feedback';
 import { notifyRemoved } from './saveNotice';
-import { CardList, ListCard, Panel, PanelBody } from './PipelinePanel';
+import { ItemList, ItemRow, Panel, PanelBody } from './PipelinePanel';
 import { nextFocus, useFocusAfter } from './useFocusAfter';
 import type { Deck, Job } from './types';
 
@@ -102,7 +102,7 @@ function LinkCard({
   focusRef: (key: string) => (el: HTMLElement | null) => void;
 }) {
   const name = linkName(link);
-  // A link just added scrolls into view and flashes (#212); ListCard takes no ref, so the row's
+  // A link just added scrolls into view and flashes (#212); ItemRow takes no ref, so the row's
   // ref flashes the card around it.
   const highlight = useHighlight<HTMLElement>(link.id);
   const flashCard = useCallback(
@@ -110,7 +110,7 @@ function LinkCard({
     [highlight],
   );
   return (
-    <ListCard>
+    <ItemRow>
       <Stack direction="row" gap="px8" align="center" wrap="nowrap" ref={flashCard}>
         <Box sx={{ flex: '1 1 0%', minWidth: 0, overflowWrap: 'anywhere' }}>
           <Text variant="ui" as="span" weight="medium">
@@ -130,7 +130,7 @@ function LinkCard({
           }}
         />
       </Stack>
-    </ListCard>
+    </ItemRow>
   );
 }
 
@@ -166,7 +166,7 @@ export default function LinksPanel({ job, kind }: { job: Job; kind: LinkKind }) 
       <PanelBody>
         <Stack gap="px8">
           {links.length > 0 && (
-            <CardList label={`${kind.title} for this job`} inset="none">
+            <ItemList label={`${kind.title} for this job`} inset="none">
               {links.map((d) => (
                 <LinkCard
                   key={d.id}
@@ -177,7 +177,7 @@ export default function LinksPanel({ job, kind }: { job: Job; kind: LinkKind }) 
                   focusRef={ref}
                 />
               ))}
-            </CardList>
+            </ItemList>
           )}
           {adding ? (
             <LinkForm onAdd={add} onCancel={close} />

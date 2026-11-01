@@ -29,7 +29,7 @@ import {
 import { SampleBanner, TrySampleButton } from './demo/SampleData';
 import ApplyQueueSummary from './ApplyQueueSummary';
 import JobListCard from './JobListCard';
-import { CardList, Panel, PanelBody } from './PipelinePanel';
+import { ItemList, Panel, PanelBody } from './PipelinePanel';
 import { PipelineLiveness } from './LivenessViews';
 import { useVisualViewportVars } from './hds-gaps/useVisualViewportVars';
 import './account/sheet.css';
@@ -351,11 +351,11 @@ export default function TrackerView() {
             ) : (
               // Cards at every width (Adrian 2026-10-24): the 920 shell wrapped table titles to
               // three lines.
-              <CardList as="div">
+              <ItemList as="div">
                 {shown.map((j) => (
                   <JobListCard key={j.url} job={j} />
                 ))}
-              </CardList>
+              </ItemList>
             )}
           </Panel>
         )}

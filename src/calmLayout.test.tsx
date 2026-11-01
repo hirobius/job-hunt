@@ -3,8 +3,10 @@
 //   mock), named by BRAND (an image, not a heading: #363).
 // - The Pipeline is panels (rev-3 mock): To apply, Follow up and Jobs are HDS Cards with a count
 //   Badge; no tinted banner boxes.
-// - Lists are cards, not hairlines (Adrian 2026-10-23): the Documents library and the Pipeline's
-//   phone jobs are one HDS Card per item, 8 apart (desktop tables stay tables).
+// - No cards within cards, ever (Adrian 2026-11-01, #449; replaced "lists are cards", 2026-10-23):
+//   one card level max. A list inside a panel is rows in the panel's flow, split by spacing and
+//   hairlines (`ItemList` / `ItemRow`), never a Card per item. Review new on Today has no card at
+//   all: its heading, count and metadata declare the group.
 // - Rev-3 rhythm: the Pipeline's panels stack 24 apart.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -46,6 +48,15 @@ function viewport(width: number) {
     };
   });
 }
+
+/** An HDS Card root carries data-padding and data-variant. */
+const CARD = '[data-padding][data-variant]';
+const isCard = (el: Element) => el.matches(CARD);
+/** Every Card that sits inside another Card: Adrian's rule is one card level max (#449). */
+const nestedCards = (root: Element) =>
+  Array.from(root.querySelectorAll(CARD))
+    .filter((c) => c.parentElement?.closest(CARD))
+    .map((c) => c.getAttribute('aria-label') ?? c.textContent?.slice(0, 40));
 
 /** Callout is a tinted bg-muted box. */
 const tintedBoxesIn = (el: Element) => el.querySelectorAll('.bg-muted[data-tone]');
@@ -107,31 +118,55 @@ describe('Pipeline panels (rev-3)', () => {
     expect(toApply.parentElement).toHaveAttribute('data-hds-metrics', 'gap:px24');
   });
 
-  it('the Documents library is a card per document, 8 apart, no hairlines (Adrian 2026-10-23)', async () => {
+  it('the Documents library is rows in its panel, not a card per document (#449)', async () => {
     viewport(1440);
     addStarterMessages(); // a clean first run has none (Adrian 2026-10-22)
     window.location.hash = '#/copy-deck';
-    renderApp();
+    const { container } = renderApp();
     const outreach = await screen.findByRole('region', { name: 'Outreach messages' });
     await waitFor(() =>
       expect(within(outreach).getAllByRole('listitem').length).toBeGreaterThan(0),
     );
     const items = within(outreach).getAllByRole('listitem');
-    for (const li of items) expect(li).toHaveAttribute('data-variant', 'default');
-    expect(items[0].parentElement).toHaveClass('rjb-cards');
+    for (const li of items) expect(isCard(li)).toBe(false);
+    expect(items[0].parentElement).toHaveClass('rjb-items');
+    expect(nestedCards(container)).toEqual([]);
   });
 
-  it('the Pipeline on a phone is a card per job in a card list', async () => {
+  it('the Pipeline on a phone is job rows in the Jobs panel, never cards in a card (#449)', async () => {
     viewport(390);
     loadSample();
     window.location.hash = '#/queue';
-    renderApp();
+    const { container } = renderApp();
     const jobs = await screen.findByRole('region', { name: /^Jobs$/ });
-    const cards = within(jobs).getAllByRole('article');
-    expect(cards.length).toBeGreaterThan(1);
-    for (const c of cards) {
-      expect(c).toHaveAttribute('data-variant', 'default');
-      expect(c.parentElement).toHaveClass('rjb-cards');
+    const rows = within(jobs).getAllByRole('article');
+    expect(rows.length).toBeGreaterThan(1);
+    for (const r of rows) {
+      expect(isCard(r)).toBe(false);
+      expect(r.closest('.rjb-items')).not.toBeNull();
     }
+    expect(nestedCards(container)).toEqual([]);
+  });
+
+  it('the Pipeline on desktop has no card inside a card (#449)', async () => {
+    viewport(1440);
+    loadSample();
+    window.location.hash = '#/queue';
+    const { container } = renderApp();
+    await screen.findByRole('region', { name: /^Jobs$/ });
+    expect(nestedCards(container)).toEqual([]);
+  });
+});
+
+describe('Today: no cards within cards (#449)', () => {
+  it('Review new is a plain section (heading + count), not a card', async () => {
+    viewport(390);
+    window.location.hash = '#/today';
+    const { container } = renderApp();
+    const review = await screen.findByRole('region', { name: /^Review new/ });
+    expect(isCard(review)).toBe(false);
+    expect(review.closest('[data-padding][data-variant]')).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Review new' })).toBeInTheDocument();
+    expect(nestedCards(container)).toEqual([]);
   });
 });
