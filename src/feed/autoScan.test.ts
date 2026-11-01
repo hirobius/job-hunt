@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  BOARD_FRESH_MS,
   MAX_PROBES_PER_SCAN,
   RUN_LEASE_MS,
   SCAN_EVERY_MS,
@@ -351,6 +352,73 @@ describe('scanReader', () => {
       ['lever:x:1', false],
       ['hn:2', true],
     ]);
+  });
+});
+
+describe('Instant scan (#448)', () => {
+  const BETA_BOARD = 'https://boards.greenhouse.io/beta';
+  const acme1 = posting({ id: 'greenhouse:acme:1', title: 'Design Systems Engineer' });
+  const beta1 = posting({ id: 'greenhouse:beta:1', title: 'Design Systems Lead' });
+  const both = { ...input, boardUrls: [ACME_BOARD, BETA_BOARD] };
+
+  it('skips boards read within BOARD_FRESH_MS and keeps their stored postings', async () => {
+    const first = reader({ [ACME_BOARD]: [acme1], [BETA_BOARD]: [beta1] });
+    await runScan(both, deps({ reader: first.r }));
+    const again = reader({ [ACME_BOARD]: [], [BETA_BOARD]: [] });
+    const later = NOW + BOARD_FRESH_MS - 1;
+    await runScan(both, deps({ reader: again.r, now: () => later }));
+    expect(again.calls[0].boardUrls).toEqual([]);
+    expect(
+      getScanPostings()
+        .map((p) => p.id)
+        .sort(),
+    ).toEqual([acme1.id, beta1.id]);
+  });
+
+  it('reads a board again once it is stale', async () => {
+    await runScan(both, deps({ reader: reader({ [ACME_BOARD]: [acme1] }).r }));
+    const again = reader({});
+    await runScan(both, deps({ reader: again.r, now: () => NOW + BOARD_FRESH_MS }));
+    expect(again.calls[0].boardUrls).toEqual([ACME_BOARD, BETA_BOARD]);
+  });
+
+  it('Scan now (force) reads every board even when fresh', async () => {
+    await runScan(both, deps({ reader: reader({ [ACME_BOARD]: [acme1] }).r }));
+    const again = reader({});
+    await runScan(both, deps({ reader: again.r, now: () => NOW + 1 }), { force: true });
+    expect(again.calls[0].boardUrls).toEqual([ACME_BOARD, BETA_BOARD]);
+  });
+
+  it('a board that failed is not marked fresh', async () => {
+    const failing: PostingReader = {
+      read: async (req) => ({
+        postings: [],
+        sources: req.boardUrls.map((u) => ({ key: u, label: u, fetched: 0, error: 'down' })),
+      }),
+    };
+    await runScan(both, deps({ reader: failing }));
+    const again = reader({});
+    await runScan(both, deps({ reader: again.r, now: () => NOW + 1 }));
+    expect(again.calls[0].boardUrls).toEqual([ACME_BOARD, BETA_BOARD]);
+  });
+
+  it('scanReader shows the cached scan rows before the live read answers', async () => {
+    await runScan(input, deps({ reader: reader({}, [acme1]).r }));
+    let release!: () => void;
+    const slow: PostingReader = {
+      read: () =>
+        new Promise((r) => {
+          release = () => r({ postings: [], sources: [] });
+        }),
+    };
+    const seen: string[][] = [];
+    const done = scanReader(slow).read({ terms: ['x'], boardUrls: [] }, (p) =>
+      seen.push(p.postings.map((x) => x.id)),
+    );
+    await Promise.resolve();
+    expect(seen[0]).toEqual([acme1.id]);
+    release();
+    expect((await done).postings.map((p) => p.id)).toEqual([acme1.id]);
   });
 });
 

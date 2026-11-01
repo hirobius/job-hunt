@@ -78,7 +78,7 @@ export function ScanStatus({
           size="sm"
           variant="secondary"
           iconLeft={<Icon icon={RefreshCw} />}
-          onClick={() => void scanNow(input)}
+          onClick={() => void scanNow(input, undefined, { force: true })}
         >
           Scan now
         </Button>

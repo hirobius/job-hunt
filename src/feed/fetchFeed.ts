@@ -21,7 +21,10 @@ const SOCIAL = { bluesky: fetchBluesky, mastodon: fetchMastodon } as const;
 /** Boards read at once — polite to the ATSs and kind to a phone's connection. There is no cap on
  *  how many boards a search reads (Adrian, 2026-10-15): every distinct watched board is read, this
  *  many at a time, and results appear as each one answers (see `onProgress`). */
-export const BOARD_CONCURRENCY = 6;
+export const BOARD_CONCURRENCY = 16;
+/** At most this many board reads on one host at once (#448): what one ATS host already saw before
+ *  BOARD_CONCURRENCY went up from 6, so mixed boards read faster and no host is asked harder. */
+export const BOARD_PER_HOST = 6;
 /** Re-use a response for this long. Sources update a few times a day. In-memory only — board
  *  payloads are far too big for browser storage. (Remotive has its own, stricter budget below.) */
 const CACHE_TTL_MS = 60 * 60 * 1000;
@@ -226,6 +229,7 @@ export async function settleAll<T>(
   thunks: (() => Promise<T>)[],
   limited: (i: number) => boolean,
   onSettled?: (i: number, result: PromiseSettledResult<T>) => void,
+  hostOf: (i: number) => string = () => '',
 ): Promise<PromiseSettledResult<T>[]> {
   const out: PromiseSettledResult<T>[] = new Array(thunks.length);
   const run = async (i: number) => {
@@ -237,8 +241,28 @@ export async function settleAll<T>(
     onSettled?.(i, out[i]);
   };
   const queue = thunks.map((_, i) => i).filter(limited);
-  const worker = async () => {
-    for (let i = queue.shift(); i !== undefined; i = queue.shift()) await run(i);
+  const busy = new Map<string, number>();
+  let wake: (() => void)[] = [];
+  // The next queued task whose host has room, else undefined (the worker waits for one to free).
+  const take = (): number | undefined => {
+    const at = queue.findIndex((i) => (busy.get(hostOf(i)) ?? 0) < BOARD_PER_HOST);
+    return at < 0 ? undefined : queue.splice(at, 1)[0];
+  };
+  const worker = async (): Promise<void> => {
+    while (queue.length) {
+      const i = take();
+      if (i === undefined) {
+        await new Promise<void>((r) => wake.push(r));
+        continue;
+      }
+      const h = hostOf(i);
+      busy.set(h, (busy.get(h) ?? 0) + 1);
+      await run(i);
+      busy.set(h, busy.get(h)! - 1);
+      const w = wake;
+      wake = [];
+      w.forEach((f) => f());
+    }
   };
   await Promise.all([
     ...thunks
@@ -432,6 +456,7 @@ export async function fetchFeed(
       results[i] = r;
       req.onProgress?.(snapshot());
     },
+    (i) => tasks[i].board?.kind ?? '',
   );
   const postings: Posting[] = [];
   const have = new Set<string>();
