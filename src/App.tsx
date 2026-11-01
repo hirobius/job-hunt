@@ -295,11 +295,7 @@ export default function App() {
                       <BrandLogo fontSize={19} />
                       <AccountMenu />
                     </Stack>
-                    <TabsList
-                      style={{ marginBottom: 0 }}
-                      className="rjb-top-tabs"
-                      aria-label="Sections"
-                    >
+                    <TabsList className="rjb-top-tabs" aria-label="Sections">
                       <TabsTrigger value="today" {...trigger('today')}>
                         Today
                       </TabsTrigger>

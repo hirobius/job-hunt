@@ -349,11 +349,31 @@ p {
  * wide as the label, and no tinted box on the selected tab. The 40px phone height stays. */
 .rjb-top-tabs {
   gap: var(--semantic-space-fixed-md);
+  /* Room for the focus ring (2px outline, 2px out) inside the row's scroll box, which clips it;
+   * the negative margin keeps the labels flush with the gutter and the rhythm
+   * (it also replaces TabsList's mb-6: the shell owns the space under the row) (#447). */
+  height: auto;
+  padding: var(--primitive-space-1);
+  margin: calc(-1 * var(--primitive-space-1));
+}
+
+/* On a phone HDS raises TabsList's h-10 to 44px around the 40px tabs: keep that row height. */
+@media (max-width: 639px) {
+  .rjb-top-tabs {
+    margin-block: calc(-0.5 * var(--primitive-space-1));
+  }
 }
 
 .rjb-top-tabs [role='tab'] {
   padding-inline: 0;
   background: transparent;
+}
+
+/* One focus ring on a tab (#447): the focus outline above already rings it, outside the box, so
+ * HDS's inset ring (a box-shadow) drew a second, offset one that ran over the label once the top
+ * tabs lost their inline padding. Drop the inset ring. */
+[data-hds] [role='tab']:focus-visible {
+  box-shadow: none;
 }
 
 /* Phone form fields at 16px: compact density sets them to 13px and iOS Safari zooms the page on
