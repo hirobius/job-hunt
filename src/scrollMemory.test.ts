@@ -56,6 +56,26 @@ describe('scroll memory', () => {
     await waitFor(() => expect(isRestoring()).toBe(false), { timeout: 2000 });
   });
 
+  // E2E flake (return-paths, a list → a job → browser Back): the job page's scroll to its top was
+  // dispatched after the URL had already gone back but before its hashchange, and was saved as the
+  // list's position, so the list came back at its top.
+  it("a scroll between the URL changing and its hashchange is not saved as the new page's", async () => {
+    window.location.hash = '#/queue';
+    await new Promise((r) => setTimeout(r, 10));
+    height = 9000;
+    await scrollBy(6200);
+    window.location.hash = '#/queue/abc';
+    await new Promise((r) => setTimeout(r, 10));
+    // Back: the URL is the list's at once, the hashchange comes a task later. The job page's
+    // scroll to its top lands in between.
+    window.location.hash = '#/queue';
+    y = 0;
+    window.dispatchEvent(new Event('scroll'));
+    await new Promise((r) => setTimeout(r, 10));
+    requestScrollRestore('#/queue');
+    await waitFor(() => expect(y).toBe(6200));
+  });
+
   it('holds the position while the page is still settling (rows loading above it)', async () => {
     window.location.hash = '#/copy-deck';
     await new Promise((r) => setTimeout(r, 10));
